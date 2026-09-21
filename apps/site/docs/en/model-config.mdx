@@ -86,11 +86,29 @@ These settings apply to the standard `aiAct` planner. Both default to enabled, i
 
 Both accept `true`/`false` or `1`/`0` (case-insensitive). Values are read once at the start of each `aiAct` call, before Auto classification; invalid values and explicit use with custom planning adapters throw an error. Original model responses and action records remain in reports. Error feedback and action outputs needed by the next planning step remain available when log is disabled.
 
-DeepThink continues to control sub-goals; it no longer enables or disables memory or log. The existing Locate strategy, screenshot history limits, and other planning rules are unchanged. In particular, `MIDSCENE_PLANNING_SEPARATE_LOCATE` continues to control independent Locate calls.
+DeepThink continues to control sub-goals; it no longer enables or disables memory or log. The default Locate strategy remains unchanged. In particular, `MIDSCENE_PLANNING_SEPARATE_LOCATE` continues to control independent Locate calls.
 
 ```ini
 MIDSCENE_PLANNING_MEMORY=true
 MIDSCENE_PLANNING_LOG=false
+```
+
+### Task scope and planning screenshots
+
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_PLANNING_TASK_SCOPE` | `true` (default) includes the existing task-scope guidance about exact instructions, intermediate states, and avoiding extra actions. `false` omits those passages, without removing the user instruction or other completion rules. Accepts `true`/`false` or `1`/`0` (case-insensitive). |
+| `MIDSCENE_PLANNING_SCREENSHOT_COUNT` | A positive safe integer limiting execution screenshots per Planning request, including the current screenshot. `1` means current only; `2` means current plus the most recent historical screenshot. Reference images are separate. Fewer images are sent when history is unavailable; older images may already have been removed by history compression. |
+
+Both settings are captured once before Auto classification and apply only to the standard planner. Invalid values and explicit use with custom planning adapters throw an error. An unset or empty screenshot count preserves the existing limit: two for DeepThink, one otherwise. An explicit count overrides that limit in every mode. Plan records include the effective task-scope flag and screenshot limit.
+
+All standard planning modes allow navigation needed to fulfill the task, while respecting explicit instructions to stay on the current page. Disabling TaskScope does not grant permission for unrequested actions.
+
+Auto defaults to enabling DeepThink and disables it only when the task clearly does not need explicit sub-goal tracking. The task description is the primary evidence, user context supplements it, and screenshots are secondary. Known values or independent edits do not by themselves justify disabling it: forms and repeated edits can still require coverage and constraint tracking. Uncertainty keeps DeepThink enabled. This remains a single decision at task start, not runtime switching or a change to model-native reasoning.
+
+```ini
+MIDSCENE_PLANNING_TASK_SCOPE=true
+MIDSCENE_PLANNING_SCREENSHOT_COUNT=2
 ```
 
 ### Model-native thinking {#model-native-reasoning}

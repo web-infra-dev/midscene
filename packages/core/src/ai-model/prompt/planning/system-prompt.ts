@@ -16,6 +16,7 @@ type BuildStandardPlanningSystemPromptInput = {
   includeSubGoals?: boolean;
   includeThought?: boolean;
   includeLog?: boolean;
+  includeTaskScope?: boolean;
   includeMemory?: boolean;
   planningProtocol: StandardPlanningProtocol;
 } & (
@@ -40,6 +41,7 @@ export async function buildStandardPlanningSystemPrompt(
     includeThought = true,
     includeLog = true,
     includeMemory = true,
+    includeTaskScope = true,
     planningProtocol,
   } = input;
   const actionOutputProtocol = planningProtocol.actionOutputProtocol;
@@ -68,6 +70,9 @@ export async function buildStandardPlanningSystemPrompt(
     includeThought ? content : fallbackContent;
   const renderLogContent = (content: string, fallbackContent = '') =>
     includeLog ? content : fallbackContent;
+
+  const renderTaskScopeContent = (content: string, fallbackContent = '') =>
+    includeTaskScope ? content : fallbackContent;
 
   const renderMemoryContent = (content: string) =>
     includeMemory ? content : '';
@@ -105,7 +110,7 @@ Include your planning details in the <planning> tag. It should answer: ${renderS
   'What is the current state based on the screenshot? What should be the next action?',
 )} Write it naturally without numbering or section headers.
 
-CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`)}
+${renderTaskScopeContent(`CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`)}`)}
 
 ${renderSubGoalsContent(`### <update-plan-content> tag
 
@@ -186,7 +191,7 @@ Don't use this tag if no information needs to be preserved.`)}
 
 Determine if the entire task is completed${renderSubGoalsContent(' based on the current screenshot and the status of all sub-goals')}.
 
-### CRITICAL: The User's Instruction is the Supreme Authority
+${renderTaskScopeContent(`### CRITICAL: The User's Instruction is the Supreme Authority
 
 The user's instruction defines the EXACT scope of what you must accomplish. You MUST follow it precisely - nothing more, nothing less. Violating this rule may cause severe consequences such as data loss, unintended operations, or system failures.
 
@@ -202,11 +207,11 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - "fill out the form" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when all fields are filled. Do NOT submit the form.
 - "click the login button" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} once clicked. Do NOT wait for page load or verify login success.
 - "type 'hello' in the search box" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when 'hello' is typed. Do NOT press Enter or trigger search.
-- "select the first item" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when selected. Do NOT proceed to checkout.
+- "select the first item" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when selected. Do NOT proceed to checkout.`)}
 
 **Change completion:**
 - If the requested outcome is a durable change, such as create, edit, update, delete, save, send, submit, apply, or publish, do not stop at an unsaved draft, open editor, temporary input, transient selection, or staged value. Continue through the app/page's normal completion control such as Save, Done, Confirm, OK, Submit, Apply, Send, or Publish before completing, so the result remains after leaving the screen.
-- If the user only asks for an intermediate UI state, such as typing text, selecting an option, filling fields, or opening a screen without saving/submitting/applying, stop once that exact state is reached.
+${renderTaskScopeContent('- If the user only asks for an intermediate UI state, such as typing text, selecting an option, filling fields, or opening a screen without saving/submitting/applying, stop once that exact state is reached.')}
 
 **Special case - Scrollable option lists and dropdowns:**
 - When choosing an item from a scrollable select, dropdown, listbox, menu, or similar option list, first open the control if it is closed. Once the list is open, interact with the list itself, not the page.
@@ -222,7 +227,7 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.
 - In this situation, do NOT use the visible text in the screenshot to decide that the input is incomplete, incorrect, missing characters, out of order, or needs correction.
 - Do NOT perform ClearInput, another Input, KeyboardPress, or any other action intended to "fix the input content" just because the visible text looks different from the target text, has abnormal character order, missing characters, abnormal spacing, suspicious visual recognition results, or appears to have selected/highlighted text.
-- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.
+${renderTaskScopeContent('- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.', '- Do not re-validate the visible text in the screenshot after the input action.')}
 - Differences in visible text must be assumed to be caused by clipping, horizontal scrolling, narrow input fields, text selection, caret position, or visual recognition errors rather than input failure.
 - Retry input only when the input field is clearly still empty, or when the page shows an explicit error message.
 
@@ -240,13 +245,8 @@ You may output <complete success="true"> only when the current execution history
 
 If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 
-${renderSubGoalsContent(
-  '',
-  `**Page navigation restriction:**
-- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
-- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
-- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.`,
-)}
+**Page navigation:**
+- You may navigate between pages as needed to accomplish the user's instruction. Respect any explicit instruction to stay on a page or avoid navigation.
 
 ### Output Rules
 
@@ -260,7 +260,7 @@ ${renderSubGoalsContent(
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot${renderSubGoalsContent(' and the plan')}.
 
-- Don't give extra actions or plans beyond the instruction or the plan. For example, don't try to submit the form if the instruction is only to fill something.
+${renderTaskScopeContent(`- Don't give extra actions or plans beyond the instruction or the plan. For example, don't try to submit the form if the instruction is only to fill something.`)}
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)

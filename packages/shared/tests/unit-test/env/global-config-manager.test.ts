@@ -7,7 +7,9 @@ import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_PLANNING_SCREENSHOT_COUNT,
   MIDSCENE_PLANNING_SEPARATE_LOCATE,
+  MIDSCENE_PLANNING_TASK_SCOPE,
   MIDSCENE_PREFERRED_LANGUAGE,
   ModelConfigManager,
   OPENAI_API_KEY,
@@ -41,6 +43,28 @@ describe('overrideAIConfig', () => {
       warn.mockRestore();
     }
   });
+
+  it.each([
+    { key: MIDSCENE_PLANNING_TASK_SCOPE, value: 'false', override: 'true' },
+    { key: MIDSCENE_PLANNING_SCREENSHOT_COUNT, value: '2', override: '3' },
+  ])(
+    'supports environment and config overrides for $key',
+    ({ key, value, override }) => {
+      const manager = new GlobalConfigManager();
+      manager.registerModelConfigManager(new ModelConfigManager());
+      rs.stubEnv(key, undefined);
+      expect(manager.getEnvConfigValue(key)).toBeUndefined();
+      rs.stubEnv(key, value);
+      expect(manager.getEnvConfigValue(key)).toBe(value);
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        manager.overrideAIConfig({ [key]: override });
+        expect(manager.getEnvConfigValue(key)).toBe(override);
+      } finally {
+        warn.mockRestore();
+      }
+    },
+  );
 
   it('should throw if called with invalid key', () => {
     const globalConfigManager = new GlobalConfigManager();

@@ -198,7 +198,7 @@ await agent.aiAct('完成 github 账号注册的表单填写。地区必须选�
 
 `deepThink` 支持 `'unset' | 'auto' | true | false`。`'unset'` 是兼容旧写法的取值，与 `false` 的行为相同。
 
-设置 `deepThink: 'auto'` 时，Midscene 会在开始规划前额外调用一次当前配置的 Planning 模型，根据任务、最终生效的用户 context、初始截图和参考图片，判断是否开启深度思考。选定的模式在本次 `aiAct` 中保持不变。目标和值明确的直接操作倾向于普通规划；需要追踪依赖目标、跨页面记忆、比较信息或处理条件分支的任务倾向于深度思考。
+设置 `deepThink: 'auto'` 时，Midscene 会在开始规划前额外调用一次当前配置的 Planning 模型。判断以任务描述为主，最终生效的用户 context 作补充，初始截图和参考图片只作辅助。Auto 默认开启深度思考，只有明确判断任务无需显式子目标跟踪时才关闭；有疑问就保持开启。字段值已知或各项修改独立，本身不足以说明复杂表单或多对象任务无需跟踪。选定的模式在本次 `aiAct` 中保持不变。
 
 报告会单独记录 `Planning / DeepThink` 步骤，包含判断结果、理由、token 用量和耗时，不占用 replanning 次数。命中可执行的计划缓存时跳过判断；缓存执行失败而回退到规划时，会先执行判断。判断结果无效或模型请求失败时，本次调用报错，不会静默选择模式。`auto` 仅支持标准 Planning 适配器，不支持 UI-TARS、AutoGLM 等自定义 Planner。显式设置的实验性 `effort` 仍优先于 `deepThink`。
 
@@ -217,11 +217,13 @@ await agent.aiAct('比较可选套餐，选择满足我要求的一款', {
 | 未设置 / 空值 | 保留默认行为：DeepThink 分开定位；普通规划仅在使用默认模型时合并定位。 |
 
 ```bash
-# 子目标和 memory 仍由 deepThink 控制，规划与定位合并调用。
+# 规划与定位合并调用，不改变子目标和 memory 的配置。
 export MIDSCENE_PLANNING_SEPARATE_LOCATE=false
 ```
 
 覆盖值在开始规划前读取一次，包括在 `auto` 判断之前，本次调用期间保持不变。报告记录请求的 `separateLocate` 覆盖值和实际的 `includeLocateInPlanning`。非法取值或对自定义 Planning 适配器显式设置此开关，会在模型推理前报错。强制合并要求 Planning 模型配置有支持坐标格式的 family（`MIDSCENE_PLANNING_MODEL_FAMILY`，使用默认模型时为 `MIDSCENE_MODEL_FAMILY`）；缺少支持时明确报错，不会静默回退。命中可执行计划缓存仍会跳过规划。此开关不改变子目标、memory、截图历史或独立的 `deepLocate` 定位增强。
+
+TaskScope 可通过 `MIDSCENE_PLANNING_TASK_SCOPE` 独立控制；`MIDSCENE_PLANNING_SCREENSHOT_COUNT` 显式覆盖截图数量，不受 DeepThink 影响。所有标准模式都允许必要导航，并遵守用户明确提出的限制。默认值与校验规则见[Planning 配置](../model-config)。
 
 `deepThink` 不控制模型原生思考。相关环境变量请参考[模型原生思考](../model-config#model-native-reasoning)。
 

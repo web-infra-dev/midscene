@@ -402,6 +402,8 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
+Action execution results describe what the executor attempted and whether it returned successfully, failed, or did not run. A successful return is not proof that the requested UI state was reached. Failed actions may have partial effects. Use the current screenshot and available feedback to assess the requested outcome. Do not treat an earlier <log> preamble as evidence of completion.
+
 
 
 ### <planning> tag (REQUIRED)
@@ -416,9 +418,24 @@ CRITICAL - Following Explicit Instructions: When the user gives you specific ope
 
 
 
+## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
+Use <memory> to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
 
-## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
+- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
+- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
+- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
+- Do not record an intended action's expected effect as an observed fact solely because the action returned successfully.
+- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
+
+Examples:
+- If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.
+- If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.
+- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.
+
+Don't use this tag if no information needs to be preserved.
+
+## Step 3: Check if the Instruction is Fulfilled (related tags: <complete>)
 
 Determine if the entire task is completed.
 
@@ -476,20 +493,18 @@ You may output <complete success="true"> only when the current execution history
 
 If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 
-**Page navigation restriction:**
-- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
-- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
-- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.
+**Page navigation:**
+- You may navigate between pages as needed to accomplish the user's instruction. Respect any explicit instruction to stay on a page or avoid navigation.
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 3.
+- If the task is NOT complete, skip this section and continue to Step 4.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
-## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -627,6 +642,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
 
 The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
+- Describe the intended next action, not an unverified outcome. Execution results are recorded separately after the action runs.
 - **Use English**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
@@ -676,13 +692,15 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
 
+<!-- Step 2: Memory data from current screenshot if needed -->
+<memory>...</memory>
 
 **Then choose ONE of the following paths:**
 
-**Path A: If the instruction is fulfilled or failed (Step 2)**
+**Path A: If the instruction is fulfilled or failed (Step 3)**
 <complete success="true|false">...</complete>
 
-**Path B: If the instruction is NOT fulfilled yet (Step 3)**
+**Path B: If the instruction is NOT fulfilled yet (Step 4)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -749,6 +767,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
+<memory>Name field has been filled with 'John'</memory>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
 <action-param-json>
@@ -804,6 +823,8 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
+Action execution results describe what the executor attempted and whether it returned successfully, failed, or did not run. A successful return is not proof that the requested UI state was reached. Failed actions may have partial effects. Use the current screenshot and available feedback to assess the requested outcome. Do not treat an earlier <log> preamble as evidence of completion.
+
 
 
 ### <planning> tag (REQUIRED)
@@ -818,9 +839,24 @@ CRITICAL - Following Explicit Instructions: When the user gives you specific ope
 
 
 
+## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
+Use <memory> to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
 
-## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
+- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
+- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
+- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
+- Do not record an intended action's expected effect as an observed fact solely because the action returned successfully.
+- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
+
+Examples:
+- If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.
+- If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.
+- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.
+
+Don't use this tag if no information needs to be preserved.
+
+## Step 3: Check if the Instruction is Fulfilled (related tags: <complete>)
 
 Determine if the entire task is completed.
 
@@ -878,20 +914,18 @@ You may output <complete success="true"> only when the current execution history
 
 If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 
-**Page navigation restriction:**
-- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
-- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
-- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.
+**Page navigation:**
+- You may navigate between pages as needed to accomplish the user's instruction. Respect any explicit instruction to stay on a page or avoid navigation.
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 3.
+- If the task is NOT complete, skip this section and continue to Step 4.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
-## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -1018,6 +1052,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
 
 The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
+- Describe the intended next action, not an unverified outcome. Execution results are recorded separately after the action runs.
 - **Use English**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
@@ -1066,13 +1101,15 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
 
+<!-- Step 2: Memory data from current screenshot if needed -->
+<memory>...</memory>
 
 **Then choose ONE of the following paths:**
 
-**Path A: If the instruction is fulfilled or failed (Step 2)**
+**Path A: If the instruction is fulfilled or failed (Step 3)**
 <complete success="true|false">...</complete>
 
-**Path B: If the instruction is NOT fulfilled yet (Step 3)**
+**Path B: If the instruction is NOT fulfilled yet (Step 4)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -1138,6 +1175,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
+<memory>Name field has been filled with 'John'</memory>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1192,6 +1230,7 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
+Action execution results describe what the executor attempted and whether it returned successfully, failed, or did not run. A successful return is not proof that the requested UI state was reached. Failed actions may have partial effects. Use the current screenshot and available feedback to assess the requested outcome.
 
 
 
@@ -1199,8 +1238,24 @@ First, observe the current screenshot and previous logs to understand the curren
 
 
 
+## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
-## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
+Use <memory> to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
+
+- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
+- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
+- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
+- Do not record an intended action's expected effect as an observed fact solely because the action returned successfully.
+- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
+
+Examples:
+- If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.
+- If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.
+- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.
+
+Don't use this tag if no information needs to be preserved.
+
+## Step 3: Check if the Instruction is Fulfilled (related tags: <complete>)
 
 Determine if the entire task is completed.
 
@@ -1258,20 +1313,18 @@ You may output <complete success="true"> only when the current execution history
 
 If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 
-**Page navigation restriction:**
-- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
-- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
-- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.
+**Page navigation:**
+- You may navigate between pages as needed to accomplish the user's instruction. Respect any explicit instruction to stay on a page or avoid navigation.
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 3.
+- If the task is NOT complete, skip this section and continue to Step 4.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
-## Step 3: Determine Next Action (related tags: <action-type>, <action-param-json>, <error>)
+## Step 4: Determine Next Action (related tags: <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -1431,13 +1484,15 @@ Return in XML format following this decision flow:
 
 
 
+<!-- Step 2: Memory data from current screenshot if needed -->
+<memory>...</memory>
 
 **Then choose ONE of the following paths:**
 
-**Path A: If the instruction is fulfilled or failed (Step 2)**
+**Path A: If the instruction is fulfilled or failed (Step 3)**
 <complete success="true|false">...</complete>
 
-**Path B: If the instruction is NOT fulfilled yet (Step 3)**
+**Path B: If the instruction is NOT fulfilled yet (Step 4)**
 <!-- Determine next action -->
 
 <action-type>...</action-type>
@@ -1498,6 +1553,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 
 **Your response:**
 
+<memory>Name field has been filled with 'John'</memory>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -1548,6 +1604,8 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
+Action execution results describe what the executor attempted and whether it returned successfully, failed, or did not run. A successful return is not proof that the requested UI state was reached. Failed actions may have partial effects. Use the current screenshot and available feedback to assess the requested outcome. Do not treat an earlier <log> preamble as evidence of completion.
+
 
 
 ### <planning> tag (REQUIRED)
@@ -1562,9 +1620,24 @@ CRITICAL - Following Explicit Instructions: When the user gives you specific ope
 
 
 
+## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
+Use <memory> to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
 
-## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
+- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
+- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
+- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
+- Do not record an intended action's expected effect as an observed fact solely because the action returned successfully.
+- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
+
+Examples:
+- If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.
+- If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.
+- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.
+
+Don't use this tag if no information needs to be preserved.
+
+## Step 3: Check if the Instruction is Fulfilled (related tags: <complete>)
 
 Determine if the entire task is completed.
 
@@ -1622,20 +1695,18 @@ You may output <complete success="true"> only when the current execution history
 
 If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 
-**Page navigation restriction:**
-- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
-- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
-- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.
+**Page navigation:**
+- You may navigate between pages as needed to accomplish the user's instruction. Respect any explicit instruction to stay on a page or avoid navigation.
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 3.
+- If the task is NOT complete, skip this section and continue to Step 4.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
-## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -1773,6 +1844,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
 
 The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
+- Describe the intended next action, not an unverified outcome. Execution results are recorded separately after the action runs.
 - **Use English**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
@@ -1822,13 +1894,15 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
 
+<!-- Step 2: Memory data from current screenshot if needed -->
+<memory>...</memory>
 
 **Then choose ONE of the following paths:**
 
-**Path A: If the instruction is fulfilled or failed (Step 2)**
+**Path A: If the instruction is fulfilled or failed (Step 3)**
 <complete success="true|false">...</complete>
 
-**Path B: If the instruction is NOT fulfilled yet (Step 3)**
+**Path B: If the instruction is NOT fulfilled yet (Step 4)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -1895,6 +1969,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
+<memory>Name field has been filled with 'John'</memory>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1949,6 +2024,8 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 ## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)
 
 First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+
+Action execution results describe what the executor attempted and whether it returned successfully, failed, or did not run. A successful return is not proof that the requested UI state was reached. Failed actions may have partial effects. Use the current screenshot and available feedback to assess the requested outcome. Do not treat an earlier <log> preamble as evidence of completion.
 
 ### Observation Guidelines
 
@@ -2027,6 +2104,7 @@ Use <memory> to record clear, task-relevant information from the current screens
 - Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
 - When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
 - Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
+- Do not record an intended action's expected effect as an observed fact solely because the action returned successfully.
 - After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
 
 Examples:
@@ -2094,7 +2172,8 @@ You may output <complete success="true"> only when the current execution history
 
 If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 
-
+**Page navigation:**
+- You may navigate between pages as needed to accomplish the user's instruction. Respect any explicit instruction to stay on a page or avoid navigation.
 
 ### Output Rules
 
@@ -2231,6 +2310,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
 
 The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
+- Describe the intended next action, not an unverified outcome. Execution results are recorded separately after the action runs.
 - **Use English**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
@@ -2285,7 +2365,6 @@ Return in XML format following this decision flow:
 <mark-sub-goal-done>
   <sub-goal index="1" status="finished" />
 </mark-sub-goal-done>
-
 <!-- Step 2: Memory data from current screenshot if needed -->
 <memory>...</memory>
 
@@ -2453,6 +2532,8 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
+Action execution results describe what the executor attempted and whether it returned successfully, failed, or did not run. A successful return is not proof that the requested UI state was reached. Failed actions may have partial effects. Use the current screenshot and available feedback to assess the requested outcome. Do not treat an earlier <log> preamble as evidence of completion.
+
 
 
 ### <planning> tag (REQUIRED)
@@ -2467,9 +2548,24 @@ CRITICAL - Following Explicit Instructions: When the user gives you specific ope
 
 
 
+## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
+Use <memory> to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
 
-## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
+- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
+- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
+- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
+- Do not record an intended action's expected effect as an observed fact solely because the action returned successfully.
+- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
+
+Examples:
+- If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.
+- If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.
+- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.
+
+Don't use this tag if no information needs to be preserved.
+
+## Step 3: Check if the Instruction is Fulfilled (related tags: <complete>)
 
 Determine if the entire task is completed.
 
@@ -2527,20 +2623,18 @@ You may output <complete success="true"> only when the current execution history
 
 If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 
-**Page navigation restriction:**
-- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
-- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
-- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.
+**Page navigation:**
+- You may navigate between pages as needed to accomplish the user's instruction. Respect any explicit instruction to stay on a page or avoid navigation.
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 3.
+- If the task is NOT complete, skip this section and continue to Step 4.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
-## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -2678,6 +2772,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
 
 The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
+- Describe the intended next action, not an unverified outcome. Execution results are recorded separately after the action runs.
 - **Use English**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
@@ -2727,13 +2822,15 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
 
+<!-- Step 2: Memory data from current screenshot if needed -->
+<memory>...</memory>
 
 **Then choose ONE of the following paths:**
 
-**Path A: If the instruction is fulfilled or failed (Step 2)**
+**Path A: If the instruction is fulfilled or failed (Step 3)**
 <complete success="true|false">...</complete>
 
-**Path B: If the instruction is NOT fulfilled yet (Step 3)**
+**Path B: If the instruction is NOT fulfilled yet (Step 4)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -2800,6 +2897,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
+<memory>Name field has been filled with 'John'</memory>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
 <action-param-json>
@@ -2855,6 +2953,8 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
+Action execution results describe what the executor attempted and whether it returned successfully, failed, or did not run. A successful return is not proof that the requested UI state was reached. Failed actions may have partial effects. Use the current screenshot and available feedback to assess the requested outcome. Do not treat an earlier <log> preamble as evidence of completion.
+
 
 
 ### <planning> tag (REQUIRED)
@@ -2869,9 +2969,24 @@ CRITICAL - Following Explicit Instructions: When the user gives you specific ope
 
 
 
+## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
+Use <memory> to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
 
-## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
+- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
+- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
+- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
+- Do not record an intended action's expected effect as an observed fact solely because the action returned successfully.
+- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
+
+Examples:
+- If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.
+- If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.
+- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.
+
+Don't use this tag if no information needs to be preserved.
+
+## Step 3: Check if the Instruction is Fulfilled (related tags: <complete>)
 
 Determine if the entire task is completed.
 
@@ -2929,20 +3044,18 @@ You may output <complete success="true"> only when the current execution history
 
 If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 
-**Page navigation restriction:**
-- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
-- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
-- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.
+**Page navigation:**
+- You may navigate between pages as needed to accomplish the user's instruction. Respect any explicit instruction to stay on a page or avoid navigation.
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 3.
+- If the task is NOT complete, skip this section and continue to Step 4.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
-## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -3069,6 +3182,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
 
 The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
+- Describe the intended next action, not an unverified outcome. Execution results are recorded separately after the action runs.
 - **Use English**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
@@ -3117,13 +3231,15 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
 
+<!-- Step 2: Memory data from current screenshot if needed -->
+<memory>...</memory>
 
 **Then choose ONE of the following paths:**
 
-**Path A: If the instruction is fulfilled or failed (Step 2)**
+**Path A: If the instruction is fulfilled or failed (Step 3)**
 <complete success="true|false">...</complete>
 
-**Path B: If the instruction is NOT fulfilled yet (Step 3)**
+**Path B: If the instruction is NOT fulfilled yet (Step 4)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -3189,6 +3305,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
+<memory>Name field has been filled with 'John'</memory>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
 <action-param-json>

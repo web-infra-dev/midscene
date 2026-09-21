@@ -776,6 +776,7 @@ export interface ExecutionTaskPlanningParam {
   separateLocate?: boolean;
   includeMemory?: boolean;
   includeLog?: boolean;
+  includeTaskScope?: boolean;
   subGoalStatus?: string;
   memoriesStatus?: string;
 }

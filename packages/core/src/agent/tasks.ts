@@ -45,7 +45,9 @@ import { ServiceError, aiActProgressScope } from '@/types';
 import {
   MIDSCENE_PLANNING_LOG,
   MIDSCENE_PLANNING_MEMORY,
+  MIDSCENE_PLANNING_SCREENSHOT_COUNT,
   MIDSCENE_PLANNING_SEPARATE_LOCATE,
+  MIDSCENE_PLANNING_TASK_SCOPE,
   globalConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
@@ -457,7 +459,8 @@ export class TaskExecutor {
       key:
         | typeof MIDSCENE_PLANNING_SEPARATE_LOCATE
         | typeof MIDSCENE_PLANNING_MEMORY
-        | typeof MIDSCENE_PLANNING_LOG,
+        | typeof MIDSCENE_PLANNING_LOG
+        | typeof MIDSCENE_PLANNING_TASK_SCOPE,
     ) => {
       const value = globalConfigManager.getEnvConfigValue(key);
       if (!value) return undefined;
@@ -472,9 +475,33 @@ export class TaskExecutor {
     const separateLocate = readPlanningBoolean(
       MIDSCENE_PLANNING_SEPARATE_LOCATE,
     );
+    const screenshotCount = globalConfigManager.getEnvConfigValue(
+      MIDSCENE_PLANNING_SCREENSHOT_COUNT,
+    );
+    let imagesIncludeCount: number | undefined;
+    if (screenshotCount) {
+      imagesIncludeCount = Number(screenshotCount);
+      if (
+        !/^\d+$/.test(screenshotCount) ||
+        !Number.isSafeInteger(imagesIncludeCount) ||
+        imagesIncludeCount < 1
+      ) {
+        throw new Error(
+          `${MIDSCENE_PLANNING_SCREENSHOT_COUNT} must be a positive safe integer.`,
+        );
+      }
+      if (planningModel.adapter.planning.kind !== 'standard') {
+        throw new Error(
+          `${MIDSCENE_PLANNING_SCREENSHOT_COUNT} requires a standard planning adapter.`,
+        );
+      }
+    }
     const planningFeatures = {
       includeMemory: readPlanningBoolean(MIDSCENE_PLANNING_MEMORY) ?? true,
       includeLog: readPlanningBoolean(MIDSCENE_PLANNING_LOG) ?? true,
+      includeTaskScope:
+        readPlanningBoolean(MIDSCENE_PLANNING_TASK_SCOPE) ?? true,
+      imagesIncludeCount,
     };
     if (separateLocate !== undefined) {
       if (
@@ -552,7 +579,12 @@ export class TaskExecutor {
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
     separateLocate?: boolean,
-    planningFeatures = { includeMemory: true, includeLog: true },
+    planningFeatures: {
+      includeMemory: boolean;
+      includeLog: boolean;
+      includeTaskScope: boolean;
+      imagesIncludeCount?: number;
+    } = { includeMemory: true, includeLog: true, includeTaskScope: true },
   ): Promise<
     ExecutionResult<
       | {
@@ -694,7 +726,8 @@ export class TaskExecutor {
       separateLocate === undefined
         ? effort !== 'deepThink' && noIndividualLocateModel
         : !separateLocate;
-    const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
+    const imagesIncludeCount =
+      planningFeatures.imagesIncludeCount ?? (effort === 'deepThink' ? 2 : 1);
 
     debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
       effort,
@@ -732,10 +765,10 @@ export class TaskExecutor {
               : {}),
             replanningCycleLimit,
             aiActContext,
-            imagesIncludeCount,
             effort,
             includeLocateInPlanning,
             ...planningFeatures,
+            imagesIncludeCount,
             ...(separateLocate !== undefined ? { separateLocate } : {}),
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
@@ -780,8 +813,8 @@ export class TaskExecutor {
                 modelRuntime: planningModel,
                 conversationHistory,
                 includeLocateInPlanning,
-                imagesIncludeCount,
                 ...planningFeatures,
+                imagesIncludeCount,
                 effort,
                 abortSignal,
               });

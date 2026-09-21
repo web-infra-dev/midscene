@@ -29,7 +29,9 @@ import type { AIUsageInfo, UIContext } from '@/types';
 import {
   MIDSCENE_PLANNING_LOG,
   MIDSCENE_PLANNING_MEMORY,
+  MIDSCENE_PLANNING_SCREENSHOT_COUNT,
   MIDSCENE_PLANNING_SEPARATE_LOCATE,
+  MIDSCENE_PLANNING_TASK_SCOPE,
 } from '@midscene/shared/env';
 import { z } from 'zod';
 
@@ -82,6 +84,8 @@ describe('deepThink auto', () => {
     rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, undefined);
     rs.stubEnv(MIDSCENE_PLANNING_MEMORY, undefined);
     rs.stubEnv(MIDSCENE_PLANNING_LOG, undefined);
+    rs.stubEnv(MIDSCENE_PLANNING_TASK_SCOPE, undefined);
+    rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, undefined);
     rs.mocked(callAI).mockReset();
     rs.mocked(standardPlan).mockReset().mockResolvedValue(completedPlan);
   });
@@ -223,6 +227,7 @@ describe('deepThink auto', () => {
           effort: deepThink ? 'deepThink' : 'balance',
           includeMemory: true,
           includeLog: true,
+          includeTaskScope: true,
           includeLocateInPlanning: !deepThink,
           imagesIncludeCount: deepThink ? 2 : 1,
         });
@@ -318,22 +323,23 @@ describe('deepThink auto', () => {
     },
   );
 
-  it.each([MIDSCENE_PLANNING_MEMORY, MIDSCENE_PLANNING_LOG])(
-    'rejects explicit %s on custom planners',
-    async (key) => {
-      rs.stubEnv(key, 'false');
-      const { executor } = createExecutor();
-      const customModel = getModelRuntime({
-        ...model.config,
-        modelFamily: 'auto-glm',
-      });
-      await expect(executor.action('Task', customModel, model)).rejects.toThrow(
-        `${key} requires a standard planning adapter.`,
-      );
-      expect(callAI).not.toHaveBeenCalled();
-      expect(standardPlan).not.toHaveBeenCalled();
-    },
-  );
+  it.each([
+    MIDSCENE_PLANNING_MEMORY,
+    MIDSCENE_PLANNING_LOG,
+    MIDSCENE_PLANNING_TASK_SCOPE,
+  ])('rejects explicit %s on custom planners', async (key) => {
+    rs.stubEnv(key, 'false');
+    const { executor } = createExecutor();
+    const customModel = getModelRuntime({
+      ...model.config,
+      modelFamily: 'auto-glm',
+    });
+    await expect(executor.action('Task', customModel, model)).rejects.toThrow(
+      `${key} requires a standard planning adapter.`,
+    );
+    expect(callAI).not.toHaveBeenCalled();
+    expect(standardPlan).not.toHaveBeenCalled();
+  });
 
   it('keeps separate location for an explicitly configured planning model', async () => {
     respond('{"deepThink":false,"reason":"simple"}');
@@ -644,6 +650,191 @@ describe('deepThink auto', () => {
       }
     },
   );
+
+  it.each([true, false])(
+    'captures scope and screenshot overrides before Auto (%s)',
+    async (deepThink) => {
+      rs.stubEnv(MIDSCENE_PLANNING_TASK_SCOPE, '0');
+      rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, '3');
+      rs.mocked(callAI).mockImplementation(async () => {
+        rs.stubEnv(MIDSCENE_PLANNING_TASK_SCOPE, 'true');
+        rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, '1');
+        return {
+          content: JSON.stringify({ deepThink, reason: 'Task requirements' }),
+          isStreamed: false,
+        };
+      });
+      rs.mocked(standardPlan).mockResolvedValueOnce({
+        ...completedPlan,
+        shouldContinuePlanning: true,
+      });
+      const { executor } = createExecutor();
+      const result = await executor.action(
+        'Task',
+        model,
+        model,
+        undefined,
+        false,
+        1,
+        'auto',
+      );
+      expect(callAI).toHaveBeenCalledTimes(1);
+      for (const [, options] of rs.mocked(standardPlan).mock.calls) {
+        expect(options).toMatchObject({
+          includeTaskScope: false,
+          imagesIncludeCount: 3,
+        });
+      }
+      for (const task of result.runner.tasks.filter(
+        (task) => task.subType === 'Plan',
+      )) {
+        expect(task.param).toMatchObject({
+          includeTaskScope: false,
+          imagesIncludeCount: 3,
+        });
+      }
+      await executor.action(
+        'Next task',
+        model,
+        model,
+        undefined,
+        false,
+        1,
+        'balance',
+      );
+      expect(rs.mocked(standardPlan).mock.calls.at(-1)?.[1]).toMatchObject({
+        includeTaskScope: true,
+        imagesIncludeCount: 1,
+      });
+    },
+  );
+
+  it.each(['balance', 'deepThink', 'fast'] as const)(
+    'applies independent scope and image limits to real %s requests',
+    async (effort) => {
+      rs.stubEnv(MIDSCENE_PLANNING_TASK_SCOPE, 'false');
+      rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, '2');
+      rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, 'true');
+      rs.mocked(standardPlan).mockImplementation(planningActual.standardPlan);
+      rs.mocked(callAI)
+        .mockResolvedValueOnce({
+          content:
+            '<action-type>Noop</action-type><action-param-json>{}</action-param-json>',
+          isStreamed: false,
+        })
+        .mockResolvedValueOnce({
+          content:
+            '<action-type>Noop</action-type><action-param-json>{}</action-param-json>',
+          isStreamed: false,
+        })
+        .mockResolvedValueOnce({
+          content: '<complete success="true">done</complete>',
+          isStreamed: false,
+        });
+      const { executor } = createExecutor();
+      const result = await executor.action(
+        { prompt: 'Task', images: [{ name: 'reference', url: image }] },
+        model,
+        model,
+        undefined,
+        false,
+        2,
+        effort,
+      );
+      expect(callAI).toHaveBeenCalledTimes(3);
+      expect(result.output?.output).toBe('done');
+      for (const [index, [messages]] of rs
+        .mocked(callAI)
+        .mock.calls.entries()) {
+        const prompt = String(messages[0].content);
+        expect(prompt).not.toContain(
+          'CRITICAL - Following Explicit Instructions',
+        );
+        expect(prompt).not.toContain(
+          "The User's Instruction is the Supreme Authority",
+        );
+        expect(prompt).toContain('You may navigate between pages as needed');
+        expect(prompt).toContain(
+          'Respect any explicit instruction to stay on a page',
+        );
+        expect(prompt).toContain(
+          'If the requested outcome is a durable change',
+        );
+        const images = messages.flatMap((message) =>
+          Array.isArray(message.content)
+            ? message.content.filter((part) => part.type === 'image_url')
+            : [],
+        );
+        // One reference image plus up to two execution screenshots, without padding.
+        expect(images).toHaveLength(1 + Math.min(index + 1, 2));
+      }
+      for (const task of result.runner.tasks.filter(
+        (task) => task.subType === 'Plan',
+      )) {
+        expect(task.param).toMatchObject({
+          includeTaskScope: false,
+          imagesIncludeCount: 2,
+        });
+      }
+    },
+  );
+
+  it.each([
+    '0',
+    '-1',
+    '1.5',
+    'NaN',
+    'Infinity',
+    '2x',
+    '1e2',
+    '9007199254740992',
+  ])(
+    'rejects invalid screenshot count %s before classification',
+    async (value) => {
+      rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, value);
+      const { executor } = createExecutor();
+      await expect(
+        executor.action('Task', model, model, undefined, false, 1, 'auto'),
+      ).rejects.toThrow('must be a positive safe integer');
+      expect(callAI).not.toHaveBeenCalled();
+      expect(standardPlan).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects invalid task scope before classification', async () => {
+    rs.stubEnv(MIDSCENE_PLANNING_TASK_SCOPE, 'yes');
+    const { executor } = createExecutor();
+    await expect(
+      executor.action('Task', model, model, undefined, false, 1, 'auto'),
+    ).rejects.toThrow('must be true, false, 1, or 0');
+    expect(callAI).not.toHaveBeenCalled();
+  });
+
+  it('rejects explicit screenshot limits on custom planners', async () => {
+    rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, '2');
+    const { executor } = createExecutor();
+    const customModel = getModelRuntime({
+      ...model.config,
+      modelFamily: 'auto-glm',
+    });
+    await expect(executor.action('Task', customModel, model)).rejects.toThrow(
+      `${MIDSCENE_PLANNING_SCREENSHOT_COUNT} requires a standard planning adapter.`,
+    );
+    expect(callAI).not.toHaveBeenCalled();
+  });
+
+  it('preserves legacy defaults for empty planning overrides', async () => {
+    rs.stubEnv(MIDSCENE_PLANNING_TASK_SCOPE, '  ');
+    rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, '  ');
+    for (const effort of ['balance', 'deepThink'] as const) {
+      const { executor } = createExecutor();
+      await executor.action('Task', model, model, undefined, false, 1, effort);
+      expect(rs.mocked(standardPlan).mock.calls.at(-1)?.[1]).toMatchObject({
+        includeTaskScope: true,
+        imagesIncludeCount: effort === 'deepThink' ? 2 : 1,
+      });
+    }
+  });
 
   it('accepts auto in the aiAct node options schema', () => {
     expect(aiActOptionsInputSchema.parse({ deepThink: 'auto' })).toEqual({

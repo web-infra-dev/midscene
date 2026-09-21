@@ -18,6 +18,7 @@ export interface PlanOptions {
   imagesIncludeCount?: number;
   includeMemory?: boolean;
   includeLog?: boolean;
+  includeTaskScope?: boolean;
   // Controls aiAct planning prompt shape and state updates, such as sub-goals.
   effort: AiActEffort;
   abortSignal?: AbortSignal;

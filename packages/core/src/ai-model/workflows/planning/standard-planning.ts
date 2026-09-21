@@ -184,6 +184,7 @@ export async function standardPlan(
     includeLog: includeModelLog,
     includeSubGoals,
     includeMemory,
+    includeTaskScope: opts.includeTaskScope,
     planningProtocol,
     ...(opts.includeLocateInPlanning && locateResultCodec
       ? {

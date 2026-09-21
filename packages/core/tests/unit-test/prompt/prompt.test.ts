@@ -152,6 +152,53 @@ describe('action space', () => {
 });
 
 describe('system prompts', () => {
+  it.each([true, false])(
+    'controls all task-scope passages independently of sub-goals (%s)',
+    async (includeSubGoals) => {
+      const input = {
+        ...defaultPlanningProtocolOptions,
+        actionSpace: mockActionSpace,
+        includeLocateInPlanning: false as const,
+        includeSubGoals,
+      };
+      const enabled = await buildStandardPlanningSystemPrompt(input);
+      const disabled = await buildStandardPlanningSystemPrompt({
+        ...input,
+        includeTaskScope: false,
+      });
+      const passages = [
+        'CRITICAL - Following Explicit Instructions',
+        "The User's Instruction is the Supreme Authority",
+        'If the user only asks for an intermediate UI state',
+        'The general rule "do EXACTLY what the user asked" still applies',
+        "Don't give extra actions or plans beyond the instruction",
+      ];
+      for (const passage of passages) {
+        expect(enabled).toContain(passage);
+        expect(disabled).not.toContain(passage);
+      }
+      expect(disabled).toContain(
+        'Do not re-validate the visible text in the screenshot after the input action.',
+      );
+      for (const prompt of [enabled, disabled]) {
+        expect(prompt).toContain('You may navigate between pages as needed');
+        expect(prompt).toContain(
+          'Respect any explicit instruction to stay on a page',
+        );
+        expect(prompt).not.toContain('Page navigation restriction');
+        expect(prompt).not.toContain(
+          'you MUST complete the task on the current page only',
+        );
+        expect(prompt).toContain(
+          'If the requested outcome is a durable change',
+        );
+        expect(prompt).toContain(
+          'Completion Criteria for Process-required Instructions',
+        );
+      }
+    },
+  );
+
   it('planning delegates protocol-specific content to the configured protocol', async () => {
     const actionOutputProtocol: PlanningActionOutputProtocol = {
       actionOutputTagNames: ['custom-action'],
@@ -498,9 +545,9 @@ describe('system prompts', () => {
     // Multi-turn example should exist but without sub-goal tags
     expect(prompt).toContain('## Multi-turn Conversation Example');
     expect(prompt).not.toContain('Fill in the Name field');
-    expect(prompt).not.toContain(
-      "<memory>Name field has been filled with 'John'",
-    );
+    // Memory defaults to enabled independently of sub-goals.
+    expect(prompt).toContain("<memory>Name field has been filled with 'John'");
+    expect(prompt).not.toContain('<sub-goal index=');
     // Should still show returning specific value in complete
     expect(prompt).toContain('then return the filled email address');
     expect(prompt).toContain(
