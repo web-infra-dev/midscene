@@ -198,6 +198,9 @@ describe('midscene-test CLI', () => {
         passed: 3,
         failed: 0,
         notRun: 0,
+        passedAfterRetry: 0,
+        finalPassRate: 1,
+        firstPassRate: 1,
         collectionErrors: 0,
         documentFailures: 0,
       },
@@ -323,6 +326,11 @@ describe('midscene-test CLI', () => {
     const projectResult = JSON.parse(
       readFileSync(summaryPathFor(resultDir), 'utf8'),
     );
+    expect(projectResult.summary).toMatchObject({
+      passedAfterRetry: 0,
+      finalPassRate: 2 / 3,
+      firstPassRate: 2 / 3,
+    });
     expect(
       projectResult.projects[0].cases.map(
         (caseResult: { status: string }) => caseResult.status,

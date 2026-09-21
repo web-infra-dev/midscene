@@ -120,6 +120,11 @@ export {
 } from './report';
 export type * from './test-run-report';
 export { TEST_RUN_REPORT_SCRIPT_TYPE } from './test-run-report';
+export type * from './test-run-health';
+export {
+  calculateTestRunHealth,
+  classifyTestRunCase,
+} from './test-run-health';
 export {
   createReportCliCommands,
   reportFileToMarkdown,

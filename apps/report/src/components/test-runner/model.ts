@@ -7,6 +7,7 @@ import type {
   TestRunReportProject,
   TestRunReportStep,
 } from '@midscene/core';
+import { calculateTestRunHealth, classifyTestRunCase } from '@midscene/core';
 import type { PlaywrightTasks } from '../../types';
 
 export type RunnerCaseStatus = 'passed' | 'retry-passed' | 'failed' | 'not-run';
@@ -163,17 +164,8 @@ export const flattenAttemptSteps = (
   ...attempt.afterEach,
 ];
 
-export const getCaseStatus = (
-  testCase: TestRunReportCase,
-): RunnerCaseStatus => {
-  if (testCase.status === 'not-run') return 'not-run';
-  if (testCase.status === 'failed') return 'failed';
-  return (testCase.attempts.at(-1)?.attemptIndex ?? 0) > 0 ||
-    testCase.attempts.length > 1 ||
-    testCase.attempts[0]?.status === 'failed'
-    ? 'retry-passed'
-    : 'passed';
-};
+export const getCaseStatus = (testCase: TestRunReportCase): RunnerCaseStatus =>
+  classifyTestRunCase(testCase);
 
 const getCaseDuration = (testCase: TestRunReportCase): number => {
   const firstAttempt = testCase.attempts[0];
@@ -309,22 +301,13 @@ export const resolveRunnerStepSelector = (
 export const getRunnerHealth = (
   cases: readonly RunnerCaseView[],
 ): RunnerHealthStats => {
-  const executedCases = cases.filter((item) => item.status !== 'not-run');
-  const firstPassCount = executedCases.filter((item) => item.firstPass).length;
-  const retryPassedCount = executedCases.filter(
-    (item) => item.status === 'retry-passed',
-  ).length;
-  const finalPassed = executedCases.filter(
-    (item) => item.status === 'passed' || item.status === 'retry-passed',
-  ).length;
+  const health = calculateTestRunHealth(cases.map((item) => item.testCase));
   return {
-    executed: executedCases.length,
-    firstPassCount,
-    retryPassedCount,
-    finalPassRate:
-      executedCases.length === 0 ? 0 : finalPassed / executedCases.length,
-    firstPassRate:
-      executedCases.length === 0 ? 0 : firstPassCount / executedCases.length,
+    executed: health.executed,
+    firstPassCount: health.firstPassed,
+    retryPassedCount: health.passedAfterRetry,
+    finalPassRate: health.finalPassRate,
+    firstPassRate: health.firstPassRate,
   };
 };
 
