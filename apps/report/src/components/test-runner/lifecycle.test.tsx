@@ -106,10 +106,8 @@ describe('report lifecycle failures', () => {
         item={item}
         reports={[]}
         visualIndex={buildRunnerVisualIndex([])}
-        tracePage={false}
         renderAgentReport={() => null}
         onBack={noop}
-        onCloseTracePage={noop}
         backLabel="Overview"
       />,
     );
@@ -127,10 +125,8 @@ describe('report lifecycle failures', () => {
         item={item}
         reports={[]}
         visualIndex={buildRunnerVisualIndex([])}
-        tracePage={false}
         renderAgentReport={() => null}
         onBack={noop}
-        onCloseTracePage={noop}
         backLabel="Overview"
       />,
     );

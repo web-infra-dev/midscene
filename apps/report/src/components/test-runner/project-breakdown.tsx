@@ -1,12 +1,15 @@
 import {
   CaretDownFilled,
   CaretRightFilled,
+  CaretUpFilled,
   WarningFilled,
 } from '@ant-design/icons';
 import { Button, Empty, Tooltip } from 'antd';
 import { useId, useMemo, useState } from 'react';
 import { RunnerAttemptTimeline } from './attempt-timeline';
 import {
+  type RunnerBreakdownSort,
+  type RunnerBreakdownSortDirection,
   type RunnerCaseStatus,
   type RunnerCaseView,
   type RunnerProjectBreakdownView,
@@ -21,6 +24,47 @@ import {
   caseStatusLabel,
   formatDuration,
 } from './view-primitives';
+
+function ProjectSortButton({
+  label,
+  value,
+  sort,
+  direction,
+  onChange,
+}: {
+  label: string;
+  value: RunnerBreakdownSort;
+  sort: RunnerBreakdownSort;
+  direction: RunnerBreakdownSortDirection;
+  onChange(value: RunnerBreakdownSort): void;
+}): JSX.Element {
+  const active = sort === value;
+  return (
+    <span className="runner-project-tree-column">
+      <button
+        type="button"
+        className={`runner-project-sort-button${active ? ' is-active' : ''}`}
+        aria-label={`Sort by ${label}${
+          active
+            ? `, currently ${direction === 'asc' ? 'ascending' : 'descending'}`
+            : ''
+        }`}
+        aria-pressed={active}
+        onClick={() => onChange(value)}
+      >
+        <span>{label}</span>
+        <span className="runner-project-sort-icon" aria-hidden="true">
+          <CaretUpFilled
+            className={active && direction === 'asc' ? 'is-active' : ''}
+          />
+          <CaretDownFilled
+            className={active && direction === 'desc' ? 'is-active' : ''}
+          />
+        </span>
+      </button>
+    </span>
+  );
+}
 
 export const projectDisplayStatus = (
   item: RunnerProjectView,
@@ -240,6 +284,9 @@ export function ProjectBreakdownTree({
   projects,
   caseDisplayMode,
   expandedProjectKeys,
+  sort,
+  sortDirection,
+  onSortChange,
   onExpandedProjectKeysChange,
   hasActiveFilters,
   onResetFilters,
@@ -249,6 +296,9 @@ export function ProjectBreakdownTree({
   projects: RunnerProjectBreakdownView[];
   caseDisplayMode: RunnerCaseDisplayMode;
   expandedProjectKeys: Set<string>;
+  sort: RunnerBreakdownSort;
+  sortDirection: RunnerBreakdownSortDirection;
+  onSortChange(value: RunnerBreakdownSort): void;
   onExpandedProjectKeysChange(keys: Set<string>): void;
   hasActiveFilters: boolean;
   onResetFilters(): void;
@@ -281,13 +331,43 @@ export function ProjectBreakdownTree({
 
   return (
     <>
-      <div className="runner-project-tree-header" aria-hidden="true">
-        <span>Project name</span>
+      <div className="runner-project-tree-header">
+        <ProjectSortButton
+          label="Project name"
+          value="name"
+          sort={sort}
+          direction={sortDirection}
+          onChange={onSortChange}
+        />
         <div className="runner-project-tree-columns">
-          <span>Case</span>
-          <span>Passed</span>
-          <span>Result</span>
-          <span>Duration</span>
+          <ProjectSortButton
+            label="Case"
+            value="case-count"
+            sort={sort}
+            direction={sortDirection}
+            onChange={onSortChange}
+          />
+          <ProjectSortButton
+            label="Passed"
+            value="passed-count"
+            sort={sort}
+            direction={sortDirection}
+            onChange={onSortChange}
+          />
+          <ProjectSortButton
+            label="Result"
+            value="result"
+            sort={sort}
+            direction={sortDirection}
+            onChange={onSortChange}
+          />
+          <ProjectSortButton
+            label="Duration"
+            value="duration"
+            sort={sort}
+            direction={sortDirection}
+            onChange={onSortChange}
+          />
         </div>
       </div>
       <ul

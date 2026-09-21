@@ -1,21 +1,15 @@
 import { CloseCircleFilled, SearchOutlined } from '@ant-design/icons';
 import { Input } from 'antd';
 import { useMemo } from 'react';
-import type {
-  RunnerBreakdownSort,
-  RunnerBreakdownStatus,
-  RunnerCaseView,
-} from './model';
+import type { RunnerBreakdownStatus, RunnerCaseView } from './model';
 import { Select } from './select';
 
 export function CaseFilters({
   cases,
   query,
   status,
-  sort,
   onQueryChange,
   onStatusChange,
-  onSortChange,
   allProjectsExpanded,
   canToggleProjects,
   onToggleProjects,
@@ -23,10 +17,8 @@ export function CaseFilters({
   cases: readonly RunnerCaseView[];
   query: string;
   status: RunnerBreakdownStatus;
-  sort: RunnerBreakdownSort;
   onQueryChange(value: string): void;
   onStatusChange(value: RunnerBreakdownStatus): void;
-  onSortChange(value: RunnerBreakdownSort): void;
   allProjectsExpanded: boolean;
   canToggleProjects: boolean;
   onToggleProjects(): void;
@@ -47,7 +39,7 @@ export function CaseFilters({
   return (
     <div
       className="runner-breakdown-toolbar"
-      aria-label="Filter and sort Project breakdown"
+      aria-label="Filter Project breakdown"
     >
       <Select<RunnerBreakdownStatus>
         aria-label="Filter breakdown by status"
@@ -78,17 +70,6 @@ export function CaseFilters({
             label: `Not run (${statusCounts['not-run']})`,
             value: 'not-run',
           },
-        ]}
-      />
-      <Select<RunnerBreakdownSort>
-        aria-label="Sort Project breakdown"
-        value={sort}
-        onChange={(value: RunnerBreakdownSort) => onSortChange(value)}
-        options={[
-          { label: 'Attention first', value: 'attention' },
-          { label: 'Most issues', value: 'issues' },
-          { label: 'Longest duration', value: 'duration' },
-          { label: 'Project / case name', value: 'name' },
         ]}
       />
       <Input
@@ -122,7 +103,12 @@ export function CaseFilters({
         disabled={!canToggleProjects}
         onClick={onToggleProjects}
       >
-        <span className="runner-project-expansion-icon" aria-hidden="true" />
+        <span
+          className={`runner-project-expansion-icon${
+            allProjectsExpanded ? ' is-collapse' : ''
+          }`}
+          aria-hidden="true"
+        />
       </button>
     </div>
   );

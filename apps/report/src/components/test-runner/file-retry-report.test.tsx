@@ -206,10 +206,8 @@ describe('whole-file retry report projection and viewer', () => {
           initialStepId={failedStep.id}
           reports={[]}
           visualIndex={buildRunnerVisualIndex([])}
-          tracePage={false}
           renderAgentReport={() => null}
           onBack={() => {}}
-          onCloseTracePage={() => {}}
           backLabel="Overview"
         />,
       );

@@ -3,7 +3,7 @@ import {
   GroupedActionDump,
   type TestRunReportDump,
 } from '@midscene/core';
-import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
+import { describe, expect, it, rs } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTestReportFixture } from '../../../e2e/fixtures/test-report.mjs';
 import type { PlaywrightTasks } from '../../types';
@@ -57,17 +57,6 @@ const report: PlaywrightTasks = {
 };
 
 describe('case evidence inspection', () => {
-  beforeEach(() => {
-    rs.stubGlobal('window', {
-      location: {
-        href: 'http://localhost/report.html#runner-page=case&runner-case=checkout',
-      },
-    });
-  });
-  afterEach(() => {
-    rs.unstubAllGlobals();
-  });
-
   const render = (
     tab: RunnerInspectorTab,
     reports = [report],
@@ -98,14 +87,16 @@ describe('case evidence inspection', () => {
     return { html, renderAgentReport };
   };
 
-  it('embeds only the selected step executions and preserves the separate trace link', () => {
+  it('embeds only the selected step executions inside the case page', () => {
     const { html, renderAgentReport } = render('record');
     expect(renderAgentReport).toHaveBeenCalledTimes(1);
     expect(html).toContain('selected-execution');
     expect(html).not.toContain('unrelated-execution');
-    expect(html).toContain('target="_blank"');
-    expect(html).toContain('runner-trace=page');
-    expect(html).toContain(`runner-step=${encodeURIComponent(step.id)}`);
+    expect(html).toContain(
+      'runner-detail-inspector-content has-stable-trace-height',
+    );
+    expect(html).not.toContain('Open AI trace in new tab');
+    expect(html).not.toContain('target="_blank"');
     expect(html).not.toContain('role="dialog"');
   });
 
@@ -114,6 +105,9 @@ describe('case evidence inspection', () => {
       const { html, renderAgentReport } = render(tab);
       expect(renderAgentReport).not.toHaveBeenCalled();
       expect(html).toContain(tab === 'io' ? 'Input</h4>' : 'Step started:');
+      expect(html).toContain(
+        'runner-detail-inspector-content has-stable-trace-height',
+      );
     }
   });
 
@@ -136,6 +130,7 @@ describe('case evidence inspection', () => {
     );
     expect(html).toContain('<h4>Input</h4>');
     expect(html).not.toContain('Open AI trace in new tab');
+    expect(html).not.toContain('has-stable-trace-height');
   });
 
   it('keeps Record available when the step has a screenshot', () => {
@@ -161,5 +156,32 @@ describe('case evidence inspection', () => {
     );
     expect(html).toContain('Captured evidence for custom.verify');
     expect(html).toContain(screenshotFrame.screenshot.base64);
+    expect(html).not.toContain('has-stable-trace-height');
+  });
+
+  it('shows the output summary as the step description and keeps the error copy action icon-only', () => {
+    const { html } = render('io', [], {
+      ...step,
+      node: 'demo.applyProjectOutcome',
+      title: undefined,
+      status: 'failed',
+      output: {
+        summary: '[parallel-watch] Case B passed on retry Attempt 2.',
+      },
+      error: {
+        name: 'NodeExecutionError',
+        code: 'NODE_EXECUTION_ERROR',
+        message:
+          'Node "demo.applyProjectOutcome" failed: planned final failure.',
+      },
+      agentDetails: undefined,
+    });
+
+    expect(html).toContain(
+      '<p class="runner-detail-step-description">[parallel-watch] Case B passed on retry Attempt 2.</p>',
+    );
+    expect(html).toContain('aria-label="Copy error details"');
+    expect(html).toContain('title="Copy error details"');
+    expect(html).not.toContain('>Copy error</button>');
   });
 });

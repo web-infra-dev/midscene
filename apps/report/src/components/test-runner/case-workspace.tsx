@@ -2,7 +2,6 @@ import { BugOutlined } from '@ant-design/icons';
 import type { TestRunReportDump } from '@midscene/core';
 import type { ReactNode } from 'react';
 import type { PlaywrightTasks } from '../../types';
-import { RunnerTracePage } from './agent-trace';
 import {
   RunnerAttemptTimeline,
   RunnerTimelinePlaybackControl,
@@ -23,10 +22,8 @@ export function CaseWorkspace({
   visualIndex,
   reports,
   initialStepId,
-  tracePage,
   renderAgentReport,
   onBack,
-  onCloseTracePage,
   backLabel,
 }: {
   item: RunnerCaseView;
@@ -34,10 +31,8 @@ export function CaseWorkspace({
   visualIndex: RunnerVisualIndex;
   reports: PlaywrightTasks[];
   initialStepId?: string;
-  tracePage: boolean;
   renderAgentReport(reports: PlaywrightTasks[]): ReactNode;
   onBack(): void;
-  onCloseTracePage(): void;
   backLabel: string;
 }): JSX.Element {
   const {
@@ -47,6 +42,7 @@ export function CaseWorkspace({
     isPlaying,
     lockedFrameKey,
     positionedFrames,
+    playingStepId,
     previewFrameKey,
     selectedAttempt,
     selectedDocumentAttemptIndex,
@@ -62,19 +58,6 @@ export function CaseWorkspace({
     togglePlayback,
     workspaceSteps,
   } = useCaseWorkspace({ item, initialStepId, visualIndex });
-
-  if (tracePage && selectedStep?.agentDetails?.length) {
-    return (
-      <RunnerTracePage
-        item={item}
-        attempt={selectedAttempt}
-        step={selectedStep}
-        reports={reports}
-        renderAgentReport={renderAgentReport}
-        onBack={onCloseTracePage}
-      />
-    );
-  }
 
   return (
     <div className="runner-page runner-case-workspace">
@@ -103,6 +86,7 @@ export function CaseWorkspace({
           <RunnerExecutionPanel
             groups={stepGroups}
             selectedStepId={selectedStep?.id}
+            playingStepId={playingStepId}
             timeline={
               selectedAttempt ? (
                 <RunnerAttemptTimeline

@@ -192,6 +192,11 @@ export function useCaseWorkspace({
   const activePosition = positionedFrames.find(
     (positioned) => positioned.frame.key === activeFrame?.key,
   );
+  const playingStepId = isPlaying
+    ? positionedFrames.find(
+        (positioned) => positioned.frame.key === lockedFrameKey,
+      )?.stepId
+    : undefined;
 
   useEffect(() => {
     if (!isPlaying || !positionedFrames.length) return;
@@ -276,6 +281,7 @@ export function useCaseWorkspace({
     isPlaying,
     lockedFrameKey,
     positionedFrames,
+    playingStepId,
     previewFrameKey,
     selectedAttempt,
     selectedDocumentAttemptIndex,

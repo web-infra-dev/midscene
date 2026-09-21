@@ -5,11 +5,13 @@ import { CaseDensitySwitch } from './case-density-switch';
 import { CaseFilters } from './case-filters';
 import {
   type RunnerBreakdownSort,
+  type RunnerBreakdownSortDirection,
   type RunnerBreakdownStatus,
   type RunnerCaseView,
   type RunnerHealthStats,
   type RunnerProjectView,
   type RunnerVisualIndex,
+  defaultRunnerBreakdownSortDirection,
   filterAndSortRunnerProjectBreakdown,
   toggleAllRunnerProjectKeys,
 } from './model';
@@ -47,29 +49,47 @@ export function RunOverview({
   const [breakdownStatus, setBreakdownStatus] =
     useState<RunnerBreakdownStatus>('all');
   const [breakdownSort, setBreakdownSort] =
-    useState<RunnerBreakdownSort>('attention');
+    useState<RunnerBreakdownSort>('result');
+  const [breakdownSortDirection, setBreakdownSortDirection] =
+    useState<RunnerBreakdownSortDirection>('asc');
   const breakdownProjects = useMemo(
     () =>
       filterAndSortRunnerProjectBreakdown(projects, {
         query: breakdownQuery,
         status: breakdownStatus,
         sort: breakdownSort,
+        direction: breakdownSortDirection,
       }),
-    [breakdownQuery, breakdownSort, breakdownStatus, projects],
+    [
+      breakdownQuery,
+      breakdownSort,
+      breakdownSortDirection,
+      breakdownStatus,
+      projects,
+    ],
   );
   const resetBreakdownFilters = () => {
     setBreakdownQuery('');
     setBreakdownStatus('all');
-    setBreakdownSort('attention');
+    setBreakdownSort('result');
+    setBreakdownSortDirection('asc');
+  };
+  const changeBreakdownSort = (nextSort: RunnerBreakdownSort) => {
+    if (nextSort === breakdownSort) {
+      setBreakdownSortDirection((direction) =>
+        direction === 'asc' ? 'desc' : 'asc',
+      );
+      return;
+    }
+    setBreakdownSort(nextSort);
+    setBreakdownSortDirection(defaultRunnerBreakdownSortDirection(nextSort));
   };
   const visibleProjectKeys = breakdownProjects.map(({ item }) => item.key);
   const allProjectsExpanded =
     visibleProjectKeys.length > 0 &&
     visibleProjectKeys.every((key) => expandedProjectKeys.has(key));
   const hasActiveBreakdownFilters =
-    Boolean(breakdownQuery.trim()) ||
-    breakdownStatus !== 'all' ||
-    breakdownSort !== 'attention';
+    Boolean(breakdownQuery.trim()) || breakdownStatus !== 'all';
   const successfulWithRetries =
     dump.summary.failed === 0 &&
     dump.summary.notRun === 0 &&
@@ -88,7 +108,8 @@ export function RunOverview({
       return true;
     });
     setBreakdownStatus(nextStatus);
-    setBreakdownSort('attention');
+    setBreakdownSort('result');
+    setBreakdownSortDirection('asc');
     onExpandedProjectKeysChange(
       new Set(relevantProjects.map((item) => item.key)),
     );
@@ -127,10 +148,8 @@ export function RunOverview({
             cases={cases}
             query={breakdownQuery}
             status={breakdownStatus}
-            sort={breakdownSort}
             onQueryChange={setBreakdownQuery}
             onStatusChange={setBreakdownStatus}
-            onSortChange={setBreakdownSort}
             allProjectsExpanded={allProjectsExpanded}
             canToggleProjects={visibleProjectKeys.length > 0}
             onToggleProjects={() =>
@@ -148,6 +167,9 @@ export function RunOverview({
           projects={breakdownProjects}
           caseDisplayMode={caseDisplayMode}
           expandedProjectKeys={expandedProjectKeys}
+          sort={breakdownSort}
+          sortDirection={breakdownSortDirection}
+          onSortChange={changeBreakdownSort}
           onExpandedProjectKeysChange={onExpandedProjectKeysChange}
           hasActiveFilters={hasActiveBreakdownFilters}
           onResetFilters={resetBreakdownFilters}

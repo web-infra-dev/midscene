@@ -2,26 +2,22 @@ import {
   CloseCircleFilled,
   CodeOutlined,
   CopyOutlined,
-  ExportOutlined,
   EyeOutlined,
   PictureOutlined,
 } from '@ant-design/icons';
 import type { TestRunReportAttempt, TestRunReportStep } from '@midscene/core';
-import { Button } from 'antd';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import type { PlaywrightTasks } from '../../types';
 import { formatTimelineTime } from '../timeline/timeline-scale';
-import {
-  RunnerAgentTraceContent,
-  buildRunnerTracePageHref,
-} from './agent-trace';
+import { RunnerAgentTraceContent } from './agent-trace';
 import { EvidenceTabs, type RunnerInspectorTab } from './evidence-tabs';
 import type {
   RunnerCaseView,
   RunnerPositionedVisualFrame,
   RunnerVisualFrame,
 } from './model';
+import { getStepDisplayName } from './model';
 import { CaseStatus } from './view-primitives';
 
 const copyRunnerText = async (value: string): Promise<void> => {
@@ -56,9 +52,13 @@ export function RunnerEvidenceInspector({
     'idle',
   );
   const hasAgentTrace = Boolean(step.agentDetails?.length);
-  const tracePageHref = hasAgentTrace
-    ? buildRunnerTracePageHref(step.id)
-    : undefined;
+  const stepDescription = getStepDisplayName(step);
+  const copyErrorLabel =
+    copyState === 'copied'
+      ? 'Copied error details'
+      : copyState === 'failed'
+        ? 'Copy error details failed'
+        : 'Copy error details';
 
   useEffect(() => setCopyState('idle'), [step.id]);
 
@@ -123,24 +123,24 @@ export function RunnerEvidenceInspector({
             quiet
           />
         </div>
-        {step.title ? (
-          <p className="runner-detail-step-description">{step.title}</p>
+        {stepDescription !== step.node ? (
+          <p className="runner-detail-step-description">{stepDescription}</p>
         ) : null}
       </header>
       {step.error ? (
         <div className="runner-detail-failure-summary">
-          <CloseCircleFilled />
-          <span>
+          <CloseCircleFilled className="runner-detail-failure-icon" />
+          <span className="runner-detail-failure-content">
             <strong>{step.error.code || step.error.name}</strong>
             <small>{step.error.message}</small>
           </span>
-          <button type="button" onClick={copyError}>
+          <button
+            type="button"
+            aria-label={copyErrorLabel}
+            title={copyErrorLabel}
+            onClick={copyError}
+          >
             <CopyOutlined />
-            {copyState === 'copied'
-              ? 'Copied'
-              : copyState === 'failed'
-                ? 'Copy failed'
-                : 'Copy error'}
           </button>
         </div>
       ) : null}
@@ -151,21 +151,8 @@ export function RunnerEvidenceInspector({
             tab={tab}
             onChange={onTabChange}
             recordContent={recordContent}
+            stabilizeContentHeight={hasAgentTrace}
           />
-          {hasAgentTrace && tab === 'record' ? (
-            <div className="runner-detail-trace-actions">
-              <Button
-                size="middle"
-                className="runner-detail-trace-new-page"
-                aria-label="Open AI trace in new tab"
-                href={tracePageHref}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Open AI trace in new tab <ExportOutlined />
-              </Button>
-            </div>
-          ) : null}
         </div>
         <details className="runner-detail-raw-context">
           <summary>

@@ -93,6 +93,14 @@ function resolveImageFromDom(
 let globalRenderCount = 1;
 const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
 const DEFAULT_SIDEBAR_WIDTH = 280;
+const MIN_SIDEBAR_WIDTH = 200;
+const MIN_PLAYER_WIDTH = 320;
+const SIDEBAR_KEYBOARD_STEP = 24;
+
+const clampSidebarWidth = (width: number, layoutWidth: number): number => {
+  const maxWidth = Math.max(MIN_SIDEBAR_WIDTH, layoutWidth - MIN_PLAYER_WIDTH);
+  return Math.min(maxWidth, Math.max(MIN_SIDEBAR_WIDTH, width));
+};
 
 function Visualizer(props: VisualizerProps): JSX.Element {
   const { dumps, embedded = false } = props;
@@ -123,8 +131,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return saved ? Number(saved) : DEFAULT_SIDEBAR_WIDTH;
+    const savedWidth = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+    return Number.isFinite(savedWidth) && savedWidth > 0
+      ? Math.max(MIN_SIDEBAR_WIDTH, savedWidth)
+      : DEFAULT_SIDEBAR_WIDTH;
   });
   const dump = useExecutionDump((store) => store.dump);
   const [timelineCollapsed, setTimelineCollapsed] = useState(
@@ -456,13 +466,29 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         </div>
         <div
           className="resize-handle"
+          role="separator"
+          aria-label="Resize report sidebar"
+          aria-orientation="vertical"
+          aria-valuemin={MIN_SIDEBAR_WIDTH}
+          aria-valuemax={Math.max(
+            MIN_SIDEBAR_WIDTH,
+            window.innerWidth - MIN_PLAYER_WIDTH,
+          )}
+          aria-valuenow={Math.round(sidebarWidth)}
+          tabIndex={0}
           onMouseDown={(e) => {
             e.preventDefault();
             const startX = e.clientX;
             const startWidth = sidebarWidth;
+            const layoutWidth =
+              e.currentTarget.parentElement?.getBoundingClientRect().width ??
+              window.innerWidth;
             let latestWidth = startWidth;
             const onMouseMove = (ev: MouseEvent) => {
-              latestWidth = Math.max(200, startWidth + ev.clientX - startX);
+              latestWidth = clampSidebarWidth(
+                startWidth + ev.clientX - startX,
+                layoutWidth,
+              );
               setSidebarWidth(latestWidth);
             };
             const onMouseUp = () => {
@@ -473,6 +499,33 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             };
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
+          }}
+          onKeyDown={(event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key))
+              return;
+            event.preventDefault();
+            const layoutWidth =
+              event.currentTarget.parentElement?.getBoundingClientRect()
+                .width ?? window.innerWidth;
+            const maximumWidth = Math.max(
+              MIN_SIDEBAR_WIDTH,
+              layoutWidth - MIN_PLAYER_WIDTH,
+            );
+            const nextWidth =
+              event.key === 'Home'
+                ? MIN_SIDEBAR_WIDTH
+                : event.key === 'End'
+                  ? maximumWidth
+                  : clampSidebarWidth(
+                      sidebarWidth +
+                        (event.key === 'ArrowLeft'
+                          ? -SIDEBAR_KEYBOARD_STEP
+                          : SIDEBAR_KEYBOARD_STEP),
+                      layoutWidth,
+                    );
+            setSidebarWidth(nextWidth);
+            localStorage.setItem(SIDEBAR_WIDTH_KEY, String(nextWidth));
+            setMainLayoutChangeFlag((previous) => previous + 1);
           }}
         />
         <div

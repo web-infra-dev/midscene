@@ -19,6 +19,8 @@
   --runner-primary-soft: #edf3ff;
   --runner-scroll-thumb: rgba(16, 24, 40, 0.24);
   --runner-scroll-thumb-hover: rgba(16, 24, 40, 0.42);
+  --runner-sort-arrow-idle: rgb(51 51 51 / 30%);
+  --runner-sort-arrow-active: rgb(51 51 51 / 50%);
   background: var(--runner-bg);
   font-family:
     'Report Inter',
@@ -29,10 +31,21 @@
     sans-serif;
 
   .runner-header {
+    display: block;
     min-height: 64px;
-    padding: 0 32px;
+    padding: 0;
     border: 0;
     background: var(--runner-bg);
+  }
+
+  .runner-header-inner {
+    display: grid;
+    grid-template-columns: minmax(230px, 1fr) auto;
+    width: min(1424px, 100%);
+    min-height: 64px;
+    align-items: center;
+    margin-inline: auto;
+    padding: 0 40px;
   }
 
   .runner-header-title {
@@ -46,6 +59,23 @@
   }
 
   .runner-header-actions {
+    gap: 24px;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .runner-header-version {
+    color: var(--runner-subtle);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    white-space: nowrap;
+  }
+
+  .runner-header-theme-control {
+    display: flex;
+    min-height: 24px;
+    align-items: center;
     padding-left: 24px;
     border-left: 1px solid var(--runner-border);
   }
@@ -59,6 +89,8 @@
   }
 
   .runner-main {
+    position: relative;
+    isolation: isolate;
     margin: 1px 8px 8px;
     overflow: auto;
     border-radius: 16px;
@@ -66,22 +98,9 @@
     scrollbar-width: none;
   }
 
-  .runner-main::-webkit-scrollbar {
-    display: none;
-  }
-
-  .runner-page,
-  .runner-overview,
-  .runner-case-workspace {
-    position: relative;
-    isolation: isolate;
-    width: min(1424px, 100%);
-    padding: 40px;
-  }
-
-  .runner-page::before {
+  .runner-main::before {
     position: absolute;
-    z-index: -1;
+    z-index: 0;
     top: 0;
     right: 0;
     width: 400px;
@@ -92,6 +111,21 @@
     mask: url('./assets/header-dots.png') no-repeat right top / 400px 317px;
     pointer-events: none;
     content: '';
+  }
+
+  .runner-main::-webkit-scrollbar {
+    display: none;
+  }
+
+  .runner-page,
+  .runner-overview,
+  .runner-case-workspace {
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
+    width: min(1424px, 100%);
+    margin-inline: auto;
+    padding: 40px;
   }
 
   .runner-theme-toggle svg {

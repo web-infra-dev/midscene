@@ -4,10 +4,28 @@ import {
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import type { TestRunReportAttempt } from '@midscene/core';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { formatTimelineTime } from '../timeline/timeline-scale';
 import type { RunnerPositionedVisualFrame } from './model';
 
 export type RunnerAttemptTimelineVariant = 'standalone' | 'detail' | 'overview';
+export type RunnerTimelinePreviewPlacement = 'above' | 'below';
+
+const useBrowserLayoutEffect =
+  typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
+export const resolveTimelinePreviewPlacement = ({
+  availableAbove,
+  availableBelow,
+  previewHeight,
+}: {
+  availableAbove: number;
+  availableBelow: number;
+  previewHeight: number;
+}): RunnerTimelinePreviewPlacement =>
+  availableBelow < previewHeight && availableAbove > availableBelow
+    ? 'above'
+    : 'below';
 
 export function RunnerTimelinePlaybackControl({
   frameCount,
@@ -62,6 +80,10 @@ export function RunnerAttemptTimeline({
   onSelectFrame(frame: RunnerPositionedVisualFrame): void;
   onTogglePlay?(): void;
 }): JSX.Element {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const previewCalloutRef = useRef<HTMLElement>(null);
+  const [previewPlacement, setPreviewPlacement] =
+    useState<RunnerTimelinePreviewPlacement>('below');
   const measuredDurationMs = attempt
     ? Math.max(0, Date.parse(attempt.endedAt) - Date.parse(attempt.startedAt))
     : 0;
@@ -79,6 +101,41 @@ export function RunnerAttemptTimeline({
   const previewFrame = frames.find(
     (item) => item.frame.key === previewFrameKey,
   );
+
+  useBrowserLayoutEffect(() => {
+    const track = trackRef.current;
+    const callout = previewCalloutRef.current;
+    if (!previewFrame || !track || !callout) return;
+
+    const scrollContainer = track.closest<HTMLElement>('.runner-main');
+    const updatePlacement = () => {
+      const trackRect = track.getBoundingClientRect();
+      const calloutRect = callout.getBoundingClientRect();
+      const boundaryRect = scrollContainer?.getBoundingClientRect();
+      const boundaryTop = Math.max(0, boundaryRect?.top ?? 0);
+      const boundaryBottom = Math.min(
+        window.innerHeight,
+        boundaryRect?.bottom ?? window.innerHeight,
+      );
+      setPreviewPlacement(
+        resolveTimelinePreviewPlacement({
+          availableAbove: trackRect.top - boundaryTop - 8,
+          availableBelow: boundaryBottom - trackRect.bottom - 8,
+          previewHeight: calloutRect.height,
+        }),
+      );
+    };
+
+    updatePlacement();
+    window.addEventListener('resize', updatePlacement);
+    scrollContainer?.addEventListener('scroll', updatePlacement, {
+      passive: true,
+    });
+    return () => {
+      window.removeEventListener('resize', updatePlacement);
+      scrollContainer?.removeEventListener('scroll', updatePlacement);
+    };
+  }, [previewFrameKey, previewFrame]);
 
   return (
     <section
@@ -106,6 +163,7 @@ export function RunnerAttemptTimeline({
       ) : null}
       {frames.length ? (
         <div
+          ref={trackRef}
           className="runner-detail-timeline-track"
           onMouseLeave={() => onPreview(undefined)}
         >
@@ -167,7 +225,8 @@ export function RunnerAttemptTimeline({
             })}
             {previewFrame ? (
               <figure
-                className="runner-detail-timeline-preview-callout"
+                ref={previewCalloutRef}
+                className={`runner-detail-timeline-preview-callout is-${previewPlacement}`}
                 style={{
                   left: `clamp(228px, ${Math.max(
                     5,

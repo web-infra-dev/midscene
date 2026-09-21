@@ -10,12 +10,14 @@
   --runner-border-strong: rgba(255, 255, 255, 0.17);
   --runner-scroll-thumb: rgba(255, 255, 255, 0.24);
   --runner-scroll-thumb-hover: rgba(255, 255, 255, 0.4);
+  --runner-sort-arrow-idle: rgb(255 255 255 / 30%);
+  --runner-sort-arrow-active: rgb(255 255 255 / 50%);
 
   .runner-header {
     background: var(--runner-bg);
   }
 
-  .runner-page::before {
+  .runner-main::before {
     filter: invert(1);
     opacity: 0.2;
   }
@@ -61,5 +63,9 @@
   .runner-detail-step-group,
   .runner-detail-screenshot-canvas {
     background: #15171a;
+  }
+
+  .runner-detail-failure-summary small {
+    color: var(--runner-danger);
   }
 }

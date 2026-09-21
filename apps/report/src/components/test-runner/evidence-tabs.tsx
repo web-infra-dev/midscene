@@ -67,11 +67,13 @@ export function EvidenceTabs({
   tab,
   onChange,
   recordContent,
+  stabilizeContentHeight = false,
 }: {
   step: TestRunReportStep;
   tab: RunnerInspectorTab;
   onChange(tab: RunnerInspectorTab): void;
   recordContent?: ReactNode;
+  stabilizeContentHeight?: boolean;
 }): JSX.Element {
   const hasRecord = recordContent !== undefined && recordContent !== null;
   const activeTab = tab === 'record' && !hasRecord ? 'io' : tab;
@@ -101,7 +103,11 @@ export function EvidenceTabs({
           </button>
         ))}
       </div>
-      <div className="runner-detail-inspector-content">
+      <div
+        className={`runner-detail-inspector-content${
+          stabilizeContentHeight ? ' has-stable-trace-height' : ''
+        }`}
+      >
         {activeTab === 'record' ? recordContent : null}
         {activeTab === 'io' ? <InputOutput step={step} /> : null}
         {activeTab === 'logs' ? <RuntimeEvents step={step} /> : null}

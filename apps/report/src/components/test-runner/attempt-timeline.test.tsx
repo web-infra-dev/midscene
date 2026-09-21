@@ -1,7 +1,10 @@
 import type { TestRunReportAttempt } from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { RunnerAttemptTimeline } from './attempt-timeline';
+import {
+  RunnerAttemptTimeline,
+  resolveTimelinePreviewPlacement,
+} from './attempt-timeline';
 import type { RunnerPositionedVisualFrame } from './model';
 
 const attempt = {
@@ -60,6 +63,23 @@ const renderTimeline = ({
   );
 
 describe('attempt timeline', () => {
+  it('places a preview above when the remaining space below is too small', () => {
+    expect(
+      resolveTimelinePreviewPlacement({
+        availableAbove: 420,
+        availableBelow: 80,
+        previewHeight: 300,
+      }),
+    ).toBe('above');
+    expect(
+      resolveTimelinePreviewPlacement({
+        availableAbove: 80,
+        availableBelow: 420,
+        previewHeight: 300,
+      }),
+    ).toBe('below');
+  });
+
   it('highlights every frame that belongs to the selected step', () => {
     const initialHtml = renderTimeline();
     expect(initialHtml).toContain(

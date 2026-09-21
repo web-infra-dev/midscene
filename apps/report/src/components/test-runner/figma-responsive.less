@@ -1,5 +1,9 @@
 @media (max-width: 980px) {
   .test-runner-report {
+    .runner-header-inner {
+      padding-inline: 24px;
+    }
+
     .runner-page,
     .runner-overview,
     .runner-case-workspace {
@@ -11,7 +15,8 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .runner-overview-primary-metrics .runner-metric-card:nth-child(3) {
+    .runner-overview-primary-metrics
+      .runner-metric-card:nth-child(3n):not(:last-child) {
       border-right: 0;
     }
 
@@ -26,21 +31,29 @@
     }
 
     .runner-breakdown-panel .runner-breakdown-toolbar {
-      grid-template-columns: repeat(2, minmax(150px, 1fr));
+      grid-template-columns: minmax(150px, 184px) minmax(240px, 1fr) 32px;
       width: 100%;
     }
 
     .runner-project-tree-columns,
     .runner-project-tree-stats {
-      gap: 16px;
+      gap: 0;
     }
   }
 }
 
 @media (max-width: 640px) {
   .test-runner-report {
-    .runner-header {
-      padding: 0 16px;
+    .runner-header-inner {
+      padding-inline: 16px;
+    }
+
+    .runner-header-actions {
+      gap: 0;
+    }
+
+    .runner-header-version {
+      display: none;
     }
 
     .runner-header-title > div:not(.logo) {
@@ -147,13 +160,6 @@
       padding: 0 10px;
     }
 
-    .runner-detail-trace-actions {
-      position: static;
-      margin-top: 12px;
-      margin-bottom: 8px;
-      justify-content: flex-end;
-    }
-
     .runner-detail-tabs-row {
       display: flex;
       flex-direction: column;
@@ -202,8 +208,13 @@
       height: 680px;
     }
 
+    .runner-detail-inspector-content.has-stable-trace-height {
+      min-height: 704px;
+    }
+
     .runner-detail-inline-trace .page-side {
       width: 100% !important;
+      max-width: none;
     }
   }
 }

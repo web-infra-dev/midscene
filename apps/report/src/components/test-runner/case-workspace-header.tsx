@@ -87,7 +87,7 @@ export function CaseWorkspaceHeader({
         />
         <dl className="runner-case-step-summary">
           <div>
-            <dt>Total</dt>
+            <dt>Total steps</dt>
             <dd>{visibleStepSummary.total}</dd>
           </div>
           <div className="is-passed">

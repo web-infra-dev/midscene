@@ -13,12 +13,19 @@ export const getSelectTheme = (isDarkMode: boolean) => ({
 export function Select<ValueType>({
   className,
   popupClassName,
+  getPopupContainer,
   ...props
 }: SelectProps<ValueType>): JSX.Element {
   return (
     <AntdSelect<ValueType>
       {...props}
       variant="borderless"
+      getPopupContainer={
+        getPopupContainer ??
+        ((triggerNode) =>
+          (triggerNode.closest('.test-runner-report') as HTMLElement | null) ??
+          document.body)
+      }
       className={['runner-report-select', className].filter(Boolean).join(' ')}
       popupClassName={['runner-select-dropdown', popupClassName]
         .filter(Boolean)

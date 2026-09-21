@@ -118,6 +118,8 @@
   --runner-hover: rgba(5, 101, 255, 0.055);
   --runner-primary: #0555ff;
   --runner-primary-soft: #edf3ff;
+  --runner-playback-bg: #f0f3fd;
+  --runner-playback-glow: #d6e2ff;
   --runner-success: #2d9b44;
   --runner-success-soft: #edf8ef;
   --runner-warning: #d97906;
@@ -1169,6 +1171,11 @@
     pointer-events: none;
   }
 
+  .runner-detail-timeline-preview-callout.is-above {
+    top: auto;
+    bottom: calc(100% + 8px);
+  }
+
   .runner-detail-timeline-preview-callout > img {
     display: block;
     width: 100%;
@@ -1262,7 +1269,7 @@
     text-transform: uppercase;
   }
 
-  .runner-detail-step-group > button {
+  .runner-detail-step-list > button {
     display: grid;
     align-items: center;
     width: 100%;
@@ -1273,7 +1280,7 @@
     cursor: pointer;
   }
 
-  .runner-detail-step-group > button:hover {
+  .runner-detail-step-list > button:hover {
     background: var(--runner-hover);
   }
 
@@ -1289,28 +1296,10 @@
     place-items: center;
   }
 
-  .runner-detail-step-type.is-agent {
-    color: var(--runner-agent);
-    border-color: var(--runner-agent-border);
-    background: var(--runner-agent-soft);
-  }
-
   .runner-detail-step-type.is-error {
     color: var(--runner-danger);
     border-color: color-mix(in srgb, var(--runner-danger) 28%, transparent);
     background: var(--runner-danger-soft);
-  }
-
-  .runner-detail-step-type.is-assert {
-    color: var(--runner-primary);
-    border-color: color-mix(in srgb, var(--runner-primary) 24%, transparent);
-    background: var(--runner-primary-soft);
-  }
-
-  .runner-detail-step-type.is-data {
-    color: var(--runner-data);
-    border-color: var(--runner-data-border);
-    background: var(--runner-data-soft);
   }
 
   .runner-detail-step-copy,
@@ -1369,38 +1358,6 @@
     line-height: 1.45;
   }
 
-  .runner-detail-trace-actions {
-    display: flex;
-    align-items: center;
-  }
-
-  .runner-detail-trace-actions {
-    gap: 8px;
-  }
-
-  .runner-detail-trace-actions .ant-btn {
-    height: 32px;
-    padding-inline: 12px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: none;
-  }
-
-  .runner-detail-trace-new-page.ant-btn {
-    color: var(--runner-text);
-    border-color: var(--runner-border-strong);
-    background: var(--runner-surface);
-    text-decoration: none;
-  }
-
-  .runner-detail-trace-new-page.ant-btn:hover {
-    color: var(--runner-primary) !important;
-    border-color: var(--runner-primary) !important;
-    background: var(--runner-primary-soft) !important;
-    text-decoration: none;
-  }
-
   .runner-detail-failure-summary {
     display: grid;
     grid-template-columns: 16px minmax(0, 1fr) auto;
@@ -1411,12 +1368,18 @@
     border-radius: 9px;
   }
 
-  .runner-detail-failure-summary > svg {
-    margin-top: 1px;
+  .runner-detail-failure-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0;
     font-size: 16px;
+    line-height: 20px;
   }
 
-  .runner-detail-failure-summary > span {
+  .runner-detail-failure-content {
     display: flex;
     min-width: 0;
     flex-direction: column;
@@ -1646,48 +1609,6 @@
     border: 0;
   }
 
-  .runner-trace-page-header {
-    padding: 18px 20px;
-    border: 1px solid var(--runner-border);
-    border-radius: 12px;
-    background: var(--runner-surface);
-  }
-
-  .runner-trace-page-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-top: 14px;
-    gap: 18px;
-  }
-
-  .runner-trace-page-heading h1 {
-    margin: 4px 0 0;
-    font-size: 23px;
-    line-height: 1.2;
-  }
-
-  .runner-trace-page-heading p {
-    margin: 6px 0 0;
-    color: var(--runner-muted);
-    font-size: 14px;
-  }
-
-  .runner-trace-page-content {
-    height: max(680px, calc(100vh - 230px));
-    min-height: 0;
-    margin-top: 12px;
-    overflow: hidden;
-    border: 1px solid var(--runner-agent-border);
-    border-radius: 12px;
-    background: var(--runner-surface);
-  }
-
-  .runner-trace-page-content .runner-agent-trace-content,
-  .runner-trace-page-content .runner-detail-trace-view {
-    height: 100%;
-  }
-
   .runner-detail-raw-context summary {
     padding: 11px 14px;
     color: var(--runner-muted);
@@ -1749,6 +1670,8 @@
   --runner-hover: rgba(255, 255, 255, 0.055);
   --runner-primary: #79a5ff;
   --runner-primary-soft: rgba(73, 122, 235, 0.18);
+  --runner-playback-bg: rgba(73, 122, 235, 0.14);
+  --runner-playback-glow: rgba(121, 165, 255, 0.28);
   --runner-success: #64c979;
   --runner-success-soft: rgba(55, 155, 77, 0.14);
   --runner-warning: #f0a74b;

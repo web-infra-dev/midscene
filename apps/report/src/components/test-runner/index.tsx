@@ -79,11 +79,13 @@ export default function TestRunnerReport({
   const { page, selectedCaseKey, deepLinkedStepId, unmatchedStepSelector } =
     navigation;
   const selectedCase = cases.find((item) => item.key === selectedCaseKey);
-  const tracePage =
-    page === 'case' &&
-    Boolean(deepLinkedStepId) &&
-    new URLSearchParams(window.location.hash.slice(1)).get('runner-trace') ===
-      'page';
+  const midsceneVersion = useMemo(() => {
+    for (const report of reports) {
+      const version = report.get().sdkVersion.trim();
+      if (version) return version.startsWith('v') ? version : `v${version}`;
+    }
+    return undefined;
+  }, [reports]);
 
   useEffect(() => {
     document.documentElement.setAttribute(
@@ -172,16 +174,6 @@ export default function TestRunnerReport({
       },
     );
   };
-  const closeTracePage = () => {
-    if (!selectedCase) return;
-    navigate({
-      page: 'case',
-      caseKey: selectedCase.key,
-      projectId: selectedCase.project.projectId,
-      stepId: deepLinkedStepId,
-    });
-  };
-
   return (
     <ConfigProvider
       theme={{
@@ -202,21 +194,30 @@ export default function TestRunnerReport({
           data-theme={isDarkMode ? 'dark' : 'light'}
         >
           <header className="runner-header">
-            <div className="runner-header-title">
-              <Logo />
-              <div>
-                <strong>Test Report</strong>
+            <div className="runner-header-inner">
+              <div className="runner-header-title">
+                <Logo />
+                <div>
+                  <strong>Test Report</strong>
+                </div>
               </div>
-            </div>
-            <div className="runner-header-actions">
-              <button
-                type="button"
-                className="runner-theme-toggle"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                aria-label="Toggle theme"
-              >
-                {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
-              </button>
+              <div className="runner-header-actions">
+                {midsceneVersion ? (
+                  <span className="runner-header-version">
+                    Midscene {midsceneVersion}
+                  </span>
+                ) : null}
+                <div className="runner-header-theme-control">
+                  <button
+                    type="button"
+                    className="runner-theme-toggle"
+                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    aria-label="Toggle theme"
+                  >
+                    {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
+                  </button>
+                </div>
+              </div>
             </div>
           </header>
           <main
@@ -242,10 +243,8 @@ export default function TestRunnerReport({
                 visualIndex={visualIndex}
                 reports={reports}
                 initialStepId={deepLinkedStepId}
-                tracePage={tracePage}
                 renderAgentReport={renderAgentReport}
                 onBack={backFromCase}
-                onCloseTracePage={closeTracePage}
               />
             ) : (
               <RunOverview

@@ -25,6 +25,10 @@ const figmaOverviewStyles = readFileSync(
   new URL('./figma-overview.less', import.meta.url),
   'utf8',
 );
+const figmaShellStyles = readFileSync(
+  new URL('./figma-shell.less', import.meta.url),
+  'utf8',
+);
 const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
 const breakdown = readFileSync(
   new URL('./project-breakdown.tsx', import.meta.url),
@@ -59,6 +63,10 @@ const selectStyles = readFileSync(
   new URL('./select.less', import.meta.url),
   'utf8',
 );
+const appSource = readFileSync(
+  new URL('../../App.tsx', import.meta.url),
+  'utf8',
+);
 
 describe('Midscene Test report layout', () => {
   it('keeps lifecycle hover rows square inside the rounded list', () => {
@@ -74,6 +82,9 @@ describe('Midscene Test report layout', () => {
   it('keeps the brand in the logo without repeating it in the report title', () => {
     expect(source).toContain('<Logo />');
     expect(source).toContain('<strong>Test Report</strong>');
+    expect(source).toContain('className="runner-header-inner"');
+    expect(source).toContain('Midscene {midsceneVersion}');
+    expect(source).toContain('report.get().sdkVersion.trim()');
     expect(source).toContain('aria-label="Test report content"');
     expect(source).not.toContain('Midscene Test Report');
     expect(source).not.toContain('Test Runner');
@@ -99,21 +110,21 @@ describe('Midscene Test report layout', () => {
     expect(figmaDetailStyles).toMatch(
       /\.runner-single-attempt-label\s*\{[^}]*padding: 4px 12px 4px 4px;[^}]*gap: 8px;/s,
     );
-    expect(attemptSelect).toContain(
-      'attemptStatus ? <AttemptStatusBadge status={attemptStatus} /> : null',
-    );
+    expect(attemptSelect).toContain('optionLabelProp="label"');
+    expect(attemptSelect).toContain('popupMatchSelectWidth');
     expect(figmaDetailStyles).not.toContain(
       '.runner-attempt-select-shell > span.is-',
     );
     expect(selectStyles).toMatch(
-      /\.runner-attempt-option-status\s*\{[^}]*height: 20px;[^}]*min-height: 20px;[^}]*padding: 0 8px;[^}]*border-radius: 6px;/s,
+      /\.runner-status-badge\.runner-status-pill\.runner-attempt-option-status\s*\{[^}]*box-sizing: border-box;[^}]*width: 60px;[^}]*height: 24px;[^}]*min-height: 24px;[^}]*padding: 0 8px;/s,
     );
     expect(selectStyles).toMatch(
-      /\.runner-attempt-option-status\.is-success\s*\{[^}]*color: #2d9b44;[^}]*background: #edf8ef;/s,
+      /\.runner-attempt-option-status\.is-success\s*\{[^}]*color: var\(--runner-success, #2d9b44\);[^}]*background: var\(--runner-success-soft, #edf8ef\);/s,
     );
     expect(selectStyles).toMatch(
-      /\.runner-attempt-option-status\.is-failed\s*\{[^}]*color: #e53f39;[^}]*background: #feece9;/s,
+      /\.runner-attempt-option-status\.is-failed\s*\{[^}]*color: var\(--runner-danger, #e53f39\);[^}]*background: var\(--runner-danger-soft, #feece9\);/s,
     );
+    expect(select).toContain("closest('.test-runner-report')");
   });
 
   it('keeps case rows clickable without a separate Inspect affordance', () => {
@@ -122,12 +133,15 @@ describe('Midscene Test report layout', () => {
     expect(breakdown).toContain('onClick={() => onOpen(item, failure?.id)}');
   });
 
-  it('draws one separator between expanded projects', () => {
+  it('draws one separator between Projects and their expanded rows', () => {
     expect(baseStyles).toMatch(
       /\.runner-project-tree-node \+ \.runner-project-tree-node\s*\{[^}]*border-top: 1px solid var\(--runner-border\);/s,
     );
     expect(figmaOverviewStyles).toMatch(
       /\.runner-project-tree-case-item:last-child \.runner-project-tree-case\s*\{[^}]*border-bottom: 0;/s,
+    );
+    expect(figmaOverviewStyles).toMatch(
+      /\.runner-project-tree-node\.is-expanded \.runner-project-tree-children\s*\{[^}]*border-top: 1px solid var\(--runner-border\);/s,
     );
   });
 
@@ -144,7 +158,7 @@ describe('Midscene Test report layout', () => {
   it('uses one shared Select for report filters and attempt switching', () => {
     expect(filters).toContain("import { Select } from './select'");
     expect(figmaOverviewStyles).toMatch(
-      /\.runner-breakdown-panel \.runner-breakdown-toolbar\s*\{[^}]*grid-template-columns: 184px 146px minmax\(240px, 317px\) 32px;/s,
+      /\.runner-breakdown-panel \.runner-breakdown-toolbar\s*\{[^}]*grid-template-columns: 184px minmax\(240px, 317px\) 32px;/s,
     );
     expect(header).toContain(
       "import { AttemptSelect } from './attempt-select'",
@@ -152,6 +166,63 @@ describe('Midscene Test report layout', () => {
     expect(attemptSelect).toContain("import { Select } from './select'");
     expect(select).toContain("className={['runner-report-select'");
     expect(select).toContain("popupClassName={['runner-select-dropdown'");
+  });
+
+  it('sorts the Project table from its column headers', () => {
+    expect(filters).not.toContain('Sort Project breakdown');
+    for (const value of [
+      'name',
+      'case-count',
+      'passed-count',
+      'result',
+      'duration',
+    ]) {
+      expect(breakdown).toContain(`value="${value}"`);
+    }
+    expect(breakdown).toContain('aria-pressed={active}');
+    expect(figmaOverviewStyles).toContain('.runner-project-sort-button');
+    expect(figmaOverviewStyles).toContain(
+      'color: var(--runner-sort-arrow-idle);',
+    );
+    expect(figmaOverviewStyles).toContain(
+      'color: var(--runner-sort-arrow-active);',
+    );
+    expect(figmaShellStyles).toContain(
+      '--runner-sort-arrow-idle: rgb(51 51 51 / 30%);',
+    );
+    expect(figmaShellStyles).toContain(
+      '--runner-sort-arrow-active: rgb(51 51 51 / 50%);',
+    );
+  });
+
+  it('keeps all six summary metrics separated on wide layouts', () => {
+    expect(figmaOverviewStyles).toMatch(
+      /\.runner-metric-card:nth-child\(3n\):not\(:last-child\)\s*\{[^}]*border-right: 1px solid var\(--runner-border\);/s,
+    );
+  });
+
+  it('anchors the header decoration to the full report viewport', () => {
+    expect(figmaShellStyles).toContain('.runner-main::before');
+    expect(figmaShellStyles).not.toContain('.runner-page::before');
+  });
+
+  it('centers the Header and report pages on the same wide-screen grid', () => {
+    expect(figmaShellStyles).toMatch(
+      /\.runner-header-inner\s*\{[^}]*width: min\(1424px, 100%\);[^}]*margin-inline: auto;[^}]*padding: 0 40px;/s,
+    );
+    expect(figmaShellStyles).toMatch(
+      /\.runner-page,[\s\S]*?\.runner-case-workspace\s*\{[^}]*width: min\(1424px, 100%\);[^}]*margin-inline: auto;[^}]*padding: 40px;/s,
+    );
+  });
+
+  it('uses separate expand and collapse icons for the Project list toggle', () => {
+    expect(filters).toContain("allProjectsExpanded ? ' is-collapse' : ''");
+    expect(figmaOverviewStyles).toMatch(
+      /\.runner-project-expansion-icon\s*\{[^}]*project-expansion\.svg/s,
+    );
+    expect(figmaOverviewStyles).toMatch(
+      /&\.is-collapse\s*\{[^}]*project-collapse\.svg/s,
+    );
   });
 
   it('renders platform metadata only when the report provides it', () => {
@@ -181,12 +252,35 @@ describe('Midscene Test report layout', () => {
   });
 
   it('keeps the selected step description above the report tabs', () => {
+    expect(inspector).toContain(
+      'const stepDescription = getStepDisplayName(step)',
+    );
     expect(inspector).toMatch(
-      /className="runner-detail-evidence-title"[\s\S]*?<\/div>\s*\{step.title \? \(\s*<p className="runner-detail-step-description">/,
+      /\{stepDescription !== step.node \? \(\s*<p className="runner-detail-step-description">/,
     );
     expect(inspector).toContain('className="runner-detail-tabs-row"');
     expect(figmaEvidenceStyles).toMatch(
       /\.runner-detail-evidence-heading \.runner-detail-step-description\s*\{/,
+    );
+  });
+
+  it('keeps the embedded trace resizable without a separate page action', () => {
+    expect(inspector).not.toContain('Open AI trace in new tab');
+    expect(inspector).not.toContain('target="_blank"');
+    expect(appSource).toContain('aria-label="Resize report sidebar"');
+    expect(appSource).toContain('clampSidebarWidth(');
+    expect(figmaEvidenceStyles).toMatch(
+      /\.runner-detail-inline-trace \.main-layout > \.resize-handle\s*\{[^}]*display: block;[^}]*width: 8px;/s,
+    );
+    expect(figmaEvidenceStyles).not.toMatch(
+      /\.runner-detail-inline-trace \.main-layout > \.resize-handle\s*\{[^}]*display: none;/s,
+    );
+  });
+
+  it('reserves trace height while switching tabs to prevent page jumps', () => {
+    expect(inspector).toContain('stabilizeContentHeight={hasAgentTrace}');
+    expect(figmaEvidenceStyles).toMatch(
+      /\.runner-detail-inspector-content\.has-stable-trace-height\s*\{[^}]*min-height: 864px;/s,
     );
   });
 
@@ -203,6 +297,10 @@ describe('Midscene Test report layout', () => {
     expect(timeline).toContain('onClick={() => onSelectFrame(item)}');
     expect(timeline).toContain('aria-pressed={isSelected}');
     expect(timeline).toContain('runner-detail-timeline-preview-callout');
+    expect(timeline).toContain('resolveTimelinePreviewPlacement');
+    expect(baseStyles).toMatch(
+      /\.runner-detail-timeline-preview-callout\.is-above\s*\{[^}]*bottom: calc\(100% \+ 8px\);/s,
+    );
     expect(timeline).toContain('previewFrame.frame.screenshot.base64');
     expect(timeline).toContain('item.stepId === selectedStepId');
   });

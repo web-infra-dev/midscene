@@ -32,11 +32,11 @@ function AttemptOptionLabel({
 }): JSX.Element {
   return (
     <span className="runner-attempt-option">
-      <span>{title}</span>
       <AttemptStatusBadge
         className="runner-attempt-option-status"
         status={status}
       />
+      <span className="runner-attempt-option-title">{title}</span>
     </span>
   );
 }
@@ -65,11 +65,10 @@ export function AttemptSelect({
   if (item.document.attempts) {
     return (
       <div className="runner-attempt-select-shell">
-        {attemptStatus ? <AttemptStatusBadge status={attemptStatus} /> : null}
         <Select<number>
           aria-label="File attempts"
-          popupMatchSelectWidth={false}
-          optionLabelProp="title"
+          popupMatchSelectWidth
+          optionLabelProp="label"
           value={selectedDocumentAttemptIndex}
           onChange={onSelectDocumentAttempt}
           options={item.document.attempts.map((attempt) => {
@@ -90,11 +89,10 @@ export function AttemptSelect({
   if (item.testCase.attempts.length > 1) {
     return (
       <div className="runner-attempt-select-shell">
-        {attemptStatus ? <AttemptStatusBadge status={attemptStatus} /> : null}
         <Select<string>
           aria-label="Attempts"
-          popupMatchSelectWidth={false}
-          optionLabelProp="title"
+          popupMatchSelectWidth
+          optionLabelProp="label"
           value={selectedAttempt?.attemptId}
           onChange={(attemptId) => {
             const attempt = item.testCase.attempts.find(
