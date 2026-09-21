@@ -17,9 +17,9 @@ const decisionSchema = z.object({
 
 const systemPrompt = `You select the planning mode for a UI automation task before any actions are executed. Do not execute the task or produce an action plan.
 
-Both modes can plan, perform multiple actions, observe the UI, and check completion. Deep thinking adds explicit sub-goals, persistent memory across steps, and a previous screenshot, at additional token cost. It does not enable model-native reasoning. Element location can be combined with planning or performed separately, depending on configuration. Judge the need for sub-goals and memory, not the location strategy.
+Both modes can plan, perform multiple actions, observe the UI, and check completion. Deep thinking adds explicit sub-goals and a previous screenshot, at additional token cost. Memory and action logs are configured independently and do not change with this decision. It does not enable model-native reasoning. Element location can be combined with planning or performed separately, depending on configuration. Judge the need for explicit sub-goals, not the location strategy or whether memory is needed.
 
-Choose deepThink=true when the task benefits from tracking dependent goals, remembering and comparing information across screens, handling conditional branches, or exploring an uncertain workflow while preserving multiple constraints.
+Choose deepThink=true when the task benefits from tracking dependent goals, handling conditional branches, or exploring an uncertain workflow while preserving multiple constraints. Remembering information alone does not require deep thinking.
 Choose deepThink=false for a straightforward task whose targets and required values are clear, including several direct actions or filling a known form. Instruction length, the number of clicks, or navigation alone does not require deep thinking. Decide from the full task, user context, current screenshot, and any reference images. Do not invent hidden requirements or assume that a target absent from the first screen makes the task complex.
 
 Examples:

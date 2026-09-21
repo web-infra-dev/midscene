@@ -43,6 +43,8 @@ import type {
 } from '@/types';
 import { ServiceError, aiActProgressScope } from '@/types';
 import {
+  MIDSCENE_PLANNING_LOG,
+  MIDSCENE_PLANNING_MEMORY,
   MIDSCENE_PLANNING_SEPARATE_LOCATE,
   globalConfigManager,
 } from '@midscene/shared/env';
@@ -451,29 +453,34 @@ export class TaskExecutor {
     >
   > {
     // Snapshot once, before auto classification or any planning request.
-    const separateLocateValue = globalConfigManager.getEnvConfigValue(
+    const readPlanningBoolean = (
+      key:
+        | typeof MIDSCENE_PLANNING_SEPARATE_LOCATE
+        | typeof MIDSCENE_PLANNING_MEMORY
+        | typeof MIDSCENE_PLANNING_LOG,
+    ) => {
+      const value = globalConfigManager.getEnvConfigValue(key);
+      if (!value) return undefined;
+      if (!/^(true|false|1|0)$/i.test(value)) {
+        throw new Error(`${key} must be true, false, 1, or 0.`);
+      }
+      if (planningModel.adapter.planning.kind !== 'standard') {
+        throw new Error(`${key} requires a standard planning adapter.`);
+      }
+      return /^(true|1)$/i.test(value);
+    };
+    const separateLocate = readPlanningBoolean(
       MIDSCENE_PLANNING_SEPARATE_LOCATE,
     );
-    if (
-      separateLocateValue &&
-      !/^(true|false|1|0)$/i.test(separateLocateValue)
-    ) {
-      throw new Error(
-        `${MIDSCENE_PLANNING_SEPARATE_LOCATE} must be true, false, 1, or 0.`,
-      );
-    }
-    const separateLocate = separateLocateValue
-      ? /^(true|1)$/i.test(separateLocateValue)
-      : undefined;
+    const planningFeatures = {
+      includeMemory: readPlanningBoolean(MIDSCENE_PLANNING_MEMORY) ?? true,
+      includeLog: readPlanningBoolean(MIDSCENE_PLANNING_LOG) ?? true,
+    };
     if (separateLocate !== undefined) {
-      if (planningModel.adapter.planning.kind !== 'standard') {
-        throw new Error(
-          `${MIDSCENE_PLANNING_SEPARATE_LOCATE} requires a standard planning adapter.`,
-        );
-      }
       if (
         !separateLocate &&
         (!planningModel.config.modelFamily ||
+          planningModel.adapter.planning.kind !== 'standard' ||
           !planningModel.adapter.planning.locateResultCodec)
       ) {
         throw new Error(
@@ -494,6 +501,7 @@ export class TaskExecutor {
         abortSignal,
         reportOptions,
         separateLocate,
+        planningFeatures,
       );
     });
   }
@@ -544,6 +552,7 @@ export class TaskExecutor {
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
     separateLocate?: boolean,
+    planningFeatures = { includeMemory: true, includeLog: true },
   ): Promise<
     ExecutionResult<
       | {
@@ -726,6 +735,7 @@ export class TaskExecutor {
             imagesIncludeCount,
             effort,
             includeLocateInPlanning,
+            ...planningFeatures,
             ...(separateLocate !== undefined ? { separateLocate } : {}),
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
@@ -771,6 +781,7 @@ export class TaskExecutor {
                 conversationHistory,
                 includeLocateInPlanning,
                 imagesIncludeCount,
+                ...planningFeatures,
                 effort,
                 abortSignal,
               });
@@ -953,7 +964,10 @@ export class TaskExecutor {
         );
       } finally {
         activeActionReporter = undefined;
-        if (planningModel.adapter.planning.kind === 'standard') {
+        if (
+          planningModel.adapter.planning.kind === 'standard' &&
+          planningFeatures.includeLog
+        ) {
           this.recordActionResults(
             conversationHistory,
             runner.tasks.slice(taskCountBeforeRun),

@@ -26,7 +26,11 @@ import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type Service from '@/service';
 import type { AIUsageInfo, UIContext } from '@/types';
-import { MIDSCENE_PLANNING_SEPARATE_LOCATE } from '@midscene/shared/env';
+import {
+  MIDSCENE_PLANNING_LOG,
+  MIDSCENE_PLANNING_MEMORY,
+  MIDSCENE_PLANNING_SEPARATE_LOCATE,
+} from '@midscene/shared/env';
 import { z } from 'zod';
 
 const image =
@@ -76,6 +80,8 @@ const completedPlan = {
 describe('deepThink auto', () => {
   beforeEach(() => {
     rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, undefined);
+    rs.stubEnv(MIDSCENE_PLANNING_MEMORY, undefined);
+    rs.stubEnv(MIDSCENE_PLANNING_LOG, undefined);
     rs.mocked(callAI).mockReset();
     rs.mocked(standardPlan).mockReset().mockResolvedValue(completedPlan);
   });
@@ -215,6 +221,8 @@ describe('deepThink auto', () => {
       for (const [, options] of rs.mocked(standardPlan).mock.calls) {
         expect(options).toMatchObject({
           effort: deepThink ? 'deepThink' : 'balance',
+          includeMemory: true,
+          includeLog: true,
           includeLocateInPlanning: !deepThink,
           imagesIncludeCount: deepThink ? 2 : 1,
         });
@@ -236,6 +244,94 @@ describe('deepThink auto', () => {
         },
       });
       expect(result.output?.output).toBe('done');
+    },
+  );
+
+  it.each(
+    [true, false].flatMap((deepThink) => [
+      {
+        deepThink,
+        memory: 'true',
+        log: 'false',
+        includeMemory: true,
+        includeLog: false,
+      },
+      {
+        deepThink,
+        memory: '0',
+        log: '1',
+        includeMemory: false,
+        includeLog: true,
+      },
+      {
+        deepThink,
+        memory: 'FALSE',
+        log: '0',
+        includeMemory: false,
+        includeLog: false,
+      },
+      {
+        deepThink,
+        memory: '1',
+        log: 'TRUE',
+        includeMemory: true,
+        includeLog: true,
+      },
+    ]),
+  )(
+    'uses independent environment switches in Auto: %j',
+    async ({ deepThink, memory, log, includeMemory, includeLog }) => {
+      rs.stubEnv(MIDSCENE_PLANNING_MEMORY, memory);
+      rs.stubEnv(MIDSCENE_PLANNING_LOG, log);
+      rs.mocked(callAI).mockImplementation(async () => {
+        // The switches must already have been captured before classification.
+        rs.stubEnv(MIDSCENE_PLANNING_MEMORY, String(!includeMemory));
+        rs.stubEnv(MIDSCENE_PLANNING_LOG, String(!includeLog));
+        return {
+          content: JSON.stringify({ deepThink, reason: 'Goals' }),
+          isStreamed: false,
+        };
+      });
+      const { executor } = createExecutor();
+      const result = await executor.action(
+        'Task',
+        model,
+        model,
+        undefined,
+        false,
+        1,
+        'auto',
+      );
+      expect(rs.mocked(standardPlan).mock.calls[0][1]).toMatchObject({
+        effort: deepThink ? 'deepThink' : 'balance',
+        includeMemory,
+        includeLog,
+        includeLocateInPlanning: !deepThink,
+        imagesIncludeCount: deepThink ? 2 : 1,
+      });
+      expect(
+        result.runner.tasks.find((task) => task.subType === 'Plan')?.param,
+      ).toMatchObject({ includeMemory, includeLog });
+      expect(String(rs.mocked(callAI).mock.calls[0][0][0].content)).toContain(
+        'Memory and action logs are configured independently',
+      );
+    },
+  );
+
+  it.each([MIDSCENE_PLANNING_MEMORY, MIDSCENE_PLANNING_LOG])(
+    'rejects explicit %s on custom planners',
+    async (key) => {
+      rs.stubEnv(key, 'false');
+      const { executor } = createExecutor();
+      const customModel = getModelRuntime({
+        ...model.config,
+        modelFamily: 'auto-glm',
+      });
+      await expect(executor.action('Task', customModel, model)).rejects.toThrow(
+        `${key} requires a standard planning adapter.`,
+      );
+      expect(callAI).not.toHaveBeenCalled();
+      expect(standardPlan).not.toHaveBeenCalled();
     },
   );
 

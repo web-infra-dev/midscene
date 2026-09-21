@@ -75,6 +75,24 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Planning scenarios |
 
+### Independent Planning memory and log controls
+
+These settings apply to the standard `aiAct` planner. Both default to enabled, independently of `deepThink: false`, `true`, or `'auto'`.
+
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_PLANNING_MEMORY` | `true` (default) enables the `<memory>` prompt, memory storage, and recall. `false` disables these and removes unsolicited `<memory>` output from subsequent assistant history. |
+| `MIDSCENE_PLANNING_LOG` | `true` (default) enables model `<log>` preambles and cumulative action execution results in subsequent planning requests. `false` disables both and removes unsolicited `<log>` output from subsequent assistant history. Fast effort keeps its action-derived display labels rather than requesting model preambles. |
+
+Both accept `true`/`false` or `1`/`0` (case-insensitive). Values are read once at the start of each `aiAct` call, before Auto classification; invalid values and explicit use with custom planning adapters throw an error. Original model responses and action records remain in reports. Error feedback and action outputs needed by the next planning step remain available when log is disabled.
+
+DeepThink continues to control sub-goals; it no longer enables or disables memory or log. The existing Locate strategy, screenshot history limits, and other planning rules are unchanged. In particular, `MIDSCENE_PLANNING_SEPARATE_LOCATE` continues to control independent Locate calls.
+
+```ini
+MIDSCENE_PLANNING_MEMORY=true
+MIDSCENE_PLANNING_LOG=false
+```
+
 ### Model-native thinking {#model-native-reasoning}
 
 Midscene disables model-native thinking by default for better execution speed and stability. If a model cannot disable native thinking, Midscene reduces it as much as possible by controlling the thinking granularity or budget.

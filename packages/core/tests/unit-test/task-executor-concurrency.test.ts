@@ -24,6 +24,11 @@ import { standardPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { DeviceAction, ExecutorContext } from '@/types';
+import {
+  MIDSCENE_PLANNING_LOG,
+  MIDSCENE_PLANNING_MEMORY,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import { preProcessImageUrl } from '@midscene/shared/img';
 import { z } from 'zod';
 import type Service from '../../src';
@@ -103,9 +108,93 @@ describe('TaskExecutor concurrency isolation', () => {
     rs.useRealTimers();
   });
 
-  it.each(['balance', 'deepThink', 'fast'] as const)(
-    'records completed, failed and cancelled actions after execution in %s mode',
+  it.each(['balance', 'deepThink'] as const)(
+    'snapshots independent memory/log switches for %s',
     async (effort) => {
+      const readEnv = rs.spyOn(globalConfigManager, 'getEnvConfigValue');
+      readEnv.mockImplementation((key) =>
+        key === MIDSCENE_PLANNING_MEMORY || key === MIDSCENE_PLANNING_LOG
+          ? 'false'
+          : undefined,
+      );
+      const seen: unknown[] = [];
+      rs.mocked(taskExecutor.convertPlanToExecutable).mockResolvedValue({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'Noop',
+            param: {},
+            executor: async () => undefined,
+          },
+        ],
+        yamlFlow: [],
+      } as any);
+      rs.mocked(standardPlan).mockImplementation(async (_instruction, opts) => {
+        seen.push([
+          opts.includeMemory,
+          opts.includeLog,
+          opts.conversationHistory.historicalLogsToText(),
+        ]);
+        // Changes after the first call must not change an in-flight run.
+        readEnv.mockReturnValue('true');
+        return {
+          actions: [{ type: 'Noop', param: {} }],
+          yamlFlow: [],
+          shouldContinuePlanning: seen.length === 1,
+          log: '',
+          rawResponse: '',
+        };
+      });
+      const result = await taskExecutor.action(
+        'noop twice',
+        planningModel(),
+        defaultModel(),
+        undefined,
+        false,
+        3,
+        effort,
+      );
+      expect(seen).toEqual([
+        [false, false, ''],
+        [false, false, ''],
+      ]);
+      for (const task of result.runner.tasks.filter(
+        (task) => task.subType === 'Plan',
+      )) {
+        expect(task.param).toEqual(
+          expect.objectContaining({ includeMemory: false, includeLog: false }),
+        );
+      }
+      expect(
+        result.runner.tasks.some((task) => task.type === 'Action Space'),
+      ).toBe(true);
+    },
+  );
+
+  it.each([MIDSCENE_PLANNING_MEMORY, MIDSCENE_PLANNING_LOG])(
+    'rejects invalid %s before planning',
+    async (key) => {
+      rs.spyOn(globalConfigManager, 'getEnvConfigValue').mockImplementation(
+        (name) => (name === key ? 'invalid' : undefined),
+      );
+      await expect(
+        taskExecutor.action('noop', planningModel(), defaultModel()),
+      ).rejects.toThrow(`${key} must be true, false, 1, or 0.`);
+      expect(standardPlan).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(
+    (['balance', 'deepThink', 'fast'] as const).flatMap((effort) =>
+      [true, false].map((includeLog) => ({ effort, includeLog })),
+    ),
+  )(
+    'records execution outcomes only with log enabled: %j',
+    async ({ effort, includeLog }) => {
+      rs.spyOn(globalConfigManager, 'getEnvConfigValue').mockImplementation(
+        (key) =>
+          key === MIDSCENE_PLANNING_LOG ? String(includeLog) : undefined,
+      );
       let history: Parameters<typeof standardPlan>[1]['conversationHistory'];
       const seenResults: string[] = [];
       const cancelledAction = rs.fn();
@@ -142,6 +231,9 @@ describe('TaskExecutor concurrency isolation', () => {
 
       rs.mocked(standardPlan).mockImplementation(async (_instruction, opts) => {
         history = opts.conversationHistory;
+        if (seenResults.length === 1) {
+          expect(history.pendingFeedbackMessage).toContain('device timeout');
+        }
         seenResults.push(history.historicalLogsToText());
         history.resetPendingFeedbackMessageIfExists();
         if (seenResults.length === 1) {
@@ -184,7 +276,9 @@ describe('TaskExecutor concurrency isolation', () => {
         '- Noop — Failed (effects may be partial): device timeout',
         '- Noop — Not executed (cancelled)',
       ].join('\n');
-      expect(seenResults).toEqual(['', expected, expected]);
+      expect(seenResults).toEqual(
+        includeLog ? ['', expected, expected] : ['', '', ''],
+      );
       expect(cancelledAction).not.toHaveBeenCalled();
     },
   );

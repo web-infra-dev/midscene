@@ -774,6 +774,8 @@ export interface ExecutionTaskPlanningParam {
   effort?: AiActEffort;
   includeLocateInPlanning?: boolean;
   separateLocate?: boolean;
+  includeMemory?: boolean;
+  includeLog?: boolean;
   subGoalStatus?: string;
   memoriesStatus?: string;
 }

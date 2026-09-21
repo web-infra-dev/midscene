@@ -16,6 +16,8 @@ export interface PlanOptions {
   conversationHistory: ConversationHistory;
   includeLocateInPlanning: boolean;
   imagesIncludeCount?: number;
+  includeMemory?: boolean;
+  includeLog?: boolean;
   // Controls aiAct planning prompt shape and state updates, such as sub-goals.
   effort: AiActEffort;
   abortSignal?: AbortSignal;

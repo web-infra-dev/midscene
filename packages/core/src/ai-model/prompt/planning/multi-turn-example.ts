@@ -25,6 +25,7 @@ export const buildPlanningMultiTurnExample = ({
   includeSubGoals,
   includeThought,
   includeLog,
+  includeMemory = true,
   locatePromptSpec,
   actionOutputProtocol,
   prefix,
@@ -32,6 +33,7 @@ export const buildPlanningMultiTurnExample = ({
   includeSubGoals: boolean;
   includeThought: boolean;
   includeLog: boolean;
+  includeMemory?: boolean;
   locatePromptSpec?: LocateResultPromptSpec;
   actionOutputProtocol: PlanningActionOutputProtocol;
   prefix?: string;
@@ -120,7 +122,9 @@ ${renderSubGoalsContent(
     {
       ...sampleNameSubGoal,
       status: 'running',
-      logs: ['Click on the Name field to start filling the form'],
+      logs: includeLog
+        ? ['Click on the Name field to start filling the form']
+        : [],
     },
     { ...sampleEmailSubGoal, status: 'pending' },
     { ...sampleReturnEmailSubGoal, status: 'pending' },
@@ -153,10 +157,12 @@ ${renderSubGoalsContent(
     {
       ...sampleNameSubGoal,
       status: 'running',
-      logs: [
-        'Click on the Name field to start filling the form',
-        "Typing 'John' into the Name field",
-      ],
+      logs: includeLog
+        ? [
+            'Click on the Name field to start filling the form',
+            "Typing 'John' into the Name field",
+          ]
+        : [],
     },
     { ...sampleEmailSubGoal, status: 'pending' },
     { ...sampleReturnEmailSubGoal, status: 'pending' },
@@ -176,9 +182,7 @@ ${buildPlanningResponseExample({
       )}`
     : undefined,
   markSubGoalsDone: includeSubGoals ? [1] : undefined,
-  memory: includeSubGoals
-    ? "Name field has been filled with 'John'"
-    : undefined,
+  memory: includeMemory ? "Name field has been filled with 'John'" : undefined,
   log: includeLog ? 'Moving to the Email field' : undefined,
   actionOutputExample: tapEmailFieldActionOutputExample,
 })}
@@ -194,7 +198,7 @@ ${renderSubGoalsContent(
     {
       ...sampleEmailSubGoal,
       status: 'running',
-      logs: ['Moving to the Email field'],
+      logs: includeLog ? ['Moving to the Email field'] : [],
     },
     { ...sampleReturnEmailSubGoal, status: 'pending' },
   ]),
@@ -227,10 +231,12 @@ ${renderSubGoalsContent(
     {
       ...sampleEmailSubGoal,
       status: 'running',
-      logs: [
-        'Moving to the Email field',
-        'Typing email address into the Email field',
-      ],
+      logs: includeLog
+        ? [
+            'Moving to the Email field',
+            'Typing email address into the Email field',
+          ]
+        : [],
     },
     { ...sampleReturnEmailSubGoal, status: 'pending' },
   ]),

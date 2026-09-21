@@ -537,6 +537,149 @@ describe('plan XML parse retry', () => {
     expect(result.actions).toEqual([{ type: 'Tap' }]);
   });
 
+  it.each(
+    (['balance', 'deepThink'] as const).flatMap((effort) =>
+      [true, false].flatMap((includeMemory) =>
+        [true, false].map((includeLog) => ({
+          effort,
+          includeMemory,
+          includeLog,
+        })),
+      ),
+    ),
+  )(
+    'isolates memory/log across two turns: %j',
+    async ({ effort, includeMemory, includeLog }) => {
+      const history = new ConversationHistory();
+      history.appendMemory('Previously observed order 42');
+      history.appendHistoricalLog('Previous action returned successfully');
+      const rawResponse = `<planning>Continue</planning>
+<memory>Observed order 43</memory>
+<log>Opening order</log>
+<update-plan-content><sub-goal index="1" status="pending">Order is open</sub-goal></update-plan-content>
+<action-type>Tap</action-type>`;
+      rs.mocked(callAI).mockResolvedValue(mockAIResponse(rawResponse));
+      const options: PlanOptions = {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime(mockModelConfig()),
+        conversationHistory: history,
+        includeLocateInPlanning: false,
+        effort,
+        includeMemory,
+        includeLog,
+      };
+      const result = await standardPlan('open order', options);
+      await standardPlan('open order', options);
+      const system = String(latestSystemPrompt());
+      expect(system.includes('<memory>')).toBe(includeMemory);
+      expect(system.includes('<log>')).toBe(includeLog);
+      expect(system.includes('<update-plan-content>')).toBe(
+        effort === 'deepThink',
+      );
+      expect(system.includes('Actions performed for current sub-goal:')).toBe(
+        includeLog && effort === 'deepThink',
+      );
+      const request = JSON.stringify(rs.mocked(callAI).mock.calls[1][0]);
+      expect(request.includes('Previously observed order 42')).toBe(
+        includeMemory,
+      );
+      expect(request.includes('Observed order 43')).toBe(includeMemory);
+      expect(request.includes('Opening order')).toBe(includeLog);
+      expect(request.includes('Previous action returned successfully')).toBe(
+        includeLog,
+      );
+      expect(
+        JSON.stringify(rs.mocked(callAI).mock.calls[1][0].at(-1)),
+      ).not.toContain('No previous actions have been executed');
+      expect(result.memory).toBe(
+        includeMemory ? 'Observed order 43' : undefined,
+      );
+      expect(history.getMemories()).toEqual(
+        includeMemory
+          ? [
+              'Previously observed order 42',
+              'Observed order 43',
+              'Observed order 43',
+            ]
+          : ['Previously observed order 42'],
+      );
+      expect(result.rawResponse).toBe(rawResponse);
+      expect(result.actions).toEqual([{ type: 'Tap' }]);
+    },
+  );
+
+  it.each([false, true])(
+    'filters disabled fields while preserving opaque assistant metadata (array=%s)',
+    async (arrayContent) => {
+      const content =
+        '<memory>hidden memory</memory><log>hidden log</log><action-type>Tap</action-type>';
+      const rawChoiceMessage = {
+        role: 'assistant' as const,
+        content: arrayContent
+          ? [{ type: 'text' as const, text: content }]
+          : content,
+        reasoning_content: 'opaque provider state',
+      };
+      rs.mocked(callAI).mockResolvedValue({
+        ...mockAIResponse(content),
+        rawChoiceMessage,
+      });
+      const history = new ConversationHistory();
+      const options: PlanOptions = {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime(mockModelConfig('kimi3')),
+        conversationHistory: history,
+        includeLocateInPlanning: false,
+        effort: 'deepThink',
+        includeMemory: false,
+        includeLog: false,
+      };
+      const result = await standardPlan('tap', options);
+      await standardPlan('tap', options);
+      const replay = rs
+        .mocked(callAI)
+        .mock.calls[1][0].find((message) => message.role === 'assistant');
+      expect(replay).toEqual({
+        ...rawChoiceMessage,
+        content: arrayContent
+          ? [{ type: 'text', text: '<action-type>Tap</action-type>' }]
+          : '<action-type>Tap</action-type>',
+      });
+      expect(result.rawChoiceMessage).toEqual(rawChoiceMessage);
+      expect(JSON.stringify(rawChoiceMessage)).toContain('hidden memory');
+    },
+  );
+
+  it('preserves literal memory/log tags inside action parameters when both features are disabled', async () => {
+    const value = '<memory>literal memory</memory><log>literal log</log>';
+    const content = `<memory>discard this</memory><log>discard this too</log><action-type>Input</action-type><action-param-json>${JSON.stringify({ value })}</action-param-json>`;
+    rs.mocked(callAI).mockResolvedValue(mockAIResponse(content));
+    const history = new ConversationHistory();
+    const result = await standardPlan('type the markup', {
+      context: mockContext(),
+      actionSpace: [
+        {
+          name: 'Input',
+          description: 'Input text',
+          paramSchema: z.object({ value: z.string() }),
+          call: rs.fn(),
+        },
+      ],
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory: history,
+      includeLocateInPlanning: false,
+      effort: 'balance',
+      includeMemory: false,
+      includeLog: false,
+    });
+    expect(result.actions).toEqual([{ type: 'Input', param: { value } }]);
+    const replay = JSON.stringify(history.snapshot().at(-1));
+    expect(replay).toContain(value);
+    expect(replay).not.toContain('discard this');
+  });
+
   it('replays the complete assistant message for adapters that opt in', async () => {
     const firstResponse = `<log>Tap button</log>
 <action-type>Tap</action-type>`;

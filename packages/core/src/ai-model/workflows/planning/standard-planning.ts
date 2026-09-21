@@ -168,7 +168,9 @@ export async function standardPlan(
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
   const includeSubGoals = opts.effort === 'deepThink';
   const includeThought = opts.effort !== 'fast';
-  const includeLog = opts.effort !== 'fast';
+  const includeLog = opts.includeLog ?? true;
+  const includeMemory = opts.includeMemory ?? true;
+  const includeModelLog = includeLog && opts.effort !== 'fast';
 
   if (opts.includeLocateInPlanning && !locateResultCodec) {
     throw new Error(
@@ -179,8 +181,9 @@ export async function standardPlan(
   const systemPrompt = await buildStandardPlanningSystemPrompt({
     actionSpace: opts.actionSpace,
     includeThought,
-    includeLog,
+    includeLog: includeModelLog,
     includeSubGoals,
+    includeMemory,
     planningProtocol,
     ...(opts.includeLocateInPlanning && locateResultCodec
       ? {
@@ -221,18 +224,21 @@ export async function standardPlan(
   // Executor records are independent of sub-goals and survive plan updates.
   const executionProgressText = [
     includeSubGoals ? conversationHistory.subGoalsToText() : '',
-    conversationHistory.historicalLogsToText(),
+    includeLog ? conversationHistory.historicalLogsToText() : '',
   ]
     .filter(Boolean)
     .join('\n\n');
   const executionProgressSection = executionProgressText
     ? `\n\n${executionProgressText}`
-    : conversationHistory.pendingFeedbackMessage
+    : conversationHistory.pendingFeedbackMessage ||
+        conversationHistory.length > 0
       ? ''
       : `\n\n${noPreviousActionsText}`;
 
   // Build memories text to include in the message
-  const memoriesText = conversationHistory.memoriesToText();
+  const memoriesText = includeMemory
+    ? conversationHistory.memoriesToText()
+    : '';
   const memoriesSection = memoriesText ? `\n\n${memoriesText}` : '';
 
   if (conversationHistory.pendingFeedbackMessage) {
@@ -306,8 +312,12 @@ export async function standardPlan(
       contentSize: preparedImage.contentSize,
     },
     includeThought,
-    includeLog,
+    includeLog: includeModelLog,
   });
+
+  if (!includeMemory) {
+    planFromAI.memory = undefined;
+  }
 
   // YAML is derived from validated actions outside the model-response retry scope.
   // dumpActionParam omits runtime-only locatedPixelResult fields.
@@ -356,23 +366,53 @@ export async function standardPlan(
     conversationHistory.appendMemory(planFromAI.memory);
   }
 
-  // Some model providers require opaque assistant fields to be replayed
-  // verbatim in later turns. Keep this opt-in per model adapter so that an
-  // unverified provider does not receive non-standard response fields.
+  // Keep the original response in the report, but do not replay disabled
+  // fields if a model emits them despite their absence from the prompt.
+  const disabledTags = [
+    ...(!includeMemory ? ['memory'] : []),
+    ...(!includeLog ? ['log'] : []),
+  ];
+  const filterAssistantText = (text: string) => {
+    if (!disabledTags.length) return text;
+    // Consume action-protocol blocks whole, so literal <memory>/<log> text
+    // inside an Input value or locator is not removed from action history.
+    const tags = [
+      ...planningProtocol.actionOutputProtocol.actionOutputTagNames,
+      ...disabledTags,
+    ];
+    const fields = new RegExp(
+      `<(${tags.join('|')})\\b[^>]*>[\\s\\S]*?<\\/\\1\\s*>`,
+      'gi',
+    );
+    return text.replace(fields, (field, tag: string) =>
+      disabledTags.includes(tag.toLowerCase()) ? '' : field,
+    );
+  };
+
+  // Preserve provider-specific opaque fields (e.g. thought signatures).
+  // Only filter visible content; do not mutate the raw report response.
   if (
     modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
     rawChoiceMessage
   ) {
-    conversationHistory.append(rawChoiceMessage as ChatCompletionMessageParam);
+    const message = rawChoiceMessage as ChatCompletionMessageParam;
+    conversationHistory.append({
+      ...message,
+      content:
+        typeof message.content === 'string'
+          ? filterAssistantText(message.content)
+          : Array.isArray(message.content)
+            ? message.content.map((part) =>
+                part.type === 'text'
+                  ? { ...part, text: filterAssistantText(part.text) }
+                  : part,
+              )
+            : message.content,
+    } as ChatCompletionMessageParam);
   } else {
     conversationHistory.append({
       role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: rawResponse,
-        },
-      ],
+      content: [{ type: 'text', text: filterAssistantText(rawResponse) }],
     });
   }
 

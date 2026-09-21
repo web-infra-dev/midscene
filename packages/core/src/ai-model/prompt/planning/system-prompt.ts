@@ -16,6 +16,7 @@ type BuildStandardPlanningSystemPromptInput = {
   includeSubGoals?: boolean;
   includeThought?: boolean;
   includeLog?: boolean;
+  includeMemory?: boolean;
   planningProtocol: StandardPlanningProtocol;
 } & (
   | {
@@ -38,6 +39,7 @@ export async function buildStandardPlanningSystemPrompt(
     includeSubGoals,
     includeThought = true,
     includeLog = true,
+    includeMemory = true,
     planningProtocol,
   } = input;
   const actionOutputProtocol = planningProtocol.actionOutputProtocol;
@@ -67,9 +69,9 @@ export async function buildStandardPlanningSystemPrompt(
   const renderLogContent = (content: string, fallbackContent = '') =>
     includeLog ? content : fallbackContent;
 
-  // Step numbering adjusts based on whether sub-goals are included
-  // When includeSubGoals=false, memory step is skipped
-  const completionCheckStepNumber = shouldIncludeSubGoals ? 3 : 2;
+  const renderMemoryContent = (content: string) =>
+    includeMemory ? content : '';
+  const completionCheckStepNumber = includeMemory ? 3 : 2;
   const actionStepNumber = completionCheckStepNumber + 1;
 
   return `
@@ -160,7 +162,7 @@ After some time, when the last sub-goal is also completed, you can mark it as do
   <sub-goal index="3" status="finished" />
 </mark-sub-goal-done>`)}
 
-${renderSubGoalsContent(`## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
+${renderMemoryContent(`## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
 Use <memory> to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
 
@@ -355,9 +357,8 @@ ${renderSubGoalsContent(`<!-- required when no update-plan-content is provided i
 <!-- required when any sub-goal is completed -->
 <mark-sub-goal-done>
   <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-<!-- Step 2: Memory data from current screenshot if needed -->
+</mark-sub-goal-done>`)}
+${renderMemoryContent(`<!-- Step 2: Memory data from current screenshot if needed -->
 <memory>...</memory>`)}
 
 **Then choose ONE of the following paths:**
@@ -377,6 +378,7 @@ ${buildPlanningMultiTurnExample({
   includeSubGoals: shouldIncludeSubGoals,
   includeThought,
   includeLog,
+  includeMemory,
   locatePromptSpec,
   actionOutputProtocol,
   prefix: planningProtocol.responsePrefix,

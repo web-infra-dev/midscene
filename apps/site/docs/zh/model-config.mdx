@@ -74,6 +74,24 @@
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Planning 场景中控制结构化响应策略 |
 
+### 独立控制 Planning 的 memory 和 log
+
+以下配置用于 `aiAct` 的标准 Planning。两个开关默认开启，独立于 `deepThink: false`、`true` 或 `'auto'`。
+
+| 名称 | 说明 |
+|------|-------------|
+| `MIDSCENE_PLANNING_MEMORY` | `true`（默认）启用 `<memory>` 提示词、记忆存储和回传；`false` 关闭这些环节，并从后续 assistant 历史中移除模型自行输出的 `<memory>`。 |
+| `MIDSCENE_PLANNING_LOG` | `true`（默认）启用模型 `<log>` 操作预告和后续规划中的累计执行结果；`false` 关闭两者，并从后续 assistant 历史中移除模型自行输出的 `<log>`。Fast effort 仍使用从动作生成的展示文案，不要求模型输出操作预告。 |
+
+均支持 `true` / `false` 或 `1` / `0`（不区分大小写）。每次 `aiAct` 开始时、Auto 分类前读取一次；非法值或向自定义 Planning 适配器显式设置开关会报错。报告仍保留原始模型响应和动作记录。关闭 log 后，错误反馈和下一步规划需要的动作输出仍然保留。
+
+DeepThink 继续控制 subGoals，不再决定 memory 或 log 是否开启。现有 Locate 策略、截图历史数量和其他规划规则保持不变；`MIDSCENE_PLANNING_SEPARATE_LOCATE` 仍用于控制独立 Locate 调用。
+
+```ini
+MIDSCENE_PLANNING_MEMORY=true
+MIDSCENE_PLANNING_LOG=false
+```
+
 ### 模型原生思考 {#model-native-reasoning}
 
 Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳定性。如果模型不支持关闭原生思考，Midscene 会通过控制思考粒度或限制思考额度，尽可能减少模型的原生思考。
