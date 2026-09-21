@@ -97,7 +97,7 @@ MIDSCENE_PLANNING_LOG=false
 | 名称 | 说明 |
 |------|-------------|
 | `MIDSCENE_PLANNING_TASK_SCOPE` | `true`（默认）保留现有 TaskScope 中关于严格执行指令、停在中间状态和不追加操作的提示；`false` 移除这些段落，用户指令和其他完成规则仍然保留。支持 `true` / `false` 或 `1` / `0`，不区分大小写。 |
-| `MIDSCENE_PLANNING_SCREENSHOT_COUNT` | 正安全整数，限制每轮 Planning 携带的执行截图数量，包含当前截图。`1` 表示只带当前截图，`2` 表示当前截图加最近一张历史截图；用户参考图片单独计算。历史不足时不补齐，较早截图也可能已被历史压缩移除。 |
+| `MIDSCENE_PLANNING_SCREENSHOT_COUNT` | 只接受 `1` 或 `2`，限制每轮 Planning 携带的执行截图数量，包含当前截图。`1` 表示只带当前截图，`2` 表示当前截图加最近一张历史截图；用户参考图片单独计算。第一轮只有初始截图。这两种行为分别对应原来 DeepThink 关闭时的单张截图和开启时的 before/after 两张；显式设置数量不会切换 DeepThink。 |
 
 两项配置均在 Auto 分类前读取一次，仅用于标准 Planning。非法值或向自定义 Planning 适配器显式设置时会报错。截图数量未设置或为空时保持旧策略：DeepThink 开启时最多两张，否则一张；显式设置后覆盖所有模式的默认数量。Plan 记录包含实际使用的 TaskScope 开关和截图上限。
 

@@ -98,7 +98,7 @@ MIDSCENE_PLANNING_LOG=false
 | Name | Description |
 |------|-------------|
 | `MIDSCENE_PLANNING_TASK_SCOPE` | `true` (default) includes the existing task-scope guidance about exact instructions, intermediate states, and avoiding extra actions. `false` omits those passages, without removing the user instruction or other completion rules. Accepts `true`/`false` or `1`/`0` (case-insensitive). |
-| `MIDSCENE_PLANNING_SCREENSHOT_COUNT` | A positive safe integer limiting execution screenshots per Planning request, including the current screenshot. `1` means current only; `2` means current plus the most recent historical screenshot. Reference images are separate. Fewer images are sent when history is unavailable; older images may already have been removed by history compression. |
+| `MIDSCENE_PLANNING_SCREENSHOT_COUNT` | Accepts only `1` or `2`, limiting execution screenshots per Planning request, including the current screenshot. `1` means current only; `2` means current plus the most recent historical screenshot. Reference images are separate. The first round has only the initial screenshot. These match the previous single-screenshot (DeepThink off) and before/after (DeepThink on) behaviors, but an explicit value does not toggle DeepThink. |
 
 Both settings are captured once before Auto classification and apply only to the standard planner. Invalid values and explicit use with custom planning adapters throw an error. An unset or empty screenshot count preserves the existing limit: two for DeepThink, one otherwise. An explicit count overrides that limit in every mode. Plan records include the effective task-scope flag and screenshot limit.
 

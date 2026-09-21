@@ -480,16 +480,12 @@ export class TaskExecutor {
     );
     let imagesIncludeCount: number | undefined;
     if (screenshotCount) {
-      imagesIncludeCount = Number(screenshotCount);
-      if (
-        !/^\d+$/.test(screenshotCount) ||
-        !Number.isSafeInteger(imagesIncludeCount) ||
-        imagesIncludeCount < 1
-      ) {
+      if (screenshotCount !== '1' && screenshotCount !== '2') {
         throw new Error(
-          `${MIDSCENE_PLANNING_SCREENSHOT_COUNT} must be a positive safe integer.`,
+          `${MIDSCENE_PLANNING_SCREENSHOT_COUNT} must be 1 or 2.`,
         );
       }
+      imagesIncludeCount = Number(screenshotCount);
       if (planningModel.adapter.planning.kind !== 'standard') {
         throw new Error(
           `${MIDSCENE_PLANNING_SCREENSHOT_COUNT} requires a standard planning adapter.`,

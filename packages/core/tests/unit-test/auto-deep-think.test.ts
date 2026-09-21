@@ -655,7 +655,7 @@ describe('deepThink auto', () => {
     'captures scope and screenshot overrides before Auto (%s)',
     async (deepThink) => {
       rs.stubEnv(MIDSCENE_PLANNING_TASK_SCOPE, '0');
-      rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, '3');
+      rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, '2');
       rs.mocked(callAI).mockImplementation(async () => {
         rs.stubEnv(MIDSCENE_PLANNING_TASK_SCOPE, 'true');
         rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, '1');
@@ -682,7 +682,7 @@ describe('deepThink auto', () => {
       for (const [, options] of rs.mocked(standardPlan).mock.calls) {
         expect(options).toMatchObject({
           includeTaskScope: false,
-          imagesIncludeCount: 3,
+          imagesIncludeCount: 2,
         });
       }
       for (const task of result.runner.tasks.filter(
@@ -690,7 +690,7 @@ describe('deepThink auto', () => {
       )) {
         expect(task.param).toMatchObject({
           includeTaskScope: false,
-          imagesIncludeCount: 3,
+          imagesIncludeCount: 2,
         });
       }
       await executor.action(
@@ -709,11 +709,15 @@ describe('deepThink auto', () => {
     },
   );
 
-  it.each(['balance', 'deepThink', 'fast'] as const)(
-    'applies independent scope and image limits to real %s requests',
-    async (effort) => {
+  it.each(
+    (['balance', 'deepThink', 'fast'] as const).flatMap((effort) =>
+      [1, 2].map((count) => ({ effort, count })),
+    ),
+  )(
+    'applies independent scope and image limit $count to real $effort requests',
+    async ({ effort, count }) => {
       rs.stubEnv(MIDSCENE_PLANNING_TASK_SCOPE, 'false');
-      rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, '2');
+      rs.stubEnv(MIDSCENE_PLANNING_SCREENSHOT_COUNT, String(count));
       rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, 'true');
       rs.mocked(standardPlan).mockImplementation(planningActual.standardPlan);
       rs.mocked(callAI)
@@ -765,15 +769,15 @@ describe('deepThink auto', () => {
             ? message.content.filter((part) => part.type === 'image_url')
             : [],
         );
-        // One reference image plus up to two execution screenshots, without padding.
-        expect(images).toHaveLength(1 + Math.min(index + 1, 2));
+        // The reference image is separate; execution screenshots are not padded.
+        expect(images).toHaveLength(1 + Math.min(index + 1, count));
       }
       for (const task of result.runner.tasks.filter(
         (task) => task.subType === 'Plan',
       )) {
         expect(task.param).toMatchObject({
           includeTaskScope: false,
-          imagesIncludeCount: 2,
+          imagesIncludeCount: count,
         });
       }
     },
@@ -781,6 +785,9 @@ describe('deepThink auto', () => {
 
   it.each([
     '0',
+    '3',
+    '10',
+    '01',
     '-1',
     '1.5',
     'NaN',
@@ -795,7 +802,7 @@ describe('deepThink auto', () => {
       const { executor } = createExecutor();
       await expect(
         executor.action('Task', model, model, undefined, false, 1, 'auto'),
-      ).rejects.toThrow('must be a positive safe integer');
+      ).rejects.toThrow('must be 1 or 2');
       expect(callAI).not.toHaveBeenCalled();
       expect(standardPlan).not.toHaveBeenCalled();
     },

@@ -46,7 +46,7 @@ describe('overrideAIConfig', () => {
 
   it.each([
     { key: MIDSCENE_PLANNING_TASK_SCOPE, value: 'false', override: 'true' },
-    { key: MIDSCENE_PLANNING_SCREENSHOT_COUNT, value: '2', override: '3' },
+    { key: MIDSCENE_PLANNING_SCREENSHOT_COUNT, value: '2', override: '1' },
   ])(
     'supports environment and config overrides for $key',
     ({ key, value, override }) => {
