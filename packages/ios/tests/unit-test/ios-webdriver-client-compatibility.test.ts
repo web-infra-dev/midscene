@@ -1,4 +1,5 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
+import { WebDriverRequestError } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
@@ -94,6 +95,128 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
         '/session/test-session-id/wda/tap',
         { x: 999.5, y: 888.7 },
       );
+    });
+  });
+
+  describe('longPress() fallback logic', () => {
+    it('should synthesize a stationary press with W3C Actions when supported', async () => {
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      makeRequestSpy.mockResolvedValueOnce({ status: 0 });
+
+      await client.longPress(100, 200, 3000);
+
+      expect(makeRequestSpy).toHaveBeenCalledTimes(1);
+      expect(makeRequestSpy).toHaveBeenCalledWith(
+        'POST',
+        '/session/test-session-id/actions',
+        {
+          actions: [
+            {
+              type: 'pointer',
+              id: 'finger1',
+              parameters: { pointerType: 'touch' },
+              actions: [
+                { type: 'pointerMove', duration: 0, x: 100, y: 200 },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pause', duration: 3000 },
+                { type: 'pointerUp', button: 0 },
+              ],
+            },
+          ],
+        },
+      );
+    });
+
+    it('should keep the press stationary: no pointerMove between down and up', async () => {
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      makeRequestSpy.mockResolvedValueOnce({ status: 0 });
+
+      await client.longPress(50, 60);
+
+      const chain = makeRequestSpy.mock.calls[0][2].actions[0].actions;
+      const downIndex = chain.findIndex(
+        (item: { type: string }) => item.type === 'pointerDown',
+      );
+      const upIndex = chain.findIndex(
+        (item: { type: string }) => item.type === 'pointerUp',
+      );
+      expect(downIndex).toBeGreaterThanOrEqual(0);
+      expect(upIndex).toBeGreaterThan(downIndex);
+      const between = chain.slice(downIndex + 1, upIndex);
+      expect(
+        between.every((item: { type: string }) => item.type === 'pause'),
+      ).toBe(true);
+      expect(between[between.length - 1].duration).toBe(1000);
+    });
+
+    it('should fallback to touchAndHold (seconds) when W3C Actions fails', async () => {
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      makeRequestSpy.mockRejectedValueOnce(
+        new WebDriverRequestError('Actions endpoint not found', 404, {
+          value: { error: 'unknown command' },
+        }),
+      );
+      makeRequestSpy.mockResolvedValueOnce({ status: 0 });
+
+      await client.longPress(100, 200, 1500);
+
+      expect(makeRequestSpy).toHaveBeenCalledTimes(2);
+      expect(makeRequestSpy).toHaveBeenNthCalledWith(
+        1,
+        'POST',
+        '/session/test-session-id/actions',
+        expect.objectContaining({ actions: expect.any(Array) }),
+      );
+      expect(makeRequestSpy).toHaveBeenNthCalledWith(
+        2,
+        'POST',
+        '/session/test-session-id/wda/touchAndHold',
+        { x: 100, y: 200, duration: 1.5 },
+      );
+    });
+
+    it('should throw error when both W3C Actions and touchAndHold fail', async () => {
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      const actionsError = new WebDriverRequestError(
+        'Actions endpoint not found',
+        404,
+        { value: { error: 'unknown command' } },
+      );
+      makeRequestSpy.mockRejectedValueOnce(actionsError);
+      makeRequestSpy.mockRejectedValueOnce(new Error('touchAndHold failed'));
+
+      const error = await client.longPress(100, 200).catch((error) => error);
+
+      expect(error).toBeInstanceOf(AggregateError);
+      expect(error.errors[0]).toBe(actionsError);
+      expect(error.errors[1]).toEqual(new Error('touchAndHold failed'));
+      expect(makeRequestSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not repeat the gesture after a transport failure', async () => {
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      const transportError = new WebDriverRequestError(
+        'Request timeout after 30000ms',
+      );
+      makeRequestSpy.mockRejectedValueOnce(transportError);
+
+      await expect(client.longPress(100, 200)).rejects.toBe(transportError);
+      expect(makeRequestSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not fallback when the session is invalid', async () => {
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      const invalidSessionError = new WebDriverRequestError(
+        'Session is invalid',
+        404,
+        { value: { error: 'invalid session id' } },
+      );
+      makeRequestSpy.mockRejectedValueOnce(invalidSessionError);
+
+      await expect(client.longPress(100, 200)).rejects.toBe(
+        invalidSessionError,
+      );
+      expect(makeRequestSpy).toHaveBeenCalledTimes(1);
     });
   });
 
