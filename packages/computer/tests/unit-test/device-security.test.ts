@@ -23,9 +23,9 @@ const mockState = rs.hoisted(() => {
     | { x: number; y: number; width: number; height: number }
     | undefined;
   let windowsCursorTransform = (x: number, y: number) => ({ x, y });
-  // The physical path uses `-EncodedCommand`; the legacy display fallback
-  // intentionally matches the affected user's working `-NoProfile -Command`
-  // invocation. Answer based on which script is being run.
+  // Both Windows paths intentionally use the affected user's verified
+  // `-NoProfile -Command` transport. The physical script is distinguished by
+  // its Per-Monitor V2 preamble.
   const execFileSync = rs.fn(
     (
       file?: string,
@@ -35,14 +35,8 @@ const mockState = rs.hoisted(() => {
       // mockReturnValueOnce.
     ): string | Buffer | undefined => {
       if (file === 'powershell.exe' && args) {
-        const idx = args.indexOf('-EncodedCommand');
         const commandIdx = args.indexOf('-Command');
-        const script =
-          idx >= 0
-            ? Buffer.from(args[idx + 1], 'base64').toString('utf16le')
-            : commandIdx >= 0
-              ? args[commandIdx + 1]
-              : '';
+        const script = commandIdx >= 0 ? args[commandIdx + 1] : '';
         if (script.includes('CopyFromScreen')) {
           return FAKE_PNG_BASE64;
         }

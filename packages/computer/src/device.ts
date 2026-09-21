@@ -1101,7 +1101,7 @@ export class ComputerDevice implements AbstractInterface {
       const windowsDisplayGeometries = windowsDisplayDiscovery?.geometries;
       if (windowsDisplayDiscovery?.coordinateMode === 'legacy') {
         warnDevice(
-          'Windows display enumeration returned no data in the Per-Monitor V2 DPI context; using the legacy Windows coordinate path for this device connection.',
+          'Windows physical-pixel display enumeration returned no data; using the legacy Windows coordinate path for this device connection.',
         );
       }
       this.windowsCoordinateMode =

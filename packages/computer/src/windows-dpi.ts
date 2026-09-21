@@ -79,20 +79,6 @@ if ($midscenePreviousDpiContext -eq [System.IntPtr]::Zero) {
 }
 `.trim();
 
-function runWindowsPowershellScript(script: string): string {
-  const encoded = Buffer.from(script, 'utf16le').toString('base64');
-  return execFileSync(
-    'powershell.exe',
-    ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
-    {
-      encoding: 'utf8',
-      timeout: POWERSHELL_TIMEOUT_MS,
-      maxBuffer: POWERSHELL_MAX_BUFFER,
-      windowsHide: true,
-    },
-  );
-}
-
 function runWindowsPowershellCommand(script: string): string {
   return execFileSync('powershell.exe', ['-NoProfile', '-Command', script], {
     encoding: 'utf8',
@@ -105,9 +91,7 @@ function runWindowsPowershellCommand(script: string): string {
 /**
  * Execute a Windows PowerShell script without changing its DPI-awareness
  * context. The compatibility path deliberately uses the plain `-Command`
- * invocation that affected users have verified can enumerate their displays;
- * it must not share the encoded, non-interactive transport used by the
- * physical-pixel path.
+ * invocation that affected users have verified can execute reliably.
  */
 export function runWindowsPowershell(script: string): string {
   return runWindowsPowershellCommand(`$ProgressPreference = 'SilentlyContinue'
@@ -119,11 +103,13 @@ ${script}`);
  * Execute Windows desktop geometry and pointer work in one physical-pixel
  * boundary. Callers supply only the operation body, so they cannot forget the
  * Per-Monitor V2 preamble when adding another coordinate-bearing Win32 API.
+ * This deliberately uses `-Command`: the affected Windows host silently exits
+ * with no stdout, stderr, or error when the same payload uses `-EncodedCommand`.
  */
 export function runWindowsPhysicalPixelPowershell(script: string): string {
   const physicalPixelScript = `$ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'Stop'
 ${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 ${script}`;
-  return runWindowsPowershellScript(physicalPixelScript);
+  return runWindowsPowershellCommand(physicalPixelScript);
 }
