@@ -32,7 +32,7 @@ export interface TestProjectRunSummary {
 export interface TestExecutionProjectRunResult {
   projectId: string;
   name: string;
-  platform: string;
+  platform?: string;
   status: 'success' | 'failed';
   retry: number;
   fileSelection: TestFileSelection;

@@ -183,6 +183,8 @@ describe('test project main-process runner', () => {
 
     const result = await runTestProject({ cwd });
 
+    expect(result.projects[0]).not.toHaveProperty('platform');
+
     expect(result).toMatchObject({
       status: 'failed',
       exitCode: 1,

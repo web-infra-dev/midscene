@@ -176,9 +176,11 @@ function ProjectBreakdownNode({
                 {item.project.name}
               </span>
             </Tooltip>
-            <span className="runner-project-tree-meta">
-              {item.project.platform}
-            </span>
+            {item.project.platform ? (
+              <span className="runner-project-tree-meta">
+                {item.project.platform}
+              </span>
+            ) : null}
           </span>
         </span>
         <span

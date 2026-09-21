@@ -154,7 +154,7 @@ export interface TestRunReportProject {
   projectId: string;
   name: string;
   /** Display identity, also supports legacy custom interface adapters. */
-  platform: string;
+  platform?: string;
   status: TestRunReportRunStatus;
   retry: number;
   lifecycle?: TestRunReportProjectLifecycle;

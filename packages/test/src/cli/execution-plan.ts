@@ -53,7 +53,7 @@ export interface ProjectPreparationOptions {
 
 export interface PreparedExecutionProject {
   project: LoadedExecutionProject;
-  platform: string;
+  platform?: string;
   documentConcurrency: number;
   prerequisiteDocumentId?: string;
   fileSelection: TestFileSelection;

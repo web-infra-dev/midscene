@@ -154,6 +154,11 @@ describe('Midscene Test report layout', () => {
     expect(select).toContain("popupClassName={['runner-select-dropdown'");
   });
 
+  it('renders platform metadata only when the report provides it', () => {
+    expect(header).toContain('item.project.platform ?');
+    expect(breakdown).toContain('item.project.platform ?');
+  });
+
   it('keeps the Figma overrides split by page responsibility', () => {
     for (const partial of [
       'figma-shell.less',

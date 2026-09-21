@@ -54,7 +54,9 @@ export function CaseWorkspaceHeader({
           </div>
           <div className="runner-case-meta">
             <span>{item.project.name}</span>
-            <span>{item.project.platform}</span>
+            {item.project.platform ? (
+              <span>{item.project.platform}</span>
+            ) : null}
             <span title={item.document.sourcePath}>
               {item.document.sourcePath}
             </span>

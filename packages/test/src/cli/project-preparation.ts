@@ -170,6 +170,7 @@ export async function prepareProject(
   defaultTimeoutMs: number,
   options: ProjectPreparationOptions = {},
 ): Promise<PreparedExecutionProject> {
+  const platform = options.platform?.trim();
   const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
   const prerequisiteFile = options.prerequisiteFile
     ? resolve(options.prerequisiteFile)
@@ -257,7 +258,7 @@ export async function prepareProject(
   );
   return {
     project,
-    platform: options.platform ?? 'test',
+    ...(platform ? { platform } : {}),
     documentConcurrency: options.documentConcurrency ?? 1,
     ...(prerequisiteDocument
       ? { prerequisiteDocumentId: prerequisiteDocument.documentId }

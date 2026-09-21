@@ -15,7 +15,7 @@ export interface RunReportCaseInput extends CaseRunOutcome {
 export interface RunReportProjectInput {
   projectId: string;
   name: string;
-  platform: string;
+  platform?: string;
   status: 'success' | 'failed';
   retry: number;
   lifecycle?: ProjectRuntimeResult;
