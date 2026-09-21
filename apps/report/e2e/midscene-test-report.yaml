@@ -79,10 +79,10 @@ tasks:
       - aiTap: the Attempts dropdown showing Attempt 1 above Execution
       - aiAssert: The dropdown shows Attempt 1 as Failed and Attempt 2 as Passed.
       - aiTap: the Attempt 2 option in the open dropdown
-      - aiAssert: Attempt 2 is selected. Execution groups appear in a horizontal panel. aiAct is selected, and its Record tab contains the recorded Agent task list, screenshot timeline, and replay player.
-      - aiHover: a screenshot thumbnail in the Record panel timeline below Execution
+      - aiAssert: Attempt 2 is selected. The screenshot timeline appears at the top of Execution above the horizontal execution groups. aiAct is selected, and its Record tab contains the recorded Agent task list and replay player.
+      - aiHover: a screenshot thumbnail in the timeline at the top of Execution
       - aiAssert: A screenshot preview is displayed and aiAct is the selected execution step.
-      - aiHover: the Checkout with retry case title at the top left, outside the Record panel timeline and its floating preview
+      - aiHover: the Checkout with retry case title at the top left, outside the Execution timeline and its floating preview
       - aiTap: the Attempts dropdown showing Attempt 2 above Execution
       - aiTap: the Attempt 1 option in the open dropdown
       - aiAssert: Attempt 1 is selected. The selected order.create step shows NODE_EXECUTION_ERROR and Inventory was not ready. Input & output includes the redacted apiKey. This custom step offers no AI trace action.
