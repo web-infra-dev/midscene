@@ -41,6 +41,10 @@ import type {
   UIContext,
 } from '@/types';
 import { ServiceError, aiActProgressScope } from '@/types';
+import {
+  MIDSCENE_PLANNING_SEPARATE_LOCATE,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
@@ -413,6 +417,37 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    // Snapshot once, before auto classification or any planning request.
+    const separateLocateValue = globalConfigManager.getEnvConfigValue(
+      MIDSCENE_PLANNING_SEPARATE_LOCATE,
+    );
+    if (
+      separateLocateValue &&
+      !/^(true|false|1|0)$/i.test(separateLocateValue)
+    ) {
+      throw new Error(
+        `${MIDSCENE_PLANNING_SEPARATE_LOCATE} must be true, false, 1, or 0.`,
+      );
+    }
+    const separateLocate = separateLocateValue
+      ? /^(true|1)$/i.test(separateLocateValue)
+      : undefined;
+    if (separateLocate !== undefined) {
+      if (planningModel.adapter.planning.kind !== 'standard') {
+        throw new Error(
+          `${MIDSCENE_PLANNING_SEPARATE_LOCATE} requires a standard planning adapter.`,
+        );
+      }
+      if (
+        !separateLocate &&
+        (!planningModel.config.modelFamily ||
+          !planningModel.adapter.planning.locateResultCodec)
+      ) {
+        throw new Error(
+          `${MIDSCENE_PLANNING_SEPARATE_LOCATE}=false requires a Planning model family with a locate result codec. Configure MIDSCENE_PLANNING_MODEL_FAMILY (or MIDSCENE_MODEL_FAMILY when using the default model).`,
+        );
+      }
+    }
     return withFileChooser(this.interface, fileChooserAccept, async () => {
       return this.runAction(
         userPrompt,
@@ -425,6 +460,7 @@ export class TaskExecutor {
         deepLocate,
         abortSignal,
         reportOptions,
+        separateLocate,
       );
     });
   }
@@ -474,6 +510,7 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
+    separateLocate?: boolean,
   ): Promise<
     ExecutionResult<
       | {
@@ -561,7 +598,12 @@ export class TaskExecutor {
       const decisionResult = await session.appendAndRun({
         type: 'Planning',
         subType: 'DeepThink',
-        param: { userInstruction: userPrompt, aiActContext, deepThink: 'auto' },
+        param: {
+          userInstruction: userPrompt,
+          aiActContext,
+          deepThink: 'auto',
+          ...(separateLocate !== undefined ? { separateLocate } : {}),
+        },
         executor: async ({ task, uiContext }) => {
           assert(uiContext, 'uiContext is required for deepThink auto');
           try {
@@ -607,12 +649,15 @@ export class TaskExecutor {
 
     const noIndividualLocateModel = planningModel.config.slot === 'default';
     const includeLocateInPlanning =
-      effort !== 'deepThink' && noIndividualLocateModel;
+      separateLocate === undefined
+        ? effort !== 'deepThink' && noIndividualLocateModel
+        : !separateLocate;
     const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
 
     debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
       effort,
       noIndividualLocateModel,
+      separateLocate,
     });
 
     // Main planning loop - unified plan/replan logic
@@ -647,6 +692,8 @@ export class TaskExecutor {
             aiActContext,
             imagesIncludeCount,
             effort,
+            includeLocateInPlanning,
+            ...(separateLocate !== undefined ? { separateLocate } : {}),
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
           },

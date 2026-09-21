@@ -21,10 +21,12 @@ import { getModelRuntime } from '@/ai-model/models';
 import { AIResponseParseError, callAI } from '@/ai-model/service-caller/index';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import { decideDeepThink } from '@/ai-model/workflows/planning/auto-deep-think';
+import { getMidsceneLocationSchema } from '@/common';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type Service from '@/service';
 import type { AIUsageInfo, UIContext } from '@/types';
+import { MIDSCENE_PLANNING_SEPARATE_LOCATE } from '@midscene/shared/env';
 import { z } from 'zod';
 
 const image =
@@ -73,11 +75,13 @@ const completedPlan = {
 
 describe('deepThink auto', () => {
   beforeEach(() => {
+    rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, undefined);
     rs.mocked(callAI).mockReset();
     rs.mocked(standardPlan).mockReset().mockResolvedValue(completedPlan);
   });
   afterEach(() => {
     rs.restoreAllMocks();
+    rs.unstubAllEnvs();
   });
 
   it.each([true, false])(
@@ -315,6 +319,235 @@ describe('deepThink auto', () => {
     ).rejects.toThrow('Cancelled during classification');
     expect(standardPlan).not.toHaveBeenCalled();
   });
+
+  const locatableModel = getModelRuntime({
+    ...model.config,
+    modelFamily: 'doubao-seed',
+  });
+
+  it.each([
+    { value: 'true', expected: false },
+    { value: '1', expected: false },
+    { value: ' TRUE ', expected: false },
+    { value: 'false', expected: true },
+    { value: '0', expected: true },
+  ])('overrides every fixed mode with $value', async ({ value, expected }) => {
+    rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, value);
+    for (const effort of ['balance', 'deepThink', 'fast'] as const) {
+      for (const slot of ['default', 'planning'] as const) {
+        const { executor } = createExecutor();
+        const result = await executor.action(
+          'Task',
+          { ...locatableModel, config: { ...locatableModel.config, slot } },
+          model,
+          undefined,
+          false,
+          1,
+          effort,
+        );
+        expect(rs.mocked(standardPlan).mock.calls.at(-1)?.[1]).toMatchObject({
+          effort,
+          includeLocateInPlanning: expected,
+          imagesIncludeCount: effort === 'deepThink' ? 2 : 1,
+        });
+        expect(result.runner.tasks[0].param).toMatchObject({
+          separateLocate: !expected,
+          includeLocateInPlanning: expected,
+        });
+      }
+    }
+    expect(callAI).not.toHaveBeenCalled();
+  });
+
+  it('freezes the override before auto and reads it again on the next invocation', async () => {
+    rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, 'false');
+    rs.mocked(callAI).mockImplementation(async () => {
+      rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, 'true');
+      return {
+        content: '{"deepThink":true,"reason":"Dependent goals"}',
+        isStreamed: false,
+      };
+    });
+    const { executor } = createExecutor();
+    await executor.action(
+      'Task',
+      locatableModel,
+      model,
+      undefined,
+      false,
+      1,
+      'auto',
+    );
+    expect(rs.mocked(standardPlan).mock.calls[0][1]).toMatchObject({
+      effort: 'deepThink',
+      includeLocateInPlanning: true,
+    });
+    await executor.action(
+      'Next task',
+      locatableModel,
+      model,
+      undefined,
+      false,
+      1,
+      'auto',
+    );
+    expect(rs.mocked(standardPlan).mock.calls[1][1]).toMatchObject({
+      effort: 'deepThink',
+      includeLocateInPlanning: false,
+    });
+  });
+
+  it.each(['invalid', 'yes', '2'])(
+    'rejects invalid override %s before the auto request',
+    async (value) => {
+      rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, value);
+      const { executor } = createExecutor();
+      await expect(
+        executor.action(
+          'Task',
+          locatableModel,
+          model,
+          undefined,
+          false,
+          1,
+          'auto',
+        ),
+      ).rejects.toThrow('must be true, false, 1, or 0');
+      expect(callAI).not.toHaveBeenCalled();
+      expect(standardPlan).not.toHaveBeenCalled();
+    },
+  );
+
+  it('treats an empty override as unset', async () => {
+    rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, '  ');
+    const { executor } = createExecutor();
+    await executor.action(
+      'Task',
+      model,
+      model,
+      undefined,
+      false,
+      1,
+      'deepThink',
+    );
+    expect(
+      rs.mocked(standardPlan).mock.calls[0][1].includeLocateInPlanning,
+    ).toBe(false);
+  });
+
+  it('rejects combined planning without a locate-capable Planning model before auto', async () => {
+    rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, 'false');
+    const { executor } = createExecutor();
+    await expect(
+      executor.action('Task', model, model, undefined, false, 1, 'auto'),
+    ).rejects.toThrow(
+      'requires a Planning model family with a locate result codec',
+    );
+    expect(callAI).not.toHaveBeenCalled();
+    expect(standardPlan).not.toHaveBeenCalled();
+  });
+
+  it.each(['true', 'false'])(
+    'rejects override %s for custom planners',
+    async (value) => {
+      rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, value);
+      const { executor } = createExecutor();
+      const customModel = getModelRuntime({
+        ...model.config,
+        modelFamily: 'auto-glm',
+      });
+      await expect(executor.action('Task', customModel, model)).rejects.toThrow(
+        'requires a standard planning adapter',
+      );
+      expect(callAI).not.toHaveBeenCalled();
+      expect(standardPlan).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { separateLocate: false, deepThink: true },
+    { separateLocate: true, deepThink: false },
+    { separateLocate: false, deepThink: false },
+    { separateLocate: true, deepThink: true },
+  ])(
+    'executes the real plan and locate path: separate=$separateLocate, deepThink=$deepThink',
+    async ({ separateLocate, deepThink }) => {
+      rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, String(separateLocate));
+      rs.mocked(standardPlan).mockImplementation(planningActual.standardPlan);
+      rs.mocked(callAI)
+        .mockResolvedValueOnce({
+          content: JSON.stringify({
+            deepThink,
+            reason: 'Task characteristics',
+          }),
+          isStreamed: false,
+        })
+        .mockResolvedValueOnce({
+          content: `${deepThink ? '<update-plan-content><sub-goal index="1" status="pending">Saved</sub-goal></update-plan-content><memory>Reference value retained</memory>' : ''}
+<log>Save</log><action-type>Tap</action-type><action-param-json>{"locate":{"prompt":"Save","bbox":[0,0,1000,1000]}}</action-param-json>`,
+          isStreamed: false,
+        })
+        .mockResolvedValueOnce({
+          content: '<complete success="true">done</complete>',
+          isStreamed: false,
+        });
+      const tap = rs.fn(async () => undefined);
+      const locate = rs.fn(async () => ({
+        element: {
+          center: [0.5, 0.5],
+          rect: { left: 0, top: 0, width: 1, height: 1 },
+        },
+      }));
+      const actionSpace = [
+        {
+          name: 'Tap',
+          description: 'Tap an element',
+          paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+          call: tap,
+        },
+      ];
+      const executor = new TaskExecutor(
+        {
+          interfaceType: 'web',
+          actionSpace: () => actionSpace,
+        } as unknown as AbstractInterface,
+        {
+          contextRetrieverFn: async () => context,
+          locate,
+        } as unknown as Service,
+        { actionSpace, replanningCycleLimit: 1 },
+      );
+      const result = await executor.action(
+        'Save',
+        locatableModel,
+        locatableModel,
+        undefined,
+        false,
+        1,
+        'auto',
+      );
+      expect(result.output?.output).toBe('done');
+      expect(tap).toHaveBeenCalledTimes(1);
+      expect(locate).toHaveBeenCalledTimes(separateLocate ? 1 : 0);
+      expect(callAI).toHaveBeenCalledTimes(3);
+      const plans = result.runner.tasks.filter(
+        (task) => task.subType === 'Plan',
+      );
+      expect(plans).toHaveLength(2);
+      expect(plans[0].param).toMatchObject({
+        effort: deepThink ? 'deepThink' : 'balance',
+        includeLocateInPlanning: !separateLocate,
+      });
+      if (deepThink) {
+        expect(plans[1].param.subGoalStatus).toContain('Saved');
+        expect(plans[1].param.memoriesStatus).toContain(
+          'Reference value retained',
+        );
+      } else {
+        expect(plans[1].param.subGoalStatus).toBeUndefined();
+      }
+    },
+  );
 
   it('accepts auto in the aiAct node options schema', () => {
     expect(aiActOptionsInputSchema.parse({ deepThink: 'auto' })).toEqual({

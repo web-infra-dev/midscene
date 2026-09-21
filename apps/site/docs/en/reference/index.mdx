@@ -197,7 +197,7 @@ await agent.aiAct('Complete the GitHub account registration form. The region mus
 `deepThink` controls the planning implementation used by `aiAct`:
 
 - By default, `aiAct` plans the next step and locates the target element in the same planning request.
-- When set to `true`, `aiAct` focuses more on task decomposition and separates task planning from element localization into different model calls. This can improve stability for complex tasks, but it also increases model calls and latency.
+- When set to `true`, `aiAct` focuses more on task decomposition and, by default, separates task planning from element localization into different model calls. This can improve stability for complex tasks, but it also increases model calls and latency.
 
 `deepThink` accepts `'unset' | 'auto' | true | false`. The legacy `'unset'` value behaves the same as `false`.
 
@@ -210,6 +210,21 @@ await agent.aiAct('Compare the available plans and select one that meets my requ
   deepThink: 'auto',
 });
 ```
+
+The `MIDSCENE_PLANNING_SEPARATE_LOCATE` environment variable independently controls whether Planning and Locate use separate model calls. It applies to standard `aiAct` planning with `deepThink: true`, `false`, or `'auto'` (and experimental `effort`).
+
+| Value | Behavior |
+| --- | --- |
+| `true` / `1` | Separate Planning and Locate, regardless of the selected DeepThink mode. |
+| `false` / `0` | The Planning model produces both the action and its coordinates, even when DeepThink is enabled or a separate Planning model is configured. |
+| Unset / empty | Preserve the default: DeepThink separates location; ordinary planning combines it only when using the default model. |
+
+```bash
+# Keep sub-goals and memory controlled by deepThink; combine planning and location.
+export MIDSCENE_PLANNING_SEPARATE_LOCATE=false
+```
+
+The override is read once before planning, including before the `auto` decision, and stays fixed for that invocation. Reports record the requested `separateLocate` override and the effective `includeLocateInPlanning` value. Invalid values and explicit overrides for custom Planning adapters fail before model inference. Forcing combined calls requires a Planning model family with a supported coordinate format (`MIDSCENE_PLANNING_MODEL_FAMILY`, or `MIDSCENE_MODEL_FAMILY` for the default model); missing support is an error, not a silent fallback. Executable plan-cache hits still bypass planning. This setting does not change sub-goals, memory, screenshot history, or the separate `deepLocate` enhancement.
 
 `deepThink` does not control model-native thinking. See [Model-native thinking](../model-config#model-native-reasoning) for the related environment variables.
 

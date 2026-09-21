@@ -772,6 +772,8 @@ export interface ExecutionTaskPlanningParam {
   aiActContext?: string;
   imagesIncludeCount?: number;
   effort?: AiActEffort;
+  includeLocateInPlanning?: boolean;
+  separateLocate?: boolean;
   subGoalStatus?: string;
   memoriesStatus?: string;
 }

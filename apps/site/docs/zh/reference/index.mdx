@@ -194,7 +194,7 @@ await agent.aiAct('完成 github 账号注册的表单填写。地区必须选�
 `deepThink` 控制 `aiAct` 的规划实现：
 
 - 默认情况下，`aiAct` 会在同一次规划请求中完成下一步规划和目标元素定位。
-- 设置为 `true` 后，`aiAct` 会更注重任务拆解，并将任务规划和元素定位分为不同的模型调用。复杂任务可能因此更加稳定，但模型调用次数和延迟也会增加。
+- 设置为 `true` 后，`aiAct` 会更注重任务拆解，并默认将任务规划和元素定位分为不同的模型调用。复杂任务可能因此更加稳定，但模型调用次数和延迟也会增加。
 
 `deepThink` 支持 `'unset' | 'auto' | true | false`。`'unset'` 是兼容旧写法的取值，与 `false` 的行为相同。
 
@@ -207,6 +207,21 @@ await agent.aiAct('比较可选套餐，选择满足我要求的一款', {
   deepThink: 'auto',
 });
 ```
+
+环境变量 `MIDSCENE_PLANNING_SEPARATE_LOCATE` 独立控制 Planning 和 Locate 是否分开调用，适用于标准 `aiAct` 规划的 `deepThink: true`、`false`、`'auto'`，也适用于实验性 `effort`。
+
+| 取值 | 行为 |
+| --- | --- |
+| `true` / `1` | 分开调用 Planning 和 Locate，不受选定的 DeepThink 模式影响。 |
+| `false` / `0` | Planning 模型同时输出动作和坐标；即使开启 DeepThink 或单独配置了 Planning 模型，也合并调用。 |
+| 未设置 / 空值 | 保留默认行为：DeepThink 分开定位；普通规划仅在使用默认模型时合并定位。 |
+
+```bash
+# 子目标和 memory 仍由 deepThink 控制，规划与定位合并调用。
+export MIDSCENE_PLANNING_SEPARATE_LOCATE=false
+```
+
+覆盖值在开始规划前读取一次，包括在 `auto` 判断之前，本次调用期间保持不变。报告记录请求的 `separateLocate` 覆盖值和实际的 `includeLocateInPlanning`。非法取值或对自定义 Planning 适配器显式设置此开关，会在模型推理前报错。强制合并要求 Planning 模型配置有支持坐标格式的 family（`MIDSCENE_PLANNING_MODEL_FAMILY`，使用默认模型时为 `MIDSCENE_MODEL_FAMILY`）；缺少支持时明确报错，不会静默回退。命中可执行计划缓存仍会跳过规划。此开关不改变子目标、memory、截图历史或独立的 `deepLocate` 定位增强。
 
 `deepThink` 不控制模型原生思考。相关环境变量请参考[模型原生思考](../model-config#model-native-reasoning)。
 

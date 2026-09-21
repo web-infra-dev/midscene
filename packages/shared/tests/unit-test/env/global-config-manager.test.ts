@@ -7,6 +7,7 @@ import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_PLANNING_SEPARATE_LOCATE,
   MIDSCENE_PREFERRED_LANGUAGE,
   ModelConfigManager,
   OPENAI_API_KEY,
@@ -17,6 +18,28 @@ import { GlobalConfigManager } from '../../../src/env/global-config-manager';
 describe('overrideAIConfig', () => {
   afterEach(() => {
     rs.unstubAllEnvs();
+  });
+
+  it('preserves unset, false, and true for the separate locate override', () => {
+    const manager = new GlobalConfigManager();
+    rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, undefined);
+    expect(
+      manager.getEnvConfigValue(MIDSCENE_PLANNING_SEPARATE_LOCATE),
+    ).toBeUndefined();
+    rs.stubEnv(MIDSCENE_PLANNING_SEPARATE_LOCATE, 'false');
+    expect(manager.getEnvConfigValue(MIDSCENE_PLANNING_SEPARATE_LOCATE)).toBe(
+      'false',
+    );
+    manager.registerModelConfigManager(new ModelConfigManager());
+    const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      manager.overrideAIConfig({ [MIDSCENE_PLANNING_SEPARATE_LOCATE]: 'true' });
+      expect(manager.getEnvConfigValue(MIDSCENE_PLANNING_SEPARATE_LOCATE)).toBe(
+        'true',
+      );
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('should throw if called with invalid key', () => {
