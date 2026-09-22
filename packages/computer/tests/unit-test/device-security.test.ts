@@ -16,16 +16,11 @@ const mockState = rs.hoisted(() => {
   ];
   let windowsDisplays = defaultWindowsDisplays;
   let physicalWindowsDisplayOutput: string | undefined;
-  let legacyScreenshotSize = { width: 800, height: 600 };
-  let libnutScreenSize = { width: 800, height: 600 };
   let windowsCursorPos = { x: 10, y: 20 };
   let windowsActiveWindowRect:
     | { x: number; y: number; width: number; height: number }
     | undefined;
   let windowsCursorTransform = (x: number, y: number) => ({ x, y });
-  // Both Windows paths intentionally use the affected user's verified
-  // `-NoProfile -Command` transport. The physical script is distinguished by
-  // its Per-Monitor V2 preamble.
   const execFileSync = rs.fn(
     (
       file?: string,
@@ -67,16 +62,9 @@ const mockState = rs.hoisted(() => {
     },
   );
 
-  const createPngHeader = (width: number, height: number) => {
-    const buffer = Buffer.alloc(24);
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(buffer);
-    buffer.writeUInt32BE(width, 16);
-    buffer.writeUInt32BE(height, 20);
-    return buffer;
-  };
-  const screenshot = rs.fn(async () =>
-    createPngHeader(legacyScreenshotSize.width, legacyScreenshotSize.height),
-  ) as ReturnType<typeof rs.fn> & {
+  const screenshot = rs.fn(async () => Buffer.from('png')) as ReturnType<
+    typeof rs.fn
+  > & {
     listDisplays: ReturnType<typeof rs.fn>;
   };
   screenshot.listDisplays = rs.fn(async () => [
@@ -85,7 +73,7 @@ const mockState = rs.hoisted(() => {
 
   let mousePos = { x: 10, y: 20 };
   const libnut = {
-    getScreenSize: rs.fn(() => ({ ...libnutScreenSize })),
+    getScreenSize: rs.fn(() => ({ width: 800, height: 600 })),
     getMousePos: rs.fn(() => ({ ...mousePos })),
     moveMouse: rs.fn((x: number, y: number) => {
       mousePos = { x, y };
@@ -114,8 +102,6 @@ const mockState = rs.hoisted(() => {
     windowsCursorTransform = (x: number, y: number) => ({ x, y });
     windowsDisplays = defaultWindowsDisplays;
     physicalWindowsDisplayOutput = undefined;
-    legacyScreenshotSize = { width: 800, height: 600 };
-    libnutScreenSize = { width: 800, height: 600 };
     execSync.mockReset();
     // mockClear (not mockReset) so the powershell-aware implementation survives.
     execFileSync.mockClear();
@@ -145,14 +131,6 @@ const mockState = rs.hoisted(() => {
     physicalWindowsDisplayOutput = output;
   };
 
-  const setLegacyWindowsSizes = (
-    screenshotSize: { width: number; height: number },
-    inputSize = screenshotSize,
-  ) => {
-    legacyScreenshotSize = screenshotSize;
-    libnutScreenSize = inputSize;
-  };
-
   const setWindowsCursorTransform = (
     transform: (x: number, y: number) => { x: number; y: number },
   ) => {
@@ -176,7 +154,6 @@ const mockState = rs.hoisted(() => {
     reset,
     setWindowsDisplays,
     setPhysicalWindowsDisplayOutput,
-    setLegacyWindowsSizes,
     setWindowsActiveWindowRect,
     setWindowsCursorTransform,
     getWindowsCursorPos,
@@ -518,41 +495,22 @@ describe('ComputerInputDriver native arg handling', () => {
   });
 });
 
-describe('ComputerDevice Windows display compatibility', () => {
-  it('uses the complete legacy Windows path when physical display enumeration is empty', async () => {
+describe('ComputerDevice Windows display discovery', () => {
+  it('fails without retrying or using legacy capture when display enumeration is empty', async () => {
     mockState.setPhysicalWindowsDisplayOutput('');
     Object.defineProperty(process, 'platform', { value: 'win32' });
     const { ComputerDevice } = await import('../../src/device');
     const device = new ComputerDevice();
 
-    await device.connect();
-
-    expect(device.describe()).toContain('Windows Coordinate Mode: legacy');
-    expect(mockState.screenshot).toHaveBeenCalled();
-    expect(
-      mockState.execFileSync.mock.calls.some(
-        ([file, args]) =>
-          file === 'powershell.exe' &&
-          args?.[0] === '-NoProfile' &&
-          args?.[1] === '-Command' &&
-          args[2]?.includes('[System.Windows.Forms.Screen]::AllScreens'),
-      ),
-    ).toBe(true);
-    expect(
-      mockState.execFileSync.mock.calls.some(([, args]) =>
-        args?.some((arg) => arg.includes('::GetDpiForSystem()')),
-      ),
-    ).toBe(false);
-
-    mockState.libnut.moveMouse.mockClear();
-
-    await device.inputPrimitives.pointer!.tap({ x: 400, y: 300 });
-
-    expect(mockState.libnut.moveMouse).toHaveBeenCalled();
-    expect(mockState.getWindowsCursorPos()).toEqual({ x: 10, y: 20 });
+    await expect(device.connect()).rejects.toThrow(
+      /Windows display enumeration returned no data/,
+    );
+    expect(mockState.execFileSync).toHaveBeenCalledTimes(1);
+    expect(mockState.screenshot).not.toHaveBeenCalled();
+    expect(mockState.libnut.moveMouse).not.toHaveBeenCalled();
   });
 
-  it('keeps an explicit display selection in the legacy Windows path', async () => {
+  it('keeps an explicit display selection in the physical Windows path', async () => {
     mockState.setWindowsDisplays([
       {
         id: '\\\\.\\DISPLAY6',
@@ -561,8 +519,6 @@ describe('ComputerDevice Windows display compatibility', () => {
         bounds: { x: 0, y: 0, width: 1920, height: 1080 },
       },
     ]);
-    mockState.setPhysicalWindowsDisplayOutput('');
-    mockState.setLegacyWindowsSizes({ width: 1920, height: 1080 });
     Object.defineProperty(process, 'platform', { value: 'win32' });
     const { ComputerDevice } = await import('../../src/device');
     const device = new ComputerDevice({ displayId: '\\\\.\\DISPLAY6' });
@@ -570,11 +526,9 @@ describe('ComputerDevice Windows display compatibility', () => {
     await device.connect();
 
     expect(device.describe()).toContain('Display: \\\\.\\DISPLAY6');
-    expect(device.describe()).toContain('Windows Coordinate Mode: legacy');
   });
 
   it('does not fall back to a different display when the requested Windows display is missing', async () => {
-    mockState.setPhysicalWindowsDisplayOutput('');
     Object.defineProperty(process, 'platform', { value: 'win32' });
     const { ComputerDevice } = await import('../../src/device');
     const device = new ComputerDevice({

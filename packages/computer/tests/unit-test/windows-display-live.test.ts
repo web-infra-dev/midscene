@@ -1,75 +1,19 @@
 import { describe, expect, it } from '@rstest/core';
-import {
-  type WindowsDisplayGeometry,
-  discoverWindowsDisplays,
-} from '../../src/windows-display';
-import {
-  runWindowsPhysicalPixelPowershell,
-  runWindowsPowershell,
-} from '../../src/windows-dpi';
-
-const DISPLAY_ENUMERATION_SCRIPT = `
-Add-Type -AssemblyName System.Windows.Forms
-$screens = @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
-  $bounds = $_.Bounds
-  [PSCustomObject]@{
-    id = $_.DeviceName
-    name = $_.DeviceName
-    primary = $_.Primary
-    bounds = [PSCustomObject]@{
-      x = $bounds.X
-      y = $bounds.Y
-      width = $bounds.Width
-      height = $bounds.Height
-    }
-  }
-})
-ConvertTo-Json -InputObject $screens -Compress
-`.trim();
-
-function parseDisplays(output: string): WindowsDisplayGeometry[] {
-  if (!output.trim()) return [];
-  const parsed: unknown = JSON.parse(output);
-  expect(Array.isArray(parsed)).toBe(true);
-  return parsed as WindowsDisplayGeometry[];
-}
+import { readWindowsDisplayGeometries } from '../../src/windows-display';
 
 describe.skipIf(process.platform !== 'win32')(
   'Windows display enumeration live diagnostics',
   () => {
-    it('compares the plain and Per-Monitor V2 PowerShell contexts', () => {
-      const legacyDisplays = parseDisplays(
-        runWindowsPowershell(DISPLAY_ENUMERATION_SCRIPT),
-      );
-      const physicalDisplays = parseDisplays(
-        runWindowsPhysicalPixelPowershell(DISPLAY_ENUMERATION_SCRIPT),
-      );
-      const discovery = discoverWindowsDisplays();
-      const forcedFallbackDiscovery = discoverWindowsDisplays({
-        physical: () => '',
-        legacy: runWindowsPowershell,
-      });
+    it('enumerates physical displays with Per-Monitor V2 through Command', () => {
+      const displays = readWindowsDisplayGeometries();
 
       console.info(
         '[Windows display enumeration diagnostics]',
-        JSON.stringify({
-          legacyDisplayCount: legacyDisplays.length,
-          physicalDisplayCount: physicalDisplays.length,
-          selectedCoordinateMode: discovery.coordinateMode,
-          forcedFallbackCoordinateMode: forcedFallbackDiscovery.coordinateMode,
-          forcedFallbackDisplayCount: forcedFallbackDiscovery.geometries.length,
-          legacyDisplays,
-          physicalDisplays,
-        }),
+        JSON.stringify({ physicalDisplayCount: displays.length, displays }),
       );
 
-      expect(legacyDisplays.length).toBeGreaterThan(0);
-      expect(discovery.geometries.length).toBeGreaterThan(0);
-      expect(discovery.coordinateMode).toBe(
-        physicalDisplays.length === 0 ? 'legacy' : 'physical',
-      );
-      expect(forcedFallbackDiscovery.coordinateMode).toBe('legacy');
-      expect(forcedFallbackDiscovery.geometries).toEqual(legacyDisplays);
+      expect(displays.length).toBeGreaterThan(0);
+      expect(displays.some((display) => display.primary)).toBe(true);
     });
   },
 );

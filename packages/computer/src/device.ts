@@ -38,10 +38,7 @@ import {
 } from './keyboard-layout';
 import { clampPointerPointToSize } from './pointer';
 import {
-  type WindowsCoordinateMode,
   type WindowsDisplayGeometry,
-  assertLegacyWindowsCoordinateCompatibility,
-  discoverWindowsDisplays,
   readWindowsDisplayGeometries,
   resolveWindowsDisplayGeometryFromList,
 } from './windows-display';
@@ -714,7 +711,6 @@ export class ComputerDevice implements AbstractInterface {
   private options?: ComputerDeviceOpt;
   private displayId?: string;
   private displayGeometry?: DisplayGeometry;
-  private windowsCoordinateMode: WindowsCoordinateMode = 'physical';
   private description?: string;
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
@@ -904,28 +900,6 @@ export class ComputerDevice implements AbstractInterface {
       process.platform === 'darwin' && options?.keyboardDriver !== 'libnut';
   }
 
-  private usesPhysicalWindowsCoordinates(): boolean {
-    return (
-      process.platform === 'win32' && this.windowsCoordinateMode === 'physical'
-    );
-  }
-
-  private assertLegacyWindowsCoordinateCompatibility(
-    screenshotBase64: string,
-  ): void {
-    if (
-      process.platform !== 'win32' ||
-      this.windowsCoordinateMode !== 'legacy'
-    ) {
-      return;
-    }
-    assertLegacyWindowsCoordinateCompatibility({
-      geometry: this.displayGeometry,
-      screenshotBase64,
-      inputSize: this.inputDriver.getScreenSize(),
-    });
-  }
-
   private async moveGlobalPointer(
     point: Point,
     context: string,
@@ -938,7 +912,7 @@ export class ComputerDevice implements AbstractInterface {
       x: Math.round(point.x),
       y: Math.round(point.y),
     };
-    if (this.usesPhysicalWindowsCoordinates()) {
+    if (process.platform === 'win32') {
       const actual = this.windowsPointerDriver.moveTo(target, {
         smoothSteps: smooth?.smoothSteps,
         smoothDelayMs: smooth?.smoothDelay,
@@ -1040,7 +1014,7 @@ export class ComputerDevice implements AbstractInterface {
       // screenshot-desktop's Windows listDisplays uses the same broken polyglot
       // .bat as its capture path (#2150); enumerate via PowerShell instead.
       if (process.platform === 'win32') {
-        return listWindowsDisplays(discoverWindowsDisplays().geometries);
+        return listWindowsDisplays();
       }
       const displays: ScreenshotDisplay[] = await screenshot.listDisplays();
       return displays.map((d) => ({
@@ -1096,16 +1070,10 @@ export class ComputerDevice implements AbstractInterface {
 
       // Load libnut on first connect
       libnut = await getLibnut();
-      const windowsDisplayDiscovery =
-        process.platform === 'win32' ? discoverWindowsDisplays() : undefined;
-      const windowsDisplayGeometries = windowsDisplayDiscovery?.geometries;
-      if (windowsDisplayDiscovery?.coordinateMode === 'legacy') {
-        warnDevice(
-          'Windows physical-pixel display enumeration returned no data; using the legacy Windows coordinate path for this device connection.',
-        );
-      }
-      this.windowsCoordinateMode =
-        windowsDisplayDiscovery?.coordinateMode ?? 'physical';
+      const windowsDisplayGeometries =
+        process.platform === 'win32'
+          ? readWindowsDisplayGeometries()
+          : undefined;
       this.displayGeometry = resolveDisplayGeometry(
         this.displayId,
         windowsDisplayGeometries,
@@ -1126,7 +1094,6 @@ Platform: ${process.platform}
 Display: ${this.displayId || 'Primary'}
 Screen Size: ${size.width}x${size.height}
 Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}${headlessInfo}
-${process.platform === 'win32' ? `Windows Coordinate Mode: ${this.windowsCoordinateMode}` : ''}
 `;
       debugDevice('Computer device connected', this.description);
       // Health check: verify screenshot and mouse control are working
@@ -1173,21 +1140,19 @@ ${process.platform === 'win32' ? `Windows Coordinate Mode: ${this.windowsCoordin
       timeoutPromise,
     ]);
     console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
-    this.assertLegacyWindowsCoordinateCompatibility(base64);
 
-    // Step 2: Verify pointer control. The primary Windows path uses physical
-    // pixels throughout; the guarded compatibility path uses legacy logical
-    // coordinates throughout.
+    // Step 2: Verify pointer control. Windows capture, display enumeration,
+    // movement, and observation all use physical pixels.
     console.log('[HealthCheck] Verifying mouse control...');
-    const usePhysicalWindowsCoordinates = this.usesPhysicalWindowsCoordinates();
-    const startPos = usePhysicalWindowsCoordinates
-      ? this.windowsPointerDriver.getPosition()
-      : this.inputDriver.getMousePos();
+    const startPos =
+      process.platform === 'win32'
+        ? this.windowsPointerDriver.getPosition()
+        : this.inputDriver.getMousePos();
     console.log(
       `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
     );
 
-    if (usePhysicalWindowsCoordinates) {
+    if (process.platform === 'win32') {
       if (!this.displayGeometry) {
         throw new Error('Windows display geometry is unavailable');
       }
@@ -1301,7 +1266,7 @@ ${process.platform === 'win32' ? `Windows Coordinate Mode: ${this.windowsCoordin
     // through PowerShell instead — System.Drawing.CopyFromScreen works in
     // virtual-desktop coordinates, so it captures any monitor (including
     // secondary displays at negative offsets) without csc/.bat/.NET source.
-    if (this.usesPhysicalWindowsCoordinates()) {
+    if (process.platform === 'win32') {
       return this.screenshotViaPowershell();
     }
 
@@ -1603,7 +1568,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
   }
 
   private resolveUntargetedScrollPoint(screenSize: Size): Point {
-    if (this.usesPhysicalWindowsCoordinates()) {
+    if (process.platform === 'win32') {
       const activeWindowRect = this.windowsPointerDriver.getActiveWindowRect();
       if (activeWindowRect) {
         const activeWindowCenter = {

@@ -1,17 +1,13 @@
-import { Buffer } from 'node:buffer';
-import { describe, expect, it } from '@rstest/core';
-import {
-  assertLegacyWindowsCoordinateCompatibility,
-  discoverWindowsDisplays,
-} from '../../src/windows-display';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import { readWindowsDisplayGeometries } from '../../src/windows-display';
 
-function pngDataUri(width: number, height: number): string {
-  const buffer = Buffer.alloc(24);
-  Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(buffer);
-  buffer.writeUInt32BE(width, 16);
-  buffer.writeUInt32BE(height, 20);
-  return `data:image/png;base64,${buffer.toString('base64')}`;
-}
+const { execFileSync } = rs.hoisted(() => ({
+  execFileSync: rs.fn(
+    (_file: string, _args: string[], _options: unknown): string => '',
+  ),
+}));
+
+rs.mock('node:child_process', () => ({ execFileSync }));
 
 const primaryGeometry = {
   id: '\\\\.\\DISPLAY6',
@@ -20,117 +16,67 @@ const primaryGeometry = {
   bounds: { x: 0, y: 0, width: 1920, height: 1080 },
 };
 
-const primaryGeometryJson = JSON.stringify([primaryGeometry]);
-
-describe('Windows display discovery', () => {
-  it('keeps the physical path when physical enumeration succeeds', () => {
-    let legacyCalls = 0;
-    const discovery = discoverWindowsDisplays({
-      physical: () => primaryGeometryJson,
-      legacy: () => {
-        legacyCalls += 1;
-        return primaryGeometryJson;
-      },
-    });
-
-    expect(discovery).toEqual({
-      coordinateMode: 'physical',
-      geometries: [primaryGeometry],
-    });
-    expect(legacyCalls).toBe(0);
-  });
-
-  it('uses the legacy path only when physical enumeration is empty', () => {
-    const discovery = discoverWindowsDisplays({
-      physical: () => '',
-      legacy: () => primaryGeometryJson,
-    });
-
-    expect(discovery).toEqual({
-      coordinateMode: 'legacy',
-      geometries: [primaryGeometry],
-    });
-  });
-
-  it('does not downgrade when the physical runner fails', () => {
-    let legacyCalls = 0;
-
-    expect(() =>
-      discoverWindowsDisplays({
-        physical: () => {
-          throw new Error('PowerShell failed');
-        },
-        legacy: () => {
-          legacyCalls += 1;
-          return primaryGeometryJson;
-        },
-      }),
-    ).toThrow(/PowerShell failed/);
-    expect(legacyCalls).toBe(0);
-  });
-
-  it('does not downgrade malformed physical output', () => {
-    let legacyCalls = 0;
-    const legacy = () => {
-      legacyCalls += 1;
-      return primaryGeometryJson;
-    };
-
-    expect(() =>
-      discoverWindowsDisplays({ physical: () => '{', legacy }),
-    ).toThrow();
-    expect(() =>
-      discoverWindowsDisplays({
-        physical: () => JSON.stringify([{ id: '\\\\.\\DISPLAY6' }]),
-        legacy,
-      }),
-    ).toThrow(/invalid geometry/);
-    expect(legacyCalls).toBe(0);
-  });
-
-  it('reports an empty legacy enumeration after fallback', () => {
-    expect(() =>
-      discoverWindowsDisplays({
-        physical: () => '[]',
-        legacy: () => '[]',
-      }),
-    ).toThrow(/Windows legacy display enumeration returned no displays/);
-  });
+afterEach(() => {
+  execFileSync.mockReset();
 });
 
-describe('Windows legacy coordinate compatibility', () => {
-  it('accepts an unscaled primary display with one consistent coordinate size', () => {
-    expect(() =>
-      assertLegacyWindowsCoordinateCompatibility({
-        geometry: primaryGeometry,
-        screenshotBase64: pngDataUri(1920, 1080),
-        inputSize: { width: 1920, height: 1080 },
-      }),
-    ).not.toThrow();
+describe('Windows display enumeration', () => {
+  it('enumerates physical displays through plain Command with Per-Monitor V2', () => {
+    const secondaryGeometry = {
+      ...primaryGeometry,
+      id: '\\\\.\\DISPLAY7',
+      name: '\\\\.\\DISPLAY7',
+      primary: false,
+      bounds: { x: -2560, y: 0, width: 2560, height: 1440 },
+    };
+    const displays = [primaryGeometry, secondaryGeometry];
+    execFileSync.mockReturnValue(JSON.stringify(displays));
+
+    expect(readWindowsDisplayGeometries()).toEqual(displays);
+    expect(execFileSync).toHaveBeenCalledTimes(1);
+    const [file, args] = execFileSync.mock.calls[0];
+    expect(file).toBe('powershell.exe');
+    expect(args.slice(0, 2)).toEqual(['-NoProfile', '-Command']);
+    expect(args).not.toContain('-EncodedCommand');
+    expect(args).not.toContain('-NonInteractive');
+    expect(args[2]).toContain('SetThreadDpiAwarenessContext');
+    expect(args[2]).toContain('[System.IntPtr](-4)');
+    expect(args[2]).toContain('[System.Windows.Forms.Screen]::AllScreens');
   });
 
-  it('rejects inconsistent screenshot and input coordinates', () => {
-    expect(() =>
-      assertLegacyWindowsCoordinateCompatibility({
-        geometry: primaryGeometry,
-        screenshotBase64: pngDataUri(1600, 900),
-        inputSize: { width: 1920, height: 1080 },
-      }),
-    ).toThrow(
-      /coordinate compatibility check failed: display=1920x1080, screenshot=1600x900, input=1920x1080/,
-    );
+  it.each(['', '   ', '[]'])(
+    'rejects empty output %j without retrying',
+    (output) => {
+      execFileSync.mockReturnValue(output);
+
+      expect(() => readWindowsDisplayGeometries()).toThrow(
+        /returned no (data|displays)/,
+      );
+      expect(execFileSync).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('propagates PowerShell failures without retrying', () => {
+    const error = new Error('PowerShell failed');
+    execFileSync.mockImplementation(() => {
+      throw error;
+    });
+
+    expect(() => readWindowsDisplayGeometries()).toThrow(error);
+    expect(execFileSync).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects secondary displays', () => {
-    expect(() =>
-      assertLegacyWindowsCoordinateCompatibility({
-        geometry: {
-          primary: false,
-          bounds: primaryGeometry.bounds,
-        },
-        screenshotBase64: pngDataUri(1920, 1080),
-        inputSize: { width: 1920, height: 1080 },
-      }),
-    ).toThrow(/only supports the primary display/);
+  it.each([
+    '{',
+    '{}',
+    JSON.stringify([{ id: primaryGeometry.id }]),
+    JSON.stringify([
+      { ...primaryGeometry, bounds: { ...primaryGeometry.bounds, width: 0 } },
+    ]),
+  ])('rejects malformed display data %j without retrying', (output) => {
+    execFileSync.mockReturnValue(output);
+
+    expect(() => readWindowsDisplayGeometries()).toThrow();
+    expect(execFileSync).toHaveBeenCalledTimes(1);
   });
 });
