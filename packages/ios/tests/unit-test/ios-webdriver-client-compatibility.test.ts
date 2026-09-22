@@ -133,7 +133,12 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
 
       await client.longPress(50, 60);
 
-      const chain = makeRequestSpy.mock.calls[0][2].actions[0].actions;
+      const requestBody = makeRequestSpy.mock.calls[0][2] as {
+        actions: Array<{
+          actions: Array<{ type: string; duration?: number }>;
+        }>;
+      };
+      const chain = requestBody.actions[0].actions;
       const downIndex = chain.findIndex(
         (item: { type: string }) => item.type === 'pointerDown',
       );
