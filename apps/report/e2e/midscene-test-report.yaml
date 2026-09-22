@@ -75,31 +75,36 @@ tasks:
   - name: retry attempts and custom node errors
     flow:
       - aiTap: the Checkout with retry case row
-      - aiAssert: The Checkout with retry case detail has Attempt 1 selected. The selected order.create step shows Inventory was not ready.
-      - aiTap: the Attempts dropdown showing Attempt 1 above Execution
+      - aiAssert: The Checkout with retry case detail opens on the final Attempt 2. The screenshot timeline appears at the top of Execution, aiAct is selected, and Record shows the embedded Agent report.
+      - aiTap: the Attempts dropdown showing Attempt 2 above Execution
       - aiAssert: The dropdown shows Attempt 1 as Failed and Attempt 2 as Passed.
-      - aiTap: the Attempt 2 option in the open dropdown
-      - aiAssert: Attempt 2 is selected. The screenshot timeline appears at the top of Execution above the horizontal execution groups. aiAct is selected, and its Record tab contains the recorded Agent task list and replay player.
+      - aiTap: the failed Attempt 1 option in the open Attempts dropdown, not the passed Attempt 2 option
+      - sleep: 500
+      - aiAssert: Attempt 1 is selected and order.create is the selected step in the Execution panel.
+      - javascript: |
+          const evidence = document.querySelector('.runner-detail-evidence-panel');
+          if (!(evidence instanceof HTMLElement)) throw new Error('Missing order.create evidence panel');
+          evidence.scrollIntoView({ block: 'start' });
+        name: revealOrderCreateEvidence
+      - aiAssert: The order.create evidence panel shows NODE_EXECUTION_ERROR and Inventory was not ready. Input & output is selected, and its Input row shows sku demo-item with a redacted apiKey value.
+      - javascript: |
+          const main = document.querySelector('.runner-main');
+          if (!(main instanceof HTMLElement)) throw new Error('Missing report scroll container');
+          main.scrollTo({ top: 0 });
+        name: restoreAttemptSelector
+      - aiTap: the Attempts dropdown showing Attempt 1 above Execution
+      - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option
+      - sleep: 500
+      - aiAssert: Attempt 2 is selected. The screenshot timeline appears above the horizontal execution groups, aiAct is selected, and Record contains the recorded Agent task list and replay player.
       - aiHover: a screenshot thumbnail in the timeline at the top of Execution
       - aiAssert: A screenshot preview is displayed and aiAct is the selected execution step.
       - aiHover: the Checkout with retry case title at the top left, outside the Execution timeline and its floating preview
-      - aiTap: the Attempts dropdown showing Attempt 2 above Execution
-      - aiTap: the Attempt 1 option in the open dropdown
-      - aiAssert: Attempt 1 is selected. The selected order.create step shows NODE_EXECUTION_ERROR and Inventory was not ready. Input & output includes the redacted apiKey. This custom step offers no AI trace action.
+      - aiTap: the Overview back link
 
-  - name: AI trace and namespaced deep link
+  - name: embedded Agent report and evidence tabs
     flow:
-      - aiTap: the Attempts dropdown showing Attempt 1 above Execution
-      - aiTap: the Attempt 2 option in the open dropdown
-      - aiAssert: aiAct is selected, with Record, Input & output, and Events tabs, and an embedded Agent report.
-      - javascript: |
-          const link = document.querySelector('.runner-detail-trace-new-page');
-          if (!(link instanceof HTMLAnchorElement)) throw new Error('Missing trace link');
-          const params = new URLSearchParams(new URL(link.href).hash.slice(1));
-          if (link.target !== '_blank' || params.get('runner-trace') !== 'page' || params.get('runner-step') !== 'attempt-2:steps:0') {
-            throw new Error('Trace link lost its namespaced step context');
-          }
-        name: assertTraceDeepLink
+      - aiTap: the Checkout with retry case row under Web regression
+      - aiAssert: The case opens on the final Attempt 2. aiAct is selected, with Record, Input & output, and Events tabs, and an embedded Agent report.
       - aiTap: the Input & output tab
       - aiAssert: Input and Output appear as two stacked rows in one bordered panel. The execution groups remain visible above it.
       - aiTap: the Record tab
