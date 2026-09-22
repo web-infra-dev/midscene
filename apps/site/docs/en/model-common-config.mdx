@@ -366,11 +366,11 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 
 | Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
-| V2.x series | `mimo-v2.5` | `xiaomi-mimo` | Only the Omni series supports multimodal input; the Pro series is text-only and cannot be used for Midscene visual tasks. |
+| V2.x series | `mimo-v2.6-pro`, `mimo-v2.6-flash`, `mimo-v2.6-pro-ultraspeed`, `mimo-v2.5` | `xiaomi-mimo` | All 2.6 models support multimodal input; for 2.5, only the Omni series supports multimodal input. |
 
 </div>
 
-Environment variable configuration example, using `mimo-v2.5`:
+Environment variable configuration example, using `mimo-v2.6-pro`:
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -378,7 +378,7 @@ Environment variable configuration example, using `mimo-v2.5`:
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # Xiaomi MiMo API endpoint
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="mimo-v2.5"
+MIDSCENE_MODEL_NAME="mimo-v2.6-pro"
 MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
 ```
 
@@ -388,7 +388,7 @@ MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # Xiaomi MiMo API endpoint
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="mimo-v2.5"
+MIDSCENE_PLANNING_MODEL_NAME="mimo-v2.6-pro"
 MIDSCENE_PLANNING_MODEL_FAMILY="xiaomi-mimo"
 ```
 
@@ -398,7 +398,7 @@ MIDSCENE_PLANNING_MODEL_FAMILY="xiaomi-mimo"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # Xiaomi MiMo API endpoint
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="mimo-v2.5"
+MIDSCENE_INSIGHT_MODEL_NAME="mimo-v2.6-pro"
 MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
 ```
 

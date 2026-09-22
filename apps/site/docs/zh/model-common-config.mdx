@@ -367,11 +367,11 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi
 
 | 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
-| V2.x 系列 | `mimo-v2.5` | `xiaomi-mimo` | 仅 Omni 系列支持多模态输入；Pro 系列是文本模型，不能用于 Midscene 视觉任务。 |
+| V2.x 系列 | `mimo-v2.6-pro`、`mimo-v2.6-flash`、`mimo-v2.6-pro-ultraspeed`、`mimo-v2.5` | `xiaomi-mimo` | 2.6 全系列支持多模态；2.5 仅 Omni 系列支持多模态输入。 |
 
 </div>
 
-环境变量配置示例，以 `mimo-v2.5` 为例：
+环境变量配置示例，以 `mimo-v2.6-pro` 为例：
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -379,7 +379,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # 小米 MiMo API 地址
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="mimo-v2.5"
+MIDSCENE_MODEL_NAME="mimo-v2.6-pro"
 MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
 ```
 
@@ -389,7 +389,7 @@ MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # 小米 MiMo API 地址
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="mimo-v2.5"
+MIDSCENE_PLANNING_MODEL_NAME="mimo-v2.6-pro"
 MIDSCENE_PLANNING_MODEL_FAMILY="xiaomi-mimo"
 ```
 
@@ -399,7 +399,7 @@ MIDSCENE_PLANNING_MODEL_FAMILY="xiaomi-mimo"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # 小米 MiMo API 地址
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="mimo-v2.5"
+MIDSCENE_INSIGHT_MODEL_NAME="mimo-v2.6-pro"
 MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
 ```
 
