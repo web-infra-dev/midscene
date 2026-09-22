@@ -91,7 +91,7 @@ tasks:
     flow:
       - aiTap: the Attempts dropdown showing Attempt 1 above Execution
       - aiTap: the Attempt 2 option in the open dropdown
-      - aiAssert: aiAct is selected, with Record, Input & output, and Events tabs, an embedded Agent report, and an Open AI trace in new tab action.
+      - aiAssert: aiAct is selected, with Record, Input & output, and Events tabs, and an embedded Agent report.
       - javascript: |
           const link = document.querySelector('.runner-detail-trace-new-page');
           if (!(link instanceof HTMLAnchorElement)) throw new Error('Missing trace link');

@@ -25,4 +25,4 @@ tasks:
       - aiTap: the Overview back link
       - aiAssert: The overview shows the Projects and cases section and all four error messages, including Project browser disposal failed and Database connection refused.
       - aiTap: the Verify cart summary case row under Web regression in the Projects and cases section, not the similarly named lifecycle error summary above that section
-      - aiAssert: The Verify cart summary case detail has a Visual timeline and Execution panel. It shows Case session disposal failed, the cart.verify step has a green success indicator, and there is no Attempt selector.
+      - aiAssert: The Verify cart summary case detail has an Execution panel and shows that no visual evidence was captured in this Attempt. It shows Case session disposal failed, the cart.verify step has a green success indicator, and there is no Attempt selector.
