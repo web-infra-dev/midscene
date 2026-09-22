@@ -15,4 +15,4 @@ tasks:
     flow:
       - aiTap: a screenshot in the full width Visual timeline
       - sleep: 1000
-      - aiAssert: A captured screenshot is selected in the Visual timeline and its corresponding Agent-backed step is selected in the Execution panel with evidence details visible
+      - aiAssert: The corresponding Agent-backed aiAct step is selected in the Execution panel, and its evidence details are visible below the panel
