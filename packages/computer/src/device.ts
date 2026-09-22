@@ -37,6 +37,11 @@ import {
   resolveShiftedKey,
 } from './keyboard-layout';
 import { clampPointerPointToSize } from './pointer';
+import {
+  type WindowsDisplayGeometry,
+  readWindowsDisplayGeometries,
+  resolveWindowsDisplayGeometryFromList,
+} from './windows-display';
 import { runWindowsPhysicalPixelPowershell } from './windows-dpi';
 import {
   WindowsPointerDriver,
@@ -109,10 +114,8 @@ export interface DarwinDisplayGeometry extends DisplayGeometry {
   cgDisplayId: number;
 }
 
-export interface WindowsDisplayGeometry extends DisplayGeometry {
-  id: string;
-  name: string;
-}
+export type { WindowsDisplayGeometry } from './windows-display';
+export { resolveWindowsDisplayGeometryFromList } from './windows-display';
 
 export interface Point {
   x: number;
@@ -207,38 +210,6 @@ const EDGE_SCROLL_SPEC: Record<EdgeScrollType, EdgeScrollStrategy> = {
 
 function escapePowershellSingleQuoted(value: string): string {
   return value.replace(/'/g, "''");
-}
-
-/** Enumerate Windows monitors and their physical-pixel bounds via PowerShell
- * (screenshot-desktop's .bat-based listDisplays is broken under Claude Code —
- * see #2150). */
-export function readWindowsDisplayGeometries(): WindowsDisplayGeometry[] {
-  const script = `
-Add-Type -AssemblyName System.Windows.Forms
-$s = [System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
-  $b = $_.Bounds
-  [PSCustomObject]@{
-    id = $_.DeviceName
-    name = $_.DeviceName
-    primary = $_.Primary
-    bounds = [PSCustomObject]@{ x = $b.X; y = $b.Y; width = $b.Width; height = $b.Height }
-  }
-}
-ConvertTo-Json @($s) -Compress
-`.trim();
-  const output = runWindowsPhysicalPixelPowershell(script).trim();
-  if (!output) {
-    throw new Error('Windows display enumeration returned no data');
-  }
-  const parsed: unknown = JSON.parse(output);
-  if (!Array.isArray(parsed)) {
-    throw new Error('Windows display enumeration returned invalid data');
-  }
-  const displays = parsed.filter(isWindowsDisplayGeometry);
-  if (displays.length !== parsed.length || displays.length === 0) {
-    throw new Error('Windows display enumeration returned invalid geometry');
-  }
-  return displays;
 }
 
 function listWindowsDisplays(
@@ -396,20 +367,6 @@ function isDisplayBounds(value: unknown): value is DisplayBounds {
   );
 }
 
-function isWindowsDisplayGeometry(
-  value: unknown,
-): value is WindowsDisplayGeometry {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as WindowsDisplayGeometry;
-  return (
-    typeof candidate.id === 'string' &&
-    candidate.id.length > 0 &&
-    typeof candidate.name === 'string' &&
-    typeof candidate.primary === 'boolean' &&
-    isDisplayBounds(candidate.bounds)
-  );
-}
-
 function isDarwinDisplayGeometry(
   value: unknown,
 ): value is DarwinDisplayGeometry {
@@ -520,17 +477,6 @@ export function resolveDarwinDisplayGeometryFromList(
 }
 
 /** @internal exported for unit tests — do not consume from outside this package */
-export function resolveWindowsDisplayGeometryFromList(
-  displayId: string | undefined,
-  displays: WindowsDisplayGeometry[],
-): WindowsDisplayGeometry | undefined {
-  if (!displays.length) return undefined;
-  if (displayId === undefined || displayId === '') {
-    return displays.find((display) => display.primary) || displays[0];
-  }
-  return displays.find((display) => display.id === displayId);
-}
-
 function resolveDisplayGeometry(
   displayId: string | undefined,
   windowsDisplays?: WindowsDisplayGeometry[],
