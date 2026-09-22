@@ -1,4 +1,4 @@
-import type { Reporter } from '@rstest/core/api';
+import type { Reporter } from '@rstest/core';
 
 /** @internal Prefix used to identify Midscene progress in worker console logs. */
 export const yamlProgressLogPrefix = '__MIDSCENE_YAML_PROGRESS__:';

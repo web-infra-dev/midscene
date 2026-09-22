@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@rsbuild/core": "^1.6.15",
-    "@rstest/core": "0.11.5",
+    "@rstest/core": "0.12.0",
     "rimraf": "~5.0.10",
     "@rsbuild/plugin-less": "^1.5.0",
     "@rsbuild/plugin-node-polyfill": "1.4.2",
