@@ -20,8 +20,9 @@ export interface RunRstestYamlProjectOptions {
 type RunError = TestRunResult['unhandledErrors'][number];
 type FileResult = TestRunResult['results'][number];
 
+// Rstest 0.12 makes SerializedError.name optional, so supply a fallback.
 const formatRunError = (error: RunError): string =>
-  error.stack || `${error.name}: ${error.message}`;
+  error.stack || `${error.name || 'Error'}: ${error.message}`;
 
 // Collect every failure rstest surfaced, not just `unhandledErrors`. A failing
 // YAML case shows up as a file-level error (e.g. a module that cannot be

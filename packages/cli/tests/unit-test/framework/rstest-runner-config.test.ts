@@ -1,10 +1,4 @@
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { RSTEST_YAML_CASE_IDS_META_KEY } from '@/framework/rstest-contract';
@@ -105,17 +99,6 @@ describe('rstest runner config', () => {
         yamlFile: join(root, 'b.yaml'),
         resultFile: join(root, 'results', '002-b.json'),
       };
-      mkdirSync(join(root, 'results'), { recursive: true });
-      writeFileSync(
-        caseA.resultFile,
-        JSON.stringify({
-          file: caseA.yamlFile,
-          success: false,
-          executed: true,
-          resultType: 'failed',
-          error: 'first case failed',
-        }),
-      );
       mocks.run.mockResolvedValue({
         status: 'error',
         results: [
@@ -159,6 +142,8 @@ describe('rstest runner config', () => {
 
       expect(exitCode).toBe(1);
       expect(JSON.parse(readFileSync(caseA.resultFile, 'utf8'))).toMatchObject({
+        file: caseA.yamlFile,
+        resultType: 'failed',
         error: 'first case failed',
       });
       expect(JSON.parse(readFileSync(caseB.resultFile, 'utf8'))).toMatchObject({
@@ -166,6 +151,52 @@ describe('rstest runner config', () => {
         resultType: 'failed',
         error: 'worker crashed while starting the next case',
       });
+    });
+  });
+
+  test('prints distinct file, test, and run errors with a fallback name', async () => {
+    await withTempRoot(async (root) => {
+      const consoleError = rs
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      mocks.run.mockResolvedValue({
+        status: 'error',
+        results: [
+          {
+            name: 'virtual:a.test.ts',
+            testPath: 'virtual:a.test.ts',
+            errors: [{ message: 'boom' }, { message: 'boom' }],
+            results: [
+              {
+                name: 'a.yaml',
+                errors: [
+                  { name: 'Error', message: 'case failed' },
+                  { name: 'Error', message: 'case failed' },
+                ],
+              },
+            ],
+          },
+        ],
+        unhandledErrors: [{ name: 'Error', message: 'worker crashed' }],
+      });
+
+      try {
+        const exitCode = await runRstestYamlProject({
+          cwd: root,
+          project: makeProject(root),
+        });
+
+        expect(exitCode).toBe(1);
+        expect(consoleError).toHaveBeenCalledTimes(1);
+        expect(consoleError).toHaveBeenCalledWith(
+          '\nYAML execution failed:\nvirtual:a.test.ts: Error: boom\n\na.yaml: Error: case failed\n\nError: worker crashed',
+        );
+        expect(consoleError.mock.calls[0]?.[0]).not.toContain(
+          'undefined: boom',
+        );
+      } finally {
+        consoleError.mockRestore();
+      }
     });
   });
 
