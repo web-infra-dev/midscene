@@ -15,4 +15,10 @@ tasks:
     flow:
       - aiTap: a screenshot in the full width Visual timeline
       - sleep: 1000
-      - aiAssert: The corresponding Agent-backed aiAct step is selected in the Execution panel, and its evidence details are visible below the panel
+      - aiAssert: The corresponding Agent-backed aiAct step is selected in the Execution panel
+      - javascript: |
+          const evidence = document.querySelector('.runner-detail-evidence-panel');
+          if (!(evidence instanceof HTMLElement)) throw new Error('Missing aiAct evidence panel');
+          evidence.scrollIntoView({ block: 'start' });
+        name: revealSelectedStepEvidence
+      - aiAssert: The visible aiAct evidence panel shows Record, Input & output, and Events tabs, with Record selected and the embedded Agent report visible
