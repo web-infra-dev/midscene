@@ -84,16 +84,6 @@ export function RunSummary({
           <span>
             Case <strong>{totalCaseCount}</strong>
           </span>
-          <span>
-            model time{' '}
-            <strong>{formatDuration(dump.metrics.modelTimeMs)}</strong>
-          </span>
-          <span>
-            model calls <strong>{dump.metrics.modelCallCount}</strong>
-          </span>
-          <span>
-            Tokens <strong>{dump.metrics.totalTokens.toLocaleString()}</strong>
-          </span>
         </div>
       </div>
       <button

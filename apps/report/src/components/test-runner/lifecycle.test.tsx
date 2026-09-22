@@ -115,6 +115,8 @@ describe('report lifecycle failures', () => {
     expect(html).toContain('Database connection refused.');
     expect(html).toContain('fixture-database');
     expect(html).not.toContain('aria-label="Attempts"');
+    expect(html).not.toContain('runner-single-attempt-label');
+    expect(html).not.toContain('Attempt 1');
   });
 
   it('renders teardown errors even if the selected case step succeeded', () => {

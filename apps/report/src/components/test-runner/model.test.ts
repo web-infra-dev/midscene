@@ -548,9 +548,9 @@ describe('Midscene Test hybrid report model', () => {
     expect(regular).toContain('runner-back-button');
     expect(regular).not.toContain('Copy case link');
     expect(regular).not.toContain('Run information');
-    expect(regular).toContain('runner-single-attempt-label');
-    expect(regular).toContain('is-success is-quiet');
-    expect(regular).toContain('>passed</span>');
+    expect(regular).not.toContain('runner-single-attempt-label');
+    expect(regular).not.toContain('Attempt 1');
+    expect(regular).not.toContain('aria-label="Attempts"');
     expect(regular).not.toContain('runner-step-status is-success');
   });
 
@@ -570,6 +570,9 @@ describe('Midscene Test hybrid report model', () => {
     expect(markup).toContain('aria-label="Review case results"');
     expect(markup).toContain('>run failed</span>');
     expect(markup).not.toContain('>Run failed</span>');
+    expect(markup).not.toContain('model time');
+    expect(markup).not.toContain('model calls');
+    expect(markup).not.toContain('Tokens');
   });
 
   it('does not invent a pass percentage for an empty run', () => {

@@ -53,16 +53,9 @@ export function AttemptSelect({
   selectedDocumentAttemptIndex?: number;
   onSelectAttempt(attempt: TestRunReportAttempt): void;
   onSelectDocumentAttempt?(attemptIndex: number): void;
-}): JSX.Element {
-  const selectedDocumentAttempt = item.document.attempts?.find(
-    (attempt) => attempt.attemptIndex === selectedDocumentAttemptIndex,
-  );
-  const attemptStatus =
-    selectedDocumentAttempt?.status ?? selectedAttempt?.status;
-  const attemptDuration =
-    selectedDocumentAttempt?.durationMs ?? selectedAttempt?.durationMs ?? 0;
-
-  if (item.document.attempts) {
+}): JSX.Element | null {
+  const documentAttempts = item.document.attempts;
+  if (documentAttempts && documentAttempts.length > 1) {
     return (
       <div className="runner-attempt-select-shell">
         <Select<number>
@@ -71,7 +64,7 @@ export function AttemptSelect({
           optionLabelProp="label"
           value={selectedDocumentAttemptIndex}
           onChange={onSelectDocumentAttempt}
-          options={item.document.attempts.map((attempt) => {
+          options={documentAttempts.map((attempt) => {
             const title = `File attempt ${attempt.attemptIndex! + 1} (${formatDuration(attempt.durationMs ?? 0)})`;
             return {
               value: attempt.attemptIndex,
@@ -115,10 +108,5 @@ export function AttemptSelect({
     );
   }
 
-  return (
-    <span className="runner-single-attempt-label">
-      {attemptStatus ? <AttemptStatusBadge status={attemptStatus} /> : null}
-      <span>Attempt 1 ({formatDuration(attemptDuration)})</span>
-    </span>
-  );
+  return null;
 }
