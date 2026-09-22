@@ -257,6 +257,7 @@ export class TaskBuilder {
       subType: planType,
       thought: plan.thought,
       param: plan.param,
+      planningFeedbackMaxLength: action.planningFeedbackMaxLength,
       executor: async (taskContext) => {
         const timing = taskContext.task.timing;
 

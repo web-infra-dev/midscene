@@ -586,6 +586,11 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   uiContext?: UIContext;
+  /**
+   * Maximum planning feedback length inherited from the action definition.
+   * Set to false to disable truncation for this task.
+   */
+  planningFeedbackMaxLength?: number | false;
   executor: (
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: void is intentionally allowed as some executors may not return a value
@@ -628,12 +633,6 @@ export type ExecutionTask<
      * This is execution metadata, not part of the action return value.
      */
     planningFeedback?: string;
-    /**
-     * Optional per-task feedback limit. The executor keeps the default limit
-     * unless an action explicitly requests a different allowance for
-     * structured feedback.
-     */
-    planningFeedbackMaxLength?: number;
     /**
      * A bounded diagnostic DTO created when the task executor throws. Arbitrary
      * upstream payloads are intentionally omitted; use this field for structured
@@ -905,6 +904,12 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
+  /**
+   * Maximum number of characters from planningFeedback sent to the next
+   * planning round. Omit to use the core default, or set to false to disable
+   * truncation for this action.
+   */
+  planningFeedbackMaxLength?: number | false;
   call: (
     param: TParam,
     context?: ExecutorContext,

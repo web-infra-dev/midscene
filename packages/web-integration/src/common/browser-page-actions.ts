@@ -110,6 +110,7 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
     description:
       'List open browser pages/tabs in groups of 8 and show which one is active. Use offset to see the next group before switching pages.',
     paramSchema: listBrowserPagesParamSchema,
+    planningFeedbackMaxLength: pageListPlanningFeedbackMaxLength,
     call: async (param, context) => {
       const summaries = await options.getPageManager().pageSummaries();
       const offset = param?.offset ?? 0;
@@ -126,8 +127,6 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
           offset,
           summaries.find(({ active }) => active)?.index,
         );
-        context.task.planningFeedbackMaxLength =
-          pageListPlanningFeedbackMaxLength;
       }
       return visibleSummaries;
     },
@@ -137,6 +136,7 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
     description:
       'Get the complete title and URL for one browser page/tab without switching the active page. Use this when ListBrowserPages truncates details needed to identify a page.',
     paramSchema: getBrowserPageInfoParamSchema,
+    planningFeedbackMaxLength: false,
     sample: {
       index: 1,
     },
@@ -145,9 +145,7 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
         .getPageManager()
         .pageSummaryByIndex(param.index);
       if (context?.task) {
-        const planningFeedback = buildPageInfoPlanningFeedback(summary);
-        context.task.planningFeedback = planningFeedback;
-        context.task.planningFeedbackMaxLength = planningFeedback.length;
+        context.task.planningFeedback = buildPageInfoPlanningFeedback(summary);
       }
       return summary;
     },

@@ -314,7 +314,7 @@ describe('BrowserPageManager', () => {
     expect(taskContext.task.planningFeedback).toBe(
       'ListBrowserPages 0-1 of 2; active 0 (0-based). Use SetActivePage.\n*0|Home|https://example.com/home\n 1|Docs|https://example.com/docs',
     );
-    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
+    expect(actions[0].planningFeedbackMaxLength).toBe(8192);
 
     await actions[2].call({ index: 1 }, {} as any);
     expect(ctx.activePage).toBe(docs);
@@ -343,7 +343,7 @@ describe('BrowserPageManager', () => {
       expect(feedback).toContain(`unique-url-${index}`);
     }
     expect(feedback.length).toBeGreaterThan(500);
-    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
+    expect(actions[0].planningFeedbackMaxLength).toBe(8192);
   });
 
   it('returns full page info without switching pages and forwards useful details', async () => {
@@ -369,9 +369,7 @@ describe('BrowserPageManager', () => {
     expect(ctx.activePage).toBe(initial);
     expect(taskContext.task.planningFeedback).toContain('unique-title-tail');
     expect(taskContext.task.planningFeedback).toContain('unique-url-tail');
-    expect(taskContext.task.planningFeedbackMaxLength).toBe(
-      taskContext.task.planningFeedback.length,
-    );
+    expect(actions[1].planningFeedbackMaxLength).toBe(false);
   });
 
   it('forwards an extreme URL without truncating planning feedback', async () => {
@@ -386,9 +384,7 @@ describe('BrowserPageManager', () => {
     const summary = await actions[1].call({ index: 0 }, taskContext);
     expect(summary.url).toBe(longUrl);
     expect(taskContext.task.planningFeedback).toContain(`URL: ${longUrl}`);
-    expect(taskContext.task.planningFeedbackMaxLength).toBe(
-      taskContext.task.planningFeedback.length,
-    );
+    expect(actions[1].planningFeedbackMaxLength).toBe(false);
   });
 
   it('paginates large page lists without losing page identities', async () => {
@@ -407,14 +403,14 @@ describe('BrowserPageManager', () => {
       'Next: ListBrowserPages({offset:8})',
     );
     expect(taskContext.task.planningFeedback).toContain(' 7|page-7|');
-    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
+    expect(actions[0].planningFeedbackMaxLength).toBe(8192);
 
     const lastPage = await actions[0].call({ offset: 96 }, taskContext);
     expect(lastPage.map(({ index }: { index: number }) => index)).toEqual([
       96, 97, 98, 99,
     ]);
     expect(taskContext.task.planningFeedback).toContain('*99|page-99|');
-    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
+    expect(actions[0].planningFeedbackMaxLength).toBe(8192);
 
     await expect(actions[0].call({ offset: 100 }, taskContext)).rejects.toThrow(
       'offset 100 is out of range',

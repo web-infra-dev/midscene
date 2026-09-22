@@ -91,8 +91,11 @@ const maxPlanningFeedbackLength = 500;
 
 function truncatePlanningFeedback(
   feedback: string,
-  requestedLimit?: number,
+  requestedLimit?: number | false,
 ): string {
+  if (requestedLimit === false) {
+    return feedback;
+  }
   const limit =
     requestedLimit && Number.isFinite(requestedLimit) && requestedLimit > 0
       ? Math.floor(requestedLimit)
