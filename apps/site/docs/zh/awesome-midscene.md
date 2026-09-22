@@ -9,6 +9,11 @@
   - 支持 iOS 应用程序的自动化测试和交互
   - 将 Midscene 的跨平台能力扩展到苹果移动生态系统
 
+### Android 自动化
+- **[midscene-android](https://github.com/lhuanyu/midscene-android)** - 将 AI 视觉自动化完整运行在手机端，无需 PC 或云端
+  - 把 Midscene 视觉 agent、Node 运行时与 adb 打包进单个 Android APK，在手机上独立运行自动化脚本
+  - 支持自然语言 / YAML 脚本驱动，模型推理在本地，凭据仅存于应用私有存储
+
 ### PC 自动化
 - **[midscene-pc](https://github.com/Mofangbao/midscene-pc)** - 支持 Windows、macOS 和 Linux 的 PC 操作设备
   - 支持跨所有主流平台的桌面应用程序自动化测试和交互
@@ -30,6 +35,12 @@
 - **[midscene-java](https://github.com/alstafeev/midscene-java)** by @alstafeev - Java 版本的 Midscene SDK
   - 提供用于脚本化 Midscene 的 JVM 原生接口
   - 无缝整合至现有的 Java 测试框架与自动化工作流程
+
+### 测试集成
+- **[midscene-jev-runner](https://github.com/KiritoKing/midscene-jev-runner)** - 面向 Midscene Test 的社区版 JEV runner 集成，把当下爆火的 Jev 决策模型带进 Midscene 工作流
+  - 基于 [Jev](https://typesafe.ai/)，不生成文本，而是把页面变成索引化的动作空间，只回答「点哪个元素、目标是否达成」并返回校准概率，让每一步点击都又快又省
+  - 默认通过 OpenRouter Decisions 调用 `~typesafe/jev-latest`，仅在需要输入文本时才调用小模型；提供 `runJev(page, options)` 直接在 Playwright Page 上执行任务，或用 `createJevNodes` 注册 `jevAct` 节点接入 Midscene Test 流程
+  - 浏览器生命周期由调用方掌控，支持可选的完成校验与站点无关的结构化观测事件，稳定应对页面变化
 
 ## 如何贡献
 

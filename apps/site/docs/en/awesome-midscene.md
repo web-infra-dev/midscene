@@ -9,6 +9,11 @@ A curated list of community projects that extend Midscene.js capabilities across
   - Enables automated testing and interaction with iOS applications
   - Extends Midscene's cross-platform capabilities to Apple's mobile ecosystem
 
+### Android automation
+- **[midscene-android](https://github.com/lhuanyu/midscene-android)** - Run AI visual automation entirely on the phone — no PC, no cloud
+  - Packages the Midscene visual agent, a Node runtime, and an adb client into a single Android APK to run scripts on-device
+  - Driven by natural-language or YAML scripts, with model inference kept local and credentials stored only in the app's private storage
+
 ### PC automation
 - **[midscene-pc](https://github.com/Mofangbao/midscene-pc)** - PC operation device for Windows, macOS, and Linux
   - Enables automated testing and interaction with desktop applications across all major platforms
@@ -30,6 +35,12 @@ A curated list of community projects that extend Midscene.js capabilities across
 - **[midscene-java](https://github.com/alstafeev/midscene-java)** by @alstafeev - Java SDK for Midscene automation
   - Provides a JVM-native interface for scripting Midscene
   - Integrates seamlessly into established Java testing frameworks and automation workflows
+
+### Test integration
+- **[midscene-jev-runner](https://github.com/KiritoKing/midscene-jev-runner)** - Community JEV runner integration for Midscene Test, bringing the red-hot Jev decision model into Midscene workflows
+  - Powered by [Jev](https://typesafe.ai/): instead of writing prose, it turns the page into an indexed action space and only answers "which element to act on and is the goal met," returning calibrated probabilities, so every click stays fast and cheap
+  - Calls `~typesafe/jev-latest` through OpenRouter Decisions by default and only invokes a small model when text input is needed; exposes `runJev(page, options)` to run tasks directly on a Playwright `Page`, or `createJevNodes` to register a `jevAct` node in a Midscene Test project
+  - Leaves the browser lifecycle to the caller, with optional completion verification and structured, site-agnostic observer events that stay robust as pages change
 
 ## Contributing
 
