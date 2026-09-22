@@ -135,12 +135,19 @@ describe('PuppeteerPageOwnership', () => {
     const setActivePage = actions.find(
       (action) => action.name === 'SetActivePage',
     );
+    const getPageInfo = actions.find(
+      (action) => action.name === 'GetBrowserPageInfo',
+    );
     expect(listPages).toBeDefined();
+    expect(getPageInfo).toBeDefined();
     expect(setActivePage).toBeDefined();
     await expect(listPages!.call(undefined, {} as any)).resolves.toMatchObject([
       { index: 0, title: 'first-root' },
       { index: 1, title: 'owned-new-page' },
     ]);
+    await expect(
+      getPageInfo!.call({ index: 1 }, {} as any),
+    ).resolves.toMatchObject({ index: 1, title: 'owned-new-page' });
     await setActivePage!.call({ index: 0 }, {} as any);
     expect(agent.activePage).toBe(firstRoot.page);
 

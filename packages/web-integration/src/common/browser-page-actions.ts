@@ -5,9 +5,12 @@ import type {
   BrowserPageManager,
 } from './browser-agent';
 
-const maxPlanningFeedbackLength = 500;
 const pageListSize = 8;
-const maxTitleLength = 48;
+const maxListTitleLength = 120;
+const maxListUrlLength = 512;
+const maxDetailTitleLength = 512;
+const maxDetailUrlLength = 4096;
+const browserPlanningFeedbackMaxLength = 8192;
 
 const normalizeFeedbackValue = (value: string) =>
   value.replace(/\s+/g, ' ').trim();
@@ -19,7 +22,12 @@ const truncateFeedbackValue = (value: string, maxLength: number) => {
   if (value.length <= maxLength) {
     return value;
   }
-  return maxLength === 1 ? '…' : `${value.slice(0, maxLength - 1)}…`;
+  if (maxLength <= 2) {
+    return `${value.slice(0, maxLength - 1)}…`;
+  }
+  const headLength = Math.ceil(((maxLength - 1) * 2) / 3);
+  const tailLength = maxLength - headLength - 1;
+  return `${value.slice(0, headLength)}…${value.slice(-tailLength)}`;
 };
 
 const buildPlanningFeedback = (
@@ -41,30 +49,30 @@ const buildPlanningFeedback = (
   if (summaries.length === 0) {
     return header.trimEnd();
   }
-  const prefixes = summaries.map(
-    ({ index, active }) => `${active ? '*' : ' '}${index}|`,
-  );
-  const lineBudget = Math.floor(
-    (maxPlanningFeedbackLength - header.length - summaries.length + 1) /
-      summaries.length,
-  );
-
-  const lines = summaries.map((summary, index) => {
-    const fieldBudget = lineBudget - prefixes[index].length - 1;
-    const normalizedTitle = normalizeFeedbackValue(summary.title);
+  const lines = summaries.map((summary) => {
+    const prefix = `${summary.active ? '*' : ' '}${summary.index}|`;
     const title = truncateFeedbackValue(
-      normalizedTitle,
-      Math.min(maxTitleLength, Math.floor(fieldBudget / 3)),
+      normalizeFeedbackValue(summary.title),
+      maxListTitleLength,
     );
     const url = truncateFeedbackValue(
       normalizeFeedbackValue(summary.url),
-      fieldBudget - title.length,
+      maxListUrlLength,
     );
-    return `${prefixes[index]}${title}|${url}`;
+    return `${prefix}${title}|${url}`;
   });
 
   return `${header}${lines.join('\n')}`;
 };
+
+const buildPageInfoPlanningFeedback = (summary: BrowserAgentPageSummary) =>
+  `GetBrowserPageInfo index ${summary.index}; active ${summary.active}.\nTitle: ${truncateFeedbackValue(
+    normalizeFeedbackValue(summary.title),
+    maxDetailTitleLength,
+  )}\nURL: ${truncateFeedbackValue(
+    normalizeFeedbackValue(summary.url),
+    maxDetailUrlLength,
+  )}`;
 
 const setActivePageParamSchema: z.ZodType<BrowserAgentPageSelector> = z.object({
   index: z
@@ -94,6 +102,14 @@ const listBrowserPagesParamSchema = z
   })
   .optional();
 
+const getBrowserPageInfoParamSchema = z.object({
+  index: z
+    .number()
+    .int()
+    .min(0)
+    .describe('0-based page/tab index returned by ListBrowserPages.'),
+});
+
 export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
   getPageManager: () => BrowserPageManager<Page, NewPageEvent>;
 }): DeviceAction<any>[] => [
@@ -118,8 +134,30 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
           offset,
           summaries.find(({ active }) => active)?.index,
         );
+        context.task.planningFeedbackMaxLength =
+          browserPlanningFeedbackMaxLength;
       }
       return visibleSummaries;
+    },
+  },
+  {
+    name: 'GetBrowserPageInfo',
+    description:
+      'Get the complete title and URL for one browser page/tab without switching the active page. Use this when ListBrowserPages truncates details needed to identify a page.',
+    paramSchema: getBrowserPageInfoParamSchema,
+    sample: {
+      index: 1,
+    },
+    call: async (param, context) => {
+      const summary = await options
+        .getPageManager()
+        .pageSummaryByIndex(param.index);
+      if (context?.task) {
+        context.task.planningFeedback = buildPageInfoPlanningFeedback(summary);
+        context.task.planningFeedbackMaxLength =
+          browserPlanningFeedbackMaxLength;
+      }
+      return summary;
     },
   },
   {

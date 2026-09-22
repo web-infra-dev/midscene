@@ -629,6 +629,12 @@ export type ExecutionTask<
      */
     planningFeedback?: string;
     /**
+     * Optional per-task feedback limit. The executor keeps the default limit
+     * unless an action explicitly requests a larger, still globally bounded
+     * allowance for structured feedback.
+     */
+    planningFeedbackMaxLength?: number;
+    /**
      * A bounded diagnostic DTO created when the task executor throws. Arbitrary
      * upstream payloads are intentionally omitted; use this field for structured
      * diagnostics or errorMessage/errorStack for the common display path.

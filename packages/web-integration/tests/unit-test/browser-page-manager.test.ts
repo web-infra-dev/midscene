@@ -190,6 +190,21 @@ describe('BrowserPageManager', () => {
     ).resolves.toMatchObject({ title: 'Docs', active: true });
   });
 
+  it('reports when a page closes while its details are being read', async () => {
+    const closing = createPage('closing');
+    const ctx = createManager({
+      pages: [closing],
+      pageTitle: async (page) => {
+        page.closed = true;
+        throw new Error('page closed');
+      },
+    });
+
+    await expect(ctx.manager.pageSummaryByIndex(0)).rejects.toThrow(
+      'page at index 0 closed while reading its metadata. Run ListBrowserPages again.',
+    );
+  });
+
   it('sets the active page by selector', async () => {
     const initial = createPage('initial', {
       title: 'Home',
@@ -277,6 +292,7 @@ describe('BrowserPageManager', () => {
 
     expect(actions.map((action) => action.name)).toEqual([
       'ListBrowserPages',
+      'GetBrowserPageInfo',
       'SetActivePage',
     ]);
     const taskContext = { task: {} } as any;
@@ -298,16 +314,17 @@ describe('BrowserPageManager', () => {
     expect(taskContext.task.planningFeedback).toBe(
       'ListBrowserPages 0-1 of 2; active 0 (0-based). Use SetActivePage.\n*0|Home|https://example.com/home\n 1|Docs|https://example.com/docs',
     );
+    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
 
-    await actions[1].call({ index: 1 }, {} as any);
+    await actions[2].call({ index: 1 }, {} as any);
     expect(ctx.activePage).toBe(docs);
   });
 
-  it('fits every page index within the core planning feedback limit', async () => {
-    const pages = Array.from({ length: 6 }, (_, index) =>
+  it('keeps distinguishing page details when pages share long prefixes', async () => {
+    const pages = Array.from({ length: 8 }, (_, index) =>
       createPage(`page-${index}`, {
-        title: `Page ${index} ${'title '.repeat(12)}`,
-        url: `https://example.com/${index}/${'long-path/'.repeat(12)}`,
+        title: `${'shared title '.repeat(20)}unique-title-${index}`,
+        url: `https://example.com/${'shared-path/'.repeat(50)}unique-url-${index}`,
       }),
     );
     const ctx = createManager({ pages, activePage: pages[2] });
@@ -319,11 +336,57 @@ describe('BrowserPageManager', () => {
     await actions[0].call(undefined, taskContext);
 
     const feedback = taskContext.task.planningFeedback as string;
-    expect(feedback.length).toBeLessThanOrEqual(500);
     for (const [index] of pages.entries()) {
       const marker = index === 2 ? '*' : ' ';
       expect(feedback).toContain(`${marker}${index}|`);
+      expect(feedback).toContain(`unique-title-${index}`);
+      expect(feedback).toContain(`unique-url-${index}`);
     }
+    expect(feedback.length).toBeGreaterThan(500);
+    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
+  });
+
+  it('returns full page info without switching pages and forwards useful details', async () => {
+    const initial = createPage('initial');
+    const fullTitle = `${'title '.repeat(30)}unique-title-tail`;
+    const fullUrl = `https://example.com/${'long-path/'.repeat(60)}unique-url-tail`;
+    const details = createPage('details', {
+      title: fullTitle,
+      url: fullUrl,
+    });
+    const ctx = createManager({ pages: [initial, details] });
+    const actions = createBrowserAgentPageActions({
+      getPageManager: () => ctx.manager,
+    });
+    const taskContext = { task: {} } as any;
+
+    await expect(actions[1].call({ index: 1 }, taskContext)).resolves.toEqual({
+      index: 1,
+      active: false,
+      title: fullTitle,
+      url: fullUrl,
+    });
+    expect(ctx.activePage).toBe(initial);
+    expect(taskContext.task.planningFeedback).toContain('unique-title-tail');
+    expect(taskContext.task.planningFeedback).toContain('unique-url-tail');
+    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
+  });
+
+  it('returns a full URL but visibly truncates an extreme URL in planning feedback', async () => {
+    const longUrl = `https://example.com/${'x'.repeat(5000)}unique-url-tail`;
+    const page = createPage('long-url', { url: longUrl });
+    const ctx = createManager({ pages: [page] });
+    const actions = createBrowserAgentPageActions({
+      getPageManager: () => ctx.manager,
+    });
+    const taskContext = { task: {} } as any;
+
+    const summary = await actions[1].call({ index: 0 }, taskContext);
+    expect(summary.url).toBe(longUrl);
+    expect(taskContext.task.planningFeedback).toContain('URL: https://');
+    expect(taskContext.task.planningFeedback).toContain('…');
+    expect(taskContext.task.planningFeedback).toContain('unique-url-tail');
+    expect(taskContext.task.planningFeedback).not.toContain(longUrl);
   });
 
   it('paginates large page lists without losing page identities', async () => {
@@ -342,14 +405,14 @@ describe('BrowserPageManager', () => {
       'Next: ListBrowserPages({offset:8})',
     );
     expect(taskContext.task.planningFeedback).toContain(' 7|page-7|');
-    expect(taskContext.task.planningFeedback.length).toBeLessThanOrEqual(500);
+    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
 
     const lastPage = await actions[0].call({ offset: 96 }, taskContext);
     expect(lastPage.map(({ index }: { index: number }) => index)).toEqual([
       96, 97, 98, 99,
     ]);
     expect(taskContext.task.planningFeedback).toContain('*99|page-99|');
-    expect(taskContext.task.planningFeedback.length).toBeLessThanOrEqual(500);
+    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
 
     await expect(actions[0].call({ offset: 100 }, taskContext)).rejects.toThrow(
       'offset 100 is out of range',
@@ -374,6 +437,7 @@ describe('BrowserPageManager', () => {
     expect(actions.map((action) => action.name)).toEqual([
       'SetActivePage',
       'ListBrowserPages',
+      'GetBrowserPageInfo',
     ]);
     expect(actions[0]).toBe(customAction);
   });

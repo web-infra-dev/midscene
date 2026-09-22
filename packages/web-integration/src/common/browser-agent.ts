@@ -179,6 +179,30 @@ export class BrowserPageManager<Page, NewPageEvent> {
       .map((summary, index) => ({ ...summary, index }));
   }
 
+  async pageSummaryByIndex(index: number): Promise<BrowserAgentPageSummary> {
+    const pages = await this.openPages();
+    const page = pages[index];
+    if (!page || this.adapter.isPageClosed(page)) {
+      throw new Error(
+        `[midscene] Cannot find ${this.agentName} page with index ${index}. Available page indexes: ${pages
+          .map((_, pageIndex) => pageIndex)
+          .join(', ')}`,
+      );
+    }
+
+    const summary = await this.tryPageSummary(
+      page,
+      index,
+      page === this.activePage,
+    );
+    if (!summary) {
+      throw new Error(
+        `[midscene] ${this.agentName} page at index ${index} closed while reading its metadata. Run ListBrowserPages again.`,
+      );
+    }
+    return summary;
+  }
+
   async newPage() {
     const page = await this.adapter.newPage();
     await this.setActivePage(page);

@@ -89,14 +89,24 @@ const maxErrorCountAllowedInOnePlanningLoop = 5;
 // single place that truncates feedback before it is sent to the model; action
 // implementations should hand over the untruncated value.
 const maxPlanningFeedbackLength = 500;
+const absoluteMaxPlanningFeedbackLength = 10_000;
 
-function truncatePlanningFeedback(feedback: string): string {
-  if (feedback.length <= maxPlanningFeedbackLength) {
+function truncatePlanningFeedback(
+  feedback: string,
+  requestedLimit?: number,
+): string {
+  const limit = Math.min(
+    absoluteMaxPlanningFeedbackLength,
+    requestedLimit && Number.isFinite(requestedLimit) && requestedLimit > 0
+      ? Math.floor(requestedLimit)
+      : maxPlanningFeedbackLength,
+  );
+  if (feedback.length <= limit) {
     return feedback;
   }
 
-  return `${feedback.slice(0, maxPlanningFeedbackLength)}
-...[truncated, ${feedback.length - maxPlanningFeedbackLength} more characters]`;
+  return `${feedback.slice(0, limit)}
+...[truncated, ${feedback.length - limit} more characters]`;
 }
 
 export { TaskExecutionError };
@@ -243,8 +253,16 @@ export class TaskExecutor {
    * Returns undefined when no task reported feedback.
    */
   private collectPlanningFeedback(tasks: ExecutionTask[]): string | undefined {
-    const feedbackMessages = tasks.flatMap(({ planningFeedback }) =>
-      planningFeedback ? [truncatePlanningFeedback(planningFeedback)] : [],
+    const feedbackMessages = tasks.flatMap(
+      ({ planningFeedback, planningFeedbackMaxLength }) =>
+        planningFeedback
+          ? [
+              truncatePlanningFeedback(
+                planningFeedback,
+                planningFeedbackMaxLength,
+              ),
+            ]
+          : [],
     );
     return feedbackMessages.length > 0
       ? feedbackMessages.join('\n\n')
