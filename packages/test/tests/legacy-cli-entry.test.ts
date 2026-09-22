@@ -13,13 +13,17 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { TestRunReportDump } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 const oldCli = resolve(here, '../../cli/bin/midscene');
 const cliAcceptanceTimeout = 30_000;
+vi.setConfig({ testTimeout: cliAcceptanceTimeout });
 const roots: string[] = [];
+
+afterAll(() => vi.resetConfig());
+
 afterEach(() => {
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true });
@@ -110,7 +114,6 @@ describe('published YAML entry acceptance', () => {
       }
       expect(existsSync(join(root, 'midscene.config.ts'))).toBe(false);
     },
-    cliAcceptanceTimeout,
   );
 
   it.each([false, true])(
@@ -172,44 +175,38 @@ describe('published YAML entry acceptance', () => {
       expect(report).toContain('midscene_test_run_dump');
       expect(report).toContain('fixture action failed once');
     },
-    cliAcceptanceTimeout,
   );
 
-  it(
-    'loads the existing .env without overriding shell values',
-    () => {
-      const { root, file, env } = fixture();
-      writeFileSync(
-        join(root, '.env'),
-        'LEGACY_ACCEPTANCE_FILE=from-dotenv\nLEGACY_ACCEPTANCE_SHELL=not-shell\n',
-      );
-      writeFileSync(
-        file,
-        readFileSync(file, 'utf8')
-          .replace('compatibility\n', '${LEGACY_ACCEPTANCE_FILE}\n')
-          .replace(
-            'unchanged code',
-            '${LEGACY_ACCEPTANCE_FILE}/${LEGACY_ACCEPTANCE_SHELL}',
-          ),
-      );
-      const childEnv: NodeJS.ProcessEnv = {
-        ...env,
-        LEGACY_ACCEPTANCE_SHELL: 'from-shell',
-      };
-      Reflect.deleteProperty(childEnv, 'LEGACY_ACCEPTANCE_FILE');
-      execFileSync(process.execPath, [oldCli, file], {
-        cwd: root,
-        env: childEnv,
-        timeout: 20000,
-        stdio: 'pipe',
-      });
-      expect(
-        JSON.parse(readFileSync(join(root, 'legacy-output.json'), 'utf8'))
-          .answer,
-      ).toEqual({ echoed: 'from-dotenv/from-shell' });
-    },
-    cliAcceptanceTimeout,
-  );
+  it('loads the existing .env without overriding shell values', () => {
+    const { root, file, env } = fixture();
+    writeFileSync(
+      join(root, '.env'),
+      'LEGACY_ACCEPTANCE_FILE=from-dotenv\nLEGACY_ACCEPTANCE_SHELL=not-shell\n',
+    );
+    writeFileSync(
+      file,
+      readFileSync(file, 'utf8')
+        .replace('compatibility\n', '${LEGACY_ACCEPTANCE_FILE}\n')
+        .replace(
+          'unchanged code',
+          '${LEGACY_ACCEPTANCE_FILE}/${LEGACY_ACCEPTANCE_SHELL}',
+        ),
+    );
+    const childEnv: NodeJS.ProcessEnv = {
+      ...env,
+      LEGACY_ACCEPTANCE_SHELL: 'from-shell',
+    };
+    Reflect.deleteProperty(childEnv, 'LEGACY_ACCEPTANCE_FILE');
+    execFileSync(process.execPath, [oldCli, file], {
+      cwd: root,
+      env: childEnv,
+      timeout: 20000,
+      stdio: 'pipe',
+    });
+    expect(
+      JSON.parse(readFileSync(join(root, 'legacy-output.json'), 'utf8')).answer,
+    ).toEqual({ echoed: 'from-dotenv/from-shell' });
+  });
 
   it('runs unchanged YAML through the legacy command and generates the new report', () => {
     const { root, file, env } = fixture();
