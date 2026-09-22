@@ -37,10 +37,9 @@
   - 无缝整合至现有的 Java 测试框架与自动化工作流程
 
 ### 测试集成
-- **[midscene-jev-runner](https://github.com/KiritoKing/midscene-jev-runner)** - 面向 Midscene Test 的社区版 JEV runner 集成，把当下爆火的 Jev 决策模型带进 Midscene 工作流
-  - 基于 [Jev](https://typesafe.ai/)，不生成文本，而是把页面变成索引化的动作空间，只回答「点哪个元素、目标是否达成」并返回校准概率，让每一步点击都又快又省
-  - 默认通过 OpenRouter Decisions 调用 `~typesafe/jev-latest`，仅在需要输入文本时才调用小模型；提供 `runJev(page, options)` 直接在 Playwright Page 上执行任务，或用 `createJevNodes` 注册 `jevAct` 节点接入 Midscene Test 流程
-  - 浏览器生命周期由调用方掌控，支持可选的完成校验与站点无关的结构化观测事件，稳定应对页面变化
+- **[midscene-jev-runner](https://github.com/KiritoKing/midscene-jev-runner)** - 面向 Midscene Test 的社区版 JEV runner 集成，把当下热门的 Jev 决策模型带进 Midscene 工作流
+  - 基于决策模型 [Jev](https://typesafe.ai/)，让 AI 又快又省地完成网页操作
+  - 可直接接入 Midscene Test 测试流程，轻松尝鲜 Jev 驱动的浏览器自动化
 
 ## 如何贡献
 

@@ -37,10 +37,9 @@ A curated list of community projects that extend Midscene.js capabilities across
   - Integrates seamlessly into established Java testing frameworks and automation workflows
 
 ### Test integration
-- **[midscene-jev-runner](https://github.com/KiritoKing/midscene-jev-runner)** - Community JEV runner integration for Midscene Test, bringing the red-hot Jev decision model into Midscene workflows
-  - Powered by [Jev](https://typesafe.ai/): instead of writing prose, it turns the page into an indexed action space and only answers "which element to act on and is the goal met," returning calibrated probabilities, so every click stays fast and cheap
-  - Calls `~typesafe/jev-latest` through OpenRouter Decisions by default and only invokes a small model when text input is needed; exposes `runJev(page, options)` to run tasks directly on a Playwright `Page`, or `createJevNodes` to register a `jevAct` node in a Midscene Test project
-  - Leaves the browser lifecycle to the caller, with optional completion verification and structured, site-agnostic observer events that stay robust as pages change
+- **[midscene-jev-runner](https://github.com/KiritoKing/midscene-jev-runner)** - Community JEV runner integration for Midscene Test, bringing the trending Jev decision model into Midscene workflows
+  - Built on the decision model [Jev](https://typesafe.ai/), letting AI complete web tasks fast and cheap
+  - Plugs straight into your Midscene Test workflow — an easy way to try out Jev-powered browser automation
 
 ## Contributing
 
