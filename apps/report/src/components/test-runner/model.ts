@@ -73,7 +73,19 @@ export interface RunnerProjectView {
 
 export type RunnerBreakdownStatus = 'all' | 'attention' | RunnerCaseStatus;
 
-export type RunnerBreakdownSort = 'attention' | 'issues' | 'duration' | 'name';
+export type RunnerBreakdownSort =
+  | 'name'
+  | 'case-count'
+  | 'passed-count'
+  | 'result'
+  | 'duration';
+
+export type RunnerBreakdownSortDirection = 'asc' | 'desc';
+
+export const defaultRunnerBreakdownSortDirection = (
+  sort: RunnerBreakdownSort,
+): RunnerBreakdownSortDirection =>
+  sort === 'name' || sort === 'result' ? 'asc' : 'desc';
 
 export interface RunnerProjectBreakdownView {
   item: RunnerProjectView;
@@ -90,6 +102,19 @@ export const getDefaultExpandedProjectKeys = (
       )
       .map(({ item }) => item.key),
   );
+
+export const toggleAllRunnerProjectKeys = (
+  visibleKeys: readonly string[],
+  expandedKeys: ReadonlySet<string>,
+): Set<string> => {
+  const collapse = visibleKeys.every((key) => expandedKeys.has(key));
+  const next = new Set(expandedKeys);
+  for (const key of visibleKeys) {
+    if (collapse) next.delete(key);
+    else next.add(key);
+  }
+  return next;
+};
 
 interface ScreenshotLike {
   base64: string;
@@ -450,12 +475,21 @@ const matchesBreakdownStatus = (
 
 const breakdownCaseSorter = (
   sort: RunnerBreakdownSort,
+  direction: RunnerBreakdownSortDirection,
 ): ((a: RunnerCaseView, b: RunnerCaseView) => number) => {
+  const directionMultiplier = direction === 'asc' ? 1 : -1;
   if (sort === 'duration') {
-    return (a, b) => b.durationMs - a.durationMs;
+    return (a, b) => directionMultiplier * (a.durationMs - b.durationMs);
   }
   if (sort === 'name') {
-    return (a, b) => a.testCase.name.localeCompare(b.testCase.name);
+    return (a, b) =>
+      directionMultiplier * a.testCase.name.localeCompare(b.testCase.name);
+  }
+  if (sort === 'result') {
+    return (a, b) =>
+      directionMultiplier *
+      (statusSortWeight[a.status] - statusSortWeight[b.status] ||
+        b.durationMs - a.durationMs);
   }
   return (a, b) =>
     statusSortWeight[a.status] - statusSortWeight[b.status] ||
@@ -476,10 +510,11 @@ export const filterAndSortRunnerProjectBreakdown = (
     query: string;
     status: RunnerBreakdownStatus;
     sort: RunnerBreakdownSort;
+    direction: RunnerBreakdownSortDirection;
   },
 ): RunnerProjectBreakdownView[] => {
   const normalizedQuery = options.query.trim().toLocaleLowerCase();
-  const caseSorter = breakdownCaseSorter(options.sort);
+  const caseSorter = breakdownCaseSorter(options.sort, options.direction);
   const result = projects
     .map((item) => {
       const projectMatches = normalizedQuery
@@ -520,24 +555,27 @@ export const filterAndSortRunnerProjectBreakdown = (
     })
     .map(({ item, cases }) => ({ item, cases }));
 
+  const directionMultiplier = options.direction === 'asc' ? 1 : -1;
   return result.sort((a, b) => {
+    let comparison: number;
     if (options.sort === 'name') {
-      return a.item.project.name.localeCompare(b.item.project.name);
-    }
-    if (options.sort === 'duration') {
-      return (b.item.durationMs ?? 0) - (a.item.durationMs ?? 0);
-    }
-    if (options.sort === 'issues') {
-      return (
+      comparison = a.item.project.name.localeCompare(b.item.project.name);
+    } else if (options.sort === 'case-count') {
+      comparison = a.item.cases.length - b.item.cases.length;
+    } else if (options.sort === 'passed-count') {
+      comparison = a.item.passedCount - b.item.passedCount;
+    } else if (options.sort === 'duration') {
+      comparison = (a.item.durationMs ?? 0) - (b.item.durationMs ?? 0);
+    } else {
+      comparison =
+        statusSortWeight[projectDisplayStatusForSort(a.item)] -
+          statusSortWeight[projectDisplayStatusForSort(b.item)] ||
         projectIssueCount(b.item) - projectIssueCount(a.item) ||
-        a.item.project.name.localeCompare(b.item.project.name)
-      );
+        (b.item.durationMs ?? 0) - (a.item.durationMs ?? 0);
     }
     return (
-      statusSortWeight[projectDisplayStatusForSort(a.item)] -
-        statusSortWeight[projectDisplayStatusForSort(b.item)] ||
-      projectIssueCount(b.item) - projectIssueCount(a.item) ||
-      (b.item.durationMs ?? 0) - (a.item.durationMs ?? 0)
+      directionMultiplier * comparison ||
+      a.item.project.name.localeCompare(b.item.project.name)
     );
   });
 };

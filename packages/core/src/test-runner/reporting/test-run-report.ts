@@ -386,7 +386,7 @@ const buildProject = (
   return {
     projectId: project.projectId,
     name: project.name,
-    platform: project.platform,
+    ...(project.platform?.trim() ? { platform: project.platform.trim() } : {}),
     status: project.status,
     retry: project.retry,
     ...(project.lifecycle

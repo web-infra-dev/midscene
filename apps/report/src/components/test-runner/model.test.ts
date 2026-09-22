@@ -7,6 +7,7 @@ import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlaywrightTasks } from '../../types';
+import { getWorkspaceStepSummary } from './case-workspace';
 import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
   buildRunnerStepIndex,
@@ -22,6 +23,7 @@ import {
   getStepForVisualFrame,
   groupRunnerProjects,
   positionAttemptVisualFrames,
+  toggleAllRunnerProjectKeys,
 } from './model';
 import { isSingleCaseReport, resolveRunnerNavigation } from './navigation';
 import { RunSummary } from './run-summary';
@@ -254,7 +256,8 @@ describe('Midscene Test hybrid report model', () => {
       filterAndSortRunnerProjectBreakdown(projects, {
         query: '',
         status: 'attention',
-        sort: 'attention',
+        sort: 'result',
+        direction: 'asc',
       })[0].cases.map((item) => item.status),
     ).toEqual(['failed', 'retry-passed', 'not-run']);
 
@@ -262,7 +265,8 @@ describe('Midscene Test hybrid report model', () => {
       filterAndSortRunnerProjectBreakdown(projects, {
         query: 'NODE_EXECUTION_ERROR',
         status: 'all',
-        sort: 'attention',
+        sort: 'result',
+        direction: 'asc',
       })[0].cases.map((item) => item.testCase.caseId),
     ).toEqual(['retried']);
 
@@ -271,6 +275,7 @@ describe('Midscene Test hybrid report model', () => {
         query: '',
         status: 'all',
         sort: 'name',
+        direction: 'asc',
       })[0].cases.map((item) => item.testCase.caseId),
     ).toEqual(['failed', 'not-run', 'passed', 'retried']);
 
@@ -278,12 +283,50 @@ describe('Midscene Test hybrid report model', () => {
       filterAndSortRunnerProjectBreakdown(projectsWithEmptyFailure, {
         query: '',
         status: 'attention',
-        sort: 'attention',
+        sort: 'result',
+        direction: 'asc',
       }).map(({ item, cases }) => ({ name: item.project.name, cases })),
     ).toMatchObject([
       { name: 'Web', cases: expect.any(Array) },
       { name: 'Empty failed project', cases: [] },
     ]);
+  });
+
+  it('sorts Project rows from each table column in both directions', () => {
+    const [project] = groupRunnerProjects(dump);
+    const healthyProject = {
+      ...project,
+      key: 'alpha',
+      project: {
+        ...project.project,
+        projectId: 'alpha',
+        name: 'Alpha',
+        status: 'success' as const,
+      },
+      cases: project.cases.slice(0, 3),
+      passedCount: 3,
+      failedCount: 0,
+      retryPassedCount: 0,
+      notRunCount: 0,
+      durationMs: 9_000,
+    };
+    const projects = [project, healthyProject];
+    const sortNames = (
+      sort: 'name' | 'case-count' | 'passed-count' | 'result' | 'duration',
+      direction: 'asc' | 'desc',
+    ) =>
+      filterAndSortRunnerProjectBreakdown(projects, {
+        query: '',
+        status: 'all',
+        sort,
+        direction,
+      }).map(({ item }) => item.project.name);
+
+    expect(sortNames('name', 'asc')).toEqual(['Alpha', 'Web']);
+    expect(sortNames('case-count', 'desc')).toEqual(['Web', 'Alpha']);
+    expect(sortNames('passed-count', 'desc')).toEqual(['Alpha', 'Web']);
+    expect(sortNames('result', 'asc')).toEqual(['Web', 'Alpha']);
+    expect(sortNames('duration', 'desc')).toEqual(['Alpha', 'Web']);
   });
 
   it('expands every failed Project and collapses all-passed Projects by default', () => {
@@ -321,6 +364,29 @@ describe('Midscene Test hybrid report model', () => {
       secondFailure.key,
       setupFailure.key,
     ]);
+  });
+
+  it('expands every visible project from a partial selection without changing hidden projects', () => {
+    const expanded = new Set(['first', 'hidden']);
+    expect(toggleAllRunnerProjectKeys(['first', 'second'], expanded)).toEqual(
+      new Set(['first', 'second', 'hidden']),
+    );
+    expect(expanded).toEqual(new Set(['first', 'hidden']));
+  });
+
+  it('collapses all visible projects and preserves expansion outside the current filter', () => {
+    expect(
+      toggleAllRunnerProjectKeys(
+        ['first', 'second'],
+        new Set(['first', 'second', 'hidden']),
+      ),
+    ).toEqual(new Set(['hidden']));
+  });
+
+  it('preserves expansion when no project matches the filters', () => {
+    expect(toggleAllRunnerProjectKeys([], new Set(['hidden']))).toEqual(
+      new Set(['hidden']),
+    );
   });
 
   it('opens a single-project single-case report directly in case detail', () => {
@@ -412,7 +478,7 @@ describe('Midscene Test hybrid report model', () => {
     });
   });
 
-  it('preserves single-case trace links and rejects unrelated step IDs', () => {
+  it('preserves single-case step links and rejects unrelated step IDs', () => {
     const singleDump = structuredClone(dump);
     singleDump.projects[0].documents[0].cases = [
       singleDump.projects[0].documents[0].cases[1],
@@ -422,7 +488,7 @@ describe('Midscene Test hybrid report model', () => {
     const stepIndex = buildRunnerStepIndex(singleDump, cases);
     expect(
       resolveRunnerNavigation(
-        '#runner-step=demo.passOnRetry&runner-trace=page',
+        '#runner-step=demo.passOnRetry',
         cases,
         projects,
         stepIndex,
@@ -448,6 +514,7 @@ describe('Midscene Test hybrid report model', () => {
     const item = flattenRunnerCases(dump)[0];
     const props = {
       item,
+      selectedAttempt: item.finalAttempt,
       backLabel: 'Overview',
       onBack() {},
       onSelectAttempt() {},
@@ -481,6 +548,10 @@ describe('Midscene Test hybrid report model', () => {
     expect(regular).toContain('runner-back-button');
     expect(regular).not.toContain('Copy case link');
     expect(regular).not.toContain('Run information');
+    expect(regular).not.toContain('runner-single-attempt-label');
+    expect(regular).not.toContain('Attempt 1');
+    expect(regular).not.toContain('aria-label="Attempts"');
+    expect(regular).not.toContain('runner-step-status is-success');
   });
 
   it('shows a pass percentage matching the all-case fraction, including not-run cases', () => {
@@ -496,7 +567,12 @@ describe('Midscene Test hybrid report model', () => {
       'aria-label="Percentage of all cases passed">50%</span>',
     );
     expect(markup).not.toContain('runner-overview-outcome-message');
-    expect(markup).toContain('Review 1 failed case');
+    expect(markup).toContain('aria-label="Review case results"');
+    expect(markup).toContain('>run failed</span>');
+    expect(markup).not.toContain('>Run failed</span>');
+    expect(markup).not.toContain('model time');
+    expect(markup).not.toContain('model calls');
+    expect(markup).not.toContain('Tokens');
   });
 
   it('does not invent a pass percentage for an empty run', () => {
@@ -516,23 +592,52 @@ describe('Midscene Test hybrid report model', () => {
 
   it('keeps attempt comparison in standalone reports with retries', () => {
     const item = flattenRunnerCases(dump)[1];
+    const props = {
+      item,
+      standaloneRun: dump,
+      selectedAttempt: item.finalAttempt,
+      stepSummary: { total: 12, passed: 11, failed: 1, timeout: 0 },
+      backLabel: 'Overview',
+      onBack() {},
+      onSelectAttempt() {},
+    };
     const markup = renderToStaticMarkup(
-      createElement(CaseWorkspaceHeader, {
-        item,
-        standaloneRun: dump,
-        selectedAttempt: item.finalAttempt,
-        backLabel: 'Overview',
-        onBack() {},
-        onSelectAttempt() {},
-      }),
+      createElement(CaseWorkspaceHeader, props),
     );
     expect(markup).not.toContain('runner-back-button');
-    expect(markup).toContain('Attempt 1');
     expect(markup).toContain('Attempt 2');
     expect(markup).not.toContain('Original failure');
     expect(markup).not.toContain('Final result');
     expect(markup).not.toContain('· failed');
-    expect(markup).toContain('aria-pressed="true"');
+    expect(markup).toContain('aria-label="Attempts"');
+    expect(markup).toContain('role="combobox"');
+    expect(markup).toContain('<dt>Total steps</dt><dd>12</dd>');
+    const firstAttemptMarkup = renderToStaticMarkup(
+      createElement(CaseWorkspaceHeader, {
+        ...props,
+        selectedAttempt: item.testCase.attempts[0],
+      }),
+    );
+    expect(firstAttemptMarkup).toContain('Attempt 1');
+    expect(firstAttemptMarkup).toContain('is-failed');
+  });
+
+  it('keeps timeout failures separate in the detail step summary', () => {
+    expect(
+      getWorkspaceStepSummary([
+        step('passed'),
+        step('failed', 'failed', {
+          error: { name: 'Error', message: 'Regular failure' },
+        }),
+        step('timeout', 'failed', {
+          error: {
+            name: 'StepTimeoutError',
+            code: 'STEP_TIMEOUT',
+            message: 'Step timed out after 1000ms.',
+          },
+        }),
+      ]),
+    ).toEqual({ total: 3, passed: 1, failed: 1, timeout: 1 });
   });
 
   it('preserves step deep links when choosing the initial page', () => {
@@ -674,7 +779,7 @@ describe('Midscene Test hybrid report model', () => {
 
     expect(
       resolveRunnerNavigation(
-        '#runner-step=last-error&runner-trace=page',
+        '#runner-step=last-error',
         cases,
         projects,
         stepIndex,
@@ -757,6 +862,7 @@ describe('Midscene Test hybrid report model', () => {
       query: 'NODE_EXECUTION_ERROR',
       status: 'retry-passed',
       sort: 'duration',
+      direction: 'desc',
     });
     expect(matches[0].cases.map((item) => item.testCase.caseId)).toEqual([
       'retried',
@@ -768,6 +874,7 @@ describe('Midscene Test hybrid report model', () => {
         query: 'no-such-case',
         status: 'all',
         sort: 'name',
+        direction: 'asc',
       }),
     ).toEqual([]);
   });

@@ -189,7 +189,7 @@ export async function runPreparedTestProject(
     return {
       projectId: project.projectId,
       name: project.name,
-      platform: prepared.platform,
+      ...(prepared.platform ? { platform: prepared.platform } : {}),
       status: projectFailed ? 'failed' : 'success',
       retry: project.retry,
       fileSelection: prepared.fileSelection,

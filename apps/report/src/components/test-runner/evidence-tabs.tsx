@@ -1,11 +1,13 @@
 import type { TestRunReportStep } from '@midscene/core';
+import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 import {
   ReportValue,
   formatDuration,
   formatTimestamp,
 } from './view-primitives';
 
-export type RunnerInspectorTab = 'io' | 'logs';
+export type RunnerInspectorTab = 'record' | 'io' | 'logs';
 
 function InputOutput({ step }: { step: TestRunReportStep }): JSX.Element {
   return (
@@ -64,25 +66,36 @@ export function EvidenceTabs({
   step,
   tab,
   onChange,
+  recordContent,
+  stabilizeContentHeight = false,
 }: {
   step: TestRunReportStep;
   tab: RunnerInspectorTab;
   onChange(tab: RunnerInspectorTab): void;
+  recordContent?: ReactNode;
+  stabilizeContentHeight?: boolean;
 }): JSX.Element {
+  const hasRecord = recordContent !== undefined && recordContent !== null;
+  const activeTab = tab === 'record' && !hasRecord ? 'io' : tab;
+  const tabs = [
+    ...(hasRecord ? ([['record', 'Record']] as const) : []),
+    ['io', 'Input & output'],
+    ['logs', 'Events'],
+  ] as const;
+
+  useEffect(() => {
+    if (activeTab !== tab) onChange(activeTab);
+  }, [activeTab, onChange, tab]);
+
   return (
     <>
       <div className="runner-detail-inspector-tabs" role="tablist">
-        {(
-          [
-            ['io', 'Input & output'],
-            ['logs', 'Events'],
-          ] as const
-        ).map(([value, label]) => (
+        {tabs.map(([value, label]) => (
           <button
             type="button"
             role="tab"
-            aria-selected={tab === value}
-            className={tab === value ? 'is-selected' : ''}
+            aria-selected={activeTab === value}
+            className={activeTab === value ? 'is-selected' : ''}
             key={value}
             onClick={() => onChange(value)}
           >
@@ -90,9 +103,14 @@ export function EvidenceTabs({
           </button>
         ))}
       </div>
-      <div className="runner-detail-inspector-content">
-        {tab === 'io' ? <InputOutput step={step} /> : null}
-        {tab === 'logs' ? <RuntimeEvents step={step} /> : null}
+      <div
+        className={`runner-detail-inspector-content${
+          stabilizeContentHeight ? ' has-stable-trace-height' : ''
+        }`}
+      >
+        {activeTab === 'record' ? recordContent : null}
+        {activeTab === 'io' ? <InputOutput step={step} /> : null}
+        {activeTab === 'logs' ? <RuntimeEvents step={step} /> : null}
       </div>
     </>
   );

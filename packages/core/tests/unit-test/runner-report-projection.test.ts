@@ -74,6 +74,21 @@ async function input() {
 }
 
 describe('entry-independent report projection', () => {
+  test('preserves known platforms and omits unavailable platform metadata', async () => {
+    const { report } = await input();
+    expect(buildTestRunReportDump(report, index).projects[0].platform).toBe(
+      'web',
+    );
+
+    const { platform: _platform, ...projectWithoutPlatform } =
+      report.projects[0];
+    const dump = buildTestRunReportDump(
+      { ...report, projects: [projectWithoutPlatform] },
+      index,
+    );
+    expect(dump.projects[0]).not.toHaveProperty('platform');
+  });
+
   test('bounds run-level infrastructure diagnostics without mutating raw errors', async () => {
     const { report } = await input();
     const error = new Error(

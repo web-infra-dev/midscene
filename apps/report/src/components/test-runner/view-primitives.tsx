@@ -23,15 +23,23 @@ export const formatDuration = (durationMs: number | undefined): string => {
 export const formatPercent = (value: number): string =>
   `${Math.round(value * 1000) / 10}%`;
 
-export const formatTimestamp = (value: string): string =>
-  new Intl.DateTimeFormat(undefined, {
+export const formatTimestamp = (value: string): string => {
+  const parts = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-  }).format(new Date(value));
+    hourCycle: 'h23',
+  })
+    .formatToParts(new Date(value))
+    .reduce<Record<string, string>>((result, part) => {
+      result[part.type] = part.value;
+      return result;
+    }, {});
+  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+};
 
 const statusMeta: Record<
   RunnerCaseStatus,
@@ -42,22 +50,22 @@ const statusMeta: Record<
   }
 > = {
   passed: {
-    label: 'Passed',
+    label: 'passed',
     tone: 'success',
     icon: <CheckCircleFilled />,
   },
   'retry-passed': {
-    label: 'Passed after retry',
+    label: 'passed after retry',
     tone: 'warning',
     icon: <ReloadOutlined />,
   },
   failed: {
-    label: 'Failed',
+    label: 'failed',
     tone: 'failed',
     icon: <CloseCircleFilled />,
   },
   'not-run': {
-    label: 'Not run',
+    label: 'not run',
     tone: 'neutral',
     icon: <ClockCircleOutlined />,
   },

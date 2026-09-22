@@ -2,7 +2,6 @@ import {
   CheckCircleFilled,
   CloseCircleFilled,
   ReloadOutlined,
-  RightOutlined,
 } from '@ant-design/icons';
 import type { TestRunReportDump } from '@midscene/core';
 import type { ReactNode } from 'react';
@@ -25,8 +24,8 @@ function RunMetric({
 }): JSX.Element {
   return (
     <div className={`runner-metric-card${tone ? ` is-${tone}` : ''}`}>
-      <span>{label}</span>
       <strong>{value}</strong>
+      <span>{label}</span>
     </div>
   );
 }
@@ -58,21 +57,11 @@ export function RunSummary({
       : status === 'warning'
         ? 'Passed after retry'
         : 'Run passed';
-  const outcomeActionLabel =
-    dump.summary.failed > 0
-      ? `Review ${dump.summary.failed} failed ${
-          dump.summary.failed === 1 ? 'case' : 'cases'
-        }`
-      : successfulWithRetries
-        ? `Compare ${health.retryPassedCount} recovered ${
-            health.retryPassedCount === 1 ? 'case' : 'cases'
-          }`
-        : 'Browse all cases';
-
   return (
     <section className="runner-overview-summary" aria-label="Run outcome">
       <div className="runner-overview-outcome">
-        <div className="runner-overview-outcome-heading">
+        <div className="runner-overview-title-row">
+          <h1>Test Report</h1>
           <StatusBadge
             label={healthLabel}
             tone={status}
@@ -87,48 +76,27 @@ export function RunSummary({
             }
           />
         </div>
-        <h1>
-          <strong>
-            {dump.summary.passed} / {totalCaseCount}
-          </strong>
-          <span>cases passed</span>
-          <span
-            className="runner-overview-pass-percentage"
-            aria-label="Percentage of all cases passed"
-          >
-            {totalCaseCount
-              ? formatPercent(dump.summary.passed / totalCaseCount)
-              : '—'}
+        <div className="runner-overview-run-meta">
+          <span>Created at {formatTimestamp(dump.startedAt)}</span>
+          <span>
+            projects <strong>{dump.projects.length}</strong>
           </span>
-        </h1>
-        <div className="runner-overview-summary-footer">
-          <div className="runner-secondary-metrics">
-            <span>
-              <strong>{dump.projects.length}</strong> projects
-            </span>
-            <span>
-              <strong>{formatDuration(dump.metrics.modelTimeMs)}</strong> model
-              time
-            </span>
-            <span>
-              <strong>{dump.metrics.modelCallCount}</strong> model calls
-            </span>
-            <span>
-              <strong>{dump.metrics.totalTokens.toLocaleString()}</strong>{' '}
-              tokens
-            </span>
-          </div>
-          <div className="runner-overview-outcome-footer">
-            <div className="runner-overview-run-meta">
-              <span>{formatTimestamp(dump.startedAt)}</span>
-            </div>
-            <button type="button" onClick={onReviewOutcome}>
-              {outcomeActionLabel}
-              <RightOutlined />
-            </button>
-          </div>
+          <span>
+            Case <strong>{totalCaseCount}</strong>
+          </span>
         </div>
       </div>
+      <button
+        type="button"
+        className="runner-overview-passed"
+        onClick={onReviewOutcome}
+        aria-label="Review case results"
+      >
+        <strong>
+          <b>{dump.summary.passed}</b>/{totalCaseCount}
+        </strong>
+        <span>Case passed</span>
+      </button>
       <div
         className="runner-primary-metrics runner-overview-primary-metrics"
         aria-label="Run health metrics"
@@ -158,6 +126,14 @@ export function RunSummary({
         />
         <RunMetric label="Run time" value={formatDuration(dump.durationMs)} />
       </div>
+      <span
+        className="runner-overview-pass-percentage"
+        aria-label="Percentage of all cases passed"
+      >
+        {totalCaseCount
+          ? formatPercent(dump.summary.passed / totalCaseCount)
+          : '—'}
+      </span>
     </section>
   );
 }

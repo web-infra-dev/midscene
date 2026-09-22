@@ -310,26 +310,34 @@ describe('published YAML entry acceptance', () => {
     );
   });
 
-  it('reports async interface cleanup failure as a failed legacy CLI run', () => {
-    const { root, file, env } = fixture(true);
-    const summaryPath = join(root, 'summary.json');
-    let failure: unknown;
-    try {
-      execFileSync(process.execPath, [oldCli, file, '--summary', summaryPath], {
-        cwd: root,
-        env,
-        timeout: 20000,
-        stdio: 'pipe',
-      });
-    } catch (error) {
-      failure = error;
-    }
-    expect(failure).toMatchObject({ status: 1 });
-    expect(readFileSync(join(root, 'closed.txt'), 'utf8')).toBe('closed');
-    const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
-    expect(summary.summary.failed).toBe(1);
-    expect(
-      readFileSync(resolve(root, summary.results[0].report), 'utf8'),
-    ).toContain('fixture cleanup failed');
-  });
+  it(
+    'reports async interface cleanup failure as a failed legacy CLI run',
+    () => {
+      const { root, file, env } = fixture(true);
+      const summaryPath = join(root, 'summary.json');
+      let failure: unknown;
+      try {
+        execFileSync(
+          process.execPath,
+          [oldCli, file, '--summary', summaryPath],
+          {
+            cwd: root,
+            env,
+            timeout: 20000,
+            stdio: 'pipe',
+          },
+        );
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toMatchObject({ status: 1 });
+      expect(readFileSync(join(root, 'closed.txt'), 'utf8')).toBe('closed');
+      const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+      expect(summary.summary.failed).toBe(1);
+      expect(
+        readFileSync(resolve(root, summary.results[0].report), 'utf8'),
+      ).toContain('fixture cleanup failed');
+    },
+    cliAcceptanceTimeout,
+  );
 });
