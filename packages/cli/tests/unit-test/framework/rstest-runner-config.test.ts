@@ -1,4 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { RSTEST_YAML_CASE_IDS_META_KEY } from '@/framework/rstest-contract';
@@ -151,6 +157,70 @@ describe('rstest runner config', () => {
         resultType: 'failed',
         error: 'worker crashed while starting the next case',
       });
+    });
+  });
+
+  test('records a run-level error for pending cases across modules', async () => {
+    await withTempRoot(async (root) => {
+      const cases = ['a', 'b', 'c'].map((name, index) => ({
+        caseId: `00${index + 1}-${name}`,
+        testName: `${name}.yaml`,
+        yamlFile: join(root, `${name}.yaml`),
+        resultFile: join(root, 'results', `00${index + 1}-${name}.json`),
+      }));
+      const [caseA, caseB, caseC] = cases;
+      const completed = {
+        file: caseA.yamlFile,
+        success: true,
+        executed: true,
+        output: undefined,
+        report: undefined,
+        duration: 12,
+        resultType: 'passed',
+      };
+      mkdirSync(join(root, 'results'), { recursive: true });
+      writeFileSync(caseA.resultFile, JSON.stringify(completed, null, 2));
+
+      mocks.run.mockResolvedValue({
+        status: 'error',
+        results: [],
+        unhandledErrors: [
+          {
+            name: 'Error',
+            message: 'rspack failed to compile the virtual modules',
+          },
+        ],
+      });
+
+      const exitCode = await runRstestYamlProject({
+        cwd: root,
+        stdio: 'pipe',
+        project: makeProject(root, {
+          modules: cases.map((item) => ({
+            id: `virtual:${item.caseId}.test.ts`,
+            source: 'export {};',
+            caseIds: [item.caseId],
+          })),
+          cases,
+          maxConcurrency: 3,
+        }),
+      });
+
+      expect(exitCode).toBe(1);
+      for (const item of [caseB, caseC]) {
+        expect(JSON.parse(readFileSync(item.resultFile, 'utf8'))).toMatchObject(
+          {
+            file: item.yamlFile,
+            success: false,
+            executed: true,
+            resultType: 'failed',
+            error: 'rspack failed to compile the virtual modules',
+          },
+        );
+      }
+      expect(JSON.parse(readFileSync(caseA.resultFile, 'utf8'))).toEqual(
+        JSON.parse(JSON.stringify(completed)),
+      );
     });
   });
 
