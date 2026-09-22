@@ -369,10 +369,12 @@ describe('BrowserPageManager', () => {
     expect(ctx.activePage).toBe(initial);
     expect(taskContext.task.planningFeedback).toContain('unique-title-tail');
     expect(taskContext.task.planningFeedback).toContain('unique-url-tail');
-    expect(taskContext.task.planningFeedbackMaxLength).toBe(8192);
+    expect(taskContext.task.planningFeedbackMaxLength).toBe(
+      taskContext.task.planningFeedback.length,
+    );
   });
 
-  it('returns a full URL but visibly truncates an extreme URL in planning feedback', async () => {
+  it('forwards an extreme URL without truncating planning feedback', async () => {
     const longUrl = `https://example.com/${'x'.repeat(5000)}unique-url-tail`;
     const page = createPage('long-url', { url: longUrl });
     const ctx = createManager({ pages: [page] });
@@ -383,10 +385,10 @@ describe('BrowserPageManager', () => {
 
     const summary = await actions[1].call({ index: 0 }, taskContext);
     expect(summary.url).toBe(longUrl);
-    expect(taskContext.task.planningFeedback).toContain('URL: https://');
-    expect(taskContext.task.planningFeedback).toContain('…');
-    expect(taskContext.task.planningFeedback).toContain('unique-url-tail');
-    expect(taskContext.task.planningFeedback).not.toContain(longUrl);
+    expect(taskContext.task.planningFeedback).toContain(`URL: ${longUrl}`);
+    expect(taskContext.task.planningFeedbackMaxLength).toBe(
+      taskContext.task.planningFeedback.length,
+    );
   });
 
   it('paginates large page lists without losing page identities', async () => {

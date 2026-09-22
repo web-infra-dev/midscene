@@ -84,23 +84,19 @@ const debug = getDebug('device-task-executor');
 const warnLog = getDebug('device-task-executor', { console: true });
 const maxErrorCountAllowedInOnePlanningLoop = 5;
 
-// Cap each task's planning feedback so a large action output (e.g. a long adb
-// shell stdout) cannot blow up the next planning request's context. This is the
-// single place that truncates feedback before it is sent to the model; action
-// implementations should hand over the untruncated value.
+// Cap planning feedback by default so a large action output (e.g. a long adb
+// shell stdout) cannot blow up the next planning request's context. Actions
+// that require lossless structured feedback can explicitly choose their limit.
 const maxPlanningFeedbackLength = 500;
-const absoluteMaxPlanningFeedbackLength = 10_000;
 
 function truncatePlanningFeedback(
   feedback: string,
   requestedLimit?: number,
 ): string {
-  const limit = Math.min(
-    absoluteMaxPlanningFeedbackLength,
+  const limit =
     requestedLimit && Number.isFinite(requestedLimit) && requestedLimit > 0
       ? Math.floor(requestedLimit)
-      : maxPlanningFeedbackLength,
-  );
+      : maxPlanningFeedbackLength;
   if (feedback.length <= limit) {
     return feedback;
   }

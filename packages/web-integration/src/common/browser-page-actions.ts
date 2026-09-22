@@ -8,9 +8,7 @@ import type {
 const pageListSize = 8;
 const maxListTitleLength = 120;
 const maxListUrlLength = 512;
-const maxDetailTitleLength = 512;
-const maxDetailUrlLength = 4096;
-const browserPlanningFeedbackMaxLength = 8192;
+const pageListPlanningFeedbackMaxLength = 8192;
 
 const normalizeFeedbackValue = (value: string) =>
   value.replace(/\s+/g, ' ').trim();
@@ -66,13 +64,7 @@ const buildPlanningFeedback = (
 };
 
 const buildPageInfoPlanningFeedback = (summary: BrowserAgentPageSummary) =>
-  `GetBrowserPageInfo index ${summary.index}; active ${summary.active}.\nTitle: ${truncateFeedbackValue(
-    normalizeFeedbackValue(summary.title),
-    maxDetailTitleLength,
-  )}\nURL: ${truncateFeedbackValue(
-    normalizeFeedbackValue(summary.url),
-    maxDetailUrlLength,
-  )}`;
+  `GetBrowserPageInfo index ${summary.index}; active ${summary.active}.\nTitle: ${summary.title}\nURL: ${summary.url}`;
 
 const setActivePageParamSchema: z.ZodType<BrowserAgentPageSelector> = z.object({
   index: z
@@ -135,7 +127,7 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
           summaries.find(({ active }) => active)?.index,
         );
         context.task.planningFeedbackMaxLength =
-          browserPlanningFeedbackMaxLength;
+          pageListPlanningFeedbackMaxLength;
       }
       return visibleSummaries;
     },
@@ -153,9 +145,9 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
         .getPageManager()
         .pageSummaryByIndex(param.index);
       if (context?.task) {
-        context.task.planningFeedback = buildPageInfoPlanningFeedback(summary);
-        context.task.planningFeedbackMaxLength =
-          browserPlanningFeedbackMaxLength;
+        const planningFeedback = buildPageInfoPlanningFeedback(summary);
+        context.task.planningFeedback = planningFeedback;
+        context.task.planningFeedbackMaxLength = planningFeedback.length;
       }
       return summary;
     },

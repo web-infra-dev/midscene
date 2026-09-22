@@ -651,10 +651,10 @@ Stdout:
     expect(seenPendingFeedback[1]).toContain(planningFeedback);
   });
 
-  it('should use the default feedback limit unless a task requests a larger bounded limit', async () => {
+  it('should use the default feedback limit unless a task requests a larger limit', async () => {
     const seenPendingFeedback: string[] = [];
     const longFeedback = 'x'.repeat(600);
-    const structuredFeedback = 'y'.repeat(600);
+    const structuredFeedback = 'y'.repeat(11_000);
 
     rs.spyOn(taskExecutor, 'convertPlanToExecutable')
       .mockResolvedValueOnce({
@@ -676,7 +676,8 @@ Stdout:
             param: {},
             executor: async (context: ExecutorContext) => {
               context.task.planningFeedback = structuredFeedback;
-              context.task.planningFeedbackMaxLength = 700;
+              context.task.planningFeedbackMaxLength =
+                structuredFeedback.length;
               return {
                 output: structuredFeedback,
               };

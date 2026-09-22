@@ -630,8 +630,8 @@ export type ExecutionTask<
     planningFeedback?: string;
     /**
      * Optional per-task feedback limit. The executor keeps the default limit
-     * unless an action explicitly requests a larger, still globally bounded
-     * allowance for structured feedback.
+     * unless an action explicitly requests a different allowance for
+     * structured feedback.
      */
     planningFeedbackMaxLength?: number;
     /**
