@@ -568,7 +568,7 @@ describe('Agent with custom OpenAI client', () => {
   });
 
   describe('planning locate strategy', () => {
-    it('should pass balance effort when planning config is explicitly resolved', async () => {
+    it('should preserve the model slot without a planning mode when planning config is explicitly resolved', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {
         modelConfig: {
@@ -592,13 +592,13 @@ describe('Agent with custom OpenAI client', () => {
       await agent.aiAct('click the submit button');
 
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][6]).toBe('balance');
+      expect(actionSpy.mock.calls[0][6]).toBeUndefined();
       expect(
         (agent as any).modelConfigManager.getModelConfig('planning').slot,
       ).toBe('planning');
     });
 
-    it('should pass balance effort when planning config falls back to default', async () => {
+    it('should preserve the model slot without a planning mode when planning config falls back to default', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
@@ -614,201 +614,46 @@ describe('Agent with custom OpenAI client', () => {
       await agent.aiAct('click the submit button');
 
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][6]).toBe('balance');
+      expect(actionSpy.mock.calls[0][6]).toBeUndefined();
       expect(
         (agent as any).modelConfigManager.getModelConfig('planning').slot,
       ).toBe('default');
     });
 
-    it('should prefer effort over deepThink and warn that effort is experimental', async () => {
-      const mockInterface = createMockInterface();
-      const agent = new Agent(mockInterface, {
-        modelConfig: defaultModelConfig,
-      });
-      const actionSpy = rs
-        .spyOn((agent as any).taskExecutor, 'action')
-        .mockResolvedValue({
-          output: {
-            yamlFlow: [],
-          },
-        });
-      const warnSpy = rs
-        .spyOn(console, 'warn')
-        .mockImplementation(() => undefined);
-
-      await agent.aiAct('click the submit button', {
-        deepThink: false,
-        effort: 'deepThink',
-      });
-
-      expect(warnSpy).toHaveBeenCalledWith(
-        '[Midscene]',
-        'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
-      );
-      expect(actionSpy.mock.calls[0][6]).toBe('deepThink');
-    });
-
-    it('should prefer balance effort over deepThink and use the experimental warning', async () => {
-      const mockInterface = createMockInterface();
-      const agent = new Agent(mockInterface, {
-        modelConfig: defaultModelConfig,
-      });
-      const actionSpy = rs
-        .spyOn((agent as any).taskExecutor, 'action')
-        .mockResolvedValue({
-          output: {
-            yamlFlow: [],
-          },
-        });
-      const warnSpy = rs
-        .spyOn(console, 'warn')
-        .mockImplementation(() => undefined);
-
-      await agent.aiAct('click the submit button', {
-        deepThink: true,
-        effort: 'balance',
-      });
-
-      expect(warnSpy).toHaveBeenCalledWith(
-        '[Midscene]',
-        'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
-      );
-      expect(actionSpy.mock.calls[0][6]).toBe('balance');
-    });
-
-    it('should keep supporting deepThink without an experimental warning', async () => {
-      const mockInterface = createMockInterface();
-      const agent = new Agent(mockInterface, {
-        modelConfig: defaultModelConfig,
-      });
-      const actionSpy = rs
-        .spyOn((agent as any).taskExecutor, 'action')
-        .mockResolvedValue({
-          output: {
-            yamlFlow: [],
-          },
-        });
-      const warnSpy = rs
-        .spyOn(console, 'warn')
-        .mockImplementation(() => undefined);
-
-      await agent.aiAct('click the submit button', { deepThink: true });
-
-      expect(warnSpy).not.toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][6]).toBe('deepThink');
-    });
-
     it.each([
-      { deepThink: 'auto' as const, effort: undefined, expected: 'auto' },
-      {
-        deepThink: 'auto' as const,
-        effort: 'balance' as const,
-        expected: 'balance',
-      },
-      { deepThink: false as const, effort: undefined, expected: 'balance' },
-      { deepThink: 'unset' as const, effort: undefined, expected: 'balance' },
+      { deepThink: true as const },
+      { deepThink: false as const },
+      { deepThink: 'auto' as const },
+      { deepThink: 'unset' as const },
+      { effort: 'fast' as const },
+      { effort: 'deepThink' as const },
+      { effort: 'balance' as const, deepThink: true as const },
     ])(
-      'resolves deepThink=$deepThink with effort=$effort to $expected',
-      async ({ deepThink, effort, expected }) => {
-        const agent = new Agent(createMockInterface(), {
-          modelConfig: defaultModelConfig,
-        });
-        const actionSpy = rs
-          .spyOn((agent as any).taskExecutor, 'action')
-          .mockResolvedValue({ output: { yamlFlow: [] } });
-        rs.spyOn(console, 'warn').mockImplementation(() => undefined);
-        await agent.aiAct('Task', { deepThink, effort });
-        expect(actionSpy.mock.calls[0][6]).toBe(expected);
+      'accepts and warns about ignored legacy planning options %j',
+      async (options) => {
+        for (const modelFamily of [undefined, 'auto-glm'] as const) {
+          const agent = new Agent(createMockInterface(), {
+            modelConfig: {
+              ...defaultModelConfig,
+              ...(modelFamily ? { [MIDSCENE_MODEL_FAMILY]: modelFamily } : {}),
+            },
+          });
+          const actionSpy = rs
+            .spyOn((agent as any).taskExecutor, 'action')
+            .mockResolvedValue({ output: { yamlFlow: [] } });
+          const warnSpy = rs
+            .spyOn(console, 'warn')
+            .mockImplementation(() => undefined);
+          await agent.aiAct('Task', options);
+          expect(actionSpy.mock.calls[0][6]).toBeUndefined();
+          expect(warnSpy).toHaveBeenCalledWith(
+            '[Midscene]',
+            expect.stringContaining('deprecated and ignored'),
+          );
+          warnSpy.mockRestore();
+        }
       },
     );
-
-    it('rejects auto for a custom planning adapter before execution', async () => {
-      const agent = new Agent(createMockInterface(), {
-        modelConfig: {
-          ...defaultModelConfig,
-          [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
-        },
-      });
-      const actionSpy = rs.spyOn((agent as any).taskExecutor, 'action');
-      await expect(agent.aiAct('Task', { deepThink: 'auto' })).rejects.toThrow(
-        'requires a standard planning adapter',
-      );
-      expect(actionSpy).not.toHaveBeenCalled();
-    });
-
-    it('should use the unified experimental warning for fast effort', async () => {
-      const mockInterface = createMockInterface();
-      const agent = new Agent(mockInterface, {
-        modelConfig: defaultModelConfig,
-      });
-      const actionSpy = rs
-        .spyOn((agent as any).taskExecutor, 'action')
-        .mockResolvedValue({
-          output: {
-            yamlFlow: [],
-          },
-        });
-      const warnSpy = rs
-        .spyOn(console, 'warn')
-        .mockImplementation(() => undefined);
-
-      await agent.aiAct('click the submit button', { effort: 'fast' });
-
-      expect(warnSpy).toHaveBeenCalledWith(
-        '[Midscene]',
-        'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
-      );
-      expect(actionSpy.mock.calls[0][6]).toBe('fast');
-    });
-
-    it('should reject fast effort before running custom planning', async () => {
-      const mockInterface = createMockInterface();
-      const agent = new Agent(mockInterface, {
-        modelConfig: {
-          ...defaultModelConfig,
-          [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
-        },
-      });
-      const actionSpy = rs.spyOn((agent as any).taskExecutor, 'action');
-      rs.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-      await expect(
-        agent.aiAct('click the submit button', { effort: 'fast' }),
-      ).rejects.toThrow(
-        'The "fast" aiAct effort is not supported with custom planning adapters (modelFamily: auto-glm).',
-      );
-
-      expect(actionSpy).not.toHaveBeenCalled();
-    });
-
-    it('should support deepThink and normalize unsupported custom planning', async () => {
-      const mockInterface = createMockInterface();
-      const agent = new Agent(mockInterface, {
-        modelConfig: {
-          ...defaultModelConfig,
-          [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
-        },
-      });
-      const actionSpy = rs
-        .spyOn((agent as any).taskExecutor, 'action')
-        .mockResolvedValue({
-          output: {
-            yamlFlow: [],
-          },
-        });
-      const warnSpy = rs
-        .spyOn(console, 'warn')
-        .mockImplementation(() => undefined);
-
-      await agent.aiAct('click the submit button', { deepThink: true });
-
-      expect(warnSpy).toHaveBeenCalledWith(
-        '[Midscene]',
-        'The "deepThink" aiAct effort is not supported with custom planning adapters (modelFamily: auto-glm). It will be ignored.',
-      );
-      expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][6]).toBe('balance');
-    });
 
     it('should disable deepLocate before running custom planning', async () => {
       const mockInterface = createMockInterface();

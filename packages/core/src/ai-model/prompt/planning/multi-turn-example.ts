@@ -5,260 +5,85 @@ import {
   createSampleInputAction,
   createSampleTapAction,
 } from './action-output-example';
-import { buildPlanningResponseExample } from './planning-response-example';
-import { buildSubGoalsText } from './sub-goals-text';
-
-const sampleNameSubGoal = {
-  index: 1,
-  description: "Fill in the Name field with 'John'",
-};
-const sampleEmailSubGoal = {
-  index: 2,
-  description: "Fill in the Email field with 'john@example.com'",
-};
-const sampleReturnEmailSubGoal = {
-  index: 3,
-  description: 'Return the filled email address',
-};
 
 export const buildPlanningMultiTurnExample = ({
-  includeSubGoals,
-  includeThought,
-  includeLog,
-  includeMemory = true,
   locatePromptSpec,
   actionOutputProtocol,
   prefix,
 }: {
-  includeSubGoals: boolean;
-  includeThought: boolean;
-  includeLog: boolean;
-  includeMemory?: boolean;
   locatePromptSpec?: LocateResultPromptSpec;
   actionOutputProtocol: PlanningActionOutputProtocol;
   prefix?: string;
-}) => {
-  const buildActionOutput = actionOutputProtocol.buildActionOutput;
-  const renderSubGoalsContent = (content: string, fallbackContent = '') =>
-    includeSubGoals ? content : fallbackContent;
-  const tapNameFieldActionOutputExample = buildActionOutputExample(
-    createSampleTapAction('Name input field in the registration form'),
-    {
-      locatePromptSpec,
-      locateResultExampleIndex: 2,
-      buildActionOutput,
-    },
-  );
-  const inputNameActionOutputExample = buildActionOutputExample(
-    createSampleInputAction('John'),
-    {
-      buildActionOutput,
-    },
-  );
-  const tapEmailFieldActionOutputExample = buildActionOutputExample(
-    createSampleTapAction('Email input field in the registration form'),
-    {
-      locatePromptSpec,
-      locateResultExampleIndex: 3,
-      buildActionOutput,
-    },
-  );
-  const inputEmailActionOutputExample = buildActionOutputExample(
-    createSampleInputAction('john@example.com'),
-    { buildActionOutput },
-  );
+}) => `## Example
 
-  return `
-## Multi-turn Conversation Example
+Use the actual Supporting actions list; these examples use Tap and Input.
 
-Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
+### 1. Simple task: no sub-goals
 
-### Turn 1 - Initial instruction
+**User instruction:** Type 'hello' in the search box. Do not search.
 
-**User message:**
-<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
+#### Turn 1
+**Screenshot:** Empty, focused search box.
+**Response:**
+${prefix ? `${prefix}\n` : ''}<planning>I will enter 'hello' without starting a search. No sub-goals are needed.</planning>
+<log>Type 'hello' in the search box.</log>
+${buildActionOutputExample(createSampleInputAction('hello', {}), { locatePromptSpec, locateResultExampleIndex: 2, buildActionOutput: actionOutputProtocol.buildActionOutput })}
 
-**Screenshot:** [Shows a registration form with empty Name and Email fields]
+#### Turn 2
+**Screenshot after Input:** The box contains 'hello'.
+**Response:**
+${prefix ? `${prefix}\n` : ''}<planning>The screenshot confirms the requested text. I will finish without pressing Enter.</planning>
+<complete success="true">Entered 'hello' without starting a search.</complete>
 
-**Your response:**
+### 2. Cross-page task: memory, sub-goals, and saving
 
-${buildPlanningResponseExample({
-  prefix,
-  planning: includeThought
-    ? `The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. ${renderSubGoalsContent(
-        "I'll break this down into sub-goals and start with the Name field.",
-        'I should start by clicking on the Name field.',
-      )} Note: The instruction is to fill the form only (not submit), and return the email at the end.`
-    : undefined,
-  updateSubGoals: includeSubGoals
-    ? [
-        {
-          ...sampleNameSubGoal,
-          status: 'pending',
-        },
-        {
-          ...sampleEmailSubGoal,
-          status: 'pending',
-        },
-        {
-          ...sampleReturnEmailSubGoal,
-          status: 'pending',
-        },
-      ]
-    : undefined,
-  log: includeLog
-    ? 'Click on the Name field to start filling the form'
-    : undefined,
-  actionOutputExample: tapNameFieldActionOutputExample,
-})}
+**User instruction:** Use the company office address as order 1042's shipping address and save it. Keep billing unchanged. Return the saved shipping address.
 
-### Turn 2 - After clicking Name field
+#### Turn 1
+**Screenshot:** Company profile: Office address "12 River Road"; link to order 1042's address settings.
+**Response:**
+${prefix ? `${prefix}\n` : ''}<planning>I will retain the office address, update shipping, and preserve billing.</planning>
+<update-plan-content>
+  <sub-goal index="1" status="pending">Order 1042's saved shipping address matches the company office address.</sub-goal>
+  <sub-goal index="2" status="pending">Order 1042's billing address remains unchanged.</sub-goal>
+</update-plan-content>
+<memory>Company profile, Office address: 12 River Road</memory>
+<log>Open order 1042's address settings.</log>
+${buildActionOutputExample(createSampleTapAction('Address settings link for order 1042'), { locatePromptSpec, locateResultExampleIndex: 3, buildActionOutput: actionOutputProtocol.buildActionOutput })}
 
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+#### Turn 2
+**Screenshot after Tap:** Order 1042 has separate Shipping and Billing fields, both showing "8 King Street".
+**Response:**
+${prefix ? `${prefix}\n` : ''}<planning>I will preserve the original billing address and replace shipping with the office address recorded earlier.</planning>
+<memory>Order 1042, original Billing address: 8 King Street</memory>
+<log>Set shipping to the office address.</log>
+${buildActionOutputExample(createSampleInputAction('12 River Road', { locate: { prompt: 'Shipping address field in order 1042 settings' }, mode: 'replace' }), { locatePromptSpec, locateResultExampleIndex: 4, buildActionOutput: actionOutputProtocol.buildActionOutput })}
 
-${renderSubGoalsContent(
-  buildSubGoalsText([
-    {
-      ...sampleNameSubGoal,
-      status: 'running',
-      logs: includeLog
-        ? ['Click on the Name field to start filling the form']
-        : [],
-    },
-    { ...sampleEmailSubGoal, status: 'pending' },
-    { ...sampleReturnEmailSubGoal, status: 'pending' },
-  ]),
-)}
+#### Turn 3
+**Screenshot after Input:** Shipping: "12 River Road"; Billing: "8 King Street"; "Unsaved changes"; Save button.
+**Response:**
+${prefix ? `${prefix}\n` : ''}<planning>Shipping matches the source and billing is unchanged. The changes are still unsaved, so I will save before marking the goals finished.</planning>
+<log>Save order 1042's address settings.</log>
+${buildActionOutputExample(createSampleTapAction('Save button in order 1042 address settings'), { locatePromptSpec, locateResultExampleIndex: 5, buildActionOutput: actionOutputProtocol.buildActionOutput })}
 
-**Screenshot:** [Shows the form with Name field now focused/active]
+#### Turn 4
+**Screenshot after Save:** Editor closed; order summary shows "Saved", Shipping: "12 River Road", Billing: "8 King Street".
+**Response:**
+${prefix ? `${prefix}\n` : ''}<planning>The saved summary confirms the correct shipping address and unchanged billing. Both requirements are met.</planning>
+<mark-sub-goal-done>
+  <sub-goal index="1" status="finished" />
+  <sub-goal index="2" status="finished" />
+</mark-sub-goal-done>
+<complete success="true">12 River Road</complete>
 
-**Your response:**
+### 3. Other endings
 
-${buildPlanningResponseExample({
-  prefix,
-  planning: includeThought
-    ? `The Name field is now focused. I need to type 'John' into this field. ${renderSubGoalsContent(
-        'Current sub-goal is running, will be completed after input.',
-        "After this, I'll need to fill the Email field as well.",
-      )}`
-    : undefined,
-  log: includeLog ? "Typing 'John' into the Name field" : undefined,
-  actionOutputExample: inputNameActionOutputExample,
-})}
+**Cannot accomplish:** User requests changing workspace ID 'team-red' to 'team-blue'; settings explicitly say workspace IDs are permanent.
+**Response:**
+${prefix ? `${prefix}\n` : ''}<planning>The requested ID differs from the current one, but the settings explicitly prohibit changing it.</planning>
+<complete success="false">The workspace ID cannot be changed after creation.</complete>
 
-### Turn 3 - After entering name
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-${renderSubGoalsContent(
-  buildSubGoalsText([
-    {
-      ...sampleNameSubGoal,
-      status: 'running',
-      logs: includeLog
-        ? [
-            'Click on the Name field to start filling the form',
-            "Typing 'John' into the Name field",
-          ]
-        : [],
-    },
-    { ...sampleEmailSubGoal, status: 'pending' },
-    { ...sampleReturnEmailSubGoal, status: 'pending' },
-  ]),
-)}
-
-**Screenshot:** [Shows the form with Name field containing 'John']
-
-**Your response:**
-
-${buildPlanningResponseExample({
-  prefix,
-  planning: includeThought
-    ? `The Name field now shows 'John'. ${renderSubGoalsContent(
-        'Sub-goal 1 is complete. Next, I need to fill the Email field for sub-goal 2.',
-        "Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.",
-      )}`
-    : undefined,
-  markSubGoalsDone: includeSubGoals ? [1] : undefined,
-  memory: includeMemory ? "Name field has been filled with 'John'" : undefined,
-  log: includeLog ? 'Moving to the Email field' : undefined,
-  actionOutputExample: tapEmailFieldActionOutputExample,
-})}
-
-### Turn 4 - After clicking Email field
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-${renderSubGoalsContent(
-  buildSubGoalsText([
-    { ...sampleNameSubGoal, status: 'finished' },
-    {
-      ...sampleEmailSubGoal,
-      status: 'running',
-      logs: includeLog ? ['Moving to the Email field'] : [],
-    },
-    { ...sampleReturnEmailSubGoal, status: 'pending' },
-  ]),
-)}
-
-**Screenshot:** [Shows the form with Name='John' and Email field focused]
-
-**Your response:**
-
-${buildPlanningResponseExample({
-  prefix,
-  planning: includeThought
-    ? `The Email field is now focused. I'll enter 'john@example.com'. ${renderSubGoalsContent(
-        'After this, sub-goal 2 will be complete and my task will be done.',
-        'After this, both required fields will be filled and my task will be complete.',
-      )}`
-    : undefined,
-  log: includeLog ? 'Typing email address into the Email field' : undefined,
-  actionOutputExample: inputEmailActionOutputExample,
-})}
-
-### Turn 5 - After entering email (${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')})
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-${renderSubGoalsContent(
-  buildSubGoalsText([
-    { ...sampleNameSubGoal, status: 'finished' },
-    {
-      ...sampleEmailSubGoal,
-      status: 'running',
-      logs: includeLog
-        ? [
-            'Moving to the Email field',
-            'Typing email address into the Email field',
-          ]
-        : [],
-    },
-    { ...sampleReturnEmailSubGoal, status: 'pending' },
-  ]),
-)}
-
-**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
-
-**Your response:**
-
-${buildPlanningResponseExample({
-  prefix,
-  planning: includeThought
-    ? `Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. ${renderSubGoalsContent(
-        "Sub-goal 2 is complete. The user asked me to return the filled email address, so I need to include 'john@example.com' in my response. All sub-goals are now finished.",
-        "The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.",
-      )}`
-    : undefined,
-  markSubGoalsDone: includeSubGoals ? [2, 3] : undefined,
-  complete: {
-    success: true,
-    message: 'john@example.com',
-  },
-})}
-`;
-};
+**Persistent error:** User requests opening Reports; four attempts, including reload and reopening from navigation, produced the same server error.
+**Response:**
+${prefix ? `${prefix}\n` : ''}<planning>The same server error persists after four attempts, including recovery actions.</planning>
+<error>Unable to open Reports because the server error persists.</error>`;

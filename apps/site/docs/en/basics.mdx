@@ -46,15 +46,15 @@ agent.setAIContext(
 );
 ```
 
+Planning uses sub-goals as needed. Configure separate Locate calls with `MIDSCENE_PLANNING_SEPARATE_LOCATE`; the legacy `deepThink` option is deprecated and ignored.
+
 `aiAct` provides the following per-call options:
 
-- `deepThink`: focuses more on task decomposition and uses separate model calls for planning and element localization. It can make complex tasks more stable, but increases model calls and latency.
 - `deepLocate`: uses an additional model call to improve element localization accuracy. Enable it when a target is small or difficult to distinguish from nearby elements.
 - `context`: provides additional AI guidance for this call only, such as business facts, rules, constraints, or output requirements. It overrides `aiContexts.aiAct`, which overrides the shared fallback in `aiContexts.default`. An explicitly empty string disables inherited user context for this call.
 
 ```typescript
 await agent.aiAct('Complete the checkout form and stop before placing the order', {
-  deepThink: true,
   deepLocate: true,
   context: 'If an address confirmation dialog appears, select the default shipping address.',
 });

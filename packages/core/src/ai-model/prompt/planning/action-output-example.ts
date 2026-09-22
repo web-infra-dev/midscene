@@ -94,8 +94,9 @@ export const createSampleTapAction = (
 
 export const createSampleInputAction = (
   value: string,
+  options: Omit<z.input<typeof actionInputParamSchema>, 'value'> = {},
 ): ActionOutputExampleDefinition => {
-  const sample: z.input<typeof actionInputParamSchema> = { value };
+  const sample: z.input<typeof actionInputParamSchema> = { value, ...options };
   return {
     name: 'Input',
     paramSchema: actionInputParamSchema,

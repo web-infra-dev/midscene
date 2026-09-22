@@ -74,40 +74,24 @@
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Planning 场景中控制结构化响应策略 |
 
-### 独立控制 Planning 的 memory 和 log
+### Planning 截图数量与独立 Locate
 
-以下配置用于 `aiAct` 的标准 Planning。两个开关默认开启，独立于 `deepThink: false`、`true` 或 `'auto'`。
+标准 `aiAct` Planning 固定包含规划分析、Memory、Log 和任务范围／完成规则。模型按任务需要创建和更新 SubGoals，简单任务可以不拆解；不再额外调用 Auto 分类。
 
-| 名称 | 说明 |
-|------|-------------|
-| `MIDSCENE_PLANNING_MEMORY` | `true`（默认）启用 `<memory>` 提示词、记忆存储和回传；`false` 关闭这些环节，并从后续 assistant 历史中移除模型自行输出的 `<memory>`。 |
-| `MIDSCENE_PLANNING_LOG` | `true`（默认）启用模型 `<log>` 操作预告和后续规划中的累计执行结果；`false` 关闭两者，并从后续 assistant 历史中移除模型自行输出的 `<log>`。Fast effort 仍使用从动作生成的展示文案，不要求模型输出操作预告。 |
-
-均支持 `true` / `false` 或 `1` / `0`（不区分大小写）。每次 `aiAct` 开始时、Auto 分类前读取一次；非法值或向自定义 Planning 适配器显式设置开关会报错。报告仍保留原始模型响应和动作记录。关闭 log 后，错误反馈和下一步规划需要的动作输出仍然保留。
-
-DeepThink 继续控制 subGoals，不再决定 memory 或 log 是否开启。默认 Locate 策略保持不变；`MIDSCENE_PLANNING_SEPARATE_LOCATE` 仍用于控制独立 Locate 调用。
-
-```ini
-MIDSCENE_PLANNING_MEMORY=true
-MIDSCENE_PLANNING_LOG=false
-```
-
-### TaskScope 和 Planning 截图数量
+原来的 `MIDSCENE_PLANNING_MEMORY`、`MIDSCENE_PLANNING_LOG` 和 `MIDSCENE_PLANNING_TASK_SCOPE` 环境变量已移除。API 的 `deepThink` 和实验性 `effort` 参数仅兼容接收，运行时忽略并提示弃用，不再改变 prompt、截图数量或 Locate 策略。
 
 | 名称 | 说明 |
 |------|-------------|
-| `MIDSCENE_PLANNING_TASK_SCOPE` | `true`（默认）保留现有 TaskScope 中关于严格执行指令、停在中间状态和不追加操作的提示；`false` 移除这些段落，用户指令和其他完成规则仍然保留。支持 `true` / `false` 或 `1` / `0`，不区分大小写。 |
-| `MIDSCENE_PLANNING_SCREENSHOT_COUNT` | 只接受 `1` 或 `2`，限制每轮 Planning 携带的执行截图数量，包含当前截图。`1` 表示只带当前截图，`2` 表示当前截图加最近一张历史截图；用户参考图片单独计算。第一轮只有初始截图。这两种行为分别对应原来 DeepThink 关闭时的单张截图和开启时的 before/after 两张；显式设置数量不会切换 DeepThink。 |
+| `MIDSCENE_PLANNING_SCREENSHOT_COUNT` | 支持 `1`（默认）或 `2`。`1` 发送当前执行截图；`2` 发送当前截图和最近一张可用历史截图。第一轮只有一张。用户参考图片单独计算。 |
+| `MIDSCENE_PLANNING_SEPARATE_LOCATE` | `true` / `1` 分开调用 Planning 和 Locate；`false` / `0` 由 Planning 同时输出动作和坐标。未设置或为空时，使用默认模型则合并，配置了独立 Planning 模型则分开。 |
 
-两项配置均在 Auto 分类前读取一次，仅用于标准 Planning。非法值或向自定义 Planning 适配器显式设置时会报错。截图数量未设置或为空时保持旧策略：DeepThink 开启时最多两张，否则一张；显式设置后覆盖所有模式的默认数量。Plan 记录包含实际使用的 TaskScope 开关和截图上限。
+这两项配置在每次 `aiAct` 开始时读取一次，并记录到 Plan 报告中。Locate 布尔值不区分大小写。非法值或向自定义 Planning 适配器显式设置时，会在模型推理前报错。合并调用要求 Planning 模型配置支持坐标格式的 family。命中可执行的计划缓存仍跳过 Planning。
 
-所有标准 Planning 模式都允许完成任务所需的页面导航，并遵守用户明确提出的停留当前页面要求。关闭 TaskScope 不代表授权执行额外操作。
-
-Auto 默认开启 DeepThink，只有明确判断任务无需显式子目标跟踪时才关闭。判断以任务描述为主，用户上下文补充，截图只作辅助。已知字段值或独立修改本身不足以支持关闭：表单和重复修改仍可能需要覆盖情况与约束跟踪；有疑问就保持开启。仍然只在任务开始时判断一次，不加入运行中切换，也不改变模型原生思考。
+Memory 保存已观察到的事实；Log 包含模型操作预告和累计执行结果。预告表示操作意图，不能作为执行证据。TaskScope 规则保留在 Completion Rules 中，包括明确的停止位置，以及不擅自提交或保存的约束。
 
 ```ini
-MIDSCENE_PLANNING_TASK_SCOPE=true
 MIDSCENE_PLANNING_SCREENSHOT_COUNT=2
+MIDSCENE_PLANNING_SEPARATE_LOCATE=true
 ```
 
 ### 模型原生思考 {#model-native-reasoning}

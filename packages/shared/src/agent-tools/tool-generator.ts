@@ -715,7 +715,7 @@ export function generateCommonTools(
           .boolean()
           .optional()
           .describe(
-            'Plan this action with deep thinking (richer context and sub-goal decomposition). Helps with complex multi-step instructions at the cost of speed. Defaults to the server --deep-think setting.',
+            'Deprecated and ignored by aiAct. Planning uses sub-goals as needed.',
           ),
         fileChooserAllowedDir: z
           .string()
@@ -744,8 +744,8 @@ export function generateCommonTools(
             toolName: 'act',
           });
           try {
-            // Start from the act defaults (deepThink off), overlay the server
-            // tool defaults, then let explicit per-call args win.
+            // Preserve legacy tool option forwarding, overlay server defaults,
+            // then let explicit per-call args win. aiAct ignores deepThink.
             const actOptions: Record<string, unknown> = {
               deepThink: false,
               ...toolDefaults.act,

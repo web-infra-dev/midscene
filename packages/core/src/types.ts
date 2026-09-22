@@ -771,12 +771,8 @@ export interface ExecutionTaskPlanningParam {
   replanningCycleLimit?: number;
   aiActContext?: string;
   imagesIncludeCount?: number;
-  effort?: AiActEffort;
   includeLocateInPlanning?: boolean;
   separateLocate?: boolean;
-  includeMemory?: boolean;
-  includeLog?: boolean;
-  includeTaskScope?: boolean;
   subGoalStatus?: string;
   memoriesStatus?: string;
 }

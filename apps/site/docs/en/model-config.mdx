@@ -75,40 +75,24 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Planning scenarios |
 
-### Independent Planning memory and log controls
+### Planning screenshots and Locate
 
-These settings apply to the standard `aiAct` planner. Both default to enabled, independently of `deepThink: false`, `true`, or `'auto'`.
+Standard `aiAct` planning always includes planning analysis, Memory, Log, and task-scope/completion rules. The model creates and updates sub-goals only when the task needs them; simple tasks can proceed without a plan. There is no separate Auto classification call.
 
-| Name | Description |
-|------|-------------|
-| `MIDSCENE_PLANNING_MEMORY` | `true` (default) enables the `<memory>` prompt, memory storage, and recall. `false` disables these and removes unsolicited `<memory>` output from subsequent assistant history. |
-| `MIDSCENE_PLANNING_LOG` | `true` (default) enables model `<log>` preambles and cumulative action execution results in subsequent planning requests. `false` disables both and removes unsolicited `<log>` output from subsequent assistant history. Fast effort keeps its action-derived display labels rather than requesting model preambles. |
-
-Both accept `true`/`false` or `1`/`0` (case-insensitive). Values are read once at the start of each `aiAct` call, before Auto classification; invalid values and explicit use with custom planning adapters throw an error. Original model responses and action records remain in reports. Error feedback and action outputs needed by the next planning step remain available when log is disabled.
-
-DeepThink continues to control sub-goals; it no longer enables or disables memory or log. The default Locate strategy remains unchanged. In particular, `MIDSCENE_PLANNING_SEPARATE_LOCATE` continues to control independent Locate calls.
-
-```ini
-MIDSCENE_PLANNING_MEMORY=true
-MIDSCENE_PLANNING_LOG=false
-```
-
-### Task scope and planning screenshots
+The former `MIDSCENE_PLANNING_MEMORY`, `MIDSCENE_PLANNING_LOG`, and `MIDSCENE_PLANNING_TASK_SCOPE` environment variables have been removed. The `deepThink` and experimental `effort` API options are accepted for compatibility but ignored, with a deprecation warning. These options no longer change the prompt, screenshots, or Locate strategy.
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_PLANNING_TASK_SCOPE` | `true` (default) includes the existing task-scope guidance about exact instructions, intermediate states, and avoiding extra actions. `false` omits those passages, without removing the user instruction or other completion rules. Accepts `true`/`false` or `1`/`0` (case-insensitive). |
-| `MIDSCENE_PLANNING_SCREENSHOT_COUNT` | Accepts only `1` or `2`, limiting execution screenshots per Planning request, including the current screenshot. `1` means current only; `2` means current plus the most recent historical screenshot. Reference images are separate. The first round has only the initial screenshot. These match the previous single-screenshot (DeepThink off) and before/after (DeepThink on) behaviors, but an explicit value does not toggle DeepThink. |
+| `MIDSCENE_PLANNING_SCREENSHOT_COUNT` | Accepts `1` (default) or `2`. `1` sends the current execution screenshot; `2` sends it and the most recent historical screenshot when available. The first round has only one screenshot. User reference images are counted separately. |
+| `MIDSCENE_PLANNING_SEPARATE_LOCATE` | `true` / `1` uses separate Planning and Locate calls. `false` / `0` asks Planning for both the action and coordinates. When unset or empty, these are combined when using the default model and separated when a dedicated Planning model is configured. |
 
-Both settings are captured once before Auto classification and apply only to the standard planner. Invalid values and explicit use with custom planning adapters throw an error. An unset or empty screenshot count preserves the existing limit: two for DeepThink, one otherwise. An explicit count overrides that limit in every mode. Plan records include the effective task-scope flag and screenshot limit.
+These settings are captured once per `aiAct` invocation and recorded in Plan reports. The Locate boolean is case-insensitive. Invalid values or explicit use with custom Planning adapters fail before model inference. Combined calls require a Planning model family with a supported coordinate format. Executable plan-cache hits still bypass planning.
 
-All standard planning modes allow navigation needed to fulfill the task, while respecting explicit instructions to stay on the current page. Disabling TaskScope does not grant permission for unrequested actions.
-
-Auto defaults to enabling DeepThink and disables it only when the task clearly does not need explicit sub-goal tracking. The task description is the primary evidence, user context supplements it, and screenshots are secondary. Known values or independent edits do not by themselves justify disabling it: forms and repeated edits can still require coverage and constraint tracking. Uncertainty keeps DeepThink enabled. This remains a single decision at task start, not runtime switching or a change to model-native reasoning.
+Memory preserves observed facts, while Log includes model preambles and cumulative execution results. A preamble describes an intended action; it is not execution evidence. Task-scope rules remain part of Completion Rules, including explicit stopping points and restrictions on unrequested submission or saving.
 
 ```ini
-MIDSCENE_PLANNING_TASK_SCOPE=true
 MIDSCENE_PLANNING_SCREENSHOT_COUNT=2
+MIDSCENE_PLANNING_SEPARATE_LOCATE=true
 ```
 
 ### Model-native thinking {#model-native-reasoning}

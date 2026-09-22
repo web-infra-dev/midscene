@@ -146,8 +146,9 @@ export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
+  /** @deprecated Ignored. Planning always reasons and uses sub-goals as needed. */
   effort?: AiActEffort;
-  /** Use auto to select a fixed planning mode with one model call before execution. */
+  /** @deprecated Ignored. Sub-goals are selected during planning without a separate classification call. */
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -1302,54 +1303,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       const defaultModel = this.resolveModelRuntime('default');
       const aiActContext = this.resolveUserContext('aiAct', opt?.context);
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
-      // Resolve the public planning controls at the API boundary. Internal
-      // aiAct plumbing only uses effort from this point onward. The explicit
-      // effort option takes precedence over deepThink when both are provided.
-      const effort: AiActEffort | 'auto' = (() => {
-        const resolvedEffort =
-          opt?.effort ??
-          (opt?.deepThink === 'auto'
-            ? 'auto'
-            : opt?.deepThink === true
-              ? 'deepThink'
-              : 'balance');
-
-        if (opt?.effort !== undefined) {
-          warn(
-            'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
-          );
-        }
-
-        if (
-          resolvedEffort === 'auto' &&
-          planningModel.adapter.planning.kind === 'custom'
-        ) {
-          throw new Error(
-            'deepThink: "auto" requires a standard planning adapter.',
-          );
-        }
-
-        if (
-          resolvedEffort === 'fast' &&
-          planningModel.adapter.planning.kind === 'custom'
-        ) {
-          throw new Error(
-            `The "fast" aiAct effort is not supported with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}).`,
-          );
-        }
-
-        if (
-          resolvedEffort === 'deepThink' &&
-          planningModel.adapter.planning.kind === 'custom'
-        ) {
-          warn(
-            `The "deepThink" aiAct effort is not supported with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
-          );
-          return 'balance';
-        }
-
-        return resolvedEffort;
-      })();
+      if (opt?.deepThink !== undefined || opt?.effort !== undefined) {
+        warn(
+          'The "deepThink" and "effort" aiAct options are deprecated and ignored. Planning now uses sub-goals as needed. Configure screenshot count and separate Locate independently.',
+        );
+      }
 
       let deepLocate = opt?.deepLocate;
       if (
@@ -1406,7 +1364,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         aiActContext,
         cacheable,
         replanningCycleLimit,
-        effort,
+        undefined,
         undefined,
         deepLocate,
         abortSignal,

@@ -42,8 +42,6 @@ type CallAndParsePlanningResponseOptions = {
   actionSpace: PlanOptions['actionSpace'];
   locateResultCodec?: LocateResultCodec;
   locateResultContext: LocateResultContext;
-  includeThought: boolean;
-  includeLog: boolean;
 };
 
 async function callAndParsePlanningResponse(
@@ -61,8 +59,6 @@ async function callAndParsePlanningResponse(
     actionSpace,
     locateResultCodec,
     locateResultContext,
-    includeThought,
-    includeLog,
   } = options;
   assert(
     modelRuntime.adapter.planning.kind === 'standard',
@@ -84,10 +80,10 @@ async function callAndParsePlanningResponse(
       ),
     parseResponse: (response) => {
       const planFromAI = parseStandardPlanningResponse(response.content, {
-        includeThought,
+        includeThought: true,
         actionOutputProtocol,
         actionSpace,
-        logSource: includeLog ? 'model' : 'action',
+        logSource: 'model',
       });
       if (
         !planFromAI.action &&
@@ -165,13 +161,6 @@ export async function standardPlan(
     ? adapter.planning.locateResultCodec
     : undefined;
 
-  // Only enable sub-goals when aiAct is in deep-thinking planning mode.
-  const includeSubGoals = opts.effort === 'deepThink';
-  const includeThought = opts.effort !== 'fast';
-  const includeLog = opts.includeLog ?? true;
-  const includeMemory = opts.includeMemory ?? true;
-  const includeModelLog = includeLog && opts.effort !== 'fast';
-
   if (opts.includeLocateInPlanning && !locateResultCodec) {
     throw new Error(
       planningModelFamilyRequiredForLocateMessage(modelRuntime.config.slot),
@@ -180,11 +169,6 @@ export async function standardPlan(
 
   const systemPrompt = await buildStandardPlanningSystemPrompt({
     actionSpace: opts.actionSpace,
-    includeThought,
-    includeLog: includeModelLog,
-    includeSubGoals,
-    includeMemory,
-    includeTaskScope: opts.includeTaskScope,
     planningProtocol,
     ...(opts.includeLocateInPlanning && locateResultCodec
       ? {
@@ -224,8 +208,8 @@ export async function standardPlan(
 
   // Executor records are independent of sub-goals and survive plan updates.
   const executionProgressText = [
-    includeSubGoals ? conversationHistory.subGoalsToText() : '',
-    includeLog ? conversationHistory.historicalLogsToText() : '',
+    conversationHistory.subGoalsToText(),
+    conversationHistory.historicalLogsToText(),
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -237,9 +221,7 @@ export async function standardPlan(
       : `\n\n${noPreviousActionsText}`;
 
   // Build memories text to include in the message
-  const memoriesText = includeMemory
-    ? conversationHistory.memoriesToText()
-    : '';
+  const memoriesText = conversationHistory.memoriesToText();
   const memoriesSection = memoriesText ? `\n\n${memoriesText}` : '';
 
   if (conversationHistory.pendingFeedbackMessage) {
@@ -312,13 +294,7 @@ export async function standardPlan(
       preparedSize: preparedImage.preparedSize,
       contentSize: preparedImage.contentSize,
     },
-    includeThought,
-    includeLog: includeModelLog,
   });
-
-  if (!includeMemory) {
-    planFromAI.memory = undefined;
-  }
 
   // YAML is derived from validated actions outside the model-response retry scope.
   // dumpActionParam omits runtime-only locatedPixelResult fields.
@@ -330,10 +306,6 @@ export async function standardPlan(
   if (planFromAI.finalizeSuccess !== undefined) {
     debug('task completed via <complete> tag, stop planning');
     shouldContinuePlanning = false;
-    // Mark all sub-goals as finished when goal is completed in planning deep-think mode.
-    if (includeSubGoals) {
-      conversationHistory.markAllSubGoalsFinished();
-    }
   }
 
   const returnValue: PlanningAIResponse = {
@@ -351,15 +323,16 @@ export async function standardPlan(
 
   // Model logs are progress preambles, not execution evidence. TaskExecutor
   // records action outcomes after execution, independently of sub-goal updates.
-  if (includeSubGoals) {
-    if (planFromAI.updateSubGoals?.length) {
-      conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
+  if (planFromAI.updateSubGoals?.length) {
+    conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
+  }
+  if (planFromAI.markFinishedIndexes?.length) {
+    for (const index of planFromAI.markFinishedIndexes) {
+      conversationHistory.markSubGoalFinished(index);
     }
-    if (planFromAI.markFinishedIndexes?.length) {
-      for (const index of planFromAI.markFinishedIndexes) {
-        conversationHistory.markSubGoalFinished(index);
-      }
-    }
+  }
+  if (planFromAI.finalizeSuccess === true) {
+    conversationHistory.markAllSubGoalsFinished();
   }
 
   // Append memory to conversation history if present
@@ -367,53 +340,16 @@ export async function standardPlan(
     conversationHistory.appendMemory(planFromAI.memory);
   }
 
-  // Keep the original response in the report, but do not replay disabled
-  // fields if a model emits them despite their absence from the prompt.
-  const disabledTags = [
-    ...(!includeMemory ? ['memory'] : []),
-    ...(!includeLog ? ['log'] : []),
-  ];
-  const filterAssistantText = (text: string) => {
-    if (!disabledTags.length) return text;
-    // Consume action-protocol blocks whole, so literal <memory>/<log> text
-    // inside an Input value or locator is not removed from action history.
-    const tags = [
-      ...planningProtocol.actionOutputProtocol.actionOutputTagNames,
-      ...disabledTags,
-    ];
-    const fields = new RegExp(
-      `<(${tags.join('|')})\\b[^>]*>[\\s\\S]*?<\\/\\1\\s*>`,
-      'gi',
-    );
-    return text.replace(fields, (field, tag: string) =>
-      disabledTags.includes(tag.toLowerCase()) ? '' : field,
-    );
-  };
-
   // Preserve provider-specific opaque fields (e.g. thought signatures).
-  // Only filter visible content; do not mutate the raw report response.
   if (
     modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
     rawChoiceMessage
   ) {
-    const message = rawChoiceMessage as ChatCompletionMessageParam;
-    conversationHistory.append({
-      ...message,
-      content:
-        typeof message.content === 'string'
-          ? filterAssistantText(message.content)
-          : Array.isArray(message.content)
-            ? message.content.map((part) =>
-                part.type === 'text'
-                  ? { ...part, text: filterAssistantText(part.text) }
-                  : part,
-              )
-            : message.content,
-    } as ChatCompletionMessageParam);
+    conversationHistory.append(rawChoiceMessage as ChatCompletionMessageParam);
   } else {
     conversationHistory.append({
       role: 'assistant',
-      content: [{ type: 'text', text: filterAssistantText(rawResponse) }],
+      content: [{ type: 'text', text: rawResponse }],
     });
   }
 

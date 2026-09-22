@@ -3,7 +3,6 @@ import type { ModelRuntime } from '@/ai-model/models';
 import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
-import { decideDeepThink } from '@/ai-model/workflows/planning/auto-deep-think';
 import { buildPlanningActionLog } from '@/ai-model/workflows/planning/planning-action-log';
 import {
   type TMultimodalPrompt,
@@ -43,11 +42,8 @@ import type {
 } from '@/types';
 import { ServiceError, aiActProgressScope } from '@/types';
 import {
-  MIDSCENE_PLANNING_LOG,
-  MIDSCENE_PLANNING_MEMORY,
   MIDSCENE_PLANNING_SCREENSHOT_COUNT,
   MIDSCENE_PLANNING_SEPARATE_LOCATE,
-  MIDSCENE_PLANNING_TASK_SCOPE,
   globalConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
@@ -440,7 +436,7 @@ export class TaskExecutor {
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    effort: AiActEffort | 'auto' = 'balance',
+    _legacyEffort?: AiActEffort | 'auto',
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
@@ -454,13 +450,9 @@ export class TaskExecutor {
       | undefined
     >
   > {
-    // Snapshot once, before auto classification or any planning request.
+    // Snapshot the two planning controls once per aiAct execution.
     const readPlanningBoolean = (
-      key:
-        | typeof MIDSCENE_PLANNING_SEPARATE_LOCATE
-        | typeof MIDSCENE_PLANNING_MEMORY
-        | typeof MIDSCENE_PLANNING_LOG
-        | typeof MIDSCENE_PLANNING_TASK_SCOPE,
+      key: typeof MIDSCENE_PLANNING_SEPARATE_LOCATE,
     ) => {
       const value = globalConfigManager.getEnvConfigValue(key);
       if (!value) return undefined;
@@ -492,13 +484,6 @@ export class TaskExecutor {
         );
       }
     }
-    const planningFeatures = {
-      includeMemory: readPlanningBoolean(MIDSCENE_PLANNING_MEMORY) ?? true,
-      includeLog: readPlanningBoolean(MIDSCENE_PLANNING_LOG) ?? true,
-      includeTaskScope:
-        readPlanningBoolean(MIDSCENE_PLANNING_TASK_SCOPE) ?? true,
-      imagesIncludeCount,
-    };
     if (separateLocate !== undefined) {
       if (
         !separateLocate &&
@@ -519,12 +504,11 @@ export class TaskExecutor {
         aiActContext,
         cacheable,
         replanningCycleLimitOverride,
-        effort,
         deepLocate,
         abortSignal,
         reportOptions,
         separateLocate,
-        planningFeatures,
+        imagesIncludeCount,
       );
     });
   }
@@ -570,17 +554,11 @@ export class TaskExecutor {
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    effort: AiActEffort | 'auto' = 'balance',
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
     separateLocate?: boolean,
-    planningFeatures: {
-      includeMemory: boolean;
-      includeLog: boolean;
-      includeTaskScope: boolean;
-      imagesIncludeCount?: number;
-    } = { includeMemory: true, includeLog: true, includeTaskScope: true },
+    imagesIncludeCount = 1,
   ): Promise<
     ExecutionResult<
       | {
@@ -664,69 +642,11 @@ export class TaskExecutor {
       };
     })();
 
-    if (effort === 'auto') {
-      const decisionResult = await session.appendAndRun({
-        type: 'Planning',
-        subType: 'DeepThink',
-        param: {
-          userInstruction: userPrompt,
-          aiActContext,
-          deepThink: 'auto',
-          ...(separateLocate !== undefined ? { separateLocate } : {}),
-        },
-        executor: async ({ task, uiContext }) => {
-          assert(uiContext, 'uiContext is required for deepThink auto');
-          try {
-            const preparedUserPrompt = await getPreparedUserPrompt();
-            setTimingFieldOnce(task.timing, 'callAiStart');
-            const response = await decideDeepThink(preparedUserPrompt, {
-              context: uiContext,
-              actionContext: renderAIContext(aiActContext),
-              modelRuntime: planningModel,
-              abortSignal,
-            });
-            task.usage = withUsageIntent(response.usage, 'planning');
-            task.log = {
-              rawResponse: response.content,
-              rawChoiceMessage: response.rawChoiceMessage,
-            };
-            task.reasoning_content = response.reasoning_content;
-            const selectedEffort = response.decision.deepThink
-              ? 'deepThink'
-              : 'balance';
-            return {
-              output: { ...response.decision, effort: selectedEffort },
-              thought: response.decision.reason,
-            };
-          } catch (error) {
-            if (error instanceof AIResponseParseError) {
-              task.usage = withUsageIntent(error.usage, 'planning');
-              task.log = {
-                rawResponse: error.rawResponse,
-                rawChoiceMessage: error.rawChoiceMessage,
-              };
-              task.reasoning_content = error.reasoningContent;
-            }
-            throw error;
-          } finally {
-            setTimingFieldOnce(task.timing, 'callAiEnd');
-          }
-        },
-      });
-      assert(decisionResult?.output, 'deepThink auto decision is required');
-      effort = decisionResult.output.deepThink ? 'deepThink' : 'balance';
-    }
-
     const noIndividualLocateModel = planningModel.config.slot === 'default';
     const includeLocateInPlanning =
-      separateLocate === undefined
-        ? effort !== 'deepThink' && noIndividualLocateModel
-        : !separateLocate;
-    const imagesIncludeCount =
-      planningFeatures.imagesIncludeCount ?? (effort === 'deepThink' ? 2 : 1);
+      separateLocate === undefined ? noIndividualLocateModel : !separateLocate;
 
     debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
-      effort,
       noIndividualLocateModel,
       separateLocate,
     });
@@ -761,9 +681,7 @@ export class TaskExecutor {
               : {}),
             replanningCycleLimit,
             aiActContext,
-            effort,
             includeLocateInPlanning,
-            ...planningFeatures,
             imagesIncludeCount,
             ...(separateLocate !== undefined ? { separateLocate } : {}),
             ...(subGoalStatus ? { subGoalStatus } : {}),
@@ -809,9 +727,7 @@ export class TaskExecutor {
                 modelRuntime: planningModel,
                 conversationHistory,
                 includeLocateInPlanning,
-                ...planningFeatures,
                 imagesIncludeCount,
-                effort,
                 abortSignal,
               });
             } catch (planError) {
@@ -993,10 +909,7 @@ export class TaskExecutor {
         );
       } finally {
         activeActionReporter = undefined;
-        if (
-          planningModel.adapter.planning.kind === 'standard' &&
-          planningFeatures.includeLog
-        ) {
+        if (planningModel.adapter.planning.kind === 'standard') {
           this.recordActionResults(
             conversationHistory,
             runner.tasks.slice(taskCountBeforeRun),

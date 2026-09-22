@@ -9,7 +9,6 @@ import {
   MIDSCENE_MODEL_NAME,
   MIDSCENE_PLANNING_SCREENSHOT_COUNT,
   MIDSCENE_PLANNING_SEPARATE_LOCATE,
-  MIDSCENE_PLANNING_TASK_SCOPE,
   MIDSCENE_PREFERRED_LANGUAGE,
   ModelConfigManager,
   OPENAI_API_KEY,
@@ -45,7 +44,6 @@ describe('overrideAIConfig', () => {
   });
 
   it.each([
-    { key: MIDSCENE_PLANNING_TASK_SCOPE, value: 'false', override: 'true' },
     { key: MIDSCENE_PLANNING_SCREENSHOT_COUNT, value: '2', override: '1' },
   ])(
     'supports environment and config overrides for $key',

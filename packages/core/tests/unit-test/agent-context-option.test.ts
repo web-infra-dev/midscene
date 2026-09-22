@@ -114,7 +114,7 @@ describe('Agent per-call context option', () => {
   });
 
   it.each([false, true])(
-    'auto bypasses classification on cache hits and resolves after a failed cache (fails=%s)',
+    'legacy auto keeps cache behavior without selecting a mode (fails=%s)',
     async (cacheFails) => {
       const { agent, taskExecutor, taskCache } = createAgentStub();
       taskCache.matchPlanCache.mockReturnValue({
@@ -135,7 +135,7 @@ describe('Agent per-call context option', () => {
         expect(loadYaml).toHaveBeenCalledTimes(1);
         expect(runYaml).toHaveBeenCalledTimes(1);
         if (cacheFails) {
-          expect(taskExecutor.action.mock.calls[0][6]).toBe('auto');
+          expect(taskExecutor.action.mock.calls[0][6]).toBeUndefined();
         } else {
           expect(taskExecutor.action).not.toHaveBeenCalled();
         }

@@ -16,11 +16,8 @@ export interface PlanOptions {
   conversationHistory: ConversationHistory;
   includeLocateInPlanning: boolean;
   imagesIncludeCount?: number;
-  includeMemory?: boolean;
-  includeLog?: boolean;
-  includeTaskScope?: boolean;
-  // Controls aiAct planning prompt shape and state updates, such as sub-goals.
-  effort: AiActEffort;
+  /** @deprecated Ignored. Standard planning always supports optional sub-goals. */
+  effort?: AiActEffort;
   abortSignal?: AbortSignal;
 }
 

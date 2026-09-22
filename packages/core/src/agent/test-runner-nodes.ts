@@ -160,7 +160,7 @@ export const aiActOptionsInputSchema = z.strictObject({
     .union([z.literal('unset'), z.literal('auto'), z.boolean()])
     .optional()
     .describe(
-      'Whether to enable deep thinking for this action; auto asks the planning model to decide before execution.',
+      'Deprecated and ignored. Planning uses sub-goals as needed without a separate classification call.',
     ),
   deepLocate: z
     .boolean()

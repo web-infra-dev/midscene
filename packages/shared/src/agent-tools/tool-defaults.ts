@@ -50,7 +50,7 @@ export const TOOL_BEHAVIOR_FLAGS: readonly ToolBehaviorFlag[] = [
   {
     cli: 'deep-think',
     description:
-      'Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower).',
+      'Deprecated compatibility flag; aiAct uses sub-goals as needed.',
     defaults: { act: { deepThink: true } },
   },
 ];
