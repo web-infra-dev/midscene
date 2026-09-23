@@ -1,6 +1,6 @@
 import { BenchmarkReportPreview } from './components/BenchmarkReportPreview';
 import { ChromeExtensionButton } from './components/ChromeExtensionButton';
-import { ModelConfigTab, ModelConfigTabs } from './components/ModelConfigTabs';
+import { ModelConfigCard } from './components/ModelConfigCard';
 import { AppControlBenchComparison } from './components/app-control-bench-comparison';
 import { AppControlBenchReport } from './components/app-control-bench-report';
 import { HomeLayout } from './pages';
@@ -11,7 +11,6 @@ export {
   BenchmarkReportPreview,
   ChromeExtensionButton,
   HomeLayout,
-  ModelConfigTab,
-  ModelConfigTabs,
+  ModelConfigCard,
 };
 export * from '@rspress/core/theme-original';

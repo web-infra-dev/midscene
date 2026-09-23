@@ -1,31 +1,19 @@
 import { useLang } from '@rspress/core/runtime';
-import { Tab, Tabs } from '@rspress/core/theme';
+import { CodeBlockRuntime, Tab, Tabs } from '@rspress/core/theme';
+import { useState } from 'react';
 import {
-  Children,
-  type ReactElement,
-  type ReactNode,
-  isValidElement,
-  useState,
-} from 'react';
+  type ModelConfigCardProps,
+  buildModelConfigCode,
+} from './model-config-code';
 import './ModelConfigTabs.css';
 
 type ModelApiType = 'chat-completion' | 'responses';
 
 type ModelConfigTabType = 'default' | 'planning' | 'insight';
 
-interface ModelConfigTabProps {
-  type: ModelConfigTabType;
-  apiType?: ModelApiType;
-  children: ReactNode;
-}
-
 const tabOrder: ModelConfigTabType[] = ['default', 'planning', 'insight'];
 
-export function ModelConfigTab({ children }: ModelConfigTabProps) {
-  return children;
-}
-
-export function ModelConfigTabs({ children }: { children: ReactNode }) {
+export function ModelConfigCard(props: ModelConfigCardProps) {
   const lang = useLang();
   const [apiType, setApiType] = useState<ModelApiType>('chat-completion');
   const helpText =
@@ -47,29 +35,9 @@ export function ModelConfigTabs({ children }: { children: ReactNode }) {
           insight: '🔎 Use as Insight model',
         };
 
-  const tabs = Children.toArray(children).filter(
-    (child): child is ReactElement<ModelConfigTabProps> =>
-      isValidElement<ModelConfigTabProps>(child) &&
-      child.type === ModelConfigTab,
-  );
-
-  const availableTabs = tabs.filter(
-    (tab) => (tab.props.apiType ?? 'chat-completion') === apiType,
-  );
-  const tabTypes = availableTabs.map((tab) => tab.props.type);
-  if (!tabTypes.includes('default')) {
-    throw new Error('ModelConfigTabs requires a default model configuration.');
-  }
-
-  if (new Set(tabTypes).size !== tabTypes.length) {
-    throw new Error(
-      'ModelConfigTabs does not allow duplicate configuration types.',
-    );
-  }
-
   return (
     <div className="model-config-tabs">
-      {tabs.some((tab) => tab.props.apiType === 'responses') && (
+      {props.responses && (
         <fieldset
           className="model-api-selector"
           aria-label={lang === 'zh' ? 'API 类型' : 'API type'}
@@ -95,18 +63,15 @@ export function ModelConfigTabs({ children }: { children: ReactNode }) {
         </fieldset>
       )}
       <Tabs defaultValue="default">
-        {tabOrder.map((type) => {
-          const tab = availableTabs.find((item) => item.props.type === type);
-          if (!tab) {
-            return null;
-          }
-
-          return (
-            <Tab key={type} label={labels[type]} value={type}>
-              {tab.props.children}
-            </Tab>
-          );
-        })}
+        {tabOrder.map((type) => (
+          <Tab key={type} label={labels[type]} value={type}>
+            <CodeBlockRuntime
+              key={apiType}
+              lang="bash"
+              code={buildModelConfigCode(props, type, apiType)}
+            />
+          </Tab>
+        ))}
       </Tabs>
     </div>
   );

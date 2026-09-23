@@ -1,4 +1,4 @@
-import { ModelConfigTab, ModelConfigTabs, PackageManagerTabs } from '@theme';
+import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 # 支持的模型与配置
 
@@ -30,38 +30,14 @@ Midscene 支持使用以下多模态模型操作界面。每份配置都需要 B
 
 环境变量配置示例，以 `doubao-seed-2.1-turbo` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" # 火山引擎地址
-MIDSCENE_MODEL_API_KEY="...."
-MIDSCENE_MODEL_NAME="doubao-seed-2-1-turbo-260628"
-MIDSCENE_MODEL_FAMILY="doubao-seed"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" # 火山引擎地址
-MIDSCENE_PLANNING_MODEL_API_KEY="...."
-MIDSCENE_PLANNING_MODEL_NAME="doubao-seed-2-1-turbo-260628"
-MIDSCENE_PLANNING_MODEL_FAMILY="doubao-seed"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" # 火山引擎地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="...."
-MIDSCENE_INSIGHT_MODEL_NAME="doubao-seed-2-1-turbo-260628"
-MIDSCENE_INSIGHT_MODEL_FAMILY="doubao-seed"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://ark.cn-beijing.volces.com/api/v3",
+    comment: "火山引擎地址",
+  }}
+  modelName="doubao-seed-2-1-turbo-260628"
+  modelFamily="doubao-seed"
+/>
 
 如果你的火山引擎账号已开通低延迟模式（Fast Tier），可以追加以下请求体参数来使用该能力。通常可将模型响应速度提升约 30% 至 50%。
 
@@ -89,38 +65,17 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 环境变量配置示例，以 `qwen3.7-plus` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen，需要替换为对应的 model family
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_PLANNING_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen，需要替换为对应的 model family
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen，需要替换为对应的 model family
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    comment: "阿里云地址",
+  }}
+  modelName="qwen3.7-plus"
+  modelFamily={{
+    value: "qwen3",
+    comment: "如果你使用了其他版本的 Qwen，需要替换为对应的 model family",
+  }}
+/>
 
 ### 深度求索 deepseek 系列 {#deepseek}
 
@@ -138,38 +93,14 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 环境变量配置示例，以 `deepseek-flash` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="deepseek-flash"
-MIDSCENE_MODEL_FAMILY="deepseek"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="deepseek-flash"
-MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="deepseek-flash"
-MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.deepseek.com",
+    comment: "DeepSeek API 地址",
+  }}
+  modelName="deepseek-flash"
+  modelFamily="deepseek"
+/>
 
 ### Google Gemini 系列 {#gemini}
 
@@ -185,38 +116,14 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
 
 环境变量配置示例，以 `gemini-3.5-flash` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" # Google Gemini API 地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="gemini-3.5-flash"
-MIDSCENE_MODEL_FAMILY="gemini"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" # Google Gemini API 地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="gemini-3.5-flash"
-MIDSCENE_PLANNING_MODEL_FAMILY="gemini"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" # Google Gemini API 地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="gemini-3.5-flash"
-MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    comment: "Google Gemini API 地址",
+  }}
+  modelName="gemini-3.5-flash"
+  modelFamily="gemini"
+/>
 
 ### OpenAI GPT 系列 {#gpt}
 
@@ -233,72 +140,15 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 环境变量配置示例，以 `gpt-6-sol` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
-MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-6-sol"
-MIDSCENE_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
-MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
-MIDSCENE_PLANNING_MODEL_NAME="gpt-6-sol"
-MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
-MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-sol"
-MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-
-  <ModelConfigTab type="default" apiType="responses">
-
-```bash
-MIDSCENE_MODEL_API_TYPE="responses"
-MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
-MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-6-astra"
-MIDSCENE_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning" apiType="responses">
-
-```bash
-MIDSCENE_PLANNING_MODEL_API_TYPE="responses"
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
-MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
-MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
-MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight" apiType="responses">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
-MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-astra"
-MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.openai.com/v1",
+    comment: "OpenAI API 地址；或你的兼容服务地址",
+  }}
+  modelName="gpt-6-sol"
+  modelFamily="gpt-6"
+  responses
+/>
 
 **Fast mode**
 
@@ -359,38 +209,17 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 
 环境变量配置示例，以 `kimi-k3` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="kimi-k3"
-MIDSCENE_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="kimi-k3"
-MIDSCENE_PLANNING_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="kimi-k3"
-MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.moonshot.cn/v1",
+    comment: "Moonshot AI API 地址",
+  }}
+  modelName="kimi-k3"
+  modelFamily={{
+    value: "kimi3",
+    comment: "如果使用 kimi-k2.6，请改为 \"kimi\"",
+  }}
+/>
 
 
 ### 小米 MiMo 系列 {#xiaomi-mimo}
@@ -407,38 +236,14 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi
 
 环境变量配置示例，以 `mimo-v2.6-pro` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # 小米 MiMo API 地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="mimo-v2.6-pro"
-MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # 小米 MiMo API 地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="mimo-v2.6-pro"
-MIDSCENE_PLANNING_MODEL_FAMILY="xiaomi-mimo"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # 小米 MiMo API 地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="mimo-v2.6-pro"
-MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.xiaomimimo.com/v1",
+    comment: "小米 MiMo API 地址",
+  }}
+  modelName="mimo-v2.6-pro"
+  modelFamily="xiaomi-mimo"
+/>
 
 ### 智谱 GLM-V 系列 {#glm-v}
 
@@ -455,38 +260,14 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
 
 环境变量配置示例，以 `glm-5v-turbo` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # BigModel API 地址；Z.AI 使用 https://api.z.ai/api/paas/v4
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="glm-5v-turbo"
-MIDSCENE_MODEL_FAMILY="glm-v"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # BigModel API 地址；Z.AI 使用 https://api.z.ai/api/paas/v4
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="glm-5v-turbo"
-MIDSCENE_PLANNING_MODEL_FAMILY="glm-v"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # BigModel API 地址；Z.AI 使用 https://api.z.ai/api/paas/v4
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="glm-5v-turbo"
-MIDSCENE_INSIGHT_MODEL_FAMILY="glm-v"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://open.bigmodel.cn/api/paas/v4",
+    comment: "BigModel API 地址；Z.AI 使用 https://api.z.ai/api/paas/v4",
+  }}
+  modelName="glm-5v-turbo"
+  modelFamily="glm-v"
+/>
 
 **了解更多关于 GLM-4.6V 开源模型**
 
