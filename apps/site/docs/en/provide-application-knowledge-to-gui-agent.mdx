@@ -122,65 +122,6 @@ await agent.aiAct(
 
 Both calls use `appContext`, so you do not need to repeat the same knowledge in each prompt. Here, “global” applies only to `aiAct` calls on the current Agent.
 
-#### Configure Context in @midscene/test
-
-With `@midscene/test`, create the Agent in `setup` in `midscene.config.ts`, pass application knowledge through `aiContexts.aiAct`, and provide that Agent to `createMidsceneNodes`. Continuing with the Android example, replace `deviceId` with the ID of a connected device and make sure the app is open on its home page:
-
-```ts filename=midscene.config.ts
-import { AndroidAgent, agentFromAdbDevice } from '@midscene/android';
-import { defineProjectSetup, defineTestProject } from '@midscene/test/config';
-import { createMidsceneNodes } from '@midscene/test/midscene';
-
-interface ProjectContext {
-  agent: AndroidAgent;
-}
-
-const deviceId = 'YOUR_DEVICE_ID';
-const appContext = `
-  The shortcut area near the top of the home page contains the Rankings entry.
-  Open Rankings, then switch to the price-reduction ranking.
-  Custom prices can be set by tapping tick marks. After adjusting the range,
-  tap the result button at the bottom of the panel to apply it.
-`;
-
-const androidSetup = defineProjectSetup<ProjectContext>({
-  name: 'android',
-  async setup({ onTeardown }) {
-    const agent = await agentFromAdbDevice(deviceId, {
-      aiContexts: { aiAct: appContext },
-    });
-    onTeardown(() => agent.destroy());
-    return { agent };
-  },
-});
-
-export default defineTestProject<ProjectContext>({
-  projects: [
-    {
-      name: 'android',
-      setup: androidSetup,
-      files: { include: ['cases/**/*.yaml'] },
-    },
-  ],
-  nodes: createMidsceneNodes<ProjectContext>({
-    agentClass: AndroidAgent,
-    getAgent: ({ context }) => context.agent,
-  }),
-});
-```
-
-The Case YAML only needs to describe the goals. Every `aiAct` step using this Agent receives the application knowledge configured above:
-
-```yaml filename=cases/ranking.yaml
-cases:
-  - name: Filter the price-reduction ranking
-    steps:
-      - aiAct: Open the price-reduction ranking
-      - aiAct: Filter for new-energy MPVs launched within the past year and apply a custom price range of CNY 100,000–400,000
-```
-
-`aiActContext` is a deprecated alias for `aiContexts.aiAct` and remains supported; use `aiContexts.aiAct` in new configurations. This configures the Agent's default context, not a top-level field in Case YAML. The project `context` returned by `setup` shares resources such as the Agent between Nodes; it is not automatically sent to the model as text. See [Midscene Test configuration](./midscene-test/configuration) for more details.
-
 ### Provide Context for an individual aiAct call
 
 When some knowledge applies only to the current operation, set `context` in the second argument to `aiAct`. For example, after opening the price-reduction ranking, provide interaction rules specifically for the price filter:
@@ -195,20 +136,6 @@ await agent.aiAct('Set the price range to CNY 100,000–400,000 and apply the fi
     bar is an applied condition.
   `,
 });
-```
-
-In `@midscene/test` Case YAML, use the object form of `aiAct` and pass per-call context through `options.context`:
-
-```yaml
-- aiAct:
-    prompt: Set the price range to CNY 100,000–400,000 and apply the filter
-    options:
-      context: |
-        Custom prices can be set by tapping tick marks. Set the upper bound first,
-        then the lower bound. After adjusting the range, tap the result button
-        at the bottom of the panel to apply it.
-        The range inside the panel is a pending selection; the range in the filter
-        bar is an applied condition.
 ```
 
 This Context applies only to the current call and does not change the default context for subsequent calls. If `aiContexts.aiAct` is also configured, the call's `context` overrides it; the two values are not merged automatically. To use both shared knowledge and knowledge for the current operation, concatenate the two strings before passing them as `context`.
