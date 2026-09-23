@@ -9,7 +9,10 @@ import type {
   CollectedCase,
   WorkflowDocumentRunResult,
 } from '@midscene/core/internal/test-runner';
-import { TestRunReportAssembler } from '@midscene/core/report';
+import {
+  TestRunReportAssembler,
+  calculateTestRunHealth,
+} from '@midscene/core/report';
 import { getDebug } from '@midscene/shared/logger';
 import { createProjectRuntime } from '../engine/project-runtime';
 import {
@@ -49,17 +52,36 @@ const asNotRun = (
 const summarize = (
   projects: readonly TestExecutionProjectRunResult[],
 ): TestProjectRunSummary => {
-  const cases = projects.flatMap((project) =>
-    latestById(project.cases, (item) => item.caseId),
-  );
+  const healthCases = projects.flatMap((project) => {
+    const documentAttemptByRunId = new Map(
+      project.documents.map((document) => [
+        document.documentRunId,
+        document.attemptIndex ?? 0,
+      ]),
+    );
+    return latestById(project.cases, (item) => item.caseId).map((item) => {
+      return {
+        status: item.status,
+        ...(item.run ? { run: item.run } : {}),
+        ...(item.attempts ? { attempts: item.attempts } : {}),
+        retryCount: item.documentRunId
+          ? (documentAttemptByRunId.get(item.documentRunId) ?? 0)
+          : 0,
+      };
+    });
+  });
   const documents = projects.flatMap((project) =>
     latestById(project.documents, (item) => item.documentId),
   );
+  const health = calculateTestRunHealth(healthCases);
   return {
-    total: cases.length,
-    passed: cases.filter((item) => item.status === 'success').length,
-    failed: cases.filter((item) => item.status === 'failed').length,
-    notRun: cases.filter((item) => item.status === 'not-run').length,
+    total: health.total,
+    passed: health.passed,
+    failed: health.failed,
+    notRun: health.notRun,
+    passedAfterRetry: health.passedAfterRetry,
+    finalPassRate: health.finalPassRate,
+    firstPassRate: health.firstPassRate,
     filtered: projects.reduce(
       (total, project) => total + project.filteredCaseCount,
       0,

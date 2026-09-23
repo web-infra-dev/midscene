@@ -1814,11 +1814,20 @@ cases:
       total: 2,
       passed: 2,
       failed: 0,
+      notRun: 0,
+      passedAfterRetry: 1,
+      finalPassRate: 1,
+      firstPassRate: 0.5,
       filtered: 2,
       projectFailures: 0,
     });
 
     const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(summary.summary).toMatchObject({
+      passedAfterRetry: 1,
+      finalPassRate: 1,
+      firstPassRate: 0.5,
+    });
     expect(
       summary.projects.map((project: { name: string }) => project.name),
     ).toEqual(['android-smoke', 'ios-regression']);
@@ -1966,6 +1975,9 @@ afterAll:
       passed: 0,
       failed: 0,
       notRun: 2,
+      passedAfterRetry: 0,
+      finalPassRate: 0,
+      firstPassRate: 0,
       documentFailures: 1,
     });
     expect(result.cases).toEqual([

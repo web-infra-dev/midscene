@@ -23,6 +23,9 @@ export interface TestProjectRunSummary {
   passed: number;
   failed: number;
   notRun: number;
+  passedAfterRetry: number;
+  finalPassRate: number;
+  firstPassRate: number;
   filtered: number;
   collectionErrors: number;
   documentFailures: number;

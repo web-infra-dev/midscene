@@ -56,6 +56,11 @@ import {
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, getVersion, reportHTMLContent } from './utils';
 
+export {
+  calculateTestRunHealth,
+  classifyTestRunCase,
+} from './test-run-health';
+
 /**
  * Read the screenshot storage mode a report declared at generation time.
  *
