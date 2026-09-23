@@ -226,12 +226,12 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 | Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
-| GPT-6 series | `gpt-6-astra` | `gpt-6` | |
+| GPT-6 series | `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna` | `gpt-6` | GPT-6 Sol delivers excellent visual localization accuracy at just one-fifth the price of GPT-6 Astra. GPT-6 Luna is very inexpensive while also offering good visual localization capabilities. |
 | GPT-5 series | `gpt-5.4`, `gpt-5.5`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | `gpt-5` | Models before GPT-5.4 do not support visual localization and can only be used as Planning or Insight models. In practical localization tests, GPT-5.5 and GPT-5.6 perform noticeably better than GPT-5.4; we recommend using GPT-5.5 or GPT-5.6 first. |
 
 </div>
 
-Environment variable configuration example, using `gpt-6-astra`:
+Environment variable configuration example, using `gpt-6-sol`:
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -239,7 +239,7 @@ Environment variable configuration example, using `gpt-6-astra`:
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
 MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-6-astra"
+MIDSCENE_MODEL_NAME="gpt-6-sol"
 MIDSCENE_MODEL_FAMILY="gpt-6"
 ```
 
@@ -249,7 +249,7 @@ MIDSCENE_MODEL_FAMILY="gpt-6"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
 MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
-MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+MIDSCENE_PLANNING_MODEL_NAME="gpt-6-sol"
 MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 ```
 
@@ -259,7 +259,7 @@ MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
 MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
-MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-astra"
+MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-sol"
 MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
 

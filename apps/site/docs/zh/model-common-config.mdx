@@ -226,12 +226,12 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 | 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
-| GPT-6 系列 | `gpt-6-astra` | `gpt-6` | |
+| GPT-6 系列 | `gpt-6-astra`、`gpt-6-sol`、`gpt-6-luna` | `gpt-6` | GPT-6 Sol 定位准确度出色，且价格仅为 GPT-6 Astra 的五分之一；GPT-6 Luna 价格非常便宜，同时具备良好的视觉定位能力。 |
 | GPT-5 系列 | `gpt-5.4`、`gpt-5.5`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-5.6-luna` | `gpt-5` | GPT-5.4 之前的模型不支持视觉定位，仅可用作 Planning 模型或 Insight 模型。在实际定位测试中，GPT-5.5 和 GPT-5.6 的定位效果明显优于 GPT-5.4，建议优先使用 GPT-5.5 或 GPT-5.6。 |
 
 </div>
 
-环境变量配置示例，以 `gpt-6-astra` 为例：
+环境变量配置示例，以 `gpt-6-sol` 为例：
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -239,7 +239,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
 MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-6-astra"
+MIDSCENE_MODEL_NAME="gpt-6-sol"
 MIDSCENE_MODEL_FAMILY="gpt-6"
 ```
 
@@ -249,7 +249,7 @@ MIDSCENE_MODEL_FAMILY="gpt-6"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
 MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
-MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+MIDSCENE_PLANNING_MODEL_NAME="gpt-6-sol"
 MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 ```
 
@@ -259,7 +259,7 @@ MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
 MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
-MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-astra"
+MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-sol"
 MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
 
