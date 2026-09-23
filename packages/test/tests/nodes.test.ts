@@ -125,12 +125,12 @@ describe('nodes', () => {
       await runTestCli(['nodes', root, '--config', 'config/custom.ts'], io),
     ).toBe(0);
 
-    expect(existsSync(join(root, 'midscene-node-reference.md'))).toBe(true);
-    expect(existsSync(join(root, 'config', 'midscene-node-reference.md'))).toBe(
-      false,
-    );
+    expect(existsSync(join(root, 'midscene-node-reference.web.md'))).toBe(true);
+    expect(
+      existsSync(join(root, 'config', 'midscene-node-reference.web.md')),
+    ).toBe(false);
     const markdown = readFileSync(
-      join(root, 'midscene-node-reference.md'),
+      join(root, 'midscene-node-reference.web.md'),
       'utf8',
     );
     expect(markdown).toContain('**Config file:** `config/custom.ts`');
@@ -140,7 +140,9 @@ describe('nodes', () => {
     expect(markdown).toContain(
       '**Case files:** `web/cases/**/*.yaml`, `shared/**/*.yml` (Execution Project: web); excludes: `web/cases/**/*.draft.yaml`',
     );
-    expect(markdown).toContain(
+    expect(
+      readFileSync(join(root, 'midscene-node-reference.android.md'), 'utf8'),
+    ).toContain(
       '**Case files:** `mobile/**/*.yaml` (Execution Project: android)',
     );
   });

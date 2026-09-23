@@ -303,7 +303,7 @@ describe('generated project integration', () => {
         runtime,
       );
       const markdown = readFileSync(
-        join(cwd, 'midscene-node-reference.md'),
+        join(cwd, `midscene-node-reference.${platform}.md`),
         'utf8',
       );
       expect(markdown).toContain('## `aiAssert`');
@@ -503,7 +503,7 @@ process.exit(result.status ?? 1);
       );
       expect(result.stdout).toContain('Project ready:');
       expect(
-        readFileSync(join(root, 'midscene-node-reference.md'), 'utf8'),
+        readFileSync(join(root, 'midscene-node-reference.web.md'), 'utf8'),
       ).toContain('## `gotoUrl`');
       expect(
         readFileSync(join(cwd, 'commands.log'), 'utf8')

@@ -179,7 +179,7 @@ cases:
 5. `ai` 统一为 `aiAct`，`aiAssert.errorMessage` 改为 `aiAssert.message`。
 6. 固定等待改用原生通用 `wait` Node；报告标题与正文分别放入 `recordToReport.title` 和 `options.content`。
 
-这个例子只调整输入结构，没有改变业务执行顺序。实际迁移时应先运行 `pnpm exec midscene-test nodes --project <name>`，生成当前项目的 `midscene-node-reference.md`。以这份 Node 说明书为准确认 `gotoUrl`、`aiInput`、`aiWaitFor` 等 Node 是否可用以及参数如何填写，不要根据其他平台的示例推测。
+这个例子只调整输入结构，没有改变业务执行顺序。实际迁移时应先运行 `pnpm exec midscene-test nodes --project <name>`，生成当前项目的 `midscene-node-reference.<project-name>.md`。以这份 Node 说明书为准确认 `gotoUrl`、`aiInput`、`aiWaitFor` 等 Node 是否可用以及参数如何填写，不要根据其他平台的示例推测。
 
 ### 脚本和 Agent 配置映射
 

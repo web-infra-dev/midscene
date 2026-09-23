@@ -25,7 +25,7 @@ Follow the prompt to install dependencies. The command generates platform config
 my-tests/
 ├── cases/example.yaml          # Example case
 ├── midscene.config.ts          # Platform configuration and Node registration
-├── midscene-node-reference.md  # Node Spec generated after installation
+├── midscene-node-reference.web.md  # Node Spec generated after installation
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
@@ -86,7 +86,7 @@ The project scaffold explicitly registers the official Nodes for the selected pl
 
 ### Generate the current Project's Node Spec
 
-The Nodes registered by different platforms, Execution Projects, and package versions can differ. Do not infer the current project's capabilities from another project's examples. `midscene-test nodes` generates `midscene-node-reference.md` from the effective registry. This Node Spec is the source of truth for the current Project's Node names, input fields, and string shorthand. Both people and AI Agents should use it when writing YAML cases.
+The Nodes registered by different platforms, Execution Projects, and package versions can differ. Do not infer the current project's capabilities from another project's examples. `midscene-test nodes` generates Node Specs from the effective registry. This Node Spec is the source of truth for the current Project's Node names, input fields, and string shorthand. Both people and AI Agents should use it when writing YAML cases.
 
 The scaffold generates the Spec after dependency installation. Regenerate it after changing `agentClass`, top-level `nodes`, `projects[].nodes`, or a Node schema, and after upgrading relevant Midscene packages:
 
@@ -101,7 +101,7 @@ pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-When multiple Execution Projects have identical Node definitions, the command can generate one shared Spec. When their definitions differ, it requires `--project` to select one Project instead of mixing same-named capabilities from different platforms.
+When `projects` is declared, `midscene-test nodes` generates one Spec per Execution Project by default, even when their Node definitions are identical. Files are named `midscene-node-reference.<project-name>.md`. Use `--project <name>` to generate only that Project’s Spec with the same filename. Without an explicit `projects` configuration, the filename remains `midscene-node-reference.md`. Files are written to the specified directory, or the current directory when omitted; run the command alongside `package.json` to keep the Specs there. Duplicate Project names or names that map to the same filename (including case differences) cause an error before any files are written.
 
 The command loads project configuration and Node definitions only. It does not run setup or cases and does not call `getAgent`, so it does not need to start a browser, connect a device, or call a model. The Spec is generated output; do not edit it manually. Regenerate it after configuration changes.
 

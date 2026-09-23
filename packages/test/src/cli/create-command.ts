@@ -51,13 +51,13 @@ const createParser = () =>
       type: 'boolean',
       default: false,
       description:
-        'Create files without installing dependencies or generating midscene-node-reference.md',
+        'Create files without installing dependencies or generating Node references',
     })
     .demandCommand(0, 1, '', 'Only one project directory is allowed.')
     .example('$0', 'Choose a directory and platform interactively')
     .example('$0 my-tests --platform web', 'Create a Web project')
     .epilogue(
-      'Optionally installs dependencies with the selected package manager. The generated postinstall script creates midscene-node-reference.md after installation.\nExisting files are never overwritten. Setup and tests are not run during creation.',
+      'Optionally installs dependencies with the selected package manager. The generated postinstall script creates a Project-specific Node reference after installation.\nExisting files are never overwritten. Setup and tests are not run during creation.',
     )
     .help('help')
     .alias('help', 'h')
@@ -207,8 +207,7 @@ export async function runCreateCommand(
     selectPackageManager,
     confirmInstall: () =>
       confirm({
-        message:
-          'Install dependencies and generate midscene-node-reference.md now?',
+        message: 'Install dependencies and generate Node references now?',
         default: true,
       }),
     runPackageManager,
@@ -253,7 +252,7 @@ export async function runCreateCommand(
   const files = createProjectFiles(name, platform, packageManager);
   checkDestinations(root, [
     ...Object.keys(files),
-    'midscene-node-reference.md',
+    `midscene-node-reference.${platform}.md`,
     'pnpm-lock.yaml',
     'package-lock.json',
     'npm-shrinkwrap.json',
@@ -274,7 +273,7 @@ export async function runCreateCommand(
         ['ExitPromptError', 'AbortPromptError'].includes(error.name)
       ) {
         throw new Error(
-          `Project creation cancelled. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')} to install dependencies and generate midscene-node-reference.md.`,
+          `Project creation cancelled. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')} to install dependencies and generate midscene-node-reference.${platform}.md.`,
         );
       }
       throw error;
@@ -282,7 +281,7 @@ export async function runCreateCommand(
   }
   if (!install) {
     io.log(
-      `Project files ready: ${root}\nNext: run ${packageManager} ${commands.install.join(' ')} in the project directory. The postinstall script will generate midscene-node-reference.md.\nThen follow README.md to configure your model and run tests.`,
+      `Project files ready: ${root}\nNext: run ${packageManager} ${commands.install.join(' ')} in the project directory. The postinstall script will generate midscene-node-reference.${platform}.md.\nThen follow README.md to configure your model and run tests.`,
     );
     return;
   }
@@ -295,7 +294,10 @@ export async function runCreateCommand(
     );
   }
   try {
-    const referencePath = resolve(root, 'midscene-node-reference.md');
+    const referencePath = resolve(
+      root,
+      `midscene-node-reference.${platform}.md`,
+    );
     const generatedByPostinstall = Boolean(statIfPresent(referencePath));
     // Fall back to explicit generation if lifecycle scripts were disabled.
     if (!generatedByPostinstall) {
@@ -312,6 +314,6 @@ export async function runCreateCommand(
     );
   }
   io.log(
-    `Project ready: ${root}\nNode reference: ${resolve(root, 'midscene-node-reference.md')}\nNext: copy .env.example to .env and configure your model.${platform === 'web' ? `\nInstall Chromium: ${commands.installChromium}` : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: ${packageManager} test`,
+    `Project ready: ${root}\nNode reference: ${resolve(root, `midscene-node-reference.${platform}.md`)}\nNext: copy .env.example to .env and configure your model.${platform === 'web' ? `\nInstall Chromium: ${commands.installChromium}` : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: ${packageManager} test`,
   );
 }
