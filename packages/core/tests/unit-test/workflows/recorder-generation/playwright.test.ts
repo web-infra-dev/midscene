@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 import { callAIWithStringResponse } from '../../../../src/ai-model/service-caller';
@@ -380,6 +381,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
+      assert('role' in userMessage);
       const messageContent = userMessage.content as any[];
 
       // Find the main prompt text (not the intro text about screenshots)
@@ -406,6 +408,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
+      assert('role' in userMessage);
       const messageContent = userMessage.content as any[];
 
       const imageMessages = messageContent.filter(

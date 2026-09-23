@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { getModelRuntime } from '@/ai-model/models';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -172,6 +173,7 @@ describe('insight extraction prompt assembly', () => {
     });
 
     const userMessage = rs.mocked(callAI).mock.calls[0]?.[0]?.[1];
+    assert(userMessage && 'role' in userMessage);
     const demandMessage = Array.isArray(userMessage?.content)
       ? userMessage.content.find(
           (item) => item.type === 'text' && item.text.includes('<CONTEXT>'),
@@ -213,6 +215,7 @@ describe('insight extraction prompt assembly', () => {
       expect.objectContaining({ semanticRetryAttempt: 1 }),
     ]);
     const retryFeedback = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+    assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback).toMatchObject({ role: 'user' });
     expect(retryFeedback?.content).toEqual(
       expect.stringContaining('Missing required field: data-json'),

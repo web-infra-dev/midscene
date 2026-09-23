@@ -240,7 +240,8 @@ describe('service.describe', () => {
     const content = msgs[1].content as Array<{
       type: string;
       text?: string;
-      image_url?: { url: string; detail: string };
+      url?: string;
+      detail?: string;
     }>;
     expect(content.filter((item) => item.type === 'image')).toHaveLength(2);
     expect(content.filter((item) => item.type === 'image')[0]?.url).toBe(

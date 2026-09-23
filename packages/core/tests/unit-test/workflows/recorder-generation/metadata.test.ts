@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { callAIWithObjectResponse } from '../../../../src/ai-model/service-caller';
@@ -72,10 +73,10 @@ describe('recorder-metadata-generator', () => {
 
     const prompt = mockCallAIWithObjectResponse.mock.calls[0][0];
     const userMessage = prompt[1];
+    assert('role' in userMessage);
     const text = Array.isArray(userMessage.content)
       ? userMessage.content
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text)
+          .flatMap((part) => (part.type === 'text' ? [part.text] : []))
           .join('\n')
       : '';
 

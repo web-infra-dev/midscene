@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { localImg2Base64 } from '@midscene/shared/img';
 import * as sharedImgActual from '@midscene/shared/img' with {
@@ -121,10 +122,13 @@ describe('recorder-ui-describer', () => {
     expect(result.usedFallback).toBe(false);
 
     const call = rs.mocked(callAIWithObjectResponse).mock.calls[0];
-    const userContent = call[0][1].content as any[];
-    const highlightedScreenshot = userContent.find(
-      (item) => item.type === 'image',
-    )?.url;
+    const message = call[0][1];
+    assert('role' in message);
+    assert(Array.isArray(message.content));
+    const userContent = message.content;
+    const imagePart = userContent.find((item) => item.type === 'image');
+    assert(imagePart?.type === 'image');
+    const highlightedScreenshot = imagePart.url;
 
     expect(result.event.screenshotWithBox).toBeTruthy();
     expect(result.event.screenshotWithBox).not.toBe(fixtureScreenshot);

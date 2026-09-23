@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import type {
   ParsedPlanningLocateParameter,
   StandardPlanningProtocol,
@@ -90,11 +91,18 @@ const latestImage = () => {
     : undefined;
 };
 
+const retryFeedbackContent = () => {
+  const message = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+  assert(message && 'role' in message);
+  return message.content;
+};
+
 const latestCallAIOptions = () => rs.mocked(callAI).mock.calls[0]?.[2];
 
 const latestSystemPrompt = () => {
   const message = rs.mocked(callAI).mock.calls[0]?.[0]?.[0];
-  return message?.role === 'system' ? message.content : undefined;
+  assert(message && 'role' in message);
+  return message.role === 'system' ? message.content : undefined;
 };
 
 const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
@@ -127,7 +135,7 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
     expect(callAI).toHaveBeenCalledTimes(2);
-    expect(rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content).toEqual(
+    expect(retryFeedbackContent()).toEqual(
       expect.stringContaining('Incomplete planning response'),
     );
     expect(result.finalizeSuccess).toBe(true);
@@ -211,7 +219,7 @@ describe('plan XML parse retry', () => {
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);
-    expect(rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content).toEqual(
+    expect(retryFeedbackContent()).toEqual(
       expect.stringContaining('Invalid parameters for action Tap: locate'),
     );
     expect(buildYamlFlowFromPlans).toHaveBeenCalledTimes(1);
@@ -316,7 +324,7 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
     expect(callAI).toHaveBeenCalledTimes(2);
-    const feedback = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content;
+    const feedback = retryFeedbackContent();
     expect(feedback).toEqual(
       expect.stringContaining('locate.prompt: Required'),
     );
@@ -430,7 +438,7 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
     expect(callAI).toHaveBeenCalledTimes(2);
-    expect(rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content).toEqual(
+    expect(retryFeedbackContent()).toEqual(
       expect.stringContaining(
         "Action type 'Unknown' is not in the current action space",
       ),
@@ -454,7 +462,7 @@ describe('plan XML parse retry', () => {
       effort: 'fast',
     });
 
-    const systemPrompt = rs.mocked(callAI).mock.calls[0]?.[0]?.[0]?.content;
+    const systemPrompt = latestSystemPrompt();
     expect(systemPrompt).not.toEqual(expect.stringContaining('<planning>'));
     expect(systemPrompt).not.toEqual(expect.stringContaining('</planning>'));
     expect(systemPrompt).not.toEqual(expect.stringContaining('<log>'));
@@ -536,6 +544,7 @@ describe('plan XML parse retry', () => {
 
     expect(callAI).toHaveBeenCalledTimes(3);
     const retryFeedback = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+    assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback).toMatchObject({ role: 'user' });
     expect(retryFeedback?.content).toEqual(
       expect.stringContaining('The previous response was invalid:'),
