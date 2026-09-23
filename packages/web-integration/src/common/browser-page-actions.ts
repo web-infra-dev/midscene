@@ -8,7 +8,6 @@ import type {
 const pageListSize = 8;
 const maxListTitleLength = 120;
 const maxListUrlLength = 512;
-const pageListPlanningFeedbackMaxLength = 8192;
 
 const normalizeFeedbackValue = (value: string) =>
   value.replace(/\s+/g, ' ').trim();
@@ -110,7 +109,7 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
     description:
       'List open browser pages/tabs in groups of 8 and show which one is active. Use offset to see the next group before switching pages.',
     paramSchema: listBrowserPagesParamSchema,
-    planningFeedbackMaxLength: pageListPlanningFeedbackMaxLength,
+    planningFeedbackMaxLength: false,
     call: async (param, context) => {
       const summaries = await options.getPageManager().pageSummaries();
       const offset = param?.offset ?? 0;
