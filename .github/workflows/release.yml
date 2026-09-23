@@ -11,7 +11,7 @@ on:
         required: true
         default: 'main'
       notify_stable_release:
-        description: 'Send IM notifications for a stable release'
+        description: 'Send IM notifications when this is a stable release'
         required: true
         type: boolean
         default: true
