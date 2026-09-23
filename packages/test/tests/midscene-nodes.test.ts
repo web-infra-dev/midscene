@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import { describe, expect, it, vi } from 'vitest';
 import { NodeRegistry, createDocumentRuntime, defineNode } from '../src';
-import { renderNodeReference } from '../src/cli/node-reference';
+import { renderNodeSpec } from '../src/cli/node-spec';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 import { type MidsceneUIAgent, createMidsceneNodes } from '../src/midscene';
 import type {
@@ -47,7 +47,7 @@ describe('createMidsceneNodes', () => {
         agentClass: testAgentClass,
       }),
     );
-    const spec = renderNodeReference(registry.definitions()).markdown;
+    const spec = renderNodeSpec(registry.definitions()).markdown;
     for (const field of [
       'resultName',
       'resultPath',

@@ -1,7 +1,7 @@
 import { existsSync, statSync, writeFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { version } from '../../package.json';
-import { renderNodeReference, sortNodesForReference } from './node-reference';
+import { renderNodeSpec, sortNodesForSpec } from './node-spec';
 import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
@@ -147,21 +147,21 @@ const runNodesCommand = async (
       .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
       .replace(/[. ]+$/g, '-');
     const filename = project.hasExplicitProjects
-      ? `midscene-node-reference.${safeName}.md`
-      : 'midscene-node-reference.md';
+      ? `midscene-node-spec.${safeName}.md`
+      : 'midscene-node-spec.md';
     const key = filename.toLowerCase();
     const owner = owners.get(key);
     if (owner !== undefined) {
       throw new Error(
-        `Projects "${owner}" and "${executionProject.name}" generate the same Node reference filename: ${filename}`,
+        `Projects "${owner}" and "${executionProject.name}" generate the same Node Spec filename: ${filename}`,
       );
     }
     owners.set(key, executionProject.name);
     filenames.set(executionProject.name, filename);
   }
-  const references = selectedProjects.map((executionProject) => {
-    const nodes = sortNodesForReference(executionProject.nodes.definitions());
-    const document = renderNodeReference(nodes, {
+  const specs = selectedProjects.map((executionProject) => {
+    const nodes = sortNodesForSpec(executionProject.nodes.definitions());
+    const document = renderNodeSpec(nodes, {
       configPath: configPath
         ? relative(configSearchRoot, configPath).split(sep).join('/')
         : undefined,
@@ -174,15 +174,15 @@ const runNodesCommand = async (
     });
     return { executionProject, nodes, document };
   });
-  for (const { executionProject, nodes, document } of references) {
+  for (const { executionProject, nodes, document } of specs) {
     for (const warning of document.warnings) {
       io.error(`midscene-test nodes: ${warning}`);
     }
-    const referencePath = resolve(
+    const specPath = resolve(
       configSearchRoot,
       filenames.get(executionProject.name)!,
     );
-    writeFileSync(referencePath, document.markdown);
+    writeFileSync(specPath, document.markdown);
     if (project.hasExplicitProjects || projectName) {
       io.log(`Execution Project: ${executionProject.name}`);
     }
@@ -195,7 +195,7 @@ const runNodesCommand = async (
         `- ${node.name}: ${node.description?.trim() || 'Description not declared.'}`,
       );
     }
-    io.log(`\nNode reference generated: ${referencePath}`);
+    io.log(`\nNode Spec generated: ${specPath}`);
   }
 };
 

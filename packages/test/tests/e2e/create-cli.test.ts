@@ -173,7 +173,7 @@ describe('generated project integration', () => {
   );
 
   it.each(createPackageManagers)(
-    'generates and refreshes the reference on a manual %s install after skipping installation',
+    'generates and refreshes the spec on a manual %s install after skipping installation',
     async (packageManager) => {
       const cwd = temp();
       const root = join(cwd, 'manual install');
@@ -190,7 +190,7 @@ describe('generated project integration', () => {
         io(),
         runtime,
       );
-      expect(existsSync(join(root, 'midscene-node-reference.md'))).toBe(false);
+      expect(existsSync(join(root, 'midscene-node-spec.md'))).toBe(false);
 
       // Install a local CLI launcher instead of registry dependencies. This
       // exercises real npm/pnpm install lifecycles with the generated scripts
@@ -248,10 +248,8 @@ describe('generated project integration', () => {
           env: { ...process.env, NODE_PATH: '' },
         });
       await install();
-      const referencePath = join(root, 'midscene-node-reference.md');
-      expect(readFileSync(referencePath, 'utf8')).toContain(
-        '## `install.inspect`',
-      );
+      const specPath = join(root, 'midscene-node-spec.md');
+      expect(readFileSync(specPath, 'utf8')).toContain('## `install.inspect`');
       expect(
         existsSync(
           join(
@@ -260,11 +258,9 @@ describe('generated project integration', () => {
           ),
         ),
       ).toBe(true);
-      writeFileSync(referencePath, 'outdated reference');
+      writeFileSync(specPath, 'outdated spec');
       await install();
-      expect(readFileSync(referencePath, 'utf8')).toContain(
-        '## `install.inspect`',
-      );
+      expect(readFileSync(specPath, 'utf8')).toContain('## `install.inspect`');
       writeFileSync(
         join(root, 'midscene.config.ts'),
         "throw new Error('invalid postinstall config');",
@@ -303,7 +299,7 @@ describe('generated project integration', () => {
         runtime,
       );
       const markdown = readFileSync(
-        join(cwd, `midscene-node-reference.${platform}.md`),
+        join(cwd, `midscene-node-spec.${platform}.md`),
         'utf8',
       );
       expect(markdown).toContain('## `aiAssert`');
@@ -503,7 +499,7 @@ process.exit(result.status ?? 1);
       );
       expect(result.stdout).toContain('Project ready:');
       expect(
-        readFileSync(join(root, 'midscene-node-reference.web.md'), 'utf8'),
+        readFileSync(join(root, 'midscene-node-spec.web.md'), 'utf8'),
       ).toContain('## `gotoUrl`');
       expect(
         readFileSync(join(cwd, 'commands.log'), 'utf8')

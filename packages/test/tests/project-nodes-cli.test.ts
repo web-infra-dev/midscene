@@ -40,7 +40,7 @@ const scopedConfig = `
   };
 `;
 
-describe('Project-scoped Node references', () => {
+describe('Project-scoped Node Specs', () => {
   it('loads a JavaScript ESM config through the CLI --config option', async () => {
     const root = createConfig(
       `export default {
@@ -55,9 +55,9 @@ describe('Project-scoped Node references', () => {
         error() {},
       }),
     ).toBe(0);
-    expect(
-      readFileSync(join(root, 'midscene-node-reference.md'), 'utf8'),
-    ).toContain('### `esm.node`');
+    expect(readFileSync(join(root, 'midscene-node-spec.md'), 'utf8')).toContain(
+      '### `esm.node`',
+    );
   });
 
   it('generates every Project by default even when effective Nodes differ', async () => {
@@ -65,7 +65,7 @@ describe('Project-scoped Node references', () => {
     expect(await runTestCli(['nodes', root], { log() {}, error() {} })).toBe(0);
     for (const name of ['android', 'ios']) {
       const markdown = readFileSync(
-        join(root, `midscene-node-reference.${name}.md`),
+        join(root, `midscene-node-spec.${name}.md`),
         'utf8',
       );
       expect(markdown).toContain(`Execution Project: ${name}`);
@@ -76,7 +76,7 @@ describe('Project-scoped Node references', () => {
         name === 'android' ? 'iOS launch' : 'Android launch',
       );
     }
-    expect(existsSync(join(root, 'midscene-node-reference.md'))).toBe(false);
+    expect(existsSync(join(root, 'midscene-node-spec.md'))).toBe(false);
   });
 
   it.each([
@@ -98,7 +98,7 @@ describe('Project-scoped Node references', () => {
         }),
       ).toBe(1);
       expect(errors.join('\n')).toMatch(
-        /must be unique|same Node reference filename/,
+        /must be unique|same Node Spec filename/,
       );
       expect(readdirSync(root)).toEqual(['midscene.config.ts']);
     },
@@ -115,7 +115,7 @@ describe('Project-scoped Node references', () => {
         }),
       ).toBe(0);
       const markdown = readFileSync(
-        join(root, `midscene-node-reference.${name}.md`),
+        join(root, `midscene-node-spec.${name}.md`),
         'utf8',
       );
       expect(markdown).toContain(`Execution Project: ${name}`);
@@ -129,19 +129,19 @@ describe('Project-scoped Node references', () => {
       expect(markdown).not.toContain('Global launch');
       expect(markdown.match(/^### `launch`$/gm)).toHaveLength(1);
       const otherName = name === 'android' ? 'ios' : 'android';
-      expect(
-        existsSync(join(root, `midscene-node-reference.${otherName}.md`)),
-      ).toBe(false);
+      expect(existsSync(join(root, `midscene-node-spec.${otherName}.md`))).toBe(
+        false,
+      );
       expect(await runTestCli(['nodes', root], { log() {}, error() {} })).toBe(
         0,
       );
       expect(
-        readFileSync(join(root, `midscene-node-reference.${name}.md`), 'utf8'),
+        readFileSync(join(root, `midscene-node-spec.${name}.md`), 'utf8'),
       ).toBe(markdown);
     },
   );
 
-  it('rejects an unknown Project without generating a reference', async () => {
+  it('rejects an unknown Project without generating a spec', async () => {
     const root = createConfig(scopedConfig);
     const errors: string[] = [];
     expect(
@@ -154,7 +154,7 @@ describe('Project-scoped Node references', () => {
     expect(readdirSync(root)).toEqual(['midscene.config.ts']);
   });
 
-  it('generates separate references even when Projects inherit identical Nodes', async () => {
+  it('generates separate specs even when Projects inherit identical Nodes', async () => {
     const root = createConfig(`export default {
       nodes: [{ name: 'shared', execute() {} }],
       projects: [{ name: 'android' }, { name: 'ios' }],
@@ -162,7 +162,7 @@ describe('Project-scoped Node references', () => {
     expect(await runTestCli(['nodes', root], { log() {}, error() {} })).toBe(0);
     for (const name of ['android', 'ios']) {
       const markdown = readFileSync(
-        join(root, `midscene-node-reference.${name}.md`),
+        join(root, `midscene-node-spec.${name}.md`),
         'utf8',
       );
       expect(markdown).toContain(`Execution Project: ${name}`);
@@ -176,7 +176,7 @@ describe('Project-scoped Node references', () => {
     };`);
     expect(await runTestCli(['nodes', root], { log() {}, error() {} })).toBe(0);
     expect(
-      readFileSync(join(root, 'midscene-node-reference.android.md'), 'utf8'),
+      readFileSync(join(root, 'midscene-node-spec.android.md'), 'utf8'),
     ).toContain('### `local`');
   });
 });

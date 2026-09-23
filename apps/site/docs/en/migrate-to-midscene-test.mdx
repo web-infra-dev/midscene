@@ -96,7 +96,7 @@ Keeping old files unchanged preserves their failure policy. Rewriting them as na
 
 ### Flow action mapping
 
-The legacy runtime keeps accepting the fields in the left column and adapts them internally to the shared kernel. That internal adaptation is not a native Test input contract. When migrating a file, write the native form in the right column and use the Nodes registered in the project's `midscene-node-reference.md` as the source of truth.
+The legacy runtime keeps accepting the fields in the left column and adapts them internally to the shared kernel. That internal adaptation is not a native Test input contract. When migrating a file, write the native form in the right column and use the Nodes registered in the project's `midscene-node-spec.md` as the source of truth.
 
 | Legacy flow field | Native Test Node / input | Migration notes |
 | --- | --- | --- |
@@ -179,7 +179,7 @@ The conversion has several parts:
 5. `ai` becomes `aiAct`, and `aiAssert.errorMessage` becomes `aiAssert.message`.
 6. The fixed delay uses the native common `wait` Node. The report title and body move to `recordToReport.title` and `options.content`.
 
-This example changes the input structure without changing business execution order. During a real migration, run `pnpm exec midscene-test nodes --project <name>` to generate the current Project's `midscene-node-reference.<project-name>.md`. Use this Node Spec—not examples from another platform—to confirm whether `gotoUrl`, `aiInput`, `aiWaitFor`, and the other referenced Nodes are available and how to provide their inputs.
+This example changes the input structure without changing business execution order. During a real migration, run `pnpm exec midscene-test nodes --project <name>` to generate the current Project's `midscene-node-spec.<project-name>.md`. Use this Node Spec—not examples from another platform—to confirm whether `gotoUrl`, `aiInput`, `aiWaitFor`, and the other referenced Nodes are available and how to provide their inputs.
 
 ### Script and Agent configuration mapping
 

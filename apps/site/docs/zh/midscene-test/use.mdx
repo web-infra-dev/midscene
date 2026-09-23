@@ -25,7 +25,7 @@ cd my-tests
 my-tests/
 ├── cases/example.yaml          # 示例用例
 ├── midscene.config.ts          # 平台配置与 Node 注册
-├── midscene-node-reference.web.md  # 安装后自动生成的 Node 说明书
+├── midscene-node-spec.web.md  # 安装后自动生成的 Node 说明书
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
@@ -101,7 +101,7 @@ pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-配置了 `projects` 时，`midscene-test nodes` 默认按执行项目分别生成说明书，即使各项目的 Node 定义完全相同。文件名为 `midscene-node-reference.<project-name>.md`。使用 `--project <name>` 只生成指定项目的说明书，文件名保持一致。未显式配置 `projects` 时，文件名仍为 `midscene-node-reference.md`。文件写入指定目录；省略目录时写入当前目录。在 `package.json` 所在目录运行命令即可将说明书保存在该目录。Project name 重复，或转换后的文件名冲突（包括大小写差异），都会在写入任何文件之前抛错。
+配置了 `projects` 时，`midscene-test nodes` 默认按执行项目分别生成说明书，即使各项目的 Node 定义完全相同。文件名为 `midscene-node-spec.<project-name>.md`。使用 `--project <name>` 只生成指定项目的说明书，文件名保持一致。未显式配置 `projects` 时，文件名仍为 `midscene-node-spec.md`。文件写入指定目录；省略目录时写入当前目录。在 `package.json` 所在目录运行命令即可将说明书保存在该目录。Project name 重复，或转换后的文件名冲突（包括大小写差异），都会在写入任何文件之前抛错。
 
 生成命令只加载项目配置和 Node 定义，不执行 setup、用例或 `getAgent`，因此不需要启动浏览器、连接设备或调用模型。说明书是生成文件，不要手动编辑；配置变化后重新执行命令。
 

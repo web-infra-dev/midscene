@@ -17,7 +17,7 @@ import {
   parseCreateArgs,
   runCreateCommand,
 } from '../src/cli/create-command';
-import { renderNodeReference } from '../src/cli/node-reference';
+import { renderNodeSpec } from '../src/cli/node-spec';
 import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
 
 vi.mock('@inquirer/prompts', () => ({
@@ -33,7 +33,7 @@ const temp = () => {
   return path;
 };
 const io = () => ({ log: vi.fn(), error: vi.fn() });
-const reference = renderNodeReference([]).markdown;
+const spec = renderNodeSpec([]).markdown;
 const services = (cwd: string): CreateServices => ({
   cwd,
   interactive: false,
@@ -52,10 +52,7 @@ const services = (cwd: string): CreateServices => ({
         join(root, 'midscene.config.ts'),
         'utf8',
       ).match(/name: '(web|android|ios|harmony|computer)'/)![1];
-      writeFileSync(
-        join(root, `midscene-node-reference.${platform}.md`),
-        reference,
-      );
+      writeFileSync(join(root, `midscene-node-spec.${platform}.md`), spec);
     }
     return '';
   }),
@@ -148,9 +145,7 @@ describe('create installation confirmation and postinstall', () => {
       );
       expect(runtime.confirmInstall).toHaveBeenCalledTimes(1);
       expect(runtime.runPackageManager).not.toHaveBeenCalled();
-      expect(existsSync(join(cwd, 'midscene-node-reference.web.md'))).toBe(
-        false,
-      );
+      expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
       const manifest = JSON.parse(
         readFileSync(join(cwd, 'package.json'), 'utf8'),
       );
@@ -188,9 +183,7 @@ describe('create installation confirmation and postinstall', () => {
         expect(runtime.confirmInstall).not.toHaveBeenCalled();
         expect(runtime.runPackageManager).not.toHaveBeenCalled();
         expect(existsSync(join(cwd, 'package.json'))).toBe(true);
-        expect(existsSync(join(cwd, 'midscene-node-reference.web.md'))).toBe(
-          false,
-        );
+        expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
       }
     },
   );
@@ -228,22 +221,22 @@ describe('create installation confirmation and postinstall', () => {
     },
   );
 
-  it('uses the reference written by postinstall without generating twice', async () => {
+  it('uses the spec written by postinstall without generating twice', async () => {
     const cwd = temp();
     const runtime = services(cwd);
     runtime.interactive = true;
     runtime.runPackageManager = vi.fn(async () => {
-      writeFileSync(join(cwd, 'midscene-node-reference.web.md'), reference);
+      writeFileSync(join(cwd, 'midscene-node-spec.web.md'), spec);
       return '';
     });
     const output = io();
     await runCreateCommand(['.', '--platform', 'web'], output, runtime);
     expect(runtime.confirmInstall).toHaveBeenCalledTimes(1);
     expect(runtime.runPackageManager).toHaveBeenCalledTimes(1);
-    expect(
-      readFileSync(join(cwd, 'midscene-node-reference.web.md'), 'utf8'),
-    ).toBe(reference);
-    expect(output.log).not.toHaveBeenCalledWith('Generating Node reference...');
+    expect(readFileSync(join(cwd, 'midscene-node-spec.web.md'), 'utf8')).toBe(
+      spec,
+    );
+    expect(output.log).not.toHaveBeenCalledWith('Generating Node Spec...');
     expect(output.log).toHaveBeenLastCalledWith(
       expect.stringContaining('Project ready:'),
     );
@@ -254,28 +247,25 @@ describe('create installation confirmation and postinstall', () => {
     const runtime = services(cwd);
     await runCreateCommand(['.', '--platform', 'web'], io(), runtime);
     expect(runtime.runPackageManager).toHaveBeenCalledTimes(2);
-    expect(
-      readFileSync(join(cwd, 'midscene-node-reference.web.md'), 'utf8'),
-    ).toBe(reference);
+    expect(readFileSync(join(cwd, 'midscene-node-spec.web.md'), 'utf8')).toBe(
+      spec,
+    );
   });
 
   it('rejects invalid output left by postinstall', async () => {
     const cwd = temp();
     const runtime = services(cwd);
     runtime.runPackageManager = vi.fn(async () => {
-      writeFileSync(
-        join(cwd, 'midscene-node-reference.web.md'),
-        'invalid output',
-      );
+      writeFileSync(join(cwd, 'midscene-node-spec.web.md'), 'invalid output');
       return '';
     });
     await expect(
       runCreateCommand(['.', '--platform', 'web'], io(), runtime),
-    ).rejects.toThrow('Node reference generation failed');
+    ).rejects.toThrow('Node Spec generation failed');
     expect(runtime.runPackageManager).toHaveBeenCalledTimes(1);
-    expect(
-      readFileSync(join(cwd, 'midscene-node-reference.web.md'), 'utf8'),
-    ).toBe('invalid output');
+    expect(readFileSync(join(cwd, 'midscene-node-spec.web.md'), 'utf8')).toBe(
+      'invalid output',
+    );
   });
 });
 
@@ -294,7 +284,7 @@ describe('create project', () => {
       runPackageManager: services(cwd).runPackageManager,
     });
     expect(confirm).toHaveBeenCalledWith({
-      message: 'Install dependencies and generate Node references now?',
+      message: 'Install dependencies and generate Node Specs now?',
       default: true,
     });
     expect(input).toHaveBeenCalledWith(
@@ -331,7 +321,7 @@ describe('create project', () => {
       const error = new Error('Prompt cancelled');
       error.name = name;
       vi.mocked(select).mockRejectedValue(error);
-      const runPackageManager = vi.fn(async () => reference);
+      const runPackageManager = vi.fn(async () => spec);
       await expect(
         runCreateCommand(['.'], io(), {
           cwd,
@@ -362,9 +352,9 @@ describe('create project', () => {
       ['exec', 'midscene-test', 'nodes'],
       root,
     );
-    expect(
-      readFileSync(join(root, 'midscene-node-reference.web.md'), 'utf8'),
-    ).toBe(reference);
+    expect(readFileSync(join(root, 'midscene-node-spec.web.md'), 'utf8')).toBe(
+      spec,
+    );
     const manifest = JSON.parse(
       readFileSync(join(root, 'package.json'), 'utf8'),
     );
@@ -458,7 +448,7 @@ describe('create project', () => {
   it.each([
     'package.json',
     'midscene.config.ts',
-    'midscene-node-reference.web.md',
+    'midscene-node-spec.web.md',
     'pnpm-lock.yaml',
     'package-lock.json',
     'npm-shrinkwrap.json',
@@ -496,28 +486,26 @@ describe('create project', () => {
     ).rejects.toThrow('pnpm install --ignore-workspace, then pnpm run nodes');
     expect(runtime.runPackageManager).toHaveBeenCalledTimes(1);
     expect(existsSync(join(cwd, 'package.json'))).toBe(true);
-    expect(existsSync(join(cwd, 'midscene-node-reference.web.md'))).toBe(false);
+    expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
   });
 
   it.each(['', 'partial output'])(
-    'fails when the command returns %j without generating a reference',
+    'fails when the command returns %j without generating a spec',
     async (output) => {
       const cwd = temp();
       const runtime = services(cwd);
       runtime.runPackageManager = vi.fn().mockResolvedValue(output);
       await expect(
         runCreateCommand(['.', '--platform', 'web'], io(), runtime),
-      ).rejects.toThrow('Node reference generation failed');
-      expect(existsSync(join(cwd, 'midscene-node-reference.web.md'))).toBe(
-        false,
-      );
+      ).rejects.toThrow('Node Spec generation failed');
+      expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
     },
   );
 });
 
 describe('create package manager selection', () => {
   it.each(['npm', 'pnpm'] as const)(
-    'uses explicit %s for installation, reference generation, and instructions',
+    'uses explicit %s for installation, spec generation, and instructions',
     async (packageManager) => {
       const cwd = temp();
       const runtime = services(cwd);
@@ -668,7 +656,7 @@ describe('create package manager selection', () => {
   );
 
   it.each(['npm', 'pnpm'] as const)(
-    'uses %s in installation and reference failure recovery',
+    'uses %s in installation and spec failure recovery',
     async (packageManager) => {
       for (const failure of ['install', 'describe']) {
         const cwd = temp();
@@ -691,9 +679,7 @@ describe('create package manager selection', () => {
           ),
         ).rejects.toThrow(recovery);
         expect(existsSync(join(cwd, 'package.json'))).toBe(true);
-        expect(existsSync(join(cwd, 'midscene-node-reference.web.md'))).toBe(
-          false,
-        );
+        expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
         expect(output.log.mock.calls.flat().join('\n')).not.toContain(
           'Project ready',
         );
