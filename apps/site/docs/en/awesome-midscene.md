@@ -4,12 +4,14 @@ A curated list of community projects that extend Midscene.js capabilities across
 
 ## Community projects
 
-### [lhuanyu/midscene-ios](https://github.com/lhuanyu/midscene-ios)
+New additions appear at the top of the list.
 
-iOS Mirror automation support for Midscene
+### [KiritoKing/midscene-jev-runner](https://github.com/KiritoKing/midscene-jev-runner)
 
-- Enables automated testing and interaction with iOS applications
-- Extends Midscene's cross-platform capabilities to Apple's mobile ecosystem
+Browser automation with the [Jev](https://typesafe.ai/) decision model for Playwright and Midscene Test
+
+- Turns page controls and available operations into candidates for Jev to choose the next action and target; calls a text generation model when text input is needed
+- Works with an existing Playwright page or as a `jevAct` step in Midscene Test, with support for custom task completion checks
 
 ### [lhuanyu/midscene-android](https://github.com/lhuanyu/midscene-android)
 
@@ -18,6 +20,13 @@ An Android app that runs Midscene automation directly on the device, without con
 - Operate apps with natural-language instructions, edit and run YAML scripts, and review execution reports and history on the device
 - Follow task progress through a floating overlay and interrupt execution when needed
 - The Agent and runtime run on the device; prompts and screenshots are sent to the model endpoint you configure
+
+### [lhuanyu/midscene-ios](https://github.com/lhuanyu/midscene-ios)
+
+iOS Mirror automation support for Midscene
+
+- Enables automated testing and interaction with iOS applications
+- Extends Midscene's cross-platform capabilities to Apple's mobile ecosystem
 
 ### [Mofangbao/midscene-pc](https://github.com/Mofangbao/midscene-pc)
 
@@ -54,13 +63,6 @@ Java SDK for Midscene automation
 
 - Provides a JVM-native interface for scripting Midscene
 - Integrates seamlessly into established Java testing frameworks and automation workflows
-
-### [KiritoKing/midscene-jev-runner](https://github.com/KiritoKing/midscene-jev-runner)
-
-Browser automation with the [Jev](https://typesafe.ai/) decision model for Playwright and Midscene Test
-
-- Turns page controls and available operations into candidates for Jev to choose the next action and target; calls a text generation model when text input is needed
-- Works with an existing Playwright page or as a `jevAct` step in Midscene Test, with support for custom task completion checks
 
 ## Contributing
 
