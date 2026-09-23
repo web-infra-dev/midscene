@@ -25,7 +25,7 @@ cd my-tests
 my-tests/
 ├── cases/example.yaml          # 示例用例
 ├── midscene.config.ts          # 平台配置与 Node 注册
-├── midscene-node-reference.md  # 安装后自动生成的 Node 说明书
+├── midscene-node-spec.web.md  # 安装后自动生成的 Node 说明书
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
@@ -86,7 +86,7 @@ Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afte
 
 ### 生成当前项目的 Node 说明书
 
-不同平台、执行项目和项目版本实际注册的 Node 可能不同。不要根据其他项目的示例推测当前项目的可用能力；`midscene-test nodes` 根据最终生效的注册结果生成 `midscene-node-reference.md`，它是当前项目可用 Node 名称、输入字段和字符串简写方式的事实来源。人类和 AI Agent 都应根据这份 Node 说明书编写 YAML 用例。
+不同平台、执行项目和项目版本实际注册的 Node 可能不同。不要根据其他项目的示例推测当前项目的可用能力；`midscene-test nodes` 根据最终生效的注册结果生成 Node 说明书，它是当前项目可用 Node 名称、输入字段和字符串简写方式的事实来源。人类和 AI Agent 都应根据这份 Node 说明书编写 YAML 用例。
 
 脚手架会在安装依赖后自动生成。修改 `agentClass`、顶层 `nodes`、`projects[].nodes`、Node schema，或者升级相关 Midscene 包后，应重新生成：
 
@@ -101,7 +101,7 @@ pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-如果多个执行项目的 Node 定义完全相同，可以生成一份共享说明书；定义不同时，命令会要求使用 `--project` 选择一个项目，避免把不同平台的同名能力混在一起。
+配置了 `projects` 时，`midscene-test nodes` 默认按执行项目分别生成说明书，即使各项目的 Node 定义完全相同。文件名为 `midscene-node-spec.<project-name>.md`。使用 `--project <name>` 只生成指定项目的说明书，文件名保持一致。未显式配置 `projects` 时，文件名仍为 `midscene-node-spec.md`。文件写入指定目录；省略目录时写入当前目录。在 `package.json` 所在目录运行命令即可将说明书保存在该目录。Project name 重复，或转换后的文件名冲突（包括大小写差异），都会在写入任何文件之前抛错。
 
 生成命令只加载项目配置和 Node 定义，不执行 setup、用例或 `getAgent`，因此不需要启动浏览器、连接设备或调用模型。说明书是生成文件，不要手动编辑；配置变化后重新执行命令。
 

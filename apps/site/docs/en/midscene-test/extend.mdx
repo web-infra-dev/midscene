@@ -74,7 +74,7 @@ After saving the configuration, generate the Node Spec:
 pnpm exec midscene-test nodes
 ```
 
-The command loads the project configuration and writes `midscene-node-reference.md` to the current directory. Check that the Spec includes:
+The command loads the project configuration and writes `midscene-node-spec.md` to the current directory. When `projects` is declared, it generates `midscene-node-spec.<project-name>.md` for each Project instead. Check that the Spec includes:
 
 - `user.create` in the available Nodes.
 - The description “Create a test user fixture.”
