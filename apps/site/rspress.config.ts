@@ -51,8 +51,8 @@ export default defineConfig(async () => {
     description: 'AI-powered, vision-driven UI automation for every platform.',
     icon: '/favicon.png',
     logo: {
-      light: '/midscene_with_text_light.png',
-      dark: '/midscene_with_text_dark.png',
+      light: '/images/brand/midscene_with_text_light.png',
+      dark: '/images/brand/midscene_with_text_dark.png',
     },
     head: [
       [

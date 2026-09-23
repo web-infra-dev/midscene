@@ -131,7 +131,7 @@ function BenchmarkLinkCard({
       <div className="home-benchmark-card__visual">
         <img
           className="home-benchmark-card__mark"
-          src="/midscene-icon.png"
+          src="/images/brand/midscene-icon.png"
           alt=""
           aria-hidden="true"
         />

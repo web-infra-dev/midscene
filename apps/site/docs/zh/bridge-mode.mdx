@@ -8,7 +8,7 @@ Midscene Chrome 插件的桥接模式允许你使用本地脚本来控制桌面�
 
 这种方式能复用本地浏览器的 cookies、插件和页面状态，与自动化脚本协作完成任务；在自动化领域也被称作 “man-in-the-loop”。
 
-![bridge mode](/midscene-bridge-mode.png)
+![bridge mode](/images/midscene-bridge-mode.png)
 
 :::info 演示项目
 
@@ -74,7 +74,7 @@ tsx demo-new-tab.ts
 脚本运行后，Chrome 扩展会弹出一个确认窗口，询问是否允许连接。点击 "Allow" 允许本次连接，或点击 "Always Allow" 以后自动允许所有连接请求（可在 Bridge Mode 面板中重置）。确认后你会看到桌面 Chrome 打开一个新标签页并交由脚本控制。
 
 <p align="center">
-  <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
+  <img src="/images/bridge_in_extension.png" alt="bridge in extension" width="400"/>
 </p>
 
 :::info
@@ -142,7 +142,7 @@ const agent = new AgentOverChromeBridge({
 3. 运行脚本后，在弹出的确认窗口中点击 "Allow" 即可
 
 <p align="center">
-  <img src="/bridge_remote_config.png" alt="bridge remote config" width="400"/>
+  <img src="/images/bridge_remote_config.png" alt="bridge remote config" width="400"/>
 </p>
 
 :::warning 安全提示
