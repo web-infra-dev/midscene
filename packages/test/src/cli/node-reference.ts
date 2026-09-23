@@ -199,7 +199,14 @@ export const renderNodeReference = (
   const sections = [
     GENERATED_COMMENT,
     '# Midscene Test Node Reference',
-    'This document describes the nodes registered by the current Test Project.',
+    'This document describes the Nodes available in YAML test files (`.yaml` or `.yml`) for the Midscene Test framework (`@midscene/test`). It lists the Nodes registered by the current Test Project, their inputs, and how to call them in test steps and lifecycle hooks.',
+    [
+      'Learn about the framework and YAML test authoring:',
+      '',
+      '- [Midscene Test overview](https://midscenejs.com/midscene-test/overview): framework concepts and the role of Nodes.',
+      '- [Create and use test projects](https://midscenejs.com/midscene-test/use): write YAML cases, run tests, and inspect results.',
+      '- [Configure test projects](https://midscenejs.com/midscene-test/configuration): register Nodes, select case files, and manage runtime resources.',
+    ].join('\n'),
     renderNodeOverview(sortedNodes),
     renderWorkflowLocations(location),
     WORKFLOW_STEP_CONTRACT,

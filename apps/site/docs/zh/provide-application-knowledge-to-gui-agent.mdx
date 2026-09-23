@@ -115,6 +115,63 @@ await agent.aiAct('筛选近一年上市的新能源 MPV，并应用 10–40 万
 
 这两次调用都会使用 `appContext`，无需在每条提示词中重复相同知识。这里的“全局”仅作用于当前 Agent 的 `aiAct` 调用。
 
+#### 在 @midscene/test 中配置
+
+使用 `@midscene/test` 时，在 `midscene.config.ts` 的 `setup` 中创建 Agent，并通过 `aiContexts.aiAct` 传入应用知识，再将该 Agent 提供给 `createMidsceneNodes`。下面沿用 Android 示例，将 `deviceId` 替换为已连接的设备 ID，并确保 App 已打开到首页：
+
+```ts filename=midscene.config.ts
+import { AndroidAgent, agentFromAdbDevice } from '@midscene/android';
+import { defineProjectSetup, defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+interface ProjectContext {
+  agent: AndroidAgent;
+}
+
+const deviceId = 'YOUR_DEVICE_ID';
+const appContext = `
+  首页上方快捷入口区域有“排行榜”入口，进入后可以切换到“降价榜”。
+  自定义价格支持点击刻度设置，调整后需要点击面板底部的结果按钮才会应用。
+`;
+
+const androidSetup = defineProjectSetup<ProjectContext>({
+  name: 'android',
+  async setup({ onTeardown }) {
+    const agent = await agentFromAdbDevice(deviceId, {
+      aiContexts: { aiAct: appContext },
+    });
+    onTeardown(() => agent.destroy());
+    return { agent };
+  },
+});
+
+export default defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'android',
+      setup: androidSetup,
+      files: { include: ['cases/**/*.yaml'] },
+    },
+  ],
+  nodes: createMidsceneNodes<ProjectContext>({
+    agentClass: AndroidAgent,
+    getAgent: ({ context }) => context.agent,
+  }),
+});
+```
+
+对应的 Case YAML 只需描述操作目标；使用这个 Agent 的 `aiAct` 步骤都会获得上面配置的应用知识：
+
+```yaml filename=cases/ranking.yaml
+cases:
+  - name: 筛选降价榜
+    steps:
+      - aiAct: 进入降价榜
+      - aiAct: 筛选近一年上市的新能源 MPV，并应用 10–40 万元自定义价格
+```
+
+`aiActContext` 是 `aiContexts.aiAct` 的旧名称，仍受支持，新配置请使用 `aiContexts.aiAct`。这里配置的是 Agent 的默认上下文，不是 Case YAML 的顶层字段；`setup` 返回的项目 `context` 则用于在 Node 之间共享 Agent 等资源，不会自动作为文本发送给模型。项目配置方式见 [Midscene Test 配置](./midscene-test/configuration)。
+
 ### 为单次 aiAct 调用传入 Context
 
 如果某段知识只适用于当前操作，可以在 `aiAct` 的第二个参数中设置 `context`。例如，已经进入降价榜后，为价格筛选单独提供交互规则：
@@ -127,6 +184,18 @@ await agent.aiAct('将价格范围设为 10–40 万元并应用筛选', {
     面板中的范围表示待确认的选择，筛选栏中的范围表示已应用的条件。
   `,
 });
+```
+
+在 `@midscene/test` 的 Case YAML 中，使用 `aiAct` 的对象写法，通过 `options.context` 传入单次调用的上下文：
+
+```yaml
+- aiAct:
+    prompt: 将价格范围设为 10–40 万元并应用筛选
+    options:
+      context: |
+        自定义价格支持点击刻度设置，先设置上限，再设置下限。
+        调整后需要点击面板底部的结果按钮才会应用。
+        面板中的范围表示待确认的选择，筛选栏中的范围表示已应用的条件。
 ```
 
 这份 Context 只用于本次调用，不会改变后续调用的默认上下文。如果同时配置了 `aiContexts.aiAct`，本次传入的 `context` 会覆盖它，不会自动合并。需要同时使用公共知识和本次操作的知识时，应先将两段文本拼接，再传给 `context`。
