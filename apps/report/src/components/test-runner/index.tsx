@@ -1,10 +1,6 @@
 import './index.less';
 import type { TestRunReportDump } from '@midscene/core';
-import {
-  Logo,
-  globalThemeConfig,
-  useGlobalPreference,
-} from '@midscene/visualizer';
+import { globalThemeConfig, useGlobalPreference } from '@midscene/visualizer';
 import { Alert, App as AntdApp, ConfigProvider, theme } from 'antd';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -15,6 +11,7 @@ import {
   type RunnerRoute,
   runnerHashForRoute,
 } from '../../utils/test-run-report';
+import { Logo } from '../logo';
 import { CaseWorkspace } from './case-workspace';
 import {
   type RunnerCaseView,

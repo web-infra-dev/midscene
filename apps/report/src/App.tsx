@@ -22,7 +22,6 @@ import {
 } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
-  Logo,
   Player,
   globalThemeConfig,
   useGlobalPreference,
@@ -31,6 +30,7 @@ import AgentScreenshotView from './components/agent-screenshot-view';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
+import { Logo } from './components/logo';
 import { useMarkdownScrollSync } from './components/markdown-scroll-sync';
 import Sidebar from './components/sidebar';
 import { type DumpStoreType, useExecutionDump } from './components/store';
