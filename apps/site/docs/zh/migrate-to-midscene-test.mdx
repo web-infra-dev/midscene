@@ -96,7 +96,7 @@ cases:
 
 ### flow 动作映射
 
-旧 runtime 会继续接受左侧字段，并在内部适配到共享内核；这种内部转换不是原生 Test 的输入契约。迁移文件时应改写为右侧的原生形式，并以 `midscene-node-reference.md` 中当前项目实际注册的 Node 为准。
+旧 runtime 会继续接受左侧字段，并在内部适配到共享内核；这种内部转换不是原生 Test 的输入契约。迁移文件时应改写为右侧的原生形式，并以 `midscene-node-spec.md` 中当前项目实际注册的 Node 为准。
 
 | 旧版 flow 字段 | 原生 Test Node / 输入 | 迁移说明 |
 | --- | --- | --- |
@@ -179,7 +179,7 @@ cases:
 5. `ai` 统一为 `aiAct`，`aiAssert.errorMessage` 改为 `aiAssert.message`。
 6. 固定等待改用原生通用 `wait` Node；报告标题与正文分别放入 `recordToReport.title` 和 `options.content`。
 
-这个例子只调整输入结构，没有改变业务执行顺序。实际迁移时应先运行 `pnpm exec midscene-test nodes --project <name>`，生成当前项目的 `midscene-node-reference.md`。以这份 Node 说明书为准确认 `gotoUrl`、`aiInput`、`aiWaitFor` 等 Node 是否可用以及参数如何填写，不要根据其他平台的示例推测。
+这个例子只调整输入结构，没有改变业务执行顺序。实际迁移时应先运行 `pnpm exec midscene-test nodes --project <name>`，生成当前项目的 `midscene-node-spec.<project-name>.md`。以这份 Node 说明书为准确认 `gotoUrl`、`aiInput`、`aiWaitFor` 等 Node 是否可用以及参数如何填写，不要根据其他平台的示例推测。
 
 ### 脚本和 Agent 配置映射
 

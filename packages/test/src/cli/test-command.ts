@@ -1,7 +1,7 @@
 import { existsSync, statSync, writeFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { version } from '../../package.json';
-import { renderNodeReference, sortNodesForReference } from './node-reference';
+import { renderNodeSpec, sortNodesForSpec } from './node-spec';
 import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
@@ -137,46 +137,66 @@ const runNodesCommand = async (
   if (selectedProjects.length === 0) {
     throw new Error(`Unknown Midscene project: ${projectName}`);
   }
-  const registry = selectedProjects[0].nodes;
-  if (
-    selectedProjects.some(
-      (candidate) =>
-        candidate.nodes.names().length !== registry.names().length ||
-        candidate.nodes
-          .definitions()
-          .some((node) => registry.get(node.name) !== node),
-    )
-  ) {
-    throw new Error(
-      'Projects have different Nodes. Use nodes --project <name> to select one.',
-    );
+  // Check every Project before writing, including when only one is selected.
+  const filenames = new Map<string, string>();
+  const owners = new Map<string, string>();
+  for (const executionProject of project.projects) {
+    const safeName = executionProject.name
+      .normalize('NFC')
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: filenames cannot contain control characters.
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
+      .replace(/[. ]+$/g, '-');
+    const filename = project.hasExplicitProjects
+      ? `midscene-node-spec.${safeName}.md`
+      : 'midscene-node-spec.md';
+    const key = filename.toLowerCase();
+    const owner = owners.get(key);
+    if (owner !== undefined) {
+      throw new Error(
+        `Projects "${owner}" and "${executionProject.name}" generate the same Node Spec filename: ${filename}`,
+      );
+    }
+    owners.set(key, executionProject.name);
+    filenames.set(executionProject.name, filename);
   }
-  const nodes = sortNodesForReference(registry.definitions());
-  const document = renderNodeReference(nodes, {
-    configPath: configPath
-      ? relative(configSearchRoot, configPath).split(sep).join('/')
-      : undefined,
-    projects: selectedProjects.map((executionProject) => ({
-      name: executionProject.name,
-      files: executionProject.files ?? DEFAULT_TEST_FILE_SELECTION,
-    })),
+  const specs = selectedProjects.map((executionProject) => {
+    const nodes = sortNodesForSpec(executionProject.nodes.definitions());
+    const document = renderNodeSpec(nodes, {
+      configPath: configPath
+        ? relative(configSearchRoot, configPath).split(sep).join('/')
+        : undefined,
+      projects: [
+        {
+          name: executionProject.name,
+          files: executionProject.files ?? DEFAULT_TEST_FILE_SELECTION,
+        },
+      ],
+    });
+    return { executionProject, nodes, document };
   });
-  for (const warning of document.warnings) {
-    io.error(`midscene-test nodes: ${warning}`);
-  }
-  const referencePath = resolve(configSearchRoot, 'midscene-node-reference.md');
-  writeFileSync(referencePath, document.markdown);
-  if (projectName) io.log(`Execution Project: ${projectName}`);
-  io.log(`Registered Nodes (${nodes.length}):`);
-  if (nodes.length === 0) {
-    io.log('No nodes are registered by the current Test Project.');
-  }
-  for (const node of nodes) {
-    io.log(
-      `- ${node.name}: ${node.description?.trim() || 'Description not declared.'}`,
+  for (const { executionProject, nodes, document } of specs) {
+    for (const warning of document.warnings) {
+      io.error(`midscene-test nodes: ${warning}`);
+    }
+    const specPath = resolve(
+      configSearchRoot,
+      filenames.get(executionProject.name)!,
     );
+    writeFileSync(specPath, document.markdown);
+    if (project.hasExplicitProjects || projectName) {
+      io.log(`Execution Project: ${executionProject.name}`);
+    }
+    io.log(`Registered Nodes (${nodes.length}):`);
+    if (nodes.length === 0) {
+      io.log('No nodes are registered by the current Test Project.');
+    }
+    for (const node of nodes) {
+      io.log(
+        `- ${node.name}: ${node.description?.trim() || 'Description not declared.'}`,
+      );
+    }
+    io.log(`\nNode Spec generated: ${specPath}`);
   }
-  io.log(`\nNode reference generated: ${referencePath}`);
 };
 
 export async function runTestCli(
