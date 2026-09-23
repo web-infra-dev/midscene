@@ -27,7 +27,6 @@ import {
 } from '../../utils/markdown-export';
 import {
   hasDeepLocateFlag,
-  hasDeepThinkFlag,
   hasObserverAssertionFlag,
 } from '../../utils/report-task-tags';
 import { anchorIdForTask } from '../../utils/task-anchor';
@@ -228,23 +227,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         }}
       >
         DeepLocate
-      </Tag>
-    ) : null;
-  };
-
-  const getDeepThinkTag = (task: ExecutionTask) => {
-    return hasDeepThinkFlag(task) ? (
-      <Tag
-        className="deepthink-tag"
-        bordered={false}
-        style={{
-          padding: '0 4px',
-          marginLeft: '4px',
-          marginRight: 0,
-          lineHeight: '16px',
-        }}
-      >
-        DeepThink
       </Tag>
     ) : null;
   };
@@ -573,7 +555,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             {getDomIncludedTag(task)}
             {getDeepLocateTag(task)}
             {getXPathTag(task)}
-            {getDeepThinkTag(task)}
             {getObservedTag(task)}
           </div>
         );
