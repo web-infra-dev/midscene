@@ -43,6 +43,7 @@ describe('iosPlaygroundPlatform session manager', () => {
     expect(setup?.fields).toMatchObject([
       { key: 'host', defaultValue: 'localhost' },
       { key: 'port', defaultValue: 8100 },
+      { key: 'baseUrl', required: false },
       { key: 'sessionId', required: false },
     ]);
 
@@ -63,6 +64,43 @@ describe('iosPlaygroundPlatform session manager', () => {
       wdaPort: 8100,
       sessionId: 'external-session-id',
     });
+  });
+
+  test('passes a normalized gateway base URL to the agent and session factory', async () => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+    const created = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/code/wda/',
+      port: 'invalid',
+    });
+    await created?.agentFactory?.();
+
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(1, {
+      wdaHost: 'localhost',
+      wdaPort: 8100,
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+    });
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, {
+      wdaHost: 'localhost',
+      wdaPort: 8100,
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+    });
+  });
+
+  test('does not expose a gateway path identifier in session metadata', async () => {
+    getConnectedDeviceInfoMock.mockResolvedValue(null);
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+    const created = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/secret-code/wda',
+    });
+
+    expect(created?.displayName).toBe('gateway.example (WDA gateway)');
+    expect(created?.metadata).toMatchObject({
+      wdaHost: 'gateway.example',
+      wdaPort: 443,
+    });
+    expect(JSON.stringify(created?.metadata)).not.toContain('secret-code');
   });
 
   test('reuses the agent factory for follow-up playground sessions', async () => {

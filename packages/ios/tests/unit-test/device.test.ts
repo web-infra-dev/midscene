@@ -147,6 +147,22 @@ describe('IOSDevice', () => {
         sessionId: 'external-session-id',
       });
     });
+
+    it('passes the full WDA base URL to requests and readiness checks', () => {
+      new IOSDevice({
+        wdaBaseUrl: 'https://gateway.example/code/wda',
+      });
+      expect(MockedWdaClient).toHaveBeenCalledWith({
+        port: DEFAULT_WDA_PORT,
+        host: 'localhost',
+        baseUrl: 'https://gateway.example/code/wda',
+      });
+      expect(MockedWdaManager.getInstance).toHaveBeenCalledWith(
+        DEFAULT_WDA_PORT,
+        'localhost',
+        'https://gateway.example/code/wda',
+      );
+    });
   });
 
   describe('Device Info', () => {

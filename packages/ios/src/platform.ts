@@ -9,6 +9,7 @@ import {
   PLAYGROUND_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
+import { normalizeWebDriverBaseUrl } from '@midscene/webdriver';
 import {
   type IOSAgent,
   type IOSAgentOpt,
@@ -93,6 +94,13 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
               placeholder: DEFAULT_WDA_PORT.toString(),
             },
             {
+              key: 'baseUrl',
+              label: 'WebDriverAgent base URL (optional)',
+              type: 'text',
+              required: false,
+              placeholder: 'https://gateway.example/device/wda',
+            },
+            {
               key: 'sessionId',
               label: 'WebDriverAgent session ID',
               type: 'text',
@@ -103,12 +111,17 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
         };
       },
       async createSession(input) {
+        const baseUrl =
+          typeof input?.baseUrl === 'string' && input.baseUrl.trim()
+            ? normalizeWebDriverBaseUrl(input.baseUrl.trim())
+            : undefined;
         const host =
           typeof input?.host === 'string' && input.host.trim()
             ? input.host.trim().replace(/^https?:\/\//, '')
             : 'localhost';
-        const port =
-          typeof input?.port === 'number'
+        const port = baseUrl
+          ? DEFAULT_WDA_PORT
+          : typeof input?.port === 'number'
             ? input.port
             : Number.parseInt(String(input?.port ?? DEFAULT_WDA_PORT), 10);
 
@@ -127,15 +140,19 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
             ...options?.getAgentOptions?.(),
             wdaHost: host,
             wdaPort: port,
+            ...(baseUrl ? { wdaBaseUrl: baseUrl } : {}),
             ...(sessionId ? { sessionId } : {}),
           });
         };
 
         const agent = await connectAgent();
         const deviceInfo = await agent.interface.getConnectedDeviceInfo?.();
+        const gatewayUrl = baseUrl ? new URL(baseUrl) : undefined;
         const displayName = deviceInfo
           ? `${deviceInfo.name} (${deviceInfo.model})`
-          : `${host}:${port}`;
+          : gatewayUrl
+            ? `${gatewayUrl.host} (WDA gateway)`
+            : `${host}:${port}`;
 
         return {
           agent,
@@ -145,8 +162,13 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
           }),
           displayName,
           metadata: {
-            wdaHost: host,
-            wdaPort: port,
+            wdaHost: gatewayUrl?.hostname ?? host,
+            wdaPort: gatewayUrl
+              ? Number(
+                  gatewayUrl.port ||
+                    (gatewayUrl.protocol === 'https:' ? 443 : 80),
+                )
+              : port,
             ...(sessionId ? { sessionId } : {}),
             ...(deviceInfo ? { deviceInfo } : {}),
           },

@@ -51,6 +51,7 @@ describe('IOSMidsceneTools', () => {
       ios: {
         'wda-host': '127.0.0.1',
         'wda-port': 8100,
+        'wda-base-url': 'https://gateway.example/code/wda',
         sessionId: 'external-session-id',
         waitAfterAction: 650,
         replanningCycleLimit: 12,
@@ -64,6 +65,7 @@ describe('IOSMidsceneTools', () => {
         autoDismissKeyboard: false,
         wdaHost: '127.0.0.1',
         wdaPort: 8100,
+        wdaBaseUrl: 'https://gateway.example/code/wda',
         sessionId: 'external-session-id',
         waitAfterAction: 650,
         replanningCycleLimit: 12,
@@ -104,6 +106,28 @@ describe('IOSMidsceneTools', () => {
     });
   });
 
+  it('keeps gateway path identifiers out of persisted report identities', async () => {
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+    const createReportSession = rs
+      .spyOn(tools as any, 'createNewCliReportSession')
+      .mockReturnValue({});
+    rs.spyOn(tools as any, 'commitCliReportSession').mockImplementation(
+      () => {},
+    );
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'ios_connect');
+    await connectTool?.handler({
+      ios: { wdaBaseUrl: 'https://gateway.example/secret-code/wda' },
+    });
+
+    const identity = createReportSession.mock.calls[0][0] as string;
+    expect(identity).toMatch(/^wda-[a-f0-9]{12}$/);
+    expect(identity).not.toContain('secret-code');
+  });
+
   it('exposes ios init args on action and common tool schemas', async () => {
     const tools = new IOSMidsceneTools();
     await tools.initTools();
@@ -119,6 +143,7 @@ describe('IOSMidsceneTools', () => {
       expect.objectContaining({
         'ios.wdaHost': expect.anything(),
         'ios.wdaPort': expect.anything(),
+        'ios.wdaBaseUrl': expect.anything(),
         'ios.sessionId': expect.anything(),
         'ios.waitAfterAction': expect.anything(),
         'ios.replanningCycleLimit': expect.anything(),
@@ -129,6 +154,7 @@ describe('IOSMidsceneTools', () => {
       expect.objectContaining({
         'ios.wdaHost': expect.anything(),
         'ios.wdaPort': expect.anything(),
+        'ios.wdaBaseUrl': expect.anything(),
         'ios.sessionId': expect.anything(),
         'ios.waitAfterAction': expect.anything(),
       }),

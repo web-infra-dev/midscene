@@ -233,6 +233,16 @@ const agent = await agentFromWebDriverAgent({
 iproxy 8100 8100 YOUR_DEVICE_ID
 ```
 
+如果网关把 WDA 放在带路径前缀的地址下，可以直接配置完整的 API 基地址：
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+});
+```
+
+Midscene 会在该地址后追加 `/status`、`/session` 和 session 内的接口路径。`wdaBaseUrl` 优先于 `wdaHost` 和 `wdaPort`。MJPEG 画面流仍使用独立的 `wdaMjpegPort` 配置。
+
 ### 如何在 Playground 中获得更流畅的实时画面？
 
 Playground 的画面预览支持两种模式：

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { z } from '@midscene/core';
 import {
   type AgentBehaviorInitArgs,
@@ -17,6 +18,12 @@ import { IOSDevice, type IOSDeviceOpt } from './device';
 const debug = getDebug('agent-tools:ios');
 
 const iosInitArgShape = {
+  wdaBaseUrl: z
+    .string()
+    .optional()
+    .describe(
+      'Full WebDriverAgent API base URL, including gateway path prefix',
+    ),
   wdaHost: z
     .string()
     .optional()
@@ -42,10 +49,22 @@ const iosInitArgShape = {
 type IOSInitArgs = AgentBehaviorInitArgs &
   Pick<
     IOSDeviceOpt,
-    'wdaHost' | 'wdaPort' | 'sessionId' | 'wdaMjpegPort' | 'wdaMjpegFrameSource'
+    | 'wdaBaseUrl'
+    | 'wdaHost'
+    | 'wdaPort'
+    | 'sessionId'
+    | 'wdaMjpegPort'
+    | 'wdaMjpegFrameSource'
   >;
 
 function getTargetIdentity(initArgs?: IOSInitArgs): string {
+  if (initArgs?.wdaBaseUrl) {
+    const fingerprint = createHash('sha256')
+      .update(`${initArgs.wdaBaseUrl}\0${initArgs.sessionId ?? ''}`)
+      .digest('hex')
+      .slice(0, 12);
+    return `wda-${fingerprint}`;
+  }
   if (initArgs?.wdaHost || initArgs?.wdaPort || initArgs?.sessionId) {
     const wdaHost = initArgs.wdaHost ?? 'localhost';
     const wdaPort = initArgs.wdaPort ?? 'default';
@@ -103,7 +122,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
       return this.agent;
     }
 
-    debug('Creating iOS agent with WebDriverAgent options:', opts || {});
+    debug('Creating iOS agent with WebDriverAgent options');
     const reportOptions = this.readCliReportAgentOptions();
     this.agent = await agentFromWebDriverAgent({
       autoDismissKeyboard: false,

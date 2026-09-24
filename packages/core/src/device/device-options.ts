@@ -199,6 +199,8 @@ export type IOSDeviceOpt = {
   wdaPort?: number;
   /** WebDriverAgent host (default: 'localhost') */
   wdaHost?: string;
+  /** Full WDA API base URL, including any gateway path prefix. Takes precedence over wdaHost/wdaPort. */
+  wdaBaseUrl?: string;
   /**
    * Existing WebDriverAgent session ID to reuse.
    * When provided, Midscene skips creating a new WDA session and does not delete

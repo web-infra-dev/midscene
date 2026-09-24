@@ -2499,6 +2499,7 @@ const device = new IOSDevice({
 
 - `wdaPort?: number` — WebDriverAgent port. Default: `8100`.
 - `wdaHost?: string` — WebDriverAgent host. Default: `'localhost'`.
+- `wdaBaseUrl?: string` — Full HTTP(S) WDA API base URL, including a gateway path prefix. Takes precedence over `wdaHost` and `wdaPort`.
 - `iOSDeviceClassOverride?: string` — Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
 - `sessionId?: string` — Existing WebDriverAgent session ID to reuse. When provided, Midscene skips creating a new WDA session. During cleanup, Midscene detaches from the externally supplied WebDriver session instead of deleting it.
 - `wdaMjpegPort?: number` — WDA MJPEG server port for real-time screen streaming. Default: `9100`.
@@ -2512,6 +2513,7 @@ const device = new IOSDevice({
 
 - Ensure Developer Mode is enabled and WDA can reach the device; use `iproxy` when forwarding ports from a real device.
 - Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
+- Use `wdaBaseUrl` when a gateway routes WDA through a path prefix; all WDA API requests and readiness checks use that prefix.
 - For multi-device concurrency, use distinct `wdaPort` and `wdaMjpegPort` values for each device so WDA commands and MJPEG streams do not conflict.
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
