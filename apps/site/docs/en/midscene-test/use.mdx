@@ -170,7 +170,9 @@ steps:
 
 ### Setting AI context
 
-Call `setAIContext` in `beforeAll` to configure context before the current document's cases run. It applies to subsequent calls on the same Agent. Its parameters match `agent.setAIContext(target, context)`: `target` is `default` or an AI API name such as `aiAct`, `aiTap`, or `aiAssert`.
+We recommend calling `setAIContext` in `beforeAll` so context is configured before the current document's cases run and applies to all subsequent relevant AI operations on the same Agent. You can also call it in `beforeEach` or a case's `steps` to set or clear context as needed; changes take effect from that point onward.
+
+Its parameters match `agent.setAIContext(target, context)`: `target` is `default` or an AI API name such as `aiAct`, `aiTap`, or `aiAssert`.
 
 **Set context**: provide a `context` string to configure guidance for the selected API. Use `target: default` to configure the shared fallback for all AI APIs.
 

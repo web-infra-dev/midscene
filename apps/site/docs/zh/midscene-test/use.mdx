@@ -170,7 +170,9 @@ steps:
 
 ### 设置 AI 上下文
 
-在 `beforeAll` 中调用 `setAIContext`，可以在当前文档的用例执行前配置上下文，配置对后续使用同一个 Agent 的调用生效。参数与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default` 或 `aiAct`、`aiTap`、`aiAssert` 等 AI API 名称。
+推荐在 `beforeAll` 中调用 `setAIContext`，这样可以在当前文档的用例执行前统一配置上下文，让配置对后续使用同一个 Agent 的所有相关 AI 操作生效。也可以在 `beforeEach` 或用例的 `steps` 中调用，按需设置或清除上下文；修改从调用时开始生效。
+
+参数与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default` 或 `aiAct`、`aiTap`、`aiAssert` 等 AI API 名称。
 
 **设置 context**：传入 `context` 字符串，设置对应 API 的上下文；使用 `target: default` 可以设置各 AI API 共用的默认上下文。
 
