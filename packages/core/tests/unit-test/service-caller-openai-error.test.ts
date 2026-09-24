@@ -327,6 +327,80 @@ describe('service-caller OpenAI error handling', () => {
     );
   });
 
+  it.each([
+    {
+      name: 'non-JSON response without choices',
+      contentType: 'application/octet-stream',
+      body: '\u001f\ufffd\bcompressed response',
+      error: 'invalid response from LLM service',
+    },
+    {
+      name: 'invalid JSON',
+      contentType: 'application/json',
+      body: '{invalid JSON',
+      error: 'JSON',
+    },
+    {
+      name: 'empty completion content',
+      contentType: 'application/json',
+      body: JSON.stringify({ choices: [{ message: { content: '' } }] }),
+      error: 'empty content from AI model',
+    },
+  ])(
+    'records HTTP 200 details for $name',
+    async ({ contentType, body, error }) => {
+      const events: Array<Record<string, unknown>> = [];
+      rs.resetModules();
+      rs.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
+        isModelCallRecordingEnabled: () => true,
+        recordModelCallEvent: (event: Record<string, unknown>) => {
+          events.push(event);
+        },
+      }));
+      const { callAI } = await import('@/ai-model/service-caller');
+      const { getModelRuntime } = await import('@/ai-model/models');
+      const actualOpenAI =
+        await rs.importActual<typeof import('openai')>('openai');
+      mockOpenAIConstructor.mockImplementationOnce(
+        (options) => new actualOpenAI.default(options),
+      );
+      // This is the response after Fetch processing, not raw network bytes.
+      globalThis.fetch = rs.fn().mockResolvedValue(
+        new Response(body, {
+          status: 200,
+          headers: {
+            'content-type': contentType,
+            'content-encoding': 'gzip',
+            'x-request-id': 'req_parse_failure',
+          },
+        }),
+      );
+
+      await expect(
+        callAI(
+          [{ role: 'user', content: 'hello' }],
+          getModelRuntime(baseConfig()),
+        ),
+      ).rejects.toThrow(error);
+
+      expect(events.map((event) => event.type)).toEqual(['request', 'error']);
+      expect(events[1]).toMatchObject({
+        status: 200,
+        ok: true,
+        body,
+        headers: expect.arrayContaining([
+          ['content-type', contentType],
+          ['content-encoding', 'gzip'],
+          ['x-request-id', 'req_parse_failure'],
+        ]),
+        error: expect.stringContaining(error),
+        attempt: 1,
+        executionId: events[0].executionId,
+        callId: events[0].callId,
+      });
+    },
+  );
+
   it('uses the successful retry attempt for the final record', async () => {
     const events: Array<Record<string, unknown>> = [];
     rs.resetModules();
