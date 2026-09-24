@@ -428,6 +428,33 @@ describe('image utils', () => {
     expect(locatorBlueCalloutPixels).toBeGreaterThan(20);
   });
 
+  it.each(['png', 'jpeg', 'webp'] as const)(
+    'preserves aligned %s bytes unless output conversion is explicitly requested',
+    async (format) => {
+      const bytes = await sharp({
+        create: {
+          width: 28,
+          height: 28,
+          channels: 4,
+          background: { r: 50, g: 100, b: 200, alpha: 0.3 },
+        },
+      })
+        .toFormat(format)
+        .toBuffer();
+      const input = createImgBase64ByFormat(format, bytes.toString('base64'));
+      expect((await paddingToMatchBlockByBase64(input)).imageBase64).toBe(
+        input,
+      );
+      const converted = await paddingToMatchBlockByBase64(input, 28, 'jpeg');
+      expect(converted.imageBase64).toMatch(/^data:image\/jpeg;base64,/);
+      if (format === 'jpeg') expect(converted.imageBase64).toBe(input);
+      const metadata = await sharp(
+        Buffer.from(converted.imageBase64.split(',')[1], 'base64'),
+      ).metadata();
+      expect([metadata.width, metadata.height]).toEqual([28, 28]);
+    },
+  );
+
   it('paddingToMatchBlockByBase64', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = localImg2Base64(image);

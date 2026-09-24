@@ -2,6 +2,7 @@ import {
   EncodedImage,
   convertImgBufferToJpeg,
   cropByRect,
+  planImageTransform,
   resizeAndConvertImgBuffer,
   scaleImage,
   transformImage,
@@ -25,6 +26,24 @@ async function fixture(format: 'png' | 'jpeg' | 'webp') {
 }
 
 describe('encoded image pipeline', () => {
+  it('plans ordered dimensions and removes no-ops without encoding', async () => {
+    const source = await fixture('png');
+    const plan = planImageTransform(source, [
+      { type: 'resize', width: 12, height: 8 },
+      { type: 'crop', rect: { left: 1, top: 2, width: 4, height: 3 } },
+      { type: 'resize', width: 8, height: 6 },
+      { type: 'pad', right: 2, bottom: 1 },
+    ]);
+    expect(plan.size).toEqual({ width: 10, height: 7 });
+    expect(plan.operations).toHaveLength(3);
+    expect(source.size).toEqual({ width: 12, height: 8 });
+    expect((await transformImage(source, plan)).size).toEqual(plan.size);
+    expect(() =>
+      planImageTransform(source, [
+        { type: 'crop', rect: { left: 10, top: 0, width: 4, height: 3 } },
+      ]),
+    ).toThrow('Crop rectangle must be inside the image');
+  });
   it('retains legacy Node cover resizing while the coordinate pipeline uses fill', async () => {
     const pixels = Buffer.from(
       Array.from({ length: 12 * 8 * 3 }, (_, index) => (index * 37) % 256),

@@ -28,7 +28,7 @@ describe('Photon pipeline ownership', () => {
     rs.clearAllMocks();
     mocks.load.mockResolvedValue({
       PhotonImage: { new_from_byteslice: () => mocks.input },
-      SamplingFilter: { Nearest: 0, CatmullRom: 1 },
+      SamplingFilter: { Nearest: 0, CatmullRom: 1, Lanczos3: 2 },
       resize: mocks.resize,
       crop: mocks.crop,
       padding_right: mocks.padding_right,
@@ -40,6 +40,26 @@ describe('Photon pipeline ownership', () => {
     mocks.encode.mockReturnValue(new Uint8Array([1]));
     mocks.input.get_bytes_jpeg = mocks.encode;
   });
+
+  it.each([
+    ['nearest', 0],
+    ['lanczos3', 2],
+    [undefined, 1],
+  ] as const)(
+    'honors kernel %s without changing the legacy default',
+    async (kernel, filter) => {
+      mocks.resize.mockReturnValue({
+        free: rs.fn(),
+        get_bytes_jpeg: mocks.encode,
+      });
+      await executeImageTransform(
+        EncodedImage.fromBase64(png),
+        [{ type: 'resize', width: 2, height: 2, kernel }],
+        { format: 'jpeg', quality: 90 },
+      );
+      expect(mocks.resize).toHaveBeenCalledWith(mocks.input, 2, 2, filter);
+    },
+  );
 
   it('releases every replaced image and encodes only the final image', async () => {
     const cropped = { free: rs.fn() };

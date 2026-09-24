@@ -70,6 +70,7 @@ export {
 export { EncodedImage } from './encoded-image';
 export {
   transformImage,
+  planImageTransform,
   type ImageOperation,
   type ImageOutputOptions,
   type ImageTransformOptions,

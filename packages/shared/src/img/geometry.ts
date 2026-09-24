@@ -37,10 +37,11 @@ export function zoomForGPT4o(originalWidth: number, originalHeight: number) {
   };
 }
 
+/** Omitted output preserves an already aligned image; actual padding defaults to JPEG. */
 export async function paddingToMatchBlockByBase64(
   imageBase64: string,
   blockSize = 28,
-  outputFormat: ScreenshotImageOutputFormat = 'jpeg',
+  outputFormat?: ScreenshotImageOutputFormat,
 ): Promise<{ width: number; height: number; imageBase64: string }> {
   if (!Number.isSafeInteger(blockSize) || blockSize <= 0) {
     throw new Error('blockSize must be a positive safe integer');
@@ -57,24 +58,25 @@ export async function paddingToMatchBlockByBase64(
   if (
     width === size.width &&
     height === size.height &&
-    format === outputFormat
+    (outputFormat === undefined || format === outputFormat)
   ) {
     return {
       width,
       height,
-      imageBase64: createImgBase64ByFormat(format, body),
+      imageBase64,
     };
   }
+  const resolvedOutput = outputFormat ?? 'jpeg';
   const result = await backend.transform(
     { bytes, format },
     [{ type: 'pad', right: width - size.width, bottom: height - size.height }],
-    screenshotEncodeOptions(outputFormat),
+    screenshotEncodeOptions(resolvedOutput),
   );
   return {
     width,
     height,
     imageBase64: createImgBase64ByFormat(
-      outputFormat,
+      resolvedOutput,
       Buffer.from(result).toString('base64'),
     ),
   };

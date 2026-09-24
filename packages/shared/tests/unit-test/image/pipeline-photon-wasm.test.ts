@@ -2,20 +2,60 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { executeImageTransform } from '@/img/backends/photon';
 import { EncodedImage } from '@/img/encoded-image';
-import { describe, expect, it, rs } from '@rstest/core';
+import { beforeAll, describe, expect, it, rs } from '@rstest/core';
 import * as photon from '@silvia-odwyer/photon/photon_rs.js';
 import sharp from 'sharp';
 
 rs.mock('@/img/get-photon', () => ({ default: async () => photon }));
 
 describe('Photon backend with real WASM', () => {
-  it('executes crop, resize, two-sided padding and overlay with valid ownership', async () => {
+  beforeAll(() => {
     const require = createRequire(import.meta.url);
     photon.initSync({
       module: readFileSync(
         require.resolve('@silvia-odwyer/photon/photon_rs_bg.wasm'),
       ),
     });
+  });
+
+  it('uses real Lanczos3 when explicitly requested', async () => {
+    const pixels = Buffer.from(
+      Array.from(
+        { length: 16 * 16 * 3 },
+        (_, i) => (i * 73 + (i % 17) * 11) % 256,
+      ),
+    );
+    const input = EncodedImage.fromBytes(
+      await sharp(pixels, {
+        raw: { width: 16, height: 16, channels: 3 },
+      })
+        .png()
+        .toBuffer(),
+    );
+    const actual = await executeImageTransform(
+      input,
+      [{ type: 'resize', width: 7, height: 7, kernel: 'lanczos3' }],
+      { format: 'png' },
+    );
+    const original = photon.PhotonImage.new_from_byteslice(input.bytes);
+    try {
+      const expected = photon.resize(
+        original,
+        7,
+        7,
+        photon.SamplingFilter.Lanczos3,
+      );
+      try {
+        expect(Buffer.from(actual)).toEqual(Buffer.from(expected.get_bytes()));
+      } finally {
+        expected.free();
+      }
+    } finally {
+      original.free();
+    }
+  });
+
+  it('executes crop, resize, two-sided padding and overlay with valid ownership', async () => {
     const input = EncodedImage.fromBytes(
       await sharp({
         create: { width: 8, height: 6, channels: 4, background: '#ffffff' },

@@ -41,7 +41,9 @@ export async function executeImageTransform(
               op.height,
               op.kernel === 'nearest'
                 ? photon.SamplingFilter.Nearest
-                : photon.SamplingFilter.CatmullRom,
+                : op.kernel === 'lanczos3'
+                  ? photon.SamplingFilter.Lanczos3
+                  : photon.SamplingFilter.CatmullRom,
             ),
           );
           break;

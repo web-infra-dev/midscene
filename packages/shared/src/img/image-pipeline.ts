@@ -38,8 +38,8 @@ function assertSize(size: Size) {
   }
 }
 
-/** Validate once, before either backend allocates pixel resources. */
-function prepareOperations(
+/** Validate geometry and derive output dimensions without decoding or encoding pixels. */
+export function planImageTransform(
   image: EncodedImage,
   operations: readonly ImageOperation[],
 ) {
@@ -97,7 +97,7 @@ function prepareOperations(
         throw new Error('Unsupported image operation');
     }
   }
-  return prepared;
+  return { operations: prepared, size: { ...size } };
 }
 
 /**
@@ -118,7 +118,7 @@ export async function transformImage(
     });
   }
   const operations = options.operations?.length
-    ? prepareOperations(image, options.operations)
+    ? planImageTransform(image, options.operations).operations
     : [];
   if (!operations.length && (!output || output.format === image.format))
     return image;
