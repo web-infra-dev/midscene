@@ -32,7 +32,7 @@ export async function AiLocateElement(
 
   const { context } = locateOptions;
   const locateImage = locateOptions.searchConfig?.image ?? {
-    imageBase64: context.screenshot.base64,
+    image: context.screenshot.image,
     width: context.shotSize.width,
     height: context.shotSize.height,
   };

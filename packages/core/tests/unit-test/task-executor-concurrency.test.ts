@@ -254,6 +254,8 @@ describe('TaskExecutor concurrency isolation', () => {
 
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     expect(standardPlan).toHaveBeenCalledTimes(2);
+    const firstPreparedPrompt = rs.mocked(standardPlan).mock.calls[0][0];
+    expect(rs.mocked(standardPlan).mock.calls[1][0]).toBe(firstPreparedPrompt);
     expect(standardPlan).toHaveBeenNthCalledWith(
       2,
       {
@@ -261,7 +263,7 @@ describe('TaskExecutor concurrency isolation', () => {
         referenceImages: [
           {
             name: 'reference',
-            url: validBase64Image,
+            url: expect.stringMatching(/^data:image\/webp;base64,/),
           },
         ],
       },

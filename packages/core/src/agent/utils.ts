@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { PixelLocateResult } from '@/ai-model/shared/model-locate-result';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
-import type { AbstractInterface } from '@/device';
+import { type AbstractInterface, captureDeviceScreenshot } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type {
   DetailedLocateParam,
@@ -18,10 +18,6 @@ import {
   MIDSCENE_REPORT_QUIET,
   globalConfigManager,
 } from '@midscene/shared/env';
-import {
-  imageInfoOfBase64,
-  normalizeScreenshotBase64,
-} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, ifInBrowser, logMsg } from '@midscene/shared/utils';
@@ -100,13 +96,12 @@ export async function commonContextParser(
 
   debug(`size: ${logicalWidth}x${logicalHeight}`);
 
-  const screenshotBase64 = await interfaceInstance.screenshotBase64();
+  const screenshot = await captureDeviceScreenshot(interfaceInstance);
   const screenshotCapturedAt = Date.now();
-  assert(screenshotBase64!, 'screenshotBase64 is required');
   const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
 
   debug('will get screenshot dimensions');
-  const preparedScreenshot = await prepareRawScreenshot(screenshotBase64, {
+  const preparedScreenshot = await prepareRawScreenshot(screenshot, {
     shrinkFactor: userShrinkFactor,
   });
   const { width: imgWidth, height: imgHeight } =
@@ -146,8 +141,8 @@ export async function commonContextParser(
   return {
     shotSize: preparedScreenshot.shotSize,
     deprecatedDpr: dpr,
-    screenshot: ScreenshotItem.create(
-      preparedScreenshot.base64,
+    screenshot: ScreenshotItem.fromImage(
+      preparedScreenshot.image,
       screenshotCapturedAt,
     ),
     shrunkShotToLogicalRatio,
@@ -160,11 +155,8 @@ export async function createScreenshotBoundUIContext(
     screenshotSize?: Size;
   },
 ): Promise<UIContext> {
-  const normalizedScreenshotBase64 =
-    normalizeScreenshotBase64(screenshotBase64);
-  const actualScreenshotSize = await imageInfoOfBase64(
-    normalizedScreenshotBase64,
-  );
+  const preparedScreenshot = await prepareRawScreenshot(screenshotBase64);
+  const actualScreenshotSize = preparedScreenshot.originalSize;
   if (
     opt.screenshotSize &&
     (opt.screenshotSize.width !== actualScreenshotSize.width ||
@@ -180,8 +172,8 @@ export async function createScreenshotBoundUIContext(
   }
 
   return {
-    screenshot: ScreenshotItem.create(normalizedScreenshotBase64, Date.now()),
-    shotSize: actualScreenshotSize,
+    screenshot: ScreenshotItem.fromImage(preparedScreenshot.image, Date.now()),
+    shotSize: preparedScreenshot.shotSize,
     shrunkShotToLogicalRatio: 1,
     _isFrozen: true,
   };

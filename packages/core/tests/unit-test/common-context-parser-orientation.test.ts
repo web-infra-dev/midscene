@@ -2,22 +2,21 @@ import { commonContextParser } from '@/agent/utils';
 import type { AbstractInterface } from '@/device';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-import * as imgActual from '@midscene/shared/img' with {
-  rstest: 'importActual',
-};
-
-// Mock imageInfoOfBase64 to control screenshot dimensions
-rs.mock('@midscene/shared/img', () => ({
-  ...imgActual,
-  imageInfoOfBase64: rs.fn(),
-  resizeBase64ImageToJpeg: rs
-    .fn()
-    .mockResolvedValue('data:image/jpeg;base64,/9j/4AAQ'),
-}));
-
 import { imageInfoOfBase64 } from '@midscene/shared/img';
-
-const mockedImageInfo = rs.mocked(imageInfoOfBase64);
+import sharp from 'sharp';
+async function setScreenshot(
+  device: AbstractInterface,
+  size: { width: number; height: number },
+) {
+  const bytes = await sharp({
+    create: { ...size, channels: 3, background: '#fff' },
+  })
+    .png()
+    .toBuffer();
+  rs.mocked(device.screenshotBase64).mockResolvedValue(
+    `data:image/png;base64,${bytes.toString('base64')}`,
+  );
+}
 
 function createMockInterface(
   logicalWidth: number,
@@ -44,7 +43,7 @@ describe('commonContextParser orientation mismatch detection', () => {
     // Logical: 360x720 (portrait), Screenshot: 1080x2160 (portrait)
     // Expected dpr = 1080/360 = 3
     const mockInterface = createMockInterface(360, 720);
-    mockedImageInfo.mockResolvedValue({ width: 1080, height: 2160 });
+    await setScreenshot(mockInterface, { width: 1080, height: 2160 });
 
     const result = await commonContextParser(mockInterface, {});
 
@@ -57,7 +56,7 @@ describe('commonContextParser orientation mismatch detection', () => {
     // Logical: 720x360 (landscape), Screenshot: 2160x1080 (landscape)
     // Expected dpr = 2160/720 = 3
     const mockInterface = createMockInterface(720, 360);
-    mockedImageInfo.mockResolvedValue({ width: 2160, height: 1080 });
+    await setScreenshot(mockInterface, { width: 2160, height: 1080 });
 
     const result = await commonContextParser(mockInterface, {});
 
@@ -71,7 +70,7 @@ describe('commonContextParser orientation mismatch detection', () => {
     // Without fix: dpr = 1972/359 = 5.49 (WRONG)
     // With fix: swap to 717x359, dpr = 1972/717 ≈ 2.75 (CORRECT)
     const mockInterface = createMockInterface(359, 717);
-    mockedImageInfo.mockResolvedValue({ width: 1972, height: 988 });
+    await setScreenshot(mockInterface, { width: 1972, height: 988 });
 
     const result = await commonContextParser(mockInterface, {});
 
@@ -84,7 +83,7 @@ describe('commonContextParser orientation mismatch detection', () => {
   it('should swap logical dimensions when orientation mismatches (logical landscape but screenshot portrait)', async () => {
     // Reverse scenario: size() returns landscape but screenshot is portrait
     const mockInterface = createMockInterface(717, 359);
-    mockedImageInfo.mockResolvedValue({ width: 988, height: 1972 });
+    await setScreenshot(mockInterface, { width: 988, height: 1972 });
 
     const result = await commonContextParser(mockInterface, {});
 
@@ -96,7 +95,7 @@ describe('commonContextParser orientation mismatch detection', () => {
   it('should not swap dimensions for square screenshots', async () => {
     // Square screenshot should not trigger swap
     const mockInterface = createMockInterface(400, 400);
-    mockedImageInfo.mockResolvedValue({ width: 1200, height: 1200 });
+    await setScreenshot(mockInterface, { width: 1200, height: 1200 });
 
     const result = await commonContextParser(mockInterface, {});
 
@@ -106,7 +105,7 @@ describe('commonContextParser orientation mismatch detection', () => {
   it('should handle shrink factor correctly with orientation mismatch', async () => {
     // Orientation mismatch + shrink factor
     const mockInterface = createMockInterface(359, 717);
-    mockedImageInfo.mockResolvedValue({ width: 1972, height: 988 });
+    await setScreenshot(mockInterface, { width: 1972, height: 988 });
 
     const result = await commonContextParser(mockInterface, {
       screenshotShrinkFactor: 2,

@@ -14,6 +14,7 @@ import {
 import { mergeSearchAreaResults } from '@/ai-model/workflows/grounding/search-area';
 import type { SearchAreaConfig } from '@/ai-model/workflows/grounding/types';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
+import { prepareContextImage } from '@/image-output';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -30,10 +31,9 @@ import type {
 } from '@/types';
 import { ServiceError } from '@/types';
 import {
-  compositeElementInfoImg,
-  compositePointMarkerImg,
-  cropByRect,
-  resizeBase64ImageToJpeg,
+  type ImageOperation,
+  createElementOverlay,
+  createPointOverlay,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -446,8 +446,7 @@ export default class Service {
     assert(target, 'target is required for service.describe');
     const context = opt?.context || (await this.contextRetrieverFn());
     const { shotSize } = context;
-    const screenshotBase64 = context.screenshot.base64;
-    assert(screenshotBase64, 'screenshot is required for service.describe');
+    assert(context.screenshot, 'screenshot is required for service.describe');
     const systemPrompt = elementDescriberInstruction();
 
     // Convert [x,y] center point to Rect if needed
@@ -468,24 +467,24 @@ export default class Service {
         }
       : undefined;
 
-    const usePointMarker = targetFromPoint;
-    const imagePayload = usePointMarker
-      ? await compositePointMarkerImg({
-          inputImgBase64: screenshotBase64,
-          size: shotSize,
-          point: targetPoint!,
-        })
-      : await compositeElementInfoImg({
-          inputImgBase64: screenshotBase64,
-          size: shotSize,
-          elementsPositionInfo: [
-            {
-              rect: getDescribeMarkerRect(targetRect),
-            },
-          ],
-          borderThickness: getDescribeMarkerBorderThickness(targetRect),
-          centerPoint: true,
-        });
+    const marker = async (
+      size: { width: number; height: number },
+      rect: Rect,
+      point?: { x: number; y: number },
+    ): Promise<ImageOperation> =>
+      point
+        ? createPointOverlay({ ...size, point })
+        : createElementOverlay({
+            ...size,
+            elementsPositionInfo: [{ rect: getDescribeMarkerRect(rect) }],
+            borderThickness: getDescribeMarkerBorderThickness(rect),
+            centerPoint: true,
+          });
+    const imagePayload = (
+      await prepareContextImage(context, [
+        await marker(shotSize, targetRect, targetPoint),
+      ])
+    ).toBase64();
 
     const shouldDeepDescribe = opt?.deepDescribe;
     let imageContent: ChatCompletionContentPart[];
@@ -493,43 +492,25 @@ export default class Service {
       const contextAreas = getDescribeDeepContextAreas(targetRect, shotSize);
       const contextImages = await Promise.all(
         contextAreas.map(async (area) => {
-          debug('describe: cropping deep context area', area);
-          const croppedResult = await cropByRect(screenshotBase64, area.rect);
-          const cropSize = {
-            width: croppedResult.width,
-            height: croppedResult.height,
-          };
+          const cropSize = { width: area.rect.width, height: area.rect.height };
           const targetInCrop = getRectInCrop(targetRect, area.rect, cropSize);
-          const markedCropPayload = targetFromPoint
-            ? await compositePointMarkerImg({
-                inputImgBase64: croppedResult.imageBase64,
-                size: cropSize,
-                point: {
-                  x: targetPoint!.x - area.rect.left,
-                  y: targetPoint!.y - area.rect.top,
-                },
-              })
-            : await compositeElementInfoImg({
-                inputImgBase64: croppedResult.imageBase64,
-                size: cropSize,
-                elementsPositionInfo: [
-                  {
-                    rect: getDescribeMarkerRect(targetInCrop),
-                  },
-                ],
-                borderThickness: getDescribeMarkerBorderThickness(targetInCrop),
-                centerPoint: true,
-              });
-          const resizeSize = getDescribeDeepLocateResizeSize(croppedResult);
-          return {
-            kind: area.kind,
-            imageBase64: resizeSize
-              ? await resizeBase64ImageToJpeg(markedCropPayload, {
-                  sourceSize: cropSize,
-                  targetSize: resizeSize,
-                })
-              : markedCropPayload,
-          };
+          const operations: ImageOperation[] = [
+            { type: 'crop', rect: area.rect },
+            await marker(
+              cropSize,
+              targetInCrop,
+              targetPoint
+                ? {
+                    x: targetPoint.x - area.rect.left,
+                    y: targetPoint.y - area.rect.top,
+                  }
+                : undefined,
+            ),
+          ];
+          const resizeSize = getDescribeDeepLocateResizeSize(cropSize);
+          if (resizeSize) operations.push({ type: 'resize', ...resizeSize });
+          const image = await prepareContextImage(context, operations);
+          return { kind: area.kind, imageBase64: image.toBase64() };
         }),
       );
       const contextImageContent =

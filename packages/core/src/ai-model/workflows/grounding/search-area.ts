@@ -1,5 +1,4 @@
 import type { Rect, Size, UIContext } from '@/types';
-import { cropByRect, scaleImage } from '@midscene/shared/img';
 import type { PixelLocateResult } from '../../shared/model-locate-result';
 import type { SearchAreaConfig } from './types';
 
@@ -98,18 +97,29 @@ export async function buildSearchAreaConfig(options: {
   const scaleRatio = 2;
   const sectionRect = expandSearchArea(baseRect, context.shotSize);
 
-  const croppedResult = await cropByRect(
-    context.screenshot.base64,
-    sectionRect,
-  );
-
-  const scaledResult = await scaleImage(croppedResult.imageBase64, scaleRatio);
+  const left = Math.trunc(sectionRect.left);
+  const top = Math.trunc(sectionRect.top);
+  const rect = {
+    left,
+    top,
+    width: Math.trunc(sectionRect.left + sectionRect.width) - left,
+    height: Math.trunc(sectionRect.top + sectionRect.height) - top,
+  };
   return {
     sourceRect: sectionRect,
     image: {
-      imageBase64: scaledResult.imageBase64,
-      width: scaledResult.width,
-      height: scaledResult.height,
+      image: context.screenshot.image,
+      operations: [
+        { type: 'resize', ...context.shotSize },
+        { type: 'crop', rect },
+        {
+          type: 'resize',
+          width: rect.width * scaleRatio,
+          height: rect.height * scaleRatio,
+        },
+      ],
+      width: rect.width * scaleRatio,
+      height: rect.height * scaleRatio,
     },
     mapping: {
       offset: {

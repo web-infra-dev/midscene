@@ -81,6 +81,7 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import {
+  captureDeviceScreenshot,
   defineActionRegisterFileChooserAccept,
   defineActionSleep,
 } from '../device';
@@ -673,7 +674,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           (await this.interface.openFrameSource?.()) ?? undefined,
         // Fallback single-frame capture. Deliberately bypasses getUIContext so
         // the observation loop never pollutes the TaskRunner context cache.
-        captureRawScreenshot: () => this.interface.screenshotBase64(),
+        captureRawScreenshot: () => captureDeviceScreenshot(this.interface),
         capturePreparedRepresentative: () => this.getUIContext('assert'),
         createInsight: (record) =>
           this.createInsight(() => uiContextFromObservationRecord(record)),
@@ -1771,9 +1772,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
     const screenshotInputs: RecordToReportScreenshot[] =
       customScreenshots ??
-      (hasScreenshotBase64
-        ? [{ base64: screenshotBase64 }]
-        : [{ base64: await this.interface.screenshotBase64() }]);
+      (hasScreenshotBase64 ? [{ base64: screenshotBase64 }] : []);
 
     // 1. build recorder
     const recorder: ExecutionRecorderItem[] = screenshotInputs.map(
@@ -1794,6 +1793,16 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         };
       },
     );
+    if (!hasScreenshots && !hasScreenshotBase64) {
+      recorder.push({
+        type: 'screenshot',
+        ts: now,
+        screenshot: ScreenshotItem.fromImage(
+          await captureDeviceScreenshot(this.interface),
+          now,
+        ),
+      });
+    }
     // 2. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
       taskId: uuid(),
@@ -1841,13 +1850,20 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const now = Date.now();
     const error = serializeError(opt.error);
     const recorder: ExecutionRecorderItem[] = [];
-    const base64 =
-      opt.screenshotBase64 ?? (await this.interface.screenshotBase64());
-    if (base64) {
+    const screenshot =
+      opt.screenshotBase64 !== undefined && opt.screenshotBase64 !== null
+        ? opt.screenshotBase64
+          ? ScreenshotItem.create(opt.screenshotBase64, now)
+          : undefined
+        : ScreenshotItem.fromImage(
+            await captureDeviceScreenshot(this.interface),
+            now,
+          );
+    if (screenshot) {
       recorder.push({
         type: 'screenshot',
         ts: now,
-        screenshot: ScreenshotItem.create(base64, now),
+        screenshot,
       });
     }
 
