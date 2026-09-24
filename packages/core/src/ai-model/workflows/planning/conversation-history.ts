@@ -1,13 +1,14 @@
-import type { SubGoal } from '@/types';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
+import type { RawAssistantOutput, SubGoal } from '@/types';
 import { buildSubGoalsText } from '../../prompt/planning/sub-goals-text';
+import type { ConversationEntry } from '../../service-caller/types';
 
 export interface ConversationHistoryOptions {
-  initialMessages?: ChatCompletionMessageParam[];
+  initialMessages?: ConversationEntry[];
 }
 
 export class ConversationHistory {
-  private readonly messages: ChatCompletionMessageParam[] = [];
+  private readonly messages: ConversationEntry[] = [];
   private subGoals: SubGoal[] = [];
   private memories: string[] = [];
   private historicalLogs: string[] = [];
@@ -27,15 +28,17 @@ export class ConversationHistory {
     }
   }
 
-  append(message: ChatCompletionMessageParam) {
-    this.messages.push(message);
+  appendMessage(message: ConversationMessage) {
+    this.messages.push({ type: 'input-message', message });
   }
 
-  seed(messages: ChatCompletionMessageParam[]) {
+  appendModelOutput(output: RawAssistantOutput) {
+    this.messages.push({ type: 'model-output', output });
+  }
+
+  seed(messages: ConversationEntry[]) {
     this.reset();
-    messages.forEach((message) => {
-      this.append(message);
-    });
+    this.messages.push(...messages);
   }
 
   reset() {
@@ -51,7 +54,7 @@ export class ConversationHistory {
    * @param maxImages - The maximum number of images to include in the snapshot. Undefined means no limit.
    * @returns The snapshot of the conversation history.
    */
-  snapshot(maxImages?: number): ChatCompletionMessageParam[] {
+  snapshot(maxImages?: number): ConversationEntry[] {
     if (maxImages === undefined) {
       return [...this.messages];
     }
@@ -61,8 +64,11 @@ export class ConversationHistory {
 
     // Traverse from the end to the beginning
     for (let i = clonedMessages.length - 1; i >= 0; i--) {
-      const message = clonedMessages[i];
-      const content = message.content;
+      const entry = clonedMessages[i];
+      if (entry.type !== 'input-message') {
+        continue;
+      }
+      const content = entry.message.content;
 
       // Only process if content is an array
       if (Array.isArray(content)) {
@@ -70,7 +76,7 @@ export class ConversationHistory {
           const item = content[j];
 
           // Check if this is an image
-          if (item.type === 'image_url') {
+          if (item.type === 'image') {
             imageCount++;
 
             // If we've exceeded the limit, replace with text
@@ -92,11 +98,11 @@ export class ConversationHistory {
     return this.messages.length;
   }
 
-  [Symbol.iterator](): IterableIterator<ChatCompletionMessageParam> {
+  [Symbol.iterator](): IterableIterator<ConversationEntry> {
     return this.messages[Symbol.iterator]();
   }
 
-  toJSON(): ChatCompletionMessageParam[] {
+  toJSON(): ConversationEntry[] {
     return this.snapshot();
   }
 
@@ -325,7 +331,7 @@ export class ConversationHistory {
     }
 
     const omittedCount = this.messages.length - keepCount;
-    const omittedPlaceholder: ChatCompletionMessageParam = {
+    const omittedPlaceholder: ConversationMessage = {
       role: 'user',
       content: `(${omittedCount} previous conversation messages have been omitted)`,
     };
@@ -335,7 +341,7 @@ export class ConversationHistory {
 
     // Reset and rebuild with placeholder + recent messages
     this.messages.length = 0;
-    this.messages.push(omittedPlaceholder);
+    this.appendMessage(omittedPlaceholder);
     for (const msg of recentMessages) {
       this.messages.push(msg);
     }

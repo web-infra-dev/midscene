@@ -9,9 +9,32 @@
 | 名称 | 描述 |
 |------|-------------|
 | `MIDSCENE_MODEL_API_KEY` | OpenAI 兼容 HTTP 服务需要的模型 API Key，如 "sk-abcd..."。当 `MIDSCENE_MODEL_BASE_URL="codex://app-server"` 时不需要，具体设置请参考[使用 Codex App Server](./model-common-config#use-codex-app-server-oauth-no-api-key) |
-| `MIDSCENE_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分，底层 SDK 会自动添加 |
+| `MIDSCENE_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分，底层 SDK 会自动添加 |
 | `MIDSCENE_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_MODEL_FAMILY` | 模型系列，用于确定坐标处理方式 |
+
+## 协议类型 {#model-api-type}
+
+Midscene 默认使用 OpenAI 的 Chat Completions 协议，同时也支持 Responses 协议。两者是向模型发送请求的不同方式，不影响 Midscene Agent API 的使用。Chat Completions 是 OpenAI 较早推出的协议，Responses 是后推出的协议，目前 Chat Completions 的支持范围更广。
+
+通过环境变量选择协议：`chat-completion`（默认）或 `responses`。例如，使用 Responses 协议：
+
+```bash
+MIDSCENE_MODEL_API_TYPE="responses"
+```
+
+为 Planning 或 Insight 单独配置模型时，使用对应的环境变量，各模型的协议可以分别设置：
+
+```bash
+MIDSCENE_PLANNING_MODEL_API_TYPE="responses"
+MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
+```
+
+注意事项：
+
+- 部分模型或供应商可能尚不支持 Responses 协议，使用前请向模型供应商确认支持情况。
+- 即使是同一供应商提供的 Chat Completions 和 Responses API，也可能使用不同的 Base URL，请向模型供应商确认对应的接入地址。
+- Midscene 对部分模型供应商的 Responses API 可能尚未完成适配，使用前请确认 Midscene 的兼容性支持。
 
 ## 高阶配置（可选）
 
@@ -19,6 +42,7 @@
 
 | 名称 | 描述 |
 |------|-------------|
+| `MIDSCENE_MODEL_API_TYPE` | HTTP 协议：`chat-completion`（默认）或 `responses`。后者要求服务商支持 Responses API。 |
 | `MIDSCENE_MODEL_TIMEOUT` | AI 接口单次请求的硬超时（毫秒，默认意图），默认 `180000`（180 秒）。计时覆盖完整请求生命周期，包括响应体读取。每次重试都会重新开始计时，使用相同的超时配置；重试等待时间不计入，因此整个调用的总耗时可能超过该值。设为 `0` 仅禁用 Midscene 的硬超时，SDK 和底层网络的超时限制仍可能生效，调用方也可通过 `AbortSignal` 取消请求 |
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）。模型请求遇到 HTTP 错误，或模型返回值无法被结构化解析时，都会发起重试 |
@@ -26,11 +50,11 @@
 | `MIDSCENE_MODEL_REASONING_ENABLED` | 控制是否启用模型的原生思考能力，Midscene 默认关闭。详见[模型原生思考](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | 控制模型的原生思考力度，部分模型支持。常用值：`low`、`medium`、`high`。详见[模型原生思考](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 Token 预算（数字），部分模型支持。详见[模型原生思考](#model-native-reasoning) |
-| `MIDSCENE_MODEL_RESPONSE_FORMAT` | 结构化响应策略：`auto`（默认）表示 Midscene 会在合适的场景自动使用 `response_format` 参数指定模型输出的结构化格式（一般是 JSON），来尽可能保证模型返回值能够被结构化解析；`none` 表示不指定 `response_format` 参数，适用于模型不支持结构化输出的情况。 |
+| `MIDSCENE_MODEL_RESPONSE_FORMAT` | 结构化响应策略：`auto`（默认）表示 Midscene 会在合适的场景自动使用 `response_format`（Chat Completions）或 `text.format`（Responses）参数指定模型输出的结构化格式（一般是 JSON），来尽可能保证模型返回值能够被结构化解析；`none` 表示不指定上述格式参数，适用于模型不支持结构化输出的情况。 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON。自定义鉴权 header 请使用 `defaultHeaders`；`extra_headers` 和 `extraHeaders` 也会作为别名兼容 |
-| `MIDSCENE_MODEL_EXTRA_BODY_JSON` | 合并到每次 chat completion 请求体中的 JSON。与 `MIDSCENE_MODEL_INIT_CONFIG_JSON`（配置 SDK 客户端）不同，此参数会展开到每次发送到模型的 `completion.create()` 调用体中，例如在 vLLM 中启用思考模式：`'{"chat_template_kwargs":{"enable_thinking":true}}'` |
+| `MIDSCENE_MODEL_EXTRA_BODY_JSON` | 合并到每次模型请求体中的 JSON。与 `MIDSCENE_MODEL_INIT_CONFIG_JSON`（配置 SDK 客户端）不同，此参数会展开到每次发送到模型的协议请求体中，例如在 vLLM 中启用思考模式：`'{"chat_template_kwargs":{"enable_thinking":true}}'` |
 
 > 提示：通过 Agent 的 `replanningCycleLimit` 入参控制重规划次数（默认 20，`vlm-ui-tars` 为 40），不再使用环境变量。
 
@@ -41,7 +65,8 @@
 | 名称 | 描述 |
 |------|-------------|
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API Key |
-| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
+| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
+| `MIDSCENE_INSIGHT_MODEL_API_TYPE` | HTTP 协议：`chat-completion`（默认）或 `responses`。 |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_INSIGHT_MODEL_FAMILY` | 模型 family |
 | `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | 可选，Insight 意图的单次请求硬超时（毫秒）|
@@ -61,7 +86,8 @@
 | 名称 | 描述 |
 |------|-------------|
 | `MIDSCENE_PLANNING_MODEL_API_KEY` | API Key |
-| `MIDSCENE_PLANNING_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
+| `MIDSCENE_PLANNING_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
+| `MIDSCENE_PLANNING_MODEL_API_TYPE` | HTTP 协议：`chat-completion`（默认）或 `responses`。 |
 | `MIDSCENE_PLANNING_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_PLANNING_MODEL_FAMILY` | 模型 family |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | 可选，Planning 意图的单次请求硬超时（毫秒）|

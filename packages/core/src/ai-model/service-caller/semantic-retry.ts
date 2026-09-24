@@ -1,10 +1,10 @@
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { waitForRetry } from './request-timeout';
+import type { ModelCallMessages } from './types';
 
 export function withSemanticRetryFeedback(
-  messages: ChatCompletionMessageParam[],
+  messages: ModelCallMessages,
   previousParseError?: unknown,
-): ChatCompletionMessageParam[] {
+): ModelCallMessages {
   if (!previousParseError) return messages;
 
   const errorMessage =

@@ -3,6 +3,7 @@ import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanner } from '@/ai-model/models/auto-glm/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { toChatMessages } from '@/ai-model/service-caller/openai/chat-completion/utils';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
@@ -15,19 +16,19 @@ const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
     rawResponse?: string;
     usage?: unknown;
-    rawChoiceMessage?: unknown;
+    rawAssistantOutput?: unknown;
 
     constructor(
       message: string,
       rawResponse?: string,
       usage?: unknown,
-      rawChoiceMessage?: unknown,
+      rawAssistantOutput?: unknown,
     ) {
       super(message);
       this.name = 'AIResponseParseError';
       this.rawResponse = rawResponse;
       this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
+      this.rawAssistantOutput = rawAssistantOutput;
     }
   }
 
@@ -93,6 +94,9 @@ async function runAutoGlmPlanning(
   );
 }
 
+const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
+  .resolveImageDetail;
+
 describe('createAutoGlmPlanner messages', () => {
   beforeEach(() => {
     rs.mocked(callAIWithStringResponse).mockReset();
@@ -105,7 +109,10 @@ describe('createAutoGlmPlanner messages', () => {
       content:
         '<think>Need to click submit</think><answer>do(action="Tap", element=[500,500])</answer>',
       usage: { total_tokens: 12 } as any,
-      rawChoiceMessage: { role: 'assistant', content: 'raw choice' } as any,
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: 'raw choice' },
+      } as any,
     });
 
     const result = await runAutoGlmPlanning(
@@ -151,21 +158,21 @@ describe('createAutoGlmPlanner messages', () => {
           role: 'user',
           content: expect.arrayContaining([
             expect.objectContaining({
-              type: 'image_url',
-              image_url: expect.objectContaining({
-                url: 'data:image/png;base64,REF==',
-              }),
+              type: 'image',
+              url: 'data:image/png;base64,REF==',
             }),
           ]),
         }),
       ]),
     );
-    expect(result.rawChoiceMessage).toEqual({
-      role: 'assistant',
-      content: 'raw choice',
+    expect(result.rawAssistantOutput).toEqual({
+      type: 'chat-completion',
+      rawValue: { role: 'assistant', content: 'raw choice' },
     });
     expect(conversationHistory.snapshot()).toHaveLength(2);
-    expect(conversationHistory.snapshot()[1]).toMatchObject({
+    expect(
+      toChatMessages(conversationHistory.snapshot(), resolveImageDetail)[1],
+    ).toMatchObject({
       role: 'assistant',
       content: expect.stringContaining('do(action="Tap", element=[500,500])'),
     });

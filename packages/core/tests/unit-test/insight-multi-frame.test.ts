@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { getModelRuntime } from '@/ai-model/models';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
@@ -63,9 +64,12 @@ describe('insight extraction multi-frame context', () => {
     });
 
     const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
-    const userContent = msgs?.[1]?.content as Array<Record<string, any>>;
+    const message = msgs?.[1];
+    assert(message && 'role' in message);
+    assert(Array.isArray(message.content));
+    const userContent = message.content;
 
-    const imageParts = userContent.filter((p) => p.type === 'image_url');
+    const imageParts = userContent.filter((p) => p.type === 'image');
     expect(imageParts).toHaveLength(3);
 
     const sequenceNote = userContent.find(
@@ -110,9 +114,12 @@ describe('insight extraction multi-frame context', () => {
     });
 
     const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
-    const userContent = msgs?.[1]?.content as Array<Record<string, any>>;
+    const message = msgs?.[1];
+    assert(message && 'role' in message);
+    assert(Array.isArray(message.content));
+    const userContent = message.content;
 
-    const imageParts = userContent.filter((p) => p.type === 'image_url');
+    const imageParts = userContent.filter((p) => p.type === 'image');
     expect(imageParts).toHaveLength(1);
 
     const singleNote = userContent.find(

@@ -128,11 +128,9 @@ rs.setConfig({
                 text: 'Describe this image in one sentence.',
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: localImg2Base64(imagePath),
-                  detail: 'high',
-                },
+                type: 'image',
+                url: localImg2Base64(imagePath),
+                detail: 'high',
               },
             ],
           },

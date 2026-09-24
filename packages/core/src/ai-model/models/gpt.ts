@@ -1,24 +1,20 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import type {
+  BuildResponsesParams,
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
   CodexAppServerCallInput,
   CodexAppServerParamsResult,
-  ImageDetail,
   ModelAdapterDefinition,
   ReasoningInput,
+  ResolveImageDetail,
 } from '../model-adapter/types';
 import { isLocateIntent } from './utils/intent';
 
-const originalImageDetailForDefaultIntent = (
-  input: Pick<
-    CodexAppServerCallInput,
-    'intent' | 'requiresOriginalImageDetail'
-  >,
-): ImageDetail | undefined =>
+const originalImageDetailForDefaultIntent: ResolveImageDetail = (input) =>
   isLocateIntent(input.intent) || input.requiresOriginalImageDetail
     ? 'original'
-    : undefined;
+    : (input.imageDetail ?? 'high');
 
 const resolveGpt5ReasoningEffort = ({
   reasoningEnabled,
@@ -41,15 +37,61 @@ const buildGpt5CodexAppServerParams = (
   input: CodexAppServerCallInput,
 ): CodexAppServerParamsResult => ({
   config: { effort: resolveGpt5ReasoningEffort(input.userConfig ?? {}) },
-  imageDetail: originalImageDetailForDefaultIntent(input),
 });
 
 const buildGpt6CodexAppServerParams = (
   input: CodexAppServerCallInput,
 ): CodexAppServerParamsResult => ({
   config: { effort: resolveGpt6ReasoningEffort(input.userConfig ?? {}) },
-  imageDetail: originalImageDetailForDefaultIntent(input),
 });
+
+const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
+  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  if (userConfig.responseFormat !== 'none' && expectedJsonObjectResponse) {
+    commonOverrideConfig.text = { format: { type: 'json_object' } };
+  }
+
+  const effectiveReasoningEffort = resolveGpt5ReasoningEffort(userConfig);
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      // Use current-turn reasoning only. Switching to all_turns requires
+      // responses.replayRawAssistantOutput to preserve reasoning history.
+      reasoning: { effort: effectiveReasoningEffort, context: 'current_turn' },
+    },
+  };
+};
+
+const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
+  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const { responseFormat } = userConfig;
+  const commonOverrideConfig: Record<string, unknown> = {};
+  // GPT-6 does not support temperature; omit it from the serialized request.
+  commonOverrideConfig.temperature = undefined;
+  if (responseFormat !== 'none' && expectedJsonObjectResponse) {
+    commonOverrideConfig.text = { format: { type: 'json_object' } };
+  }
+
+  const effectiveReasoningEffort = resolveGpt6ReasoningEffort(userConfig);
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      // Use current-turn reasoning only. Switching to all_turns requires
+      // responses.replayRawAssistantOutput to preserve reasoning history.
+      reasoning: { effort: effectiveReasoningEffort, context: 'current_turn' },
+    },
+  };
+};
 
 const buildGpt5ChatCompletionParams = (
   input: ChatCompletionCallContext,
@@ -106,11 +148,17 @@ const buildGpt6ChatCompletionParams = (
 
 export const gptAdapters = {
   'gpt-5': {
+    supportedApiTypes: ['chat-completion', 'responses'],
+    resolveImageDetail: originalImageDetailForDefaultIntent,
+    responses: {
+      replayRawAssistantOutput: false,
+      unsupportedUserConfig: ['reasoningBudget'],
+      buildResponsesParams: buildGpt5ResponsesParams,
+    },
     buildCodexAppServerParams: buildGpt5CodexAppServerParams,
     chatCompletion: {
       unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildGpt5ChatCompletionParams,
-      resolveImageDetail: originalImageDetailForDefaultIntent,
     },
     locate: {
       element: {
@@ -121,11 +169,17 @@ export const gptAdapters = {
     },
   },
   'gpt-6': {
+    supportedApiTypes: ['chat-completion', 'responses'],
+    resolveImageDetail: originalImageDetailForDefaultIntent,
+    responses: {
+      replayRawAssistantOutput: false,
+      unsupportedUserConfig: ['temperature', 'reasoningBudget'],
+      buildResponsesParams: buildGpt6ResponsesParams,
+    },
     buildCodexAppServerParams: buildGpt6CodexAppServerParams,
     chatCompletion: {
       unsupportedUserConfig: ['temperature', 'reasoningBudget'],
       buildChatCompletionParams: buildGpt6ChatCompletionParams,
-      resolveImageDetail: originalImageDetailForDefaultIntent,
     },
     locate: {
       element: {

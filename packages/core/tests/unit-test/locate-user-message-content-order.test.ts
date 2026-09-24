@@ -58,7 +58,7 @@ describe('locate user message content order', () => {
       role: 'user',
       content: [
         expect.objectContaining({ type: 'text' }),
-        expect.objectContaining({ type: 'image_url' }),
+        expect.objectContaining({ type: 'image' }),
       ],
     });
   });
@@ -74,7 +74,7 @@ describe('locate user message content order', () => {
       role: 'user',
       content: [
         expect.objectContaining({ type: 'text' }),
-        expect.objectContaining({ type: 'image_url' }),
+        expect.objectContaining({ type: 'image' }),
       ],
     });
   });

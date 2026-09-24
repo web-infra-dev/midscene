@@ -11,19 +11,19 @@ const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
     rawResponse?: string;
     usage?: unknown;
-    rawChoiceMessage?: unknown;
+    rawAssistantOutput?: unknown;
 
     constructor(
       message: string,
       rawResponse?: string,
       usage?: unknown,
-      rawChoiceMessage?: unknown,
+      rawAssistantOutput?: unknown,
     ) {
       super(message);
       this.name = 'AIResponseParseError';
       this.rawResponse = rawResponse;
       this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
+      this.rawAssistantOutput = rawAssistantOutput;
     }
   }
 
@@ -194,15 +194,16 @@ describe('Auto-GLM custom locate', () => {
     expect(messages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          role: 'user',
-          content: expect.arrayContaining([
-            expect.objectContaining({
-              type: 'image_url',
-              image_url: expect.objectContaining({
+          type: 'input-message',
+          message: expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'image',
                 url: 'data:image/png;base64,CROP==',
               }),
-            }),
-          ]),
+            ]),
+          }),
         }),
       ]),
     );
@@ -278,10 +279,8 @@ describe('Auto-GLM custom locate', () => {
           role: 'user',
           content: expect.arrayContaining([
             expect.objectContaining({
-              type: 'image_url',
-              image_url: expect.objectContaining({
-                url: 'data:image/png;base64,REFERENCE==',
-              }),
+              type: 'image',
+              url: 'data:image/png;base64,REFERENCE==',
             }),
           ]),
         }),

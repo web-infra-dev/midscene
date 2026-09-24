@@ -1,6 +1,5 @@
 import { getDebug } from '@midscene/shared/logger';
 import { assert, uuid } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
 import { callCodex, prepareCodexCall } from './codex/call-codex';
 import { isCodexAppServerProvider } from './codex/codex-app-server';
@@ -8,14 +7,16 @@ import {
   isModelCallRecordingEnabled,
   recordModelCallEvent,
 } from './model-call-recorder';
-import { callOpenAI } from './openai/call-openai';
+import { type PreparedOpenAIInput, callOpenAI } from './openai/call-openai';
 import { prepareChatCompletion } from './openai/chat-completion/chat-completion';
+import { prepareResponses } from './openai/responses/responses';
 import {
   buildRequestAbortSignal,
   resolveEffectiveTimeoutMs,
   runWithAbortSignal,
   waitForRetry,
 } from './request-timeout';
+import type { ModelCallMessages } from './types';
 import type {
   AICallResult,
   CallAIOptions,
@@ -30,8 +31,10 @@ import {
   toError,
 } from './utils';
 
+const DEFAULT_MODEL_API_TYPE = 'chat-completion';
+
 export async function callAI(
-  messages: ChatCompletionMessageParam[],
+  messages: ModelCallMessages,
   modelRuntime: ModelRuntime,
   options?: CallAIOptions,
 ): Promise<AICallResult> {
@@ -55,20 +58,25 @@ export async function callAI(
 
   const { config: modelConfig } = modelRuntime;
 
-  const prepare = async (): Promise<PreparedModelInput> =>
-    isCodexAppServerProvider(modelConfig.openaiBaseURL)
-      ? {
-          protocol: 'codex',
-          input: prepareCodexCall({ messages, modelRuntime, options }),
-        }
-      : {
-          protocol: 'chat-completion',
-          input: await prepareChatCompletion({
-            messages,
-            modelRuntime,
-            options,
-          }),
-        };
+  const prepare = async (): Promise<PreparedModelInput> => {
+    const input = { messages, modelRuntime, options };
+    if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
+      return { protocol: 'codex', input: prepareCodexCall(input) };
+    }
+    const apiType = modelConfig.apiType ?? DEFAULT_MODEL_API_TYPE;
+
+    assert(
+      modelRuntime.adapter.supportedApiTypes.includes(apiType),
+      `Model adapter "${modelConfig.modelFamily ?? 'default'}" does not support API type "${apiType}"`,
+    );
+    if (apiType === 'responses') {
+      return { protocol: 'responses', input: await prepareResponses(input) };
+    }
+    return {
+      protocol: 'chat-completion',
+      input: await prepareChatCompletion(input),
+    };
+  };
 
   const prepared = options?.abortSignal
     ? await runWithAbortSignal(options.abortSignal, prepare)
@@ -94,6 +102,7 @@ export async function callAI(
   } = result;
 
   const usage = buildUsageInfo({
+    apiType: prepared.protocol,
     usageData: rawUsage,
     timeCost,
     totalTimeCost,
@@ -121,13 +130,10 @@ export async function callAI(
 
 type PreparedModelInput =
   | { protocol: 'codex'; input: ReturnType<typeof prepareCodexCall> }
-  | {
-      protocol: 'chat-completion';
-      input: Awaited<ReturnType<typeof prepareChatCompletion>>;
-    };
+  | PreparedOpenAIInput;
 
 type ModelCallInput = {
-  messages: ChatCompletionMessageParam[];
+  messages: ModelCallMessages;
   modelRuntime: ModelRuntime;
   options?: CallAIOptions;
   executionId: string;
@@ -243,7 +249,7 @@ async function callModelOnce(
     return await runWithAbortSignal(requestSignal, () =>
       prepared.protocol === 'codex'
         ? callCodex(context, prepared.input)
-        : callOpenAI(context, prepared.input),
+        : callOpenAI(context, prepared),
     );
   } catch (error) {
     options?.abortSignal?.throwIfAborted();

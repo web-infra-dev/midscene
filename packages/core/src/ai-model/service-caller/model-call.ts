@@ -1,6 +1,6 @@
+import type { RawAssistantOutput } from '@/types';
 import type { AIUsageInfo } from '@/types';
 import { assert } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
 import { type JsonParserSource, assertJsonObject } from '../shared/json';
 import { callAI } from './call-ai';
@@ -9,7 +9,7 @@ import {
   withSemanticRetryFeedback,
 } from './semantic-retry';
 import type { CallAIOptions } from './types';
-import type { AIArgs } from './types';
+import type { ModelCallMessages } from './types';
 import { AIResponseParseError } from './utils';
 
 export type AIObjectResponse<T> = {
@@ -18,7 +18,7 @@ export type AIObjectResponse<T> = {
   contentString: string;
   usage?: AIUsageInfo;
   reasoning_content?: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
 };
 
 export function parseAIObjectResponse<T>(
@@ -37,12 +37,12 @@ export function parseAIObjectResponse<T>(
     contentString: response.content,
     usage: response.usage,
     reasoning_content: response.reasoning_content,
-    rawChoiceMessage: response.rawChoiceMessage,
+    rawAssistantOutput: response.rawAssistantOutput,
   };
 }
 
 export async function callAIWithObjectResponse<T>(
-  messages: ChatCompletionMessageParam[],
+  messages: ModelCallMessages,
   modelRuntime: ModelRuntime,
   options?: {
     abortSignal?: AbortSignal;
@@ -76,7 +76,7 @@ export async function callAIWithObjectResponse<T>(
         errorMessage,
         response.content,
         response.usage,
-        response.rawChoiceMessage,
+        response.rawAssistantOutput,
         response.reasoning_content,
       );
     },
@@ -87,18 +87,18 @@ export async function callAIWithObjectResponse<T>(
 }
 
 export async function callAIWithStringResponse(
-  msgs: AIArgs,
+  msgs: ModelCallMessages,
   modelRuntime: ModelRuntime,
   options?: Pick<CallAIOptions, 'abortSignal' | 'requiresOriginalImageDetail'>,
 ): Promise<{
   content: string;
   usage?: AIUsageInfo;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
 }> {
-  const { content, usage, rawChoiceMessage } = await callAI(
+  const { content, usage, rawAssistantOutput } = await callAI(
     msgs,
     modelRuntime,
     options,
   );
-  return { content, usage, rawChoiceMessage };
+  return { content, usage, rawAssistantOutput };
 }

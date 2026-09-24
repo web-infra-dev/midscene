@@ -672,7 +672,7 @@ export class TaskExecutor {
                 executorContext.task.log = {
                   ...(executorContext.task.log || {}),
                   rawResponse: planError.rawResponse,
-                  rawChoiceMessage: planError.rawChoiceMessage,
+                  rawAssistantOutput: planError.rawAssistantOutput,
                 };
               }
               await this.emitAiActProgress('plan_failed', {
@@ -694,7 +694,7 @@ export class TaskExecutor {
               error,
               usage,
               rawResponse,
-              rawChoiceMessage,
+              rawAssistantOutput,
               reasoning_content,
               finalizeSuccess,
               finalizeMessage,
@@ -706,7 +706,7 @@ export class TaskExecutor {
             executorContext.task.log = {
               ...(executorContext.task.log || {}),
               rawResponse,
-              rawChoiceMessage,
+              rawAssistantOutput,
             };
             executorContext.task.usage = withUsageIntent(usage, 'planning');
             executorContext.task.reasoning_content = reasoning_content;
@@ -939,7 +939,7 @@ export class TaskExecutor {
           task.log = {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
-            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+            rawAssistantOutput: dump.taskInfo?.rawAssistantOutput,
             searchAreaRawChoiceMessage:
               dump.taskInfo?.searchAreaRawChoiceMessage,
           };

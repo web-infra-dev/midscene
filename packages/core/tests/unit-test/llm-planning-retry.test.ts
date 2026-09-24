@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import type {
   ParsedPlanningLocateParameter,
   StandardPlanningProtocol,
@@ -5,6 +6,7 @@ import type {
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
+import { toChatMessages } from '@/ai-model/service-caller/openai/chat-completion/utils';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan as runPreparedStandardPlan } from '@/ai-model/workflows/planning';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
@@ -75,21 +77,36 @@ const mockActionSpace = (): DeviceAction[] => [
   },
 ];
 
-const latestImageDetail = () => {
-  const messages = rs.mocked(callAI).mock.calls[0]?.[0];
-  const latestMessage = messages?.at(-1);
-  const imagePart = Array.isArray(latestMessage?.content)
-    ? latestMessage.content.find((part) => part.type === 'image_url')
+const latestImage = () => {
+  const entry = rs.mocked(callAI).mock.calls[0]?.[0]?.at(-1);
+  const message =
+    entry &&
+    ('role' in entry
+      ? entry
+      : entry.type === 'input-message'
+        ? entry.message
+        : undefined);
+  return Array.isArray(message?.content)
+    ? message.content.find((part) => part.type === 'image')
     : undefined;
-  return imagePart?.image_url.detail;
+};
+
+const retryFeedbackContent = () => {
+  const message = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+  assert(message && 'role' in message);
+  return message.content;
 };
 
 const latestCallAIOptions = () => rs.mocked(callAI).mock.calls[0]?.[2];
 
 const latestSystemPrompt = () => {
   const message = rs.mocked(callAI).mock.calls[0]?.[0]?.[0];
-  return message?.role === 'system' ? message.content : undefined;
+  assert(message && 'role' in message);
+  return message.role === 'system' ? message.content : undefined;
 };
+
+const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
+  .resolveImageDetail;
 
 describe('plan XML parse retry', () => {
   beforeEach(() => {
@@ -118,7 +135,7 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
     expect(callAI).toHaveBeenCalledTimes(2);
-    expect(rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content).toEqual(
+    expect(retryFeedbackContent()).toEqual(
       expect.stringContaining('Incomplete planning response'),
     );
     expect(result.finalizeSuccess).toBe(true);
@@ -202,7 +219,7 @@ describe('plan XML parse retry', () => {
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);
-    expect(rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content).toEqual(
+    expect(retryFeedbackContent()).toEqual(
       expect.stringContaining('Invalid parameters for action Tap: locate'),
     );
     expect(buildYamlFlowFromPlans).toHaveBeenCalledTimes(1);
@@ -307,7 +324,7 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
     expect(callAI).toHaveBeenCalledTimes(2);
-    const feedback = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content;
+    const feedback = retryFeedbackContent();
     expect(feedback).toEqual(
       expect.stringContaining('locate.prompt: Required'),
     );
@@ -421,7 +438,7 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
     expect(callAI).toHaveBeenCalledTimes(2);
-    expect(rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content).toEqual(
+    expect(retryFeedbackContent()).toEqual(
       expect.stringContaining(
         "Action type 'Unknown' is not in the current action space",
       ),
@@ -445,7 +462,7 @@ describe('plan XML parse retry', () => {
       effort: 'fast',
     });
 
-    const systemPrompt = rs.mocked(callAI).mock.calls[0]?.[0]?.[0]?.content;
+    const systemPrompt = latestSystemPrompt();
     expect(systemPrompt).not.toEqual(expect.stringContaining('<planning>'));
     expect(systemPrompt).not.toEqual(expect.stringContaining('</planning>'));
     expect(systemPrompt).not.toEqual(expect.stringContaining('<log>'));
@@ -486,10 +503,8 @@ describe('plan XML parse retry', () => {
           role: 'user',
           content: expect.arrayContaining([
             expect.objectContaining({
-              type: 'image_url',
-              image_url: expect.objectContaining({
-                url: 'data:image/png;base64,REFERENCE==',
-              }),
+              type: 'image',
+              url: 'data:image/png;base64,REFERENCE==',
             }),
           ]),
         }),
@@ -529,6 +544,7 @@ describe('plan XML parse retry', () => {
 
     expect(callAI).toHaveBeenCalledTimes(3);
     const retryFeedback = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+    assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback).toMatchObject({ role: 'user' });
     expect(retryFeedback?.content).toEqual(
       expect.stringContaining('The previous response was invalid:'),
@@ -542,6 +558,7 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`;
     const rawAssistantMessage = {
       role: 'assistant' as const,
+      refusal: null,
       content: firstResponse,
       reasoning_content: 'The button is visible in the center of the screen.',
     };
@@ -549,7 +566,10 @@ describe('plan XML parse retry', () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
-        rawChoiceMessage: rawAssistantMessage,
+        rawAssistantOutput: {
+          type: 'chat-completion',
+          rawValue: rawAssistantMessage,
+        },
       })
       .mockResolvedValueOnce(
         mockAIResponse(`<log>Task completed</log>
@@ -569,7 +589,9 @@ describe('plan XML parse retry', () => {
     await standardPlan('tap the button', options);
 
     const secondRequestMessages = rs.mocked(callAI).mock.calls[1]?.[0];
-    expect(secondRequestMessages).toContainEqual(rawAssistantMessage);
+    expect(
+      toChatMessages(secondRequestMessages!, resolveImageDetail),
+    ).toContainEqual(rawAssistantMessage);
   });
 
   it('uses normalized assistant content when the adapter does not opt in', async () => {
@@ -577,6 +599,7 @@ describe('plan XML parse retry', () => {
       '<log>Tap button</log>\n<action-type>Tap</action-type>';
     const rawAssistantMessage = {
       role: 'assistant' as const,
+      refusal: null,
       content: firstResponse,
       reasoning_content: 'Provider-specific reasoning state.',
     };
@@ -584,7 +607,10 @@ describe('plan XML parse retry', () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
-        rawChoiceMessage: rawAssistantMessage,
+        rawAssistantOutput: {
+          type: 'chat-completion',
+          rawValue: rawAssistantMessage,
+        },
       })
       .mockResolvedValueOnce(
         mockAIResponse(
@@ -605,12 +631,113 @@ describe('plan XML parse retry', () => {
     await standardPlan('tap the button', options);
 
     const secondRequestMessages = rs.mocked(callAI).mock.calls[1]?.[0];
-    expect(secondRequestMessages).not.toContainEqual(rawAssistantMessage);
-    expect(secondRequestMessages).toContainEqual({
+    expect(
+      toChatMessages(secondRequestMessages!, resolveImageDetail),
+    ).not.toContainEqual(rawAssistantMessage);
+    expect(
+      toChatMessages(secondRequestMessages!, resolveImageDetail),
+    ).toContainEqual({
       role: 'assistant',
       content: [{ type: 'text', text: firstResponse }],
     });
   });
+
+  it.each([true, false])(
+    'applies Responses raw output replay setting %s',
+    async (replayRawAssistantOutput) => {
+      const firstResponse =
+        '<log>Tap button</log>\n<action-type>Tap</action-type>';
+      const conversationHistory = new ConversationHistory();
+      rs.mocked(callAI)
+        .mockResolvedValueOnce({
+          ...mockAIResponse(firstResponse),
+          rawAssistantOutput: {
+            type: 'responses',
+            rawValue: [
+              {
+                type: 'reasoning',
+                id: 'rs-test',
+                summary: [],
+                encrypted_content: 'opaque-reasoning',
+              },
+              {
+                type: 'message',
+                id: 'msg-test',
+                role: 'assistant',
+                status: 'completed',
+                content: [
+                  { type: 'output_text', text: firstResponse, annotations: [] },
+                ],
+              },
+            ],
+          },
+        })
+        .mockResolvedValueOnce(
+          mockAIResponse(
+            '<log>Task completed</log>\n<complete success="true">Done</complete>',
+          ),
+        );
+
+      const runtime = getModelRuntime({
+        ...mockModelConfig('kimi3'),
+        apiType: 'responses',
+      });
+      const modelRuntime = {
+        ...runtime,
+        adapter: {
+          ...runtime.adapter,
+          responses: { ...runtime.adapter.responses, replayRawAssistantOutput },
+        },
+      };
+      const options = {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime,
+        conversationHistory,
+        includeLocateInPlanning: false,
+        effort: 'balance',
+      } as const;
+
+      await standardPlan('tap the button', options);
+      await standardPlan('tap the button', options);
+
+      const secondRequestMessages = rs.mocked(callAI).mock.calls[1]?.[0];
+      if (!replayRawAssistantOutput) {
+        expect(
+          secondRequestMessages?.some(
+            (entry) => 'type' in entry && entry.type === 'model-output',
+          ),
+        ).toBe(false);
+        expect(
+          toChatMessages(secondRequestMessages!, resolveImageDetail),
+        ).toContainEqual({
+          role: 'assistant',
+          content: [{ type: 'text', text: firstResponse }],
+        });
+        return;
+      }
+      expect(secondRequestMessages).toContainEqual({
+        type: 'model-output',
+        output: expect.objectContaining({
+          type: 'responses',
+          rawValue: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'reasoning',
+              encrypted_content: 'opaque-reasoning',
+            }),
+            expect.objectContaining({ type: 'message', id: 'msg-test' }),
+          ]),
+        }),
+      });
+      expect(secondRequestMessages).not.toContainEqual({
+        type: 'input-message',
+        message: {
+          role: 'assistant',
+          content: [{ type: 'text', text: firstResponse }],
+        },
+      });
+    },
+  );
 
   it('preserves retry request errors instead of reporting them as XML parse errors', async () => {
     const requestError = new Error('failed to call AI model service');
@@ -651,7 +778,9 @@ describe('plan XML parse retry', () => {
     });
 
     const messages = rs.mocked(callAI).mock.calls[0]?.[0];
-    const latestMessage = messages?.at(-1);
+    const latestMessage = messages
+      ? toChatMessages(messages, resolveImageDetail).at(-1)
+      : undefined;
     const textPart = Array.isArray(latestMessage?.content)
       ? latestMessage.content.find((part) => part.type === 'text')
       : undefined;
@@ -683,7 +812,11 @@ describe('plan XML parse retry', () => {
       effort: 'balance',
     });
 
-    expect(latestImageDetail()).toBe('high');
+    expect(latestImage()).toMatchObject({
+      type: 'image',
+      url: expect.any(String),
+    });
+    expect(latestImage()).not.toHaveProperty('detail');
     expect(latestCallAIOptions()?.requiresOriginalImageDetail).toBe(true);
   });
 
