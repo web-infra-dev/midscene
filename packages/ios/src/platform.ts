@@ -9,6 +9,7 @@ import {
   PLAYGROUND_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
+import { sha256Hex } from '@midscene/shared/utils';
 import { normalizeWebDriverBaseUrl } from '@midscene/webdriver';
 import {
   type IOSAgent,
@@ -210,6 +211,13 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
           }),
           displayName,
           metadata: {
+            ...(baseUrl
+              ? {
+                  wdaGatewayId: `ios-gateway-${sha256Hex(
+                    JSON.stringify({ baseUrl, mjpegUrl, mjpegPort, sessionId }),
+                  )}`,
+                }
+              : {}),
             wdaHost: gatewayUrl?.hostname ?? host,
             wdaPort: gatewayUrl
               ? Number(
@@ -217,6 +225,7 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
                     (gatewayUrl.protocol === 'https:' ? 443 : 80),
                 )
               : port,
+            ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
             ...(sessionId ? { sessionId } : {}),
             ...(deviceInfo ? { deviceInfo } : {}),
           },

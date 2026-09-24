@@ -165,6 +165,23 @@ describe('iosPlaygroundPlatform session manager', () => {
       wdaPort: 443,
     });
     expect(JSON.stringify(created?.metadata)).not.toContain('secret-code');
+    expect(created?.metadata?.wdaGatewayId).toMatch(
+      /^ios-gateway-[a-f0-9]{64}$/,
+    );
+
+    const other = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/other-code/wda',
+    });
+    expect(other?.metadata?.wdaGatewayId).not.toBe(
+      created?.metadata?.wdaGatewayId,
+    );
+    const otherSession = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/secret-code/wda',
+      sessionId: 'session-2',
+    });
+    expect(otherSession?.metadata?.wdaGatewayId).not.toBe(
+      created?.metadata?.wdaGatewayId,
+    );
   });
 
   test('reuses the agent factory for follow-up playground sessions', async () => {

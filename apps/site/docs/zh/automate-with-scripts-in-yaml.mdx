@@ -370,8 +370,15 @@ ios:
   # WebDriverAgent 主机地址，可选，默认 localhost
   wdaHost: <host>
 
-  # 带路径前缀的网关所用的完整 WDA API 基地址；优先于 host/port
-  wdaBaseUrl: <url>
+  # 网关带路径前缀时，用 wdaBaseUrl 替代 wdaHost/wdaPort。
+  # 同时设置 wdaBaseUrl 与 wdaHost 或 wdaPort 会报错。
+  # wdaBaseUrl: <url>
+
+  # 可单独设置 MJPEG 流地址，包括网关路径；不能与 wdaMjpegPort 同时设置。
+  # wdaMjpegUrl: <url>
+
+  # 本地 MJPEG 流端口，可选。与 wdaMjpegUrl 二选一。
+  # wdaMjpegPort: <port>
 
   # 是否自动关闭键盘，可选，默认 false
   autoDismissKeyboard: <boolean>
@@ -388,6 +395,16 @@ ios:
   # 其他 IOSDevice 构造函数支持的所有选项
   # 完整配置项请参考 IOSDevice 的构造函数文档
 ```
+
+连接带路径前缀的网关时，只设置 `wdaBaseUrl`。MJPEG 流可以使用单独的地址：
+
+```yaml
+ios:
+  wdaBaseUrl: ${WDA_BASE_URL}
+  wdaMjpegUrl: ${WDA_MJPEG_URL}
+```
+
+运行脚本前，请设置这两个环境变量。Studio Recorder 导出的 YAML 也引用环境变量。这样，网关路径和访问令牌不会写入文件。
 
 :::info 查看完整的 iOS 配置项
 

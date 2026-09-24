@@ -1,5 +1,6 @@
 import { DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS } from '@midscene/shared/recorder';
 import { describe, expect, it } from 'vitest';
+import { resolveSelectedDeviceId } from '../src/renderer/playground/selectors';
 import { toStudioRecorderCodegenInput } from '../src/renderer/recorder/codegen-adapter';
 import { mapPreviewRecorderEventToStudioRecordedEvent } from '../src/renderer/recorder/event-mapper';
 import { generateStudioRecorderYaml } from '../src/renderer/recorder/export';
@@ -71,7 +72,7 @@ describe('studio recorder selectors', () => {
         },
         { platformId: 'ios' },
       )?.values,
-    ).toEqual({ host: '127.0.0.1', port: 8100 });
+    ).toEqual({ wdaHost: '127.0.0.1', wdaPort: 8100 });
 
     expect(
       resolveStudioRecorderTarget(
@@ -85,6 +86,68 @@ describe('studio recorder selectors', () => {
         { platformId: 'computer' },
       )?.values,
     ).toEqual({ displayId: '1' });
+  });
+
+  it('separates gateway paths and exports a reconnectable environment reference', () => {
+    const formValues = {
+      platformId: 'ios',
+      'ios.baseUrl': 'https://gateway.example/device-a/wda',
+      'ios.mjpegUrl': 'https://gateway.example/device-a/mjpeg?token=secret',
+      'ios.sessionId': 'secret-session',
+    };
+    const gatewayId = resolveSelectedDeviceId(formValues);
+    const target = resolveStudioRecorderTarget(
+      {
+        platformId: 'ios',
+        interface: { type: 'ios' },
+        preview: { kind: 'mjpeg' },
+        executionUxHints: [],
+        metadata: {
+          wdaGatewayId: gatewayId,
+          wdaHost: 'gateway.example',
+          wdaPort: 443,
+          sessionDisplayName: 'iPhone',
+        },
+      },
+      formValues,
+    );
+    expect(target).toMatchObject({
+      deviceId: gatewayId,
+      label: 'iPhone',
+      values: {
+        wdaBaseUrl: '${WDA_BASE_URL}',
+        wdaMjpegUrl: '${WDA_MJPEG_URL}',
+        sessionId: '${WDA_SESSION_ID}',
+      },
+    });
+    expect(JSON.stringify(target)).not.toContain('secret');
+    const otherTarget = {
+      ...target!,
+      deviceId: resolveSelectedDeviceId({
+        ...formValues,
+        'ios.baseUrl': 'https://gateway.example/device-b/wda',
+      }),
+    };
+    const sessions = [
+      { id: 'a', target },
+      { id: 'b', target: otherTarget },
+    ] as StudioRecordingSession[];
+    expect(
+      filterStudioRecorderSessionsForTarget(sessions, target).map((s) => s.id),
+    ).toEqual(['a']);
+    const yaml = generateStudioRecorderYaml({
+      id: 'a',
+      name: 'Gateway recording',
+      status: 'completed',
+      target: target!,
+      events: [],
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    expect(yaml).toContain('wdaBaseUrl: "${WDA_BASE_URL}"');
+    expect(yaml).toContain('wdaMjpegUrl: "${WDA_MJPEG_URL}"');
+    expect(yaml).toContain('sessionId: "${WDA_SESSION_ID}"');
+    expect(yaml).not.toContain('secret');
   });
 
   it('filters recording history by platform-appropriate target granularity', () => {

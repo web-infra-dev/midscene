@@ -5,6 +5,7 @@ import {
   resolveConnectedDeviceId,
   resolveConnectedDeviceLabel,
   resolveSelectedDeviceId,
+  resolveSelectedIosGatewayId,
 } from '../playground/selectors';
 import type { StudioPlaygroundContextValue } from '../playground/types';
 import type { StudioRecorderTarget, StudioRecordingSession } from './types';
@@ -125,6 +126,37 @@ export function resolveStudioRecorderTarget(
       };
     }
     case 'ios': {
+      const baseUrl = formValues['ios.baseUrl'] ?? formValues.baseUrl;
+      const mjpegUrl = formValues['ios.mjpegUrl'] ?? formValues.mjpegUrl;
+      const sessionId = formValues['ios.sessionId'] ?? formValues.sessionId;
+      const mjpegPort = normalizePort(
+        formValues['ios.mjpegPort'] ??
+          formValues.mjpegPort ??
+          metadata.wdaMjpegPort,
+      );
+      if (isNonEmptyString(metadata.wdaGatewayId)) {
+        if (
+          !isNonEmptyString(baseUrl) ||
+          resolveSelectedIosGatewayId(formValues) !== metadata.wdaGatewayId
+        ) {
+          return null;
+        }
+        return {
+          platformId,
+          deviceId: metadata.wdaGatewayId,
+          label,
+          values: {
+            wdaBaseUrl: '${WDA_BASE_URL}',
+            ...(isNonEmptyString(mjpegUrl)
+              ? { wdaMjpegUrl: '${WDA_MJPEG_URL}' }
+              : {}),
+            ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
+            ...(isNonEmptyString(sessionId)
+              ? { sessionId: '${WDA_SESSION_ID}' }
+              : {}),
+          },
+        };
+      }
       const host =
         resolveNamespacedValue('ios', 'host', runtimeInfo, formValues) ??
         metadata.wdaHost;
@@ -140,8 +172,15 @@ export function resolveStudioRecorderTarget(
         deviceId: deviceId ?? `${host}:${port}`,
         label,
         values: {
-          host,
-          port,
+          wdaHost: host,
+          wdaPort: port,
+          ...(isNonEmptyString(mjpegUrl)
+            ? { wdaMjpegUrl: '${WDA_MJPEG_URL}' }
+            : {}),
+          ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
+          ...(isNonEmptyString(sessionId)
+            ? { sessionId: '${WDA_SESSION_ID}' }
+            : {}),
         },
       };
     }
@@ -228,8 +267,11 @@ function createStudioRecorderHistoryTargetSignature(
     case 'ios':
       return JSON.stringify({
         platformId: target.platformId,
-        host: target.values.host,
-        port: target.values.port,
+        deviceId: target.deviceId,
+        wdaHost: target.values.wdaHost ?? target.values.host,
+        wdaPort: target.values.wdaPort ?? target.values.port,
+        wdaMjpegUrl: target.values.wdaMjpegUrl,
+        wdaMjpegPort: target.values.wdaMjpegPort,
       });
     default:
       return createStudioRecorderTargetSignature(target);
