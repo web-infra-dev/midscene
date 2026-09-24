@@ -24,6 +24,22 @@ rs.mock('@/web-page', () => ({
 }));
 
 describe('Page screenshotBase64', () => {
+  it('exposes native Playwright bytes without a Base64 round trip', async () => {
+    const bytes = Buffer.from('native-shot');
+    const screenshot = rs.fn().mockResolvedValue(bytes);
+    const page = new Page(
+      { url: () => 'http://example.com', screenshot } as any,
+      'playwright',
+    );
+    const image = await page.screenshot();
+    expect(image.bytes).toBe(bytes);
+    expect(image.format).toBe('jpeg');
+    expect(screenshot).toHaveBeenCalledWith({
+      type: 'jpeg',
+      quality: 90,
+      timeout: 10000,
+    });
+  });
   it('uses the regular playwright screenshot path when it succeeds', async () => {
     const screenshot = rs.fn().mockResolvedValue(Buffer.from('plain-shot'));
     const newCDPSession = rs.fn();

@@ -1,13 +1,26 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { EncodedImage } from '@midscene/shared/img';
 import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import { ScreenshotItem } from '../../src/screenshot-item';
 
 describe('ScreenshotItem', () => {
   const testBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';
+  const webpBase64 =
+    'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
   describe('create', () => {
+    it('owns encoded bytes while retaining Base64 JSON transport and dump references', () => {
+      const image = EncodedImage.fromBase64(webpBase64);
+      const item = ScreenshotItem.fromImage(image, 42);
+      expect(item.image).toBe(image);
+      const transport = JSON.parse(JSON.stringify(item));
+      expect(transport.base64).toBe(webpBase64);
+      expect(transport).not.toHaveProperty('_image');
+      expect(transport).not.toHaveProperty('bytes');
+      expect(item.toSerializable()).not.toHaveProperty('base64');
+    });
     it('should create a ScreenshotItem from base64 string', () => {
       const item = ScreenshotItem.create(testBase64, Date.now());
       expect(item).toBeInstanceOf(ScreenshotItem);
@@ -18,6 +31,25 @@ describe('ScreenshotItem', () => {
       const capturedAt = Date.now();
       const item = ScreenshotItem.create(testBase64, capturedAt);
       expect(item.capturedAt).toBe(capturedAt);
+    });
+
+    it('classifies WebP screenshots without changing their body', () => {
+      const item = ScreenshotItem.create(webpBase64, 123);
+
+      expect(item.format).toBe('webp');
+      expect(item.extension).toBe('webp');
+      expect(item.mimeType).toBe('image/webp');
+      expect(item.rawBase64).toBe(webpBase64.split(',')[1]);
+      expect(item.toSerializable()).toMatchObject({
+        capturedAt: 123,
+        mimeType: 'image/webp',
+      });
+    });
+
+    it('rejects a declared MIME type that disagrees with encoded bytes', () => {
+      expect(() =>
+        ScreenshotItem.create(webpBase64.replace('image/webp', 'image/png'), 1),
+      ).toThrow('declares image/png but encoded bytes are image/webp');
     });
   });
 
@@ -124,6 +156,11 @@ describe('ScreenshotItem', () => {
         Date.now(),
       );
       expect(item.rawBase64).toBe('/9j/4AAQ');
+    });
+
+    it('should strip data URI prefix from WebP', () => {
+      const item = ScreenshotItem.create(webpBase64, Date.now());
+      expect(item.rawBase64).toBe(webpBase64.split(',')[1]);
     });
 
     it('should return unchanged if no prefix', () => {

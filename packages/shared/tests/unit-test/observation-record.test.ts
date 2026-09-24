@@ -13,6 +13,7 @@ import {
   readUIObservationRecord,
   writeUIObservationRecord,
 } from '@/agent-tools/observation-record';
+import { EncodedImage } from '@/img';
 import { afterEach, describe, expect, it } from '@rstest/core';
 
 const directories: string[] = [];
@@ -23,10 +24,33 @@ function tempDirectory(): string {
   return directory;
 }
 
+const pngSignature = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+]);
 const dataUrl = (text: string) =>
-  `data:image/png;base64,${Buffer.from(text).toString('base64')}`;
+  `data:image/png;base64,${Buffer.concat([
+    pngSignature,
+    Buffer.from(text),
+  ]).toString('base64')}`;
+const webpDataUrl =
+  'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
 describe('UIObservationRecordWriter', () => {
+  it('persists byte-native frames without a Base64 intermediate', () => {
+    const image = EncodedImage.fromBase64(webpDataUrl);
+    const writer = new UIObservationRecordWriter(
+      join(tempDirectory(), 'bytes.json'),
+    );
+    // If persistence tries to cross the Base64 boundary, fail the test.
+    image.toBase64 = () => {
+      throw new Error('unexpected Base64 encoding');
+    };
+    const frame = writer.persistFrame(image, 123);
+    expect(readFileSync(writer.resolveFramePath(frame))).toEqual(
+      Buffer.from(image.bytes),
+    );
+    expect(frame.mimeType).toBe('image/webp');
+  });
   afterEach(() => {
     for (const directory of directories.splice(0)) {
       rmSync(directory, { recursive: true, force: true });
@@ -66,7 +90,9 @@ describe('UIObservationRecordWriter', () => {
     const resolved = readUIObservationRecord(outputPath);
     expect(isAbsolute(resolved.frames[0].path)).toBe(true);
     expect(existsSync(resolved.frames[0].path)).toBe(true);
-    expect(readFileSync(resolved.frames[0].path, 'utf8')).toBe('same-frame');
+    expect(readFileSync(resolved.frames[0].path)).toEqual(
+      Buffer.from(dataUrl('same-frame').split(',')[1], 'base64'),
+    );
   });
 
   it('rejects missing, absolute, and escaping image paths', () => {
@@ -104,7 +130,50 @@ describe('UIObservationRecordWriter', () => {
       join(tempDirectory(), 'record.json'),
     );
     expect(() => writer.persistFrame('not-an-image', 100)).toThrow(
-      /PNG or JPEG data URL/,
+      /UI observation frame/,
+    );
+  });
+
+  it('rejects frame MIME metadata that disagrees with encoded bytes', () => {
+    const writer = new UIObservationRecordWriter(
+      join(tempDirectory(), 'record.json'),
+    );
+    const mismatched = webpDataUrl.replace('image/webp', 'image/png');
+
+    expect(() => writer.persistFrame(mismatched, 100)).toThrow(
+      'declares image/png but encoded bytes are image/webp',
+    );
+  });
+
+  it('persists and exports WebP frames with WebP metadata', () => {
+    const directory = tempDirectory();
+    const writer = new UIObservationRecordWriter(
+      join(directory, 'record.json'),
+    );
+    const frame = writer.persistFrame(webpDataUrl, 100);
+
+    expect(frame.mimeType).toBe('image/webp');
+    expect(frame.path).toMatch(/\.webp$/);
+    expect(existsSync(writer.resolveFramePath(frame))).toBe(true);
+
+    const record = writer.finalize([frame], {
+      startedAt: 50,
+      endedAt: 150,
+      shotSize: { width: 2, height: 3 },
+      shrunkShotToLogicalRatio: 1,
+    });
+    const outputPath = join(directory, 'exported-record.json');
+    writeUIObservationRecord(record, outputPath);
+
+    const serialized = JSON.parse(readFileSync(outputPath, 'utf8'));
+    expect(serialized.frames[0]).toEqual({
+      path: 'exported-record.frames/0000.webp',
+      mimeType: 'image/webp',
+      capturedAt: 100,
+    });
+    const resolved = readUIObservationRecord(outputPath);
+    expect(readFileSync(resolved.frames[0].path)).toEqual(
+      Buffer.from(webpDataUrl.split(',')[1], 'base64'),
     );
   });
 

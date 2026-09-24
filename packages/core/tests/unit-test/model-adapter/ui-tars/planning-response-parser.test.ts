@@ -17,7 +17,7 @@ rs.mock('@ui-tars/action-parser', () => ({
 
 const context: UIContext = {
   screenshot: {
-    base64: 'data:image/png;base64,AA==',
+    base64: 'data:image/png;base64,iVBORw0KGgoAAAAA',
   } as any,
   shotSize: {
     width: 1000,

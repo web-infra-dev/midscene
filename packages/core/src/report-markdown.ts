@@ -9,6 +9,10 @@ import type {
   ModelBrief,
   ReportActionDump,
 } from '@/types';
+import {
+  normalizeScreenshotBase64,
+  parseScreenshotBase64,
+} from '@midscene/shared/img';
 import type { ScreenshotRef } from './dump/screenshot-store';
 import {
   imageRefFileExtension,
@@ -16,10 +20,8 @@ import {
 } from './dump/screenshot-store';
 import { collectReportSummary } from './report-stats';
 
-const screenshotDataUrlPattern =
-  /^data:image\/(png|jpeg|jpg);base64,([\s\S]*)$/i;
-const rawBase64BodyPattern = /^[a-zA-Z0-9+/=\s]+$/;
 const jsonContextMaxStringLength = 12_000;
+const screenshotDataUrlPattern = /^data:image\/(?:png|jpe?g|webp);base64,/i;
 
 type ExecutionTaskWithExtraUsage = ExecutionTask & {
   searchAreaUsage?: AIUsageInfo;
@@ -401,31 +403,19 @@ function extractLocateCenter(
 
 function tryExtractBase64(screenshot: unknown): string | undefined {
   if (typeof screenshot === 'string') {
-    const trimmedScreenshot = screenshot.trim();
-    const dataUrlMatch = trimmedScreenshot.match(screenshotDataUrlPattern);
-    if (dataUrlMatch) {
-      const format = dataUrlMatch[1].toLowerCase() === 'jpg' ? 'jpeg' : 'png';
-      const base64Body = dataUrlMatch[2].replace(/\s/g, '');
-      if (!base64Body) {
-        return undefined;
-      }
-      return `data:image/${format};base64,${base64Body}`;
-    }
-
-    if (
-      trimmedScreenshot.startsWith('data:') ||
-      !rawBase64BodyPattern.test(trimmedScreenshot)
-    ) {
+    try {
+      return normalizeScreenshotBase64(screenshot);
+    } catch {
       return undefined;
     }
-
-    const base64Body = trimmedScreenshot.replace(/\s/g, '');
-    return base64Body ? `data:image/png;base64,${base64Body}` : undefined;
   }
 
   if (!screenshot || typeof screenshot !== 'object') return undefined;
   const s = screenshot as Record<string, unknown>;
   if (typeof s.base64 === 'string' && s.base64.length > 0) {
+    // File-restored screenshots keep their source path in `base64`. Preserve
+    // that value for sourceRef-backed exports; in-memory values are parsed and
+    // normalized before the fallback attachment path consumes them.
     return s.base64;
   }
   return undefined;
@@ -460,7 +450,7 @@ function screenshotAttachment(
       attachment: {
         id: screenshot.id,
         suggestedFileName,
-        mimeType: `image/${ext === 'jpeg' ? 'jpeg' : 'png'}`,
+        mimeType: screenshot.mimeType,
         executionIndex,
         taskIndex,
         base64Data: tryExtractBase64(screenshot),
@@ -506,7 +496,10 @@ function screenshotAttachment(
 
   const base64 = tryExtractBase64(screenshot);
   if (base64) {
-    const ext = base64.startsWith('data:image/jpeg') ? 'jpeg' : 'png';
+    const parsed = parseScreenshotBase64(base64, {
+      label: 'Markdown screenshot attachment',
+    });
+    const ext = parsed.extension;
     const idSuffix = options?.fallbackIdSuffix
       ? `-${options.fallbackIdSuffix}`
       : '';
@@ -517,7 +510,7 @@ function screenshotAttachment(
       attachment: {
         id,
         suggestedFileName,
-        mimeType: `image/${ext}`,
+        mimeType: parsed.mimeType,
         executionIndex,
         taskIndex,
         base64Data: base64,

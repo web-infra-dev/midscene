@@ -314,6 +314,7 @@ abstract class AbstractInterface {
 
 以下是你可以实现的可选方法：
 
+- `screenshot?(): Promise<{ bytes: Uint8Array; format: 'png' | 'jpeg' | 'webp' }>`：返回原始编码字节及其格式。提供此方法后，Midscene 会优先使用它，避免 Base64 往返转换。仍需保留 `screenshotBase64()` 以兼容原有调用。字节内容必须与声明的格式一致，返回后不得修改。
 - `destroy?(): Promise<void>`：销毁
 - `describe?(): string`：界面描述，这可能会用于报告和 Playground，但不会提供给 AI 模型
 - `beforeInvokeAction?(actionName: string, param: any): Promise<void>`：在动作空间中调用动作之前的钩子函数

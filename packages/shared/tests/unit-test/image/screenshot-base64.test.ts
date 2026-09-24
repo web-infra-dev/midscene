@@ -30,7 +30,7 @@ describe('parseScreenshotBase64', () => {
 
   it('rejects unsupported bytes instead of defaulting to PNG', () => {
     expect(() =>
-      parseScreenshotBase64(Buffer.from('not an image').toString('base64')),
+      normalizeScreenshotBase64(Buffer.from('not an image').toString('base64')),
     ).toThrow('does not contain a PNG, JPEG, or WebP image');
   });
 

@@ -274,7 +274,10 @@ describe('UIObserver', () => {
 
     for (let index = 0; index < 12; index++) {
       const persisted = writer.persistFrame(
-        `data:image/png;base64,${Buffer.from(`frame-${index}`).toString('base64')}`,
+        `data:image/png;base64,${Buffer.concat([
+          Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+          Buffer.from(`frame-${index}`),
+        ]).toString('base64')}`,
         index,
       );
       (observer as any).pushFrame({
@@ -299,7 +302,10 @@ describe('UIObserver', () => {
     const { deps } = makeDeps(fake);
     const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     const persisted = deps.observationRecordWriter.persistFrame(
-      `data:image/png;base64,${Buffer.from('frame').toString('base64')}`,
+      `data:image/png;base64,${Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.from('frame'),
+      ]).toString('base64')}`,
       100,
     );
     (observer as any).pushFrame({
