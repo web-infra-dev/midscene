@@ -440,6 +440,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       evidence.fixtureUrl = fixture.url;
       agent = await agentFromWebDriverAgent({
         wdaHost: '127.0.0.1',
+        wdaPort: 8100,
         modelConfig: {
           [MIDSCENE_MODEL_NAME]: 'ios-ci-model-must-not-run',
           [MIDSCENE_MODEL_API_KEY]: 'ios-ci-unused-key',
