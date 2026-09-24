@@ -417,8 +417,7 @@ export class ReportActionDump implements IReportActionDump {
         continue;
       }
 
-      const rawBase64 = screenshot.rawBase64;
-      writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
+      writeFileSync(imagePath, screenshot.image.bytes);
     }
 
     // Write dump JSON with references

@@ -1,5 +1,9 @@
 import http from 'node:http';
 import type { Agent as PageAgent } from '@midscene/core/agent';
+import {
+  inferScreenshotImageFormatFromBase64,
+  screenshotImageMimeType,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { Request, Response } from 'express';
 import {
@@ -27,6 +31,19 @@ function toMjpegFrameDataUrl(data: string, contentType?: string) {
     return data;
   }
   return `data:${contentType || 'image/jpeg'};base64,${data}`;
+}
+
+function screenshotContentType(data: string): string {
+  const body = data.replace(/^data:image\/[^;]+;base64,/i, '');
+  const format = inferScreenshotImageFormatFromBase64(body);
+  if (format) {
+    return screenshotImageMimeType(format);
+  }
+
+  const dataUriMimeType = data.match(
+    /^data:(image\/(?:png|jpe?g|webp));base64,/i,
+  )?.[1];
+  return dataUriMimeType?.toLowerCase().replace('jpg', 'jpeg') ?? 'image/jpeg';
 }
 
 /**
@@ -263,7 +280,7 @@ export class MjpegStreamHandler {
 
         writeMjpegFrame(res, boundary, {
           data: base64,
-          contentType: 'image/jpeg',
+          contentType: screenshotContentType(base64),
         });
       } catch (err) {
         if (stopped) break;

@@ -6,6 +6,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import * as path from 'node:path';
+import { isScreenshotImageMimeType } from '@midscene/shared/img';
 import { z } from 'zod';
 import { extractAllDumpScriptsSync } from './dump/html-utils';
 import { resolveScreenshotSource } from './dump/screenshot-store';
@@ -79,7 +80,9 @@ function writeAttachmentFromReport(
   const resolved = resolveScreenshotSource(attachment.sourceRef ?? null, {
     reportPath: opts.htmlPath,
     fallbackId: id,
-    fallbackMimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
+    fallbackMimeType: isScreenshotImageMimeType(mimeType)
+      ? mimeType
+      : 'image/png',
   });
 
   if (resolved.type === 'data-uri') {

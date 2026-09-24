@@ -5,7 +5,7 @@ import { describe, expect, it } from '@rstest/core';
 
 const makeUiContext = (frameCount: number): UIContext => {
   const frames = Array.from({ length: frameCount }, (_, i) =>
-    ScreenshotItem.create(`data:image/png;base64,iVBORw0KGgo-${i}`, 1000 + i),
+    ScreenshotItem.create('data:image/png;base64,iVBORw0KGgoAAAAA', 1000 + i),
   );
   return {
     screenshot: frames[frameCount - 1],
@@ -49,7 +49,7 @@ describe('recordAndReleaseScreenshotSequence', () => {
       type: 'screenshot' as const,
       ts: 5,
       screenshot: ScreenshotItem.create(
-        'data:image/png;base64,iVBORw0KGgo-x',
+        'data:image/png;base64,iVBORw0KGgoAAAAA',
         5,
       ),
       timing: 'after-calling',
@@ -68,7 +68,10 @@ describe('recordAndReleaseScreenshotSequence', () => {
   it('is a no-op when there is no screenshot sequence', () => {
     const task = makeTask();
     const uiContext = {
-      screenshot: ScreenshotItem.create('data:image/png;base64,iVBORw0KGgo', 1),
+      screenshot: ScreenshotItem.create(
+        'data:image/png;base64,iVBORw0KGgoAAAAA',
+        1,
+      ),
       shotSize: { width: 10, height: 10 },
       shrunkShotToLogicalRatio: 1,
     } as UIContext;

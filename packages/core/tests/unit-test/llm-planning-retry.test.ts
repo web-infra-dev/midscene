@@ -59,7 +59,7 @@ const mockModelConfig = (
 const mockContext = (): UIContext =>
   ({
     screenshot: {
-      base64: 'data:image/png;base64,AA==',
+      base64: 'data:image/png;base64,iVBORw0KGgoAAAAA',
     },
     shotSize: {
       width: 100,
