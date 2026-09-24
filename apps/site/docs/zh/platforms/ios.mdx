@@ -233,6 +233,29 @@ const agent = await agentFromWebDriverAgent({
 iproxy 8100 8100 YOUR_DEVICE_ID
 ```
 
+如果网关把 WDA 放在带路径前缀的地址下，可以直接配置完整的 API 基地址：
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+});
+```
+
+Midscene 会在该地址后追加 `/status`、`/session` 和会话接口路径。连接网关时，只设置 `wdaBaseUrl`。如果使用主机和端口，则设置 `wdaHost` 和 `wdaPort`。两种方式混用会报错。
+
+`wdaBaseUrl` 只配置 WDA API。MJPEG 流默认连接 `http://localhost:9100`。如果网关也提供画面流，请单独设置完整地址：
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+  wdaMjpegUrl: 'https://gateway.example/device/mjpeg',
+});
+```
+
+`wdaMjpegUrl` 可以使用独立的协议、主机、端口、路径和查询参数。协议须为 HTTP(S)，地址中不能包含用户名、密码或片段。`wdaMjpegUrl` 与 `wdaMjpegPort` 不能同时设置。
+
+如果使用本地端口转发，可以设置 `wdaMjpegPort`，默认值为 `9100`。画面流不可用时，Playground 会退回到截图轮询。
+
 ### 如何在 Playground 中获得更流畅的实时画面？
 
 Playground 的画面预览支持两种模式：

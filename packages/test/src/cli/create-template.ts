@@ -48,13 +48,28 @@ const platformSetup: Record<CreatePlatform, string> = {
   android: `    const agent = await agentFromAdbDevice(env.ANDROID_DEVICE_ID || undefined);
     onTeardown(() => agent.destroy());
     return { agent };`,
-  ios: `    const port = Number(env.WDA_PORT || 8100);
+  ios: `    const wdaBaseUrl = env.WDA_BASE_URL || undefined;
+    if (wdaBaseUrl && (env.WDA_HOST !== undefined || env.WDA_PORT !== undefined)) {
+      throw new Error('WDA_BASE_URL cannot be used with WDA_HOST or WDA_PORT.');
+    }
+    const port = Number(env.WDA_PORT || 8100);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       throw new Error('WDA_PORT must be an integer between 1 and 65535.');
     }
+    const wdaMjpegUrl = env.WDA_MJPEG_URL || undefined;
+    if (wdaMjpegUrl && env.WDA_MJPEG_PORT !== undefined) {
+      throw new Error('WDA_MJPEG_URL cannot be used with WDA_MJPEG_PORT.');
+    }
+    const mjpegPort = env.WDA_MJPEG_PORT === undefined ? undefined : Number(env.WDA_MJPEG_PORT);
+    if (mjpegPort !== undefined && (!Number.isInteger(mjpegPort) || mjpegPort < 1 || mjpegPort > 65535)) {
+      throw new Error('WDA_MJPEG_PORT must be an integer between 1 and 65535.');
+    }
     const agent = await agentFromWebDriverAgent({
-      wdaHost: env.WDA_HOST || 'localhost',
-      wdaPort: port,
+      ...(wdaBaseUrl
+        ? { wdaBaseUrl }
+        : { wdaHost: env.WDA_HOST || 'localhost', wdaPort: port }),
+      ...(wdaMjpegUrl ? { wdaMjpegUrl } : {}),
+      ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
     });
     onTeardown(() => agent.destroy());
     return { agent };`,
@@ -72,7 +87,7 @@ const platformEnv: Record<CreatePlatform, string> = {
   web: 'HEADLESS=true\n',
   android:
     '# Optional: choose a device from adb devices.\nANDROID_DEVICE_ID=\n',
-  ios: 'WDA_HOST=localhost\nWDA_PORT=8100\n',
+  ios: '# WDA_HOST=localhost\n# WDA_PORT=8100\n# WDA_BASE_URL=https://gateway.example/device/wda\n# WDA_MJPEG_PORT=9100\n# WDA_MJPEG_URL=https://gateway.example/device/mjpeg\n',
   harmony:
     '# Optional: choose a device from hdc list targets.\nHARMONY_DEVICE_ID=\n',
   computer:
@@ -94,7 +109,7 @@ MIDSCENE_MODEL_FAMILY=
 const platformInstructions: Record<Exclude<CreatePlatform, 'web'>, string> = {
   android:
     'Connect an Android device and verify it with `adb devices`. Set ANDROID_DEVICE_ID to select a device.',
-  ios: 'Start WebDriverAgent and set WDA_HOST and WDA_PORT for your iOS device.',
+  ios: 'Start WebDriverAgent and set WDA_HOST and WDA_PORT, or set WDA_BASE_URL for a gateway URL with a path prefix. Set WDA_MJPEG_URL for a separate remote MJPEG stream, or WDA_MJPEG_PORT for a direct connection.',
   harmony:
     'Connect a HarmonyOS device and verify it with `hdc list targets`. Set HARMONY_DEVICE_ID to select a device. Set HDC_HOME if hdc is not on PATH.',
   computer:

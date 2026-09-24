@@ -26,6 +26,8 @@ export interface WDAElementInfo {
 }
 
 export interface WebDriverOptions {
+  /** Full WebDriver API base URL, including any gateway path prefix. */
+  baseUrl?: string;
   port?: number;
   host?: string;
   timeout?: number;

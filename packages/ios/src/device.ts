@@ -31,6 +31,10 @@ import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
+import {
+  assertWdaConnectionOptions,
+  normalizeMjpegStreamUrl,
+} from './wda-options';
 
 // Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
@@ -340,6 +344,7 @@ export class IOSDevice implements AbstractInterface {
   }
 
   constructor(options?: IOSDeviceOpt) {
+    assertWdaConnectionOptions(options);
     // deviceId will be auto-detected from WebDriverAgent connection
     this.deviceId = 'pending-connection';
     this.options = options;
@@ -351,10 +356,20 @@ export class IOSDevice implements AbstractInterface {
     this.wdaBackend = new WebDriverAgentBackend({
       port: wdaPort,
       host: wdaHost,
+      ...(options?.wdaBaseUrl !== undefined
+        ? { baseUrl: options.wdaBaseUrl }
+        : {}),
       ...(options?.sessionId ? { sessionId: options.sessionId } : {}),
     });
-    this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
-    this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
+    this.wdaManager = WDAManager.getInstance(
+      wdaPort,
+      wdaHost,
+      options?.wdaBaseUrl,
+    );
+    this.mjpegStreamUrl =
+      options?.wdaMjpegUrl !== undefined
+        ? normalizeMjpegStreamUrl(options.wdaMjpegUrl)
+        : `http://${wdaHost}:${mjpegPort}`;
 
     // Opt-in (default off), mirroring Android scrcpy: only expose the MJPEG
     // frame-source capability when explicitly enabled. When off, UI observers

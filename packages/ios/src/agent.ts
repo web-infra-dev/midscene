@@ -18,6 +18,7 @@ import {
   type IOSDeviceOpt,
 } from './device';
 import { iosAgentTestRunnerNodeDefinitions } from './test-runner-nodes';
+import { assertWdaConnectionOptions } from './wda-options';
 
 const debugAgent = getDebug('ios:agent');
 type IOSDeviceClass = new (opts?: IOSDeviceOpt) => IOSDevice;
@@ -122,6 +123,7 @@ export class IOSAgent extends PageAgent<IOSDevice> {
 export async function agentFromWebDriverAgent(
   opts?: IOSAgentOpt & IOSDeviceOpt,
 ) {
+  assertWdaConnectionOptions(opts);
   debugAgent('Creating iOS agent with WebDriverAgent');
 
   const overrideModule =
