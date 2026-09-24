@@ -5,7 +5,9 @@ import { afterEach, describe, expect, rs, test } from '@rstest/core';
 import { MjpegStreamHandler } from '../../src/mjpeg-stream-handler';
 
 describe('MjpegStreamHandler native stream', () => {
-  afterEach(() => rs.restoreAllMocks());
+  afterEach(() => {
+    rs.restoreAllMocks();
+  });
 
   test('proxies a native HTTPS MJPEG URL with its path and query intact', async () => {
     const nativeUrl = 'https://stream.example:8443/live/mjpeg?token=secret';
