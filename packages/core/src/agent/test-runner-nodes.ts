@@ -185,7 +185,9 @@ export const aiActOptionsInputSchema = z.strictObject({
 export const setAIContextInputSchema = z.strictObject({
   target: z
     .enum(AGENT_AI_CONTEXT_KEYS)
-    .describe('The AI API to configure, or default for the shared fallback.'),
+    .describe(
+      'The AI API to configure, e.g. aiAct or aiAssert. Use default as the shared fallback for all AI APIs when neither the call nor the API has its own context.',
+    ),
   context: z
     .string()
     .optional()
