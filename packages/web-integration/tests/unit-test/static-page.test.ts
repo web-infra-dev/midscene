@@ -1,8 +1,11 @@
 import { ScreenshotItem } from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
+import { transparentPixelPngBase64 } from '../../src/common/screenshot';
 import { StaticPage, StaticPageAgent } from '../../src/static';
 
-const screenshotBase64 = 'data:image/png;base64,abc123';
+const screenshotBase64 = transparentPixelPngBase64;
+const updatedScreenshotBase64 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
 
 function createContext(
   screenshot: ConstructorParameters<typeof StaticPage>[0]['screenshot'],
@@ -69,7 +72,6 @@ describe('StaticPage', () => {
     expect(context.screenshot.base64).toBe(screenshotBase64);
     expect(context.screenshot.capturedAt).toBe(capturedAt);
 
-    const updatedScreenshotBase64 = 'data:image/png;base64,updated';
     page.updateContext(
       createContext({ base64: updatedScreenshotBase64, capturedAt: 456 }),
     );

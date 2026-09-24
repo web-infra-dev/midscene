@@ -19,6 +19,7 @@ import {
   reportToMarkdown,
   restoreImageReferences,
 } from '@midscene/core';
+import type { StoredImageRef } from '@midscene/core/dump';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
   Logo,
@@ -57,15 +58,14 @@ import {
   getEmptyDumpDescription,
   parseDumpAttributes,
 } from './utils/report-dump';
+import { resolveScreenshotFallbackPath } from './utils/screenshot-source';
 import { parseTestRunReportDump } from './utils/test-run-report';
 
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
 
-function resolveImageFromDom(
-  refOrId: string | { id: string; storage?: 'inline' | 'file'; path?: string },
-): string {
-  const id = typeof refOrId === 'string' ? refOrId : refOrId.id;
+function resolveImageFromDom(ref: StoredImageRef): string {
+  const id = ref.id;
   const cached = imageCache.get(id);
   if (cached) return cached;
 
@@ -78,12 +78,7 @@ function resolveImageFromDom(
     return data;
   }
 
-  if (typeof refOrId === 'object' && refOrId?.storage === 'file') {
-    return refOrId.path || `./screenshots/${id}.png`;
-  }
-
-  // Fallback to directory path
-  return `./screenshots/${id}.png`;
+  return resolveScreenshotFallbackPath(ref);
 }
 
 let globalRenderCount = 1;

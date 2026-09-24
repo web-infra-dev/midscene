@@ -5,7 +5,15 @@ const pendingScreenshots = new WeakMap<Browser, Promise<void>>();
 export async function capturePuppeteerScreenshot(
   page: Page,
   options: ScreenshotOptions & { encoding: 'base64' },
-): Promise<string> {
+): Promise<string>;
+export async function capturePuppeteerScreenshot(
+  page: Page,
+  options: ScreenshotOptions & { encoding: 'binary' },
+): Promise<Uint8Array>;
+export async function capturePuppeteerScreenshot(
+  page: Page,
+  options: ScreenshotOptions,
+): Promise<string | Uint8Array> {
   const browser = page.browser();
   const previous = pendingScreenshots.get(browser) ?? Promise.resolve();
   const capture = previous.then(async () => {

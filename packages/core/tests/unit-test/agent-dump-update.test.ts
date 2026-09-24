@@ -27,7 +27,8 @@ function createMockInterface() {
 }
 
 function createLargeBase64DataUri(byteSize: number): string {
-  const payload = 'A'.repeat(byteSize);
+  const signature = 'iVBORw0KGgoAAAAA';
+  const payload = `${signature}${'A'.repeat(Math.max(0, byteSize - signature.length))}`;
   return `data:image/png;base64,${payload}`;
 }
 
@@ -162,8 +163,8 @@ describe('Agent dump update screenshot serialization', () => {
 
     (agent as any).reportGenerator = reportGeneratorStub;
 
-    const beforeScreenshot = 'before';
-    const afterScreenshot = 'data:image/jpg;base64,after';
+    const beforeScreenshot = 'iVBORw0KGgoAAAAA';
+    const afterScreenshot = 'data:image/jpg;base64,/9j/4AAQSkZJRgAB';
     await agent.recordToReport('comparison', {
       content: 'before and after state',
       screenshots: [
@@ -189,8 +190,8 @@ describe('Agent dump update screenshot serialization', () => {
       'After click',
     ]);
     expect(task.recorder?.map((item) => item.screenshot?.base64)).toEqual([
-      'data:image/png;base64,before',
-      'data:image/jpeg;base64,after',
+      'data:image/png;base64,iVBORw0KGgoAAAAA',
+      'data:image/jpeg;base64,/9j/4AAQSkZJRgAB',
     ]);
     expect(task.recorder?.[0].ts ?? 0).toBeLessThan(task.recorder?.[1].ts ?? 0);
 

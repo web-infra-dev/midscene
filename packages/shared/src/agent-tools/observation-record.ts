@@ -21,6 +21,12 @@ import {
 } from 'node:path';
 import { z } from 'zod';
 import { getMidsceneRunSubDir } from '../common';
+import { EncodedImage } from '../img/encoded-image';
+import {
+  screenshotImageExtension,
+  screenshotImageFormatFromMimeType,
+  screenshotImageMimeType,
+} from '../img/image-format';
 import type { UIObservationFrame, UIObservationRecord } from './types';
 
 const observationRecordSchema = z
@@ -34,7 +40,7 @@ const observationRecordSchema = z
         z
           .object({
             path: z.string().min(1),
-            mimeType: z.enum(['image/png', 'image/jpeg']),
+            mimeType: z.enum(['image/png', 'image/jpeg', 'image/webp']),
             capturedAt: z.number().finite().nonnegative(),
           })
           .strict(),
@@ -165,25 +171,24 @@ export class UIObservationRecordWriter {
       .slice(2, 10)}`;
   }
 
-  persistFrame(dataUrl: string, capturedAt: number): UIObservationFrame {
+  persistFrame(
+    input: string | EncodedImage,
+    capturedAt: number,
+  ): UIObservationFrame {
     if (this.disposed) {
       throw new Error('UI observation record writer has been disposed');
     }
     if (this.finalized) {
       throw new Error('UI observation record has already been finalized');
     }
-    const match = /^data:image\/(png|jpe?g);base64,([\s\S]+)$/i.exec(dataUrl);
-    if (!match) {
-      throw new Error('UI observation frame must be a PNG or JPEG data URL');
-    }
-    const format = match[1].toLowerCase() === 'png' ? 'png' : 'jpeg';
-    const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
-    const bytes = Buffer.from(match[2], 'base64');
-    if (bytes.length === 0) {
-      throw new Error('UI observation frame contains no image data');
-    }
+    const image =
+      typeof input === 'string'
+        ? EncodedImage.fromBase64(input, { label: 'UI observation frame' })
+        : input;
+    const { bytes, format } = image;
+    const mimeType = screenshotImageMimeType(format);
     const digest = createHash('sha256').update(bytes).digest('hex');
-    const fileName = `${digest}.${format}`;
+    const fileName = `${digest}.${screenshotImageExtension(format)}`;
     mkdirSync(this.temporaryFramesDirectory, { recursive: true });
     const temporaryPath = join(this.temporaryFramesDirectory, fileName);
     if (!existsSync(temporaryPath)) {
@@ -302,7 +307,13 @@ export function writeUIObservationRecord(
 
       let relativePath = copiedPaths.get(sourcePath);
       if (!relativePath) {
-        const imageExtension = frame.mimeType === 'image/png' ? 'png' : 'jpeg';
+        const format = screenshotImageFormatFromMimeType(frame.mimeType);
+        if (!format) {
+          throw new Error(
+            `Invalid UI observation record at frames.${index}.mimeType: unsupported image MIME type ${frame.mimeType}`,
+          );
+        }
+        const imageExtension = screenshotImageExtension(format);
         const fileName = `${String(copiedPaths.size).padStart(4, '0')}.${imageExtension}`;
         relativePath = `${basename(framesDirectory)}/${fileName}`;
         copyFileSync(sourcePath, join(temporaryFramesDirectory, fileName));

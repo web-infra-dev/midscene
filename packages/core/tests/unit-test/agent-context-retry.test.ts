@@ -23,7 +23,10 @@ const modelConfig = {
 };
 
 const fakeUIContext = {
-  screenshot: ScreenshotItem.create('', Date.now()),
+  screenshot: ScreenshotItem.create(
+    'data:image/png;base64,iVBORw0KGgoAAAAA',
+    Date.now(),
+  ),
   shotSize: { width: 1280, height: 720 },
   shrunkShotToLogicalRatio: 1,
 } as unknown as UIContext;
@@ -34,7 +37,7 @@ function createMockInterface() {
     actionSpace: () => [],
     describe: () => 'test page',
     size: async () => ({ width: 1280, height: 720 }),
-    screenshotBase64: async () => '',
+    screenshotBase64: async () => 'data:image/png;base64,iVBORw0KGgoAAAAA',
   } as any;
 }
 

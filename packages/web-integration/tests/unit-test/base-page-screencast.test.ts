@@ -153,7 +153,9 @@ describe('Page startMjpegStream', () => {
       bringToFront: rs.fn().mockResolvedValue(undefined),
       evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 720 }),
       browser: rs.fn().mockReturnValue({}),
-      screenshot: rs.fn().mockResolvedValue(jpegBase64(1280, 720)),
+      screenshot: rs
+        .fn()
+        .mockResolvedValue(Buffer.from(jpegBase64(1280, 720), 'base64')),
       url: () => 'http://example.com',
       target: () => ({
         createCDPSession: rs.fn().mockResolvedValue(client),
@@ -242,7 +244,9 @@ describe('Page startMjpegStream', () => {
       bringToFront: rs.fn().mockResolvedValue(undefined),
       evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 768 }),
       browser: rs.fn().mockReturnValue({}),
-      screenshot: rs.fn().mockResolvedValue('cmVmcmVzaA=='),
+      screenshot: rs
+        .fn()
+        .mockResolvedValue(Buffer.from('cmVmcmVzaA==', 'base64')),
       url: () => 'http://example.com',
       target: () => ({
         createCDPSession: rs.fn().mockResolvedValue(client),
@@ -258,7 +262,7 @@ describe('Page startMjpegStream', () => {
     expect(mockPage.screenshot).toHaveBeenCalledWith({
       type: 'jpeg',
       quality: 90,
-      encoding: 'base64',
+      encoding: 'binary',
     });
     // Hub contract: MjpegStreamFrame.data is bare base64, never a data URL.
     expect(onFrame).toHaveBeenCalledWith({
@@ -286,7 +290,9 @@ describe('Page startMjpegStream', () => {
     };
     const mockPage = {
       evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 768 }),
-      screenshot: rs.fn().mockResolvedValue('ZmFsbGJhY2s='),
+      screenshot: rs
+        .fn()
+        .mockResolvedValue(Buffer.from('ZmFsbGJhY2s=', 'base64')),
       url: () => 'http://example.com',
       target: () => ({
         createCDPSession: rs.fn().mockResolvedValue(client),
@@ -319,7 +325,9 @@ describe('Page startMjpegStream', () => {
       bringToFront: rs.fn().mockResolvedValue(undefined),
       evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 720 }),
       browser: rs.fn().mockReturnValue({}),
-      screenshot: rs.fn().mockResolvedValue(jpegBase64(1280, 720)),
+      screenshot: rs
+        .fn()
+        .mockResolvedValue(Buffer.from(jpegBase64(1280, 720), 'base64')),
       url: () => 'http://example.com',
     } as any;
     const page = new Page(mockPage, 'puppeteer');
@@ -340,7 +348,7 @@ describe('Page startMjpegStream', () => {
     expect(mockPage.screenshot).toHaveBeenCalledWith({
       type: 'jpeg',
       quality: 90,
-      encoding: 'base64',
+      encoding: 'binary',
     });
     expect(onFrame).toHaveBeenCalledWith({
       data: jpegBase64(1280, 720),

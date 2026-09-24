@@ -114,42 +114,7 @@ export function parseScreenshotBase64(
 export const normalizeScreenshotBase64 = (
   base64: string,
   options?: NormalizeScreenshotBase64Options,
-) => {
-  const label = options?.label ?? 'screenshot base64';
-  const trimmedBase64 = base64.trim();
-  if (!trimmedBase64) {
-    throw new Error(`${label} cannot be empty`);
-  }
-
-  const dataUriMatch = trimmedBase64.match(supportedScreenshotDataUriPattern);
-  if (dataUriMatch) {
-    const imageFormat: ScreenshotImageFormat =
-      dataUriMatch[1].toLowerCase() === 'jpg'
-        ? 'jpeg'
-        : (dataUriMatch[1].toLowerCase() as ScreenshotImageFormat);
-    const body = dataUriMatch[2];
-    if (!normalizeBase64Body(body)) {
-      throw new Error(`${label} cannot be empty`);
-    }
-    return createImgBase64ByFormat(imageFormat, body);
-  }
-
-  if (trimmedBase64.startsWith('data:')) {
-    throw new Error(
-      `${label} must be a PNG/JPEG/WebP data URI or raw PNG/JPEG/WebP base64 string`,
-    );
-  }
-
-  if (!/^[A-Za-z0-9+/=\s]+$/.test(trimmedBase64)) {
-    throw new Error(
-      `${label} must be a PNG/JPEG/WebP data URI or raw PNG/JPEG/WebP base64 string`,
-    );
-  }
-
-  const base64Body = normalizeBase64Body(trimmedBase64);
-  const inferredFormat = inferScreenshotImageFormatFromBase64(base64Body);
-  return createImgBase64ByFormat(inferredFormat ?? 'png', base64Body);
-};
+) => parseScreenshotBase64(base64, options).dataUrl;
 
 export const normalizeBase64Image = (base64: string) => {
   const trimmedBase64 = base64.trim();

@@ -367,7 +367,7 @@ describe('ReportActionDump', () => {
     it('should preserve capturedAt in inline screenshot serialization', () => {
       const capturedAt = 1700000000123;
       const screenshot = ScreenshotItem.create(
-        'data:image/png;base64,test-inline-screenshot',
+        'data:image/png;base64,iVBORw0KGgoAAAAA',
         capturedAt,
       );
 
@@ -401,7 +401,7 @@ describe('ReportActionDump', () => {
       const screenshotData = parsed.executions[0].tasks[0].uiContext.screenshot;
 
       expect(screenshotData.base64).toBe(
-        'data:image/png;base64,test-inline-screenshot',
+        'data:image/png;base64,iVBORw0KGgoAAAAA',
       );
       expect(screenshotData.capturedAt).toBe(capturedAt);
     });
