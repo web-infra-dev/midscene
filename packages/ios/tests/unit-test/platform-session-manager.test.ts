@@ -41,11 +41,13 @@ describe('iosPlaygroundPlatform session manager', () => {
     const setup = await prepared.sessionManager!.getSetupSchema!();
 
     expect(setup?.fields).toMatchObject([
-      { key: 'host', defaultValue: 'localhost' },
-      { key: 'port', defaultValue: 8100 },
+      { key: 'host', required: false },
+      { key: 'port', required: false },
       { key: 'baseUrl', required: false },
       { key: 'sessionId', required: false },
     ]);
+    expect(setup?.fields?.[0]).not.toHaveProperty('defaultValue');
+    expect(setup?.fields?.[1]).not.toHaveProperty('defaultValue');
 
     const created = await prepared.sessionManager?.createSession({
       host: 'localhost',
@@ -71,18 +73,45 @@ describe('iosPlaygroundPlatform session manager', () => {
     const prepared = await iosPlaygroundPlatform.prepare({});
     const created = await prepared.sessionManager?.createSession({
       baseUrl: 'https://gateway.example/code/wda/',
-      port: 'invalid',
     });
     await created?.agentFactory?.();
 
     expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(1, {
-      wdaHost: 'localhost',
-      wdaPort: 8100,
       wdaBaseUrl: 'https://gateway.example/code/wda',
     });
     expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, {
-      wdaHost: 'localhost',
-      wdaPort: 8100,
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+    });
+  });
+
+  test.each([
+    { host: 'localhost' },
+    { port: 8100 },
+    { host: 'localhost', port: 8100 },
+  ])('rejects gateway base URL with host or port input: %j', async (input) => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+
+    await expect(
+      prepared.sessionManager?.createSession({
+        baseUrl: 'https://gateway.example/code/wda',
+        ...input,
+      }),
+    ).rejects.toThrow(/wdaBaseUrl cannot be used with wdaHost or wdaPort/);
+    expect(agentFromWebDriverAgentMock).not.toHaveBeenCalled();
+  });
+
+  test('treats empty optional host and port fields as unset', async () => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+
+    await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/code/wda',
+      host: '',
+      port: '',
+    });
+
+    expect(agentFromWebDriverAgentMock).toHaveBeenCalledWith({
       wdaBaseUrl: 'https://gateway.example/code/wda',
     });
   });

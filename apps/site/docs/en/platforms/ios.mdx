@@ -241,7 +241,7 @@ const agent = await agentFromWebDriverAgent({
 });
 ```
 
-Midscene appends `/status`, `/session`, and session commands to this base URL. `wdaBaseUrl` takes precedence over `wdaHost` and `wdaPort`. The MJPEG stream uses its separate `wdaMjpegPort` setting.
+Midscene appends `/status`, `/session`, and session commands to this base URL. Set either `wdaBaseUrl` or `wdaHost`/`wdaPort`; combining them throws an error. The MJPEG stream uses its separate `wdaMjpegPort` setting.
 
 ### How to get smoother live screen preview in Playground?
 

@@ -241,7 +241,7 @@ const agent = await agentFromWebDriverAgent({
 });
 ```
 
-Midscene 会在该地址后追加 `/status`、`/session` 和 session 内的接口路径。`wdaBaseUrl` 优先于 `wdaHost` 和 `wdaPort`。MJPEG 画面流仍使用独立的 `wdaMjpegPort` 配置。
+Midscene 会在该地址后追加 `/status`、`/session` 和 session 内的接口路径。请只设置 `wdaBaseUrl`，或设置 `wdaHost`／`wdaPort`；两种方式混用会报错。MJPEG 画面流仍使用独立的 `wdaMjpegPort` 配置。
 
 ### 如何在 Playground 中获得更流畅的实时画面？
 

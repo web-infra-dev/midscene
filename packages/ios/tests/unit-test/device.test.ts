@@ -163,6 +163,20 @@ describe('IOSDevice', () => {
         'https://gateway.example/code/wda',
       );
     });
+
+    it.each([
+      { wdaHost: 'localhost' },
+      { wdaPort: 8100 },
+      { wdaHost: 'localhost', wdaPort: 8100 },
+    ])('rejects a base URL combined with host or port: %j', (connection) => {
+      expect(
+        () =>
+          new IOSDevice({
+            wdaBaseUrl: 'https://gateway.example/code/wda',
+            ...connection,
+          }),
+      ).toThrow(/wdaBaseUrl cannot be used with wdaHost or wdaPort/);
+    });
   });
 
   describe('Device Info', () => {

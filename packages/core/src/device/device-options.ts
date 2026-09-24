@@ -199,7 +199,7 @@ export type IOSDeviceOpt = {
   wdaPort?: number;
   /** WebDriverAgent host (default: 'localhost') */
   wdaHost?: string;
-  /** Full WDA API base URL, including any gateway path prefix. Takes precedence over wdaHost/wdaPort. */
+  /** Full WDA API base URL, including any gateway path prefix. Cannot be combined with wdaHost or wdaPort. */
   wdaBaseUrl?: string;
   /**
    * Existing WebDriverAgent session ID to reuse.

@@ -49,8 +49,6 @@ describe('IOSMidsceneTools', () => {
 
     await takeScreenshotTool?.handler({
       ios: {
-        'wda-host': '127.0.0.1',
-        'wda-port': 8100,
         'wda-base-url': 'https://gateway.example/code/wda',
         sessionId: 'external-session-id',
         waitAfterAction: 650,
@@ -63,8 +61,6 @@ describe('IOSMidsceneTools', () => {
     expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         autoDismissKeyboard: false,
-        wdaHost: '127.0.0.1',
-        wdaPort: 8100,
         wdaBaseUrl: 'https://gateway.example/code/wda',
         sessionId: 'external-session-id',
         waitAfterAction: 650,
@@ -73,6 +69,24 @@ describe('IOSMidsceneTools', () => {
         screenshotShrinkFactor: 2,
       }),
     );
+  });
+
+  it('rejects conflicting WDA connection options before creating an agent', async () => {
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'ios_connect');
+
+    await expect(
+      connectTool?.handler({
+        ios: {
+          wdaBaseUrl: 'https://gateway.example/code/wda',
+          wdaHost: 'localhost',
+        },
+      }),
+    ).rejects.toThrow(/wdaBaseUrl cannot be used with wdaHost or wdaPort/);
+    expect(agentFromWebDriverAgent).not.toHaveBeenCalled();
   });
 
   it('passes top-level ios aliases to act', async () => {

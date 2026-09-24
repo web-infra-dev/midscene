@@ -2457,7 +2457,7 @@ const device = new IOSDevice({
 
 - `wdaPort?: number` —— WebDriverAgent 端口，默认 `8100`。
 - `wdaHost?: string` —— WebDriverAgent host，默认 `'localhost'`。
-- `wdaBaseUrl?: string` —— 完整的 HTTP(S) WDA API 基地址，可包含网关路径前缀。优先于 `wdaHost` 和 `wdaPort`。
+- `wdaBaseUrl?: string` —— 完整的 HTTP(S) WDA API 基地址，可包含网关路径前缀。不能与 `wdaHost` 或 `wdaPort` 同时设置。
 - `iOSDeviceClassOverride?: string` —— 使用 `agentFromWebDriverAgent()` 或 iOS Playground 时替换默认 `IOSDevice` 的 npm module path。目标模块必须导出 `IOSDevice` class 或 default class。
 - `sessionId?: string` —— 复用已有的 WebDriverAgent session ID。传入后，Midscene 不再创建新的 WDA session；清理时只会从这个外部 WebDriver session 分离，不会删除它。
 - `wdaMjpegPort?: number` —— WDA MJPEG 服务端口，用于实时画面流，默认 `9100`。

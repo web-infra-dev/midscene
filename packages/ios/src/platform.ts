@@ -15,6 +15,7 @@ import {
   type IOSAgentOpt,
   agentFromWebDriverAgent,
 } from './agent';
+import { assertWdaConnectionOptions } from './wda-options';
 
 export interface IOSPlatformOptions {
   staticDir?: string;
@@ -73,7 +74,7 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
         return {
           title: 'Connect WebDriverAgent',
           description:
-            'Provide the WebDriverAgent host and port that are already running for your selected iPhone or simulator.',
+            'Provide a WebDriverAgent base URL, or the host and port for your selected iPhone or simulator.',
           primaryActionLabel: 'Create Agent',
           autoSubmitWhenReady: wdaReady,
           fields: [
@@ -81,16 +82,14 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
               key: 'host',
               label: 'WebDriverAgent host',
               type: 'text',
-              required: true,
-              defaultValue: 'localhost',
+              required: false,
               placeholder: 'localhost',
             },
             {
               key: 'port',
               label: 'WebDriverAgent port',
               type: 'number',
-              required: true,
-              defaultValue: DEFAULT_WDA_PORT,
+              required: false,
               placeholder: DEFAULT_WDA_PORT.toString(),
             },
             {
@@ -115,15 +114,24 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
           typeof input?.baseUrl === 'string' && input.baseUrl.trim()
             ? normalizeWebDriverBaseUrl(input.baseUrl.trim())
             : undefined;
+        const hasHostInput =
+          input?.host !== undefined && String(input.host).trim() !== '';
+        const hasPortInput =
+          input?.port !== undefined && String(input.port).trim() !== '';
+        assertWdaConnectionOptions({
+          ...(baseUrl ? { wdaBaseUrl: baseUrl } : {}),
+          ...(hasHostInput ? { wdaHost: String(input?.host) } : {}),
+          ...(hasPortInput ? { wdaPort: Number(input?.port) } : {}),
+        });
         const host =
           typeof input?.host === 'string' && input.host.trim()
             ? input.host.trim().replace(/^https?:\/\//, '')
             : 'localhost';
-        const port = baseUrl
+        const port = !hasPortInput
           ? DEFAULT_WDA_PORT
           : typeof input?.port === 'number'
             ? input.port
-            : Number.parseInt(String(input?.port ?? DEFAULT_WDA_PORT), 10);
+            : Number.parseInt(String(input?.port), 10);
 
         if (Number.isNaN(port) || port < 1 || port > 65535) {
           throw new Error(
@@ -136,13 +144,15 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
             : undefined;
 
         const connectAgent = async (): Promise<IOSAgent> => {
-          return agentFromWebDriverAgent({
+          const agentOptions = {
             ...options?.getAgentOptions?.(),
-            wdaHost: host,
-            wdaPort: port,
-            ...(baseUrl ? { wdaBaseUrl: baseUrl } : {}),
+            ...(baseUrl
+              ? { wdaBaseUrl: baseUrl }
+              : { wdaHost: host, wdaPort: port }),
             ...(sessionId ? { sessionId } : {}),
-          });
+          };
+          assertWdaConnectionOptions(agentOptions);
+          return agentFromWebDriverAgent(agentOptions);
         };
 
         const agent = await connectAgent();

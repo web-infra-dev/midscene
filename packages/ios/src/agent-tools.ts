@@ -14,6 +14,7 @@ import type { ToolDefinition } from '@midscene/shared/agent-tools/types';
 import { getDebug } from '@midscene/shared/logger';
 import { type IOSAgent, agentFromWebDriverAgent } from './agent';
 import { IOSDevice, type IOSDeviceOpt } from './device';
+import { assertWdaConnectionOptions } from './wda-options';
 
 const debug = getDebug('agent-tools:ios');
 
@@ -104,6 +105,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
   }
 
   protected async ensureAgent(opts?: IOSInitArgs): Promise<IOSAgent> {
+    assertWdaConnectionOptions(opts);
     const nextSignature = getAgentInitArgsSignature(opts);
 
     if (
@@ -145,6 +147,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
+          assertWdaConnectionOptions(initArgs);
           const identity = getTargetIdentity(initArgs);
           const reportSession = this.createNewCliReportSession(identity);
           this.commitCliReportSession(reportSession);

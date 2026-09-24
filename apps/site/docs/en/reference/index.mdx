@@ -2499,7 +2499,7 @@ const device = new IOSDevice({
 
 - `wdaPort?: number` — WebDriverAgent port. Default: `8100`.
 - `wdaHost?: string` — WebDriverAgent host. Default: `'localhost'`.
-- `wdaBaseUrl?: string` — Full HTTP(S) WDA API base URL, including a gateway path prefix. Takes precedence over `wdaHost` and `wdaPort`.
+- `wdaBaseUrl?: string` — Full HTTP(S) WDA API base URL, including a gateway path prefix. Cannot be combined with `wdaHost` or `wdaPort`.
 - `iOSDeviceClassOverride?: string` — Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
 - `sessionId?: string` — Existing WebDriverAgent session ID to reuse. When provided, Midscene skips creating a new WDA session. During cleanup, Midscene detaches from the externally supplied WebDriver session instead of deleting it.
 - `wdaMjpegPort?: number` — WDA MJPEG server port for real-time screen streaming. Default: `9100`.
