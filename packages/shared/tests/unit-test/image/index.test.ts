@@ -680,15 +680,13 @@ describe('resizeAndConvertImgBuffer', () => {
   });
 
   describe('sharp failure', () => {
-    const metadataFn = rs.fn(() => {
+    const sharpFn = rs.fn(() => {
       throw new Error('sharp is not available');
     });
 
     beforeAll(() => {
       rs.doMock('sharp', () => ({
-        default: () => ({
-          metadata: metadataFn,
-        }),
+        default: sharpFn,
       }));
     });
 
@@ -699,11 +697,22 @@ describe('resizeAndConvertImgBuffer', () => {
     it('throws instead of loading the browser image backend', async () => {
       await expect(
         resizeAndConvertImgBuffer('png', imageBuffer, {
-          width: 2,
-          height: 2,
+          width: 1,
+          height: 1,
         }),
       ).rejects.toThrow('sharp is not available');
-      expect(metadataFn).toHaveBeenCalledTimes(1);
+      expect(sharpFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not require a decoder for unchanged supported image bytes', async () => {
+      const callsBefore = sharpFn.mock.calls.length;
+      const result = await resizeAndConvertImgBuffer('png', imageBuffer, {
+        width: 2,
+        height: 2,
+      });
+      expect(result.buffer).toBe(imageBuffer);
+      expect(result.format).toBe('png');
+      expect(sharpFn.mock.calls.length).toBe(callsBefore);
     });
   });
 });

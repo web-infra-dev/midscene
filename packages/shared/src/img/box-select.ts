@@ -1,15 +1,11 @@
 import assert from 'node:assert';
-import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon';
 import { NodeType } from '../constants';
 import type { BaseElement, Rect } from '../types';
-import { ifInNode } from '../utils';
-import { createImgBase64ByFormat, parseBase64 } from './base64';
-import { photonFromBase64, photonToBase64 } from './geometry';
-import getPhoton from './get-photon';
-import getSharp from './get-sharp';
+import { EncodedImage } from './encoded-image';
+import { type ImageOperation, transformImage } from './image-pipeline';
 import {
   type ScreenshotImageOutputFormat,
-  encodeRgbaWithSharp,
+  screenshotEncodeOptions,
 } from './screenshot-encoding';
 
 // Simple 5x7 bitmap font for digits 0-9
@@ -469,53 +465,6 @@ function drawPointMarker(
   });
 }
 
-function blendPixels(
-  basePixels: Uint8Array,
-  overlayPixels: Uint8Array,
-  width: number,
-  height: number,
-): Uint8Array {
-  const result = new Uint8Array(basePixels.length);
-  for (let i = 0; i < basePixels.length; i += 4) {
-    const overlayAlpha = overlayPixels[i + 3] / 255;
-    const baseAlpha = basePixels[i + 3] / 255;
-
-    if (overlayAlpha === 0) {
-      result[i + 0] = basePixels[i + 0];
-      result[i + 1] = basePixels[i + 1];
-      result[i + 2] = basePixels[i + 2];
-      result[i + 3] = basePixels[i + 3];
-    } else {
-      const outAlpha = overlayAlpha + baseAlpha * (1 - overlayAlpha);
-      if (outAlpha === 0) {
-        // Both alphas are effectively zero, copy overlay pixel
-        result[i + 0] = overlayPixels[i + 0];
-        result[i + 1] = overlayPixels[i + 1];
-        result[i + 2] = overlayPixels[i + 2];
-        result[i + 3] = overlayPixels[i + 3];
-      } else {
-        result[i + 0] = Math.round(
-          (overlayPixels[i + 0] * overlayAlpha +
-            basePixels[i + 0] * baseAlpha * (1 - overlayAlpha)) /
-            outAlpha,
-        );
-        result[i + 1] = Math.round(
-          (overlayPixels[i + 1] * overlayAlpha +
-            basePixels[i + 1] * baseAlpha * (1 - overlayAlpha)) /
-            outAlpha,
-        );
-        result[i + 2] = Math.round(
-          (overlayPixels[i + 2] * overlayAlpha +
-            basePixels[i + 2] * baseAlpha * (1 - overlayAlpha)) /
-            outAlpha,
-        );
-        result[i + 3] = Math.round(outAlpha * 255);
-      }
-    }
-  }
-  return result;
-}
-
 const createSvgOverlay = async (
   elements: Array<ElementForOverlay>,
   imageWidth: number,
@@ -722,30 +671,53 @@ const createSvgOverlay = async (
   return overlayPixels;
 };
 
-async function decodeImageWithSharp(
-  inputImgBase64: string,
-  size?: { width: number; height: number },
-) {
-  const { body } = parseBase64(inputImgBase64);
-  const Sharp = await getSharp();
-  let pipeline = Sharp(Buffer.from(body, 'base64'));
-  if (size) {
-    pipeline = pipeline.resize(size.width, size.height, {
-      fit: 'fill',
-      kernel: 'nearest',
-    });
-  }
-  const { data, info } = await pipeline
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  if (!info.width || !info.height || info.channels !== 4) {
-    throw new Error('Image processing failed to produce RGBA pixels');
-  }
+/** Rendering produces RGBA only; the pipeline owns decoding and final encoding. */
+export async function createElementOverlay(options: {
+  elementsPositionInfo: Array<ElementForOverlay>;
+  width: number;
+  height: number;
+  annotationPadding?: number;
+  borderThickness?: number;
+  centerPoint?: boolean;
+  prompt?: string;
+}): Promise<ImageOperation> {
   return {
-    pixels: new Uint8Array(data),
-    width: info.width,
-    height: info.height,
+    type: 'overlay',
+    width: options.width,
+    height: options.height,
+    pixels: await createSvgOverlay(
+      options.elementsPositionInfo,
+      options.width,
+      options.height,
+      options.annotationPadding,
+      options.borderThickness,
+      options.prompt,
+      options.centerPoint,
+    ),
+  };
+}
+
+export function createPointOverlay(options: {
+  width: number;
+  height: number;
+  point: { x: number; y: number };
+  radius?: number;
+  indexId?: number;
+}): ImageOperation {
+  const pixels = new Uint8Array(options.width * options.height * 4);
+  drawPointMarker(
+    pixels,
+    options.width,
+    options.height,
+    options.point,
+    options.radius ?? 14,
+    options.indexId ?? 1,
+  );
+  return {
+    type: 'overlay',
+    width: options.width,
+    height: options.height,
+    pixels,
   };
 }
 
@@ -760,99 +732,20 @@ export const compositeElementInfoImg = async (options: {
   outputFormat?: ScreenshotImageOutputFormat;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
-  if (ifInNode) {
-    const { pixels, width, height } = await decodeImageWithSharp(
-      options.inputImgBase64,
-      options.size,
-    );
-    const overlayPixels = await createSvgOverlay(
-      options.elementsPositionInfo,
-      width,
-      height,
-      options.annotationPadding,
-      options.borderThickness,
-      options.prompt,
-      options.centerPoint,
-    );
-    const outputFormat = options.outputFormat ?? 'jpeg';
-    const encoded = await encodeRgbaWithSharp(
-      blendPixels(pixels, overlayPixels, width, height),
-      width,
-      height,
-      outputFormat,
-    );
-    return createImgBase64ByFormat(outputFormat, encoded.toString('base64'));
-  }
-
-  const { PhotonImage, SamplingFilter, resize } = await getPhoton();
-
-  let width = 0;
-  let height = 0;
-
-  if (options.size) {
-    width = options.size.width;
-    height = options.size.height;
-  }
-
-  let photonImage = await photonFromBase64(options.inputImgBase64);
-
-  if (!width || !height) {
-    width = photonImage.get_width();
-    height = photonImage.get_height();
-  } else {
-    const imageWidth = photonImage.get_width();
-    const imageHeight = photonImage.get_height();
-    // Resize the image to the specified width and height if it's not already the same
-    if (imageWidth !== width || imageHeight !== height) {
-      const resized = resize(
-        photonImage,
-        width,
-        height,
-        SamplingFilter.Nearest,
-      );
-      photonImage.free();
-      photonImage = resized;
-    }
-  }
-
-  if (!width || !height) {
-    photonImage.free();
-    throw Error('Image processing failed because width or height is undefined');
-  }
-
-  const { elementsPositionInfo, prompt } = options;
-
-  try {
-    // Get base image pixels
-    const basePixels = photonImage.get_raw_pixels();
-
-    // Create overlay with annotations
-    const overlayPixels = await createSvgOverlay(
-      elementsPositionInfo,
-      width,
-      height,
-      options.annotationPadding,
-      options.borderThickness,
-      prompt,
-      options.centerPoint,
-    );
-
-    // Blend overlay onto base image
-    const blendedPixels = blendPixels(basePixels, overlayPixels, width, height);
-
-    // Create result image
-    const resultImage = new PhotonImage(blendedPixels, width, height);
-    const base64 = await photonToBase64(
-      resultImage,
-      90,
-      options.outputFormat ?? 'jpeg',
-    );
-
-    resultImage.free();
-    return base64;
-  } finally {
-    photonImage.free();
-  }
+  const image = EncodedImage.fromBase64(options.inputImgBase64);
+  const size = options.size ?? image.size;
+  return (
+    await transformImage(image, {
+      operations: [
+        { type: 'resize', ...size, kernel: 'nearest' },
+        await createElementOverlay({ ...options, ...size }),
+      ],
+      output:
+        options.outputFormat === 'webp'
+          ? screenshotEncodeOptions('webp')
+          : { format: 'jpeg', quality: 90, chromaSubsampling: '4:4:4' },
+    })
+  ).toBase64();
 };
 
 export const compositePointMarkerImg = async (options: {
@@ -864,88 +757,20 @@ export const compositePointMarkerImg = async (options: {
   outputFormat?: ScreenshotImageOutputFormat;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
-  if (ifInNode) {
-    const { pixels, width, height } = await decodeImageWithSharp(
-      options.inputImgBase64,
-      options.size,
-    );
-    const overlayPixels = new Uint8Array(width * height * 4);
-    drawPointMarker(
-      overlayPixels,
-      width,
-      height,
-      options.point,
-      options.radius ?? 14,
-      options.indexId ?? 1,
-    );
-    const outputFormat = options.outputFormat ?? 'jpeg';
-    const encoded = await encodeRgbaWithSharp(
-      blendPixels(pixels, overlayPixels, width, height),
-      width,
-      height,
-      outputFormat,
-    );
-    return createImgBase64ByFormat(outputFormat, encoded.toString('base64'));
-  }
-
-  const { PhotonImage, SamplingFilter, resize } = await getPhoton();
-
-  let width = 0;
-  let height = 0;
-
-  if (options.size) {
-    width = options.size.width;
-    height = options.size.height;
-  }
-
-  let photonImage = await photonFromBase64(options.inputImgBase64);
-
-  if (!width || !height) {
-    width = photonImage.get_width();
-    height = photonImage.get_height();
-  } else {
-    const imageWidth = photonImage.get_width();
-    const imageHeight = photonImage.get_height();
-    if (imageWidth !== width || imageHeight !== height) {
-      const resized = resize(
-        photonImage,
-        width,
-        height,
-        SamplingFilter.Nearest,
-      );
-      photonImage.free();
-      photonImage = resized;
-    }
-  }
-
-  if (!width || !height) {
-    photonImage.free();
-    throw Error('Image processing failed because width or height is undefined');
-  }
-
-  try {
-    const basePixels = photonImage.get_raw_pixels();
-    const overlayPixels = new Uint8Array(width * height * 4);
-    drawPointMarker(
-      overlayPixels,
-      width,
-      height,
-      options.point,
-      options.radius ?? 14,
-      options.indexId ?? 1,
-    );
-    const blendedPixels = blendPixels(basePixels, overlayPixels, width, height);
-    const resultImage = new PhotonImage(blendedPixels, width, height);
-    const base64 = await photonToBase64(
-      resultImage,
-      90,
-      options.outputFormat ?? 'jpeg',
-    );
-    resultImage.free();
-    return base64;
-  } finally {
-    photonImage.free();
-  }
+  const image = EncodedImage.fromBase64(options.inputImgBase64);
+  const size = options.size ?? image.size;
+  return (
+    await transformImage(image, {
+      operations: [
+        { type: 'resize', ...size, kernel: 'nearest' },
+        createPointOverlay({ ...options, ...size }),
+      ],
+      output:
+        options.outputFormat === 'webp'
+          ? screenshotEncodeOptions('webp')
+          : { format: 'jpeg', quality: 90, chromaSubsampling: '4:4:4' },
+    })
+  ).toBase64();
 };
 
 export const processImageElementInfo = async (options: {

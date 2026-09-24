@@ -1,9 +1,7 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import type { Size } from '../types';
-import { ifInNode } from '../utils';
-import getPhoton from './get-photon';
-import getSharp from './get-sharp';
+import { getImageBackend } from './image-backend';
 import { detectScreenshotImageFormatFromBuffer } from './image-format';
 
 export interface ImageInfo extends Size {}
@@ -190,39 +188,14 @@ export async function imageInfoOfBase64(
   );
   const imageBuffer = Buffer.from(base64Data, 'base64');
   assert(isValidImageBuffer(imageBuffer), 'Invalid image: unsupported format');
-  if (ifInNode) {
-    let metadata;
-    try {
-      const Sharp = await getSharp();
-      metadata = await Sharp(imageBuffer).metadata();
-    } catch (error) {
-      throw new Error(
-        `Invalid image: failed to decode base64 data (${error instanceof Error ? error.message : String(error)})`,
-        { cause: error },
-      );
-    }
-    assert(
-      metadata.width && metadata.height,
-      'Invalid image: cannot get width or height',
-    );
-    return { width: metadata.width, height: metadata.height };
-  }
-
-  const { PhotonImage } = await getPhoton();
-  let image: ReturnType<typeof PhotonImage.new_from_base64>;
   try {
-    image = PhotonImage.new_from_base64(base64Data);
+    return await (await getImageBackend()).info(imageBuffer);
   } catch (error) {
     throw new Error(
       `Invalid image: failed to decode base64 data (${error instanceof Error ? error.message : String(error)})`,
       { cause: error },
     );
   }
-  const width = image.get_width();
-  const height = image.get_height();
-  image.free();
-  assert(width && height, 'Invalid image: cannot get width or height');
-  return { width, height };
 }
 
 /**

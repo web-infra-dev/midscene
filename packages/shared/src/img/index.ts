@@ -44,7 +44,9 @@ export {
   inferBase64ImageFormat,
   normalizeBase64Image,
   normalizeScreenshotBase64,
+  parseScreenshotBase64,
   type NormalizeScreenshotBase64Options,
+  type ParsedScreenshotBase64,
   type ConstrainBase64ImageToMaxSizeOptions,
   type JpegBase64DataUrl,
   type WebpBase64DataUrl,
@@ -54,6 +56,8 @@ export {
   type WebpScreenshotEncodeOptions,
 } from './transform';
 export {
+  createElementOverlay,
+  createPointOverlay,
   processImageElementInfo,
   compositeElementInfoImg,
   compositePointMarkerImg,
@@ -63,3 +67,10 @@ export {
   encodeRgbaToWebp,
   type BrowserWebpEncodeInput,
 } from './browser-webp-encoder';
+export { EncodedImage } from './encoded-image';
+export {
+  transformImage,
+  type ImageOperation,
+  type ImageOutputOptions,
+  type ImageTransformOptions,
+} from './image-pipeline';

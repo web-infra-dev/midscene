@@ -3,10 +3,7 @@ import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon';
-import { getDebug } from '../logger';
 import type { Size } from '../types';
-import { ifInBrowser, ifInNode, ifInWorker } from '../utils';
 import {
   type JpegBase64DataUrl,
   type WebpBase64DataUrl,
@@ -14,9 +11,7 @@ import {
   detectImageMimeTypeFromBuffer,
   parseBase64,
 } from './base64';
-import { photonFromBase64 } from './geometry';
-import getPhoton from './get-photon';
-import getSharp from './get-sharp';
+import { getImageBackend } from './image-backend';
 import { detectScreenshotImageFormatFromBuffer } from './image-format';
 import { encodedImageInfoOfBuffer } from './info';
 import {
@@ -26,9 +21,6 @@ import {
   type WebpScreenshotEncodeOptions,
   assertValidJpegQuality,
   assertWebpBuffer,
-  encodeBrowserImageToWebp,
-  encodePhotonImage,
-  encodeSharpImage,
   resolveWebpScreenshotEncodeOptions,
 } from './screenshot-encoding';
 
@@ -44,6 +36,7 @@ export {
 export {
   type JpegBase64DataUrl,
   type NormalizeScreenshotBase64Options,
+  type ParsedScreenshotBase64,
   type WebpBase64DataUrl,
   createImgBase64ByFormat,
   inferBase64ImageFormat,
@@ -51,6 +44,7 @@ export {
   normalizeBase64Image,
   normalizeScreenshotBase64,
   parseBase64,
+  parseScreenshotBase64,
 } from './base64';
 export {
   DEFAULT_JPEG_SCREENSHOT_QUALITY,
@@ -59,8 +53,6 @@ export {
   type ScreenshotImageOutputFormat,
   type WebpScreenshotEncodeOptions,
 } from './screenshot-encoding';
-
-const imgDebug = getDebug('img');
 
 /**
  * Saves a Base64-encoded image to a file
@@ -105,106 +97,24 @@ async function resizeImageBuffer(
     'newSize must be positive',
   );
 
-  const resizeStartTime = Date.now();
-  imgDebug(
-    `resizeImg start, target size: ${targetSize.width}x${targetSize.height}`,
+  const backend = await getImageBackend();
+  const sourceSize =
+    options.sourceSize ??
+    (detectScreenshotImageFormatFromBuffer(inputData)
+      ? encodedImageInfoOfBuffer(inputData)
+      : await backend.info(inputData));
+  const unchanged =
+    sourceSize.width === targetSize.width &&
+    sourceSize.height === targetSize.height;
+  if (options.preserveOriginalWhenUnchanged && unchanged) {
+    return { buffer: inputData, format: inputFormat };
+  }
+  const bytes = await backend.transform(
+    { bytes: inputData, format: inputFormat },
+    unchanged ? [] : [{ type: 'resize', ...targetSize, fit: 'cover' }],
+    options.encode,
   );
-
-  if (ifInNode) {
-    const Sharp = await getSharp();
-    let originalWidth = options.sourceSize?.width;
-    let originalHeight = options.sourceSize?.height;
-    if (!originalWidth || !originalHeight) {
-      const metadata = await Sharp(inputData).metadata();
-      originalWidth = metadata.width;
-      originalHeight = metadata.height;
-    }
-
-    if (!originalWidth || !originalHeight) {
-      throw Error('Undefined width or height from the input image.');
-    }
-
-    const dimensionsUnchanged =
-      targetSize.width === originalWidth &&
-      targetSize.height === originalHeight;
-    if (options.preserveOriginalWhenUnchanged && dimensionsUnchanged) {
-      return {
-        buffer: inputData,
-        format: inputFormat,
-      };
-    }
-
-    const image = Sharp(inputData);
-    const imageToEncode = dimensionsUnchanged
-      ? image
-      : image.resize(targetSize.width, targetSize.height);
-    const resizedBuffer = await encodeSharpImage(
-      imageToEncode,
-      options.encode,
-      'Sharp resize',
-    );
-
-    const resizeEndTime = Date.now();
-    imgDebug(
-      `resizeImg done (Sharp), target size: ${targetSize.width}x${targetSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
-    );
-
-    return {
-      buffer: resizedBuffer,
-      format: options.encode.format,
-    };
-  }
-
-  // Browser/worker environment: use Photon.
-  const { PhotonImage, SamplingFilter, resize } = await getPhoton();
-  const inputBytes = new Uint8Array(inputData);
-  const inputImage = PhotonImage.new_from_byteslice(inputBytes);
-  const originalWidth = options.sourceSize?.width ?? inputImage.get_width();
-  const originalHeight = options.sourceSize?.height ?? inputImage.get_height();
-
-  if (!originalWidth || !originalHeight) {
-    inputImage.free();
-    throw Error('Undefined width or height from the input image.');
-  }
-
-  const dimensionsUnchanged =
-    targetSize.width === originalWidth && targetSize.height === originalHeight;
-  if (options.preserveOriginalWhenUnchanged && dimensionsUnchanged) {
-    inputImage.free();
-    return {
-      buffer: inputData,
-      format: inputFormat,
-    };
-  }
-
-  let outputImage: PhotonImageType | undefined;
-  let resizedBuffer: Buffer;
-  try {
-    outputImage = dimensionsUnchanged
-      ? undefined
-      : resize(
-          inputImage,
-          targetSize.width,
-          targetSize.height,
-          SamplingFilter.CatmullRom,
-        );
-    const imageToEncode = outputImage ?? inputImage;
-    resizedBuffer = await encodePhotonImage(imageToEncode, options.encode);
-  } finally {
-    inputImage.free();
-    outputImage?.free();
-  }
-
-  const resizeEndTime = Date.now();
-
-  imgDebug(
-    `resizeImg done (Photon), target size: ${targetSize.width}x${targetSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
-  );
-
-  return {
-    buffer: resizedBuffer,
-    format: options.encode.format,
-  };
+  return { buffer: Buffer.from(bytes), format: options.encode.format };
 }
 
 /**
@@ -237,29 +147,24 @@ export async function convertImgBufferToJpeg(
   inputData: Buffer,
   quality = 90,
 ): Promise<Buffer> {
-  if (ifInNode) {
-    try {
-      const Sharp = await getSharp();
-      return await Sharp(inputData).jpeg({ quality }).toBuffer();
-    } catch (error) {
-      if (!ifInBrowser && !ifInWorker) {
-        throw new Error(
-          `Failed to convert image to JPEG with Sharp: ${error instanceof Error ? error.message : String(error)}`,
-          { cause: error },
-        );
-      }
-      imgDebug('Sharp failed, falling back to Photon:', error);
-    }
-  }
-
-  const mimeType = detectImageMimeTypeFromBuffer(inputData) ?? 'image/png';
-  const photonImage = await photonFromBase64(
-    `data:${mimeType};base64,${inputData.toString('base64')}`,
-  );
+  assertValidJpegQuality(quality);
   try {
-    return Buffer.from(photonImage.get_bytes_jpeg(quality));
-  } finally {
-    photonImage.free();
+    const backend = await getImageBackend();
+    return Buffer.from(
+      await backend.transform(
+        {
+          bytes: inputData,
+          format: detectScreenshotImageFormatFromBuffer(inputData) ?? 'unknown',
+        },
+        [],
+        { format: 'jpeg', quality },
+      ),
+    );
+  } catch (error) {
+    throw new Error(
+      `Failed to convert image to JPEG: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
   }
 }
 
@@ -271,27 +176,16 @@ export async function convertImgBufferToWebp(
   const { webpQuality, webpEffort } =
     resolveWebpScreenshotEncodeOptions(options);
 
-  if (ifInNode) {
-    const Sharp = await getSharp();
-    const output = await Sharp(inputData)
-      .webp({ quality: webpQuality, effort: webpEffort })
-      .toBuffer();
-    assertWebpBuffer(output, 'Sharp');
-    return output;
-  }
-
-  const mimeType = detectImageMimeTypeFromBuffer(inputData);
-  if (!mimeType) {
-    throw new Error('Cannot encode WebP from an unsupported image buffer');
-  }
-  const photonImage = await photonFromBase64(
-    `data:${mimeType};base64,${inputData.toString('base64')}`,
+  const backend = await getImageBackend();
+  const bytes = await backend.transform(
+    {
+      bytes: inputData,
+      format: detectScreenshotImageFormatFromBuffer(inputData) ?? 'unknown',
+    },
+    [],
+    { format: 'webp', quality: webpQuality, effort: webpEffort },
   );
-  try {
-    return await encodeBrowserImageToWebp(photonImage, webpQuality);
-  } finally {
-    photonImage.free();
-  }
+  return Buffer.from(bytes);
 }
 
 export interface ResizeBase64ImageToJpegOptions {

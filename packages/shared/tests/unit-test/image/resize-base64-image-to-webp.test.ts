@@ -76,7 +76,10 @@ describe('resizeBase64ImageToWebp image backend usage', () => {
 
     expect(result).toMatch(/^data:image\/webp;base64,/);
     expect(imageBackendMocks.metadata).not.toHaveBeenCalled();
-    expect(imageBackendMocks.resize).toHaveBeenCalledWith(4, 3);
+    expect(imageBackendMocks.resize).toHaveBeenCalledWith(4, 3, {
+      fit: 'cover',
+      kernel: 'lanczos3',
+    });
     expect(imageBackendMocks.webp).toHaveBeenCalledWith({
       quality: 80,
       effort: 2,
