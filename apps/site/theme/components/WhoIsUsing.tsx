@@ -26,7 +26,7 @@ export function WhoIsUsing() {
       kind: 'iconText',
       name: 'ByteDance',
       url: 'https://www.bytedance.com',
-      icon: '/icon/bytedance-color.svg',
+      icon: '/images/icons/bytedance-color.svg',
       text: 'ByteDance',
     },
     {

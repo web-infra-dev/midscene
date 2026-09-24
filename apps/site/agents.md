@@ -4,6 +4,13 @@ In this file you can get a list of all the docs and their links: ./rspress.confi
 
 All the english docs are in the `docs/en` folder, and the chinese docs are in the `docs/zh` folder. All the modifications should be synchronized at both places.
 
+Store site images under `docs/public/images/` and reference them with absolute
+`/images/...` URLs in both languages. Do not add `/zh` to asset URLs. Keep
+`favicon.png`, `og-image.png`, and `robots.txt` at the public root to preserve
+their published URLs. Rspress emits compiled assets under `/static/`; language
+redirect rules should exclude both `/images/` and `/static/`, as well as root
+metadata files.
+
 一些中文翻译规范：
 
 - Key：保持原样或使用 “API Key”，不要翻译，不要写成“凭证”。
