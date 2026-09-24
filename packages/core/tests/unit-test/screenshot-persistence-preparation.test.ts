@@ -1,63 +1,52 @@
 import { prepareScreenshotForPersistence } from '@/agent/screenshot-preparation';
-import { beforeEach, describe, expect, it, rs } from '@rstest/core';
-
-import * as imgActual from '@midscene/shared/img' with {
-  rstest: 'importActual',
-};
-
-const imageMocks = rs.hoisted(() => ({
-  convertBase64ImageToJpeg: rs.fn(),
-  imageInfoOfBase64: rs.fn(),
-  resizeBase64ImageToJpeg: rs.fn(),
-}));
-
-rs.mock('@midscene/shared/img', () => ({
-  ...imgActual,
-  ...imageMocks,
-}));
+import { EncodedImage } from '@midscene/shared/img';
+import { describe, expect, it, rs } from '@rstest/core';
+import sharp from 'sharp';
 
 describe('prepareScreenshotForPersistence', () => {
-  beforeEach(() => {
-    rs.clearAllMocks();
-    imageMocks.convertBase64ImageToJpeg.mockResolvedValue(
-      'data:image/jpeg;base64,prepared',
+  it.each(['jpeg', 'webp'] as const)(
+    'reuses unscaled %s bytes without reading dimensions',
+    async (format) => {
+      const image = EncodedImage.fromBytes(
+        await sharp({
+          create: {
+            width: 8,
+            height: 6,
+            channels: 3,
+            background: '#fff',
+          },
+        })
+          .toFormat(format)
+          .toBuffer(),
+      );
+      const readSize = rs.spyOn(image, 'size', 'get');
+      expect(await prepareScreenshotForPersistence(image)).toBe(image);
+      expect(readSize).not.toHaveBeenCalled();
+    },
+  );
+
+  it('shrinks and encodes a PNG frame in one pipeline', async () => {
+    const image = EncodedImage.fromBytes(
+      await sharp({
+        create: {
+          width: 8,
+          height: 6,
+          channels: 3,
+          background: '#fff',
+        },
+      })
+        .png()
+        .toBuffer(),
     );
-  });
-
-  it('normalizes an unscaled frame without reading image dimensions', async () => {
-    await expect(
-      prepareScreenshotForPersistence('data:image/jpeg;base64,frame'),
-    ).resolves.toBe('data:image/jpeg;base64,prepared');
-
-    expect(imageMocks.convertBase64ImageToJpeg).toHaveBeenCalledWith(
-      'data:image/jpeg;base64,frame',
-      90,
-    );
-    expect(imageMocks.imageInfoOfBase64).not.toHaveBeenCalled();
-    expect(imageMocks.resizeBase64ImageToJpeg).not.toHaveBeenCalled();
-  });
-
-  it('uses the full preparation pipeline when the frame must be shrunk', async () => {
-    imageMocks.imageInfoOfBase64.mockResolvedValue({ width: 8, height: 6 });
-    imageMocks.resizeBase64ImageToJpeg.mockResolvedValue(
-      'data:image/jpeg;base64,resized',
-    );
-
-    await expect(
-      prepareScreenshotForPersistence('data:image/png;base64,frame', {
-        shrinkFactor: 2,
-      }),
-    ).resolves.toBe('data:image/jpeg;base64,resized');
-
-    expect(imageMocks.imageInfoOfBase64).toHaveBeenCalledOnce();
-    expect(imageMocks.resizeBase64ImageToJpeg).toHaveBeenCalledWith(
-      'data:image/png;base64,frame',
-      {
-        sourceSize: { width: 8, height: 6 },
-        targetSize: { width: 4, height: 3 },
-        jpegQuality: 90,
-      },
-    );
-    expect(imageMocks.convertBase64ImageToJpeg).not.toHaveBeenCalled();
+    const result = await prepareScreenshotForPersistence(image, {
+      shrinkFactor: 2,
+    });
+    expect(result.format).toBe('webp');
+    expect(result.size).toEqual({ width: 4, height: 3 });
+    const expected = await sharp(image.bytes)
+      .resize(4, 3, { fit: 'fill' })
+      .webp({ quality: 90, effort: 1 })
+      .toBuffer();
+    expect(Buffer.from(result.bytes)).toEqual(expected);
   });
 });

@@ -6,6 +6,7 @@ import type {
 } from 'openai/resources/index';
 import {
   type ImagePreprocessPolicy,
+  type ModelImageInput,
   type PreparedModelImage,
   prepareModelImage,
 } from '../../model-adapter/image-preprocess';
@@ -26,11 +27,7 @@ export async function prepareLocateModelInput({
   imagePreprocess,
   userMessageContentOrder,
 }: {
-  locateImage: {
-    imageBase64: string;
-    width: number;
-    height: number;
-  };
+  locateImage: ModelImageInput;
   targetDescription: TUserPrompt;
   systemPrompt: string;
   userPrompt: string;
@@ -41,9 +38,7 @@ export async function prepareLocateModelInput({
   preparedImage: PreparedModelImage;
 }> {
   const preparedImage = await prepareModelImage({
-    imageBase64: locateImage.imageBase64,
-    width: locateImage.width,
-    height: locateImage.height,
+    ...locateImage,
     policy: imagePreprocess,
   });
   const referenceImageMessages = await multimodalPromptToChatMessages(

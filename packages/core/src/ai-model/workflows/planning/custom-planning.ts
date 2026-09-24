@@ -6,7 +6,10 @@ import type {
   CustomPlanningMessageConfig,
   ResolvedCustomPlanningDefinition,
 } from '../../model-adapter/custom-planning-types';
-import { prepareModelImage } from '../../model-adapter/image-preprocess';
+import {
+  type ModelImageInput,
+  prepareModelImage,
+} from '../../model-adapter/image-preprocess';
 import type { ParsedPlanningLocateParameter } from '../../model-adapter/planning-protocol';
 import {
   AIResponseParseError,
@@ -93,20 +96,19 @@ export async function runCustomPlanning<TParsed>(
   userInstruction: PreparedUserPrompt,
   options: PlanOptions,
   config: ResolvedCustomPlanningDefinition<TParsed>,
+  imageInput?: ModelImageInput,
 ): Promise<PlanningAIResponse> {
   const { context } = options;
   const preparedImage = await prepareModelImage({
-    imageBase64: context.screenshot.base64,
-    width: context.shotSize.width,
-    height: context.shotSize.height,
+    ...(imageInput ?? { image: context.screenshot.image, ...context.shotSize }),
     policy: options.modelRuntime.adapter.imagePreprocess,
   });
   const preparedOptions: PlanOptions = {
     ...options,
     context: {
       ...context,
-      screenshot: ScreenshotItem.create(
-        preparedImage.imageBase64,
+      screenshot: ScreenshotItem.fromImage(
+        preparedImage.image,
         context.screenshot.capturedAt,
       ),
       shotSize: preparedImage.preparedSize,

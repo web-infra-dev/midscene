@@ -155,7 +155,9 @@ export interface UITreeSnapshot {
 
 export abstract class UIContext {
   /**
-   * screenshot of the current UI state. which size is shotSize(be shrunk by screenshotShrinkFactor),
+   * Original capture, retained without intermediate lossy encoding. Its pixel
+   * dimensions may differ from shotSize. Image consumers must apply shotSize
+   * before operations expressed in UI-context coordinates.
    */
   abstract screenshot: ScreenshotItem;
 

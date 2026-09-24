@@ -64,6 +64,7 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
   - 使用 Python：`python -m http.server` 或 `python3 -m http.server`
   然后通过 `http://localhost:3000`（或终端显示的端口）访问报告。
 - `screenshotShrinkFactor: number`: 控制截图的缩放比例，以减少发送给 AI 模型的图像大小，从而减少 token 消耗。默认值为 1（不缩放）。如果将其设置为 2，则截图的宽高将缩小为原来的一半，面积缩小为原来的四分之一。你可以根据实际情况调整这个值，以在图像清晰度和 token 消耗之间找到最佳平衡点。
+  - 普通任务报告保留原始截图。`UIContext.shotSize` 表示模型坐标空间，可能与截图实际编码尺寸不同。自定义图片消费者需要先应用此尺寸，再裁剪或绘制标注。保留原图可能让报告比只保存缩小截图时更大；观察录屏使用独立的帧处理策略。
   - 对于移动端设备，将 `screenshotShrinkFactor` 设置为 2 可以在保持清晰度的同时减少 token 的消耗，但不建议设置的值超过 3，否则可能会导致图像过于模糊，影响 AI 模型的理解。
   - 对于 Web 页面，如果页面内容比较复杂或包含大量细节，不建议设置过高的 `screenshotShrinkFactor`，以避免截图过于模糊。通常也可以通过 Puppeteer 或 Playwright 的 `deviceScaleFactor` 在更上游控制截图尺寸。
 
@@ -1378,7 +1379,7 @@ interface RecordToReportOptions {
   screenshotBase64?: string;
   screenshots?: {
     /**
-     * PNG/JPEG data URI，或裸 PNG base64 body。
+     * PNG/JPEG/WebP data URI，或裸 PNG/JPEG/WebP base64 body。
      */
     base64: string;
     description?: string;
@@ -1396,7 +1397,7 @@ function recordToReport(
   - `title?: string` - 可选，截图的标题，如果未提供，则标题为 'untitled'。
   - `options?: RecordToReportOptions` - 可选，一个配置对象，包含：
     - `content?: string` - 截图的描述。
-    - `screenshots?: Array<{ base64: string; description?: string }>` - 在同一个报告条目下记录一张或多张传入的截图。设置该选项后，Midscene 不会再自动截图。`base64` 推荐使用 PNG/JPEG data URI，例如 `data:image/png;base64,...`；也可以传裸 base64 body，此时会按 PNG 处理。
+    - `screenshots?: Array<{ base64: string; description?: string }>` - 在同一个报告条目下记录一张或多张传入的截图。设置该选项后，Midscene 不会再自动截图。`base64` 支持 PNG/JPEG/WebP data URI，例如 `data:image/webp;base64,...`，也支持裸 PNG/JPEG/WebP base64 body。Midscene 会根据已知图片签名推断裸数据格式；无法识别时为保持兼容仍按 PNG 处理。
 
 - 兼容性：
 

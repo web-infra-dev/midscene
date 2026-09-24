@@ -66,6 +66,7 @@ All agents share these base options:
   - Using Python: `python -m http.server` or `python3 -m http.server`
   Then access the report via `http://localhost:3000` (or the port shown in the terminal).
 - `screenshotShrinkFactor: number` — Factor used to reduce screenshot dimensions before sending them to the AI model. Default: `1`, which preserves the original size. A value of `2` halves both dimensions and reduces the image area to one quarter. Choose a value that balances image clarity and token usage.
+  - Regular task reports retain the original capture. In `UIContext`, `shotSize` describes the model coordinate space and can differ from the screenshot's encoded dimensions. Custom image consumers must apply this size before cropping or drawing annotations. Retaining the original capture can make reports larger than storing only a shrunk screenshot; observation recordings have their own frame preparation policy.
   - On mobile devices, `2` often reduces token usage while preserving enough detail. Values above `3` may make screenshots too blurry for reliable model interpretation.
   - For browser automation, prefer Puppeteer or Playwright's `deviceScaleFactor` when possible. Keep `screenshotShrinkFactor` low for highly detailed pages.
 
@@ -1395,7 +1396,7 @@ interface RecordToReportOptions {
   screenshotBase64?: string;
   screenshots?: {
     /**
-     * PNG/JPEG data URI, or raw PNG base64 body.
+     * PNG/JPEG/WebP data URI, or raw PNG/JPEG/WebP base64 body.
      */
     base64: string;
     description?: string;
@@ -1413,7 +1414,7 @@ function recordToReport(
   - `title?: string` — Optional title for the report entry. Default: `'untitled'`.
   - `options?: RecordToReportOptions` — Optional configuration:
     - `content?: string` — Description of the screenshot.
-    - `screenshots?: Array<{ base64: string; description?: string }>` — One or more screenshots to record under the same report entry. When this option is set, Midscene does not capture another screenshot automatically. `base64` accepts a PNG/JPEG data URI such as `data:image/png;base64,...` or a raw base64 body, which Midscene treats as PNG.
+    - `screenshots?: Array<{ base64: string; description?: string }>` — One or more screenshots to record under the same report entry. When this option is set, Midscene does not capture another screenshot automatically. `base64` accepts a PNG/JPEG/WebP data URI such as `data:image/webp;base64,...` or a raw PNG/JPEG/WebP base64 body. Midscene infers known raw image signatures and treats an unrecognized raw body as PNG for compatibility.
 
 - Compatibility:
 

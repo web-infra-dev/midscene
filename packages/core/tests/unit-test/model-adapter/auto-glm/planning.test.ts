@@ -7,6 +7,7 @@ import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../../common';
@@ -51,9 +52,10 @@ const autoGlmAdapter = new ResolvedModelAdapter(
 );
 
 const context: UIContext = {
-  screenshot: {
-    base64: 'data:image/png;base64,iVBORw0KGgoAAAAA',
-  } as any,
+  screenshot: ScreenshotItem.create(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
+    0,
+  ) as any,
   shotSize: {
     width: 1000,
     height: 800,

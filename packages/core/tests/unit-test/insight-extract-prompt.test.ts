@@ -89,7 +89,7 @@ describe('insight extraction prompt assembly', () => {
         expect.objectContaining({
           type: 'image_url',
           image_url: expect.objectContaining({
-            url: expect.stringMatching(/^data:image\/png;base64,/),
+            url: expect.stringMatching(/^data:image\/webp;base64,/),
           }),
         }),
         expect.objectContaining({
@@ -124,7 +124,7 @@ describe('insight extraction prompt assembly', () => {
         expect.objectContaining({
           type: 'image_url',
           image_url: expect.objectContaining({
-            url: referenceImageDataUrl,
+            url: expect.stringMatching(/^data:image\/webp;base64,/),
           }),
         }),
       ],

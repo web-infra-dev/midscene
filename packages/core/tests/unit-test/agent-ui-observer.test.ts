@@ -92,10 +92,10 @@ describe('Agent.startObserving', () => {
     expect(sequence.length).toBeGreaterThanOrEqual(2);
     expect(sequence[0].hasBase64()).toBe(false);
     expect(sequence[0].toSerializable()).not.toHaveProperty('path');
-    expect(sequence[0].format).toBe('jpeg');
-    expect(Buffer.from(sequence[0].rawBase64, 'base64').subarray(0, 3)).toEqual(
-      Buffer.from([0xff, 0xd8, 0xff]),
-    );
+    expect(sequence[0].format).toBe('webp');
+    const frameBuffer = Buffer.from(sequence[0].rawBase64, 'base64');
+    expect(frameBuffer.subarray(0, 4).toString('ascii')).toBe('RIFF');
+    expect(frameBuffer.subarray(8, 12).toString('ascii')).toBe('WEBP');
   });
 
   it('rejects a second active observer but permits another after stop', async () => {

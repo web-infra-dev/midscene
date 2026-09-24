@@ -83,6 +83,13 @@ export const Blackboard = (props: {
             src={screenshotBase64}
             alt="screenshot"
             className="blackboard-screenshot"
+            width={screenWidth}
+            height={screenHeight}
+            style={{
+              aspectRatio: `${screenWidth}/${screenHeight}`,
+              height: 'auto',
+              objectFit: 'fill',
+            }}
             draggable={false}
           />
         )}

@@ -1,87 +1,78 @@
-import {
-  type JpegBase64DataUrl,
-  convertBase64ImageToJpeg,
-  imageInfoOfBase64,
-  resizeBase64ImageToJpeg,
-} from '@midscene/shared/img';
+import { EncodedImage } from '@midscene/shared/img';
+import { prepareImageOutput } from '../image-output';
 import type { Size } from '../types';
-
-const SCREENSHOT_JPEG_QUALITY = 90;
 
 export interface PrepareRawScreenshotOptions {
   shrinkFactor?: number;
 }
 
 export interface PreparedScreenshot {
-  base64: JpegBase64DataUrl;
+  image: EncodedImage;
+  base64: string;
   originalSize: Size;
   shotSize: Size;
 }
 
-function assertValidSize(size: Size, label: string): void {
-  if (!Number.isFinite(size.width) || !Number.isFinite(size.height)) {
-    throw new Error(
-      `Invalid ${label}: width and height must be finite numbers. Received width: ${size.width}, height: ${size.height}`,
-    );
-  }
-  if (size.width <= 0 || size.height <= 0) {
-    throw new Error(
-      `Invalid ${label}: width and height must be positive numbers. Received width: ${size.width}, height: ${size.height}`,
-    );
-  }
-}
-
-/**
- * Prepare one raw screenshot for model context or observation persistence.
- * Each raw screenshot must pass through this pipeline at most once.
- */
-export async function prepareRawScreenshot(
-  screenshotBase64: string,
-  options?: PrepareRawScreenshotOptions,
-): Promise<PreparedScreenshot> {
-  const shrinkFactor = options?.shrinkFactor ?? 1;
+function geometry(source: EncodedImage, shrinkFactor: number) {
   if (!Number.isFinite(shrinkFactor) || shrinkFactor < 1) {
     throw new Error(
       `Invalid screenshotShrinkFactor: must be a finite number >= 1. Received: ${shrinkFactor}`,
     );
   }
+  const originalSize = source.size;
+  const shotSize = {
+    width: Math.round(originalSize.width / shrinkFactor),
+    height: Math.round(originalSize.height / shrinkFactor),
+  };
+  if (shotSize.width <= 0 || shotSize.height <= 0) {
+    throw new Error(
+      'Invalid prepared screenshot dimensions: width and height must be positive',
+    );
+  }
+  return { originalSize, shotSize };
+}
 
-  const originalSize = await imageInfoOfBase64(screenshotBase64);
-  assertValidSize(originalSize, 'screenshot dimensions');
-
-  const shotSize =
-    shrinkFactor > 1
-      ? {
-          width: Math.round(originalSize.width / shrinkFactor),
-          height: Math.round(originalSize.height / shrinkFactor),
-        }
-      : { ...originalSize };
-  assertValidSize(shotSize, 'prepared screenshot dimensions');
-
-  const base64 = await resizeBase64ImageToJpeg(screenshotBase64, {
-    sourceSize: originalSize,
-    targetSize: shotSize,
-    jpegQuality: SCREENSHOT_JPEG_QUALITY,
-  });
-
+/** Plan context geometry without encoding. Consumers apply shotSize in their pipeline. */
+export async function prepareRawScreenshot(
+  screenshot: string | EncodedImage,
+  options?: PrepareRawScreenshotOptions,
+): Promise<PreparedScreenshot> {
+  const source =
+    typeof screenshot === 'string'
+      ? EncodedImage.fromBase64(screenshot)
+      : screenshot;
+  const { originalSize, shotSize } = geometry(
+    source,
+    options?.shrinkFactor ?? 1,
+  );
   return {
-    base64,
+    image: source,
+    get base64() {
+      return source.toBase64();
+    },
     originalSize,
     shotSize,
   };
 }
 
-/**
- * Prepare a screenshot for persistence when only JPEG output is required.
- * Unscaled frames avoid dimension reads; scaled frames use the full pipeline.
- */
+/** Reports prefer WebP for PNG sources, but never transcode unchanged JPEG/WebP. */
 export async function prepareScreenshotForPersistence(
-  screenshotBase64: string,
+  screenshot: string | EncodedImage,
   options?: PrepareRawScreenshotOptions,
-): Promise<JpegBase64DataUrl> {
+): Promise<EncodedImage> {
   const shrinkFactor = options?.shrinkFactor ?? 1;
-  if (shrinkFactor === 1) {
-    return convertBase64ImageToJpeg(screenshotBase64, SCREENSHOT_JPEG_QUALITY);
-  }
-  return (await prepareRawScreenshot(screenshotBase64, options)).base64;
+  const source =
+    typeof screenshot === 'string'
+      ? EncodedImage.fromBase64(screenshot)
+      : screenshot;
+  const operations =
+    shrinkFactor === 1
+      ? []
+      : [
+          {
+            type: 'resize' as const,
+            ...geometry(source, shrinkFactor).shotSize,
+          },
+        ];
+  return prepareImageOutput(source, operations);
 }

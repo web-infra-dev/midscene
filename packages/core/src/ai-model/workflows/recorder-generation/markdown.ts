@@ -1,9 +1,6 @@
+import { prepareImageOutput } from '@/image-output';
 import type { IModelConfig } from '@midscene/shared/env';
-import {
-  imageInfoOfBase64,
-  parseBase64,
-  resizeBase64ImageToJpeg,
-} from '@midscene/shared/img';
+import { EncodedImage, parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import {
   type MidsceneRecorderMarkdownScreenshotAsset,
@@ -47,20 +44,23 @@ function limitScreenshotAssetsForMarkdownReplay(
 async function compressScreenshotAssetForMarkdownReplay(
   asset: MidsceneRecorderMarkdownScreenshotAsset,
 ): Promise<MidsceneRecorderMarkdownScreenshotAsset> {
-  const { width, height } = await imageInfoOfBase64(asset.dataUrl);
+  const source = EncodedImage.fromBase64(asset.dataUrl);
+  const { width, height } = source.size;
   const longestEdge = Math.max(width, height);
   if (longestEdge <= MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE) {
     return asset;
   }
 
   const scale = MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE / longestEdge;
-  const dataUrl = await resizeBase64ImageToJpeg(asset.dataUrl, {
-    sourceSize: { width, height },
-    targetSize: {
-      width: Math.max(1, Math.round(width * scale)),
-      height: Math.max(1, Math.round(height * scale)),
-    },
-  });
+  const dataUrl = (
+    await prepareImageOutput(source, [
+      {
+        type: 'resize',
+        width: Math.max(1, Math.round(width * scale)),
+        height: Math.max(1, Math.round(height * scale)),
+      },
+    ])
+  ).toBase64();
   const { body, mimeType } = parseBase64(dataUrl);
   return {
     ...asset,

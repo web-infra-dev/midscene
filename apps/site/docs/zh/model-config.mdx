@@ -15,6 +15,8 @@
 
 ## 高阶配置（可选）
 
+截图和参考图片在构建模型消息前完成处理。PNG 输入会压缩为 WebP，已有 JPEG 和 WebP 在不需要修改像素时直接复用。上下文缩放与后续裁剪、补边、标注合并到同一图片处理流水线，只在末端编码。模型发送层直接发送准备好的图片，不再转码。远程图片 URL 保持不变。报告保留原始截图，不受模型输出编码的影响。
+
 如果你为 Insight 或 Planning 配置了独立模型，那么本节中的模型相关 `MIDSCENE_MODEL_*` 配置需要使用对应的 `MIDSCENE_INSIGHT_MODEL_*` 或 `MIDSCENE_PLANNING_MODEL_*` 配置才能在 Insight 或 Planning 意图时生效。
 
 | 名称 | 描述 |

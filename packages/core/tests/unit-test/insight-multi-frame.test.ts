@@ -2,7 +2,9 @@ import { getModelRuntime } from '@/ai-model/models';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
+import { EncodedImage } from '@midscene/shared/img';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import sharp from 'sharp';
 import { createFakeContext } from '../utils';
 
 import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
@@ -21,6 +23,44 @@ import { callAI } from '@/ai-model/service-caller/index';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 
 describe('insight extraction multi-frame context', () => {
+  it('preserves each persisted frame size when the device rotates within the window', async () => {
+    const frames = await Promise.all(
+      [
+        { width: 14, height: 28 },
+        { width: 28, height: 14 },
+      ].map(async (size) =>
+        ScreenshotItem.fromImage(
+          EncodedImage.fromBytes(
+            await sharp({
+              create: { ...size, channels: 3, background: '#fff' },
+            })
+              .jpeg()
+              .toBuffer(),
+          ),
+          0,
+        ),
+      ),
+    );
+    await AiExtractElementInfo({
+      context: {
+        screenshot: frames[1],
+        screenshotSequence: frames,
+        shotSize: { width: 28, height: 14 },
+        shrunkShotToLogicalRatio: 1,
+      },
+      dataQuery: 'Did the device rotate?',
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+    const content = rs.mocked(callAI).mock.calls[0][0][1].content as Array<{
+      type: string;
+      image_url?: { url: string };
+    }>;
+    expect(
+      content
+        .filter((part) => part.type === 'image_url')
+        .map((part) => part.image_url?.url),
+    ).toEqual(frames.map((frame) => frame.base64));
+  });
   const modelConfig: IModelConfig = {
     modelFamily: 'qwen2.5-vl',
     modelName: 'test-model',

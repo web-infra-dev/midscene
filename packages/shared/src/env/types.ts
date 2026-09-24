@@ -412,6 +412,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_REASONING_BUDGET]?: string;
   // Response format strategy (none/auto)
   [MIDSCENE_MODEL_RESPONSE_FORMAT]?: TModelResponseFormat;
+  // Image format sent to the model (webp/jpeg)
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -542,6 +543,10 @@ export interface IModelConfig {
    * provider-supported structured response format for eligible intents.
    */
   responseFormat?: TModelResponseFormat;
+  /**
+   * Encoding used for Base64 image inputs at the model request boundary.
+   * Defaults to WebP. Set to JPEG for providers that reject WebP inputs.
+   */
   /**
    * Model family - unified model configuration
    * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', 'doubao-seed', etc.

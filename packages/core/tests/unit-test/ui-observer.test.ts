@@ -18,6 +18,8 @@ const largeTestPngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
 const testJpegDataUrl =
   'data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAACAAIDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAdEAACAgMAAwAAAAAAAAAAAAABAgAEAwUGEiEx/8QAFQEBAQAAAAAAAAAAAAAAAAAABgj/xAAcEQABAwUAAAAAAAAAAAAAAAAAAQIDBTI0crH/2gAMAwEAAhEDEQA/AL5zGpo5Ob1LvTrs7VMRLNiUknwHv5ERIdqObNs7qiplqH//2Q=';
+const testWebpDataUrl =
+  'data:image/webp;base64,UklGRkYAAABXRUJQVlA4IDoAAACQAQCdASoCAAIAAMASJaAAAzoO6YAA/vdwyEKF/jvhD9bXt18+f//efP/+58//7nz/t//3SfqfygAA';
 const shrunkTestJpegDataUrl =
   'data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAADAAQDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAACP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJ0AWYyP/9k=';
 
@@ -33,7 +35,7 @@ function options(extra: Record<string, unknown> = {}) {
 
 const fakeRepresentative = (): UIContext =>
   ({
-    screenshot: ScreenshotItem.create(testJpegDataUrl, 9999),
+    screenshot: ScreenshotItem.create(testWebpDataUrl, 9999),
     shotSize: { width: 2, height: 2 },
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
@@ -83,8 +85,10 @@ const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
   };
 };
 
-function expectJpegFrame(path: string): void {
-  expect([...readFileSync(path).subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
+function expectWebpFrame(path: string): void {
+  const buffer = readFileSync(path);
+  expect(buffer.subarray(0, 4).toString('ascii')).toBe('RIFF');
+  expect(buffer.subarray(8, 12).toString('ascii')).toBe('WEBP');
 }
 
 function fixedRecord(): UIObservationRecord {
@@ -147,10 +151,10 @@ describe('UIObserver', () => {
     expect(fake.stop).toHaveBeenCalledOnce();
     expect(record.frames.length).toBeGreaterThanOrEqual(3);
     expect(
-      record.frames.every((frame) => frame.mimeType === 'image/jpeg'),
+      record.frames.every((frame) => frame.mimeType === 'image/webp'),
     ).toBe(true);
-    expectJpegFrame(record.frames[0].path);
-    expectJpegFrame(record.frames.at(-1)!.path);
+    expectWebpFrame(record.frames[0].path);
+    expectWebpFrame(record.frames.at(-1)!.path);
     expect(record.frames[0]).not.toHaveProperty('base64');
   });
 
@@ -198,10 +202,10 @@ describe('UIObserver', () => {
       30,
     );
     expect(
-      record.frames.every((frame) => frame.mimeType === 'image/jpeg'),
+      record.frames.every((frame) => frame.mimeType === 'image/webp'),
     ).toBe(true);
     for (const frame of record.frames) {
-      expectJpegFrame(frame.path);
+      expectWebpFrame(frame.path);
       const base64 = readFileSync(frame.path).toString('base64');
       await expect(
         imageInfoOfBase64(`data:${frame.mimeType};base64,${base64}`),
@@ -416,8 +420,13 @@ describe('UIObserver', () => {
     expect(record.frames).toHaveLength(56);
   });
 
-  it('persists fallback screenshots immediately as JPEG files', async () => {
+  it('persists existing JPEG frames without transcoding', async () => {
     const { deps, screenshot } = makeDeps(null);
+    screenshot.mockResolvedValue(testJpegDataUrl);
+    deps.capturePreparedRepresentative = async () => ({
+      ...fakeRepresentative(),
+      screenshot: ScreenshotItem.create(testJpegDataUrl, 9999),
+    });
     const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
     await sleep(250);
@@ -428,7 +437,9 @@ describe('UIObserver', () => {
     expect(
       record.frames.every((frame) => frame.mimeType === 'image/jpeg'),
     ).toBe(true);
-    expectJpegFrame(record.frames[0].path);
+    expect(readFileSync(record.frames[0].path)).toEqual(
+      Buffer.from(testJpegDataUrl.split(',')[1], 'base64'),
+    );
     expect((observer as any).frames[0].ref).not.toContain('base64');
   });
 

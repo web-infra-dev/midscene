@@ -1,3 +1,4 @@
+import { prepareContextImage, prepareImageOutput } from '@/image-output';
 import type { ServiceExtractOption, UIContext } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import type {
@@ -43,7 +44,6 @@ export async function AiExtractElementInfo<T>(options: {
     referenceImagesIncluded: !!multimodalPrompt?.images?.length,
     insightProtocol,
   });
-  const screenshotBase64 = context.screenshot.base64;
 
   const renderedContext = renderAIContext(extractOption?.context);
   const extractDataPromptText = extractDataQueryPrompt(
@@ -62,7 +62,7 @@ export async function AiExtractElementInfo<T>(options: {
         text: `The following ${screenshotSequence.length} images are consecutive screenshots captured over a time window, ordered from earliest to latest (Frame 1 is first, Frame ${screenshotSequence.length} is last). They record what appeared on screen during that window. Some UI elements such as toasts, banners, or transitions may appear only in certain frames and be gone by later ones. Interpret the temporal scope from the statement or question itself: if it asks whether something appeared at any point, inspect the whole sequence; if it asks about the final or current state, use the relevant later frame; if it asks about a change or sequence, compare frames in order. Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on these screenshots and their contents.`,
       });
 
-      screenshotSequence.forEach((frame, index) => {
+      for (const [index, frame] of screenshotSequence.entries()) {
         userContent.push({
           type: 'text',
           text: `Frame ${index + 1}/${screenshotSequence.length}`,
@@ -70,11 +70,14 @@ export async function AiExtractElementInfo<T>(options: {
         userContent.push({
           type: 'image_url',
           image_url: {
-            url: frame.base64,
+            // Observation frames already carry their prepared dimensions.
+            // A window may include rotation; do not stretch earlier frames to
+            // the final frame's coordinate space.
+            url: (await prepareImageOutput(frame.image)).toBase64(),
             detail: 'high',
           },
         });
-      });
+      }
     } else {
       userContent.push({
         type: 'text',
@@ -84,7 +87,7 @@ export async function AiExtractElementInfo<T>(options: {
       userContent.push({
         type: 'image_url',
         image_url: {
-          url: screenshotBase64,
+          url: (await prepareContextImage(context)).toBase64(),
           detail: 'high',
         },
       });

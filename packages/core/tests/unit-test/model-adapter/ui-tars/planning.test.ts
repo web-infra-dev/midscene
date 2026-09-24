@@ -9,6 +9,7 @@ import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { TUserPrompt } from '@/common';
+import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { UITarsModelVersion } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -24,9 +25,10 @@ rs.mock('@/ai-model/service-caller/index', () => ({
 }));
 
 const context: UIContext = {
-  screenshot: {
-    base64: 'data:image/png;base64,iVBORw0KGgoAAAAA',
-  } as any,
+  screenshot: ScreenshotItem.create(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
+    0,
+  ) as any,
   shotSize: {
     width: 1000,
     height: 800,
@@ -148,7 +150,7 @@ Action: click(start_box='(500,500)')`,
         images: [
           {
             name: 'submit reference',
-            url: 'data:image/png;base64,REF==',
+            url: 'https://example.com/reference.png',
           },
         ],
       },

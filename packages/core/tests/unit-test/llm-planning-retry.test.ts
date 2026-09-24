@@ -14,6 +14,7 @@ import {
   buildYamlFlowFromPlans,
   getMidsceneLocationSchema,
 } from '@/common';
+import { ScreenshotItem } from '@/screenshot-item';
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -58,9 +59,10 @@ const mockModelConfig = (
 
 const mockContext = (): UIContext =>
   ({
-    screenshot: {
-      base64: 'data:image/png;base64,iVBORw0KGgoAAAAA',
-    },
+    screenshot: ScreenshotItem.create(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
+      0,
+    ),
     shotSize: {
       width: 100,
       height: 100,
@@ -133,7 +135,7 @@ describe('plan XML parse retry', () => {
         images: [
           {
             name: 'target',
-            url: 'data:image/png;base64,REFERENCE==',
+            url: 'https://example.com/reference.png',
           },
         ],
       },
@@ -155,7 +157,7 @@ describe('plan XML parse retry', () => {
             expect.objectContaining({
               type: 'image_url',
               image_url: expect.objectContaining({
-                url: 'data:image/png;base64,REFERENCE==',
+                url: 'https://example.com/reference.png',
               }),
             }),
           ]),

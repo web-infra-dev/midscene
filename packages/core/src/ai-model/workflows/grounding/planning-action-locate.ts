@@ -36,10 +36,15 @@ async function buildPlanningTapLocatorPlanOptions(
     ...options,
     context: {
       ...context,
-      screenshot: ScreenshotItem.create(
-        locateImage.imageBase64,
-        context.screenshot.capturedAt,
-      ),
+      screenshot: locateImage.image
+        ? ScreenshotItem.fromImage(
+            locateImage.image,
+            context.screenshot.capturedAt,
+          )
+        : ScreenshotItem.create(
+            locateImage.imageBase64,
+            context.screenshot.capturedAt,
+          ),
       shotSize: {
         width: locateImage.width,
         height: locateImage.height,
@@ -85,6 +90,7 @@ export function resolvePlanningTapLocator<TParsed>(
         await prepareUserPrompt(targetElementDescription),
         locatePlanOptions,
         locatorPlanner,
+        locateRequest.locateImage,
       );
 
       rawResponse = planningResponse.rawResponse ?? '';

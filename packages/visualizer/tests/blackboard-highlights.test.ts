@@ -6,6 +6,23 @@ import { Blackboard } from '../src/component/blackboard';
 import { normalizeBlackboardHighlights } from '../src/component/blackboard/highlights';
 
 describe('blackboard highlights', () => {
+  it('uses context coordinates for both the original-resolution image and overlays', () => {
+    const html = renderToStaticMarkup(
+      createElement(Blackboard, {
+        uiContext: {
+          screenshot: {
+            base64: 'data:image/png;base64,original-8x5',
+          } as UIContext['screenshot'],
+          shotSize: { width: 4, height: 3 },
+          shrunkShotToLogicalRatio: 0.5,
+        },
+        highlightRect: { left: 1, top: 1, width: 2, height: 1 },
+      }),
+    );
+    expect(html).toContain('width="4" height="3"');
+    expect(html).toContain('aspect-ratio:4/3;height:auto;object-fit:fill');
+    expect(html).toContain('left:25%;top:33.33333333333333%;width:50%');
+  });
   it('accepts point-only locate results', () => {
     const highlights = normalizeBlackboardHighlights([
       {

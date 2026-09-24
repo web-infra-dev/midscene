@@ -1,6 +1,7 @@
 import type { AIUsageInfo, Rect, UIContext } from '@/types';
 import type { LocateResultElement } from '@midscene/shared/types';
 import type { TUserPrompt } from '../../../common';
+import type { ModelImageInput } from '../../model-adapter/image-preprocess';
 import type { ModelRuntime } from '../../models';
 import type { PixelLocateResult } from '../../shared/model-locate-result';
 
@@ -15,11 +16,7 @@ export interface SearchAreaImageMapping {
 
 export interface SearchAreaConfig {
   sourceRect: Rect;
-  image: {
-    imageBase64: string;
-    width: number;
-    height: number;
-  };
+  image: ModelImageInput;
   mapping: SearchAreaImageMapping;
 }
 
@@ -32,11 +29,7 @@ export interface LocateOptions {
 
 export interface LocateRequest {
   targetElementDescription: TUserPrompt;
-  locateImage: {
-    imageBase64: string;
-    width: number;
-    height: number;
-  };
+  locateImage: ModelImageInput;
   options: LocateOptions;
 }
 

@@ -49,6 +49,8 @@ const imageMessage = [
     ],
   },
 ];
+const webpDataUrl =
+  'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
 describe('GPT image detail handling', () => {
   beforeEach(() => {
@@ -238,6 +240,37 @@ describe('GPT image detail handling', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
+
+  it.each([
+    webpDataUrl,
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
+  ])(
+    'sends prepared images without transcoding while setting image detail: %s',
+    async (url) => {
+      await callAI(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url, detail: 'high' },
+              },
+            ],
+          },
+        ],
+        getModelRuntime({
+          ...baseModelConfig,
+        }),
+      );
+
+      const sentMessages = mockCreate.mock.calls[0][0].messages;
+      expect(sentMessages[0].content[0].image_url).toEqual({
+        url,
+        detail: 'original',
+      });
+    },
+  );
 
   it('overrides image detail to original when required by the caller and adapter', async () => {
     await callAI(
