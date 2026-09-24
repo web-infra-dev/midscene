@@ -591,6 +591,11 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   uiContext?: UIContext;
+  /**
+   * Maximum planning feedback length inherited from the action definition.
+   * Set to 'unlimited' to disable truncation for this task.
+   */
+  planningFeedbackMaxLength?: number | 'unlimited';
   executor: (
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: void is intentionally allowed as some executors may not return a value
@@ -904,6 +909,12 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
+  /**
+   * Maximum number of characters from planningFeedback sent to the next
+   * planning round. Omit to use the core default, or set to 'unlimited' to
+   * disable truncation for this action.
+   */
+  planningFeedbackMaxLength?: number | 'unlimited';
   call: (
     param: TParam,
     context?: ExecutorContext,
