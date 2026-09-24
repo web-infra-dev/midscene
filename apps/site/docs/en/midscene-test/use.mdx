@@ -168,6 +168,35 @@ steps:
         effort: deepThink
 ```
 
+### Setting AI context
+
+We recommend calling `setAIContext` in `beforeAll` so context is configured before the current document's cases run and applies to all subsequent relevant AI operations on the same Agent. You can also call it in `beforeEach` or a case's `steps` to set or clear context as needed; changes take effect from that point onward.
+
+Its parameters match `agent.setAIContext(target, context)`: `target` is `default` or an AI API name such as `aiAct`, `aiTap`, or `aiAssert`.
+
+**Set context**: provide a `context` string to configure guidance for the selected API. Use `target: default` to configure the shared fallback for all AI APIs.
+
+```yaml
+beforeAll:
+  - setAIContext:
+      target: aiAct
+      context: |
+        Use the test account throughout the flow.
+        Dismiss coupon dialogs before continuing.
+```
+
+**Clear context**: omit `context` to pass `undefined` and remove the configuration for the selected `target`.
+
+```yaml
+beforeAll:
+  - setAIContext:
+      target: aiAct
+```
+
+Clearing an API's context lets that API fall back to `default`; clearing `default` removes the shared fallback. To disable inherited context for an API, set its `context` to an empty string, `""`.
+
+A call's `options.context` overrides the Agent-level value; values are not concatenated. Configuration belongs to the Agent instance: `beforeAll` and the cases must use the same Agent, and changes remain in effect until replaced or cleared.
+
 ### Calling other Nodes
 
 Platform operations and custom business Nodes use the same structure: **put parameters beneath the Node name**. These examples show calls with multiple parameters and with no parameters. Place the snippets inside a case's `steps`:

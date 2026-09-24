@@ -168,6 +168,35 @@ steps:
         effort: deepThink
 ```
 
+### 设置 AI 上下文
+
+推荐在 `beforeAll` 中调用 `setAIContext`，这样可以在当前文档的用例执行前统一配置上下文，让配置对后续使用同一个 Agent 的所有相关 AI 操作生效。也可以在 `beforeEach` 或用例的 `steps` 中调用，按需设置或清除上下文；修改从调用时开始生效。
+
+参数与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default` 或 `aiAct`、`aiTap`、`aiAssert` 等 AI API 名称。
+
+**设置 context**：传入 `context` 字符串，设置对应 API 的上下文；使用 `target: default` 可以设置各 AI API 共用的默认上下文。
+
+```yaml
+beforeAll:
+  - setAIContext:
+      target: aiAct
+      context: |
+        整个流程使用测试账号。
+        如出现优惠券弹窗，关闭后继续。
+```
+
+**清除 context**：省略 `context`，等同于传入 `undefined`，移除 `target` 对应的配置。
+
+```yaml
+beforeAll:
+  - setAIContext:
+      target: aiAct
+```
+
+清除某个 API 的上下文后，该 API 会回退到 `default`；清除 `default` 则移除共用的默认上下文。如果需要禁用某个 API 继承的上下文，可以将其 `context` 设为空字符串 `""`。
+
+单次调用的 `options.context` 优先于 Agent 级配置，各层上下文不会拼接。配置属于 Agent 实例：`beforeAll` 与用例需要使用同一个 Agent；修改会持续生效，直到被覆盖或清除。
+
 ### 其他 Node 的调用模式
 
 平台操作和自定义业务 Node 使用相同的调用结构：**Node 名称下面填写参数**。下面展示多参数和无参数两种常见形式，这些片段可以放入用例的 `steps` 中：
