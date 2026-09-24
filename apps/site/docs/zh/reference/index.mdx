@@ -2461,6 +2461,7 @@ const device = new IOSDevice({
 - `iOSDeviceClassOverride?: string` —— 使用 `agentFromWebDriverAgent()` 或 iOS Playground 时替换默认 `IOSDevice` 的 npm module path。目标模块必须导出 `IOSDevice` class 或 default class。
 - `sessionId?: string` —— 复用已有的 WebDriverAgent session ID。传入后，Midscene 不再创建新的 WDA session；清理时只会从这个外部 WebDriver session 分离，不会删除它。
 - `wdaMjpegPort?: number` —— WDA MJPEG 服务端口，用于实时画面流，默认 `9100`。
+- `wdaMjpegUrl?: string` —— 完整的 HTTP(S) MJPEG 画面流地址，可包含网关路径或查询参数。不能与 `wdaMjpegPort` 同时设置。
 - `wdaMjpegFrameSource?: { enabled?: boolean }` —— 使用 WDA 的 MJPEG stream 作为 `agent.startObserving()` 的连续帧源。默认关闭；关闭时，观察逻辑会退回到连续调用 `screenshotBase64()`。
 - `autoDismissKeyboard?: boolean` —— 文本输入后自动隐藏键盘，默认 `true`。
 - `keyboardTypeDelay?: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。设为正数后，`legacy` 输入会通过 WDA 的 `/wda/keys` 接口逐个 Unicode 码点执行。适用于输入框在快速输入下丢字的场景。
@@ -2472,6 +2473,7 @@ const device = new IOSDevice({
 - 请确认已开启开发者模式且 WDA 能访问设备；真机转发端口时可借助 `iproxy`。
 - 通过 `wdaHost`/`wdaPort` 可指向远程设备或自建的 WDA。
 - 网关通过路径前缀转发 WDA 时，使用 `wdaBaseUrl`；WDA API 请求和就绪探测都会使用该前缀。
+- 网关提供原生 MJPEG 流时，单独设置 `wdaMjpegUrl`。WDA API 基地址不会决定画面流地址。
 - 多设备并发时，请为每个设备设置不同的 `wdaPort` 和 `wdaMjpegPort`，避免 WDA 命令和 MJPEG stream 端口冲突。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 

@@ -38,6 +38,10 @@ const iosInitArgShape = {
     .number()
     .optional()
     .describe('WebDriverAgent MJPEG streaming port'),
+  wdaMjpegUrl: z
+    .string()
+    .optional()
+    .describe('Full HTTP(S) WebDriverAgent MJPEG stream URL'),
   wdaMjpegFrameSource: z
     .object({ enabled: z.boolean().optional() })
     .optional()
@@ -55,13 +59,16 @@ type IOSInitArgs = AgentBehaviorInitArgs &
     | 'wdaPort'
     | 'sessionId'
     | 'wdaMjpegPort'
+    | 'wdaMjpegUrl'
     | 'wdaMjpegFrameSource'
   >;
 
 function getTargetIdentity(initArgs?: IOSInitArgs): string {
-  if (initArgs?.wdaBaseUrl) {
+  if (initArgs?.wdaBaseUrl || initArgs?.wdaMjpegUrl) {
     const fingerprint = createHash('sha256')
-      .update(`${initArgs.wdaBaseUrl}\0${initArgs.sessionId ?? ''}`)
+      .update(
+        `${initArgs.wdaBaseUrl ?? ''}\0${initArgs.wdaMjpegUrl ?? ''}\0${initArgs.sessionId ?? ''}`,
+      )
       .digest('hex')
       .slice(0, 12);
     return `wda-${fingerprint}`;

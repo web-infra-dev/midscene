@@ -241,7 +241,18 @@ const agent = await agentFromWebDriverAgent({
 });
 ```
 
-Midscene 会在该地址后追加 `/status`、`/session` 和 session 内的接口路径。请只设置 `wdaBaseUrl`，或设置 `wdaHost`／`wdaPort`；两种方式混用会报错。MJPEG 画面流仍使用独立的 `wdaMjpegPort` 配置。
+Midscene 会在该地址后追加 `/status`、`/session` 和 session 内的接口路径。请只设置 `wdaBaseUrl`，或设置 `wdaHost`／`wdaPort`；两种方式混用会报错。
+
+`wdaBaseUrl` 只配置 WDA API。使用网关时，原生 MJPEG 流默认仍连接 `http://localhost:9100`。如果网关也提供画面流，请单独设置完整地址：
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+  wdaMjpegUrl: 'https://gateway.example/device/mjpeg',
+});
+```
+
+`wdaMjpegUrl` 可使用独立的 HTTP(S) 协议、主机、端口、路径和查询参数，但不接受地址中的用户名、密码或片段。它不能与 `wdaMjpegPort` 同时设置。如果使用本地端口转发，不设置 `wdaMjpegUrl` 即可；`wdaMjpegPort` 默认是 `9100`。原生流不可用时，Playground 会退回到截图轮询。
 
 ### 如何在 Playground 中获得更流畅的实时画面？
 

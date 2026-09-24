@@ -31,7 +31,10 @@ import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
-import { assertWdaConnectionOptions } from './wda-options';
+import {
+  assertWdaConnectionOptions,
+  normalizeMjpegStreamUrl,
+} from './wda-options';
 
 // Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
@@ -363,7 +366,10 @@ export class IOSDevice implements AbstractInterface {
       wdaHost,
       options?.wdaBaseUrl,
     );
-    this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
+    this.mjpegStreamUrl =
+      options?.wdaMjpegUrl !== undefined
+        ? normalizeMjpegStreamUrl(options.wdaMjpegUrl)
+        : `http://${wdaHost}:${mjpegPort}`;
 
     // Opt-in (default off), mirroring Android scrcpy: only expose the MJPEG
     // frame-source capability when explicitly enabled. When off, UI observers

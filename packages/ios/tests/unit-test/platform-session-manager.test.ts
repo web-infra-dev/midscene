@@ -44,6 +44,8 @@ describe('iosPlaygroundPlatform session manager', () => {
       { key: 'host', required: false },
       { key: 'port', required: false },
       { key: 'baseUrl', required: false },
+      { key: 'mjpegUrl', required: false },
+      { key: 'mjpegPort', required: false },
       { key: 'sessionId', required: false },
     ]);
     expect(setup?.fields?.[0]).not.toHaveProperty('defaultValue');
@@ -114,6 +116,39 @@ describe('iosPlaygroundPlatform session manager', () => {
     expect(agentFromWebDriverAgentMock).toHaveBeenCalledWith({
       wdaBaseUrl: 'https://gateway.example/code/wda',
     });
+  });
+
+  test('passes a remote HTTPS MJPEG stream URL to the agent and its factory', async () => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+    const created = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/code/wda',
+      mjpegUrl: 'https://stream.example/live/mjpeg?token=secret',
+      mjpegPort: '',
+    });
+    await created?.agentFactory?.();
+
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(1, {
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+      wdaMjpegUrl: 'https://stream.example/live/mjpeg?token=secret',
+    });
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, {
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+      wdaMjpegUrl: 'https://stream.example/live/mjpeg?token=secret',
+    });
+    expect(JSON.stringify(created?.metadata)).not.toContain('secret');
+  });
+
+  test('rejects a remote MJPEG URL combined with a port', async () => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+    await expect(
+      prepared.sessionManager?.createSession({
+        mjpegUrl: 'https://stream.example/live/mjpeg',
+        mjpegPort: 9100,
+      }),
+    ).rejects.toThrow(/wdaMjpegUrl cannot be used with wdaMjpegPort/);
+    expect(agentFromWebDriverAgentMock).not.toHaveBeenCalled();
   });
 
   test('does not expose a gateway path identifier in session metadata', async () => {

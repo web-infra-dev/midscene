@@ -15,7 +15,10 @@ import {
   type IOSAgentOpt,
   agentFromWebDriverAgent,
 } from './agent';
-import { assertWdaConnectionOptions } from './wda-options';
+import {
+  assertWdaConnectionOptions,
+  normalizeMjpegStreamUrl,
+} from './wda-options';
 
 export interface IOSPlatformOptions {
   staticDir?: string;
@@ -100,6 +103,20 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
               placeholder: 'https://gateway.example/device/wda',
             },
             {
+              key: 'mjpegUrl',
+              label: 'MJPEG stream URL (optional)',
+              type: 'text',
+              required: false,
+              placeholder: 'https://gateway.example/device/mjpeg',
+            },
+            {
+              key: 'mjpegPort',
+              label: 'MJPEG stream port (optional)',
+              type: 'number',
+              required: false,
+              placeholder: '9100',
+            },
+            {
               key: 'sessionId',
               label: 'WebDriverAgent session ID',
               type: 'text',
@@ -118,11 +135,30 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
           input?.host !== undefined && String(input.host).trim() !== '';
         const hasPortInput =
           input?.port !== undefined && String(input.port).trim() !== '';
+        const mjpegUrl =
+          typeof input?.mjpegUrl === 'string' && input.mjpegUrl.trim()
+            ? normalizeMjpegStreamUrl(input.mjpegUrl.trim())
+            : undefined;
+        const hasMjpegPortInput =
+          input?.mjpegPort != null && String(input.mjpegPort).trim() !== '';
+        const mjpegPort = hasMjpegPortInput
+          ? Number(input?.mjpegPort)
+          : undefined;
         assertWdaConnectionOptions({
           ...(baseUrl ? { wdaBaseUrl: baseUrl } : {}),
           ...(hasHostInput ? { wdaHost: String(input?.host) } : {}),
           ...(hasPortInput ? { wdaPort: Number(input?.port) } : {}),
+          ...(mjpegUrl ? { wdaMjpegUrl: mjpegUrl } : {}),
+          ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
         });
+        if (
+          mjpegPort !== undefined &&
+          (!Number.isInteger(mjpegPort) || mjpegPort < 1 || mjpegPort > 65535)
+        ) {
+          throw new Error(
+            `Invalid MJPEG stream port: ${String(input?.mjpegPort)}`,
+          );
+        }
         const host =
           typeof input?.host === 'string' && input.host.trim()
             ? input.host.trim().replace(/^https?:\/\//, '')
@@ -149,6 +185,8 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
             ...(baseUrl
               ? { wdaBaseUrl: baseUrl }
               : { wdaHost: host, wdaPort: port }),
+            ...(mjpegUrl ? { wdaMjpegUrl: mjpegUrl } : {}),
+            ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
             ...(sessionId ? { sessionId } : {}),
           };
           assertWdaConnectionOptions(agentOptions);

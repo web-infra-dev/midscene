@@ -209,6 +209,8 @@ export type IOSDeviceOpt = {
   sessionId?: string;
   /** WDA MJPEG server port for real-time screen streaming (default: 9100) */
   wdaMjpegPort?: number;
+  /** Full HTTP(S) MJPEG stream URL. Cannot be combined with wdaMjpegPort. */
+  wdaMjpegUrl?: string;
   /**
    * Use WDA's MJPEG stream as a continuous frame source for UI observation
    * (`agent.startObserving()`). Disabled by default (opt-in), mirroring

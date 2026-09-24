@@ -50,6 +50,7 @@ describe('IOSMidsceneTools', () => {
     await takeScreenshotTool?.handler({
       ios: {
         'wda-base-url': 'https://gateway.example/code/wda',
+        'wda-mjpeg-url': 'https://stream.example/live/mjpeg',
         sessionId: 'external-session-id',
         waitAfterAction: 650,
         replanningCycleLimit: 12,
@@ -62,6 +63,7 @@ describe('IOSMidsceneTools', () => {
       expect.objectContaining({
         autoDismissKeyboard: false,
         wdaBaseUrl: 'https://gateway.example/code/wda',
+        wdaMjpegUrl: 'https://stream.example/live/mjpeg',
         sessionId: 'external-session-id',
         waitAfterAction: 650,
         replanningCycleLimit: 12,
@@ -86,6 +88,24 @@ describe('IOSMidsceneTools', () => {
         },
       }),
     ).rejects.toThrow(/wdaBaseUrl cannot be used with wdaHost or wdaPort/);
+    expect(agentFromWebDriverAgent).not.toHaveBeenCalled();
+  });
+
+  it('rejects conflicting MJPEG connection options before creating an agent', async () => {
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'ios_connect');
+
+    await expect(
+      connectTool?.handler({
+        ios: {
+          wdaMjpegUrl: 'https://stream.example/live/mjpeg',
+          wdaMjpegPort: 9100,
+        },
+      }),
+    ).rejects.toThrow(/wdaMjpegUrl cannot be used with wdaMjpegPort/);
     expect(agentFromWebDriverAgent).not.toHaveBeenCalled();
   });
 
@@ -134,12 +154,16 @@ describe('IOSMidsceneTools', () => {
       .getToolDefinitions()
       .find((tool) => tool.name === 'ios_connect');
     await connectTool?.handler({
-      ios: { wdaBaseUrl: 'https://gateway.example/secret-code/wda' },
+      ios: {
+        wdaBaseUrl: 'https://gateway.example/secret-code/wda',
+        wdaMjpegUrl: 'https://stream.example/live/mjpeg?token=stream-secret',
+      },
     });
 
     const identity = createReportSession.mock.calls[0][0] as string;
     expect(identity).toMatch(/^wda-[a-f0-9]{12}$/);
     expect(identity).not.toContain('secret-code');
+    expect(identity).not.toContain('stream-secret');
   });
 
   it('exposes ios init args on action and common tool schemas', async () => {
@@ -158,6 +182,7 @@ describe('IOSMidsceneTools', () => {
         'ios.wdaHost': expect.anything(),
         'ios.wdaPort': expect.anything(),
         'ios.wdaBaseUrl': expect.anything(),
+        'ios.wdaMjpegUrl': expect.anything(),
         'ios.sessionId': expect.anything(),
         'ios.waitAfterAction': expect.anything(),
         'ios.replanningCycleLimit': expect.anything(),
@@ -169,6 +194,7 @@ describe('IOSMidsceneTools', () => {
         'ios.wdaHost': expect.anything(),
         'ios.wdaPort': expect.anything(),
         'ios.wdaBaseUrl': expect.anything(),
+        'ios.wdaMjpegUrl': expect.anything(),
         'ios.sessionId': expect.anything(),
         'ios.waitAfterAction': expect.anything(),
       }),
