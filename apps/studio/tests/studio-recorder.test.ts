@@ -270,6 +270,12 @@ describe('studio recorder selectors', () => {
         (session) => session.id,
       ),
     ).toEqual(['ios-session']);
+    expect(
+      filterStudioRecorderSessionsForTarget(sessions, {
+        ...iosTarget,
+        values: { wdaHost: '127.0.0.1', wdaPort: 8100 },
+      }).map((session) => session.id),
+    ).toEqual(['ios-session']);
     expect(filterStudioRecorderSessionsForTarget(sessions, null)).toEqual([]);
   });
 });

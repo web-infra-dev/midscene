@@ -267,7 +267,7 @@ function createStudioRecorderHistoryTargetSignature(
     case 'ios':
       return JSON.stringify({
         platformId: target.platformId,
-        deviceId: target.deviceId,
+        ...(target.values.wdaBaseUrl ? { deviceId: target.deviceId } : {}),
         wdaHost: target.values.wdaHost ?? target.values.host,
         wdaPort: target.values.wdaPort ?? target.values.port,
         wdaMjpegUrl: target.values.wdaMjpegUrl,
