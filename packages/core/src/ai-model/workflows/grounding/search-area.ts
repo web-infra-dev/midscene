@@ -1,4 +1,5 @@
 import type { Rect, Size, UIContext } from '@/types';
+import { planImageTransform } from '@midscene/shared/img';
 import type { PixelLocateResult } from '../../shared/model-locate-result';
 import type { SearchAreaConfig } from './types';
 
@@ -105,21 +106,22 @@ export async function buildSearchAreaConfig(options: {
     width: Math.trunc(sectionRect.left + sectionRect.width) - left,
     height: Math.trunc(sectionRect.top + sectionRect.height) - top,
   };
+  const image = context.screenshot.image;
+  const plan = planImageTransform(image, [
+    { type: 'resize', ...context.shotSize },
+    { type: 'crop', rect },
+    {
+      type: 'resize',
+      width: rect.width * scaleRatio,
+      height: rect.height * scaleRatio,
+    },
+  ]);
   return {
     sourceRect: sectionRect,
     image: {
-      image: context.screenshot.image,
-      operations: [
-        { type: 'resize', ...context.shotSize },
-        { type: 'crop', rect },
-        {
-          type: 'resize',
-          width: rect.width * scaleRatio,
-          height: rect.height * scaleRatio,
-        },
-      ],
-      width: rect.width * scaleRatio,
-      height: rect.height * scaleRatio,
+      image,
+      operations: plan.operations,
+      ...plan.size,
     },
     mapping: {
       offset: {

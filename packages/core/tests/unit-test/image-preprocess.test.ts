@@ -1,8 +1,9 @@
 import { prepareModelImage } from '@/ai-model/model-adapter/image-preprocess';
 import { buildSearchAreaConfig } from '@/ai-model/workflows/grounding';
+import * as imageOutput from '@/image-output';
 import { ScreenshotItem } from '@/screenshot-item';
 import { EncodedImage } from '@midscene/shared/img';
-import { describe, expect, it } from '@rstest/core';
+import { describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
 
 async function screenshot(width: number, height: number) {
@@ -14,6 +15,25 @@ async function screenshot(width: number, height: number) {
 }
 
 describe('prepareModelImage', () => {
+  it('rejects inconsistent plan dimensions before encoding', async () => {
+    const source = await screenshot(12, 8);
+    const encode = rs.spyOn(imageOutput, 'prepareImageOutput');
+    try {
+      await expect(
+        prepareModelImage({
+          image: source,
+          width: 7,
+          height: 6,
+          operations: [{ type: 'resize', width: 6, height: 6 }],
+          policy: { padBlockSize: 28 },
+        }),
+      ).rejects.toThrow('declared content dimensions');
+      expect(encode).not.toHaveBeenCalled();
+    } finally {
+      encode.mockRestore();
+    }
+  });
+
   it('keeps an image untouched when no padding is required', async () => {
     const source = EncodedImage.fromBytes(
       await sharp({

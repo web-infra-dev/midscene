@@ -1,5 +1,9 @@
 import { prepareImageOutput } from '@/image-output';
-import { EncodedImage, type ImageOperation } from '@midscene/shared/img';
+import {
+  EncodedImage,
+  type ImageOperation,
+  planImageTransform,
+} from '@midscene/shared/img';
 
 export interface ImagePreprocessPolicy {
   padBlockSize?: number;
@@ -29,6 +33,7 @@ export interface PreparedModelImage {
 }
 
 export type ModelImageInput = {
+  /** Expected content dimensions, validated against the plan before encoding. */
   width: number;
   height: number;
   operations?: readonly ImageOperation[];
@@ -46,12 +51,6 @@ export async function prepareModelImage(
   ) {
     throw new Error('Model image dimensions must be positive safe integers');
   }
-  const operations: ImageOperation[] = options.operations
-    ? [...options.operations]
-    : [{ type: 'resize', width, height }];
-  let modelWidth = width;
-  let modelHeight = height;
-
   const padBlockSize = policy.padBlockSize;
   if (
     padBlockSize !== undefined &&
@@ -60,6 +59,17 @@ export async function prepareModelImage(
     throw new Error('padBlockSize must be a positive safe integer');
   }
   const source = options.image ?? EncodedImage.fromBase64(options.imageBase64);
+  const { operations, size: contentSize } = planImageTransform(
+    source,
+    options.operations ?? [{ type: 'resize', width, height }],
+  );
+  if (contentSize.width !== width || contentSize.height !== height) {
+    throw new Error(
+      'Model image operations do not produce the declared content dimensions',
+    );
+  }
+  let modelWidth = contentSize.width;
+  let modelHeight = contentSize.height;
   const requiresPadding =
     padBlockSize !== undefined &&
     (width % padBlockSize !== 0 || height % padBlockSize !== 0);
@@ -88,9 +98,6 @@ export async function prepareModelImage(
       width: modelWidth,
       height: modelHeight,
     },
-    contentSize: {
-      width,
-      height,
-    },
+    contentSize,
   };
 }

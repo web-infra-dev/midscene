@@ -13,6 +13,12 @@ It returns the original image when neither pixel changes nor format conversion
 are needed. Supplying a quality does not force an otherwise unnecessary encode.
 Omitting output preserves the input format; explicit PNG output is lossless.
 
+`planImageTransform` validates the same ordered geometry without running a pixel
+decoder or encoder, returning normalized operations and their derived output size.
+Grounding uses that size instead of separately maintaining crop/scale dimensions.
+Model preprocessing checks declared content dimensions against the plan before
+encoding, then appends model padding. Output dimensions are still checked after encoding.
+
 Backend implementations own decoder objects, intermediate pixels and final
 encoding. Sharp intermediates are raw RGBA to prevent operation reordering and
 intermediate lossy encoding. Photon releases replaced images and the final image
@@ -58,6 +64,9 @@ Photon implementations. Node's legacy resize uses cover; the coordinate pipeline
 uses fill. Explicit conversion/crop/scale APIs still encode, including identity
 operations, whereas pipeline no-ops reuse bytes. Photon-object APIs remain in an
 isolated compatibility module because their public signatures expose ownership.
+Legacy padding without an explicit output format preserves already aligned inputs;
+actual padding defaults to JPEG. Explicit resize kernels are honored by both backends;
+omitted kernels retain the backend defaults (Sharp Lanczos3, Photon CatmullRom).
 Public `zoomForGPT4o` and `processImageElementInfo` exports are not
 deleted merely because there are no in-repository production callers.
 
