@@ -168,6 +168,28 @@ steps:
         effort: deepThink
 ```
 
+### 设置 AI 上下文
+
+使用 `setAIContext` 为同一个 Agent 的后续调用设置上下文。参数与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default` 或 `aiAct`、`aiTap`、`aiAssert` 等 AI API 名称；`context` 是可选的字符串。
+
+```yaml
+steps:
+  - setAIContext:
+      target: aiAct
+      context: |
+        整个流程使用测试账号。
+        如出现优惠券弹窗，关闭后继续。
+  - aiAct: 打开个人中心
+  - setAIContext:
+      target: aiAct
+      context: ""
+  - aiAct: 返回首页
+  - setAIContext:
+      target: aiAct
+```
+
+省略 `context` 等同于传入 `undefined`，移除该项配置，使对应 API 可以回退到 `default`。空字符串表示禁用继承的上下文。单次调用的 `options.context` 优先于 Agent 级配置，各层上下文不会拼接。修改会持续作用于该 Agent，直到被覆盖或移除；跨用例复用 Agent 时，需要重设上下文。
+
 ### 其他 Node 的调用模式
 
 平台操作和自定义业务 Node 使用相同的调用结构：**Node 名称下面填写参数**。下面展示多参数和无参数两种常见形式，这些片段可以放入用例的 `steps` 中：

@@ -1,3 +1,4 @@
+import { AGENT_AI_CONTEXT_KEYS } from '@midscene/shared/agent-tools/agent-context';
 import { z } from 'zod/v4';
 import type { TUserPrompt } from '../common';
 import { inputStrategies } from '../device/input-strategy';
@@ -178,6 +179,18 @@ export const aiActOptionsInputSchema = z.strictObject({
     .optional()
     .describe(
       'Additional facts, rules, constraints, or output requirements for this AI call. Overrides inherited aiContexts; an empty string disables inherited user context.',
+    ),
+});
+
+export const setAIContextInputSchema = z.strictObject({
+  target: z
+    .enum(AGENT_AI_CONTEXT_KEYS)
+    .describe('The AI API to configure, or default for the shared fallback.'),
+  context: z
+    .string()
+    .optional()
+    .describe(
+      'Agent-level guidance. Omit to remove the selected context; an empty string disables inherited context.',
     ),
 });
 
@@ -387,6 +400,7 @@ export const recordToReportInputSchema = z.strictObject({
 });
 
 export type UserPromptNodeInput = z.infer<typeof userPromptInputSchema>;
+export type SetAIContextNodeInput = z.infer<typeof setAIContextInputSchema>;
 export type AiActNodeOptions = z.infer<typeof aiActOptionsInputSchema>;
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeOptions = z.infer<typeof aiAssertOptionsInputSchema>;
@@ -435,6 +449,7 @@ const defineCommonAgentNode =
 type AgentActionNodeApi = Pick<
   Agent,
   | 'sleep'
+  | 'setAIContext'
   | 'aiHover'
   | 'aiDoubleClick'
   | 'aiRightClick'
@@ -577,6 +592,13 @@ const locateActionNode = (
   });
 
 const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
+  defineAgentActionNode({
+    method: 'setAIContext',
+    description:
+      'Set or remove Agent-level AI guidance for subsequent calls on the same Agent.',
+    inputSchema: setAIContextInputSchema,
+    toArgs: (input) => [input.target, input.context],
+  }),
   locateActionNode('aiHover'),
   locateActionNode('aiDoubleClick'),
   locateActionNode('aiRightClick'),

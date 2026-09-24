@@ -168,6 +168,28 @@ steps:
         effort: deepThink
 ```
 
+### Setting AI context
+
+Use `setAIContext` to configure guidance for subsequent calls on the same Agent. Its parameters match `agent.setAIContext(target, context)`: `target` is `default` or an AI API name such as `aiAct`, `aiTap`, or `aiAssert`; `context` is an optional string.
+
+```yaml
+steps:
+  - setAIContext:
+      target: aiAct
+      context: |
+        Use the test account throughout the flow.
+        Dismiss coupon dialogs before continuing.
+  - aiAct: Open the profile page
+  - setAIContext:
+      target: aiAct
+      context: ""
+  - aiAct: Return to the home page
+  - setAIContext:
+      target: aiAct
+```
+
+Omitting `context` passes `undefined`, removing the selected value and allowing an API to fall back to `default`. An empty string disables inherited context. A call's `options.context` overrides the Agent-level value; values are not concatenated. Changes remain on the Agent until replaced or removed, so reset them when reusing an Agent across cases.
+
 ### Calling other Nodes
 
 Platform operations and custom business Nodes use the same structure: **put parameters beneath the Node name**. These examples show calls with multiple parameters and with no parameters. Place the snippets inside a case's `steps`:
