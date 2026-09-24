@@ -8,6 +8,7 @@ import {
   type LocateResultPromptSpec,
   formatLocateExampleValue,
 } from '../shared/model-locate-result';
+import { readLocateResultField } from '../shared/model-locate-result/result-field';
 import type {
   ParsedLocateResponse,
   StandardLocateProtocol,
@@ -113,7 +114,6 @@ const buildSearchAreaUserPrompt = (sectionDescription: string) =>
 
 type ParseRawResponseOptions = {
   includeReferences: boolean;
-  acceptBbox2dAlias?: boolean;
 };
 
 const createParseRawResponse =
@@ -131,12 +131,7 @@ const createParseRawResponse =
     });
     assertJsonObject(parsedResponse);
     const record = parsedResponse;
-    const target =
-      record[promptSpec.resultKey] !== undefined
-        ? record[promptSpec.resultKey]
-        : options.acceptBbox2dAlias && promptSpec.resultKey === 'bbox'
-          ? record.bbox_2d
-          : undefined;
+    const target = readLocateResultField(record, promptSpec);
     const error = typeof record.error === 'string' ? record.error : undefined;
     if (target === undefined) {
       throw new Error(
@@ -151,7 +146,11 @@ const createParseRawResponse =
       return { kind: 'located', target, ...(error ? { error } : {}) };
     }
 
-    const rawReferences = record[`references_${promptSpec.resultKey}`];
+    const rawReferences = readLocateResultField(
+      record,
+      promptSpec,
+      'references_',
+    );
     const references =
       rawReferences === undefined || rawReferences === null
         ? undefined
@@ -166,34 +165,26 @@ const createParseRawResponse =
     };
   };
 
-type DefaultLocateProtocolOptions = {
-  acceptBbox2dAlias?: boolean;
-};
-
-export const createDefaultElementProtocol = (
-  { jsonParser }: StandardLocateProtocolContext,
-  options: DefaultLocateProtocolOptions = {},
-): StandardLocateProtocol => ({
+export const createDefaultElementProtocol = ({
+  jsonParser,
+}: StandardLocateProtocolContext): StandardLocateProtocol => ({
   systemPromptIntroduction: defaultLocateSystemPromptIntroduction,
   buildResponseInstructions,
   buildUserPrompt,
   expectedJsonObjectResponse: true,
   parseRawResponse: createParseRawResponse(jsonParser, 'locate', {
     includeReferences: false,
-    acceptBbox2dAlias: options.acceptBbox2dAlias,
   }),
 });
 
-export const createDefaultSearchAreaProtocol = (
-  { jsonParser }: StandardLocateProtocolContext,
-  options: DefaultLocateProtocolOptions = {},
-): StandardLocateProtocol => ({
+export const createDefaultSearchAreaProtocol = ({
+  jsonParser,
+}: StandardLocateProtocolContext): StandardLocateProtocol => ({
   systemPromptIntroduction: defaultSearchAreaSystemPromptIntroduction,
   buildResponseInstructions: buildSearchAreaResponseInstructions,
   buildUserPrompt: buildSearchAreaUserPrompt,
   expectedJsonObjectResponse: true,
   parseRawResponse: createParseRawResponse(jsonParser, 'section-locator', {
     includeReferences: true,
-    acceptBbox2dAlias: options.acceptBbox2dAlias,
   }),
 });

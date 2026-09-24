@@ -283,7 +283,6 @@ export interface ModelAdapter {
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
   buildCodexAppServerParams: BuildCodexAppServerParams;
-  acceptBbox2dAlias: boolean;
   imagePreprocess: ImagePreprocessPolicy;
   insight: InsightAdapter;
   planning: PlanningAdapter;
@@ -311,12 +310,6 @@ export interface ModelAdapterDefinition {
   jsonParser?: JsonParserPreset | JsonParser;
   chatCompletion?: ChatCompletionDefinition;
   buildCodexAppServerParams?: BuildCodexAppServerParams;
-  /**
-   * Temporary compatibility for models that may occasionally return
-   * `bbox_2d` instead of `bbox`. Currently enabled only by Qwen adapters and
-   * should be removed once this model behavior no longer needs accommodation.
-   */
-  acceptBbox2dAlias?: boolean;
   imagePreprocess?: ImagePreprocessDefinition;
   insight?: InsightDefinition;
   planning?: PlanningDefinition;
