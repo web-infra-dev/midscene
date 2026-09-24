@@ -170,25 +170,30 @@ steps:
 
 ### Setting AI context
 
-Use `setAIContext` to configure guidance for subsequent calls on the same Agent. Its parameters match `agent.setAIContext(target, context)`: `target` is `default` or an AI API name such as `aiAct`, `aiTap`, or `aiAssert`; `context` is an optional string.
+Call `setAIContext` in `beforeAll` to configure context before the current document's cases run. It applies to subsequent calls on the same Agent. Its parameters match `agent.setAIContext(target, context)`: `target` is `default` or an AI API name such as `aiAct`, `aiTap`, or `aiAssert`.
+
+**Set context**: provide a `context` string to configure guidance for the selected API. Use `target: default` to configure the shared fallback for all AI APIs.
 
 ```yaml
-steps:
+beforeAll:
   - setAIContext:
       target: aiAct
       context: |
         Use the test account throughout the flow.
         Dismiss coupon dialogs before continuing.
-  - aiAct: Open the profile page
-  - setAIContext:
-      target: aiAct
-      context: ""
-  - aiAct: Return to the home page
+```
+
+**Clear context**: omit `context` to pass `undefined` and remove the configuration for the selected `target`.
+
+```yaml
+beforeAll:
   - setAIContext:
       target: aiAct
 ```
 
-Omitting `context` passes `undefined`, removing the selected value and allowing an API to fall back to `default`. An empty string disables inherited context. A call's `options.context` overrides the Agent-level value; values are not concatenated. Changes remain on the Agent until replaced or removed, so reset them when reusing an Agent across cases.
+Clearing an API's context lets that API fall back to `default`; clearing `default` removes the shared fallback. To disable inherited context for an API, set its `context` to an empty string, `""`.
+
+A call's `options.context` overrides the Agent-level value; values are not concatenated. Configuration belongs to the Agent instance: `beforeAll` and the cases must use the same Agent, and changes remain in effect until replaced or cleared.
 
 ### Calling other Nodes
 

@@ -170,25 +170,30 @@ steps:
 
 ### 设置 AI 上下文
 
-使用 `setAIContext` 为同一个 Agent 的后续调用设置上下文。参数与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default` 或 `aiAct`、`aiTap`、`aiAssert` 等 AI API 名称；`context` 是可选的字符串。
+在 `beforeAll` 中调用 `setAIContext`，可以在当前文档的用例执行前配置上下文，配置对后续使用同一个 Agent 的调用生效。参数与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default` 或 `aiAct`、`aiTap`、`aiAssert` 等 AI API 名称。
+
+**设置 context**：传入 `context` 字符串，设置对应 API 的上下文；使用 `target: default` 可以设置各 AI API 共用的默认上下文。
 
 ```yaml
-steps:
+beforeAll:
   - setAIContext:
       target: aiAct
       context: |
         整个流程使用测试账号。
         如出现优惠券弹窗，关闭后继续。
-  - aiAct: 打开个人中心
-  - setAIContext:
-      target: aiAct
-      context: ""
-  - aiAct: 返回首页
+```
+
+**清除 context**：省略 `context`，等同于传入 `undefined`，移除 `target` 对应的配置。
+
+```yaml
+beforeAll:
   - setAIContext:
       target: aiAct
 ```
 
-省略 `context` 等同于传入 `undefined`，移除该项配置，使对应 API 可以回退到 `default`。空字符串表示禁用继承的上下文。单次调用的 `options.context` 优先于 Agent 级配置，各层上下文不会拼接。修改会持续作用于该 Agent，直到被覆盖或移除；跨用例复用 Agent 时，需要重设上下文。
+清除某个 API 的上下文后，该 API 会回退到 `default`；清除 `default` 则移除共用的默认上下文。如果需要禁用某个 API 继承的上下文，可以将其 `context` 设为空字符串 `""`。
+
+单次调用的 `options.context` 优先于 Agent 级配置，各层上下文不会拼接。配置属于 Agent 实例：`beforeAll` 与用例需要使用同一个 Agent；修改会持续生效，直到被覆盖或清除。
 
 ### 其他 Node 的调用模式
 
