@@ -19,7 +19,11 @@ import {
   MIDSCENE_MODEL_RETRY_COUNT,
   MIDSCENE_MODEL_TIMEOUT,
 } from '@midscene/shared/env';
-import { cropByRect, imageInfoOfBase64 } from '@midscene/shared/img';
+import {
+  EncodedImage,
+  imageInfoOfBase64,
+  transformImage,
+} from '@midscene/shared/img';
 import { describe, expect, it, rs } from '@rstest/core';
 import {
   ComputerAgent,
@@ -572,25 +576,40 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       const buttonBounds = screenshotBounds(metadata.button, screenshotScale);
       const sampleWidth = Math.max(20, Math.min(100, buttonBounds.width - 10));
       const sampleHeight = Math.max(20, Math.min(45, buttonBounds.height - 10));
+      const sourceImage = EncodedImage.fromBase64(screenshot);
       const [targetCrop, backgroundCrop] = await Promise.all([
-        cropByRect(screenshot, {
-          left: Math.round(
-            buttonBounds.left + (buttonBounds.width - sampleWidth) / 2,
-          ),
-          top: Math.round(
-            buttonBounds.top + (buttonBounds.height - sampleHeight) / 2,
-          ),
-          width: sampleWidth,
-          height: sampleHeight,
+        transformImage(sourceImage, {
+          operations: [
+            {
+              type: 'crop',
+              rect: {
+                left: Math.round(
+                  buttonBounds.left + (buttonBounds.width - sampleWidth) / 2,
+                ),
+                top: Math.round(
+                  buttonBounds.top + (buttonBounds.height - sampleHeight) / 2,
+                ),
+                width: sampleWidth,
+                height: sampleHeight,
+              },
+            },
+          ],
         }),
-        cropByRect(screenshot, {
-          left: Math.round((metadata.window.left + 20) * screenshotScale),
-          top: Math.round((metadata.window.top + 70) * screenshotScale),
-          width: sampleWidth,
-          height: sampleHeight,
+        transformImage(sourceImage, {
+          operations: [
+            {
+              type: 'crop',
+              rect: {
+                left: Math.round((metadata.window.left + 20) * screenshotScale),
+                top: Math.round((metadata.window.top + 70) * screenshotScale),
+                width: sampleWidth,
+                height: sampleHeight,
+              },
+            },
+          ],
         }),
       ]);
-      expect(targetCrop.imageBase64).not.toBe(backgroundCrop.imageBase64);
+      expect(targetCrop.bytes).not.toEqual(backgroundCrop.bytes);
 
       agent = new ComputerAgent(device, {
         modelConfig: {

@@ -1,4 +1,4 @@
-import { encodeRgbaToWebp } from '@/img';
+import { encodeRgbaToWebp } from '@/img/backends/canvas';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 const validWebpBytes = Uint8Array.from(

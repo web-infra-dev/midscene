@@ -1,30 +1,36 @@
 import { readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
+import { describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
 import {
-  type JpegBase64DataUrl,
-  compositePointMarkerImg,
+  EncodedImage,
   constrainBase64ImageToMaxSize,
+  createPointOverlay,
   httpImg2Base64,
   imageInfoOfBase64,
-  isValidJPEGImageBuffer,
   isValidPNGImageBuffer,
   localImg2Base64,
-  resizeAndConvertImgBuffer,
-  resizeBase64ImageToJpeg,
-  resizeImgBase64,
+  transformImage,
   validateScreenshotBuffer,
 } from '../../../src/img';
 import {
   createImgBase64ByFormat,
-  cropByRect,
-  paddingToMatchBlockByBase64,
   parseBase64,
-  saveBase64Image,
 } from '../../../src/img/transform';
 import { getFixture } from '../../utils';
+
+async function markPoint(options: {
+  inputImgBase64: string;
+  point: { x: number; y: number };
+  indexId?: number;
+}) {
+  const image = EncodedImage.fromBase64(options.inputImgBase64);
+  return (
+    await transformImage(image, {
+      operations: [createPointOverlay({ ...options, ...image.size })],
+      output: { format: 'jpeg', quality: 90, chromaSubsampling: '4:4:4' },
+    })
+  ).toBase64();
+}
 
 describe('imageInfoOfBase64', () => {
   it('returns correct dimensions for PNG image', async () => {
@@ -106,50 +112,6 @@ describe('image utils', () => {
     expect(info.height).toMatchSnapshot();
   });
 
-  it('resizeBase64ImageToJpeg always returns a typed JPEG data URL', async () => {
-    const image = getFixture('heytea.jpeg');
-
-    const base64 = localImg2Base64(image);
-    const resizedBase64: JpegBase64DataUrl = await resizeBase64ImageToJpeg(
-      base64,
-      {
-        sourceSize: { width: 400, height: 905 },
-        targetSize: { width: 100, height: 100 },
-      },
-    );
-    expect(resizedBase64).toMatch(/^data:image\/jpeg;base64,/);
-  });
-
-  it('resizeBase64ImageToJpeg converts PNG when dimensions are unchanged', async () => {
-    const base64 = localImg2Base64(getFixture('icon.png'));
-    const resizedBase64 = await resizeBase64ImageToJpeg(base64, {
-      sourceSize: { width: 68, height: 56 },
-      targetSize: { width: 68, height: 56 },
-    });
-
-    expect(resizedBase64).toMatch(/^data:image\/jpeg;base64,/);
-    const { body } = parseBase64(resizedBase64);
-    expect(isValidJPEGImageBuffer(Buffer.from(body, 'base64'))).toBe(true);
-    await expect(imageInfoOfBase64(resizedBase64)).resolves.toEqual({
-      width: 68,
-      height: 56,
-    });
-  });
-
-  it('resizeBase64ImageToJpeg resizes PNG and encodes the result as JPEG', async () => {
-    const base64 = localImg2Base64(getFixture('icon.png'));
-    const resizedBase64 = await resizeBase64ImageToJpeg(base64, {
-      sourceSize: { width: 68, height: 56 },
-      targetSize: { width: 34, height: 28 },
-    });
-
-    expect(resizedBase64).toMatch(/^data:image\/jpeg;base64,/);
-    await expect(imageInfoOfBase64(resizedBase64)).resolves.toEqual({
-      width: 34,
-      height: 28,
-    });
-  });
-
   it('constrainBase64ImageToMaxSize bounds the longest edge with real image bytes', async () => {
     const base64 = localImg2Base64(getFixture('icon.png'));
     const constrainedBase64 = await constrainBase64ImageToMaxSize(base64, {
@@ -171,153 +133,11 @@ describe('image utils', () => {
     ).resolves.toBe(base64);
   });
 
-  it('uses image bytes instead of a misleading MIME header', async () => {
-    const pngBase64 = localImg2Base64(getFixture('icon.png'));
-    const mislabeledBase64 = pngBase64.replace('image/png', 'image/jpeg');
-    const result = await resizeBase64ImageToJpeg(mislabeledBase64, {
-      sourceSize: { width: 68, height: 56 },
-      targetSize: { width: 68, height: 56 },
-    });
-
-    const { body } = parseBase64(result);
-    expect(isValidJPEGImageBuffer(Buffer.from(body, 'base64'))).toBe(true);
-  });
-
-  it('resizeBase64ImageToJpeg reuses an unchanged JPEG without generation loss', async () => {
-    const base64 = localImg2Base64(getFixture('heytea.jpeg'));
-    const resizedBase64 = await resizeBase64ImageToJpeg(base64, {
-      sourceSize: { width: 400, height: 905 },
-      targetSize: { width: 400, height: 905 },
-    });
-
-    expect(resizedBase64).toBe(base64);
-  });
-
-  it('resizeBase64ImageToJpeg rejects source dimensions that do not match the encoded image', async () => {
-    const base64 = localImg2Base64(getFixture('heytea.jpeg'));
-
-    await expect(
-      resizeBase64ImageToJpeg(base64, {
-        sourceSize: { width: 1, height: 1 },
-        targetSize: { width: 1, height: 1 },
-      }),
-    ).rejects.toThrow(
-      'sourceSize 1x1 does not match encoded image dimensions 400x905',
-    );
-  });
-
-  it.each([0, 101, 10.5, Number.NaN])(
-    'resizeBase64ImageToJpeg rejects invalid JPEG quality %s',
-    async (jpegQuality) => {
-      const base64 = localImg2Base64(getFixture('icon.png'));
-
-      await expect(
-        resizeBase64ImageToJpeg(base64, {
-          sourceSize: { width: 68, height: 56 },
-          targetSize: { width: 68, height: 56 },
-          jpegQuality,
-        }),
-      ).rejects.toThrow(/jpegQuality/);
-    },
-  );
-
-  it.each([
-    { width: 10.5, height: 10 },
-    { width: 10, height: Number.NaN },
-    { width: Number.POSITIVE_INFINITY, height: 10 },
-    { width: 0, height: 10 },
-  ])(
-    'resizeBase64ImageToJpeg rejects invalid target size $width x $height',
-    async (targetSize) => {
-      const base64 = localImg2Base64(getFixture('icon.png'));
-
-      await expect(
-        resizeBase64ImageToJpeg(base64, {
-          sourceSize: { width: 68, height: 56 },
-          targetSize,
-        }),
-      ).rejects.toThrow(/targetSize.*positive integers/);
-    },
-  );
-
-  it.each([
-    { width: 10.5, height: 10 },
-    { width: 10, height: Number.NaN },
-    { width: Number.POSITIVE_INFINITY, height: 10 },
-    { width: 0, height: 10 },
-  ])(
-    'resizeBase64ImageToJpeg rejects invalid known source size $width x $height',
-    async (sourceSize) => {
-      const base64 = localImg2Base64(getFixture('icon.png'));
-
-      await expect(
-        resizeBase64ImageToJpeg(base64, {
-          sourceSize,
-          targetSize: { width: 68, height: 56 },
-        }),
-      ).rejects.toThrow(/sourceSize.*positive integers/);
-    },
-  );
-
-  it('resizeBase64ImageToJpeg applies the requested JPEG quality', async () => {
-    const base64 = localImg2Base64(getFixture('heytea.jpeg'));
-    const lowQuality = await resizeBase64ImageToJpeg(base64, {
-      sourceSize: { width: 400, height: 905 },
-      targetSize: { width: 100, height: 100 },
-      jpegQuality: 10,
-    });
-    const highQuality = await resizeBase64ImageToJpeg(base64, {
-      sourceSize: { width: 400, height: 905 },
-      targetSize: { width: 100, height: 100 },
-      jpegQuality: 90,
-    });
-
-    expect(lowQuality).toMatch(/^data:image\/jpeg;base64,/);
-    expect(highQuality).toMatch(/^data:image\/jpeg;base64,/);
-    expect(lowQuality).not.toBe(highQuality);
-  });
-
-  it('keeps resizeImgBase64 backward compatible for unchanged PNG input', async () => {
-    const base64 = localImg2Base64(getFixture('icon.png'));
-    const resizedBase64 = await resizeImgBase64(base64, {
-      width: 68,
-      height: 56,
-    });
-
-    expect(resizedBase64).toBe(base64);
-    expect(resizedBase64).toMatch(/^data:image\/png;base64,/);
-  });
-
-  it('keeps resizeImgBase64 backward compatible for unchanged JPEG input', async () => {
-    const base64 = localImg2Base64(getFixture('heytea.jpeg'));
-    const resizedBase64 = await resizeImgBase64(base64, {
-      width: 400,
-      height: 905,
-    });
-
-    expect(resizedBase64).toBe(base64);
-    expect(resizedBase64).toMatch(/^data:image\/jpeg;base64,/);
-  });
-
-  it('keeps resizeImgBase64 JPEG output behavior when dimensions change', async () => {
-    const base64 = localImg2Base64(getFixture('icon.png'));
-    const resizedBase64 = await resizeImgBase64(base64, {
-      width: 34,
-      height: 28,
-    });
-
-    expect(resizedBase64).toMatch(/^data:image\/jpeg;base64,/);
-    await expect(imageInfoOfBase64(resizedBase64)).resolves.toEqual({
-      width: 34,
-      height: 28,
-    });
-  });
-
-  it('compositePointMarkerImg keeps image dimensions and marks a point', async () => {
+  it('markPoint keeps image dimensions and marks a point', async () => {
     const image = getFixture('icon.png');
     const base64 = localImg2Base64(image);
 
-    const markedBase64 = await compositePointMarkerImg({
+    const markedBase64 = await markPoint({
       inputImgBase64: base64,
       point: { x: 20, y: 20 },
     });
@@ -330,7 +150,7 @@ describe('image utils', () => {
     expect(markedInfo).toEqual(originalInfo);
   });
 
-  it('compositePointMarkerImg uses red target and blue locator callout markers without covering the target point', async () => {
+  it('markPoint uses red target and blue locator callout markers without covering the target point', async () => {
     const inputBuffer = await sharp({
       create: {
         width: 120,
@@ -346,11 +166,11 @@ describe('image utils', () => {
       inputBuffer.toString('base64'),
     );
 
-    const markedBase64 = await compositePointMarkerImg({
+    const markedBase64 = await markPoint({
       inputImgBase64: base64,
       point: { x: 60, y: 60 },
     });
-    const locatorMarkedBase64 = await compositePointMarkerImg({
+    const locatorMarkedBase64 = await markPoint({
       inputImgBase64: base64,
       point: { x: 60, y: 60 },
       indexId: 2,
@@ -426,92 +246,6 @@ describe('image utils', () => {
     expect(redDominantPixels).toBeGreaterThan(20);
     expect(blueCalloutPixels).toBe(0);
     expect(locatorBlueCalloutPixels).toBeGreaterThan(20);
-  });
-
-  it.each(['png', 'jpeg', 'webp'] as const)(
-    'preserves aligned %s bytes unless output conversion is explicitly requested',
-    async (format) => {
-      const bytes = await sharp({
-        create: {
-          width: 28,
-          height: 28,
-          channels: 4,
-          background: { r: 50, g: 100, b: 200, alpha: 0.3 },
-        },
-      })
-        .toFormat(format)
-        .toBuffer();
-      const input = createImgBase64ByFormat(format, bytes.toString('base64'));
-      expect((await paddingToMatchBlockByBase64(input)).imageBase64).toBe(
-        input,
-      );
-      const converted = await paddingToMatchBlockByBase64(input, 28, 'jpeg');
-      expect(converted.imageBase64).toMatch(/^data:image\/jpeg;base64,/);
-      if (format === 'jpeg') expect(converted.imageBase64).toBe(input);
-      const metadata = await sharp(
-        Buffer.from(converted.imageBase64.split(',')[1], 'base64'),
-      ).metadata();
-      expect([metadata.width, metadata.height]).toEqual([28, 28]);
-    },
-  );
-
-  it('paddingToMatchBlockByBase64', async () => {
-    const image = getFixture('heytea.jpeg');
-    const base64 = localImg2Base64(image);
-    const result = await paddingToMatchBlockByBase64(base64);
-
-    expect(result.width).toMatchSnapshot();
-    expect(result.height).toMatchSnapshot();
-
-    const tmpFile = join(tmpdir(), 'heytea-padded.jpeg');
-    await saveBase64Image({
-      base64Data: result.imageBase64,
-      outputPath: tmpFile,
-    });
-    // console.log('tmpFile', tmpFile);
-  });
-
-  it('cropByRect', async () => {
-    const image = getFixture('heytea.jpeg');
-    const base64 = localImg2Base64(image);
-    const croppedBase64 = await cropByRect(base64, {
-      left: 200,
-      top: 80,
-      width: 100,
-      height: 400,
-    });
-
-    expect(croppedBase64).toBeTruthy();
-
-    const info = await imageInfoOfBase64(croppedBase64.imageBase64);
-    // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
-    expect(info.width).toMatchInlineSnapshot(`100`);
-    // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
-    expect(info.height).toMatchInlineSnapshot(`400`);
-
-    const tmpFile = join(tmpdir(), 'heytea-cropped-2.jpeg');
-    await saveBase64Image({
-      base64Data: croppedBase64.imageBase64,
-      outputPath: tmpFile,
-    });
-    console.log('cropped image saved to', tmpFile);
-  });
-
-  it('cropByRect normalizes fractional browser coordinates for Sharp', async () => {
-    const image = getFixture('heytea.jpeg');
-    const result = await cropByRect(localImg2Base64(image), {
-      left: 200.4,
-      top: 80.8,
-      width: 100.7,
-      height: 40.6,
-    });
-
-    expect(result.width).toBe(101);
-    expect(result.height).toBe(41);
-    await expect(imageInfoOfBase64(result.imageBase64)).resolves.toEqual({
-      width: 101,
-      height: 41,
-    });
   });
 
   it('isValidPNGImageBuffer', () => {
@@ -676,70 +410,4 @@ describe('image utils', () => {
   //   },
   //   10 * 1000,
   // );
-});
-
-describe('resizeAndConvertImgBuffer', () => {
-  const imageBuffer = readFileSync(getFixture('2x2.png'));
-
-  describe('try sharp', () => {
-    it('Sharp no-resize will get original format', async () => {
-      const { format, buffer } = await resizeAndConvertImgBuffer(
-        'png',
-        imageBuffer,
-        {
-          width: 2,
-          height: 2,
-        },
-      );
-      expect(format).toBe('png');
-    });
-    it('Sharp resize will get jpeg format', async () => {
-      const { format, buffer } = await resizeAndConvertImgBuffer(
-        'png',
-        imageBuffer,
-        {
-          width: 1,
-          height: 1,
-        },
-      );
-      expect(format).toBe('jpeg');
-    });
-  });
-
-  describe('sharp failure', () => {
-    const sharpFn = rs.fn(() => {
-      throw new Error('sharp is not available');
-    });
-
-    beforeAll(() => {
-      rs.doMock('sharp', () => ({
-        default: sharpFn,
-      }));
-    });
-
-    afterAll(() => {
-      rs.resetAllMocks();
-    });
-
-    it('throws instead of loading the browser image backend', async () => {
-      await expect(
-        resizeAndConvertImgBuffer('png', imageBuffer, {
-          width: 1,
-          height: 1,
-        }),
-      ).rejects.toThrow('sharp is not available');
-      expect(sharpFn).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not require a decoder for unchanged supported image bytes', async () => {
-      const callsBefore = sharpFn.mock.calls.length;
-      const result = await resizeAndConvertImgBuffer('png', imageBuffer, {
-        width: 2,
-        height: 2,
-      });
-      expect(result.buffer).toBe(imageBuffer);
-      expect(result.format).toBe('png');
-      expect(sharpFn.mock.calls.length).toBe(callsBefore);
-    });
-  });
 });

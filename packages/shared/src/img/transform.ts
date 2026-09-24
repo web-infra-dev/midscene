@@ -3,36 +3,11 @@ import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { Size } from '../types';
-import {
-  type JpegBase64DataUrl,
-  type WebpBase64DataUrl,
-  createImgBase64ByFormat,
-  detectImageMimeTypeFromBuffer,
-  parseBase64,
-} from './base64';
-import { getImageBackend } from './image-backend';
-import { detectScreenshotImageFormatFromBuffer } from './image-format';
-import { encodedImageInfoOfBuffer } from './info';
-import {
-  DEFAULT_JPEG_SCREENSHOT_QUALITY,
-  type ScreenshotImageEncodeOptions,
-  type ScreenshotImageOutputFormat,
-  type WebpScreenshotEncodeOptions,
-  assertValidJpegQuality,
-  assertWebpBuffer,
-  resolveWebpScreenshotEncodeOptions,
-} from './screenshot-encoding';
+import { parseBase64 } from './base64';
+import { EncodedImage } from './encoded-image';
+import { transformImage } from './image-pipeline';
+import { assertValidJpegQuality } from './screenshot-encoding';
 
-export {
-  cropByRect,
-  paddingToMatchBlock,
-  paddingToMatchBlockByBase64,
-  photonFromBase64,
-  photonToBase64,
-  scaleImage,
-  zoomForGPT4o,
-} from './geometry';
 export {
   type JpegBase64DataUrl,
   type NormalizeScreenshotBase64Options,
@@ -73,144 +48,6 @@ export async function saveBase64Image(options: {
   await writeFile(outputPath, imageBuffer);
 }
 
-interface ResizeImageBufferOptions {
-  sourceSize?: Size;
-  preserveOriginalWhenUnchanged: boolean;
-  encode: ScreenshotImageEncodeOptions;
-}
-
-async function resizeImageBuffer(
-  inputFormat: string,
-  inputData: Buffer,
-  targetSize: Size,
-  options: ResizeImageBufferOptions,
-): Promise<{
-  buffer: Buffer;
-  format: string;
-}> {
-  if (typeof inputData === 'string') {
-    throw Error('inputData is base64, use resizeImgBase64 instead');
-  }
-
-  assert(
-    targetSize && targetSize.width > 0 && targetSize.height > 0,
-    'newSize must be positive',
-  );
-
-  const backend = await getImageBackend();
-  const sourceSize =
-    options.sourceSize ??
-    (detectScreenshotImageFormatFromBuffer(inputData)
-      ? encodedImageInfoOfBuffer(inputData)
-      : await backend.info(inputData));
-  const unchanged =
-    sourceSize.width === targetSize.width &&
-    sourceSize.height === targetSize.height;
-  if (options.preserveOriginalWhenUnchanged && unchanged) {
-    return { buffer: inputData, format: inputFormat };
-  }
-  const bytes = await backend.transform(
-    { bytes: inputData, format: inputFormat },
-    unchanged ? [] : [{ type: 'resize', ...targetSize, fit: 'cover' }],
-    options.encode,
-  );
-  return { buffer: Buffer.from(bytes), format: options.encode.format };
-}
-
-/**
- * Resizes an image buffer.
- *
- * This API preserves the original bytes and format when the requested
- * dimensions are unchanged. When dimensions change, it returns JPEG. Callers
- * must inspect the returned `format` instead of assuming an output format.
- */
-export async function resizeAndConvertImgBuffer(
-  inputFormat: string,
-  inputData: Buffer,
-  newSize: Size,
-): Promise<{
-  buffer: Buffer;
-  /** The actual encoded format of `buffer`, such as `png` or `jpeg`. */
-  format: string;
-}> {
-  return resizeImageBuffer(inputFormat, inputData, newSize, {
-    preserveOriginalWhenUnchanged: true,
-    encode: {
-      format: 'jpeg',
-      quality: DEFAULT_JPEG_SCREENSHOT_QUALITY,
-    },
-  });
-}
-
-/** Convert an image buffer to JPEG without changing its dimensions. */
-export async function convertImgBufferToJpeg(
-  inputData: Buffer,
-  quality = 90,
-): Promise<Buffer> {
-  assertValidJpegQuality(quality);
-  try {
-    const backend = await getImageBackend();
-    return Buffer.from(
-      await backend.transform(
-        {
-          bytes: inputData,
-          format: detectScreenshotImageFormatFromBuffer(inputData) ?? 'unknown',
-        },
-        [],
-        { format: 'jpeg', quality },
-      ),
-    );
-  } catch (error) {
-    throw new Error(
-      `Failed to convert image to JPEG: ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error },
-    );
-  }
-}
-
-/** Convert an image buffer to a validated WebP image without resizing it. */
-export async function convertImgBufferToWebp(
-  inputData: Buffer,
-  options: WebpScreenshotEncodeOptions = {},
-): Promise<Buffer> {
-  const { webpQuality, webpEffort } =
-    resolveWebpScreenshotEncodeOptions(options);
-
-  const backend = await getImageBackend();
-  const bytes = await backend.transform(
-    {
-      bytes: inputData,
-      format: detectScreenshotImageFormatFromBuffer(inputData) ?? 'unknown',
-    },
-    [],
-    { format: 'webp', quality: webpQuality, effort: webpEffort },
-  );
-  return Buffer.from(bytes);
-}
-
-export interface ResizeBase64ImageToJpegOptions {
-  /**
-   * Expected input dimensions in positive integer pixels. When provided, they
-   * are checked against the encoded image header before processing.
-   */
-  sourceSize?: Size;
-  /** Exact output dimensions in positive integer pixels. */
-  targetSize: Size;
-  /** JPEG quality used only when encoding is required. Defaults to 90. */
-  jpegQuality?: number;
-}
-
-export interface ResizeBase64ImageToWebpOptions
-  extends WebpScreenshotEncodeOptions {
-  /**
-   * Expected input dimensions in positive integer pixels. When provided, they
-   * are checked against the encoded image header before processing.
-   */
-  sourceSize?: Size;
-  /** Exact output dimensions in positive integer pixels. */
-  targetSize: Size;
-}
-
 export interface ConstrainBase64ImageToMaxSizeOptions {
   /** Maximum allowed width or height in positive integer pixels. */
   maxSize: number;
@@ -218,287 +55,33 @@ export interface ConstrainBase64ImageToMaxSizeOptions {
   jpegQuality?: number;
 }
 
-function assertValidImageSize(size: Size, label: string): void {
-  if (
-    !Number.isInteger(size.width) ||
-    !Number.isInteger(size.height) ||
-    size.width <= 0 ||
-    size.height <= 0
-  ) {
-    throw new Error(
-      `${label} width and height must be positive integers. Received width: ${size.width}, height: ${size.height}`,
-    );
-  }
-}
-
-function validatedEncodedSourceSize(
-  imageBuffer: Buffer,
-  sourceSize?: Size,
-): Size {
-  const encodedSourceSize = encodedImageInfoOfBuffer(imageBuffer);
-  if (!sourceSize) {
-    return encodedSourceSize;
-  }
-
-  assertValidImageSize(sourceSize, 'sourceSize');
-  if (
-    sourceSize.width !== encodedSourceSize.width ||
-    sourceSize.height !== encodedSourceSize.height
-  ) {
-    throw new Error(
-      `sourceSize ${sourceSize.width}x${sourceSize.height} does not match encoded image dimensions ${encodedSourceSize.width}x${encodedSourceSize.height}`,
-    );
-  }
-  return encodedSourceSize;
-}
-
-/**
- * Ensures that a PNG/JPEG/WebP Base64 image is represented as JPEG without resizing.
- * Existing JPEG bytes are reused; PNG/WebP input is encoded with `jpegQuality`.
- * This function does not read image dimensions.
- *
- * @param inputBase64 - A PNG/JPEG/WebP data URL or raw Base64 image body.
- * @param jpegQuality - JPEG quality from 1 to 100 when encoding. Defaults to 90.
- * @returns A JPEG data URL with unchanged dimensions.
- */
-export async function convertBase64ImageToJpeg(
-  inputBase64: string,
-  jpegQuality = 90,
-): Promise<JpegBase64DataUrl> {
-  assertValidJpegQuality(jpegQuality);
-  const { body } = parseBase64(inputBase64);
-  const imageBuffer = Buffer.from(body, 'base64');
-  const detectedMimeType = detectImageMimeTypeFromBuffer(imageBuffer);
-  if (detectedMimeType === 'image/jpeg') {
-    return createImgBase64ByFormat('jpeg', body) as JpegBase64DataUrl;
-  }
-  if (detectedMimeType !== 'image/png' && detectedMimeType !== 'image/webp') {
-    throw new Error(
-      `inputBase64 must contain a PNG, JPEG, or WebP image. Detected: ${detectedMimeType ?? 'unsupported format'}`,
-    );
-  }
-
-  const jpegBuffer = await convertImgBufferToJpeg(imageBuffer, jpegQuality);
-  return createImgBase64ByFormat(
-    'jpeg',
-    jpegBuffer.toString('base64'),
-  ) as JpegBase64DataUrl;
-}
-
-/**
- * Ensures that a PNG/JPEG/WebP Base64 image is represented as WebP without resizing.
- * Existing WebP bytes are reused; PNG/JPEG input is encoded once.
- */
-export async function convertBase64ImageToWebp(
-  inputBase64: string,
-  options: WebpScreenshotEncodeOptions = {},
-): Promise<WebpBase64DataUrl> {
-  const { webpQuality, webpEffort } =
-    resolveWebpScreenshotEncodeOptions(options);
-
-  const { body } = parseBase64(inputBase64);
-  const imageBuffer = Buffer.from(body, 'base64');
-  const inputFormat = detectScreenshotImageFormatFromBuffer(imageBuffer);
-  if (inputFormat === 'webp') {
-    assertWebpBuffer(imageBuffer, 'inputBase64');
-    return createImgBase64ByFormat('webp', body) as WebpBase64DataUrl;
-  }
-  if (!inputFormat) {
-    throw new Error(
-      'inputBase64 must contain a PNG, JPEG, or WebP image. Detected: unsupported format',
-    );
-  }
-
-  const webpBuffer = await convertImgBufferToWebp(imageBuffer, {
-    webpQuality,
-    webpEffort,
-  });
-  return createImgBase64ByFormat(
-    'webp',
-    webpBuffer.toString('base64'),
-  ) as WebpBase64DataUrl;
-}
-
-/**
- * Resizes a PNG/JPEG/WebP Base64 image and ensures that the result is JPEG.
- *
- * An unchanged JPEG is returned without re-encoding. An unchanged PNG is
- * converted to JPEG, while a size change performs resize and JPEG encoding.
- * `jpegQuality` applies only when encoding is required.
- *
- * @param inputBase64 - A PNG/JPEG/WebP data URL or raw Base64 image body.
- * @param options - Source dimensions, target dimensions, and JPEG quality.
- * @returns A JPEG data URL with the requested dimensions.
- */
-export async function resizeBase64ImageToJpeg(
-  inputBase64: string,
-  options: ResizeBase64ImageToJpegOptions,
-): Promise<JpegBase64DataUrl> {
-  const jpegQuality = options.jpegQuality ?? 90;
-  assertValidJpegQuality(jpegQuality);
-  assertValidImageSize(options.targetSize, 'targetSize');
-
-  const { body } = parseBase64(inputBase64);
-  const imageBuffer = Buffer.from(body, 'base64');
-  const sourceSize = validatedEncodedSourceSize(
-    imageBuffer,
-    options.sourceSize,
-  );
-  const dimensionsUnchanged =
-    sourceSize.width === options.targetSize.width &&
-    sourceSize.height === options.targetSize.height;
-  const inputFormat = detectScreenshotImageFormatFromBuffer(imageBuffer);
-  if (!inputFormat) {
-    throw new Error('inputBase64 must contain a PNG, JPEG, or WebP image');
-  }
-  if (dimensionsUnchanged && inputFormat === 'jpeg') {
-    return createImgBase64ByFormat('jpeg', body) as JpegBase64DataUrl;
-  }
-
-  const { buffer } = await resizeImageBuffer(
-    inputFormat,
-    imageBuffer,
-    options.targetSize,
-    {
-      sourceSize,
-      preserveOriginalWhenUnchanged: false,
-      encode: { format: 'jpeg', quality: jpegQuality },
-    },
-  );
-  return createImgBase64ByFormat(
-    'jpeg',
-    buffer.toString('base64'),
-  ) as JpegBase64DataUrl;
-}
-
-/**
- * Resizes a PNG/JPEG/WebP Base64 image and ensures that the result is WebP.
- * An unchanged WebP is returned byte-for-byte. Any required resize and WebP
- * conversion are performed by one encoder operation.
- */
-export async function resizeBase64ImageToWebp(
-  inputBase64: string,
-  options: ResizeBase64ImageToWebpOptions,
-): Promise<WebpBase64DataUrl> {
-  const { webpQuality, webpEffort } =
-    resolveWebpScreenshotEncodeOptions(options);
-  assertValidImageSize(options.targetSize, 'targetSize');
-
-  const { body } = parseBase64(inputBase64);
-  const imageBuffer = Buffer.from(body, 'base64');
-  const sourceSize = validatedEncodedSourceSize(
-    imageBuffer,
-    options.sourceSize,
-  );
-  const inputFormat = detectScreenshotImageFormatFromBuffer(imageBuffer);
-  if (!inputFormat) {
-    throw new Error('inputBase64 must contain a PNG, JPEG, or WebP image');
-  }
-
-  const dimensionsUnchanged =
-    sourceSize.width === options.targetSize.width &&
-    sourceSize.height === options.targetSize.height;
-  if (dimensionsUnchanged && inputFormat === 'webp') {
-    return createImgBase64ByFormat('webp', body) as WebpBase64DataUrl;
-  }
-
-  const { buffer } = await resizeImageBuffer(
-    inputFormat,
-    imageBuffer,
-    options.targetSize,
-    {
-      sourceSize,
-      preserveOriginalWhenUnchanged: false,
-      encode: {
-        format: 'webp',
-        quality: webpQuality,
-        effort: webpEffort,
-      },
-    },
-  );
-  return createImgBase64ByFormat(
-    'webp',
-    buffer.toString('base64'),
-  ) as WebpBase64DataUrl;
-}
-
-/**
- * Constrains a PNG/JPEG Base64 image to a maximum width or height while
- * preserving its aspect ratio.
- *
- * Images already within the bound are returned unchanged, including their
- * original format. Oversized images are parsed once, resized, and encoded as
- * JPEG.
- *
- * @param inputBase64 - A PNG/JPEG data URL or raw Base64 image body.
- * @param options - Maximum dimension and optional JPEG quality.
- * @returns The original image when already bounded, otherwise a JPEG data URL.
- */
+/** Android capture boundary: preserve bounded inputs; resize oversized captures to JPEG. */
 export async function constrainBase64ImageToMaxSize(
   inputBase64: string,
   options: ConstrainBase64ImageToMaxSizeOptions,
 ): Promise<string> {
-  if (!Number.isInteger(options.maxSize) || options.maxSize <= 0) {
-    throw new Error(
-      `maxSize must be a positive integer. Received: ${options.maxSize}`,
-    );
+  if (!Number.isSafeInteger(options.maxSize) || options.maxSize <= 0) {
+    throw new Error('maxSize must be a positive safe integer');
   }
-
-  const jpegQuality = options.jpegQuality ?? 90;
-  assertValidJpegQuality(jpegQuality);
-
-  const { body } = parseBase64(inputBase64);
-  const imageBuffer = Buffer.from(body, 'base64');
-  const sourceSize = encodedImageInfoOfBuffer(imageBuffer);
-  const largestDimension = Math.max(sourceSize.width, sourceSize.height);
+  const quality = options.jpegQuality ?? 90;
+  assertValidJpegQuality(quality);
+  const image = EncodedImage.fromBase64(inputBase64);
+  const { width, height } = image.size;
+  const largestDimension = Math.max(width, height);
   if (largestDimension <= options.maxSize) return inputBase64;
-
   const scale = options.maxSize / largestDimension;
-  const targetSize = {
-    width: Math.max(1, Math.round(sourceSize.width * scale)),
-    height: Math.max(1, Math.round(sourceSize.height * scale)),
-  };
-  const inputFormat = detectScreenshotImageFormatFromBuffer(imageBuffer);
-  if (!inputFormat) {
-    throw new Error('inputBase64 must contain a PNG, JPEG, or WebP image');
-  }
-  const { buffer } = await resizeImageBuffer(
-    inputFormat,
-    imageBuffer,
-    targetSize,
-    {
-      sourceSize,
-      preserveOriginalWhenUnchanged: false,
-      encode: { format: 'jpeg', quality: jpegQuality },
-    },
-  );
-
-  return createImgBase64ByFormat(
-    'jpeg',
-    buffer.toString('base64'),
-  ) as JpegBase64DataUrl;
-}
-
-/**
- * @deprecated Use `resizeBase64ImageToJpeg` when JPEG output is required.
- * This API retains its historical behavior: unchanged dimensions preserve the
- * input format, while resized output is encoded as JPEG.
- */
-export async function resizeImgBase64(
-  inputBase64: string,
-  newSize: {
-    width: number;
-    height: number;
-  },
-): Promise<string> {
-  const { body, mimeType } = parseBase64(inputBase64);
-  const imageBuffer = Buffer.from(body, 'base64');
-  const { buffer, format } = await resizeAndConvertImgBuffer(
-    mimeType.split('/')[1],
-    imageBuffer,
-    newSize,
-  );
-  return createImgBase64ByFormat(format, buffer.toString('base64'));
+  return (
+    await transformImage(image, {
+      operations: [
+        {
+          type: 'resize',
+          width: Math.max(1, Math.round(width * scale)),
+          height: Math.max(1, Math.round(height * scale)),
+        },
+      ],
+      output: { format: 'jpeg', quality },
+    })
+  ).toBase64();
 }
 
 export const httpImg2Base64 = async (url: string): Promise<string> => {

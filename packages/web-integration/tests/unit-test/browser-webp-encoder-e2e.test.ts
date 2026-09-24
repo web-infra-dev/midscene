@@ -1,13 +1,15 @@
 import { Buffer } from 'node:buffer';
 import {
-  type BrowserWebpEncodeInput,
-  encodeRgbaToWebp,
   encodedImageInfoOfBuffer,
   isValidWebPImageBuffer,
 } from '@midscene/shared/img';
 import { afterAll, beforeAll, describe, expect, test } from '@rstest/core';
 import { type Browser, type Page, chromium } from 'playwright';
 import puppeteer from 'puppeteer';
+import {
+  type BrowserWebpEncodeInput,
+  encodeRgbaToWebp,
+} from '../../../shared/src/img/backends/canvas';
 
 type BrowserWebpEncoder = (
   input: BrowserWebpEncodeInput,

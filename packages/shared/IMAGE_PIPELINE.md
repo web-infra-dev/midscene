@@ -56,19 +56,18 @@ crop, annotation and model padding before final encoding.
 - `callAI` is a transport boundary, not an image processor. Inline reference
   images are prepared at the multimodal input boundary. Remote URLs pass through.
 
-## Compatibility and scope
+## Internal tools and scope
 
-Existing public Base64 helpers are retained, including the legacy resize API's
-same-size behavior. These wrappers now use ImageBackend, not duplicate Sharp and
-Photon implementations. Node's legacy resize uses cover; the coordinate pipeline
-uses fill. Explicit conversion/crop/scale APIs still encode, including identity
-operations, whereas pipeline no-ops reuse bytes. Photon-object APIs remain in an
-isolated compatibility module because their public signatures expose ownership.
-Legacy padding without an explicit output format preserves already aligned inputs;
-actual padding defaults to JPEG. Explicit resize kernels are honored by both backends;
-omitted kernels retain the backend defaults (Sharp Lanczos3, Photon CatmullRom).
-Public `zoomForGPT4o` and `processImageElementInfo` exports are not
-deleted merely because there are no in-repository production callers.
+Image tools are internal to Midscene. Consumers use EncodedImage and
+transformImage; unused Base64 resize/conversion/geometry helpers and Photon-object
+compatibility APIs are removed rather than maintained as aliases. Backend details
+are private; Canvas codec tests import the backend directly.
+Resize uses fill in both backends so output geometry matches the operation plan.
+Explicit kernels are honored; omitted kernels retain backend defaults (Sharp
+Lanczos3, Photon CatmullRom).
+The Android maximum-size boundary keeps bounded captures unchanged and composes
+oversized-image resizing with explicit JPEG output through the same pipeline.
+Base64 file/URL adapters and annotation helpers remain where consumers need them.
 
 No device is switched to PNG capture. Native-device rollout, compression-quality
 tuning, model recognition comparisons and cross-device capture latency require

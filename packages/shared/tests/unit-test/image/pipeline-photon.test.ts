@@ -1,8 +1,6 @@
 import { executeImageTransform } from '@/img/backends/photon';
-import { paddingToMatchBlock } from '@/img/backends/photon-compat';
 import { EncodedImage } from '@/img/encoded-image';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
-import type { PhotonImage } from '@silvia-odwyer/photon';
 
 const mocks = rs.hoisted(() => ({
   load: rs.fn(),
@@ -93,19 +91,6 @@ describe('Photon pipeline ownership', () => {
       ),
     ).rejects.toThrow('resize failed');
     expect(mocks.input.free).toHaveBeenCalledTimes(1);
-  });
-
-  it('legacy Photon padding frees only owned intermediates on failure', async () => {
-    const padded = { free: rs.fn() };
-    mocks.padding_right.mockReturnValue(padded);
-    mocks.padding_bottom.mockImplementation(() => {
-      throw new Error('padding failed');
-    });
-    await expect(
-      paddingToMatchBlock(mocks.input as unknown as PhotonImage, 28),
-    ).rejects.toThrow('padding failed');
-    expect(padded.free).toHaveBeenCalledTimes(1);
-    expect(mocks.input.free).not.toHaveBeenCalled();
   });
 
   it('releases intermediate padding on failure and transfers a fresh color to each WASM call', async () => {

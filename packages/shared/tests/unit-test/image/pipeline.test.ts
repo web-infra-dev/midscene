@@ -1,13 +1,11 @@
 import {
   EncodedImage,
-  convertImgBufferToJpeg,
-  cropByRect,
+  constrainBase64ImageToMaxSize,
   planImageTransform,
-  resizeAndConvertImgBuffer,
-  scaleImage,
   transformImage,
 } from '@/img';
-import { describe, expect, it } from '@rstest/core';
+import * as sharpLoader from '@/img/get-sharp';
+import { describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
 
 async function fixture(format: 'png' | 'jpeg' | 'webp') {
@@ -26,6 +24,122 @@ async function fixture(format: 'png' | 'jpeg' | 'webp') {
 }
 
 describe('encoded image pipeline', () => {
+  it('does not load a backend for no-ops and propagates backend failures for required work', async () => {
+    const source = await fixture('jpeg');
+    const load = rs
+      .spyOn(sharpLoader, 'default')
+      .mockRejectedValue(new Error('sharp unavailable'));
+    try {
+      expect(
+        await transformImage(source, {
+          operations: [{ type: 'resize', ...source.size }],
+          output: { format: 'jpeg', quality: 90 },
+        }),
+      ).toBe(source);
+      expect(
+        await constrainBase64ImageToMaxSize(source.toBase64(), { maxSize: 12 }),
+      ).toBe(source.toBase64());
+      expect(load).not.toHaveBeenCalled();
+      await expect(
+        transformImage(source, {
+          operations: [{ type: 'resize', width: 6, height: 4 }],
+        }),
+      ).rejects.toThrow('sharp unavailable');
+      expect(load).toHaveBeenCalledTimes(1);
+    } finally {
+      load.mockRestore();
+    }
+  });
+  it.each(['png', 'jpeg', 'webp'] as const)(
+    'converts and resizes %s through the same pipeline',
+    async (format) => {
+      const source = await fixture(format);
+      for (const output of [
+        { format: 'png' },
+        { format: 'jpeg', quality: 90 },
+        { format: 'webp', quality: 90, effort: 1 },
+      ] as const) {
+        const converted = await transformImage(source, { output });
+        expect(converted.format).toBe(output.format);
+        expect(converted.size).toEqual(source.size);
+        if (format === output.format) expect(converted).toBe(source);
+        const resized = await transformImage(source, {
+          operations: [{ type: 'resize', width: 5, height: 7 }],
+          output,
+        });
+        const metadata = await sharp(resized.bytes).metadata();
+        expect([metadata.width, metadata.height, metadata.format]).toEqual([
+          5,
+          7,
+          output.format,
+        ]);
+      }
+    },
+  );
+
+  it('resizes to the coordinate space without a hidden cover crop', async () => {
+    const pixels = Buffer.from(
+      Array.from({ length: 12 * 8 * 3 }, (_, i) => (i * 37) % 256),
+    );
+    const bytes = await sharp(pixels, {
+      raw: { width: 12, height: 8, channels: 3 },
+    })
+      .png()
+      .toBuffer();
+    const result = await transformImage(EncodedImage.fromBytes(bytes), {
+      operations: [{ type: 'resize', width: 5, height: 7 }],
+      output: { format: 'jpeg', quality: 90 },
+    });
+    expect(Buffer.from(result.bytes)).toEqual(
+      await sharp(bytes)
+        .resize(5, 7, { fit: 'fill' })
+        .jpeg({ quality: 90 })
+        .toBuffer(),
+    );
+  });
+
+  it('preserves transparent PNG pixels on identity operations', async () => {
+    const source = EncodedImage.fromBytes(
+      await sharp({
+        create: {
+          width: 28,
+          height: 28,
+          channels: 4,
+          background: { r: 50, g: 100, b: 200, alpha: 0.3 },
+        },
+      })
+        .png()
+        .toBuffer(),
+    );
+    const result = await transformImage(source, {
+      operations: [{ type: 'pad', right: 0, bottom: 0 }],
+    });
+    expect(result).toBe(source);
+    expect((await sharp(result.bytes).metadata()).hasAlpha).toBe(true);
+  });
+
+  it.each([0, 101, 1.5, Number.NaN])(
+    'rejects invalid JPEG quality %s',
+    async (quality) => {
+      await expect(
+        transformImage(await fixture('jpeg'), {
+          output: { format: 'jpeg', quality },
+        }),
+      ).rejects.toThrow(/jpegQuality/);
+    },
+  );
+
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects invalid resize width %s',
+    async (width) => {
+      await expect(
+        transformImage(await fixture('png'), {
+          operations: [{ type: 'resize', width, height: 5 }],
+        }),
+      ).rejects.toThrow(/dimensions/);
+    },
+  );
+
   it('plans ordered dimensions and removes no-ops without encoding', async () => {
     const source = await fixture('png');
     const plan = planImageTransform(source, [
@@ -44,74 +158,7 @@ describe('encoded image pipeline', () => {
       ]),
     ).toThrow('Crop rectangle must be inside the image');
   });
-  it('retains legacy Node cover resizing while the coordinate pipeline uses fill', async () => {
-    const pixels = Buffer.from(
-      Array.from({ length: 12 * 8 * 3 }, (_, index) => (index * 37) % 256),
-    );
-    const bytes = await sharp(pixels, {
-      raw: { width: 12, height: 8, channels: 3 },
-    })
-      .png()
-      .toBuffer();
-    const legacy = await resizeAndConvertImgBuffer('png', bytes, {
-      width: 5,
-      height: 7,
-    });
-    const expected = await sharp(bytes)
-      .resize(5, 7)
-      .jpeg({ quality: 90 })
-      .toBuffer();
-    expect(legacy.buffer).toEqual(expected);
-    const modern = await transformImage(EncodedImage.fromBytes(bytes), {
-      operations: [{ type: 'resize', width: 5, height: 7 }],
-      output: { format: 'jpeg', quality: 90 },
-    });
-    expect(Buffer.from(modern.bytes)).not.toEqual(expected);
-  });
 
-  it('preserves legacy support for decoder-readable non-screenshot formats', async () => {
-    const gif = await sharp({
-      create: { width: 12, height: 8, channels: 3, background: '#f00' },
-    })
-      .gif()
-      .toBuffer();
-    const unchanged = await resizeAndConvertImgBuffer('gif', gif, {
-      width: 12,
-      height: 8,
-    });
-    expect(unchanged.buffer).toBe(gif);
-    expect(unchanged.format).toBe('gif');
-    const resized = await resizeAndConvertImgBuffer('gif', gif, {
-      width: 6,
-      height: 4,
-    });
-    expect(EncodedImage.fromBytes(resized.buffer).size).toEqual({
-      width: 6,
-      height: 4,
-    });
-    expect(resized.format).toBe('jpeg');
-  });
-
-  it('explicit legacy conversion, crop and scale still encode on identity operations', async () => {
-    const image = await fixture('jpeg');
-    const expected = await sharp(image.bytes).jpeg({ quality: 90 }).toBuffer();
-    expect(await convertImgBufferToJpeg(Buffer.from(image.bytes))).toEqual(
-      expected,
-    );
-    const crop = await cropByRect(image.toBase64(), {
-      left: 0,
-      top: 0,
-      ...image.size,
-    });
-    expect(
-      Buffer.from(EncodedImage.fromBase64(crop.imageBase64).bytes),
-    ).toEqual(expected);
-    const scaled = await scaleImage(image.toBase64(), 1);
-    expect(
-      Buffer.from(EncodedImage.fromBase64(scaled.imageBase64).bytes),
-    ).toEqual(expected);
-    expect(await transformImage(image)).toBe(image);
-  });
   it.each(['png', 'jpeg', 'webp'] as const)(
     'reuses unchanged %s bytes and caches dimensions',
     async (format) => {
@@ -200,5 +247,43 @@ describe('encoded image pipeline', () => {
         ],
       }),
     ).rejects.toThrow(/rectangle/);
+  });
+});
+
+describe('Android capture size boundary', () => {
+  it.each(['png', 'jpeg', 'webp'] as const)(
+    'preserves bounded %s and resizes oversized input to JPEG',
+    async (format) => {
+      const source = (await fixture(format)).toBase64();
+      expect(await constrainBase64ImageToMaxSize(source, { maxSize: 12 })).toBe(
+        source,
+      );
+      const resized = EncodedImage.fromBase64(
+        await constrainBase64ImageToMaxSize(source, {
+          maxSize: 6,
+          jpegQuality: 82,
+        }),
+      );
+      expect(resized.format).toBe('jpeg');
+      expect(resized.size).toEqual({ width: 6, height: 4 });
+    },
+  );
+  it.each([0, -1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid maxSize %s',
+    async (maxSize) => {
+      await expect(
+        constrainBase64ImageToMaxSize((await fixture('png')).toBase64(), {
+          maxSize,
+        }),
+      ).rejects.toThrow(/maxSize/);
+    },
+  );
+  it('validates quality even when no resize is needed', async () => {
+    await expect(
+      constrainBase64ImageToMaxSize((await fixture('png')).toBase64(), {
+        maxSize: 12,
+        jpegQuality: 0,
+      }),
+    ).rejects.toThrow(/jpegQuality/);
   });
 });

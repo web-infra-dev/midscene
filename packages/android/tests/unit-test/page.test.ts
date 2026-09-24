@@ -143,7 +143,6 @@ rs.mock('@midscene/shared/img', () => {
   return {
     ...original,
     createImgBase64ByFormat: rs.fn(),
-    resizeAndConvertImgBuffer: rs.fn(),
     validateScreenshotBuffer,
   };
 });
@@ -982,12 +981,6 @@ Stdout:
         width: 1080,
         height: 1920,
       });
-      rs.spyOn(ImgUtils, 'resizeAndConvertImgBuffer').mockImplementation(
-        async (format, buffer) => ({
-          buffer,
-          format,
-        }),
-      );
     });
 
     it('should take screenshot successfully with takeScreenshot', async () => {
@@ -3430,10 +3423,6 @@ mDisplayId=2
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
-        buffer: mockBuffer,
-        format: 'png' as const,
-      });
       (ImgUtils.createImgBase64ByFormat as any).mockReturnValue(
         'data:image/png;base64,fake-data',
       );
@@ -3471,10 +3460,6 @@ mDisplayId=2
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
-        buffer: mockBuffer,
-        format: 'png' as const,
-      });
       (ImgUtils.createImgBase64ByFormat as any).mockReturnValue(
         'data:image/png;base64,fake-data',
       );
@@ -3512,10 +3497,6 @@ mDisplayId=2
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
-        buffer: mockBuffer,
-        format: 'png' as const,
-      });
       (ImgUtils.createImgBase64ByFormat as any).mockReturnValue(
         'data:image/png;base64,fake-data',
       );
@@ -3662,10 +3643,6 @@ mDisplayId=2
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
-        buffer: mockBuffer,
-        format: 'png' as const,
-      });
       (ImgUtils.createImgBase64ByFormat as any).mockReturnValue(
         'data:image/png;base64,fake-data',
       );

@@ -20,22 +20,10 @@ export {
   type ScreenshotImageMimeType,
 } from './image-format';
 export {
-  resizeAndConvertImgBuffer,
-  convertImgBufferToJpeg,
-  convertImgBufferToWebp,
-  convertBase64ImageToJpeg,
   constrainBase64ImageToMaxSize,
-  convertBase64ImageToWebp,
   DEFAULT_WEBP_SCREENSHOT_EFFORT,
   DEFAULT_WEBP_SCREENSHOT_QUALITY,
-  resizeBase64ImageToJpeg,
-  resizeBase64ImageToWebp,
-  resizeImgBase64,
-  zoomForGPT4o,
   saveBase64Image,
-  paddingToMatchBlockByBase64,
-  cropByRect,
-  scaleImage,
   localImg2Base64,
   httpImg2Base64,
   preProcessImageUrl,
@@ -50,23 +38,15 @@ export {
   type ConstrainBase64ImageToMaxSizeOptions,
   type JpegBase64DataUrl,
   type WebpBase64DataUrl,
-  type ResizeBase64ImageToJpegOptions,
-  type ResizeBase64ImageToWebpOptions,
   type ScreenshotImageOutputFormat,
   type WebpScreenshotEncodeOptions,
 } from './transform';
 export {
   createElementOverlay,
   createPointOverlay,
-  processImageElementInfo,
   compositeElementInfoImg,
-  compositePointMarkerImg,
   annotateRects,
 } from './box-select';
-export {
-  encodeRgbaToWebp,
-  type BrowserWebpEncodeInput,
-} from './browser-webp-encoder';
 export { EncodedImage } from './encoded-image';
 export {
   transformImage,

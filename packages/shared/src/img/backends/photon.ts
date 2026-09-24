@@ -1,12 +1,8 @@
 import { Buffer } from 'node:buffer';
 import type { PhotonImage } from '@silvia-odwyer/photon';
 import getPhoton from '../get-photon';
-import type {
-  BackendImage,
-  BackendOperation,
-  ImageBackend,
-} from '../image-backend';
-import type { ImageOutputOptions } from '../image-pipeline';
+import type { BackendImage, ImageBackend } from '../image-backend';
+import type { ImageOperation, ImageOutputOptions } from '../image-pipeline';
 import {
   type ScreenshotImageEncodeOptions,
   assertWebpBuffer,
@@ -16,7 +12,7 @@ import { encodeRgbaToWebp } from './canvas';
 
 export async function executeImageTransform(
   input: BackendImage,
-  operations: readonly BackendOperation[],
+  operations: readonly ImageOperation[],
   output?: ImageOutputOptions,
 ): Promise<Uint8Array> {
   const photon = await getPhoton();
@@ -112,7 +108,7 @@ export const photonBackend: ImageBackend = {
 };
 
 /** Canvas is a WebP codec dependency of this backend, never an upstream concern. */
-export async function encodePhotonImage(
+async function encodePhotonImage(
   image: PhotonImage,
   options: ScreenshotImageEncodeOptions,
 ): Promise<Buffer> {

@@ -748,60 +748,6 @@ export const compositeElementInfoImg = async (options: {
   ).toBase64();
 };
 
-export const compositePointMarkerImg = async (options: {
-  inputImgBase64: string;
-  point: { x: number; y: number };
-  size?: { width: number; height: number };
-  radius?: number;
-  indexId?: number;
-  outputFormat?: ScreenshotImageOutputFormat;
-}) => {
-  assert(options.inputImgBase64, 'inputImgBase64 is required');
-  const image = EncodedImage.fromBase64(options.inputImgBase64);
-  const size = options.size ?? image.size;
-  return (
-    await transformImage(image, {
-      operations: [
-        { type: 'resize', ...size, kernel: 'nearest' },
-        createPointOverlay({ ...options, ...size }),
-      ],
-      output:
-        options.outputFormat === 'webp'
-          ? screenshotEncodeOptions('webp')
-          : { format: 'jpeg', quality: 90, chromaSubsampling: '4:4:4' },
-    })
-  ).toBase64();
-};
-
-export const processImageElementInfo = async (options: {
-  inputImgBase64: string;
-  elementsPositionInfo: Array<BaseElement>;
-  elementsPositionInfoWithoutText: Array<BaseElement>;
-}) => {
-  // Get the size of the original image
-  const base64Image = options.inputImgBase64.split(';base64,').pop();
-  assert(base64Image, 'base64Image is undefined');
-
-  const [
-    compositeElementInfoImgBase64,
-    compositeElementInfoImgWithoutTextBase64,
-  ] = await Promise.all([
-    compositeElementInfoImg({
-      inputImgBase64: options.inputImgBase64,
-      elementsPositionInfo: options.elementsPositionInfo,
-    }),
-    compositeElementInfoImg({
-      inputImgBase64: options.inputImgBase64,
-      elementsPositionInfo: options.elementsPositionInfoWithoutText,
-    }),
-  ]);
-
-  return {
-    compositeElementInfoImgBase64,
-    compositeElementInfoImgWithoutTextBase64,
-  };
-};
-
 export async function annotateRects(
   imgBase64: string,
   rects: Rect[],

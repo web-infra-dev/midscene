@@ -1,12 +1,8 @@
 import { Buffer } from 'node:buffer';
 import type { Sharp } from 'sharp';
 import getSharp from '../get-sharp';
-import type {
-  BackendImage,
-  BackendOperation,
-  ImageBackend,
-} from '../image-backend';
-import type { ImageOutputOptions } from '../image-pipeline';
+import type { BackendImage, ImageBackend } from '../image-backend';
+import type { ImageOperation, ImageOutputOptions } from '../image-pipeline';
 import {
   type ScreenshotImageEncodeOptions,
   assertWebpBuffer,
@@ -15,7 +11,7 @@ import {
 
 export async function executeImageTransform(
   input: BackendImage,
-  operations: readonly BackendOperation[],
+  operations: readonly ImageOperation[],
   output?: ImageOutputOptions,
 ): Promise<Uint8Array> {
   const sharp = await getSharp();
@@ -28,7 +24,7 @@ export async function executeImageTransform(
         break;
       case 'resize':
         image = image.resize(op.width, op.height, {
-          fit: op.fit ?? 'fill',
+          fit: 'fill',
           kernel: op.kernel ?? 'lanczos3',
         });
         break;
@@ -80,7 +76,7 @@ export const sharpBackend: ImageBackend = {
   transform: executeImageTransform,
 };
 
-export async function encodeSharpImage(
+async function encodeSharpImage(
   image: Sharp,
   options: ScreenshotImageEncodeOptions,
   label: string,
