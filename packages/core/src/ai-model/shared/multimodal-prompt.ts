@@ -4,7 +4,8 @@ import {
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '@/common';
-import { preProcessImageUrl } from '@midscene/shared/img';
+import { prepareImageOutput } from '@/image-output';
+import { EncodedImage, preProcessImageUrl } from '@midscene/shared/img';
 import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 
 export interface PreparedReferenceImage {
@@ -21,13 +22,22 @@ const prepareReferenceImages = async (
   multimodalPrompt?: TMultimodalPrompt,
 ): Promise<PreparedReferenceImage[]> => {
   const referenceImages: PreparedReferenceImage[] = [];
+  const preparedUrls = new Map<string, string>();
   for (const image of multimodalPrompt?.images ?? []) {
-    referenceImages.push({
-      name: image.name,
-      url: await preProcessImageUrl(
+    let preparedUrl = preparedUrls.get(image.url);
+    if (preparedUrl === undefined) {
+      const url = await preProcessImageUrl(
         image.url,
         !!multimodalPrompt?.convertHttpImage2Base64,
-      ),
+      );
+      preparedUrl = /^data:image\/(?:png|jpe?g|webp);base64,/i.test(url)
+        ? (await prepareImageOutput(EncodedImage.fromBase64(url))).toBase64()
+        : url;
+      preparedUrls.set(image.url, preparedUrl);
+    }
+    referenceImages.push({
+      name: image.name,
+      url: preparedUrl,
     });
   }
   return referenceImages;

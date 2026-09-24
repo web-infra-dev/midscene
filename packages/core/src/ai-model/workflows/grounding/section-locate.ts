@@ -44,7 +44,6 @@ export async function AiLocateSection(options: {
   const searchArea = adapter.locate.searchArea;
   assert(searchArea, 'section locate requires a search area operation');
   const { protocol: searchAreaProtocol, resultCodec } = searchArea;
-  const screenshotBase64 = context.screenshot.base64;
 
   const systemPrompt = buildSearchAreaLocateSystemPrompt({
     systemPromptIntroduction: searchAreaProtocol.systemPromptIntroduction,
@@ -61,7 +60,7 @@ export async function AiLocateSection(options: {
     systemPrompt,
     userPrompt: userInstructionPrompt,
     locateImage: {
-      imageBase64: screenshotBase64,
+      image: context.screenshot.image,
       width: context.shotSize.width,
       height: context.shotSize.height,
     },

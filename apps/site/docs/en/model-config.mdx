@@ -16,6 +16,8 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 
 ## Advanced settings (optional)
 
+Screenshots and reference images are prepared before model messages are built. PNG inputs are compressed to WebP; existing JPEG and WebP images are reused when no pixel changes are needed. Context shrinking, cropping, padding, and annotation are composed in a shared image pipeline, with encoding only at the end. The model transport sends the prepared images without transcoding them. Remote image URLs are left unchanged. The original capture is retained for reports, independently of model output encoding.
+
 If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_MODEL_*` settings in this section only take effect for the Insight or Planning intent when you configure the corresponding `MIDSCENE_INSIGHT_MODEL_*` or `MIDSCENE_PLANNING_MODEL_*` setting.
 
 | Name | Description |

@@ -4,6 +4,7 @@ import { createAutoGlmPlanningTapLocator } from '@/ai-model/models/auto-glm/loca
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
 import { AiLocateElement } from '@/ai-model/workflows/grounding';
 import type { LocateOptions } from '@/ai-model/workflows/grounding/types';
+import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
@@ -47,9 +48,10 @@ const autoGlmAdapter = new ResolvedModelAdapter(
 );
 
 const context: UIContext = {
-  screenshot: {
-    base64: 'data:image/png;base64,iVBORw0KGgoAAAAA',
-  } as any,
+  screenshot: ScreenshotItem.create(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
+    0,
+  ) as any,
   shotSize: {
     width: 1000,
     height: 800,
@@ -176,7 +178,8 @@ describe('Auto-GLM custom locate', () => {
           height: 200,
         },
         image: {
-          imageBase64: 'data:image/png;base64,iVBORw0KGgpDUk9Q',
+          imageBase64:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
           width: 300,
           height: 200,
         },
@@ -199,7 +202,7 @@ describe('Auto-GLM custom locate', () => {
             expect.objectContaining({
               type: 'image_url',
               image_url: expect.objectContaining({
-                url: 'data:image/png;base64,iVBORw0KGgpDUk9Q',
+                url: expect.stringMatching(/^data:image\/webp;base64,/),
               }),
             }),
           ]),
@@ -247,7 +250,7 @@ describe('Auto-GLM custom locate', () => {
         images: [
           {
             name: 'target',
-            url: 'data:image/png;base64,REFERENCE==',
+            url: 'https://example.com/reference.png',
           },
         ],
       },
@@ -280,7 +283,7 @@ describe('Auto-GLM custom locate', () => {
             expect.objectContaining({
               type: 'image_url',
               image_url: expect.objectContaining({
-                url: 'data:image/png;base64,REFERENCE==',
+                url: 'https://example.com/reference.png',
               }),
             }),
           ]),

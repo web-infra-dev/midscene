@@ -143,7 +143,6 @@ export async function standardPlan(
   const modelRuntime = opts.modelRuntime;
   const { adapter } = modelRuntime;
   const { shotSize } = context;
-  const screenshotBase64 = context.screenshot.base64;
   assert(
     adapter.planning.kind === 'standard',
     'standardPlan requires a standard planning adapter',
@@ -186,7 +185,7 @@ export async function standardPlan(
   });
 
   const preparedImage = await prepareModelImage({
-    imageBase64: screenshotBase64,
+    image: context.screenshot.image,
     width: shotSize.width,
     height: shotSize.height,
     policy: adapter.imagePreprocess,

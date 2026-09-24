@@ -9,23 +9,18 @@ import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import * as serviceCallerActual from '@/ai-model/service-caller' with {
   rstest: 'importActual',
 };
-import * as imgActual from '@midscene/shared/img' with {
-  rstest: 'importActual',
-};
 
 const { mockCallAIWithObjectResponse } = rs.hoisted(() => ({
   mockCallAIWithObjectResponse: rs.fn(),
 }));
 const {
-  mockCompositeElementInfoImg,
-  mockCompositePointMarkerImg,
-  mockCropByRect,
-  mockResizeBase64ImageToJpeg,
+  mockCreateElementOverlay,
+  mockCreatePointOverlay,
+  mockPrepareImageOutput,
 } = rs.hoisted(() => ({
-  mockCompositeElementInfoImg: rs.fn(),
-  mockCompositePointMarkerImg: rs.fn(),
-  mockCropByRect: rs.fn(),
-  mockResizeBase64ImageToJpeg: rs.fn(),
+  mockCreateElementOverlay: rs.fn(),
+  mockCreatePointOverlay: rs.fn(),
+  mockPrepareImageOutput: rs.fn(),
 }));
 
 rs.mock('@/ai-model/service-caller', () => ({
@@ -34,16 +29,17 @@ rs.mock('@/ai-model/service-caller', () => ({
 }));
 
 rs.mock('@midscene/shared/img', () => ({
-  ...imgActual,
-  compositeElementInfoImg: mockCompositeElementInfoImg,
-  compositePointMarkerImg: mockCompositePointMarkerImg,
-  cropByRect: mockCropByRect,
-  resizeBase64ImageToJpeg: mockResizeBase64ImageToJpeg,
+  createElementOverlay: mockCreateElementOverlay,
+  createPointOverlay: mockCreatePointOverlay,
+}));
+rs.mock('@/image-output', () => ({
+  prepareContextImage: mockPrepareImageOutput,
 }));
 
 function createFakeContext(): UIContext {
   return {
     screenshot: {
+      image: { format: 'png' },
       base64:
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     } as UIContext['screenshot'],
@@ -64,24 +60,22 @@ describe('service.describe', () => {
 
   beforeEach(() => {
     mockCallAIWithObjectResponse.mockReset();
-    mockCompositeElementInfoImg.mockReset();
-    mockCompositeElementInfoImg.mockResolvedValue(
-      'data:image/png;base64,boxed',
-    );
-    mockCompositePointMarkerImg.mockReset();
-    mockCompositePointMarkerImg.mockResolvedValue(
-      'data:image/png;base64,point',
-    );
-    mockCropByRect.mockReset();
-    mockCropByRect.mockImplementation(async (_imageBase64, rect) => ({
-      width: rect.width,
-      height: rect.height,
-      imageBase64: 'data:image/png;base64,cropped',
+    mockCreateElementOverlay.mockReset().mockImplementation((options) => ({
+      type: 'overlay',
+      ...options,
+      marker: 'boxed',
     }));
-    mockResizeBase64ImageToJpeg.mockReset();
-    mockResizeBase64ImageToJpeg.mockResolvedValue(
-      'data:image/jpeg;base64,resized',
-    );
+    mockCreatePointOverlay.mockReset().mockImplementation((options) => ({
+      type: 'overlay',
+      ...options,
+      marker: 'point',
+    }));
+    mockPrepareImageOutput
+      .mockReset()
+      .mockImplementation(async (_source, operations) => ({
+        toBase64: () =>
+          `data:image/png;base64,${operations.find((op: { type: string }) => op.type === 'overlay').marker}`,
+      }));
   });
 
   it('instructs icon-only controls to include owning stable context', () => {
@@ -135,7 +129,7 @@ describe('service.describe', () => {
     );
 
     expect(result).toEqual({ description: 'small target' });
-    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+    expect(mockCreateElementOverlay).toHaveBeenCalledWith(
       expect.objectContaining({
         elementsPositionInfo: [
           {
@@ -145,7 +139,7 @@ describe('service.describe', () => {
         borderThickness: 1,
       }),
     );
-    expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
+    expect(mockCreatePointOverlay).not.toHaveBeenCalled();
   });
 
   it('uses a 2px rectangle marker for larger target rects', async () => {
@@ -159,7 +153,7 @@ describe('service.describe', () => {
       modelRuntime,
     );
 
-    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+    expect(mockCreateElementOverlay).toHaveBeenCalledWith(
       expect.objectContaining({
         elementsPositionInfo: [
           {
@@ -169,7 +163,7 @@ describe('service.describe', () => {
         borderThickness: 2,
       }),
     );
-    expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
+    expect(mockCreatePointOverlay).not.toHaveBeenCalled();
   });
 
   it('uses a rectangle marker for small target rects during deepDescribe retries', async () => {
@@ -184,7 +178,7 @@ describe('service.describe', () => {
       { deepDescribe: true },
     );
 
-    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+    expect(mockCreateElementOverlay).toHaveBeenCalledWith(
       expect.objectContaining({
         elementsPositionInfo: [
           {
@@ -194,7 +188,7 @@ describe('service.describe', () => {
         borderThickness: 1,
       }),
     );
-    expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
+    expect(mockCreatePointOverlay).not.toHaveBeenCalled();
   });
 
   it('uses a rectangle marker for thin wide target regions', async () => {
@@ -209,7 +203,7 @@ describe('service.describe', () => {
       { deepDescribe: true },
     );
 
-    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+    expect(mockCreateElementOverlay).toHaveBeenCalledWith(
       expect.objectContaining({
         elementsPositionInfo: [
           {
@@ -219,7 +213,7 @@ describe('service.describe', () => {
         borderThickness: 2,
       }),
     );
-    expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
+    expect(mockCreatePointOverlay).not.toHaveBeenCalled();
   });
 
   it('sends overview and focused crop for deepDescribe retries', async () => {
@@ -238,14 +232,15 @@ describe('service.describe', () => {
       description: 'wide target with focused context',
     });
     expect(mockCallAIWithObjectResponse).toHaveBeenCalledTimes(1);
-    expect(mockCropByRect).toHaveBeenCalledTimes(1);
-    expect(mockCropByRect.mock.calls.map(([image]) => image)).not.toContain(
-      'data:image/png;base64,boxed',
+    expect(mockPrepareImageOutput).toHaveBeenCalledTimes(2);
+    expect(mockPrepareImageOutput.mock.calls[1][0]).toBe(
+      mockPrepareImageOutput.mock.calls[0][0],
     );
-    expect(mockCropByRect).not.toHaveBeenCalledWith(
-      expect.stringMatching(/^data:image\/.+;base64,/),
-      { left: 10, top: 20, width: 120, height: 30 },
-    );
+    expect(
+      mockPrepareImageOutput.mock.calls[1][1].map(
+        (op: { type: string }) => op.type,
+      ),
+    ).toEqual(['crop', 'overlay', 'resize']);
 
     const msgs = mockCallAIWithObjectResponse.mock.calls[0][0];
     const content = msgs[1].content as Array<{
@@ -276,19 +271,22 @@ describe('service.describe', () => {
       { deepDescribe: true },
     );
 
-    expect(mockCropByRect).toHaveBeenCalledWith(expect.any(String), {
-      left: 1313,
-      top: 325,
-      width: 431,
-      height: 371,
+    expect(mockPrepareImageOutput.mock.calls[1][1][0]).toEqual({
+      type: 'crop',
+      rect: {
+        left: 1313,
+        top: 325,
+        width: 431,
+        height: 371,
+      },
     });
-    expect(mockCropByRect.mock.calls.map(([image]) => image)).not.toContain(
-      'data:image/png;base64,boxed',
+    expect(mockPrepareImageOutput.mock.calls[1][0]).toBe(
+      mockPrepareImageOutput.mock.calls[0][0],
     );
-    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+    expect(mockCreateElementOverlay).toHaveBeenCalledWith(
       expect.objectContaining({
-        inputImgBase64: 'data:image/png;base64,cropped',
-        size: { width: 431, height: 371 },
+        width: 431,
+        height: 371,
         elementsPositionInfo: [
           {
             rect: { left: 187, top: 175, width: 56, height: 20 },
@@ -306,13 +304,17 @@ describe('service.describe', () => {
     const service = new Service(createFakeContext());
     await service.describe([100, 100], modelRuntime);
 
-    expect(mockCropByRect).not.toHaveBeenCalled();
-    expect(mockCompositePointMarkerImg).toHaveBeenCalledWith(
+    expect(
+      mockPrepareImageOutput.mock.calls[0][1].map(
+        (op: { type: string }) => op.type,
+      ),
+    ).toEqual(['overlay']);
+    expect(mockCreatePointOverlay).toHaveBeenCalledWith(
       expect.objectContaining({
         point: { x: 100, y: 100 },
       }),
     );
-    expect(mockCompositeElementInfoImg).not.toHaveBeenCalled();
+    expect(mockCreateElementOverlay).not.toHaveBeenCalled();
   });
 
   it('uses focused crop-local markers for bare point targets during deepDescribe retries', async () => {
@@ -329,28 +331,31 @@ describe('service.describe', () => {
       description: 'point target with row context',
     });
 
-    expect(mockCropByRect).toHaveBeenCalledWith(expect.any(String), {
-      left: 1300,
-      top: 300,
-      width: 400,
-      height: 400,
+    expect(mockPrepareImageOutput.mock.calls[1][1][0]).toEqual({
+      type: 'crop',
+      rect: {
+        left: 1300,
+        top: 300,
+        width: 400,
+        height: 400,
+      },
     });
-    expect(mockCropByRect.mock.calls.map(([image]) => image)).not.toContain(
-      'data:image/png;base64,point',
+    expect(mockPrepareImageOutput.mock.calls[1][0]).toBe(
+      mockPrepareImageOutput.mock.calls[0][0],
     );
-    expect(mockCompositePointMarkerImg).toHaveBeenCalledWith(
+    expect(mockCreatePointOverlay).toHaveBeenCalledWith(
       expect.objectContaining({
         point: { x: 1500, y: 500 },
       }),
     );
-    expect(mockCompositePointMarkerImg).toHaveBeenCalledWith(
+    expect(mockCreatePointOverlay).toHaveBeenCalledWith(
       expect.objectContaining({
-        inputImgBase64: 'data:image/png;base64,cropped',
-        size: { width: 400, height: 400 },
+        width: 400,
+        height: 400,
         point: { x: 200, y: 200 },
       }),
     );
-    expect(mockCompositeElementInfoImg).not.toHaveBeenCalled();
+    expect(mockCreateElementOverlay).not.toHaveBeenCalled();
     expect(mockCallAIWithObjectResponse).toHaveBeenCalledTimes(1);
   });
 
@@ -377,10 +382,9 @@ describe('service.describe', () => {
         deepDescribe: true,
       });
 
-      const cropRect = mockCropByRect.mock.calls[0][1];
-      expect(mockCompositePointMarkerImg).toHaveBeenCalledWith(
+      const cropRect = mockPrepareImageOutput.mock.calls[1][1][0].rect;
+      expect(mockCreatePointOverlay).toHaveBeenCalledWith(
         expect.objectContaining({
-          inputImgBase64: 'data:image/png;base64,cropped',
           point: {
             x: point[0] - cropRect.left,
             y: point[1] - cropRect.top,
