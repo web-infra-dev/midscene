@@ -109,7 +109,7 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
     description:
       'List open browser pages/tabs in groups of 8 and show which one is active. Use offset to see the next group before switching pages.',
     paramSchema: listBrowserPagesParamSchema,
-    planningFeedbackMaxLength: false,
+    planningFeedbackMaxLength: 'unlimited',
     call: async (param, context) => {
       const summaries = await options.getPageManager().pageSummaries();
       const offset = param?.offset ?? 0;
@@ -135,7 +135,7 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
     description:
       'Get the complete title and URL for one browser page/tab without switching the active page. Use this when ListBrowserPages truncates details needed to identify a page.',
     paramSchema: getBrowserPageInfoParamSchema,
-    planningFeedbackMaxLength: false,
+    planningFeedbackMaxLength: 'unlimited',
     sample: {
       index: 1,
     },

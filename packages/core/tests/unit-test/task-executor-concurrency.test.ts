@@ -687,7 +687,7 @@ Stdout:
             type: 'Action Space',
             subType: 'StructuredFeedback',
             param: {},
-            planningFeedbackMaxLength: false,
+            planningFeedbackMaxLength: 'unlimited',
             executor: async (context: ExecutorContext) => {
               context.task.planningFeedback = structuredFeedback;
               return {

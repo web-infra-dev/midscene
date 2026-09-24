@@ -2010,7 +2010,9 @@ const agent = new PuppeteerBrowserAgent(browser, page, {
 - `newPage()` — Create a new page and make it active.
 - `setActivePage(page: Page)` — Explicitly set which Puppeteer page the Browser Agent controls next.
 - `waitForNewPage(action?, options?)` — Wait for a newly opened page without implicitly switching the active page.
-- AI page selection actions — Browser Agent exposes `ListBrowserPages`, `GetBrowserPageInfo`, and `SetActivePage` in its action space. `ListBrowserPages` shows eight tabs at a time, starting at offset 0 by default; pass `{ offset: 8 }` to see the next eight. Long titles and URLs are truncated independently in list feedback so similar pages remain distinguishable. Use `GetBrowserPageInfo({ index })` to read the complete title and URL without switching the active page; its feedback is passed to the next planning round without truncation. An out-of-range index or offset fails so the Agent can list the pages again. AI plans can switch the active page by index, title, or URL. If an index is combined with a title or URL, every selector must match the same page. Page Agent does not expose these actions.
+- `ListBrowserPages({ offset? })` — Lists eight tabs at a time, starting at offset 0. Pass `{ offset: 8 }` for the next group. List feedback shortens long titles and URLs separately; an out-of-range offset throws.
+- `GetBrowserPageInfo({ index })` — Returns a tab's complete title and URL without switching pages. Its planning feedback is untruncated; an invalid index throws.
+- `SetActivePage({ index?, title?, url? })` — Switches by index, title substring, or URL substring. Combined selectors must match the same tab. Only Browser Agent exposes these actions.
 
 <a id="web-quick-start"></a>
 <a id="web-connect-to-a-remote-puppeteer-browser"></a>
@@ -2080,7 +2082,9 @@ const agent = new PlaywrightBrowserAgent(context, page, {
 - `newPage()` — Create a new page and make it active.
 - `setActivePage(page: Page)` — Explicitly set which Playwright page the Browser Agent controls next.
 - `waitForNewPage(action?, options?)` — Wait for a newly opened page without implicitly switching the active page.
-- AI page selection actions — Browser Agent exposes `ListBrowserPages`, `GetBrowserPageInfo`, and `SetActivePage` in its action space. `ListBrowserPages` shows eight tabs at a time, starting at offset 0 by default; pass `{ offset: 8 }` to see the next eight. Long titles and URLs are truncated independently in list feedback so similar pages remain distinguishable. Use `GetBrowserPageInfo({ index })` to read the complete title and URL without switching the active page; its feedback is passed to the next planning round without truncation. An out-of-range index or offset fails so the Agent can list the pages again. AI plans can switch the active page by index, title, or URL. If an index is combined with a title or URL, every selector must match the same page. Page Agent does not expose these actions.
+- `ListBrowserPages({ offset? })` — Lists eight tabs at a time, starting at offset 0. Pass `{ offset: 8 }` for the next group. List feedback shortens long titles and URLs separately; an out-of-range offset throws.
+- `GetBrowserPageInfo({ index })` — Returns a tab's complete title and URL without switching pages. Its planning feedback is untruncated; an invalid index throws.
+- `SetActivePage({ index?, title?, url? })` — Switches by index, title substring, or URL substring. Combined selectors must match the same tab. Only Browser Agent exposes these actions.
 
 <a id="web-playwright-quick-start"></a>
 <a id="web-extend-playwright-tests-with-midscene-fixtures"></a>

@@ -91,9 +91,9 @@ const maxPlanningFeedbackLength = 500;
 
 function truncatePlanningFeedback(
   feedback: string,
-  requestedLimit?: number | false,
+  requestedLimit?: number | 'unlimited',
 ): string {
-  if (requestedLimit === false) {
+  if (requestedLimit === 'unlimited') {
     return feedback;
   }
   const limit =
