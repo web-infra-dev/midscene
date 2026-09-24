@@ -22,7 +22,7 @@ const tabKeys = {
 };
 
 export default function OpenInPlayground(props?: { context?: UIContext }) {
-  const [context, setContext] = useState<UIContext | undefined>();
+  const [context, setContext] = useState<UIContext | undefined>(props?.context);
   const [contextLoadingCounter, setContextLoadingCounter] = useState(0);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   // const { syncFromStorage } = useEnvConfig();
@@ -73,6 +73,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         getAgent={() => {
           return staticAgentFromContext(context as UIContext);
         }}
+        initialUIContext={context}
         dryMode={true}
         hideLogo={true}
         key={contextLoadingCounter}
