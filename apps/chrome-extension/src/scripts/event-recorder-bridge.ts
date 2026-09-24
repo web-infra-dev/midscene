@@ -67,6 +67,9 @@ window.recorder = null;
 let events: ChromeRecordedEvent[] = [];
 let debounceTimer: NodeJS.Timeout | null = null;
 let pendingEvents: ChromeRecordedEvent[] | null = null;
+let lastSentEventIndex = -1;
+let lastSentEvent: ChromeRecordedEvent | null = null;
+let eventSendQueue = Promise.resolve();
 let isPageUnloading = false;
 const eventSendStats = { sent: 0, failed: 0, pending: 0 };
 
@@ -207,6 +210,8 @@ async function sendEventsToExtension(
   optimizedEvent: ChromeRecordedEvent[],
   immediate = false,
 ): Promise<void> {
+  if (optimizedEvent.length === 0) return;
+
   // Store the latest events
   pendingEvents = optimizedEvent;
   eventSendStats.pending = optimizedEvent.length;
@@ -317,23 +322,38 @@ async function sendEventsToExtension(
       isPageUnloading,
     });
 
-    // Send only the latest event incrementally instead of the full array
-    await sendSingleEvent(
-      latestEvent,
-      pendingEvents.length - 1,
-      pendingEvents.length,
-    );
+    // The debounce may span several recorded events. Forward each one in order.
+    for (
+      let index =
+        optimizedEvent[optimizedEvent.length - 1] === lastSentEvent
+          ? lastSentEventIndex + 1
+          : Math.min(lastSentEventIndex + 1, optimizedEvent.length - 1);
+      index < optimizedEvent.length;
+      index++
+    ) {
+      lastSentEventIndex = index;
+      lastSentEvent = optimizedEvent[index];
+      await sendSingleEvent(
+        optimizedEvent[index],
+        index,
+        optimizedEvent.length,
+      );
+    }
 
-    // Clear the pending events after sending
-    pendingEvents = null;
-    eventSendStats.pending = 0;
+    if (pendingEvents === optimizedEvent) {
+      pendingEvents = null;
+      eventSendStats.pending = 0;
+    }
   };
 
   // Set new timer - bypass debounce if page is unloading
   if (immediate || isPageUnloading) {
-    await doSend();
+    eventSendQueue = eventSendQueue.then(doSend, doSend);
+    await eventSendQueue;
   } else {
-    debounceTimer = setTimeout(doSend, 200);
+    debounceTimer = setTimeout(() => {
+      eventSendQueue = eventSendQueue.then(doSend, doSend);
+    }, 200);
   }
 }
 
@@ -417,6 +437,8 @@ chrome.runtime.onMessage.addListener(
       if (window.recorder) {
         window.recorder.start();
         events = []; // Clear previous events
+        lastSentEventIndex = -1;
+        lastSentEvent = null;
         lastActivityTime = Date.now(); // Reset activity time
 
         // Initialize lastScreenshot with the initial screenshot
@@ -468,10 +490,10 @@ chrome.runtime.onMessage.addListener(
           finalEventsCount,
           'events',
         );
-        sendResponse({
-          success: true,
-          eventsCount: finalEventsCount,
-        });
+        void sendEventsToExtension(events, true).then(
+          () => sendResponse({ success: true, eventsCount: finalEventsCount }),
+          (error) => sendResponse({ success: false, error: String(error) }),
+        );
       } else {
         console.log(
           '[EventRecorder Bridge] Stop requested but recorder not active with session ID:',
@@ -495,6 +517,8 @@ chrome.runtime.onMessage.addListener(
     } else if (message.action === 'clearEvents') {
       const clearedCount = events.length;
       events = [];
+      lastSentEventIndex = -1;
+      lastSentEvent = null;
       console.log('[EventRecorder Bridge] Cleared', clearedCount, 'events');
       sendResponse({
         success: true,
