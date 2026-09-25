@@ -20,7 +20,7 @@ export const Blackboard = (props: {
     props.highlightElements || [];
   const highlightRect = props.highlightRect;
 
-  const shotSize = props.uiContext?.shotSize;
+  const shotSize = props.uiContext?.screenshot?.size;
 
   if (!shotSize) {
     return (

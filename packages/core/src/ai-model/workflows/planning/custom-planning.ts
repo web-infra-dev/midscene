@@ -1,3 +1,4 @@
+import { prepareContextImage } from '@/image-output';
 import type { PlanningAIResponse, PlanningAction } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { ScreenshotItem } from '../../../screenshot-item';
@@ -100,7 +101,7 @@ export async function runCustomPlanning<TParsed>(
 ): Promise<PlanningAIResponse> {
   const { context } = options;
   const preparedImage = await prepareModelImage({
-    ...(imageInput ?? { image: context.screenshot.image, ...context.shotSize }),
+    ...(imageInput ?? { image: await prepareContextImage(context) }),
     policy: options.modelRuntime.adapter.imagePreprocess,
   });
   const preparedOptions: PlanOptions = {
@@ -111,7 +112,6 @@ export async function runCustomPlanning<TParsed>(
         preparedImage.image,
         context.screenshot.capturedAt,
       ),
-      shotSize: preparedImage.preparedSize,
     },
   };
   const input: CustomPlanningInput = {

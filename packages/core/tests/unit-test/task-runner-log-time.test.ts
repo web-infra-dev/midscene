@@ -11,7 +11,6 @@ const fakeUIContextBuilder = async () => {
   return {
     screenshot,
     tree: { node: null, children: [] },
-    shotSize: { width: 0, height: 0 },
     shrunkShotToLogicalRatio: 1,
   } as unknown as UIContext;
 };

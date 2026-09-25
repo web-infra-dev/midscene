@@ -1,3 +1,4 @@
+import { prepareContextImage } from '@/image-output';
 import type { AIUsageInfo, Rect, UIContext } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -60,9 +61,7 @@ export async function AiLocateSection(options: {
     systemPrompt,
     userPrompt: userInstructionPrompt,
     locateImage: {
-      image: context.screenshot.image,
-      width: context.shotSize.width,
-      height: context.shotSize.height,
+      image: await prepareContextImage(context),
     },
     imagePreprocess: adapter.imagePreprocess,
     targetDescription: sectionDescription,
@@ -191,7 +190,7 @@ export async function AiLocateSection(options: {
   }
 
   try {
-    const expandedRect = expandSearchArea(mergedRect, context.shotSize);
+    const expandedRect = expandSearchArea(mergedRect, context.screenshot.size);
     const originalWidth = expandedRect.width;
     const originalHeight = expandedRect.height;
     debugSection('expanded sectionRect %j', expandedRect);
@@ -205,8 +204,8 @@ export async function AiLocateSection(options: {
       'scaled section image from %dx%d to %dx%d (scale=%d)',
       originalWidth,
       originalHeight,
-      searchAreaConfig.image.width,
-      searchAreaConfig.image.height,
+      searchAreaConfig.image.image.size.width,
+      searchAreaConfig.image.image.size.height,
       searchAreaConfig.mapping.scale,
     );
     return {

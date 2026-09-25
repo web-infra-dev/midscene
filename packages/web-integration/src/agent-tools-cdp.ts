@@ -24,7 +24,6 @@ import {
   saveTargetId,
 } from './cdp-target-store';
 import { createPlaceholderScreenshot } from './common/screenshot';
-import { defaultStaticPageViewportSize } from './common/viewport';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
@@ -80,7 +79,6 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<
   protected createTemporaryDevice() {
     return new StaticPage({
       screenshot: createPlaceholderScreenshot(),
-      shotSize: defaultStaticPageViewportSize,
       shrunkShotToLogicalRatio: 1,
     });
   }

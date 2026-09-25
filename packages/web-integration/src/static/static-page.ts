@@ -145,9 +145,7 @@ export default class StaticPage implements AbstractInterface {
   }
 
   async size() {
-    return {
-      ...this.uiContext.shotSize,
-    };
+    return screenshotItemFromContext(this.uiContext.screenshot).size;
   }
 
   async screenshotBase64() {

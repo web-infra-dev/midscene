@@ -42,7 +42,6 @@ describe('ReportActionDump WebP file serialization', () => {
               param: { prompt: 'target' },
               uiContext: {
                 screenshot,
-                shotSize: { width: 2, height: 3 },
                 shrunkShotToLogicalRatio: 1,
               },
               executor: async () => undefined,

@@ -16,7 +16,7 @@ import { ScreenshotItem } from '../../src/screenshot-item';
 import { ExecutionDump, ReportActionDump } from '../../src/types';
 
 describe('ScreenshotStore', () => {
-  const pngBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';
+  const pngBase64 = testPng(5, 5);
   let tmpRoot: string;
 
   beforeEach(() => {
@@ -63,7 +63,6 @@ describe('ScreenshotStore', () => {
           param: {},
           uiContext: {
             screenshot,
-            shotSize: { width: 5, height: 5 },
             shrunkShotToLogicalRatio: 1,
           },
           executor: async () => undefined,
@@ -292,3 +291,4 @@ describe('ScreenshotStore', () => {
     ).toThrow('invalid screenshot reference');
   });
 });
+import { testPng } from './test-helpers/image';

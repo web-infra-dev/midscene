@@ -1,9 +1,4 @@
-import { prepareImageOutput } from '@/image-output';
-import {
-  EncodedImage,
-  type ImageOperation,
-  planImageTransform,
-} from '@midscene/shared/img';
+import { type EncodedImage, transformImage } from '@midscene/shared/img';
 
 export interface ImagePreprocessPolicy {
   padBlockSize?: number;
@@ -12,92 +7,50 @@ export interface ImagePreprocessPolicy {
 export interface PreparedModelImage {
   image: EncodedImage;
   imageBase64: string;
-  /**
-   * Size of the image sent to the model after preprocessing. This can be larger
-   * than the original screenshot when padding is applied to satisfy model block
-   * size requirements.
-   */
-  preparedSize: {
-    width: number;
-    height: number;
-  };
-  /**
-   * Size of the real screenshot content inside the prepared image. Pixel bboxes
-   * are parsed against `preparedSize`, then clipped to `contentSize` so padding
-   * added for the model is not treated as valid UI content.
-   */
-  contentSize: {
-    width: number;
-    height: number;
-  };
+  /** Encoded model-input dimensions, including model-specific padding. */
+  preparedSize: { width: number; height: number };
+  /** Original content bounds, used to clip model coordinates away from padding. */
+  contentSize: { width: number; height: number };
 }
 
-export type ModelImageInput = {
-  /** Expected content dimensions, validated against the plan before encoding. */
-  width: number;
-  height: number;
-  operations?: readonly ImageOperation[];
-} & (
-  | { image: EncodedImage; imageBase64?: never }
-  | { imageBase64: string; image?: never }
-);
+export interface ModelImageInput {
+  image: EncodedImage;
+}
 
-export async function prepareModelImage(
-  options: ModelImageInput & { policy: ImagePreprocessPolicy },
-): Promise<PreparedModelImage> {
-  const { width, height, policy } = options;
+/** Model-only extension point. The input image is already in its content coordinate space. */
+export async function prepareModelImage({
+  image: source,
+  policy,
+}: ModelImageInput & {
+  policy: ImagePreprocessPolicy;
+}): Promise<PreparedModelImage> {
+  const blockSize = policy.padBlockSize;
   if (
-    ![width, height].every((value) => Number.isSafeInteger(value) && value > 0)
-  ) {
-    throw new Error('Model image dimensions must be positive safe integers');
-  }
-  const padBlockSize = policy.padBlockSize;
-  if (
-    padBlockSize !== undefined &&
-    (!Number.isSafeInteger(padBlockSize) || padBlockSize <= 0)
+    blockSize !== undefined &&
+    (!Number.isSafeInteger(blockSize) || blockSize <= 0)
   ) {
     throw new Error('padBlockSize must be a positive safe integer');
   }
-  const source = options.image ?? EncodedImage.fromBase64(options.imageBase64);
-  const { operations, size: contentSize } = planImageTransform(
-    source,
-    options.operations ?? [{ type: 'resize', width, height }],
-  );
-  if (contentSize.width !== width || contentSize.height !== height) {
-    throw new Error(
-      'Model image operations do not produce the declared content dimensions',
-    );
-  }
-  let modelWidth = contentSize.width;
-  let modelHeight = contentSize.height;
-  const requiresPadding =
-    padBlockSize !== undefined &&
-    (width % padBlockSize !== 0 || height % padBlockSize !== 0);
-  if (requiresPadding) {
-    modelWidth = Math.ceil(width / padBlockSize!) * padBlockSize!;
-    modelHeight = Math.ceil(height / padBlockSize!) * padBlockSize!;
-    operations.push({
-      type: 'pad',
-      right: modelWidth - width,
-      bottom: modelHeight - height,
-    });
-  }
-  const image = await prepareImageOutput(source, operations);
-  if (image.size.width !== modelWidth || image.size.height !== modelHeight) {
-    throw new Error(
-      'Model image operations do not produce the declared prepared dimensions',
-    );
-  }
-
+  const contentSize = source.size;
+  const { width, height } = contentSize;
+  const image =
+    blockSize === undefined
+      ? source
+      : await transformImage(source, {
+          operations: [
+            {
+              type: 'pad',
+              right: Math.ceil(width / blockSize) * blockSize - width,
+              bottom: Math.ceil(height / blockSize) * blockSize - height,
+            },
+          ],
+        });
   return {
     image,
     get imageBase64() {
       return image.toBase64();
     },
-    preparedSize: {
-      width: modelWidth,
-      height: modelHeight,
-    },
+    preparedSize: image.size,
     contentSize,
   };
 }

@@ -445,7 +445,7 @@ export default class Service {
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
     const context = opt?.context || (await this.contextRetrieverFn());
-    const { shotSize } = context;
+    const shotSize = context.screenshot.size;
     assert(context.screenshot, 'screenshot is required for service.describe');
     const systemPrompt = elementDescriberInstruction();
 

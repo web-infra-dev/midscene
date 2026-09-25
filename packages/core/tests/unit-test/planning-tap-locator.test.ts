@@ -4,7 +4,9 @@ import type { PixelLocateResult } from '@/ai-model/shared/model-locate-result';
 import { resolvePlanningTapLocator } from '@/ai-model/workflows/grounding/planning-action-locate';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import { ScreenshotItem } from '@/screenshot-item';
+import { EncodedImage } from '@midscene/shared/img';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import { testPng } from './test-helpers/image';
 
 rs.mock('@/ai-model/workflows/planning/custom-planning', () => ({
   runCustomPlanning: rs.fn(),
@@ -37,10 +39,6 @@ function createLocateRequest() {
         'data:image/png;base64,iVBORw0KGgoAAAAA',
         123,
       ),
-      shotSize: {
-        width: 1000,
-        height: 800,
-      },
       shrunkShotToLogicalRatio: 1,
     },
     actionSpace: [],
@@ -61,9 +59,7 @@ function createLocateRequest() {
   return {
     targetElementDescription: 'submit button',
     locateImage: {
-      imageBase64: 'data:image/png;base64,iVBORw0KGgpDUk9Q',
-      width: 320,
-      height: 240,
+      image: EncodedImage.fromBase64(testPng(320, 240)),
     },
     options,
   } as any;
@@ -102,11 +98,12 @@ describe('resolvePlanningTapLocator', () => {
 
     const [, planOptions, locatorPlanner] =
       rs.mocked(runCustomPlanning).mock.calls[0];
-    expect(planOptions.context.screenshot.base64).toBe(
-      'data:image/png;base64,iVBORw0KGgpDUk9Q',
-    );
+    expect(planOptions.context.screenshot.base64).toBe(testPng(320, 240));
     expect(planOptions.context.screenshot.capturedAt).toBe(123);
-    expect(planOptions.context.shotSize).toEqual({ width: 320, height: 240 });
+    expect(planOptions.context.screenshot.size).toEqual({
+      width: 320,
+      height: 240,
+    });
     expect(planOptions.includeLocateInPlanning).toBe(true);
     expect(planOptions.actionSpace.map((action: any) => action.name)).toEqual([
       'Tap',

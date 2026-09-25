@@ -145,7 +145,11 @@ const createScreenshotBoundLocatorContext = async (
     ? await createScreenshotBoundUIContext(opt.screenshotBase64, opt)
     : undefined;
   const targetCenter = screenshotContext
-    ? mapPointToScreenshotSpace(center, screenshotContext.shotSize, opt || {})
+    ? mapPointToScreenshotSpace(
+        center,
+        screenshotContext.screenshot.size,
+        opt || {},
+      )
     : center;
   return {
     screenshotContext,

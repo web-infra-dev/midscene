@@ -1,3 +1,4 @@
+import { prepareContextImage } from '@/image-output';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -142,7 +143,6 @@ export async function standardPlan(
   const { context, conversationHistory } = opts;
   const modelRuntime = opts.modelRuntime;
   const { adapter } = modelRuntime;
-  const { shotSize } = context;
   assert(
     adapter.planning.kind === 'standard',
     'standardPlan requires a standard planning adapter',
@@ -185,9 +185,7 @@ export async function standardPlan(
   });
 
   const preparedImage = await prepareModelImage({
-    image: context.screenshot.image,
-    width: shotSize.width,
-    height: shotSize.height,
+    image: await prepareContextImage(context),
     policy: adapter.imagePreprocess,
   });
   const imagePayload = preparedImage.imageBase64;

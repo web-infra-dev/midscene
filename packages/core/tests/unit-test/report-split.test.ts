@@ -16,10 +16,10 @@ import type {
 import { splitReportHtmlByExecution } from '../../src/report';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import { ExecutionDump, ReportActionDump } from '../../src/types';
+import { testPng } from './test-helpers/image';
 
 function fakeBase64(sizeBytes: number): string {
-  const signature = 'iVBORw0KGgoAAAAA';
-  return `data:image/png;base64,${signature}${'A'.repeat(Math.max(0, sizeBytes - signature.length))}`;
+  return testPng(100, 100, 'A'.repeat(sizeBytes));
 }
 
 function createExecution(
@@ -46,7 +46,6 @@ function createExecution(
         param: { prompt: 'find something' },
         uiContext: {
           screenshot: uiContextScreenshot,
-          shotSize: { width: 1920, height: 1080 },
           shrunkShotToLogicalRatio: 1,
         },
         executor: async () => undefined,
@@ -396,6 +395,7 @@ describe('splitReportHtmlByExecution', () => {
 
     const screenshotRef: ScreenshotRef = {
       type: 'midscene_screenshot_ref',
+      size: { width: 1, height: 1 },
       id: 'absolute-shot',
       capturedAt: Date.now(),
       mimeType: 'image/png',
@@ -439,6 +439,7 @@ describe('splitReportHtmlByExecution', () => {
 
     const screenshotRef: ScreenshotRef = {
       type: 'midscene_screenshot_ref',
+      size: { width: 1, height: 1 },
       id: 'fallback-shot',
       capturedAt: Date.now(),
       mimeType: 'image/png',

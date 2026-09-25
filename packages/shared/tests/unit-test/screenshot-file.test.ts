@@ -56,6 +56,7 @@ describe('CLI WebP screenshot files', () => {
       extension: 'webp',
       toSerializable: () => ({
         type: 'midscene_screenshot_ref' as const,
+        size: { width: 1, height: 1 },
         id: 'inline-webp',
         capturedAt: 1,
         mimeType: 'image/webp',

@@ -185,11 +185,11 @@ describe('Page.size() with scrollbars', () => {
         const physicalWidth = viewportWidth * deviceScaleFactor;
         const physicalHeight = viewportHeight * deviceScaleFactor;
         expect(
-          context.shotSize.width,
+          context.screenshot.size.width,
           `shotSize.width should be ${physicalWidth} (viewport ${viewportWidth} * DPR ${deviceScaleFactor})`,
         ).toBe(physicalWidth);
         expect(
-          context.shotSize.height,
+          context.screenshot.size.height,
           `shotSize.height should be ${physicalHeight} (viewport ${viewportHeight} * DPR ${deviceScaleFactor})`,
         ).toBe(physicalHeight);
 

@@ -25,10 +25,10 @@ import {
   ReportActionDump,
   type TestStatus,
 } from '../../src/types';
+import { testPng } from './test-helpers/image';
 
 function fakeBase64(sizeBytes: number): string {
-  const signature = 'iVBORw0KGgoAAAAA';
-  return `data:image/png;base64,${signature}${'A'.repeat(Math.max(0, sizeBytes - signature.length))}`;
+  return testPng(100, 100, 'A'.repeat(sizeBytes));
 }
 
 type TaskShape = {
@@ -51,7 +51,6 @@ function buildExecution(id: string, tasks: TaskShape[]): ExecutionDump {
       param: { prompt: 'find something' },
       uiContext: {
         screenshot,
-        shotSize: { width: 1920, height: 1080 },
         shrunkShotToLogicalRatio: 1,
       },
       executor: async () => undefined,

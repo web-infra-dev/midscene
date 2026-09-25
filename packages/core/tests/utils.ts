@@ -33,7 +33,6 @@ export function createFakeContext(content?: string): UIContext {
 
   return {
     screenshot,
-    shotSize: { width: 1920, height: 1080 },
     shrunkShotToLogicalRatio: 1,
   };
 }

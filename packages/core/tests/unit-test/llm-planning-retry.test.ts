@@ -19,6 +19,7 @@ import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
+import { testPng } from './test-helpers/image';
 
 import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
   rstest: 'importActual',
@@ -59,14 +60,7 @@ const mockModelConfig = (
 
 const mockContext = (): UIContext =>
   ({
-    screenshot: ScreenshotItem.create(
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
-      0,
-    ),
-    shotSize: {
-      width: 100,
-      height: 100,
-    },
+    screenshot: ScreenshotItem.create(testPng(100, 100), 0),
   }) as UIContext;
 
 const mockActionSpace = (): DeviceAction[] => [

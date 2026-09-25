@@ -15,6 +15,7 @@ import { ScreenshotItem } from '@/screenshot-item';
 import { ExecutionDump, type ReportMeta } from '@/types';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { describe, expect, it } from '@rstest/core';
+import { testPng } from './test-helpers/image';
 import {
   extractGroupedDumpScripts,
   getGroupedDumpScriptIds,
@@ -23,8 +24,7 @@ import {
 // ---------- helpers ----------
 
 function fakeBase64(sizeBytes: number): string {
-  const signature = 'iVBORw0KGgoAAAAA';
-  return `data:image/png;base64,${signature}${'A'.repeat(Math.max(0, sizeBytes - signature.length))}`;
+  return testPng(100, 100, 'A'.repeat(sizeBytes));
 }
 
 function fakeScreenshot(size = 200): ScreenshotItem {
@@ -45,7 +45,6 @@ function createExecution(
     param: { prompt: `task-${i}` },
     uiContext: {
       screenshot: s,
-      shotSize: { width: 1920, height: 1080 },
       shrunkShotToLogicalRatio: 1,
     },
     executor: async () => undefined,
@@ -164,7 +163,6 @@ describe('Issue 3: execution persistence requires id', () => {
           taskId: 'task-first',
           uiContext: {
             screenshot: fakeScreenshot(),
-            shotSize: { width: 1920, height: 1080 },
             shrunkShotToLogicalRatio: 1,
           },
           executor: async () => undefined,
@@ -186,7 +184,6 @@ describe('Issue 3: execution persistence requires id', () => {
           taskId: 'task-second',
           uiContext: {
             screenshot: fakeScreenshot(),
-            shotSize: { width: 1920, height: 1080 },
             shrunkShotToLogicalRatio: 1,
           },
           executor: async () => undefined,

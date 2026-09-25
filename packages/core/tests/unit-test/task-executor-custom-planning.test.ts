@@ -101,7 +101,6 @@ describe('TaskExecutor custom planning adapters', () => {
     mockService = {
       contextRetrieverFn: rs.fn().mockResolvedValue({
         screenshot: ScreenshotItem.create(validBase64Image, Date.now()),
-        shotSize: { width: 1920, height: 1080 },
         shrunkShotToLogicalRatio: 1,
         tree: {
           id: 'root',

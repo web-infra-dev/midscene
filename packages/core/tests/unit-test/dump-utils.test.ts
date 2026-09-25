@@ -1,4 +1,5 @@
-import { describe, expect, it } from '@rstest/core';
+import { normalizeScreenshotRef } from '@/dump/image-reference';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   type StoredImageRef,
   createInlineImageResolver,
@@ -107,10 +108,62 @@ describe('dump/screenshot-restoration', () => {
   ) => restoreImageReferences(data, resolveImage) as any;
 
   describe('restoreImageReferences', () => {
+    it('fails explicitly when a screenshot reference has no dimensions', () => {
+      expect(() =>
+        restoreForTest({
+          type: 'midscene_screenshot_ref',
+          id: 'invalid',
+          capturedAt: 1,
+          mimeType: 'image/png',
+          storage: 'inline',
+        }),
+      ).toThrow('Invalid screenshot reference');
+    });
+    it('exposes immutable dimensions without resolving image bytes', () => {
+      const ref = {
+        type: 'midscene_screenshot_ref',
+        id: 'size-test',
+        capturedAt: 1,
+        mimeType: 'image/png',
+        storage: 'inline',
+        size: { width: 80, height: 60 },
+      };
+      const resolve = rs.fn(() => 'data:image/png;base64,test');
+      const restored = restoreForTest(ref, resolve);
+      ref.size.width = 100;
+      expect(restored.size).toEqual({ width: 80, height: 60 });
+      expect(Object.isFrozen(restored.size)).toBe(true);
+      expect(restored.sourceRef.size).toBe(restored.size);
+      expect(resolve).not.toHaveBeenCalled();
+      expect(restored.base64).toBe('data:image/png;base64,test');
+      expect(resolve).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      undefined,
+      null,
+      {},
+      { width: 0, height: 1 },
+      { width: 1.5, height: 2 },
+      { width: 1, height: Number.POSITIVE_INFINITY },
+      { width: '1', height: 1 },
+    ])('rejects invalid screenshot dimensions: %s', (size) => {
+      expect(
+        normalizeScreenshotRef({
+          type: 'midscene_screenshot_ref',
+          id: 'size-test',
+          capturedAt: 1,
+          mimeType: 'image/png',
+          storage: 'inline',
+          size,
+        }),
+      ).toBeNull();
+    });
     it('should restore screenshot references to { base64 } format via lazy getter', () => {
       const data = {
         screenshot: {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'img1',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -143,6 +196,7 @@ describe('dump/screenshot-restoration', () => {
       const data = {
         screenshot: {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'img1',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -184,6 +238,7 @@ describe('dump/screenshot-restoration', () => {
       const data = {
         screenshot: {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'shot-1',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -216,6 +271,7 @@ describe('dump/screenshot-restoration', () => {
           level2: {
             screenshot: {
               type: 'midscene_screenshot_ref',
+              size: { width: 1, height: 1 },
               id: 'img2',
               capturedAt: 1,
               mimeType: 'image/png',
@@ -234,6 +290,7 @@ describe('dump/screenshot-restoration', () => {
       const data = [
         {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'img1',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -241,6 +298,7 @@ describe('dump/screenshot-restoration', () => {
         },
         {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'img2',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -256,6 +314,7 @@ describe('dump/screenshot-restoration', () => {
       const data = {
         screenshot: {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'uuid-not-in-map',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -274,6 +333,7 @@ describe('dump/screenshot-restoration', () => {
       const data = {
         screenshot: {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'uuid-abc-123',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -288,6 +348,7 @@ describe('dump/screenshot-restoration', () => {
       const data = {
         screenshot: {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'img1',
           capturedAt: 1700000000123,
           mimeType: 'image/png',
@@ -310,6 +371,7 @@ describe('dump/screenshot-restoration', () => {
                 uiContext: {
                   screenshot: {
                     type: 'midscene_screenshot_ref',
+                    size: { width: 1, height: 1 },
                     id: 'abc-123-def',
                     capturedAt: 1,
                     mimeType: 'image/png',
@@ -342,6 +404,7 @@ describe('dump/screenshot-restoration', () => {
       const data = {
         a: {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'img1',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -349,6 +412,7 @@ describe('dump/screenshot-restoration', () => {
         },
         b: {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'img2',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -374,6 +438,7 @@ describe('dump/screenshot-restoration', () => {
     it('should produce enumerable base64 property (visible to JSON.stringify)', () => {
       const data = {
         type: 'midscene_screenshot_ref',
+        size: { width: 1, height: 1 },
         id: 'img1',
         capturedAt: 1,
         mimeType: 'image/png',

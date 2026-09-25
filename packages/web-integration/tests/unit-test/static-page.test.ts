@@ -11,7 +11,6 @@ function createContext(
   screenshot: ConstructorParameters<typeof StaticPage>[0]['screenshot'],
 ): ConstructorParameters<typeof StaticPage>[0] {
   return {
-    shotSize: { width: 800, height: 600 },
     shrunkShotToLogicalRatio: 1,
     screenshot,
   };
@@ -45,6 +44,7 @@ describe('StaticPage', () => {
     const page = new StaticPage(
       createContext({
         type: 'midscene_screenshot_ref',
+        size: { width: 1, height: 1 },
         id: 'screenshot-id',
         capturedAt: Date.now(),
         mimeType: 'image/png',
@@ -66,7 +66,8 @@ describe('StaticPage', () => {
 
     const context = await agent.getUIContext();
 
-    expect(context.shotSize).toEqual({ width: 800, height: 600 });
+    expect(context.screenshot.size).toEqual({ width: 1, height: 1 });
+    await expect(page.size()).resolves.toEqual({ width: 1, height: 1 });
     expect(context.shrunkShotToLogicalRatio).toBe(1);
     expect(context.screenshot).toBeInstanceOf(ScreenshotItem);
     expect(context.screenshot.base64).toBe(screenshotBase64);
@@ -81,5 +82,7 @@ describe('StaticPage', () => {
     expect(updatedContext).not.toBe(context);
     expect(updatedContext.screenshot.base64).toBe(updatedScreenshotBase64);
     expect(updatedContext.screenshot.capturedAt).toBe(456);
+    expect(updatedContext.screenshot.size).toEqual({ width: 8, height: 6 });
+    await expect(page.size()).resolves.toEqual({ width: 8, height: 6 });
   });
 });

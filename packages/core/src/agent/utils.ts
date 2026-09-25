@@ -104,8 +104,7 @@ export async function commonContextParser(
   const preparedScreenshot = await prepareRawScreenshot(screenshot, {
     shrinkFactor: userShrinkFactor,
   });
-  const { width: imgWidth, height: imgHeight } =
-    preparedScreenshot.originalSize;
+  const { width: imgWidth, height: imgHeight } = screenshot.size;
   debug('screenshot dimensions', imgWidth, 'x', imgHeight);
 
   // Detect orientation mismatch between logical size and screenshot.
@@ -128,21 +127,21 @@ export async function commonContextParser(
 
   debug('calculated dpr:', dpr);
 
-  const shrunkShotToLogicalRatio = dpr / userShrinkFactor;
+  const shrunkShotToLogicalRatio =
+    preparedScreenshot.size.width / finalLogicalWidth;
 
   debug('shrunkShotToLogicalRatio', shrunkShotToLogicalRatio);
 
   if (userShrinkFactor > 1) {
     debug(
-      `Applied screenshot shrink factor: ${userShrinkFactor} (physical: ${imgWidth}x${imgHeight} -> target: ${preparedScreenshot.shotSize.width}x${preparedScreenshot.shotSize.height})`,
+      `Applied screenshot shrink factor: ${userShrinkFactor} (physical: ${imgWidth}x${imgHeight} -> actual: ${preparedScreenshot.size.width}x${preparedScreenshot.size.height})`,
     );
   }
 
   return {
-    shotSize: preparedScreenshot.shotSize,
     deprecatedDpr: dpr,
     screenshot: ScreenshotItem.fromImage(
-      preparedScreenshot.image,
+      preparedScreenshot,
       screenshotCapturedAt,
     ),
     shrunkShotToLogicalRatio,
@@ -156,7 +155,7 @@ export async function createScreenshotBoundUIContext(
   },
 ): Promise<UIContext> {
   const preparedScreenshot = await prepareRawScreenshot(screenshotBase64);
-  const actualScreenshotSize = preparedScreenshot.originalSize;
+  const actualScreenshotSize = preparedScreenshot.size;
   if (
     opt.screenshotSize &&
     (opt.screenshotSize.width !== actualScreenshotSize.width ||
@@ -172,8 +171,7 @@ export async function createScreenshotBoundUIContext(
   }
 
   return {
-    screenshot: ScreenshotItem.fromImage(preparedScreenshot.image, Date.now()),
-    shotSize: preparedScreenshot.shotSize,
+    screenshot: ScreenshotItem.fromImage(preparedScreenshot, Date.now()),
     shrunkShotToLogicalRatio: 1,
     _isFrozen: true,
   };

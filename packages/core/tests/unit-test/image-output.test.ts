@@ -21,12 +21,11 @@ describe('consumer image output policy', () => {
           .toBuffer(),
       );
       const prepared = await prepareRawScreenshot(source);
-      expect(prepared.image).toBe(source);
+      expect(prepared).toBe(source);
       expect(await prepareImageOutput(source)).toBe(source);
       expect(await prepareScreenshotForPersistence(source)).toBe(source);
       const model = await prepareModelImage({
         image: source,
-        ...source.size,
         policy: {},
       });
       expect(model.image).toBe(source);
@@ -42,11 +41,9 @@ describe('consumer image output policy', () => {
         .toBuffer(),
     );
     const context = await prepareRawScreenshot(source);
-    const report = ScreenshotItem.fromImage(context.image, 0);
-    const modelImage = await prepareImageOutput(context.image);
-    const observationImage = await prepareScreenshotForPersistence(
-      context.image,
-    );
+    const report = ScreenshotItem.fromImage(context, 0);
+    const modelImage = await prepareImageOutput(context);
+    const observationImage = await prepareScreenshotForPersistence(context);
     expect(modelImage.format).toBe('webp');
     expect(observationImage.format).toBe('webp');
     expect(report.image).toBe(source);

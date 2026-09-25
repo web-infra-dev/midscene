@@ -37,7 +37,7 @@ export function createAutoGlmPlanner(
       return transformAutoGLMAction(parsedResponse.action, {
         actionSpace: options.actionSpace,
         coordinateDistanceToPixels: createCoordinateDistanceToPixels(
-          options.context.shotSize,
+          options.context.screenshot.size,
           coordinateSystem,
         ),
       });

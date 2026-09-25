@@ -356,7 +356,6 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       screenshot: {
         base64: 'mock-base64',
       },
-      shotSize: { width: 100, height: 100 },
       deprecatedDpr: 1,
       shrunkShotToLogicalRatio: 1,
     } as any;

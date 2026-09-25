@@ -19,13 +19,10 @@ export function prepareImageOutput(
   });
 }
 
-/** Context coordinates refer to shotSize, not necessarily the captured pixel size. */
+/** Context coordinates already refer to the screenshot's actual pixels. */
 export function prepareContextImage(
-  context: Pick<UIContext, 'screenshot' | 'shotSize'>,
+  context: Pick<UIContext, 'screenshot'>,
   operations: readonly ImageOperation[] = [],
 ) {
-  return prepareImageOutput(context.screenshot.image, [
-    { type: 'resize', ...context.shotSize },
-    ...operations,
-  ]);
+  return prepareImageOutput(context.screenshot.image, operations);
 }

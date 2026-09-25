@@ -6,6 +6,7 @@ describe('resolveScreenshotFallbackPath', () => {
     expect(
       resolveScreenshotFallbackPath({
         type: 'midscene_screenshot_ref',
+        size: { width: 1, height: 1 },
         id: 'webp-shot',
         capturedAt: 1,
         mimeType: 'image/webp',
@@ -15,6 +16,7 @@ describe('resolveScreenshotFallbackPath', () => {
     expect(
       resolveScreenshotFallbackPath({
         type: 'midscene_screenshot_ref',
+        size: { width: 1, height: 1 },
         id: 'jpeg-shot',
         capturedAt: 1,
         mimeType: 'image/jpeg',
@@ -27,6 +29,7 @@ describe('resolveScreenshotFallbackPath', () => {
     expect(
       resolveScreenshotFallbackPath({
         type: 'midscene_screenshot_ref',
+        size: { width: 1, height: 1 },
         id: 'webp-shot',
         capturedAt: 1,
         mimeType: 'image/webp',

@@ -137,7 +137,7 @@ const resolveTaskShotSize = (
   fallbackWidth: number,
   fallbackHeight: number,
 ): { width: number; height: number } => {
-  const size = task?.uiContext?.shotSize;
+  const size = task?.uiContext?.screenshot?.size;
   return {
     width: size?.width || fallbackWidth,
     height: size?.height || fallbackHeight,
@@ -246,7 +246,7 @@ const extractMetaFromNormalized = (
     normalizedDump.executions?.filter(Boolean) || [],
   ).forEach((execution) => {
     execution.tasks.forEach((task) => {
-      const shotSize = task.uiContext?.shotSize;
+      const shotSize = task.uiContext?.screenshot?.size;
       if (shotSize) {
         const w = shotSize.width;
         const h = shotSize.height;

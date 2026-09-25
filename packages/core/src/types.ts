@@ -155,9 +155,8 @@ export interface UITreeSnapshot {
 
 export abstract class UIContext {
   /**
-   * Original capture, retained without intermediate lossy encoding. Its pixel
-   * dimensions may differ from shotSize. Image consumers must apply shotSize
-   * before operations expressed in UI-context coordinates.
+   * Screenshot after user-requested shrinking. Its actual pixel size is the
+   * coordinate space for this context. Model-specific preprocessing never mutates it.
    */
   abstract screenshot: ScreenshotItem;
 
@@ -169,11 +168,6 @@ export abstract class UIContext {
    * frame is the same state as {@link screenshot}.
    */
   abstract screenshotSequence?: ScreenshotItem[];
-
-  /**
-   * screenshot size after shrinking
-   */
-  abstract shotSize: Size;
 
   /**
    * The ratio for converting shrunk screenshot coordinates to logical coordinates.

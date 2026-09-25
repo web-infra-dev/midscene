@@ -19,7 +19,6 @@ export interface WebPlatformOptions {
 
 function createDefaultWebAgent(): StaticPageAgent {
   const page = new StaticPage({
-    shotSize: { width: 800, height: 600 },
     screenshot: createPlaceholderScreenshot(),
     shrunkShotToLogicalRatio: 1,
   });

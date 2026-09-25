@@ -130,6 +130,7 @@ function replayDump() {
             uiContext: {
               screenshot: {
                 type: 'midscene_screenshot_ref',
+                size: { width: 1, height: 1 },
                 id: 'shot-1',
                 capturedAt: 1,
                 mimeType: 'image/png',

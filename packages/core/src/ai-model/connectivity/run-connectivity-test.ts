@@ -5,10 +5,7 @@ import type { IModelConfig, TIntent } from '@midscene/shared/env';
 import { getModelRuntime } from '../models';
 import type { ModelRuntime } from '../models';
 import { callAI } from '../service-caller';
-import {
-  CONNECTIVITY_FIXTURE_IMAGE,
-  CONNECTIVITY_FIXTURE_SHOT_SIZE,
-} from './fixture';
+import { CONNECTIVITY_FIXTURE_IMAGE } from './fixture';
 
 const TEXT_EXPECTED_TOKEN = 'CONNECTIVITY_OK';
 
@@ -49,7 +46,6 @@ function hasValidCenter(value: unknown): boolean {
 function buildFixtureContext(): UIContext {
   return {
     screenshot: ScreenshotItem.create(CONNECTIVITY_FIXTURE_IMAGE, Date.now()),
-    shotSize: CONNECTIVITY_FIXTURE_SHOT_SIZE,
     shrunkShotToLogicalRatio: 1,
   };
 }

@@ -10,6 +10,7 @@ import type { UIContext } from '@/types';
 import { UITarsModelVersion } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { actionParser } from '@ui-tars/action-parser';
+import { testPng } from '../../test-helpers/image';
 
 rs.mock('@ui-tars/action-parser', () => ({
   actionParser: rs.fn(),
@@ -17,12 +18,9 @@ rs.mock('@ui-tars/action-parser', () => ({
 
 const context: UIContext = {
   screenshot: {
-    base64: 'data:image/png;base64,iVBORw0KGgoAAAAA',
+    base64: testPng(1000, 800),
+    size: { width: 1000, height: 800 },
   } as any,
-  shotSize: {
-    width: 1000,
-    height: 800,
-  },
   shrunkShotToLogicalRatio: 1,
 };
 
@@ -68,7 +66,7 @@ describe('parseUiTarsPlanningResponse failures', () => {
     expect(() =>
       parseUiTarsPlanningResponse(
         'Thought: Click submit\nAction: click(start_box="bad")',
-        createPlanOptions().context.shotSize,
+        createPlanOptions().context.screenshot.size,
         UITarsModelVersion.V1_0,
       ),
     ).toThrow('parser exploded');
@@ -79,7 +77,7 @@ describe('parseUiTarsPlanningResponse failures', () => {
 
     parseUiTarsPlanningResponse(
       "Thought: Click converted bbox\nAction: click(start_box='<bbox>400 300 600 700</bbox>')",
-      createPlanOptions().context.shotSize,
+      createPlanOptions().context.screenshot.size,
       UITarsModelVersion.V1_0,
     );
 

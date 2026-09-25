@@ -9,6 +9,8 @@ export interface ScreenshotRef {
   id: string;
   capturedAt: number;
   mimeType: ScreenshotImageMimeType;
+  /** Actual dimensions of the encoded screenshot, available without loading the asset. */
+  size: { readonly width: number; readonly height: number };
   storage: 'inline' | 'file';
   path?: string;
 }
@@ -64,12 +66,19 @@ function hasValidImageId(record: Record<string, unknown>): boolean {
 export function normalizeScreenshotRef(value: unknown): ScreenshotRef | null {
   if (typeof value !== 'object' || value === null) return null;
   const record = value as Record<string, unknown>;
+  const size = record.size as ScreenshotRef['size'] | undefined;
 
   if (
     record.type === 'midscene_screenshot_ref' &&
     hasValidImageId(record) &&
     typeof record.capturedAt === 'number' &&
     isScreenshotImageMimeType(record.mimeType) &&
+    size !== null &&
+    typeof size === 'object' &&
+    Number.isSafeInteger(size.width) &&
+    size.width > 0 &&
+    Number.isSafeInteger(size.height) &&
+    size.height > 0 &&
     hasValidStorage(record)
   ) {
     return record as unknown as ScreenshotRef;

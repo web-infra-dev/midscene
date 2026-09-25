@@ -8,6 +8,7 @@ import {
   screenshotImageFormatFromMimeType,
   screenshotImageMimeType,
 } from '@midscene/shared/img';
+import type { Size } from '@midscene/shared/types';
 import { uuid } from '@midscene/shared/utils';
 import { extractImageByIdSync } from './dump/html-utils';
 import {
@@ -17,8 +18,8 @@ import {
 
 /**
  * Serialization format for ScreenshotItem
- * - { $screenshot: "id" } - inline mode, references imageMap in HTML
- * - { base64: "path" } - directory mode, references external file path
+ * A typed reference with identity, format and actual dimensions.
+ * Inline mode resolves HTML image assets; directory mode includes a file path.
  */
 export type ScreenshotSerializeFormat = ScreenshotRef;
 
@@ -40,6 +41,7 @@ export class ScreenshotItem {
   private _serializedRef: ScreenshotRef | null = null;
   private _persistedPath: string | null = null;
   private _persistedHtmlPath: string | null = null;
+  private _size?: Readonly<Size>;
 
   private constructor(
     id: string,
@@ -54,6 +56,11 @@ export class ScreenshotItem {
     // JSON transport remains Base64, without exposing or duplicating the byte
     // buffer. Dump serializers still receive the ScreenshotItem instance first.
     Object.defineProperty(this, '_image', { enumerable: false });
+    Object.defineProperty(this, '_size', { enumerable: false, writable: true });
+    Object.defineProperty(this, 'size', {
+      enumerable: true,
+      get: () => this.imageSize(),
+    });
     Object.defineProperty(this, 'base64', {
       enumerable: true,
       get: () => this.image.toBase64(),
@@ -84,6 +91,7 @@ export class ScreenshotItem {
       throw new Error(`Unsupported screenshot MIME type: ${mimeType}`);
     const image = EncodedImage.fromBytes(fileBytes, expectedFormat);
     const item = new ScreenshotItem(uuid(), null, capturedAt, image.format);
+    item._size = image.size;
     item._persistedPath = filePath;
     return item;
   }
@@ -114,6 +122,16 @@ export class ScreenshotItem {
 
   get base64(): string {
     return this.image.toBase64();
+  }
+
+  /** Actual encoded dimensions, retained after image bytes are released. */
+  get size(): Readonly<Size> {
+    return this.imageSize();
+  }
+
+  private imageSize(): Readonly<Size> {
+    this._size ??= this.image.size;
+    return this._size;
   }
 
   get image(): EncodedImage {
@@ -224,6 +242,7 @@ export class ScreenshotItem {
         id: this._id,
         capturedAt: this._capturedAt,
         mimeType: this.mimeType,
+        size: this.size,
         storage: 'inline',
       }
     );
@@ -243,6 +262,7 @@ export class ScreenshotItem {
       id: this._id,
       capturedAt: this._capturedAt,
       mimeType: this.mimeType,
+      size: this.size,
       storage,
     };
     if (storage === 'file') {

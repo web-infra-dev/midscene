@@ -887,9 +887,9 @@ describe('ReportGenerator — append-only model', () => {
       const recovered2 = screenshot2.rawBase64;
       const recovered3 = screenshot3.rawBase64;
 
-      expect(recovered1.length).toBe(100);
-      expect(recovered2.length).toBe(200);
-      expect(recovered3.length).toBe(300);
+      expect(recovered1).toBe(fakeBase64(100).split(',')[1]);
+      expect(recovered2).toBe(fakeBase64(200).split(',')[1]);
+      expect(recovered3).toBe(fakeBase64(300).split(',')[1]);
     });
   });
 

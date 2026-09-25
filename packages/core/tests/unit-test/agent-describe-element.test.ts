@@ -235,7 +235,7 @@ describe('element describer utils', () => {
       expect.objectContaining({
         deepDescribe: false,
         context: expect.objectContaining({
-          shotSize: fixtureScreenshotSize,
+          screenshot: expect.objectContaining({ size: fixtureScreenshotSize }),
           shrunkShotToLogicalRatio: 1,
           _isFrozen: true,
         }),
@@ -248,7 +248,7 @@ describe('element describer utils', () => {
       }),
       {
         context: expect.objectContaining({
-          shotSize: fixtureScreenshotSize,
+          screenshot: expect.objectContaining({ size: fixtureScreenshotSize }),
         }),
       },
       expect.any(Object),
@@ -421,7 +421,7 @@ describe('element describer utils', () => {
     expect(describeContext?.screenshot.base64).toMatch(
       /^data:image\/png;base64,/,
     );
-    expect(describeContext?.shotSize).toEqual(fixtureScreenshotSize);
+    expect(describeContext?.screenshot.size).toEqual(fixtureScreenshotSize);
 
     await agent.destroy();
   });
@@ -433,7 +433,6 @@ describe('element describer utils', () => {
     });
     const uiContext = {
       screenshot: ScreenshotItem.create(fixtureScreenshot, Date.now()),
-      shotSize: fixtureScreenshotSize,
       shrunkShotToLogicalRatio: 1,
       _isFrozen: true,
     };
@@ -722,7 +721,7 @@ describe('element describer utils', () => {
       expect.any(Object),
       expect.objectContaining({
         context: expect.objectContaining({
-          shotSize: fixtureScreenshotSize,
+          screenshot: expect.objectContaining({ size: fixtureScreenshotSize }),
         }),
       }),
     );
@@ -732,7 +731,7 @@ describe('element describer utils', () => {
       }),
       {
         context: expect.objectContaining({
-          shotSize: fixtureScreenshotSize,
+          screenshot: expect.objectContaining({ size: fixtureScreenshotSize }),
         }),
       },
       expect.any(Object),
@@ -790,7 +789,7 @@ describe('element describer utils', () => {
       expect.any(Object),
       expect.objectContaining({
         context: expect.objectContaining({
-          shotSize: fixtureScreenshotSize,
+          screenshot: expect.objectContaining({ size: fixtureScreenshotSize }),
         }),
       }),
     );
@@ -872,7 +871,7 @@ describe('element describer utils', () => {
       }),
       {
         context: expect.objectContaining({
-          shotSize: fixtureScreenshotSize,
+          screenshot: expect.objectContaining({ size: fixtureScreenshotSize }),
           shrunkShotToLogicalRatio: 1,
           _isFrozen: true,
         }),

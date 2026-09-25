@@ -6,6 +6,7 @@ import {
   type IReportActionDump,
   ReportActionDump,
 } from '../../src/types';
+import { testPng } from './test-helpers/image';
 
 /**
  * A UIObservation insight attaches a `screenshotSequence` (a transient
@@ -15,9 +16,9 @@ import {
  * must still be serialized.
  */
 describe('dump serialization drops screenshotSequence', () => {
-  const FRAME_A = 'data:image/png;base64,iVBORw0KGgpGUkFNRS1B';
-  const FRAME_B = 'data:image/png;base64,iVBORw0KGgpGUkFNRS1C';
-  const FRAME_C = 'data:image/png;base64,iVBORw0KGgpGUkFNRS1D';
+  const FRAME_A = testPng(100, 100, 'B');
+  const FRAME_B = testPng(100, 100, 'C');
+  const FRAME_C = testPng(100, 100, 'D');
 
   const buildExecutionDumpData = (): IExecutionDump => {
     const representative = ScreenshotItem.create(FRAME_C, 3);
@@ -39,7 +40,6 @@ describe('dump serialization drops screenshotSequence', () => {
               ScreenshotItem.create(FRAME_B, 2),
               representative,
             ],
-            shotSize: { width: 100, height: 100 },
             shrunkShotToLogicalRatio: 1,
           },
         } as any,

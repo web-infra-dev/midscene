@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { extractLastDumpScriptSync } from '@/dump/html-utils';
 import { ReportMergingTool } from '@/report';
 import { ReportGenerator } from '@/report-generator';
-import { ScreenshotItem } from '@/screenshot-item';
+import type { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
   ReportActionDump,
@@ -21,15 +21,12 @@ import {
 } from '@/types';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { describe, expect, it } from '@rstest/core';
+import { testPng } from './test-helpers/image';
 
 // ---------- helpers ----------
 
 function fakeScreenshot(size = 200): ScreenshotItem {
-  const signature = 'iVBORw0KGgoAAAAA';
-  return ScreenshotItem.create(
-    `data:image/png;base64,${signature}${'A'.repeat(Math.max(0, size - signature.length))}`,
-    Date.now(),
-  );
+  return testPng(100, 100, 'A'.repeat(size));
 }
 
 /**
@@ -60,7 +57,6 @@ function createDump(groupName: string, taskCount: number): ReportActionDump {
     taskId: `${groupName}-task-${i}`,
     uiContext: {
       screenshot: fakeScreenshot(),
-      shotSize: { width: 1920, height: 1080 },
       shrunkShotToLogicalRatio: 1,
     } as unknown as UIContext,
     executor: async () => undefined,
@@ -420,7 +416,6 @@ describe('ReportMergingTool merged dump count verification', () => {
               taskId: `task-${i}-${e}`,
               uiContext: {
                 screenshot: fakeScreenshot(),
-                shotSize: { width: 1920, height: 1080 },
                 shrunkShotToLogicalRatio: 1,
               } as unknown as UIContext,
               executor: async () => undefined,

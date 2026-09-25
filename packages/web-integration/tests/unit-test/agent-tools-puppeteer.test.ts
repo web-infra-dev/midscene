@@ -14,10 +14,7 @@ import {
   buildDetachedChromeArgs,
   waitForDetachedChromeEndpoint,
 } from '@/agent-tools-puppeteer';
-import {
-  defaultPuppeteerWindowViewportSize,
-  defaultStaticPageViewportSize,
-} from '@/common/viewport';
+import { defaultPuppeteerWindowViewportSize } from '@/common/viewport';
 import { describe, expect, it } from '@rstest/core';
 
 describe('WebPuppeteerMidsceneTools', () => {
@@ -99,20 +96,20 @@ describe('WebPuppeteerMidsceneTools', () => {
     );
   });
 
-  it('uses the configured viewport for the temporary device placeholder', async () => {
+  it('uses actual placeholder pixels for action-space discovery without a browser', async () => {
     const tools = new WebPuppeteerMidsceneTools({ width: 1680, height: 1050 });
 
     const device = (tools as any).createTemporaryDevice();
     await expect(device.size()).resolves.toEqual({
-      width: 1680,
-      height: 1050,
+      width: 1,
+      height: 1,
     });
   });
 
-  it('keeps the main branch static device default for the default constructor', async () => {
+  it('uses the same placeholder dimensions with the default constructor', async () => {
     const tools = new WebPuppeteerMidsceneTools();
 
     const device = (tools as any).createTemporaryDevice();
-    await expect(device.size()).resolves.toEqual(defaultStaticPageViewportSize);
+    await expect(device.size()).resolves.toEqual({ width: 1, height: 1 });
   });
 });

@@ -39,11 +39,11 @@ rs.mock('@/image-output', () => ({
 function createFakeContext(): UIContext {
   return {
     screenshot: {
+      size: { width: 1920, height: 1080 },
       image: { format: 'png' },
       base64:
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     } as UIContext['screenshot'],
-    shotSize: { width: 1920, height: 1080 },
     shrunkShotToLogicalRatio: 1,
   };
 }

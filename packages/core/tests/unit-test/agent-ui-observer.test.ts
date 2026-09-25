@@ -11,6 +11,7 @@ import type { UIContext } from '@/types';
 import { resolveObservationArtifactAdapter } from '@midscene/shared/agent-tools/observation-artifact';
 import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import { testPng } from './test-helpers/image';
 
 const defaultModel = { config: { slot: 'default' } };
 const tempDirectories: string[] = [];
@@ -27,7 +28,6 @@ const dataUrl = (_tag: string) =>
 const fakeContext = (tag: string): UIContext =>
   ({
     screenshot: ScreenshotItem.create(dataUrl(tag), Date.now()),
-    shotSize: { width: 100, height: 100 },
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
 
@@ -161,10 +161,7 @@ describe('Agent.startObserving', () => {
       const path = join(directory, `${name}.png`);
       writeFileSync(
         path,
-        Buffer.concat([
-          Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-          Buffer.from(name),
-        ]),
+        Buffer.from(testPng(100, 100, name).split(',')[1], 'base64'),
       );
       return path;
     });
@@ -201,10 +198,11 @@ describe('Agent.startObserving', () => {
     )[5];
     expect(
       executionOptions.uiContext.screenshotSequence.map(
-        (frame: ScreenshotItem) =>
-          Buffer.from(frame.rawBase64, 'base64').subarray(8).toString(),
+        (frame: ScreenshotItem) => frame.base64,
       ),
-    ).toEqual(['before', 'toast', 'after']);
+    ).toEqual(
+      ['before', 'toast', 'after'].map((name) => testPng(100, 100, name)),
+    );
 
     await observation.aiQuery<string>('summarize the transition');
     await observation.aiBoolean('did a toast appear?');
@@ -253,10 +251,7 @@ describe('Agent.startObserving', () => {
     const framePath = join(directory, 'frame.png');
     writeFileSync(
       framePath,
-      Buffer.concat([
-        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-        Buffer.from('frame'),
-      ]),
+      Buffer.from(testPng(100, 100, 'frame').split(',')[1], 'base64'),
     );
     const record: UIObservationRecord = {
       type: 'midscene_ui_observation',

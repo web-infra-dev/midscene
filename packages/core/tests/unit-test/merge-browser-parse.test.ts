@@ -25,10 +25,10 @@ import {
 import { uuid } from '@midscene/shared/utils';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
+import { testPng } from './test-helpers/image';
 
 function fakeBase64(sizeBytes: number): string {
-  const signature = 'iVBORw0KGgoAAAAA';
-  return `data:image/png;base64,${signature}${'A'.repeat(Math.max(0, sizeBytes - signature.length))}`;
+  return testPng(100, 100, 'A'.repeat(sizeBytes));
 }
 
 function createDump(screenshots: ScreenshotItem[]): ReportActionDump {

@@ -37,9 +37,12 @@ function createActionTask({
       ExecutionTaskAction['recorder']
     >,
     uiContext: {
-      shotSize: {
-        width,
-        height,
+      screenshot: {
+        base64: screenshot,
+        size: {
+          width,
+          height,
+        },
       },
     } as ExecutionTaskAction['uiContext'],
   };
@@ -75,15 +78,17 @@ function createLocateTask(): ExecutionTaskPlanningLocate {
       dump: serviceDump,
     } as any,
     uiContext: {
-      shotSize: { width: 720, height: 1280 },
-      screenshot: { base64: 'frame-locate' },
+      screenshot: {
+        base64: 'frame-locate',
+        size: { width: 720, height: 1280 },
+      },
       shrunkShotToLogicalRatio: 1,
     } as any,
   };
 }
 
 describe('generateAnimationScripts', () => {
-  it('uses each task shotSize when building full-page camera frames', () => {
+  it('uses each task screenshot size when building full-page camera frames', () => {
     const execution = {
       name: 'camera-size-regression',
       tasks: [

@@ -141,10 +141,6 @@ export const generateAIDescription = async (
           event.screenshotBefore as string,
           Date.now(),
         ),
-        shotSize: {
-          width: event.pageInfo.width,
-          height: event.pageInfo.height,
-        },
         shrunkShotToLogicalRatio: 1,
       } as UIContext;
 

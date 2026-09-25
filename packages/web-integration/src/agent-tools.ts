@@ -15,7 +15,6 @@ import {
 } from './agent-init-args';
 import { AgentOverChromeBridge } from './bridge-mode';
 import { createPlaceholderScreenshot } from './common/screenshot';
-import { defaultStaticPageViewportSize } from './common/viewport';
 import { StaticPage } from './static';
 
 /**
@@ -43,7 +42,6 @@ export class WebMidsceneTools extends BaseMidsceneTools<
   protected createTemporaryDevice() {
     return new StaticPage({
       screenshot: createPlaceholderScreenshot(),
-      shotSize: defaultStaticPageViewportSize,
       shrunkShotToLogicalRatio: 1,
     });
   }

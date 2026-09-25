@@ -56,10 +56,6 @@ const context: UIContext = {
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
     0,
   ) as any,
-  shotSize: {
-    width: 1000,
-    height: 800,
-  },
   shrunkShotToLogicalRatio: 1,
 };
 

@@ -22,7 +22,6 @@ const createMockUIContext = async (
   const screenshot = ScreenshotItem.create(screenshotData, Date.now());
   return {
     screenshot,
-    shotSize: { width: 1920, height: 1080 },
     shrunkShotToLogicalRatio: 1,
   };
 };
@@ -34,7 +33,6 @@ const createEmptyUIContext = async () => {
   );
   return {
     screenshot,
-    shotSize: { width: 0, height: 0 },
     shrunkShotToLogicalRatio: 1,
   };
 };
@@ -42,7 +40,6 @@ const createEmptyUIContext = async () => {
 const expectEmptyUIContext = () =>
   expect.objectContaining({
     screenshot: expect.any(ScreenshotItem),
-    shotSize: { width: 0, height: 0 },
     shrunkShotToLogicalRatio: 1,
   });
 

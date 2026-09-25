@@ -1,9 +1,8 @@
 import { prepareModelImage } from '@/ai-model/model-adapter/image-preprocess';
 import { buildSearchAreaConfig } from '@/ai-model/workflows/grounding';
-import * as imageOutput from '@/image-output';
 import { ScreenshotItem } from '@/screenshot-item';
 import { EncodedImage } from '@midscene/shared/img';
-import { describe, expect, it, rs } from '@rstest/core';
+import { describe, expect, it } from '@rstest/core';
 import sharp from 'sharp';
 
 async function screenshot(width: number, height: number) {
@@ -15,25 +14,6 @@ async function screenshot(width: number, height: number) {
 }
 
 describe('prepareModelImage', () => {
-  it('rejects inconsistent plan dimensions before encoding', async () => {
-    const source = await screenshot(12, 8);
-    const encode = rs.spyOn(imageOutput, 'prepareImageOutput');
-    try {
-      await expect(
-        prepareModelImage({
-          image: source,
-          width: 7,
-          height: 6,
-          operations: [{ type: 'resize', width: 6, height: 6 }],
-          policy: { padBlockSize: 28 },
-        }),
-      ).rejects.toThrow('declared content dimensions');
-      expect(encode).not.toHaveBeenCalled();
-    } finally {
-      encode.mockRestore();
-    }
-  });
-
   it('keeps an image untouched when no padding is required', async () => {
     const source = EncodedImage.fromBytes(
       await sharp({
@@ -45,8 +25,6 @@ describe('prepareModelImage', () => {
     for (const policy of [{}, { padBlockSize: 28 }]) {
       const image = await prepareModelImage({
         image: source,
-        width: 112,
-        height: 84,
         policy,
       });
       expect(image).toEqual({
@@ -60,9 +38,7 @@ describe('prepareModelImage', () => {
   it('pads while retaining the original content coordinate bounds', async () => {
     const source = await screenshot(101, 77);
     const image = await prepareModelImage({
-      imageBase64: source.toBase64(),
-      width: 101,
-      height: 77,
+      image: source,
       policy: { padBlockSize: 28 },
     });
     expect(image.contentSize).toEqual({ width: 101, height: 77 });
@@ -76,9 +52,7 @@ describe('prepareModelImage', () => {
     async (padBlockSize) => {
       await expect(
         prepareModelImage({
-          imageBase64: 'unused',
-          width: 1,
-          height: 1,
+          image: await screenshot(1, 1),
           policy: { padBlockSize },
         }),
       ).rejects.toThrow(/padBlockSize/);
@@ -92,7 +66,6 @@ describe('buildSearchAreaConfig', () => {
     const result = await buildSearchAreaConfig({
       context: {
         screenshot: ScreenshotItem.fromImage(source, 0),
-        shotSize: source.size,
         shrunkShotToLogicalRatio: 1,
       },
       baseRect: { left: 400, top: 300, width: 100, height: 100 },
@@ -101,12 +74,12 @@ describe('buildSearchAreaConfig', () => {
       offset: { x: result.sourceRect.left, y: result.sourceRect.top },
       scale: 2,
     });
-    expect(result.image.width).toBe(result.sourceRect.width * 2);
-    expect(result.image.height).toBe(result.sourceRect.height * 2);
+    expect(result.image.image.size.width).toBe(result.sourceRect.width * 2);
+    expect(result.image.image.size.height).toBe(result.sourceRect.height * 2);
     const prepared = await prepareModelImage({ ...result.image, policy: {} });
     expect(prepared.image.size).toEqual({
-      width: result.image.width,
-      height: result.image.height,
+      width: result.image.image.size.width,
+      height: result.image.image.size.height,
     });
     expect(source.format).toBe('png');
   });

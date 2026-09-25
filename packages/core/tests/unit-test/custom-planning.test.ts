@@ -11,10 +11,6 @@ function createPlanOptions(
       screenshot: {
         base64: 'data:image/png;base64,SCREENSHOT==',
       } as any,
-      shotSize: {
-        width: 1000,
-        height: 800,
-      },
       shrunkShotToLogicalRatio: 1,
     },
     actionSpace: [],

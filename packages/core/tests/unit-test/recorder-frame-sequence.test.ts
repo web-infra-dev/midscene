@@ -10,7 +10,6 @@ const makeUiContext = (frameCount: number): UIContext => {
   return {
     screenshot: frames[frameCount - 1],
     screenshotSequence: frames,
-    shotSize: { width: 100, height: 100 },
     shrunkShotToLogicalRatio: 1,
   } as UIContext;
 };
@@ -72,7 +71,6 @@ describe('recordAndReleaseScreenshotSequence', () => {
         'data:image/png;base64,iVBORw0KGgoAAAAA',
         1,
       ),
-      shotSize: { width: 10, height: 10 },
       shrunkShotToLogicalRatio: 1,
     } as UIContext;
 

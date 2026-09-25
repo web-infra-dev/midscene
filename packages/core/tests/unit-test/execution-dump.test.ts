@@ -386,7 +386,6 @@ describe('ReportActionDump', () => {
                 status: 'finished',
                 uiContext: {
                   screenshot,
-                  shotSize: { width: 100, height: 100 },
                   shrunkShotToLogicalRatio: 1,
                 },
                 executor: async () => {},

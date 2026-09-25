@@ -165,7 +165,6 @@ describe('buildDetailedLocateParamAndRestParams', () => {
     const locatePrompt = 'Find the submit button';
     const mockPageContext = {
       tree: { node: null, children: [] },
-      shotSize: { width: 800, height: 600 },
       shrunkShotToLogicalRatio: 1,
       screenshot: ScreenshotItem.create(transparentPixelPngBase64, Date.now()),
     };

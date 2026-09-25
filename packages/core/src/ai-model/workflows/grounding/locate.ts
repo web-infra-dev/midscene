@@ -1,3 +1,4 @@
+import { prepareContextImage } from '@/image-output';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
@@ -32,9 +33,7 @@ export async function AiLocateElement(
 
   const { context } = locateOptions;
   const locateImage = locateOptions.searchConfig?.image ?? {
-    image: context.screenshot.image,
-    width: context.shotSize.width,
-    height: context.shotSize.height,
+    image: await prepareContextImage(context),
   };
   const locateRequest: LocateRequest = {
     targetElementDescription,

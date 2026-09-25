@@ -4,9 +4,10 @@ import { join } from 'node:path';
 import { EncodedImage } from '@midscene/shared/img';
 import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import { ScreenshotItem } from '../../src/screenshot-item';
+import { testPng } from './test-helpers/image';
 
 describe('ScreenshotItem', () => {
-  const testBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';
+  const testBase64 = testPng(5, 5);
   const webpBase64 =
     'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
@@ -94,6 +95,7 @@ describe('ScreenshotItem', () => {
       expect(
         ScreenshotItem.isSerialized({
           type: 'midscene_screenshot_ref',
+          size: { width: 5, height: 5 },
           id: 'test-id',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -106,6 +108,7 @@ describe('ScreenshotItem', () => {
       expect(
         ScreenshotItem.isSerialized({
           type: 'midscene_screenshot_ref',
+          size: { width: 5, height: 5 },
           id: 'test-id',
           capturedAt: 1,
           mimeType: 'image/png',
@@ -247,6 +250,7 @@ describe('ScreenshotItem', () => {
       expect(item.base64).toBe(testBase64);
       expect(item.toSerializable()).toMatchObject({
         type: 'midscene_screenshot_ref',
+        size: { width: 5, height: 5 },
         id,
         capturedAt,
         storage: 'inline',
@@ -270,6 +274,7 @@ describe('ScreenshotItem', () => {
       expect(item.base64).toContain('data:image/png;base64,');
       expect(item.toSerializable()).toMatchObject({
         type: 'midscene_screenshot_ref',
+        size: { width: 5, height: 5 },
         id: item.id,
         capturedAt,
         storage: 'file',

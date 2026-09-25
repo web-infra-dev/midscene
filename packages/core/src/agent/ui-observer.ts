@@ -364,8 +364,7 @@ export class UIObserverImpl implements UIObserver {
 
     if (!this.representativeFrame) {
       const representative = this.representative!;
-      // Context retains the original capture. Apply its planned size once for
-      // persistence, just like the sampled observation frames.
+      // Context already contains shrunk pixels; persistence only chooses encoding.
       this.representativeFrame = this.writer.persistFrame(
         await prepareContextImage(representative),
         representative.screenshot.capturedAt,
@@ -389,7 +388,7 @@ export class UIObserverImpl implements UIObserver {
     const metadata: UIObservationRecordMetadata = {
       startedAt: this.startedAt,
       endedAt,
-      shotSize: { ...this.representative!.shotSize },
+      shotSize: { ...this.representative!.screenshot.size },
       shrunkShotToLogicalRatio: this.representative!.shrunkShotToLogicalRatio,
     };
     return this.writer.finalize(frames, metadata);
@@ -611,7 +610,6 @@ export function uiContextFromObservationRecord(
   return {
     screenshot: screenshotSequence[screenshotSequence.length - 1],
     screenshotSequence,
-    shotSize: { ...record.shotSize },
     shrunkShotToLogicalRatio: record.shrunkShotToLogicalRatio,
   };
 }

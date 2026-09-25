@@ -11,6 +11,7 @@ import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../../common';
+import { testPng } from '../../test-helpers/image';
 
 const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
@@ -52,14 +53,7 @@ const autoGlmAdapter = new ResolvedModelAdapter(
 );
 
 const context: UIContext = {
-  screenshot: ScreenshotItem.create(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
-    0,
-  ) as any,
-  shotSize: {
-    width: 1000,
-    height: 800,
-  },
+  screenshot: ScreenshotItem.create(testPng(1000, 800), 0) as any,
   shrunkShotToLogicalRatio: 1,
 };
 
@@ -116,7 +110,10 @@ describe('createAutoGlmPlanner', () => {
       const result = await runCustomPlanning(
         await prepareUserPrompt('swipe left'),
         createPlanOptions({
-          context: { ...context, shotSize: { width: 101, height: 81 } },
+          context: {
+            ...context,
+            screenshot: ScreenshotItem.create(testPng(101, 81), 0),
+          },
         }),
         resolveCustomPlanningDefinition({
           ...planner,

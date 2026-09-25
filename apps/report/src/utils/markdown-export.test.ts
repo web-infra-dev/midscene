@@ -188,6 +188,7 @@ describe('markdown-export helpers', () => {
         base64Data: './screenshots/file-shot.png',
         sourceRef: {
           type: 'midscene_screenshot_ref',
+          size: { width: 1, height: 1 },
           id: 'file-shot',
           capturedAt: 1710000000000,
           mimeType: 'image/png',

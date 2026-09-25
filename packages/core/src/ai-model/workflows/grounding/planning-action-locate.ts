@@ -36,19 +36,10 @@ async function buildPlanningTapLocatorPlanOptions(
     ...options,
     context: {
       ...context,
-      screenshot: locateImage.image
-        ? ScreenshotItem.fromImage(
-            locateImage.image,
-            context.screenshot.capturedAt,
-          )
-        : ScreenshotItem.create(
-            locateImage.imageBase64,
-            context.screenshot.capturedAt,
-          ),
-      shotSize: {
-        width: locateImage.width,
-        height: locateImage.height,
-      },
+      screenshot: ScreenshotItem.fromImage(
+        locateImage.image,
+        context.screenshot.capturedAt,
+      ),
     },
     actionSpace: planningActionLocatorActionSpace,
     conversationHistory: new ConversationHistory(),

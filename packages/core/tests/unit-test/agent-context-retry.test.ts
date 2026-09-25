@@ -27,7 +27,6 @@ const fakeUIContext = {
     'data:image/png;base64,iVBORw0KGgoAAAAA',
     Date.now(),
   ),
-  shotSize: { width: 1280, height: 720 },
   shrunkShotToLogicalRatio: 1,
 } as unknown as UIContext;
 

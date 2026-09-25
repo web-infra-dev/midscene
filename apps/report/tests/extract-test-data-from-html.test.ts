@@ -40,6 +40,7 @@ describe('collectStoredReportImages', () => {
                   {
                     screenshot: {
                       type: 'midscene_screenshot_ref',
+                      size: { width: 1, height: 1 },
                       id: 'task-screenshot',
                       capturedAt: 1787630400000,
                       mimeType: 'image/png',

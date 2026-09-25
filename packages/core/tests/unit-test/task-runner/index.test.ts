@@ -12,6 +12,7 @@ import Service from '@/service';
 import { TaskExecutionError } from '@/task-runner';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../../utils';
+import { testPng } from '../test-helpers/image';
 
 // Mock AI service caller
 rs.mock('@/ai-model/service-caller/index', () => ({
@@ -66,14 +67,10 @@ const insightFindTask = (shouldThrow?: boolean) => {
 };
 
 const fakeUIContextBuilder = async () => {
-  const screenshot = ScreenshotItem.create(
-    'data:image/png;base64,iVBORw0KGgoAAAAA',
-    Date.now(),
-  );
+  const screenshot = ScreenshotItem.create(testPng(100, 100), Date.now());
   return {
     screenshot,
     tree: { node: null, children: [] },
-    shotSize: { width: 0, height: 0 },
     shrunkShotToLogicalRatio: 1,
   } as unknown as UIContext;
 };

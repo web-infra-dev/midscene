@@ -4,12 +4,29 @@ import { join } from 'node:path';
 import type { ScreenshotItem } from '@/screenshot-item';
 import { ExecutionDump, type ReportMeta } from '@/types';
 import sharp from 'sharp';
+import { testPng } from './image';
 
 /** Create a valid-looking image data URL with a predictable payload size. */
 export function fakeBase64(
   sizeBytes: number,
   format: 'png' | 'jpeg' | 'webp' = 'png',
 ): string {
+  if (format === 'png') return testPng(100, 100, 'A'.repeat(sizeBytes));
+  if (format === 'jpeg') {
+    const image = Buffer.from(
+      '/9j/4AAQSkZJRgABAgEASABIAAD/4QDKRXhpZgAATU0AKgAAAAgABgESAAMAAAABAAEAAAEaAAUAAAABAAAAVgEbAAUAAAABAAAAXgEoAAMAAAABAAIAAAITAAMAAAABAAEAAIdpAAQAAAABAAAAZgAAAAAAAABIAAAAAQAAAEgAAAABAAeQAAAHAAAABDAyMjGRAQAHAAAABAECAwCgAAAHAAAABDAxMDCgAQADAAAAAQABAACgAgAEAAAAAQAAAAKgAwAEAAAAAQAAAAKkBgADAAAAAQAAAAAAAAAAAAD/wAARCAACAAIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9sAQwABAQEBAQECAQECAwICAgMEAwMDAwQFBAQEBAQFBgUFBQUFBQYGBgYGBgYGBwcHBwcHCAgICAgJCQkJCQkJCQkJ/9sAQwEBAQECAgIEAgIECQYFBgkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJ/90ABAAB/9oADAMBAAIRAxEAPwD+/iiiigD/2Q==',
+      'base64',
+    );
+    const chunks = [image.subarray(0, 2)];
+    for (let remaining = sizeBytes; remaining > 0; remaining -= 65533) {
+      const body = Buffer.alloc(Math.min(remaining, 65533), 65);
+      const header = Buffer.from([0xff, 0xfe, 0, 0]);
+      header.writeUInt16BE(body.length + 2, 2);
+      chunks.push(header, body);
+    }
+    chunks.push(image.subarray(2));
+    return `data:image/jpeg;base64,${Buffer.concat(chunks).toString('base64')}`;
+  }
   const signature = {
     png: 'iVBORw0KGgoAAAAA',
     jpeg: '/9j/4AAQSkZJRgAB',
@@ -40,7 +57,6 @@ export function createExecution(
     param: { prompt: `task-${index}` },
     uiContext: {
       screenshot,
-      shotSize: { width: 1920, height: 1080 },
       shrunkShotToLogicalRatio: 1,
     },
     executor: async () => undefined,

@@ -14,6 +14,7 @@ import type { UIContext } from '@/types';
 import { UITarsModelVersion } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../../common';
+import { testPng } from '../../test-helpers/image';
 
 import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
   rstest: 'importActual',
@@ -25,14 +26,7 @@ rs.mock('@/ai-model/service-caller/index', () => ({
 }));
 
 const context: UIContext = {
-  screenshot: ScreenshotItem.create(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
-    0,
-  ) as any,
-  shotSize: {
-    width: 1000,
-    height: 800,
-  },
+  screenshot: ScreenshotItem.create(testPng(1000, 800), 0) as any,
   shrunkShotToLogicalRatio: 1,
 };
 

@@ -44,7 +44,7 @@ describe('commonContextParser screenshotShrinkFactor', () => {
     const result = await commonContextParser(mockInterface, {});
 
     expect(await imageInfoOfBase64(result.screenshot.base64)).toEqual(
-      result.shotSize,
+      result.screenshot.size,
     );
     expect(result.screenshot.base64).toBe(
       await mockInterface.screenshotBase64(),
@@ -58,9 +58,9 @@ describe('commonContextParser screenshotShrinkFactor', () => {
     const result = await commonContextParser(mockInterface, {});
 
     expect(await imageInfoOfBase64(result.screenshot.base64)).toEqual(
-      result.shotSize,
+      result.screenshot.size,
     );
-    expect(result.shotSize).toEqual({ width: 2400, height: 1200 });
+    expect(result.screenshot.size).toEqual({ width: 2400, height: 1200 });
   });
 
   it('uses screenshotShrinkFactor when configured', async () => {
@@ -72,10 +72,21 @@ describe('commonContextParser screenshotShrinkFactor', () => {
     });
 
     expect(await imageInfoOfBase64(result.screenshot.base64)).toEqual({
-      width: 2400,
-      height: 1200,
+      width: 1200,
+      height: 600,
     });
-    expect(result.shotSize).toEqual({ width: 1200, height: 600 });
+    expect(result.screenshot.size).toEqual({ width: 1200, height: 600 });
+  });
+
+  it('maps coordinates using the actual rounded width', async () => {
+    const device = createMockInterface(10, 10);
+    await setScreenshot(device, { width: 10, height: 10 });
+    const context = await commonContextParser(device, {
+      screenshotShrinkFactor: 3,
+    });
+    expect(context.screenshot.size).toEqual({ width: 3, height: 3 });
+    expect(context.shrunkShotToLogicalRatio).toBe(0.3);
+    expect(1.5 / context.shrunkShotToLogicalRatio).toBe(5);
   });
 
   it('should handle dpr=1 (logical equals physical) with screenshotShrinkFactor', async () => {
@@ -88,10 +99,10 @@ describe('commonContextParser screenshotShrinkFactor', () => {
     });
 
     expect(await imageInfoOfBase64(result.screenshot.base64)).toEqual({
-      width: 1216,
-      height: 2688,
+      width: 608,
+      height: 1344,
     });
-    expect(result.shotSize).toEqual({ width: 608, height: 1344 });
+    expect(result.screenshot.size).toEqual({ width: 608, height: 1344 });
     // dpr=1, shrunkShotToLogicalRatio = 1/2 = 0.5
     // AI coord 304 (middle of 608) -> logical 304/0.5 = 608 (middle of 1216) ✓
     expect(result.shrunkShotToLogicalRatio).toBeCloseTo(0.5, 5);
@@ -105,9 +116,9 @@ describe('commonContextParser screenshotShrinkFactor', () => {
     const result = await commonContextParser(mockInterface, {});
 
     expect(await imageInfoOfBase64(result.screenshot.base64)).toEqual(
-      result.shotSize,
+      result.screenshot.size,
     );
-    expect(result.shotSize).toEqual({ width: 1216, height: 2688 });
+    expect(result.screenshot.size).toEqual({ width: 1216, height: 2688 });
     expect(result.shrunkShotToLogicalRatio).toBeCloseTo(1, 5);
   });
 });

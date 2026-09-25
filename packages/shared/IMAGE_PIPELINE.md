@@ -16,8 +16,8 @@ Omitting output preserves the input format; explicit PNG output is lossless.
 `planImageTransform` validates the same ordered geometry without running a pixel
 decoder or encoder, returning normalized operations and their derived output size.
 Grounding uses that size instead of separately maintaining crop/scale dimensions.
-Model preprocessing checks declared content dimensions against the plan before
-encoding, then appends model padding. Output dimensions are still checked after encoding.
+Output dimensions are checked after encoding. Model preprocessing receives an
+already prepared image and applies only model-specific padding.
 
 Backend implementations own decoder objects, intermediate pixels and final
 encoding. Sharp intermediates are raw RGBA to prevent operation reordering and
@@ -28,25 +28,28 @@ decoding or encoding an image.
 
 The single-encoding guarantee is per pipeline invocation, not across unrelated
 calls. Callers submit a compound operation together, as the grounding and
-deep-description paths do. UIContext retains the original capture; shotSize is
-the coordinate space used by consumers. Context shrinking is composed with
-crop, annotation and model padding before final encoding.
+deep-description paths do. UIContext contains the actual shrunk screenshot;
+screenshot.size defines its coordinate space. Model padding is a separate step,
+which can require another encode after shrinking or cropping. Avoiding that encode
+does not justify a second, planned context size that differs from its pixels.
 
 ## Consumer boundaries
 
 - `captureDeviceScreenshot` prefers an optional byte-native device method and
   adapts existing `screenshotBase64` implementations. Playwright and Puppeteer use
   the byte-native path; other device adapters remain supported without migration.
-- `prepareRawScreenshot` plans context geometry without encoding. Consumers use
-  `prepareContextImage` or `prepareModelImage` to apply shotSize before crop,
-  overlays or padding. Report overlays use this coordinate space independently
-  of the original capture resolution. Do not assume screenshot.size == shotSize.
+- `prepareRawScreenshot` performs user-requested shrinking before constructing
+  UIContext. There is no UIContext.shotSize. Consumers and report overlays use
+  screenshot.size, which matches the encoded pixels. Original capture dimensions
+  remain local to device-coordinate mapping.
 - Core's `prepareImageOutput` owns consumer compression policy: preserve existing
   JPEG/WebP, prefer WebP for PNG. Model preprocessing owns block-alignment rules;
   the image backend receives explicit padding, not model configuration.
 - `ScreenshotItem` stores bytes, writes them directly, and releases them after
   persistence. File/HTML recovery and dump references retain their existing
-  lifecycle. Plain JSON transport exposes Base64, never the internal buffer.
+  lifecycle. Screenshot references include actual dimensions so report layout
+  does not need to load image assets. Cached dimensions survive memory release.
+  Plain JSON transport exposes Base64 and size, never the internal buffer.
 - Observation persistence accepts encoded images directly. Its string overload
   is an input compatibility boundary. Report storage does not inherit model
   compression or mutate the screenshot when preparing model messages.

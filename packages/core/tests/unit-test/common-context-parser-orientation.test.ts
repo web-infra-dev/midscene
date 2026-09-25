@@ -49,7 +49,7 @@ describe('commonContextParser orientation mismatch detection', () => {
 
     expect(result.deprecatedDpr).toBe(3);
     expect(result.shrunkShotToLogicalRatio).toBe(3);
-    expect(result.shotSize).toEqual({ width: 1080, height: 2160 });
+    expect(result.screenshot.size).toEqual({ width: 1080, height: 2160 });
   });
 
   it('should compute correct dpr when logical size and screenshot have same orientation (both landscape)', async () => {
@@ -116,6 +116,6 @@ describe('commonContextParser orientation mismatch detection', () => {
     // shrunkShotToLogicalRatio = dpr / shrinkFactor
     expect(result.shrunkShotToLogicalRatio).toBeCloseTo(expectedDpr / 2, 5);
     // Shot size should be halved
-    expect(result.shotSize).toEqual({ width: 986, height: 494 });
+    expect(result.screenshot.size).toEqual({ width: 986, height: 494 });
   });
 });

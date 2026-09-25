@@ -36,7 +36,6 @@ function options(extra: Record<string, unknown> = {}) {
 const fakeRepresentative = (): UIContext =>
   ({
     screenshot: ScreenshotItem.create(testWebpDataUrl, 9999),
-    shotSize: { width: 2, height: 2 },
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
 
@@ -452,7 +451,6 @@ describe('UIObserver', () => {
         capturePreparedRepresentative: async () =>
           ({
             screenshot: ScreenshotItem.create(shrunkTestJpegDataUrl, 9999),
-            shotSize: { width: 4, height: 3 },
             shrunkShotToLogicalRatio: 1,
           }) as UIContext,
         screenshotShrinkFactor: 2,

@@ -44,12 +44,9 @@ function getTaskCacheInternal(taskCache: TaskCache): TaskCacheInternal {
 }
 
 // Helper function to create mock UIContext with ScreenshotItem
-const createMockUIContext = async (
-  screenshotData: string,
-  shotSize = { width: 1920, height: 1080 },
-) => {
+const createMockUIContext = async (screenshotData: string) => {
   const screenshot = ScreenshotItem.create(screenshotData, Date.now());
-  return { screenshot, shotSize, shrunkShotToLogicalRatio: 1 };
+  return { screenshot, shrunkShotToLogicalRatio: 1 };
 };
 
 const createRuntimeTask = (task: ExecutionTaskApply): ExecutionTask => ({
@@ -117,7 +114,6 @@ describe('bbox locate cache fix', () => {
         const screenshot = ScreenshotItem.create(validBase64Image, Date.now());
         return {
           screenshot,
-          shotSize: { width: 1920, height: 1080 },
           shrunkShotToLogicalRatio: 1,
           tree: {
             id: 'root',

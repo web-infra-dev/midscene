@@ -45,7 +45,6 @@ describe('insight extraction multi-frame context', () => {
       context: {
         screenshot: frames[1],
         screenshotSequence: frames,
-        shotSize: { width: 28, height: 14 },
         shrunkShotToLogicalRatio: 1,
       },
       dataQuery: 'Did the device rotate?',

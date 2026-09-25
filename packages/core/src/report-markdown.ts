@@ -638,7 +638,7 @@ function renderExecution(
       `- Cost(ms): ${typeof time.cost === 'number' ? time.cost : 'N/A'}`,
     );
     lines.push(
-      `- Screen size: ${formatSize(task.uiContext?.shotSize) || 'N/A'}`,
+      `- Screen size: ${formatSize(task.uiContext?.screenshot?.size) || 'N/A'}`,
     );
 
     if (task.subType === 'Locate') {

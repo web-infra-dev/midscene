@@ -1,5 +1,5 @@
+import { prepareImageOutput } from '@/image-output';
 import type { Rect, Size, UIContext } from '@/types';
-import { planImageTransform } from '@midscene/shared/img';
 import type { PixelLocateResult } from '../../shared/model-locate-result';
 import type { SearchAreaConfig } from './types';
 
@@ -96,7 +96,7 @@ export async function buildSearchAreaConfig(options: {
 }): Promise<SearchAreaConfig> {
   const { context, baseRect } = options;
   const scaleRatio = 2;
-  const sectionRect = expandSearchArea(baseRect, context.shotSize);
+  const sectionRect = expandSearchArea(baseRect, context.screenshot.size);
 
   const left = Math.trunc(sectionRect.left);
   const top = Math.trunc(sectionRect.top);
@@ -107,8 +107,7 @@ export async function buildSearchAreaConfig(options: {
     height: Math.trunc(sectionRect.top + sectionRect.height) - top,
   };
   const image = context.screenshot.image;
-  const plan = planImageTransform(image, [
-    { type: 'resize', ...context.shotSize },
+  const prepared = await prepareImageOutput(image, [
     { type: 'crop', rect },
     {
       type: 'resize',
@@ -119,9 +118,7 @@ export async function buildSearchAreaConfig(options: {
   return {
     sourceRect: sectionRect,
     image: {
-      image,
-      operations: plan.operations,
-      ...plan.size,
+      image: prepared,
     },
     mapping: {
       offset: {

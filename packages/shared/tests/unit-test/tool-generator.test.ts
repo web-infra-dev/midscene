@@ -1182,6 +1182,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
     const progressScreenshot = (id: string) => ({
       toSerializable: () => ({
         type: 'midscene_screenshot_ref',
+        size: { width: 1, height: 1 },
         id,
         storage: 'file',
         path: `./screenshots/${id}.png`,
@@ -1200,6 +1201,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         screenshot: {
           toSerializable: () => ({
             type: 'midscene_screenshot_ref',
+            size: { width: 1, height: 1 },
             id: 'shot-1',
             storage: 'file',
             path: './screenshots/shot-1.png',
@@ -1284,6 +1286,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         screenshot: {
           toSerializable: () => ({
             type: 'midscene_screenshot_ref',
+            size: { width: 1, height: 1 },
             id: 'shot-2',
             storage: 'file',
             path: './screenshots/shot-2.png',
@@ -1326,6 +1329,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         screenshot: {
           toSerializable: () => ({
             type: 'midscene_screenshot_ref',
+            size: { width: 1, height: 1 },
             id: 'shot-3',
             storage: 'file',
             path: './screenshots/shot-3.png',
@@ -1601,6 +1605,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         screenshot: {
           toSerializable: () => ({
             type: 'midscene_screenshot_ref',
+            size: { width: 1, height: 1 },
             id: 'failed-shot',
             storage: 'file',
             path: './screenshots/failed-shot.png',
@@ -1632,6 +1637,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
               screenshot: {
                 toSerializable: () => ({
                   type: 'midscene_screenshot_ref',
+                  size: { width: 1, height: 1 },
                   id: 'failed-shot',
                   storage: 'file',
                   path: './screenshots/failed-shot.png',
@@ -1723,6 +1729,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
       rawBase64: inlineScreenshotBytes.toString('base64'),
       toSerializable: () => ({
         type: 'midscene_screenshot_ref',
+        size: { width: 1, height: 1 },
         id: 'inline-shot-1',
         capturedAt: 1000,
         mimeType: 'image/png',
@@ -1834,6 +1841,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
           screenshot: {
             toSerializable: () => ({
               type: 'midscene_screenshot_ref',
+              size: { width: 1, height: 1 },
               id: 'shot-1',
               storage: 'file',
               path: './screenshots/shot-1.png',

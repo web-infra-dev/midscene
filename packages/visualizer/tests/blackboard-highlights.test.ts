@@ -6,14 +6,14 @@ import { Blackboard } from '../src/component/blackboard';
 import { normalizeBlackboardHighlights } from '../src/component/blackboard/highlights';
 
 describe('blackboard highlights', () => {
-  it('uses context coordinates for both the original-resolution image and overlays', () => {
+  it('uses actual screenshot dimensions for the image and overlays', () => {
     const html = renderToStaticMarkup(
       createElement(Blackboard, {
         uiContext: {
           screenshot: {
-            base64: 'data:image/png;base64,original-8x5',
+            base64: 'data:image/png;base64,prepared-4x3',
+            size: { width: 4, height: 3 },
           } as UIContext['screenshot'],
-          shotSize: { width: 4, height: 3 },
           shrunkShotToLogicalRatio: 0.5,
         },
         highlightRect: { left: 1, top: 1, width: 2, height: 1 },
@@ -59,9 +59,10 @@ describe('blackboard highlights', () => {
     const html = renderToStaticMarkup(
       createElement(Blackboard, {
         uiContext: {
-          shotSize: { width: 1080, height: 2400 },
-          screenshot:
-            'data:image/png;base64,mock' as unknown as UIContext['screenshot'],
+          screenshot: {
+            base64: 'data:image/png;base64,mock',
+            size: { width: 1080, height: 2400 },
+          } as UIContext['screenshot'],
           shrunkShotToLogicalRatio: 1,
         },
         highlightElements: [

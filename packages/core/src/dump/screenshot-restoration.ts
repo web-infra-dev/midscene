@@ -9,6 +9,7 @@ import {
 export type StoredImageReferenceResolver = (ref: StoredImageRef) => string;
 
 export interface RestoredScreenshotReference {
+  readonly size: ScreenshotRef['size'];
   readonly base64: string;
   readonly capturedAt?: number;
   readonly sourceRef: ScreenshotRef;
@@ -30,7 +31,7 @@ export function createInlineImageResolver(
 /**
  * Recursively restore image references in parsed data.
  * Replaces screenshot refs with lazy
- * { get base64() {...}, capturedAt, sourceRef } objects, and reference-image
+ * { get base64() {...}, size, capturedAt, sourceRef } objects, and reference-image
  * URL refs with their URL strings. Screenshot refs are resolved on first use.
  */
 export function restoreImageReferences(
@@ -53,6 +54,7 @@ export function restoreImageReferences(
 
     const refLike = normalizeScreenshotRef(data);
     if (refLike) {
+      const size = Object.freeze({ ...refLike.size });
       let resolved: string | null = null;
       const lazy: RestoredScreenshotReference = Object.defineProperties(
         {} as RestoredScreenshotReference,
@@ -67,10 +69,17 @@ export function restoreImageReferences(
             enumerable: true,
           },
           capturedAt: { value: refLike.capturedAt, enumerable: true },
-          sourceRef: { value: { ...refLike }, enumerable: true },
+          size: { value: size, enumerable: true },
+          sourceRef: { value: { ...refLike, size }, enumerable: true },
         },
       );
       return lazy;
+    }
+
+    if ((data as { type?: unknown }).type === 'midscene_screenshot_ref') {
+      throw new Error(
+        'Invalid screenshot reference: expected valid identity, format, storage and dimensions',
+      );
     }
 
     const result: Record<string, unknown> = {};
@@ -85,7 +94,7 @@ export function restoreImageReferences(
 
 /**
  * Restore file-backed report image references to browser-resolvable URLs.
- * Serialized paths are authoritative; legacy inline refs use the standard
+ * Serialized paths are authoritative; inline refs use the standard
  * screenshots directory and the MIME-derived extension.
  */
 export function restoreReportImageReferences(

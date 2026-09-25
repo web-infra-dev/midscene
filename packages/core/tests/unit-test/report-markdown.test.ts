@@ -5,6 +5,7 @@ import {
 } from '../../src/report-markdown';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import type { IExecutionDump, IReportActionDump } from '../../src/types';
+import { testPng } from './test-helpers/image';
 
 function createTask(overrides: Record<string, unknown> = {}) {
   return {
@@ -45,6 +46,7 @@ describe('report-markdown', () => {
               ts: 1710000000050,
               screenshot: {
                 type: 'midscene_screenshot_ref',
+                size: { width: 1, height: 1 },
                 id: 'webp-recorder',
                 capturedAt: 1710000000050,
                 mimeType: 'image/webp',
@@ -76,10 +78,7 @@ describe('report-markdown', () => {
   });
 
   it('handles single execution markdown with screenshot file links', () => {
-    const screenshot = ScreenshotItem.create(
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
-      1710000000000,
-    );
+    const screenshot = ScreenshotItem.create(testPng(1280, 720), 1710000000000);
     const execution: IExecutionDump = {
       logTime: 1710000000000,
       name: 'single execution',
@@ -87,7 +86,6 @@ describe('report-markdown', () => {
         createTask({
           uiContext: {
             screenshot,
-            shotSize: { width: 1280, height: 720 },
           },
           recorder: [
             {
@@ -97,6 +95,7 @@ describe('report-markdown', () => {
               description: 'Post-click state',
               screenshot: {
                 type: 'midscene_screenshot_ref',
+                size: { width: 1, height: 1 },
                 id: 'shot-recorder-single',
                 capturedAt: 1710000000050,
                 mimeType: 'image/png',
@@ -148,12 +147,12 @@ describe('report-markdown', () => {
                 screenshot: {
                   type: 'midscene_screenshot_ref',
                   id: 'shot-exec-1',
+                  size: { width: 1440, height: 900 },
                   capturedAt: 1710000000000,
                   mimeType: 'image/png',
                   storage: 'file',
                   path: './screenshots/shot-exec-1.png',
                 },
-                shotSize: { width: 1440, height: 900 },
               },
               recorder: [
                 {
@@ -162,6 +161,7 @@ describe('report-markdown', () => {
                   timing: 'record-step-1',
                   screenshot: {
                     type: 'midscene_screenshot_ref',
+                    size: { width: 1, height: 1 },
                     id: 'shot-recorder-exec-1',
                     capturedAt: 1710000000060,
                     mimeType: 'image/png',
@@ -189,12 +189,12 @@ describe('report-markdown', () => {
                 screenshot: {
                   type: 'midscene_screenshot_ref',
                   id: 'shot-exec-2',
+                  size: { width: 1024, height: 768 },
                   capturedAt: 1710000000200,
                   mimeType: 'image/png',
                   storage: 'file',
                   path: './screenshots/shot-exec-2.png',
                 },
-                shotSize: { width: 1024, height: 768 },
               },
             }),
           ],
@@ -220,10 +220,7 @@ describe('report-markdown', () => {
   });
 
   it('uses timing fallback fields and custom screenshot directory', () => {
-    const screenshot = ScreenshotItem.create(
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
-      1710000000000,
-    );
+    const screenshot = ScreenshotItem.create(testPng(800, 600), 1710000000000);
 
     const execution: IExecutionDump = {
       logTime: 1710000000000,
@@ -237,7 +234,6 @@ describe('report-markdown', () => {
           },
           uiContext: {
             screenshot,
-            shotSize: { width: 800, height: 600 },
           },
         }),
       ],
@@ -265,6 +261,7 @@ describe('report-markdown', () => {
               capturedAt: 1710000000000,
               sourceRef: {
                 type: 'midscene_screenshot_ref',
+                size: { width: 1, height: 1 },
                 id: 'original-shot',
                 capturedAt: 1710000000000,
                 mimeType: 'image/png',
@@ -451,7 +448,6 @@ describe('report-markdown', () => {
               base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
               capturedAt: 1710000000000,
             },
-            shotSize: { width: 800, height: 600 },
           },
           recorder: [
             {

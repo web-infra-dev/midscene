@@ -66,7 +66,7 @@ All agents share these base options:
   - Using Python: `python -m http.server` or `python3 -m http.server`
   Then access the report via `http://localhost:3000` (or the port shown in the terminal).
 - `screenshotShrinkFactor: number` — Factor used to reduce screenshot dimensions before sending them to the AI model. Default: `1`, which preserves the original size. A value of `2` halves both dimensions and reduces the image area to one quarter. Choose a value that balances image clarity and token usage.
-  - Regular task reports retain the original capture. In `UIContext`, `shotSize` describes the model coordinate space and can differ from the screenshot's encoded dimensions. Custom image consumers must apply this size before cropping or drawing annotations. Retaining the original capture can make reports larger than storing only a shrunk screenshot; observation recordings have their own frame preparation policy.
+  - User-requested shrinking happens before `UIContext` is created. Its `screenshot.size` matches the encoded image and defines the coordinate space for cropping and annotations; there is no separate `shotSize`. Regular task reports store this prepared screenshot. Model-specific padding is applied separately and does not change the context screenshot.
   - On mobile devices, `2` often reduces token usage while preserving enough detail. Values above `3` may make screenshots too blurry for reliable model interpretation.
   - For browser automation, prefer Puppeteer or Playwright's `deviceScaleFactor` when possible. Keep `screenshotShrinkFactor` low for highly detailed pages.
 

@@ -23,7 +23,7 @@ export function createUiTarsPlanner(
     parseResponse: (rawResponse, { options }) => {
       return parseUiTarsPlanningResponse(
         rawResponse,
-        options.context.shotSize,
+        options.context.screenshot.size,
         uiTarsModelVersion,
       );
     },

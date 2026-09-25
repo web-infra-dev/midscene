@@ -6,6 +6,8 @@ import {
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import { testPng } from './test-helpers/image';
+import { fakeBase64 } from './test-helpers/report-generator';
 
 rs.mock('openai');
 
@@ -27,9 +29,7 @@ function createMockInterface() {
 }
 
 function createLargeBase64DataUri(byteSize: number): string {
-  const signature = 'iVBORw0KGgoAAAAA';
-  const payload = `${signature}${'A'.repeat(Math.max(0, byteSize - signature.length))}`;
-  return `data:image/png;base64,${payload}`;
+  return testPng(100, 100, 'A'.repeat(byteSize));
 }
 
 describe('Agent dump update screenshot serialization', () => {
@@ -127,8 +127,7 @@ describe('Agent dump update screenshot serialization', () => {
 
     (agent as any).reportGenerator = reportGeneratorStub;
 
-    const providedScreenshot =
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB';
+    const providedScreenshot = testPng();
     await agent.recordToReport('snapshot', {
       screenshotBase64: providedScreenshot,
     });
@@ -163,8 +162,11 @@ describe('Agent dump update screenshot serialization', () => {
 
     (agent as any).reportGenerator = reportGeneratorStub;
 
-    const beforeScreenshot = 'iVBORw0KGgoAAAAA';
-    const afterScreenshot = 'data:image/jpg;base64,/9j/4AAQSkZJRgAB';
+    const beforeScreenshot = testPng().split(',')[1];
+    const afterScreenshot = fakeBase64(100, 'jpeg').replace(
+      'image/jpeg',
+      'image/jpg',
+    );
     await agent.recordToReport('comparison', {
       content: 'before and after state',
       screenshots: [
@@ -190,8 +192,8 @@ describe('Agent dump update screenshot serialization', () => {
       'After click',
     ]);
     expect(task.recorder?.map((item) => item.screenshot?.base64)).toEqual([
-      'data:image/png;base64,iVBORw0KGgoAAAAA',
-      'data:image/jpeg;base64,/9j/4AAQSkZJRgAB',
+      testPng(),
+      fakeBase64(100, 'jpeg'),
     ]);
     expect(task.recorder?.[0].ts ?? 0).toBeLessThan(task.recorder?.[1].ts ?? 0);
 

@@ -6,7 +6,9 @@ import { AiLocateElement } from '@/ai-model/workflows/grounding';
 import type { LocateOptions } from '@/ai-model/workflows/grounding/types';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
+import { EncodedImage } from '@midscene/shared/img';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import { testPng } from '../../test-helpers/image';
 
 const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
@@ -48,14 +50,7 @@ const autoGlmAdapter = new ResolvedModelAdapter(
 );
 
 const context: UIContext = {
-  screenshot: ScreenshotItem.create(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
-    0,
-  ) as any,
-  shotSize: {
-    width: 1000,
-    height: 800,
-  },
+  screenshot: ScreenshotItem.create(testPng(1000, 800), 0) as any,
   shrunkShotToLogicalRatio: 1,
 };
 
@@ -178,10 +173,7 @@ describe('Auto-GLM custom locate', () => {
           height: 200,
         },
         image: {
-          imageBase64:
-            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=',
-          width: 300,
-          height: 200,
+          image: EncodedImage.fromBase64(testPng(300, 200)),
         },
         mapping: {
           offset: {
@@ -202,7 +194,7 @@ describe('Auto-GLM custom locate', () => {
             expect.objectContaining({
               type: 'image_url',
               image_url: expect.objectContaining({
-                url: expect.stringMatching(/^data:image\/webp;base64,/),
+                url: testPng(300, 200),
               }),
             }),
           ]),

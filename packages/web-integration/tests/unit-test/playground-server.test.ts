@@ -12,7 +12,6 @@ describe('Playground Server', () => {
   let serverBase: string;
   beforeAll(async () => {
     const page = new StaticPage({
-      shotSize: { width: 800, height: 600 },
       shrunkShotToLogicalRatio: 1,
       screenshot: createPlaceholderScreenshot(),
     });
@@ -62,7 +61,6 @@ describe('Playground Server', () => {
       },
       body: JSON.stringify({
         context: {
-          shotSize: { width: 800, height: 600 },
           shrunkShotToLogicalRatio: 1,
           screenshot: serializedScreenshot,
         },
