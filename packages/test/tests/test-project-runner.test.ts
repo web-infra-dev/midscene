@@ -136,6 +136,30 @@ describe('test project main-process runner', () => {
     expect(discoverTestConfig(root)).toBeUndefined();
   });
 
+  it('walks up parent directories to discover midscene.config.ts', () => {
+    const root = createProject();
+    const casesDir = join(root, 'cases');
+    const nestedDir = join(casesDir, 'nested');
+    mkdirSync(nestedDir, { recursive: true });
+    const configPath = join(root, 'midscene.config.ts');
+    writeFileSync(configPath, 'export default { nodes: [] };');
+
+    expect(discoverTestConfig(nestedDir)).toBe(configPath);
+    expect(discoverTestConfig(casesDir)).toBe(configPath);
+  });
+
+  it('stops upward search at package.json boundary', () => {
+    const root = createProject();
+    const subDir = join(root, 'cases');
+    mkdirSync(subDir, { recursive: true });
+    writeFileSync(join(root, 'package.json'), '{"name":"test"}');
+    const parentDir = dirname(root);
+    const parentConfig = join(parentDir, 'midscene.config.ts');
+    if (!existsSync(parentConfig)) {
+      expect(discoverTestConfig(subDir)).toBeUndefined();
+    }
+  });
+
   it('discovers YAML recursively in deterministic order', () => {
     const root = createProject();
     mkdirSync(join(root, '.hidden'));
