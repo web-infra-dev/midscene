@@ -65,6 +65,30 @@ describe('recordAndReleaseScreenshotSequence', () => {
     expect(task.recorder?.[2]).toBe(existing);
   });
 
+  it('records focused change frames when an insight generated them', () => {
+    const uiContext = makeUiContext(9);
+    uiContext.screenshotSequenceFocus = [
+      ScreenshotItem.create('data:image/png;base64,focus-1', 1000),
+      ScreenshotItem.create('data:image/png;base64,focus-2', 1001),
+      ScreenshotItem.create('data:image/png;base64,focus-3', 1002),
+    ];
+    uiContext.screenshotSequenceFocusFrameIndices = [0, 4, 8];
+    const task = makeTask();
+
+    recordAndReleaseScreenshotSequence(task, uiContext);
+
+    expect(task.recorder).toHaveLength(4);
+    expect(task.recorder?.map((item) => item.description)).toEqual([
+      'Observed full-screen baseline — source frame 1/9',
+      'Observed candidate change regions — source frame 1/9',
+      'Observed candidate change regions — source frame 5/9',
+      'Observed candidate change regions — source frame 9/9',
+    ]);
+    expect(uiContext.screenshotSequence).toBeUndefined();
+    expect(uiContext.screenshotSequenceFocus).toBeUndefined();
+    expect(uiContext.screenshotSequenceFocusFrameIndices).toBeUndefined();
+  });
+
   it('is a no-op when there is no screenshot sequence', () => {
     const task = makeTask();
     const uiContext = {

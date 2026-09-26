@@ -18,6 +18,7 @@ describe('dump serialization drops screenshotSequence', () => {
   const FRAME_A = 'data:image/png;base64,iVBORw0KGgoAAAA-FRAME-A';
   const FRAME_B = 'data:image/png;base64,iVBORw0KGgoAAAA-FRAME-B';
   const FRAME_C = 'data:image/png;base64,iVBORw0KGgoAAAA-FRAME-C';
+  const FOCUS_FRAME = 'data:image/png;base64,iVBORw0KGgoAAAA-FOCUS';
 
   const buildExecutionDumpData = (): IExecutionDump => {
     const representative = ScreenshotItem.create(FRAME_C, 3);
@@ -39,6 +40,8 @@ describe('dump serialization drops screenshotSequence', () => {
               ScreenshotItem.create(FRAME_B, 2),
               representative,
             ],
+            screenshotSequenceFocus: [ScreenshotItem.create(FOCUS_FRAME, 2)],
+            screenshotSequenceFocusFrameIndices: [1],
             shotSize: { width: 100, height: 100 },
             shrunkShotToLogicalRatio: 1,
           },
@@ -54,6 +57,7 @@ describe('dump serialization drops screenshotSequence', () => {
     // The early frames must not leak their base64 either.
     expect(serialized).not.toContain('FRAME-A');
     expect(serialized).not.toContain('FRAME-B');
+    expect(serialized).not.toContain('FOCUS');
     // The representative screenshot is still serialized (as a ref).
     expect(serialized).toContain('screenshot');
   });
@@ -74,6 +78,7 @@ describe('dump serialization drops screenshotSequence', () => {
     // dropped so only the representative frame is inlined.
     expect(serialized).not.toContain('FRAME-A');
     expect(serialized).not.toContain('FRAME-B');
+    expect(serialized).not.toContain('FOCUS');
     expect(serialized).toContain('FRAME-C');
   });
 });
