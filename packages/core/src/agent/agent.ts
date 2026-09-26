@@ -732,10 +732,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * Frames come from the device's continuous frame source when available
    * (scrcpy on Android, WDA MJPEG on iOS — both opt-in; CDP screencast on
    * web) and fall back to plain screenshots otherwise. Sampling is capped at
-   * 5fps, the buffer is bounded and self-thinning, decoding is deferred to
-   * the end, and all buffered frames (up to `maxFrames`) are sent to
-   * the model at insight time. To control token cost for long windows,
-   * increase `intervalMs` or decrease `maxFrames`.
+   * 5fps, the buffer is bounded and self-thinning, and decoding is deferred to
+   * the end. At insight time, Midscene analyzes the captured frames and sends
+   * at most eight evidence images, emphasizing localized changes while keeping
+   * full-screen baseline and final-state context.
    * Awaiting `startObserving()` guarantees one baseline frame is captured
    * before your next action.
    */

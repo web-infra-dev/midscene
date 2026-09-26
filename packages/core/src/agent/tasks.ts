@@ -1193,10 +1193,9 @@ export class TaskExecutor {
  *
  * When a UIObservation insight runs, the observed frames live on
  * `uiContext.screenshotSequence` only as a transient model input. This attaches
- * them to the task recorder so the report renders the full sequence the model
- * saw (the report timeline builds one screenshot per recorder item), then drops
- * the field from the UIContext so its base64 is not retained twice for the
- * lifetime of the dump.
+ * them to the task recorder so the report renders the bounded evidence the
+ * model saw, then drops the transient fields from the UIContext so their base64
+ * is not retained twice for the lifetime of the dump.
  *
  * The last frame is the representative `uiContext.screenshot`, already shown in
  * the report, so only the earlier frames are recorded to avoid duplication.
@@ -1210,14 +1209,23 @@ export function recordAndReleaseScreenshotSequence(
 ): void {
   const frames = uiContext?.screenshotSequence;
   if (frames && frames.length > 1) {
+    const focusFrames = uiContext?.screenshotSequenceFocus;
+    const focusFrameIndices = uiContext?.screenshotSequenceFocusFrameIndices;
+    const reportFrames = focusFrames?.length
+      ? [frames[0], ...focusFrames]
+      : frames.slice(0, -1);
     const recorderItems: ExecutionRecorderItem[] = [];
-    for (let i = 0; i < frames.length - 1; i++) {
-      const frame = frames[i];
+    for (let i = 0; i < reportFrames.length; i++) {
+      const frame = reportFrames[i];
       recorderItems.push({
         type: 'screenshot',
         ts: frame.capturedAt,
         screenshot: frame,
-        description: `Observed frame ${i + 1}/${frames.length}`,
+        description: focusFrames?.length
+          ? i === 0
+            ? `Observed full-screen baseline — source frame 1/${frames.length}`
+            : `Observed candidate change regions — source frame ${(focusFrameIndices?.[i - 1] ?? i - 1) + 1}/${frames.length}`
+          : `Observed frame ${i + 1}/${frames.length}`,
         timing: 'observed-frame',
       });
     }
@@ -1231,5 +1239,11 @@ export function recordAndReleaseScreenshotSequence(
   }
   if (uiContext?.screenshotSequence) {
     uiContext.screenshotSequence = undefined;
+  }
+  if (uiContext?.screenshotSequenceFocus) {
+    uiContext.screenshotSequenceFocus = undefined;
+  }
+  if (uiContext?.screenshotSequenceFocusFrameIndices) {
+    uiContext.screenshotSequenceFocusFrameIndices = undefined;
   }
 }

@@ -1075,7 +1075,7 @@ await observation.dispose();
 
 - Midscene 会优先使用连续帧源。Android 使用 scrcpy（`scrcpyConfig.enabled`），iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`），Web 使用 CDP screencast。无法使用连续帧源时，Midscene 会定时截图。移动端此时的采样频率较低。
 - data URL 形式的帧会在采样时写入文件。`UIObserver` 不会把所有图片长期保存在内存中。其他帧会在录制停止时分批解码并保存。查询或断言时，Midscene 才读取图片。
-- 模型会接收最多 `maxFrames` 帧，以及最后一张截图。增大 `intervalMs` 可以减少采样帧，减小 `maxFrames` 可以限制帧数。观察帧会显示在报告时间线中，并带有 `Observed` 标签。
+- Midscene 会分析最多 `maxFrames` 个采集帧，但最多向模型发送 8 张证据图。检测到局部变化时，会发送最多 6 张放大的变化区域网格，以及首帧和最终状态的全屏图；否则会均匀抽取最多 8 张全屏图。观察证据会显示在报告时间线中，并带有 `Observed` 标签。
 - iOS 的观察帧来自 MJPEG 流，分辨率和质量较低。最后一张截图仍使用完整质量。
 
 #### `aiWaitFor()` {#agentaiwaitfor}

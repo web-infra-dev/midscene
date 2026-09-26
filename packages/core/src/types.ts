@@ -174,6 +174,15 @@ export abstract class UIContext {
   abstract screenshotSequence?: ScreenshotItem[];
 
   /**
+   * Enlarged copies of {@link screenshotSequence} around the strongest visual
+   * change. Generated lazily for observation insights and report evidence.
+   */
+  abstract screenshotSequenceFocus?: ScreenshotItem[];
+
+  /** Original sequence indices for {@link screenshotSequenceFocus}. */
+  abstract screenshotSequenceFocusFrameIndices?: number[];
+
+  /**
    * screenshot size after shrinking
    */
   abstract shotSize: Size;
