@@ -233,6 +233,27 @@ For remote devices, you also need to set up port forwarding accordingly:
 iproxy 8100 8100 YOUR_DEVICE_ID
 ```
 
+If a gateway exposes WDA under a path prefix, set the full API base URL instead:
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+});
+```
+
+Midscene appends `/status`, `/session`, and session commands to this base URL. Set either `wdaBaseUrl` or `wdaHost`/`wdaPort`; combining them throws an error.
+
+`wdaBaseUrl` only configures the WDA API. By default, the native MJPEG stream still connects to `http://localhost:9100` when using a gateway. If the gateway also exposes a stream, set its complete URL separately:
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+  wdaMjpegUrl: 'https://gateway.example/device/mjpeg',
+});
+```
+
+`wdaMjpegUrl` accepts an HTTP(S) stream URL with its own host, port, path, and query. Credentials and fragments in the URL are rejected. It cannot be combined with `wdaMjpegPort`. For a local port forward, leave `wdaMjpegUrl` unset and use `wdaMjpegPort` (default `9100`). Playground falls back to screenshot polling if the native stream is unavailable.
+
 ### How to get smoother live screen preview in Playground?
 
 Playground's screen preview supports two modes:

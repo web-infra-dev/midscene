@@ -88,6 +88,45 @@ describe('IOSDevice MJPEG frame source opt-in', () => {
     expect(b.mjpegStreamUrl).toBe('http://127.0.0.1:9102');
   });
 
+  it('keeps a gateway API URL separate from the default local MJPEG stream', () => {
+    const device = new IOSDevice({
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+    });
+    expect(device.mjpegStreamUrl).toBe('http://localhost:9100');
+  });
+
+  it('uses an independent HTTPS MJPEG stream URL with a path and query', () => {
+    const device = new IOSDevice({
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+      wdaMjpegUrl: 'https://stream.example:8443/code/mjpeg?token=secret',
+      wdaMjpegFrameSource: { enabled: true },
+    });
+    expect(device.mjpegStreamUrl).toBe(
+      'https://stream.example:8443/code/mjpeg?token=secret',
+    );
+    expect(device.openFrameSource).toBeTypeOf('function');
+  });
+
+  it('rejects conflicting or invalid MJPEG stream options without revealing the URL', () => {
+    const secretUrl = 'https://stream.example/private/mjpeg?token=secret';
+    expect(
+      () => new IOSDevice({ wdaMjpegUrl: secretUrl, wdaMjpegPort: 9100 }),
+    ).toThrow(/wdaMjpegUrl cannot be used with wdaMjpegPort/);
+    for (const wdaMjpegUrl of [
+      'ftp://stream.example/mjpeg',
+      'https://user:password@stream.example/mjpeg',
+      'https://stream.example/mjpeg#',
+      'not-a-url',
+    ]) {
+      expect(() => new IOSDevice({ wdaMjpegUrl })).toThrow();
+    }
+    try {
+      new IOSDevice({ wdaMjpegUrl: secretUrl, wdaMjpegPort: 9100 });
+    } catch (error) {
+      expect(String(error)).not.toContain('secret');
+    }
+  });
+
   it('wraps the MJPEG stream as a frame source (identity decode, stop tears down)', async () => {
     const device = new IOSDevice({
       wdaMjpegPort: 9123,
@@ -153,6 +192,28 @@ describe('MjpegFrameSource', () => {
       expect(decoded[2]).toBe(0x02);
       source.stop();
     } finally {
+      (globalThis as any).fetch = originalFetch;
+    }
+  });
+
+  it('does not include a signed stream URL in a startup timeout', async () => {
+    const originalFetch = globalThis.fetch;
+    (globalThis as any).fetch = async () =>
+      ({ ok: false, status: 503, body: null }) as Response;
+    let now = 0;
+    const source = new MjpegFrameSource(
+      'https://stream.example/live/mjpeg?token=secret',
+      () => {
+        now += 1000;
+        return now;
+      },
+    );
+    try {
+      await expect(source.ensureStarted(3000)).rejects.toThrow(
+        'no frame received within 3000ms',
+      );
+    } finally {
+      source.stop();
       (globalThis as any).fetch = originalFetch;
     }
   });
