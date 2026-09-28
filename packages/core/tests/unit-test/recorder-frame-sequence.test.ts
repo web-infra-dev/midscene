@@ -67,12 +67,31 @@ describe('recordAndReleaseScreenshotSequence', () => {
 
   it('records focused change frames when an insight generated them', () => {
     const uiContext = makeUiContext(9);
-    uiContext.screenshotSequenceFocus = [
-      ScreenshotItem.create('data:image/png;base64,focus-1', 1000),
-      ScreenshotItem.create('data:image/png;base64,focus-2', 1001),
-      ScreenshotItem.create('data:image/png;base64,focus-3', 1002),
-    ];
-    uiContext.screenshotSequenceFocusFrameIndices = [0, 4, 8];
+    uiContext.screenshotSequenceEvidence = {
+      frames: [
+        {
+          screenshot: ScreenshotItem.create(
+            'data:image/png;base64,focus-1',
+            1000,
+          ),
+          sourceFrameIndex: 0,
+        },
+        {
+          screenshot: ScreenshotItem.create(
+            'data:image/png;base64,focus-2',
+            1001,
+          ),
+          sourceFrameIndex: 4,
+        },
+        {
+          screenshot: ScreenshotItem.create(
+            'data:image/png;base64,focus-3',
+            1002,
+          ),
+          sourceFrameIndex: 8,
+        },
+      ],
+    };
     const task = makeTask();
 
     recordAndReleaseScreenshotSequence(task, uiContext);
@@ -85,8 +104,7 @@ describe('recordAndReleaseScreenshotSequence', () => {
       'Observed candidate change regions — source frame 9/9',
     ]);
     expect(uiContext.screenshotSequence).toBeUndefined();
-    expect(uiContext.screenshotSequenceFocus).toBeUndefined();
-    expect(uiContext.screenshotSequenceFocusFrameIndices).toBeUndefined();
+    expect(uiContext.screenshotSequenceEvidence).toBeUndefined();
   });
 
   it('is a no-op when there is no screenshot sequence', () => {

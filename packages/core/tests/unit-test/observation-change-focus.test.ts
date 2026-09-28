@@ -1,4 +1,5 @@
 import { buildObservationChangeFocus } from '@/agent/observation-change-focus';
+import { selectEvenlySpacedIndices } from '@/agent/observation-frame-selection';
 import { ScreenshotItem } from '@/screenshot-item';
 import { describe, expect, it } from '@rstest/core';
 import sharp from 'sharp';
@@ -62,15 +63,36 @@ describe('buildObservationChangeFocus', () => {
     expect(focus!.rect.left + focus!.rect.width).toBeGreaterThanOrEqual(970);
     expect(focus!.rect.top).toBeLessThanOrEqual(600);
     expect(focus!.rect.top + focus!.rect.height).toBeGreaterThanOrEqual(660);
-    expect(focus!.frames.map((frame) => frame.capturedAt)).toEqual([
-      100, 200, 300,
-    ]);
-    expect(focus!.frameIndices).toEqual([0, 1, 2]);
+    expect(
+      focus!.frames.map(({ screenshot }) => screenshot.capturedAt),
+    ).toEqual([100, 200, 300]);
+    expect(
+      focus!.frames.map(({ sourceFrameIndex }) => sourceFrameIndex),
+    ).toEqual([0, 1, 2]);
     expect(focus!.measurementRects).toHaveLength(focus!.rects.length);
     const metadata = await sharp(
-      Buffer.from(focus!.frames[0].rawBase64, 'base64'),
+      Buffer.from(focus!.frames[0].screenshot.rawBase64, 'base64'),
     ).metadata();
     expect(metadata.width).toBe(960);
+
+    const rendered = await sharp(
+      Buffer.from(focus!.frames[0].screenshot.rawBase64, 'base64'),
+    )
+      .removeAlpha()
+      .raw()
+      .toBuffer();
+    let orangePixelCount = 0;
+    for (let offset = 0; offset < rendered.length; offset += 3) {
+      if (
+        rendered[offset] > 200 &&
+        rendered[offset + 1] > 50 &&
+        rendered[offset + 1] < 180 &&
+        rendered[offset + 2] < 80
+      ) {
+        orangePixelCount += 1;
+      }
+    }
+    expect(orangePixelCount).toBeGreaterThan(100);
   });
 
   it('finds independent changes in distant parts of the screen', async () => {
@@ -146,8 +168,8 @@ describe('buildObservationChangeFocus', () => {
     const focus = await buildObservationChangeFocus(frames);
 
     expect(focus!.frames.length).toBeLessThanOrEqual(6);
-    expect(focus!.frameIndices[0]).toBe(0);
-    expect(focus!.frameIndices.at(-1)).toBe(11);
+    expect(focus!.frames[0].sourceFrameIndex).toBe(0);
+    expect(focus!.frames.at(-1)?.sourceFrameIndex).toBe(11);
   });
 
   it('does not create focus frames for an unchanged sequence', async () => {
@@ -158,5 +180,29 @@ describe('buildObservationChangeFocus', () => {
     ];
 
     await expect(buildObservationChangeFocus(frames)).resolves.toBeUndefined();
+  });
+
+  it('honors cancellation before image analysis starts', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const frames = [
+      await screenshot({ r: 240, g: 240, b: 240 }),
+      await screenshot({ r: 240, g: 240, b: 240 }, true),
+    ];
+
+    await expect(
+      buildObservationChangeFocus(frames, controller.signal),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('selects a bounded sample with both source endpoints', () => {
+    const indices = selectEvenlySpacedIndices(101, 50);
+
+    expect(indices).toHaveLength(50);
+    expect(indices[0]).toBe(0);
+    expect(indices.at(-1)).toBe(100);
+    expect(new Set(indices).size).toBe(50);
+    expect(selectEvenlySpacedIndices(5, 1)).toEqual([0]);
+    expect(selectEvenlySpacedIndices(0, 5)).toEqual([]);
   });
 });

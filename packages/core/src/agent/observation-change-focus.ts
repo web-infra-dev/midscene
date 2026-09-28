@@ -1,25 +1,28 @@
 import { ScreenshotItem } from '@/screenshot-item';
-import type { Rect } from '@/types';
+import type { Rect, ScreenshotSequenceEvidenceFrame } from '@/types';
 import { parseBase64 } from '@midscene/shared/img';
 import { ifInNode } from '@midscene/shared/utils';
 import type sharp from 'sharp';
+import { selectEvenlySpacedIndices } from './observation-frame-selection';
 
-const ANALYSIS_MAX_WIDTH = 768;
-const TILE_SIZE = 16;
-const MIN_CHANGE_SCORE = 4;
-const FOCUS_WIDTH_RATIO = 0.18;
-const FOCUS_HEIGHT_RATIO = 0.15;
-const MIN_FOCUS_WIDTH = 320;
-const MIN_FOCUS_HEIGHT = 200;
-const UPSCALED_FOCUS_WIDTH = 960;
-const MAX_FOCUS_REGIONS = 6;
-const MAX_FOCUS_FRAMES = 6;
-const FOCUS_GRID_COLUMNS = 2;
-const FOCUS_LABEL_HEIGHT = 48;
+const analysisMaxWidth = 768;
+const analysisFrameLimit = 50;
+const tileSize = 16;
+const minimumChangeScore = 4;
+const focusWidthRatio = 0.18;
+const focusHeightRatio = 0.15;
+const minimumFocusWidth = 320;
+const minimumFocusHeight = 200;
+const upscaledFocusWidth = 960;
+const maximumFocusRegions = 6;
+const maximumFocusFrames = 6;
+const focusGridColumns = 2;
+const focusLabelHeight = 64;
+const analysisConcurrency = 4;
+const renderConcurrency = 2;
 
 export interface ObservationChangeFocus {
-  frames: ScreenshotItem[];
-  frameIndices: number[];
+  frames: ScreenshotSequenceEvidenceFrame[];
   rect: Rect;
   rects: Rect[];
   measurementRects: Rect[];
@@ -47,10 +50,21 @@ interface ChangeCandidate {
   measurementRect: Rect;
 }
 
+interface SourceFrame {
+  screenshot: ScreenshotItem;
+  sourceIndex: number;
+}
+
+interface RenderedCrop {
+  buffer: Buffer;
+  height: number;
+}
+
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
   concurrency: number,
   mapper: (item: T, index: number) => Promise<R>,
+  abortSignal?: AbortSignal,
 ): Promise<R[]> {
   const results = new Array<R>(items.length);
   let nextIndex = 0;
@@ -58,6 +72,7 @@ async function mapWithConcurrency<T, R>(
     { length: Math.min(concurrency, items.length) },
     async () => {
       while (nextIndex < items.length) {
+        abortSignal?.throwIfAborted();
         const index = nextIndex++;
         results[index] = await mapper(items[index], index);
       }
@@ -65,6 +80,12 @@ async function mapWithConcurrency<T, R>(
   );
   await Promise.all(workers);
   return results;
+}
+
+function selectAnalysisFrames(screenshots: ScreenshotItem[]): SourceFrame[] {
+  return selectEvenlySpacedIndices(screenshots.length, analysisFrameLimit).map(
+    (sourceIndex) => ({ screenshot: screenshots[sourceIndex], sourceIndex }),
+  );
 }
 
 const screenshotBuffer = (screenshot: ScreenshotItem): Buffer => {
@@ -93,16 +114,18 @@ async function analysisFrame(
 function tileDifference(
   baseline: DecodedAnalysisFrame,
   candidate: DecodedAnalysisFrame,
+  abortSignal?: AbortSignal,
 ): number[] {
-  const columns = Math.ceil(baseline.width / TILE_SIZE);
-  const rows = Math.ceil(baseline.height / TILE_SIZE);
+  const columns = Math.ceil(baseline.width / tileSize);
+  const rows = Math.ceil(baseline.height / tileSize);
   const scores = new Array(columns * rows).fill(0);
   for (let tileY = 0; tileY < rows; tileY += 1) {
+    abortSignal?.throwIfAborted();
     for (let tileX = 0; tileX < columns; tileX += 1) {
-      const startX = tileX * TILE_SIZE;
-      const startY = tileY * TILE_SIZE;
-      const endX = Math.min(startX + TILE_SIZE, baseline.width);
-      const endY = Math.min(startY + TILE_SIZE, baseline.height);
+      const startX = tileX * tileSize;
+      const startY = tileY * tileSize;
+      const endX = Math.min(startX + tileSize, baseline.width);
+      const endY = Math.min(startY + tileSize, baseline.height);
       let difference = 0;
       let samples = 0;
       for (let y = startY; y < endY; y += 1) {
@@ -142,10 +165,10 @@ function measurementRect(
   analysisHeight: number,
   tile: { x: number; y: number },
 ): Rect {
-  const startX = Math.max(0, (tile.x - 1) * TILE_SIZE);
-  const startY = Math.max(0, (tile.y - 1) * TILE_SIZE);
-  const endX = Math.min(analysisWidth, (tile.x + 2) * TILE_SIZE);
-  const endY = Math.min(analysisHeight, (tile.y + 2) * TILE_SIZE);
+  const startX = Math.max(0, (tile.x - 1) * tileSize);
+  const startY = Math.max(0, (tile.y - 1) * tileSize);
+  const endX = Math.min(analysisWidth, (tile.x + 2) * tileSize);
+  const endY = Math.min(analysisHeight, (tile.y + 2) * tileSize);
   const scaleX = imageWidth / analysisWidth;
   const scaleY = imageHeight / analysisHeight;
   const left = Math.floor(startX * scaleX);
@@ -164,15 +187,15 @@ function focusRect(
 ): Rect {
   const scaleX = imageWidth / analysisWidth;
   const scaleY = imageHeight / analysisHeight;
-  const centerX = (tile.x * TILE_SIZE + TILE_SIZE / 2) * scaleX;
-  const centerY = (tile.y * TILE_SIZE + TILE_SIZE / 2) * scaleY;
+  const centerX = (tile.x * tileSize + tileSize / 2) * scaleX;
+  const centerY = (tile.y * tileSize + tileSize / 2) * scaleY;
   const width = Math.min(
     imageWidth,
-    Math.max(MIN_FOCUS_WIDTH, Math.round(imageWidth * FOCUS_WIDTH_RATIO)),
+    Math.max(minimumFocusWidth, Math.round(imageWidth * focusWidthRatio)),
   );
   const height = Math.min(
     imageHeight,
-    Math.max(MIN_FOCUS_HEIGHT, Math.round(imageHeight * FOCUS_HEIGHT_RATIO)),
+    Math.max(minimumFocusHeight, Math.round(imageHeight * focusHeightRatio)),
   );
   return {
     left: Math.max(
@@ -213,7 +236,7 @@ function strongestChangeTiles(
         }
       }
       score /= count;
-      if (score >= MIN_CHANGE_SCORE) {
+      if (score >= minimumChangeScore) {
         candidates.push({
           x,
           y,
@@ -244,7 +267,7 @@ function strongestChangeTiles(
     ) {
       selected.push(candidate);
     }
-    if (selected.length >= MAX_FOCUS_REGIONS) break;
+    if (selected.length >= maximumFocusRegions) break;
   }
   return selected;
 }
@@ -262,10 +285,10 @@ function localizedDifference(
   candidate: DecodedAnalysisFrame,
   tile: { x: number; y: number },
 ): ObservationRegionChange {
-  const startX = Math.max(0, (tile.x - 1) * TILE_SIZE);
-  const startY = Math.max(0, (tile.y - 1) * TILE_SIZE);
-  const endX = Math.min(baseline.width, (tile.x + 2) * TILE_SIZE);
-  const endY = Math.min(baseline.height, (tile.y + 2) * TILE_SIZE);
+  const startX = Math.max(0, (tile.x - 1) * tileSize);
+  const startY = Math.max(0, (tile.y - 1) * tileSize);
+  const endX = Math.min(baseline.width, (tile.x + 2) * tileSize);
+  const endY = Math.min(baseline.height, (tile.y + 2) * tileSize);
   let absoluteDifference = 0;
   let brightnessDelta = 0;
   let samples = 0;
@@ -289,7 +312,7 @@ function selectFrameIndices(
   changes: ObservationRegionChange[][],
   frameCount: number,
 ): number[] {
-  if (frameCount <= MAX_FOCUS_FRAMES) {
+  if (frameCount <= maximumFocusFrames) {
     return Array.from({ length: frameCount }, (_, index) => index);
   }
   const scores = Array.from({ length: frameCount }, (_, frameIndex) =>
@@ -305,7 +328,7 @@ function selectFrameIndices(
     (_, index) => index + 1,
   ).sort((a, b) => scores[b] - scores[a] || a - b);
   for (const index of interior) {
-    if (selected.size >= MAX_FOCUS_FRAMES) break;
+    if (selected.size >= maximumFocusFrames) break;
     selected.add(index);
   }
   return [...selected].sort((a, b) => a - b);
@@ -317,14 +340,14 @@ async function renderOutlinedCrop(
   measured: Rect,
   outputWidth: number,
   Sharp: typeof sharp,
-): Promise<Buffer> {
-  const crop = await source
+): Promise<RenderedCrop> {
+  const { data: crop, info } = await source
     .clone()
     .extract(rect)
     .resize({ width: outputWidth })
-    .jpeg({ quality: 92 })
-    .toBuffer();
-  const outputHeight = (await Sharp(crop).metadata()).height!;
+    .png()
+    .toBuffer({ resolveWithObject: true });
+  const outputHeight = info.height;
   const scaleX = outputWidth / rect.width;
   const scaleY = outputHeight / rect.height;
   const x = Math.max(0, Math.round((measured.left - rect.left) * scaleX));
@@ -340,40 +363,51 @@ async function renderOutlinedCrop(
   const outline = Buffer.from(
     `<svg width="${outputWidth}" height="${outputHeight}"><rect x="${x + 2}" y="${y + 2}" width="${Math.max(1, width - 4)}" height="${Math.max(1, height - 4)}" fill="none" stroke="#ff7a00" stroke-width="4"/></svg>`,
   );
-  return Sharp(crop)
+  const buffer = await Sharp(crop)
     .composite([{ input: outline }])
-    .jpeg({ quality: 92 })
+    .png()
     .toBuffer();
+  return { buffer, height: outputHeight };
 }
 
 /** Build bounded, enlarged frame grids around localized visual changes. */
 export async function buildObservationChangeFocus(
   screenshots: ScreenshotItem[],
+  abortSignal?: AbortSignal,
 ): Promise<ObservationChangeFocus | undefined> {
   if (!ifInNode || screenshots.length < 2) return undefined;
+  abortSignal?.throwIfAborted();
   const Sharp = (await import('sharp')).default;
-  const metadata = await Sharp(screenshotBuffer(screenshots[0])).metadata();
+  const analysisFrames = selectAnalysisFrames(screenshots);
+  const metadata = await Sharp(
+    screenshotBuffer(analysisFrames[0].screenshot),
+  ).metadata();
   if (!metadata.width || !metadata.height) return undefined;
 
-  const analysisWidth = Math.min(metadata.width, ANALYSIS_MAX_WIDTH);
-  const baseline = await analysisFrame(screenshots[0], analysisWidth, Sharp);
+  const analysisWidth = Math.min(metadata.width, analysisMaxWidth);
+  const baseline = await analysisFrame(
+    analysisFrames[0].screenshot,
+    analysisWidth,
+    Sharp,
+  );
   const frameScores = await mapWithConcurrency(
-    screenshots.slice(1),
-    4,
-    async (screenshot) => {
+    analysisFrames.slice(1),
+    analysisConcurrency,
+    async ({ screenshot }) => {
       const frame = await analysisFrame(screenshot, analysisWidth, Sharp);
       if (frame.width !== baseline.width || frame.height !== baseline.height) {
         return undefined;
       }
-      return tileDifference(baseline, frame);
+      return tileDifference(baseline, frame, abortSignal);
     },
+    abortSignal,
   );
   if (frameScores.some((scores) => !scores)) {
     return undefined;
   }
 
-  const columns = Math.ceil(baseline.width / TILE_SIZE);
-  const rows = Math.ceil(baseline.height / TILE_SIZE);
+  const columns = Math.ceil(baseline.width / tileSize);
+  const rows = Math.ceil(baseline.height / tileSize);
   const combinedScores = new Array(columns * rows).fill(0);
   for (const scores of frameScores) {
     if (!scores) continue;
@@ -402,28 +436,36 @@ export async function buildObservationChangeFocus(
       brightnessDelta: 0,
     })),
     ...(await mapWithConcurrency(
-      screenshots.slice(1),
-      4,
-      async (screenshot) => {
+      analysisFrames.slice(1),
+      analysisConcurrency,
+      async ({ screenshot }) => {
         const frame = await analysisFrame(screenshot, analysisWidth, Sharp);
         return strongest.map((candidate) =>
           localizedDifference(baseline, frame, candidate),
         );
       },
+      abortSignal,
     )),
   ];
   const changes = strongest.map((_, regionIndex) =>
     changesByFrame.map((frameChanges) => frameChanges[regionIndex]),
   );
-  const frameIndices = selectFrameIndices(changes, screenshots.length);
-  const outputWidth = Math.max(rects[0].width, UPSCALED_FOCUS_WIDTH);
+  const selectedAnalysisIndices = selectFrameIndices(
+    changes,
+    analysisFrames.length,
+  );
+  const frameIndices = selectedAnalysisIndices.map(
+    (index) => analysisFrames[index].sourceIndex,
+  );
+  const outputWidth = Math.max(rects[0].width, upscaledFocusWidth);
   const frames = await mapWithConcurrency(
     frameIndices,
-    2,
-    async (sourceFrameIndex) => {
+    renderConcurrency,
+    async (sourceFrameIndex, renderedFrameIndex) => {
+      const analysisFrameIndex = selectedAnalysisIndices[renderedFrameIndex];
       const screenshot = screenshots[sourceFrameIndex];
       const source = Sharp(screenshotBuffer(screenshot));
-      const crops: Buffer[] = [];
+      const crops: RenderedCrop[] = [];
       for (let index = 0; index < rects.length; index++) {
         crops.push(
           await renderOutlinedCrop(
@@ -435,21 +477,21 @@ export async function buildObservationChangeFocus(
           ),
         );
       }
-      const cropHeight = (await Sharp(crops[0]).metadata()).height!;
-      const gridColumns = Math.min(FOCUS_GRID_COLUMNS, crops.length);
+      const cropHeight = crops[0].height;
+      const gridColumns = Math.min(focusGridColumns, crops.length);
       const gridRows = Math.ceil(crops.length / gridColumns);
-      const cellHeight = cropHeight + FOCUS_LABEL_HEIGHT;
-      const composites = crops.flatMap((input, index) => {
+      const cellHeight = cropHeight + focusLabelHeight;
+      const composites = crops.flatMap(({ buffer }, index) => {
         const left = (index % gridColumns) * outputWidth;
         const top = Math.floor(index / gridColumns) * cellHeight;
-        const change = changes[index][sourceFrameIndex];
+        const change = changes[index][analysisFrameIndex];
         const brightness = `${change.brightnessDelta >= 0 ? '+' : ''}${change.brightnessDelta.toFixed(1)}`;
         const label = Buffer.from(
-          `<svg width="${outputWidth}" height="${FOCUS_LABEL_HEIGHT}"><rect width="100%" height="100%" fill="#111827"/><text x="20" y="33" fill="white" font-size="26" font-family="sans-serif">Region ${index + 1} peak patch vs Frame 1 | brightness ${brightness}, pixel delta ${change.meanAbsoluteDifference.toFixed(1)}</text></svg>`,
+          `<svg width="${outputWidth}" height="${focusLabelHeight}"><rect width="100%" height="100%" fill="#111827"/><text x="16" y="24" fill="white" font-size="20" font-family="sans-serif">Region ${index + 1} · outlined peak patch vs Frame 1</text><text x="16" y="50" fill="white" font-size="20" font-family="sans-serif">brightness Δ ${brightness} · mean pixel Δ ${change.meanAbsoluteDifference.toFixed(1)}</text></svg>`,
         );
         return [
           { input: label, left, top },
-          { input, left, top: top + FOCUS_LABEL_HEIGHT },
+          { input: buffer, left, top: top + focusLabelHeight },
         ];
       });
       const rendered = await Sharp({
@@ -463,15 +505,18 @@ export async function buildObservationChangeFocus(
         .composite(composites)
         .jpeg({ quality: 92 })
         .toBuffer();
-      return ScreenshotItem.create(
-        `data:image/jpeg;base64,${rendered.toString('base64')}`,
-        screenshot.capturedAt,
-      );
+      return {
+        screenshot: ScreenshotItem.create(
+          `data:image/jpeg;base64,${rendered.toString('base64')}`,
+          screenshot.capturedAt,
+        ),
+        sourceFrameIndex,
+      };
     },
+    abortSignal,
   );
   return {
     frames,
-    frameIndices,
     rect: rects[0],
     rects,
     measurementRects,
