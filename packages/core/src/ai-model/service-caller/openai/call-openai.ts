@@ -79,6 +79,15 @@ export async function callOpenAI(
       timeCost,
     };
   } catch (error: any) {
+    // Fetch already records non-2xx responses. Preserve successful HTTP
+    // responses too when SDK parsing or completion validation fails.
+    if (openAIRequestContext.httpResponse?.ok) {
+      recordEvent?.({
+        type: 'error',
+        ...openAIRequestContext.httpResponse,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     getDebug('ai:call', { console: true })('call AI error', error);
     if (error instanceof AIResponseParseError) {
       throw error;
