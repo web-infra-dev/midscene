@@ -273,7 +273,7 @@ describe('@midscene/computer RDP device', () => {
         false,
       );
 
-      await rs.advanceTimersByTimeAsync(299);
+      await rs.advanceTimersByTimeAsync(99);
       expect(backend.calls.some((call) => call.name === 'mouseButton')).toBe(
         false,
       );
@@ -307,7 +307,7 @@ describe('@midscene/computer RDP device', () => {
         { x: 100, y: 200 },
         { duration: 250 },
       );
-      await rs.advanceTimersByTimeAsync(56 + 300);
+      await rs.advanceTimersByTimeAsync(56 + 100);
       expect(backend.calls.at(-1)).toEqual({
         name: 'mouseButton',
         args: ['left', 'down'],
@@ -339,7 +339,7 @@ describe('@midscene/computer RDP device', () => {
         x: 100,
         y: 200,
       });
-      await rs.advanceTimersByTimeAsync(56 + 299);
+      await rs.advanceTimersByTimeAsync(56 + 99);
       expect(backend.calls.some((call) => call.name === 'mouseButton')).toBe(
         false,
       );

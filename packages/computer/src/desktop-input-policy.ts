@@ -4,7 +4,7 @@
  * Hover and untargeted Scroll use the same settling period.
  */
 export const desktopPointerPolicy = {
-  uiSettleMs: 300,
+  uiSettleMs: 100,
   moveSettleMs: 50,
   defaultTapHoldMs: 100,
   tapMoveSteps: 8,
