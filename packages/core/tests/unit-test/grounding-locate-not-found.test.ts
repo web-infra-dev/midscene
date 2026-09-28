@@ -60,9 +60,9 @@ describe('grounding locate not-found parsing', () => {
     ]);
     const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
     expect(retryFeedback?.content).toContain(
-      'Missing required coordinate field "bbox"',
+      'Missing required coordinate field "bbox_2d"',
     );
-    expect(retryFeedback?.content).toContain('Expected "bbox":');
+    expect(retryFeedback?.content).toContain('Expected "bbox_2d":');
     expect(result.parseResult.element?.center).toBeDefined();
     expect(result.parseResult.errors).toEqual([]);
   });
@@ -80,7 +80,7 @@ describe('grounding locate not-found parsing', () => {
     expect(callAI).toHaveBeenCalledTimes(2);
     expect(result).not.toHaveProperty('rect');
     expect(result.parseResult.errors?.[0]).toContain(
-      'Missing required coordinate field "bbox"',
+      'Missing required coordinate field "bbox_2d"',
     );
     expect(result.parseResult.errors?.[0]).toContain(
       'target element is not found',
@@ -306,7 +306,7 @@ describe('grounding locate not-found parsing', () => {
     expect(callAI).toHaveBeenCalledTimes(2);
     const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
     expect(retryFeedback?.content).toContain(
-      'Missing required coordinate field "bbox"',
+      'Missing required coordinate field "bbox_2d"',
     );
     expect(result.searchAreaConfig).toBeDefined();
   });
