@@ -838,7 +838,7 @@ describe('ComputerDevice pointer input', () => {
     await rs.advanceTimersByTimeAsync(64);
     expect(mockState.libnut.mouseToggle).not.toHaveBeenCalled();
 
-    await rs.advanceTimersByTimeAsync(299);
+    await rs.advanceTimersByTimeAsync(99);
     expect(mockState.libnut.mouseToggle).not.toHaveBeenCalled();
 
     await rs.advanceTimersByTimeAsync(1);
@@ -875,7 +875,7 @@ describe('ComputerDevice pointer input', () => {
         x: 100,
         y: 120,
       });
-      await rs.advanceTimersByTimeAsync(299);
+      await rs.advanceTimersByTimeAsync(99);
       expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
 
       await rs.advanceTimersByTimeAsync(1);
@@ -900,7 +900,7 @@ describe('ComputerDevice pointer input', () => {
       y: 120,
     });
 
-    await rs.advanceTimersByTimeAsync(64 + 300 + 100 + 120 + 300 + 100);
+    await rs.advanceTimersByTimeAsync(64 + 100 + 100 + 120 + 100 + 100);
     await tapPromise;
 
     expect(mockState.execFileSync).toHaveBeenCalledTimes(2);
