@@ -44,6 +44,9 @@ should point here instead of duplicating rules.
 - Do not hand-edit generated output under `dist/` or `apps/site/doc_build/`.
 - When changing shared packages or exported entry points, run a focused build
   for the affected project before finishing.
+- When changing `ComputerDevice` or `RDPDevice` input behavior, check the peer
+  adapter against `packages/computer/INPUT_CONTRACT.md` and update tests for
+  both adapters when the shared contract changes.
 
 ## Commit And PR Rules
 

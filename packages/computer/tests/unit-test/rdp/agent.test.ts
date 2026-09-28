@@ -284,12 +284,68 @@ describe('@midscene/computer RDP device', () => {
         args: ['left', 'down'],
       });
 
-      await rs.advanceTimersByTimeAsync(50);
+      await rs.advanceTimersByTimeAsync(100);
       await tapPromise;
       expect(backend.calls.at(-1)).toEqual({
         name: 'mouseButton',
         args: ['left', 'up'],
       });
+    } finally {
+      rs.useRealTimers();
+      await device.destroy();
+    }
+  });
+
+  it('honors a custom RDP tap hold duration', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    rs.useFakeTimers();
+    try {
+      const tapPromise = device.inputPrimitives.pointer!.tap(
+        { x: 100, y: 200 },
+        { duration: 250 },
+      );
+      await rs.advanceTimersByTimeAsync(56 + 300);
+      expect(backend.calls.at(-1)).toEqual({
+        name: 'mouseButton',
+        args: ['left', 'down'],
+      });
+
+      await rs.advanceTimersByTimeAsync(249);
+      expect(backend.calls.at(-1)?.args).toEqual(['left', 'down']);
+
+      await rs.advanceTimersByTimeAsync(1);
+      await tapPromise;
+      expect(backend.calls.at(-1)?.args).toEqual(['left', 'up']);
+    } finally {
+      rs.useRealTimers();
+      await device.destroy();
+    }
+  });
+
+  it.each([
+    ['doubleClick', 'doubleClick', 'left'],
+    ['rightClick', 'click', 'right'],
+  ] as const)('waits before RDP %s', async (action, buttonAction, button) => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    rs.useFakeTimers();
+    try {
+      const clickPromise = device.inputPrimitives.pointer![action]({
+        x: 100,
+        y: 200,
+      });
+      await rs.advanceTimersByTimeAsync(56 + 299);
+      expect(backend.calls.some((call) => call.name === 'mouseButton')).toBe(
+        false,
+      );
+      await rs.advanceTimersByTimeAsync(1);
+      await clickPromise;
+      expect(backend.calls.at(-1)?.args).toEqual([button, buttonAction]);
     } finally {
       rs.useRealTimers();
       await device.destroy();
@@ -327,6 +383,45 @@ describe('@midscene/computer RDP device', () => {
         { name: 'typeText', args: ['hello'] },
       ]),
     );
+  });
+
+  it('types into the current RDP focus without clearing when no target is given', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    const input = device
+      .actionSpace()
+      .find((action) => action.name === 'Input');
+    await input!.call({ value: 'hello' }, mockExecutorContext);
+
+    expect(backend.calls.filter((call) => call.name === 'typeText')).toEqual([
+      { name: 'typeText', args: ['hello'] },
+    ]);
+    expect(backend.calls.some((call) => call.name === 'clearInput')).toBe(
+      false,
+    );
+    await device.destroy();
+  });
+
+  it('focuses RDP input without clearing or typing for focusOnly', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    await device.inputPrimitives.keyboard!.typeText('ignored', {
+      target: createLocate([100, 120]),
+      focusOnly: true,
+    });
+
+    expect(backend.calls.some((call) => call.name === 'mouseButton')).toBe(
+      true,
+    );
+    expect(backend.calls.some((call) => call.name === 'clearInput')).toBe(
+      false,
+    );
+    expect(backend.calls.some((call) => call.name === 'typeText')).toBe(false);
+    await device.destroy();
   });
 
   it('types RDP Unicode code points individually with the device delay', async () => {
@@ -496,6 +591,23 @@ describe('@midscene/computer RDP device', () => {
       { name: 'wheel', args: ['down', 120, 640, 360] },
       { name: 'wheel', args: ['down', 120, 640, 360] },
     ]);
+  });
+
+  it('anchors untargeted RDP scrolls at the viewport center', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    await device.inputPrimitives.scroll!.scroll({
+      scrollType: 'singleAction',
+      direction: 'down',
+      distance: 120,
+    });
+
+    expect(backend.calls.filter((call) => call.name === 'wheel')).toEqual([
+      { name: 'wheel', args: ['down', 120, 960, 540] },
+    ]);
+    await device.destroy();
   });
 
   it('drags with a held press and releases on the drop target', async () => {
