@@ -113,7 +113,6 @@ async function callAndParsePlanningResponse(
         includeLocateInPlanning,
         locateResultCodec,
         locateResultContext,
-        acceptBbox2dAlias: modelRuntime.adapter.acceptBbox2dAlias,
       });
       return { response, planFromAI, actions };
     },

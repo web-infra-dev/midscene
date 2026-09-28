@@ -42,7 +42,6 @@ export class ResolvedModelAdapter implements ModelAdapter {
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
   readonly buildCodexAppServerParams: BuildCodexAppServerParams;
-  readonly acceptBbox2dAlias: boolean;
   readonly imagePreprocess: ImagePreprocessPolicy;
   readonly insight: InsightAdapter;
   readonly planning: PlanningAdapter;
@@ -53,7 +52,6 @@ export class ResolvedModelAdapter implements ModelAdapter {
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
     this.buildCodexAppServerParams =
       config.buildCodexAppServerParams ?? buildDefaultCodexAppServerParams;
-    this.acceptBbox2dAlias = config.acceptBbox2dAlias ?? false;
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
     this.insight = resolveInsight(config.insight, {
       jsonParser: this.jsonParser,
@@ -63,14 +61,9 @@ export class ResolvedModelAdapter implements ModelAdapter {
     const resolvedCustomPlanner = customPlanner
       ? resolveCustomPlanningDefinition(customPlanner)
       : undefined;
-    this.locate = resolveLocate(
-      config.locate,
-      resolvedCustomPlanner,
-      {
-        jsonParser: this.jsonParser,
-      },
-      this.acceptBbox2dAlias,
-    );
+    this.locate = resolveLocate(config.locate, resolvedCustomPlanner, {
+      jsonParser: this.jsonParser,
+    });
     this.planning = resolvePlanning(
       config.planning,
       resolvedCustomPlanner,
