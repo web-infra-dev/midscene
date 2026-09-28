@@ -588,6 +588,40 @@ describe('ComputerDevice scroll targeting', () => {
   });
 });
 
+describe('ComputerDevice input contract', () => {
+  it('types into the current focus without clearing when no target is given', async () => {
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      inputStrategy: 'sequential',
+    });
+    await device.connect();
+
+    const input = device
+      .actionSpace()
+      .find((action) => action.name === 'Input');
+    await input!.call({ value: 'hello' }, mockExecutorContext);
+
+    expect(mockState.libnut.typeString).toHaveBeenCalledTimes(5);
+    expect(mockState.libnut.keyTap).not.toHaveBeenCalled();
+    await device.destroy();
+  });
+
+  it('focuses without clearing or typing for focusOnly input', async () => {
+    const device = await createConnectedDeviceForPlatform('win32');
+
+    await device.inputPrimitives.keyboard!.typeText('ignored', {
+      target: { center: [100, 120] },
+      focusOnly: true,
+    });
+
+    expect(mockState.libnut.mouseClick).toHaveBeenCalledWith('left');
+    expect(mockState.libnut.keyTap).not.toHaveBeenCalled();
+    expect(mockState.libnut.typeString).not.toHaveBeenCalled();
+    await device.destroy();
+  });
+});
+
 describe('ComputerDevice pointer input', () => {
   it('observes the actual cursor position after non-Windows movement', async () => {
     const device = await createConnectedDeviceForPlatform('darwin');
@@ -804,7 +838,10 @@ describe('ComputerDevice pointer input', () => {
     await rs.advanceTimersByTimeAsync(64);
     expect(mockState.libnut.mouseToggle).not.toHaveBeenCalled();
 
-    await rs.advanceTimersByTimeAsync(50);
+    await rs.advanceTimersByTimeAsync(299);
+    expect(mockState.libnut.mouseToggle).not.toHaveBeenCalled();
+
+    await rs.advanceTimersByTimeAsync(1);
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(1);
     expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
       1,
@@ -825,6 +862,31 @@ describe('ComputerDevice pointer input', () => {
     );
   });
 
+  it.each([
+    ['doubleClick', 'left'],
+    ['rightClick', 'right'],
+  ] as const)(
+    'waits for UI updates before native %s',
+    async (action, button) => {
+      const device = await createConnectedDevice();
+
+      rs.useFakeTimers();
+      const clickPromise = device.inputPrimitives.pointer![action]({
+        x: 100,
+        y: 120,
+      });
+      await rs.advanceTimersByTimeAsync(299);
+      expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
+
+      await rs.advanceTimersByTimeAsync(1);
+      await clickPromise;
+      expect(mockState.libnut.mouseClick).toHaveBeenCalledWith(
+        button,
+        ...(action === 'doubleClick' ? [true] : []),
+      );
+    },
+  );
+
   it('retries tap once when the first click only changes the frontmost app', async () => {
     const device = await createConnectedDevice();
     mockState.execFileSync.mockReset();
@@ -838,7 +900,7 @@ describe('ComputerDevice pointer input', () => {
       y: 120,
     });
 
-    await rs.advanceTimersByTimeAsync(64 + 50 + 100 + 120 + 50 + 100);
+    await rs.advanceTimersByTimeAsync(64 + 300 + 100 + 120 + 300 + 100);
     await tapPromise;
 
     expect(mockState.execFileSync).toHaveBeenCalledTimes(2);
