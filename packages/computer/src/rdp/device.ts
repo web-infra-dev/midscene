@@ -77,6 +77,8 @@ export class RDPDevice implements AbstractInterface {
         await this.movePointer(Math.round(x), Math.round(y), {
           steps: SMOOTH_MOVE_STEPS_TAP,
           stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+          // Let hover-driven UI updates settle before pressing the button.
+          settleDelayMs: MOUSE_MOVE_EFFECT_WAIT,
         });
         await this.backend.mouseButton('left', 'down');
         await sleep(CLICK_HOLD_DURATION);

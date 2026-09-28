@@ -3,7 +3,7 @@ import type {
   LocateResultElement,
   Size,
 } from '@midscene/core';
-import { describe, expect, it } from '@rstest/core';
+import { describe, expect, it, rs } from '@rstest/core';
 import { ComputerAgent, RDPDevice, agentForRDPComputer } from '../../../src';
 import type {
   RDPBackendClient,
@@ -251,6 +251,49 @@ describe('@midscene/computer RDP device', () => {
       { name: 'mouseButton', args: ['left', 'down'] },
       { name: 'mouseButton', args: ['left', 'up'] },
     ]);
+  });
+
+  it('waits for hover updates before pressing an RDP tap target', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    rs.useFakeTimers();
+    try {
+      const tapPromise = device.inputPrimitives.pointer!.tap({
+        x: 100,
+        y: 200,
+      });
+      await rs.advanceTimersByTimeAsync(56);
+      expect(backend.calls.at(-1)).toEqual({
+        name: 'mouseMove',
+        args: [100, 200],
+      });
+      expect(backend.calls.some((call) => call.name === 'mouseButton')).toBe(
+        false,
+      );
+
+      await rs.advanceTimersByTimeAsync(299);
+      expect(backend.calls.some((call) => call.name === 'mouseButton')).toBe(
+        false,
+      );
+
+      await rs.advanceTimersByTimeAsync(1);
+      expect(backend.calls.at(-1)).toEqual({
+        name: 'mouseButton',
+        args: ['left', 'down'],
+      });
+
+      await rs.advanceTimersByTimeAsync(50);
+      await tapPromise;
+      expect(backend.calls.at(-1)).toEqual({
+        name: 'mouseButton',
+        args: ['left', 'up'],
+      });
+    } finally {
+      rs.useRealTimers();
+      await device.destroy();
+    }
   });
 
   it('clears then types through the backend input action', async () => {
