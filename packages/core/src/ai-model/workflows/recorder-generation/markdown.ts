@@ -1,6 +1,6 @@
 import { prepareImageOutput } from '@/image-output';
 import type { IModelConfig } from '@midscene/shared/env';
-import { EncodedImage, parseBase64 } from '@midscene/shared/img';
+import { EncodedImage } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import {
   type MidsceneRecorderMarkdownScreenshotAsset,
@@ -52,19 +52,17 @@ async function compressScreenshotAssetForMarkdownReplay(
   }
 
   const scale = MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE / longestEdge;
-  const dataUrl = (
-    await prepareImageOutput(source, [
-      {
-        type: 'resize',
-        width: Math.max(1, Math.round(width * scale)),
-        height: Math.max(1, Math.round(height * scale)),
-      },
-    ])
-  ).toBase64();
-  const { body, mimeType } = parseBase64(dataUrl);
+  const prepared = await prepareImageOutput(source, [
+    {
+      type: 'resize',
+      width: Math.max(1, Math.round(width * scale)),
+      height: Math.max(1, Math.round(height * scale)),
+    },
+  ]);
+  const { body, mimeType } = prepared.toBase64Parts();
   return {
     ...asset,
-    dataUrl,
+    dataUrl: `data:${mimeType};base64,${body}`,
     base64Data: body,
     mimeType,
   };

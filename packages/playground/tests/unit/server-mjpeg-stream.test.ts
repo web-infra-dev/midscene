@@ -2,6 +2,9 @@ import type { MjpegStreamOptions } from '@midscene/core/device';
 import { describe, expect, rs, test } from '@rstest/core';
 import { PlaygroundServer } from '../../src/server';
 
+const pollingImageBody =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
+
 function createMockStreamResponse() {
   const headers = new Map<string, string>();
   const chunks: Array<string | Buffer> = [];
@@ -349,9 +352,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
   });
 
   test('GET /mjpeg falls back to screenshot polling when producer startup fails', async () => {
-    const screenshotBase64 = rs.fn(async () =>
-      Buffer.from('polling-frame').toString('base64'),
-    );
+    const screenshotBase64 = rs.fn(async () => pollingImageBody);
     const startMjpegStream = rs.fn(async () => {
       throw new Error('CDP unavailable');
     });
@@ -380,9 +381,16 @@ describe('PlaygroundServer MJPEG streaming', () => {
     await streamPromise;
 
     expect(startMjpegStream).toHaveBeenCalledTimes(1);
-    expect(response.chunks.map((chunk) => chunk.toString()).join('')).toContain(
-      'polling-frame',
+    expect((server as any)._mjpegHandler.getLastFrameBase64()).toBe(
+      `data:image/png;base64,${pollingImageBody}`,
     );
+    expect(
+      response.chunks.some(
+        (chunk) =>
+          Buffer.isBuffer(chunk) &&
+          chunk.equals(Buffer.from(pollingImageBody, 'base64')),
+      ),
+    ).toBe(true);
   });
 
   test('GET /mjpeg labels polling WebP bytes with image/webp', async () => {
@@ -416,9 +424,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
 
   test('GET /mjpeg falls back to screenshot polling when producer emits no initial frame', async () => {
     const stop = rs.fn();
-    const screenshotBase64 = rs.fn(async () =>
-      Buffer.from('polling-after-empty-stream').toString('base64'),
-    );
+    const screenshotBase64 = rs.fn(async () => pollingImageBody);
     const startMjpegStream = rs.fn(async () => ({ stop }));
 
     const server = new PlaygroundServer({
@@ -446,8 +452,12 @@ describe('PlaygroundServer MJPEG streaming', () => {
       expect(stop).toHaveBeenCalled();
       expect(screenshotBase64).toHaveBeenCalled();
       expect(
-        response.chunks.map((chunk) => chunk.toString()).join(''),
-      ).toContain('polling-after-empty-stream');
+        response.chunks.some(
+          (chunk) =>
+            Buffer.isBuffer(chunk) &&
+            chunk.equals(Buffer.from(pollingImageBody, 'base64')),
+        ),
+      ).toBe(true);
 
       request.listeners.get('close')?.();
       await rs.runOnlyPendingTimersAsync();

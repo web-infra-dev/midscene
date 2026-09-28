@@ -37,7 +37,6 @@ import {
 } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
-  constrainBase64ImageToMaxSize,
   createImgBase64ByFormat,
   validateScreenshotBuffer,
 } from '@midscene/shared/img';
@@ -61,6 +60,7 @@ import {
   type RawKeyframe,
   isScrcpyFreshFrameUnavailableError,
 } from './scrcpy-manager';
+import { constrainBase64ImageToMaxSize } from './screenshot';
 import { captureAndroidUITree } from './ui-tree-capture';
 import { createVisualActionRegistry } from './visual-action-registry';
 

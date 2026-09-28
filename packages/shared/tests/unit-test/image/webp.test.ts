@@ -8,8 +8,8 @@ import {
   isScreenshotImageMimeType,
   isValidWebPImageBuffer,
   localImg2Base64,
-  parseBase64,
   screenshotImageFormatFromMimeType,
+  splitImageDataUrl,
 } from '../../../src/img';
 import { getFixture } from '../../utils';
 
@@ -31,7 +31,7 @@ describe('WebP image primitives', () => {
   it('detects WebP and reads dimensions from its encoded header', async () => {
     const png = localImg2Base64(getFixture('icon.png'));
     const webp = await webpFixture(png);
-    const { body } = parseBase64(webp);
+    const { body } = splitImageDataUrl(webp);
     const buffer = Buffer.from(body, 'base64');
 
     expect(detectScreenshotImageFormatFromBuffer(buffer)).toBe('webp');
@@ -84,7 +84,7 @@ describe('WebP image primitives', () => {
 
   it('rejects a WebP whose declared RIFF size does not match its bytes', async () => {
     const webp = await webpFixture(localImg2Base64(getFixture('icon.png')));
-    const { body } = parseBase64(webp);
+    const { body } = splitImageDataUrl(webp);
     const truncated = Buffer.from(body, 'base64').subarray(0, -1);
 
     expect(isValidWebPImageBuffer(truncated)).toBe(false);

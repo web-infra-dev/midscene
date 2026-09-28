@@ -91,19 +91,6 @@ export async function executeImageTransform(
 }
 
 export const photonBackend: ImageBackend = {
-  async info(bytes) {
-    const { PhotonImage } = await getPhoton();
-    const image = PhotonImage.new_from_byteslice(bytes);
-    try {
-      const width = image.get_width();
-      const height = image.get_height();
-      if (!width || !height)
-        throw new Error('Invalid image: cannot get width or height');
-      return { width, height };
-    } finally {
-      image.free();
-    }
-  },
   transform: executeImageTransform,
 };
 

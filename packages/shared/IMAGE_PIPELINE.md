@@ -68,7 +68,8 @@ are private; Canvas codec tests import the backend directly.
 Resize uses fill in both backends so output geometry matches the operation plan.
 Explicit kernels are honored; omitted kernels retain backend defaults (Sharp
 Lanczos3, Photon CatmullRom).
-The Android maximum-size boundary keeps bounded captures unchanged and composes
+The Android maximum-size boundary lives in `packages/android/src/screenshot.ts`,
+not in shared. It keeps bounded captures unchanged and composes
 oversized-image resizing with explicit JPEG output through the same pipeline.
 Base64 file/URL adapters and annotation helpers remain where consumers need them.
 
@@ -78,7 +79,7 @@ their own measurements. Browser/worker WebP quality is implemented by Canvas and
 is not assumed to produce the same bytes as Sharp.
 
 `image-backend.ts` owns backend selection. `backends/sharp.ts` and
-`backends/photon.ts` implement the same info/transform contract. Canvas currently
+`backends/photon.ts` implement the same transform contract. Canvas currently
 provides the browser WebP codec in `backends/canvas.ts`; it is a backend dependency,
 not a business-layer dependency or a general canvas transformation engine.
 Browser consumers include workers and extensions as well as report Playground.
@@ -86,6 +87,25 @@ Removing that codec requires replacing or disabling browser WebP encoding; merel
 deleting a file cannot preserve that capability.
 
 ## Review checklist
+
+### Representation and validation boundaries
+
+- `EncodedImage.fromBase64` is the PNG/JPEG/WebP screenshot ingress: it checks
+  Base64 syntax and MIME/signature agreement, and stores only bytes and format.
+  Unknown bytes are rejected, never guessed to be JPEG or PNG.
+- `toBase64Parts()` emits protocol MIME/body fields from the known format;
+  `toBase64()` emits a data URL. Do not build a URL merely to split it again.
+- `splitImageDataUrl` is only a protocol string splitter. It trusts declared MIME
+  and preserves general reference formats such as GIF/BMP/SVG. It neither infers
+  raw Base64 formats nor claims that the bytes match that MIME.
+- `EncodedImage.size` and `imageInfoOfBase64` use the same synchronous dimension
+  header reader. Dimension queries do not load Sharp or Photon. The latter is a
+  Base64 boundary; internal consumers should reuse the image object's cached size.
+- Capture-buffer guards, signature identification, header inspection and full
+  pixel decoding have different guarantees. Only a backend decodes pixels;
+  passing a cheap capture guard or reading dimensions does not prove decodability.
+
+### Runtime invariants
 
 1. No-op JPEG/WebP returns the same bytes/object; quality options do not cause
    generation loss.

@@ -3,24 +3,8 @@ import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { parseBase64 } from './base64';
-import { EncodedImage } from './encoded-image';
-import { transformImage } from './image-pipeline';
-import { assertValidJpegQuality } from './screenshot-encoding';
+import { splitImageDataUrl } from './base64';
 
-export {
-  type JpegBase64DataUrl,
-  type NormalizeScreenshotBase64Options,
-  type ParsedScreenshotBase64,
-  type WebpBase64DataUrl,
-  createImgBase64ByFormat,
-  inferBase64ImageFormat,
-  normalizeBase64Body,
-  normalizeBase64Image,
-  normalizeScreenshotBase64,
-  parseBase64,
-  parseScreenshotBase64,
-} from './base64';
 export {
   DEFAULT_JPEG_SCREENSHOT_QUALITY,
   DEFAULT_WEBP_SCREENSHOT_EFFORT,
@@ -30,10 +14,10 @@ export {
 } from './screenshot-encoding';
 
 /**
- * Saves a Base64-encoded image to a file
+ * Saves an image data URL to a file without decoding or validating image pixels.
  *
  * @param options - An object containing the Base64-encoded image data and the output file path
- * @param options.base64Data - The Base64-encoded image data
+ * @param options.base64Data - An image data URL (raw Base64 is not accepted)
  * @param options.outputPath - The path where the image will be saved
  * @throws Error if there is an error during the saving process
  */
@@ -42,46 +26,10 @@ export async function saveBase64Image(options: {
   outputPath: string;
 }): Promise<void> {
   const { base64Data, outputPath } = options;
-  const { body } = parseBase64(base64Data);
+  const { body } = splitImageDataUrl(base64Data);
 
   const imageBuffer = Buffer.from(body, 'base64');
   await writeFile(outputPath, imageBuffer);
-}
-
-export interface ConstrainBase64ImageToMaxSizeOptions {
-  /** Maximum allowed width or height in positive integer pixels. */
-  maxSize: number;
-  /** JPEG quality used when resizing is required. Defaults to 90. */
-  jpegQuality?: number;
-}
-
-/** Android capture boundary: preserve bounded inputs; resize oversized captures to JPEG. */
-export async function constrainBase64ImageToMaxSize(
-  inputBase64: string,
-  options: ConstrainBase64ImageToMaxSizeOptions,
-): Promise<string> {
-  if (!Number.isSafeInteger(options.maxSize) || options.maxSize <= 0) {
-    throw new Error('maxSize must be a positive safe integer');
-  }
-  const quality = options.jpegQuality ?? 90;
-  assertValidJpegQuality(quality);
-  const image = EncodedImage.fromBase64(inputBase64);
-  const { width, height } = image.size;
-  const largestDimension = Math.max(width, height);
-  if (largestDimension <= options.maxSize) return inputBase64;
-  const scale = options.maxSize / largestDimension;
-  return (
-    await transformImage(image, {
-      operations: [
-        {
-          type: 'resize',
-          width: Math.max(1, Math.round(width * scale)),
-          height: Math.max(1, Math.round(height * scale)),
-        },
-      ],
-      output: { format: 'jpeg', quality },
-    })
-  ).toBase64();
 }
 
 export const httpImg2Base64 = async (url: string): Promise<string> => {
@@ -139,7 +87,7 @@ export const preProcessImageUrl = async (
     );
   }
   if (url.startsWith('data:')) {
-    const { mimeType, body } = parseBase64(url);
+    const { mimeType, body } = splitImageDataUrl(url);
     return `data:${mimeType};base64,${body}`;
   } else if (url.startsWith('http://') || url.startsWith('https://')) {
     if (!convertHttpImage2Base64) {

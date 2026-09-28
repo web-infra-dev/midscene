@@ -66,13 +66,6 @@ export async function executeImageTransform(
 }
 
 export const sharpBackend: ImageBackend = {
-  async info(bytes) {
-    const sharp = await getSharp();
-    const { width, height } = await sharp(bytes).metadata();
-    if (!width || !height)
-      throw new Error('Invalid image: cannot get width or height');
-    return { width, height };
-  },
   transform: executeImageTransform,
 };
 

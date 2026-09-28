@@ -1,5 +1,5 @@
 import type { RecordToReportScreenshot } from '@/types';
-import { normalizeScreenshotBase64 } from '@midscene/shared/img';
+import { EncodedImage } from '@midscene/shared/img';
 
 export function normalizeRecordToReportScreenshot(
   screenshot: RecordToReportScreenshot,
@@ -21,9 +21,9 @@ export function normalizeRecordToReportScreenshot(
   }
 
   return {
-    base64: normalizeScreenshotBase64(screenshot.base64, {
+    base64: EncodedImage.fromBase64(screenshot.base64, {
       label: `recordToReport: screenshot #${index + 1} base64`,
-    }),
+    }).toBase64(),
     description: screenshot.description,
   };
 }

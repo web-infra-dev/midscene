@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import type { Size } from '../types';
-import { getImageBackend } from './image-backend';
+import { parseScreenshotBase64 } from './base64';
 import { detectScreenshotImageFormatFromBuffer } from './image-format';
 
 export interface ImageInfo extends Size {}
@@ -149,11 +149,17 @@ function webpInfoFromBuffer(imageBuffer: Buffer): ImageInfo {
 
 /**
  * Reads PNG/JPEG/WebP dimensions from the encoded header without decoding pixels.
- * This is intended for validating already-decoded dimension hints before an
- * image transform; full image validation remains the decoder's responsibility.
+ * This is header inspection, not full pixel validation. The image backend owns
+ * decoding; obtaining dimensions alone never loads Sharp or Photon.
  */
 export function encodedImageInfoOfBuffer(imageBuffer: Buffer): ImageInfo {
   if (isValidPNGImageBuffer(imageBuffer)) {
+    assert(
+      imageBuffer.length >= 33 &&
+        imageBuffer.readUInt32BE(8) === 13 &&
+        imageBuffer.toString('ascii', 12, 16) === 'IHDR',
+      'Invalid image: malformed PNG IHDR',
+    );
     const width = imageBuffer.readUInt32BE(16);
     const height = imageBuffer.readUInt32BE(20);
     assert(width && height, 'Invalid image: cannot get width or height');
@@ -169,39 +175,27 @@ export function encodedImageInfoOfBuffer(imageBuffer: Buffer): ImageInfo {
 }
 
 /**
- * Retrieves the dimensions of an image from a base64-encoded string
+ * Base64 boundary for the same header reader used by EncodedImage.size.
+ * Checks Base64 syntax, MIME/signature agreement and dimension headers, not pixels.
  *
  * @param imageBase64 - The base64-encoded image data
  * @returns A Promise that resolves to an object containing the width and height of the image
- * @throws Error if the image data is invalid
+ * @throws Error if the envelope or dimension headers cannot be read
  */
 export async function imageInfoOfBase64(
   imageBase64: string,
 ): Promise<ImageInfo> {
-  const base64Data = imageBase64
-    .replace(/^data:image\/\w+;base64,/, '')
-    .replace(/\s/g, '');
-  assert(base64Data, 'Invalid image: empty base64 data');
-  assert(
-    /^[A-Za-z0-9+/]+={0,2}$/.test(base64Data) && base64Data.length % 4 !== 1,
-    'Invalid image: malformed base64 data',
-  );
-  const imageBuffer = Buffer.from(base64Data, 'base64');
-  assert(isValidImageBuffer(imageBuffer), 'Invalid image: unsupported format');
-  try {
-    return await (await getImageBackend()).info(imageBuffer);
-  } catch (error) {
-    throw new Error(
-      `Invalid image: failed to decode base64 data (${error instanceof Error ? error.message : String(error)})`,
-      { cause: error },
-    );
-  }
+  const { bytes } = parseScreenshotBase64(imageBase64, {
+    label: 'Invalid image',
+  });
+  return encodedImageInfoOfBuffer(bytes);
 }
 
 /**
- * Check if the Buffer is a valid PNG image
+ * Capture guard: checks the PNG signature and final IEND chunk only.
+ * Does not check IHDR, intermediate chunks, CRCs, or decode pixels.
  * @param buffer The Buffer to check
- * @returns true if the Buffer is a valid PNG image, otherwise false
+ * @returns Whether these structural sentinels are present
  */
 export function isValidPNGImageBuffer(buffer: Buffer): boolean {
   // A PNG consists of the 8-byte signature followed by chunks and must end
@@ -238,9 +232,9 @@ export function isValidPNGImageBuffer(buffer: Buffer): boolean {
 }
 
 /**
- * Check if the Buffer is a valid JPEG image
+ * Capture guard: checks the JPEG signature only, not dimensions or pixel data.
  * @param buffer The Buffer to check
- * @returns true if the Buffer is a valid JPEG image, otherwise false
+ * @returns Whether the JPEG signature is present
  */
 export function isValidJPEGImageBuffer(buffer: Buffer): boolean {
   if (!buffer || buffer.length < 3) {
@@ -251,7 +245,7 @@ export function isValidJPEGImageBuffer(buffer: Buffer): boolean {
   return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
 }
 
-/** Check whether a Buffer contains a complete still WebP screenshot. */
+/** Capture guard: validates still-WebP container/header structure, not pixels. */
 export function isValidWebPImageBuffer(buffer: Buffer): boolean {
   if (!buffer) {
     return false;
@@ -265,9 +259,10 @@ export function isValidWebPImageBuffer(buffer: Buffer): boolean {
 }
 
 /**
- * Check if the Buffer is a supported screenshot image (PNG, JPEG, or WebP)
+ * Cheap capture guard using the format-specific structural checks below.
+ * This does not guarantee decodability; backend transforms decode pixels.
  * @param buffer The Buffer to check
- * @returns true if the Buffer is a valid PNG, JPEG, or WebP image, otherwise false
+ * @returns Whether the PNG/JPEG/WebP capture guard accepts the buffer
  */
 export function isValidImageBuffer(buffer: Buffer): boolean {
   return (

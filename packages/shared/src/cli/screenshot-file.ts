@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseScreenshotBase64 } from '../img/base64';
+import { EncodedImage } from '../img/encoded-image';
 import {
   screenshotImageFormatFromExtension,
   screenshotImageFormatFromMimeType,
@@ -26,7 +26,7 @@ export function writeCliScreenshotFile(
   rawBase64: string,
   options: WriteCliScreenshotFileOptions = {},
 ): string {
-  const parsed = parseScreenshotBase64(rawBase64, {
+  const parsed = EncodedImage.fromBase64(rawBase64, {
     label: 'CLI screenshot',
   });
   const declaredMimeFormat = screenshotImageFormatFromMimeType(
@@ -51,7 +51,7 @@ export function writeCliScreenshotFile(
       );
     }
   }
-  const extension = parsed.extension;
+  const extension = parsed.format;
   const directory = options.directoryPath
     ? options.directoryPath
     : options.directoryName

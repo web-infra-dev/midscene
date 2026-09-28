@@ -9,10 +9,7 @@ import type {
   ModelBrief,
   ReportActionDump,
 } from '@/types';
-import {
-  normalizeScreenshotBase64,
-  parseScreenshotBase64,
-} from '@midscene/shared/img';
+import { EncodedImage, screenshotImageMimeType } from '@midscene/shared/img';
 import type { ScreenshotRef } from './dump/screenshot-store';
 import {
   imageRefFileExtension,
@@ -404,7 +401,7 @@ function extractLocateCenter(
 function tryExtractBase64(screenshot: unknown): string | undefined {
   if (typeof screenshot === 'string') {
     try {
-      return normalizeScreenshotBase64(screenshot);
+      return EncodedImage.fromBase64(screenshot).toBase64();
     } catch {
       return undefined;
     }
@@ -496,10 +493,10 @@ function screenshotAttachment(
 
   const base64 = tryExtractBase64(screenshot);
   if (base64) {
-    const parsed = parseScreenshotBase64(base64, {
+    const parsed = EncodedImage.fromBase64(base64, {
       label: 'Markdown screenshot attachment',
     });
-    const ext = parsed.extension;
+    const ext = parsed.format;
     const idSuffix = options?.fallbackIdSuffix
       ? `-${options.fallbackIdSuffix}`
       : '';
@@ -510,7 +507,7 @@ function screenshotAttachment(
       attachment: {
         id,
         suggestedFileName,
-        mimeType: parsed.mimeType,
+        mimeType: screenshotImageMimeType(parsed.format),
         executionIndex,
         taskIndex,
         base64Data: base64,

@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import type { Size } from '../types';
 import {
-  type NormalizeScreenshotBase64Options,
+  type ParseScreenshotBase64Options,
   parseScreenshotBase64,
 } from './base64';
 import {
@@ -34,10 +34,7 @@ export class EncodedImage {
     return new EncodedImage(bytes, format);
   }
 
-  static fromBase64(
-    base64: string,
-    options?: NormalizeScreenshotBase64Options,
-  ) {
+  static fromBase64(base64: string, options?: ParseScreenshotBase64Options) {
     const { bytes, format } = parseScreenshotBase64(base64, options);
     return new EncodedImage(bytes, format);
   }
@@ -56,7 +53,20 @@ export class EncodedImage {
     return this.cachedSize;
   }
 
+  /** Output fields for image tool protocols, using the already-known format. */
+  toBase64Parts() {
+    return {
+      mimeType: screenshotImageMimeType(this.format),
+      body: Buffer.from(
+        this.bytes.buffer,
+        this.bytes.byteOffset,
+        this.bytes.byteLength,
+      ).toString('base64'),
+    };
+  }
+
   toBase64(): string {
-    return `data:${screenshotImageMimeType(this.format)};base64,${Buffer.from(this.bytes.buffer, this.bytes.byteOffset, this.bytes.byteLength).toString('base64')}`;
+    const { mimeType, body } = this.toBase64Parts();
+    return `data:${mimeType};base64,${body}`;
   }
 }

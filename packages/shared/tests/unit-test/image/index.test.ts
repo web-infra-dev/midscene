@@ -3,7 +3,6 @@ import { describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
 import {
   EncodedImage,
-  constrainBase64ImageToMaxSize,
   createPointOverlay,
   httpImg2Base64,
   imageInfoOfBase64,
@@ -14,8 +13,8 @@ import {
 } from '../../../src/img';
 import {
   createImgBase64ByFormat,
-  parseBase64,
-} from '../../../src/img/transform';
+  splitImageDataUrl,
+} from '../../../src/img/base64';
 import { getFixture } from '../../utils';
 
 async function markPoint(options: {
@@ -74,13 +73,13 @@ describe('imageInfoOfBase64', () => {
     const nonImageBase64 = 'data:image/png;base64,Zm9v';
 
     await expect(imageInfoOfBase64(nonImageBase64)).rejects.toThrow(
-      'Invalid image: unsupported format',
+      'Invalid image does not contain a PNG, JPEG, or WebP image',
     );
   });
 
   it('throws error for empty string', async () => {
     await expect(imageInfoOfBase64('')).rejects.toThrow(
-      'Invalid image: empty base64 data',
+      'Invalid image cannot be empty',
     );
   });
 });
@@ -110,27 +109,6 @@ describe('image utils', () => {
     const info = await imageInfoOfBase64(base64);
     expect(info.width).toMatchSnapshot();
     expect(info.height).toMatchSnapshot();
-  });
-
-  it('constrainBase64ImageToMaxSize bounds the longest edge with real image bytes', async () => {
-    const base64 = localImg2Base64(getFixture('icon.png'));
-    const constrainedBase64 = await constrainBase64ImageToMaxSize(base64, {
-      maxSize: 34,
-    });
-
-    expect(constrainedBase64).toMatch(/^data:image\/jpeg;base64,/);
-    await expect(imageInfoOfBase64(constrainedBase64)).resolves.toEqual({
-      width: 34,
-      height: 28,
-    });
-  });
-
-  it('constrainBase64ImageToMaxSize preserves an image already within the bound', async () => {
-    const base64 = localImg2Base64(getFixture('icon.png'));
-
-    await expect(
-      constrainBase64ImageToMaxSize(base64, { maxSize: 68 }),
-    ).resolves.toBe(base64);
   });
 
   it('markPoint keeps image dimensions and marks a point', async () => {
@@ -175,11 +153,11 @@ describe('image utils', () => {
       point: { x: 60, y: 60 },
       indexId: 2,
     });
-    const { body } = parseBase64(markedBase64);
+    const { body } = splitImageDataUrl(markedBase64);
     const { data, info } = await sharp(Buffer.from(body, 'base64'))
       .raw()
       .toBuffer({ resolveWithObject: true });
-    const locatorBody = parseBase64(locatorMarkedBase64).body;
+    const locatorBody = splitImageDataUrl(locatorMarkedBase64).body;
     const { data: locatorData, info: locatorInfo } = await sharp(
       Buffer.from(locatorBody, 'base64'),
     )
@@ -342,43 +320,43 @@ describe('image utils', () => {
     fetchSpy.mockRestore();
   });
 
-  it('parseBase64', () => {
+  it('splitImageDataUrl', () => {
     const base64 =
       'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
-    const { mimeType, body } = parseBase64(base64);
+    const { mimeType, body } = splitImageDataUrl(base64);
     expect(mimeType).toBe('image/gif');
     expect(body).toBe(
       'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
     );
   });
 
-  it('parseBase64 normalizes wrapped base64 bodies', () => {
+  it('splitImageDataUrl normalizes wrapped base64 bodies', () => {
     const base64 =
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA\r\nAu4AAAU2CAYAAADK1zMG';
-    const { mimeType, body } = parseBase64(base64);
+    const { mimeType, body } = splitImageDataUrl(base64);
     expect(mimeType).toBe('image/png');
     expect(body).toBe('iVBORw0KGgoAAAANSUhEUgAAAu4AAAU2CAYAAADK1zMG');
   });
 
-  it('parseBase64 accepts raw jpeg base64 bodies', () => {
+  it('EncodedImage accepts raw jpeg base64 bodies', () => {
     const base64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2w==';
-    const { mimeType, body } = parseBase64(base64);
+    const { mimeType, body } = EncodedImage.fromBase64(base64).toBase64Parts();
     expect(mimeType).toBe('image/jpeg');
     expect(body).toBe(base64);
   });
 
-  it('parseBase64 accepts raw png base64 bodies with wrapping', () => {
+  it('EncodedImage accepts raw png base64 bodies with wrapping', () => {
     const base64 =
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB\r\nCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
-    const { mimeType, body } = parseBase64(base64);
+    const { mimeType, body } = EncodedImage.fromBase64(base64).toBase64Parts();
     expect(mimeType).toBe('image/png');
     expect(body).toBe(base64.replace(/\s/g, ''));
   });
 
-  it('parseBase64, invalid', () => {
+  it('splitImageDataUrl, invalid', () => {
     const base64 = 'IamNotBase64';
-    expect(() => parseBase64(base64)).toThrowError(
-      'parseBase64 fail because intput is not a valid base64 string: IamNotBase64',
+    expect(() => splitImageDataUrl(base64)).toThrowError(
+      'Expected a base64 image data URL',
     );
   });
 

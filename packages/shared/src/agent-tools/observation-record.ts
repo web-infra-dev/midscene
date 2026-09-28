@@ -23,7 +23,6 @@ import { z } from 'zod';
 import { getMidsceneRunSubDir } from '../common';
 import { EncodedImage } from '../img/encoded-image';
 import {
-  screenshotImageExtension,
   screenshotImageFormatFromMimeType,
   screenshotImageMimeType,
 } from '../img/image-format';
@@ -188,7 +187,7 @@ export class UIObservationRecordWriter {
     const { bytes, format } = image;
     const mimeType = screenshotImageMimeType(format);
     const digest = createHash('sha256').update(bytes).digest('hex');
-    const fileName = `${digest}.${screenshotImageExtension(format)}`;
+    const fileName = `${digest}.${format}`;
     mkdirSync(this.temporaryFramesDirectory, { recursive: true });
     const temporaryPath = join(this.temporaryFramesDirectory, fileName);
     if (!existsSync(temporaryPath)) {
@@ -313,7 +312,7 @@ export function writeUIObservationRecord(
             `Invalid UI observation record at frames.${index}.mimeType: unsupported image MIME type ${frame.mimeType}`,
           );
         }
-        const imageExtension = screenshotImageExtension(format);
+        const imageExtension = format;
         const fileName = `${String(copiedPaths.size).padStart(4, '0')}.${imageExtension}`;
         relativePath = `${basename(framesDirectory)}/${fileName}`;
         copyFileSync(sourcePath, join(temporaryFramesDirectory, fileName));

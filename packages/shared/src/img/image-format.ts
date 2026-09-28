@@ -15,12 +15,6 @@ export function screenshotImageMimeType(
   return mimeTypeByFormat[format];
 }
 
-export function screenshotImageExtension(
-  format: ScreenshotImageFormat,
-): ScreenshotImageFormat {
-  return format;
-}
-
 export function screenshotImageFormatFromExtension(
   extension: unknown,
 ): ScreenshotImageFormat | undefined {
@@ -69,22 +63,6 @@ export function isScreenshotImageMimeType(
     mimeType === 'image/jpeg' ||
     mimeType === 'image/webp'
   );
-}
-
-export function inferScreenshotImageFormatFromBase64(
-  base64Body: string,
-): ScreenshotImageFormat | undefined {
-  const normalizedBody = base64Body.replace(/\s/g, '');
-  if (normalizedBody.startsWith('iVBORw0KGgo')) {
-    return 'png';
-  }
-  if (normalizedBody.startsWith('/9j/')) {
-    return 'jpeg';
-  }
-  if (normalizedBody.startsWith('UklGR')) {
-    return 'webp';
-  }
-  return undefined;
 }
 
 export function detectScreenshotImageFormatFromBuffer(

@@ -4,7 +4,6 @@ import {
   EncodedImage,
   type ScreenshotImageFormat,
   type ScreenshotImageMimeType,
-  screenshotImageExtension,
   screenshotImageFormatFromMimeType,
   screenshotImageMimeType,
 } from '@midscene/shared/img';
@@ -107,7 +106,7 @@ export class ScreenshotItem {
 
   /** Get the file extension for this screenshot */
   get extension(): ScreenshotImageFormat {
-    return screenshotImageExtension(this._format);
+    return this._format;
   }
 
   /** Get the MIME type for this screenshot. */

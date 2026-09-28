@@ -1,4 +1,3 @@
-import type { Size } from '../types';
 import { ifInNode } from '../utils';
 import type { ScreenshotImageFormat } from './image-format';
 import type { ImageOperation, ImageOutputOptions } from './image-pipeline';
@@ -11,7 +10,6 @@ export interface BackendImage {
 
 /** Backend resources never escape. transform always encodes; callers own no-op policy. */
 export interface ImageBackend {
-  info(bytes: Uint8Array): Promise<Size>;
   transform(
     image: BackendImage,
     operations: readonly ImageOperation[],

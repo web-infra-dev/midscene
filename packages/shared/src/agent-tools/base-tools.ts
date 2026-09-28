@@ -1,7 +1,7 @@
-import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { z } from 'zod';
 import { createRecordCliCommand } from '../cli/record-command';
+import { EncodedImage } from '../img/encoded-image';
 import { camelToKebab, getKeyAliases } from '../key-alias-utils';
 import {
   type CliReportSession,
@@ -356,7 +356,8 @@ export abstract class BaseMidsceneTools<
    * Helper: Convert base64 screenshot to image content array
    */
   protected buildScreenshotContent(screenshot: string) {
-    const { mimeType, body } = parseBase64(screenshot);
+    const { mimeType, body } =
+      EncodedImage.fromBase64(screenshot).toBase64Parts();
     return [
       {
         type: 'image' as const,

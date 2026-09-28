@@ -1,9 +1,9 @@
-import { parseBase64 } from '@midscene/shared/img';
 import { z } from 'zod';
 import {
   attachCliVerboseDumpListener,
   emitCliVerboseEvent,
 } from '../cli/verbose';
+import { EncodedImage } from '../img/encoded-image';
 import {
   getZodDescription,
   getZodTypeName,
@@ -468,7 +468,8 @@ async function captureScreenshotResult(
       return { content };
     }
 
-    const { mimeType, body } = parseBase64(screenshot);
+    const { mimeType, body } =
+      EncodedImage.fromBase64(screenshot).toBase64Parts();
     content.push({ type: 'image', data: body, mimeType });
     return { content };
   } catch (error: unknown) {
@@ -522,7 +523,8 @@ async function captureFailureResult(
         content: [{ type: 'text', text: warningText }],
       };
     }
-    const { mimeType, body } = parseBase64(screenshot);
+    const { mimeType, body } =
+      EncodedImage.fromBase64(screenshot).toBase64Parts();
     return {
       content: [
         { type: 'text', text: warningText },
@@ -679,7 +681,8 @@ export function generateCommonTools(
             await agent.recordToReport?.('take_screenshot', {
               screenshotBase64: screenshot,
             });
-            const { mimeType, body } = parseBase64(screenshot);
+            const { mimeType, body } =
+              EncodedImage.fromBase64(screenshot).toBase64Parts();
             return {
               content: [{ type: 'image', data: body, mimeType }],
             };

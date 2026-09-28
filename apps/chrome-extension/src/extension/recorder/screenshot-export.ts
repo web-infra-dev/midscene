@@ -1,9 +1,7 @@
 import {
+  EncodedImage,
   type ScreenshotImageFormat,
   type ScreenshotImageMimeType,
-  inferScreenshotImageFormatFromBase64,
-  screenshotImageExtension,
-  screenshotImageMimeType,
 } from '@midscene/shared/img';
 import type { RecordingSession } from '../../store';
 
@@ -16,23 +14,10 @@ export interface RecorderScreenshotAsset {
 export const recorderScreenshotAsset = (
   screenshotBase64: string,
 ): RecorderScreenshotAsset => {
-  const separator = ';base64,';
-  const separatorIndex = screenshotBase64.indexOf(separator);
-  const body = (
-    separatorIndex === -1
-      ? screenshotBase64
-      : screenshotBase64.slice(separatorIndex + separator.length)
-  ).replace(/\s/g, '');
-  const format = inferScreenshotImageFormatFromBase64(body);
-  if (!format) {
-    throw new Error('Unsupported recorder screenshot image format');
-  }
-
-  return {
-    body,
-    extension: screenshotImageExtension(format),
-    mimeType: screenshotImageMimeType(format),
-  };
+  const image = EncodedImage.fromBase64(screenshotBase64, {
+    label: 'Recorder screenshot',
+  });
+  return { ...image.toBase64Parts(), extension: image.format };
 };
 
 export const generateEventsMarkdownTable = (

@@ -22,6 +22,9 @@ import * as cliInterrupt from '@/cli/interrupt';
 import { createRecordCliCommand } from '@/cli/record-command';
 import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
+import { getFixture } from '../utils';
+
+const pngBody = readFileSync(getFixture('icon.png')).toString('base64');
 
 const multimodalPromptSchema = z.object({
   prompt: z.string(),
@@ -56,7 +59,7 @@ const actionSpace = [
   },
 ];
 
-const screenshotBase64 = 'data:image/png;base64,Zm9v';
+const screenshotBase64 = `data:image/png;base64,${pngBody}`;
 
 function withObservationArtifactAdapter<T extends object>(
   agent: T,
@@ -109,7 +112,7 @@ describe('generateToolsFromActionSpace', () => {
     expect(result).toEqual({
       content: [
         { type: 'text', text: 'Action "Tap" completed.' },
-        { type: 'image', data: 'Zm9v', mimeType: 'image/png' },
+        { type: 'image', data: pngBody, mimeType: 'image/png' },
       ],
     });
   });
@@ -212,7 +215,7 @@ describe('generateToolsFromActionSpace', () => {
       content: [
         { type: 'text', text: 'Action "RunAdbShell" completed.' },
         { type: 'text', text: 'Result: pm clear output' },
-        { type: 'image', data: 'Zm9v', mimeType: 'image/png' },
+        { type: 'image', data: pngBody, mimeType: 'image/png' },
       ],
     });
   });
@@ -377,7 +380,7 @@ describe('generateToolsFromActionSpace', () => {
       content: [
         { type: 'text', text: 'Action "act" completed.' },
         { type: 'text', text: 'Result: Midscene' },
-        { type: 'image', data: 'Zm9v', mimeType: 'image/png' },
+        { type: 'image', data: pngBody, mimeType: 'image/png' },
       ],
     });
   });
@@ -550,7 +553,7 @@ describe('generateToolsFromActionSpace', () => {
       screenshotBase64,
     });
     expect(result).toEqual({
-      content: [{ type: 'image', data: 'Zm9v', mimeType: 'image/png' }],
+      content: [{ type: 'image', data: pngBody, mimeType: 'image/png' }],
     });
   });
 
@@ -723,7 +726,7 @@ describe('composeUserPrompt', () => {
 });
 
 describe('generateCommonTools — assert image prompts', () => {
-  const screenshotBase64 = 'data:image/png;base64,Zm9v';
+  const screenshotBase64 = `data:image/png;base64,${pngBody}`;
 
   it('passes prompt through unchanged when no images are supplied', async () => {
     const aiAssert = rs.fn().mockResolvedValue(undefined);
@@ -971,7 +974,7 @@ describe('generateCommonTools — assert image prompts', () => {
 });
 
 describe('generateCommonTools — act image prompts', () => {
-  const screenshotBase64 = 'data:image/png;base64,Zm9v';
+  const screenshotBase64 = `data:image/png;base64,${pngBody}`;
 
   it('passes the prompt through unchanged when no images are supplied', async () => {
     const aiAction = rs.fn().mockResolvedValue(undefined);

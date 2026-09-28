@@ -13,7 +13,7 @@ const pngBody =
 describe('Chrome recorder screenshot export', () => {
   it('derives the exported extension and MIME type from the image bytes', () => {
     expect(
-      recorderScreenshotAsset(`data:image/png;base64,${webpBody}`),
+      recorderScreenshotAsset(`data:image/webp;base64,${webpBody}`),
     ).toEqual({
       body: webpBody,
       extension: 'webp',
@@ -26,6 +26,12 @@ describe('Chrome recorder screenshot export', () => {
         mimeType: 'image/png',
       },
     );
+  });
+
+  it('rejects declared MIME that disagrees with image bytes', () => {
+    expect(() =>
+      recorderScreenshotAsset(`data:image/png;base64,${webpBody}`),
+    ).toThrow('declares image/png but encoded bytes are image/webp');
   });
 
   it('uses each screenshot actual extension in the Markdown table', () => {
