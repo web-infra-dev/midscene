@@ -158,6 +158,16 @@ export interface UITreeSnapshot {
   root: UiNode;
 }
 
+/** Transient, reportable evidence derived from a screenshot sequence. */
+export interface ScreenshotSequenceEvidenceFrame {
+  screenshot: ScreenshotItem;
+  sourceFrameIndex: number;
+}
+
+export interface ScreenshotSequenceEvidence {
+  frames: ScreenshotSequenceEvidenceFrame[];
+}
+
 export abstract class UIContext {
   /**
    * screenshot of the current UI state. which size is shotSize(be shrunk by screenshotShrinkFactor),
@@ -167,20 +177,15 @@ export abstract class UIContext {
   /**
    * Optional sequence of screenshots captured over a short time window, in
    * temporal order (earliest first, latest last). When present with more than
-   * one frame, extract/assert flows submit all frames to the model so it can
-   * observe transient UI (toasts, carousels, auto-hiding controls). The last
-   * frame is the same state as {@link screenshot}.
+   * one frame, extract/assert flows analyze the sequence and submit a bounded
+   * evidence set so the model can observe transient UI (toasts, carousels,
+   * auto-hiding controls). The last frame is the same state as
+   * {@link screenshot}.
    */
   abstract screenshotSequence?: ScreenshotItem[];
 
-  /**
-   * Enlarged copies of {@link screenshotSequence} around the strongest visual
-   * change. Generated lazily for observation insights and report evidence.
-   */
-  abstract screenshotSequenceFocus?: ScreenshotItem[];
-
-  /** Original sequence indices for {@link screenshotSequenceFocus}. */
-  abstract screenshotSequenceFocusFrameIndices?: number[];
+  /** Lazily generated, transient evidence used by the model and report. */
+  abstract screenshotSequenceEvidence?: ScreenshotSequenceEvidence;
 
   /**
    * screenshot size after shrinking

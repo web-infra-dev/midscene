@@ -1089,7 +1089,7 @@ Sampling and resource usage:
 
 - Midscene uses a continuous frame source when one is available. Android uses scrcpy (`scrcpyConfig.enabled`), iOS uses WDA MJPEG (`wdaMjpegFrameSource.enabled`), and the web uses CDP screencast. Without a continuous source, Midscene takes screenshots at intervals. Sampling is slower on mobile in this mode.
 - Data URL frames are written to files during sampling. `UIObserver` does not keep every image in memory. Other frame handles are decoded and saved in small batches when recording stops. Midscene reads the images when a query or assertion runs.
-- Midscene analyzes up to `maxFrames` captured frames, but sends the model at most eight evidence images. When it detects localized changes, it sends up to six enlarged change-region grids plus full-screen baseline and final-state images; otherwise it evenly samples up to eight full frames. Observed evidence appears in the report timeline with an `Observed` label.
+- Midscene analyzes at most 50 evenly sampled source frames and sends the model at most eight evidence images. When it detects localized changes, it sends up to six enlarged change-region grids plus full-screen baseline and final-state images; otherwise it evenly samples up to eight full frames. Observed evidence appears in the report timeline with an `Observed` label.
 - On iOS, observed frames come from the lower-quality MJPEG stream. The final screenshot still uses full quality.
 
 #### `aiWaitFor()` {#agentaiwaitfor}

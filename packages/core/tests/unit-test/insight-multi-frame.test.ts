@@ -52,7 +52,7 @@ describe('insight extraction multi-frame context', () => {
     };
   };
 
-  it('submits every frame plus a sequence note when more than one frame is present', async () => {
+  it('submits bounded evidence plus an honest sequence note', async () => {
     const context = withSequence(3);
 
     await AiExtractElementInfo<{ result: boolean }>({
@@ -81,9 +81,14 @@ describe('insight extraction multi-frame context', () => {
     // one fixed truth rule for all assertions. The user's wording decides
     // whether to inspect the whole sequence, a later frame, or frame order.
     expect((sequenceNote as any).text).toContain(
-      'Interpret the temporal scope from the statement or question itself',
+      'Interpret the temporal scope from <DATA_DEMAND>',
     );
-    expect((sequenceNote as any).text).toContain('compare frames in order');
+    expect((sequenceNote as any).text).toContain(
+      'compare the selected frames in order',
+    );
+    expect((sequenceNote as any).text).toContain(
+      'not necessarily every captured frame',
+    );
     expect((sequenceNote as any).text).not.toContain('ANY of the frames');
     expect((sequenceNote as any).text).not.toContain(
       'the last image is the most recent state',
@@ -160,11 +165,20 @@ describe('insight extraction multi-frame context', () => {
       userContent.some(
         (part) =>
           part.type === 'text' &&
-          part.text.includes('candidate change regions'),
+          part.text.includes(
+            'matching grids enlarged from selected source frames',
+          ),
       ),
     ).toBe(true);
-    expect(context.screenshotSequenceFocus).toHaveLength(3);
-    expect(context.screenshotSequenceFocusFrameIndices).toEqual([0, 1, 2]);
+    expect(context.screenshotSequenceEvidence).toEqual({
+      frames: expect.any(Array),
+    });
+    expect(context.screenshotSequenceEvidence?.frames).toHaveLength(3);
+    expect(
+      context.screenshotSequenceEvidence?.frames.map(
+        ({ sourceFrameIndex }) => sourceFrameIndex,
+      ),
+    ).toEqual([0, 1, 2]);
   });
 
   it('falls back to bounded original frames when focus generation fails', async () => {
@@ -181,8 +195,9 @@ describe('insight extraction multi-frame context', () => {
       ...base,
       screenshot: sequence.at(-1)!,
       screenshotSequence: sequence,
-      screenshotSequenceFocus: [base.screenshot],
-      screenshotSequenceFocusFrameIndices: [2],
+      screenshotSequenceEvidence: {
+        frames: [{ screenshot: base.screenshot, sourceFrameIndex: 2 }],
+      },
     };
 
     await AiExtractElementInfo<{ result: boolean }>({
@@ -197,8 +212,7 @@ describe('insight extraction multi-frame context', () => {
     expect(imageParts).toHaveLength(8);
     expect(imageParts[0].image_url.url).toBe(sequence[0].base64);
     expect(imageParts.at(-1)?.image_url.url).toBe(sequence.at(-1)?.base64);
-    expect(context.screenshotSequenceFocus).toBeUndefined();
-    expect(context.screenshotSequenceFocusFrameIndices).toBeUndefined();
+    expect(context.screenshotSequenceEvidence).toBeUndefined();
   });
 
   it('falls back to the single-screenshot path when only one frame is present', async () => {

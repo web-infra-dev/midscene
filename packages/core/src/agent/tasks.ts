@@ -1209,23 +1209,25 @@ export function recordAndReleaseScreenshotSequence(
 ): void {
   const frames = uiContext?.screenshotSequence;
   if (frames && frames.length > 1) {
-    const focusFrames = uiContext?.screenshotSequenceFocus;
-    const focusFrameIndices = uiContext?.screenshotSequenceFocusFrameIndices;
-    const reportFrames = focusFrames?.length
-      ? [frames[0], ...focusFrames]
-      : frames.slice(0, -1);
+    const evidence = uiContext?.screenshotSequenceEvidence;
+    const reportFrames = evidence?.frames.length
+      ? [{ screenshot: frames[0], sourceFrameIndex: 0 }, ...evidence.frames]
+      : frames.slice(0, -1).map((screenshot, sourceFrameIndex) => ({
+          screenshot,
+          sourceFrameIndex,
+        }));
     const recorderItems: ExecutionRecorderItem[] = [];
     for (let i = 0; i < reportFrames.length; i++) {
-      const frame = reportFrames[i];
+      const { screenshot, sourceFrameIndex } = reportFrames[i];
       recorderItems.push({
         type: 'screenshot',
-        ts: frame.capturedAt,
-        screenshot: frame,
-        description: focusFrames?.length
+        ts: screenshot.capturedAt,
+        screenshot,
+        description: evidence?.frames.length
           ? i === 0
             ? `Observed full-screen baseline — source frame 1/${frames.length}`
-            : `Observed candidate change regions — source frame ${(focusFrameIndices?.[i - 1] ?? i - 1) + 1}/${frames.length}`
-          : `Observed frame ${i + 1}/${frames.length}`,
+            : `Observed candidate change regions — source frame ${sourceFrameIndex + 1}/${frames.length}`
+          : `Observed frame ${sourceFrameIndex + 1}/${frames.length}`,
         timing: 'observed-frame',
       });
     }
@@ -1240,10 +1242,7 @@ export function recordAndReleaseScreenshotSequence(
   if (uiContext?.screenshotSequence) {
     uiContext.screenshotSequence = undefined;
   }
-  if (uiContext?.screenshotSequenceFocus) {
-    uiContext.screenshotSequenceFocus = undefined;
-  }
-  if (uiContext?.screenshotSequenceFocusFrameIndices) {
-    uiContext.screenshotSequenceFocusFrameIndices = undefined;
+  if (uiContext?.screenshotSequenceEvidence) {
+    uiContext.screenshotSequenceEvidence = undefined;
   }
 }

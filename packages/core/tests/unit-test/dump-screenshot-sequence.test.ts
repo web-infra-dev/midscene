@@ -40,8 +40,14 @@ describe('dump serialization drops screenshotSequence', () => {
               ScreenshotItem.create(FRAME_B, 2),
               representative,
             ],
-            screenshotSequenceFocus: [ScreenshotItem.create(FOCUS_FRAME, 2)],
-            screenshotSequenceFocusFrameIndices: [1],
+            screenshotSequenceEvidence: {
+              frames: [
+                {
+                  screenshot: ScreenshotItem.create(FOCUS_FRAME, 2),
+                  sourceFrameIndex: 1,
+                },
+              ],
+            },
             shotSize: { width: 100, height: 100 },
             shrunkShotToLogicalRatio: 1,
           },

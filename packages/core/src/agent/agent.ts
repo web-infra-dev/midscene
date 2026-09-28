@@ -733,9 +733,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * (scrcpy on Android, WDA MJPEG on iOS — both opt-in; CDP screencast on
    * web) and fall back to plain screenshots otherwise. Sampling is capped at
    * 5fps, the buffer is bounded and self-thinning, and decoding is deferred to
-   * the end. At insight time, Midscene analyzes the captured frames and sends
-   * at most eight evidence images, emphasizing localized changes while keeping
-   * full-screen baseline and final-state context.
+   * the end. At insight time, Midscene analyzes at most 50 evenly sampled
+   * source frames and sends at most eight evidence images, emphasizing
+   * localized changes while keeping full-screen baseline and final-state
+   * context.
    * Awaiting `startObserving()` guarantees one baseline frame is captured
    * before your next action.
    */

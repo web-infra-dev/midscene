@@ -63,7 +63,7 @@ function replacerForDumpSerialization(key: string, value: any): any {
   // screenshotSequence is a transient model input (multi-frame capture). Its
   // frames are not persisted by collectScreenshots, so serializing them would
   // emit dangling screenshot refs. The representative `screenshot` is kept.
-  if (key.startsWith('screenshotSequence')) {
+  if (key === 'screenshotSequence' || key === 'screenshotSequenceEvidence') {
     return undefined;
   }
   const opaqueObjectName = getPageOrBrowserObjectName(value);
@@ -336,7 +336,11 @@ export class ReportActionDump implements IReportActionDump {
         const entries = Object.entries(obj)
           // screenshotSequence is a transient multi-frame model input whose
           // frames are not persisted; skip it to avoid inlining large base64.
-          .filter(([key]) => !key.startsWith('screenshotSequence'))
+          .filter(
+            ([key]) =>
+              key !== 'screenshotSequence' &&
+              key !== 'screenshotSequenceEvidence',
+          )
           .map(([key, value]) => [key, processValue(value)]);
         return Object.fromEntries(entries);
       }
