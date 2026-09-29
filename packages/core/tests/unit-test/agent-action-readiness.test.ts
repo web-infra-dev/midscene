@@ -107,25 +107,15 @@ describe('Agent action readiness', () => {
   });
 
   it.each(['playwright', 'android', 'ios', 'harmony', 'computer'])(
-    'creates a fresh waiter before every action on %s',
+    'waits after every successful action on %s',
     async (type) => {
       const events: string[] = [];
       const observed: ActionReadyContext[] = [];
       const { agent, call, device } = setup(
         {
-          waitForActionReady: {
-            createWaiter: (context) => {
-              observed.push(context);
-              events.push('create');
-              return {
-                wait: async () => {
-                  events.push('wait');
-                },
-                dispose: () => {
-                  events.push('dispose');
-                },
-              };
-            },
+          waitForActionReady: async (context) => {
+            observed.push(context);
+            events.push('wait');
           },
         },
         type,
@@ -138,19 +128,10 @@ describe('Agent action readiness', () => {
       expect(observed).toHaveLength(0);
       await agent.aiTap('submit', { xpath: '//button' });
       await agent.aiTap('submit again', { xpath: '//button' });
-      expect(events).toEqual([
-        'create',
-        'action',
-        'wait',
-        'dispose',
-        'create',
-        'action',
-        'wait',
-        'dispose',
-      ]);
+      expect(events).toEqual(['action', 'wait', 'action', 'wait']);
       expect(observed[0].action.name).toBe('Tap');
       expect(observed[0].action.id).not.toBe(observed[1].action.id);
-      expect(observed[0].signal).not.toBe(observed[1].signal);
+      expect(observed[0].action.param).toBeDefined();
       expect(device.defaultActionWait).not.toHaveBeenCalled();
       expect(device.beforeInvokeAction).toHaveBeenCalledTimes(2);
       expect(device.afterInvokeAction).toHaveBeenCalledTimes(2);
@@ -158,32 +139,24 @@ describe('Agent action readiness', () => {
   );
 
   it.each(['aiQuery', 'aiAssert', 'aiWaitFor'] as const)(
-    'does not create a waiter for %s',
+    'does not wait for %s',
     async (method) => {
-      const createWaiter = rs.fn(() => 'skip' as const);
-      const { agent } = setup({ waitForActionReady: { createWaiter } });
+      const waitForActionReady = rs.fn(async () => {});
+      const { agent } = setup({ waitForActionReady });
       await agent[method]('page is ready');
-      expect(createWaiter).not.toHaveBeenCalled();
+      expect(waitForActionReady).not.toHaveBeenCalled();
     },
   );
 
-  it.each(['createWaiter', 'wait'] as const)(
-    'rejects same-Agent UI reentry from %s without executing a nested action',
-    async (phase) => {
-      const { agent, call } = setup({
-        waitForActionReady: {
-          createWaiter: async () => {
-            if (phase === 'createWaiter') await agent.aiQuery('ready');
-            return { wait: () => agent.aiTap('submit', { xpath: '//button' }) };
-          },
-        },
-      });
-      await expect(agent.callActionInActionSpace('Submit')).rejects.toThrow(
-        'Cannot use this Agent',
-      );
-      expect(call).toHaveBeenCalledTimes(phase === 'createWaiter' ? 0 : 1);
-    },
-  );
+  it('does not call readiness when the action fails', async () => {
+    const waitForActionReady = rs.fn(async () => {});
+    const { agent, call } = setup({ waitForActionReady });
+    call.mockRejectedValue(new Error('action failed'));
+    await expect(agent.callActionInActionSpace('Submit')).rejects.toThrow(
+      'action failed',
+    );
+    expect(waitForActionReady).not.toHaveBeenCalled();
+  });
 
   function planTwoActions(shouldContinuePlanning = false) {
     rs.mocked(standardPlan).mockResolvedValue({
@@ -204,18 +177,11 @@ describe('Agent action readiness', () => {
     let creates = 0;
     let screenshotsAtWait = 0;
     const { agent, call, device } = setup({
-      waitForActionReady: {
-        createWaiter: () => {
-          if (++creates === 2) return 'skip';
-          return {
-            wait: async () => {
-              screenshotsAtWait =
-                rs.mocked(commonContextParser).mock.calls.length;
-              started.resolve();
-              await ready.promise;
-            },
-          };
-        },
+      waitForActionReady: async () => {
+        if (++creates === 2) return;
+        screenshotsAtWait = rs.mocked(commonContextParser).mock.calls.length;
+        started.resolve();
+        await ready.promise;
       },
     });
     planTwoActions();
@@ -235,19 +201,16 @@ describe('Agent action readiness', () => {
       .filter((task) => task.subType === 'Submit');
     expect(actions.map((task) => task.actionReadiness)).toEqual([
       'custom',
-      'skip',
+      'custom',
     ]);
     expect(actions[0].timing?.waitForActionReadyEnd).toBeDefined();
   });
 
-  it('keeps default delays and platform waits only when default is selected', async () => {
+  it('keeps default delays and platform waits when unconfigured', async () => {
     rs.useFakeTimers();
     const called = deferred();
     const { agent, call, device } = setup({
       waitAfterAction: 300,
-      waitForActionReady: {
-        createWaiter: () => 'default',
-      },
     });
     call.mockImplementation(async () => {
       called.resolve();
@@ -263,11 +226,11 @@ describe('Agent action readiness', () => {
     expect(device.afterInvokeAction).toHaveBeenCalledOnce();
   });
 
-  it('skip bypasses both generic delays and preserves lifecycle callbacks', async () => {
+  it('an empty callback bypasses both generic delays and preserves lifecycle callbacks', async () => {
     rs.useFakeTimers();
     const { agent, device } = setup({
       waitAfterAction: 300,
-      waitForActionReady: { createWaiter: () => 'skip' },
+      waitForActionReady: async () => {},
     });
     device.actionSpace()[0].delayBeforeRunner = 200;
     const started = Date.now();
@@ -277,15 +240,15 @@ describe('Agent action readiness', () => {
     expect(device.afterInvokeAction).toHaveBeenCalledOnce();
   });
 
-  it('creates waiters for cached actions without invoking planning', async () => {
-    const createWaiter = rs.fn(() => 'skip' as const);
+  it('waits for cached actions without invoking planning', async () => {
+    const waitForActionReady = rs.fn(async () => {});
     const { agent, call } = setup({
       cache: { id: uuid() },
-      waitForActionReady: { createWaiter },
+      waitForActionReady,
     });
     seedPlan(agent);
     await agent.aiAct('submit twice');
-    expect(createWaiter).toHaveBeenCalledTimes(2);
+    expect(waitForActionReady).toHaveBeenCalledTimes(2);
     expect(call).toHaveBeenCalledTimes(2);
     expect(standardPlan).not.toHaveBeenCalled();
   });
@@ -293,16 +256,12 @@ describe('Agent action readiness', () => {
   it.each(['planned', 'cached'] as const)(
     'stops %s actions on readiness failure without replay or replanning',
     async (path) => {
-      const dispose = rs.fn();
-      const createWaiter = rs.fn(() => ({
-        wait: async () => {
-          throw new Error('login did not become ready');
-        },
-        dispose,
-      }));
+      const waitForActionReady = rs.fn(async () => {
+        throw new Error('login did not become ready');
+      });
       const { agent, call } = setup({
         cache: { id: uuid() },
-        waitForActionReady: { createWaiter },
+        waitForActionReady,
       });
       if (path === 'cached') seedPlan(agent);
       else planTwoActions(true);
@@ -310,87 +269,20 @@ describe('Agent action readiness', () => {
         'login did not become ready',
       );
       expect(call).toHaveBeenCalledOnce();
-      expect(createWaiter).toHaveBeenCalledOnce();
-      expect(dispose).toHaveBeenCalledOnce();
+      expect(waitForActionReady).toHaveBeenCalledOnce();
       expect(standardPlan).toHaveBeenCalledTimes(path === 'planned' ? 1 : 0);
     },
   );
 
   it('stops YAML even when continueOnError is set on the failed task', async () => {
     const { agent, call } = setup({
-      waitForActionReady: {
-        createWaiter: () => ({
-          wait: async () => {
-            throw new Error('not ready');
-          },
-        }),
+      waitForActionReady: async () => {
+        throw new Error('not ready');
       },
     });
     const script =
       'tasks:\n  - name: first\n    continueOnError: true\n    flow:\n      - submit: {}\n  - name: second\n    flow:\n      - submit: {}\n';
     await expect(agent.runYaml(script)).rejects.toThrow('not ready');
     expect(call).toHaveBeenCalledOnce();
-  });
-
-  it.each(['planned', 'cached', 'yaml'] as const)(
-    'cancels %s waiting without replaying a completed action',
-    async (path) => {
-      const started = deferred();
-      const controller = new AbortController();
-      const dispose = rs.fn();
-      const { agent, call } = setup({
-        cache: { id: uuid() },
-        waitForActionReady: {
-          createWaiter: () => ({
-            wait: () => {
-              started.resolve();
-              return new Promise<void>(() => {});
-            },
-            dispose,
-          }),
-        },
-      });
-      if (path === 'cached') seedPlan(agent);
-      else planTwoActions(true);
-      const assertion = expect(
-        path === 'yaml'
-          ? agent.runYaml(yaml, { abortSignal: controller.signal })
-          : agent.aiAct('submit twice', { abortSignal: controller.signal }),
-      ).rejects.toThrow('stop login');
-      await started.promise;
-      controller.abort(new Error('stop login'));
-      await assertion;
-      expect(call).toHaveBeenCalledOnce();
-      expect(dispose).toHaveBeenCalledOnce();
-      expect(standardPlan).toHaveBeenCalledTimes(path === 'planned' ? 1 : 0);
-    },
-  );
-
-  it('destroys an active waiter before destroying the device', async () => {
-    const started = deferred();
-    const events: string[] = [];
-    const { agent, device } = setup({
-      waitForActionReady: {
-        createWaiter: () => ({
-          wait: () => {
-            started.resolve();
-            return new Promise<void>(() => {});
-          },
-          dispose: () => {
-            events.push('dispose');
-          },
-        }),
-      },
-    });
-    device.destroy.mockImplementation(async () => {
-      events.push('destroy');
-    });
-    const assertion = expect(
-      agent.callActionInActionSpace('Submit'),
-    ).rejects.toThrow('Agent destroyed');
-    await started.promise;
-    await agent.destroy();
-    await assertion;
-    expect(events).toEqual(['dispose', 'destroy']);
   });
 });

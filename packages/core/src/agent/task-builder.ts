@@ -26,7 +26,7 @@ import { ServiceError } from '@/types';
 import { sleep } from '@/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { ActionReadiness, ActionReadyScope } from './action-readiness';
+import type { ActionReadiness } from './action-readiness';
 import type { TaskCache } from './task-cache';
 import { withUsageIntent } from './usage-intent';
 import {
@@ -294,98 +294,76 @@ export class TaskBuilder {
           }
         })();
 
-        const execute = async (scope?: ActionReadyScope) => {
-          const useDefaultWait = !scope || scope.mode === 'default';
-          if (scope) taskContext.task.actionReadiness = scope.mode;
-          scope?.throwIfAborted();
-          context.abortSignal?.throwIfAborted();
+        const useDefaultWait = !this.actionReadiness;
+        taskContext.task.actionReadiness = useDefaultWait
+          ? 'default'
+          : 'custom';
+        context.abortSignal?.throwIfAborted();
 
-          setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
-          const delayBeforeRunner = useDefaultWait
-            ? (action.delayBeforeRunner ?? 200)
-            : 0;
-          try {
-            await Promise.all([
-              this.interface.beforeInvokeAction?.(action.name, param),
-              delayBeforeRunner > 0
-                ? sleep(delayBeforeRunner)
-                : Promise.resolve(),
-            ]);
-          } catch (originalError: any) {
-            throw new Error(
-              `error in running beforeInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
-              { cause: originalError },
-            );
-          } finally {
-            setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
-          }
-
-          scope?.throwIfAborted();
-          context.abortSignal?.throwIfAborted();
-          setTimingFieldOnce(timing, 'callActionStart');
-          debug('calling action', action.name);
-          const actionResult = await action.call.call(
-            this.interface,
-            parsedParam,
-            useDefaultWait
-              ? taskContext
-              : { ...taskContext, skipDefaultWait: true },
-          );
-          setTimingFieldOnce(timing, 'callActionEnd');
-          debug('called action', action.name, 'result:', actionResult);
-          scope?.throwIfAborted();
-          context.abortSignal?.throwIfAborted();
-
-          setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
-          setTimingFieldOnce(timing, 'waitForActionReadyStart');
-          try {
-            if (useDefaultWait) {
-              const delayAfterRunner =
-                action.delayAfterRunner ?? this.waitAfterAction ?? 300;
-              if (delayAfterRunner > 0) await sleep(delayAfterRunner);
-              await this.interface.defaultActionWait?.(
-                action.name,
-                parsedParam,
-              );
-            } else {
-              await scope.wait();
-            }
-          } finally {
-            setTimingFieldOnce(timing, 'waitForActionReadyEnd');
-          }
-          scope?.throwIfAborted();
-          context.abortSignal?.throwIfAborted();
-          try {
-            await this.interface.afterInvokeAction?.(action.name, parsedParam);
-          } catch (originalError: any) {
-            throw new Error(
-              `error in running afterInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
-              { cause: originalError },
-            );
-          } finally {
-            setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
-          }
-          return { output: actionResult };
-        };
-
-        if (!this.actionReadiness) return execute();
-        setTimingFieldOnce(timing, 'createActionWaiterStart');
+        setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
+        const delayBeforeRunner = useDefaultWait
+          ? (action.delayBeforeRunner ?? 200)
+          : 0;
         try {
-          return await this.actionReadiness.run(
-            {
+          await Promise.all([
+            this.interface.beforeInvokeAction?.(action.name, param),
+            delayBeforeRunner > 0
+              ? sleep(delayBeforeRunner)
+              : Promise.resolve(),
+          ]);
+        } catch (originalError: any) {
+          throw new Error(
+            `error in running beforeInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
+            { cause: originalError },
+          );
+        } finally {
+          setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
+        }
+
+        context.abortSignal?.throwIfAborted();
+        setTimingFieldOnce(timing, 'callActionStart');
+        debug('calling action', action.name);
+        const actionResult = await action.call.call(
+          this.interface,
+          parsedParam,
+          useDefaultWait
+            ? taskContext
+            : { ...taskContext, skipDefaultWait: true },
+        );
+        setTimingFieldOnce(timing, 'callActionEnd');
+        debug('called action', action.name, 'result:', actionResult);
+        context.abortSignal?.throwIfAborted();
+
+        setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
+        setTimingFieldOnce(timing, 'waitForActionReadyStart');
+        try {
+          if (useDefaultWait) {
+            const delayAfterRunner =
+              action.delayAfterRunner ?? this.waitAfterAction ?? 300;
+            if (delayAfterRunner > 0) await sleep(delayAfterRunner);
+            await this.interface.defaultActionWait?.(action.name, parsedParam);
+          } else {
+            await this.actionReadiness!.wait({
               id: taskContext.task.taskId,
               name: action.name,
               param: parsedParam,
-            },
-            context.abortSignal,
-            async (scope) => {
-              setTimingFieldOnce(timing, 'createActionWaiterEnd');
-              return execute(scope);
-            },
+            });
+          }
+        } finally {
+          setTimingFieldOnce(timing, 'waitForActionReadyEnd');
+        }
+        context.abortSignal?.throwIfAborted();
+        try {
+          await this.interface.afterInvokeAction?.(action.name, parsedParam);
+        } catch (originalError: any) {
+          throw new Error(
+            `error in running afterInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
+            { cause: originalError },
           );
         } finally {
-          setTimingFieldOnce(timing, 'createActionWaiterEnd');
+          setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
         }
+        return { output: actionResult };
       },
     };
 

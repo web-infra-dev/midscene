@@ -125,7 +125,6 @@ export class TaskExecutor {
   private readonly providedActionSpace: DeviceAction[];
 
   private readonly taskBuilder: TaskBuilder;
-  private readonly actionReadiness?: ActionReadiness;
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
@@ -164,7 +163,6 @@ export class TaskExecutor {
     this.waitAfterAction = opts.waitAfterAction;
     this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
-    this.actionReadiness = opts.actionReadiness;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
@@ -189,7 +187,6 @@ export class TaskExecutor {
       onTaskEvent?: (event: TaskRunnerEvent) => Promise<void> | void;
     },
   ) {
-    this.actionReadiness?.assertCanUseAgent();
     return new ExecutionSession(
       title,
       () =>
