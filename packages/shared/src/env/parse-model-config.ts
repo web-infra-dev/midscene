@@ -246,16 +246,16 @@ export const parseOpenaiSdkConfig = ({
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
-    apiType: (() => {
-      const value = provider[keys.apiType];
+    protocol: (() => {
+      const value = provider[keys.protocol];
       if (value === undefined) {
         return undefined;
       }
-      if (value === 'chat-completion' || value === 'responses') {
+      if (value === 'openai-chat' || value === 'openai-response') {
         return value;
       }
       throw new Error(
-        `${keys.apiType} must be one of: chat-completion, responses. Got: ${value}`,
+        `${keys.protocol} must be one of: openai-chat, openai-response. Got: ${value}`,
       );
     })(),
     modelFamily,

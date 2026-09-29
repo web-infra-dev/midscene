@@ -7,7 +7,7 @@ import {
 } from './model-config-code';
 import './ModelConfigTabs.css';
 
-type ModelApiType = 'chat-completion' | 'responses';
+type ModelProtocol = 'openai-chat' | 'openai-response';
 
 type ModelConfigTabType = 'default' | 'planning' | 'insight';
 
@@ -15,7 +15,7 @@ const tabOrder: ModelConfigTabType[] = ['default', 'planning', 'insight'];
 
 export function ModelConfigCard(props: ModelConfigCardProps) {
   const lang = useLang();
-  const [apiType, setApiType] = useState<ModelApiType>('chat-completion');
+  const [protocol, setProtocol] = useState<ModelProtocol>('openai-chat');
   const helpText =
     lang === 'zh'
       ? '了解 Chat 和 Responses API 的区别'
@@ -40,16 +40,16 @@ export function ModelConfigCard(props: ModelConfigCardProps) {
       {props.responses && (
         <fieldset
           className="model-api-selector"
-          aria-label={lang === 'zh' ? 'API 类型' : 'API type'}
+          aria-label={lang === 'zh' ? '协议类型' : 'Protocol'}
         >
-          {(['chat-completion', 'responses'] as const).map((value) => (
+          {(['openai-chat', 'openai-response'] as const).map((value) => (
             <button
               key={value}
               type="button"
-              aria-pressed={apiType === value}
-              onClick={() => setApiType(value)}
+              aria-pressed={protocol === value}
+              onClick={() => setProtocol(value)}
             >
-              {value === 'responses' ? 'Responses' : 'Chat'}
+              {value === 'openai-response' ? 'Responses' : 'Chat'}
             </button>
           ))}
           <a
@@ -66,9 +66,9 @@ export function ModelConfigCard(props: ModelConfigCardProps) {
         {tabOrder.map((type) => (
           <Tab key={type} label={labels[type]} value={type}>
             <CodeBlockRuntime
-              key={apiType}
+              key={protocol}
               lang="bash"
-              code={buildModelConfigCode(props, type, apiType)}
+              code={buildModelConfigCode(props, type, protocol)}
             />
           </Tab>
         ))}

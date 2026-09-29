@@ -3,7 +3,7 @@ import type { AIUsageInfo } from '@/types';
 import type {
   IModelConfig,
   TIntent,
-  TModelApiType,
+  TModelProtocol,
   TModelReasoningEnabled,
   TModelResponseFormat,
 } from '@midscene/shared/env';
@@ -310,7 +310,7 @@ export type LocateDefinition =
   | CustomLocateDefinition;
 
 export interface ModelAdapter {
-  supportedApiTypes: TModelApiType[];
+  supportedProtocols: TModelProtocol[];
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
   responses: ResponsesAdapter;
@@ -342,7 +342,7 @@ export interface ModelRuntime {
 
 export interface ModelAdapterDefinition {
   /** API protocols adapted for this model. Defaults to Chat Completions only. */
-  supportedApiTypes?: TModelApiType[];
+  supportedProtocols?: TModelProtocol[];
   jsonParser?: JsonParserPreset | JsonParser;
   chatCompletion?: ChatCompletionDefinition;
   responses?: ResponsesDefinition;

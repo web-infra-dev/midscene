@@ -49,7 +49,7 @@ describe('model adapter registry', () => {
 
   it('defaults to Chat Completions while keeping the Responses implementation', () => {
     const adapter = new ResolvedModelAdapter({}, 'test');
-    expect(adapter.supportedApiTypes).toEqual(['chat-completion']);
+    expect(adapter.supportedProtocols).toEqual(['openai-chat']);
     expect(adapter.responses.buildResponsesParams({}).config).toEqual({
       temperature: 0,
     });
@@ -57,10 +57,10 @@ describe('model adapter registry', () => {
 
   it('allows declaring Responses support without a custom implementation', () => {
     const adapter = new ResolvedModelAdapter(
-      { supportedApiTypes: ['responses'] },
+      { supportedProtocols: ['openai-response'] },
       'test',
     );
-    expect(adapter.supportedApiTypes).toEqual(['responses']);
+    expect(adapter.supportedProtocols).toEqual(['openai-response']);
     expect(adapter.responses.buildResponsesParams({}).config).toEqual({
       temperature: 0,
     });

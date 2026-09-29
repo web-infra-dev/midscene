@@ -31,7 +31,7 @@ import {
   toError,
 } from './utils';
 
-const DEFAULT_MODEL_API_TYPE = 'chat-completion';
+const DEFAULT_MODEL_PROTOCOL = 'openai-chat';
 
 export async function callAI(
   messages: ModelCallMessages,
@@ -63,13 +63,13 @@ export async function callAI(
     if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
       return { protocol: 'codex', input: prepareCodexCall(input) };
     }
-    const apiType = modelConfig.apiType ?? DEFAULT_MODEL_API_TYPE;
+    const protocol = modelConfig.protocol ?? DEFAULT_MODEL_PROTOCOL;
 
     assert(
-      modelRuntime.adapter.supportedApiTypes.includes(apiType),
-      `Model adapter "${modelConfig.modelFamily ?? 'default'}" does not support API type "${apiType}"`,
+      modelRuntime.adapter.supportedProtocols.includes(protocol),
+      `Model adapter "${modelConfig.modelFamily ?? 'default'}" does not support protocol "${protocol}"`,
     );
-    if (apiType === 'responses') {
+    if (protocol === 'openai-response') {
       return { protocol: 'responses', input: await prepareResponses(input) };
     }
     return {

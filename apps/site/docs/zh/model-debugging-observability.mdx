@@ -14,9 +14,9 @@
 MIDSCENE_MODEL_BASE_URL='替换为你的 baseUrl'
 MIDSCENE_MODEL_API_KEY='替换为你的 API Key'
 MIDSCENE_MODEL_NAME='替换为你的 model name'
-# MIDSCENE_MODEL_API_TYPE="responses" # 使用 Responses API 时取消本行注释；默认使用 Chat API。
+# MIDSCENE_MODEL_PROTOCOL="openai-response" # 使用 Responses API 时取消本行注释；默认使用 Chat API。
 
-if [ "$MIDSCENE_MODEL_API_TYPE" = "responses" ]; then
+if [ "$MIDSCENE_MODEL_PROTOCOL" = "openai-response" ]; then
   model_endpoint="responses"
   model_input_field="input"
 else

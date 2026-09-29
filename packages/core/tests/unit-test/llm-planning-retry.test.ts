@@ -680,7 +680,7 @@ describe('plan XML parse retry', () => {
 
       const runtime = getModelRuntime({
         ...mockModelConfig('kimi3'),
-        apiType: 'responses',
+        protocol: 'openai-response',
       });
       const modelRuntime = {
         ...runtime,

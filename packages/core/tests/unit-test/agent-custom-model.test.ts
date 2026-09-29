@@ -72,7 +72,6 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
-          "apiType": undefined,
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -83,6 +82,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -102,7 +102,6 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(planningConfig).toMatchInlineSnapshot(`
         {
-          "apiType": undefined,
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -113,6 +112,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -132,7 +132,6 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(insightConfig).toMatchInlineSnapshot(`
         {
-          "apiType": undefined,
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -143,6 +142,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -174,7 +174,6 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
-          "apiType": undefined,
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -185,6 +184,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -204,7 +204,6 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(planningConfig).toMatchInlineSnapshot(`
         {
-          "apiType": undefined,
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -215,6 +214,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-planning-key",
           "openaiBaseURL": "https://api.smaple-planning.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -234,7 +234,6 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(insightConfig).toMatchInlineSnapshot(`
         {
-          "apiType": undefined,
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -245,6 +244,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-insight-key",
           "openaiBaseURL": "https://api.sample-insight.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,

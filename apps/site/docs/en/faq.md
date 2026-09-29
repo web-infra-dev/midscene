@@ -128,7 +128,7 @@ MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 
 In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Supported models and setup](./model-common-config). Azure is only a model provider with different authentication, not a special model.
 
-This uses the normal OpenAI-compatible path with `Authorization: Bearer ...`. Depending on `MIDSCENE_MODEL_API_TYPE`, requests go to `/openai/v1/chat/completions` (the default) or `/openai/v1/responses`. Confirm that your Azure model and endpoint support the selected protocol. Do not append `/chat/completions` or `/responses` to `MIDSCENE_MODEL_BASE_URL`. For most `/openai/v1` endpoints you do not need `api-version`.
+This uses the normal OpenAI-compatible path with `Authorization: Bearer ...`. Depending on `MIDSCENE_MODEL_PROTOCOL`, requests go to `/openai/v1/chat/completions` (the default) or `/openai/v1/responses`. Confirm that your Azure model and endpoint support the selected protocol. Do not append `/chat/completions` or `/responses` to `MIDSCENE_MODEL_BASE_URL`. For most `/openai/v1` endpoints you do not need `api-version`.
 
 If your resource still rejects the request with `400 Missing required query parameter: api-version`, the `/openai/v1` surface on that specific resource has not GA'd yet. Inject the query parameter through `defaultQuery`:
 
@@ -165,7 +165,7 @@ We observed that this issue is related to image handling in Azure's Chat Complet
 We have verified that `"detail": "original"` works correctly with Azure's Responses API, so we recommend switching to the Responses protocol first:
 
 ```bash
-MIDSCENE_MODEL_API_TYPE="responses"
+MIDSCENE_MODEL_PROTOCOL="openai-response"
 ```
 
 Confirm that your model supports the Responses API and use its corresponding Base URL. See [Protocol type](./model-config#model-api-type) for configuration details.

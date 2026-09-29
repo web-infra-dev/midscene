@@ -13,7 +13,7 @@ describe('model configuration examples', () => {
     ['planning', 'MIDSCENE_PLANNING_MODEL'],
     ['insight', 'MIDSCENE_INSIGHT_MODEL'],
   ] as const)('generates the %s configuration', (purpose, prefix) => {
-    expect(buildModelConfigCode(config, purpose, 'chat-completion')).toBe(
+    expect(buildModelConfigCode(config, purpose, 'openai-chat')).toBe(
       [
         `${prefix}_BASE_URL="https://example.com/v1" # 模型地址`,
         `${prefix}_API_KEY="......"`,
@@ -23,16 +23,23 @@ describe('model configuration examples', () => {
     );
   });
 
-  it('reuses model settings for Responses and adds the protocol variable', () => {
-    const code = buildModelConfigCode(
-      { ...config, responses: true },
-      'planning',
-      'responses',
-    );
-    expect(code).toBe(
-      `MIDSCENE_PLANNING_MODEL_API_TYPE="responses"\n${buildModelConfigCode(config, 'planning', 'chat-completion')}`,
-    );
-  });
+  it.each([
+    ['default', 'MIDSCENE_MODEL'],
+    ['planning', 'MIDSCENE_PLANNING_MODEL'],
+    ['insight', 'MIDSCENE_INSIGHT_MODEL'],
+  ] as const)(
+    'generates the %s Responses protocol variable',
+    (purpose, prefix) => {
+      const code = buildModelConfigCode(
+        { ...config, responses: true },
+        purpose,
+        'openai-response',
+      );
+      expect(code).toBe(
+        `${prefix}_PROTOCOL="openai-response"\n${buildModelConfigCode(config, purpose, 'openai-chat')}`,
+      );
+    },
+  );
 
   it('applies the endpoint override only to Responses', () => {
     const withOverride = {
@@ -45,13 +52,13 @@ describe('model configuration examples', () => {
       },
     };
     expect(
-      buildModelConfigCode(withOverride, 'default', 'responses'),
+      buildModelConfigCode(withOverride, 'default', 'openai-response'),
     ).toContain(
       'MIDSCENE_MODEL_BASE_URL="https://example.com/responses-api" # 新地址',
     );
-    expect(
-      buildModelConfigCode(withOverride, 'default', 'chat-completion'),
-    ).toBe(buildModelConfigCode(config, 'default', 'chat-completion'));
+    expect(buildModelConfigCode(withOverride, 'default', 'openai-chat')).toBe(
+      buildModelConfigCode(config, 'default', 'openai-chat'),
+    );
   });
 
   it('escapes shell expansion and quotes in configuration values', () => {
@@ -59,7 +66,7 @@ describe('model configuration examples', () => {
       buildModelConfigCode(
         { ...config, modelName: 'model"$name`command`\\path' },
         'default',
-        'chat-completion',
+        'openai-chat',
       ),
     ).toContain('MIDSCENE_MODEL_NAME="model\\"\\$name\\`command\\`\\\\path"');
   });
