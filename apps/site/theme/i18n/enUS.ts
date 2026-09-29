@@ -90,7 +90,7 @@ UI testing toolkit`,
   featureFlexibleIntegration: 'Flexible Integration',
   featureFlexibleIntegrationDesc:
     'Write tests in YAML with Midscene Test and extend them with custom TypeScript Nodes.',
-  featureRichAPIsLink: '/api',
+  featureRichAPIsLink: '/reference/',
   featureSkillsLink: '/skills',
   featureReportsPlaygroundLink: '/quick-start#chrome-extension',
   featureFlexibleIntegrationLink: '/midscene-test/overview',
