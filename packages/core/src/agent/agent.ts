@@ -689,7 +689,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
-    this.actionReadiness?.assertCanUseAgent();
     // Some non-web flows, such as Android, need an Agent instance before they
     // can call device methods via ADB, so defer missing modelFamily errors
     // until UI context is actually requested.
@@ -749,7 +748,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * before your next action.
    */
   async startObserving(opt?: UIObserverOption): Promise<UIObserver> {
-    this.actionReadiness?.assertCanUseAgent();
     // A frozen context pins perception to a single snapshot; observing a
     // window of frames contradicts that. Fail fast instead of silently
     // producing an all-identical sequence.
@@ -1411,7 +1409,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     taskPrompt: TUserPrompt,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
-    this.actionReadiness?.assertCanUseAgent();
     const internalOptions = opt as AiActInternalOptions | undefined;
     const internalReportDisplay = internalOptions?._internalReportDisplay;
     const taskPromptText =
@@ -1745,7 +1742,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<{
     result: Record<string, any>;
   }> {
-    this.actionReadiness?.assertCanUseAgent();
     if (this.destroyed)
       throw new Error('Cannot run YAML using a destroyed Agent.');
     const script = parseYamlScript(yamlScriptContent, 'yaml');
@@ -1780,7 +1776,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async evaluateJavaScript(script: string) {
-    this.actionReadiness?.assertCanUseAgent();
     assert(
       this.interface.evaluateJavaScript,
       'evaluateJavaScript is not supported in current agent',
@@ -1867,7 +1862,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     this.destroyed = true;
-    await this.actionReadiness?.destroy();
 
     // A Runner cancellation can finish before a non-cooperative device call.
     // Keep the public owner from disposing the interface until that call has

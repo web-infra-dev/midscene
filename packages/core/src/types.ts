@@ -636,7 +636,7 @@ export type ExecutionTask<
     taskId: string;
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
     /** Readiness strategy selected for this atomic action execution. */
-    actionReadiness?: 'skip' | 'default' | 'custom';
+    actionReadiness?: 'default' | 'custom';
     /**
      * Optional feedback produced by a task for the next planning round.
      * This is execution metadata, not part of the action return value.
@@ -658,8 +658,6 @@ export type ExecutionTask<
       callAiEnd?: number;
       beforeInvokeActionHookStart?: number;
       beforeInvokeActionHookEnd?: number;
-      createActionWaiterStart?: number;
-      createActionWaiterEnd?: number;
       callActionStart?: number;
       callActionEnd?: number;
       afterInvokeActionHookStart?: number;
@@ -991,27 +989,10 @@ export interface ActionReadyContext {
     /** Resolved action parameters. Treat them as read-only. */
     readonly param: unknown;
   };
-  /** Aborted on cancellation, timeout, or Agent destruction. */
-  signal: AbortSignal;
 }
 
-export interface ActionReadyWaiter {
-  /** Called after the action returns. Resolve when the next step can begin. */
-  wait: () => Promise<void>;
-  /** Release listeners on success, failure, cancellation, or timeout. */
-  dispose?: () => void | Promise<void>;
-}
-
-export type ActionReadyPlan = 'skip' | 'default' | ActionReadyWaiter;
-
-export interface WaitForActionReadyOptions {
-  /** Register observation before each atomic action; do not wait for its result here. */
-  createWaiter: (
-    context: ActionReadyContext,
-  ) => ActionReadyPlan | Promise<ActionReadyPlan>;
-  /** Separate timeout for createWaiter, wait, and dispose. Default: 10000 ms. */
-  timeoutMs?: number;
-}
+/** Runs after a successful atomic action. Slow callbacks warn after 5 seconds. */
+export type WaitForActionReady = (context: ActionReadyContext) => Promise<void>;
 
 export interface AgentOpt {
   // @deprecated Use `reportFileName` and `cache.id` instead.
@@ -1087,12 +1068,11 @@ export interface AgentOpt {
   waitAfterAction?: number;
 
   /**
-   * Customize readiness after each atomic action, including aiAct steps and
-   * cache replay. createWaiter runs before the action; its wait runs afterward.
-   * 'skip' and custom waiters replace automatic action delays and platform
-   * readiness checks. 'default' keeps them. Use raw page/device APIs in callbacks.
+   * Await application readiness after each successful atomic action, including
+   * aiAct substeps and cache replay. Replaces default action waits.
+   * After 5 seconds, logs one warning and continues waiting without a timeout.
    */
-  waitForActionReady?: WaitForActionReadyOptions;
+  waitForActionReady?: WaitForActionReady;
 
   /**
    * When set to true, Midscene will use the target device's formatted local

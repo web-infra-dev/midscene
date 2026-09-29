@@ -45,10 +45,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
     }) as any;
 
   it('should forward fixture-level AgentOpt and WebPageOpt to the first agent creation', async () => {
-    const waitForActionReady = {
-      createWaiter: rs.fn(() => 'skip' as const),
-      timeoutMs: 1500,
-    };
+    const waitForActionReady = rs.fn(async () => {});
     const fixture = PlaywrightAiFixture({
       autoPrintReportMsg: false,
       outputFormat: 'html-and-external-assets',

@@ -1,4 +1,3 @@
-import { EventEmitter } from 'node:events';
 import { Page } from '@/puppeteer/base-page';
 import { Agent, type AgentOpt, ScreenshotItem } from '@midscene/core';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
@@ -11,10 +10,9 @@ describe('Web Agent action readiness', () => {
     rs.restoreAllMocks();
   });
 
-  it.each(['unconfigured', 'default', 'skip', 'custom'] as const)(
+  it.each(['unconfigured', 'custom'] as const)(
     '%s preserves lifecycle callbacks and selects the appropriate web waits',
     async (mode) => {
-      const events = new EventEmitter();
       const order: string[] = [];
       const rawPage = {
         url: () => 'https://example.com',
@@ -37,8 +35,6 @@ describe('Web Agent action readiness', () => {
           delayBeforeRunner: 0,
           call: async () => {
             order.push('action');
-            // A fast response can arrive before the driver call returns.
-            events.emit('ready');
           },
         },
       ]);
@@ -54,26 +50,8 @@ describe('Web Agent action readiness', () => {
         },
       };
       if (mode !== 'unconfigured') {
-        options.waitForActionReady = {
-          createWaiter: () => {
-            if (mode !== 'custom') return mode;
-            order.push('subscribe');
-            let ready!: () => void;
-            const observed = new Promise<void>((resolve) => {
-              ready = resolve;
-            });
-            events.on('ready', ready);
-            return {
-              wait: async () => {
-                order.push('wait');
-                await observed;
-              },
-              dispose: () => {
-                order.push('dispose');
-                events.off('ready', ready);
-              },
-            };
-          },
+        options.waitForActionReady = async () => {
+          order.push('wait');
         };
       }
       const agent = new Agent(page, options);
@@ -83,7 +61,7 @@ describe('Web Agent action readiness', () => {
         shrunkShotToLogicalRatio: 1,
       });
       await agent.callActionInActionSpace('Submit');
-      const defaultWaits = mode === 'unconfigured' || mode === 'default';
+      const defaultWaits = mode === 'unconfigured';
       expect(rawPage.waitForNetworkIdle).toHaveBeenCalledTimes(
         defaultWaits ? 1 : 0,
       );
@@ -92,10 +70,9 @@ describe('Web Agent action readiness', () => {
       );
       expect(order).toEqual(
         mode === 'custom'
-          ? ['subscribe', 'before', 'action', 'wait', 'after', 'dispose']
+          ? ['before', 'action', 'wait', 'after']
           : ['before', 'action', 'after'],
       );
-      expect(events.listenerCount('ready')).toBe(0);
     },
   );
 });

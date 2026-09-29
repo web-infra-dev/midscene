@@ -89,9 +89,7 @@ export type {
   AgentAIContexts,
   AgentOpt,
   ActionReadyContext,
-  ActionReadyPlan,
-  ActionReadyWaiter,
-  WaitForActionReadyOptions,
+  WaitForActionReady,
   AiApiName,
 } from '../types';
 export type { RecordToReportOptions, RecordToReportScreenshot } from '../types';
