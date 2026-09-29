@@ -15,7 +15,7 @@ const config: IModelConfig = {
   modelDescription: 'test model',
   openaiApiKey: 'test-key',
   openaiBaseURL: 'https://example.test/v1',
-  apiType: 'responses',
+  protocol: 'openai-response',
   intent: 'default',
   slot: 'default',
   retryCount: 0,
@@ -98,7 +98,7 @@ const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
   .resolveImageDetail;
 
 describe('Responses protocol', () => {
-  it('rejects an unadapted API type before initialization and retries', async () => {
+  it('rejects an unsupported protocol before initialization and retries', async () => {
     const createClient = rs.fn();
     const runtime = getModelRuntime({
       ...config,
@@ -107,7 +107,7 @@ describe('Responses protocol', () => {
       createOpenAIClient: createClient,
     });
     await expect(callAI(messages, runtime)).rejects.toThrow(
-      'Model adapter "default" does not support API type "responses"',
+      'Model adapter "default" does not support protocol "openai-response"',
     );
     expect(createClient).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -461,7 +461,7 @@ describe('Responses protocol', () => {
     );
     const result = await callAI(
       messages,
-      getModelRuntime({ ...config, apiType: undefined }),
+      getModelRuntime({ ...config, protocol: undefined }),
     );
     expect(String(fetchMock.mock.calls[0][0])).toBe(
       'https://example.test/v1/chat/completions',

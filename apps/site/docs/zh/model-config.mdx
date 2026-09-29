@@ -17,17 +17,17 @@
 
 Midscene 默认使用 OpenAI 的 Chat Completions 协议，同时也支持 Responses 协议。两者是向模型发送请求的不同方式，不影响 Midscene Agent API 的使用。Chat Completions 是 OpenAI 较早推出的协议，Responses 是后推出的协议，目前 Chat Completions 的支持范围更广。
 
-通过环境变量选择协议：`chat-completion`（默认）或 `responses`。例如，使用 Responses 协议：
+通过环境变量选择协议：`openai-chat`（默认）或 `openai-response`。例如，使用 Responses 协议：
 
 ```bash
-MIDSCENE_MODEL_API_TYPE="responses"
+MIDSCENE_MODEL_PROTOCOL="openai-response"
 ```
 
 为 Planning 或 Insight 单独配置模型时，使用对应的环境变量，各模型的协议可以分别设置：
 
 ```bash
-MIDSCENE_PLANNING_MODEL_API_TYPE="responses"
-MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
+MIDSCENE_PLANNING_MODEL_PROTOCOL="openai-response"
+MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-response"
 ```
 
 注意事项：
@@ -42,7 +42,7 @@ MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_MODEL_API_TYPE` | HTTP 协议：`chat-completion`（默认）或 `responses`。后者要求服务商支持 Responses API。 |
+| `MIDSCENE_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-response`。后者要求服务商支持 Responses API。 |
 | `MIDSCENE_MODEL_TIMEOUT` | AI 接口单次请求的硬超时（毫秒，默认意图），默认 `180000`（180 秒）。计时覆盖完整请求生命周期，包括响应体读取。每次重试都会重新开始计时，使用相同的超时配置；重试等待时间不计入，因此整个调用的总耗时可能超过该值。设为 `0` 仅禁用 Midscene 的硬超时，SDK 和底层网络的超时限制仍可能生效，调用方也可通过 `AbortSignal` 取消请求 |
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）。模型请求遇到 HTTP 错误，或模型返回值无法被结构化解析时，都会发起重试 |
@@ -66,7 +66,7 @@ MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
 |------|-------------|
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API Key |
 | `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
-| `MIDSCENE_INSIGHT_MODEL_API_TYPE` | HTTP 协议：`chat-completion`（默认）或 `responses`。 |
+| `MIDSCENE_INSIGHT_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-response`。 |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_INSIGHT_MODEL_FAMILY` | 模型 family |
 | `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | 可选，Insight 意图的单次请求硬超时（毫秒）|
@@ -87,7 +87,7 @@ MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
 |------|-------------|
 | `MIDSCENE_PLANNING_MODEL_API_KEY` | API Key |
 | `MIDSCENE_PLANNING_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
-| `MIDSCENE_PLANNING_MODEL_API_TYPE` | HTTP 协议：`chat-completion`（默认）或 `responses`。 |
+| `MIDSCENE_PLANNING_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-response`。 |
 | `MIDSCENE_PLANNING_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_PLANNING_MODEL_FAMILY` | 模型 family |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | 可选，Planning 意图的单次请求硬超时（毫秒）|

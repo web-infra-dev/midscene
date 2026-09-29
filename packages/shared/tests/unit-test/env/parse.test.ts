@@ -181,21 +181,26 @@ describe.each([
   DEFAULT_MODEL_CONFIG_KEYS,
   INSIGHT_MODEL_CONFIG_KEYS,
   PLANNING_MODEL_CONFIG_KEYS,
-])('API type for $apiType', (keys) => {
-  it('preserves an unspecified API type', () => {
+])('protocol for $protocol', (keys) => {
+  it('preserves an unspecified protocol', () => {
     expect(
-      parseOpenaiSdkConfig({ keys, provider: {} }).apiType,
+      parseOpenaiSdkConfig({ keys, provider: {} }).protocol,
     ).toBeUndefined();
   });
-  it.each(['chat-completion', 'responses'])('accepts %s', (value) => {
+  it.each(['openai-chat', 'openai-response'])('accepts %s', (value) => {
     expect(
-      parseOpenaiSdkConfig({ keys, provider: { [keys.apiType]: value } })
-        .apiType,
+      parseOpenaiSdkConfig({ keys, provider: { [keys.protocol]: value } })
+        .protocol,
     ).toBe(value);
   });
-  it('rejects invalid protocol names', () => {
-    expect(() =>
-      parseOpenaiSdkConfig({ keys, provider: { [keys.apiType]: 'response' } }),
-    ).toThrow(keys.apiType);
-  });
+  it.each(['response', 'responses', 'chat-completion', 'openai-responses'])(
+    'rejects invalid protocol name %s',
+    (value) => {
+      expect(() =>
+        parseOpenaiSdkConfig({ keys, provider: { [keys.protocol]: value } }),
+      ).toThrow(
+        `${keys.protocol} must be one of: openai-chat, openai-response`,
+      );
+    },
+  );
 });

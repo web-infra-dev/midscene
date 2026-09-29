@@ -45,7 +45,7 @@ function resolveImagePreprocess(
 }
 
 export class ResolvedModelAdapter implements ModelAdapter {
-  readonly supportedApiTypes: ModelAdapter['supportedApiTypes'];
+  readonly supportedProtocols: ModelAdapter['supportedProtocols'];
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
   readonly resolveImageDetail: ResolveImageDetail;
@@ -58,7 +58,7 @@ export class ResolvedModelAdapter implements ModelAdapter {
   readonly locate: LocateAdapter;
 
   constructor(config: ModelAdapterDefinition, modelFamily: string) {
-    this.supportedApiTypes = config.supportedApiTypes ?? ['chat-completion'];
+    this.supportedProtocols = config.supportedProtocols ?? ['openai-chat'];
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
     this.resolveImageDetail = config.resolveImageDetail ?? defaultImageDetail;

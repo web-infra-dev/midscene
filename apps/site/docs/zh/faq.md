@@ -128,7 +128,7 @@ MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 
 `MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY` 等配置，仍应按照[支持的模型与配置](./model-common-config)中的对应模型说明填写。Azure 只是鉴权方式不同的模型供应商，并非一种特殊模型。
 
-这会走普通 OpenAI-compatible 路径，使用 `Authorization: Bearer ...` 请求头。根据 `MIDSCENE_MODEL_API_TYPE` 的配置，请求发送到 `/openai/v1/chat/completions`（默认）或 `/openai/v1/responses`；请确认 Azure 上所选模型和端点支持对应协议。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions` 或 `/responses`。大多数 `/openai/v1` 端点不需要 `api-version`。
+这会走普通 OpenAI-compatible 路径，使用 `Authorization: Bearer ...` 请求头。根据 `MIDSCENE_MODEL_PROTOCOL` 的配置，请求发送到 `/openai/v1/chat/completions`（默认）或 `/openai/v1/responses`；请确认 Azure 上所选模型和端点支持对应协议。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions` 或 `/responses`。大多数 `/openai/v1` 端点不需要 `api-version`。
 
 如果你的资源仍然以 `400 Missing required query parameter: api-version` 报错，说明该资源的 `/openai/v1` surface 尚未 GA。可以通过 `defaultQuery` 注入这个查询参数：
 
@@ -165,7 +165,7 @@ Azure AD / keyless 鉴权（`DefaultAzureCredential`）的方式现在已经不�
 我们在 Azure 的 Responses API 上验证了 `"detail": "original"` 能够正常生效，因此建议优先切换到 Responses 协议：
 
 ```bash
-MIDSCENE_MODEL_API_TYPE="responses"
+MIDSCENE_MODEL_PROTOCOL="openai-response"
 ```
 
 请确认所选模型支持 Responses API，并使用对应的 Base URL，具体配置见[协议类型](./model-config#model-api-type)。
