@@ -260,19 +260,25 @@ export function FeatureSections() {
             darkBackground="/images/backgrounds/doubao-dark.svg"
           />
           <FeatureCard
-            href={tUrl('/model-common-config#deepseek')}
-            title={t('modelDeepSeekName')}
-            description={t('modelDeepSeekDesc')}
-            lightBackground="/images/models/deepseek-light.svg"
-            darkBackground="/images/models/deepseek-dark.svg"
-            visualClassName="home-feature-card__visual--deepseek"
-          />
-          <FeatureCard
             href={tUrl('/model-common-config')}
             title={t('modelSupportedName')}
             description={t('modelSupportedDesc')}
             lightBackground="/images/models/supported-models-light.svg"
             darkBackground="/images/models/supported-models-dark.svg"
+          />
+          <FeatureCard
+            href={tUrl('/app-control-bench-report')}
+            title={t('modelCostName')}
+            description={t('modelCostDesc')}
+            lightBackground="/images/backgrounds/gradient-light.svg"
+            darkBackground="/images/backgrounds/gradient-dark.svg"
+            visualClassName="home-feature-card__visual--cost"
+            lightContent={
+              <div className="home-model-cost">
+                <strong>$0.59</strong>
+                <span>{t('modelCostMetric')}</span>
+              </div>
+            }
           />
           <FeatureCard
             href={tUrl(t('multiModelStrategyLink'))}

@@ -1,4 +1,3 @@
-import { Link } from '@rspress/core/theme-original';
 import { useI18n } from '../i18n';
 import { CTAButtons } from './CTAButtons';
 import { SectionDivider } from './SectionDivider';
@@ -68,17 +67,6 @@ export function Banner() {
 
       <div className="home-hero__stage">
         <div className="home-hero__copy">
-          <div className="home-hero__eyebrow">
-            <span aria-hidden="true">{'//'}</span>
-            <span>{t('newBadge')}</span>
-            <span className="home-hero__eyebrow-divider" aria-hidden="true">
-              |
-            </span>
-            <Link href="./model-common-config#deepseek">
-              {t('changelogLink')}
-            </Link>
-          </div>
-
           <div className="home-hero__message">
             <h1 id="home-hero-title">
               {t('heroTitle')
