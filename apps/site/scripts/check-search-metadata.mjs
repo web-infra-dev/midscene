@@ -86,6 +86,12 @@ assert.equal(
   `favicon.png must be square, got ${faviconWidth}x${faviconHeight}`,
 );
 
+assert.equal(
+  await readOutput('_redirects'),
+  await readFile(path.join(siteRoot, 'docs/public/_redirects'), 'utf8'),
+  'the deployed redirect manifest must match the source file',
+);
+
 const generatedHeaders = await readOutput('_headers');
 const headerBlocks = new Map(
   generatedHeaders

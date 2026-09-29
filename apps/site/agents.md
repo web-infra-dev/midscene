@@ -11,6 +11,13 @@ their published URLs. Rspress emits compiled assets under `/static/`; language
 redirect rules should exclude both `/images/` and `/static/`, as well as root
 metadata files.
 
+`docs/public/_redirects` is the source of truth for retired documentation URLs.
+`rspress.config.ts` derives its client redirects from that file. When retiring
+a document URL, add HTTP 301 rules for English and Chinese paths, each with the
+plain, `.html`, trailing-slash, and `.html/` forms. Keep image aliases in the
+same file; they are HTTP-only. Run `pnpm exec nx test doc` to check targets and
+variants.
+
 一些中文翻译规范：
 
 - Key：保持原样或使用 “API Key”，不要翻译，不要写成“凭证”。

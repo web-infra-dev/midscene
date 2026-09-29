@@ -1,13 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { describe, expect, it, rs } from '@rstest/core';
-import siteConfig from '../rspress.config';
-
-rs.mock('../scripts/github-stars', () => ({
-  getGitHubStars: async () => '14k+',
-}));
+import { describe, expect, it } from '@rstest/core';
+import { parseLegacyDocumentRedirects } from '../scripts/legacy-redirects';
 
 const docs = new URL('../docs/', import.meta.url);
-const rules = readFileSync(new URL('public/_redirects', docs), 'utf8')
+const redirectsFile = readFileSync(new URL('public/_redirects', docs), 'utf8');
+const rules = redirectsFile
   .split('\n')
   .filter((line) => line.trim() && !line.startsWith('#'))
   .map((line) => {
@@ -39,24 +36,48 @@ describe('legacy HTTP redirects', () => {
     }
   });
 
-  it('keeps retired document destinations aligned with Rspress redirects', async () => {
-    const config = await (typeof siteConfig === 'function'
-      ? siteConfig()
-      : siteConfig);
-    const plugin = config.plugins?.find(
-      (plugin) => plugin.name === '@rspress/plugin-client-redirects',
+  it('derives exact client routes from every HTTP document redirect', () => {
+    const documentRules = rules.filter(
+      ({ from, status }) => status === '301' && !/\.(png|ico)$/.test(from),
     );
-    const [, options] = plugin?.globalUIComponents?.[0] as unknown as [
-      string,
-      { redirects: { from: string; to: string }[] },
-    ];
-    for (const { from, to } of rules.filter(
-      ({ from }) => !/\.(png|ico)$/.test(from),
+    const clientRules = parseLegacyDocumentRedirects(redirectsFile);
+    expect(clientRules).toHaveLength(documentRules.length);
+    for (const [{ from, to }, clientRule] of documentRules.map(
+      (rule, index) => [rule, clientRules[index]] as const,
     )) {
-      const match = options.redirects.find((rule) =>
-        new RegExp(rule.from).test(from),
+      expect(clientRule.to, from).toBe(to);
+      expect(new RegExp(clientRule.from).test(from), from).toBe(true);
+      expect(new RegExp(clientRule.from).test(`${from}unexpected`), from).toBe(
+        false,
       );
-      expect(match?.to, from).toBe(to);
+    }
+  });
+
+  it('keeps language and URL variants for retired documents complete', () => {
+    const documentRules = rules.filter(
+      ({ from, status }) => status === '301' && !/\.(png|ico)$/.test(from),
+    );
+    const bySource = new Map(documentRules.map(({ from, to }) => [from, to]));
+    for (const { from, to } of documentRules) {
+      const englishSource = from.replace(/^\/zh\//, '/');
+      const baseSource = englishSource.replace(/(?:\.html)?\/?$/, '');
+      const englishTarget = to.replace(/^\/zh\//, '/');
+      for (const locale of ['', '/zh']) {
+        for (const suffix of ['', '.html', '.html/', '/']) {
+          const variant = `${locale}${baseSource}${suffix}`;
+          expect(bySource.get(variant), `${from} needs ${variant}`).toBe(
+            `${locale}${englishTarget}`,
+          );
+        }
+      }
+    }
+    for (const source of [
+      '/ios-api-reference.html',
+      '/integrate-with-ios',
+      '/test-runner-overview',
+      '/zh/reference/harmonyos/',
+    ]) {
+      expect(bySource.has(source), source).toBe(true);
     }
   });
 
