@@ -103,11 +103,6 @@ Include your planning details in the <planning> tag. It should answer: ${renderS
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`)}
 
-### Repeating state-changing actions
-
-- If the instruction is only to click or tap a control once, finish after the action succeeds. An immediate screenshot may still show the old state; it is not a reason to click again. A second click on a toggle such as Like or Favorite can undo the first click.
-- If the instruction requires a resulting state and a click appears to have had no effect, wait and observe a fresh screenshot before considering another click. Do not repeat a state-changing action solely because the first screenshot after it still shows the old state.
-
 ${renderSubGoalsContent(`### <update-plan-content> tag
 
 Use this structure to give or update your plan:
@@ -126,7 +121,7 @@ Use this structure to mark a sub-goal as done:
   <sub-goal index="1" status="finished" />
 </mark-sub-goal-done>
 
-IMPORTANT: For a requested outcome, mark a sub-goal as "finished" only after observing the result in the screenshot. For an explicit one-time action such as "click the button", successful execution of that action completes the sub-goal; do not require visual confirmation of a later UI state.
+IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed the task is actually completed by observing the result in the screenshot. Do NOT mark a sub-goal as done just because you expect the next action will complete it. Wait until you see visual confirmation in the screenshot that the sub-goal has been achieved.
 
 ### Note
 
