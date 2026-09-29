@@ -117,7 +117,6 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 
 const playwrightSetup = defineProjectSetup<ProjectContext>({
   name: 'playwright',
-  platform: 'web',
   async setup({ onTeardown }) {
     const browser = await chromium.launch({
       headless: process.env.HEADLESS !== 'false',
@@ -139,7 +138,6 @@ export default defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'web',
-      platform: 'web',
       files: { include: ['midscene.yaml'] },
       setup: playwrightSetup,
     },

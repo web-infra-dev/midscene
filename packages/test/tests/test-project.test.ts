@@ -26,12 +26,61 @@ const createConfig = (
 };
 
 describe('test project config', () => {
+  it.each([
+    ['output: { report: { enabled: false } }', 'output.report'],
+    ['output: { report: { fileName: "custom" } }', 'output.report'],
+    ['output: { report: { overwrite: true } }', 'output.report'],
+    ['documentSetup: { name: "yaml", setup() {} }', 'root.documentSetup'],
+    ['legacy: { getOptions() {} }', 'root.legacy'],
+    [
+      'setup: { name: "setup", setup() {}, onDocumentResult() {} }',
+      'setup.onDocumentResult',
+    ],
+    [
+      'projects: [{ name: "native", retryScope: "document" }]',
+      'projects[0].retryScope',
+    ],
+    [
+      'projects: [{ name: "native", fileConcurrency: 2 }]',
+      'projects[0].fileConcurrency',
+    ],
+    [
+      'projects: [{ name: "native", setupFile: "setup.yaml" }]',
+      'projects[0].setupFile',
+    ],
+    [
+      'projects: [{ name: "native", documentSetup: { name: "yaml", setup() {} } }]',
+      'projects[0].documentSetup',
+    ],
+    [
+      'projects: [{ name: "native", files: { include: ["cases/*.yaml"], order: "listed" } }]',
+      'projects[0].files.order',
+    ],
+  ])(
+    'rejects compatibility controls in native configuration: %s',
+    async (field, key) => {
+      const { path } = createConfig(`export default { ${field} };`);
+      await expect(loadTestProject(path)).rejects.toThrow(
+        `${key} is not supported`,
+      );
+    },
+  );
+  it.each([
+    '{}',
+    '{ getOptions: 42 }',
+    '{ getOptions() {}, unsupported: true }',
+  ])('rejects an invalid legacy host adapter: %s', async (legacy) => {
+    const { path } = createConfig(
+      `export default { nodes: [], legacy: ${legacy} };`,
+    );
+    await expect(loadTestProject(path)).rejects.toThrow(/legacy/);
+  });
+
   it('loads TypeScript syntax and Project file selection', async () => {
     const { path } = createConfig(`
       interface Config {
         projects: Array<{
           name: string;
-          platform: 'web';
           files: { include: string[]; exclude: string[] };
         }>;
         nodes: unknown[];
@@ -39,7 +88,6 @@ describe('test project config', () => {
       const config: Config = {
         projects: [{
           name: 'web',
-          platform: 'web',
           files: {
             include: ['workflows/**/*.{yaml,yml}'],
             exclude: ['workflows/**/*.draft.yaml'],
@@ -92,7 +140,6 @@ describe('test project config', () => {
         nodes: [],
         setup: {
           name: 'android',
-          platform: 'android',
           setup() {
             globalThis.__testSetupMarker();
             return { ready: true };
@@ -107,8 +154,7 @@ describe('test project config', () => {
     expect(project.projects[0]).toMatchObject({
       projectId: 'project-0',
       name: 'default',
-      platform: 'android',
-      setup: { name: 'android', platform: 'android' },
+      setup: { name: 'android' },
     });
     expect(await project.projects[0].setup?.setup({} as never)).toEqual({
       ready: true,
@@ -134,7 +180,6 @@ describe('test project config', () => {
       {
         projectId: 'project-0',
         name: 'default',
-        platform: 'web',
         tags: { include: [], exclude: [] },
         retry: 0,
         variables: {},
@@ -147,7 +192,7 @@ describe('test project config', () => {
   it('defaults omitted global and Project Nodes to empty registries', async () => {
     const implicit = createConfig('export default {};');
     const explicit = createConfig(`export default {
-      projects: [{ name: 'web', platform: 'web' }],
+      projects: [{ name: 'web' }],
     };`);
 
     for (const { path } of [implicit, explicit]) {
@@ -162,8 +207,8 @@ describe('test project config', () => {
     const { path } = createConfig(`export default {
       nodes: [{ name: 'shared', execute() {} }],
       projects: [
-        { name: 'android', platform: 'android' },
-        { name: 'ios', platform: 'ios' },
+        { name: 'android' },
+        { name: 'ios' },
       ],
     };`);
 
@@ -181,7 +226,6 @@ describe('test project config', () => {
     const { path } = createConfig(`export default {
       projects: [{
         name: 'android',
-        platform: 'android',
         nodes: [{ name: 'launch', execute() {} }],
       }],
     };`);
@@ -200,17 +244,17 @@ describe('test project config', () => {
       ],
       projects: [
         {
-          name: 'android', platform: 'android',
+          name: 'android',
           nodes: [
             { name: 'launch', description: 'android', execute() {} },
             { name: 'android.only', execute() {} },
           ],
         },
         {
-          name: 'ios', platform: 'ios',
+          name: 'ios',
           nodes: [{ name: 'launch', description: 'ios', execute() {} }],
         },
-        { name: 'web', platform: 'web' },
+        { name: 'web' },
       ],
     };`);
 
@@ -244,11 +288,11 @@ describe('test project config', () => {
         layer === 'global'
           ? `export default {
               nodes: ${duplicateNodes},
-              projects: [{ name: 'web', platform: 'web', nodes: [{ name: 'duplicate', execute() {} }] }],
+              projects: [{ name: 'web', nodes: [{ name: 'duplicate', execute() {} }] }],
             };`
           : `export default {
               nodes: [{ name: 'duplicate', execute() {} }],
-              projects: [{ name: 'web', platform: 'web', nodes: ${duplicateNodes} }],
+              projects: [{ name: 'web', nodes: ${duplicateNodes} }],
             };`,
       );
 
@@ -263,7 +307,7 @@ describe('test project config', () => {
     async (value) => {
       const root = createConfig(`export default { nodes: ${value} };`);
       const project = createConfig(`export default {
-        projects: [{ name: 'web', platform: 'web', nodes: ${value} }],
+        projects: [{ name: 'web', nodes: ${value} }],
       };`);
 
       await expect(loadTestProject(root.path)).rejects.toThrow(
@@ -281,7 +325,6 @@ describe('test project config', () => {
     const { path } = createConfig(`
       const androidSetup = {
         name: 'dora-android',
-        platform: ['android'],
         setup() {
           globalThis.__testSetupMarker();
           return { connected: true };
@@ -291,7 +334,6 @@ describe('test project config', () => {
         projects: [
           {
             name: 'android-smoke',
-            platform: 'android',
             setup: androidSetup,
             files: {
               include: ['cases/**/*.{yaml,yml}'],
@@ -306,12 +348,13 @@ describe('test project config', () => {
           },
           {
             name: 'ios-regression',
-            platform: 'ios',
             files: { include: ['ios/**/*.yaml'], exclude: [] },
           },
         ],
         test: { maxConcurrency: 2, bail: 2, testTimeout: 30000 },
-        output: { reportDir: './out/report' },
+        output: {
+          reportDir: './out/report',
+        },
         nodes: [],
       };
     `);
@@ -323,7 +366,6 @@ describe('test project config', () => {
     expect(loaded.projects[0]).toMatchObject({
       projectId: 'project-0',
       name: 'android-smoke',
-      platform: 'android',
       files: {
         include: ['cases/**/*.{yaml,yml}'],
         exclude: ['cases/**/*.draft.yaml'],
@@ -334,7 +376,7 @@ describe('test project config', () => {
         appName: 'Aweme',
         launch: { reinstall: false },
       },
-      setup: { name: 'dora-android', platform: ['android'] },
+      setup: { name: 'dora-android' },
     });
     expect(Object.isFrozen(loaded.projects[0].variables)).toBe(true);
     expect(Object.isFrozen(loaded.projects[0].variables.launch)).toBe(true);
@@ -352,7 +394,9 @@ describe('test project config', () => {
       bail: 2,
       testTimeout: 30000,
     });
-    expect(loaded.output).toEqual({ reportDir: './out/report' });
+    expect(loaded.output).toEqual({
+      reportDir: './out/report',
+    });
   });
 
   it.each([
@@ -360,57 +404,52 @@ describe('test project config', () => {
     [
       'duplicate project names',
       `projects: [
-        { name: 'same', platform: 'web' },
-        { name: 'same', platform: 'ios' },
+        { name: 'same' },
+        { name: 'same' },
       ]`,
       'project name "same" must be unique',
     ],
     [
-      'unknown platform',
+      'removed project platform',
       `projects: [{ name: 'bad', platform: 'desktop' }]`,
-      'must be one of web, android, ios, harmony, computer',
+      'projects[0].platform is not supported',
     ],
     [
-      'setup platform mismatch',
+      'removed project setup platform',
       `projects: [{
         name: 'ios',
-        platform: 'ios',
-        setup: { name: 'android', platform: 'android', setup() {} },
+        setup: { name: 'device', platform: 'ios', setup() {} },
       }]`,
-      'does not support project platform "ios"',
+      'projects[0].setup.platform is not supported',
     ],
     [
       'root setup with explicit projects',
-      `setup: { name: 'web', platform: 'web', setup() {} },
-       projects: [{ name: 'web', platform: 'web' }]`,
+      `setup: { name: 'web', setup() {} },
+       projects: [{ name: 'web' }]`,
       'setup cannot be used together with projects',
     ],
     [
-      'ambiguous root setup platform',
-      `setup: {
-        name: 'mobile',
-        platform: ['android', 'ios'],
-        setup() {},
-      }`,
-      'setup.platform must select exactly one platform',
+      'removed root setup platform',
+      `setup: { name: 'mobile', platform: ['android', 'ios'], setup() {} }`,
+      'setup.platform is not supported',
     ],
     [
       'empty project include',
       `projects: [{
-        name: 'web', platform: 'web', files: { include: [] },
+        name: 'web', files: { include: [] },
       }]`,
       'projects[0].files.include must be a non-empty array',
     ],
     [
       'invalid tags',
       `projects: [{
-        name: 'web', platform: 'web', tags: { include: 'smoke' },
+        name: 'web', tags: { include: 'smoke' },
       }]`,
       'projects[0].tags.include must be an array',
     ],
     [
       'unknown Project field',
-      `projects: [{ name: 'web', platform: 'web', unknown: true }]`,
+      `projects: [{ name: 'web', unknown: true }]`,
       'projects[0].unknown is not supported',
     ],
     [
@@ -419,21 +458,31 @@ describe('test project config', () => {
       'output.summary is not supported',
     ],
     [
+      'invalid report switch',
+      `output: { report: { enabled: 'yes' } }`,
+      'output.report is not supported',
+    ],
+    [
+      'invalid report file name',
+      `output: { report: { fileName: '' } }`,
+      'output.report is not supported',
+    ],
+    [
       'negative retry',
-      `projects: [{ name: 'web', platform: 'web', retry: -1 }]`,
+      `projects: [{ name: 'web', retry: -1 }]`,
       'projects[0].retry must be a non-negative integer',
     ],
     [
       'non-JSON variable',
       `projects: [{
-        name: 'web', platform: 'web', variables: { bad() {} },
+        name: 'web', variables: { bad() {} },
       }]`,
       'projects[0].variables.bad must be JSON-compatible',
     ],
     [
       'non-plain variable',
       `projects: [{
-        name: 'web', platform: 'web', variables: { bad: new Date() },
+        name: 'web', variables: { bad: new Date() },
       }]`,
       'projects[0].variables.bad must be JSON-compatible',
     ],
@@ -472,6 +521,44 @@ describe('test project config', () => {
     await expect(loadTestProject(path)).rejects.toThrow(message);
   });
 
+  it('loads a JavaScript ESM config', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(
+      path,
+      `
+        const configUrl = import.meta.url;
+        await Promise.resolve();
+        export default {
+          nodes: [],
+          projects: [{ name: 'esm', variables: { configUrl } }],
+        };
+      `,
+    );
+
+    await expect(loadTestProject(path)).resolves.toMatchObject({
+      projects: [{ name: 'esm' }],
+    });
+  });
+
+  it('does not transform TypeScript syntax in a JavaScript ESM config', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(
+      path,
+      'const config: { nodes: unknown[] } = { nodes: [] }; export default config;',
+    );
+
+    const error = await loadTestProject(path).catch((cause) => cause);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
+    expect(error.cause).toBeInstanceOf(Error);
+    expect(error.cause.message).toMatch(
+      /Expected a semicolon|Unexpected token/,
+    );
+  });
+
   it.each(['.js', '.cjs', '.mts', '.cts', '.tsx', '.json'])(
     'rejects the %s extension',
     async (extension) => {
@@ -480,7 +567,7 @@ describe('test project config', () => {
       writeFileSync(path, 'export default { nodes: [] };');
 
       await expect(loadTestProject(path)).rejects.toThrow(
-        `Unsupported Midscene config extension: ${extension}. Supported extension: .ts.`,
+        `Unsupported Midscene config extension: ${extension}. Supported extensions: .ts, .mjs.`,
       );
     },
   );
@@ -601,47 +688,47 @@ describe('test project config', () => {
     ],
     [
       'Project files',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: [] }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: [] }] };',
       'projects[0].files must be an object',
     ],
     [
       'missing include',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: {} }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: {} }] };',
       'projects[0].files.include must be an array',
     ],
     [
       'empty include',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: [] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: [] } }] };',
       'projects[0].files.include must be a non-empty array',
     ],
     [
       'absolute pattern',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["/outside/*.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["/outside/*.yaml"] } }] };',
       'must be relative to the project root',
     ],
     [
       'parent pattern',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["../outside/*.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["../outside/*.yaml"] } }] };',
       'must not contain a ".." path segment',
     ],
     [
       'negated include',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["!draft.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["!draft.yaml"] } }] };',
       'Use files.exclude instead',
     ],
     [
       'negated exclude',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["*.yaml"], exclude: ["!keep.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["*.yaml"], exclude: ["!keep.yaml"] } }] };',
       'projects[0].files.exclude[0] must not be a negated pattern',
     ],
     [
       'non-POSIX separator',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["flows\\\\*.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["flows\\\\*.yaml"] } }] };',
       'must use POSIX path separators',
     ],
     [
       'invalid exclude',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["*.yaml"], exclude: true } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["*.yaml"], exclude: true } }] };',
       'projects[0].files.exclude must be an array',
     ],
   ])('rejects invalid %s config', async (_name, source, message) => {

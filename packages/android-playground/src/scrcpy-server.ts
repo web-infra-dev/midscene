@@ -24,6 +24,7 @@ import {
   buildScrcpyPreviewErrorEvent,
   buildScrcpyPreviewStatusEvent,
 } from './scrcpy-preview-status';
+import { ScrcpyVideoSender } from './scrcpy-video-sender';
 import { withTimeout } from './timeout';
 
 export const debugPage = getDebug('android:playground');
@@ -424,6 +425,7 @@ export default class ScrcpyServer {
       let activeSession: ActiveScrcpySession | null = null;
       let sessionGeneration = 0;
       let adb = null;
+      const videoSender = new ScrcpyVideoSender(socket);
 
       const closeScrcpySession = async (
         reason: string,
@@ -736,24 +738,13 @@ export default class ScrcpyServer {
                         return;
                       }
 
-                      // ensure type field is correctly set to 'configuration' or 'data'
-                      const frameType = value.type || 'data'; // default to 'data'
-
                       // Forward the raw Uint8Array — socket.io transports it as
                       // a binary frame. Converting via Array.from inflates each
                       // byte to a boxed JS Number, blowing the V8 old space on
                       // low-memory hosts (e.g. 8GB Windows) after a few seconds
                       // of a 2 Mbps stream.
-                      // Frames are disposable. `volatile` prevents Socket.IO
-                      // from retaining an unbounded write buffer when the
-                      // renderer is busy decoding or has stopped responding.
-                      socket.volatile.emit('video-data', {
-                        data: value.data,
-                        type: frameType,
-                        timestamp: Date.now(),
-                        // fix keyframe access
-                        keyFrame: value.keyFrame,
-                      });
+                      // Preserve GOP integrity with reliable, bounded delivery.
+                      videoSender.send(value);
                     }
                   } catch (error) {
                     console.error('error processing video stream:', error);

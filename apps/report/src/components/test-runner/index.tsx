@@ -1,22 +1,21 @@
 import './index.less';
-import { MoonOutlined, SunOutlined } from '@ant-design/icons';
 import type { TestRunReportDump } from '@midscene/core';
-import {
-  Logo,
-  globalThemeConfig,
-  useGlobalPreference,
-} from '@midscene/visualizer';
-import { App as AntdApp, ConfigProvider, theme } from 'antd';
+import { globalThemeConfig, useGlobalPreference } from '@midscene/visualizer';
+import { Alert, App as AntdApp, ConfigProvider, theme } from 'antd';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ThemeDarkIcon from '../../icons/theme-dark.svg?react';
+import ThemeLightIcon from '../../icons/theme-light.svg?react';
 import type { PlaywrightTasks } from '../../types';
 import {
   type RunnerRoute,
   runnerHashForRoute,
 } from '../../utils/test-run-report';
+import { Logo } from '../logo';
 import { CaseWorkspace } from './case-workspace';
 import {
   type RunnerCaseView,
+  buildRunnerStepIndex,
   buildRunnerVisualIndex,
   flattenRunnerCases,
   getDefaultExpandedProjectKeys,
@@ -29,7 +28,10 @@ import {
   resolveRunnerNavigation,
 } from './navigation';
 import { RunOverview } from './run-overview';
+import { getSelectTheme } from './select';
 import type { RunnerCaseDisplayMode } from './view-primitives';
+
+const reportTheme = globalThemeConfig();
 
 interface TestRunnerReportProps {
   dump: TestRunReportDump;
@@ -50,6 +52,10 @@ export default function TestRunnerReport({
     () => groupRunnerProjects(dump, cases),
     [cases, dump],
   );
+  const stepIndex = useMemo(
+    () => buildRunnerStepIndex(dump, cases),
+    [cases, dump],
+  );
   const visualIndex = useMemo(() => buildRunnerVisualIndex(reports), [reports]);
   const [caseDisplayMode, setCaseDisplayMode] =
     useState<RunnerCaseDisplayMode>('compact');
@@ -60,19 +66,23 @@ export default function TestRunnerReport({
       ),
   );
   const [navigation, setNavigation] = useState<RunnerNavigationState>(() =>
-    resolveRunnerNavigation(window.location.hash, cases, projects),
+    resolveRunnerNavigation(window.location.hash, cases, projects, stepIndex),
   );
   const mainRef = useRef<HTMLElement>(null);
   const overviewReturnStateRef = useRef<{
     scrollTop: number;
     caseKey?: string;
   }>({ scrollTop: 0 });
-  const { page, selectedCaseKey, deepLinkedStepId } = navigation;
+  const { page, selectedCaseKey, deepLinkedStepId, unmatchedStepSelector } =
+    navigation;
   const selectedCase = cases.find((item) => item.key === selectedCaseKey);
-  const tracePage =
-    page === 'case' &&
-    new URLSearchParams(window.location.hash.slice(1)).get('runner-trace') ===
-      'page';
+  const midsceneVersion = useMemo(() => {
+    for (const report of reports) {
+      const version = report.get().sdkVersion.trim();
+      if (version) return version.startsWith('v') ? version : `v${version}`;
+    }
+    return undefined;
+  }, [reports]);
 
   useEffect(() => {
     document.documentElement.setAttribute(
@@ -84,7 +94,12 @@ export default function TestRunnerReport({
   useEffect(() => {
     const syncNavigationFromUrl = () => {
       setNavigation(
-        resolveRunnerNavigation(window.location.hash, cases, projects),
+        resolveRunnerNavigation(
+          window.location.hash,
+          cases,
+          projects,
+          stepIndex,
+        ),
       );
       window.requestAnimationFrame(() => {
         if (mainRef.current) mainRef.current.scrollTop = 0;
@@ -96,7 +111,7 @@ export default function TestRunnerReport({
       window.removeEventListener('popstate', syncNavigationFromUrl);
       window.removeEventListener('hashchange', syncNavigationFromUrl);
     };
-  }, [cases, projects]);
+  }, [cases, projects, stepIndex]);
 
   const restoreView = ({
     scrollTop = 0,
@@ -130,7 +145,9 @@ export default function TestRunnerReport({
     if (nextHash !== (window.location.hash || '#')) {
       window.history.pushState({ midsceneRunnerRoute: true }, '', nextHash);
     }
-    setNavigation(resolveRunnerNavigation(nextHash, cases, projects));
+    setNavigation(
+      resolveRunnerNavigation(nextHash, cases, projects, stepIndex),
+    );
     restoreView(viewState);
   };
   const openCase = (item: RunnerCaseView, stepId?: string) => {
@@ -154,21 +171,18 @@ export default function TestRunnerReport({
       },
     );
   };
-  const closeTracePage = () => {
-    if (!selectedCase) return;
-    navigate({
-      page: 'case',
-      caseKey: selectedCase.key,
-      projectId: selectedCase.project.projectId,
-      stepId: deepLinkedStepId,
-    });
-  };
-
   return (
     <ConfigProvider
       theme={{
-        ...globalThemeConfig(),
+        ...reportTheme,
         algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        components: {
+          ...reportTheme.components,
+          Select: {
+            ...reportTheme.components?.Select,
+            ...getSelectTheme(isDarkMode),
+          },
+        },
       }}
     >
       <AntdApp component={false}>
@@ -177,21 +191,30 @@ export default function TestRunnerReport({
           data-theme={isDarkMode ? 'dark' : 'light'}
         >
           <header className="runner-header">
-            <div className="runner-header-title">
-              <Logo />
-              <div>
-                <strong>Test Report</strong>
+            <div className="runner-header-inner">
+              <div className="runner-header-title">
+                <Logo />
+                <div>
+                  <strong>Test Report</strong>
+                </div>
               </div>
-            </div>
-            <div className="runner-header-actions">
-              <button
-                type="button"
-                className="runner-theme-toggle"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                aria-label="Toggle theme"
-              >
-                {isDarkMode ? <SunOutlined /> : <MoonOutlined />}
-              </button>
+              <div className="runner-header-actions">
+                {midsceneVersion ? (
+                  <span className="runner-header-version">
+                    Midscene {midsceneVersion}
+                  </span>
+                ) : null}
+                <div className="runner-header-theme-control">
+                  <button
+                    type="button"
+                    className="runner-theme-toggle"
+                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    aria-label="Toggle theme"
+                  >
+                    {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
+                  </button>
+                </div>
+              </div>
             </div>
           </header>
           <main
@@ -200,6 +223,14 @@ export default function TestRunnerReport({
             tabIndex={-1}
             aria-label="Test report content"
           >
+            {unmatchedStepSelector ? (
+              <Alert
+                className="runner-step-selector-alert"
+                type="info"
+                showIcon
+                message={`No Step matches runner-step=${unmatchedStepSelector}.`}
+              />
+            ) : null}
             {page === 'case' && selectedCase ? (
               <CaseWorkspace
                 key={selectedCase.key}
@@ -209,10 +240,8 @@ export default function TestRunnerReport({
                 visualIndex={visualIndex}
                 reports={reports}
                 initialStepId={deepLinkedStepId}
-                tracePage={tracePage}
                 renderAgentReport={renderAgentReport}
                 onBack={backFromCase}
-                onCloseTracePage={closeTracePage}
               />
             ) : (
               <RunOverview

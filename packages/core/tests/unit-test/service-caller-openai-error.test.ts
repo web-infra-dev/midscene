@@ -41,7 +41,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('records non-2xx raw response body without changing the response', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-error'
+      '@/ai-model/service-caller/openai/openai-request-context'
     );
     const context = {};
     const responseBody = JSON.stringify({
@@ -66,16 +66,14 @@ describe('service-caller OpenAI error handling', () => {
     expect(wrappedResponse).toBe(response);
     await expect(wrappedResponse.text()).resolves.toBe(responseBody);
     expect(context).toEqual({
-      responseRequestIds: [
-        { attempt: 1, requestId: 'req_123', status: 422, ok: false },
-      ],
-      rawResponseBodies: [{ attempt: 1, body: responseBody }],
+      responseRequestId: { requestId: 'req_123', status: 422, ok: false },
+      rawResponseBody: responseBody,
     });
   });
 
   it('does not record successful response bodies', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-error'
+      '@/ai-model/service-caller/openai/openai-request-context'
     );
     const context = {};
     const response = new Response(JSON.stringify({ ok: true }), {
@@ -92,7 +90,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('does not include request headers in model record events', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-error'
+      '@/ai-model/service-caller/openai/openai-request-context'
     );
     const events: Array<Record<string, unknown>> = [];
     const context = {
@@ -109,7 +107,6 @@ describe('service-caller OpenAI error handling', () => {
     expect(events).toEqual([
       {
         type: 'request',
-        attempt: 1,
         request: {
           url: 'https://example.com/',
           method: 'POST',
@@ -185,40 +182,71 @@ describe('service-caller OpenAI error handling', () => {
     expect(response.usage?.request_id).toBe('req_123');
   });
 
-  it('keeps raw response bodies from multiple failed requests', async () => {
-    const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-error'
+  it('prefers SDK request ID over response headers', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    globalThis.fetch = rs.fn().mockResolvedValue(
+      new Response(null, {
+        headers: {
+          'x-request-id': 'req_123',
+          'x-model-request-id': 'model_req_123',
+        },
+      }),
     );
-    const context = {};
+    mockCreate.mockImplementation(async () => {
+      await mockOpenAIConstructor.mock.calls
+        .at(-1)?.[0]
+        .fetch('https://example.com/v1/chat/completions');
+      return {
+        choices: [{ message: { content: 'hello' } }],
+        usage: {
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+        },
+        _request_id: 'sdk_req_123',
+      };
+    });
+
+    const response = await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig()),
+    );
+
+    expect(response.usage?.request_id).toBe('sdk_req_123');
+  });
+
+  it('keeps request details isolated between attempts', async () => {
+    const { wrapOpenAICompatibleFetch, formatOpenAIAPIErrorDetails } =
+      await import('@/ai-model/service-caller/openai/openai-request-context');
+    const firstContext = {};
+    const secondContext = {};
     globalThis.fetch = rs
       .fn()
-      .mockResolvedValueOnce(new Response('first body', { status: 500 }))
-      .mockRejectedValueOnce(new Error('network error'))
-      .mockResolvedValueOnce(new Response('third body', { status: 502 }));
-    const wrappedFetch = wrapOpenAICompatibleFetch(context);
+      .mockResolvedValueOnce(
+        new Response('first failure', {
+          status: 500,
+          headers: { 'x-request-id': 'first_request' },
+        }),
+      )
+      .mockResolvedValueOnce(new Response('second failure', { status: 502 }));
 
-    await expect(wrappedFetch('https://example.com')).resolves.toBeInstanceOf(
-      Response,
-    );
-    await expect(wrappedFetch('https://example.com')).rejects.toThrow(
-      'network error',
-    );
-    await expect(wrappedFetch('https://example.com')).resolves.toBeInstanceOf(
-      Response,
-    );
+    await wrapOpenAICompatibleFetch(firstContext)('https://example.com');
+    await wrapOpenAICompatibleFetch(secondContext)('https://example.com');
 
-    expect(context).toEqual({
-      rawResponseBodies: [
-        { attempt: 1, body: 'first body' },
-        { attempt: 3, body: 'third body' },
-      ],
-      fetchErrors: [{ attempt: 2, error: 'Error: network error' }],
+    expect(firstContext).toEqual({
+      rawResponseBody: 'first failure',
+      responseRequestId: { requestId: 'first_request', status: 500, ok: false },
     });
+    expect(secondContext).toEqual({ rawResponseBody: 'second failure' });
+    expect(formatOpenAIAPIErrorDetails(undefined, secondContext)).toBe(
+      '\nOpenAI raw error response body: second failure',
+    );
   });
 
   it('records and reports original fetch errors before rethrowing them', async () => {
     const { formatOpenAIAPIErrorDetails, wrapOpenAICompatibleFetch } =
-      await import('@/ai-model/service-caller/openai-error');
+      await import('@/ai-model/service-caller/openai/openai-request-context');
     const context = {};
     const cause = Object.assign(
       new Error(
@@ -239,16 +267,11 @@ describe('service-caller OpenAI error handling', () => {
     ).rejects.toBe(fetchError);
 
     expect(context).toEqual({
-      fetchErrors: [
-        {
-          attempt: 1,
-          error:
-            'TypeError: fetch failed\nCause: ConnectTimeoutError [UND_ERR_CONNECT_TIMEOUT]: Connect Timeout Error (attempted addresses: 2605:340::1:443, timeout: 10000ms)',
-        },
-      ],
+      fetchError:
+        'TypeError: fetch failed\nCause: ConnectTimeoutError [UND_ERR_CONNECT_TIMEOUT]: Connect Timeout Error (attempted addresses: 2605:340::1:443, timeout: 10000ms)',
     });
     expect(formatOpenAIAPIErrorDetails(fetchError, context)).toContain(
-      'OpenAI fetch error (attempt 1): TypeError: fetch failed\nCause: ConnectTimeoutError [UND_ERR_CONNECT_TIMEOUT]: Connect Timeout Error (attempted addresses: 2605:340::1:443, timeout: 10000ms)',
+      'OpenAI fetch error: TypeError: fetch failed\nCause: ConnectTimeoutError [UND_ERR_CONNECT_TIMEOUT]: Connect Timeout Error (attempted addresses: 2605:340::1:443, timeout: 10000ms)',
     );
   });
 
@@ -300,9 +323,83 @@ describe('service-caller OpenAI error handling', () => {
       /OpenAI raw error response body: \{"detail":"model does not exist","trace_id":"trace_123"\}/,
     );
     await expect(promise).rejects.toThrow(
-      /OpenAI error response request ID \(attempt 1, status 422\): model_req_123/,
+      /OpenAI error response request ID \(status 422\): model_req_123/,
     );
   });
+
+  it.each([
+    {
+      name: 'non-JSON response without choices',
+      contentType: 'application/octet-stream',
+      body: '\u001f\ufffd\bcompressed response',
+      error: 'invalid response from LLM service',
+    },
+    {
+      name: 'invalid JSON',
+      contentType: 'application/json',
+      body: '{invalid JSON',
+      error: 'JSON',
+    },
+    {
+      name: 'empty completion content',
+      contentType: 'application/json',
+      body: JSON.stringify({ choices: [{ message: { content: '' } }] }),
+      error: 'empty content from AI model',
+    },
+  ])(
+    'records HTTP 200 details for $name',
+    async ({ contentType, body, error }) => {
+      const events: Array<Record<string, unknown>> = [];
+      rs.resetModules();
+      rs.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
+        isModelCallRecordingEnabled: () => true,
+        recordModelCallEvent: (event: Record<string, unknown>) => {
+          events.push(event);
+        },
+      }));
+      const { callAI } = await import('@/ai-model/service-caller');
+      const { getModelRuntime } = await import('@/ai-model/models');
+      const actualOpenAI =
+        await rs.importActual<typeof import('openai')>('openai');
+      mockOpenAIConstructor.mockImplementationOnce(
+        (options) => new actualOpenAI.default(options),
+      );
+      // This is the response after Fetch processing, not raw network bytes.
+      globalThis.fetch = rs.fn().mockResolvedValue(
+        new Response(body, {
+          status: 200,
+          headers: {
+            'content-type': contentType,
+            'content-encoding': 'gzip',
+            'x-request-id': 'req_parse_failure',
+          },
+        }),
+      );
+
+      await expect(
+        callAI(
+          [{ role: 'user', content: 'hello' }],
+          getModelRuntime(baseConfig()),
+        ),
+      ).rejects.toThrow(error);
+
+      expect(events.map((event) => event.type)).toEqual(['request', 'error']);
+      expect(events[1]).toMatchObject({
+        status: 200,
+        ok: true,
+        body,
+        headers: expect.arrayContaining([
+          ['content-type', contentType],
+          ['content-encoding', 'gzip'],
+          ['x-request-id', 'req_parse_failure'],
+        ]),
+        error: expect.stringContaining(error),
+        attempt: 1,
+        executionId: events[0].executionId,
+        callId: events[0].callId,
+      });
+    },
+  );
 
   it('uses the successful retry attempt for the final record', async () => {
     const events: Array<Record<string, unknown>> = [];

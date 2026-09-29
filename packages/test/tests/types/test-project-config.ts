@@ -1,42 +1,146 @@
-import type { AndroidAgent } from '@midscene/android';
-import type { HarmonyAgent } from '@midscene/harmony';
-import type { IOSAgent } from '@midscene/ios';
-import { defineNode, z } from '@midscene/test';
+import { AndroidAgent } from '@midscene/android';
+import { runAdbShellInputSchema } from '@midscene/android/test';
+import type {
+  aiActOptionsInputSchema,
+  locateOptionsInputSchema,
+} from '@midscene/core/agent/test';
+import type { ScriptPlayer } from '@midscene/core/yaml';
+import { HarmonyAgent } from '@midscene/harmony';
+import { runHdcShellInputSchema } from '@midscene/harmony/test';
+import { IOSAgent } from '@midscene/ios';
 import {
-  type AndroidRunnerAgent,
-  createAndroidNodes,
-  runAdbShellInputSchema,
-} from '@midscene/test/android';
+  type RunWdaRequestNodeInput,
+  runWdaRequestInputSchema,
+} from '@midscene/ios/test';
 import {
+  type CaseDefinition,
+  type CreateDocumentRuntimeOptions,
+  type NodeExecutionContext,
+  type NodeScopeTeardownResult,
+  type NormalizedStepMeta,
+  type RunCollectedCaseOptions,
+  type RunWorkflowDocumentOptions,
+  type WorkflowDocumentRuntime,
+  type WorkflowDocumentSource,
+  type createCaseId,
+  type createWorkflowDocumentId,
+  defineNode,
+  z,
+} from '@midscene/test';
+import {
+  type ExecutionProjectDefinition,
   type LoadedExecutionProject,
+  type LoadedTestProject,
+  type ProjectSetupDefinition,
+  type TestFileSelection,
+  type TestOutputDefinition,
   type TestProjectDefinition,
+  type TestProjectRunOptions,
+  type TestProjectRunResult,
   defineProjectSetup,
   defineTestProject,
   loadTestProject,
 } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
 import {
-  type HarmonyRunnerAgent,
-  createHarmonyNodes,
-  runHdcShellInputSchema,
-} from '@midscene/test/harmony';
-import {
-  type IOSRunnerAgent,
-  type RunWdaRequestNodeInput,
-  createIOSNodes,
-  runWdaRequestInputSchema,
-} from '@midscene/test/ios';
+  PlaywrightAgent,
+  PlaywrightBrowserAgent,
+} from '@midscene/web/playwright/agent';
 import {
   clearCookiesInputSchema,
-  createPlaywrightNodes,
   gotoUrlInputSchema,
   setCookiesInputSchema,
   setViewportSizeInputSchema,
-} from '@midscene/test/playwright';
-import type { Page } from 'playwright';
+} from '@midscene/web/playwright/test';
 
 interface ProjectContext {
   baseURL: string;
 }
+
+// Compatibility controls must not silently become native Test parameters.
+type Assert<T extends true> = T;
+type Absent<T, K extends PropertyKey> = Extract<keyof T, K> extends never
+  ? true
+  : false;
+type NativeBoundary = [
+  Assert<Absent<TestProjectDefinition, 'legacy' | 'documentSetup'>>,
+  Assert<Absent<LoadedTestProject, 'legacy' | 'hasExplicitTestTimeout'>>,
+  Assert<
+    Absent<
+      ExecutionProjectDefinition,
+      'retryScope' | 'fileConcurrency' | 'setupFile' | 'documentSetup'
+    >
+  >,
+  Assert<Absent<TestOutputDefinition, 'report'>>,
+  Assert<Absent<TestFileSelection, 'order'>>,
+  Assert<Absent<ProjectSetupDefinition, 'onDocumentResult'>>,
+  Assert<Absent<CaseDefinition, 'onFailure'>>,
+  Assert<
+    Absent<NormalizedStepMeta, 'resultName' | 'resultPath' | 'captureResult'>
+  >,
+  Assert<Absent<NodeExecutionContext['$'], 'resultName' | 'captureResult'>>,
+  Assert<Absent<NodeScopeTeardownResult, 'reportSources'>>,
+  Assert<Absent<TestProjectRunOptions, 'legacyPlan' | 'writeLegacySummary'>>,
+  Assert<Absent<TestProjectRunResult, 'legacyResults'>>,
+  Assert<Absent<RunCollectedCaseOptions, 'reportScopeId'>>,
+  Assert<
+    Absent<
+      RunWorkflowDocumentOptions,
+      'documentSetup' | 'documentAttemptIndex' | 'resolveCaseReportScopeId'
+    >
+  >,
+  Assert<
+    Absent<
+      CreateDocumentRuntimeOptions,
+      'documentSetup' | 'documentAttemptIndex'
+    >
+  >,
+  Assert<Absent<WorkflowDocumentRuntime, 'signal'>>,
+  Assert<
+    Absent<
+      Awaited<ReturnType<WorkflowDocumentRuntime['start']>>,
+      'reportSources' | 'reportScopeId'
+    >
+  >,
+  Assert<Absent<WorkflowDocumentSource, 'invocationIndex'>>,
+  Assert<Absent<z.output<typeof locateOptionsInputSchema>, 'uiContext'>>,
+  Assert<
+    Absent<
+      ScriptPlayer<any>,
+      'executionResult' | 'executionRecord' | 'fallbackReportFileName'
+    >
+  >,
+];
+type CaseIdArity = Assert<
+  Parameters<typeof createCaseId>['length'] extends 3 ? true : false
+>;
+type LegacyPlayerRunArity = Assert<
+  Parameters<ScriptPlayer<any>['run']>['length'] extends 0 ? true : false
+>;
+type DocumentIdArity = Assert<
+  Parameters<typeof createWorkflowDocumentId>['length'] extends 2 ? true : false
+>;
+type ApprovedEffort = z.output<typeof aiActOptionsInputSchema>;
+const effortOptions: ApprovedEffort = { effort: 'deepThink' };
+void effortOptions;
+// @ts-expect-error Report naming is deliberately not a native configuration option.
+defineTestProject({ output: { report: { fileName: 'custom' } } });
+defineTestProject({
+  projects: [
+    {
+      name: 'native',
+      nodes: [
+        {
+          name: 'business',
+          execute(ctx) {
+            // @ts-expect-error Adapter result bindings are not public Node metadata.
+            ctx.$.resultName;
+          },
+        },
+      ],
+    },
+  ],
+});
 
 const requestNode = defineNode<
   { path: string },
@@ -55,7 +159,6 @@ const project: TestProjectDefinition<ProjectContext> =
     nodes: [requestNode],
     setup: defineProjectSetup<ProjectContext>({
       name: 'default-web',
-      platform: 'web',
       setup({ env }) {
         return { baseURL: env.TEST_BASE_URL ?? 'https://example.com' };
       },
@@ -67,15 +170,8 @@ void loadTestProject<ProjectContext>();
 
 const webSetup = defineProjectSetup<ProjectContext>({
   name: 'web',
-  platform: 'web',
   setup({ project, onTeardown }) {
     project.projectId satisfies string;
-    project.platform satisfies
-      | 'web'
-      | 'android'
-      | 'ios'
-      | 'harmony'
-      | 'computer';
     onTeardown(({ context }) => {
       context?.baseURL satisfies string | undefined;
     });
@@ -94,7 +190,6 @@ defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'web',
-      platform: 'web',
       setup: webSetup,
       nodes: [requestNode],
       files: {
@@ -107,7 +202,6 @@ defineTestProject<ProjectContext>({
     },
     {
       name: 'web-override',
-      platform: 'web',
       setup: webSetup,
       files: { include: ['override/**/*.yaml'] },
       nodes: [
@@ -131,7 +225,6 @@ defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'project-only',
-      platform: 'web',
       setup: webSetup,
       nodes: [
         requestNode,
@@ -149,7 +242,7 @@ defineTestProject<ProjectContext>({
 });
 
 defineTestProject({});
-defineTestProject({ projects: [{ name: 'empty', platform: 'web' }] });
+defineTestProject({ projects: [{ name: 'empty' }] });
 
 declare const loadedExecutionProject: LoadedExecutionProject<ProjectContext>;
 loadedExecutionProject.nodes.names() satisfies string[];
@@ -162,7 +255,6 @@ defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'invalid-nodes',
-      platform: 'web',
       // @ts-expect-error Project-local Nodes must be an array.
       nodes: requestNode,
     },
@@ -182,7 +274,6 @@ defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'invalid-context',
-      platform: 'web',
       nodes: [
         // @ts-expect-error Local Nodes must accept the Project's configured context.
         incompatibleContextNode,
@@ -224,7 +315,6 @@ defineTestProject({
   projects: [
     {
       name: 'web',
-      platform: 'web',
       files: {
         // @ts-expect-error files.include must be an array.
         include: 'workflows/*.yaml',
@@ -250,73 +340,43 @@ void defineWorkflowProject;
 void loadTestProjectSync;
 
 interface PlatformContext {
-  page: Page;
-  baseUrl: string;
-  android: {
-    launch(uri: string): Promise<void>;
-    terminate(uri: string): Promise<void>;
-    runAdbShell(
-      command: string,
-      options?: { timeout?: number },
-    ): Promise<string>;
-    back(): Promise<void>;
-    home(): Promise<void>;
-    recentApps(): Promise<void>;
-  };
-  ios: {
-    launch(uri: string): Promise<void>;
-    terminate(uri: string): Promise<void>;
-    runWdaRequest(input: {
-      method: 'GET' | 'POST' | 'DELETE' | 'PUT';
-      endpoint: string;
-      data?: Record<string, unknown>;
-    }): Promise<unknown>;
-    home(): Promise<void>;
-    appSwitcher(): Promise<void>;
-  };
-  harmony: {
-    launch(uri: string): Promise<void>;
-    terminate(uri: string): Promise<void>;
-    runHdcShell(command: string): Promise<string>;
-    back(): Promise<void>;
-    home(): Promise<void>;
-    recentApps(): Promise<void>;
-  };
+  playwright: PlaywrightAgent;
+  android: AndroidAgent;
+  ios: IOSAgent;
+  harmony: HarmonyAgent;
 }
 
 defineTestProject<PlatformContext>({
   projects: [
     {
       name: 'web',
-      platform: 'web',
       files: { include: ['web/**/*.yaml'] },
-      nodes: createPlaywrightNodes<PlatformContext>({
-        getPage: ({ context }) => context.page,
-        getBaseUrl: ({ context }) => context.baseUrl,
-        getCookieProfile: ({ context }) => context.page.context().cookies(),
+      nodes: createMidsceneNodes<PlatformContext>({
+        agentClass: PlaywrightAgent,
+        getAgent: ({ context }) => context.playwright,
       }),
     },
     {
       name: 'android',
-      platform: 'android',
       files: { include: ['android/**/*.yaml'] },
-      nodes: createAndroidNodes<PlatformContext>({
+      nodes: createMidsceneNodes<PlatformContext>({
+        agentClass: AndroidAgent,
         getAgent: ({ context }) => context.android,
       }),
     },
     {
       name: 'ios',
-      platform: 'ios',
       files: { include: ['ios/**/*.yaml'] },
-      nodes: createIOSNodes<PlatformContext>({
+      nodes: createMidsceneNodes<PlatformContext>({
+        agentClass: IOSAgent,
         getAgent: ({ context }) => context.ios,
       }),
     },
     {
       name: 'harmony',
-      platform: 'harmony',
       files: { include: ['harmony/**/*.yaml'] },
-      nodes: createHarmonyNodes<PlatformContext>({
+      nodes: createMidsceneNodes<PlatformContext>({
+        agentClass: HarmonyAgent,
         getAgent: ({ context }) => context.harmony,
       }),
     },
@@ -326,21 +386,12 @@ defineTestProject<PlatformContext>({
 declare const androidAgent: AndroidAgent;
 declare const iosAgent: IOSAgent;
 declare const harmonyAgent: HarmonyAgent;
-declare const androidRunnerAgent: AndroidRunnerAgent;
-declare const iosRunnerAgent: IOSRunnerAgent;
-declare const harmonyRunnerAgent: HarmonyRunnerAgent;
 declare const iosAgentInput: Parameters<IOSAgent['runWdaRequest']>[0];
 declare const iosRunnerInput: RunWdaRequestNodeInput;
 
-createAndroidNodes({ getAgent: () => androidAgent });
-createIOSNodes({ getAgent: () => iosAgent });
-createHarmonyNodes({ getAgent: () => harmonyAgent });
-androidAgent satisfies AndroidRunnerAgent;
-iosAgent satisfies IOSRunnerAgent;
-harmonyAgent satisfies HarmonyRunnerAgent;
-androidRunnerAgent.runAdbShell satisfies AndroidAgent['runAdbShell'];
-iosRunnerAgent.runWdaRequest satisfies IOSAgent['runWdaRequest'];
-harmonyRunnerAgent.runHdcShell satisfies HarmonyAgent['runHdcShell'];
+createMidsceneNodes({ agentClass: AndroidAgent, getAgent: () => androidAgent });
+createMidsceneNodes({ agentClass: IOSAgent, getAgent: () => iosAgent });
+createMidsceneNodes({ agentClass: HarmonyAgent, getAgent: () => harmonyAgent });
 iosAgentInput satisfies RunWdaRequestNodeInput['request'];
 iosRunnerInput.request satisfies Parameters<IOSAgent['runWdaRequest']>[0];
 
@@ -351,3 +402,33 @@ void setViewportSizeInputSchema;
 void runAdbShellInputSchema;
 void runWdaRequestInputSchema;
 void runHdcShellInputSchema;
+
+// Both supported Playwright Agent classes use the common registration entry.
+declare const playwrightPageAgent: PlaywrightAgent;
+declare const playwrightBrowserAgent: PlaywrightBrowserAgent;
+createMidsceneNodes({
+  agentClass: PlaywrightAgent,
+  getAgent: () => playwrightPageAgent,
+});
+createMidsceneNodes({
+  agentClass: PlaywrightBrowserAgent,
+  getAgent: () => playwrightBrowserAgent,
+});
+
+// Platform capabilities come from setup resources and registered Nodes.
+defineTestProject({ projects: [{ name: 'checkout', setup: webSetup }] });
+defineTestProject({
+  projects: [
+    {
+      name: 'checkout',
+      // @ts-expect-error Projects no longer declare a platform.
+      platform: 'web',
+    },
+  ],
+});
+defineProjectSetup({
+  name: 'browser',
+  // @ts-expect-error Setups no longer declare supported platforms.
+  platform: 'web',
+  setup() {},
+});

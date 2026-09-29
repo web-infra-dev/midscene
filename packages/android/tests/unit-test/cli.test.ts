@@ -79,6 +79,19 @@ describe('Android CLI integration', () => {
     });
   });
 
+  it('preserves a numeric device ID as a string', async () => {
+    const tools = new AndroidMidsceneTools();
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: ['take_screenshot', '--deviceId', '320336557157'],
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith('320336557157', {
+      autoDismissKeyboard: false,
+    });
+  });
+
   it('rejects --android.device-id in the single-platform CLI', async () => {
     const tools = new AndroidMidsceneTools();
 

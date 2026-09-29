@@ -48,6 +48,7 @@ import {
   type MouseButton,
   commonWebActionsForWebPage,
 } from '../web-page';
+import { capturePuppeteerScreenshot } from './screenshot';
 
 export const debugPage = getDebug('web:page');
 const warnPage = getDebug('web:page', { console: true });
@@ -468,11 +469,10 @@ export class Page<
 
     let base64: string;
     if (this.interfaceType === 'puppeteer') {
-      const result = await (this.underlyingPage as PuppeteerPage).screenshot({
-        type: imgType,
-        quality,
-        encoding: 'base64',
-      });
+      const result = await capturePuppeteerScreenshot(
+        this.underlyingPage as PuppeteerPage,
+        { type: imgType, quality, encoding: 'base64' },
+      );
       base64 = createImgBase64ByFormat(imgType, result);
     } else if (this.interfaceType === 'playwright') {
       const page = this.underlyingPage as PlaywrightPage;

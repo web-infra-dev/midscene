@@ -15,7 +15,7 @@ import type {
   TestRunReportDump,
   TestRunReportSourceIndex,
 } from '../../src/test-run-report';
-import { ReportActionDump } from '../../src/types';
+import { type AIUsageInfo, ReportActionDump } from '../../src/types';
 import { getVersion } from '../../src/utils';
 
 const temporaryDirectories: string[] = [];
@@ -52,6 +52,7 @@ const writeAgentReport = (
   filePath: string,
   executionIds: string[],
   mode: 'inline' | 'directory' = 'inline',
+  withUsage = false,
 ): void => {
   mkdirSync(join(filePath, '..'), { recursive: true });
   const dump = new ReportActionDump({
@@ -62,7 +63,23 @@ const writeAgentReport = (
       id,
       logTime: 1,
       name: id,
-      tasks: [],
+      tasks: withUsage
+        ? [
+            {
+              taskId: `task-${id}`,
+              type: 'Log',
+              status: 'finished',
+              executor: async () => {},
+              usage: {
+                model_name: 'fixture',
+                prompt_tokens: 5,
+                completion_tokens: 2,
+                total_tokens: 7,
+                time_cost: 10,
+              } as AIUsageInfo,
+            },
+          ]
+        : [],
     })),
   });
   const script = generateDumpScriptTag(dump.serialize(), {
@@ -123,6 +140,71 @@ describe('TestRunReportAssembler', () => {
     expect(html).toContain('data-report-id="runner-report-1"');
     expect(html).toContain('data-runner-scope-id="attempt-1"');
     expect(html).toContain('execution-a');
+  });
+
+  it('indexes a shared Agent source under multiple scopes and emits it once', () => {
+    const root = temporaryDirectory();
+    const sourcePath = join(root, 'shared.html');
+    writeAgentReport(sourcePath, ['execution-a', 'execution-b']);
+    let receivedIndex: TestRunReportSourceIndex | undefined;
+    const reportPath = new TestRunReportAssembler().assemble({
+      outputDir: join(root, 'output'),
+      reportFileName: 'shared',
+      sources: [
+        { scopeId: 'attempt-1', sourcePath },
+        { scopeId: 'attempt-2', sourcePath },
+      ],
+      buildRunnerDump(index) {
+        receivedIndex = index;
+        return runnerDump(index);
+      },
+    });
+    expect(receivedIndex?.sources.map(({ scopeId }) => scopeId)).toEqual([
+      'attempt-1',
+      'attempt-2',
+    ]);
+    expect(
+      new Set(receivedIndex?.sources.map(({ reportId }) => reportId)).size,
+    ).toBe(1);
+    const html = readFileSync(reportPath, 'utf8');
+    expect(
+      html.match(/<script type="midscene_web_dump"[^>]*data-group-id/g),
+    ).toHaveLength(1);
+  });
+
+  it('counts stable executions once across native reports and legacy snapshots', () => {
+    const root = temporaryDirectory();
+    const shared = join(root, 'shared.html');
+    const snapshot = join(root, 'legacy-snapshot.html');
+    writeAgentReport(
+      shared,
+      ['native-first', 'legacy', 'native-last'],
+      'inline',
+      true,
+    );
+    writeAgentReport(snapshot, ['native-first', 'legacy'], 'inline', true);
+    let receivedIndex: TestRunReportSourceIndex | undefined;
+    new TestRunReportAssembler().assemble({
+      outputDir: join(root, 'output'),
+      reportFileName: 'mixed',
+      sources: [
+        { scopeId: 'native-first', sourcePath: shared },
+        { scopeId: 'legacy', sourcePath: snapshot },
+        { scopeId: 'native-last', sourcePath: shared },
+      ],
+      buildRunnerDump(index) {
+        receivedIndex = index;
+        return runnerDump(index);
+      },
+    });
+    expect(receivedIndex?.metrics).toEqual({
+      modelCallCount: 3,
+      modelTimeMs: 30,
+      promptTokens: 15,
+      cachedInputTokens: 0,
+      completionTokens: 6,
+      totalTokens: 21,
+    });
   });
 
   it('uses directory mode and rejects ambiguous executions in one scope', () => {

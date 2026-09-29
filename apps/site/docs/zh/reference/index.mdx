@@ -50,7 +50,8 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
   - `cacheDir`：可选缓存目录路径。配置后，缓存文件会写入该目录，而不是 `<MIDSCENE_RUN_DIR>/cache`。相对路径会基于当前工作目录解析，而不是基于 `MIDSCENE_RUN_DIR`。这样可以把缓存、日志和报告目录拆开。
 - `cacheId: string | undefined`（已废弃）：仅用于向后兼容。推荐使用 `cache.id`。
 - `aiContexts: { default?: string; [apiName]?: string }`：Agent 级 AI 补充信息，可包含业务事实、判断或操作规则、约束以及输出要求。如果配置了 `default`，它会作为所有 AI API 共享的缺省回退值，仅当本次调用和对应 API 都没有自己的 context 时使用。解析规则为 `options.context ?? aiContexts[apiName] ?? aiContexts.default`，只使用优先级最高的已定义值，不会自动合并。空字符串会显式清空低优先级的用户 context。默认值为空。
-- `aiActContext: string`（已废弃）：`aiContexts.aiAct` 的兼容配置。两者同时存在时以 `aiContexts.aiAct` 为准；没有 `aiContexts.aiAct` 时，它与 `aiContexts.aiAct` 的作用相同。新代码请使用 `aiContexts.aiAct`；更早的名称 `aiActionContext` 也已废弃，仅为兼容而保留。
+- `aiActContext: string`（已废弃）：`aiContexts.aiAct` 的兼容配置。两者同时存在时以 `aiContexts.aiAct` 为准；没有 `aiContexts.aiAct` 时，它与 `aiContexts.aiAct` 的作用相同。新代码请使用 `aiContexts.aiAct`。关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
+- `aiActionContext: string`（已废弃）：`aiContexts.aiAct` 的更早兼容名称，仍受支持。仅当 `aiContexts.aiAct` 和 `aiActContext` 均未设置时使用。解析规则为 `aiContexts.aiAct ?? aiActContext ?? aiActionContext`；空字符串也会覆盖低优先级的兼容字段。新代码请使用 `aiContexts.aiAct`。
 - `modelConfig: Record<string, string | number>`：当前 Agent 的模型配置。传入该参数后，当前 Agent 不再读取系统环境变量中的模型配置。详细用法见下文。
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。标准模型默认 20，UI-TARS 模型默认 40，AutoGLM 模型默认 100。推荐通过 Agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
 - `waitForActionReady: WaitForActionReadyOptions`：自定义[每个动作后的就绪判断](#action-ready)。
@@ -1331,7 +1332,7 @@ function setAIActContext(aiActContext: string): void;
 
 - 参数：
 
-  - `aiActContext: string` - 要发送给 AI 模型的背景知识。
+  - `aiActContext: string` - 要发送给 AI 模型的背景知识。关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 - 示例：
 
@@ -2040,6 +2041,9 @@ const agent = new PuppeteerBrowserAgent(browser, page, {
 - `newPage()` —— 创建新页面并将其设为 active page。
 - `setActivePage(page: Page)` —— 显式指定 Browser Agent 接下来控制哪个 Puppeteer 页面。
 - `waitForNewPage(action?, options?)` —— 先注册监听，再执行 `action`，然后返回新页面，不会隐式切换 active page。可传入 `{ timeout: 毫秒数 }` 覆盖本次调用的 `newPageTimeout`。
+- `ListBrowserPages({ offset? })` —— 每次列出 8 个标签页，默认从 offset 0 开始；传入 `{ offset: 8 }` 查看下一组。列表反馈会分别缩短过长的 title 和 URL；offset 越界时报错。
+- `GetBrowserPageInfo({ index })` —— 读取标签页的完整 title 和 URL，不切换页面。规划反馈不截断；index 越界时报错。
+- `SetActivePage({ index?, title?, url? })` —— 按 index、title 子串或 URL 子串切换页面。组合使用时，所有 selector 必须匹配同一页面。这三个 action 仅供 Browser Agent 使用。
 
 <a id="web-快速上手"></a>
 <a id="web-连接远程-puppeteer-浏览器"></a>
@@ -2110,6 +2114,9 @@ const agent = new PlaywrightBrowserAgent(context, page, {
 - `newPage()` —— 创建新页面并将其设为 active page。
 - `setActivePage(page: Page)` —— 显式指定 Browser Agent 接下来控制哪个 Playwright 页面。
 - `waitForNewPage(action?, options?)` —— 先注册监听，再执行 `action`，然后返回新页面，不会隐式切换 active page。可传入 `{ timeout: 毫秒数 }` 覆盖本次调用的 `newPageTimeout`。
+- `ListBrowserPages({ offset? })` —— 每次列出 8 个标签页，默认从 offset 0 开始；传入 `{ offset: 8 }` 查看下一组。列表反馈会分别缩短过长的 title 和 URL；offset 越界时报错。
+- `GetBrowserPageInfo({ index })` —— 读取标签页的完整 title 和 URL，不切换页面。规划反馈不截断；index 越界时报错。
+- `SetActivePage({ index?, title?, url? })` —— 按 index、title 子串或 URL 子串切换页面。组合使用时，所有 selector 必须匹配同一页面。这三个 action 仅供 Browser Agent 使用。
 
 <a id="web-playwright-快速上手"></a>
 <a id="web-使用-midscene-fixture-扩展-playwright-测试"></a>
@@ -2219,6 +2226,7 @@ function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 - `DoubleClick` —— 双击元素。
 - `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`、`keyboardTypeDelay` 和 `inputStrategy`。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
+- `Swipe` —— 触摸式滑动。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
 - `LongPress` —— 长按目标元素，可选自定义时长。
@@ -2487,6 +2495,7 @@ function getConnectedDevicesWithDetails(
 - `DoubleClick` —— 双击元素。
 - `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`、`keyboardTypeDelay` 和 `inputStrategy`。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
+- `Swipe` —— 触摸式滑动。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
 - `LongPress` —— 长按目标元素，可选自定义时长。
@@ -2520,9 +2529,11 @@ const device = new IOSDevice({
 
 - `wdaPort?: number` —— WebDriverAgent 端口，默认 `8100`。
 - `wdaHost?: string` —— WebDriverAgent host，默认 `'localhost'`。
+- `wdaBaseUrl?: string` —— 完整的 HTTP(S) WDA API 基地址，可包含网关路径前缀。不能与 `wdaHost` 或 `wdaPort` 同时设置。
 - `iOSDeviceClassOverride?: string` —— 使用 `agentFromWebDriverAgent()` 或 iOS Playground 时替换默认 `IOSDevice` 的 npm module path。目标模块必须导出 `IOSDevice` class 或 default class。
 - `sessionId?: string` —— 复用已有的 WebDriverAgent session ID。传入后，Midscene 不再创建新的 WDA session；清理时只会从这个外部 WebDriver session 分离，不会删除它。
 - `wdaMjpegPort?: number` —— WDA MJPEG 服务端口，用于实时画面流，默认 `9100`。
+- `wdaMjpegUrl?: string` —— 完整的 HTTP(S) MJPEG 画面流地址，可包含网关路径或查询参数。不能与 `wdaMjpegPort` 同时设置。
 - `wdaMjpegFrameSource?: { enabled?: boolean }` —— 使用 WDA 的 MJPEG stream 作为 `agent.startObserving()` 的连续帧源。默认关闭；关闭时，观察逻辑会退回到连续调用 `screenshotBase64()`。
 - `autoDismissKeyboard?: boolean` —— 文本输入后自动隐藏键盘，默认 `true`。
 - `keyboardTypeDelay?: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。设为正数后，`legacy` 输入会通过 WDA 的 `/wda/keys` 接口逐个 Unicode 码点执行。适用于输入框在快速输入下丢字的场景。
@@ -2533,6 +2544,8 @@ const device = new IOSDevice({
 
 - 请确认已开启开发者模式且 WDA 能访问设备；真机转发端口时可借助 `iproxy`。
 - 通过 `wdaHost`/`wdaPort` 可指向远程设备或自建的 WDA。
+- 网关通过路径前缀转发 WDA 时，使用 `wdaBaseUrl`；WDA API 请求和就绪探测都会使用该前缀。
+- 网关提供原生 MJPEG 流时，单独设置 `wdaMjpegUrl`。WDA API 基地址不会决定画面流地址。
 - 多设备并发时，请为每个设备设置不同的 `wdaPort` 和 `wdaMjpegPort`，避免 WDA 命令和 MJPEG stream 端口冲突。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 
@@ -2711,6 +2724,7 @@ const agent = await agentFromWebDriverAgent({
 - `DoubleClick` —— 双击元素。
 - `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
+- `Swipe` —— 触摸式滑动。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
 - `LongPress` —— 长按目标元素，可选自定义时长。
@@ -2926,6 +2940,23 @@ console.log(devices); // [{ deviceId: '0123456789ABCDEF' }]
 
 有关适用于所有平台的通用 API，请参阅 [通用 API 参考](#common)。
 
+### Action Space（动作空间）
+
+`ComputerDevice` 与 `RDPDevice` 提供以下动作，Midscene Agent 在规划任务时可以使用这些操作：
+
+- `Tap` —— 左键点击目标。
+- `DoubleClick` —— 双击目标。
+- `RightClick` —— 右键点击目标。
+- `Hover` —— 将鼠标移动到目标上并悬停。
+- `DragAndDrop` —— 从一个位置拖拽并放到另一个位置。
+- `Input` —— 输入文本，支持 `replace`、`typeOnly` 和 `clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。
+- `ClearInput` —— 清空输入框内容。
+- `KeyboardPress` —— 按下指定按键或组合键，可选先聚焦目标。
+- `CursorMove` —— 在输入框或文本区域中向左或向右移动文本光标。
+- `Scroll` —— 滚动屏幕或指定区域，支持滚动到顶、底、左、右边界。
+- `Swipe` —— 按住鼠标主键并连续移动。适用于滑块等直接手势交互，可指定起点和终点，或方向与距离；浏览屏幕外内容请使用 `Scroll`。
+- `ListDisplays` —— 列出可用显示器。本机设备返回已连接的显示器；RDP 设备将当前远程会话作为单个显示器返回。
+
 ### Agent 工厂函数
 
 `agentForComputer(opts?): Promise<ComputerAgent>`
@@ -2957,6 +2988,8 @@ interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
   // 本机桌面选项
   displayId?: string;
   keyboardDriver?: 'applescript' | 'libnut';
+  keyboardModifierDelay?: number;
+  keyboardLayout?: 'en-US';
   headless?: boolean;
   xvfbResolution?: string;
 }
@@ -2981,6 +3014,8 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 - `displayId`（可选）：指定要控制的显示器。使用 `ComputerDevice.listDisplays()` 获取可用显示器。
 - `customActions`（可选）：添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 - `keyboardDriver?: 'applescript' | 'libnut'`：macOS 的键盘事件后端。`'applescript'` 是兼容性更好的默认选项；目标应用支持时，也可以使用输入速度更快的 `'libnut'`。
+- `keyboardModifierDelay?: number`：本机 libnut 驱动的修饰键事件间隔，单位为毫秒。取值必须是有限的非负数。设置为大于 `0` 的值后，Midscene 会在修饰键状态变化和发送主键后等待。修饰键包括 `Control`、`Shift`、`Alt` 和 `Command`。因此，该选项既适用于组合键，也适用于逐键输入时大写字母中隐含的 `Shift`。设置 `keyboardLayout: 'en-US'` 后，该选项也适用于 en-US 布局的 Shift 标点。默认值为 `0`。直接使用 RDP 或 macOS AppleScript 驱动时，该选项无效。详见[通过桌面客户端转发键盘输入](../faq#keyboard-input-through-desktop-clients)。
+- `keyboardLayout?: 'en-US'`：逐键输入时，为本机 libnut 驱动启用 Shift 标点的基础键映射。拉丁大写字母不依赖该配置。其他布局保持后端原有输入行为。直接使用 RDP 或 macOS AppleScript 驱动时，该选项无效。
 - `headless`（可选，仅 Linux）：设为 `true` 时通过 [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml) 启动虚拟显示器，使桌面自动化能在无物理显示器的 Linux 服务器和 CI 环境中运行。也可通过环境变量 `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` 设置。
 - `xvfbResolution`（可选）：Xvfb 虚拟显示器的分辨率，默认为 `'1920x1080x24'`。
 
@@ -3151,180 +3186,7 @@ function destroy(): Promise<void>;
 
 ### ComputerAgent
 
-`ComputerAgent` 类继承自 `PageAgent<ComputerDevice>`，并继承所有通用 agent 方法：
-
-- `aiAct(action: string)`：使用 AI 执行操作
-- `aiQuery(query: string)`：使用 AI 提取信息
-- `aiAssert(assertion: string)`：使用 AI 断言条件
-- `aiWaitFor(condition: string)`：等待条件
-- `aiLocate(description: string)`：定位元素
-- 更多...
-
-定位元素后，还可以使用即时操作（Instant Action）进行直接、确定性的控制：
-
-- `aiTap()`、`aiDoubleClick()`、`aiRightClick()`、`aiHover()`：鼠标操作
-- `aiInput()`、`aiClearInput()`、`aiKeyboardPress()`：键盘操作
-- `aiScroll()`：滚动操作
-
-详见 [通用 API 参考](#common)。
-
-### 桌面端操作与限制
-
-`ComputerDevice` 支持以下操作：
-
-**鼠标操作**
-
-<a id="desktop-tap点击"></a>
-
-**Tap（点击）**
-
-在目标位置单击。
-
-```typescript
-await agent.aiAct('点击文件菜单');
-await agent.aiAct('点击屏幕中心');
-```
-
-<a id="desktop-doubleclick双击"></a>
-
-**DoubleClick（双击）**
-
-在目标位置双击。
-
-```typescript
-await agent.aiAct('双击桌面图标');
-```
-
-<a id="desktop-rightclick右键"></a>
-
-**RightClick（右键）**
-
-右键点击打开上下文菜单。
-
-```typescript
-await agent.aiAct('右键点击桌面');
-await agent.aiAct('右键点击文件');
-```
-
-<a id="desktop-mousemove移动鼠标-悬停"></a>
-
-**MouseMove（移动鼠标 / 悬停）**
-
-将鼠标移动到目标元素上，也就是鼠标悬停（hover），例如用于触发悬停菜单或提示框。
-
-```typescript
-// 自然语言形式（移动鼠标 / 悬停）
-await agent.aiAct('移动鼠标到菜单项');
-
-// 即时操作：一次调用完成定位并悬停
-await agent.aiHover('菜单项「Products」');
-```
-
-<a id="desktop-draganddrop拖放"></a>
-
-**DragAndDrop（拖放）**
-
-从一个位置拖动并放到另一个位置。
-
-```typescript
-await agent.aiAct('将文件拖到文件夹');
-```
-
-**键盘操作**
-
-<a id="desktop-keyboardpress按键"></a>
-
-**KeyboardPress（按键）**
-
-按键盘按键，可选修饰键。
-
-**支持的按键：**
-- 普通键：`a-z`、`0-9`、`Enter`、`Escape`、`Space`、`Tab` 等
-- 方向键：`ArrowUp`、`ArrowDown`、`ArrowLeft`、`ArrowRight`
-- 功能键：`F1`-`F12`
-- 修饰键：`Command`/`Cmd`（macOS）、`Control`/`Ctrl`、`Alt`、`Shift`、`Win`（Windows）
-- 媒体键：`VolumeUp`、`VolumeDown`、`Mute` 等
-
-**示例：**
-
-```typescript
-// 简单按键
-await agent.aiAct('按 Enter');
-await agent.aiAct('按 Escape');
-
-// 组合键（平台特定）
-if (process.platform === 'darwin') {
-  // macOS
-  await agent.aiAct('按 Cmd+Space');  // 打开 Spotlight
-  await agent.aiAct('按 Cmd+Tab');    // 应用切换器
-  await agent.aiAct('按 Cmd+C');      // 复制
-  await agent.aiAct('按 Cmd+V');      // 粘贴
-} else {
-  // Windows/Linux
-  await agent.aiAct('按 Windows 键'); // 开始菜单
-  await agent.aiAct('按 Alt+Tab');    // 应用切换器
-  await agent.aiAct('按 Ctrl+C');     // 复制
-  await agent.aiAct('按 Ctrl+V');     // 粘贴
-}
-
-// 方向键
-await agent.aiAct('按 ArrowDown');
-await agent.aiAct('按 ArrowUp');
-
-// 功能键
-await agent.aiAct('按 F5');  // 刷新
-```
-
-<a id="desktop-input输入"></a>
-
-**Input（输入）**
-
-在输入框中输入文本。
-
-```typescript
-await agent.aiAct('在搜索框输入 "你好世界"');
-await agent.aiAct('输入 "我的文档.txt"');
-```
-
-<a id="desktop-clearinput清空输入"></a>
-
-**ClearInput（清空输入）**
-
-清空输入框内容。
-
-```typescript
-await agent.aiAct('清空文本框');
-```
-
-**滚动操作**
-
-滚动屏幕或特定区域。
-
-```typescript
-// 滚动方向
-await agent.aiAct('向下滚动');
-await agent.aiAct('向上滚动');
-await agent.aiAct('向左滚动');
-await agent.aiAct('向右滚动');
-
-// 滚动到位置
-await agent.aiAct('滚动到顶部');
-await agent.aiAct('滚动到底部');
-```
-
-**显示器操作**
-
-<a id="desktop-listdisplays列出显示器"></a>
-
-**ListDisplays（列出显示器）**
-
-获取所有已连接显示器的信息。
-
-```typescript
-const displays = await ComputerDevice.listDisplays();
-```
-
-使用 RDP 时，`ListDisplays` 会把当前远程会话视为单个显示器返回。
+`ComputerAgent` 继承[通用 Agent 交互方法](#interaction-methods)。桌面端特有的动作及其限制见上方的 Action Space。
 
 ## 运行时配置 {#runtime-configuration}
 

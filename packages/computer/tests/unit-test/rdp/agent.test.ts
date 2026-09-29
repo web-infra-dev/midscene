@@ -74,6 +74,21 @@ class FakeRDPBackend implements RDPBackendClient {
   }
 }
 
+class FailingDragRDPBackend extends FakeRDPBackend {
+  override async mouseMove(x: number, y: number): Promise<void> {
+    await super.mouseMove(x, y);
+    const isDragging = this.calls.some(
+      (call) =>
+        call.name === 'mouseButton' &&
+        call.args[0] === 'left' &&
+        call.args[1] === 'down',
+    );
+    if (isDragging && x > 300) {
+      throw new Error('simulated mouse movement failure');
+    }
+  }
+}
+
 const mockExecutorContext = { task: {} } as ExecutorContext;
 
 function createLocate(
@@ -473,6 +488,61 @@ describe('@midscene/computer RDP device', () => {
         name: 'mouseMove',
         args: [800, 640],
       },
+    );
+  });
+
+  it('exposes Swipe and performs it as a held mouse drag', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    const swipe = device
+      .actionSpace()
+      .find((action) => action.name === 'Swipe');
+    expect(swipe).toBeDefined();
+
+    await swipe!.call(
+      {
+        start: createLocate([300, 500], 'slider handle'),
+        direction: 'right',
+        distance: 2_000,
+        duration: 300,
+      },
+      mockExecutorContext,
+    );
+
+    const mouseButtons = backend.calls.filter(
+      (call) => call.name === 'mouseButton',
+    );
+    expect(mouseButtons).toEqual([
+      { name: 'mouseButton', args: ['left', 'down'] },
+      { name: 'mouseButton', args: ['left', 'up'] },
+    ]);
+    expect(backend.calls.findLast((call) => call.name === 'mouseMove')).toEqual(
+      {
+        name: 'mouseMove',
+        args: [1919, 500],
+      },
+    );
+  });
+
+  it('releases the mouse button when a swipe movement fails', async () => {
+    const backend = new FailingDragRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    await expect(
+      device.inputPrimitives.pointer.swipe!(
+        { x: 200, y: 500 },
+        { x: 700, y: 500 },
+      ),
+    ).rejects.toThrow('simulated mouse movement failure');
+
+    expect(backend.calls.filter((call) => call.name === 'mouseButton')).toEqual(
+      [
+        { name: 'mouseButton', args: ['left', 'down'] },
+        { name: 'mouseButton', args: ['left', 'up'] },
+      ],
     );
   });
 });

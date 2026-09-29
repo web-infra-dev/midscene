@@ -78,8 +78,7 @@
     pointer-events: none;
   }
 
-  .runner-detail-heading-row,
-  .runner-detail-case-header .runner-attempt-switcher {
+  .runner-detail-heading-row {
     position: relative;
     z-index: 1;
   }
@@ -102,42 +101,6 @@
 
   .runner-detail-title-line .runner-status-pill {
     flex: 0 0 auto;
-  }
-
-  .runner-detail-case-header .runner-attempt-switcher {
-    min-height: 70px;
-    padding: 8px;
-    gap: 8px;
-    background: color-mix(
-      in srgb,
-      var(--runner-surface-muted) 50%,
-      var(--runner-surface)
-    );
-  }
-
-  .runner-detail-case-header .runner-attempt-switcher > button {
-    grid-template-columns: 16px minmax(0, 1fr);
-    width: 180px;
-    min-width: 180px;
-    min-height: 53px;
-    padding: 0 14px;
-    gap: 10px;
-    border-color: transparent;
-    border-radius: 11px;
-  }
-
-  .runner-detail-case-header .runner-attempt-switcher > button.is-selected {
-    color: var(--runner-text);
-    border-color: color-mix(in srgb, var(--runner-primary) 22%, transparent);
-    background: var(--runner-primary-soft);
-    box-shadow: none;
-  }
-
-  .runner-detail-case-header
-    .runner-attempt-switcher
-    > button.is-selected
-    strong {
-    color: var(--runner-text);
   }
 
   .runner-detail-debug-workbench {
@@ -172,7 +135,7 @@
     margin: 11px 8px 6px;
   }
 
-  .runner-detail-step-group > button {
+  .runner-detail-step-list > button {
     min-height: 64px;
     margin-bottom: 3px;
     padding: 6px 8px;
@@ -180,7 +143,7 @@
     border-radius: 10px;
   }
 
-  .runner-detail-step-group > button.is-selected {
+  .runner-detail-step-list > button.is-selected {
     border-color: color-mix(in srgb, var(--runner-primary) 26%, transparent);
     background: var(--runner-primary-soft);
     box-shadow: none;
@@ -190,14 +153,6 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) 350px;
     padding: 0;
-  }
-
-  .runner-detail-evidence-main {
-    display: flex;
-    min-width: 0;
-    min-height: 0;
-    flex-direction: column;
-    border-right: 1px solid var(--runner-border);
   }
 
   .runner-detail-evidence-heading {
@@ -345,8 +300,7 @@
     opacity: 0.28;
   }
 
-  .runner-detail-case-header .runner-attempt-switcher > button.is-selected,
-  .runner-detail-step-group > button.is-selected {
+  .runner-detail-step-list > button.is-selected {
     background: color-mix(
       in srgb,
       var(--runner-primary-soft) 38%,
@@ -359,11 +313,6 @@
   .test-runner-report {
     .runner-detail-evidence-panel {
       grid-template-columns: minmax(0, 1fr);
-    }
-
-    .runner-detail-evidence-main {
-      border-right: 0;
-      border-bottom: 1px solid var(--runner-border);
     }
   }
 }
@@ -397,10 +346,6 @@
       flex-wrap: wrap;
     }
 
-    .runner-detail-case-header .runner-attempt-switcher > button {
-      min-width: 180px;
-    }
-
     .runner-detail-inspector-tabs button {
       min-width: 50%;
       flex: 1;
@@ -422,46 +367,20 @@
     overflow-wrap: anywhere;
   }
 
-  .runner-detail-evidence-actions {
-    min-width: 0;
-    flex-shrink: 1;
-  }
-
-  .runner-detail-case-header .runner-attempt-switcher > button {
-    flex-shrink: 0;
-  }
-
   .runner-back-button {
     min-height: 36px;
     border-radius: 8px;
   }
 }
 
-@media (max-width: 860px) {
-  .runner-detail-trace-drawer {
-    .ant-drawer-body {
-      overflow: auto;
-    }
-
-    .runner-agent-trace-content {
-      min-width: 760px;
-    }
-  }
-}
-
 @media (max-width: 620px) {
   .test-runner-report {
-    .runner-detail-trace-actions .ant-btn,
     .runner-back-button {
       min-height: 44px;
     }
 
     .runner-header-actions {
       display: flex;
-    }
-
-    .runner-detail-trace-actions {
-      flex-wrap: wrap;
     }
   }
 }

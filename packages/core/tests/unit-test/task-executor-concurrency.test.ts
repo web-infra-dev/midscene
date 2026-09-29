@@ -651,9 +651,11 @@ Stdout:
     expect(seenPendingFeedback[1]).toContain(planningFeedback);
   });
 
-  it('should truncate oversized planning feedback before the next planning request', async () => {
+  it('should use the default feedback limit unless a task requests a larger limit', async () => {
     const seenPendingFeedback: string[] = [];
     const longFeedback = 'x'.repeat(600);
+    const structuredFeedback = 'y'.repeat(11_000);
+    const boundedFeedback = 'z'.repeat(800);
 
     rs.spyOn(taskExecutor, 'convertPlanToExecutable')
       .mockResolvedValueOnce({
@@ -666,6 +668,30 @@ Stdout:
               context.task.planningFeedback = longFeedback;
               return {
                 output: longFeedback,
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'BoundedFeedback',
+            param: {},
+            planningFeedbackMaxLength: 700,
+            executor: async (context: ExecutorContext) => {
+              context.task.planningFeedback = boundedFeedback;
+              return {
+                output: boundedFeedback,
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'StructuredFeedback',
+            param: {},
+            planningFeedbackMaxLength: 'unlimited',
+            executor: async (context: ExecutorContext) => {
+              context.task.planningFeedback = structuredFeedback;
+              return {
+                output: structuredFeedback,
               };
             },
           },
@@ -724,6 +750,9 @@ Stdout:
     expect(seenPendingFeedback[1]).toContain(
       '...[truncated, 100 more characters]',
     );
+    expect(seenPendingFeedback[1]).toContain(structuredFeedback);
+    expect(seenPendingFeedback[1]).toContain('z'.repeat(700));
+    expect(seenPendingFeedback[1]).not.toContain(boundedFeedback);
   });
 
   it('should collect all planning feedback instead of the final task output', async () => {

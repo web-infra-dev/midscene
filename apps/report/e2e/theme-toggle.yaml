@@ -1,6 +1,6 @@
 target:
   serve: ./dist
-  url: demo.html
+  url: demo-agent.html
 tasks:
   - name: toggle to dark mode
     flow:

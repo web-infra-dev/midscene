@@ -1,7 +1,7 @@
 import {
   type AgentTestRunnerNodeDefinition,
   createAgentTestRunnerNodeDefinition,
-} from '@midscene/core/agent/test-runner';
+} from '@midscene/core/agent/test';
 import { z } from 'zod/v4';
 import type { IOSAgent } from './agent';
 

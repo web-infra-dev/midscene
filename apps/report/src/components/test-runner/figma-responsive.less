@@ -1,0 +1,220 @@
+@media (max-width: 980px) {
+  .test-runner-report {
+    .runner-header-inner {
+      padding-inline: 24px;
+    }
+
+    .runner-page,
+    .runner-overview,
+    .runner-case-workspace {
+      padding: 28px 24px;
+    }
+
+    .runner-overview-primary-metrics {
+      height: auto;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .runner-overview-primary-metrics
+      .runner-metric-card:nth-child(3n):not(:last-child) {
+      border-right: 0;
+    }
+
+    .runner-overview-primary-metrics .runner-metric-card:nth-child(-n + 3) {
+      border-bottom: 1px solid var(--runner-border);
+    }
+
+    .runner-breakdown-controls,
+    .runner-case-run-bar {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .runner-breakdown-panel .runner-breakdown-toolbar {
+      grid-template-columns: minmax(150px, 184px) minmax(240px, 1fr) 32px;
+      width: 100%;
+    }
+
+    .runner-project-tree-columns,
+    .runner-project-tree-stats {
+      gap: 0;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .test-runner-report {
+    .runner-header-inner {
+      padding-inline: 16px;
+    }
+
+    .runner-header-actions {
+      gap: 0;
+    }
+
+    .runner-header-version {
+      display: none;
+    }
+
+    .runner-header-title > div:not(.logo) {
+      display: flex;
+    }
+
+    .runner-main {
+      margin-inline: 4px;
+    }
+
+    .runner-page,
+    .runner-overview,
+    .runner-case-workspace {
+      padding: 24px 16px 40px;
+    }
+
+    .runner-overview-summary {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+    }
+
+    .runner-overview-passed {
+      align-self: start;
+    }
+
+    .runner-overview-title-row h1,
+    .runner-detail-title-line h1 {
+      font-size: 24px;
+      line-height: 32px;
+    }
+
+    .runner-overview-run-meta {
+      padding-right: 0;
+      gap: 4px 12px;
+    }
+
+    .runner-overview-primary-metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .runner-overview-primary-metrics .runner-metric-card {
+      margin: 20px 0;
+    }
+
+    .runner-breakdown-panel .runner-breakdown-toolbar {
+      grid-template-columns: minmax(0, 1fr) 32px;
+    }
+
+    .runner-breakdown-toolbar > .runner-report-select {
+      grid-column: span 2;
+    }
+
+    .runner-project-tree-header {
+      display: none;
+    }
+
+    .runner-project-tree {
+      margin-top: 20px;
+      padding-inline: 12px;
+      border-radius: 16px;
+    }
+
+    .runner-project-tree-root {
+      display: flex;
+      padding: 0;
+      flex-wrap: wrap;
+    }
+
+    .runner-project-tree-node.is-expanded .runner-project-tree-root {
+      background: var(--runner-surface);
+    }
+
+    .runner-project-tree-toggle {
+      min-height: 48px;
+      flex: 1 0 100%;
+    }
+
+    .runner-project-tree-stats {
+      width: 100%;
+      min-height: 40px;
+      gap: 8px;
+    }
+
+    .runner-project-tree-case,
+    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .runner-case-meta {
+      flex-wrap: wrap;
+      overflow: visible;
+      gap: 4px 12px;
+      white-space: normal;
+    }
+
+    .runner-case-step-summary {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .runner-case-step-summary > div {
+      flex: 1;
+      min-width: 0;
+      padding: 0 10px;
+    }
+
+    .runner-detail-tabs-row {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .runner-detail-tabs-row > .runner-detail-inspector-content {
+      order: 3;
+    }
+
+    .runner-detail-io-grid > section {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    .runner-overview-run-meta > span + span,
+    .runner-case-meta > span + span {
+      margin-left: 0;
+      padding-left: 0;
+      border: 0;
+    }
+
+    .runner-overview-run-meta > span + span::before,
+    .runner-case-meta > span + span::before {
+      display: none;
+    }
+
+    .runner-detail-title-line {
+      flex-wrap: wrap;
+    }
+
+    .runner-detail-title-line h1 {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .runner-overview-primary-metrics .runner-metric-card {
+      padding-inline: 16px;
+      border: 0;
+    }
+
+    .runner-overview-primary-metrics .runner-metric-card:nth-child(odd) {
+      border-right: 1px solid var(--runner-border);
+    }
+
+    .runner-detail-inline-trace .runner-detail-trace-view {
+      height: 680px;
+    }
+
+    .runner-detail-inspector-content.has-stable-trace-height {
+      min-height: 704px;
+    }
+
+    .runner-detail-inline-trace .page-side {
+      width: 100% !important;
+      max-width: none;
+    }
+  }
+}

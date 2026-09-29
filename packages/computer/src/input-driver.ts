@@ -9,6 +9,7 @@ export interface LibNut {
   mouseToggle(state: 'up' | 'down', button?: MouseButton): void;
   scrollMouse(x: number, y: number): void;
   keyTap(key: string, modifiers?: string[]): void;
+  keyToggle(key: string, state: 'up' | 'down', modifiers?: string[]): void;
   typeString(text: string): void;
   getActiveWindow?(): number;
   focusWindow?(handle: number): void;
@@ -153,6 +154,68 @@ export class ComputerInputDriver {
     }
   }
 
+  keyToggle(key: string, state: 'up' | 'down', modifiers?: string[]): void {
+    const lib = this.getLibnutOrThrow('keyToggle');
+    if (modifiers !== undefined) {
+      lib.keyToggle(key, state, modifiers);
+    } else {
+      lib.keyToggle(key, state);
+    }
+  }
+
+  /**
+   * Send one modified key through libnut. A positive delay expands the compact
+   * key tap into individually observable modifier transitions. A zero delay
+   * preserves libnut's compact key-tap behavior.
+   */
+  async keyTapWithModifierDelay(
+    key: string,
+    modifiers: string[],
+    delayMs: number,
+  ): Promise<void> {
+    const uniqueModifiers = [...new Set(modifiers)];
+    if (uniqueModifiers.length === 0) {
+      this.keyTap(key);
+      return;
+    }
+    if (delayMs === 0) {
+      this.keyTap(key, uniqueModifiers);
+      return;
+    }
+
+    const pressedModifiers: string[] = [];
+    let failure: unknown;
+    try {
+      for (const modifier of uniqueModifiers) {
+        this.keyToggle(modifier, 'down');
+        pressedModifiers.push(modifier);
+        await this.delay(delayMs);
+      }
+      this.keyTap(key);
+      await this.delay(delayMs);
+    } catch (error) {
+      failure = error;
+    }
+
+    for (const modifier of pressedModifiers.reverse()) {
+      const releaseFailure = this.tryReleaseKey(modifier);
+      if (failure === undefined && releaseFailure !== undefined) {
+        failure = releaseFailure;
+      }
+      if (failure === undefined) {
+        try {
+          await this.delay(delayMs);
+        } catch (error) {
+          failure = error;
+        }
+      }
+    }
+
+    if (failure !== undefined) {
+      throw failure;
+    }
+  }
+
   typeString(text: string): void {
     this.getLibnutOrThrow('typeString').typeString(text);
   }
@@ -260,6 +323,24 @@ export class ComputerInputDriver {
       libnut.mouseToggle('up', button);
     } catch (error) {
       this.options.debug(`Failed to release mouse button ${button}: ${error}`);
+    }
+  }
+
+  private tryReleaseKey(key: string): Error | undefined {
+    try {
+      const libnut = this.options.getLibnut();
+      assert(libnut, 'libnut not initialized');
+      libnut.keyToggle(key, 'up');
+      return undefined;
+    } catch (error) {
+      const releaseError = new Error(
+        `Failed to release modifier key "${key}"`,
+        {
+          cause: error,
+        },
+      );
+      this.options.debug(`${releaseError.message}: ${error}`);
+      return releaseError;
     }
   }
 

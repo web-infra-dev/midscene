@@ -1,10 +1,13 @@
+import {
+  type DocumentSetupContext,
+  runWorkflowDocument,
+} from '@midscene/core/internal/test-runner';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type CollectedWorkflowDocument,
   NodeRegistry,
   createDocumentRuntime,
   defineNode,
-  runWorkflowDocument,
 } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 
@@ -54,14 +57,14 @@ describe('workflow document runtime', () => {
     const calls: string[] = [];
     const sharedNode = defineNode({
       name: 'shared.record',
-      execute(ctx) {
-        calls.push(ctx.scope);
-        if (ctx.scope === 'document') {
-          expect('case' in ctx).toBe(false);
-          calls.push(ctx.document.phase);
+      execute(execution) {
+        calls.push(execution.scope);
+        if (execution.scope === 'document') {
+          expect('case' in execution).toBe(false);
+          calls.push(execution.document.phase);
         } else {
-          expect('document' in ctx).toBe(false);
-          calls.push(ctx.case.phase);
+          expect('document' in execution).toBe(false);
+          calls.push(execution.case.phase);
         }
       },
     });
@@ -91,17 +94,17 @@ describe('workflow document runtime', () => {
     let stopped = false;
     const documentNode = defineNode({
       name: 'document.record',
-      execute(ctx) {
-        if (ctx.scope !== 'document')
+      execute(execution) {
+        if (execution.scope !== 'document')
           throw new Error('document scope required');
-        calls.push(ctx.document.phase);
+        calls.push(execution.document.phase);
       },
     });
     const caseNode = defineNode({
       name: 'case.record',
-      execute(ctx) {
-        if (ctx.scope !== 'case') throw new Error('case scope required');
-        calls.push(`${ctx.case.name}:${ctx.case.phase}`);
+      execute(execution) {
+        if (execution.scope !== 'case') throw new Error('case scope required');
+        calls.push(`${execution.case.name}:${execution.case.phase}`);
         stopped = true;
       },
     });
@@ -153,20 +156,20 @@ describe('workflow document runtime', () => {
     const context = { marker: 'shared' };
     const documentNode = defineNode<unknown, unknown, typeof context>({
       name: 'document.record',
-      execute(ctx) {
-        if (ctx.scope !== 'document')
+      execute(execution) {
+        if (execution.scope !== 'document')
           throw new Error('document scope required');
-        expect(ctx.context).toBe(context);
-        expect(ctx.document.documentRunId).toBe('document-run');
-        calls.push(ctx.document.phase);
+        expect(execution.context).toBe(context);
+        expect(execution.document.documentRunId).toBe('document-run');
+        calls.push(execution.document.phase);
       },
     });
     const caseNode = defineNode<unknown, unknown, typeof context>({
       name: 'case.record',
-      execute(ctx) {
-        if (ctx.scope !== 'case') throw new Error('case scope required');
-        expect(ctx.context).toBe(context);
-        calls.push(ctx.case.phase);
+      execute(execution) {
+        if (execution.scope !== 'case') throw new Error('case scope required');
+        expect(execution.context).toBe(context);
+        calls.push(execution.case.phase);
       },
     });
     const document = collectedDocument({
@@ -206,9 +209,9 @@ describe('workflow document runtime', () => {
     const seen: unknown[] = [];
     const node = defineNode<unknown, unknown, typeof context>({
       name: 'read.context',
-      async execute(ctx) {
+      async execute(execution) {
         await Promise.resolve();
-        seen.push(ctx.context);
+        seen.push(execution.context);
       },
     });
     const document = collectedDocument();
@@ -364,18 +367,20 @@ describe('workflow document runtime', () => {
     const controller = new AbortController();
     const abort = defineNode({
       name: 'abort.workflow',
-      execute(ctx) {
-        calls.push(`body:${ctx.signal.aborted}`);
+      execute(execution) {
+        calls.push(`body:${execution.signal.aborted}`);
         controller.abort(new Error('interrupted'));
       },
     });
     const cleanup = defineNode({
       name: 'cleanup.workflow',
-      execute(ctx) {
+      execute(execution) {
         const phase =
-          ctx.scope === 'case' ? ctx.case.phase : ctx.document.phase;
-        calls.push(`${phase}:${ctx.signal.aborted}`);
-        expect(ctx.signal.aborted).toBe(false);
+          execution.scope === 'case'
+            ? execution.case.phase
+            : execution.document.phase;
+        calls.push(`${phase}:${execution.signal.aborted}`);
+        expect(execution.signal.aborted).toBe(false);
       },
     });
     const document = collectedDocument({
@@ -393,5 +398,123 @@ describe('workflow document runtime', () => {
     expect(calls).toEqual(['body:false', 'afterEach:false', 'afterAll:false']);
     expect(result.cases[0].status).toBe('success');
     expect(result.document.status).toBe('success');
+  });
+});
+
+describe('document resource ownership', () => {
+  it('releases each attempt context after hooks and Node teardown without changing Project context', async () => {
+    const events: string[] = [];
+    const shared = { id: 0 };
+    let next = 0;
+    const document = collectedDocument({
+      beforeAll: [step('use')],
+      afterAll: [step('use')],
+    });
+    document.cases[0].definition.steps = [step('use')];
+    const node = defineNode<unknown, unknown, { id: number }>({
+      name: 'use',
+      execute(ctx) {
+        events.push(`${ctx.scope}:${ctx.context.id}`);
+        ctx.onTeardown(() => {
+          events.push(`node-release:${ctx.context.id}`);
+        });
+      },
+    });
+    const documentSetup = {
+      name: 'session',
+      setup(ctx: DocumentSetupContext<{ id: number }>) {
+        expect(ctx.projectContext).toBe(shared);
+        expect(ctx.document.attemptIndex).toBe(next);
+        const context = { id: ++next };
+        events.push(`acquire:${context.id}`);
+        ctx.onTeardown(() => {
+          events.push(`release:${context.id}`);
+        });
+        return context;
+      },
+    };
+    for (const documentAttemptIndex of [0, 1]) {
+      await runWorkflowDocument(document, {
+        resolveNode: () => node,
+        documentSetup,
+        projectContext: shared,
+        documentAttemptIndex,
+      });
+    }
+    expect(shared.id).toBe(0);
+    expect(events).toEqual(
+      [1, 2].flatMap((id) => [
+        `acquire:${id}`,
+        `document:${id}`,
+        `case:${id}`,
+        `node-release:${id}`,
+        `document:${id}`,
+        `node-release:${id}`,
+        `node-release:${id}`,
+        `release:${id}`,
+      ]),
+    );
+  });
+
+  it('releases partially acquired resources when setup fails, skips authored hooks, and rejects late registrations', async () => {
+    const release = vi.fn();
+    const execute = vi.fn();
+    let register: ((callback: () => void) => void) | undefined;
+    const document = collectedDocument({ afterAll: [step('use')] });
+    const result = await runWorkflowDocument(document, {
+      resolveNode: () => ({ name: 'use', execute }),
+      documentSetup: {
+        name: 'partial',
+        setup(ctx) {
+          register = ctx.onTeardown;
+          ctx.onTeardown(release);
+          throw new Error('connection failed');
+        },
+      },
+    });
+    expect(result.document).toMatchObject({
+      status: 'failed',
+      hostErrors: [{ phase: 'setup', error: { message: 'connection failed' } }],
+    });
+    expect(result.cases[0]).toMatchObject({
+      status: 'not-run',
+      notRunReason: 'document-start-failed',
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(() => register!(() => {})).toThrow('registered during setup');
+  });
+
+  it('preserves successful actions and releases every resource when owner cleanup fails', async () => {
+    const events: string[] = [];
+    const document = collectedDocument();
+    document.cases[0].definition.steps = [step('use')];
+    const failure = await runWorkflowDocument(document, {
+      resolveNode: () => ({
+        name: 'use',
+        execute() {
+          events.push('action');
+        },
+      }),
+      documentSetup: {
+        name: 'owner',
+        setup(ctx) {
+          ctx.onTeardown(() => {
+            events.push('first');
+          });
+          ctx.onTeardown(() => {
+            events.push('second');
+            throw new Error('close failed');
+          });
+          return undefined;
+        },
+      },
+    }).catch((error) => error);
+    expect(events).toEqual(['action', 'second', 'first']);
+    expect(failure.result.cases[0].status).toBe('success');
+    expect(failure.result.document).toMatchObject({
+      status: 'failed',
+      hostErrors: [{ phase: 'cleanup', error: { message: 'close failed' } }],
+    });
   });
 });

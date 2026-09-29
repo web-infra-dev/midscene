@@ -1,4 +1,11 @@
-import { chmod, copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  copyFile,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
@@ -11,6 +18,11 @@ import {
   isCodexAppServerProvider,
   normalizeCodexLocalImagePath,
 } from '@/ai-model/service-caller/codex/codex-app-server';
+import {
+  AIRequestTimeoutError,
+  runWithAbortSignal,
+} from '@/ai-model/service-caller/request-timeout';
+import { applyImageDetail } from '@/ai-model/service-caller/utils';
 import type { CodeGenerationChunk } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
@@ -30,6 +42,87 @@ const createTemporaryDirectory = async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'midscene-codex-test-'));
   temporaryDirectories.push(directory);
   return directory;
+};
+
+const setupCodexServer = async (holdTurns = false) => {
+  const executableDirectory = await createTemporaryDirectory();
+  const serverPath = path.join(executableDirectory, 'codex-server.cjs');
+  await writeFile(
+    serverPath,
+    `const { appendFileSync, existsSync } = require('node:fs');
+const path = require('node:path');
+const readline = require('node:readline').createInterface({ input: process.stdin });
+const send = (message) => process.stdout.write(JSON.stringify(message) + '\\n');
+readline.on('line', (line) => {
+const message = JSON.parse(line);
+if (message.method === 'initialize') {
+  send({ id: message.id, result: {} });
+} else if (message.method === 'thread/start') {
+  appendFileSync(path.join(__dirname, 'requests.log'), 'thread/start\\n');
+  send({ id: message.id, result: { thread: { id: 'thread-1' } } });
+} else if (message.method === 'turn/start') {
+  send({ id: message.id, result: { turn: { id: 'turn-1' } } });
+  send({
+    method: 'item/agentMessage/delta',
+    params: { threadId: 'thread-1', turnId: 'turn-1', delta: 'hello' },
+  });
+  send({
+    method: 'thread/tokenUsage/updated',
+    params: { threadId: 'thread-1', turnId: 'turn-1', tokenUsage: {
+      last: { inputTokens: 10, outputTokens: 5, totalTokens: 15, cachedInputTokens: 3, reasoningOutputTokens: 2 },
+    } },
+  });
+  const complete = () => {
+  if (${holdTurns} && !existsSync(path.join(__dirname, 'release'))) {
+    setTimeout(complete, 10);
+    return;
+  }
+  send({
+    method: 'turn/completed',
+    params: {
+      threadId: 'thread-1',
+      turn: { id: 'turn-1', status: 'completed' },
+    },
+  });
+  };
+  complete();
+} else if (message.method === 'thread/unsubscribe') {
+  send({ id: message.id, result: {} });
+}
+});
+`,
+  );
+  if (process.platform === 'win32') {
+    // Node's spawn without `shell: true` can only execute real Windows
+    // executables (no `.cmd`/`.bat` shims), so provide a `codex.exe` that
+    // is a copy of the Node binary. It receives the production argument
+    // `app-server` and resolves it as an entry script relative to the
+    // working directory, so run the test from the fake-server directory.
+    await copyFile(
+      process.execPath,
+      path.join(executableDirectory, 'codex.exe'),
+    );
+    await writeFile(
+      path.join(executableDirectory, 'app-server.js'),
+      "require('./codex-server.cjs');\n",
+    );
+    process.chdir(executableDirectory);
+  } else {
+    const executablePath = path.join(executableDirectory, 'codex');
+    await writeFile(
+      executablePath,
+      "#!/usr/bin/env node\nrequire('./codex-server.cjs');\n",
+    );
+    await chmod(executablePath, 0o755);
+  }
+  rs.stubEnv(
+    'PATH',
+    `${executableDirectory}${path.delimiter}${process.env.PATH ?? ''}`,
+  );
+  return {
+    requestLog: path.join(executableDirectory, 'requests.log'),
+    releaseFile: path.join(executableDirectory, 'release'),
+  };
 };
 
 describe('codex app-server provider helper', () => {
@@ -167,7 +260,13 @@ describe('codex app-server provider helper', () => {
       },
     ];
 
-    const payload = buildCodexTurnPayloadFromMessages(messages, 'original');
+    const payload = buildCodexTurnPayloadFromMessages(
+      applyImageDetail({ messages, imageDetail: 'original' }),
+    );
+    expect(
+      (messages[0].content as Array<{ image_url: { detail: string } }>)[0]
+        .image_url.detail,
+    ).toBe('high');
 
     expect(payload.input).toContainEqual({
       type: 'localImage',
@@ -232,71 +331,111 @@ describe('codex app-server provider helper', () => {
     );
   });
 
-  it('reports Codex JSON-RPC requests, responses, and turn notifications', async () => {
-    const executableDirectory = await createTemporaryDirectory();
-    const serverPath = path.join(executableDirectory, 'codex-server.cjs');
-    await writeFile(
-      serverPath,
-      `const readline = require('node:readline').createInterface({ input: process.stdin });
-const send = (message) => process.stdout.write(JSON.stringify(message) + '\\n');
-readline.on('line', (line) => {
-  const message = JSON.parse(line);
-  if (message.method === 'initialize') {
-    send({ id: message.id, result: {} });
-  } else if (message.method === 'thread/start') {
-    send({ id: message.id, result: { thread: { id: 'thread-1' } } });
-  } else if (message.method === 'turn/start') {
-    send({ id: message.id, result: { turn: { id: 'turn-1' } } });
-    send({
-      method: 'item/agentMessage/delta',
-      params: { threadId: 'thread-1', turnId: 'turn-1', delta: 'hello' },
-    });
-    send({
-      method: 'thread/tokenUsage/updated',
-      params: { threadId: 'thread-1', turnId: 'turn-1', tokenUsage: {
-        last: { inputTokens: 10, outputTokens: 5, totalTokens: 15, cachedInputTokens: 3, reasoningOutputTokens: 2 },
-      } },
-    });
-    send({
-      method: 'turn/completed',
-      params: {
-        threadId: 'thread-1',
-        turn: { id: 'turn-1', status: 'completed' },
-      },
-    });
-  } else if (message.method === 'thread/unsubscribe') {
-    send({ id: message.id, result: {} });
-  }
-});
-`,
+  it.each([
+    ['timeout', new AIRequestTimeoutError(10)],
+    ['user cancellation', new Error('user cancelled')],
+  ])('skips a queued turn after %s', async (_label, reason) => {
+    await setupCodexServer();
+    const messages: ChatCompletionMessageParam[] = [
+      { role: 'user', content: 'hello' },
+    ];
+    const first = callAIWithCodexAppServer(messages, baseModelConfig);
+    const controller = new AbortController();
+    const queuedEvents = rs.fn();
+    const queued = runWithAbortSignal(controller.signal, () =>
+      callAIWithCodexAppServer(messages, baseModelConfig, {
+        abortSignal: controller.signal,
+        onRecordEvent: queuedEvents,
+      }),
     );
-    if (process.platform === 'win32') {
-      // Node's spawn without `shell: true` can only execute real Windows
-      // executables (no `.cmd`/`.bat` shims), so provide a `codex.exe` that
-      // is a copy of the Node binary. It receives the production argument
-      // `app-server` and resolves it as an entry script relative to the
-      // working directory, so run the test from the fake-server directory.
-      await copyFile(
-        process.execPath,
-        path.join(executableDirectory, 'codex.exe'),
-      );
-      await writeFile(
-        path.join(executableDirectory, 'app-server.js'),
-        "require('./codex-server.cjs');\n",
-      );
-      process.chdir(executableDirectory);
-    } else {
-      const executablePath = path.join(executableDirectory, 'codex');
-      await writeFile(
-        executablePath,
-        "#!/usr/bin/env node\nrequire('./codex-server.cjs');\n",
-      );
-      await chmod(executablePath, 0o755);
+
+    controller.abort(reason);
+    await expect(queued).rejects.toBe(reason);
+    await first;
+
+    // A following turn ensures the expired queue entry has been processed.
+    const following = await callAIWithCodexAppServer(messages, baseModelConfig);
+    expect(following.content).toBe('hello');
+    expect(queuedEvents).not.toHaveBeenCalled();
+  });
+
+  it('counts queue waiting against each callAI attempt timeout without sending expired turns', async () => {
+    const { requestLog, releaseFile } = await setupCodexServer(true);
+    const messages: ChatCompletionMessageParam[] = [
+      { role: 'user', content: 'hello' },
+    ];
+    const config = {
+      ...baseModelConfig,
+      openaiBaseURL: 'codex://app-server',
+      retryInterval: 0,
+    };
+    const onChunk = rs.fn();
+    const first = callAI(
+      messages,
+      getModelRuntime({ ...config, timeout: 0, retryCount: 0 }),
+      { stream: true, onChunk },
+    );
+    try {
+      await rs.waitFor(() => expect(onChunk).toHaveBeenCalled(), {
+        timeout: 5000,
+      });
+
+      // TODO: Consider removing serialization or increasing concurrency in the
+      // Codex connection manager. Until then, queue waiting consumes each
+      // attempt's timeout, including attempts that never start a server turn.
+      await expect(
+        callAI(
+          messages,
+          getModelRuntime({ ...config, timeout: 50, retryCount: 1 }),
+        ),
+      ).rejects.toThrow(/1 retry \(2\/2 attempts\).*hard timeout/);
+      expect(await readFile(requestLog, 'utf8')).toBe('thread/start\n');
+    } finally {
+      await writeFile(releaseFile, '');
+      await first;
     }
-    rs.stubEnv(
-      'PATH',
-      `${executableDirectory}${path.delimiter}${process.env.PATH ?? ''}`,
+
+    // Drain both expired attempts before checking that neither was sent later.
+    const following = await callAI(
+      messages,
+      getModelRuntime({ ...config, timeout: 5000, retryCount: 0 }),
     );
+    expect(following.content).toBe('hello');
+    expect(await readFile(requestLog, 'utf8')).toBe(
+      'thread/start\nthread/start\n',
+    );
+  });
+
+  it.each([0, 25])(
+    'does not create a turn deadline from timeout %s',
+    async (timeout) => {
+      await setupCodexServer();
+      const now = Date.now();
+      const clock = rs.spyOn(Date, 'now').mockReturnValue(now);
+      const controller = new AbortController();
+      const result = await callAIWithCodexAppServer(
+        [{ role: 'user', content: 'hello' }],
+        { ...baseModelConfig, timeout },
+        {
+          abortSignal: controller.signal,
+          onRecordEvent: (event) => {
+            if (
+              event.type === 'request' &&
+              event.protocol.method === 'turn/start'
+            ) {
+              // Passing ten minutes must not add a provider-owned model deadline.
+              clock.mockReturnValue(now + 600_001);
+            }
+          },
+        },
+      );
+      expect(result.content).toBe('hello');
+      expect(controller.signal.aborted).toBe(false);
+    },
+  );
+
+  it('reports Codex JSON-RPC requests, responses, and turn notifications', async () => {
+    await setupCodexServer();
 
     const events: unknown[] = [];
     const result = await callAIWithCodexAppServer(

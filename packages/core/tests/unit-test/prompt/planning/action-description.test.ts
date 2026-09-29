@@ -9,8 +9,10 @@ import {
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import {
+  ActionSwipeParamSchema,
   defineActionInput,
   defineActionKeyboardPress,
+  defineActionScroll,
   defineActionSwipe,
 } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
@@ -492,41 +494,87 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     `);
   });
 
-  it('swipe action explains touch slider use', () => {
-    const { actionDescription: action, actionSpaceDescription } =
-      buildActionDescriptions(
-        defineActionSwipe({
-          swipe: async () => {},
-          size: async () => ({ width: 1080, height: 2400 }),
-        }),
-      );
+  it('scroll action defines direction by the content to reveal', () => {
+    const { actionDescription: action } = buildActionDescriptions(
+      defineActionScroll(async () => {}),
+    );
 
     expect(action.description).toContain(
-      'adjust a continuous control such as a slider',
+      'Use Scroll when the goal is to browse content outside the current viewport.',
     );
+    expect(action.description).toContain('For direct gesture interactions');
+    expect(action.param).toMatchObject({
+      direction: {
+        description: expect.stringContaining(
+          'The direction toward the off-screen content to reveal.',
+        ),
+      },
+      distance: {
+        description: expect.stringContaining(
+          'Positive requested scroll amount in screen-coordinate units.',
+        ),
+      },
+    });
+    expect(action.param).toMatchObject({
+      direction: {
+        description: expect.stringContaining(
+          '"down" reveals content below the current viewport',
+        ),
+      },
+    });
+    expect(action.param).toMatchObject({
+      direction: {
+        description: expect.stringContaining(
+          'This does not describe the movement direction of the content currently visible on the screen.',
+        ),
+      },
+    });
+  });
+
+  it('swipe action preserves touch-specific guidance by default', () => {
+    const swipeAction = defineActionSwipe({
+      swipe: async () => {},
+      size: async () => ({ width: 1080, height: 2400 }),
+    });
+    const { actionDescription: action, actionSpaceDescription } =
+      buildActionDescriptions(swipeAction);
+
     expect(action.description).toContain(
-      'Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
+      'adjust a continuous control such as a slider or wheel picker',
     );
+    expect(action.description).toContain('Perform a touch gesture');
+    expect(action.description).not.toContain('desktop UI');
+    expect(swipeAction.paramSchema).toBe(ActionSwipeParamSchema);
+    expect(action.param).toMatchObject({
+      start: { description: expect.stringContaining('finger movement') },
+      direction: { description: expect.stringContaining('Finger movement') },
+    });
+    expect(swipeAction.interfaceAlias).toBe('aiSwipe');
+    expect(action.description).toContain('Choose exactly one movement form:');
+    expect(action.description).toContain(
+      'relative swipe — provide "direction" and a positive "distance"',
+    );
+    expect(action.description).toContain('endpoint swipe — provide "end"');
     expect(actionSpaceDescription).toMatchInlineSnapshot(`
       "- type: Swipe
-        description: Perform a touch gesture for interactions beyond regular scrolling (e.g., adjust a continuous control such as a slider, flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.
+        description: 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
         param:
           start:
             type: '{ prompt: string /* description of the target element */ }'
             optional: true
-            description: Starting point of the swipe gesture, if not specified, the center of the page will be used
+            description: Optional starting point of the finger movement. Available in both relative and endpoint forms. If omitted, the center of the page is used.
           direction:
             type: enum('up', 'down', 'left', 'right')
             optional: true
-            description: The direction to swipe (required when using distance). The direction means the direction of the finger swipe.
+            description: Finger movement direction. Required together with a positive distance for a relative swipe. Omit when using end.
           distance:
             type: number
             optional: true
-            description: The distance in pixels to swipe (mutually exclusive with end)
+            description: Positive length of the finger movement in pixels. Required together with direction for a relative swipe. Omit when using end.
           end:
             type: '{ prompt: string /* description of the target element */ }'
             optional: true
-            description: Ending point of the swipe gesture (mutually exclusive with distance)
+            description: Endpoint of the finger movement. Use for an endpoint swipe, optionally with start. Do not provide direction or distance when using end.
           duration:
             type: number
             optional: true
@@ -549,6 +597,25 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
           }
           </action-param-json>"
     `);
+  });
+
+  it('swipe action uses mouse-specific guidance for desktop input', () => {
+    const swipeAction = defineActionSwipe({
+      swipe: async () => {},
+      size: async () => ({ width: 1920, height: 1080 }),
+      inputMode: 'mouse',
+    });
+    const { actionDescription: action } = buildActionDescriptions(swipeAction);
+
+    expect(action.description).toContain('primary-mouse-button gesture');
+    expect(action.description).toContain('desktop UI');
+    expect(action.description).not.toContain('touch gesture');
+    expect(action.param).toMatchObject({
+      start: { description: expect.stringContaining('pointer movement') },
+      direction: {
+        description: expect.stringContaining('Pointer movement'),
+      },
+    });
   });
 });
 

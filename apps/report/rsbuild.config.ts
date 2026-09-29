@@ -49,6 +49,11 @@ const writeReportTemplate = () => ({
 export default defineConfig({
   html: {
     template: './template/index.html',
+    templateParameters: {
+      faviconDataUri: `data:image/png;base64,${fs
+        .readFileSync(path.join(__dirname, 'src/assets/favicon-32x32.png'))
+        .toString('base64')}`,
+    },
     inject: 'body',
     tags:
       process.env.NODE_ENV === 'development'
@@ -100,6 +105,18 @@ export default defineConfig({
   tools: {
     rspack: {
       module: {
+        rules: [
+          {
+            test: /\.(woff2|png|svg)$/,
+            include: path.join(__dirname, 'src/components/test-runner/assets'),
+            type: 'asset/inline',
+          },
+          {
+            test: /\.webp$/,
+            include: path.join(__dirname, 'src/assets'),
+            type: 'asset/inline',
+          },
+        ],
         parser: {
           javascript: {
             dynamicImportMode: 'eager',

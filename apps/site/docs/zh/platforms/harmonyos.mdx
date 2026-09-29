@@ -106,8 +106,9 @@ Promise.resolve(
     const device = new HarmonyDevice(devices[0].deviceId, {});
 
     const agent = new HarmonyAgent(device, {
-      aiActionContext:
-        '这是一台鸿蒙设备，系统语言为中文。如果出现弹窗，点击同意或关闭。',
+      aiContexts: {
+        aiAct: '这是一台鸿蒙设备，系统语言为中文。如果出现弹窗，点击同意或关闭。',
+      },
     });
     await device.connect();
 
@@ -129,6 +130,8 @@ Promise.resolve(
   })(),
 );
 ```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 ### 运行脚本
 

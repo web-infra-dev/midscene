@@ -5,7 +5,10 @@ import type {
   PointerPoint,
   TouchInputPrimitives,
 } from '@midscene/core/device';
-import { normalizePinchParam } from '@midscene/core/device';
+import {
+  normalizePinchParam,
+  resolveSwipeInputPrimitive,
+} from '@midscene/core/device';
 
 /**
  * Thrown when an /interact request is malformed (missing field, wrong type)
@@ -149,8 +152,8 @@ export async function dispatchPointer(
     }
 
     case 'Swipe': {
-      const touch = getTouchInput(input);
-      return ensureCapability(touch.swipe, 'Swipe')(
+      const swipe = resolveSwipeInputPrimitive(input);
+      return ensureCapability(swipe?.swipe, 'Swipe')(
         requirePoint(body),
         requirePoint(body, 'endX', 'endY'),
         {

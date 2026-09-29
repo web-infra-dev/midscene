@@ -1,0 +1,7 @@
+:::info 兼容保留，建议迁移到 Midscene Test
+“旧版 YAML”，特指由 `@midscene/cli` 提供的 YAML 自动化协议：工作流顶层使用 `tasks`，每个 task 使用 `flow`，平台和 Agent 等运行配置通常也写在 YAML 中，并通过 `midscene` 命令或包含 `files`、`setup`、`concurrent` 等字段的 YAML 批配置运行。
+
+旧链路已进入维护状态：继续保证现有项目兼容，并处理必要的问题，但不再新增语法、能力、配置项或 CLI 参数。已有用例、批配置、目录结构和 `midscene` 命令可以保持不变；升级后会通过共享执行内核运行，并生成新的 Test 报告页面。新项目、新增用例和后续能力建设推荐直接使用 Midscene Test。
+
+旧文件和 YAML 批配置使用 `midscene`，原生 `cases/steps` 文件和 TypeScript 项目配置使用 `midscene-test`。两种格式可以放在同一个仓库的不同目录中，但不能在同一个文件或同一次命令中混用。先阅读 [Midscene Test 概览](../midscene-test/overview)，再按照[迁移到 Midscene Test](../migrate-to-midscene-test)转换字段并切换命令。
+:::

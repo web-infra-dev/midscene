@@ -85,7 +85,9 @@ import { agentForComputer } from '@midscene/computer';
 (async () => {
   // 创建 agent
   const agent = await agentForComputer({
-    aiActionContext: '你正在控制一台桌面计算机。',
+    aiContexts: {
+      aiAct: '你正在控制一台桌面计算机。',
+    },
   });
 
   // 截图并查询信息
@@ -103,6 +105,8 @@ import { agentForComputer } from '@midscene/computer';
   console.log('桌面自动化完成！');
 })();
 ```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 ### 运行脚本
 
@@ -157,8 +161,9 @@ await agent.aiAct('click the red button five times');
 import { agentForRDPComputer } from '@midscene/computer';
 
 const agent = await agentForRDPComputer({
-  aiActionContext:
-    'You are controlling a remote Windows desktop over the RDP protocol.',
+  aiContexts: {
+    aiAct: 'You are controlling a remote Windows desktop over the RDP protocol.',
+  },
   host: '10.75.166.249',
   port: 3389,
   username: 'Admin',
@@ -171,6 +176,8 @@ await agent.aiAct('Click the Windows Start button');
 await agent.aiAct('Open Settings');
 await agent.aiAssert('The Windows Settings window is visible');
 ```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 ### 常用 RDP 选项
 

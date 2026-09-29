@@ -15,13 +15,12 @@ const mockState = rs.hoisted(() => {
     },
   ];
   let windowsDisplays = defaultWindowsDisplays;
+  let physicalWindowsDisplayOutput: string | undefined;
   let windowsCursorPos = { x: 10, y: 20 };
   let windowsActiveWindowRect:
     | { x: number; y: number; width: number; height: number }
     | undefined;
   let windowsCursorTransform = (x: number, y: number) => ({ x, y });
-  // Windows screenshot/listDisplays go through `powershell.exe -EncodedCommand`
-  // now (issue #2150); answer based on which script is being run.
   const execFileSync = rs.fn(
     (
       file?: string,
@@ -31,11 +30,8 @@ const mockState = rs.hoisted(() => {
       // mockReturnValueOnce.
     ): string | Buffer | undefined => {
       if (file === 'powershell.exe' && args) {
-        const idx = args.indexOf('-EncodedCommand');
-        const script =
-          idx >= 0
-            ? Buffer.from(args[idx + 1], 'base64').toString('utf16le')
-            : '';
+        const commandIdx = args.indexOf('-Command');
+        const script = commandIdx >= 0 ? args[commandIdx + 1] : '';
         if (script.includes('CopyFromScreen')) {
           return FAKE_PNG_BASE64;
         }
@@ -53,6 +49,12 @@ const mockState = rs.hoisted(() => {
             );
           }
           return `${windowsCursorPos.x},${windowsCursorPos.y}`;
+        }
+        if (
+          script.includes('SetThreadDpiAwarenessContext') &&
+          physicalWindowsDisplayOutput !== undefined
+        ) {
+          return physicalWindowsDisplayOutput;
         }
         return JSON.stringify(windowsDisplays);
       }
@@ -80,6 +82,7 @@ const mockState = rs.hoisted(() => {
     mouseToggle: rs.fn(),
     scrollMouse: rs.fn(),
     keyTap: rs.fn(),
+    keyToggle: rs.fn(),
     typeString: rs.fn(),
     getActiveWindow: rs.fn(() => 0),
     getWindowRect: rs.fn(),
@@ -98,6 +101,7 @@ const mockState = rs.hoisted(() => {
     windowsActiveWindowRect = undefined;
     windowsCursorTransform = (x: number, y: number) => ({ x, y });
     windowsDisplays = defaultWindowsDisplays;
+    physicalWindowsDisplayOutput = undefined;
     execSync.mockReset();
     // mockClear (not mockReset) so the powershell-aware implementation survives.
     execFileSync.mockClear();
@@ -110,6 +114,7 @@ const mockState = rs.hoisted(() => {
     libnut.mouseToggle.mockClear();
     libnut.scrollMouse.mockClear();
     libnut.keyTap.mockClear();
+    libnut.keyToggle.mockClear();
     libnut.typeString.mockClear();
     libnut.getActiveWindow.mockClear();
     libnut.getActiveWindow.mockReturnValue(0);
@@ -120,6 +125,10 @@ const mockState = rs.hoisted(() => {
 
   const setWindowsDisplays = (displays: typeof defaultWindowsDisplays) => {
     windowsDisplays = displays;
+  };
+
+  const setPhysicalWindowsDisplayOutput = (output: string) => {
+    physicalWindowsDisplayOutput = output;
   };
 
   const setWindowsCursorTransform = (
@@ -144,6 +153,7 @@ const mockState = rs.hoisted(() => {
     createRequire,
     reset,
     setWindowsDisplays,
+    setPhysicalWindowsDisplayOutput,
     setWindowsActiveWindowRect,
     setWindowsCursorTransform,
     getWindowsCursorPos,
@@ -179,7 +189,7 @@ afterEach(() => {
 
 async function createConnectedDevice() {
   const { ComputerDevice } = await import('../../src/device');
-  const device = new ComputerDevice({});
+  const device = new ComputerDevice();
   await device.connect();
   return device;
 }
@@ -233,6 +243,15 @@ describe('ComputerDevice AppleScript security', () => {
     expect(mockState.execFileSync).toHaveBeenCalledWith('osascript', [
       '-e',
       'tell application "System Events" to keystroke "a\\"\\\\b"',
+    ]);
+  });
+
+  it('keeps logical modifier events by default', async () => {
+    await runKeyboardPress('Control+s');
+
+    expect(mockState.execFileSync).toHaveBeenCalledWith('osascript', [
+      '-e',
+      'tell application "System Events" to keystroke "s" using {control down}',
     ]);
   });
 });
@@ -326,6 +345,200 @@ describe('ComputerInputDriver native arg handling', () => {
     driver.keyTap('a', ['command']);
     expect(mockState.libnut.keyTap).toHaveBeenLastCalledWith('a', ['command']);
   });
+
+  it('holds and releases explicit shortcut modifiers around the main key', async () => {
+    rs.useFakeTimers();
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+
+    const shortcut = driver.keyTapWithModifierDelay(
+      's',
+      ['control', 'shift', 'control'],
+      50,
+    );
+
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+    ]);
+    expect(mockState.libnut.keyTap).not.toHaveBeenCalled();
+
+    await rs.advanceTimersByTimeAsync(50);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+    ]);
+    expect(mockState.libnut.keyTap).not.toHaveBeenCalled();
+
+    await rs.advanceTimersByTimeAsync(50);
+    expect(mockState.libnut.keyTap).toHaveBeenCalledWith('s');
+    expect(mockState.libnut.keyToggle).toHaveBeenCalledTimes(2);
+
+    await rs.advanceTimersByTimeAsync(50);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+      ['shift', 'up'],
+    ]);
+
+    await rs.advanceTimersByTimeAsync(50);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+      ['shift', 'up'],
+      ['control', 'up'],
+    ]);
+
+    await rs.advanceTimersByTimeAsync(50);
+    await shortcut;
+  });
+
+  it('keeps compact modifier taps when the delay is zero', async () => {
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+
+    await driver.keyTapWithModifierDelay('s', ['control'], 0);
+
+    expect(mockState.libnut.keyTap).toHaveBeenCalledWith('s', ['control']);
+    expect(mockState.libnut.keyToggle).not.toHaveBeenCalled();
+  });
+
+  it('releases explicit shortcut modifiers when interrupted', async () => {
+    rs.useFakeTimers();
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+
+    const shortcut = driver.keyTapWithModifierDelay('s', ['control'], 50);
+    driver.destroy();
+
+    await expect(shortcut).rejects.toThrow(/destroyed/);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['control', 'up'],
+    ]);
+  });
+
+  it('releases remaining modifiers when interrupted between releases', async () => {
+    rs.useFakeTimers();
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+
+    const shortcut = driver.keyTapWithModifierDelay(
+      's',
+      ['control', 'shift'],
+      50,
+    );
+    await rs.advanceTimersByTimeAsync(150);
+    expect(mockState.libnut.keyToggle).toHaveBeenLastCalledWith('shift', 'up');
+
+    driver.destroy();
+
+    await expect(shortcut).rejects.toThrow(/destroyed/);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+      ['shift', 'up'],
+      ['control', 'up'],
+    ]);
+  });
+
+  it('reports modifier release failures and still releases remaining keys', async () => {
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    mockState.libnut.keyToggle.mockImplementation(
+      (key: string, state: 'up' | 'down') => {
+        if (key === 'shift' && state === 'up') {
+          throw new Error('native release failed');
+        }
+      },
+    );
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+    rs.spyOn(driver, 'delay').mockResolvedValue(undefined);
+
+    await expect(
+      driver.keyTapWithModifierDelay('s', ['control', 'shift'], 50),
+    ).rejects.toThrow('Failed to release modifier key "shift"');
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+      ['shift', 'up'],
+      ['control', 'up'],
+    ]);
+  });
+});
+
+describe('ComputerDevice Windows display discovery', () => {
+  it('fails without retrying or using legacy capture when display enumeration is empty', async () => {
+    mockState.setPhysicalWindowsDisplayOutput('');
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice();
+
+    await expect(device.connect()).rejects.toThrow(
+      /Windows display enumeration returned no data/,
+    );
+    expect(mockState.execFileSync).toHaveBeenCalledTimes(1);
+    expect(mockState.screenshot).not.toHaveBeenCalled();
+    expect(mockState.libnut.moveMouse).not.toHaveBeenCalled();
+  });
+
+  it('keeps an explicit display selection in the physical Windows path', async () => {
+    mockState.setWindowsDisplays([
+      {
+        id: '\\\\.\\DISPLAY6',
+        name: '\\\\.\\DISPLAY6',
+        primary: true,
+        bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+      },
+    ]);
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({ displayId: '\\\\.\\DISPLAY6' });
+
+    await device.connect();
+
+    expect(device.describe()).toContain('Display: \\\\.\\DISPLAY6');
+  });
+
+  it('does not fall back to a different display when the requested Windows display is missing', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({
+      displayId: '\\\\.\\MIDSCENE_MISSING_DISPLAY',
+    });
+
+    await expect(device.connect()).rejects.toThrow(
+      /Requested Windows display not found/,
+    );
+  });
 });
 
 describe('ComputerDevice scroll targeting', () => {
@@ -415,6 +628,32 @@ describe('ComputerDevice pointer input', () => {
     expect(moveOrders.slice(1).every((order) => order < buttonUpOrder)).toBe(
       true,
     );
+  });
+
+  it('honors duration and repeat for held desktop swipe gestures', async () => {
+    const device = await createConnectedDevice();
+    const inputDriver = (device as any).inputDriver;
+    rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+    mockState.libnut.moveMouse.mockClear();
+    mockState.libnut.mouseToggle.mockClear();
+
+    await device.inputPrimitives.pointer.swipe!(
+      { x: 200, y: 300 },
+      { x: 700, y: 300 },
+      { duration: 400, repeat: 2 },
+    );
+
+    expect(mockState.libnut.moveMouse.mock.calls.at(0)).toEqual([200, 300]);
+    expect(mockState.libnut.moveMouse.mock.calls.at(-1)).toEqual([700, 300]);
+    expect(mockState.libnut.mouseToggle.mock.calls).toEqual([
+      ['down', 'left'],
+      ['up', 'left'],
+      ['down', 'left'],
+      ['up', 'left'],
+    ]);
+    expect(
+      inputDriver.delay.mock.calls.filter(([delay]: [number]) => delay === 20),
+    ).toHaveLength(40);
   });
 
   it('does not trust a self-consistent libnut position outside screenshot space', async () => {

@@ -223,6 +223,25 @@ for ($index = 0; $index -lt 30; $index += 1) {
   $scrollArea.Items.Add("Scrollable evidence row $($index + 1)") | Out-Null
 }
 
+$sliderLabel = New-Object System.Windows.Forms.Label
+$sliderLabel.AutoSize = $true
+$sliderLabel.Location = New-Object System.Drawing.Point(330, 218)
+$sliderLabel.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+$sliderLabel.ForeColor = [System.Drawing.Color]::FromArgb(31, 41, 55)
+$sliderLabel.Text = 'DRAG SLIDER TO THE RIGHT'
+
+$slider = New-Object System.Windows.Forms.TrackBar
+$slider.Name = 'MidsceneSwipeSlider'
+$slider.AccessibleName = 'Midscene Swipe Slider'
+$slider.Location = New-Object System.Drawing.Point(326, 242)
+$slider.Size = New-Object System.Drawing.Size(172, 52)
+$slider.Minimum = 0
+$slider.Maximum = 100
+$slider.TickFrequency = 10
+$slider.SmallChange = 1
+$slider.LargeChange = 10
+$slider.Value = 0
+
 $form.Controls.AddRange(@(
   $heading,
   $button,
@@ -230,7 +249,9 @@ $form.Controls.AddRange(@(
   $textLabel,
   $textBox,
   $scrollLabel,
-  $scrollArea
+  $scrollArea,
+  $sliderLabel,
+  $slider
 ))
 
 $state = [ordered]@{
@@ -250,6 +271,7 @@ $state = [ordered]@{
   scrollX = 0
   scrollY = 0
   scrollValue = 0
+  sliderValue = 0
 }
 
 function Write-State {
@@ -261,6 +283,7 @@ function Write-State {
   $state.scrollX = 0
   $state.scrollY = [int]$scrollArea.TopIndex
   $state.scrollValue = $state.scrollY
+  $state.sliderValue = [int]$slider.Value
   Write-JsonAtomically -Path $StateFile -Value $state
 }
 
@@ -315,6 +338,11 @@ $focusScrollArea = {
   }
 }
 $scrollArea.Add_MouseEnter($focusScrollArea)
+
+$slider.Add_ValueChanged({
+  $state.sliderValue = [int]$slider.Value
+  Write-State
+})
 
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 750
@@ -410,6 +438,12 @@ $form.Add_Shown({
   $scrollMetadata['handle'] = $scrollArea.Handle.ToInt64().ToString()
   $scrollMetadata['name'] = $scrollArea.Name
 
+  $sliderMetadata = Get-ControlScreenBounds -Control $slider
+  $sliderMetadata['handle'] = $slider.Handle.ToInt64().ToString()
+  $sliderMetadata['name'] = $slider.Name
+  $sliderMetadata['minimum'] = $slider.Minimum
+  $sliderMetadata['maximum'] = $slider.Maximum
+
   $ready = [ordered]@{
     schemaVersion = 1
     userInteractive = [Environment]::UserInteractive
@@ -423,6 +457,7 @@ $form.Add_Shown({
     doubleClickButton = $doubleClickButtonMetadata
     textBox = $textBoxMetadata
     scroll = $scrollMetadata
+    slider = $sliderMetadata
   }
 
   Write-JsonAtomically -Path $ReadyFile -Value $ready

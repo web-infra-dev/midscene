@@ -1,10 +1,9 @@
+import LegacyYamlNotice from './common/legacy-yaml-notice.mdx';
 import SetupEnv from './common/setup-env.mdx';
 
 # Automate with scripts in YAML
 
-:::info Legacy YAML automation
-This page describes the legacy YAML automation solution. For new test projects, see [Midscene Test overview](./midscene-test/overview). Midscene Test is currently in Beta.
-:::
+<LegacyYamlNotice />
 
 In most cases, developers write automation scripts just to perform some smoke tests, like checking for the appearance of certain content or verifying that a key user path is accessible. In such situations, maintaining a large test project is unnecessary.
 
@@ -98,10 +97,6 @@ agent:
     aiAct: <string>
     aiQuery: <string>
 
-  # Deprecated compatibility alias for aiContexts.aiAct, optional
-  aiActContext: <string>
-  # The older deprecated alias aiActionContext also remains available for compatibility
-
   # Cache configuration, optional
   cache:
     # Cache strategy, optional, values: 'read-only' | 'read-write' | 'write-only'
@@ -114,8 +109,8 @@ agent:
 
 - **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
 - **testId priority**: CLI parameter > YAML agent.testId > filename
-- **aiContexts**: Provides additional AI guidance such as business facts, rules, constraints, or output requirements. If `default` is configured, it is used only when neither the current call nor the matching API has its own context. A per-call `context` overrides the API value, which overrides `default`; these values are not automatically merged. Empty strings explicitly clear inherited user context.
-- **aiActContext**: Deprecated compatibility field for `aiContexts.aiAct`. `aiContexts.aiAct` wins when both are present. The older `aiActionContext` alias is also deprecated and remains available only for compatibility.
+- **aiContexts**: Provides additional AI guidance such as business facts, rules, constraints, or output requirements. If `default` is configured, it is used only when neither the current call nor the matching API has its own context. A per-call `context` overrides the API value, which overrides `default`; these values are not automatically merged. Empty strings explicitly clear inherited user context. For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](./provide-application-knowledge-to-gui-agent).
+- **aiActContext / aiActionContext**: Deprecated compatibility fields for `aiContexts.aiAct`; both remain supported. Resolution uses `aiContexts.aiAct ?? aiActContext ?? aiActionContext`; an empty string takes precedence over lower-priority aliases. Use `aiContexts.aiAct` in new YAML scripts.
 - **Cache configuration**: For detailed usage, refer to the [Caching documentation](./caching.mdx)
 
 :::
@@ -372,6 +367,17 @@ ios:
   # WebDriverAgent host address, optional, defaults to localhost.
   wdaHost: <host>
 
+  # For gateways with a path prefix, use wdaBaseUrl instead of wdaHost/wdaPort.
+  # Setting wdaBaseUrl together with either wdaHost or wdaPort causes an error.
+  # wdaBaseUrl: <url>
+
+  # Optional independent MJPEG stream URL, including a gateway path if needed.
+  # Cannot be combined with wdaMjpegPort.
+  # wdaMjpegUrl: <url>
+
+  # Local MJPEG stream port, optional. Use this or wdaMjpegUrl.
+  # wdaMjpegPort: <port>
+
   # Whether to auto dismiss keyboard, optional, defaults to false.
   autoDismissKeyboard: <boolean>
 
@@ -387,6 +393,16 @@ ios:
   # All other options supported by the IOSDevice constructor
   # See the IOSDevice constructor documentation for the complete list
 ```
+
+For a gateway with a path prefix, set `wdaBaseUrl` and leave `wdaHost` and `wdaPort` unset. The MJPEG stream can use a separate URL:
+
+```yaml
+ios:
+  wdaBaseUrl: ${WDA_BASE_URL}
+  wdaMjpegUrl: ${WDA_MJPEG_URL}
+```
+
+Set both environment variables before running the script. Studio Recorder exports use these references so gateway paths and access tokens stay out of the YAML file.
 
 :::info View Complete iOS Configuration Options
 

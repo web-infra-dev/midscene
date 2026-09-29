@@ -9,14 +9,22 @@ const LogoUrlLight =
 const LogoUrlDark =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene_with_text_dark.png';
 
-export const Logo = ({ hideLogo = false }: { hideLogo?: boolean }) => {
+export const Logo = ({
+  hideLogo = false,
+  lightSrc = LogoUrlLight,
+  darkSrc = LogoUrlDark,
+}: {
+  hideLogo?: boolean;
+  lightSrc?: string;
+  darkSrc?: string;
+}) => {
   const { isDarkMode } = useTheme();
 
   if (hideLogo) {
     return null;
   }
 
-  const logoSrc = isDarkMode ? LogoUrlDark : LogoUrlLight;
+  const logoSrc = isDarkMode ? darkSrc : lightSrc;
 
   return (
     <div className="logo">

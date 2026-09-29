@@ -41,10 +41,15 @@ describe('iosPlaygroundPlatform session manager', () => {
     const setup = await prepared.sessionManager!.getSetupSchema!();
 
     expect(setup?.fields).toMatchObject([
-      { key: 'host', defaultValue: 'localhost' },
-      { key: 'port', defaultValue: 8100 },
+      { key: 'host', required: false },
+      { key: 'port', required: false },
+      { key: 'baseUrl', required: false },
+      { key: 'mjpegUrl', required: false },
+      { key: 'mjpegPort', required: false },
       { key: 'sessionId', required: false },
     ]);
+    expect(setup?.fields?.[0]).not.toHaveProperty('defaultValue');
+    expect(setup?.fields?.[1]).not.toHaveProperty('defaultValue');
 
     const created = await prepared.sessionManager?.createSession({
       host: 'localhost',
@@ -63,6 +68,120 @@ describe('iosPlaygroundPlatform session manager', () => {
       wdaPort: 8100,
       sessionId: 'external-session-id',
     });
+  });
+
+  test('passes a normalized gateway base URL to the agent and session factory', async () => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+    const created = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/code/wda/',
+    });
+    await created?.agentFactory?.();
+
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(1, {
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+    });
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, {
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+    });
+  });
+
+  test.each([
+    { host: 'localhost' },
+    { port: 8100 },
+    { host: 'localhost', port: 8100 },
+  ])('rejects gateway base URL with host or port input: %j', async (input) => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+
+    await expect(
+      prepared.sessionManager?.createSession({
+        baseUrl: 'https://gateway.example/code/wda',
+        ...input,
+      }),
+    ).rejects.toThrow(/wdaBaseUrl cannot be used with wdaHost or wdaPort/);
+    expect(agentFromWebDriverAgentMock).not.toHaveBeenCalled();
+  });
+
+  test('treats empty optional host and port fields as unset', async () => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+
+    await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/code/wda',
+      host: '',
+      port: '',
+    });
+
+    expect(agentFromWebDriverAgentMock).toHaveBeenCalledWith({
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+    });
+  });
+
+  test('passes a remote HTTPS MJPEG stream URL to the agent and its factory', async () => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+    const created = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/code/wda',
+      mjpegUrl: 'https://stream.example/live/mjpeg?token=secret',
+      mjpegPort: '',
+    });
+    await created?.agentFactory?.();
+
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(1, {
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+      wdaMjpegUrl: 'https://stream.example/live/mjpeg?token=secret',
+    });
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, {
+      wdaBaseUrl: 'https://gateway.example/code/wda',
+      wdaMjpegUrl: 'https://stream.example/live/mjpeg?token=secret',
+    });
+    expect(JSON.stringify(created?.metadata)).not.toContain('secret');
+  });
+
+  test('rejects a remote MJPEG URL combined with a port', async () => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+    await expect(
+      prepared.sessionManager?.createSession({
+        mjpegUrl: 'https://stream.example/live/mjpeg',
+        mjpegPort: 9100,
+      }),
+    ).rejects.toThrow(/wdaMjpegUrl cannot be used with wdaMjpegPort/);
+    expect(agentFromWebDriverAgentMock).not.toHaveBeenCalled();
+  });
+
+  test('does not expose a gateway path identifier in session metadata', async () => {
+    getConnectedDeviceInfoMock.mockResolvedValue(null);
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({});
+    const created = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/secret-code/wda',
+    });
+
+    expect(created?.displayName).toBe('gateway.example (WDA gateway)');
+    expect(created?.metadata).toMatchObject({
+      wdaHost: 'gateway.example',
+      wdaPort: 443,
+    });
+    expect(JSON.stringify(created?.metadata)).not.toContain('secret-code');
+    expect(created?.metadata?.wdaGatewayId).toMatch(
+      /^ios-gateway-[a-f0-9]{64}$/,
+    );
+
+    const other = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/other-code/wda',
+    });
+    expect(other?.metadata?.wdaGatewayId).not.toBe(
+      created?.metadata?.wdaGatewayId,
+    );
+    const otherSession = await prepared.sessionManager?.createSession({
+      baseUrl: 'https://gateway.example/secret-code/wda',
+      sessionId: 'session-2',
+    });
+    expect(otherSession?.metadata?.wdaGatewayId).not.toBe(
+      created?.metadata?.wdaGatewayId,
+    );
   });
 
   test('reuses the agent factory for follow-up playground sessions', async () => {

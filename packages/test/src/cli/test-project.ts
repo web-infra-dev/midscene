@@ -3,27 +3,34 @@ import { pathToFileURL } from 'node:url';
 import { require as tsxRequire } from 'tsx/cjs/api';
 import { tsImport } from 'tsx/esm/api';
 import { NodeRegistry } from '../engine/registry';
-import type { Awaitable } from '../engine/types';
-import type { WorkflowError } from '../errors';
 import type { NodeDefinition } from '../node/types';
 
-export type TestPlatform = 'web' | 'android' | 'ios' | 'harmony' | 'computer';
+import type {
+  JsonValue,
+  ProjectSetupDefinition,
+  ResolvedExecutionProject,
+  TestFileSelection,
+  TestTagSelection,
+} from '@midscene/core/internal/test-runner';
+export type {
+  JsonPrimitive,
+  JsonValue,
+  ProjectSetupContext,
+  ProjectSetupDefinition,
+  ProjectTeardown,
+  ProjectTeardownContext,
+  ResolvedExecutionProject,
+  TestFileSelection,
+  TestTagSelection,
+} from '@midscene/core/internal/test-runner';
+import type { ExecutionProjectDefinition as CoreExecutionProjectDefinition } from '@midscene/core/internal/test-runner';
 
-export type JsonPrimitive = string | number | boolean | null;
-export type JsonValue =
-  | JsonPrimitive
-  | readonly JsonValue[]
-  | { readonly [key: string]: JsonValue };
-
-export interface TestFileSelection {
-  include: readonly string[];
-  exclude?: readonly string[];
-}
-
-export interface TestTagSelection {
-  include?: readonly string[];
-  exclude?: readonly string[];
-}
+export type ExecutionProjectDefinition<TContext = unknown> = Omit<
+  CoreExecutionProjectDefinition<TContext>,
+  'nodes'
+> & {
+  nodes?: readonly NodeDefinition<any, any, TContext>[];
+};
 
 export interface TestOptions {
   maxConcurrency?: number;
@@ -45,60 +52,7 @@ export interface ResolvedTestOutputDefinition {
   reportDir: string;
 }
 
-export interface ExecutionProjectDefinition<TProjectContext = unknown> {
-  name: string;
-  platform: TestPlatform;
-  setup?: ProjectSetupDefinition<TProjectContext>;
-  /** Project-local Nodes override global Nodes with the same name. */
-  nodes?: readonly NodeDefinition<any, any, TProjectContext>[];
-  files?: TestFileSelection;
-  tags?: TestTagSelection;
-  retry?: number;
-  variables?: Readonly<Record<string, JsonValue>>;
-}
-
-export interface ResolvedExecutionProject<TProjectContext = unknown> {
-  readonly projectId: string;
-  readonly name: string;
-  readonly platform: TestPlatform;
-  readonly setup?: ProjectSetupDefinition<TProjectContext>;
-  readonly files?: TestFileSelection;
-  readonly tags: Readonly<Required<TestTagSelection>>;
-  readonly retry: number;
-  readonly variables: Readonly<Record<string, JsonValue>>;
-}
-
-export interface LoadedExecutionProject<TProjectContext = unknown>
-  extends ResolvedExecutionProject<TProjectContext> {
-  /** Effective Nodes: globals plus project-local overrides. */
-  readonly nodes: NodeRegistry;
-}
-
 const projectIdFromIndex = (index: number): string => `project-${index}`;
-
-export interface ProjectSetupContext<TProjectContext = unknown> {
-  readonly project: ResolvedExecutionProject<TProjectContext>;
-  readonly env: Readonly<NodeJS.ProcessEnv>;
-  readonly signal: AbortSignal;
-  onTeardown(teardown: ProjectTeardown<TProjectContext>): void;
-}
-
-export interface ProjectTeardownContext<TProjectContext = unknown> {
-  readonly project: ResolvedExecutionProject<TProjectContext>;
-  readonly context: TProjectContext | undefined;
-  readonly status: 'success' | 'failed';
-  readonly setupError?: WorkflowError;
-}
-
-export type ProjectTeardown<TProjectContext = unknown> = (
-  ctx: ProjectTeardownContext<TProjectContext>,
-) => Awaitable<void>;
-
-export interface ProjectSetupDefinition<TProjectContext = unknown> {
-  name: string;
-  platform?: TestPlatform | readonly TestPlatform[];
-  setup(ctx: ProjectSetupContext<TProjectContext>): Awaitable<TProjectContext>;
-}
 
 export interface TestProjectDefinition<TContext = undefined> {
   setup?: ProjectSetupDefinition<TContext>;
@@ -106,6 +60,12 @@ export interface TestProjectDefinition<TContext = undefined> {
   test?: TestOptions;
   output?: TestOutputDefinition;
   nodes?: readonly NodeDefinition<any, any, TContext>[];
+}
+
+export interface LoadedExecutionProject<TProjectContext = unknown>
+  extends ResolvedExecutionProject<TProjectContext> {
+  /** Effective Nodes: globals plus project-local overrides. */
+  readonly nodes: NodeRegistry;
 }
 
 export interface LoadedTestProject<TContext = undefined> {
@@ -227,6 +187,7 @@ export const validateTestFileSelection = (
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
   }
+  rejectUnknownKeys(value, ['include', 'exclude'], label);
   const include = validatePatterns(value.include, 'include', label);
   const exclude =
     value.exclude === undefined
@@ -333,52 +294,22 @@ const validateVariables = (
   return deepFreezeJson(value as Record<string, JsonValue>);
 };
 
-const platforms = new Set<TestPlatform>([
-  'web',
-  'android',
-  'ios',
-  'harmony',
-  'computer',
-]);
-
-const validatePlatform = (value: unknown, label: string): TestPlatform => {
-  if (typeof value !== 'string' || !platforms.has(value as TestPlatform)) {
-    throw new TypeError(
-      `Midscene config ${label} must be one of web, android, ios, harmony, computer.`,
-    );
-  }
-  return value as TestPlatform;
-};
-
-const validateProjectSetup = <TProjectContext>(
+const validateSetup = <TSetup>(
   value: unknown,
-  projectPlatform: TestPlatform,
   label: string,
-): ProjectSetupDefinition<TProjectContext> | undefined => {
+): TSetup | undefined => {
   if (value === undefined) return undefined;
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
   }
+  rejectUnknownKeys(value, ['name', 'setup'], label);
   if (typeof value.name !== 'string' || value.name.trim().length === 0) {
     throw new TypeError(`Midscene config ${label}.name must be non-empty.`);
   }
   if (typeof value.setup !== 'function') {
     throw new TypeError(`Midscene config ${label}.setup must be a function.`);
   }
-  const supported =
-    value.platform === undefined
-      ? undefined
-      : Array.isArray(value.platform)
-        ? value.platform.map((item, index) =>
-            validatePlatform(item, `${label}.platform[${index}]`),
-          )
-        : [validatePlatform(value.platform, `${label}.platform`)];
-  if (supported && !supported.includes(projectPlatform)) {
-    throw new TypeError(
-      `Midscene config ${label} does not support project platform "${projectPlatform}".`,
-    );
-  }
-  return value as unknown as ProjectSetupDefinition<TProjectContext>;
+  return value as unknown as TSetup;
 };
 
 const validatePositiveInteger = (
@@ -416,28 +347,8 @@ const validateExecutionProjects = <TProjectContext>(
   hasExplicitProjects: boolean;
 } => {
   if (value === undefined) {
-    let platform: TestPlatform = 'web';
-    if (defaultSetup !== undefined) {
-      if (!isRecord(defaultSetup)) {
-        throw new TypeError('Midscene config setup must be an object.');
-      }
-      if (Array.isArray(defaultSetup.platform)) {
-        if (defaultSetup.platform.length !== 1) {
-          throw new TypeError(
-            'Midscene config setup.platform must select exactly one platform when projects is omitted.',
-          );
-        }
-        platform = validatePlatform(
-          defaultSetup.platform[0],
-          'setup.platform[0]',
-        );
-      } else if (defaultSetup.platform !== undefined) {
-        platform = validatePlatform(defaultSetup.platform, 'setup.platform');
-      }
-    }
-    const setup = validateProjectSetup<TProjectContext>(
+    const setup = validateSetup<ProjectSetupDefinition<TProjectContext>>(
       defaultSetup,
-      platform,
       'setup',
     );
     return {
@@ -446,7 +357,6 @@ const validateExecutionProjects = <TProjectContext>(
         Object.freeze({
           projectId: projectIdFromIndex(0),
           name: 'default',
-          platform,
           ...(setup ? { setup } : {}),
           tags: Object.freeze({ include: [], exclude: [] }),
           retry: 0,
@@ -474,16 +384,7 @@ const validateExecutionProjects = <TProjectContext>(
     }
     rejectUnknownKeys(
       candidate,
-      [
-        'name',
-        'platform',
-        'setup',
-        'nodes',
-        'files',
-        'tags',
-        'retry',
-        'variables',
-      ],
+      ['name', 'setup', 'nodes', 'files', 'tags', 'retry', 'variables'],
       label,
     );
     if (
@@ -498,12 +399,10 @@ const validateExecutionProjects = <TProjectContext>(
       );
     }
     names.add(candidate.name);
-    const platform = validatePlatform(candidate.platform, `${label}.platform`);
     const files = validateTestFileSelection(candidate.files, `${label}.files`);
     if (candidate.nodes !== undefined && !Array.isArray(candidate.nodes)) {
       throw new TypeError(`Midscene config ${label}.nodes must be an array.`);
     }
-    // Validate each scope before merging so duplicates within one scope still fail.
     const localNodes = new NodeRegistry(
       candidate.nodes as NodeDefinition[] | undefined,
     );
@@ -514,7 +413,6 @@ const validateExecutionProjects = <TProjectContext>(
     return Object.freeze({
       projectId: projectIdFromIndex(index),
       name: candidate.name,
-      platform,
       nodes,
       ...(files ? { files } : {}),
       tags: validateTagSelection(candidate.tags, `${label}.tags`),
@@ -523,9 +421,8 @@ const validateExecutionProjects = <TProjectContext>(
       ...(candidate.setup === undefined
         ? {}
         : {
-            setup: validateProjectSetup<TProjectContext>(
+            setup: validateSetup<ProjectSetupDefinition<TProjectContext>>(
               candidate.setup,
-              platform,
               `${label}.setup`,
             )!,
           }),
@@ -642,13 +539,14 @@ const validateTestProjectDefinition = <TContext>(
   };
 };
 
-const assertTypeScriptConfig = (absolutePath: string): void => {
-  if (!absolutePath.endsWith('.ts')) {
+const assertSupportedConfig = (absolutePath: string): '.ts' | '.mjs' => {
+  if (!absolutePath.endsWith('.ts') && !absolutePath.endsWith('.mjs')) {
     const extension = absolutePath.match(/(\.[^./\\]+)$/)?.[1] ?? '(none)';
     throw new TypeError(
-      `Unsupported Midscene config extension: ${extension}. Supported extension: .ts.`,
+      `Unsupported Midscene config extension: ${extension}. Supported extensions: .ts, .mjs.`,
     );
   }
+  return absolutePath.endsWith('.mjs') ? '.mjs' : '.ts';
 };
 
 const canRetryWithCjsLoader = (error: unknown): error is Error => {
@@ -673,16 +571,19 @@ export async function loadTestProject<TContext = undefined>(
   }
 
   const absolutePath = resolve(configPath);
-  assertTypeScriptConfig(absolutePath);
+  const extension = assertSupportedConfig(absolutePath);
   let loaded: unknown;
   try {
-    loaded = await tsImport(pathToFileURL(absolutePath).href, {
-      parentURL: pathToFileURL(`${dirname(absolutePath)}${sep}`).href,
-      tsconfig: false,
-    });
+    loaded =
+      extension === '.mjs'
+        ? await import(pathToFileURL(absolutePath).href)
+        : await tsImport(pathToFileURL(absolutePath).href, {
+            parentURL: pathToFileURL(`${dirname(absolutePath)}${sep}`).href,
+            tsconfig: false,
+          });
   } catch (error) {
     try {
-      if (!canRetryWithCjsLoader(error)) throw error;
+      if (extension === '.mjs' || !canRetryWithCjsLoader(error)) throw error;
       loaded = tsxRequire(absolutePath, pathToFileURL(absolutePath));
     } catch (fallbackError) {
       const message =

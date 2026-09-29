@@ -47,7 +47,12 @@ export type AIUsageInfo = Record<string, any> & {
   completion_tokens: number | undefined;
   total_tokens: number | undefined;
   cached_input: number | undefined;
+  /** Duration of the final successful request attempt, in milliseconds. */
   time_cost: number | undefined;
+  /** Request duration including all attempts and retry waits, excluding preparation, in milliseconds. */
+  total_time_cost?: number;
+  /** Request retries performed within this call; excludes semantic parse retries. */
+  retry_count?: number;
   model_name: string | undefined;
   model_description: string | undefined;
   /**
@@ -588,6 +593,11 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   uiContext?: UIContext;
+  /**
+   * Maximum planning feedback length inherited from the action definition.
+   * Set to 'unlimited' to disable truncation for this task.
+   */
+  planningFeedbackMaxLength?: number | 'unlimited';
   executor: (
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: void is intentionally allowed as some executors may not return a value
@@ -907,6 +917,12 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
+  /**
+   * Maximum number of characters from planningFeedback sent to the next
+   * planning round. Omit to use the core default, or set to 'unlimited' to
+   * disable truncation for this action.
+   */
+  planningFeedbackMaxLength?: number | 'unlimited';
   call: (
     param: TParam,
     context?: ExecutorContext,

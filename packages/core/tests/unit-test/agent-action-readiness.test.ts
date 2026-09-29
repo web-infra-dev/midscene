@@ -312,7 +312,7 @@ describe('Agent action readiness', () => {
       expect(call).toHaveBeenCalledOnce();
       expect(createWaiter).toHaveBeenCalledOnce();
       expect(dispose).toHaveBeenCalledOnce();
-      expect(standardPlan).toHaveBeenCalledTimes(path === 'cached' ? 0 : 1);
+      expect(standardPlan).toHaveBeenCalledTimes(path === 'planned' ? 1 : 0);
     },
   );
 
@@ -332,7 +332,7 @@ describe('Agent action readiness', () => {
     expect(call).toHaveBeenCalledOnce();
   });
 
-  it.each(['planned', 'cached'] as const)(
+  it.each(['planned', 'cached', 'yaml'] as const)(
     'cancels %s waiting without replaying a completed action',
     async (path) => {
       const started = deferred();
@@ -353,14 +353,16 @@ describe('Agent action readiness', () => {
       if (path === 'cached') seedPlan(agent);
       else planTwoActions(true);
       const assertion = expect(
-        agent.aiAct('submit twice', { abortSignal: controller.signal }),
+        path === 'yaml'
+          ? agent.runYaml(yaml, { abortSignal: controller.signal })
+          : agent.aiAct('submit twice', { abortSignal: controller.signal }),
       ).rejects.toThrow('stop login');
       await started.promise;
       controller.abort(new Error('stop login'));
       await assertion;
       expect(call).toHaveBeenCalledOnce();
       expect(dispose).toHaveBeenCalledOnce();
-      expect(standardPlan).toHaveBeenCalledTimes(path === 'cached' ? 0 : 1);
+      expect(standardPlan).toHaveBeenCalledTimes(path === 'planned' ? 1 : 0);
     },
   );
 

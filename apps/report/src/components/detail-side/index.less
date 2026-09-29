@@ -13,6 +13,10 @@
     background: white;
     z-index: 1;
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
 
     .info-tab {
       display: inline-block;
@@ -32,6 +36,29 @@
           height: 2px;
           background-color: #1677ff;
         }
+      }
+    }
+
+    .detail-side-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      padding: 0;
+      border: 0;
+      color: rgba(0, 0, 0, 0.65);
+      background: transparent;
+      cursor: pointer;
+
+      &:hover {
+        color: rgba(0, 0, 0, 0.88);
+        background: rgba(0, 0, 0, 0.04);
+      }
+
+      &:focus-visible {
+        outline: 2px solid #1677ff;
+        outline-offset: -4px;
       }
     }
   }
@@ -363,6 +390,15 @@
 
         &.active {
           color: #f8fafd;
+        }
+      }
+
+      .detail-side-close {
+        color: rgba(255, 255, 255, 0.65);
+
+        &:hover {
+          color: #fff;
+          background: rgba(255, 255, 255, 0.08);
         }
       }
     }

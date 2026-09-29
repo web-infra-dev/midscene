@@ -7,3 +7,6 @@ export {
   type PlaywrightBrowserAgentCreateOpt,
   type PlaywrightBrowserAgentOpt,
 } from './browser-agent';
+
+export type { PlaywrightPageAgentOpt } from './page-agent';
+export type { PlaywrightTestRunnerOptions } from './test-runner/types';

@@ -19,7 +19,7 @@ const createPlayer = (overrides: Record<string, any> = {}) => ({
   status: 'done',
   output: '/tmp/output.json',
   reportFile: '/tmp/report.html',
-  errorInSetup: undefined,
+  errorInSetup: undefined as Error | undefined,
   taskStatusList: [],
   run: rs.fn().mockResolvedValue(undefined),
   ...overrides,
@@ -236,6 +236,27 @@ describe('runYamlCase', () => {
     await expect(runYamlCase({ file: 'broken.yaml' })).rejects.toThrow(
       'setup failed',
     );
+  });
+
+  test('preserves report metadata when player cleanup rejects', async () => {
+    const cleanupError = new Error('cleanup failed');
+    const player = createPlayer();
+    player.run.mockImplementation(async () => {
+      player.status = 'error';
+      player.errorInSetup = cleanupError;
+      throw cleanupError;
+    });
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
+
+    const result = await runYamlCaseResult({ file: 'cleanup-failed.yaml' });
+
+    expect(result).toMatchObject({
+      success: false,
+      executed: true,
+      report: '/tmp/report.html',
+      resultType: 'failed',
+      error: 'cleanup failed',
+    });
   });
 
   test('throws task failures with report and output paths', async () => {

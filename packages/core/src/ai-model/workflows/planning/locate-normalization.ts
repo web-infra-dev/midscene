@@ -4,6 +4,10 @@ import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ParsedPlanningLocateParameter } from '../../model-adapter/planning-protocol';
+import {
+  locateResultKeys,
+  readLocateResultField,
+} from '../../shared/model-locate-result/result-field';
 import type {
   LocateResultCodec,
   LocateResultContext,
@@ -15,18 +19,9 @@ export function normalizePlanningActionLocateFields(
   actions: PlanningAction[],
   {
     actionSpace,
-    includeLocateInPlanning,
-    locateResultCodec,
-    locateResultContext,
-    acceptBbox2dAlias = false,
-    parseRawLocateParameter,
-  }: {
+    ...options
+  }: PlanningLocateNormalizationOptions & {
     actionSpace: DeviceAction[];
-    includeLocateInPlanning: boolean;
-    locateResultCodec?: LocateResultCodec;
-    locateResultContext: LocateResultContext;
-    acceptBbox2dAlias?: boolean;
-    parseRawLocateParameter: (value: unknown) => ParsedPlanningLocateParameter;
   },
 ): void {
   actions.forEach((action) => {
@@ -46,53 +41,61 @@ export function normalizePlanningActionLocateFields(
     debug('locateFields', locateFields);
 
     locateFields.forEach((field) => {
-      const rawLocateParameter = action.param?.[field];
-      if (!rawLocateParameter) {
+      const locateParameter = action.param?.[field];
+      if (!locateParameter) {
         return;
       }
 
-      const locateParameter = parseRawLocateParameter(rawLocateParameter);
-
-      if (!includeLocateInPlanning) {
-        // In prompt-only planning mode, ignore any accidental coordinates from the model.
-        action.param[field] = { prompt: locateParameter.prompt };
-        return;
-      }
-
-      assert(
-        locateResultCodec,
-        'planning locate normalization requires a locate result codec',
+      action.param[field] = normalizePlanningLocateParameter(
+        locateParameter,
+        options,
       );
-
-      const resultKey = locateResultCodec.promptSpec.resultKey;
-      const rawLocateValue =
-        locateParameter[resultKey] !== undefined
-          ? locateParameter[resultKey]
-          : acceptBbox2dAlias && resultKey === 'bbox'
-            ? locateParameter.bbox_2d
-            : undefined;
-
-      // The raw result field is replaced by locatedPixelResult, so it should not
-      // remain in the normalized locate parameter.
-      const rawCoordinateKeys = new Set([
-        resultKey,
-        ...(acceptBbox2dAlias && resultKey === 'bbox' ? ['bbox_2d'] : []),
-      ]);
-
-      const locateParamWithoutRawCoordinates = Object.fromEntries(
-        Object.entries(locateParameter).filter(
-          ([key]) => !rawCoordinateKeys.has(key),
-        ),
-      );
-
-      const result = locateResultCodec.toPixelResult(
-        rawLocateValue,
-        locateResultContext,
-      );
-      action.param[field] = {
-        ...locateParamWithoutRawCoordinates,
-        locatedPixelResult: result,
-      };
     });
   });
+}
+
+export type PlanningLocateNormalizationOptions = {
+  includeLocateInPlanning: boolean;
+  locateResultCodec?: LocateResultCodec;
+  locateResultContext: LocateResultContext;
+};
+
+export function normalizePlanningLocateParameter(
+  locateParameter: ParsedPlanningLocateParameter,
+  {
+    includeLocateInPlanning,
+    locateResultCodec,
+    locateResultContext,
+  }: PlanningLocateNormalizationOptions,
+): Record<string, unknown> {
+  if (!includeLocateInPlanning) {
+    // In prompt-only planning mode, ignore any accidental coordinates from the model.
+    return { prompt: locateParameter.prompt };
+  }
+
+  assert(
+    locateResultCodec,
+    'planning locate normalization requires a locate result codec',
+  );
+
+  const { promptSpec } = locateResultCodec;
+  const rawLocateValue = readLocateResultField(locateParameter, promptSpec);
+
+  // Remove primary and alias fields after converting the raw coordinates.
+  const rawCoordinateKeys = new Set(locateResultKeys(promptSpec));
+
+  const locateParamWithoutRawCoordinates = Object.fromEntries(
+    Object.entries(locateParameter).filter(
+      ([key]) => !rawCoordinateKeys.has(key),
+    ),
+  );
+
+  const result = locateResultCodec.toPixelResult(
+    rawLocateValue,
+    locateResultContext,
+  );
+  return {
+    ...locateParamWithoutRawCoordinates,
+    locatedPixelResult: result,
+  };
 }

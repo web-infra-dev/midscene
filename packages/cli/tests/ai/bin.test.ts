@@ -131,7 +131,9 @@ tasks:
     `;
       const path = await saveYaml(yamlString);
       const params = [path];
-      await execa(cliBin, params);
+      // Stop and await the CLI before Rstest's 5-minute deadline. Otherwise a
+      // timed-out attempt can resume during its retry and consume its snapshots.
+      await execa(cliBin, params, { timeout: 240_000, killSignal: 'SIGKILL' });
       const result = JSON.parse(readFileSync(output!, 'utf-8'));
       expect(result.items.length).toBeGreaterThanOrEqual(2);
       expect(result.items[0].imageUrl).toContain('/assets/');

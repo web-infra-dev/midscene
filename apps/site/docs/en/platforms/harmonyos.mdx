@@ -106,8 +106,9 @@ Promise.resolve(
     const device = new HarmonyDevice(devices[0].deviceId, {});
 
     const agent = new HarmonyAgent(device, {
-      aiActionContext:
-        'This is a HarmonyOS device. The system language is Chinese. If any popup appears, dismiss or agree to it.',
+      aiContexts: {
+        aiAct: 'This is a HarmonyOS device. The system language is Chinese. If any popup appears, dismiss or agree to it.',
+      },
     });
     await device.connect();
 
@@ -129,6 +130,8 @@ Promise.resolve(
   })(),
 );
 ```
+
+For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 ### Run the script
 

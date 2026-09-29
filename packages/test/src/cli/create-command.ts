@@ -11,11 +11,9 @@ import {
 } from './create-package-manager';
 import {
   type CreatePlatform,
-  type NodePackageSpec,
   createPlatformLabels,
   createPlatforms,
   createProjectFiles,
-  parseNodePackageSpec,
 } from './create-template';
 import type { TestCliIO } from './test-command';
 
@@ -35,13 +33,6 @@ const createParser = () =>
       requiresArg: true,
       description: 'Platform preset (prompt if omitted)',
     })
-    .option('with', {
-      type: 'array',
-      string: true,
-      nargs: 1,
-      requiresArg: true,
-      description: 'npm Node package, optionally versioned (repeatable)',
-    })
     .option('package-manager', {
       type: 'string',
       choices: createPackageManagers,
@@ -60,17 +51,13 @@ const createParser = () =>
       type: 'boolean',
       default: false,
       description:
-        'Create files without installing dependencies or generating midscene-node-reference.md',
+        'Create files without installing dependencies or generating Node Specs',
     })
     .demandCommand(0, 1, '', 'Only one project directory is allowed.')
     .example('$0', 'Choose a directory and platform interactively')
     .example('$0 my-tests --platform web', 'Create a Web project')
-    .example(
-      '$0 . --platform android --with @acme/test-nodes@1.2.0',
-      'Include a Node package',
-    )
     .epilogue(
-      'Optionally installs dependencies with the selected package manager. The generated postinstall script creates midscene-node-reference.md after installation.\nNode packages must export a synchronous createMidsceneTestNodes(options) factory.\nExisting files are never overwritten. Setup and tests are not run during creation.',
+      'Optionally installs dependencies with the selected package manager. The generated postinstall script creates a Project-specific Node Spec after installation.\nExisting files are never overwritten. Setup and tests are not run during creation.',
     )
     .help('help')
     .alias('help', 'h')
@@ -87,7 +74,6 @@ export interface CreateOptions {
   directory?: string;
   platform?: CreatePlatform;
   packageManager?: CreatePackageManager;
-  packages: NodePackageSpec[];
   yes: boolean;
   skipInstall: boolean;
   help: boolean;
@@ -105,21 +91,10 @@ export function parseCreateArgs(
   if (directory !== undefined && !directory.trim()) {
     throw new Error('Project directory must not be empty.');
   }
-  const packages = (values.with ?? []).map(parseNodePackageSpec);
-  const seen = new Set<string>();
-  for (const pkg of packages) {
-    if (seen.has(pkg.name)) {
-      throw new Error(
-        `Node package "${pkg.name}" was specified more than once.`,
-      );
-    }
-    seen.add(pkg.name);
-  }
   return {
     directory,
     platform: values.platform,
     packageManager: values['package-manager'],
-    packages,
     yes: values.yes ?? false,
     skipInstall: values['skip-install'] ?? false,
     help: values.help === true,
@@ -232,8 +207,7 @@ export async function runCreateCommand(
     selectPackageManager,
     confirmInstall: () =>
       confirm({
-        message:
-          'Install dependencies and generate midscene-node-reference.md now?',
+        message: 'Install dependencies and generate Node Specs now?',
         default: true,
       }),
     runPackageManager,
@@ -275,15 +249,10 @@ export async function runCreateCommand(
       .replace(/[^a-z0-9._-]/g, '-')
       .replace(/^[._-]+/, '') || 'midscene-tests';
   const commands = packageManagerCommands[packageManager];
-  const files = createProjectFiles(
-    name,
-    platform,
-    options.packages,
-    packageManager,
-  );
+  const files = createProjectFiles(name, platform, packageManager);
   checkDestinations(root, [
     ...Object.keys(files),
-    'midscene-node-reference.md',
+    `midscene-node-spec.${platform}.md`,
     'pnpm-lock.yaml',
     'package-lock.json',
     'npm-shrinkwrap.json',
@@ -304,7 +273,7 @@ export async function runCreateCommand(
         ['ExitPromptError', 'AbortPromptError'].includes(error.name)
       ) {
         throw new Error(
-          `Project creation cancelled. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')} to install dependencies and generate midscene-node-reference.md.`,
+          `Project creation cancelled. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')} to install dependencies and generate midscene-node-spec.${platform}.md.`,
         );
       }
       throw error;
@@ -312,7 +281,7 @@ export async function runCreateCommand(
   }
   if (!install) {
     io.log(
-      `Project files ready: ${root}\nNext: run ${packageManager} ${commands.install.join(' ')} in the project directory. The postinstall script will generate midscene-node-reference.md.\nThen follow README.md to configure your model and run tests.`,
+      `Project files ready: ${root}\nNext: run ${packageManager} ${commands.install.join(' ')} in the project directory. The postinstall script will generate midscene-node-spec.${platform}.md.\nThen follow README.md to configure your model and run tests.`,
     );
     return;
   }
@@ -321,27 +290,27 @@ export async function runCreateCommand(
     await services.runPackageManager(packageManager, commands.install, root);
   } catch (error) {
     throw new Error(
-      `Dependency installation or postinstall Node reference generation failed. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')}, then ${packageManager} run nodes if lifecycle scripts are disabled.\nIf postinstall failed, check midscene.config.ts and the Node package factories, then run ${packageManager} run nodes.\n${error instanceof Error ? error.message : String(error)}`,
+      `Dependency installation or postinstall Node Spec generation failed. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')}, then ${packageManager} run nodes if lifecycle scripts are disabled.\nIf postinstall failed, check midscene.config.ts and the Node package factories, then run ${packageManager} run nodes.\n${error instanceof Error ? error.message : String(error)}`,
     );
   }
   try {
-    const referencePath = resolve(root, 'midscene-node-reference.md');
-    const generatedByPostinstall = Boolean(statIfPresent(referencePath));
+    const specPath = resolve(root, `midscene-node-spec.${platform}.md`);
+    const generatedByPostinstall = Boolean(statIfPresent(specPath));
     // Fall back to explicit generation if lifecycle scripts were disabled.
     if (!generatedByPostinstall) {
-      io.log('Generating Node reference...');
+      io.log('Generating Node Spec...');
       await services.runPackageManager(packageManager, commands.describe, root);
     }
-    const markdown = readFileSync(referencePath, 'utf8');
+    const markdown = readFileSync(specPath, 'utf8');
     if (!markdown.startsWith('<!-- Generated by `midscene-test nodes`.')) {
-      throw new Error('nodes did not generate a valid Node reference.');
+      throw new Error('nodes did not generate a valid Node Spec.');
     }
   } catch (error) {
     throw new Error(
-      `Node reference generation failed. Project files are preserved in ${root}.\nCheck that each Node package exports createMidsceneTestNodes(options), returns a Node array synchronously, and does not register duplicate names.\nFix midscene.config.ts, then run ${packageManager} run nodes in the project directory.\n${error instanceof Error ? error.message : String(error)}`,
+      `Node Spec generation failed. Project files are preserved in ${root}.\nCheck that each Node package exports createMidsceneTestNodes(options), returns a Node array synchronously, and does not register duplicate names.\nFix midscene.config.ts, then run ${packageManager} run nodes in the project directory.\n${error instanceof Error ? error.message : String(error)}`,
     );
   }
   io.log(
-    `Project ready: ${root}\nNode reference: ${resolve(root, 'midscene-node-reference.md')}\nNext: copy .env.example to .env and configure your model.${platform === 'web' ? `\nInstall Chromium: ${commands.installChromium}` : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: ${packageManager} test`,
+    `Project ready: ${root}\nNode Spec: ${resolve(root, `midscene-node-spec.${platform}.md`)}\nNext: copy .env.example to .env and configure your model.${platform === 'web' ? `\nInstall Chromium: ${commands.installChromium}` : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: ${packageManager} test`,
   );
 }

@@ -16,15 +16,28 @@ import * as puppeteerAgentLauncherActual from '@midscene/web/puppeteer-agent-lau
 import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
 // Mock dependencies
-rs.mock('node:fs', () => ({
-  readFileSync: rs.fn(),
-}));
+rs.mock('node:fs', { spy: true });
 
 rs.mock('http-server', () => ({
   createServer: rs.fn(),
 }));
 
 rs.mock('@midscene/core/yaml', { spy: true });
+
+// The launcher tests replace ScriptPlayer itself, so its private state is mocked too.
+rs.mock('@midscene/core/internal/yaml-runtime', () => {
+  const states = new WeakMap<object, { fallbackReportFileName?: string }>();
+  return {
+    getLegacyYamlPlayerState: rs.fn((player: object) => {
+      let state = states.get(player);
+      if (!state) {
+        state = {};
+        states.set(player, state);
+      }
+      return state;
+    }),
+  };
+});
 
 rs.mock('@midscene/core/agent', () => ({
   ...agentActual,
@@ -75,6 +88,7 @@ rs.mock('puppeteer', () => ({
 
 import { agentFromAdbDevice } from '@midscene/android';
 import { getReportFileName } from '@midscene/core/agent';
+import { getLegacyYamlPlayerState } from '@midscene/core/internal/yaml-runtime';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { agentFromHdcDevice } from '@midscene/harmony';
 import { agentFromWebDriverAgent } from '@midscene/ios';
@@ -111,6 +125,8 @@ describe('create-yaml-player', () => {
           setTimeout(() => callback(), 0);
         }),
         server: {
+          once: rs.fn(),
+          removeListener: rs.fn(),
           address: rs.fn().mockReturnValue({
             address: '127.0.0.1',
             port: 8080,
@@ -165,6 +181,10 @@ describe('create-yaml-player', () => {
         mockFilePath,
       );
       expect(result).toBe(mockPlayer);
+      expect(getLegacyYamlPlayerState(result).fallbackReportFileName).toBe(
+        'script-mock-report',
+      );
+      expect(result).not.toHaveProperty('fallbackReportFileName');
     });
 
     test('should pass explicit page target to puppeteer launcher', async () => {
@@ -247,6 +267,8 @@ describe('create-yaml-player', () => {
       const mockServer = {
         listen: rs.fn((_port, _host, callback) => callback()),
         server: {
+          once: rs.fn(),
+          removeListener: rs.fn(),
           address: rs.fn().mockReturnValue({
             address: '127.0.0.1',
             port: 8080,
@@ -1039,6 +1061,7 @@ describe('create-yaml-player', () => {
       await setupFnCallback?.();
 
       expect(warnSpy).toHaveBeenCalledWith(
+        '[Midscene]',
         expect.stringContaining('downloadPath'),
       );
       warnSpy.mockRestore();

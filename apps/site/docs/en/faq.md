@@ -13,6 +13,87 @@ The following platform-specific FAQs are maintained in their respective document
 - [HarmonyOS](./platforms/harmonyos#faq)
 - [PC Desktop](./platforms/desktop#faq)
 
+## Why are uppercase letters or modifier keys lost when controlling desktop clients such as VNC? {#keyboard-input-through-desktop-clients}
+
+When you use `@midscene/computer` to control VNC, TeamViewer, or a virtual machine console, some clients may not recognize every keyboard event. For example, uppercase `K` may become `k`, `!` may become `1`, or `Control+S` may produce only `s`.
+
+If this happens, add a delay between modifier-key events. The following configuration has been verified with a full-screen VNC client on Windows.
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer({
+  inputStrategy: 'sequential',
+  keyboardTypeDelay: 120,
+  keyboardModifierDelay: 100,
+  keyboardLayout: 'en-US',
+});
+```
+
+`keyboardModifierDelay` is the primary option for fixing lost modifiers. Start with `100`. After keyboard input works correctly, reduce the value gradually if needed.
+
+### Why does adding a delay help?
+
+Uppercase letters, shifted symbols, and keyboard shortcuts all depend on modifier keys.
+
+For example:
+
+- Uppercase `K` requires `Shift`, followed by `K`.
+- On an en-US keyboard, `!` requires `Shift`, followed by `1`.
+- `Control+S` requires `Control`, followed by `S`.
+
+Midscene converts these operations into modifier-down, primary-key, and key-release events.
+
+Some desktop clients capture these events and forward them to another system or feature. If the events arrive too close together, the client may not retain the modifier state while handling the primary key. The result can be a lowercase letter, a number instead of a symbol, or a shortcut reduced to its primary key.
+
+When you set `keyboardModifierDelay`, Midscene sends these events in phases and waits between each phase. This gives the desktop client time to recognize and forward the modifier state.
+
+Full-screen VNC is one verified example. However, this behavior is not limited to VNC or remote-control software. Any desktop client that captures or forwards keyboard events can be affected by input timing.
+
+### What does each option do?
+
+- `keyboardModifierDelay` controls the wait between phases of a modified-key input. It applies to shortcuts such as `Control+S` and to the implicit `Shift` in uppercase letters.
+- `keyboardTypeDelay` controls the wait between consecutive text characters.
+- `inputStrategy: 'sequential'` enters text one character at a time, allowing Midscene to send the corresponding key sequence for uppercase letters and shifted symbols.
+- `keyboardLayout: 'en-US'` enables shifted-character mapping for the en-US keyboard layout. For example, it uses `Shift+1` to enter `!`.
+
+Uppercase Latin letters do not require `keyboardLayout`. Only layout-dependent shifted characters such as `!`, `@`, and `#` require this option.
+
+:::warning
+Set `keyboardLayout: 'en-US'` only when both the local and target environments use the en-US key mapping. Other layouts may place symbols on different keys or require modifiers such as AltGr.
+:::
+
+### Which input methods support this option?
+
+`keyboardModifierDelay` applies only to the local libnut keyboard driver.
+
+- Local desktop control on Windows and Linux uses libnut.
+- macOS uses this path when you set `keyboardDriver: 'libnut'`.
+- The option has no effect on direct RDP input.
+- The option has no effect on the default macOS AppleScript keyboard driver.
+
+AppleScript uses a different input method. Whether a desktop client recognizes it still depends on the client's shortcut interception, keyboard mode, and layout conversion.
+
+### How do I send keyboard shortcuts?
+
+Pass the shortcut through the `keyName` option. Join modifiers and the primary key with `+`, without surrounding spaces.
+
+```typescript
+// Send Control+S to the element that already has focus.
+await agent.aiKeyboardPress(undefined, {
+  keyName: 'Control+S',
+});
+
+// Locate the terminal first, then send Control+Shift+P.
+await agent.aiKeyboardPress('the terminal window', {
+  keyName: 'Control+Shift+P',
+});
+```
+
+Use `Control+S`, not `Control + S`.
+
+When the target already has focus, pass `undefined` as the first argument. This prevents an additional click from changing the current selection or caret position.
+
 ## What data is sent to AI model?
 
 The screenshot will be sent to the AI model. In some cases, like setting the `domIncluded` option to `true` when calling `aiAsk` or `aiQuery`, the DOM information will also be sent.
@@ -197,6 +278,31 @@ For more information about `deepLocate`, please refer to the [API documentation]
 If you are running Midscene in a web browser, you can try increasing the DPR to `2`. In CI environments, the default DPR is often `1`. Raising it to `2` makes the page clearer, which usually improves positioning for small elements.
 
 Keep in mind that this will consume more tokens.
+
+## The model plans the wrong scroll or swipe direction in aiAct {#scroll-and-swipe-directions}
+
+If the model plans the wrong scroll or swipe direction in `aiAct()`, the cause may be ambiguity in the natural-language instruction.
+
+For example, “scroll down” can mean several things:
+
+- **Move the mouse wheel downward**: with common Windows mouse-wheel settings, the page content moves upward.
+- **Move a finger downward on the screen**: the page content follows the finger downward.
+- **Reveal content below the current viewport**: the required finger or mouse-wheel movement depends on how the device is operated.
+
+The model may therefore plan a direction that differs from your expectation because it interpreted the instruction differently.
+
+A good way to reduce ambiguity is to **state the result you want to achieve** in the instruction. For example:
+
+- “Scroll down the page to the footer.”
+- “Scroll the date picker up to increase the date.”
+- “Scroll the page to the right to view the content of the tab on the right.”
+
+Even if you and the model interpret a direction word differently, a clear goal helps the model plan the correct movement.
+
+Midscene instructs the model to prioritize the goal of the scroll or swipe when determining the movement direction. For vague instructions such as “scroll down” or “swipe down”, if the context still does not clarify the intent, the following defaults apply:
+
+- **scroll**: interpret the direction as the off-screen content to reveal. For example, scroll down means revealing content below the current viewport.
+- **swipe**: interpret the direction as finger movement. For example, swipe down means moving the finger downward.
 
 ## Does the Doubao phone use Midscene under the hood?
 

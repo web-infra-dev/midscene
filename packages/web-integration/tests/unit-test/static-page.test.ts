@@ -1,6 +1,6 @@
 import { ScreenshotItem } from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
-import { StaticPage } from '../../src/static';
+import { StaticPage, StaticPageAgent } from '../../src/static';
 
 const screenshotBase64 = 'data:image/png;base64,abc123';
 
@@ -52,5 +52,32 @@ describe('StaticPage', () => {
     await expect(page.screenshotBase64()).rejects.toThrow(
       'serialized reference without base64 data',
     );
+  });
+
+  it('lets StaticPageAgent reuse the prepared UI context', async () => {
+    const capturedAt = 123;
+    const page = new StaticPage(
+      createContext({ base64: screenshotBase64, capturedAt }),
+    );
+    const agent = new StaticPageAgent(page);
+
+    const context = await agent.getUIContext();
+
+    expect(context.shotSize).toEqual({ width: 800, height: 600 });
+    expect(context.shrunkShotToLogicalRatio).toBe(1);
+    expect(context.screenshot).toBeInstanceOf(ScreenshotItem);
+    expect(context.screenshot.base64).toBe(screenshotBase64);
+    expect(context.screenshot.capturedAt).toBe(capturedAt);
+
+    const updatedScreenshotBase64 = 'data:image/png;base64,updated';
+    page.updateContext(
+      createContext({ base64: updatedScreenshotBase64, capturedAt: 456 }),
+    );
+
+    const updatedContext = await agent.getUIContext();
+
+    expect(updatedContext).not.toBe(context);
+    expect(updatedContext.screenshot.base64).toBe(updatedScreenshotBase64);
+    expect(updatedContext.screenshot.capturedAt).toBe(456);
   });
 });

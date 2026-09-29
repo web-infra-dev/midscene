@@ -132,11 +132,11 @@ Midscene supports DeepSeek starting from v1.12.0.
 
 | Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
-| DeepSeek V4 series | `deepseek-v4-flash-vision-exp` | `deepseek` | Currently, only `deepseek-v4-flash-vision-exp` supports the multimodal visual input required by Midscene. Other DeepSeek V4 models, including `deepseek-v4-pro` and `deepseek-v4-flash`, are not suitable for use with Midscene. |
+| DeepSeek V4 series | `deepseek-flash` (V4.1 Flash), `deepseek-v4-flash-vision-exp` (V4 Flash Vision) | `deepseek` | DeepSeek-V4-Pro does not support visual input and cannot be used with Midscene. |
 
 </div>
 
-Environment variable configuration example, using `deepseek-v4-flash-vision-exp`:
+Environment variable configuration example, using `deepseek-flash`:
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -144,7 +144,7 @@ Environment variable configuration example, using `deepseek-v4-flash-vision-exp`
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_MODEL_NAME="deepseek-flash"
 MIDSCENE_MODEL_FAMILY="deepseek"
 ```
 
@@ -154,7 +154,7 @@ MIDSCENE_MODEL_FAMILY="deepseek"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_PLANNING_MODEL_NAME="deepseek-flash"
 MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
 ```
 
@@ -164,7 +164,7 @@ MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_INSIGHT_MODEL_NAME="deepseek-flash"
 MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
 ```
 
@@ -226,12 +226,12 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 | Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
-| GPT-6 series | `gpt-6-astra` | `gpt-6` | |
+| GPT-6 series | `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna` | `gpt-6` | GPT-6 Sol delivers excellent visual localization accuracy at just one-fifth the price of GPT-6 Astra. GPT-6 Luna is very inexpensive while also offering good visual localization capabilities. |
 | GPT-5 series | `gpt-5.4`, `gpt-5.5`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | `gpt-5` | Models before GPT-5.4 do not support visual localization and can only be used as Planning or Insight models. In practical localization tests, GPT-5.5 and GPT-5.6 perform noticeably better than GPT-5.4; we recommend using GPT-5.5 or GPT-5.6 first. |
 
 </div>
 
-Environment variable configuration example, using `gpt-6-astra`:
+Environment variable configuration example, using `gpt-6-sol`:
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -239,7 +239,7 @@ Environment variable configuration example, using `gpt-6-astra`:
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
 MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-6-astra"
+MIDSCENE_MODEL_NAME="gpt-6-sol"
 MIDSCENE_MODEL_FAMILY="gpt-6"
 ```
 
@@ -249,7 +249,7 @@ MIDSCENE_MODEL_FAMILY="gpt-6"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
 MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
-MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+MIDSCENE_PLANNING_MODEL_NAME="gpt-6-sol"
 MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 ```
 
@@ -259,7 +259,7 @@ MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
 MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
-MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-astra"
+MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-sol"
 MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
 
@@ -304,7 +304,7 @@ Compared with calling an OpenAI-compatible API directly, we have observed that t
 
 When using GPT-5, note the following:
 
-- For UI localization with GPT, Midscene currently supports `gpt-5.4` and later models. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while smaller GPT-5 variants such as `gpt-5.4-mini` and `gpt-5.4-nano`, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
+- For UI localization with GPT, Midscene currently supports `gpt-5.4` and later models. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while some smaller GPT-5 variants, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
 - According to OpenAI, GPT-5 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
 - With Azure OpenAI, Azure may not handle `"detail": "original"` correctly, causing click-coordinate offsets. See [Clicks are offset when using Azure OpenAI](./faq#clicks-are-offset-when-using-azure-openai).
@@ -366,11 +366,11 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 
 | Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
-| V2.x series | `mimo-v2.5` | `xiaomi-mimo` | Only the Omni series supports multimodal input; the Pro series is text-only and cannot be used for Midscene visual tasks. |
+| V2.x series | `mimo-v2.6-pro`, `mimo-v2.6-flash`, `mimo-v2.6-pro-ultraspeed`, `mimo-v2.5` | `xiaomi-mimo` | All 2.6 models support multimodal input; for 2.5, only the Omni series supports multimodal input. |
 
 </div>
 
-Environment variable configuration example, using `mimo-v2.5`:
+Environment variable configuration example, using `mimo-v2.6-pro`:
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -378,7 +378,7 @@ Environment variable configuration example, using `mimo-v2.5`:
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # Xiaomi MiMo API endpoint
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="mimo-v2.5"
+MIDSCENE_MODEL_NAME="mimo-v2.6-pro"
 MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
 ```
 
@@ -388,7 +388,7 @@ MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # Xiaomi MiMo API endpoint
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="mimo-v2.5"
+MIDSCENE_PLANNING_MODEL_NAME="mimo-v2.6-pro"
 MIDSCENE_PLANNING_MODEL_FAMILY="xiaomi-mimo"
 ```
 
@@ -398,7 +398,7 @@ MIDSCENE_PLANNING_MODEL_FAMILY="xiaomi-mimo"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # Xiaomi MiMo API endpoint
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="mimo-v2.5"
+MIDSCENE_INSIGHT_MODEL_NAME="mimo-v2.6-pro"
 MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
 ```
 

@@ -18,55 +18,58 @@ describe('service-caller empty content handling', () => {
     rs.clearAllMocks();
   });
 
-  it('does not report or attach usage when all attempts return empty content', async () => {
-    const { callAI, AIResponseParseError } = await import(
-      '@/ai-model/service-caller'
-    );
-    const { getModelRuntime } = await import('@/ai-model/models');
+  it.each(['', '   '])(
+    'does not report or attach usage when all attempts return unusable content %j',
+    async (content) => {
+      const { callAI, AIResponseParseError } = await import(
+        '@/ai-model/service-caller'
+      );
+      const { getModelRuntime } = await import('@/ai-model/models');
 
-    mockCreate.mockResolvedValue({
-      choices: [{ message: { content: '' } }],
-      usage: {
-        prompt_tokens: 12,
-        completion_tokens: 0,
-        total_tokens: 12,
-        prompt_tokens_details: {
-          cached_tokens: 7,
+      mockCreate.mockResolvedValue({
+        choices: [{ message: { content } }],
+        usage: {
+          prompt_tokens: 12,
+          completion_tokens: 0,
+          total_tokens: 12,
+          prompt_tokens_details: {
+            cached_tokens: 7,
+          },
         },
-      },
-      model: 'gpt-4o-2024-08-06',
-      _request_id: 'req_test_123',
-    });
+        model: 'gpt-4o-2024-08-06',
+        _request_id: 'req_test_123',
+      });
 
-    const modelConfig: IModelConfig = {
-      modelName: 'gpt-4o',
-      openaiApiKey: 'test-key',
-      openaiBaseURL: 'https://api.openai.com/v1',
-      modelDescription: 'test model',
-      intent: 'default',
-      slot: 'default',
-      retryCount: 1,
-      retryInterval: 0,
-    };
+      const modelConfig: IModelConfig = {
+        modelName: 'gpt-4o',
+        openaiApiKey: 'test-key',
+        openaiBaseURL: 'https://api.openai.com/v1',
+        modelDescription: 'test model',
+        intent: 'default',
+        slot: 'default',
+        retryCount: 1,
+        retryInterval: 0,
+      };
 
-    const runtime = getModelRuntime(modelConfig);
-    const onUsage = rs.fn();
-    runtime.onUsage = onUsage;
-    const promise = callAI([{ role: 'user', content: 'hello' }], runtime);
+      const runtime = getModelRuntime(modelConfig);
+      const onUsage = rs.fn();
+      runtime.onUsage = onUsage;
+      const promise = callAI([{ role: 'user', content: 'hello' }], runtime);
 
-    await expect(promise).rejects.toBeInstanceOf(AIResponseParseError);
+      await expect(promise).rejects.toBeInstanceOf(AIResponseParseError);
 
-    try {
-      await promise;
-    } catch (error) {
-      const typedError = error as InstanceType<typeof AIResponseParseError>;
-      expect(typedError.usage).toBeUndefined();
-      expect(onUsage).not.toHaveBeenCalled();
-      expect(mockCreate).toHaveBeenCalledTimes(2);
-      expect(typedError.rawResponse).toBe('');
-      expect(typedError.rawChoiceMessage).toEqual({ content: '' });
-    }
-  });
+      try {
+        await promise;
+      } catch (error) {
+        const typedError = error as InstanceType<typeof AIResponseParseError>;
+        expect(typedError.usage).toBeUndefined();
+        expect(onUsage).not.toHaveBeenCalled();
+        expect(mockCreate).toHaveBeenCalledTimes(2);
+        expect(typedError.rawResponse).toBe(content);
+        expect(typedError.rawChoiceMessage).toEqual({ content });
+      }
+    },
+  );
   it('reports only the successful attempt usage after an empty response', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');

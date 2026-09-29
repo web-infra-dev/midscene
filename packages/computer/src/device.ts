@@ -26,11 +26,22 @@ import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
+import { sendKeyViaAppleScript } from './apple-script-keyboard';
 import {
   ComputerInputDriver,
   type LibNut,
   type ScrollDirection,
 } from './input-driver';
+import {
+  US_SHIFTED_CHARACTER_KEYS,
+  resolveShiftedKey,
+} from './keyboard-layout';
+import { clampPointerPointToSize } from './pointer';
+import {
+  type WindowsDisplayGeometry,
+  readWindowsDisplayGeometries,
+  resolveWindowsDisplayGeometryFromList,
+} from './windows-display';
 import { runWindowsPhysicalPixelPowershell } from './windows-dpi';
 import {
   WindowsPointerDriver,
@@ -103,10 +114,8 @@ export interface DarwinDisplayGeometry extends DisplayGeometry {
   cgDisplayId: number;
 }
 
-export interface WindowsDisplayGeometry extends DisplayGeometry {
-  id: string;
-  name: string;
-}
+export type { WindowsDisplayGeometry } from './windows-display';
+export { resolveWindowsDisplayGeometryFromList } from './windows-display';
 
 export interface Point {
   x: number;
@@ -155,34 +164,6 @@ const LIBNUT_FALLBACK_PIXELS_PER_DETENT = 100;
 const LIBNUT_FALLBACK_TICK_DELAY_MS = 30;
 const LIBNUT_FALLBACK_MAX_DETENTS = 200;
 const LIBNUT_FALLBACK_DETENT_AMOUNT = process.platform === 'win32' ? 120 : 1;
-// Work around libnut's Linux shifted-punctuation behavior for en-US layouts.
-// This is intentionally not a universal keyboard-layout map: non-US layouts
-// can place these characters on different keys or modifier levels (for example,
-// AltGr). Layout-independent support should resolve characters against the
-// active layout in the input backend instead of extending this table.
-const LINUX_SHIFTED_CHARACTER_KEYS = new Map<string, string>([
-  ['~', '`'],
-  ['!', '1'],
-  ['@', '2'],
-  ['#', '3'],
-  ['$', '4'],
-  ['%', '5'],
-  ['^', '6'],
-  ['&', '7'],
-  ['*', '8'],
-  ['(', '9'],
-  [')', '0'],
-  ['_', '-'],
-  ['+', '='],
-  ['{', '['],
-  ['}', ']'],
-  ['|', '\\'],
-  [':', ';'],
-  ['"', "'"],
-  ['<', ','],
-  ['>', '.'],
-  ['?', '/'],
-]);
 // Edge scrolls (scrollToTop / scrollToBottom / ...) must drive all the way to
 // the boundary on every backend. The phased path requests EDGE_SCROLL_TOTAL_PX
 // (50_000 px); the libnut fallback aims for the same distance, capped at
@@ -227,121 +208,8 @@ const EDGE_SCROLL_SPEC: Record<EdgeScrollType, EdgeScrollStrategy> = {
   scrollToRight: { direction: 'right', key: 'end', libnut: [1, 0] },
 };
 
-// macOS AppleScript key code mapping
-// Reference: https://eastmanreference.com/complete-list-of-applescript-key-codes
-const APPLESCRIPT_KEY_CODE_MAP: Record<string, number> = {
-  // Special keys
-  return: 36,
-  enter: 36,
-  tab: 48,
-  space: 49,
-  backspace: 51,
-  delete: 51,
-  escape: 53,
-  forwarddelete: 117,
-
-  // Arrow keys
-  left: 123,
-  right: 124,
-  down: 125,
-  up: 126,
-
-  // Navigation keys
-  home: 115,
-  end: 119,
-  pageup: 116,
-  pagedown: 121,
-
-  // Function keys
-  f1: 122,
-  f2: 120,
-  f3: 99,
-  f4: 118,
-  f5: 96,
-  f6: 97,
-  f7: 98,
-  f8: 100,
-  f9: 101,
-  f10: 109,
-  f11: 103,
-  f12: 111,
-};
-
-// Modifier key mapping for AppleScript
-const APPLESCRIPT_MODIFIER_MAP: Record<string, string> = {
-  command: 'command down',
-  cmd: 'command down',
-  control: 'control down',
-  ctrl: 'control down',
-  shift: 'shift down',
-  alt: 'option down',
-  option: 'option down',
-  meta: 'command down',
-};
-
-/**
- * Send a key press using AppleScript (macOS only)
- * More reliable than libnut for TUI applications like Bubble Tea
- */
-function sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
-  const lowerKey = key.toLowerCase();
-  const keyCode = APPLESCRIPT_KEY_CODE_MAP[lowerKey];
-
-  // Build modifier string
-  const modifierParts = modifiers
-    .map((m) => APPLESCRIPT_MODIFIER_MAP[m.toLowerCase()])
-    .filter(Boolean);
-  const modifierStr =
-    modifierParts.length > 0 ? ` using {${modifierParts.join(', ')}}` : '';
-
-  let script: string;
-
-  if (keyCode !== undefined) {
-    // Use key code for special keys
-    script = `tell application "System Events" to key code ${keyCode}${modifierStr}`;
-  } else {
-    const escapedKey = key.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    script = `tell application "System Events" to keystroke "${escapedKey}"${modifierStr}`;
-  }
-
-  debugDevice('sendKeyViaAppleScript', { key, modifiers, script });
-  execFileSync('osascript', ['-e', script]);
-}
-
 function escapePowershellSingleQuoted(value: string): string {
   return value.replace(/'/g, "''");
-}
-
-/** Enumerate Windows monitors and their physical-pixel bounds via PowerShell
- * (screenshot-desktop's .bat-based listDisplays is broken under Claude Code —
- * see #2150). */
-export function readWindowsDisplayGeometries(): WindowsDisplayGeometry[] {
-  const script = `
-Add-Type -AssemblyName System.Windows.Forms
-$s = [System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
-  $b = $_.Bounds
-  [PSCustomObject]@{
-    id = $_.DeviceName
-    name = $_.DeviceName
-    primary = $_.Primary
-    bounds = [PSCustomObject]@{ x = $b.X; y = $b.Y; width = $b.Width; height = $b.Height }
-  }
-}
-ConvertTo-Json @($s) -Compress
-`.trim();
-  const output = runWindowsPhysicalPixelPowershell(script).trim();
-  if (!output) {
-    throw new Error('Windows display enumeration returned no data');
-  }
-  const parsed: unknown = JSON.parse(output);
-  if (!Array.isArray(parsed)) {
-    throw new Error('Windows display enumeration returned invalid data');
-  }
-  const displays = parsed.filter(isWindowsDisplayGeometry);
-  if (displays.length !== parsed.length || displays.length === 0) {
-    throw new Error('Windows display enumeration returned invalid geometry');
-  }
-  return displays;
 }
 
 function listWindowsDisplays(
@@ -499,20 +367,6 @@ function isDisplayBounds(value: unknown): value is DisplayBounds {
   );
 }
 
-function isWindowsDisplayGeometry(
-  value: unknown,
-): value is WindowsDisplayGeometry {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as WindowsDisplayGeometry;
-  return (
-    typeof candidate.id === 'string' &&
-    candidate.id.length > 0 &&
-    typeof candidate.name === 'string' &&
-    typeof candidate.primary === 'boolean' &&
-    isDisplayBounds(candidate.bounds)
-  );
-}
-
 function isDarwinDisplayGeometry(
   value: unknown,
 ): value is DarwinDisplayGeometry {
@@ -623,17 +477,6 @@ export function resolveDarwinDisplayGeometryFromList(
 }
 
 /** @internal exported for unit tests — do not consume from outside this package */
-export function resolveWindowsDisplayGeometryFromList(
-  displayId: string | undefined,
-  displays: WindowsDisplayGeometry[],
-): WindowsDisplayGeometry | undefined {
-  if (!displays.length) return undefined;
-  if (displayId === undefined || displayId === '') {
-    return displays.find((display) => display.primary) || displays[0];
-  }
-  return displays.find((display) => display.id === displayId);
-}
-
 function resolveDisplayGeometry(
   displayId: string | undefined,
   windowsDisplays?: WindowsDisplayGeometry[],
@@ -824,6 +667,25 @@ export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
    */
   keyboardDriver?: 'applescript' | 'libnut';
   /**
+   * Delay in milliseconds after each explicit modifier transition and the
+   * main key for local libnut keyboard events. A positive value changes
+   * modified shortcuts and shifted en-US text characters into separately
+   * observable modifier-down, main-key, and modifier-up phases. This can help
+   * foreground clients whose full-screen keyboard capture misses rapidly
+   * synthesized modifier state changes.
+   *
+   * Ignored by the macOS AppleScript driver and RDP mode.
+   * @default 0
+   */
+  keyboardModifierDelay?: number;
+  /**
+   * Keyboard layout used to resolve layout-dependent shifted characters
+   * during sequential local libnut input. Uppercase Latin letters do not
+   * require this option. Other characters keep using the backend's existing
+   * input behavior unless a supported layout is declared.
+   */
+  keyboardLayout?: 'en-US';
+  /**
    * Headless mode via Xvfb (Linux only).
    * - true: start Xvfb virtual display
    * - false/undefined: do not start Xvfb
@@ -964,26 +826,13 @@ export class ComputerDevice implements AbstractInterface {
         await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
-        await this.moveDisplayPointer(
-          from,
-          'Mouse did not reach the drag start target',
-        );
-        await this.inputDriver.withMouseButton('left', async () => {
-          await this.inputDriver.delay(100);
-          await this.moveDisplayPointer(
-            to,
-            'Mouse did not reach the drag end target',
-            {
-              // Native desktop toolkits commonly use the first motion beyond
-              // their threshold to enter drag mode. Keep emitting held-button
-              // motions so the drop target can observe the active drag before
-              // the button is released.
-              smoothSteps: SMOOTH_MOVE_STEPS_DRAG,
-              smoothDelay: SMOOTH_MOVE_DELAY_DRAG,
-            },
-          );
-          await this.inputDriver.delay(100);
-        });
+        await this.performPointerDrag(from, to);
+      },
+      swipe: async (from, to, opts) => {
+        const repeatCount = opts?.repeat ?? 1;
+        for (let index = 0; index < repeatCount; index++) {
+          await this.performPointerDrag(from, to, opts?.duration);
+        }
       },
     },
     keyboard: {
@@ -1030,6 +879,21 @@ export class ComputerDevice implements AbstractInterface {
   };
 
   constructor(options?: ComputerDeviceOpt) {
+    if (
+      options?.keyboardModifierDelay !== undefined &&
+      (!Number.isFinite(options.keyboardModifierDelay) ||
+        options.keyboardModifierDelay < 0)
+    ) {
+      throw new Error(
+        'keyboardModifierDelay must be a finite non-negative number',
+      );
+    }
+    if (
+      options?.keyboardLayout !== undefined &&
+      options.keyboardLayout !== 'en-US'
+    ) {
+      throw new Error('keyboardLayout must be "en-US" when specified');
+    }
     this.options = options;
     this.displayId = options?.displayId;
     this.useAppleScript =
@@ -1082,6 +946,39 @@ export class ComputerDevice implements AbstractInterface {
     smooth?: { smoothSteps: number; smoothDelay: number },
   ): Promise<Point> {
     return this.moveGlobalPointer(this.toGlobalPoint(point), context, smooth);
+  }
+
+  private async performPointerDrag(
+    from: Point,
+    to: Point,
+    duration?: number,
+  ): Promise<void> {
+    const screenSize = await this.size();
+    const boundedFrom = clampPointerPointToSize(from, screenSize);
+    const boundedTo = clampPointerPointToSize(to, screenSize);
+    await this.moveDisplayPointer(
+      boundedFrom,
+      'Mouse did not reach the drag start target',
+    );
+    await this.inputDriver.withMouseButton('left', async () => {
+      await this.inputDriver.delay(100);
+      await this.moveDisplayPointer(
+        boundedTo,
+        'Mouse did not reach the drag end target',
+        {
+          // Native desktop toolkits commonly use the first motion beyond
+          // their threshold to enter drag mode. Keep emitting held-button
+          // motions so the drop target can observe the active drag before
+          // the button is released.
+          smoothSteps: SMOOTH_MOVE_STEPS_DRAG,
+          smoothDelay:
+            duration === undefined
+              ? SMOOTH_MOVE_DELAY_DRAG
+              : Math.max(0, Math.round(duration / SMOOTH_MOVE_STEPS_DRAG)),
+        },
+      );
+      await this.inputDriver.delay(100);
+    });
   }
 
   private async focusKeyboardTarget(
@@ -1546,7 +1443,11 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
         this.inputDriver.sendKeyViaAppleScript('v', ['command']);
       } else {
         const modifier = process.platform === 'darwin' ? 'command' : 'control';
-        this.inputDriver.keyTap('v', [modifier]);
+        await this.inputDriver.keyTapWithModifierDelay(
+          'v',
+          [modifier],
+          this.options?.keyboardModifierDelay ?? 0,
+        );
       }
       await this.inputDriver.delay(100);
     } finally {
@@ -1584,10 +1485,15 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     await sendTextSequentially(
       text.replace(/\r\n?/g, '\n'),
       {
-        sendCharacter: (character) => {
+        sendCharacter: async (character) => {
           const linuxShiftedKey =
             process.platform === 'linux'
-              ? LINUX_SHIFTED_CHARACTER_KEYS.get(character)
+              ? US_SHIFTED_CHARACTER_KEYS.get(character)
+              : undefined;
+          const pacedShiftedKey =
+            !this.useAppleScript &&
+            (this.options?.keyboardModifierDelay ?? 0) > 0
+              ? resolveShiftedKey(character, this.options?.keyboardLayout)
               : undefined;
           if (character === '\n') {
             this.inputDriver.sendKey('return');
@@ -1597,6 +1503,12 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
             this.inputDriver.sendKey('space');
           } else if (this.useAppleScript) {
             this.inputDriver.sendKeyViaAppleScript(character);
+          } else if (pacedShiftedKey !== undefined) {
+            await this.inputDriver.keyTapWithModifierDelay(
+              pacedShiftedKey,
+              ['shift'],
+              this.options?.keyboardModifierDelay ?? 0,
+            );
           } else if (linuxShiftedKey !== undefined) {
             this.inputDriver.keyTap(linuxShiftedKey, ['shift']);
           } else {
@@ -1618,7 +1530,11 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     }
 
     const modifier = process.platform === 'darwin' ? 'command' : 'control';
-    this.inputDriver.keyTap('a', [modifier]);
+    await this.inputDriver.keyTapWithModifierDelay(
+      'a',
+      [modifier],
+      this.options?.keyboardModifierDelay ?? 0,
+    );
     await this.inputDriver.delay(50);
     this.inputDriver.keyTap('backspace');
   }
@@ -1634,6 +1550,19 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       modifiers,
       driver: this.useAppleScript ? 'applescript' : 'libnut',
     });
+
+    if (
+      !this.useAppleScript &&
+      modifiers.length > 0 &&
+      (this.options?.keyboardModifierDelay ?? 0) > 0
+    ) {
+      await this.inputDriver.keyTapWithModifierDelay(
+        key,
+        modifiers,
+        this.options?.keyboardModifierDelay ?? 0,
+      );
+      return;
+    }
 
     this.inputDriver.sendKey(key, modifiers);
   }
@@ -1800,7 +1729,9 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   actionSpace(): DeviceAction<any>[] {
     const defaultActions: DeviceAction<any>[] = [
-      ...defineActionsFromInputPrimitives(this.inputPrimitives),
+      ...defineActionsFromInputPrimitives(this.inputPrimitives, {
+        size: () => this.size(),
+      }),
     ];
 
     const platformActions = Object.values(createPlatformActions());

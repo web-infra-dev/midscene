@@ -1,6 +1,9 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
-import { findActionInActionSpaceOrThrow } from '@/common';
+import {
+  findActionInActionSpaceOrThrow,
+  validateRequiredLocateFields,
+} from '@/common';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
@@ -217,13 +220,10 @@ export class TaskBuilder {
 
     const locateFields = findAllMidsceneLocatorField(action.paramSchema);
 
-    const requiredLocateFields = findAllMidsceneLocatorField(
-      action.paramSchema,
-      true,
-    );
+    validateRequiredLocateFields(param, action.paramSchema);
 
     locateFields.forEach((field) => {
-      if (param[field]) {
+      if (param?.[field]) {
         // Always use createLocateTask for all locate params.
         // This ensures cache writing happens even when locatedPixelResult is available
         const locatePlan = locatePlanForLocate(param[field]);
@@ -244,10 +244,6 @@ export class TaskBuilder {
         );
         context.tasks.push(locateTask);
       } else {
-        assert(
-          !requiredLocateFields.includes(field),
-          `Required locate field '${field}' is not provided for action ${planType}`,
-        );
         debug(`field '${field}' is not provided for action ${planType}`);
       }
     });
@@ -262,6 +258,7 @@ export class TaskBuilder {
       subType: planType,
       thought: plan.thought,
       param: plan.param,
+      planningFeedbackMaxLength: action.planningFeedbackMaxLength,
       executor: async (taskContext) => {
         const timing = taskContext.task.timing;
 
@@ -275,12 +272,7 @@ export class TaskBuilder {
         const uiContext = taskContext.uiContext;
         assert(uiContext, 'uiContext is required for Action task');
 
-        requiredLocateFields.forEach((field) => {
-          assert(
-            param[field],
-            `field '${field}' is required for action ${planType} but not provided. Cannot execute action ${planType}.`,
-          );
-        });
+        validateRequiredLocateFields(param, action.paramSchema);
 
         const { shrunkShotToLogicalRatio } = uiContext;
         if (shrunkShotToLogicalRatio === undefined) {

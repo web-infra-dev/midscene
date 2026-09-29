@@ -10,6 +10,8 @@ import { getGitHubStars } from './scripts/github-stars';
 
 const SITE_URL = 'https://midscenejs.com';
 const FAVICON_URL = `${SITE_URL}/favicon.png`;
+// Bump this version when browsers need to refresh their cached site icon.
+const FAVICON_LINK_URL = `${FAVICON_URL}?v=20260929`;
 const OG_IMAGE_URL = `${SITE_URL}/og-image.png`;
 
 const SEARCH_IDENTITY_JSON_LD = JSON.stringify({
@@ -49,10 +51,10 @@ export default defineConfig(async () => {
     root: path.join(__dirname, 'docs'),
     title: 'Midscene - Vision-Driven UI Automation',
     description: 'AI-powered, vision-driven UI automation for every platform.',
-    icon: '/favicon.png',
+    icon: FAVICON_LINK_URL,
     logo: {
-      light: '/midscene_with_text_light.png',
-      dark: '/midscene_with_text_dark.png',
+      light: '/images/brand/midscene_with_text_light.png',
+      dark: '/images/brand/midscene_with_text_dark.png',
     },
     head: [
       [
@@ -61,14 +63,14 @@ export default defineConfig(async () => {
           rel: 'icon',
           type: 'image/png',
           sizes: '600x600',
-          href: FAVICON_URL,
+          href: FAVICON_LINK_URL,
         },
       ],
       [
         'link',
         {
           rel: 'apple-touch-icon',
-          href: FAVICON_URL,
+          href: FAVICON_LINK_URL,
         },
       ],
       // Open Graph
@@ -230,6 +232,25 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
+            sectionHeaderText: 'Test Framework (Beta)',
+          },
+          {
+            text: 'Midscene Test overview',
+            link: '/midscene-test/overview',
+          },
+          {
+            text: 'Create and use test projects',
+            link: '/midscene-test/use',
+          },
+          {
+            text: 'Configure test projects',
+            link: '/midscene-test/configuration',
+          },
+          {
+            text: 'Develop custom Nodes',
+            link: '/midscene-test/extend',
+          },
+          {
             sectionHeaderText: 'YAML automation',
           },
           {
@@ -239,6 +260,10 @@ export default defineConfig(async () => {
           {
             text: 'Workflow in YAML format',
             link: '/automate-with-scripts-in-yaml',
+          },
+          {
+            text: 'Migrate to Midscene Test',
+            link: '/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: 'Reference',
@@ -253,6 +278,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: 'Advanced guides',
+          },
+          {
+            text: 'Provide application knowledge to a GUI Agent',
+            link: '/provide-application-knowledge-to-gui-agent',
           },
           {
             text: 'Model debugging & observability',
@@ -273,25 +302,6 @@ export default defineConfig(async () => {
           {
             text: 'Cache AI plans & DOM locators',
             link: '/caching',
-          },
-          {
-            sectionHeaderText: 'Midscene Test (Beta)',
-          },
-          {
-            text: 'Overview',
-            link: '/midscene-test/overview',
-          },
-          {
-            text: 'Create and use test projects',
-            link: '/midscene-test/use',
-          },
-          {
-            text: 'Develop custom Nodes',
-            link: '/midscene-test/extend',
-          },
-          {
-            text: 'Configure test projects',
-            link: '/midscene-test/configuration',
           },
           {
             sectionHeaderText: 'Resources',
@@ -402,6 +412,25 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
+            sectionHeaderText: '测试框架 (Beta)',
+          },
+          {
+            text: 'Midscene Test 概览',
+            link: '/zh/midscene-test/overview',
+          },
+          {
+            text: '创建和使用测试项目',
+            link: '/zh/midscene-test/use',
+          },
+          {
+            text: '配置测试项目',
+            link: '/zh/midscene-test/configuration',
+          },
+          {
+            text: '编写自定义 Node',
+            link: '/zh/midscene-test/extend',
+          },
+          {
             sectionHeaderText: 'YAML 自动化',
           },
           {
@@ -411,6 +440,10 @@ export default defineConfig(async () => {
           {
             text: 'YAML 格式的工作流',
             link: '/zh/automate-with-scripts-in-yaml',
+          },
+          {
+            text: '迁移到 Midscene Test',
+            link: '/zh/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: '参考文档',
@@ -425,6 +458,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '进阶指南',
+          },
+          {
+            text: '为 GUI Agent 补充应用知识',
+            link: '/zh/provide-application-knowledge-to-gui-agent',
           },
           {
             text: '模型调试与可观测性',
@@ -445,25 +482,6 @@ export default defineConfig(async () => {
           {
             text: '缓存 AI 规划与 DOM 定位',
             link: '/zh/caching',
-          },
-          {
-            sectionHeaderText: 'Midscene Test (Beta)',
-          },
-          {
-            text: '概览',
-            link: '/zh/midscene-test/overview',
-          },
-          {
-            text: '创建和使用测试项目',
-            link: '/zh/midscene-test/use',
-          },
-          {
-            text: '编写自定义 Node',
-            link: '/zh/midscene-test/extend',
-          },
-          {
-            text: '配置测试项目',
-            link: '/zh/midscene-test/configuration',
           },
           {
             sectionHeaderText: '资源',

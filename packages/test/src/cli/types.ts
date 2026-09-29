@@ -4,14 +4,11 @@ import type {
   WorkflowDocumentRunResult,
 } from '../engine/types';
 import type { WorkflowError } from '../errors';
-import type {
-  TestFileSelection,
-  TestPlatform,
-  TestTagSelection,
-} from './test-project';
+import type { TestFileSelection, TestTagSelection } from './test-project';
 
 export type TestProjectCaseRunResult = CaseRunOutcome & {
   documentId: string;
+  documentRunId?: string;
 };
 
 export interface TestProjectCollectionError {
@@ -26,6 +23,9 @@ export interface TestProjectRunSummary {
   passed: number;
   failed: number;
   notRun: number;
+  passedAfterRetry: number;
+  finalPassRate: number;
+  firstPassRate: number;
   filtered: number;
   collectionErrors: number;
   documentFailures: number;
@@ -35,7 +35,7 @@ export interface TestProjectRunSummary {
 export interface TestExecutionProjectRunResult {
   projectId: string;
   name: string;
-  platform: TestPlatform;
+  platform?: string;
   status: 'success' | 'failed';
   retry: number;
   fileSelection: TestFileSelection;
@@ -67,4 +67,6 @@ export interface TestProjectRunResult {
   cases: readonly TestProjectCaseRunResult[];
   documents: readonly WorkflowDocumentRunResult[];
   collectionErrors: readonly TestProjectCollectionError[];
+  /** Infrastructure/publication failures; completed Case results stay intact. */
+  errors?: readonly WorkflowError[];
 }

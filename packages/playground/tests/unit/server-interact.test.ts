@@ -747,6 +747,49 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
   });
 
+  test('POST /interact falls back to pointer-backed Swipe', async () => {
+    const pointerSwipe = rs.fn(async () => {});
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap: rs.fn(async () => {}),
+        swipe: pointerSwipe,
+      },
+      touch: undefined,
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'computer',
+        actionSpace: () => [],
+        inputPrimitives,
+      },
+    } as any);
+
+    await server.launch(6111);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Swipe',
+          x: 10,
+          y: 20,
+          endX: 110,
+          endY: 220,
+          duration: 500,
+          repeat: 2,
+        },
+      },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(pointerSwipe).toHaveBeenCalledWith(
+      { x: 10, y: 20 },
+      { x: 110, y: 220 },
+      { duration: 500, repeat: 2 },
+    );
+  });
+
   test('POST /interact forwards Scroll to input primitives', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({

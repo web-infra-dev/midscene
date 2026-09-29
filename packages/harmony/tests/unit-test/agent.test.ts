@@ -1,3 +1,4 @@
+import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import {
   MIDSCENE_MODEL_NAME,
   MIDSCENE_USE_DOUBAO_VISION,
@@ -16,6 +17,7 @@ import {
 } from '@rstest/core';
 import { HarmonyAgent, agentFromHdcDevice } from '../../src/agent';
 import { HarmonyDevice } from '../../src/device';
+import { harmonyAgentTestRunnerNodeDefinitions } from '../../src/test-runner-nodes';
 import * as Utils from '../../src/utils';
 
 rs.mock('../../src/device');
@@ -29,24 +31,16 @@ const mockedModelConfig = {
 } as const;
 
 it('declares common and Harmony Test Runner Nodes', () => {
-  expect(
-    HarmonyAgent.getTestRunnerNodeDefinitions().map(({ name }) => name),
-  ).toEqual([
-    'aiAct',
-    'aiTap',
-    'aiAssert',
-    'aiBoolean',
-    'aiNumber',
-    'aiString',
-    'aiAsk',
-    'recordToReport',
-    'launch',
-    'terminate',
-    'runHdcShell',
-    'back',
-    'home',
-    'recentApps',
-  ]);
+  const names = HarmonyAgent.getTestRunnerNodeDefinitions().map(
+    ({ name }) => name,
+  );
+  expect(names).toEqual(
+    [
+      ...commonAgentTestRunnerNodeDefinitions,
+      ...harmonyAgentTestRunnerNodeDefinitions,
+    ].map(({ name }) => name),
+  );
+  expect(new Set(names).size).toBe(names.length);
 });
 
 describe('HarmonyAgent', () => {

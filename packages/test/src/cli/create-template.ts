@@ -21,31 +21,8 @@ export const createPlatformLabels: Record<CreatePlatform, string> = {
   computer: 'Desktop (Computer)',
 };
 
-export interface NodePackageSpec {
-  name: string;
-  version: string;
-}
-
-/** Registry packages only: keep the install spec separate from the import name. */
-export function parseNodePackageSpec(spec: string): NodePackageSpec {
-  const match =
-    /^(?:(@[a-z0-9][a-z0-9._-]*)\/)?([a-z0-9][a-z0-9._-]*)(?:@([a-zA-Z0-9^~*>=<|. +_-]+))?$/.exec(
-      spec,
-    );
-  if (!match || (match[3] !== undefined && !match[3].trim())) {
-    throw new Error(
-      `Invalid Node package "${spec}". Use an npm package name with an optional version, such as @acme/test-nodes@1.2.0.`,
-    );
-  }
-  return {
-    name: `${match[1] ? `${match[1]}/` : ''}${match[2]}`,
-    version: match[3] ?? 'latest',
-  };
-}
-
 const platformImports: Record<CreatePlatform, string> = {
   web: `import { PlaywrightAgent } from '@midscene/web/playwright/agent';
-import { createPlaywrightNodes } from '@midscene/test/playwright';
 import { chromium, type Page } from 'playwright';`,
   android: `import { AndroidAgent, agentFromAdbDevice } from '@midscene/android';`,
   ios: `import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';`,
@@ -71,13 +48,28 @@ const platformSetup: Record<CreatePlatform, string> = {
   android: `    const agent = await agentFromAdbDevice(env.ANDROID_DEVICE_ID || undefined);
     onTeardown(() => agent.destroy());
     return { agent };`,
-  ios: `    const port = Number(env.WDA_PORT || 8100);
+  ios: `    const wdaBaseUrl = env.WDA_BASE_URL || undefined;
+    if (wdaBaseUrl && (env.WDA_HOST !== undefined || env.WDA_PORT !== undefined)) {
+      throw new Error('WDA_BASE_URL cannot be used with WDA_HOST or WDA_PORT.');
+    }
+    const port = Number(env.WDA_PORT || 8100);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       throw new Error('WDA_PORT must be an integer between 1 and 65535.');
     }
+    const wdaMjpegUrl = env.WDA_MJPEG_URL || undefined;
+    if (wdaMjpegUrl && env.WDA_MJPEG_PORT !== undefined) {
+      throw new Error('WDA_MJPEG_URL cannot be used with WDA_MJPEG_PORT.');
+    }
+    const mjpegPort = env.WDA_MJPEG_PORT === undefined ? undefined : Number(env.WDA_MJPEG_PORT);
+    if (mjpegPort !== undefined && (!Number.isInteger(mjpegPort) || mjpegPort < 1 || mjpegPort > 65535)) {
+      throw new Error('WDA_MJPEG_PORT must be an integer between 1 and 65535.');
+    }
     const agent = await agentFromWebDriverAgent({
-      wdaHost: env.WDA_HOST || 'localhost',
-      wdaPort: port,
+      ...(wdaBaseUrl
+        ? { wdaBaseUrl }
+        : { wdaHost: env.WDA_HOST || 'localhost', wdaPort: port }),
+      ...(wdaMjpegUrl ? { wdaMjpegUrl } : {}),
+      ...(mjpegPort !== undefined ? { wdaMjpegPort: mjpegPort } : {}),
     });
     onTeardown(() => agent.destroy());
     return { agent };`,
@@ -95,7 +87,7 @@ const platformEnv: Record<CreatePlatform, string> = {
   web: 'HEADLESS=true\n',
   android:
     '# Optional: choose a device from adb devices.\nANDROID_DEVICE_ID=\n',
-  ios: 'WDA_HOST=localhost\nWDA_PORT=8100\n',
+  ios: '# WDA_HOST=localhost\n# WDA_PORT=8100\n# WDA_BASE_URL=https://gateway.example/device/wda\n# WDA_MJPEG_PORT=9100\n# WDA_MJPEG_URL=https://gateway.example/device/mjpeg\n',
   harmony:
     '# Optional: choose a device from hdc list targets.\nHARMONY_DEVICE_ID=\n',
   computer:
@@ -117,7 +109,7 @@ MIDSCENE_MODEL_FAMILY=
 const platformInstructions: Record<Exclude<CreatePlatform, 'web'>, string> = {
   android:
     'Connect an Android device and verify it with `adb devices`. Set ANDROID_DEVICE_ID to select a device.',
-  ios: 'Start WebDriverAgent and set WDA_HOST and WDA_PORT for your iOS device.',
+  ios: 'Start WebDriverAgent and set WDA_HOST and WDA_PORT, or set WDA_BASE_URL for a gateway URL with a path prefix. Set WDA_MJPEG_URL for a separate remote MJPEG stream, or WDA_MJPEG_PORT for a direct connection.',
   harmony:
     'Connect a HarmonyOS device and verify it with `hdc list targets`. Set HARMONY_DEVICE_ID to select a device. Set HDC_HOME if hdc is not on PATH.',
   computer:
@@ -127,7 +119,6 @@ const platformInstructions: Record<Exclude<CreatePlatform, 'web'>, string> = {
 export function createProjectFiles(
   name: string,
   platform: CreatePlatform,
-  packages: readonly NodePackageSpec[],
   packageManager: CreatePackageManager,
 ): Record<string, string> {
   const instructions =
@@ -135,25 +126,12 @@ export function createProjectFiles(
       ? `Install Chromium before the first test: \`${packageManagerCommands[packageManager].installChromium}\`.`
       : platformInstructions[platform];
   const agentClass = agentClasses[platform];
-  const imports = packages
-    .map(
-      (pkg, index) =>
-        `import { createMidsceneTestNodes as createPackageNodes${index} } from ${JSON.stringify(pkg.name)};`,
-    )
-    .join('\n');
-  const extraNodes = packages
-    .map(
-      (_, index) =>
-        `    ...createPackageNodes${index}<ProjectContext>({ platform: '${platform}', getAgent }),`,
-    )
-    .join('\n');
   const config = `import { fileURLToPath } from 'node:url';
 import { config as loadEnv } from 'dotenv';
 import type { NodeExecutionContext } from '@midscene/test';
 import { defineProjectSetup, defineTestProject } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 ${platformImports[platform]}
-${imports}
 
 loadEnv({ path: fileURLToPath(new URL('.env', import.meta.url)) });
 
@@ -168,7 +146,6 @@ ${platform === 'web' ? '  context.agent ??= new PlaywrightAgent(context.page);' 
 
 const setup = defineProjectSetup<ProjectContext>({
   name: '${platform}',
-  platform: '${platform}',
   async setup({ env, onTeardown }) {
 ${platformSetup[platform]}
   },
@@ -177,14 +154,11 @@ ${platformSetup[platform]}
 export default defineTestProject<ProjectContext>({
   projects: [{
     name: '${platform}',
-    platform: '${platform}',
     setup,
     files: { include: ['cases/**/*.{yaml,yml}'] },
   }],
   nodes: [
     ...createMidsceneNodes<ProjectContext>({ agentClass: ${agentClass}, getAgent }),
-${platform === 'web' ? '    ...createPlaywrightNodes<ProjectContext>({ getPage: ({ context }) => context.page }),' : ''}
-${extraNodes}
   ],
 });
 `;
@@ -196,14 +170,6 @@ ${extraNodes}
     typescript: '^5.8.3',
     ...(platform === 'web' ? { playwright: '^1.45.0' } : {}),
   };
-  for (const pkg of packages) {
-    if (Object.hasOwn(dependencies, pkg.name)) {
-      throw new Error(
-        `Node package "${pkg.name}" conflicts with a generated project dependency.`,
-      );
-    }
-    dependencies[pkg.name] = pkg.version;
-  }
   const env = platformEnv[platform];
   return {
     'package.json': `${JSON.stringify(
@@ -247,6 +213,6 @@ ${extraNodes}
           : 'cases:\n  - name: Inspect the home screen\n    steps:\n      - home: {}\n      - aiAsk: Describe the current screen\n',
     '.env.example': `${modelEnv}\n${env}`,
     '.gitignore': 'node_modules/\n.env\nmidscene_run/\n',
-    'README.md': `# ${name}\n\nA Midscene Test project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-node-reference.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run nodes\` manually.\n\nCopy \`.env.example\` to \`.env\`, then choose and configure a model using the [supported models and setup guide](https://midscenejs.com/model-common-config.html). Do not commit \`.env\` to your repository; inject the model configuration as environment variables in CI.\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-node-reference.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run nodes\` to refresh the reference. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\n${packages.length ? `Node packages: ${packages.map((pkg) => `\`${pkg.name}\``).join(', ')}. Their \`createMidsceneTestNodes\` factories are imported in the configuration.\n\n` : ''}Reports are written to \`midscene_run/report/\`.\n`,
+    'README.md': `# ${name}\n\nA Midscene Test project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-node-spec.${platform}.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run nodes\` manually.\n\nCopy \`.env.example\` to \`.env\`, then choose and configure a model using the [supported models and setup guide](https://midscenejs.com/model-common-config.html). Do not commit \`.env\` to your repository; inject the model configuration as environment variables in CI.\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-node-spec.${platform}.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run nodes\` to refresh the spec. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\nReports are written to \`midscene_run/report/\`.\n`,
   };
 }

@@ -10,8 +10,19 @@ tasks:
     flow:
       - aiAssert: The overview reports a failed run and shows Project browser disposal failed, Document fixture disposal failed, Case session disposal failed, and Database connection refused. Web regression is expanded and includes Blocked by document setup.
       - aiTap: the Blocked by document setup case row
-      - aiAssert: The not-run case has no Attempt selector. Its Execution panel shows the failed fixture.connect step under Document setup, and the evidence panel shows Database connection refused and the input host fixture-database.
+      - aiAssert: The not-run case has no Attempt selector. Its Execution panel shows the failed fixture.connect step under Document setup, and the evidence panel shows Database connection refused.
+      - javascript: |
+          const inspector = document.querySelector('.runner-detail-inspector');
+          if (!(inspector instanceof HTMLElement)) throw new Error('Missing fixture.connect evidence inspector');
+          inspector.scrollIntoView({ block: 'start' });
+        name: revealFixtureConnectInput
+      - aiAssert: The visible Input & output panel for fixture.connect shows the input host fixture-database.
+      - javascript: |
+          const main = document.querySelector('.runner-main');
+          if (!(main instanceof HTMLElement)) throw new Error('Missing report scroll container');
+          main.scrollTo({ top: 0 });
+        name: restoreCaseHeader
       - aiTap: the Overview back link
       - aiAssert: The overview shows the Projects and cases section and all four error messages, including Project browser disposal failed and Database connection refused.
       - aiTap: the Verify cart summary case row under Web regression in the Projects and cases section, not the similarly named lifecycle error summary above that section
-      - aiAssert: The Verify cart summary case detail has a Visual timeline and Execution panel. It shows Case session disposal failed, the cart.verify step has a green success indicator, and there is no Attempt selector.
+      - aiAssert: The Verify cart summary case detail has an Execution panel and shows that no visual evidence was captured in this Attempt. It shows Case session disposal failed, the cart.verify step has a green success indicator, and there is no Attempt selector.

@@ -85,7 +85,9 @@ import { agentForComputer } from '@midscene/computer';
 (async () => {
   // Create an agent
   const agent = await agentForComputer({
-    aiActionContext: 'You are controlling a desktop computer.',
+    aiContexts: {
+      aiAct: 'You are controlling a desktop computer.',
+    },
   });
 
   // Take a screenshot and query information
@@ -103,6 +105,8 @@ import { agentForComputer } from '@midscene/computer';
   console.log('Desktop automation completed!');
 })();
 ```
+
+For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 ### Run the script
 
@@ -157,8 +161,9 @@ await agent.aiAct('click the red button five times');
 import { agentForRDPComputer } from '@midscene/computer';
 
 const agent = await agentForRDPComputer({
-  aiActionContext:
-    'You are controlling a remote Windows desktop over the RDP protocol.',
+  aiContexts: {
+    aiAct: 'You are controlling a remote Windows desktop over the RDP protocol.',
+  },
   host: '10.75.166.249',
   port: 3389,
   username: 'Admin',
@@ -171,6 +176,8 @@ await agent.aiAct('Click the Windows Start button');
 await agent.aiAct('Open Settings');
 await agent.aiAssert('The Windows Settings window is visible');
 ```
+
+For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 ### Common RDP Options
 

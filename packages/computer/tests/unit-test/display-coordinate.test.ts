@@ -6,6 +6,24 @@ import {
   resolveDarwinDisplayGeometryFromList,
   resolveWindowsDisplayGeometryFromList,
 } from '../../src/device';
+import { clampPointerPointToSize } from '../../src/pointer';
+
+describe('pointer coordinate bounds', () => {
+  it('clamps points to the last pixel in half-open screen bounds', () => {
+    expect(
+      clampPointerPointToSize(
+        { x: 1920, y: 1080 },
+        { width: 1920, height: 1080 },
+      ),
+    ).toEqual({ x: 1919, y: 1079 });
+    expect(
+      clampPointerPointToSize(
+        { x: -10, y: -20 },
+        { width: 1920, height: 1080 },
+      ),
+    ).toEqual({ x: 0, y: 0 });
+  });
+});
 
 describe('display coordinate mapping', () => {
   it('keeps points unchanged when no display geometry is available', () => {

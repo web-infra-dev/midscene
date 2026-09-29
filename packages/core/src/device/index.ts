@@ -80,6 +80,22 @@ export interface PointerPoint {
   y: number;
 }
 
+/** Low-level swipe gesture implemented by touch or pointer-backed devices. */
+export type SwipeInputPrimitive = (
+  start: PointerPoint,
+  end: PointerPoint,
+  opts?: { duration?: number; repeat?: number },
+) => Promise<void>;
+
+/** The physical input source used to execute and describe a swipe. */
+export type SwipeInputMode = 'touch' | 'mouse';
+
+/** A resolved swipe capability and the input semantics exposed to the model. */
+export interface ResolvedSwipeInputPrimitive {
+  swipe: SwipeInputPrimitive;
+  inputMode: SwipeInputMode;
+}
+
 export interface PointerInputPrimitives {
   tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   doubleClick?(p: PointerPoint): Promise<void>;
@@ -87,14 +103,11 @@ export interface PointerInputPrimitives {
   hover?(p: PointerPoint): Promise<void>;
   longPress?(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   dragAndDrop?(from: PointerPoint, to: PointerPoint): Promise<void>;
+  swipe?: SwipeInputPrimitive;
 }
 
 export interface TouchInputPrimitives {
-  swipe(
-    start: PointerPoint,
-    end: PointerPoint,
-    opts?: { duration?: number; repeat?: number },
-  ): Promise<void>;
+  swipe: SwipeInputPrimitive;
   pinch?(
     center: PointerPoint,
     opts: { startDistance: number; endDistance: number; duration: number },
@@ -140,6 +153,23 @@ export interface InputPrimitives {
   touch?: TouchInputPrimitives;
   scroll?: ScrollInputPrimitives;
   system?: SystemInputPrimitives;
+}
+
+/**
+ * Resolve the canonical swipe capability for an input collection.
+ * Touch remains preferred for devices that expose both capabilities; desktop
+ * devices can fall back to a pointer-backed primary-button gesture.
+ */
+export function resolveSwipeInputPrimitive(
+  input: Pick<InputPrimitives, 'pointer' | 'touch'>,
+): ResolvedSwipeInputPrimitive | undefined {
+  if (input.touch?.swipe) {
+    return { swipe: input.touch.swipe, inputMode: 'touch' };
+  }
+  if (input.pointer?.swipe) {
+    return { swipe: input.pointer.swipe, inputMode: 'mouse' };
+  }
+  return undefined;
 }
 
 export interface MobileInputPrimitives extends InputPrimitives {
@@ -643,13 +673,16 @@ export const actionScrollParamSchema = z.object({
     .enum(['down', 'up', 'right', 'left'])
     .default('down')
     .describe(
-      'The direction to scroll. Only effective when scrollType is "singleAction".',
+      'The direction toward the off-screen content to reveal. "down" reveals content below the current viewport, "up" reveals content above, "right" reveals content to the right, and "left" reveals content to the left. This does not describe the movement direction of the content currently visible on the screen. Only effective when scrollType is "singleAction".',
     ),
   distance: z
     .number()
+    .positive()
     .nullable()
     .optional()
-    .describe('The distance in pixels to scroll'),
+    .describe(
+      'Positive requested scroll amount in screen-coordinate units. On touch platforms, it controls the length of the swipe gesture used to scroll; on web and desktop platforms, it controls or approximates the wheel scroll delta. Only effective when scrollType is "singleAction".',
+    ),
   locate: getMidsceneLocationSchema()
     .optional()
     .describe(
@@ -663,7 +696,7 @@ export const defineActionScroll = (
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
-      'Scroll the page or a scrollable element to browse content. This is the preferred way to scroll on all platforms, including mobile. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
+      'Scroll a page or scrollable region to reveal off-screen content. Use Scroll when the goal is to browse content outside the current viewport. For direct gesture interactions, such as adjusting a slider or wheel picker, switching between paged cards or images, following an on-screen swipe gesture to continue or dismiss, or swiping an item to delete it, use Swipe instead if available in the current Action Space. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
     interfaceAlias: 'aiScroll',
     paramSchema: actionScrollParamSchema,
     sample: {
@@ -757,38 +790,49 @@ export const defineActionLongPress = (
   });
 };
 
-export const ActionSwipeParamSchema = z.object({
-  start: getMidsceneLocationSchema()
-    .optional()
-    .describe(
-      'Starting point of the swipe gesture, if not specified, the center of the page will be used',
-    ),
-  direction: z
-    .enum(['up', 'down', 'left', 'right'])
-    .optional()
-    .describe(
-      'The direction to swipe (required when using distance). The direction means the direction of the finger swipe.',
-    ),
-  distance: z
-    .number()
-    .optional()
-    .describe('The distance in pixels to swipe (mutually exclusive with end)'),
-  end: getMidsceneLocationSchema()
-    .optional()
-    .describe(
-      'Ending point of the swipe gesture (mutually exclusive with distance)',
-    ),
-  duration: z
-    .number()
-    .default(300)
-    .describe('Duration of the swipe gesture in milliseconds'),
-  repeat: z
-    .number()
-    .optional()
-    .describe(
-      'The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)',
-    ),
-});
+function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
+  const movementSource = inputMode === 'touch' ? 'finger' : 'pointer';
+
+  return z.object({
+    start: getMidsceneLocationSchema()
+      .optional()
+      .describe(
+        `Optional starting point of the ${movementSource} movement. Available in both relative and endpoint forms. If omitted, the center of the page is used.`,
+      ),
+    direction: z
+      .enum(['up', 'down', 'left', 'right'])
+      .optional()
+      .describe(
+        `${movementSource === 'finger' ? 'Finger' : 'Pointer'} movement direction. Required together with a positive distance for a relative swipe. Omit when using end.`,
+      ),
+    distance: z
+      .number()
+      .positive()
+      .optional()
+      .describe(
+        `Positive length of the ${movementSource} movement in pixels. Required together with direction for a relative swipe. Omit when using end.`,
+      ),
+    end: getMidsceneLocationSchema()
+      .optional()
+      .describe(
+        `Endpoint of the ${movementSource} movement. Use for an endpoint swipe, optionally with start. Do not provide direction or distance when using end.`,
+      ),
+    duration: z
+      .number()
+      .default(300)
+      .describe('Duration of the swipe gesture in milliseconds'),
+    repeat: z
+      .number()
+      .optional()
+      .describe(
+        'The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)',
+      ),
+  });
+}
+
+// Preserve the historical touch-oriented public schema. Desktop actions use
+// an equivalent schema with mouse-specific descriptions at definition time.
+export const ActionSwipeParamSchema = createActionSwipeParamSchema('touch');
 
 export type ActionSwipeParam = {
   start?: LocateResultElement;
@@ -799,7 +843,7 @@ export type ActionSwipeParam = {
   repeat?: number;
 };
 
-export function normalizeMobileSwipeParam(
+export function normalizeSwipeParam(
   param: ActionSwipeParam,
   screenSize: { width: number; height: number },
 ): {
@@ -815,36 +859,46 @@ export function normalizeMobileSwipeParam(
     ? { x: start.center[0], y: start.center[1] }
     : { x: width / 2, y: height / 2 };
 
-  let endPoint: { x: number; y: number };
+  const endPoint = (() => {
+    if (end) {
+      if (param.direction !== undefined || param.distance !== undefined) {
+        throw new Error(
+          'Invalid Swipe parameters: "end" cannot be combined with "direction" or "distance". Use "end", optionally with "start", for an endpoint swipe.',
+        );
+      }
 
-  if (end) {
-    endPoint = { x: end.center[0], y: end.center[1] };
-  } else if (param.distance) {
-    const direction = param.direction;
-    if (!direction) {
-      throw new Error('direction is required for swipe gesture');
+      return { x: end.center[0], y: end.center[1] };
     }
-    endPoint = {
+
+    if (param.direction === undefined || param.distance === undefined) {
+      throw new Error(
+        'Invalid Swipe parameters: a relative swipe requires both "direction" and a positive "distance".',
+      );
+    }
+
+    if (param.distance <= 0) {
+      throw new Error(
+        'Invalid Swipe parameters: "distance" must be a positive number.',
+      );
+    }
+
+    return {
       x:
         startPoint.x +
-        (direction === 'right'
+        (param.direction === 'right'
           ? param.distance
-          : direction === 'left'
+          : param.direction === 'left'
             ? -param.distance
             : 0),
       y:
         startPoint.y +
-        (direction === 'down'
+        (param.direction === 'down'
           ? param.distance
-          : direction === 'up'
+          : param.direction === 'up'
             ? -param.distance
             : 0),
     };
-  } else {
-    throw new Error(
-      'Either end or distance must be specified for swipe gesture',
-    );
-  }
+  })();
 
   endPoint.x = Math.max(0, Math.min(endPoint.x, width));
   endPoint.y = Math.max(0, Math.min(endPoint.y, height));
@@ -859,22 +913,33 @@ export function normalizeMobileSwipeParam(
   return { startPoint, endPoint, duration, repeatCount };
 }
 
+/** @deprecated Use {@link normalizeSwipeParam} instead. */
+export const normalizeMobileSwipeParam = normalizeSwipeParam;
+
 export const defineActionSwipe = (config: {
-  swipe: TouchInputPrimitives['swipe'];
+  swipe: SwipeInputPrimitive;
   size(): Promise<Size>;
+  inputMode?: SwipeInputMode;
 }): DeviceAction<ActionSwipeParam> => {
+  const inputMode = config.inputMode ?? 'touch';
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
-      'Perform a touch gesture for interactions beyond regular scrolling (e.g., adjust a continuous control such as a slider, flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
-    paramSchema: ActionSwipeParamSchema,
+      inputMode === 'touch'
+        ? 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
+        : 'Perform a primary-mouse-button gesture that continuously presses and moves the pointer across the desktop UI. Use it to adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it. For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".',
+    interfaceAlias: 'aiSwipe',
+    paramSchema:
+      inputMode === 'touch'
+        ? ActionSwipeParamSchema
+        : createActionSwipeParamSchema(inputMode),
     sample: {
       start: { prompt: 'center of the notification' },
       end: { prompt: 'upper edge of the screen' },
     },
     call: async (param) => {
       const { startPoint, endPoint, duration, repeatCount } =
-        normalizeMobileSwipeParam(param, await config.size());
+        normalizeSwipeParam(param, await config.size());
       for (let i = 0; i < repeatCount; i++) {
         await config.swipe(startPoint, endPoint, { duration });
       }
@@ -1145,8 +1210,9 @@ export function defineActionsFromInputPrimitives(
     actions.push(defineActionScroll(scroll.scroll));
   }
 
-  if (touch?.swipe && options.size && options.includeSwipe !== false) {
-    actions.push(defineActionSwipe({ swipe: touch.swipe, size: options.size }));
+  const swipeConfig = resolveSwipeInputPrimitive({ pointer, touch });
+  if (swipeConfig && options.size && options.includeSwipe !== false) {
+    actions.push(defineActionSwipe({ ...swipeConfig, size: options.size }));
   }
 
   if (touch?.pinch && options.size && options.includePinch !== false) {
@@ -1203,7 +1269,9 @@ export type ActionSleepParam = {
   timeMs?: number;
 };
 
-export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
+export const defineActionSleep = (
+  abortSignal?: AbortSignal,
+): DeviceAction<ActionSleepParam> => {
   return defineAction<typeof ActionSleepParamSchema, ActionSleepParam>({
     name: 'Sleep',
     description:
@@ -1215,12 +1283,26 @@ export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
     call: async (param) => {
       const duration = param?.timeMs ?? 1000;
       getDebug('device:common-action')(`Sleeping for ${duration}ms`);
-      await new Promise((resolve) => setTimeout(resolve, duration));
+      abortSignal?.throwIfAborted();
+      await new Promise<void>((resolve, reject) => {
+        const abort = () => {
+          clearTimeout(timer);
+          reject(abortSignal?.reason);
+        };
+        const timer = setTimeout(() => {
+          abortSignal?.removeEventListener('abort', abort);
+          resolve();
+        }, duration);
+        abortSignal?.addEventListener('abort', abort, { once: true });
+      });
     },
   });
 };
 
 export type { DeviceAction } from '../types';
+export type { ActionScrollParam, LocateResultElement, Size } from '../types';
+export { getMidsceneLocationSchema } from '../common';
+export { z };
 export {
   inputStrategies,
   type InputStrategy,

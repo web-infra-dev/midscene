@@ -2,6 +2,7 @@ import type { AIUsageInfo, StreamingCallback } from '@/types';
 import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
+import type { OpenAIRequestContext } from './openai/openai-request-context';
 
 export type AIArgs = ChatCompletionMessageParam[];
 
@@ -34,9 +35,29 @@ export type ModelCallResult = Omit<AICallResult, 'usage'> & {
 };
 
 export type ModelCallContext = {
+  requestSignal: AbortSignal;
+  effectiveTimeoutMs: number | null;
   messages: ChatCompletionMessageParam[];
   modelRuntime: ModelRuntime;
   options?: CallAIOptions;
   executionId: string;
   recordEvent?: (event: Record<string, unknown>) => void;
+};
+
+/** Context shared by one HTTP protocol request. */
+export type OpenAIProtocolCallOptions = {
+  requestSignal: AbortSignal;
+  openAIRequestContext: OpenAIRequestContext;
+  onChunk?: StreamingCallback;
+  recordEvent?: (event: Record<string, unknown>) => void;
+};
+
+/** Normalized protocol response, before Midscene timing and usage metadata. */
+export type OpenAIProtocolCallResult = {
+  content: string;
+  reasoningContent: string;
+  rawChoiceMessage?: unknown;
+  rawUsage?: OpenAI.CompletionUsage;
+  requestId?: string | null;
+  responseModelName?: string;
 };

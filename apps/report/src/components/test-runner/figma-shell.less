@@ -1,0 +1,199 @@
+@font-face {
+  font-family: 'Report Inter';
+  src: url('./assets/InterVariable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+.test-runner-report {
+  --runner-bg: #f7f7f7;
+  --runner-surface-muted: #fcfcfc;
+  --runner-control-bg: #f3f3f4;
+  --runner-text: rgba(16, 24, 40, 0.9);
+  --runner-muted: rgba(16, 24, 40, 0.7);
+  --runner-subtle: rgba(0, 0, 0, 0.5);
+  --runner-border: #ededed;
+  --runner-border-strong: #e5e5e5;
+  --runner-primary: #4f78ff;
+  --runner-primary-soft: #edf3ff;
+  --runner-scroll-thumb: rgba(16, 24, 40, 0.24);
+  --runner-scroll-thumb-hover: rgba(16, 24, 40, 0.42);
+  --runner-sort-arrow-idle: rgb(51 51 51 / 30%);
+  --runner-sort-arrow-active: rgb(51 51 51 / 50%);
+  background: var(--runner-bg);
+  font-family:
+    'Report Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'PingFang SC',
+    sans-serif;
+
+  .runner-header {
+    display: block;
+    min-height: 64px;
+    padding: 0;
+    border: 0;
+    background: var(--runner-bg);
+  }
+
+  .runner-header-inner {
+    display: grid;
+    grid-template-columns: minmax(230px, 1fr) auto;
+    width: min(1424px, 100%);
+    min-height: 64px;
+    align-items: center;
+    margin-inline: auto;
+    padding: 0 40px;
+  }
+
+  .runner-header-title {
+    gap: 8px;
+  }
+
+  .runner-header-title strong {
+    color: var(--runner-text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .runner-header-actions {
+    gap: 12px;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .runner-header-version {
+    color: var(--runner-subtle);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    white-space: nowrap;
+  }
+
+  .runner-header-theme-control {
+    display: flex;
+    min-height: 24px;
+    align-items: center;
+    padding-left: 12px;
+    border-left: 1px solid var(--runner-border);
+  }
+
+  .runner-theme-toggle {
+    width: 20px;
+    height: 20px;
+    color: var(--runner-muted);
+    border: 0;
+    border-radius: 4px;
+  }
+
+  .runner-main {
+    position: relative;
+    isolation: isolate;
+    margin: 1px 8px 8px;
+    overflow: auto;
+    border-radius: 16px;
+    background: var(--runner-surface);
+    scrollbar-width: none;
+  }
+
+  .runner-main::before {
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    right: 0;
+    width: 400px;
+    max-width: 100%;
+    height: 317px;
+    background: url('./assets/header-glow.svg') no-repeat 105.393px -113.786px /
+      408.709px 401.142px;
+    mask: url('./assets/header-dots.png') no-repeat right top / 400px 317px;
+    pointer-events: none;
+    content: '';
+  }
+
+  .runner-main::-webkit-scrollbar {
+    display: none;
+  }
+
+  .runner-page,
+  .runner-overview,
+  .runner-case-workspace {
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
+    width: min(1424px, 100%);
+    margin-inline: auto;
+    padding: 40px;
+  }
+
+  .runner-theme-toggle svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .runner-overview-title-row,
+  .runner-detail-title-line {
+    gap: 12px;
+  }
+
+  .runner-overview-title-row h1,
+  .runner-detail-title-line h1 {
+    margin: 0;
+    color: #000;
+    font-size: 30px;
+    font-weight: 500;
+    font-family: 'PingFang SC', 'Report Inter', sans-serif;
+    letter-spacing: 0;
+    line-height: 38px;
+  }
+
+  .runner-overview-title-row .runner-status-pill > .anticon,
+  .runner-detail-title-line .runner-status-pill > .anticon {
+    display: none;
+  }
+
+  .runner-overview-run-meta strong,
+  .runner-case-meta strong {
+    color: var(--runner-text);
+    font-weight: 600;
+  }
+
+  .runner-overview-run-meta,
+  .runner-case-meta {
+    color: var(--runner-muted);
+    font-size: 12px;
+    line-height: 24px;
+  }
+
+  .runner-overview-run-meta > span,
+  .runner-case-meta > span {
+    display: inline-flex;
+    max-width: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .runner-overview-run-meta > span + span,
+  .runner-case-meta > span + span {
+    position: relative;
+    margin-left: 16px;
+    padding-left: 16px;
+    border-left: 0;
+  }
+
+  .runner-overview-run-meta > span + span::before,
+  .runner-case-meta > span + span::before {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 1px;
+    height: 12px;
+    margin: 0;
+    background: var(--runner-border);
+    transform: translateY(-50%);
+    content: '';
+  }
+}

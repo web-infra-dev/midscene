@@ -252,9 +252,19 @@ export const parseOpenaiSdkConfig = ({
     modelDescription,
     intent: '-' as any,
     slot: '-' as any,
-    timeout: provider[keys.timeout]
-      ? Number(provider[keys.timeout])
-      : undefined,
+    timeout: (() => {
+      const value = provider[keys.timeout];
+      if (value === undefined) {
+        return undefined;
+      }
+      const timeout = Number(value);
+      if (value.trim() === '' || !Number.isFinite(timeout) || timeout < 0) {
+        throw new Error(
+          `${keys.timeout} must be a finite number greater than or equal to 0, got ${JSON.stringify(value)}`,
+        );
+      }
+      return timeout;
+    })(),
     temperature,
     retryCount: (() => {
       if (!provider[keys.retryCount]) return 1;
