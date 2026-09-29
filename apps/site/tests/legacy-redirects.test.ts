@@ -29,7 +29,7 @@ describe('legacy HTTP redirects', () => {
         ? pathname.slice(1)
         : `en${pathname}`;
       const target = new URL(
-        `${localized}${pathname.endsWith('/') ? 'index' : ''}.mdx`,
+        `${localized.replace(/\.html$/, '')}${pathname.endsWith('/') ? 'index' : ''}.mdx`,
         docs,
       );
       expect(existsSync(target), `${from} -> ${to}`).toBe(true);
@@ -61,7 +61,15 @@ describe('legacy HTTP redirects', () => {
   });
 
   it('serves legacy favicon requests as images without redirect loops', () => {
-    for (const from of ['/favicon.ico', '/zh/favicon.ico', '/zh/favicon.png']) {
+    for (const from of [
+      '/favicon.ico',
+      '/zh/favicon.ico',
+      '/zh/favicon.png',
+      '/apple-touch-icon.png',
+      '/apple-touch-icon-precomposed.png',
+      '/zh/apple-touch-icon.png',
+      '/zh/apple-touch-icon-precomposed.png',
+    ]) {
       expect(rules.find((rule) => rule.from === from)).toEqual({
         from,
         to: '/favicon.png',

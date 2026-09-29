@@ -25,6 +25,19 @@
 /zh/android-getting-started.html /zh/platforms/android 301
 /zh/android-getting-started/ /zh/platforms/android 301
 
+/model-provider /model-common-config.html 301
+/model-provider.html /model-common-config.html 301
+/model-provider/ /model-common-config.html 301
+/integrate-with-android /platforms/android 301
+/integrate-with-android.html /platforms/android 301
+/integrate-with-android/ /platforms/android 301
+/zh/model-provider /zh/model-common-config.html 301
+/zh/model-provider.html /zh/model-common-config.html 301
+/zh/model-provider/ /zh/model-common-config.html 301
+/zh/integrate-with-android /zh/platforms/android 301
+/zh/integrate-with-android.html /zh/platforms/android 301
+/zh/integrate-with-android/ /zh/platforms/android 301
+
 # Serve favicon aliases internally to avoid a loop with the existing geo redirect.
 # The geo rule must still exclude root metadata files and shared asset directories.
 /favicon.ico /favicon.png 200
@@ -34,3 +47,10 @@
 # Public image moved in September 2026.
 /midscene-icon.png /images/brand/midscene-icon.png 301
 /zh/midscene-icon.png /images/brand/midscene-icon.png 301
+
+# Conventional Apple icon probes and previously localized metadata images.
+/apple-touch-icon.png /favicon.png 200
+/apple-touch-icon-precomposed.png /favicon.png 200
+/zh/apple-touch-icon.png /favicon.png 200
+/zh/apple-touch-icon-precomposed.png /favicon.png 200
+/zh/og-image.png /og-image.png 200
