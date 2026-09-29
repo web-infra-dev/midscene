@@ -296,7 +296,7 @@ export function FeatureSections() {
         ]}
         variant="toolkit"
         action={{
-          href: tUrl('/api'),
+          href: tUrl('/reference/'),
           label: t('apiMoreLink'),
           description: t('apiMoreDesc'),
         }}
