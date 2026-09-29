@@ -609,6 +609,10 @@ export default defineConfig(async () => {
             to: '/platforms/android',
           },
           {
+            from: '^/android-integration(?:\\.html)?/?$',
+            to: '/platforms/android',
+          },
+          {
             from: '^/ios-(?:introduction|getting-started)(?:\\.html)?/?$',
             to: '/platforms/ios',
           },
@@ -709,6 +713,26 @@ export default defineConfig(async () => {
             to: '/model-common-config',
           },
           {
+            from: '^/reference\\.html/?$',
+            to: '/reference/',
+          },
+          {
+            from: '^/api-reference(?:\\.html)?/?$',
+            to: '/reference/',
+          },
+          {
+            from: '^/report(?:\\.html)?/?$',
+            to: '/consume-report-file',
+          },
+          {
+            from: '^/benchmark(?:\\.html)?/?$',
+            to: '/introduction',
+          },
+          {
+            from: '^/integrate-with-yaml(?:\\.html)?/?$',
+            to: '/automate-with-scripts-in-yaml',
+          },
+          {
             from: '^/model-provider(?:\\.html)?/?$',
             to: '/model-common-config.html',
           },
@@ -783,6 +807,10 @@ export default defineConfig(async () => {
           {
             from: '^/zh/quick-experience(?:\\.html)?/?$',
             to: '/zh/quick-start#chrome-extension',
+          },
+          {
+            from: '^/zh/batch-yaml(?:\\.html)?/?$',
+            to: '/zh/yaml-script-runner',
           },
           {
             from: '^/zh/quick-experience-with-android(?:\\.html)?/?$',

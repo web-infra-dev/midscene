@@ -1,5 +1,33 @@
 # HTTP compatibility for retired pages; Rspress client redirects run after the response.
 # Keep document destinations aligned with rspress.config.ts.
+/android-integration /platforms/android 301
+/android-integration.html /platforms/android 301
+/android-integration/ /platforms/android 301
+/zh/quick-experience /zh/quick-start#chrome-extension 301
+/zh/quick-experience.html /zh/quick-start#chrome-extension 301
+/zh/quick-experience/ /zh/quick-start#chrome-extension 301
+/zh/batch-yaml /zh/yaml-script-runner 301
+/zh/batch-yaml.html /zh/yaml-script-runner 301
+/zh/batch-yaml/ /zh/yaml-script-runner 301
+/zh/test-runner-overview /zh/midscene-test/overview 301
+/zh/test-runner-overview.html /zh/midscene-test/overview 301
+/zh/test-runner-overview/ /zh/midscene-test/overview 301
+/reference.html /reference/ 301
+/report /consume-report-file 301
+/report.html /consume-report-file 301
+/report/ /consume-report-file 301
+/benchmark /introduction 301
+/benchmark.html /introduction 301
+/benchmark/ /introduction 301
+/api-reference /reference/ 301
+/api-reference.html /reference/ 301
+/api-reference/ /reference/ 301
+/choose-a-model /model-common-config 301
+/choose-a-model.html /model-common-config 301
+/choose-a-model/ /model-common-config 301
+/integrate-with-yaml /automate-with-scripts-in-yaml 301
+/integrate-with-yaml.html /automate-with-scripts-in-yaml 301
+/integrate-with-yaml/ /automate-with-scripts-in-yaml 301
 /web-api-reference /reference/#web 301
 /web-api-reference.html /reference/#web 301
 /web-api-reference/ /reference/#web 301
