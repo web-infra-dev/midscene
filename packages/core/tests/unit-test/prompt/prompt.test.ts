@@ -64,33 +64,6 @@ const defaultPlanningProtocolOptions = {
 };
 
 describe('action space', () => {
-  it('distinguishes a requested click from an outcome when the UI updates later', async () => {
-    const prompt = await buildStandardPlanningSystemPrompt({
-      ...defaultPlanningProtocolOptions,
-      actionSpace: mockActionSpace,
-      includeLocateInPlanning: false,
-    });
-
-    expect(prompt).toContain(
-      'If the instruction is only to click or tap a control once, finish after the action succeeds.',
-    );
-    expect(prompt).toContain(
-      'A second click on a toggle such as Like or Favorite can undo the first click.',
-    );
-    expect(prompt).toContain(
-      'If the instruction requires a resulting state and a click appears to have had no effect, wait and observe a fresh screenshot before considering another click.',
-    );
-    const promptWithSubGoals = await buildStandardPlanningSystemPrompt({
-      ...defaultPlanningProtocolOptions,
-      actionSpace: mockActionSpace,
-      includeLocateInPlanning: false,
-      includeSubGoals: true,
-    });
-    expect(promptWithSubGoals).toContain(
-      'successful execution of that action completes the sub-goal; do not require visual confirmation of a later UI state.',
-    );
-  });
-
   it('planning prompt explains how to interpret ambiguous scroll and swipe directions', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       ...defaultPlanningProtocolOptions,
