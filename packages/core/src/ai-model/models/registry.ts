@@ -40,15 +40,16 @@ function debugAdapterUnsupportedUserConfig(
   modelFamily: ModelAdapterCacheKey,
   adapter: ModelAdapter,
 ): void {
-  if (adapter.chatCompletion.unsupportedUserConfig.length === 0) {
-    return;
+  if (adapter.chatCompletion.unsupportedUserConfig.length > 0) {
+    debugModelAdapter(
+      `model adapter "${modelFamily}" (chat-completion) unsupportedUserConfig: ${JSON.stringify(adapter.chatCompletion.unsupportedUserConfig)}`,
+    );
   }
-
-  debugModelAdapter(
-    `model adapter "${modelFamily}" unsupportedUserConfig: ${JSON.stringify(
-      adapter.chatCompletion.unsupportedUserConfig,
-    )}`,
-  );
+  if (adapter.responses.unsupportedUserConfig.length > 0) {
+    debugModelAdapter(
+      `model adapter "${modelFamily}" (responses) unsupportedUserConfig: ${JSON.stringify(adapter.responses.unsupportedUserConfig)}`,
+    );
+  }
 }
 
 export function getModelAdapter(modelFamily?: TModelFamily): ModelAdapter {
