@@ -165,7 +165,7 @@ We observed that this issue is related to image handling in Azure's Chat Complet
 We have verified that `"detail": "original"` works correctly with Azure's Responses API, so we recommend switching to the Responses protocol first:
 
 ```bash
-MIDSCENE_MODEL_PROTOCOL="openai-response"
+MIDSCENE_MODEL_PROTOCOL="openai-responses"
 ```
 
 Confirm that your model supports the Responses API and use its corresponding Base URL. See [Protocol type](./model-config#model-api-type) for configuration details.

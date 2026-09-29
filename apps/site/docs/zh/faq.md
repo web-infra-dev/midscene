@@ -165,7 +165,7 @@ Azure AD / keyless 鉴权（`DefaultAzureCredential`）的方式现在已经不�
 我们在 Azure 的 Responses API 上验证了 `"detail": "original"` 能够正常生效，因此建议优先切换到 Responses 协议：
 
 ```bash
-MIDSCENE_MODEL_PROTOCOL="openai-response"
+MIDSCENE_MODEL_PROTOCOL="openai-responses"
 ```
 
 请确认所选模型支持 Responses API，并使用对应的 Base URL，具体配置见[协议类型](./model-config#model-api-type)。

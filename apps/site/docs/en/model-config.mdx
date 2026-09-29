@@ -18,17 +18,17 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 
 Midscene uses OpenAI's Chat Completions protocol by default and also supports the Responses protocol. These are different ways to send requests to models; your use of the Midscene Agent API stays the same. Chat Completions was introduced earlier than Responses and currently has broader support.
 
-Select the protocol through an environment variable: `openai-chat` (the default) or `openai-response`. For example, to use Responses:
+Select the protocol through an environment variable: `openai-chat` (the default) or `openai-responses`. For example, to use Responses:
 
 ```bash
-MIDSCENE_MODEL_PROTOCOL="openai-response"
+MIDSCENE_MODEL_PROTOCOL="openai-responses"
 ```
 
 When configuring separate Planning or Insight models, use the corresponding environment variables. Each model can use a different protocol:
 
 ```bash
-MIDSCENE_PLANNING_MODEL_PROTOCOL="openai-response"
-MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-response"
+MIDSCENE_PLANNING_MODEL_PROTOCOL="openai-responses"
+MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 ```
 
 Keep in mind:
@@ -43,7 +43,7 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-response`. The latter requires a provider that supports the Responses API. |
+| `MIDSCENE_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-responses`. The latter requires a provider that supports the Responses API. |
 | `MIDSCENE_MODEL_TIMEOUT` | Hard timeout per AI API request in milliseconds (default intent). Defaults to `180000` (180 seconds). Covers the full request lifetime, including reading the response body. Each retry starts a fresh timeout using the same configuration; retry delays are excluded, so the total call duration may exceed this value. Set to `0` to disable only the Midscene hard timeout. SDK and underlying network timeouts may still apply, and callers can cancel requests with an `AbortSignal`. |
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure). Retries occur when the model request encounters an HTTP error or when the model response cannot be structurally parsed |
@@ -67,7 +67,7 @@ Set the following if the Insight intent needs a different model:
 |------|-------------|
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API key |
 | `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completions` or `/responses`) |
-| `MIDSCENE_INSIGHT_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-response`. |
+| `MIDSCENE_INSIGHT_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-responses`. |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | Model name |
 | `MIDSCENE_INSIGHT_MODEL_FAMILY` | Model family |
 | `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | Optional; hard timeout per request for the Insight intent in milliseconds |
@@ -88,7 +88,7 @@ Set the following if the Planning intent needs a different model:
 |------|-------------|
 | `MIDSCENE_PLANNING_MODEL_API_KEY` | API key |
 | `MIDSCENE_PLANNING_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completions` or `/responses`) |
-| `MIDSCENE_PLANNING_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-response`. |
+| `MIDSCENE_PLANNING_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-responses`. |
 | `MIDSCENE_PLANNING_MODEL_NAME` | Model name |
 | `MIDSCENE_PLANNING_MODEL_FAMILY` | Model family |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | Optional; hard timeout per request for the Planning intent in milliseconds |

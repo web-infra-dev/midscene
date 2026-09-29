@@ -148,7 +148,7 @@ const buildGpt6ChatCompletionParams = (
 
 export const gptAdapters = {
   'gpt-5': {
-    supportedProtocols: ['openai-chat', 'openai-response'],
+    supportedProtocols: ['openai-chat', 'openai-responses'],
     resolveImageDetail: originalImageDetailForDefaultIntent,
     responses: {
       replayRawAssistantOutput: false,
@@ -169,7 +169,7 @@ export const gptAdapters = {
     },
   },
   'gpt-6': {
-    supportedProtocols: ['openai-chat', 'openai-response'],
+    supportedProtocols: ['openai-chat', 'openai-responses'],
     resolveImageDetail: originalImageDetailForDefaultIntent,
     responses: {
       replayRawAssistantOutput: false,

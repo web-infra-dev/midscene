@@ -39,7 +39,7 @@ export const MIDSCENE_MODEL_PROTOCOL = 'MIDSCENE_MODEL_PROTOCOL';
 export const MIDSCENE_MODEL_RESPONSE_FORMAT = 'MIDSCENE_MODEL_RESPONSE_FORMAT';
 
 export type TModelReasoningEnabled = boolean | 'default';
-export type TModelProtocol = 'openai-chat' | 'openai-response';
+export type TModelProtocol = 'openai-chat' | 'openai-responses';
 
 export type TModelResponseFormat = 'none' | 'auto';
 

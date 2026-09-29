@@ -69,7 +69,7 @@ export async function callAI(
       modelRuntime.adapter.supportedProtocols.includes(protocol),
       `Model adapter "${modelConfig.modelFamily ?? 'default'}" does not support protocol "${protocol}"`,
     );
-    if (protocol === 'openai-response') {
+    if (protocol === 'openai-responses') {
       return { protocol: 'responses', input: await prepareResponses(input) };
     }
     return {

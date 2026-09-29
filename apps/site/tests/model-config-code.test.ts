@@ -33,10 +33,10 @@ describe('model configuration examples', () => {
       const code = buildModelConfigCode(
         { ...config, responses: true },
         purpose,
-        'openai-response',
+        'openai-responses',
       );
       expect(code).toBe(
-        `${prefix}_PROTOCOL="openai-response"\n${buildModelConfigCode(config, purpose, 'openai-chat')}`,
+        `${prefix}_PROTOCOL="openai-responses"\n${buildModelConfigCode(config, purpose, 'openai-chat')}`,
       );
     },
   );
@@ -52,7 +52,7 @@ describe('model configuration examples', () => {
       },
     };
     expect(
-      buildModelConfigCode(withOverride, 'default', 'openai-response'),
+      buildModelConfigCode(withOverride, 'default', 'openai-responses'),
     ).toContain(
       'MIDSCENE_MODEL_BASE_URL="https://example.com/responses-api" # 新地址',
     );

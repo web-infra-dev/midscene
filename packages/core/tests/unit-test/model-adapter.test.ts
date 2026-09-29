@@ -57,10 +57,10 @@ describe('model adapter registry', () => {
 
   it('allows declaring Responses support without a custom implementation', () => {
     const adapter = new ResolvedModelAdapter(
-      { supportedProtocols: ['openai-response'] },
+      { supportedProtocols: ['openai-responses'] },
       'test',
     );
-    expect(adapter.supportedProtocols).toEqual(['openai-response']);
+    expect(adapter.supportedProtocols).toEqual(['openai-responses']);
     expect(adapter.responses.buildResponsesParams({}).config).toEqual({
       temperature: 0,
     });

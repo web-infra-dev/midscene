@@ -251,11 +251,11 @@ export const parseOpenaiSdkConfig = ({
       if (value === undefined) {
         return undefined;
       }
-      if (value === 'openai-chat' || value === 'openai-response') {
+      if (value === 'openai-chat' || value === 'openai-responses') {
         return value;
       }
       throw new Error(
-        `${keys.protocol} must be one of: openai-chat, openai-response. Got: ${value}`,
+        `${keys.protocol} must be one of: openai-chat, openai-responses. Got: ${value}`,
       );
     })(),
     modelFamily,

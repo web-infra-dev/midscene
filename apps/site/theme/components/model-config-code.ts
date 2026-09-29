@@ -17,20 +17,20 @@ function formatConfigLine(name: string, config: ConfigValue): string {
 export function buildModelConfigCode(
   config: ModelConfigCardProps,
   purpose: 'default' | 'planning' | 'insight',
-  protocol: 'openai-chat' | 'openai-response',
+  protocol: 'openai-chat' | 'openai-responses',
 ): string {
   const prefix =
     purpose === 'default'
       ? 'MIDSCENE_MODEL'
       : `MIDSCENE_${purpose.toUpperCase()}_MODEL`;
   const baseUrl =
-    protocol === 'openai-response' && typeof config.responses === 'object'
+    protocol === 'openai-responses' && typeof config.responses === 'object'
       ? config.responses.baseUrl
       : config.baseUrl;
 
   return [
-    ...(protocol === 'openai-response'
-      ? [formatConfigLine(`${prefix}_PROTOCOL`, 'openai-response')]
+    ...(protocol === 'openai-responses'
+      ? [formatConfigLine(`${prefix}_PROTOCOL`, 'openai-responses')]
       : []),
     formatConfigLine(`${prefix}_BASE_URL`, baseUrl),
     formatConfigLine(`${prefix}_API_KEY`, '......'),

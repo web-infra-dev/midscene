@@ -187,19 +187,19 @@ describe.each([
       parseOpenaiSdkConfig({ keys, provider: {} }).protocol,
     ).toBeUndefined();
   });
-  it.each(['openai-chat', 'openai-response'])('accepts %s', (value) => {
+  it.each(['openai-chat', 'openai-responses'])('accepts %s', (value) => {
     expect(
       parseOpenaiSdkConfig({ keys, provider: { [keys.protocol]: value } })
         .protocol,
     ).toBe(value);
   });
-  it.each(['response', 'responses', 'chat-completion', 'openai-responses'])(
+  it.each(['response', 'responses', 'chat-completion', 'openai-response'])(
     'rejects invalid protocol name %s',
     (value) => {
       expect(() =>
         parseOpenaiSdkConfig({ keys, provider: { [keys.protocol]: value } }),
       ).toThrow(
-        `${keys.protocol} must be one of: openai-chat, openai-response`,
+        `${keys.protocol} must be one of: openai-chat, openai-responses`,
       );
     },
   );

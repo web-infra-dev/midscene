@@ -15,7 +15,7 @@ const config: IModelConfig = {
   modelDescription: 'test model',
   openaiApiKey: 'test-key',
   openaiBaseURL: 'https://example.test/v1',
-  protocol: 'openai-response',
+  protocol: 'openai-responses',
   intent: 'default',
   slot: 'default',
   retryCount: 0,
@@ -107,7 +107,7 @@ describe('Responses protocol', () => {
       createOpenAIClient: createClient,
     });
     await expect(callAI(messages, runtime)).rejects.toThrow(
-      'Model adapter "default" does not support protocol "openai-response"',
+      'Model adapter "default" does not support protocol "openai-responses"',
     );
     expect(createClient).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();

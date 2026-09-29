@@ -7,7 +7,7 @@ import {
 } from './model-config-code';
 import './ModelConfigTabs.css';
 
-type ModelProtocol = 'openai-chat' | 'openai-response';
+type ModelProtocol = 'openai-chat' | 'openai-responses';
 
 type ModelConfigTabType = 'default' | 'planning' | 'insight';
 
@@ -42,14 +42,14 @@ export function ModelConfigCard(props: ModelConfigCardProps) {
           className="model-api-selector"
           aria-label={lang === 'zh' ? '协议类型' : 'Protocol'}
         >
-          {(['openai-chat', 'openai-response'] as const).map((value) => (
+          {(['openai-chat', 'openai-responses'] as const).map((value) => (
             <button
               key={value}
               type="button"
               aria-pressed={protocol === value}
               onClick={() => setProtocol(value)}
             >
-              {value === 'openai-response' ? 'Responses' : 'Chat'}
+              {value === 'openai-responses' ? 'Responses' : 'Chat'}
             </button>
           ))}
           <a

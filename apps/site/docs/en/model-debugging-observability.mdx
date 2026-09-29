@@ -14,9 +14,9 @@ The following `curl` request checks whether the Base URL, API key, and model nam
 MIDSCENE_MODEL_BASE_URL='replace with your baseUrl'
 MIDSCENE_MODEL_API_KEY='replace with your API key'
 MIDSCENE_MODEL_NAME='replace with your model name'
-# MIDSCENE_MODEL_PROTOCOL="openai-response" # Uncomment this line to use Responses API; defaults to Chat API.
+# MIDSCENE_MODEL_PROTOCOL="openai-responses" # Uncomment this line to use Responses API; defaults to Chat API.
 
-if [ "$MIDSCENE_MODEL_PROTOCOL" = "openai-response" ]; then
+if [ "$MIDSCENE_MODEL_PROTOCOL" = "openai-responses" ]; then
   model_endpoint="responses"
   model_input_field="input"
 else
