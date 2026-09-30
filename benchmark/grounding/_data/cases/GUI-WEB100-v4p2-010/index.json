@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-010.png",
+      "imageType": "hd",
+      "gtBox": [
+        311,
+        1155,
+        424,
+        1202
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Among all stocks, find the stock with an RSI indicator of 53.78 and a Mom indicator of 0.78.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#645 | license=MIT | sha256=c23f0f3e95ad22d55130f2dd2bd721480e96094e2a5ae64f4b2028a370dc68c7. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

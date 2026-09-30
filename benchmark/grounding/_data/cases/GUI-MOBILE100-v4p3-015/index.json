@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-015.png",
+      "imageType": "hd",
+      "gtBox": [
+        0,
+        639,
+        1079,
+        1459
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find an image of a restaurant menu board.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#539 | license=MIT | sha256=69c397e6153e639fd044790867ac44602199f6f11558e8f4740d62a12933d946. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

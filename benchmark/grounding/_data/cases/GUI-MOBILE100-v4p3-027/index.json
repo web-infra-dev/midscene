@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-027.png",
+      "imageType": "hd",
+      "gtBox": [
+        983,
+        117,
+        1064,
+        196
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A gray envelope icon with a red notification dot in the top-right corner",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=MMBench-GUI L2 | source_id=409 | license=Apache-2.0 | sha256=9e6e534754dd32d408052ad095403b6f13015c1ae470f824e314a9bd084ad23f. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

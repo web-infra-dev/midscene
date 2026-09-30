@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-089.png",
+      "imageType": "hd",
+      "gtBox": [
+        1571,
+        425,
+        1994,
+        857
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "open the picture of earth",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=ScreenSpot-v2 | source_id=screenspot_web_v2_278 | license=Apache-2.0 | sha256=0232d6e1e7a0c24c89c53a7388f205176ae0519b5e02dc5b9d2c9f8e4482c63b. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-013.png",
+      "imageType": "hd",
+      "gtBox": [
+        43,
+        1466,
+        480,
+        1711
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find an image showing the process of producing instant noodles in a metal tray.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1203 | license=MIT | sha256=599861958e9e24a0d8f13871723d1a3a343f206c4cc1ae8cd198b3bb3fded022. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

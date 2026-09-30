@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-005.png",
+      "imageType": "hd",
+      "gtBox": [
+        965,
+        512,
+        1271,
+        581
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "In the first phase, check the task upon which the task \"Protect finished works in public areas and interiors...\" depends.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#557 | license=MIT | sha256=cc77a99afb7d1dbcc74fd81f9a944c2888e8e140890bda257c3fc4ca73ac58f7. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

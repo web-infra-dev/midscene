@@ -1,0 +1,23 @@
+[
+  {
+    "groupName": "Example provider",
+    "baseUrl": "https://your-provider.example/v1",
+    "apiKey": "replace-with-your-key",
+    "models": [
+      {
+        "id": "qwen-example",
+        "providerId": "example-provider",
+        "displayName": "Qwen 3.7 Plus",
+        "name": "qwen3.7-plus",
+        "family": "qwen3"
+      },
+      {
+        "id": "seed-example",
+        "providerId": "example-provider",
+        "displayName": "Seed 2.1 Pro",
+        "name": "doubao-seed-2-1-pro-260628",
+        "family": "doubao-vision"
+      }
+    ]
+  }
+]

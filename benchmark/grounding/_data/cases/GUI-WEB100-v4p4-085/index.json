@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-085.png",
+      "imageType": "hd",
+      "gtBox": [
+        736,
+        399,
+        1145,
+        517
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the \"Best\" option from the comment sorting menu.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1444 | license=MIT | sha256=ebb1fad12e5c2c390ded44415075c3e2cca0e6e499d700489ec0e451a528466a. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

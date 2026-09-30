@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-087.png",
+      "imageType": "hd",
+      "gtBox": [
+        877,
+        1107,
+        1009,
+        1169
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Light up the comment which has 1720 likes.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=reason | source=MMBench-GUI L2 | source_id=2776 | license=Apache-2.0 | sha256=302732068c909a1b11a6bc27f2714249cc7512a5ecf9d8d380a813ef05cfa97d. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

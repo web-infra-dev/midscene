@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-084.png",
+      "imageType": "hd",
+      "gtBox": [
+        1484,
+        1020,
+        1515,
+        1048
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the checkbox for the \"Forward simultaneously\" text.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1222 | license=MIT | sha256=97e12b08735c4da01a739ee3b7aca79acb0a6cb7531f2bbdbedf7af9b4a68ca1. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

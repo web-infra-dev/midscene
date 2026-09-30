@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-075.png",
+      "imageType": "hd",
+      "gtBox": [
+        106,
+        598,
+        410,
+        634
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the text \"CNOOC Gas Station (Changyun Station).\"",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#432 | license=MIT | sha256=adcf77331df5b872db8cf10972853886493e510a8caeac8481d37b43d1e11cd8. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-098.jpg",
+      "imageType": "hd",
+      "gtBox": [
+        16.0,
+        431.0,
+        124.890625,
+        471.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "The button that says \"Try it now\"",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=WebClick | source_id=default/test/574 | license=Apache-2.0 | sha256=f773b6476d7395d6e2d85d2a8ba6fe8db057990625c2246a4a44fc2e5ce207df. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

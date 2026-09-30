@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-097.jpg",
+      "imageType": "hd",
+      "gtBox": [
+        45.0,
+        585.9375,
+        810.0,
+        625.9375
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "log in button (middle of the page)",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p5 | class=basic | source=WebClick | source_id=default/test/1059 | license=Apache-2.0 | sha256=056bebcb1753869542a9ecdfe1fb922706149e37b11f02d67534c0f29732846c. 完整来源见 _data/imports/gui-grounding-web-100-v4p5/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

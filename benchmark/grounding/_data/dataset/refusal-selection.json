@@ -1,0 +1,100 @@
+{
+  "policy": "User-requested calibration to existing GPT and Seed success rates; minimize per-platform deviations first, overall deviations second, joint outcome distribution third; retain semantic clarity and >=3 refusal types, 5 apps, <=2 color cases per platform. Deterministic SHA tie break; no preference for inflating scores.",
+  "baseline_runs": {
+    "gpt6sol": "20260929-173956-webv4p6-mobilev4p5-gpt6sol-modelhub-full",
+    "seed21pro": "20260929-171649-webv4p6-mobilev4p5-seed21pro-midscene1132beta-refusal"
+  },
+  "baseline_correct_out_of_10": {
+    "web": {
+      "gpt6sol": 5,
+      "seed21pro": 2
+    },
+    "mobile": {
+      "gpt6sol": 3,
+      "seed21pro": 3
+    }
+  },
+  "valid_combinations": {
+    "web": 219,
+    "mobile": 179
+  },
+  "selected": {
+    "web": {
+      "case_names": [
+        "GUI-WEB100-v4p2-062",
+        "GUI-WEB100-v4p2-064",
+        "GUI-WEB100-v4p2-068",
+        "GUI-WEB100-v4p2-069",
+        "GUI-WEB100-v4p2-070"
+      ],
+      "correct": {
+        "gpt6sol": 2,
+        "seed21pro": 1
+      },
+      "delta_tenths": [
+        1,
+        0
+      ],
+      "broad_types": [
+        "color",
+        "control_type",
+        "missing",
+        "position"
+      ],
+      "fine_type_count": 5,
+      "signature_error": 2
+    },
+    "mobile": {
+      "case_names": [
+        "GUI-MOBILE100-v4p2-092",
+        "GUI-MOBILE100-v4p2-093",
+        "GUI-MOBILE100-v4p2-095",
+        "GUI-MOBILE100-v4p2-099",
+        "GUI-MOBILE100-v4p2-100"
+      ],
+      "correct": {
+        "gpt6sol": 2,
+        "seed21pro": 1
+      },
+      "delta_tenths": [
+        1,
+        1
+      ],
+      "broad_types": [
+        "color",
+        "control_type",
+        "missing",
+        "position"
+      ],
+      "fine_type_count": 4,
+      "signature_error": 2
+    }
+  },
+  "removed": {
+    "web": [
+      "GUI-WEB100-v4p2-061",
+      "GUI-WEB100-v4p2-063",
+      "GUI-WEB100-v4p2-065",
+      "GUI-WEB100-v4p2-066",
+      "GUI-WEB100-v4p2-067"
+    ],
+    "mobile": [
+      "GUI-MOBILE100-v4p2-091",
+      "GUI-MOBILE100-v4p2-094",
+      "GUI-MOBILE100-v4p2-096",
+      "GUI-MOBILE100-v4p2-097",
+      "GUI-MOBILE100-v4p2-098"
+    ]
+  },
+  "optimization": [
+    1,
+    3,
+    1,
+    1,
+    4,
+    -8,
+    -9,
+    "000ab5793626bb17f00202d2db3694668ed8cc9fb72cc659816045fe6beafcbc"
+  ],
+  "score_resolution_note": "5 cases: 20 percentage-point increments. 30% and 50% cannot be matched exactly. These are prior-run subset scores, not new evaluation results."
+}

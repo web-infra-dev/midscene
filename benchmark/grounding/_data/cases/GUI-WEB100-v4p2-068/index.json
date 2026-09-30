@@ -1,0 +1,16 @@
+{
+  "images": [
+    {
+      "fileName": "web-068.png",
+      "imageType": "hd",
+      "gtBox": null,
+      "expectedOutcome": "refusal"
+    }
+  ],
+  "prompt": "Find the checkbox for Drivers under the Text section.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#229 | license=MIT | sha256=c23e819f89ee02f83c369c9245f71e5dd79b8f473cc3c1945d8582e28a4c0fd0. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

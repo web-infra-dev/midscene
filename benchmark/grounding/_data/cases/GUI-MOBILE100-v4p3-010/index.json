@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-010.png",
+      "imageType": "hd",
+      "gtBox": [
+        193,
+        1008,
+        355,
+        1054
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the text \"Chèchí YEN\" in the follow list.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1221 | license=MIT | sha256=8d228be044ba463c0c13f5d9bdad9dc603d21737bda76310520fe1b36f376e4e. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

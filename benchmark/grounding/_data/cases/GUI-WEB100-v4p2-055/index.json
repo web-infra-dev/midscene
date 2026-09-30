@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-055.png",
+      "imageType": "hd",
+      "gtBox": [
+        2890,
+        35,
+        2989,
+        96
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Display hotels in a card-based layout",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#483 | license=MIT | sha256=7c29bb3f01df0562c24f0036ae52d2daee7d9fa47384b56c9536a5a085bf4843. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-078.png",
+      "imageType": "hd",
+      "gtBox": [
+        2567,
+        256,
+        2694,
+        293
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the text \"Edit Time\".",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#944 | license=MIT | sha256=a4c4755a205142cea1864f7ea4307706ede06c30f055350d580aa7f1a2fced48. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}
