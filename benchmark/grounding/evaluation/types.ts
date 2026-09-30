@@ -2,6 +2,7 @@ import type { ModelFamily } from './location-format.js';
 import type { TaskFileData } from './task-types.js';
 
 export type ImageType = 'sd' | 'hd';
+export type ModelProtocol = 'openai-chat' | 'openai-responses';
 
 export type ReportRunConfig = {
   meta: {
@@ -54,6 +55,7 @@ export type StoredModelRecord = {
   logo: string;
   family: ModelFamily;
   apiType?: 'responses';
+  protocol?: ModelProtocol;
   providerId: string;
   note: string;
   createdAt: string;
@@ -66,6 +68,7 @@ export type StoredModelGroupRecord = {
   apiKey?: string;
   family?: ModelFamily;
   apiType?: 'responses';
+  protocol?: ModelProtocol;
   note?: string;
   logo?: string;
   models: Array<{
@@ -78,6 +81,7 @@ export type StoredModelGroupRecord = {
     apiKey?: string;
     family?: ModelFamily;
     apiType?: 'responses';
+    protocol?: ModelProtocol;
     providerId: string;
     note?: string;
     createdAt?: string;

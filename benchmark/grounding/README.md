@@ -46,9 +46,14 @@ The required environment variables are `MIDSCENE_MODEL_NAME`,
 `MIDSCENE_MODEL_FAMILY`, `MIDSCENE_MODEL_BASE_URL`, and `MIDSCENE_MODEL_API_KEY`.
 The CLI reads an env file as data; it does not execute shell code.
 Override a model with `--model NAME --family FAMILY`. Use
-`--api-type responses` for Responses or `--api-type chat-completions` to remove
-the Responses override. Model availability and protocol support depend on your
-provider and the local SDK adapter.
+`--api-type responses` for Responses or `--api-type chat-completions` for Chat
+Completions. Environment files may set `MIDSCENE_MODEL_PROTOCOL=openai-responses`
+or `openai-chat`; the legacy `MIDSCENE_MODEL_API_TYPE=responses` is also accepted.
+The explicit protocol takes precedence over the legacy setting, and CLI flags
+override both. Model JSON supports `protocol` with these same values or the
+legacy `apiType: "responses"`. Reports record the effective
+`MIDSCENE_MODEL_PROTOCOL` passed to the local SDK. Model availability and protocol
+support depend on your provider and the local SDK adapter.
 
 For a ModelHub endpoint exposing `/v2/crawl`, the optional transport adapter
 forwards the SDK's Chat Completions payload unchanged:

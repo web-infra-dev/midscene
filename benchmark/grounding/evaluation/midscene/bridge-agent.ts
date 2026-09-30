@@ -2,6 +2,7 @@ import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import sharp from 'sharp';
+import { resolveModelProtocol } from '../runtime/model-protocol.js';
 import type { StoredModelRecord } from '../types.js';
 import { defaultMidsceneRepoPath, resolveMidsceneRepoPath } from './paths.js';
 import type {
@@ -282,16 +283,16 @@ export function buildMidsceneModelConfig(
     MIDSCENE_MODEL_BASE_URL: model.baseUrl,
     MIDSCENE_MODEL_API_KEY: model.apiKey,
     MIDSCENE_MODEL_FAMILY: model.family,
+    MIDSCENE_MODEL_PROTOCOL: resolveModelProtocol(
+      model.protocol,
+      model.apiType,
+    ),
   };
 
   if (typeof options.reasoningEnabled === 'boolean') {
     config.MIDSCENE_MODEL_REASONING_ENABLED = options.reasoningEnabled
       ? 'true'
       : 'false';
-  }
-
-  if (model.apiType === 'responses') {
-    config.MIDSCENE_MODEL_API_TYPE = 'responses';
   }
 
   return config;

@@ -46,8 +46,12 @@ pnpm evaluate --env-file .env --concurrency 3 --run-id my-grounding-run
 必填：`MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY`、
 `MIDSCENE_MODEL_BASE_URL`、`MIDSCENE_MODEL_API_KEY`。env 文件仅作为配置解析，
 不执行 shell 内容。`--model NAME --family FAMILY` 可覆盖模型；
-`--api-type responses` 使用 Responses，`--api-type chat-completions`
-移除 Responses 配置。可用模型及协议仍取决于供应商和当前 SDK。
+`--api-type responses` 使用 Responses，`--api-type chat-completions` 使用
+Chat Completions。env 文件支持 `MIDSCENE_MODEL_PROTOCOL=openai-responses`
+或 `openai-chat`，也兼容旧的 `MIDSCENE_MODEL_API_TYPE=responses`。
+显式 protocol 优先于旧配置，CLI 参数覆盖两者。模型 JSON 支持同值的
+`protocol` 字段，也兼容 `apiType: "responses"`。报告记录实际传给 SDK 的
+`MIDSCENE_MODEL_PROTOCOL`。可用模型及协议仍取决于供应商和当前 SDK。
 
 对于提供 `/v2/crawl` 的 ModelHub 通道，可以启用本地转发：
 
