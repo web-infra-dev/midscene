@@ -64,6 +64,8 @@ function runCli(input: {
   outputRoot: string;
   caseNames: string[];
   port: number;
+  family?: string;
+  apiType?: 'responses' | 'chat-completions';
 }): Promise<{ code: number | null; stdout: string; stderr: string }> {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(
@@ -83,9 +85,9 @@ function runCli(input: {
         '--model',
         MOCK_MODEL,
         '--family',
-        'qwen3',
+        input.family ?? 'qwen3',
         '--api-type',
-        'chat-completions',
+        input.apiType ?? 'chat-completions',
         '--cases',
         input.caseNames.join(','),
         '--concurrency',
@@ -432,6 +434,97 @@ test(
           `Duplicate run changed ${path.basename(file)}`,
         );
       }
+    } finally {
+      if (server.listening) await close(server);
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  'CLI Responses selection reaches the real local SDK Responses endpoint',
+  { timeout: 150_000 },
+  async () => {
+    const [row] = (
+      await readFile(path.join(DATASET_ROOT, 'manifest.jsonl'), 'utf8')
+    )
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as DatasetRow);
+    const errors: Error[] = [];
+    let calls = 0;
+    const server = createServer(async (request, response) => {
+      try {
+        assert.equal(request.method, 'POST');
+        assert.equal(request.url, '/v1/responses');
+        assert.equal(request.headers.authorization, `Bearer ${MOCK_API_KEY}`);
+        const chunks: Buffer[] = [];
+        for await (const chunk of request) chunks.push(Buffer.from(chunk));
+        const body = JSON.parse(Buffer.concat(chunks).toString());
+        assert.equal(body.model, MOCK_MODEL);
+        assert.equal(body.stream, false);
+        assert.ok(Array.isArray(body.input));
+        assert.equal(body.messages, undefined);
+        assert.ok(JSON.stringify(body.input).includes(row.query));
+        assert.ok(JSON.stringify(body.input).includes('data:image/'));
+        calls += 1;
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(
+          JSON.stringify({
+            id: 'resp-fixture',
+            object: 'response',
+            status: 'completed',
+            model: MOCK_MODEL,
+            output: [
+              {
+                type: 'message',
+                role: 'assistant',
+                content: [
+                  { type: 'output_text', text: '{"bbox":[100,100,200,200]}' },
+                ],
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 10, total_tokens: 20 },
+          }),
+        );
+      } catch (error) {
+        errors.push(error instanceof Error ? error : new Error(String(error)));
+        response.writeHead(400, { 'Content-Type': 'application/json' });
+        response.end(
+          JSON.stringify({
+            error: { message: 'Responses fixture contract violation' },
+          }),
+        );
+      }
+    });
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), 'midscene-grounding-responses-'),
+    );
+    try {
+      const execution = await runCli({
+        outputRoot: directory,
+        caseNames: [row.case_name],
+        port: await listen(server),
+        family: 'gpt-6',
+        apiType: 'responses',
+      });
+      assert.equal(
+        execution.code,
+        0,
+        `${execution.stdout}\n${execution.stderr}`,
+      );
+      assert.deepEqual(errors, []);
+      assert.equal(calls, 1);
+      const results = await readJson<MidsceneResultsFileData>(
+        path.join(directory, 'runs', RUN_ID, 'results.json'),
+      );
+      assert.equal(
+        results.models[0].modelConfig.MIDSCENE_MODEL_PROTOCOL,
+        'openai-responses',
+      );
+      assert.equal(results.items.length, 1);
+      assert.equal(results.items[0].finished, true);
+      assert.ok(results.items[0].locateResult?.center);
     } finally {
       if (server.listening) await close(server);
       await rm(directory, { recursive: true, force: true });

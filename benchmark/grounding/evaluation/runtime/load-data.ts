@@ -5,6 +5,7 @@ import type {
   StoredModelGroupRecord,
   StoredModelRecord,
 } from '../types.js';
+import { resolveModelProtocol } from './model-protocol.js';
 import { casesDir, datasetDir, modelsFilePath } from './paths.js';
 
 type NormalizableStoredModelRecord = Omit<
@@ -53,6 +54,7 @@ function normalizeStoredModelRecord(
       typeof raw.logo === 'string' && raw.logo.trim() ? raw.logo.trim() : '',
     family,
     apiType: raw.apiType === 'responses' ? 'responses' : undefined,
+    protocol: resolveModelProtocol(raw.protocol, raw.apiType),
     providerId,
     note: typeof raw.note === 'string' ? raw.note : '',
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
@@ -85,6 +87,9 @@ function flattenModelGroup(group: StoredModelGroupRecord): StoredModelRecord[] {
         logo: model.logo ?? group.logo,
         family: model.family ?? group.family,
         apiType: model.apiType ?? group.apiType,
+        protocol:
+          model.protocol ??
+          (model.apiType === 'responses' ? 'openai-responses' : group.protocol),
         providerId: model.providerId,
         note: model.note ?? group.note,
         createdAt: model.createdAt,
@@ -135,6 +140,10 @@ export async function loadModels(): Promise<StoredModelRecord[]> {
         env.GROUNDING_PROVIDER_ID || new URL(env.MIDSCENE_MODEL_BASE_URL).host,
       apiType:
         env.MIDSCENE_MODEL_API_TYPE === 'responses' ? 'responses' : undefined,
+      protocol: resolveModelProtocol(
+        env.MIDSCENE_MODEL_PROTOCOL,
+        env.MIDSCENE_MODEL_API_TYPE,
+      ),
     });
     if (!model) throw new Error('Invalid model environment configuration');
     return [model];
