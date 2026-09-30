@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-094.png",
+      "imageType": "hd",
+      "gtBox": [
+        50,
+        1643,
+        1128,
+        1875
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "View the details of your end-of-August walking activity",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p6 | class=reason | source=MMBench-GUI L2 | source_id=2961 | sha256=65e217f2523f43a20b09903a08d719a40be0c349372645b92ef6902e8072de35",
+  "tags": [
+    "evaluation_import"
+  ]
+}

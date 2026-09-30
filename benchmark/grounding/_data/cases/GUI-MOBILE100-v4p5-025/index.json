@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-025.png",
+      "imageType": "hd",
+      "gtBox": [
+        1020,
+        2172,
+        1082,
+        2237
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A media control button with a forward arrow and '30' number, positioned in the bottom media player area",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p5 | class=basic | source=MMBench-GUI L2 | source_id=1221 | license=Apache-2.0 | sha256=8674e6d574f2cd96ad7f9e0b6ce64ca2b92f8fe8fc36c6dd9703c62704117861. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p5/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

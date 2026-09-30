@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-007.png",
+      "imageType": "hd",
+      "gtBox": [
+        394,
+        637,
+        1057,
+        707
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the button that says \"Enjoy a coupon for 70 off on purchases of 700 or more.\"",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1497 | license=MIT | sha256=a96853f0d603128447639c1a64a8a284745442ad24e0ca77036de6a96fca56c1. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

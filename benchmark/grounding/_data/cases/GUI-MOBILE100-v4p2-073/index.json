@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-073.png",
+      "imageType": "hd",
+      "gtBox": [
+        49,
+        694,
+        1022,
+        1067
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Help me check the news images of stocks with rising prices.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#row=281 | license=MIT | sha256=d8ecd63a1e5452bc13679de7cdb8c74ab716ddc447e549730b4f5c61f54489cb. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-006.png",
+      "imageType": "hd",
+      "gtBox": [
+        132,
+        1464,
+        520,
+        1525
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the text \"1:00 – 2:30 PM\".",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1441 | license=MIT | sha256=e67cb880631c509f5c628ade0289d6732cd4ab3cede0520759ef7c355d2a8918. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

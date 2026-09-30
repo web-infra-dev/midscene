@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-077.png",
+      "imageType": "hd",
+      "gtBox": [
+        565,
+        20,
+        850,
+        99
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the 'Cables & Accessories' dropdown menu in the navigation bar.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#800 | license=MIT | sha256=acfca7385ced434cad5e4f92be3a72e6361de4ce3efaf22263268bda9a01dc07. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

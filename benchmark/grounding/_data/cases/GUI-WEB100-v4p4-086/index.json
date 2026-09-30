@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-086.png",
+      "imageType": "hd",
+      "gtBox": [
+        542,
+        700,
+        649,
+        767
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Click the thumbs up icon on this issue",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=ScreenSpot-v2 | source_id=screenspot_web_v2_27 | license=Apache-2.0 | sha256=a94884520f0e18f556f5b6256eb6016a22df0c54f0ae8891f91631ef2171c894. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

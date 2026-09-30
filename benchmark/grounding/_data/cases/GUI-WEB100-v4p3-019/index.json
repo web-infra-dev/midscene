@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-019.png",
+      "imageType": "hd",
+      "gtBox": [
+        1592,
+        220,
+        2079,
+        669
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find beauty products under $25, click the image to view details.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p3 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#854 | license=MIT | sha256=f5b9335e366d0398a9d674a3342fb8553021e3210bf290fc8eea5ca66e3a7997. 完整来源见 _data/imports/gui-grounding-web-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

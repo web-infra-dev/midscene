@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-076.png",
+      "imageType": "hd",
+      "gtBox": [
+        1473,
+        1740,
+        1547,
+        1814
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the pause icon.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1216 | license=MIT | sha256=4a07090b99a75446343f6e60ea36e8323766b99f753d8480c34327a6c3b0ce68. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

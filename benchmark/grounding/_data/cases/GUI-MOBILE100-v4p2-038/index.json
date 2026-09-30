@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-038.png",
+      "imageType": "hd",
+      "gtBox": [
+        2213,
+        295,
+        2302,
+        378
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Take a screenshot to save the current video frame.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=189 | license=MIT | sha256=ca38e6e26f98ed4a1c3fc8c4bf55735cc8c53c689601a9055abf8e4e06744dc4. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-002.png",
+      "imageType": "hd",
+      "gtBox": [
+        199,
+        1123,
+        583,
+        1172
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the text \"Vanward JD.com Self-operated Flagship Store\".",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#637 | license=MIT | sha256=7a2e5549e25b5ced83194de2a36f8b92f9f0a1ef935f84a0b3bc60b2368d0292. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

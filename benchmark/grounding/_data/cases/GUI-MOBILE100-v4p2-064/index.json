@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-064.png",
+      "imageType": "hd",
+      "gtBox": [
+        983,
+        128,
+        1032,
+        193
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Identify a song by listening to it",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=195 | license=MIT | sha256=390351916f29f9af774997f1c3d4c179b4e56ba8997215e403e0ff41bcab7e6d. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

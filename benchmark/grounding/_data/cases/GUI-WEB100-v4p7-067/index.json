@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-067.png",
+      "imageType": "hd",
+      "gtBox": [
+        950,
+        1523,
+        1777,
+        1626
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the title posted 13 hours ago, view details",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p7 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#962 | sha256=b53b191b8cd21c3a17b5abddfde50806d371e8282f60d021dadcba51fa167e1d",
+  "tags": [
+    "evaluation_import"
+  ]
+}

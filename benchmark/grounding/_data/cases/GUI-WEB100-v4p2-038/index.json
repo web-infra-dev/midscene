@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-038.png",
+      "imageType": "hd",
+      "gtBox": [
+        838,
+        181,
+        878,
+        224
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select the \"No Advance Payment Required\" filter option",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#144 | license=MIT | sha256=0a1be38c10082077e35c284cc57dfcdbea1f6c8144db6c7649c656558ef8456e. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

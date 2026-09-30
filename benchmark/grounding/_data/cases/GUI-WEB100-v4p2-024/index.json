@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-024.png",
+      "imageType": "hd",
+      "gtBox": [
+        626,
+        388,
+        733,
+        493
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Plan a route to Hangzhou East Railway Station",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#236 | license=MIT | sha256=5a03736ef8cb7a4264430e4d49368acc931b6d7c21ad48c24d304728652e1839. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

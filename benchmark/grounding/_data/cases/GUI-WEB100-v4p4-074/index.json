@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-074.png",
+      "imageType": "hd",
+      "gtBox": [
+        905,
+        1131,
+        934,
+        1162
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select the checkbox for the arrival time slot \"12:00–18:00 in the afternoon.\"",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#396 | license=MIT | sha256=6163ed3d858e7121bd187d5fc83dd732063990856c6246bfa6a8dde35b92dc62. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

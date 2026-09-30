@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-049.png",
+      "imageType": "hd",
+      "gtBox": [
+        2933,
+        739,
+        2967,
+        774
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Automatically switch between light and dark mode based on the theme.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#569 | license=MIT | sha256=6c93049abaa30b38e3928dd56e60c5947eb2382d75d2d632f3f3fe47102cc923. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

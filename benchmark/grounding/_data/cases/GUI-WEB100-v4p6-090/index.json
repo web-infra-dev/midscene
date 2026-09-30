@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-090.png",
+      "imageType": "hd",
+      "gtBox": [
+        1418,
+        553,
+        1470,
+        608
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Click on the marker already added to the map",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p6 | class=basic | source=ScreenSpot-v2 | source_id=screenspot_web_v2_247 | license=Apache-2.0 | sha256=0e9df1252f06b1220ba44c51c9b33b6e27298dcb0db64fa76cee6681440205c1. 完整来源见 _data/imports/gui-grounding-web-100-v4p6/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

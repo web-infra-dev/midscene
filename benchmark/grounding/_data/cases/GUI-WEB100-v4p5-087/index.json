@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-087.png",
+      "imageType": "hd",
+      "gtBox": [
+        538,
+        745,
+        1664,
+        1379
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "click on the picture of the day",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p5 | class=basic | source=ScreenSpot-v2 | source_id=screenspot_web_v2_269 | license=Apache-2.0 | sha256=12a51f56420fb1459a974b060b7c9b52338a8454e4038480292423526d0a3091. 完整来源见 _data/imports/gui-grounding-web-100-v4p5/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

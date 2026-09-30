@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-099.jpg",
+      "imageType": "hd",
+      "gtBox": [
+        32.0,
+        728.0,
+        118.171875,
+        746.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "digital wallets text link",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=WebClick | source_id=default/test/963 | license=Apache-2.0 | sha256=0115a25b44325a76e84a129e4848ac9ba0a538692858599048e252dd9a6eb8fc. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

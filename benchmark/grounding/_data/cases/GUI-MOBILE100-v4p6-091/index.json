@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-091.png",
+      "imageType": "hd",
+      "gtBox": [
+        28,
+        2045,
+        1262,
+        2347
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select the fourth chapter in this educational video about GPU technology to learn about CUDA core design.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p6 | class=reason | source=MMBench-GUI L2 | source_id=2729 | sha256=79e68b985aad0edbfa96ef515fb86241a8f1cd33c137449644024dbfc16d957a",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-042.png",
+      "imageType": "hd",
+      "gtBox": [
+        704,
+        174,
+        810,
+        266
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Add waypoint",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=115 | license=MIT | sha256=1c15b92923d952ff4f02483bd41eda6ed1e1ddf37226dec33be26865f9f071d2. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

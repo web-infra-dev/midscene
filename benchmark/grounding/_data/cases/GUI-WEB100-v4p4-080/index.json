@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-080.png",
+      "imageType": "hd",
+      "gtBox": [
+        2932,
+        277,
+        2970,
+        312
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the \"Standard\" checkbox in the \"Text\" section of the Appearance settings.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#951 | license=MIT | sha256=30dc997b34e538c96c07e708c72646639eb55affdf12543aab1393415f04dfa7. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

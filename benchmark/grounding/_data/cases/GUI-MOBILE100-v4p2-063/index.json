@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-063.png",
+      "imageType": "hd",
+      "gtBox": [
+        879,
+        1319,
+        1018,
+        1402
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Avoid the city's restricted traffic zones.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=186 | license=MIT | sha256=aa624a53b93e15f10c7988798a83dea3462e8960a48a5e40ae6cb3adf7b56bc6. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

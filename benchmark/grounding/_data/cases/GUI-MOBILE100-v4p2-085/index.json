@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-085.png",
+      "imageType": "hd",
+      "gtBox": [
+        771,
+        1359,
+        1135,
+        1754
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Navigate to the month that falls between August and October in the yearly calendar view",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=reason | source=MMBench-GUI L2 | source_id=3124 | license=Apache-2.0 | sha256=665ffc9fdfeef84b3b117c66ad196f8c93e6aabd6ed62644a0cf1320e426a8ba. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

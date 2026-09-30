@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-006.png",
+      "imageType": "hd",
+      "gtBox": [
+        1006,
+        1658,
+        1147,
+        1832
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select images of products that belong to the book category on the page.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p3 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#78 | license=MIT | sha256=e00b7c341866a5c6d225ced19e16cb5fd7a26af182da4d15329f38c9f8273ac1. 完整来源见 _data/imports/gui-grounding-web-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

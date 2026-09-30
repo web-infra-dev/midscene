@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-067.png",
+      "imageType": "hd",
+      "gtBox": [
+        783,
+        2046,
+        1017,
+        2137
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Turn off all voice announcements",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=394 | license=MIT | sha256=5cf138af02cdaed718e046066640c2ddf85a678fd465b753d18cabeff20aa225. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-012.png",
+      "imageType": "hd",
+      "gtBox": [
+        1842,
+        586,
+        1876,
+        619
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Click to complete the task with the most subtasks in the third phase.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#1087 | license=MIT | sha256=57a419a264f2eefdfea2389dbb0088a38275a08de920c0eec88b7d0da652d361. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -45,6 +45,8 @@ export interface LocateResult {
   parseResult: {
     element?: LocateResultElement;
     errors?: string[];
+    /** An explicit absent-target response parsed by the locate protocol. */
+    outcome?: 'not-found';
   };
   rawResponse: string;
   rawAssistantOutput?: RawAssistantOutput;
@@ -60,6 +62,8 @@ export interface LocateModelResponse {
   usage?: AIUsageInfo;
   reasoningContent?: string;
   errors?: string[];
+  /** An explicit absent-target response parsed by the locate protocol. */
+  outcome?: 'not-found';
 }
 
 export type LocateFn = (
