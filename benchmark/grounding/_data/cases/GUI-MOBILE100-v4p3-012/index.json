@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-012.png",
+      "imageType": "hd",
+      "gtBox": [
+        51,
+        1096,
+        127,
+        1171
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the LINE Pay icon.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#6 | license=MIT | sha256=eb30cb201fa751ca62207dab3e8b7b65e6a93cea71a936f164e3774f24d02926. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-073.png",
+      "imageType": "hd",
+      "gtBox": [
+        630,
+        700,
+        674,
+        746
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Locate the \"Automatic\" checkbox under the \"Distance units\" section.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#425 | license=MIT | sha256=2fd38f5bec94ed2ea1701c7333623e367155042329be804b1d3f5d6b01b219ae. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

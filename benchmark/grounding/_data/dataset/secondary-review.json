@@ -1,0 +1,72 @@
+{
+  "GUI-WEB100-v4p7-061": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "整图6件商品，只有第五件WD-40显示17年老店，17>15；第三件9年不符。GT覆盖第五件商品图片。"
+  },
+  "GUI-WEB100-v4p7-063": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "三条可见商品运费依次8.99、新品Canon Free shipping、12.06；仅中间图片符合，GT完整覆盖该图片。"
+  },
+  "GUI-WEB100-v4p7-065": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "完整列表仅第一条转2次，其余转1次；原query选择航班，GT是第一行选为去程按钮。左侧筛选项写2程及以上，不是某个航班。"
+  },
+  "GUI-WEB100-v4p7-066": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "第一阶段确定装修风格条的依赖箭头连到选择设计师-装修公司；该条同时是紧接的下一任务。官方框覆盖该黄色任务条。"
+  },
+  "GUI-WEB100-v4p7-067": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "可见30min、13hr、16hr三个时间，13hr唯一对应Jane Street标题，官方框覆盖该两行标题。"
+  },
+  "GUI-MOBILE100-v4p6-091": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "完整章节列表CUDA Core Design为第四行、8:48；序号与标题一致，GT覆盖章节卡。"
+  },
+  "GUI-MOBILE100-v4p6-094": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "唯一八月记录为2024/8/31 Outdoor Walk，满足八月末及步行，GT覆盖该卡。"
+  },
+  "GUI-MOBILE100-v4p6-096": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "四个生成图卡仅右下Astronaut on Mars满足红色星球上的人，图文一致，GT准确覆盖整卡。"
+  },
+  "GUI-MOBILE100-v4p6-097": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "上部Fitness Room标明Free；下部唯一Fitness Room照片卡符合more images，GT覆盖该照片。上部文字不满足照片目标。"
+  },
+  "GUI-MOBILE100-v4p6-098": {
+    "passed": true,
+    "official_query_preserved": true,
+    "official_gt_preserved": true,
+    "matching_visible_target_count": 1,
+    "evidence": "唯一PDF附件1984 (ORIGINAL) (George Orwell)匹配反乌托邦小说；正文虽重复书名但不是附件，官方GT覆盖附件控件。"
+  }
+}

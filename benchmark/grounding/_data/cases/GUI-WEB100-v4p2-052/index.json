@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-052.png",
+      "imageType": "hd",
+      "gtBox": [
+        401,
+        30,
+        499,
+        105
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Switch to driving route planning",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#6 | license=MIT | sha256=be819c6294062f5d58b72441691a77350efa73f81d3fd82014cf1667cec1c6d1. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

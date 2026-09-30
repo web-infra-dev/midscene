@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-096.jpg",
+      "imageType": "hd",
+      "gtBox": [
+        577.592,
+        793.504,
+        774.872,
+        1034.624
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Click on the image for the Ninja 12-Cup Programmable Coffee Brewer",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p5 | class=basic | source=WebClick | source_id=default/test/1196 | license=Apache-2.0 | sha256=34e4bd6d0ba3e5876b6e8ac807d251d702c08aa0247c2def776a21c88247962a. 完整来源见 _data/imports/gui-grounding-web-100-v4p5/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

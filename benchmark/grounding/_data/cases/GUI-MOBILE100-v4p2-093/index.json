@@ -1,0 +1,16 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-093.png",
+      "imageType": "hd",
+      "gtBox": null,
+      "expectedOutcome": "refusal"
+    }
+  ],
+  "prompt": "Select the heart icon in the center at the bottom.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#row=65 | license=MIT | sha256=95e7d0e0e7d694c434331db933ec3ede2c5c5d6dac5ae950625e3d20eb5c525f. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

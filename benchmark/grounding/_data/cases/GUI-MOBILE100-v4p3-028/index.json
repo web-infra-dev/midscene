@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-028.png",
+      "imageType": "hd",
+      "gtBox": [
+        879,
+        1742,
+        1048,
+        1929
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A rectangular button with pink text '可领取' located on the right side of the coupon card for 415-50",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=MMBench-GUI L2 | source_id=413 | license=Apache-2.0 | sha256=9d747ff3be6e8bfdd575c6c11d08f8840efa2326195f5d064cdf2591edcc7990. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

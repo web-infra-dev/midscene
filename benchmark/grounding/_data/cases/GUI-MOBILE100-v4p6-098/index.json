@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-098.png",
+      "imageType": "hd",
+      "gtBox": [
+        29,
+        425,
+        713,
+        526
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "View the classic dystopian novel document that was sent to you as an email attachment",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p6 | class=reason | source=MMBench-GUI L2 | source_id=3159 | sha256=b5148e262e26715c0abbd4a0ed3bd75ebcac4db23f1c3d1f645b5664604ace77",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-046.png",
+      "imageType": "hd",
+      "gtBox": [
+        262,
+        2085,
+        386,
+        2206
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Switch to driver-side functionality",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=621 | license=MIT | sha256=9a4ecfd108545e8a3d10f87d9b1386065535a47285e3265fa8de5aa3981d7ca1. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

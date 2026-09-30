@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "title": "Web v4.7 + Mobile v4.6 Grounding",
+    "objective": "Evaluate the fixed 200 cases with the current local core build",
+    "note": ""
+  },
+  "selection": {
+    "modelIds": [],
+    "caseNames": [],
+    "excludeCaseNames": [],
+    "imageTypes": ["hd"],
+    "promptSource": "primary"
+  },
+  "execution": {
+    "iterations": 1,
+    "providerConcurrency": 1,
+    "runId": ""
+  },
+  "locate": {
+    "useDeepLocate": false,
+    "implementation": "aiLocate",
+    "aiActDeepThink": false
+  },
+  "modelConfig": {},
+  "debug": { "enableLangSmith": false }
+}

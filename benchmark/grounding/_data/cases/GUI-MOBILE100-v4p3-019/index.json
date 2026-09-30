@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-019.jpg",
+      "imageType": "hd",
+      "gtBox": [
+        780,
+        1102,
+        1020,
+        1322
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Tap the division sign in the calculator",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=ScreenSpot-v2 | source_id=screenspot_mobile_v2.json#206 | license=Apache-2.0 | sha256=69a39654e0c81c9ac38c16e4d57e9683dab92573da26cff614a81f7f6061c27a. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

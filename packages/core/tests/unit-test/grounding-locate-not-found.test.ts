@@ -88,6 +88,23 @@ describe('grounding locate not-found parsing', () => {
       'target element is not found',
     );
     expect(result.rawResponse).toBe(content);
+    expect(result.parseResult.outcome).toBeUndefined();
+  });
+
+  it('does not treat an API failure mentioning not found as a refusal', async () => {
+    rs.mocked(callAI).mockRejectedValue(new Error('404 model not found'));
+
+    const result = await AiLocateElement({
+      context: createFakeContext(),
+      targetElementDescription: 'missing button',
+      modelRuntime: getModelRuntime({ ...modelConfig, retryCount: 0 }),
+    });
+
+    expect(result.parseResult.element).toBeUndefined();
+    expect(result.parseResult.errors).toEqual([
+      'AI call error: 404 model not found',
+    ]);
+    expect(result.parseResult.outcome).toBeUndefined();
   });
 
   it('skips coordinate parsing when result key is an empty array', async () => {
@@ -107,6 +124,7 @@ describe('grounding locate not-found parsing', () => {
     expect(result.parseResult).toEqual({
       element: undefined,
       errors: ['target element is not found'],
+      outcome: 'not-found',
     });
   });
 
@@ -163,6 +181,7 @@ describe('grounding locate not-found parsing', () => {
     expect(result.parseResult.errors?.[0]).toContain(
       'modelName=test-model modelFamily=qwen2.5-vl',
     );
+    expect(result.parseResult.outcome).toBeUndefined();
   });
 
   it('retries JSON parsing through the same locate retry loop', async () => {

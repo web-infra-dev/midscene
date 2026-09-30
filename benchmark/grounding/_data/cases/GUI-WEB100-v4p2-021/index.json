@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-021.png",
+      "imageType": "hd",
+      "gtBox": [
+        1421,
+        1056,
+        1599,
+        1126
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "After clicking, you will be redirected to the refund details page.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#16 | license=MIT | sha256=21231834b77dd49047bda820a1a87a0661c428cc9d01e2264120a34be1d3d442. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

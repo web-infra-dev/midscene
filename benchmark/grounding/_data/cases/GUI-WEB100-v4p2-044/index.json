@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-044.png",
+      "imageType": "hd",
+      "gtBox": [
+        26,
+        163,
+        70,
+        207
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Check to show only hotels currently available with vacant rooms",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#393 | license=MIT | sha256=8ca5f16edfe94c899e86025fe7288f0b8322a4193de899f1649749e188de366e. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

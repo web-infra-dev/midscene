@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-020.png",
+      "imageType": "hd",
+      "gtBox": [
+        621,
+        252,
+        910,
+        386
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "display flagged massages",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=ScreenSpot-v2 | source_id=screenspot_mobile_v2.json#236 | license=Apache-2.0 | sha256=7e1b7c7ec0741ffdaa5351a573fce665c36a9b6aa31ba30f8708ae7fccf357e2. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

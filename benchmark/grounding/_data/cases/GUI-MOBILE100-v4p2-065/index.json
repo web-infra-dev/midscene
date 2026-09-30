@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-065.png",
+      "imageType": "hd",
+      "gtBox": [
+        21,
+        1975,
+        529,
+        2090
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Clear all selected filters",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=65 | license=MIT | sha256=143faa82af68e9286a83dca485f31c300bd19573b66b06d4ca8ac5f7f8189b5d. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

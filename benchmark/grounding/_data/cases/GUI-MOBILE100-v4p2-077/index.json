@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-077.png",
+      "imageType": "hd",
+      "gtBox": [
+        939,
+        1072,
+        993,
+        1124
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select to complete your 5-star evaluation for Zhao Rui who scored 7 points in the game",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=reason | source=MMBench-GUI L2 | source_id=2793 | license=Apache-2.0 | sha256=34a37e898290c6daef221e730f38e63bd9b635c78c059a181ef35f82225c5fff. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

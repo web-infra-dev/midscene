@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-001.png",
+      "imageType": "hd",
+      "gtBox": [
+        491,
+        1259,
+        803,
+        1354
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select the date with the second highest price on Sunday.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#62 | license=MIT | sha256=23cb3458fa767680727cc38fd2ec5f0f4381de30da6a7ae1ff147a32a8462683. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-083.png",
+      "imageType": "hd",
+      "gtBox": [
+        2554,
+        680,
+        2625,
+        740
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the close or cancel icon in the \"Add to Favorites\" dialog box.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1432 | license=MIT | sha256=c29939081fde90466edaf7b3be314c8f21832a56a90bcfb52f99d34c1bb6625e. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}
