@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-075.png",
+      "imageType": "hd",
+      "gtBox": [
+        32,
+        1295,
+        225,
+        1395
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Show your support for the official club song that has already received over a hundred thousand positive reactions",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=reason | source=MMBench-GUI L2 | source_id=2733 | license=Apache-2.0 | sha256=a9649934f4f9c5fef056f7fdef8b663820b580ec177c57ceac8e6e2f48cf33b1. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

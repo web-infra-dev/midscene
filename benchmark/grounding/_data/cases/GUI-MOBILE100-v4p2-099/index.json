@@ -1,0 +1,16 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-099.png",
+      "imageType": "hd",
+      "gtBox": null,
+      "expectedOutcome": "refusal"
+    }
+  ],
+  "prompt": "Find the \"Save\" button with a red background in the lower-left corner of the interface.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#row=837 | license=MIT | sha256=4d054894b7c274c37c1c6ae299f87e8ccde2e733379433ff8e28055ca1a265db. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

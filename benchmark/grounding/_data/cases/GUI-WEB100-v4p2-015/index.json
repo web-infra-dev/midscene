@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-015.png",
+      "imageType": "hd",
+      "gtBox": [
+        2550,
+        1031,
+        2621,
+        1108
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the date with the only blue button among all the dates.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#1065 | license=MIT | sha256=ec7d0d882134afe447d118603eddb4c52d869f378ba248b3a32b5acd70d715f6. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

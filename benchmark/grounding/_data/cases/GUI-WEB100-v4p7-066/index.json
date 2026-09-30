@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-066.png",
+      "imageType": "hd",
+      "gtBox": [
+        1526,
+        662,
+        1899,
+        734
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the next task after \"Determine Decor Style and Core...\" in Phase One, and click to view.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p7 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#582 | sha256=6df414aa536dfc7595e11a2d1e9ab835370feaa0543412cc1c18e2e806544b25",
+  "tags": [
+    "evaluation_import"
+  ]
+}

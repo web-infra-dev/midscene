@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-072.png",
+      "imageType": "hd",
+      "gtBox": [
+        1785,
+        714,
+        2053,
+        766
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the text \"Keep me logged in\".",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#440 | license=MIT | sha256=d687b3f4363015b1d886a5fc0a7b8ea9715ab24ee37c2101023c4495f114b025. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

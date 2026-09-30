@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-059.png",
+      "imageType": "hd",
+      "gtBox": [
+        690,
+        335,
+        1280,
+        410
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Display a list of developers who have contributed to the repository",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#628 | license=MIT | sha256=a01f87b020bb45e10802b67e1e526711f38c07848818923f15fccb7e2094fc98. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

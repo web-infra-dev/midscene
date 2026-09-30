@@ -1,0 +1,6 @@
+output/
+_private/
+.env
+.env.*
+!.env.example
+midscene_run/

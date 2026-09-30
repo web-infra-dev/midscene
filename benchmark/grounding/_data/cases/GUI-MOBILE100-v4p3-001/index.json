@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-001.png",
+      "imageType": "hd",
+      "gtBox": [
+        179,
+        2094,
+        761,
+        2145
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the text \"Bach's Air on the G String (Orchestral...)\".",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#618 | license=MIT | sha256=12947b792ccc7d06dcc1ebed05c6bb130b3b000b3fab4889eea029312337b629. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

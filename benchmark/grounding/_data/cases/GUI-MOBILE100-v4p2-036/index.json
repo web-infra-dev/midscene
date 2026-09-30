@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-036.png",
+      "imageType": "hd",
+      "gtBox": [
+        422,
+        1575,
+        523,
+        1631
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Follow this artist or artwork",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=121 | license=MIT | sha256=dd2fdf79e7984aba5a430fb61743e79c73126bf48b7b44ca9693b7c3199f2026. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

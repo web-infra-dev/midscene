@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-071.png",
+      "imageType": "hd",
+      "gtBox": [
+        3143,
+        1243,
+        3225,
+        1279
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the text \"Gift Card\".",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#449 | license=MIT | sha256=3a777974699bd599703129c081f1bd90765c83a79852d111faec90aff9a97f48. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

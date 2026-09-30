@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-082.png",
+      "imageType": "hd",
+      "gtBox": [
+        1187,
+        1027,
+        1836,
+        1115
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the button that says \"Sign up with Google account.\"",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1195 | license=MIT | sha256=23364bcd772032806326b581874de42ddc51ac8d498f132268dd8aacc632eabf. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-097.png",
+      "imageType": "hd",
+      "gtBox": [
+        70,
+        1707,
+        496,
+        2021
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Explore more images of the workout space that's listed as a free service at this Shanghai hotel",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p6 | class=reason | source=MMBench-GUI L2 | source_id=2941 | sha256=2440890eaf69f99511ed91b3a1fd3db16c76b51694d4475113ac06cff7d752e0",
+  "tags": [
+    "evaluation_import"
+  ]
+}

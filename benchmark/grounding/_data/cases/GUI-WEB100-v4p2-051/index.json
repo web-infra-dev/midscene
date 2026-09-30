@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-051.png",
+      "imageType": "hd",
+      "gtBox": [
+        303,
+        351,
+        345,
+        396
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select all items in the shopping cart",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#5 | license=MIT | sha256=da2d5f76fdeaec175a4fec06ab14a773cfd4bfffaec772f1680f45691e1a2108. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

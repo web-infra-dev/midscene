@@ -5,6 +5,9 @@
   },
   "files": {
     "ignore": [
+      "benchmark/grounding/_data/**",
+      "benchmark/grounding/output/**",
+      "benchmark/grounding/_private/**",
       "static/**",
       "node_modules/**",
       "**/midscene_run",

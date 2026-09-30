@@ -1,0 +1,16 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-092.png",
+      "imageType": "hd",
+      "gtBox": null,
+      "expectedOutcome": "refusal"
+    }
+  ],
+  "prompt": "Click the toggle switch located to the left of \"Enable System Haptics.\"",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#row=52 | license=MIT | sha256=7f96222b714b0f267664406ad8562196c48db25acd344be9bf42e8ee51a17f5f. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

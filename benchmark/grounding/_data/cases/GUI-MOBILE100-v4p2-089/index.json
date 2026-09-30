@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-089.png",
+      "imageType": "hd",
+      "gtBox": [
+        802,
+        1622,
+        925,
+        1683
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Engage with the popular comment featuring a basketball dunk image",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=reason | source=MMBench-GUI L2 | source_id=2779 | license=Apache-2.0 | sha256=bd11e19784c14161fdbc5821ef078a8971bc8bb1851647e87df08c2e2ef200cf. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

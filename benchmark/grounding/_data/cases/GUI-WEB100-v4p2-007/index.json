@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-007.png",
+      "imageType": "hd",
+      "gtBox": [
+        768,
+        836,
+        1329,
+        902
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find tasks where the owner and designer are both collaborators. Click to view task details.",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#548 | license=MIT | sha256=ad01562e35b40ce63f93b44ad4dec61ee4af189dbb8f39840323c8f52245b3d2. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-058.png",
+      "imageType": "hd",
+      "gtBox": [
+        25,
+        235,
+        1040,
+        343
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "View real-time tracking information for Typhoon \"Yangliu\"",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=302 | license=MIT | sha256=76d6f249a9fde2d4d9a24c8f1c6024dfb778b0e761c6a90fb797ad987aedbc1e. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

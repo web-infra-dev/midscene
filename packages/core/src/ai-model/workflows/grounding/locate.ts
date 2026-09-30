@@ -53,6 +53,7 @@ export async function AiLocateElement(
     usage,
     reasoningContent,
     errors = [],
+    outcome,
   } = locateResponse;
   const baseLocateResult = {
     rawResponse,
@@ -66,6 +67,7 @@ export async function AiLocateElement(
       parseResult: {
         element: undefined,
         errors,
+        ...(outcome ? { outcome } : {}),
       },
       ...baseLocateResult,
     };
@@ -161,6 +163,7 @@ export async function genericLocate(
             usage: response.usage,
             reasoningContent: response.reasoning_content,
             errors: locateError ? [locateError] : [],
+            outcome: 'not-found',
           };
         }
 

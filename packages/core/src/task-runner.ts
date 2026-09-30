@@ -56,6 +56,38 @@ export interface SerializedTaskExecutionError extends SerializedError {
   code: 'TASK_EXECUTION_FAILED';
   cause: SerializedError;
   task?: SerializedErrorTask;
+  locateOutcome?: 'not-found';
+  locateRawResponse?: string;
+}
+
+function explicitLocateOutcome(
+  task: ExecutionTask | null,
+): 'not-found' | undefined {
+  if (task?.type !== 'Planning' || task.subType !== 'Locate') {
+    return undefined;
+  }
+  const dump = task.log?.dump;
+  if (dump?.type !== 'locate') {
+    return undefined;
+  }
+  const formatResponse = dump.taskInfo?.formatResponse;
+  return formatResponse?.outcome === 'not-found' ? 'not-found' : undefined;
+}
+
+function explicitLocateRawResponse(
+  task: ExecutionTask | null,
+): string | undefined {
+  if (explicitLocateOutcome(task) !== 'not-found') {
+    return undefined;
+  }
+  const dump = task?.log?.dump;
+  if (dump?.type !== 'locate') {
+    return undefined;
+  }
+  const rawResponse = dump.taskInfo?.rawResponse;
+  return typeof rawResponse === 'string'
+    ? truncateSerializedErrorString(rawResponse)
+    : undefined;
 }
 
 function serializeErrorTask(
@@ -466,6 +498,8 @@ export class TaskRunner {
       finalizeError = new TaskExecutionError(
         error,
         serializeErrorTask(errorTask),
+        explicitLocateOutcome(errorTask),
+        explicitLocateRawResponse(errorTask),
       );
       await this.emitSnapshotChange(finalizeError);
     } else {
@@ -549,11 +583,24 @@ export class TaskExecutionError extends Error {
 
   readonly task?: SerializedErrorTask;
 
-  constructor(error: SerializedError, task?: SerializedErrorTask) {
+  /** Present only when the locate protocol explicitly parsed an absent target. */
+  readonly locateOutcome?: 'not-found';
+
+  /** The bounded model response for an explicit absent-target result. */
+  readonly locateRawResponse?: string;
+
+  constructor(
+    error: SerializedError,
+    task?: SerializedErrorTask,
+    locateOutcome?: 'not-found',
+    locateRawResponse?: string,
+  ) {
     super(error.message, { cause: error });
     this.name = 'TaskExecutionError';
     this.cause = error;
     this.task = task;
+    this.locateOutcome = locateOutcome;
+    this.locateRawResponse = locateRawResponse;
     if (this.stack) {
       this.stack = truncateSerializedErrorString(this.stack);
     }
@@ -572,6 +619,12 @@ export class TaskExecutionError extends Error {
       ...(this.stack === undefined ? {} : { stack: this.stack }),
       cause: this.cause,
       ...(this.task === undefined ? {} : { task: this.task }),
+      ...(this.locateOutcome === undefined
+        ? {}
+        : { locateOutcome: this.locateOutcome }),
+      ...(this.locateRawResponse === undefined
+        ? {}
+        : { locateRawResponse: this.locateRawResponse }),
     };
   }
 }

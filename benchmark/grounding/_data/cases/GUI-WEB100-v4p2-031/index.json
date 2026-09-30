@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-031.png",
+      "imageType": "hd",
+      "gtBox": [
+        3599,
+        30,
+        3716,
+        97
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Publish/deploy the workflow to the production/execution environment",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#52 | license=MIT | sha256=6ecd5d76cec770be421f338194ec095e95e87e4cd4012ca5745db7bf9df789b4. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}

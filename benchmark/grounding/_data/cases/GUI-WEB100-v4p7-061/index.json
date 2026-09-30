@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "web-061.png",
+      "imageType": "hd",
+      "gtBox": [
+        2392,
+        140,
+        2903,
+        651
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select product images from stores with more than 15 years of history",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-web-100-v4p7 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#81 | sha256=63974862a6e9044b2caf282c084010a02f2bf5736559ef2c0fb8a23ec7cd0bf0",
+  "tags": [
+    "evaluation_import"
+  ]
+}

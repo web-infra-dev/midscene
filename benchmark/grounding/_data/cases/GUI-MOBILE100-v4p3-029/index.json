@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "fileName": "mobile-029.png",
+      "imageType": "hd",
+      "gtBox": [
+        293,
+        745,
+        346,
+        799
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A square icon with a letter 'A' and a pencil symbol, indicating a text formatting or editing function",
+  "fallbackPrompt": "",
+  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=MMBench-GUI L2 | source_id=1317 | license=Apache-2.0 | sha256=0d94a39232da0d07aff89cabe7f265ac8c329ec731a4771e87bfa7aa7c8f43cc. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "tags": [
+    "evaluation_import"
+  ]
+}
