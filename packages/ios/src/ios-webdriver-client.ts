@@ -8,6 +8,12 @@ import {
   keyboardAccessoryToolbarGap,
   selectKeyboardAccessoryDismissButton,
 } from './keyboard-dismiss';
+import {
+  createLongPressActions,
+  createPinchActions,
+  createSwipeActions,
+  isUnsupportedW3CActionsError,
+} from './w3c-actions';
 
 const debugIOS = getDebug('webdriver:ios');
 
@@ -716,28 +722,10 @@ export class IOSWebDriverClient extends WebDriverClient {
   ): Promise<void> {
     this.ensureSession();
 
-    // Use W3C Actions API for better scroll support
-    const actions = {
-      actions: [
-        {
-          type: 'pointer',
-          id: 'finger1',
-          parameters: { pointerType: 'touch' },
-          actions: [
-            { type: 'pointerMove', duration: 0, x: fromX, y: fromY },
-            { type: 'pointerDown', button: 0 },
-            { type: 'pause', duration: 100 },
-            { type: 'pointerMove', duration, x: toX, y: toY },
-            { type: 'pointerUp', button: 0 },
-          ],
-        },
-      ],
-    };
-
     await this.makeRequest(
       'POST',
       `/session/${this.sessionId}/actions`,
-      actions,
+      createSwipeActions(fromX, fromY, toX, toY, duration),
     );
     debugIOS(
       `Swiped using W3C Actions from (${fromX}, ${fromY}) to (${toX}, ${toY}) in ${duration}ms`,
@@ -753,62 +741,16 @@ export class IOSWebDriverClient extends WebDriverClient {
   ): Promise<void> {
     this.ensureSession();
 
-    const halfStart = startDistance / 2;
-    const halfEnd = endDistance / 2;
-
-    const actions = {
-      actions: [
-        {
-          type: 'pointer',
-          id: 'finger1',
-          parameters: { pointerType: 'touch' },
-          actions: [
-            {
-              type: 'pointerMove',
-              duration: 0,
-              x: centerX,
-              y: Math.round(centerY - halfStart),
-            },
-            { type: 'pointerDown', button: 0 },
-            { type: 'pause', duration: 100 },
-            {
-              type: 'pointerMove',
-              duration,
-              x: centerX,
-              y: Math.round(centerY - halfEnd),
-            },
-            { type: 'pointerUp', button: 0 },
-          ],
-        },
-        {
-          type: 'pointer',
-          id: 'finger2',
-          parameters: { pointerType: 'touch' },
-          actions: [
-            {
-              type: 'pointerMove',
-              duration: 0,
-              x: centerX,
-              y: Math.round(centerY + halfStart),
-            },
-            { type: 'pointerDown', button: 0 },
-            { type: 'pause', duration: 100 },
-            {
-              type: 'pointerMove',
-              duration,
-              x: centerX,
-              y: Math.round(centerY + halfEnd),
-            },
-            { type: 'pointerUp', button: 0 },
-          ],
-        },
-      ],
-    };
-
     await this.makeRequest(
       'POST',
       `/session/${this.sessionId}/actions`,
-      actions,
+      createPinchActions(
+        centerX,
+        centerY,
+        startDistance,
+        endDistance,
+        duration,
+      ),
     );
     debugIOS(
       `Pinched at (${centerX}, ${centerY}) from distance ${startDistance} to ${endDistance} in ${duration}ms`,
@@ -818,17 +760,42 @@ export class IOSWebDriverClient extends WebDriverClient {
   async longPress(x: number, y: number, duration = 1000): Promise<void> {
     this.ensureSession();
 
-    // Use WebDriverAgent's long press endpoint
-    await this.makeRequest(
-      'POST',
-      `/session/${this.sessionId}/wda/touchAndHold`,
-      {
-        x,
-        y,
-        duration: duration / 1000, // WDA expects seconds
-      },
-    );
-    debugIOS(`Long pressed at coordinates (${x}, ${y}) for ${duration}ms`);
+    try {
+      await this.makeRequest(
+        'POST',
+        `/session/${this.sessionId}/actions`,
+        createLongPressActions(x, y, duration),
+      );
+      debugIOS(
+        `Long pressed at coordinates (${x}, ${y}) for ${duration}ms using W3C Actions`,
+      );
+    } catch (actionsError) {
+      if (!isUnsupportedW3CActionsError(actionsError)) throw actionsError;
+
+      debugIOS(
+        `W3C Actions are unsupported, trying touchAndHold: ${actionsError}`,
+      );
+      try {
+        await this.makeRequest(
+          'POST',
+          `/session/${this.sessionId}/wda/touchAndHold`,
+          {
+            x,
+            y,
+            duration: duration / 1000, // WDA expects seconds
+          },
+        );
+        debugIOS(
+          `Long pressed at coordinates (${x}, ${y}) for ${duration}ms using touchAndHold`,
+        );
+      } catch (fallbackError) {
+        debugIOS(`Failed to long press at (${x}, ${y}): ${fallbackError}`);
+        throw new AggregateError(
+          [actionsError, fallbackError],
+          `Failed to long press at coordinates: ${fallbackError}`,
+        );
+      }
+    }
   }
 
   async doubleTap(x: number, y: number): Promise<void> {
