@@ -63,6 +63,18 @@ const resolveRunInput = (options: TestProjectRunOptions): TestRunInput => {
   };
 };
 
+const findProjectRoot = (
+  configPath: string | undefined,
+  fallback: string,
+  cwd: string,
+  explicitConfig: boolean,
+): string => {
+  if (explicitConfig) return fallback;
+  if (configPath) return dirname(configPath);
+  if (fallback === cwd) return cwd;
+  return fallback;
+};
+
 /** Composition boundary only: execution receives no raw input syntax or host options. */
 export async function prepareTestRun(
   options: TestProjectRunOptions,
@@ -80,16 +92,24 @@ export async function prepareTestRun(
   }
   if (options.configPath && !existsSync(configPath!))
     throw new Error(`Midscene config does not exist: ${configPath}`);
+  const projectRoot = findProjectRoot(
+    configPath,
+    input.projectRoot,
+    input.cwd,
+    Boolean(options.configPath),
+  );
   const definition = await loadTestProject<unknown>(configPath);
   const resultDir = options.resultDir
     ? resolve(input.cwd, options.resultDir)
-    : join(input.projectRoot, '.midscene', 'test-results');
+    : join(projectRoot, '.midscene', 'test-results');
   const runDir = join(resultDir, runId);
   const summaryPath = join(runDir, 'summary.json');
-  const reportDir = resolve(input.projectRoot, definition.output.reportDir);
+  const reportDir = resolve(projectRoot, definition.output.reportDir);
   mkdirSync(resultDir, { recursive: true });
   mkdirSync(runDir);
   const projects: PreparedExecutionProject[] = [];
+  const files = input.singleFile ? [input.singleFile] : undefined;
+  const prepOptions = files ? { files } : undefined;
   for (const project of selectProjects(
     definition.projects,
     options.projectNames,
@@ -97,10 +117,10 @@ export async function prepareTestRun(
     projects.push(
       await prepareProject(
         project,
-        input.projectRoot,
+        projectRoot,
         runDir,
         definition.test.testTimeout,
-        input.singleFile ? { files: [input.singleFile] } : undefined,
+        prepOptions,
       ),
     );
   const hasFormatMismatch = projects.some((project) =>
@@ -111,7 +131,7 @@ export async function prepareTestRun(
   return {
     startedAt,
     runId,
-    projectRoot: input.projectRoot,
+    projectRoot,
     ...(configPath ? { configPath } : {}),
     resultDir,
     runDir,
@@ -119,8 +139,6 @@ export async function prepareTestRun(
     reportDir,
     definition,
     projects,
-    // A wrong-format file invalidates the complete command invocation. Other
-    // native collection failures retain the existing per-Project isolation.
     preflightScope: hasFormatMismatch ? 'run' : 'project',
     reportEnabled: true,
     publications: [],
