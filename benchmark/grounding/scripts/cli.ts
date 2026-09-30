@@ -55,6 +55,8 @@ if (values['api-type']) {
     // biome-ignore lint/performance/noDelete: process.env coerces undefined to the string "undefined".
     delete process.env.MIDSCENE_MODEL_API_TYPE;
   }
+  process.env.MIDSCENE_MODEL_PROTOCOL =
+    values['api-type'] === 'responses' ? 'openai-responses' : 'openai-chat';
 }
 let closeAdapter: (() => Promise<void>) | undefined;
 try {
@@ -75,6 +77,7 @@ try {
     closeAdapter = adapter.close;
     process.env.MIDSCENE_MODEL_BASE_URL = adapter.baseUrl;
     process.env.MIDSCENE_MODEL_API_KEY = 'local-grounding-adapter';
+    process.env.MIDSCENE_MODEL_PROTOCOL = 'openai-chat';
     // biome-ignore lint/performance/noDelete: remove the env override, do not stringify undefined.
     delete process.env.MIDSCENE_MODEL_API_TYPE;
   }

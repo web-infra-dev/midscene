@@ -144,6 +144,7 @@ export type MidsceneResultsModelRecord = Pick<
     MIDSCENE_MODEL_BASE_URL: string;
     MIDSCENE_MODEL_FAMILY: string;
     MIDSCENE_MODEL_API_TYPE?: string;
+    MIDSCENE_MODEL_PROTOCOL?: 'openai-chat' | 'openai-responses';
     MIDSCENE_MODEL_REASONING_ENABLED?: string;
   };
 };
