@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Languages the console is written in. Android 13+ shows these under
+  Settings → Apps → Midscene → Language, so the UI can be switched without
+  changing the system locale. Older releases simply follow the system language.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="zh" />
+</locale-config>

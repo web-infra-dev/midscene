@@ -1,0 +1,5 @@
+// Root build file: only declares the Android Gradle Plugin version so the
+// per-module file stays small.
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+}

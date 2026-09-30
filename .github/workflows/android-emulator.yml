@@ -5,7 +5,9 @@ on:
     paths:
       - '.github/workflows/android-emulator.yml'
       - 'apps/report/**'
+      - 'apps/android-host/**'
       - 'packages/android/**'
+      - 'packages/android-local/**'
       - 'packages/core/**'
       - 'packages/shared/**'
       - 'scripts/report-template-utils.mjs'
@@ -158,6 +160,15 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot-save -noaudio -no-boot-anim -camera-back none
           script: bash packages/android/scripts/run-emulator-ci-smokes.sh
 
+      - name: Run Android Host JVM tests
+        id: host-unit-tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter android-host test:android 2>&1 |
+            tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/host-unit-tests.log"
+
       - name: Collect host step outcomes
         if: always()
         shell: bash
@@ -165,6 +176,7 @@ jobs:
           BUILD_OUTCOME: ${{ steps.build.outcome }}
           PACKAGE_OUTCOME: ${{ steps.package-smoke.outcome }}
           UNIT_OUTCOME: ${{ steps.unit-tests.outcome }}
+          HOST_UNIT_OUTCOME: ${{ steps.host-unit-tests.outcome }}
           EMULATOR_OUTCOME: ${{ steps.emulator-tests.outcome }}
         run: |
           mkdir -p "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR"
@@ -175,6 +187,7 @@ jobs:
               build: process.env.BUILD_OUTCOME,
               packageSmoke: process.env.PACKAGE_OUTCOME,
               unitTests: process.env.UNIT_OUTCOME,
+              hostUnitTests: process.env.HOST_UNIT_OUTCOME,
               emulatorTests: process.env.EMULATOR_OUTCOME,
             };
             fs.writeFileSync(
@@ -218,6 +231,7 @@ jobs:
           [[ '${{ steps.build.outcome }}' == success ]] || failed+=(build)
           [[ '${{ steps.package-smoke.outcome }}' == success ]] || failed+=("package smoke")
           [[ '${{ steps.unit-tests.outcome }}' == success ]] || failed+=("unit tests")
+          [[ '${{ steps.host-unit-tests.outcome }}' == success ]] || failed+=("host unit tests")
           [[ '${{ steps.emulator-tests.outcome }}' == success ]] || failed+=("emulator tests")
           if ((${#failed[@]} > 0)); then
             printf 'Android validation failed: %s\n' "${failed[*]}" >&2
