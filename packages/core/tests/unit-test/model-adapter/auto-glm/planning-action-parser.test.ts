@@ -114,6 +114,14 @@ describe('parseAutoGLMPlanningAction', () => {
     expect(finishAction.message).toBe('Task completed');
   });
 
+  it('should keep a closing parenthesis at the end of the Finish message', () => {
+    const action = parseAutoGLMPlanningAction({
+      think: 'All done',
+      content: 'finish(message="Deleted 3 items (all done)")',
+    });
+    expect((action as FinishAction).message).toBe('Deleted 3 items (all done)');
+  });
+
   it('should parse Interact action', () => {
     const action = parseAutoGLMPlanningAction({
       think: 'Need interaction',
