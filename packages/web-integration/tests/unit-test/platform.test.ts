@@ -11,6 +11,7 @@ describe('webPlaygroundPlatform', () => {
     expect(prepared.agent).toBeUndefined();
     expect(prepared.agentFactory).toBeTypeOf('function');
     expect(createdAgent).toBeInstanceOf(StaticPageAgent);
+    expect(prepared.launchOptions).toMatchObject({ enableCors: true });
     expect(prepared.preview).toMatchObject({
       kind: 'mjpeg',
       screenshotPath: '/screenshot',
@@ -24,6 +25,7 @@ describe('webPlaygroundPlatform', () => {
       launchOptions: {
         port: 5807,
         openBrowser: true,
+        enableCors: false,
       },
     });
 
@@ -31,6 +33,7 @@ describe('webPlaygroundPlatform', () => {
     expect(prepared.launchOptions).toMatchObject({
       port: 5807,
       openBrowser: true,
+      enableCors: false,
     });
   });
 });
