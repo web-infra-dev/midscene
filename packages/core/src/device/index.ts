@@ -664,7 +664,7 @@ export const actionScrollParamSchema = z.object({
     .enum(['down', 'up', 'right', 'left'])
     .default('down')
     .describe(
-      'The direction toward the off-screen content to reveal. "down" reveals content below the current viewport, "up" reveals content above, "right" reveals content to the right, and "left" reveals content to the left. This does not describe the movement direction of the content currently visible on the screen. Only effective when scrollType is "singleAction".',
+      'The direction toward the off-screen content to reveal. Quick mapping: want to see content below the current viewport -> "down"; above -> "up"; to the left -> "left"; to the right -> "right". This does not describe the movement direction of the content currently visible on the screen. Only effective when scrollType is "singleAction".',
     ),
   distance: z
     .number()
@@ -792,7 +792,7 @@ function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
       .enum(['up', 'down', 'left', 'right'])
       .optional()
       .describe(
-        `${movementSource === 'finger' ? 'Finger' : 'Pointer'} movement direction. Required together with a positive distance for a relative swipe. Omit when using end.`,
+        `${movementSource === 'finger' ? 'Finger' : 'Pointer'} movement direction. Quick mapping: move the ${movementSource} or content upward -> "up"; downward -> "down"; leftward -> "left"; rightward -> "right". Required together with a positive distance for a relative swipe. Omit when using end.`,
       ),
     distance: z
       .number()
