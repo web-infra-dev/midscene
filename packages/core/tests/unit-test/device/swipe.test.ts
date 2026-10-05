@@ -1,6 +1,6 @@
 import { ActionSwipeParamSchema, normalizeMobileSwipeParam } from '@/device';
 import type { LocateResultElement } from '@/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const screenSize = { width: 1000, height: 800 };
 
