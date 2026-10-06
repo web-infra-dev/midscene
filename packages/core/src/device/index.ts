@@ -848,17 +848,7 @@ export function normalizeSwipeParam(
   repeatCount: number;
 } {
   const { width, height } = screenSize;
-  const { start, end, distance, direction } = param;
-
-  if (end !== undefined && distance !== undefined) {
-    throw new Error('end and distance are mutually exclusive');
-  }
-  if (distance !== undefined && (!Number.isFinite(distance) || distance <= 0)) {
-    throw new Error('distance must be a positive finite number');
-  }
-  if (distance !== undefined && direction === undefined) {
-    throw new Error('direction is required when using distance');
-  }
+  const { start, end } = param;
 
   const duration = param.duration ?? 300;
   if (!Number.isFinite(duration) || duration <= 0) {
@@ -895,7 +885,7 @@ export function normalizeSwipeParam(
       );
     }
 
-    if (param.distance <= 0) {
+    if (!Number.isFinite(param.distance) || param.distance <= 0) {
       throw new Error(
         'Invalid Swipe parameters: "distance" must be a positive number.',
       );

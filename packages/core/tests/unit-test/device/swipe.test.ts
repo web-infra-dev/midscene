@@ -85,12 +85,12 @@ describe('normalizeMobileSwipeParam', () => {
     {
       name: 'negative distance',
       param: { distance: -100, direction: 'right' as const },
-      message: 'distance must be a positive finite number',
+      message: '"distance" must be a positive number',
     },
     {
       name: 'zero distance',
       param: { distance: 0, direction: 'right' as const },
-      message: 'distance must be a positive finite number',
+      message: '"distance" must be a positive number',
     },
     {
       name: 'non-finite distance',
@@ -98,12 +98,12 @@ describe('normalizeMobileSwipeParam', () => {
         distance: Number.POSITIVE_INFINITY,
         direction: 'right' as const,
       },
-      message: 'distance must be a positive finite number',
+      message: '"distance" must be a positive number',
     },
     {
       name: 'missing direction',
       param: { distance: 100 },
-      message: 'direction is required when using distance',
+      message: 'requires both "direction" and a positive "distance"',
     },
     {
       name: 'negative duration',
@@ -150,7 +150,7 @@ describe('normalizeMobileSwipeParam', () => {
         },
         screenSize,
       ),
-    ).toThrow('end and distance are mutually exclusive');
+    ).toThrow('"end" cannot be combined with "direction" or "distance"');
   });
 
   it('keeps zero repeat as the capped continuous mode', () => {
