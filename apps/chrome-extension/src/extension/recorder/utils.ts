@@ -1,5 +1,6 @@
 import {
-  type AIArgs,
+  type MessageContent,
+  type ModelCallMessages,
   callAIWithObjectResponse,
   callAIWithStringResponse,
   getModelRuntime,
@@ -9,7 +10,6 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { message } from 'antd';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-import type { ChatCompletionContentPart } from 'openai/resources/index';
 import type { RecordingSession } from '../../store';
 import { recordLogger } from './logger';
 import { withRecorderMessageTimeout } from './messageTimeout';
@@ -338,7 +338,7 @@ export const generateRecordTitle = async (
       const screenshots = getScreenshotsForLLM(events);
 
       // Create the message content
-      const messageContent: ChatCompletionContentPart[] = [
+      const messageContent: MessageContent[] = [
         {
           type: 'text',
           text: `Generate a concise title (5-7 words) and brief description (1-2 sentences) for a browser recording session with the following events:\n\n${JSON.stringify(summary, null, 2)}\n\nRespond with a JSON object containing "title" and "description" fields. The title should be action-oriented and highlight the main task accomplished. The description should provide slightly more detail about what was done.`,
@@ -354,10 +354,8 @@ export const generateRecordTitle = async (
 
         screenshots.forEach((screenshot) => {
           messageContent.unshift({
-            type: 'image_url',
-            image_url: {
-              url: screenshot,
-            },
+            type: 'image',
+            url: screenshot,
           });
         });
       }
@@ -628,7 +626,7 @@ const generateAIMindmap = async (
       };
     });
 
-    const prompt: AIArgs = [
+    const prompt: ModelCallMessages = [
       {
         role: 'system',
         content: `You are an expert test automation analyst who creates detailed Mermaid mindmaps that preserve the complete sequence and details of user interactions.

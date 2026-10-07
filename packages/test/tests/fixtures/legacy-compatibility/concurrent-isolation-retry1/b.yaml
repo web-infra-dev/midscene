@@ -1,0 +1,15 @@
+interface:
+  module: ${COMPAT_DEVICE}
+  param:
+    root: ${COMPAT_ROOT}
+    log: ${COMPAT_LOG}
+agent:
+  generateReport: false
+  autoPrintReportMsg: false
+config:
+  output: ${COMPAT_ROOT}/b.json
+tasks:
+  - name: concurrent b
+    flow:
+      - javascript: "(async () => { mark('b'); await waitFor('a'); state.count=(state.count||0)+1; record('b'); return state.count; })()"
+        name: isolated

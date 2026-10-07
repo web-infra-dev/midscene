@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "1.12.8",
+  "version": "1.14.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -139,7 +139,7 @@
   "devDependencies": {
     "@playwright/test": "^1.45.0",
     "@rslib/core": "^0.18.3",
-    "@rstest/core": "0.11.5",
+    "@rstest/core": "0.12.0",
     "@types/chrome": "0.0.279",
     "@types/cors": "^2.8.17",
     "@types/http-server": "^0.12.4",

@@ -42,6 +42,16 @@ export {
   GroupedActionDump,
 } from './dump/report-action-dump';
 
+export type RawAssistantOutput =
+  | {
+      type: 'chat-completion';
+      rawValue: OpenAI.Chat.Completions.ChatCompletionMessage;
+    }
+  | {
+      type: 'responses';
+      rawValue: OpenAI.Responses.ResponseOutputItem[];
+    };
+
 export type AIUsageInfo = Record<string, any> & {
   prompt_tokens: number | undefined;
   completion_tokens: number | undefined;
@@ -53,6 +63,8 @@ export type AIUsageInfo = Record<string, any> & {
   total_time_cost?: number;
   /** Request retries performed within this call; excludes semantic parse retries. */
   retry_count?: number;
+  /** Actual protocol used for the model call, resolved by Midscene. */
+  api_type?: 'chat-completion' | 'responses' | 'codex';
   model_name: string | undefined;
   model_description: string | undefined;
   /**
@@ -223,7 +235,7 @@ export interface ServiceTaskInfo {
    * full provider response or choices[0].message.
    */
   rawResponse?: unknown;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
   searchArea?: Rect;
   /**
@@ -406,7 +418,7 @@ export interface PlanningAIResponse
    * full provider response or choices[0].message.
    */
   rawResponse?: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
   error?: string;
@@ -591,6 +603,11 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   uiContext?: UIContext;
+  /**
+   * Maximum planning feedback length inherited from the action definition.
+   * Set to 'unlimited' to disable truncation for this task.
+   */
+  planningFeedbackMaxLength?: number | 'unlimited';
   executor: (
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: void is intentionally allowed as some executors may not return a value
@@ -904,6 +921,12 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
+  /**
+   * Maximum number of characters from planningFeedback sent to the next
+   * planning round. Omit to use the core default, or set to 'unlimited' to
+   * disable truncation for this action.
+   */
+  planningFeedbackMaxLength?: number | 'unlimited';
   call: (
     param: TParam,
     context?: ExecutorContext,

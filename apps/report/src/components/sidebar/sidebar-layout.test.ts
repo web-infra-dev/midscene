@@ -127,6 +127,9 @@ describe('sidebar layout', () => {
     expect(hoverPreviewStyles).toMatch(
       /\.global-hover-preview\s*{[^}]*pointer-events: none;/s,
     );
+    expect(appStyles).toMatch(
+      /\[data-theme='dark'\]\s*{[\s\S]*?\.mobile-report-tabs\s*{[\s\S]*?background: #2c2e31;[\s\S]*?&\.is-active\s*{[\s\S]*?background: #3a3d42;/,
+    );
   });
 
   it('limits the compact report layout and controls to phone-sized screens', () => {

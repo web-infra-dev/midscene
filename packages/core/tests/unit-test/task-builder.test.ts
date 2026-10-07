@@ -77,6 +77,7 @@ describe('TaskBuilder', () => {
       name: 'Tap',
       description: 'mock tap action',
       paramSchema: actionSchema,
+      planningFeedbackMaxLength: 123,
       call: rs.fn(),
     };
 
@@ -129,6 +130,7 @@ describe('TaskBuilder', () => {
       ['Planning', 'Locate'],
       ['Action Space', 'Tap'],
     ]);
+    expect(tasks.at(-1)?.planningFeedbackMaxLength).toBe(123);
   });
 
   it('uses promptDisplay for the located element passed to an action', async () => {

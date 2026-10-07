@@ -1,7 +1,7 @@
 <p align="center">
   <img alt="Midscene.js" width="180" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4"><br />
-  <strong>GUI Agent for E2E Testing</strong><br />
-  AI-powered vision. Cross-platform. Batteries included.
+  <strong>Use software like a human. E2E testing in natural language.</strong><br />
+  A vision-based GUI Agent for web, mobile, and desktop apps.
 </p>
 
 <p align="center">
@@ -65,7 +65,7 @@ Each report includes the run configuration and task results; see AndroidWorld's 
 
 Screenshot-based UI actions avoid sending large DOM trees to the model. In the reported AppControlBench run, Midscene with Doubao Seed 2.1 Turbo completed the 60-task evaluation with **$0.59 in total model cost**, achieving 58 passes. The [report](https://midscenejs.com/app-control-bench-report) provides per-task costs and comparisons across models.
 
-Midscene supports multimodal models such as `Qwen3.x`, `Doubao-Seed-2.1`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. Start with one model, or combine planning and vision models for your workload. For data extraction and page understanding, you can opt in to include DOM. See [Model Strategy](https://midscenejs.com/model-strategy).
+Midscene supports multimodal models such as `Qwen3.x`, `Doubao-Seed-2.1`, `DeepSeek V4 Flash`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. By default, one model handles planning, localization, and page understanding. For complex tasks, add a dedicated Planning or Insight model as needed. For data extraction and page understanding, you can opt in to include DOM. See [Model Strategy](https://midscenejs.com/model-strategy).
 
 ### Showcases
 

@@ -1,9 +1,20 @@
 import { resolve } from 'node:path';
 import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
+import { load } from 'js-yaml';
 import { describe, expect, it, vi } from 'vitest';
-import { NodeRegistry, createDocumentRuntime, defineNode } from '../src';
+import {
+  NodeRegistry,
+  createDocumentRuntime,
+  defineNode,
+  normalizeSteps,
+} from '../src';
+import { renderNodeSpec } from '../src/cli/node-spec';
 import { runCollectedCase } from '../src/engine/run-collected-case';
-import { type MidsceneUIAgent, createMidsceneNodes } from '../src/midscene';
+import {
+  type MidsceneUIAgent,
+  createMidsceneNodes,
+  setAIContextInputSchema,
+} from '../src/midscene';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
@@ -38,6 +49,105 @@ const testAgentClass = {
 };
 
 describe('createMidsceneNodes', () => {
+  it('runs setAIContext from YAML with text, empty text, and omitted context', async () => {
+    const setAIContext = vi.fn();
+    const agent = { ...commonAgent(), setAIContext };
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => agent,
+        agentClass: testAgentClass,
+      }),
+    );
+    expect(registry.require('setAIContext').inputSchema).toBe(
+      setAIContextInputSchema,
+    );
+    const result = await runCollectedCase(
+      collected(
+        normalizeSteps(
+          load(`
+- setAIContext:
+    target: default
+    context: Shared guidance
+- setAIContext:
+    target: aiAct
+    context: ""
+- aiAct: Open settings
+- setAIContext:
+    target: aiAct
+`),
+          registry.require.bind(registry),
+        ),
+      ),
+      { resolveNode: registry.require.bind(registry) },
+    );
+    expect(result.status).toBe('success');
+    expect(setAIContext.mock.calls).toEqual([
+      ['default', 'Shared guidance'],
+      ['aiAct', ''],
+      ['aiAct', undefined],
+    ]);
+    expect(agent.aiAct).toHaveBeenCalledWith(
+      'Open settings',
+      expect.any(Object),
+    );
+    expect(renderNodeSpec(registry.definitions()).markdown).toContain(
+      '### `setAIContext`',
+    );
+  });
+
+  it('documents approved effort, without YAML metadata or planning markers in the native Spec', async () => {
+    const aiAct = vi.fn(async () => undefined);
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => commonAgent({ aiAct }),
+        agentClass: testAgentClass,
+      }),
+    );
+    const spec = renderNodeSpec(registry.definitions()).markdown;
+    for (const field of [
+      'resultName',
+      'resultPath',
+      'captureResult',
+      'onFailure',
+      'uiContext',
+      'Finalize',
+      'legacyAction',
+      'legacyValidationError',
+    ])
+      expect(spec).not.toContain(field);
+    expect(spec).toContain('"effort"');
+    expect(spec).toContain('"deepThink"');
+    for (const effort of ['fast', 'balance', 'deepThink']) {
+      const result = await runCollectedCase(
+        collected([
+          {
+            node: 'aiAct',
+            input: { prompt: 'Checkout', options: { effort } },
+            meta: { continueOnError: false },
+          },
+        ]),
+        { resolveNode: registry.require.bind(registry) },
+      );
+      expect(result.status).toBe('success');
+      expect(aiAct).toHaveBeenLastCalledWith(
+        'Checkout',
+        expect.objectContaining({ effort }),
+      );
+    }
+    expect(
+      registry.require('aiLocate').inputSchema!.safeParse({
+        prompt: 'Submit',
+        options: { uiContext: {} },
+      }).success,
+    ).toBe(false);
+    for (const node of ['aiTap', 'aiScroll'])
+      expect(
+        registry.require(node).inputSchema!.safeParse({
+          prompt: 'Submit',
+          options: { uiContext: {} },
+        }).success,
+      ).toBe(false);
+  });
   it('maps case inputs to one Agent from setup context', async () => {
     const aiAct = vi.fn(async () => 'action completed');
     const aiAssert = vi.fn(async () => undefined);
@@ -85,14 +195,7 @@ describe('createMidsceneNodes', () => {
     );
 
     expect(registry.names()).toEqual([
-      'aiAct',
-      'aiTap',
-      'aiAssert',
-      'aiBoolean',
-      'aiNumber',
-      'aiString',
-      'aiAsk',
-      'recordToReport',
+      ...commonAgentTestRunnerNodeDefinitions.map((node) => node.name),
       'wait',
     ]);
     expect(getAgent).toHaveBeenCalledTimes(3);
@@ -105,6 +208,7 @@ describe('createMidsceneNodes', () => {
       'Paid state is missing',
       {
         domIncluded: false,
+        keepRawResponse: true,
         abortSignal: expect.any(AbortSignal),
       },
     );
@@ -404,6 +508,7 @@ describe('createMidsceneNodes', () => {
 
     expect(result.steps[0].output?.data).toEqual({ stdout });
     expect(aiAssert).toHaveBeenCalledWith('The command completed.', undefined, {
+      keepRawResponse: true,
       abortSignal: expect.any(AbortSignal),
     });
   });

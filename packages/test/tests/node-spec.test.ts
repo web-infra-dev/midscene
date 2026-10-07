@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { defineNode, z } from '../src';
-import { renderNodeReference } from '../src/cli/node-reference';
+import { renderNodeSpec } from '../src/cli/node-spec';
 
-describe('renderNodeReference', () => {
+describe('renderNodeSpec', () => {
   it.each([
     ['zebra', 'aiAsk', 'aiAssert', 'aaa', 'aiAct', 'aiTap'],
     ['zebra', 'aiAsk', 'aiAct', 'aaa', 'aiTap'],
@@ -16,7 +16,7 @@ describe('renderNodeReference', () => {
         execute() {},
       }),
     );
-    const result = renderNodeReference(nodes);
+    const result = renderNodeSpec(nodes);
     const expected = [
       'aiAct',
       'aiAssert',
@@ -38,7 +38,7 @@ describe('renderNodeReference', () => {
         ...expected.map((name) => `| ${name} | Runs ${name}. |`),
       ].join('\n'),
     );
-    expect(renderNodeReference([...nodes].reverse())).toEqual(result);
+    expect(renderNodeSpec([...nodes].reverse())).toEqual(result);
     expect(nodes.map((node) => node.name)).toEqual(names);
   });
 
@@ -74,12 +74,12 @@ describe('renderNodeReference', () => {
         },
       ],
     };
-    const first = renderNodeReference([beta, alpha], location);
-    const second = renderNodeReference([alpha, beta], location);
+    const first = renderNodeSpec([beta, alpha], location);
+    const second = renderNodeSpec([alpha, beta], location);
 
     expect(first).toEqual(second);
     await expect(first.markdown).toMatchFileSnapshot(
-      './__snapshots__/node-reference.md',
+      './__snapshots__/node-spec.md',
     );
     expect(first.warnings).toEqual([]);
     expect(first.markdown).toContain(
@@ -120,7 +120,7 @@ describe('renderNodeReference', () => {
   });
 
   it('keeps undocumented and empty registries explicit', () => {
-    const undocumented = renderNodeReference([
+    const undocumented = renderNodeSpec([
       defineNode({ name: 'legacy.node', execute() {} }),
     ]);
     expect(undocumented.warnings).toEqual([
@@ -136,7 +136,7 @@ describe('renderNodeReference', () => {
       '| legacy.node | Description not declared. |',
     );
 
-    const empty = renderNodeReference([]);
+    const empty = renderNodeSpec([]);
     expect(empty.warnings).toEqual([]);
     expect(empty.markdown).not.toContain('| Node | Description |');
     expect(empty.markdown).not.toContain('## Node Details');
@@ -146,7 +146,7 @@ describe('renderNodeReference', () => {
   });
 
   it('keeps pipes, backslashes, and multiline descriptions within table cells', () => {
-    const result = renderNodeReference([
+    const result = renderNodeSpec([
       defineNode({
         name: 'custom|node',
         description: '  Choose A | B.\r\nRead C:\\temp.\nDone.  ',
@@ -169,7 +169,7 @@ describe('renderNodeReference', () => {
       execute() {},
     });
 
-    expect(() => renderNodeReference([node])).toThrow(
+    expect(() => renderNodeSpec([node])).toThrow(
       'Cannot describe node "date.node"',
     );
   });

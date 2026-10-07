@@ -25,6 +25,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      '#yaml-execution-context': path.resolve(
+        __dirname,
+        'src/yaml/execution-context.node.ts',
+      ),
       // Tests must not require a prior package build: route the conditional
       // '#proxy-deps' subpath import to the Node source implementation.
       '#proxy-deps': path.resolve(

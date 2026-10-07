@@ -1,9 +1,9 @@
-import { type TUserPrompt, userPromptToMultimodalPrompt } from '@/common';
 import type {
-  ChatCompletionContentPart,
-  ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
-} from 'openai/resources/index';
+  ConversationSystemMessage,
+  ConversationUserMessage,
+  MessageContent,
+} from '@/ai-model/service-caller/types';
+import { type TUserPrompt, userPromptToMultimodalPrompt } from '@/common';
 import {
   type ImagePreprocessPolicy,
   type PreparedModelImage,
@@ -11,11 +11,11 @@ import {
 } from '../../model-adapter/image-preprocess';
 import type { LocateUserMessageContentOrder } from '../../model-adapter/types';
 import type { ModelRuntime } from '../../models';
-import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
+import { multimodalPromptToMessages } from '../../shared/multimodal-prompt';
 
 export type GroundingAIArgs = [
-  ChatCompletionSystemMessageParam,
-  ...ChatCompletionUserMessageParam[],
+  ConversationSystemMessage,
+  ...ConversationUserMessage[],
 ];
 
 export async function prepareLocateModelInput({
@@ -46,17 +46,14 @@ export async function prepareLocateModelInput({
     height: locateImage.height,
     policy: imagePreprocess,
   });
-  const referenceImageMessages = await multimodalPromptToChatMessages(
+  const referenceImageMessages = await multimodalPromptToMessages(
     userPromptToMultimodalPrompt(targetDescription),
   );
-  const imageContent: ChatCompletionContentPart = {
-    type: 'image_url',
-    image_url: {
-      url: preparedImage.imageBase64,
-      detail: 'high',
-    },
+  const imageContent: MessageContent = {
+    type: 'image',
+    url: preparedImage.imageBase64,
   };
-  const promptContent: ChatCompletionContentPart = {
+  const promptContent: MessageContent = {
     type: 'text',
     text: userPrompt,
   };

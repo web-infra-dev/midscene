@@ -253,6 +253,7 @@ export class TaskBuilder {
       subType: planType,
       thought: plan.thought,
       param: plan.param,
+      planningFeedbackMaxLength: action.planningFeedbackMaxLength,
       executor: async (taskContext) => {
         const timing = taskContext.task.timing;
 
@@ -437,7 +438,7 @@ export class TaskBuilder {
           task.log = {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
-            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+            rawAssistantOutput: dump.taskInfo?.rawAssistantOutput,
             searchAreaRawChoiceMessage:
               dump.taskInfo?.searchAreaRawChoiceMessage,
           };

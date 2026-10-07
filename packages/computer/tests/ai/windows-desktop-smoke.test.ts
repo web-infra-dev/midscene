@@ -119,15 +119,12 @@ function quotePowerShellSingle(value: string): string {
 }
 
 function runPowerShell(script: string): Promise<string> {
-  const encoded = Buffer.from(
-    `$ErrorActionPreference = 'Stop'\n${script}`,
-    'utf16le',
-  ).toString('base64');
+  const command = `$ErrorActionPreference = 'Stop'\n${script}`;
 
   return new Promise((resolve, reject) => {
     execFile(
       'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
+      ['-NoProfile', '-Command', command],
       { encoding: 'utf8', maxBuffer: 1024 * 1024, windowsHide: true },
       (error, stdout, stderr) => {
         if (error) {

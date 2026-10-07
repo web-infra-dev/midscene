@@ -26,6 +26,56 @@ const createConfig = (
 };
 
 describe('test project config', () => {
+  it.each([
+    ['output: { report: { enabled: false } }', 'output.report'],
+    ['output: { report: { fileName: "custom" } }', 'output.report'],
+    ['output: { report: { overwrite: true } }', 'output.report'],
+    ['documentSetup: { name: "yaml", setup() {} }', 'root.documentSetup'],
+    ['legacy: { getOptions() {} }', 'root.legacy'],
+    [
+      'setup: { name: "setup", setup() {}, onDocumentResult() {} }',
+      'setup.onDocumentResult',
+    ],
+    [
+      'projects: [{ name: "native", retryScope: "document" }]',
+      'projects[0].retryScope',
+    ],
+    [
+      'projects: [{ name: "native", fileConcurrency: 2 }]',
+      'projects[0].fileConcurrency',
+    ],
+    [
+      'projects: [{ name: "native", setupFile: "setup.yaml" }]',
+      'projects[0].setupFile',
+    ],
+    [
+      'projects: [{ name: "native", documentSetup: { name: "yaml", setup() {} } }]',
+      'projects[0].documentSetup',
+    ],
+    [
+      'projects: [{ name: "native", files: { include: ["cases/*.yaml"], order: "listed" } }]',
+      'projects[0].files.order',
+    ],
+  ])(
+    'rejects compatibility controls in native configuration: %s',
+    async (field, key) => {
+      const { path } = createConfig(`export default { ${field} };`);
+      await expect(loadTestProject(path)).rejects.toThrow(
+        `${key} is not supported`,
+      );
+    },
+  );
+  it.each([
+    '{}',
+    '{ getOptions: 42 }',
+    '{ getOptions() {}, unsupported: true }',
+  ])('rejects an invalid legacy host adapter: %s', async (legacy) => {
+    const { path } = createConfig(
+      `export default { nodes: [], legacy: ${legacy} };`,
+    );
+    await expect(loadTestProject(path)).rejects.toThrow(/legacy/);
+  });
+
   it('loads TypeScript syntax and Project file selection', async () => {
     const { path } = createConfig(`
       interface Config {
@@ -302,7 +352,9 @@ describe('test project config', () => {
           },
         ],
         test: { maxConcurrency: 2, bail: 2, testTimeout: 30000 },
-        output: { reportDir: './out/report' },
+        output: {
+          reportDir: './out/report',
+        },
         nodes: [],
       };
     `);
@@ -342,7 +394,9 @@ describe('test project config', () => {
       bail: 2,
       testTimeout: 30000,
     });
-    expect(loaded.output).toEqual({ reportDir: './out/report' });
+    expect(loaded.output).toEqual({
+      reportDir: './out/report',
+    });
   });
 
   it.each([
@@ -404,6 +458,16 @@ describe('test project config', () => {
       'output.summary is not supported',
     ],
     [
+      'invalid report switch',
+      `output: { report: { enabled: 'yes' } }`,
+      'output.report is not supported',
+    ],
+    [
+      'invalid report file name',
+      `output: { report: { fileName: '' } }`,
+      'output.report is not supported',
+    ],
+    [
       'negative retry',
       `projects: [{ name: 'web', retry: -1 }]`,
       'projects[0].retry must be a non-negative integer',
@@ -457,6 +521,44 @@ describe('test project config', () => {
     await expect(loadTestProject(path)).rejects.toThrow(message);
   });
 
+  it('loads a JavaScript ESM config', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(
+      path,
+      `
+        const configUrl = import.meta.url;
+        await Promise.resolve();
+        export default {
+          nodes: [],
+          projects: [{ name: 'esm', variables: { configUrl } }],
+        };
+      `,
+    );
+
+    await expect(loadTestProject(path)).resolves.toMatchObject({
+      projects: [{ name: 'esm' }],
+    });
+  });
+
+  it('does not transform TypeScript syntax in a JavaScript ESM config', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(
+      path,
+      'const config: { nodes: unknown[] } = { nodes: [] }; export default config;',
+    );
+
+    const error = await loadTestProject(path).catch((cause) => cause);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
+    expect(error.cause).toBeInstanceOf(Error);
+    expect(error.cause.message).toMatch(
+      /Expected a semicolon|Unexpected token/,
+    );
+  });
+
   it.each(['.js', '.cjs', '.mts', '.cts', '.tsx', '.json'])(
     'rejects the %s extension',
     async (extension) => {
@@ -465,7 +567,7 @@ describe('test project config', () => {
       writeFileSync(path, 'export default { nodes: [] };');
 
       await expect(loadTestProject(path)).rejects.toThrow(
-        `Unsupported Midscene config extension: ${extension}. Supported extension: .ts.`,
+        `Unsupported Midscene config extension: ${extension}. Supported extensions: .ts, .mjs.`,
       );
     },
   );

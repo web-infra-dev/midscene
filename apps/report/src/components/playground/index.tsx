@@ -18,7 +18,6 @@ import { type PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
 import {
   ContextPreview,
-  Logo,
   type PlaygroundResult,
   PlaygroundResultView,
   PromptInput,
@@ -37,6 +36,7 @@ import {
   type ServiceModeType,
   getReportPlaygroundSDK,
 } from '../../utils/report-playground-utils';
+import { Logo } from '../logo';
 
 // Constants
 const DEFAULT_AGENT_ERROR = 'PlaygroundSDK not initialized';

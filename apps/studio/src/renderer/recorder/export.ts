@@ -313,6 +313,28 @@ export function generateStudioRecorderYaml(session: StudioRecordingSession) {
     `${session.target.platformId}:`,
   ];
 
+  if (session.target.values.wdaBaseUrl === '${WDA_BASE_URL}') {
+    lines.splice(
+      3,
+      0,
+      '# Set WDA_BASE_URL to the original WDA gateway URL before replay.',
+    );
+  }
+  if (session.target.values.wdaMjpegUrl === '${WDA_MJPEG_URL}') {
+    lines.splice(
+      3,
+      0,
+      '# Set WDA_MJPEG_URL to the original MJPEG URL before replay.',
+    );
+  }
+  if (session.target.values.sessionId === '${WDA_SESSION_ID}') {
+    lines.splice(
+      3,
+      0,
+      '# Set WDA_SESSION_ID to the existing WDA session ID before replay.',
+    );
+  }
+
   const targetValues = Object.entries(session.target.values);
   if (targetValues.length > 0) {
     for (const [key, value] of targetValues) {

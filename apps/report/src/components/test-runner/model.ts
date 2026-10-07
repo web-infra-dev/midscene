@@ -7,6 +7,7 @@ import type {
   TestRunReportProject,
   TestRunReportStep,
 } from '@midscene/core';
+import { calculateTestRunHealth, classifyTestRunCase } from '@midscene/core';
 import type { PlaywrightTasks } from '../../types';
 
 export type RunnerCaseStatus = 'passed' | 'retry-passed' | 'failed' | 'not-run';
@@ -73,7 +74,19 @@ export interface RunnerProjectView {
 
 export type RunnerBreakdownStatus = 'all' | 'attention' | RunnerCaseStatus;
 
-export type RunnerBreakdownSort = 'attention' | 'issues' | 'duration' | 'name';
+export type RunnerBreakdownSort =
+  | 'name'
+  | 'case-count'
+  | 'passed-count'
+  | 'result'
+  | 'duration';
+
+export type RunnerBreakdownSortDirection = 'asc' | 'desc';
+
+export const defaultRunnerBreakdownSortDirection = (
+  sort: RunnerBreakdownSort,
+): RunnerBreakdownSortDirection =>
+  sort === 'name' || sort === 'result' ? 'asc' : 'desc';
 
 export interface RunnerProjectBreakdownView {
   item: RunnerProjectView;
@@ -90,6 +103,19 @@ export const getDefaultExpandedProjectKeys = (
       )
       .map(({ item }) => item.key),
   );
+
+export const toggleAllRunnerProjectKeys = (
+  visibleKeys: readonly string[],
+  expandedKeys: ReadonlySet<string>,
+): Set<string> => {
+  const collapse = visibleKeys.every((key) => expandedKeys.has(key));
+  const next = new Set(expandedKeys);
+  for (const key of visibleKeys) {
+    if (collapse) next.delete(key);
+    else next.add(key);
+  }
+  return next;
+};
 
 interface ScreenshotLike {
   base64: string;
@@ -138,16 +164,8 @@ export const flattenAttemptSteps = (
   ...attempt.afterEach,
 ];
 
-export const getCaseStatus = (
-  testCase: TestRunReportCase,
-): RunnerCaseStatus => {
-  if (testCase.status === 'not-run') return 'not-run';
-  if (testCase.status === 'failed') return 'failed';
-  return testCase.attempts.length > 1 ||
-    testCase.attempts[0]?.status === 'failed'
-    ? 'retry-passed'
-    : 'passed';
-};
+export const getCaseStatus = (testCase: TestRunReportCase): RunnerCaseStatus =>
+  classifyTestRunCase(testCase);
 
 const getCaseDuration = (testCase: TestRunReportCase): number => {
   const firstAttempt = testCase.attempts[0];
@@ -183,7 +201,12 @@ export const flattenRunnerCases = (
           status,
           durationMs: getCaseDuration(testCase),
           firstPass: status === 'passed',
-          retryCount: Math.max(0, testCase.attempts.length - 1),
+          retryCount: Math.max(
+            0,
+            testCase.attempts.length - 1,
+            testCase.attempts.at(-1)?.attemptIndex ?? 0,
+            document.attemptIndex ?? 0,
+          ),
           finalAttempt: testCase.attempts.at(-1),
         });
       }
@@ -195,11 +218,15 @@ export const flattenRunnerCases = (
 export const getRunnerCaseStepTargets = (
   item: RunnerCaseView,
 ): RunnerStepTarget[] => [
-  ...item.document.beforeAll.map((step) => ({ item, step })),
+  ...(item.document.attempts ?? [item.document]).flatMap((document) =>
+    document.beforeAll.map((step) => ({ item, step })),
+  ),
   ...item.testCase.attempts.flatMap((attempt) =>
     flattenAttemptSteps(attempt).map((step) => ({ item, step })),
   ),
-  ...item.document.afterAll.map((step) => ({ item, step })),
+  ...(item.document.attempts ?? [item.document]).flatMap((document) =>
+    document.afterAll.map((step) => ({ item, step })),
+  ),
 ];
 
 /** Build the report-wide Step index while preserving each Step's display owner. */
@@ -222,7 +249,9 @@ export const buildRunnerStepIndex = (
       if (!firstCase || !lastCase) continue;
 
       result.push(
-        ...document.beforeAll.map((step) => ({ item: firstCase, step })),
+        ...(document.attempts ?? [document]).flatMap((attempt) =>
+          attempt.beforeAll.map((step) => ({ item: firstCase, step })),
+        ),
       );
       for (const item of documentCases) {
         result.push(
@@ -232,7 +261,9 @@ export const buildRunnerStepIndex = (
         );
       }
       result.push(
-        ...document.afterAll.map((step) => ({ item: lastCase, step })),
+        ...(document.attempts ?? [document]).flatMap((attempt) =>
+          attempt.afterAll.map((step) => ({ item: lastCase, step })),
+        ),
       );
     }
   }
@@ -270,22 +301,13 @@ export const resolveRunnerStepSelector = (
 export const getRunnerHealth = (
   cases: readonly RunnerCaseView[],
 ): RunnerHealthStats => {
-  const executedCases = cases.filter((item) => item.status !== 'not-run');
-  const firstPassCount = executedCases.filter((item) => item.firstPass).length;
-  const retryPassedCount = executedCases.filter(
-    (item) => item.status === 'retry-passed',
-  ).length;
-  const finalPassed = executedCases.filter(
-    (item) => item.status === 'passed' || item.status === 'retry-passed',
-  ).length;
+  const health = calculateTestRunHealth(cases.map((item) => item.testCase));
   return {
-    executed: executedCases.length,
-    firstPassCount,
-    retryPassedCount,
-    finalPassRate:
-      executedCases.length === 0 ? 0 : finalPassed / executedCases.length,
-    firstPassRate:
-      executedCases.length === 0 ? 0 : firstPassCount / executedCases.length,
+    executed: health.executed,
+    firstPassCount: health.firstPassed,
+    retryPassedCount: health.passedAfterRetry,
+    finalPassRate: health.finalPassRate,
+    firstPassRate: health.firstPassRate,
   };
 };
 
@@ -374,9 +396,11 @@ export const getCaseSearchMatch = (
     ['Document ID', item.document.documentId],
   ];
   const documentSteps = [
-    ...item.document.beforeAll,
+    ...(item.document.attempts ?? [item.document]).flatMap((document) => [
+      ...document.beforeAll,
+      ...document.afterAll,
+    ]),
     ...item.testCase.attempts.flatMap(flattenAttemptSteps),
-    ...item.document.afterAll,
   ];
 
   for (const attempt of item.testCase.attempts) {
@@ -434,12 +458,21 @@ const matchesBreakdownStatus = (
 
 const breakdownCaseSorter = (
   sort: RunnerBreakdownSort,
+  direction: RunnerBreakdownSortDirection,
 ): ((a: RunnerCaseView, b: RunnerCaseView) => number) => {
+  const directionMultiplier = direction === 'asc' ? 1 : -1;
   if (sort === 'duration') {
-    return (a, b) => b.durationMs - a.durationMs;
+    return (a, b) => directionMultiplier * (a.durationMs - b.durationMs);
   }
   if (sort === 'name') {
-    return (a, b) => a.testCase.name.localeCompare(b.testCase.name);
+    return (a, b) =>
+      directionMultiplier * a.testCase.name.localeCompare(b.testCase.name);
+  }
+  if (sort === 'result') {
+    return (a, b) =>
+      directionMultiplier *
+      (statusSortWeight[a.status] - statusSortWeight[b.status] ||
+        b.durationMs - a.durationMs);
   }
   return (a, b) =>
     statusSortWeight[a.status] - statusSortWeight[b.status] ||
@@ -460,10 +493,11 @@ export const filterAndSortRunnerProjectBreakdown = (
     query: string;
     status: RunnerBreakdownStatus;
     sort: RunnerBreakdownSort;
+    direction: RunnerBreakdownSortDirection;
   },
 ): RunnerProjectBreakdownView[] => {
   const normalizedQuery = options.query.trim().toLocaleLowerCase();
-  const caseSorter = breakdownCaseSorter(options.sort);
+  const caseSorter = breakdownCaseSorter(options.sort, options.direction);
   const result = projects
     .map((item) => {
       const projectMatches = normalizedQuery
@@ -504,24 +538,27 @@ export const filterAndSortRunnerProjectBreakdown = (
     })
     .map(({ item, cases }) => ({ item, cases }));
 
+  const directionMultiplier = options.direction === 'asc' ? 1 : -1;
   return result.sort((a, b) => {
+    let comparison: number;
     if (options.sort === 'name') {
-      return a.item.project.name.localeCompare(b.item.project.name);
-    }
-    if (options.sort === 'duration') {
-      return (b.item.durationMs ?? 0) - (a.item.durationMs ?? 0);
-    }
-    if (options.sort === 'issues') {
-      return (
+      comparison = a.item.project.name.localeCompare(b.item.project.name);
+    } else if (options.sort === 'case-count') {
+      comparison = a.item.cases.length - b.item.cases.length;
+    } else if (options.sort === 'passed-count') {
+      comparison = a.item.passedCount - b.item.passedCount;
+    } else if (options.sort === 'duration') {
+      comparison = (a.item.durationMs ?? 0) - (b.item.durationMs ?? 0);
+    } else {
+      comparison =
+        statusSortWeight[projectDisplayStatusForSort(a.item)] -
+          statusSortWeight[projectDisplayStatusForSort(b.item)] ||
         projectIssueCount(b.item) - projectIssueCount(a.item) ||
-        a.item.project.name.localeCompare(b.item.project.name)
-      );
+        (b.item.durationMs ?? 0) - (a.item.durationMs ?? 0);
     }
     return (
-      statusSortWeight[projectDisplayStatusForSort(a.item)] -
-        statusSortWeight[projectDisplayStatusForSort(b.item)] ||
-      projectIssueCount(b.item) - projectIssueCount(a.item) ||
-      (b.item.durationMs ?? 0) - (a.item.durationMs ?? 0)
+      directionMultiplier * comparison ||
+      a.item.project.name.localeCompare(b.item.project.name)
     );
   });
 };

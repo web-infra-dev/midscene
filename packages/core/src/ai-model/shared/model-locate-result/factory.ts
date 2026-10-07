@@ -45,7 +45,10 @@ export function createLocateResultCodec(
     config.parseRawLocateValue ??
     ((input) => parseNumericLocateResult(resolvedCoordinates, input));
   return {
-    promptSpec: createLocateResultPromptSpec(resolvedCoordinates),
+    promptSpec: createLocateResultPromptSpec(resolvedCoordinates, {
+      resultKey: config.resultKey,
+      resultKeyAliases: config.resultKeyAliases,
+    }),
     toPixelResult: (rawResult, context) => {
       const result = parseRawLocateValue(rawResult);
       const { preparedSize, contentSize = preparedSize } = context;

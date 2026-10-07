@@ -13,8 +13,12 @@ rs.stubGlobal('chrome', {
     query: tabsQuery,
     update: tabsUpdate,
     onUpdated: {
-      addListener: rs.fn((listener) => onUpdatedListeners.add(listener)),
-      removeListener: rs.fn((listener) => onUpdatedListeners.delete(listener)),
+      addListener: rs.fn((listener: (...args: any[]) => void) =>
+        onUpdatedListeners.add(listener),
+      ),
+      removeListener: rs.fn((listener: (...args: any[]) => void) =>
+        onUpdatedListeners.delete(listener),
+      ),
     },
   },
   debugger: {

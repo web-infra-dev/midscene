@@ -44,6 +44,9 @@ const result = (attemptSteps: StepRunResult[]): TestProjectRunResult => ({
     passed: 1,
     failed: 0,
     notRun: 0,
+    passedAfterRetry: 0,
+    finalPassRate: 1,
+    firstPassRate: 1,
     filtered: 0,
     collectionErrors: 0,
     documentFailures: 0,
@@ -53,6 +56,7 @@ const result = (attemptSteps: StepRunResult[]): TestProjectRunResult => ({
     {
       projectId: 'project-1',
       name: 'web',
+      platform: 'web',
       status: 'success',
       retry: 0,
       fileSelection: { include: ['**/*.yaml'] },

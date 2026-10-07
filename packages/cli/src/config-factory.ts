@@ -20,6 +20,7 @@ export type ConfigFactoryOptions = MidsceneYamlTargetConfig & {
   retry?: number;
   summary?: string;
   shareBrowserContext?: boolean;
+  reusePage?: boolean;
   headed?: boolean;
   keepWindow?: boolean;
   dotenvOverride?: boolean;
@@ -34,6 +35,7 @@ export type ParsedConfig = MidsceneYamlTargetConfig & {
   retry: number;
   summary: string;
   shareBrowserContext: boolean;
+  reusePage: boolean;
   files: string[];
   setup?: string;
   patterns: string[]; // Keep patterns for reference
@@ -136,6 +138,7 @@ export async function parseConfigYaml(
     summary: configYaml.summary ?? defaultSummary,
     shareBrowserContext:
       configYaml.shareBrowserContext ?? defaultConfig.shareBrowserContext,
+    reusePage: configYaml.reusePage ?? defaultConfig.reusePage,
     patterns: configYaml.files,
     files,
     setup,
@@ -181,6 +184,7 @@ export async function createConfig(
 
   const shareBrowserContext =
     options?.shareBrowserContext ?? parsedConfig.shareBrowserContext;
+  const reusePage = options?.reusePage ?? parsedConfig.reusePage;
 
   return {
     files,
@@ -190,6 +194,7 @@ export async function createConfig(
     retry: options?.retry ?? parsedConfig.retry,
     summary: options?.summary ?? parsedConfig.summary,
     shareBrowserContext,
+    reusePage,
     headed: finalHeaded,
     keepWindow: keepWindow,
     dotenvOverride: options?.dotenvOverride ?? parsedConfig.dotenvOverride,
@@ -216,6 +221,7 @@ export async function createFilesConfig(
 
   const shareBrowserContext =
     options.shareBrowserContext ?? defaultConfig.shareBrowserContext;
+  const reusePage = options.reusePage ?? defaultConfig.reusePage;
 
   return {
     files,
@@ -225,6 +231,7 @@ export async function createFilesConfig(
     retry: options.retry ?? defaultConfig.retry,
     summary: options.summary ?? defaultSummary,
     shareBrowserContext,
+    reusePage,
     headed: finalHeaded,
     keepWindow: keepWindow,
     dotenvOverride: options.dotenvOverride ?? defaultConfig.dotenvOverride,

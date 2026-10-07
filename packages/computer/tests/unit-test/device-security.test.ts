@@ -15,13 +15,12 @@ const mockState = rs.hoisted(() => {
     },
   ];
   let windowsDisplays = defaultWindowsDisplays;
+  let physicalWindowsDisplayOutput: string | undefined;
   let windowsCursorPos = { x: 10, y: 20 };
   let windowsActiveWindowRect:
     | { x: number; y: number; width: number; height: number }
     | undefined;
   let windowsCursorTransform = (x: number, y: number) => ({ x, y });
-  // Windows screenshot/listDisplays go through `powershell.exe -EncodedCommand`
-  // now (issue #2150); answer based on which script is being run.
   const execFileSync = rs.fn(
     (
       file?: string,
@@ -31,11 +30,8 @@ const mockState = rs.hoisted(() => {
       // mockReturnValueOnce.
     ): string | Buffer | undefined => {
       if (file === 'powershell.exe' && args) {
-        const idx = args.indexOf('-EncodedCommand');
-        const script =
-          idx >= 0
-            ? Buffer.from(args[idx + 1], 'base64').toString('utf16le')
-            : '';
+        const commandIdx = args.indexOf('-Command');
+        const script = commandIdx >= 0 ? args[commandIdx + 1] : '';
         if (script.includes('CopyFromScreen')) {
           return FAKE_PNG_BASE64;
         }
@@ -53,6 +49,12 @@ const mockState = rs.hoisted(() => {
             );
           }
           return `${windowsCursorPos.x},${windowsCursorPos.y}`;
+        }
+        if (
+          script.includes('SetThreadDpiAwarenessContext') &&
+          physicalWindowsDisplayOutput !== undefined
+        ) {
+          return physicalWindowsDisplayOutput;
         }
         return JSON.stringify(windowsDisplays);
       }
@@ -99,6 +101,7 @@ const mockState = rs.hoisted(() => {
     windowsActiveWindowRect = undefined;
     windowsCursorTransform = (x: number, y: number) => ({ x, y });
     windowsDisplays = defaultWindowsDisplays;
+    physicalWindowsDisplayOutput = undefined;
     execSync.mockReset();
     // mockClear (not mockReset) so the powershell-aware implementation survives.
     execFileSync.mockClear();
@@ -124,6 +127,10 @@ const mockState = rs.hoisted(() => {
     windowsDisplays = displays;
   };
 
+  const setPhysicalWindowsDisplayOutput = (output: string) => {
+    physicalWindowsDisplayOutput = output;
+  };
+
   const setWindowsCursorTransform = (
     transform: (x: number, y: number) => { x: number; y: number },
   ) => {
@@ -146,6 +153,7 @@ const mockState = rs.hoisted(() => {
     createRequire,
     reset,
     setWindowsDisplays,
+    setPhysicalWindowsDisplayOutput,
     setWindowsActiveWindowRect,
     setWindowsCursorTransform,
     getWindowsCursorPos,
@@ -484,6 +492,52 @@ describe('ComputerInputDriver native arg handling', () => {
       ['shift', 'up'],
       ['control', 'up'],
     ]);
+  });
+});
+
+describe('ComputerDevice Windows display discovery', () => {
+  it('fails without retrying or using legacy capture when display enumeration is empty', async () => {
+    mockState.setPhysicalWindowsDisplayOutput('');
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice();
+
+    await expect(device.connect()).rejects.toThrow(
+      /Windows display enumeration returned no data/,
+    );
+    expect(mockState.execFileSync).toHaveBeenCalledTimes(1);
+    expect(mockState.screenshot).not.toHaveBeenCalled();
+    expect(mockState.libnut.moveMouse).not.toHaveBeenCalled();
+  });
+
+  it('keeps an explicit display selection in the physical Windows path', async () => {
+    mockState.setWindowsDisplays([
+      {
+        id: '\\\\.\\DISPLAY6',
+        name: '\\\\.\\DISPLAY6',
+        primary: true,
+        bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+      },
+    ]);
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({ displayId: '\\\\.\\DISPLAY6' });
+
+    await device.connect();
+
+    expect(device.describe()).toContain('Display: \\\\.\\DISPLAY6');
+  });
+
+  it('does not fall back to a different display when the requested Windows display is missing', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({
+      displayId: '\\\\.\\MIDSCENE_MISSING_DISPLAY',
+    });
+
+    await expect(device.connect()).rejects.toThrow(
+      /Requested Windows display not found/,
+    );
   });
 });
 

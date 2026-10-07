@@ -82,6 +82,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -111,6 +112,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -140,6 +142,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -181,6 +184,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -210,6 +214,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-planning-key",
           "openaiBaseURL": "https://api.smaple-planning.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -239,6 +244,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-insight-key",
           "openaiBaseURL": "https://api.sample-insight.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -521,7 +527,7 @@ describe('Agent with custom OpenAI client', () => {
         'default',
       );
 
-      // Simulate what createChatClient does
+      // Simulate invoking the custom client hook.
       const baseClient = { chat: { completions: { create: rs.fn() } } };
       const options = {
         baseURL: config.openaiBaseURL,
@@ -620,7 +626,7 @@ describe('Agent with custom OpenAI client', () => {
       ).toBe('default');
     });
 
-    it('should prefer effort over deepThink and warn that effort is experimental', async () => {
+    it('should prefer effort over deepThink and explain precedence', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
@@ -643,12 +649,12 @@ describe('Agent with custom OpenAI client', () => {
 
       expect(warnSpy).toHaveBeenCalledWith(
         '[Midscene]',
-        'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
+        'When both "effort" and "deepThink" are provided, "effort" takes precedence.',
       );
       expect(actionSpy.mock.calls[0][6]).toBe('deepThink');
     });
 
-    it('should prefer balance effort over deepThink and use the experimental warning', async () => {
+    it('should prefer balance effort over deepThink and explain precedence', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
@@ -671,7 +677,7 @@ describe('Agent with custom OpenAI client', () => {
 
       expect(warnSpy).toHaveBeenCalledWith(
         '[Midscene]',
-        'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
+        'When both "effort" and "deepThink" are provided, "effort" takes precedence.',
       );
       expect(actionSpy.mock.calls[0][6]).toBe('balance');
     });
@@ -698,7 +704,7 @@ describe('Agent with custom OpenAI client', () => {
       expect(actionSpy.mock.calls[0][6]).toBe('deepThink');
     });
 
-    it('should use the unified experimental warning for fast effort', async () => {
+    it('should support explicit fast effort without a public-use warning', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
@@ -716,10 +722,7 @@ describe('Agent with custom OpenAI client', () => {
 
       await agent.aiAct('click the submit button', { effort: 'fast' });
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        '[Midscene]',
-        'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
-      );
+      expect(warnSpy).not.toHaveBeenCalled();
       expect(actionSpy.mock.calls[0][6]).toBe('fast');
     });
 

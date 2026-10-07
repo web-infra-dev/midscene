@@ -177,7 +177,7 @@ export class ReportImageStore {
     id: string,
     base64: string,
   ) => void | Promise<void>;
-  private readonly alsoWriteFileCopy: boolean;
+  private alsoWriteFileCopy: boolean;
   private readonly writtenInlineIds = new Set<string>();
   private readonly writtenFileIds = new Set<string>();
   private readonly shouldReuseExistingInlineReport: boolean;
@@ -203,6 +203,10 @@ export class ReportImageStore {
     this.shouldReuseExistingInlineReport = Boolean(
       options.reuseExistingReport && this.mode === 'inline',
     );
+  }
+
+  enableFileCopies(): void {
+    this.alsoWriteFileCopy = true;
   }
 
   async persist(screenshot: ScreenshotItem): Promise<ScreenshotRef> {
@@ -318,11 +322,19 @@ export class ReportImageStore {
       markAsPersisted: boolean;
     },
   ): Promise<ScreenshotRef> {
-    const { relativePath, absolutePath } = await this.writeImageFileIfNeeded({
-      id: screenshot.id,
-      extension: screenshot.extension,
-      rawBase64: screenshot.rawBase64,
-    });
+    const fileName = `${screenshot.id}.${screenshot.extension}`;
+    const { relativePath, absolutePath } = this.writtenFileIds.has(
+      screenshot.id,
+    )
+      ? {
+          relativePath: `./screenshots/${fileName}`,
+          absolutePath: join(this.screenshotsDir!, fileName),
+        }
+      : await this.writeImageFileIfNeeded({
+          id: screenshot.id,
+          extension: screenshot.extension,
+          rawBase64: screenshot.rawBase64,
+        });
 
     if (options.markAsPersisted) {
       return screenshot.markPersistedToPath(relativePath, absolutePath);

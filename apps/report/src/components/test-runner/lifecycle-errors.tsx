@@ -40,18 +40,26 @@ export function getProjectLifecycleIssues(
             ]
           : [],
       ),
+      ...(document.hostErrors ?? []).map(({ phase, error }) => ({
+        label: `${document.sourcePath}: ${phase} failed`,
+        error,
+      })),
       ...(document.teardownErrors ?? []).map((error) => ({
         label: `Document teardown failed: ${document.sourcePath}`,
         error,
       })),
       ...(includeAttempts
         ? document.cases.flatMap((item) =>
-            item.attempts.flatMap((attempt) =>
-              (attempt.teardownErrors ?? []).map((error) => ({
+            item.attempts.flatMap((attempt) => [
+              ...(attempt.hostErrors ?? []).map(({ phase, error }) => ({
+                label: `${item.name} · Attempt ${attempt.attemptIndex + 1}: ${phase} failed`,
+                error,
+              })),
+              ...(attempt.teardownErrors ?? []).map((error) => ({
                 label: `${item.name} · Attempt ${attempt.attemptIndex + 1}: Case teardown failed`,
                 error,
               })),
-            ),
+            ]),
           )
         : []),
     ]),

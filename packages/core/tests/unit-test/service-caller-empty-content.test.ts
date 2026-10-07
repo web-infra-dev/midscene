@@ -66,7 +66,10 @@ describe('service-caller empty content handling', () => {
         expect(onUsage).not.toHaveBeenCalled();
         expect(mockCreate).toHaveBeenCalledTimes(2);
         expect(typedError.rawResponse).toBe(content);
-        expect(typedError.rawChoiceMessage).toEqual({ content });
+        expect(typedError.rawAssistantOutput).toEqual({
+          type: 'chat-completion',
+          rawValue: { content },
+        });
       }
     },
   );

@@ -84,19 +84,28 @@ const debug = getDebug('device-task-executor');
 const warnLog = getDebug('device-task-executor', { console: true });
 const maxErrorCountAllowedInOnePlanningLoop = 5;
 
-// Cap each task's planning feedback so a large action output (e.g. a long adb
-// shell stdout) cannot blow up the next planning request's context. This is the
-// single place that truncates feedback before it is sent to the model; action
-// implementations should hand over the untruncated value.
+// Cap planning feedback by default so a large action output (e.g. a long adb
+// shell stdout) cannot blow up the next planning request's context. Actions
+// that require lossless structured feedback can explicitly choose their limit.
 const maxPlanningFeedbackLength = 500;
 
-function truncatePlanningFeedback(feedback: string): string {
-  if (feedback.length <= maxPlanningFeedbackLength) {
+function truncatePlanningFeedback(
+  feedback: string,
+  requestedLimit?: number | 'unlimited',
+): string {
+  if (requestedLimit === 'unlimited') {
+    return feedback;
+  }
+  const limit =
+    requestedLimit && Number.isFinite(requestedLimit) && requestedLimit > 0
+      ? Math.floor(requestedLimit)
+      : maxPlanningFeedbackLength;
+  if (feedback.length <= limit) {
     return feedback;
   }
 
-  return `${feedback.slice(0, maxPlanningFeedbackLength)}
-...[truncated, ${feedback.length - maxPlanningFeedbackLength} more characters]`;
+  return `${feedback.slice(0, limit)}
+...[truncated, ${feedback.length - limit} more characters]`;
 }
 
 export { TaskExecutionError };
@@ -243,8 +252,16 @@ export class TaskExecutor {
    * Returns undefined when no task reported feedback.
    */
   private collectPlanningFeedback(tasks: ExecutionTask[]): string | undefined {
-    const feedbackMessages = tasks.flatMap(({ planningFeedback }) =>
-      planningFeedback ? [truncatePlanningFeedback(planningFeedback)] : [],
+    const feedbackMessages = tasks.flatMap(
+      ({ planningFeedback, planningFeedbackMaxLength }) =>
+        planningFeedback
+          ? [
+              truncatePlanningFeedback(
+                planningFeedback,
+                planningFeedbackMaxLength,
+              ),
+            ]
+          : [],
     );
     return feedbackMessages.length > 0
       ? feedbackMessages.join('\n\n')
@@ -345,9 +362,9 @@ export class TaskExecutor {
     };
   }
 
-  async sleep(ms: number): Promise<void> {
+  async sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
     const session = this.createExecutionSession('Sleep');
-    const action = defineActionSleep();
+    const action = defineActionSleep(abortSignal);
     await session.appendAndRun({
       type: 'Action Space',
       subType: action.name,
@@ -655,7 +672,7 @@ export class TaskExecutor {
                 executorContext.task.log = {
                   ...(executorContext.task.log || {}),
                   rawResponse: planError.rawResponse,
-                  rawChoiceMessage: planError.rawChoiceMessage,
+                  rawAssistantOutput: planError.rawAssistantOutput,
                 };
               }
               await this.emitAiActProgress('plan_failed', {
@@ -677,7 +694,7 @@ export class TaskExecutor {
               error,
               usage,
               rawResponse,
-              rawChoiceMessage,
+              rawAssistantOutput,
               reasoning_content,
               finalizeSuccess,
               finalizeMessage,
@@ -689,7 +706,7 @@ export class TaskExecutor {
             executorContext.task.log = {
               ...(executorContext.task.log || {}),
               rawResponse,
-              rawChoiceMessage,
+              rawAssistantOutput,
             };
             executorContext.task.usage = withUsageIntent(usage, 'planning');
             executorContext.task.reasoning_content = reasoning_content;
@@ -922,7 +939,7 @@ export class TaskExecutor {
           task.log = {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
-            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+            rawAssistantOutput: dump.taskInfo?.rawAssistantOutput,
             searchAreaRawChoiceMessage:
               dump.taskInfo?.searchAreaRawChoiceMessage,
           };

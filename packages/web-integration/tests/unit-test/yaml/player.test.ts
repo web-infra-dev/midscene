@@ -44,6 +44,11 @@ const getMockAgent = async () => {
       interfaceAlias: 'aiInput',
       call: rs.fn(),
     },
+    {
+      name: 'KeyboardPress',
+      interfaceAlias: 'aiKeyboardPress',
+      call: rs.fn(),
+    },
   ];
 
   return {
@@ -67,7 +72,11 @@ const getMockAgent = async () => {
       onTaskStartTip: undefined,
       _unstableLogContent: rs.fn(async () => dump),
       dump,
-      callActionInActionSpace: rs.fn(),
+      callActionInActionSpace: rs.fn(async (name: string) => {
+        if (!actionSpace.some((action) => action.name === name)) {
+          throw new Error(`Action type '${name}' is not in the action space`);
+        }
+      }),
       getActionSpace: async () => actionSpace,
     } as unknown as PageAgent,
     freeFn: [],
@@ -792,7 +801,9 @@ tasks:
             call: rs.fn(),
           },
         ],
-        callActionInActionSpace: rs.fn(),
+        callActionInActionSpace: rs.fn(async (name: string) => {
+          throw new Error(`Action type '${name}' is not in the action space`);
+        }),
       },
       freeFn: [],
     };

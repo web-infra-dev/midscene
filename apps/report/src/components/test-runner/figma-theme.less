@@ -1,0 +1,71 @@
+.test-runner-report[data-theme='dark'] {
+  --runner-bg: #191c20;
+  --runner-surface: #191c20;
+  --runner-surface-muted: #1d2024;
+  --runner-control-bg: #2a2d32;
+  --runner-text: #f4f5f7;
+  --runner-muted: #b5bac2;
+  --runner-subtle: #969da7;
+  --runner-border: rgba(255, 255, 255, 0.1);
+  --runner-border-strong: rgba(255, 255, 255, 0.17);
+  --runner-scroll-thumb: rgba(255, 255, 255, 0.24);
+  --runner-scroll-thumb-hover: rgba(255, 255, 255, 0.4);
+  --runner-sort-arrow-idle: rgb(255 255 255 / 30%);
+  --runner-sort-arrow-active: rgb(255 255 255 / 50%);
+
+  .runner-header {
+    background: var(--runner-bg);
+  }
+
+  .runner-main::before {
+    filter: invert(1);
+    opacity: 0.2;
+  }
+
+  .runner-overview-primary-metrics {
+    background: var(--runner-surface-muted);
+  }
+
+  .runner-overview-title-row h1,
+  .runner-overview-primary-metrics .runner-metric-card > strong,
+  .runner-overview-primary-metrics .runner-metric-card.is-warning > strong,
+  .runner-project-tree-name,
+  .runner-project-tree-case-title h3,
+  .runner-detail-title-line h1,
+  .runner-detail-evidence-title h2,
+  .runner-detail-inspector-tabs button.is-selected,
+  .runner-detail-io-body {
+    color: var(--runner-text);
+  }
+
+  .runner-overview-primary-metrics .runner-metric-card > span {
+    color: var(--runner-muted);
+  }
+
+  .runner-breakdown-view-switch > button.is-selected {
+    color: var(--runner-text);
+  }
+
+  .runner-overview-primary-metrics .runner-metric-card.is-danger > strong {
+    color: var(--runner-danger);
+  }
+
+  .runner-project-tree-result b.is-failed {
+    color: var(--runner-danger);
+    background: var(--runner-danger-soft);
+  }
+
+  .runner-project-tree-result b.is-warning {
+    color: var(--runner-warning);
+    background: var(--runner-warning-soft);
+  }
+
+  .runner-detail-step-group,
+  .runner-detail-screenshot-canvas {
+    background: #15171a;
+  }
+
+  .runner-detail-failure-summary small {
+    color: var(--runner-danger);
+  }
+}
