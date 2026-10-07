@@ -63,18 +63,6 @@ const resolveRunInput = (options: TestProjectRunOptions): TestRunInput => {
   };
 };
 
-const findProjectRoot = (
-  configPath: string | undefined,
-  fallback: string,
-  cwd: string,
-  explicitConfig: boolean,
-): string => {
-  if (explicitConfig) return fallback;
-  if (configPath) return dirname(configPath);
-  if (fallback === cwd) return cwd;
-  return fallback;
-};
-
 /** Composition boundary only: execution receives no raw input syntax or host options. */
 export async function prepareTestRun(
   options: TestProjectRunOptions,
@@ -92,12 +80,10 @@ export async function prepareTestRun(
   }
   if (options.configPath && !existsSync(configPath!))
     throw new Error(`Midscene config does not exist: ${configPath}`);
-  const projectRoot = findProjectRoot(
-    configPath,
-    input.projectRoot,
-    input.cwd,
-    Boolean(options.configPath),
-  );
+  const projectRoot =
+    input.singleFile && !options.configPath && configPath
+      ? dirname(configPath)
+      : input.projectRoot;
   const definition = await loadTestProject<unknown>(configPath);
   const resultDir = options.resultDir
     ? resolve(input.cwd, options.resultDir)

@@ -109,7 +109,6 @@ export const discoverTestConfig = (projectRoot: string): string | undefined => {
     );
   }
   let current = root;
-  const visited = new Set<string>();
   while (true) {
     const config = findConfigInDirectory(current);
     if (config) return config;
@@ -117,8 +116,7 @@ export const discoverTestConfig = (projectRoot: string): string | undefined => {
     const hasGitDir = existsSync(join(current, '.git'));
     if (hasPackageJson || hasGitDir) return undefined;
     const parent = dirname(current);
-    if (parent === current || visited.has(parent)) return undefined;
-    visited.add(current);
+    if (parent === current) return undefined;
     current = parent;
   }
 };
