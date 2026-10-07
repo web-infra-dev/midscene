@@ -9,6 +9,7 @@ const siteRoot = path.resolve(
 );
 const outputRoot = path.join(siteRoot, 'doc_build');
 const faviconUrl = 'https://midscenejs.com/favicon.png';
+const faviconLinkUrl = `${faviconUrl}?v=20260929`;
 const ogImageUrl = 'https://midscenejs.com/og-image.png';
 const bingImagePreviewMeta =
   '<meta name="bingbot" content="max-image-preview:none">';
@@ -20,9 +21,21 @@ for (const relativePath of ['index.html', 'zh/index.html']) {
   const html = await readOutput(relativePath);
   assert.match(
     html,
-    /<link rel="icon" type="image\/png" sizes="600x600" href="https:\/\/midscenejs\.com\/favicon\.png">/,
+    /<link rel="icon" type="image\/png" sizes="600x600" href="https:\/\/midscenejs\.com\/favicon\.png\?v=20260929">/,
     `${relativePath} must declare the production square favicon`,
   );
+  const iconLinks = [...html.matchAll(/<link\b[^>]*>/g)]
+    .map(([tag]) => tag)
+    .filter((tag) =>
+      /\brel="(?:icon|shortcut icon|apple-touch-icon)"/.test(tag),
+    );
+  assert.ok(iconLinks.length > 0, `${relativePath} must declare site icons`);
+  for (const tag of iconLinks) {
+    assert.ok(
+      tag.includes(`href="${faviconLinkUrl}"`),
+      `${relativePath} must version every site icon URL: ${tag}`,
+    );
+  }
   assert.ok(
     html.includes(ogImageUrl),
     `${relativePath} must reference the production OG image`,

@@ -6,6 +6,7 @@ import {
   MIDSCENE_INSIGHT_MODEL_BASE_URL,
   MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_INSIGHT_MODEL_NAME,
+  MIDSCENE_INSIGHT_MODEL_PROTOCOL,
   MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
   MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT,
   MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED,
@@ -16,6 +17,7 @@ import {
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_MODEL_PROTOCOL,
   MIDSCENE_MODEL_REASONING_BUDGET,
   MIDSCENE_MODEL_REASONING_EFFORT,
   MIDSCENE_MODEL_REASONING_ENABLED,
@@ -24,6 +26,7 @@ import {
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_PLANNING_MODEL_NAME,
+  MIDSCENE_PLANNING_MODEL_PROTOCOL,
   MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
   MIDSCENE_PLANNING_MODEL_REASONING_EFFORT,
   MIDSCENE_PLANNING_MODEL_REASONING_ENABLED,
@@ -49,6 +52,34 @@ describe('ModelConfigManager', () => {
     [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://plan.openai.com/v1',
     [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
   };
+
+  it('keeps protocol choices independent across configured slots', () => {
+    const manager = new ModelConfigManager({
+      ...baseMap,
+      [MIDSCENE_MODEL_PROTOCOL]: 'openai-responses',
+      [MIDSCENE_INSIGHT_MODEL_PROTOCOL]: 'openai-chat',
+      [MIDSCENE_PLANNING_MODEL_PROTOCOL]: 'openai-responses',
+    });
+    expect(manager.getModelConfig('default').protocol).toBe('openai-responses');
+    expect(manager.getModelConfig('insight').protocol).toBe('openai-chat');
+    expect(manager.getModelConfig('planning').protocol).toBe(
+      'openai-responses',
+    );
+  });
+
+  it('carries the default protocol when an intent falls back to the default model', () => {
+    const manager = new ModelConfigManager({
+      [MIDSCENE_MODEL_NAME]: 'test-model',
+      [MIDSCENE_MODEL_BASE_URL]: 'https://example.test/v1',
+      [MIDSCENE_MODEL_API_KEY]: 'test-key',
+      [MIDSCENE_MODEL_FAMILY]: 'gpt-5',
+      [MIDSCENE_MODEL_PROTOCOL]: 'openai-responses',
+    });
+    expect(manager.getModelConfig('insight').protocol).toBe('openai-responses');
+    expect(manager.getModelConfig('planning').protocol).toBe(
+      'openai-responses',
+    );
+  });
 
   it('initializes from provided config map (isolated mode)', () => {
     const manager = new ModelConfigManager(baseMap);

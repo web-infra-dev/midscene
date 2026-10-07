@@ -10,6 +10,8 @@ import { getGitHubStars } from './scripts/github-stars';
 
 const SITE_URL = 'https://midscenejs.com';
 const FAVICON_URL = `${SITE_URL}/favicon.png`;
+// Bump this version when browsers need to refresh their cached site icon.
+const FAVICON_LINK_URL = `${FAVICON_URL}?v=20260929`;
 const OG_IMAGE_URL = `${SITE_URL}/og-image.png`;
 
 const SEARCH_IDENTITY_JSON_LD = JSON.stringify({
@@ -49,7 +51,7 @@ export default defineConfig(async () => {
     root: path.join(__dirname, 'docs'),
     title: 'Midscene - Vision-Driven UI Automation',
     description: 'AI-powered, vision-driven UI automation for every platform.',
-    icon: '/favicon.png',
+    icon: FAVICON_LINK_URL,
     logo: {
       light: '/images/brand/midscene_with_text_light.png',
       dark: '/images/brand/midscene_with_text_dark.png',
@@ -61,14 +63,14 @@ export default defineConfig(async () => {
           rel: 'icon',
           type: 'image/png',
           sizes: '600x600',
-          href: FAVICON_URL,
+          href: FAVICON_LINK_URL,
         },
       ],
       [
         'link',
         {
           rel: 'apple-touch-icon',
-          href: FAVICON_URL,
+          href: FAVICON_LINK_URL,
         },
       ],
       // Open Graph
@@ -607,6 +609,10 @@ export default defineConfig(async () => {
             to: '/platforms/android',
           },
           {
+            from: '^/android-integration(?:\\.html)?/?$',
+            to: '/platforms/android',
+          },
+          {
             from: '^/ios-(?:introduction|getting-started)(?:\\.html)?/?$',
             to: '/platforms/ios',
           },
@@ -707,6 +713,26 @@ export default defineConfig(async () => {
             to: '/model-common-config',
           },
           {
+            from: '^/reference\\.html/?$',
+            to: '/reference/',
+          },
+          {
+            from: '^/api-reference(?:\\.html)?/?$',
+            to: '/reference/',
+          },
+          {
+            from: '^/report(?:\\.html)?/?$',
+            to: '/consume-report-file',
+          },
+          {
+            from: '^/benchmark(?:\\.html)?/?$',
+            to: '/introduction',
+          },
+          {
+            from: '^/integrate-with-yaml(?:\\.html)?/?$',
+            to: '/automate-with-scripts-in-yaml',
+          },
+          {
             from: '^/model-provider(?:\\.html)?/?$',
             to: '/model-common-config.html',
           },
@@ -781,6 +807,10 @@ export default defineConfig(async () => {
           {
             from: '^/zh/quick-experience(?:\\.html)?/?$',
             to: '/zh/quick-start#chrome-extension',
+          },
+          {
+            from: '^/zh/batch-yaml(?:\\.html)?/?$',
+            to: '/zh/yaml-script-runner',
           },
           {
             from: '^/zh/quick-experience-with-android(?:\\.html)?/?$',

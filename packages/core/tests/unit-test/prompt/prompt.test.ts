@@ -519,8 +519,8 @@ describe('system prompts', () => {
 
     // Multi-turn example should contain bbox in locate examples
     expect(prompt).toContain('## Multi-turn Conversation Example');
-    expect(prompt).toContain('"bbox": [120, 180, 380, 210]'); // Name field bbox
-    expect(prompt).toContain('"bbox": [120, 240, 380, 270]'); // Email field bbox
+    expect(prompt).toContain('"bbox_2d": [120, 180, 380, 210]'); // Name field bbox
+    expect(prompt).toContain('"bbox_2d": [120, 240, 380, 270]'); // Email field bbox
   });
 
   it('planning - multi-turn example with includeLocateInPlanning false should not have bbox in locate', async () => {

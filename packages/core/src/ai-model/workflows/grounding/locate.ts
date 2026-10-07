@@ -49,14 +49,14 @@ export async function AiLocateElement(
   const {
     locatedPixelResult,
     rawResponse,
-    rawChoiceMessage,
+    rawAssistantOutput,
     usage,
     reasoningContent,
     errors = [],
   } = locateResponse;
   const baseLocateResult = {
     rawResponse,
-    rawChoiceMessage,
+    rawAssistantOutput,
     usage,
     reasoning_content: reasoningContent,
   };
@@ -157,7 +157,7 @@ export async function genericLocate(
         if (parsedLocateResult.kind === 'not-found') {
           return {
             rawResponse,
-            rawChoiceMessage: response.rawChoiceMessage,
+            rawAssistantOutput: response.rawAssistantOutput,
             usage: response.usage,
             reasoningContent: response.reasoning_content,
             errors: locateError ? [locateError] : [],
@@ -172,7 +172,7 @@ export async function genericLocate(
           return {
             locatedPixelResult: result,
             rawResponse,
-            rawChoiceMessage: response.rawChoiceMessage,
+            rawAssistantOutput: response.rawAssistantOutput,
             usage: response.usage,
             reasoningContent: response.reasoning_content,
             errors: [],
@@ -199,7 +199,7 @@ export async function genericLocate(
           parseErrorMessage,
           response.content,
           response.usage,
-          response.rawChoiceMessage,
+          response.rawAssistantOutput,
           response.reasoning_content,
         );
       },
@@ -217,7 +217,7 @@ export async function genericLocate(
     if (callError instanceof AIResponseParseError) {
       return {
         rawResponse: callError.rawResponse,
-        rawChoiceMessage: callError.rawChoiceMessage,
+        rawAssistantOutput: callError.rawAssistantOutput,
         usage: callError.usage,
         reasoningContent: callError.reasoningContent,
         errors: [callError.message],
