@@ -1,8 +1,13 @@
-import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import {
   EventRecorder,
   type RecordedEvent,
 } from '../../../packages/recorder/src/recorder';
+
+afterEach(() => {
+  rs.useRealTimers();
+  rs.unstubAllGlobals();
+});
 
 describe('EventRecorder input batching', () => {
   let listeners: Map<string, (event: Event) => void>;
