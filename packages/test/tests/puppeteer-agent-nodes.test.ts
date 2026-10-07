@@ -37,6 +37,9 @@ describe('Puppeteer Agent Node registration', () => {
       const { page, pageMock, browserContext } = createPage();
       const agent = Object.assign(Object.create(agentClass.prototype), {
         interface: { underlyingPage: page },
+        _prepareForTestRunner() {},
+        _createReportSource: async () => undefined,
+        flushReport: async () => undefined,
         addDumpUpdateListener: undefined,
         testRunner: {
           baseURL: 'https://example.com',
@@ -79,7 +82,7 @@ describe('Puppeteer Agent Node registration', () => {
         { resolveNode: registry.require.bind(registry), context: undefined },
       );
 
-      expect(result.status).toBe('success');
+      expect(result.status, JSON.stringify(result)).toBe('success');
       expect(JSON.stringify(result)).not.toContain('secret');
       expect(pageMock.setCookie).toHaveBeenCalled();
       expect(pageMock.goto).toHaveBeenCalledWith(
