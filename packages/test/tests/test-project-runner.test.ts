@@ -136,6 +136,37 @@ describe('test project main-process runner', () => {
     expect(discoverTestConfig(root)).toBeUndefined();
   });
 
+  it('walks up parent directories to discover midscene.config.ts', () => {
+    const root = createProject();
+    const casesDir = join(root, 'cases');
+    const nestedDir = join(casesDir, 'nested');
+    mkdirSync(nestedDir, { recursive: true });
+    const configPath = join(root, 'midscene.config.ts');
+    writeFileSync(configPath, 'export default { nodes: [] };');
+
+    expect(discoverTestConfig(nestedDir)).toBe(configPath);
+    expect(discoverTestConfig(casesDir)).toBe(configPath);
+  });
+
+  it.each(['package.json', '.git'])(
+    'stops upward search at %s boundary',
+    (boundary) => {
+      const root = createProject();
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        'export default { nodes: [] };',
+      );
+      const project = join(root, 'project');
+      const subDir = join(project, 'cases');
+      mkdirSync(subDir, { recursive: true });
+      if (boundary === '.git') mkdirSync(join(project, boundary));
+      else writeFileSync(join(project, boundary), '{"name":"test"}');
+
+      expect(discoverTestConfig(subDir)).toBeUndefined();
+      expect(discoverTestConfig(root)).toBe(join(root, 'midscene.config.ts'));
+    },
+  );
+
   it('discovers YAML recursively in deterministic order', () => {
     const root = createProject();
     mkdirSync(join(root, '.hidden'));
