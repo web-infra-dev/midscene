@@ -162,6 +162,7 @@
   "dependencies": {
     "@midscene/shared": "workspace:*",
     "@ui-tars/action-parser": "1.2.3",
+    "ajv": "^8.18.0",
     "dayjs": "^1.11.11",
     "dotenv": "^16.4.5",
     "fetch-socks": "^1.3.0",

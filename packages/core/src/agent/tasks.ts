@@ -134,6 +134,9 @@ export class TaskExecutor {
 
   private readonly hooks?: TaskExecutorHooks;
   private readonly getAbortSignal?: () => AbortSignal | undefined;
+  private readonly resolveActionSpace?: () =>
+    | Promise<DeviceAction[]>
+    | DeviceAction[];
 
   replanningCycleLimit?: number;
 
@@ -161,6 +164,7 @@ export class TaskExecutor {
       getAbortSignal?: () => AbortSignal | undefined;
       operationResource?: object;
       actionSpace: DeviceAction[];
+      getActionSpace?: () => Promise<DeviceAction[]> | DeviceAction[];
     },
   ) {
     this.getDefaultModelRuntime = opts.getDefaultModelRuntime;
@@ -174,12 +178,13 @@ export class TaskExecutor {
     this.hooks = opts.hooks;
     this.getAbortSignal = opts.getAbortSignal;
     this.providedActionSpace = opts.actionSpace;
+    this.resolveActionSpace = opts.getActionSpace;
     this.taskBuilder = new TaskBuilder({
       getDefaultModelRuntime: opts.getDefaultModelRuntime,
       interfaceInstance,
       service,
       taskCache: opts.taskCache,
-      actionSpace: this.getActionSpace(),
+      actionSpace: this.providedActionSpace,
       waitAfterAction: opts.waitAfterAction,
       actionReadiness: opts.actionReadiness,
       operationResource: opts.operationResource,
@@ -222,8 +227,10 @@ export class TaskExecutor {
     return session;
   }
 
-  private getActionSpace(): DeviceAction[] {
-    return this.providedActionSpace;
+  private async getActionSpace(): Promise<DeviceAction[]> {
+    return this.resolveActionSpace
+      ? await this.resolveActionSpace()
+      : this.providedActionSpace;
   }
 
   /**
@@ -322,6 +329,7 @@ export class TaskExecutor {
     planningModel: ModelRuntime,
     locateModel: ModelRuntime,
     options?: {
+      actionSpace?: DeviceAction[];
       distanceUnit?: DistanceUnit;
       cacheable?: boolean;
       multimodalPrompt?: TMultimodalPrompt;
@@ -424,11 +432,27 @@ export class TaskExecutor {
     const runner = session.getRunner();
     const executionPlanningModel = { ...planningModel, executionId: runner.id };
     const executionLocateModel = { ...locateModel, executionId: runner.id };
+    const needsDynamicActionSpace = plans.some(
+      (plan) =>
+        plan.type !== 'Locate' &&
+        plan.type !== 'Finished' &&
+        !this.providedActionSpace.some(
+          (action) =>
+            action.name === plan.type || action.interfaceAlias === plan.type,
+        ),
+    );
+    const actionSpace = needsDynamicActionSpace
+      ? await this.getActionSpace()
+      : undefined;
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       executionPlanningModel,
       executionLocateModel,
-      { distanceUnit: 'device-logical', abortSignal },
+      {
+        ...(actionSpace ? { actionSpace } : {}),
+        distanceUnit: 'device-logical',
+        abortSignal,
+      },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -649,6 +673,7 @@ export class TaskExecutor {
 
       // Get memories text if available
       const memoriesStatus = conversationHistory.memoriesToText() || undefined;
+      let cycleActionSpace = this.providedActionSpace;
 
       const result = await session.appendAndRun(
         {
@@ -677,7 +702,8 @@ export class TaskExecutor {
               screenshot: planningUiContext.screenshot,
             });
 
-            const actionSpace = this.getActionSpace();
+            const actionSpace = await this.getActionSpace();
+            cycleActionSpace = actionSpace;
             debug(
               'actionSpace for this interface is:',
               actionSpace.map((action) => action.name).join(', '),
@@ -866,6 +892,7 @@ export class TaskExecutor {
             planningModel,
             locateModel,
             {
+              actionSpace: cycleActionSpace,
               distanceUnit: 'model-input-image-pixel',
               cacheable,
               multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),

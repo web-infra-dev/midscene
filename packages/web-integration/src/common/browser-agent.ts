@@ -1,3 +1,4 @@
+import type { DeviceAction } from '@midscene/core';
 import { Agent as CoreAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import type { DebugFunction } from '@midscene/shared/logger';
@@ -47,6 +48,20 @@ export type ResolvedBrowserAgentRuntimeOptions = {
 export abstract class WebAgentCore<
   InterfaceType extends AbstractInterface,
 > extends CoreAgent<InterfaceType> {
+  override async getActionSpace(): Promise<DeviceAction[]> {
+    const base = await super.getActionSpace();
+    const page = this.interface as InterfaceType & {
+      getWebMCPActions?: (
+        existingActionNames: Set<string>,
+      ) => Promise<DeviceAction[]>;
+    };
+    if (!page.getWebMCPActions) return base;
+    const webMCPActions = await page.getWebMCPActions(
+      new Set(base.map((action) => action.name)),
+    );
+    return webMCPActions.length ? [...base, ...webMCPActions] : base;
+  }
+
   protected isRetryableContextError(error: unknown): boolean {
     return isRetryableBrowserNavigationError(error);
   }

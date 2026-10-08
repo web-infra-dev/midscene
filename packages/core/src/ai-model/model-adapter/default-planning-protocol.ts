@@ -147,6 +147,8 @@ export const buildActionDescription = ({
       }
       actionDescription.param = paramDescription;
     }
+  } else if (action.paramJsonSchema) {
+    actionDescription.param = action.paramJsonSchema as any;
   }
 
   if (actionOutputExample) {

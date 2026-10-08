@@ -64,6 +64,20 @@ const emptyParamActionSpace: DeviceAction[] = [
   },
 ];
 
+const continuingPlan = {
+  actions: [],
+  yamlFlow: [],
+  shouldContinuePlanning: true,
+  log: '',
+  rawResponse: '',
+};
+const finishedPlan = {
+  ...continuingPlan,
+  shouldContinuePlanning: false,
+  finalizeSuccess: true,
+  finalizeMessage: 'done',
+};
+
 describe('TaskExecutor concurrency isolation', () => {
   let taskExecutor: TaskExecutor;
   let mockInterface: AbstractInterface;
@@ -641,6 +655,83 @@ describe('TaskExecutor concurrency isolation', () => {
       },
       expect.any(Object),
     );
+  });
+
+  it('refreshes dynamic action space per cycle and passes it to execution', async () => {
+    let nextFeedback = '';
+    const webMCPAction = {
+      ...emptyParamActionSpace[0],
+      name: 'WebMCP_write_note',
+    };
+    const getActionSpace = rs
+      .fn()
+      .mockResolvedValueOnce([webMCPAction])
+      .mockResolvedValueOnce(emptyParamActionSpace);
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 2,
+      actionSpace: emptyParamActionSpace,
+      getActionSpace,
+    });
+    const convertSpy = rs
+      .spyOn(executor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'WebMCP_write_note',
+            param: { text: 'draft' },
+            executor: async () => {
+              throw new Error('WebMCP tool write_note is no longer available');
+            },
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({ tasks: [], yamlFlow: [] } as any);
+    rs.mocked(standardPlan)
+      .mockResolvedValueOnce({
+        ...continuingPlan,
+        actions: [
+          {
+            type: 'WebMCP_write_note',
+            param: { text: 'draft' },
+            thought: 'save',
+          },
+        ],
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        nextFeedback = opts.conversationHistory.pendingFeedbackMessage;
+        return finishedPlan;
+      });
+
+    await executor.action('save the note', planningModel(), defaultModel());
+
+    expect(getActionSpace).toHaveBeenCalledTimes(2);
+    expect(convertSpy.mock.calls[0][3]?.actionSpace).toEqual([webMCPAction]);
+    expect(rs.mocked(standardPlan).mock.calls[1][1].actionSpace).toBe(
+      emptyParamActionSpace,
+    );
+    expect(nextFeedback).toContain('no longer available');
+  });
+
+  it('resolves dynamic actions in runPlans', async () => {
+    const call = rs.fn().mockResolvedValue({ ok: true });
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      actionSpace: emptyParamActionSpace,
+      getActionSpace: async () => [
+        ...emptyParamActionSpace,
+        { name: 'WebMCP_write_note', call },
+      ],
+    });
+    const { output } = await executor.runPlans(
+      'WebMCP_write_note',
+      [{ type: 'WebMCP_write_note', param: { text: 'hi' }, thought: '' }],
+      planningModel(),
+      defaultModel(),
+    );
+    expect(output).toEqual({ ok: true });
   });
 
   it('should isolate conversation history between concurrent action calls', async () => {

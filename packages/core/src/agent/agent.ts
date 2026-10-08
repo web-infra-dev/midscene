@@ -500,6 +500,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       getAbortSignal: () => currentYamlSignal(this),
       operationResource: this,
       actionSpace: this.fullActionSpace,
+      getActionSpace: () => this.getActionSpace(),
       hooks: {
         onExecutionCreated: (runner) => {
           this.reportManager.bindRunner(runner);
