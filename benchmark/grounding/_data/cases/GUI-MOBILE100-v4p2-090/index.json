@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-090.png",
+      "fileName": "GUI-MOBILE100-v4p2-090.png",
       "imageType": "hd",
       "gtBox": [
         14,
@@ -14,8 +14,11 @@
   ],
   "prompt": "View discussions about a popular sports match that has generated nearly 70K posts",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p2 | class=reason | source=MMBench-GUI L2 | source_id=3075 | license=Apache-2.0 | sha256=3032a171754d83f4e9b858ee5688698958b142fc22a3de3884f849edd5050739. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=MMBench-GUI L2 | source_id=3075",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
 }

@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-065.png",
+      "imageType": "hd",
+      "gtBox": [
+        42.01199999999999,
+        1639.8719999999998,
+        763.02,
+        1834.794
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Explore other books written by the same author who created this story about elephant herds in the Amboseli National Park",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=MMBench-GUI L2 | source_id=2912",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

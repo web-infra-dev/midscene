@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v3-056.png",
+      "imageType": "hd",
+      "gtBox": [
+        584.0,
+        1250.0,
+        616.0,
+        1288.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select the intersection point of 'Display Ads' and 'Email' with the pie chart edge",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Fine-grained Manipulation | source=FineState-Bench | source_id=web/ANumericRange240json/A5ChartPoint40.json#7",
+  "tags": [
+    "evaluation_import",
+    "Fine-grained Manipulation"
+  ],
+  "primaryFactor": "fine",
+  "primaryFactorLabel": "Fine-grained Manipulation"
+}

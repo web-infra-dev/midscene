@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-043.png",
+      "imageType": "hd",
+      "gtBox": [
+        819.072,
+        2004.678,
+        883.98,
+        2074.6440000000002
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A solid blue circular color option button located in the color selection panel at the bottom of the screen",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Color Recognition | source=MMBench-GUI L2 | source_id=378",
+  "tags": [
+    "evaluation_import",
+    "Color Recognition"
+  ],
+  "primaryFactor": "color",
+  "primaryFactorLabel": "Color Recognition"
+}

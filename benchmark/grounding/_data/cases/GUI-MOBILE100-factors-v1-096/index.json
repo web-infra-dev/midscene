@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-096.png",
+      "imageType": "hd",
+      "gtBox": [
+        964,
+        1419,
+        1042,
+        1485
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the icon next to \"Off\" in the \"Schedule Dark mode\" section.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Relative Position | source=VenusBench-GD | source_id=instruction/spatial_grounding.json#29",
+  "tags": [
+    "evaluation_import",
+    "Relative Position"
+  ],
+  "primaryFactor": "relative",
+  "primaryFactorLabel": "Relative Position"
+}

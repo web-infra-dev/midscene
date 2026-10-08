@@ -1,329 +1,81 @@
 {
-  "version": "Web v4.7 + Mobile v4.6",
-  "previous_version": "Web v4.6 + Mobile v4.5",
-  "total": 200,
-  "retained_cases": 190,
-  "removed_refusal_cases": 10,
-  "added_reason_cases": 10,
-  "platform_class_counts": {
-    "web/reason": 25,
-    "web/functional": 40,
-    "web/refusal": 5,
-    "web/basic": 30,
-    "mobile/basic": 30,
-    "mobile/functional": 40,
-    "mobile/reason": 25,
-    "mobile/refusal": 5
+  "version": "web-primary-v3-mobile-primary-v1-20261008",
+  "cases": 200,
+  "platforms": {
+    "web": 100,
+    "mobile": 100
   },
-  "source_group_counts": {
-    "web/VenusBench-GD Reason": 25,
-    "web/VenusBench-GD Functional": 40,
-    "web/VenusBench-GD Refusal": 5,
-    "web/VenusBench-GD Element": 15,
-    "web/ScreenSpot-v2 icon": 5,
-    "web/ScreenSpot-v2 text": 5,
-    "web/WebClick AgentBrowse": 1,
-    "web/WebClick HumanBrowse": 4,
-    "mobile/VenusBench-GD Element": 15,
-    "mobile/MMBench-GUI L2 Android": 6,
-    "mobile/ScreenSpot-v2 Android": 2,
-    "mobile/ScreenSpot-v2 iOS": 3,
-    "mobile/MMBench-GUI L2 iOS": 4,
-    "mobile/VenusBench-GD Functional": 40,
-    "mobile/VenusBench-GD Reason": 3,
-    "mobile/MMBench-GUI L2 Advanced Reason": 22,
-    "mobile/VenusBench-GD Refusal": 5
-  },
-  "changes": [
-    {
-      "platform": "web",
-      "slot": 61,
-      "old_case_name": "GUI-WEB100-v4p2-061",
-      "old_class": "refusal",
-      "new_case_name": "GUI-WEB100-v4p7-061",
-      "new_class": "reason",
-      "source_id": "instruction/reason_grounding.json#81",
-      "query": "Select product images from stores with more than 15 years of history",
-      "review": "整图6件商品，只有第五件WD-40显示17年老店，17>15；第三件9年不符。GT覆盖第五件商品图片。"
+  "primary_factor_exclusive": true,
+  "primary_factor_counts": {
+    "web": {
+      "reasoning": 20,
+      "element": 20,
+      "disambiguation": 5,
+      "color": 5,
+      "functional": 20,
+      "unfamiliar": 5,
+      "small": 10,
+      "fine": 5,
+      "relative": 5,
+      "refusal": 5
     },
-    {
-      "platform": "web",
-      "slot": 63,
-      "old_case_name": "GUI-WEB100-v4p2-063",
-      "old_class": "refusal",
-      "new_case_name": "GUI-WEB100-v4p7-063",
-      "new_class": "reason",
-      "source_id": "instruction/reason_grounding.json#201",
-      "query": "Select the product image with free shipping",
-      "review": "三条可见商品运费依次8.99、新品Canon Free shipping、12.06；仅中间图片符合，GT完整覆盖该图片。"
-    },
-    {
-      "platform": "web",
-      "slot": 65,
-      "old_case_name": "GUI-WEB100-v4p2-065",
-      "old_class": "refusal",
-      "new_case_name": "GUI-WEB100-v4p7-065",
-      "new_class": "reason",
-      "source_id": "instruction/reason_grounding.json#453",
-      "query": "Choose a flight with two transfers",
-      "review": "完整列表仅第一条转2次，其余转1次；原query选择航班，GT是第一行选为去程按钮。左侧筛选项写2程及以上，不是某个航班。"
-    },
-    {
-      "platform": "web",
-      "slot": 66,
-      "old_case_name": "GUI-WEB100-v4p2-066",
-      "old_class": "refusal",
-      "new_case_name": "GUI-WEB100-v4p7-066",
-      "new_class": "reason",
-      "source_id": "instruction/reason_grounding.json#582",
-      "query": "Find the next task after \"Determine Decor Style and Core...\" in Phase One, and click to view.",
-      "review": "第一阶段确定装修风格条的依赖箭头连到选择设计师-装修公司；该条同时是紧接的下一任务。官方框覆盖该黄色任务条。"
-    },
-    {
-      "platform": "web",
-      "slot": 67,
-      "old_case_name": "GUI-WEB100-v4p2-067",
-      "old_class": "refusal",
-      "new_case_name": "GUI-WEB100-v4p7-067",
-      "new_class": "reason",
-      "source_id": "instruction/reason_grounding.json#962",
-      "query": "Find the title posted 13 hours ago, view details",
-      "review": "可见30min、13hr、16hr三个时间，13hr唯一对应Jane Street标题，官方框覆盖该两行标题。"
-    },
-    {
-      "platform": "mobile",
-      "slot": 91,
-      "old_case_name": "GUI-MOBILE100-v4p2-091",
-      "old_class": "refusal",
-      "new_case_name": "GUI-MOBILE100-v4p6-091",
-      "new_class": "reason",
-      "source_id": "2729",
-      "query": "Select the fourth chapter in this educational video about GPU technology to learn about CUDA core design.",
-      "review": "完整章节列表CUDA Core Design为第四行、8:48；序号与标题一致，GT覆盖章节卡。"
-    },
-    {
-      "platform": "mobile",
-      "slot": 94,
-      "old_case_name": "GUI-MOBILE100-v4p2-094",
-      "old_class": "refusal",
-      "new_case_name": "GUI-MOBILE100-v4p6-094",
-      "new_class": "reason",
-      "source_id": "2961",
-      "query": "View the details of your end-of-August walking activity",
-      "review": "唯一八月记录为2024/8/31 Outdoor Walk，满足八月末及步行，GT覆盖该卡。"
-    },
-    {
-      "platform": "mobile",
-      "slot": 96,
-      "old_case_name": "GUI-MOBILE100-v4p2-096",
-      "old_class": "refusal",
-      "new_case_name": "GUI-MOBILE100-v4p6-096",
-      "new_class": "reason",
-      "source_id": "3084",
-      "query": "Select the option to generate an AI image of a person exploring the red planet",
-      "review": "四个生成图卡仅右下Astronaut on Mars满足红色星球上的人，图文一致，GT准确覆盖整卡。"
-    },
-    {
-      "platform": "mobile",
-      "slot": 97,
-      "old_case_name": "GUI-MOBILE100-v4p2-097",
-      "old_class": "refusal",
-      "new_case_name": "GUI-MOBILE100-v4p6-097",
-      "new_class": "reason",
-      "source_id": "2941",
-      "query": "Explore more images of the workout space that's listed as a free service at this Shanghai hotel",
-      "review": "上部Fitness Room标明Free；下部唯一Fitness Room照片卡符合more images，GT覆盖该照片。上部文字不满足照片目标。"
-    },
-    {
-      "platform": "mobile",
-      "slot": 98,
-      "old_case_name": "GUI-MOBILE100-v4p2-098",
-      "old_class": "refusal",
-      "new_case_name": "GUI-MOBILE100-v4p6-098",
-      "new_class": "reason",
-      "source_id": "3159",
-      "query": "View the classic dystopian novel document that was sent to you as an email attachment",
-      "review": "唯一PDF附件1984 (ORIGINAL) (George Orwell)匹配反乌托邦小说；正文虽重复书名但不是附件，官方GT覆盖附件控件。"
-    }
-  ],
-  "secondary_review": {
-    "GUI-WEB100-v4p7-061": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "整图6件商品，只有第五件WD-40显示17年老店，17>15；第三件9年不符。GT覆盖第五件商品图片。"
-    },
-    "GUI-WEB100-v4p7-063": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "三条可见商品运费依次8.99、新品Canon Free shipping、12.06；仅中间图片符合，GT完整覆盖该图片。"
-    },
-    "GUI-WEB100-v4p7-065": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "完整列表仅第一条转2次，其余转1次；原query选择航班，GT是第一行选为去程按钮。左侧筛选项写2程及以上，不是某个航班。"
-    },
-    "GUI-WEB100-v4p7-066": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "第一阶段确定装修风格条的依赖箭头连到选择设计师-装修公司；该条同时是紧接的下一任务。官方框覆盖该黄色任务条。"
-    },
-    "GUI-WEB100-v4p7-067": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "可见30min、13hr、16hr三个时间，13hr唯一对应Jane Street标题，官方框覆盖该两行标题。"
-    },
-    "GUI-MOBILE100-v4p6-091": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "完整章节列表CUDA Core Design为第四行、8:48；序号与标题一致，GT覆盖章节卡。"
-    },
-    "GUI-MOBILE100-v4p6-094": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "唯一八月记录为2024/8/31 Outdoor Walk，满足八月末及步行，GT覆盖该卡。"
-    },
-    "GUI-MOBILE100-v4p6-096": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "四个生成图卡仅右下Astronaut on Mars满足红色星球上的人，图文一致，GT准确覆盖整卡。"
-    },
-    "GUI-MOBILE100-v4p6-097": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "上部Fitness Room标明Free；下部唯一Fitness Room照片卡符合more images，GT覆盖该照片。上部文字不满足照片目标。"
-    },
-    "GUI-MOBILE100-v4p6-098": {
-      "passed": true,
-      "official_query_preserved": true,
-      "official_gt_preserved": true,
-      "matching_visible_target_count": 1,
-      "evidence": "唯一PDF附件1984 (ORIGINAL) (George Orwell)匹配反乌托邦小说；正文虽重复书名但不是附件，官方GT覆盖附件控件。"
+    "mobile": {
+      "element": 20,
+      "small": 10,
+      "disambiguation": 5,
+      "functional": 20,
+      "unfamiliar": 5,
+      "color": 5,
+      "reasoning": 20,
+      "fine": 5,
+      "relative": 5,
+      "refusal": 5
     }
   },
-  "refusal_selection": {
-    "policy": "User-requested calibration to existing GPT and Seed success rates; minimize per-platform deviations first, overall deviations second, joint outcome distribution third; retain semantic clarity and >=3 refusal types, 5 apps, <=2 color cases per platform. Deterministic SHA tie break; no preference for inflating scores.",
-    "baseline_runs": {
-      "gpt6sol": "20260929-173956-webv4p6-mobilev4p5-gpt6sol-modelhub-full",
-      "seed21pro": "20260929-171649-webv4p6-mobilev4p5-seed21pro-midscene1132beta-refusal"
+  "task_class_counts": {
+    "web": {
+      "reason": 20,
+      "basic": 55,
+      "functional": 20,
+      "refusal": 5
     },
-    "baseline_correct_out_of_10": {
-      "web": {
-        "gpt6sol": 5,
-        "seed21pro": 2
-      },
-      "mobile": {
-        "gpt6sol": 3,
-        "seed21pro": 3
-      }
-    },
-    "valid_combinations": {
-      "web": 219,
-      "mobile": 179
-    },
-    "selected": {
-      "web": {
-        "case_names": [
-          "GUI-WEB100-v4p2-062",
-          "GUI-WEB100-v4p2-064",
-          "GUI-WEB100-v4p2-068",
-          "GUI-WEB100-v4p2-069",
-          "GUI-WEB100-v4p2-070"
-        ],
-        "correct": {
-          "gpt6sol": 2,
-          "seed21pro": 1
-        },
-        "delta_tenths": [
-          1,
-          0
-        ],
-        "broad_types": [
-          "color",
-          "control_type",
-          "missing",
-          "position"
-        ],
-        "fine_type_count": 5,
-        "signature_error": 2
-      },
-      "mobile": {
-        "case_names": [
-          "GUI-MOBILE100-v4p2-092",
-          "GUI-MOBILE100-v4p2-093",
-          "GUI-MOBILE100-v4p2-095",
-          "GUI-MOBILE100-v4p2-099",
-          "GUI-MOBILE100-v4p2-100"
-        ],
-        "correct": {
-          "gpt6sol": 2,
-          "seed21pro": 1
-        },
-        "delta_tenths": [
-          1,
-          1
-        ],
-        "broad_types": [
-          "color",
-          "control_type",
-          "missing",
-          "position"
-        ],
-        "fine_type_count": 4,
-        "signature_error": 2
-      }
-    },
-    "removed": {
-      "web": [
-        "GUI-WEB100-v4p2-061",
-        "GUI-WEB100-v4p2-063",
-        "GUI-WEB100-v4p2-065",
-        "GUI-WEB100-v4p2-066",
-        "GUI-WEB100-v4p2-067"
-      ],
-      "mobile": [
-        "GUI-MOBILE100-v4p2-091",
-        "GUI-MOBILE100-v4p2-094",
-        "GUI-MOBILE100-v4p2-096",
-        "GUI-MOBILE100-v4p2-097",
-        "GUI-MOBILE100-v4p2-098"
-      ]
-    },
-    "optimization": [
-      1,
-      3,
-      1,
-      1,
-      4,
-      -8,
-      -9,
-      "000ab5793626bb17f00202d2db3694668ed8cc9fb72cc659816045fe6beafcbc"
-    ],
-    "score_resolution_note": "5 cases: 20 percentage-point increments. 30% and 50% cannot be matched exactly. These are prior-run subset scores, not new evaluation results."
+    "mobile": {
+      "basic": 55,
+      "functional": 20,
+      "reason": 20,
+      "refusal": 5
+    }
   },
-  "unique_screenshot_sha256": 200,
-  "official_query_preserved": true,
-  "official_gt_preserved_with_format_conversion_only": true,
-  "official_image_bytes_preserved": true,
-  "basic_functional_unchanged": true,
-  "reason_selection_uses_model_results": false,
-  "refusal_selection_uses_prior_results_per_user_request": true,
-  "new_evaluation_status": "not_run"
+  "sources": {
+    "web": {
+      "VenusBench-GD": 68,
+      "WebClick": 6,
+      "MMBench-GUI L2": 5,
+      "MedSPOT": 3,
+      "GroundUI-18K": 2,
+      "OSWorld-G": 2,
+      "FineState-Bench": 4,
+      "ScreenSpot-v2": 10
+    },
+    "mobile": {
+      "VenusBench-GD": 55,
+      "MMBench-GUI L2": 27,
+      "ScreenSpot-v2": 8,
+      "FineState-Bench": 10
+    }
+  },
+  "evaluated_snapshot": {
+    "batch_id": "web-mobile200-primary-astra-20261008-141330",
+    "manifest_sha256": "fa0ef7b8b2583f1d105bf72d13825fa6b1fcf6009be338c3610920330ee733b2"
+  },
+  "manifest_sha256": "ce2395b3451df13e3362a0f11e2d27abd949d05695cce4cd7f3d97b78e7c7388",
+  "query_gt_image_bytes_match_evaluated_snapshot": true,
+  "screenshots_unique": 200,
+  "expected_outcomes": {
+    "point": 190,
+    "refusal": 10
+  },
+  "this_revision_model_results_used_for_selection": false,
+  "historical_refusal_selection": "The retained refusal subsets were calibrated using earlier model outcomes; see refusal-selection.json.",
+  "license_metadata": "Source values are preserved per row, including undeclared or conflicting historical metadata. No blanket license is assigned."
 }

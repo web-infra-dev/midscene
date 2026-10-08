@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v2-044.png",
+      "imageType": "hd",
+      "gtBox": [
+        1235.0,
+        769.0,
+        1395.0,
+        843.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Click on the 'Forest Green' circle.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Color Recognition | source=GroundUI-18K | source_id=data/train-00008-of-00019.parquet#682",
+  "tags": [
+    "evaluation_import",
+    "Color Recognition"
+  ],
+  "primaryFactor": "color",
+  "primaryFactorLabel": "Color Recognition"
+}

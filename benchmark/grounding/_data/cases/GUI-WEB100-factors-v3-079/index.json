@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v3-079.png",
+      "imageType": "hd",
+      "gtBox": [
+        923.0000000000001,
+        290.0,
+        977.0,
+        1278.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "The vertical line on the right side of point E is the right selection line, and the selection height covers the entire table.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Fine-grained Manipulation | source=FineState-Bench | source_id=web/DViewManipilation160json/D7TableColumn15.json#2",
+  "tags": [
+    "evaluation_import",
+    "Fine-grained Manipulation"
+  ],
+  "primaryFactor": "fine",
+  "primaryFactorLabel": "Fine-grained Manipulation"
+}

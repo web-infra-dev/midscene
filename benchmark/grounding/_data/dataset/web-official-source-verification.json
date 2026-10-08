@@ -1,0 +1,65 @@
+[
+  {
+    "case_id": "GUI-WEB100-factors-v3-053",
+    "source_id": "web/ANumericRange240json/A4SeekBar40.json#7",
+    "official_query_equal": true,
+    "official_fine_gt_equal": true,
+    "official_web_path": true,
+    "original_image_bytes_equal": true,
+    "source_annotation_sha256": "04e27aa01c07b624f03ab199b9ab7354c4157d0f49837c584db4d18ab2f27c3d",
+    "image_sha256": "7d1d33828bd4c4d666dece105440c019c945e41ed76e948c263589c4167b9834",
+    "image_pixel_sha256": "3338d0de87a1354c6e36920564dad36fc3eb9e622c5f9a56c01e3bc599101f62",
+    "review": "screenshot, local GT context, target uniqueness, Web evidence",
+    "fine_constraint": "播放时间轴内的当前游标线"
+  },
+  {
+    "case_id": "GUI-WEB100-factors-v1-054",
+    "source_id": "rpngAhRMhE-1",
+    "official_query_equal": true,
+    "official_fine_gt_equal": true,
+    "official_web_path": "visually verified browser input",
+    "original_image_bytes_equal": true,
+    "image_sha256": "02725866456bfab43a6bab60c07d6c5726dc69ce8e029524d59da21a32daae21",
+    "image_pixel_sha256": "43a4390e6ac30f7660ab2465964f358577bae138ea2c27471cdd687803184304",
+    "review": "retained exactly as requested"
+  },
+  {
+    "case_id": "GUI-WEB100-factors-v3-056",
+    "source_id": "web/ANumericRange240json/A5ChartPoint40.json#7",
+    "official_query_equal": true,
+    "official_fine_gt_equal": true,
+    "official_web_path": true,
+    "original_image_bytes_equal": true,
+    "source_annotation_sha256": "264b6c7e2e056fa6a5dd8e2f5b94ae9b9cc9d033e5b909867631ce7eed9bae34",
+    "image_sha256": "f62d7f4b5387e9b6a5d30e0424f1847901b0fa47d47e8ae37e9a007d24087133",
+    "image_pixel_sha256": "41fad037742490ba52cf966ffcfe1c5d473cb907e726b70eea12c99512dfe535",
+    "review": "screenshot, local GT context, target uniqueness, Web evidence",
+    "fine_constraint": "指定扇区边界与外圆的交点"
+  },
+  {
+    "case_id": "GUI-WEB100-factors-v3-057",
+    "source_id": "web/DViewManipilation160json/D2ZoomPan30.json#4",
+    "official_query_equal": true,
+    "official_fine_gt_equal": true,
+    "official_web_path": true,
+    "original_image_bytes_equal": true,
+    "source_annotation_sha256": "8e60388b9aae1c1ba390d64f49b09bd0bf673a17c467788f7738db670cf1d83d",
+    "image_sha256": "4f660389868b0c5ca4175a547562cd75a2b492e1c17dee4ea002bc45ea1ce9fd",
+    "image_pixel_sha256": "06725d3abebbf298a46104e753e97a0991ad1621efaf042f80d69742cdd91d31",
+    "review": "screenshot, local GT context, target uniqueness, Web evidence",
+    "fine_constraint": "选中图形的左下角缩放位置"
+  },
+  {
+    "case_id": "GUI-WEB100-factors-v3-079",
+    "source_id": "web/DViewManipilation160json/D7TableColumn15.json#2",
+    "official_query_equal": true,
+    "official_fine_gt_equal": true,
+    "official_web_path": true,
+    "original_image_bytes_equal": true,
+    "source_annotation_sha256": "8b1e3df1b5edfabf8297d1feb89103f4fbb0a6aadeb1822ee71bdd18190b90e1",
+    "image_sha256": "703734ff4eb0693a45568836228a9fd1d41bb691567cd032503aeac1700b7e85",
+    "image_pixel_sha256": "a140443c5bf889f8d403da66193dd4f4013d32453d1693228421e827bd87ec5a",
+    "review": "screenshot, local GT context, target uniqueness, Web evidence",
+    "fine_constraint": "E/F列分隔边界的窄条区域"
+  }
+]

@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-001.png",
+      "fileName": "GUI-WEB100-v4p2-001.png",
       "imageType": "hd",
       "gtBox": [
         491,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Select the date with the second highest price on Sunday.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#62 | license=MIT | sha256=23cb3458fa767680727cc38fd2ec5f0f4381de30da6a7ae1ff147a32a8462683. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#62",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
 }

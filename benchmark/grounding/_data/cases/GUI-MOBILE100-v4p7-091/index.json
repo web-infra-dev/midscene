@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-v4p7-091.png",
+      "imageType": "hd",
+      "gtBox": [
+        439.0,
+        929.0,
+        508.0,
+        1007.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select the top of the bar chart between 06:00 and 12:00",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Fine-grained Manipulation | source=FineState-Bench | source_id=mobile/ANumericRange240json/A5ChartPoint40.json#30",
+  "tags": [
+    "evaluation_import",
+    "Fine-grained Manipulation"
+  ],
+  "primaryFactor": "fine",
+  "primaryFactorLabel": "Fine-grained Manipulation"
+}

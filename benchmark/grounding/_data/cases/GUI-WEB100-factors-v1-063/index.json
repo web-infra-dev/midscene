@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-063.png",
+      "imageType": "hd",
+      "gtBox": [
+        2561,
+        201,
+        2602,
+        227
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the icon located to the right of the title in the comment section and above the first comment.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Relative Position | source=VenusBench-GD | source_id=instruction/spatial_grounding.json#604",
+  "tags": [
+    "evaluation_import",
+    "Relative Position"
+  ],
+  "primaryFactor": "relative",
+  "primaryFactorLabel": "Relative Position"
+}

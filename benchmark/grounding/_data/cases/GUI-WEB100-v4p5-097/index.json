@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-097.jpg",
+      "fileName": "GUI-WEB100-v4p5-097.jpg",
       "imageType": "hd",
       "gtBox": [
         45.0,
@@ -14,8 +14,11 @@
   ],
   "prompt": "log in button (middle of the page)",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p5 | class=basic | source=WebClick | source_id=default/test/1059 | license=Apache-2.0 | sha256=056bebcb1753869542a9ecdfe1fb922706149e37b11f02d67534c0f29732846c. 完整来源见 _data/imports/gui-grounding-web-100-v4p5/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Relative Position | source=WebClick | source_id=default/test/1059",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Relative Position"
+  ],
+  "primaryFactor": "relative",
+  "primaryFactorLabel": "Relative Position"
 }

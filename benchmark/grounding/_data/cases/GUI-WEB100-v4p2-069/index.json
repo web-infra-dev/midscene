@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-069.png",
+      "fileName": "GUI-WEB100-v4p2-069.png",
       "imageType": "hd",
       "gtBox": null,
       "expectedOutcome": "refusal"
@@ -9,8 +9,11 @@
   ],
   "prompt": "Find the toggle switch to view the tutorial",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#274 | license=MIT | sha256=f152d666ed4cfe41340165ee3c19aee3e1e466838cde4221e19ab6a8f9817d2d. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#274",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Refusal"
+  ],
+  "primaryFactor": "refusal",
+  "primaryFactorLabel": "Refusal"
 }

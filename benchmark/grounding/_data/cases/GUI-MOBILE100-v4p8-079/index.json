@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-v4p8-079.png",
+      "imageType": "hd",
+      "gtBox": [
+        263,
+        1603,
+        421,
+        1763
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Share this post with the person who uses a cat as their profile picture",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Disambiguation | source=MMBench-GUI L2 | source_id=2660",
+  "tags": [
+    "evaluation_import",
+    "Disambiguation"
+  ],
+  "primaryFactor": "disambiguation",
+  "primaryFactorLabel": "Disambiguation"
+}

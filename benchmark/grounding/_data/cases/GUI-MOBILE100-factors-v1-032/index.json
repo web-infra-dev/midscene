@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-032.png",
+      "imageType": "hd",
+      "gtBox": [
+        408,
+        2208,
+        510,
+        2430
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "choose watercolor brush style",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Unfamiliar Icon | source=ScreenSpot-v2 | source_id=screenspot_mobile_v2.json#281",
+  "tags": [
+    "evaluation_import",
+    "Unfamiliar Icon"
+  ],
+  "primaryFactor": "unfamiliar",
+  "primaryFactorLabel": "Unfamiliar Icon"
+}

@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-020.png",
+      "fileName": "GUI-MOBILE100-v4p3-020.png",
       "imageType": "hd",
       "gtBox": [
         621,
@@ -14,8 +14,11 @@
   ],
   "prompt": "display flagged massages",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=ScreenSpot-v2 | source_id=screenspot_mobile_v2.json#236 | license=Apache-2.0 | sha256=7e1b7c7ec0741ffdaa5351a573fce665c36a9b6aa31ba30f8708ae7fccf357e2. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Functional | source=ScreenSpot-v2 | source_id=screenspot_mobile_v2.json#236",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Functional"
+  ],
+  "primaryFactor": "functional",
+  "primaryFactorLabel": "Functional"
 }
