@@ -9,10 +9,13 @@ export async function setPersistentPuppeteerViewport(
   // Emulation is session-scoped. Measure the native content area before
   // applying it, otherwise Chrome's window frame is hidden by the override.
   await page.setViewport(null);
-  const frame = await page.evaluate(() => ({
-    width: Math.max(0, window.outerWidth - window.innerWidth),
-    height: Math.max(0, window.outerHeight - window.innerHeight),
-  }));
+  // Browser-realm callbacks cannot reference Node's Istanbul counters.
+  const frame = await page.evaluate(
+    /* istanbul ignore next */ () => ({
+      width: Math.max(0, window.outerWidth - window.innerWidth),
+      height: Math.max(0, window.outerHeight - window.innerHeight),
+    }),
+  );
   const session = await page.createCDPSession();
   try {
     const { windowId } = await session.send('Browser.getWindowForTarget');
@@ -24,7 +27,7 @@ export async function setPersistentPuppeteerViewport(
       },
     });
     await page.waitForFunction(
-      (size) =>
+      /* istanbul ignore next */ (size) =>
         window.innerWidth === size.width && window.innerHeight === size.height,
       { timeout: 5_000 },
       viewport,
