@@ -213,6 +213,8 @@ describe('LocalExecutionAdapter', () => {
         .mockReturnValueOnce(insightModelConfig);
       const result = {
         passed: true,
+        checks: [],
+        requestCount: 0,
       };
 
       rs.mocked(ModelConfigManager).mockImplementation(
