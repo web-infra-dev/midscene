@@ -54,7 +54,7 @@ All agents share these base options:
 - `aiActionContext: string` (deprecated) — Older compatibility alias for `aiContexts.aiAct`. It remains supported and is used only when both `aiContexts.aiAct` and `aiActContext` are absent. Resolution uses `aiContexts.aiAct ?? aiActContext ?? aiActionContext`; an empty string takes precedence over lower-priority aliases. Use `aiContexts.aiAct` in new code.
 - `modelConfig: Record<string, string | number>` — Model configuration for this Agent. When provided, it replaces model-related system environment variables for this Agent. See the detailed configuration section below.
 - `replanningCycleLimit: number` — Maximum number of `aiAct` replanning cycles. Default: `20` for standard models, `40` for UI-TARS models, and `100` for AutoGLM models. Prefer this Agent option; `MIDSCENE_REPLANNING_CYCLE_LIMIT` remains available only for backward compatibility.
-- `waitForActionReady: WaitForActionReadyOptions` — Customize [readiness after each action](#action-ready).
+- `waitForActionReady: (context: ActionReadyContext) => Promise<void>` — Customize [readiness after each action](#action-ready).
 - `waitAfterAction: number` — Fixed delay after each action, default `300` ms. See [Default waiting strategy](#default-waiting-strategy).
 - `useDeviceTime: boolean` — Whether task timestamps use the target device's local time. The target interface must implement `getDeviceLocalTimeString`; otherwise, Midscene logs a warning and uses the runtime system time. Default: `false`.
 - `onTaskStartTip: (tip: string) => void | Promise<void>` — Optional hook called before each task begins. It receives a human-readable task summary. Default: `undefined`.
@@ -86,7 +86,7 @@ All agents share these base options:
 
 :::
 
-The device CLIs expose serializable Agent behavior options for individual calls. Options containing functions, such as `waitForActionReady.createWaiter`, must be configured through the JavaScript/TypeScript SDK. Convert camelCase option names to kebab-case flags; for example, `waitAfterAction` becomes `--wait-after-action`. See [Skills](../skills) for platform-specific CLI entry points.
+The device CLIs expose serializable Agent behavior options for individual calls. Options containing functions, such as `waitForActionReady`, must be configured through the JavaScript/TypeScript SDK. Convert camelCase option names to kebab-case flags; for example, `waitAfterAction` becomes `--wait-after-action`. See [Skills](../skills) for platform-specific CLI entry points.
 
 <a id="action-ready"></a>
 
@@ -94,44 +94,26 @@ The device CLIs expose serializable Agent behavior options for individual calls.
 
 Configure `waitForActionReady` to decide when the next step can begin. It applies to each atomic action (`Input`, `Tap`, etc.), including `aiAct` substeps and cache replay. It does not run for initial page loading or read-only queries.
 
-- `createWaiter: (context: ActionReadyContext) => ActionReadyPlan | Promise<ActionReadyPlan>` — Runs before each action to register observation. The context contains `action: { id, name, param }` and `signal`. Each execution has a new ID and resolved parameters.
-- `timeoutMs?: number` — Separate timeout for `createWaiter`, `wait`, and `dispose`, default `10000` ms. Integer from `1` to `2147483647`; does not set the action driver's timeout.
+The callback runs only after an action succeeds. Its context contains `action: { id, name, param }`: a new ID for each execution and the resolved action parameters, plus an optional `signal` for execution cancellation. The SDK awaits the callback before continuing.
 
-| Factory result | After the action returns |
-| --- | --- |
-| `'skip'` | Continue without automatic stability waiting. |
-| `'default'` | Use the [default waiting strategy](#default-waiting-strategy). |
-| `{ wait, dispose? }` | Await `wait(): Promise<void>`, then clean up with optional `dispose()`. |
-
-Here, `appMonitor` is your application's monitoring adapter. It can skip known synchronous inputs, observe the current login request and rendering, or leave other actions to the default strategy.
+Here, `app.waitUntilReady` is your application's readiness check.
 
 ```ts
 import { PlaywrightAgent } from '@midscene/web/playwright';
 
 const agent = new PlaywrightAgent(page, {
-  waitForActionReady: {
-    timeoutMs: 10_000,
-    createWaiter: ({ action, signal }) => {
-      if (appMonitor.canSkipWaiting(action)) return 'skip';
-
-      const observation = appMonitor.observe(action, { signal });
-      if (!observation) return 'default';
-
-      return {
-        wait: () => observation.waitUntilReady(),
-        dispose: () => observation.dispose(),
-      };
-    },
+  waitForActionReady: async ({ action, signal }) => {
+    await app.waitUntilReady(action, { signal });
   },
 });
 
-await agent.aiAct('Enter the account and password, then log in');
+await agent.aiAct('Log in');
 ```
 
-- Register listeners in `createWaiter`; await the action's result in `wait`. The factory must not wait for an event that requires the action to run. Correlate signals with the current action so earlier readiness does not release a later action.
-- `'skip'` and custom waiters replace generic action delays and platform post-action checks. Required driver timing (such as keyboard preparation and gesture duration) and lifecycle callbacks remain in effect. Unconfigured Agents keep existing behavior.
-- Failure or timeout stops the workflow without automatically replaying the action or falling back to planning. A later explicit call creates a new waiter. Cleanup also runs on action failure; `signal` aborts on cancellation, timeout, or `agent.destroy()`.
-- Use underlying page/device APIs in these callbacks. UI calls on the same Agent while a callback is running fail explicitly, including concurrent calls. A moment with no network requests alone does not prove the UI is ready.
+- After 5 seconds, the SDK logs one warning and keeps waiting. It does not impose a timeout or fall back to default waiting. Cancellation stops the SDK's wait even if the callback never settles; use `signal` inside the callback to stop your own polling, requests, or listeners.
+- If the action fails, the callback is not called. If the callback throws, the error stops the workflow without automatically replaying the action or falling back to planning.
+- Configuring this callback replaces generic action delays and platform post-action checks. Required driver timing (such as keyboard preparation and gesture duration) and lifecycle callbacks remain in effect. Return immediately from the async callback when no waiting is needed. Unconfigured Agents keep existing behavior.
+- The callback checks readiness after the action; it does not observe the action invocation. Use application state or underlying page/device APIs. One-time events may have already fired before the callback starts.
 
 All Agent platforms support this SDK option. `puppeteerAgentForTarget` accepts it in its second argument and keeps its initial network-idle wait.
 
@@ -139,7 +121,7 @@ All Agent platforms support this SDK option. `puppeteerAgentForTarget` accepts i
 
 **Default waiting strategy (advanced)**
 
-These options apply when no custom waiter is configured or it returns `'default'`:
+These options apply when `waitForActionReady` is not configured:
 
 | Option | Behavior |
 | --- | --- |

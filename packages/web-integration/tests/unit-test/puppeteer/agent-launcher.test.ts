@@ -391,17 +391,17 @@ describe('launchPuppeteerPage', () => {
   it.each(['page', 'browser'] as const)(
     'forwards action readiness in %s mode without running it during launch',
     async (mode) => {
-      const createWaiter = rs.fn(() => 'skip' as const);
+      const waitForActionReady = rs.fn(async () => {});
       const { agent } = await puppeteerAgentForTarget(
         {
           url: 'https://example.com',
           mode,
           waitForNetworkIdle: { timeout: 4321 },
         },
-        { generateReport: false, waitForActionReady: { createWaiter } },
+        { generateReport: false, waitForActionReady },
       );
-      expect(agent.opts.waitForActionReady?.createWaiter).toBe(createWaiter);
-      expect(createWaiter).not.toHaveBeenCalled();
+      expect(agent.opts.waitForActionReady).toBe(waitForActionReady);
+      expect(waitForActionReady).not.toHaveBeenCalled();
       expect(pageMock.waitForNetworkIdle).toHaveBeenCalledWith({
         timeout: 4321,
       });
