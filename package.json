@@ -6,6 +6,7 @@
     "dev": "node scripts/dev-prepare.js && nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose --parallel=6",
     "build": "nx run-many --target=build --exclude=doc --verbose",
     "build:packages": "pnpm -r --filter './packages/**' --if-present run build",
+    "examples:sync": "pnpm --filter @midscene/test exec tsx ../../scripts/sync-examples.ts",
     "build:skip-cache": "npm run clean && nx run-many --target=build --exclude=doc --verbose --skip-nx-cache",
     "type-check:tests": "node scripts/type-check-tests.mjs",
     "test": "nx run-many --target=test --verbose",
