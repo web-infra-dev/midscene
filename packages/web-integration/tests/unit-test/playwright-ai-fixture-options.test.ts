@@ -53,6 +53,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       aiActContext: 'fixture-level-context',
       useDeviceTime: true,
       enableTouchEventsInActionSpace: true,
+      enableWebMCP: true,
       forceChromeSelectRendering: true,
     });
 
@@ -67,6 +68,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       aiActContext: 'fixture-level-context',
       useDeviceTime: true,
       enableTouchEventsInActionSpace: true,
+      enableWebMCP: true,
       forceChromeSelectRendering: true,
       generateReport: true,
     });
@@ -78,6 +80,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       replanningCycleLimit: 9,
       waitAfterAction: 300,
       enableTouchEventsInActionSpace: true,
+      enableWebMCP: true,
     });
 
     let getAgentForPage: any;
@@ -94,6 +97,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       replanningCycleLimit: 3,
       waitAfterAction: 50,
       enableTouchEventsInActionSpace: false,
+      enableWebMCP: false,
     });
 
     expect(mockState.ctorOpts).toHaveLength(1);
@@ -102,6 +106,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       replanningCycleLimit: 3,
       waitAfterAction: 50,
       enableTouchEventsInActionSpace: false,
+      enableWebMCP: false,
     });
   });
 

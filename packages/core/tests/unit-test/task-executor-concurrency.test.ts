@@ -63,6 +63,20 @@ const emptyParamActionSpace: DeviceAction[] = [
   },
 ];
 
+const continuingPlan = {
+  actions: [],
+  yamlFlow: [],
+  shouldContinuePlanning: true,
+  log: '',
+  rawResponse: '',
+};
+const finishedPlan = {
+  ...continuingPlan,
+  shouldContinuePlanning: false,
+  finalizeSuccess: true,
+  finalizeMessage: 'done',
+};
+
 describe('TaskExecutor concurrency isolation', () => {
   let taskExecutor: TaskExecutor;
   let mockInterface: AbstractInterface;
@@ -270,6 +284,132 @@ describe('TaskExecutor concurrency isolation', () => {
         ],
       },
       expect.any(Object),
+    );
+  });
+
+  it('refreshes the planning action space before each planning cycle', async () => {
+    const firstAction = { ...emptyParamActionSpace[0], description: 'first' };
+    mockInterface.prepareActionSpaceForPlanning = rs
+      .fn()
+      .mockResolvedValueOnce([firstAction])
+      .mockResolvedValueOnce(emptyParamActionSpace);
+    rs.mocked(standardPlan)
+      .mockResolvedValueOnce(continuingPlan)
+      .mockResolvedValueOnce(finishedPlan);
+
+    await taskExecutor.action('prompt', planningModel(), defaultModel());
+
+    expect(mockInterface.prepareActionSpaceForPlanning).toHaveBeenCalledTimes(
+      2,
+    );
+    expect(rs.mocked(standardPlan).mock.calls[0][1].actionSpace).toEqual([
+      firstAction,
+    ]);
+    expect(rs.mocked(standardPlan).mock.calls[1][1].actionSpace).toBe(
+      emptyParamActionSpace,
+    );
+  });
+
+  it('replans with a refreshed action space when a WebMCP tool disappears', async () => {
+    let nextFeedback = '';
+    const webMCPAction = {
+      ...emptyParamActionSpace[0],
+      name: 'CallWebMCPTool',
+    };
+    mockInterface.prepareActionSpaceForPlanning = rs
+      .fn()
+      .mockResolvedValueOnce([webMCPAction])
+      .mockResolvedValueOnce(emptyParamActionSpace);
+    rs.mocked(taskExecutor.convertPlanToExecutable).mockResolvedValueOnce({
+      tasks: [
+        {
+          type: 'Action Space',
+          subType: 'CallWebMCPTool',
+          param: { name: 'write_note' },
+          executor: async () => {
+            throw new Error('WebMCP tool write_note is no longer available');
+          },
+        },
+      ],
+      yamlFlow: [],
+    } as any);
+    rs.mocked(standardPlan)
+      .mockResolvedValueOnce({
+        ...continuingPlan,
+        actions: [
+          {
+            type: 'CallWebMCPTool',
+            param: { name: 'write_note' },
+            thought: 'save the note',
+          },
+        ],
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        nextFeedback = opts.conversationHistory.pendingFeedbackMessage;
+        return finishedPlan;
+      });
+
+    await taskExecutor.action('save the note', planningModel(), defaultModel());
+
+    expect(standardPlan).toHaveBeenCalledTimes(2);
+    expect(rs.mocked(standardPlan).mock.calls[1][1].actionSpace).toBe(
+      emptyParamActionSpace,
+    );
+    expect(nextFeedback).toContain(
+      'WebMCP tool write_note is no longer available',
+    );
+  });
+
+  it('stores a WebMCP result in the report and next planning feedback', async () => {
+    const result = { saved: true, text: 'draft' };
+    let nextFeedback = '';
+    rs.mocked(taskExecutor.convertPlanToExecutable).mockResolvedValueOnce({
+      tasks: [
+        {
+          type: 'Action Space',
+          subType: 'CallWebMCPTool',
+          param: { name: 'write_note', input: { text: 'draft' } },
+          executor: async (context: ExecutorContext) => {
+            context.task.planningFeedback = `WebMCP tool write_note returned: ${JSON.stringify(result)}`;
+            return { output: result };
+          },
+        },
+      ],
+      yamlFlow: [],
+    } as any);
+    rs.mocked(standardPlan)
+      .mockResolvedValueOnce({
+        ...continuingPlan,
+        actions: [
+          {
+            type: 'CallWebMCPTool',
+            param: { name: 'write_note', input: { text: 'draft' } },
+            thought: 'save the note',
+          },
+        ],
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        nextFeedback = opts.conversationHistory.pendingFeedbackMessage;
+        return finishedPlan;
+      });
+
+    const execution = await taskExecutor.action(
+      'save the note',
+      planningModel(),
+      defaultModel(),
+    );
+
+    expect(nextFeedback).toContain('"saved":true');
+    expect(
+      execution.runner
+        .dump()
+        .toJSON()
+        .tasks.find((task) => task.subType === 'CallWebMCPTool'),
+    ).toEqual(
+      expect.objectContaining({
+        param: { name: 'write_note', input: { text: 'draft' } },
+        output: result,
+      }),
     );
   });
 

@@ -171,6 +171,32 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 
 `createMidsceneNodes()` 不会直接修改全局注册表；只有把返回数组加入项目配置后，这些 Node 才会生效。`agentClass` 是 Agent Node 定义的唯一来源，`getAgent` 则说明执行期间如何从当前 context 取得 Agent 实例。如果该类没有提供 `getTestRunnerNodeDefinitions()`，工厂会在注册阶段抛出异常。传入 PlaywrightAgent、PlaywrightPageAgent、PlaywrightBrowserAgent、AndroidAgent、IOSAgent 或 HarmonyAgent 时，会同时获得通用 Node 定义和对应的平台 Node 定义。基础 Agent、其他 Web Agent 和 ComputerAgent 仅提供通用 Agent Node。
 
+要让 YAML 用例中的 `aiAct` 调用网页提供的 WebMCP 工具，在 `midscene.config.ts` 中做以下两处设置。下面以本地已安装的 Chrome 为例：
+
+1. 在 `setup` 中，启动 Chrome 时添加 WebMCP 启动参数：
+
+   ```ts
+   const browser = await chromium.launch({
+     channel: 'chrome',
+     headless: true,
+     args: ['--enable-features=WebMCP'],
+   });
+   ```
+
+2. 在 `createMidsceneNodes()` 的 `getAgent` 中，首次创建 Playwright Agent 时传入 `enableWebMCP: true`，允许 `aiAct` 调用页面的 WebMCP 工具：
+
+   ```ts
+   const midsceneNodes = createMidsceneNodes<ProjectContext>({
+     agentClass: PlaywrightAgent,
+     getAgent: ({ context }) => {
+       context.agent ??= new PlaywrightAgent(context.page, { enableWebMCP: true });
+       return context.agent;
+     },
+   });
+   ```
+
+页面没有 WebMCP 工具时，`aiAct` 会继续使用视觉操作。
+
 Android/iOS 的注册示例见[配置多个执行项目](#配置多个执行项目)。
 
 在 Android、iOS 等设备平台接入 Agent 时，需注意资源的所有权。每个 Device 实例只归属于一个 Agent，`Agent.destroy()` 也会销毁对应 Device。每个执行项目应创建独立的资源，不要在 Agent 销毁后复用它的 Device。
