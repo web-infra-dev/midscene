@@ -11,7 +11,11 @@ const VALID_ENV_TEXT = [
   'MIDSCENE_MODEL=gpt-4o',
 ].join('\n');
 
-const PASSED_CONNECTIVITY_RESULT: ConnectivityTestResult = { passed: true };
+const PASSED_CONNECTIVITY_RESULT: ConnectivityTestResult = {
+  passed: true,
+  checks: [],
+  requestCount: 0,
+};
 
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -244,6 +248,8 @@ describe('ModelEnvConfigModal', () => {
       runConnectivityTest: vi.fn().mockResolvedValue({
         passed: false,
         message: 'Network down',
+        checks: [],
+        requestCount: 0,
       } satisfies ConnectivityTestResult),
     });
     const { root } = await renderModal();

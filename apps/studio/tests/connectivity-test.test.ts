@@ -15,6 +15,8 @@ describe('runConnectivityTest', () => {
   it('runs the Studio model config through the core connectivity suite', async () => {
     vi.mocked(runCoreConnectivityTest).mockResolvedValue({
       passed: true,
+      checks: [],
+      requestCount: 0,
     });
 
     const result = await runConnectivityTest({
@@ -26,6 +28,8 @@ describe('runConnectivityTest', () => {
 
     expect(result).toEqual({
       passed: true,
+      checks: [],
+      requestCount: 0,
     });
     expect(runCoreConnectivityTest).toHaveBeenCalledWith({
       defaultModelConfig: expect.objectContaining({
@@ -58,6 +62,8 @@ describe('runConnectivityTest', () => {
   it('supports compatible alias keys when building the core config', async () => {
     vi.mocked(runCoreConnectivityTest).mockResolvedValue({
       passed: true,
+      checks: [],
+      requestCount: 0,
     });
 
     await runConnectivityTest({
@@ -86,6 +92,8 @@ describe('runConnectivityTest', () => {
       }),
     ).resolves.toMatchObject({
       passed: false,
+      checks: [],
+      requestCount: 0,
       message: 'Missing required keys: OPENAI_BASE_URL',
     });
     expect(runCoreConnectivityTest).not.toHaveBeenCalled();
