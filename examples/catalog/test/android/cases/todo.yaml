@@ -1,0 +1,15 @@
+beforeEach:
+  - launch: https://todomvc.com/examples/react/dist/
+
+cases:
+  - name: Manage TodoMVC on Android
+    steps:
+      - aiAct: Type "Study JS today" in the new Todo input and press Enter
+      - aiAct: Type "Study Rust tomorrow" in the new Todo input and press Enter
+      - aiAct: Type "Study AI the day after tomorrow" in the new Todo input and press Enter
+      - aiAct: Delete the second Todo, "Study Rust tomorrow"
+      - aiAct: Complete the second remaining Todo, "Study AI the day after tomorrow"
+      - aiAct: Select the Completed filter below the Todo list
+      - aiAssert: >-
+          Only one Todo is visible under Completed: "Study AI the day after tomorrow".
+          The footer says "1 item left".

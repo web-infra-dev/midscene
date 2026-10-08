@@ -5,6 +5,8 @@
   },
   "files": {
     "ignore": [
+      ".agents/**",
+      ".pnpm-store/**",
       "static/**",
       "node_modules/**",
       "**/midscene_run",
