@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-069.png",
+      "fileName": "GUI-MOBILE100-v4p2-069.png",
       "imageType": "hd",
       "gtBox": [
         12,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Switch to symbol input mode",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=76 | license=MIT | sha256=cba5e35ffba023dc44f930a4e8cd0c167e65bc408f908c1dd5674c56c884580e. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=76",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Functional"
+  ],
+  "primaryFactor": "functional",
+  "primaryFactorLabel": "Functional"
 }

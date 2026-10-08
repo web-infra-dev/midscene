@@ -170,6 +170,17 @@ export type DatasetRow = {
   source_category: string;
   source_id: string;
   image_path: string;
+  primary_factor:
+    | 'element'
+    | 'unfamiliar'
+    | 'small'
+    | 'color'
+    | 'functional'
+    | 'reasoning'
+    | 'fine'
+    | 'relative'
+    | 'disambiguation'
+    | 'refusal';
 };
 
 export async function loadManifest(): Promise<DatasetRow[]> {

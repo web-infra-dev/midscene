@@ -1,0 +1,52 @@
+[
+  {
+    "family": "数值比较",
+    "count": 4,
+    "cases": [
+      "GUI-MOBILE100-factors-v1-066",
+      "GUI-MOBILE100-factors-v1-068",
+      "GUI-MOBILE100-v4p7-075",
+      "GUI-MOBILE100-v4p7-077"
+    ]
+  },
+  {
+    "family": "时间与日历",
+    "count": 4,
+    "cases": [
+      "GUI-MOBILE100-v4p2-071",
+      "GUI-MOBILE100-v4p7-076",
+      "GUI-MOBILE100-v4p2-085",
+      "GUI-MOBILE100-v4p6-094"
+    ]
+  },
+  {
+    "family": "状态与角色",
+    "count": 4,
+    "cases": [
+      "GUI-MOBILE100-factors-v1-056",
+      "GUI-MOBILE100-factors-v1-059",
+      "GUI-MOBILE100-v4p2-072",
+      "GUI-MOBILE100-v4p2-073"
+    ]
+  },
+  {
+    "family": "语义理解",
+    "count": 4,
+    "cases": [
+      "GUI-MOBILE100-factors-v1-058",
+      "GUI-MOBILE100-factors-v1-062",
+      "GUI-MOBILE100-factors-v1-065",
+      "GUI-MOBILE100-v4p8-084"
+    ]
+  },
+  {
+    "family": "多条件与关联",
+    "count": 4,
+    "cases": [
+      "GUI-MOBILE100-v4p7-074",
+      "GUI-MOBILE100-v4p2-080",
+      "GUI-MOBILE100-v4p2-090",
+      "GUI-MOBILE100-v4p6-097"
+    ]
+  }
+]

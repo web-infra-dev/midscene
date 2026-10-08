@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v2-042.png",
+      "imageType": "hd",
+      "gtBox": [
+        1759.232,
+        762.7254,
+        1921.2799999999997,
+        923.8037999999999
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A yellow Adidas Grand Court Base 00S sneaker with three white stripes on the side and a gum sole",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Color Recognition | source=MMBench-GUI L2 | source_id=L2_annotations.json#1627",
+  "tags": [
+    "evaluation_import",
+    "Color Recognition"
+  ],
+  "primaryFactor": "color",
+  "primaryFactorLabel": "Color Recognition"
+}

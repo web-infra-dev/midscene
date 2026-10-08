@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-v4p8-008.png",
+      "imageType": "hd",
+      "gtBox": [
+        1293,
+        1122,
+        1340,
+        1173
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the item adjacent to the left of the highest-priced item and click to add it to your favorites.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#943",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

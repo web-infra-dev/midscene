@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-v4p8-084.png",
+      "imageType": "hd",
+      "gtBox": [
+        597,
+        803,
+        1142,
+        1210
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select the option to generate an AI image of a person exploring the red planet",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=MMBench-GUI L2 | source_id=3084",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

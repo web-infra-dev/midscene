@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-016.png",
+      "fileName": "GUI-MOBILE100-v4p5-016.png",
       "imageType": "hd",
       "gtBox": [
         999,
@@ -14,8 +14,11 @@
   ],
   "prompt": "A gray vertical ellipsis icon located on the right side of the song listing for 'Love Shot'",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p5 | class=basic | source=MMBench-GUI L2 | source_id=549 | license=Apache-2.0 | sha256=e8ca73f60879c71845d2d71018561e4a6917953bd52cb367e6e471d37377f408. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p5/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Disambiguation | source=MMBench-GUI L2 | source_id=549",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Disambiguation"
+  ],
+  "primaryFactor": "disambiguation",
+  "primaryFactorLabel": "Disambiguation"
 }

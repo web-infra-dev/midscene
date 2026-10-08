@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-008.png",
+      "fileName": "GUI-MOBILE100-v4p3-008.png",
       "imageType": "hd",
       "gtBox": [
         930,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Find the text \"Flashlight\".",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#978 | license=MIT | sha256=62b4d3188a7ca085cbf1c701bf66f499c88d71b7c38f07101b5ac660c4acfce6. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Small Target | source=VenusBench-GD | source_id=instruction/element_grounding.json#978",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Small Target"
+  ],
+  "primaryFactor": "small",
+  "primaryFactorLabel": "Small Target"
 }

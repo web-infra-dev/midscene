@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-039.png",
+      "imageType": "hd",
+      "gtBox": [
+        1021.9572000000001,
+        1929.0132,
+        1091.9898,
+        2006.9712
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Enable the function that stops audio playback after you might have fallen asleep",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Unfamiliar Icon | source=MMBench-GUI L2 | source_id=3008",
+  "tags": [
+    "evaluation_import",
+    "Unfamiliar Icon"
+  ],
+  "primaryFactor": "unfamiliar",
+  "primaryFactorLabel": "Unfamiliar Icon"
+}

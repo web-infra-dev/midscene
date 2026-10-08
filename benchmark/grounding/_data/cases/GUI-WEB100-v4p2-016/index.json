@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-016.png",
+      "fileName": "GUI-WEB100-v4p2-016.png",
       "imageType": "hd",
       "gtBox": [
         1703,
@@ -14,8 +14,11 @@
   ],
   "prompt": "In the newly published paper books, find books without star ratings and click to view details.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#892 | license=MIT | sha256=72884e2679539cdbe0dea6aeed74dc6b90d319a653c5c8fb48d1a7411149918b. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#892",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
 }

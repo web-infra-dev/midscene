@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-058.png",
+      "imageType": "hd",
+      "gtBox": [
+        189.972,
+        1711.71,
+        301.968,
+        1803.672
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select the emoji that expresses extreme anger or rage to convey strong negative feelings in your reply",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=MMBench-GUI L2 | source_id=2775",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

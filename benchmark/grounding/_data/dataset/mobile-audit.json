@@ -1,0 +1,45 @@
+{
+  "version": "mobile-primary-v1-20261008",
+  "original_cases_reviewed": 100,
+  "reviewer_count": 1,
+  "review_method": "manual prompt + original screenshot/GT review with contact sheets and target-context inspection; no browser rendering claimed",
+  "retained": 78,
+  "new": 22,
+  "exclusive_primary_counts": {
+    "element": 20,
+    "small": 10,
+    "disambiguation": 5,
+    "functional": 20,
+    "unfamiliar": 5,
+    "color": 5,
+    "reasoning": 20,
+    "fine": 5,
+    "relative": 5,
+    "refusal": 5
+  },
+  "reason_counts": {
+    "状态与角色": 4,
+    "语义理解": 4,
+    "数值比较": 4,
+    "时间与日历": 4,
+    "多条件与关联": 4
+  },
+  "sources": {
+    "VenusBench-GD": 55,
+    "MMBench-GUI L2": 27,
+    "ScreenSpot-v2": 8,
+    "FineState-Bench": 10
+  },
+  "unique_case_ids": 100,
+  "unique_original_image_pixel_hashes": 100,
+  "all_source_query_gt_checks_passed": true,
+  "retained_mmb_gt_conversion": "historical rounded and unrounded conversions preserved record by record",
+  "new_normalized_gt_conversion": "multiply decoded width,height without rounding",
+  "fine_protocol": "current-state loactebbox point test",
+  "color_protocol": "4 FineState original interact queries paired with author interactbbox of visible color swatches; point test only",
+  "model_results_used_for_this_revision": false,
+  "model_evaluation_status": "not_run",
+  "formal200_manifest_sha_before": "d536f5b94e7a5b5e10905b0cb99a276957899b3e7bf8c78ea35298d834a8cce4",
+  "formal200_manifest_sha_after": "d536f5b94e7a5b5e10905b0cb99a276957899b3e7bf8c78ea35298d834a8cce4",
+  "candidate_manifest_sha": "9dc4c344a0f1f5c49737449c5eab25d4c28c936cf1ed847d172c252256aa4822"
+}

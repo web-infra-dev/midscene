@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-014.png",
+      "fileName": "GUI-WEB100-v4p2-014.png",
       "imageType": "hd",
       "gtBox": [
         1092,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Select the option for Tuesday, October 14, with the color purple.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#731 | license=MIT | sha256=758e0b6ad86c46806e86422a53c388cb367eae9d8fcdf4da9ec0c46ccd8f794d. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Color Recognition | source=VenusBench-GD | source_id=instruction/reason_grounding.json#731",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Color Recognition"
+  ],
+  "primaryFactor": "color",
+  "primaryFactorLabel": "Color Recognition"
 }

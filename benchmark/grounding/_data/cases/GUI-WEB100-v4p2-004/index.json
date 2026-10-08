@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-004.png",
+      "fileName": "GUI-WEB100-v4p2-004.png",
       "imageType": "hd",
       "gtBox": [
         3077,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Find the tasks scheduled to be completed between the 17th and 23rd of Week 47 in Phase Two, and click to view details.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#1051 | license=MIT | sha256=9952bb0acf638bb3285fa52b6059a9c14d1db9de24ca550e254d3b60caed2fc6. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#1051",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
 }
