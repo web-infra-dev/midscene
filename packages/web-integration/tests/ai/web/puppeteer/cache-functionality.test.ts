@@ -11,6 +11,28 @@ rs.setConfig({
   testTimeout: 3 * 60 * 1000,
 });
 
+// Cache behavior must not depend on changes to a third-party website.
+async function launchCachePage() {
+  const result = await launchPage('about:blank');
+  await result.originPage.setContent(`
+    <!doctype html>
+    <html lang='en'>
+      <head>
+        <title>Example Domain</title>
+        <style>
+          body { margin: 80px auto; max-width: 600px; font: 20px sans-serif; }
+        </style>
+      </head>
+      <body>
+        <h1>Example Domain</h1>
+        <p>This is the example.com page used for Midscene cache tests.</p>
+        <p>Use this page to test cache configuration and replay.</p>
+      </body>
+    </html>
+  `);
+  return result;
+}
+
 describe('Cache Configuration Tests', () => {
   let resetFn: () => Promise<void>;
   let agent: PuppeteerAgent;
@@ -28,7 +50,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with explicit cache ID (read-write mode)', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -59,7 +81,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with cache: false (disabled mode)', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -78,7 +100,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with cache: { strategy: "read-only" } mode', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -109,7 +131,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with cache: { strategy: "write-only" } mode', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -136,7 +158,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should prioritize new cache config over legacy cacheId', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -159,7 +181,7 @@ describe('Cache Configuration Tests', () => {
     process.env.MIDSCENE_CACHE = 'true';
 
     try {
-      const { originPage, reset } = await launchPage('https://example.com/');
+      const { originPage, reset } = await launchCachePage();
       resetFn = reset;
 
       agent = new PuppeteerAgent(originPage, {
@@ -192,7 +214,7 @@ describe('Cache Configuration Tests', () => {
     process.env.MIDSCENE_CACHE = 'false';
 
     try {
-      const { originPage, reset } = await launchPage('https://example.com/');
+      const { originPage, reset } = await launchCachePage();
       resetFn = reset;
 
       agent = new PuppeteerAgent(originPage, {
@@ -259,7 +281,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should cache and reuse planning results', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     // First agent - should create cache
@@ -286,7 +308,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should handle cache operations correctly', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     // Test flushCache with no cache configured
@@ -317,7 +339,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should handle cache file operations correctly', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     const cacheId = 'file-ops-test-001';
@@ -349,7 +371,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should overwrite stale empty-flow planning cache and reuse the refreshed cache', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     const prompt = 'click the title';
@@ -421,7 +443,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should handle cache with cacheable: false option', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -483,7 +505,7 @@ describe('Cache Edge Cases', () => {
   });
 
   it('should handle very long cache IDs by truncating', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     const longCacheId = 'a'.repeat(300); // Very long ID
@@ -501,7 +523,7 @@ describe('Cache Edge Cases', () => {
   });
 
   it('should handle special characters in cache ID', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     const specialCacheId = 'test/cache\\id:with*special?chars<>|"';
@@ -528,7 +550,7 @@ describe('Cache Edge Cases', () => {
   });
 
   it('should handle multiple agents with same cache ID correctly', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchCachePage();
     resetFn = reset;
 
     const sharedCacheId = 'shared-cache-test-001';
