@@ -2136,6 +2136,47 @@ cases:
       metadata: { worker: 'first' },
       lifecycle: { status: 'success' },
     });
+    const html = readFileSync(result.reportPath!, 'utf8');
+    const manifestJson = html.match(
+      /<script type="midscene_test_run_dump">\s*([\s\S]*?)<\/script>/,
+    )?.[1];
+    expect(manifestJson).toBeDefined();
+    const manifest = JSON.parse(manifestJson!);
+    expect(manifest.projects[0].documents[0].cases[0].execution).toMatchObject({
+      executor: 'probe',
+      resources: ['account:main'],
+      artifacts: [{ name: 'report', uri: 'https://example.test/first' }],
+      metadata: { worker: 'first' },
+    });
+  });
+
+  it('fails the run when an isolated case passes but project cleanup fails', async () => {
+    const root = createProject();
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `export default {
+      test: { executionUnit: 'case' },
+      setup: { name: 'cleanup', setup({ onTeardown }) {
+        onTeardown(() => { throw new Error('cleanup failed'); });
+      } },
+      nodes: [{ name: 'pass', execute() {} }],
+    };`,
+    );
+    writeWorkflow(
+      root,
+      'case.yaml',
+      'cases: [{ name: one, steps: [{ pass: {} }] }]',
+    );
+    const result = await runTestProject({ projectRoot: root });
+    expect(result.exitCode).toBe(1);
+    expect(result.projects[0].status).toBe('failed');
+    expect(result.cases[0]).toMatchObject({
+      status: 'success',
+      execution: { lifecycle: { status: 'failed' } },
+    });
+    expect(readFileSync(result.reportPath!, 'utf8')).toContain(
+      'cleanup failed',
+    );
   });
 
   it('rejects a case result that does not match the scheduled task', async () => {

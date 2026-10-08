@@ -377,6 +377,30 @@ export function assertTestCaseTaskRunResult(
     );
   }
   const attempts = outcome.attempts ?? [];
+  for (const attempt of attempts) {
+    const steps = [
+      ...attempt.beforeEach,
+      ...attempt.steps,
+      ...attempt.afterEach,
+    ];
+    if (
+      attempt.status === 'success' &&
+      (attempt.steps.length === 0 ||
+        steps.some((step) => step.status === 'failed') ||
+        (attempt.teardownErrors?.length ?? 0) > 0)
+    ) {
+      throw new TypeError(
+        `Executor returned an inconsistent successful attempt for ${task.caseId}.`,
+      );
+    }
+  }
+  if (
+    new Set(attempts.map((attempt) => attempt.runId)).size !== attempts.length
+  ) {
+    throw new TypeError(
+      `Executor returned duplicate attempt IDs for ${task.caseId}.`,
+    );
+  }
   if (attempts.some((attempt) => !attemptMatchesTask(task, attempt))) {
     throw new TypeError(
       `Executor returned invalid attempts for ${task.caseId}.`,
@@ -398,6 +422,7 @@ export function assertTestCaseTaskRunResult(
       );
     }
   } else if (
+    outcome.notRunReason !== undefined ||
     !outcome.run ||
     !finalAttempt ||
     finalAttempt.status !== outcome.status ||
@@ -419,6 +444,26 @@ export function assertTestCaseTaskRunResult(
     );
   }
   const document = parsed.data.document;
+  if (
+    document?.status === 'success' &&
+    ([...document.beforeAll, ...document.afterAll].some(
+      (step) => step.status === 'failed',
+    ) ||
+      (document.teardownErrors?.length ?? 0) > 0)
+  ) {
+    throw new TypeError(
+      `Executor returned an inconsistent successful document for ${task.caseId}.`,
+    );
+  }
+  const lifecycle = parsed.data.lifecycle;
+  if (
+    lifecycle?.status === 'success' &&
+    (lifecycle.setupError || (lifecycle.teardownErrors?.length ?? 0) > 0)
+  ) {
+    throw new TypeError(
+      `Executor returned an inconsistent successful lifecycle for ${task.caseId}.`,
+    );
+  }
   if (
     document &&
     (document.documentId !== task.documentId ||

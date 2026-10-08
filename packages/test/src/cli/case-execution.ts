@@ -1,6 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import { cpSync, mkdirSync, realpathSync, statSync } from 'node:fs';
-import { extname, join } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { createProjectRuntime } from '../engine/project-runtime';
 import { runWorkflowDocument } from '../engine/run-workflow-document';
 import type {
@@ -22,6 +21,7 @@ import {
   formatStep,
   formatStepResult,
 } from './execution-result';
+import { createExecutorReports } from './executor-reports';
 import {
   writeCaseAttemptResult,
   writeWorkflowDocumentResult,
@@ -376,39 +376,8 @@ const runCaseTask = async <TProjectContext>(
     task.caseId,
   );
   mkdirSync(outputDir, { recursive: true });
-  const materializedReportByReference = new Map<string, string>();
-  const materializeReport = (sourcePath: string): string => {
-    const resolvedSource = realpathSync(sourcePath);
-    const sourceStat = statSync(resolvedSource);
-    if (!sourceStat.isFile() && !sourceStat.isDirectory()) {
-      throw new TestExecutorError(
-        `Executor report must be a regular file or directory: ${sourcePath}`,
-        { kind: 'report' },
-      );
-    }
-    const reference = randomUUID();
-    const destination = join(
-      outputDir,
-      'reports',
-      `${reference}${sourceStat.isFile() ? extname(resolvedSource) : ''}`,
-    );
-    mkdirSync(join(outputDir, 'reports'), { recursive: true });
-    cpSync(resolvedSource, destination, {
-      recursive: sourceStat.isDirectory(),
-    });
-    materializedReportByReference.set(reference, destination);
-    return reference;
-  };
-  const resolveReportReference = (reference: string): string => {
-    const reportPath = materializedReportByReference.get(reference);
-    if (!reportPath) {
-      throw new TestExecutorError(
-        `Executor returned unknown report reference ${reference}.`,
-        { kind: 'report' },
-      );
-    }
-    return reportPath;
-  };
+  const { materialize: materializeReport, resolve: resolveReportReference } =
+    createExecutorReports(outputDir);
 
   if (prepared.collectionErrors.length > 0) {
     return {
