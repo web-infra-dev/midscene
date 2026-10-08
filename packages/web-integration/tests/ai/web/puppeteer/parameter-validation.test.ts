@@ -13,28 +13,10 @@ describe('parameter validation', () => {
   let agent: PuppeteerAgent;
 
   beforeEach(async () => {
-    const launched = await launchPage('about:blank');
+    const launched = await launchPage('https://www.bing.com/');
     resetFn = launched.reset;
     originPage = launched.originPage;
-    await originPage.setContent(`
-      <!doctype html>
-      <html>
-        <body style="min-height: 2000px">
-          <label for="search-input">Search</label>
-          <input id="search-input" type="text" style="width: 300px; padding: 10px" />
-        </body>
-      </html>
-    `);
-    // Parameter validation and explicit XPath lookup do not need a model call.
-    agent = new PuppeteerAgent(originPage, {
-      generateReport: false,
-      modelConfig: {
-        MIDSCENE_MODEL_NAME: 'parameter-validation-test',
-        MIDSCENE_MODEL_API_KEY: 'test-key',
-        MIDSCENE_MODEL_BASE_URL: 'https://model.invalid/v1',
-        MIDSCENE_MODEL_FAMILY: 'qwen2.5-vl',
-      },
-    });
+    agent = new PuppeteerAgent(originPage);
   });
 
   afterEach(async () => {
@@ -72,7 +54,11 @@ describe('parameter validation', () => {
   });
 
   it('should preserve locator fields without validation', async () => {
-    const inputXpath = '//*[@id="search-input"]';
+    await originPage.waitForSelector('#sb_form_q', {
+      visible: true,
+      timeout: 30000,
+    });
+    const inputXpath = '//*[@id="sb_form_q"]';
     const locate = {
       prompt: 'The search input box',
       xpath: inputXpath,
@@ -97,14 +83,18 @@ describe('parameter validation', () => {
     });
     expect(
       await originPage.$eval(
-        '#search-input',
+        '#sb_form_q',
         (element) => (element as HTMLInputElement).value,
       ),
     ).toBe('test value');
   });
 
   it('should preserve xpath through aiInput', async () => {
-    const inputXpath = '//*[@id="search-input"]';
+    await originPage.waitForSelector('#sb_form_q', {
+      visible: true,
+      timeout: 30000,
+    });
+    const inputXpath = '//*[@id="sb_form_q"]';
     await agent.aiInput('The search input box', {
       value: 'test value',
       xpath: inputXpath,
@@ -121,7 +111,7 @@ describe('parameter validation', () => {
     });
     expect(
       await originPage.$eval(
-        '#search-input',
+        '#sb_form_q',
         (element) => (element as HTMLInputElement).value,
       ),
     ).toBe('test value');
