@@ -118,17 +118,25 @@ export function validateCoreReportTemplateModules(
   const validatedExpectedHtml = validateReportHtml(
     fs.readFileSync(reportTemplatePath, 'utf8'),
   );
+  const expectedModules = renderReportTemplateModules(validatedExpectedHtml);
 
-  for (const relativePath of Object.values(reportTemplateModulePaths)) {
+  for (const [format, relativePath] of Object.entries(
+    reportTemplateModulePaths,
+  )) {
     const filePath = path.join(coreDistDir, relativePath);
     if (!fs.existsSync(filePath)) {
       throw new Error(`Core report template module not found at ${filePath}.`);
     }
 
-    validateReportTemplateSize(
-      fs.statSync(filePath).size,
-      `Core report template module at ${filePath}`,
-    );
+    // JSON escaping grows the JS module; the 3 MiB limit applies to HTML.
+    // Bound reads by the expected serialized module size instead.
+    const expectedBytes = Buffer.byteLength(expectedModules[format], 'utf8');
+    const moduleBytes = fs.statSync(filePath).size;
+    if (moduleBytes > expectedBytes) {
+      throw new Error(
+        `Core report template module at ${filePath} exceeds the expected generated size (${moduleBytes} bytes, expected at most ${expectedBytes} bytes).`,
+      );
+    }
     const content = fs.readFileSync(filePath, 'utf8');
     if (content.includes(reportTemplateMagicString)) {
       throw new Error(`Core report template is not written in ${filePath}.`);
