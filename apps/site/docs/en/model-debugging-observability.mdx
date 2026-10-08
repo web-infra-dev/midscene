@@ -69,6 +69,10 @@ The command reads the `.env` file in the current working directory. Dotenv debug
 
 Both commands check the default, planning, and insight model configurations without loading a Test project or connecting to a browser or device. The exit code is `0` on success and `1` on failure.
 
+The output lists each model and endpoint, then shows the text, vision, and AI locate check results, durations, and actual request counts. The summary includes total requests and passed/failed checks; a check that fails before sending a request has a count of `0`.
+
+The `Model role` column identifies the configuration being tested. `planning` uses a simple text-response check, `insight` uses an image-understanding check, and `default` uses AI locate. The planning check verifies a basic response from that model; it does not evaluate task-planning quality. Shared endpoints are listed once below the table. The command usually completes within 30 seconds.
+
 If the `curl` request succeeds but the Midscene verification command fails, the model API is reachable. Continue by checking the model capabilities and Midscene configuration.
 
 ## Common configuration errors

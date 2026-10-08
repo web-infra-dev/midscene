@@ -40,6 +40,76 @@ function createIO() {
 }
 
 describe('model command', () => {
+  it('prints models, safe endpoints, actual request counts and mixed check results', async () => {
+    const io = createIO();
+    const checks = [
+      {
+        name: 'text' as const,
+        intent: 'planning' as const,
+        modelName: 'planner',
+        passed: true,
+        requestCount: 1,
+        durationMs: 120,
+        endpoints: [
+          'https://user:secret@example.com/v1/responses?api_key=secret',
+        ],
+        message: '',
+      },
+      {
+        name: 'vision' as const,
+        intent: 'insight' as const,
+        modelName: 'vision',
+        passed: false,
+        requestCount: 0,
+        durationMs: 0,
+        endpoints: [],
+        message: 'Invalid configuration',
+      },
+      {
+        name: 'aiLocate' as const,
+        intent: 'default' as const,
+        modelName: 'locator',
+        passed: true,
+        requestCount: 2,
+        durationMs: 250,
+        endpoints: ['https://example.com/v1/chat/completions'],
+        message: '',
+      },
+    ];
+    expect(
+      await runModelCommand(
+        ['model', 'verify'],
+        {
+          loadDotenv: vi.fn(),
+          getModelConfig: (intent) =>
+            createModelConfig({
+              intent,
+              openaiBaseURL:
+                'https://user:secret@example.com/v1?api_key=secret',
+            }),
+          verifyModel: vi.fn().mockResolvedValue({
+            passed: false,
+            requestCount: 3,
+            checks,
+            message: 'Invalid configuration',
+          }),
+        },
+        io,
+      ),
+    ).toBe(1);
+    const output = io.stdout.mock.calls.flat().join('\n');
+    expect(output).toMatch(/Model role\s+Model\s+Check\s+Endpoint/);
+    expect(output).toMatch(/planning\s+gpt-4o\s+Text response\s+\[1\]/);
+    expect(output).toContain('[1] Base URL: https://example.com/v1');
+    expect(output.match(/Base URL:/g)).toHaveLength(1);
+    expect(output).toMatch(/planning\s+Text response\s+PASS\s+1\s+120 ms/);
+    expect(output).toMatch(/insight\s+Image understanding\s+FAIL\s+0\s+0 ms/);
+    expect(output).toMatch(/default\s+AI locate\s+PASS\s+2\s+250 ms/);
+    expect(output).toContain('planning: https://example.com/v1/responses');
+    expect(output).toContain('Requests sent: 3. Checks: 2 passed, 1 failed.');
+    expect(output).not.toContain('secret');
+  });
+
   it('deduplicates curl commands by base URL, API key, and model name', () => {
     const commands = buildModelVerifyCurlCommands([
       {
@@ -98,7 +168,9 @@ describe('model command', () => {
       insight: createModelConfig({ intent: 'insight', slot: 'insight' }),
     };
     const getModelConfig = vi.fn((intent: TIntent) => configs[intent]);
-    const verifyModel = vi.fn().mockResolvedValue({ passed: true });
+    const verifyModel = vi
+      .fn()
+      .mockResolvedValue({ checks: [], requestCount: 0, passed: true });
 
     const exitCode = await runModelCommand(
       ['model', 'verify'],
@@ -118,7 +190,7 @@ describe('model command', () => {
       insightModelConfig: configs.insight,
     });
     expect(io.stdout).toHaveBeenCalledWith(
-      'Model verify started. This usually takes about 5 seconds.\n',
+      'Model verify started. This usually completes within 30 seconds.',
     );
     expect(io.stdout).toHaveBeenCalledWith('');
     expect(io.stdout).toHaveBeenCalledWith('✅ Model verify passed.');
@@ -154,7 +226,9 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        verifyModel: vi.fn().mockResolvedValue({ passed: true }),
+        verifyModel: vi
+          .fn()
+          .mockResolvedValue({ checks: [], requestCount: 0, passed: true }),
       },
       io,
     );
@@ -199,6 +273,8 @@ describe('model command', () => {
         loadDotenv: vi.fn(),
         getModelConfig: vi.fn((intent: TIntent) => configs[intent]),
         verifyModel: vi.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: '[Vision check - ep-vision (insight)]: 404 Not Found',
         }),
@@ -253,6 +329,8 @@ describe('model command', () => {
         loadDotenv: vi.fn(),
         getModelConfig: vi.fn((intent: TIntent) => configs[intent]),
         verifyModel: vi.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: 'failed',
         }),

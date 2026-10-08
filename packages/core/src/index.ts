@@ -17,6 +17,7 @@ export {
   type TUserPrompt,
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
+  type ConnectivityCheckResultItem,
 } from './ai-model/index';
 
 export {

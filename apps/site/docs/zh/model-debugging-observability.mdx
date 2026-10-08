@@ -69,6 +69,10 @@ npx @midscene/cli@latest model verify
 
 两条命令都会检查 default、planning 和 insight 模型配置，无需加载 Test 项目或连接浏览器、设备。检查成功时退出码为 `0`，失败时为 `1`。
 
+输出会列出各模型名称和 endpoint，并展示文本、图像和 AI 定位检查各自的结果、耗时与实际请求数。最后汇总总请求数及成功、失败的检查数；若某项检查在发送请求前就失败，其请求数为 `0`。
+
+`Model role` 列表示被检查的模型配置用途：`planning` 进行简单文本响应检查，`insight` 进行图像理解检查，`default` 进行 AI 定位检查。planning 检查验证该模型能否正常响应，不评估任务规划质量。相同的 endpoint 会合并列在表格下方。命令通常在 30 秒内完成。
+
 如果 `curl` 请求成功，但 Midscene 验证命令失败，说明模型 API 可以连接。请继续检查模型能力和 Midscene 配置。
 
 ## 常见配置错误

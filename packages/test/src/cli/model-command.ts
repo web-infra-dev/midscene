@@ -14,6 +14,7 @@ const modelCommandUsage = (commandName: string) => `Usage:
 
 Verify model connectivity and Midscene compatibility for default, planning, and insight models.
 Reads .env from the current working directory, overriding shell environment variables.
+Shows endpoints, model names, request counts, and per-check results with duration.
 Returns exit code 0 on success and 1 on failure.
 
 Options:
@@ -40,6 +41,31 @@ export interface CurlCommandItem {
 function assertNoModelVerifyOptions(args: string[], commandName: string) {
   for (const arg of args) {
     throw new Error(`Unknown option for ${commandName} model verify: ${arg}`);
+  }
+}
+
+function formatTable(headers: string[], rows: string[][]): string {
+  const widths = headers.map((header, index) =>
+    Math.max(header.length, ...rows.map((row) => row[index].length)),
+  );
+  const formatRow = (row: string[]) =>
+    row
+      .map((cell, index) => cell.padEnd(widths[index]))
+      .join('  ')
+      .trimEnd();
+  return [formatRow(headers), ...rows.map(formatRow)].join('\n');
+}
+
+function displayEndpoint(endpoint: string): string {
+  try {
+    const url = new URL(endpoint);
+    url.username = '';
+    url.password = '';
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return '(invalid endpoint URL)';
   }
 }
 
@@ -160,7 +186,9 @@ async function runModelVerifyCommand(
     }
 
     assertNoModelVerifyOptions(args, commandName);
-    io.stdout('Model verify started. This usually takes about 5 seconds.\n');
+    io.stdout(
+      'Model verify started. This usually completes within 30 seconds.',
+    );
     deps.loadDotenv();
     io.stdout('');
 
@@ -173,11 +201,75 @@ async function runModelVerifyCommand(
       { intent: 'insight', modelConfig: insightModelConfig },
     ]);
 
+    const baseURLs = new Map<string, number>();
+    const modelRows = (
+      [
+        ['planning', planningModelConfig, 'Text response'],
+        ['insight', insightModelConfig, 'Image understanding'],
+        ['default', defaultModelConfig, 'AI locate'],
+      ] as const
+    ).map(([intent, config, check]) => {
+      const baseURL = config.openaiExtraConfig?.baseURL ?? config.openaiBaseURL;
+      const endpoint = baseURL
+        ? displayEndpoint(String(baseURL))
+        : 'provider default';
+      if (!baseURLs.has(endpoint)) baseURLs.set(endpoint, baseURLs.size + 1);
+      return [intent, config.modelName, check, `[${baseURLs.get(endpoint)}]`];
+    });
+    io.stdout(
+      formatTable(['Model role', 'Model', 'Check', 'Endpoint'], modelRows),
+    );
+    io.stdout('');
+    for (const [endpoint, index] of baseURLs) {
+      io.stdout(`[${index}] Base URL: ${endpoint}`);
+    }
+    io.stdout('\nRunning 3 checks...\n');
+
     const result = await deps.verifyModel({
       defaultModelConfig,
       planningModelConfig,
       insightModelConfig,
     });
+
+    const checkLabels = {
+      text: 'Text response',
+      vision: 'Image understanding',
+      aiLocate: 'AI locate',
+    };
+    io.stdout(
+      formatTable(
+        ['Model role', 'Check', 'Result', 'Requests', 'Time'],
+        result.checks.map((check) => [
+          check.intent,
+          checkLabels[check.name],
+          check.passed ? 'PASS' : 'FAIL',
+          String(check.requestCount),
+          `${check.durationMs} ms`,
+        ]),
+      ),
+    );
+    const requestEndpoints = new Map<string, Set<string>>();
+    for (const check of result.checks) {
+      for (const endpoint of check.endpoints) {
+        const display = displayEndpoint(endpoint);
+        if (!requestEndpoints.has(display))
+          requestEndpoints.set(display, new Set());
+        requestEndpoints.get(display)!.add(check.intent);
+      }
+      if (!check.passed && check.message)
+        io.stdout(`\n${check.intent}: ${check.message}`);
+    }
+    if (requestEndpoints.size > 0) {
+      io.stdout('\nRequest endpoints:');
+      for (const [endpoint, intents] of requestEndpoints) {
+        io.stdout(`  ${[...intents].join(', ')}: ${endpoint}`);
+      }
+    }
+    io.stdout('');
+    const passedChecks = result.checks.filter((check) => check.passed).length;
+    io.stdout(
+      `Requests sent: ${result.requestCount}. Checks: ${passedChecks} passed, ${result.checks.length - passedChecks} failed.`,
+    );
 
     if (result.passed) {
       io.stdout('✅ Model verify passed.');

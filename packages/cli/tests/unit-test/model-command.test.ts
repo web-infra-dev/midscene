@@ -96,7 +96,9 @@ describe('model command', () => {
       insight: createModelConfig({ intent: 'insight', slot: 'insight' }),
     };
     const getModelConfig = rs.fn((intent: TIntent) => configs[intent]);
-    const verifyModel = rs.fn().mockResolvedValue({ passed: true });
+    const verifyModel = rs
+      .fn()
+      .mockResolvedValue({ checks: [], requestCount: 0, passed: true });
 
     const exitCode = await runModelCommand(
       ['model', 'verify'],
@@ -116,7 +118,7 @@ describe('model command', () => {
       insightModelConfig: configs.insight,
     });
     expect(io.stdout).toHaveBeenCalledWith(
-      'Model verify started. This usually takes about 5 seconds.\n',
+      'Model verify started. This usually completes within 30 seconds.',
     );
     expect(io.stdout).toHaveBeenCalledWith('');
     expect(io.stdout).toHaveBeenCalledWith('✅ Model verify passed.');
@@ -152,7 +154,9 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        verifyModel: rs.fn().mockResolvedValue({ passed: true }),
+        verifyModel: rs
+          .fn()
+          .mockResolvedValue({ checks: [], requestCount: 0, passed: true }),
       },
       io,
     );
@@ -197,6 +201,8 @@ describe('model command', () => {
         loadDotenv: rs.fn(),
         getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
         verifyModel: rs.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: '[Vision check - ep-vision (insight)]: 404 Not Found',
         }),
@@ -251,6 +257,8 @@ describe('model command', () => {
         loadDotenv: rs.fn(),
         getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
         verifyModel: rs.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: 'failed',
         }),

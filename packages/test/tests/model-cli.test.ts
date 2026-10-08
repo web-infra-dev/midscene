@@ -29,7 +29,7 @@ vi.mock('../src/cli/dotenv-loader', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.config.mockImplementation((intent) => ({ modelName: intent }));
-  mocks.verify.mockResolvedValue({ passed: true });
+  mocks.verify.mockResolvedValue({ checks: [], requestCount: 0, passed: true });
 });
 
 const createIO = () => ({ log: vi.fn(), error: vi.fn() });
@@ -80,6 +80,8 @@ describe('midscene-test model CLI', () => {
 
   it('returns a failing exit code and diagnostics', async () => {
     mocks.verify.mockResolvedValue({
+      checks: [],
+      requestCount: 0,
       passed: false,
       message: 'Connection failed',
     });
