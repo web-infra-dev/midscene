@@ -119,7 +119,7 @@ export function RunnerEvidenceInspector({
         <div className="runner-detail-evidence-title">
           <h2>{step.node}</h2>
           <CaseStatus
-            status={step.status === 'success' ? 'passed' : 'failed'}
+            status={step.status === 'success' ? 'passed' : step.status}
             quiet
           />
         </div>
@@ -127,6 +127,17 @@ export function RunnerEvidenceInspector({
           <p className="runner-detail-step-description">{stepDescription}</p>
         ) : null}
       </header>
+      {step.status === 'not-run' ? (
+        <p className="runner-not-run-message">
+          Not run: {step.notRunReason}
+          {step.blockedBy ? (
+            <a href={`#runner-step=${encodeURIComponent(step.blockedBy)}`}>
+              View blocking step
+            </a>
+          ) : null}
+        </p>
+      ) : null}
+      {step.agentDetailDiagnostic ? <p>{step.agentDetailDiagnostic}</p> : null}
       {step.error ? (
         <div className="runner-detail-failure-summary">
           <CloseCircleFilled className="runner-detail-failure-icon" />

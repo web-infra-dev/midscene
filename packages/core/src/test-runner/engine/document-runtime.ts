@@ -6,6 +6,7 @@ import {
   WorkflowLifecycleError,
 } from '../errors';
 import type { CollectedWorkflowDocument } from '../parser/types';
+import { buildTestRunReportPlan } from '../reporting/test-plan';
 import { executeStep } from './execute-step';
 import {
   WorkflowExecutionFailure,
@@ -34,6 +35,12 @@ export function createDocumentRuntime<TContext = undefined>(
   options: CreateDocumentRuntimeOptions<TContext>,
 ): WorkflowDocumentRuntime<TContext> {
   const documentRunId = options.createDocumentRunId?.() ?? randomUUID();
+  const plan =
+    options.plan ??
+    buildTestRunReportPlan(document, {
+      defaultTimeoutMs: options.defaultTimeoutMs,
+      retry: { scope: 'case', count: options.project?.retry ?? 0 },
+    });
   const startedAt = new Date();
   const beforeAll: StepRunResult[] = [];
   const afterAll: StepRunResult[] = [];
@@ -76,6 +83,7 @@ export function createDocumentRuntime<TContext = undefined>(
   ): WorkflowDocumentRunResult => {
     const endedAt = new Date();
     return {
+      plan,
       documentId: document.documentId,
       documentRunId,
       ...(options.documentAttemptIndex === undefined

@@ -40,6 +40,8 @@ export interface CaseDefinition<TStep = StepInput> {
 export interface NormalizedStep {
   node: string;
   input: Record<string, unknown>;
+  /** Author input before variable resolution, retained only for the safe plan snapshot. */
+  templateInput?: Record<string, unknown>;
   meta: NormalizedStepMeta;
 }
 

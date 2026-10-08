@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
 import { WorkflowPublicationError } from '@midscene/core/internal/test-runner';
 import type { CaseRunResult, WorkflowDocumentRunResult } from '../engine/types';
+import type { PreparedExecutionProject } from './execution-plan';
 import type { TestProjectCollectionError, TestProjectRunResult } from './types';
 
 const writeJson = async (path: string, value: unknown) => {
@@ -13,6 +14,20 @@ const writeJson = async (path: string, value: unknown) => {
     throw new WorkflowPublicationError('write-result', path, error);
   }
 };
+
+export const writeTestRunPlan = (
+  runDir: string,
+  projects: readonly PreparedExecutionProject[],
+) =>
+  writeJson(join(runDir, 'plan.json'), {
+    schemaVersion: 1,
+    createdAt: new Date().toISOString(),
+    projects: projects.map((item) => ({
+      projectId: item.project.projectId,
+      name: item.project.name,
+      documents: item.plans ?? [],
+    })),
+  });
 
 const toPosix = (value: string): string => value.split(sep).join('/');
 
@@ -133,6 +148,7 @@ export const writeTestProjectRunResult = (
     projectRoot: options.projectRoot,
     ...(options.configPath ? { configPath: options.configPath } : {}),
     factsRoot: '.',
+    plan: 'plan.json',
     reportDir: relativeToSummary(result.summaryPath, result.reportDir),
     ...(result.reportPath
       ? { report: relativeToSummary(result.summaryPath, result.reportPath) }

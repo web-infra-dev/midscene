@@ -9,7 +9,7 @@ const buildAgentReports = (
   step: TestRunReportStep | undefined,
   reports: readonly PlaywrightTasks[],
 ): PlaywrightTasks[] => {
-  if (!step?.agentDetails?.length) return [];
+  if (!step?.agentDetails?.length || step.status === 'not-run') return [];
   const idsByReport = new Map<string, Set<string>>();
   for (const detail of step.agentDetails) {
     const ids = idsByReport.get(detail.reportId) ?? new Set<string>();

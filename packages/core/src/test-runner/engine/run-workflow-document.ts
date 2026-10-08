@@ -1,4 +1,5 @@
 import type { CollectedCase, CollectedWorkflowDocument } from '../parser/types';
+import { buildTestRunReportPlan } from '../reporting/test-plan';
 import { createDocumentRuntime } from './document-runtime';
 import {
   WorkflowExecutionFailure,
@@ -45,6 +46,12 @@ export async function runWorkflowDocument<TContext = undefined>(
     );
   }
   const runtime = createDocumentRuntime(document, {
+    plan:
+      options.plan ??
+      buildTestRunReportPlan(document, {
+        defaultTimeoutMs: options.defaultTimeoutMs,
+        retry: { scope: 'case', count: retry },
+      }),
     documentSetup: options.documentSetup,
     documentAttemptIndex: options.documentAttemptIndex,
     resolveNode: options.resolveNode,

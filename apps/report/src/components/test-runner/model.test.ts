@@ -33,8 +33,8 @@ const at = (seconds: number): string =>
 
 const step = (
   id: string,
-  status: TestRunReportStep['status'] = 'success',
-  extra: Partial<TestRunReportStep> = {},
+  status: Exclude<TestRunReportStep['status'], 'not-run'> = 'success',
+  extra: Partial<Exclude<TestRunReportStep, { status: 'not-run' }>> = {},
 ): TestRunReportStep => ({
   id,
   phase: 'steps',
@@ -637,7 +637,7 @@ describe('Midscene Test hybrid report model', () => {
           },
         }),
       ]),
-    ).toEqual({ total: 3, passed: 1, failed: 1, timeout: 1 });
+    ).toEqual({ total: 3, passed: 1, failed: 1, timeout: 1, notRun: 0 });
   });
 
   it('preserves step deep links when choosing the initial page', () => {

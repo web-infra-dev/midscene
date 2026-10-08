@@ -12,6 +12,7 @@ export type RunnerInspectorTab = 'record' | 'io' | 'logs';
 function InputOutput({ step }: { step: TestRunReportStep }): JSX.Element {
   return (
     <div className="runner-detail-io-grid">
+      {step.status === 'not-run' ? <p>{step.notRunReason}</p> : null}
       <section>
         <h4>Input</h4>
         <div className="runner-detail-io-body">
@@ -34,6 +35,8 @@ function InputOutput({ step }: { step: TestRunReportStep }): JSX.Element {
 }
 
 function RuntimeEvents({ step }: { step: TestRunReportStep }): JSX.Element {
+  if (step.status === 'not-run')
+    return <p>{step.notRunReason ?? 'This step was not executed.'}</p>;
   return (
     <div className="runner-detail-log-view">
       <p>

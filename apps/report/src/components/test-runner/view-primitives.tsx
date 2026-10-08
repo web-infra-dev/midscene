@@ -98,6 +98,13 @@ export function StepStatus({
 }: {
   status: TestRunReportStep['status'];
 }): JSX.Element {
+  if (status === 'not-run')
+    return (
+      <ClockCircleOutlined
+        className="runner-step-status"
+        aria-label="Not run"
+      />
+    );
   return status === 'success' ? (
     <CheckCircleFilled className="runner-step-status is-success" />
   ) : (

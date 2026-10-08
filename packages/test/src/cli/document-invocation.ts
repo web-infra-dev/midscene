@@ -94,6 +94,7 @@ export async function executeDocumentInvocation(
           `    file attempt ${documentAttemptIndex + 1}/${invocation.retry.count + 1}: ${document.sourcePath}`,
         );
       const execution = await runWorkflowDocument(document, {
+        plan: invocation.plan,
         documentAttemptIndex: documentRetry ? documentAttemptIndex : undefined,
         ...invocation.bindings,
         project,

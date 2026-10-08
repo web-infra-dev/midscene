@@ -68,17 +68,48 @@ export interface TestRunReportAgentDetail {
   executionId: string;
 }
 
-export interface TestRunReportStep {
+export interface TestRunReportPlannedStep {
   id: string;
   phase: TestRunReportStepPhase;
   stepIndex: number;
   node: string;
   title?: string;
-  status: TestRunReportRunStatus;
+  input: TestRunReportValue;
+  inputMode: 'template' | 'resolved';
+  timeoutMs?: number;
+  continueOnError: boolean;
+}
+
+export interface TestRunReportCasePlan {
+  caseId: string;
+  name: string;
+  caseIndex: number;
+  selected: boolean;
+  tags: string[];
+  onFailure?: 'continue' | 'stop-document';
+  beforeEach: TestRunReportPlannedStep[];
+  steps: TestRunReportPlannedStep[];
+  afterEach: TestRunReportPlannedStep[];
+}
+
+/** A safe snapshot collected before resource acquisition, independent of attempts. */
+export interface TestRunReportDocumentPlan {
+  documentId: string;
+  sourcePath: string;
+  retry: { scope: 'case' | 'document'; count: number };
+  beforeAll: TestRunReportPlannedStep[];
+  cases: TestRunReportCasePlan[];
+  afterAll: TestRunReportPlannedStep[];
+}
+
+interface TestRunReportStepBase {
+  id: string;
+  planStepId?: string;
+  phase: TestRunReportStepPhase;
+  stepIndex: number;
+  node: string;
+  title?: string;
   continuedAfterError: boolean;
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
   input?: TestRunReportValue;
   output?: {
     summary?: string;
@@ -88,6 +119,26 @@ export interface TestRunReportStep {
   agentDetails?: TestRunReportAgentDetail[];
   agentDetailDiagnostic?: string;
 }
+
+export type TestRunReportStep = TestRunReportStepBase &
+  (
+    | {
+        status: TestRunReportRunStatus;
+        startedAt: string;
+        endedAt: string;
+        durationMs: number;
+        notRunReason?: never;
+        blockedBy?: never;
+      }
+    | {
+        status: 'not-run';
+        notRunReason: string;
+        blockedBy?: string;
+        startedAt?: never;
+        endedAt?: never;
+        durationMs?: never;
+      }
+  );
 
 export interface TestRunReportAttempt {
   attemptId: string;
@@ -106,6 +157,7 @@ export interface TestRunReportAttempt {
 }
 
 export interface TestRunReportCase {
+  plan?: TestRunReportCasePlan;
   caseId: string;
   name: string;
   caseIndex: number;
@@ -115,6 +167,7 @@ export interface TestRunReportCase {
 }
 
 export interface TestRunReportDocument {
+  plan?: TestRunReportDocumentPlan;
   documentId: string;
   /** Logical file identity when separate invocations need distinct UI IDs. */
   logicalDocumentId?: string;
@@ -151,6 +204,7 @@ export interface TestRunReportProjectLifecycle {
 }
 
 export interface TestRunReportProject {
+  plans?: readonly TestRunReportDocumentPlan[];
   projectId: string;
   name: string;
   /** Display identity, also supports legacy custom interface adapters. */

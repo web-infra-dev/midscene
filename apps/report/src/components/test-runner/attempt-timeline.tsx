@@ -72,7 +72,7 @@ export function RunnerAttemptTimeline({
   onSelectFrame,
   onTogglePlay,
 }: {
-  attempt?: TestRunReportAttempt;
+  attempt?: Pick<TestRunReportAttempt, 'startedAt' | 'endedAt' | 'durationMs'>;
   frames: readonly RunnerPositionedVisualFrame[];
   selectedStepId?: string;
   previewFrameKey?: string;
@@ -152,7 +152,7 @@ export function RunnerAttemptTimeline({
   return (
     <section
       className={`runner-detail-timeline-card is-${variant}`}
-      aria-label="Attempt visual timeline"
+      aria-label="Execution visual timeline"
     >
       {!isEmbedded ? (
         <div className="runner-detail-timeline-toolbar">

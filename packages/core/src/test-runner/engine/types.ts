@@ -79,6 +79,7 @@ export interface CaseRunResult {
 }
 
 export interface WorkflowDocumentRunResult {
+  plan?: import('../../test-run-report').TestRunReportDocumentPlan;
   documentId: string;
   documentRunId: string;
   /** Whole-document attempt, distinct from Case attemptIndex. */
@@ -205,6 +206,7 @@ export interface WorkflowDocumentExecutionResult {
 }
 
 export interface RunWorkflowDocumentOptions<TContext = undefined> {
+  plan?: import('../../test-run-report').TestRunReportDocumentPlan;
   documentSetup?: DocumentSetupDefinition<TContext>;
   documentAttemptIndex?: number;
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
@@ -232,6 +234,7 @@ export interface RunWorkflowDocumentOptions<TContext = undefined> {
 }
 
 export interface CreateDocumentRuntimeOptions<TContext = undefined> {
+  plan?: import('../../test-run-report').TestRunReportDocumentPlan;
   documentSetup?: DocumentSetupDefinition<TContext>;
   documentAttemptIndex?: number;
   resolveNode(name: string): NodeDefinition<any, any, TContext>;

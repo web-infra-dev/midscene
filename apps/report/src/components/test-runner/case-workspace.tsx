@@ -57,6 +57,7 @@ export function CaseWorkspace({
     stepSummary,
     togglePlayback,
     workspaceSteps,
+    timelineRange,
   } = useCaseWorkspace({ item, initialStepId, visualIndex });
 
   return (
@@ -88,9 +89,9 @@ export function CaseWorkspace({
             selectedStepId={selectedStep?.id}
             playingStepId={playingStepId}
             timeline={
-              selectedAttempt ? (
+              timelineRange ? (
                 <RunnerAttemptTimeline
-                  attempt={selectedAttempt}
+                  attempt={timelineRange}
                   frames={positionedFrames}
                   selectedStepId={selectedStep?.id}
                   previewFrameKey={previewFrameKey}
@@ -104,7 +105,7 @@ export function CaseWorkspace({
               ) : undefined
             }
             timelineControl={
-              selectedAttempt ? (
+              timelineRange ? (
                 <RunnerTimelinePlaybackControl
                   frameCount={positionedFrames.length}
                   isPlaying={isPlaying}

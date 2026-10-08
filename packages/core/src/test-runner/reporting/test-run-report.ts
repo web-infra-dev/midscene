@@ -3,9 +3,12 @@ import type {
   TestRunReportAgentDetail,
   TestRunReportAttempt,
   TestRunReportCase,
+  TestRunReportCasePlan,
   TestRunReportDiagnostic,
   TestRunReportDocument,
+  TestRunReportDocumentPlan,
   TestRunReportDump,
+  TestRunReportPlannedStep,
   TestRunReportProject,
   TestRunReportSource,
   TestRunReportSourceIndex,
@@ -56,6 +59,7 @@ const buildStep = (
   scopeId: string,
   context: ManifestBuildContext,
   executionId: string,
+  plan?: TestRunReportPlannedStep,
 ): TestRunReportStep => {
   const details: TestRunReportAgentDetail[] = [];
   const unresolvedExecutionIds: string[] = [];
@@ -122,6 +126,7 @@ const buildStep = (
         : undefined;
   return {
     id: `${executionId}:${step.phase}:${step.stepIndex}`,
+    ...(plan ? { planStepId: plan.id } : {}),
     phase: step.phase,
     stepIndex: step.stepIndex,
     node: step.node,
@@ -156,6 +161,7 @@ const attemptReportScope = (attempt: CaseRunResult): string =>
 const buildAttempt = (
   attempt: CaseRunResult,
   context: ManifestBuildContext,
+  plan?: TestRunReportCasePlan,
 ): TestRunReportAttempt => {
   const scopeId = attemptReportScope(attempt);
   return {
@@ -166,13 +172,31 @@ const buildAttempt = (
     endedAt: attempt.endedAt,
     durationMs: attempt.durationMs,
     beforeEach: attempt.beforeEach.map((step) =>
-      buildStep(step, scopeId, context, attempt.runId),
+      buildStep(
+        step,
+        scopeId,
+        context,
+        attempt.runId,
+        plan?.beforeEach[step.stepIndex],
+      ),
     ),
     steps: attempt.steps.map((step) =>
-      buildStep(step, scopeId, context, attempt.runId),
+      buildStep(
+        step,
+        scopeId,
+        context,
+        attempt.runId,
+        plan?.steps[step.stepIndex],
+      ),
     ),
     afterEach: attempt.afterEach.map((step) =>
-      buildStep(step, scopeId, context, attempt.runId),
+      buildStep(
+        step,
+        scopeId,
+        context,
+        attempt.runId,
+        plan?.afterEach[step.stepIndex],
+      ),
     ),
     ...(attempt.executionErrors?.length
       ? {
@@ -198,14 +222,16 @@ const buildAttempt = (
 const buildCase = (
   outcome: RunReportCaseInput,
   context: ManifestBuildContext,
+  plan?: TestRunReportCasePlan,
 ): TestRunReportCase => ({
+  ...(plan ? { plan } : {}),
   caseId: outcome.caseId,
   name: outcome.name,
   caseIndex: outcome.caseIndex,
   status: outcome.status,
   ...(outcome.notRunReason ? { notRunReason: outcome.notRunReason } : {}),
   attempts: (outcome.attempts ?? (outcome.run ? [outcome.run] : [])).map(
-    (attempt) => buildAttempt(attempt, context),
+    (attempt) => buildAttempt(attempt, context, plan),
   ),
 });
 
@@ -217,7 +243,9 @@ const buildDocument = (
   document: WorkflowDocumentRunResult | undefined,
   cases: readonly RunReportCaseInput[],
   context: ManifestBuildContext,
+  plan?: TestRunReportDocumentPlan,
 ): TestRunReportDocument => {
+  plan ??= document?.plan;
   const sourcePath =
     document?.sourcePath ?? cases[0]?.sourcePath ?? '<unknown>';
   const status =
@@ -226,6 +254,7 @@ const buildDocument = (
   const scopeId = document ? documentReportScope(document) : undefined;
   return {
     documentId,
+    ...(plan ? { plan } : {}),
     ...(document
       ? {
           logicalDocumentId: document.documentId,
@@ -245,11 +274,29 @@ const buildDocument = (
         }
       : {}),
     beforeAll: (document?.beforeAll ?? []).map((step) =>
-      buildStep(step, scopeId!, context, document!.documentRunId),
+      buildStep(
+        step,
+        scopeId!,
+        context,
+        document!.documentRunId,
+        plan?.beforeAll[step.stepIndex],
+      ),
     ),
-    cases: cases.map((outcome) => buildCase(outcome, context)),
+    cases: cases.map((outcome) =>
+      buildCase(
+        outcome,
+        context,
+        plan?.cases.find((item) => item.caseId === outcome.caseId),
+      ),
+    ),
     afterAll: (document?.afterAll ?? []).map((step) =>
-      buildStep(step, scopeId!, context, document!.documentRunId),
+      buildStep(
+        step,
+        scopeId!,
+        context,
+        document!.documentRunId,
+        plan?.afterAll[step.stepIndex],
+      ),
     ),
     ...(document?.hostErrors?.length || document?.executionErrors?.length
       ? {
@@ -348,6 +395,7 @@ const buildProject = (
       last,
       [...outcomes.values()],
       context,
+      project.plans?.find((plan) => plan.documentId === last.documentId),
     );
     if (group.length > 1) {
       result.startedAt = first.startedAt;
@@ -361,6 +409,9 @@ const buildProject = (
           document,
           [],
           context,
+          project.plans?.find(
+            (plan) => plan.documentId === document.documentId,
+          ),
         );
         return attempt;
       });
@@ -378,12 +429,14 @@ const buildProject = (
           undefined,
           project.cases.filter((outcome) => outcome.documentId === documentId),
           context,
+          project.plans?.find((plan) => plan.documentId === documentId),
         ),
       );
     }
   }
 
   return {
+    ...(project.plans ? { plans: project.plans } : {}),
     projectId: project.projectId,
     name: project.name,
     ...(project.platform?.trim() ? { platform: project.platform.trim() } : {}),

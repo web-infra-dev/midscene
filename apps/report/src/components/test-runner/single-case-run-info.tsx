@@ -1,6 +1,7 @@
 import type { TestRunReportDump } from '@midscene/core';
 import { Alert } from 'antd';
 import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
+import { TestPlan } from './test-plan';
 import { formatDuration, formatTimestamp } from './view-primitives';
 
 export function SingleCaseRunInfo({
@@ -54,6 +55,7 @@ export function SingleCaseRunInfo({
           ))}
         </details>
       )}
+      <TestPlan dump={dump} />
     </section>
   );
 }

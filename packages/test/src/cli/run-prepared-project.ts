@@ -25,7 +25,7 @@ import type {
   PreparedExecutionProject,
   PreparedTestRunPlan,
 } from './execution-plan';
-import { writeTestProjectRunResult } from './result-store';
+import { writeTestProjectRunResult, writeTestRunPlan } from './result-store';
 import type {
   TestExecutionProjectRunResult,
   TestProjectCaseRunResult,
@@ -149,6 +149,7 @@ export async function runPreparedTestProject(
     definition.test.maxConcurrency,
     preparedProjects.length,
   );
+  await writeTestRunPlan(runDir, preparedProjects);
   const rootController = new AbortController();
   setMaxListeners(
     Math.max(10, effectiveConcurrency + 1),
@@ -221,6 +222,7 @@ export async function runPreparedTestProject(
       filteredCaseCount: prepared.filteredCaseCount,
       ...(lifecycle ? { lifecycle } : {}),
       cases,
+      plans: prepared.plans,
       documents,
       collectionErrors: prepared.collectionErrors,
     };

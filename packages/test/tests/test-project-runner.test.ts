@@ -3,6 +3,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -72,6 +73,59 @@ afterEach(() => {
 });
 
 describe('test project main-process runner', () => {
+  it('persists the full safe plan before setup, including filtered cases and unresolved variables', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = Object.assign(setRunnerState(resultDir), {
+      planAtSetup: undefined as any,
+    });
+    const runtimeValue = 'runtime-secret-value';
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      import { readdirSync, readFileSync } from 'node:fs';
+      import { join } from 'node:path';
+      const state = globalThis.__testProjectRunnerState;
+      export default {
+        projects: [{ name: 'maps', tags: { include: ['smoke'] }, variables: { credential: '${runtimeValue}' }, setup: {
+          name: 'check-plan', setup() {
+            const run = readdirSync(state.resultDir)[0];
+            state.planAtSetup = JSON.parse(readFileSync(join(state.resultDir, run, 'plan.json'), 'utf8'));
+            throw new Error('setup stopped');
+          },
+        } }],
+        nodes: [{ name: 'body', stringInputKey: 'prompt', execute() { throw new Error('must not start'); } }],
+      };
+    `,
+    );
+    writeWorkflow(
+      root,
+      'map.yaml',
+      `cases:
+  - name: selected map
+    tags: [smoke]
+    steps: [{ body: "Use \${credential}" }]
+  - name: filtered map
+    tags: [slow]
+    steps: [{ body: hidden preview }]
+`,
+    );
+    const result = await runTestProject({ projectRoot: root, resultDir });
+    const plans = state.planAtSetup.projects[0].documents;
+    expect(plans[0].cases.map((item: any) => item.selected)).toEqual([
+      true,
+      false,
+    ]);
+    expect(plans[0].cases[0].steps[0]).toMatchObject({
+      inputMode: 'template',
+      input: { value: { prompt: 'Use ${credential}' } },
+    });
+    expect(JSON.stringify(state.planAtSetup)).not.toContain(runtimeValue);
+    expect(result.summary).toMatchObject({ total: 1, notRun: 1, filtered: 1 });
+    expect(result.projects[0].plans).toEqual(plans);
+    expect(readdirSync(join(resultDir, result.runId))).toContain('plan.json');
+  });
+
   it('formats run ids with a local timestamp and UUID prefix', () => {
     expect(
       createTestRunId(

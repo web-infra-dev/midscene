@@ -733,10 +733,12 @@ export const getDefaultVisualFrameForStep = (
   );
 
 export const positionAttemptVisualFrames = (
-  attempt: TestRunReportAttempt,
+  attempt: Pick<TestRunReportAttempt, 'startedAt' | 'endedAt' | 'durationMs'>,
   frames: readonly RunnerVisualFrame[],
+  steps: readonly TestRunReportStep[] = 'steps' in attempt
+    ? flattenAttemptSteps(attempt as TestRunReportAttempt)
+    : [],
 ): RunnerPositionedVisualFrame[] => {
-  const steps = flattenAttemptSteps(attempt);
   const attemptStartedAt = timestamp(attempt.startedAt);
   const attemptEndedAt = timestamp(attempt.endedAt);
   const measuredDurationMs =

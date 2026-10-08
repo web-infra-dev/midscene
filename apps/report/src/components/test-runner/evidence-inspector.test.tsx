@@ -2,6 +2,7 @@ import {
   ExecutionDump,
   GroupedActionDump,
   type TestRunReportDump,
+  type TestRunReportStep,
 } from '@midscene/core';
 import { describe, expect, it, rs } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -33,7 +34,8 @@ const item = flattenRunnerCases(
   createTestReportFixture(source) as TestRunReportDump,
 )[0];
 const step = item.finalAttempt!.steps.find(
-  (step) => step.agentDetails?.length,
+  (step): step is Exclude<TestRunReportStep, { status: 'not-run' }> =>
+    step.status !== 'not-run' && Boolean(step.agentDetails?.length),
 )!;
 const report: PlaywrightTasks = {
   reportId: 'agent-report',

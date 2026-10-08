@@ -17,6 +17,7 @@ import {
 } from './model';
 import { ProjectBreakdownTree } from './project-breakdown';
 import { RunSummary } from './run-summary';
+import { TestPlan } from './test-plan';
 import type { RunnerCaseDisplayMode } from './view-primitives';
 
 import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
@@ -132,6 +133,7 @@ export function RunOverview({
           getProjectLifecycleIssues(project),
         )}
       />
+      <TestPlan dump={dump} />
       <section
         ref={breakdownRef}
         className="runner-panel runner-breakdown-panel"

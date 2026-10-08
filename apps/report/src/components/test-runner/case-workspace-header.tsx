@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import type { TestRunReportAttempt, TestRunReportDump } from '@midscene/core';
 import { AttemptSelect } from './attempt-select';
+import { getCaseNotRunReason } from './case-workspace-model';
 import type { RunnerCaseView } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
 import { CaseStatus, formatDuration } from './view-primitives';
@@ -29,6 +30,7 @@ export function CaseWorkspaceHeader({
     passed: number;
     failed: number;
     timeout: number;
+    notRun?: number;
   };
 }): JSX.Element {
   const visibleStepSummary = stepSummary ?? {
@@ -71,7 +73,12 @@ export function CaseWorkspaceHeader({
               </strong>
             </span>
             <span>
-              total <strong>{formatDuration(item.durationMs)}</strong>
+              Case time{' '}
+              <strong>
+                {formatDuration(
+                  item.testCase.attempts.length ? item.durationMs : undefined,
+                )}
+              </strong>
             </span>
           </div>
         </div>
@@ -102,12 +109,16 @@ export function CaseWorkspaceHeader({
             <dt>Timeout</dt>
             <dd>{visibleStepSummary.timeout}</dd>
           </div>
+          <div>
+            <dt>Not run</dt>
+            <dd>{visibleStepSummary.notRun ?? 0}</dd>
+          </div>
         </dl>
       </div>
       {!item.testCase.attempts.length ? (
         <div className="runner-not-run-message">
           <ClockCircleOutlined />
-          {item.testCase.notRunReason || 'This case was not executed.'}
+          {getCaseNotRunReason(item)}
         </div>
       ) : null}
     </section>

@@ -8,6 +8,7 @@ import {
   getCaseWorkspaceDocumentAttemptIndex,
   getCaseWorkspaceStepGroups,
   getDefaultCaseWorkspaceStep,
+  getWorkspaceTimelineRange,
 } from './case-workspace-model';
 import type { RunnerInspectorTab } from './evidence-tabs';
 import {
@@ -64,6 +65,7 @@ export function getWorkspaceStepSummary(steps: readonly TestRunReportStep[]): {
   passed: number;
   failed: number;
   timeout: number;
+  notRun: number;
 } {
   const timeout = steps.filter((step) => {
     if (step.status !== 'failed' || !step.error) return false;
@@ -81,6 +83,7 @@ export function getWorkspaceStepSummary(steps: readonly TestRunReportStep[]): {
     passed: steps.filter((step) => step.status === 'success').length,
     failed,
     timeout,
+    notRun: steps.filter((step) => step.status === 'not-run').length,
   };
 }
 
@@ -172,12 +175,20 @@ export function useCaseWorkspace({
       ),
     [workspaceSteps, visualIndex],
   );
+  const timelineRange = useMemo(
+    () => getWorkspaceTimelineRange(workspaceSteps, selectedAttempt),
+    [workspaceSteps, selectedAttempt],
+  );
   const positionedFrames = useMemo(
     () =>
-      selectedAttempt
-        ? positionAttemptVisualFrames(selectedAttempt, visualFrames)
+      timelineRange
+        ? positionAttemptVisualFrames(
+            timelineRange,
+            visualFrames,
+            workspaceSteps,
+          )
         : [],
-    [selectedAttempt, visualFrames],
+    [timelineRange, visualFrames, workspaceSteps],
   );
   const previewFrame = visualFrames.find(
     (frame) => frame.key === previewFrameKey,
@@ -296,5 +307,6 @@ export function useCaseWorkspace({
     stepSummary,
     togglePlayback,
     workspaceSteps,
+    timelineRange,
   };
 }

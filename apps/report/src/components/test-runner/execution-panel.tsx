@@ -101,7 +101,11 @@ export function RunnerExecutionPanel({
                     </span>
                     <span className="runner-detail-step-tail">
                       <StepStatus status={step.status} />
-                      <time>{formatDuration(step.durationMs)}</time>
+                      <time>
+                        {step.status === 'not-run'
+                          ? 'Not run'
+                          : formatDuration(step.durationMs)}
+                      </time>
                     </span>
                   </button>
                 );

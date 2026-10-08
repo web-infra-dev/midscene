@@ -9,6 +9,7 @@ import { CaseWorkspace } from './case-workspace';
 import {
   getCaseWorkspaceStepGroups,
   getDefaultCaseWorkspaceStep,
+  getWorkspaceTimelineRange,
 } from './case-workspace-model';
 import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
 import {
@@ -17,6 +18,7 @@ import {
   getRunnerHealth,
 } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
+import { TestPlan } from './test-plan';
 
 const source = {
   sources: [
@@ -117,6 +119,142 @@ describe('report lifecycle failures', () => {
     expect(html).not.toContain('aria-label="Attempts"');
     expect(html).not.toContain('runner-single-attempt-label');
     expect(html).not.toContain('Attempt 1');
+    expect(html).toContain('aria-label="Execution visual timeline"');
+  });
+
+  it('shows planned steps with the setup failure reason and no artificial attempt or timestamps', () => {
+    const item = flattenRunnerCases(lifecycle()).find(
+      (item) => item.testCase.caseId === 'blocked-case',
+    )!;
+    item.testCase.plan = {
+      caseId: item.testCase.caseId,
+      name: item.testCase.name,
+      caseIndex: 0,
+      selected: true,
+      tags: [],
+      beforeEach: [],
+      afterEach: [],
+      steps: [
+        {
+          id: 'planned-map',
+          phase: 'steps',
+          stepIndex: 0,
+          node: 'map.preview',
+          title: 'Preview Beijing map',
+          input: { value: { prompt: 'Preview Beijing map' } },
+          inputMode: 'template',
+          continueOnError: false,
+        },
+      ],
+    };
+    const groups = getCaseWorkspaceStepGroups(item);
+    const planned = groups.find((group) => group.label === 'Case steps')!
+      .steps[0];
+    expect(planned).toMatchObject({
+      status: 'not-run',
+      blockedBy: 'blocked:beforeAll:0',
+      notRunReason: expect.stringContaining('Document setup step 1 failed'),
+    });
+    expect(getWorkspaceTimelineRange([planned])).toBeUndefined();
+    expect(planned).not.toHaveProperty('startedAt');
+    expect(planned).not.toHaveProperty('durationMs');
+    expect(
+      getWorkspaceTimelineRange(groups.flatMap((group) => group.steps)),
+    ).toMatchObject({
+      startedAt: item.document.beforeAll[0].startedAt,
+      endedAt: item.document.beforeAll[0].endedAt,
+    });
+    const html = renderToStaticMarkup(
+      <CaseWorkspace
+        item={item}
+        initialStepId={planned.id}
+        reports={[]}
+        visualIndex={buildRunnerVisualIndex([])}
+        renderAgentReport={() => null}
+        onBack={noop}
+        backLabel="Overview"
+      />,
+    );
+    expect(html).toContain('Preview Beijing map');
+    expect(html).toContain('Document setup step 1 failed');
+    expect(html).toContain('View blocking step');
+    expect(html).not.toContain('Attempt 1');
+    expect(item.testCase.attempts).toEqual([]);
+  });
+
+  it('computes the timeline across setup, case and teardown rather than clipping hook frames', () => {
+    const item = flattenRunnerCases(lifecycle())[0];
+    const attempt = item.finalAttempt!;
+    const step = attempt.steps[0];
+    if (step.status === 'not-run')
+      throw new Error('Fixture needs an executed step');
+    const beforeAll = {
+      ...step,
+      startedAt: '2026-10-08T00:00:00.000Z',
+      endedAt: '2026-10-08T00:00:01.000Z',
+    };
+    const afterAll = {
+      ...step,
+      startedAt: '2026-10-08T00:00:20.000Z',
+      endedAt: '2026-10-08T00:00:21.000Z',
+    };
+    const range = getWorkspaceTimelineRange([beforeAll, afterAll], {
+      ...attempt,
+      startedAt: '2026-10-08T00:00:05.000Z',
+      endedAt: '2026-10-08T00:00:10.000Z',
+    });
+    expect(range).toEqual({
+      startedAt: beforeAll.startedAt,
+      endedAt: afterAll.endedAt,
+      durationMs: 21_000,
+    });
+  });
+
+  it('shows filtered cases in the independent plan without adding execution outcomes', () => {
+    const dump = lifecycle();
+    const beforeAll = dump.projects[0].documents[0].beforeAll;
+    dump.projects[0].plans = [
+      {
+        documentId: 'plan-only',
+        sourcePath: 'filtered-map.yaml',
+        retry: { scope: 'case', count: 2 },
+        beforeAll: [],
+        afterAll: [],
+        cases: [
+          {
+            caseId: 'filtered-map',
+            caseIndex: 0,
+            name: 'Filtered Beijing preview',
+            selected: false,
+            tags: ['slow'],
+            beforeEach: [],
+            afterEach: [],
+            steps: [
+              {
+                id: 'plan-only:step',
+                phase: 'steps',
+                stepIndex: 0,
+                node: 'map.preview',
+                input: { value: { prompt: '${mapLocation}' } },
+                inputMode: 'template',
+                continueOnError: false,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const html = renderToStaticMarkup(<TestPlan dump={dump} />);
+    expect(html).toContain('Filtered Beijing preview');
+    expect(html).toContain('Filtered by case selection');
+    expect(html).toContain('${mapLocation}');
+    expect(html).toContain('Variables remain as placeholders');
+    expect(dump.projects[0].documents[0].beforeAll).toBe(beforeAll);
+    expect(
+      flattenRunnerCases(dump).some(
+        (item) => item.testCase.caseId === 'filtered-map',
+      ),
+    ).toBe(false);
   });
 
   it('renders teardown errors even if the selected case step succeeded', () => {
@@ -156,9 +294,12 @@ describe('report lifecycle failures', () => {
 
   it('prioritizes a failed document teardown over a successful case step', () => {
     const item = flattenRunnerCases(lifecycle())[0];
+    const step = item.finalAttempt!.steps[0];
+    if (step.status === 'not-run')
+      throw new Error('Fixture needs an executed step');
     item.document.afterAll = [
       {
-        ...item.finalAttempt!.steps[0],
+        ...step,
         id: 'afterAll:0',
         phase: 'afterAll',
         status: 'failed',

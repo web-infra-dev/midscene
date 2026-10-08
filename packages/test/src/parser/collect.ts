@@ -114,6 +114,7 @@ export function collectWorkflowDocument(
     caseIndex?: number,
   ) => ({
     ...step,
+    templateInput: step.input,
     input: resolveWorkflowVariables(step.input, {
       variables: options.variables,
       env: options.env ?? process.env,
