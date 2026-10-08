@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-036.png",
+      "fileName": "GUI-WEB100-v4p2-036.png",
       "imageType": "hd",
       "gtBox": [
         566,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Drag the slider to set the price range",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#95 | license=MIT | sha256=548d8f303df9c697d9f876619a51ef95f7cbcfb2a9af038e33c8c4bf7f3c8197. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#95",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Functional"
+  ],
+  "primaryFactor": "functional",
+  "primaryFactorLabel": "Functional"
 }

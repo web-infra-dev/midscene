@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-054.png",
+      "imageType": "hd",
+      "gtBox": [
+        684.08,
+        415.44,
+        700.08,
+        457.04
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Add \"s\" after the word \"extension\".",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Fine-grained Manipulation | source=OSWorld-G | source_id=rpngAhRMhE-1",
+  "tags": [
+    "evaluation_import",
+    "Fine-grained Manipulation"
+  ],
+  "primaryFactor": "fine",
+  "primaryFactorLabel": "Fine-grained Manipulation"
+}

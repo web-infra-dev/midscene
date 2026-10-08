@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-070.png",
+      "fileName": "GUI-WEB100-v4p2-070.png",
       "imageType": "hd",
       "gtBox": null,
       "expectedOutcome": "refusal"
@@ -9,8 +9,11 @@
   ],
   "prompt": "Find the checkbox to the right of ChatGPT in the upper-right corner of the screen.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#749 | license=MIT | sha256=8038a932743bfd9a0d4760560a267e1a0f0f92a178b3ee57ac1159a6499e0969. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#749",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Refusal"
+  ],
+  "primaryFactor": "refusal",
+  "primaryFactorLabel": "Refusal"
 }

@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-081.png",
+      "fileName": "GUI-WEB100-v4p4-081.png",
       "imageType": "hd",
       "gtBox": [
         1238,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Select the 'etcd-v3.6.4-linux-ppc64le.tar.gz' menu item from the asset list.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#942 | license=MIT | sha256=8a2ae8f42a934266e5128f91bc25a19fcbc382ed24f6fe167c0cc4ce0c8123ce. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#942",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
 }

@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-065.png",
+      "imageType": "hd",
+      "gtBox": [
+        1661,
+        501,
+        1920,
+        761
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the artist image located immediately to the right and adjacent to the first artist image in the top row.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Relative Position | source=VenusBench-GD | source_id=instruction/spatial_grounding.json#914",
+  "tags": [
+    "evaluation_import",
+    "Relative Position"
+  ],
+  "primaryFactor": "relative",
+  "primaryFactorLabel": "Relative Position"
+}

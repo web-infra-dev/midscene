@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-086.png",
+      "imageType": "hd",
+      "gtBox": [
+        460.0,
+        537.0,
+        544.0,
+        625.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Locate the current position of the leftmost price slider",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Fine-grained Manipulation | source=FineState-Bench | source_id=mobile/ANumericRange240json/A1Slider100.json#22",
+  "tags": [
+    "evaluation_import",
+    "Fine-grained Manipulation"
+  ],
+  "primaryFactor": "fine",
+  "primaryFactorLabel": "Fine-grained Manipulation"
+}

@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-v4p8-007.jpg",
+      "imageType": "hd",
+      "gtBox": [
+        917.0,
+        486.00000000000006,
+        1067.0,
+        611.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Click on Betty's last meeting of the week",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=WebClick | source_id=default/test/373",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

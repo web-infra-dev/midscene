@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-059.png",
+      "imageType": "hd",
+      "gtBox": [
+        415.044,
+        877.7339999999999,
+        688.068,
+        973.6740000000001
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Check the player ratings for the Monkey Kings team that played as visitors in this completed basketball game",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=MMBench-GUI L2 | source_id=2794",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

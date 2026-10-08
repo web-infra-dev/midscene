@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-034.png",
+      "imageType": "hd",
+      "gtBox": [
+        449.2201999999999,
+        5.515999999999999,
+        549.9935999999999,
+        106.22239999999998
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Click on the Transformation layout icon",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Unfamiliar Icon | source=MedSPOT | source_id=Annotations/Bluelight_Annotation.json#tasks[3].steps[0]",
+  "tags": [
+    "evaluation_import",
+    "Unfamiliar Icon"
+  ],
+  "primaryFactor": "unfamiliar",
+  "primaryFactorLabel": "Unfamiliar Icon"
+}

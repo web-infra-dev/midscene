@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-018.png",
+      "fileName": "GUI-MOBILE100-v4p5-018.png",
       "imageType": "hd",
       "gtBox": [
         734,
@@ -14,8 +14,11 @@
   ],
   "prompt": "A blue hashtag labeled '#cat' in the video description section",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p5 | class=basic | source=MMBench-GUI L2 | source_id=393 | license=Apache-2.0 | sha256=462c66d7e307e32b7885220267941a8ca2a9977b1beded2b74290b0bd793869e. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p5/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Small Target | source=MMBench-GUI L2 | source_id=393",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Small Target"
+  ],
+  "primaryFactor": "small",
+  "primaryFactorLabel": "Small Target"
 }

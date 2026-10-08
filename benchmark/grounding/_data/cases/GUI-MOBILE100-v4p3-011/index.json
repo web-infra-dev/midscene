@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-011.png",
+      "fileName": "GUI-MOBILE100-v4p3-011.png",
       "imageType": "hd",
       "gtBox": [
         705,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Find the \"Deals\" button with the lightning icon.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1466 | license=MIT | sha256=450e0274b16f62785d22142d2c3b0c00dd76e7d2e6de4f0ca739355459fbcf64. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1466",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
 }

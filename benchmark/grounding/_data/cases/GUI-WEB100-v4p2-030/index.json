@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-030.png",
+      "fileName": "GUI-WEB100-v4p2-030.png",
       "imageType": "hd",
       "gtBox": [
         2782,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Click to select Alipay payment",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#624 | license=MIT | sha256=6d3d7202ae57e84e54ac715f9ffa0965b8c5f1bbc6ebf48a28daa20abace7e4d. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Small Target | source=VenusBench-GD | source_id=instruction/functional_grounding.json#624",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Small Target"
+  ],
+  "primaryFactor": "small",
+  "primaryFactorLabel": "Small Target"
 }

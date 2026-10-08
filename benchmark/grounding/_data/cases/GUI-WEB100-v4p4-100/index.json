@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-100.jpg",
+      "fileName": "GUI-WEB100-v4p4-100.jpg",
       "imageType": "hd",
       "gtBox": [
         12.5,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Select turtle beach brand",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p4 | class=basic | source=WebClick | source_id=default/test/969 | license=Apache-2.0 | sha256=a451bc91b3e3861cc9ee87c49b1ad41f4717a67d6c408860712447622d5ec520. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Small Target | source=WebClick | source_id=default/test/969",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Small Target"
+  ],
+  "primaryFactor": "small",
+  "primaryFactorLabel": "Small Target"
 }

@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-039.png",
+      "imageType": "hd",
+      "gtBox": [
+        783.8584,
+        10.8744,
+        876.4054,
+        106.06479999999999
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Click on the color invert icon ",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Unfamiliar Icon | source=MedSPOT | source_id=Annotations/Bluelight_Annotation.json#tasks[8].steps[0]",
+  "tags": [
+    "evaluation_import",
+    "Unfamiliar Icon"
+  ],
+  "primaryFactor": "unfamiliar",
+  "primaryFactorLabel": "Unfamiliar Icon"
+}

@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-035.png",
+      "imageType": "hd",
+      "gtBox": [
+        509,
+        2276,
+        660,
+        2417
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "use airplay",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Unfamiliar Icon | source=ScreenSpot-v2 | source_id=screenspot_mobile_v2.json#438",
+  "tags": [
+    "evaluation_import",
+    "Unfamiliar Icon"
+  ],
+  "primaryFactor": "unfamiliar",
+  "primaryFactorLabel": "Unfamiliar Icon"
+}

@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-08",
+  "version": "web-primary-fine-v3-20261008",
+  "total": 100,
+  "unchanged_case_semantics": 96,
+  "fine_total": 5,
+  "fine_kept_case_id": "GUI-WEB100-factors-v1-054",
+  "fine_replaced": 4,
+  "color_v2_case_ids_preserved": [
+    "GUI-WEB100-v4p2-014",
+    "GUI-WEB100-v4p2-015",
+    "GUI-WEB100-factors-v2-042",
+    "GUI-WEB100-factors-v2-044",
+    "GUI-WEB100-factors-v2-045"
+  ],
+  "quotas": {
+    "reasoning": 20,
+    "element": 20,
+    "disambiguation": 5,
+    "color": 5,
+    "functional": 20,
+    "unfamiliar": 5,
+    "small": 10,
+    "fine": 5,
+    "relative": 5,
+    "refusal": 5
+  },
+  "new_source_counts": {
+    "FineState-Bench": 4
+  },
+  "original_query_and_gt_verified_fine": 5,
+  "original_image_decode_and_hash_verified": 100,
+  "new_image_duplicates_with_other96": 0,
+  "new_image_duplicates_with_formal200": 0,
+  "original_queries_modified": false,
+  "official_gt_modified": false,
+  "normalization": "multiply original normalized xyxy by actual decoded dimensions, no rounding or padding",
+  "fine_source_gt_field": "processing_details.loactebbox",
+  "fine_source_protocol_note": "Original locate query plus author current fine target; point-hit maps to fine current-state awareness, not broad component localization or end-to-end interaction.",
+  "model_run_performed": false,
+  "model_scores_used_for_selection": false,
+  "formal200_manifest_sha256_unchanged": "d536f5b94e7a5b5e10905b0cb99a276957899b3e7bf8c78ea35298d834a8cce4",
+  "review_method": "Single reviewer original screenshot and official GT context. Offline HTML parse and embedded image decode.",
+  "source_revision": "d65c3451e573d3641b6297f8aa57b623878b1731",
+  "source_hashes": {
+    "source/finestate-web-A4SeekBar40.json": "04e27aa01c07b624f03ab199b9ab7354c4157d0f49837c584db4d18ab2f27c3d",
+    "source/finestate-web-A5ChartPoint40.json": "264b6c7e2e056fa6a5dd8e2f5b94ae9b9cc9d033e5b909867631ce7eed9bae34",
+    "source/finestate-web-D2ZoomPan30.json": "8e60388b9aae1c1ba390d64f49b09bd0bf673a17c467788f7738db670cf1d83d",
+    "source/finestate-web-D7TableColumn15.json": "8b1e3df1b5edfabf8297d1feb89103f4fbb0a6aadeb1822ee71bdd18190b90e1"
+  },
+  "artifact_sha256": {
+    "dataset/manifest.jsonl": "59f367b028c71160e14c71d7b7cb130cd2a87bce1416f00bb4d29403f090c536",
+    "all-web-cases.json": "fc54b5afc69769b62dcd5c28493f1ae7639f846f9243ba5effb4633403e112f6",
+    "fine-cases.json": "996cc41a45584a09852f186b41c55cea60a93e5fd70994bcc67393451064f9ef",
+    "review.html": "8ae16741a62cde8adf7e1221b74a2af9ff469525d3683f5b147d98ac3ae21270",
+    "fine-review.html": "246481238bc9ac3945728769f7d199ad67f3427e0318edb3a5b48195ed38750f",
+    "Web100-十主类完整候选-v3.xlsx": "92f38a82505986a6c3e8e9893ace711ddb78ee0b6793c5fde90dc495fd92a8a0"
+  }
+}

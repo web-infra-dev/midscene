@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-078.png",
+      "imageType": "hd",
+      "gtBox": [
+        568.0,
+        2117.0,
+        601.9999999999999,
+        2253.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Locate the current position of the color temperature adjustment slider",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Fine-grained Manipulation | source=FineState-Bench | source_id=mobile/ANumericRange240json/A1Slider100.json#15",
+  "tags": [
+    "evaluation_import",
+    "Fine-grained Manipulation"
+  ],
+  "primaryFactor": "fine",
+  "primaryFactorLabel": "Fine-grained Manipulation"
+}

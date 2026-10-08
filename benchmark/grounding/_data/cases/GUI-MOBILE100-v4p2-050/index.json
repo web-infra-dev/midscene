@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-050.png",
+      "fileName": "GUI-MOBILE100-v4p2-050.png",
       "imageType": "hd",
       "gtBox": [
         60,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Sort by the remaining time of auction or time-limited items",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=362 | license=MIT | sha256=393c4211221c65de9824011a92d22191f65864e3eef6a3fb1bbaaa0503b6a043. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=362",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Functional"
+  ],
+  "primaryFactor": "functional",
+  "primaryFactorLabel": "Functional"
 }

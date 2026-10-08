@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-071.png",
+      "fileName": "GUI-MOBILE100-v4p2-071.png",
       "imageType": "hd",
       "gtBox": [
         32,
@@ -14,8 +14,11 @@
   ],
   "prompt": "View recently updated videos",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#row=360 | license=MIT | sha256=c3076b464575097ffd837751f9dfae3db9ecdd5ed9d4b25905c1a9e96dc7b63c. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#row=360",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
 }

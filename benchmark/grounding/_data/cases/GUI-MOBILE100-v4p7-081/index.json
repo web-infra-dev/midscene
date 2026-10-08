@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-v4p7-081.png",
+      "imageType": "hd",
+      "gtBox": [
+        665.064,
+        1430.6760000000002,
+        729.972,
+        1499.7060000000001
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A cartoon-style emoticon displayed in the emoji selection row between a grinning face and a heart-eyes emoji",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Relative Position | source=MMBench-GUI L2 | source_id=430",
+  "tags": [
+    "evaluation_import",
+    "Relative Position"
+  ],
+  "primaryFactor": "relative",
+  "primaryFactorLabel": "Relative Position"
+}

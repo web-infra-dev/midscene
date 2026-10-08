@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-048.png",
+      "imageType": "hd",
+      "gtBox": [
+        359.89,
+        503.09,
+        415.69,
+        550.9
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "The next day of selected date",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=OSWorld-G | source_id=ZNXMeuznz8-2",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

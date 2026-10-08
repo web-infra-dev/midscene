@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-v4p7-098.jpg",
+      "imageType": "hd",
+      "gtBox": [
+        42.0,
+        1002.9999999999999,
+        120.0,
+        1084.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Locate the checkbox of the checked 'Microsoft Account Team' email in the middle of the image",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Disambiguation | source=FineState-Bench | source_id=mobile/BToggleOption200json/B2Checkbox40.json#25",
+  "tags": [
+    "evaluation_import",
+    "Disambiguation"
+  ],
+  "primaryFactor": "disambiguation",
+  "primaryFactorLabel": "Disambiguation"
+}

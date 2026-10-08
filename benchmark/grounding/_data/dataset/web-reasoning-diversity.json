@@ -1,0 +1,125 @@
+{
+  "total": 20,
+  "retained": 16,
+  "added": 4,
+  "new_types": [
+    {
+      "case_id": "GUI-WEB100-factors-v1-046",
+      "subtype": "线路拓扑与交汇",
+      "caveat": "文三路提供地域锚点；存在颜色和空间辅助线索。"
+    },
+    {
+      "case_id": "GUI-WEB100-factors-v1-048",
+      "subtype": "日期增量推导",
+      "caveat": "属于简单日期增量；不宣称高难逻辑题。"
+    },
+    {
+      "case_id": "GUI-WEB100-factors-v1-050",
+      "subtype": "概念定义到名称",
+      "caveat": "包含机器学习概念知识；定义本身未在截图完整展开，不算纯图内计算。"
+    },
+    {
+      "case_id": "GUI-WEB100-factors-v1-052",
+      "subtype": "商品语义与品牌映射",
+      "caveat": "包含品牌知识；官方GT是MEGA，不是LEGO。原截图Brand可见选项中没有LEGO。"
+    }
+  ],
+  "retained_diversity": {
+    "reasoning_count": 16,
+    "families": [
+      {
+        "类型": "数值排序/数量比较",
+        "题数": 3,
+        "原序号": [
+          1,
+          11,
+          12
+        ]
+      },
+      {
+        "类型": "时间与日期约束",
+        "题数": 2,
+        "原序号": [
+          2,
+          4
+        ]
+      },
+      {
+        "类型": "任务依赖/后继",
+        "题数": 2,
+        "原序号": [
+          5,
+          66
+        ]
+      },
+      {
+        "类型": "视觉类别判断",
+        "题数": 2,
+        "原序号": [
+          6,
+          18
+        ]
+      },
+      {
+        "类型": "数值阈值/区间",
+        "题数": 2,
+        "原序号": [
+          17,
+          61
+        ]
+      },
+      {
+        "类型": "缺失属性判断",
+        "题数": 1,
+        "原序号": [
+          16
+        ]
+      },
+      {
+        "类型": "图例映射与时间比较",
+        "题数": 1,
+        "原序号": [
+          7
+        ]
+      },
+      {
+        "类型": "数值锚点与空间迁移",
+        "题数": 1,
+        "原序号": [
+          8
+        ]
+      },
+      {
+        "类型": "地图距离与状态",
+        "题数": 2,
+        "原序号": [
+          9,
+          20
+        ]
+      }
+    ],
+    "contains_order_or_extremum": [
+      1,
+      7,
+      8,
+      9,
+      11,
+      12,
+      20
+    ],
+    "contains_order_or_extremum_share": "7/16 = 43.75%",
+    "retained_approved_candidates": {
+      "R04": "GUI-WEB100-v4p8-007",
+      "N02": "GUI-WEB100-v4p8-008",
+      "N03": "GUI-WEB100-v4p8-009"
+    },
+    "sources": {
+      "VenusBench-GD": 15,
+      "WebClick": 1
+    }
+  },
+  "ordering_extremum_cases": 7,
+  "ordering_extremum_fraction": 0.35,
+  "knowledge_mapping_added": 2,
+  "note": "保留旧16的真实推理步骤，未把混合题藏成纯图内推理；新题不含最高/最低/第几高排序。"
+}

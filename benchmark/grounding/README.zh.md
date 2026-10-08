@@ -3,7 +3,7 @@
 [English](./README.md)
 
 使用当前仓库构建的 `@midscene/core` `Agent.aiLocate`，评测固定的
-**Web v4.7 + Mobile v4.6，共 200 题**。运行器和交互报告迁自
+**Web primary v3 + Mobile primary v1 (2026-10-08)，共 200 题**。运行器和交互报告迁自
 `midscene-evaluation`，运行时无需另一个评测仓库或后台服务。
 
 ## 快速开始
@@ -77,13 +77,28 @@ pnpm evaluate --config examples/run-config.json --models-file _private/models.js
 
 ## 数据与计分
 
-| 平台 | Basic | Functional | Reason | Refusal | 合计 |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Web v4.7 | 30 | 40 | 25 | 5 | 100 |
-| Mobile v4.6 | 30 | 40 | 25 | 5 | 100 |
+| 主考点 | Web | Mobile |
+| --- | ---: | ---: |
+| Element basic（直接元素定位） | 20 | 20 |
+| Unfamiliar Icon（不常见图标） | 5 | 5 |
+| Small Target（小目标） | 10 | 10 |
+| Color Recognition（颜色识别） | 5 | 5 |
+| Functional（功能意图定位） | 20 | 20 |
+| Reasoning（推理） | 20 | 20 |
+| Fine-grained Manipulation（控件内部精确位置） | 5 | 5 |
+| Relative Position（相对位置） | 5 | 5 |
+| Disambiguation（重复元素消歧） | 5 | 5 |
+| Refusal（目标不存在） | 5 | 5 |
+| 合计 | 100 | 100 |
 
-来源、许可、抽样与审计信息见 [DATASET.md](./DATASET.md)。原始 `index.json`
-和截图按字节保留，运行前校验 SHA-256；数据目录不参与自动格式化。此集合不含 PC。
+每题只有一个 `primary_factor`，可保留其他次要因子标签。清单保留原 benchmark 分类。
+为兼容现有报告的四分类，Functional、Reasoning、Refusal 对应各自类别，其余六主类
+归入 Basic：每端 **Basic 55 / Functional 20 / Reason 20 / Refusal 5**。
+
+来源、筛选标准、GT 转换及逐题溯源见 [DATASET.md](./DATASET.md)。
+`_data/dataset/case_names.json` 固定题目顺序；`manifest.jsonl` 包含十主类、
+原 query、GT、来源 ID 和版本。200 题的 query、GT 和原图与本版已评测快照一致。
+运行前核对 index 和截图 SHA-256，数据目录不参与自动格式化。
 
 - 正常定位：预测点落在原 GT 框内即正确。
 - Refusal：仅 SDK 解析器明确返回 `not-found` 时算正确；API 404、超时、

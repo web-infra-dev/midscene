@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-v4p7-087.png",
+      "imageType": "hd",
+      "gtBox": [
+        763.0,
+        814.0000000000001,
+        779.0,
+        845.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Select the intersection point of the black vertical line and the blue line chart",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Fine-grained Manipulation | source=FineState-Bench | source_id=mobile/ANumericRange240json/A5ChartPoint40.json#7",
+  "tags": [
+    "evaluation_import",
+    "Fine-grained Manipulation"
+  ],
+  "primaryFactor": "fine",
+  "primaryFactorLabel": "Fine-grained Manipulation"
+}

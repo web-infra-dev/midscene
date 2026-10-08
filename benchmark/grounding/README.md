@@ -2,7 +2,7 @@
 
 [中文说明](./README.zh.md)
 
-Run the fixed **Web v4.7 + Mobile v4.6** dataset through this checkout's
+Run the fixed **Web primary v3 + Mobile primary v1 (2026-10-08)** dataset through this checkout's
 `@midscene/core` `Agent.aiLocate`. The runner and interactive report are migrated
 from `midscene-evaluation`; no separate evaluation checkout or service is needed.
 
@@ -81,15 +81,31 @@ LangSmith is disabled by default. Explicitly enabling it requires your own
 
 ## Dataset and scoring
 
-| Platform | Basic | Functional | Reason | Refusal | Total |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Web v4.7 | 30 | 40 | 25 | 5 | 100 |
-| Mobile v4.6 | 30 | 40 | 25 | 5 | 100 |
+| Primary factor | Web | Mobile |
+| --- | ---: | ---: |
+| Element basic | 20 | 20 |
+| Unfamiliar Icon | 5 | 5 |
+| Small Target | 10 | 10 |
+| Color Recognition | 5 | 5 |
+| Functional | 20 | 20 |
+| Reasoning | 20 | 20 |
+| Fine-grained Manipulation | 5 | 5 |
+| Relative Position | 5 | 5 |
+| Disambiguation | 5 | 5 |
+| Refusal | 5 | 5 |
+| Total | 100 | 100 |
 
-See [DATASET.md](./DATASET.md) for source benchmarks, licenses, provenance, and
-the frozen selection. Original `index.json` and image bytes are preserved and
-checked against their SHA-256 hashes before a run. Dataset files are excluded
-from automatic formatting to preserve these hashes. PC is not in this dataset.
+Each case has one exclusive `primary_factor`; secondary tags and native benchmark
+categories are retained. For the existing four-category report, Functional,
+Reasoning and Refusal map to their corresponding categories, and the other six
+factors map to Basic: **Basic 55 / Functional 20 / Reason 20 / Refusal 5** per platform.
+
+See [DATASET.md](./DATASET.md) for sources, selection criteria, GT conversions and
+provenance. `_data/dataset/case_names.json` fixes the roster/order; `manifest.jsonl`
+contains primary factors, original queries, GT, source IDs and revisions. All 200
+queries, GT boxes and original screenshots match the evaluated revision. Index
+and image SHA-256 checks run before evaluation. Data files are excluded from
+automatic formatting.
 
 - Positive cases pass when the predicted point falls inside the original GT box.
 - Refusal cases pass only when the SDK parser explicitly returns `not-found`.

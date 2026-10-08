@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-093.png",
+      "fileName": "GUI-WEB100-v4p4-093.png",
       "imageType": "hd",
       "gtBox": [
         711,
@@ -14,8 +14,11 @@
   ],
   "prompt": "open keras",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p4 | class=basic | source=ScreenSpot-v2 | source_id=screenspot_web_v2_313 | license=Apache-2.0 | sha256=1ca2543193ce0494170c5677e22de165cfa48258183829f0de3814e9e619ec4d. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=ScreenSpot-v2 | source_id=screenspot_web_v2_313",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
 }

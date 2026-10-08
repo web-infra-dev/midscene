@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-017.png",
+      "fileName": "GUI-MOBILE100-v4p5-017.png",
       "imageType": "hd",
       "gtBox": [
         386,
@@ -14,8 +14,11 @@
   ],
   "prompt": "A like or favorite counter showing a heart icon and 12万 (120,000) count, located beneath a character description in the novel details page",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p5 | class=basic | source=MMBench-GUI L2 | source_id=368 | license=Apache-2.0 | sha256=b834f44264f1b96ed2c78793d6c78ac81bedf5a0f368c024c3b50afe82152eec. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p5/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Disambiguation | source=MMBench-GUI L2 | source_id=368",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Disambiguation"
+  ],
+  "primaryFactor": "disambiguation",
+  "primaryFactorLabel": "Disambiguation"
 }

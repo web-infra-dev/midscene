@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-067.png",
+      "fileName": "GUI-WEB100-v4p7-067.png",
       "imageType": "hd",
       "gtBox": [
         950,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Find the title posted 13 hours ago, view details",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p7 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#962 | sha256=b53b191b8cd21c3a17b5abddfde50806d371e8282f60d021dadcba51fa167e1d",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Disambiguation | source=VenusBench-GD | source_id=instruction/reason_grounding.json#962",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Disambiguation"
+  ],
+  "primaryFactor": "disambiguation",
+  "primaryFactorLabel": "Disambiguation"
 }

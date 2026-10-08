@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-037.png",
+      "fileName": "GUI-MOBILE100-v4p2-037.png",
       "imageType": "hd",
       "gtBox": [
         867,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Clear all unread messages",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=222 | license=MIT | sha256=b66c43575b63193d0c2a0ecc45b2019a2125cae21ee7a7ae2e6e70ab630b5686. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=222",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Functional"
+  ],
+  "primaryFactor": "functional",
+  "primaryFactorLabel": "Functional"
 }

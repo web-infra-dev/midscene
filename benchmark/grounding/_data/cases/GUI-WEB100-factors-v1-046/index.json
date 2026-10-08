@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-046.png",
+      "imageType": "hd",
+      "gtBox": [
+        1907,
+        1134,
+        1943,
+        1171
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the transfer station icon where the blue and orange metro lines intersect, near the 'Wensan Road' station.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/visual_grounding.json#181",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

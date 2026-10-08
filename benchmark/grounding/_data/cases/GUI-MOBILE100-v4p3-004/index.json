@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-004.png",
+      "fileName": "GUI-MOBILE100-v4p3-004.png",
       "imageType": "hd",
       "gtBox": [
         419,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Select the text \"That means visiting large factories more often.\"",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1183 | license=MIT | sha256=685e7fd1fbd64fd5d72a7f2d16db756bc8df6c0d5ed91e974f5cee5e4d53990a. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1183",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
 }

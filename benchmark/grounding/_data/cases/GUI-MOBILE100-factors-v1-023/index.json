@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-023.png",
+      "imageType": "hd",
+      "gtBox": [
+        190.99800000000002,
+        1386.8855999999998,
+        290.9772,
+        1479.924
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A rounded square button with the DeepSearch icon, positioned between the paperclip and lightbulb buttons",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Unfamiliar Icon | source=MMBench-GUI L2 | source_id=1195",
+  "tags": [
+    "evaluation_import",
+    "Unfamiliar Icon"
+  ],
+  "primaryFactor": "unfamiliar",
+  "primaryFactorLabel": "Unfamiliar Icon"
+}

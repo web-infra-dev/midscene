@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-055.png",
+      "imageType": "hd",
+      "gtBox": [
+        722.0,
+        2089.0,
+        782.0,
+        2201.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "点击已选择的蓝色右下方的紫色",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Color Recognition | source=FineState-Bench | source_id=mobile/CSpecificData200json_cn/C2ColorPicker40.json#12",
+  "tags": [
+    "evaluation_import",
+    "Color Recognition"
+  ],
+  "primaryFactor": "color",
+  "primaryFactorLabel": "Color Recognition"
+}

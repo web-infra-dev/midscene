@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v3-057.png",
+      "imageType": "hd",
+      "gtBox": [
+        1432.0,
+        543.0,
+        1509.0,
+        605.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Help me find the lower left corner of the picture on the canvas",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Fine-grained Manipulation | source=FineState-Bench | source_id=web/DViewManipilation160json/D2ZoomPan30.json#4",
+  "tags": [
+    "evaluation_import",
+    "Fine-grained Manipulation"
+  ],
+  "primaryFactor": "fine",
+  "primaryFactorLabel": "Fine-grained Manipulation"
+}

@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-035.png",
+      "fileName": "GUI-WEB100-v4p2-035.png",
       "imageType": "hd",
       "gtBox": [
         2854,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Switch to night mode",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#89 | license=MIT | sha256=7d5ae3bb4531745c63876871290ff8f26af483109f72457e1aa61c3600423fff. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#89",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Functional"
+  ],
+  "primaryFactor": "functional",
+  "primaryFactorLabel": "Functional"
 }

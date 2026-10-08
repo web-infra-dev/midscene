@@ -29,11 +29,13 @@
     "clean": "rimraf --glob .nx/cache packages/playground/static packages/ios/static \"packages/*/dist\" \"packages/*/node_modules/.cache\" \"apps/*/dist\" \"apps/*/node_modules/.cache\""
   },
   "lint-staged": {
-    "*.{json,css}": ["npx biome check --diagnostic-level=info --fix"],
+    "*.{json,css}": [
+      "npx biome check --diagnostic-level=info --no-errors-on-unmatched --fix"
+    ],
     "*.{md,mdx}": ["npx prettier --write"],
     "*.{less,scss}": ["npx prettier --write"],
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
-      "npx biome check --diagnostic-level=info --fix"
+      "npx biome check --diagnostic-level=info --no-errors-on-unmatched --fix"
     ],
     "package.json": "pnpm run check-dependency-version"
   },

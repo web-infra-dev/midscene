@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-026.png",
+      "fileName": "GUI-MOBILE100-v4p3-026.png",
       "imageType": "hd",
       "gtBox": [
         216,
@@ -14,8 +14,11 @@
   ],
   "prompt": "A white rectangular box containing a metro symbol, the station name '龙耀路' (Long Yao Road), and a red circular badge with the number 11, indicating a subway station on Line 11.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=MMBench-GUI L2 | source_id=387 | license=Apache-2.0 | sha256=1367733c35e0f27e2bf6c69a7ee2e870e99187a976fc75866d5c58239adb8f35. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=MMBench-GUI L2 | source_id=387",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
 }

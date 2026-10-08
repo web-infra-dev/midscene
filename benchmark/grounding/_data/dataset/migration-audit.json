@@ -1,3385 +1,2126 @@
 {
-  "dataset_version": "Web v4.7 + Mobile v4.6",
-  "source_repository": "midscene-evaluation",
-  "source_commit": "7f029e4c5cc491a3eb611d1d85d88a9743a9c237",
-  "source_import": "grounding/_data/imports/gui-grounding-web-v4p7-mobile-v4p6-200",
-  "evaluated_snapshot_id": "gui-grounding-web-v4p7-mobile-v4p6-qwen37plus-retry-20260929-193516",
-  "source_manifest_sha256": "569776046cdb00abd144398fac13edd843c21bb99ca62acc8b36da6e8662e3fb",
-  "migrated_manifest_sha256": "18101cf9d26c76246db2641e2debdab40e21604926618f866c81e8c260b15bb8",
-  "source_case_names_sha256": "58040be1a4a490e317321b5f6365bc19fda76f0b36b1fd625d957c438a2e3e7c",
-  "source_audit_sha256": "b33ee1b1d3372653013a766ebc07c5fdbd93610a6b8b21ae8e639acb54db5598",
-  "total_cases": 200,
-  "platform_class_counts": {
-    "web/reason": 25,
-    "web/functional": 40,
-    "web/refusal": 5,
-    "web/basic": 30,
-    "mobile/basic": 30,
-    "mobile/functional": 40,
-    "mobile/reason": 25,
-    "mobile/refusal": 5
-  },
-  "case_files": 400,
-  "case_file_bytes": 221234985,
-  "passed": true,
-  "all_case_index_bytes_equal_evaluated_snapshot": true,
-  "all_image_bytes_equal_evaluated_snapshot": true,
-  "all_query_gt_expected_outcome_tags_unchanged": true,
-  "all_source_provenance_and_license_fields_unchanged": true,
-  "all_manifest_changes_are_paths_only": true,
-  "unique_source_image_hashes": 200,
-  "metadata_adaptations": [
-    "Manifest image_path and five web Reason review_evidence paths are relative to this dataset directory.",
-    "Historical baseline run absolute paths are replaced with stable run IDs in audit.json and refusal-selection.json.",
-    "refusal-semantic-review.json contains only the retained 10 cases; image paths are portable.",
-    "Historical validation stage absolute path omitted from source-validation.json."
+  "version": "web-primary-v3-mobile-primary-v1-20261008",
+  "source_batch_id": "web-mobile200-primary-astra-20261008-141330",
+  "source_manifest_sha256": "fa0ef7b8b2583f1d105bf72d13825fa6b1fcf6009be338c3610920330ee733b2",
+  "destination_manifest_sha256": "ce2395b3451df13e3362a0f11e2d27abd949d05695cce4cd7f3d97b78e7c7388",
+  "source_index_hashes_match": true,
+  "all_200_queries_gt_and_image_bytes_unchanged": true,
+  "allowed_metadata_changes": [
+    "image_path",
+    "original_dataset_root"
   ],
-  "manifest_path_changes": [
+  "changes": [
     {
       "case_name": "GUI-WEB100-v4p2-001",
-      "field": "image_path",
-      "from": "images/web-001.png",
-      "to": "../cases/GUI-WEB100-v4p2-001/web-001.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-001.png",
+          "after": "../cases/GUI-WEB100-v4p2-001/GUI-WEB100-v4p2-001.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-002",
-      "field": "image_path",
-      "from": "images/web-002.png",
-      "to": "../cases/GUI-WEB100-v4p2-002/web-002.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-002.png",
+          "after": "../cases/GUI-WEB100-v4p2-002/GUI-WEB100-v4p2-002.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-003",
-      "field": "image_path",
-      "from": "images/web-003.png",
-      "to": "../cases/GUI-WEB100-v4p2-003/web-003.png"
+      "case_name": "GUI-WEB100-factors-v1-003",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-003.png",
+          "after": "../cases/GUI-WEB100-factors-v1-003/GUI-WEB100-factors-v1-003.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-004",
-      "field": "image_path",
-      "from": "images/web-004.png",
-      "to": "../cases/GUI-WEB100-v4p2-004/web-004.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-004.png",
+          "after": "../cases/GUI-WEB100-v4p2-004/GUI-WEB100-v4p2-004.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-005",
-      "field": "image_path",
-      "from": "images/web-005.png",
-      "to": "../cases/GUI-WEB100-v4p2-005/web-005.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-005.png",
+          "after": "../cases/GUI-WEB100-v4p2-005/GUI-WEB100-v4p2-005.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p3-006",
-      "field": "image_path",
-      "from": "images/web-006.png",
-      "to": "../cases/GUI-WEB100-v4p3-006/web-006.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p3-006.png",
+          "after": "../cases/GUI-WEB100-v4p3-006/GUI-WEB100-v4p3-006.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-007",
-      "field": "image_path",
-      "from": "images/web-007.png",
-      "to": "../cases/GUI-WEB100-v4p2-007/web-007.png"
+      "case_name": "GUI-WEB100-v4p8-007",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p8-007.jpg",
+          "after": "../cases/GUI-WEB100-v4p8-007/GUI-WEB100-v4p8-007.jpg"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-008",
-      "field": "image_path",
-      "from": "images/web-008.png",
-      "to": "../cases/GUI-WEB100-v4p2-008/web-008.png"
+      "case_name": "GUI-WEB100-v4p8-008",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p8-008.png",
+          "after": "../cases/GUI-WEB100-v4p8-008/GUI-WEB100-v4p8-008.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-009",
-      "field": "image_path",
-      "from": "images/web-009.png",
-      "to": "../cases/GUI-WEB100-v4p2-009/web-009.png"
+      "case_name": "GUI-WEB100-v4p8-009",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p8-009.png",
+          "after": "../cases/GUI-WEB100-v4p8-009/GUI-WEB100-v4p8-009.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-010",
-      "field": "image_path",
-      "from": "images/web-010.png",
-      "to": "../cases/GUI-WEB100-v4p2-010/web-010.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-010.png",
+          "after": "../cases/GUI-WEB100-v4p2-010/GUI-WEB100-v4p2-010.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-011",
-      "field": "image_path",
-      "from": "images/web-011.png",
-      "to": "../cases/GUI-WEB100-v4p2-011/web-011.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-011.png",
+          "after": "../cases/GUI-WEB100-v4p2-011/GUI-WEB100-v4p2-011.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-012",
-      "field": "image_path",
-      "from": "images/web-012.png",
-      "to": "../cases/GUI-WEB100-v4p2-012/web-012.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-012.png",
+          "after": "../cases/GUI-WEB100-v4p2-012/GUI-WEB100-v4p2-012.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-013",
-      "field": "image_path",
-      "from": "images/web-013.png",
-      "to": "../cases/GUI-WEB100-v4p2-013/web-013.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-013.png",
+          "after": "../cases/GUI-WEB100-v4p2-013/GUI-WEB100-v4p2-013.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-014",
-      "field": "image_path",
-      "from": "images/web-014.png",
-      "to": "../cases/GUI-WEB100-v4p2-014/web-014.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-014.png",
+          "after": "../cases/GUI-WEB100-v4p2-014/GUI-WEB100-v4p2-014.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-015",
-      "field": "image_path",
-      "from": "images/web-015.png",
-      "to": "../cases/GUI-WEB100-v4p2-015/web-015.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-015.png",
+          "after": "../cases/GUI-WEB100-v4p2-015/GUI-WEB100-v4p2-015.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-016",
-      "field": "image_path",
-      "from": "images/web-016.png",
-      "to": "../cases/GUI-WEB100-v4p2-016/web-016.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-016.png",
+          "after": "../cases/GUI-WEB100-v4p2-016/GUI-WEB100-v4p2-016.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-017",
-      "field": "image_path",
-      "from": "images/web-017.png",
-      "to": "../cases/GUI-WEB100-v4p2-017/web-017.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-017.png",
+          "after": "../cases/GUI-WEB100-v4p2-017/GUI-WEB100-v4p2-017.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-018",
-      "field": "image_path",
-      "from": "images/web-018.png",
-      "to": "../cases/GUI-WEB100-v4p2-018/web-018.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-018.png",
+          "after": "../cases/GUI-WEB100-v4p2-018/GUI-WEB100-v4p2-018.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p3-019",
-      "field": "image_path",
-      "from": "images/web-019.png",
-      "to": "../cases/GUI-WEB100-v4p3-019/web-019.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p3-019.png",
+          "after": "../cases/GUI-WEB100-v4p3-019/GUI-WEB100-v4p3-019.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-020",
-      "field": "image_path",
-      "from": "images/web-020.png",
-      "to": "../cases/GUI-WEB100-v4p2-020/web-020.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-020.png",
+          "after": "../cases/GUI-WEB100-v4p2-020/GUI-WEB100-v4p2-020.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-021",
-      "field": "image_path",
-      "from": "images/web-021.png",
-      "to": "../cases/GUI-WEB100-v4p2-021/web-021.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-021.png",
+          "after": "../cases/GUI-WEB100-v4p2-021/GUI-WEB100-v4p2-021.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-022",
-      "field": "image_path",
-      "from": "images/web-022.png",
-      "to": "../cases/GUI-WEB100-v4p2-022/web-022.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-022.png",
+          "after": "../cases/GUI-WEB100-v4p2-022/GUI-WEB100-v4p2-022.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-023",
-      "field": "image_path",
-      "from": "images/web-023.png",
-      "to": "../cases/GUI-WEB100-v4p2-023/web-023.png"
+      "case_name": "GUI-WEB100-factors-v1-023",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-023.png",
+          "after": "../cases/GUI-WEB100-factors-v1-023/GUI-WEB100-factors-v1-023.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-024",
-      "field": "image_path",
-      "from": "images/web-024.png",
-      "to": "../cases/GUI-WEB100-v4p2-024/web-024.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-024.png",
+          "after": "../cases/GUI-WEB100-v4p2-024/GUI-WEB100-v4p2-024.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-025",
-      "field": "image_path",
-      "from": "images/web-025.png",
-      "to": "../cases/GUI-WEB100-v4p2-025/web-025.png"
+      "case_name": "GUI-WEB100-factors-v1-025",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-025.png",
+          "after": "../cases/GUI-WEB100-factors-v1-025/GUI-WEB100-factors-v1-025.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-026",
-      "field": "image_path",
-      "from": "images/web-026.png",
-      "to": "../cases/GUI-WEB100-v4p4-026/web-026.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-026.png",
+          "after": "../cases/GUI-WEB100-v4p4-026/GUI-WEB100-v4p4-026.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-027",
-      "field": "image_path",
-      "from": "images/web-027.png",
-      "to": "../cases/GUI-WEB100-v4p4-027/web-027.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-027.png",
+          "after": "../cases/GUI-WEB100-v4p4-027/GUI-WEB100-v4p4-027.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-028",
-      "field": "image_path",
-      "from": "images/web-028.png",
-      "to": "../cases/GUI-WEB100-v4p2-028/web-028.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-028.png",
+          "after": "../cases/GUI-WEB100-v4p2-028/GUI-WEB100-v4p2-028.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-029",
-      "field": "image_path",
-      "from": "images/web-029.png",
-      "to": "../cases/GUI-WEB100-v4p2-029/web-029.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-029.png",
+          "after": "../cases/GUI-WEB100-v4p2-029/GUI-WEB100-v4p2-029.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-030",
-      "field": "image_path",
-      "from": "images/web-030.png",
-      "to": "../cases/GUI-WEB100-v4p2-030/web-030.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-030.png",
+          "after": "../cases/GUI-WEB100-v4p2-030/GUI-WEB100-v4p2-030.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-031",
-      "field": "image_path",
-      "from": "images/web-031.png",
-      "to": "../cases/GUI-WEB100-v4p2-031/web-031.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-031.png",
+          "after": "../cases/GUI-WEB100-v4p2-031/GUI-WEB100-v4p2-031.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-032",
-      "field": "image_path",
-      "from": "images/web-032.png",
-      "to": "../cases/GUI-WEB100-v4p2-032/web-032.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-032.png",
+          "after": "../cases/GUI-WEB100-v4p2-032/GUI-WEB100-v4p2-032.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-033",
-      "field": "image_path",
-      "from": "images/web-033.png",
-      "to": "../cases/GUI-WEB100-v4p2-033/web-033.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-033.png",
+          "after": "../cases/GUI-WEB100-v4p2-033/GUI-WEB100-v4p2-033.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-034",
-      "field": "image_path",
-      "from": "images/web-034.png",
-      "to": "../cases/GUI-WEB100-v4p2-034/web-034.png"
+      "case_name": "GUI-WEB100-factors-v1-034",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-034.png",
+          "after": "../cases/GUI-WEB100-factors-v1-034/GUI-WEB100-factors-v1-034.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-035",
-      "field": "image_path",
-      "from": "images/web-035.png",
-      "to": "../cases/GUI-WEB100-v4p2-035/web-035.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-035.png",
+          "after": "../cases/GUI-WEB100-v4p2-035/GUI-WEB100-v4p2-035.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-036",
-      "field": "image_path",
-      "from": "images/web-036.png",
-      "to": "../cases/GUI-WEB100-v4p2-036/web-036.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-036.png",
+          "after": "../cases/GUI-WEB100-v4p2-036/GUI-WEB100-v4p2-036.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-037",
-      "field": "image_path",
-      "from": "images/web-037.png",
-      "to": "../cases/GUI-WEB100-v4p2-037/web-037.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-037.png",
+          "after": "../cases/GUI-WEB100-v4p2-037/GUI-WEB100-v4p2-037.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-038",
-      "field": "image_path",
-      "from": "images/web-038.png",
-      "to": "../cases/GUI-WEB100-v4p2-038/web-038.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-038.png",
+          "after": "../cases/GUI-WEB100-v4p2-038/GUI-WEB100-v4p2-038.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-039",
-      "field": "image_path",
-      "from": "images/web-039.png",
-      "to": "../cases/GUI-WEB100-v4p2-039/web-039.png"
+      "case_name": "GUI-WEB100-factors-v1-039",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-039.png",
+          "after": "../cases/GUI-WEB100-factors-v1-039/GUI-WEB100-factors-v1-039.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-040",
-      "field": "image_path",
-      "from": "images/web-040.png",
-      "to": "../cases/GUI-WEB100-v4p2-040/web-040.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-040.png",
+          "after": "../cases/GUI-WEB100-v4p2-040/GUI-WEB100-v4p2-040.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-041",
-      "field": "image_path",
-      "from": "images/web-041.png",
-      "to": "../cases/GUI-WEB100-v4p2-041/web-041.png"
+      "case_name": "GUI-WEB100-factors-v1-041",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-041.png",
+          "after": "../cases/GUI-WEB100-factors-v1-041/GUI-WEB100-factors-v1-041.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p4-042",
-      "field": "image_path",
-      "from": "images/web-042.png",
-      "to": "../cases/GUI-WEB100-v4p4-042/web-042.png"
+      "case_name": "GUI-WEB100-factors-v2-042",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v2-042.png",
+          "after": "../cases/GUI-WEB100-factors-v2-042/GUI-WEB100-factors-v2-042.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-043",
-      "field": "image_path",
-      "from": "images/web-043.png",
-      "to": "../cases/GUI-WEB100-v4p4-043/web-043.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-043.png",
+          "after": "../cases/GUI-WEB100-v4p4-043/GUI-WEB100-v4p4-043.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-044",
-      "field": "image_path",
-      "from": "images/web-044.png",
-      "to": "../cases/GUI-WEB100-v4p2-044/web-044.png"
+      "case_name": "GUI-WEB100-factors-v2-044",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v2-044.png",
+          "after": "../cases/GUI-WEB100-factors-v2-044/GUI-WEB100-factors-v2-044.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-045",
-      "field": "image_path",
-      "from": "images/web-045.png",
-      "to": "../cases/GUI-WEB100-v4p2-045/web-045.png"
+      "case_name": "GUI-WEB100-factors-v2-045",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v2-045.jpg",
+          "after": "../cases/GUI-WEB100-factors-v2-045/GUI-WEB100-factors-v2-045.jpg"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-046",
-      "field": "image_path",
-      "from": "images/web-046.png",
-      "to": "../cases/GUI-WEB100-v4p2-046/web-046.png"
+      "case_name": "GUI-WEB100-factors-v1-046",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-046.png",
+          "after": "../cases/GUI-WEB100-factors-v1-046/GUI-WEB100-factors-v1-046.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-047",
-      "field": "image_path",
-      "from": "images/web-047.png",
-      "to": "../cases/GUI-WEB100-v4p2-047/web-047.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-047.png",
+          "after": "../cases/GUI-WEB100-v4p2-047/GUI-WEB100-v4p2-047.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-048",
-      "field": "image_path",
-      "from": "images/web-048.png",
-      "to": "../cases/GUI-WEB100-v4p2-048/web-048.png"
+      "case_name": "GUI-WEB100-factors-v1-048",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-048.png",
+          "after": "../cases/GUI-WEB100-factors-v1-048/GUI-WEB100-factors-v1-048.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-049",
-      "field": "image_path",
-      "from": "images/web-049.png",
-      "to": "../cases/GUI-WEB100-v4p2-049/web-049.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-049.png",
+          "after": "../cases/GUI-WEB100-v4p2-049/GUI-WEB100-v4p2-049.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-050",
-      "field": "image_path",
-      "from": "images/web-050.png",
-      "to": "../cases/GUI-WEB100-v4p2-050/web-050.png"
+      "case_name": "GUI-WEB100-factors-v1-050",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-050.png",
+          "after": "../cases/GUI-WEB100-factors-v1-050/GUI-WEB100-factors-v1-050.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-051",
-      "field": "image_path",
-      "from": "images/web-051.png",
-      "to": "../cases/GUI-WEB100-v4p2-051/web-051.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-051.png",
+          "after": "../cases/GUI-WEB100-v4p2-051/GUI-WEB100-v4p2-051.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-052",
-      "field": "image_path",
-      "from": "images/web-052.png",
-      "to": "../cases/GUI-WEB100-v4p2-052/web-052.png"
+      "case_name": "GUI-WEB100-factors-v1-052",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-052.png",
+          "after": "../cases/GUI-WEB100-factors-v1-052/GUI-WEB100-factors-v1-052.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-053",
-      "field": "image_path",
-      "from": "images/web-053.png",
-      "to": "../cases/GUI-WEB100-v4p2-053/web-053.png"
+      "case_name": "GUI-WEB100-factors-v3-053",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v3-053.png",
+          "after": "../cases/GUI-WEB100-factors-v3-053/GUI-WEB100-factors-v3-053.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-054",
-      "field": "image_path",
-      "from": "images/web-054.png",
-      "to": "../cases/GUI-WEB100-v4p2-054/web-054.png"
+      "case_name": "GUI-WEB100-factors-v1-054",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-054.png",
+          "after": "../cases/GUI-WEB100-factors-v1-054/GUI-WEB100-factors-v1-054.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-055",
-      "field": "image_path",
-      "from": "images/web-055.png",
-      "to": "../cases/GUI-WEB100-v4p2-055/web-055.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-055.png",
+          "after": "../cases/GUI-WEB100-v4p2-055/GUI-WEB100-v4p2-055.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-056",
-      "field": "image_path",
-      "from": "images/web-056.png",
-      "to": "../cases/GUI-WEB100-v4p2-056/web-056.png"
+      "case_name": "GUI-WEB100-factors-v3-056",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v3-056.png",
+          "after": "../cases/GUI-WEB100-factors-v3-056/GUI-WEB100-factors-v3-056.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-057",
-      "field": "image_path",
-      "from": "images/web-057.png",
-      "to": "../cases/GUI-WEB100-v4p2-057/web-057.png"
+      "case_name": "GUI-WEB100-factors-v3-057",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v3-057.png",
+          "after": "../cases/GUI-WEB100-factors-v3-057/GUI-WEB100-factors-v3-057.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-058",
-      "field": "image_path",
-      "from": "images/web-058.png",
-      "to": "../cases/GUI-WEB100-v4p2-058/web-058.png"
+      "case_name": "GUI-WEB100-factors-v1-058",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-058.png",
+          "after": "../cases/GUI-WEB100-factors-v1-058/GUI-WEB100-factors-v1-058.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-059",
-      "field": "image_path",
-      "from": "images/web-059.png",
-      "to": "../cases/GUI-WEB100-v4p2-059/web-059.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-059.png",
+          "after": "../cases/GUI-WEB100-v4p2-059/GUI-WEB100-v4p2-059.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p2-060",
-      "field": "image_path",
-      "from": "images/web-060.png",
-      "to": "../cases/GUI-WEB100-v4p2-060/web-060.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-061",
-      "field": "image_path",
-      "from": "images/web-061.png",
-      "to": "../cases/GUI-WEB100-v4p7-061/web-061.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-061",
-      "field": "review_evidence.full_screenshot_path",
-      "source_artifact": "reason-81.png",
-      "to": "../cases/GUI-WEB100-v4p7-061/web-061.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-061",
-      "field": "review_evidence.gt_overlay_path",
-      "source_artifact": "reason-81-gt.jpg",
-      "to": "review-evidence/GUI-WEB100-v4p7-061-reason-81-gt.jpg"
+      "case_name": "GUI-WEB100-factors-v1-060",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-060.png",
+          "after": "../cases/GUI-WEB100-factors-v1-060/GUI-WEB100-factors-v1-060.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p7-061",
-      "field": "review_evidence.gt_crop_path",
-      "source_artifact": "reason-81-gt-crop.png",
-      "to": "review-evidence/GUI-WEB100-v4p7-061-reason-81-gt-crop.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p7-061.png",
+          "after": "../cases/GUI-WEB100-v4p7-061/GUI-WEB100-v4p7-061.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-062",
-      "field": "image_path",
-      "from": "images/web-062.png",
-      "to": "../cases/GUI-WEB100-v4p2-062/web-062.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-062.png",
+          "after": "../cases/GUI-WEB100-v4p2-062/GUI-WEB100-v4p2-062.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p7-063",
-      "field": "image_path",
-      "from": "images/web-063.png",
-      "to": "../cases/GUI-WEB100-v4p7-063/web-063.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-063",
-      "field": "review_evidence.full_screenshot_path",
-      "source_artifact": "reason-201.png",
-      "to": "../cases/GUI-WEB100-v4p7-063/web-063.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-063",
-      "field": "review_evidence.gt_overlay_path",
-      "source_artifact": "reason-201-gt.jpg",
-      "to": "review-evidence/GUI-WEB100-v4p7-063-reason-201-gt.jpg"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-063",
-      "field": "review_evidence.gt_crop_path",
-      "source_artifact": "reason-201-gt-crop.png",
-      "to": "review-evidence/GUI-WEB100-v4p7-063-reason-201-gt-crop.png"
+      "case_name": "GUI-WEB100-factors-v1-063",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-063.png",
+          "after": "../cases/GUI-WEB100-factors-v1-063/GUI-WEB100-factors-v1-063.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-064",
-      "field": "image_path",
-      "from": "images/web-064.png",
-      "to": "../cases/GUI-WEB100-v4p2-064/web-064.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-064.png",
+          "after": "../cases/GUI-WEB100-v4p2-064/GUI-WEB100-v4p2-064.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p7-065",
-      "field": "image_path",
-      "from": "images/web-065.png",
-      "to": "../cases/GUI-WEB100-v4p7-065/web-065.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-065",
-      "field": "review_evidence.full_screenshot_path",
-      "source_artifact": "reason-453.png",
-      "to": "../cases/GUI-WEB100-v4p7-065/web-065.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-065",
-      "field": "review_evidence.gt_overlay_path",
-      "source_artifact": "reason-453-gt.jpg",
-      "to": "review-evidence/GUI-WEB100-v4p7-065-reason-453-gt.jpg"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-065",
-      "field": "review_evidence.gt_crop_path",
-      "source_artifact": "reason-453-gt-crop.png",
-      "to": "review-evidence/GUI-WEB100-v4p7-065-reason-453-gt-crop.png"
+      "case_name": "GUI-WEB100-factors-v1-065",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v1-065.png",
+          "after": "../cases/GUI-WEB100-factors-v1-065/GUI-WEB100-factors-v1-065.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p7-066",
-      "field": "image_path",
-      "from": "images/web-066.png",
-      "to": "../cases/GUI-WEB100-v4p7-066/web-066.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-066",
-      "field": "review_evidence.full_screenshot_path",
-      "source_artifact": "reason-582.png",
-      "to": "../cases/GUI-WEB100-v4p7-066/web-066.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-066",
-      "field": "review_evidence.gt_overlay_path",
-      "source_artifact": "reason-582-gt.jpg",
-      "to": "review-evidence/GUI-WEB100-v4p7-066-reason-582-gt.jpg"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-066",
-      "field": "review_evidence.gt_crop_path",
-      "source_artifact": "reason-582-gt-crop.png",
-      "to": "review-evidence/GUI-WEB100-v4p7-066-reason-582-gt-crop.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p7-066.png",
+          "after": "../cases/GUI-WEB100-v4p7-066/GUI-WEB100-v4p7-066.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p7-067",
-      "field": "image_path",
-      "from": "images/web-067.png",
-      "to": "../cases/GUI-WEB100-v4p7-067/web-067.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-067",
-      "field": "review_evidence.full_screenshot_path",
-      "source_artifact": "reason-962.png",
-      "to": "../cases/GUI-WEB100-v4p7-067/web-067.png"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-067",
-      "field": "review_evidence.gt_overlay_path",
-      "source_artifact": "reason-962-gt.jpg",
-      "to": "review-evidence/GUI-WEB100-v4p7-067-reason-962-gt.jpg"
-    },
-    {
-      "case_name": "GUI-WEB100-v4p7-067",
-      "field": "review_evidence.gt_crop_path",
-      "source_artifact": "reason-962-gt-crop.png",
-      "to": "review-evidence/GUI-WEB100-v4p7-067-reason-962-gt-crop.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p7-067.png",
+          "after": "../cases/GUI-WEB100-v4p7-067/GUI-WEB100-v4p7-067.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-068",
-      "field": "image_path",
-      "from": "images/web-068.png",
-      "to": "../cases/GUI-WEB100-v4p2-068/web-068.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-068.png",
+          "after": "../cases/GUI-WEB100-v4p2-068/GUI-WEB100-v4p2-068.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-069",
-      "field": "image_path",
-      "from": "images/web-069.png",
-      "to": "../cases/GUI-WEB100-v4p2-069/web-069.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-069.png",
+          "after": "../cases/GUI-WEB100-v4p2-069/GUI-WEB100-v4p2-069.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p2-070",
-      "field": "image_path",
-      "from": "images/web-070.png",
-      "to": "../cases/GUI-WEB100-v4p2-070/web-070.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p2-070.png",
+          "after": "../cases/GUI-WEB100-v4p2-070/GUI-WEB100-v4p2-070.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-071",
-      "field": "image_path",
-      "from": "images/web-071.png",
-      "to": "../cases/GUI-WEB100-v4p4-071/web-071.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-071.png",
+          "after": "../cases/GUI-WEB100-v4p4-071/GUI-WEB100-v4p4-071.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-072",
-      "field": "image_path",
-      "from": "images/web-072.png",
-      "to": "../cases/GUI-WEB100-v4p4-072/web-072.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-072.png",
+          "after": "../cases/GUI-WEB100-v4p4-072/GUI-WEB100-v4p4-072.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-073",
-      "field": "image_path",
-      "from": "images/web-073.png",
-      "to": "../cases/GUI-WEB100-v4p4-073/web-073.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-073.png",
+          "after": "../cases/GUI-WEB100-v4p4-073/GUI-WEB100-v4p4-073.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-074",
-      "field": "image_path",
-      "from": "images/web-074.png",
-      "to": "../cases/GUI-WEB100-v4p4-074/web-074.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-074.png",
+          "after": "../cases/GUI-WEB100-v4p4-074/GUI-WEB100-v4p4-074.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-075",
-      "field": "image_path",
-      "from": "images/web-075.png",
-      "to": "../cases/GUI-WEB100-v4p4-075/web-075.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-075.png",
+          "after": "../cases/GUI-WEB100-v4p4-075/GUI-WEB100-v4p4-075.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-076",
-      "field": "image_path",
-      "from": "images/web-076.png",
-      "to": "../cases/GUI-WEB100-v4p4-076/web-076.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-076.png",
+          "after": "../cases/GUI-WEB100-v4p4-076/GUI-WEB100-v4p4-076.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-077",
-      "field": "image_path",
-      "from": "images/web-077.png",
-      "to": "../cases/GUI-WEB100-v4p4-077/web-077.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-077.png",
+          "after": "../cases/GUI-WEB100-v4p4-077/GUI-WEB100-v4p4-077.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-078",
-      "field": "image_path",
-      "from": "images/web-078.png",
-      "to": "../cases/GUI-WEB100-v4p4-078/web-078.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-078.png",
+          "after": "../cases/GUI-WEB100-v4p4-078/GUI-WEB100-v4p4-078.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
-      "case_name": "GUI-WEB100-v4p4-079",
-      "field": "image_path",
-      "from": "images/web-079.png",
-      "to": "../cases/GUI-WEB100-v4p4-079/web-079.png"
+      "case_name": "GUI-WEB100-factors-v3-079",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-factors-v3-079.png",
+          "after": "../cases/GUI-WEB100-factors-v3-079/GUI-WEB100-factors-v3-079.png"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-080",
-      "field": "image_path",
-      "from": "images/web-080.png",
-      "to": "../cases/GUI-WEB100-v4p4-080/web-080.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-080.png",
+          "after": "../cases/GUI-WEB100-v4p4-080/GUI-WEB100-v4p4-080.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-081",
-      "field": "image_path",
-      "from": "images/web-081.png",
-      "to": "../cases/GUI-WEB100-v4p4-081/web-081.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-081.png",
+          "after": "../cases/GUI-WEB100-v4p4-081/GUI-WEB100-v4p4-081.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-082",
-      "field": "image_path",
-      "from": "images/web-082.png",
-      "to": "../cases/GUI-WEB100-v4p4-082/web-082.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-082.png",
+          "after": "../cases/GUI-WEB100-v4p4-082/GUI-WEB100-v4p4-082.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-083",
-      "field": "image_path",
-      "from": "images/web-083.png",
-      "to": "../cases/GUI-WEB100-v4p4-083/web-083.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-083.png",
+          "after": "../cases/GUI-WEB100-v4p4-083/GUI-WEB100-v4p4-083.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-084",
-      "field": "image_path",
-      "from": "images/web-084.png",
-      "to": "../cases/GUI-WEB100-v4p4-084/web-084.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-084.png",
+          "after": "../cases/GUI-WEB100-v4p4-084/GUI-WEB100-v4p4-084.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-085",
-      "field": "image_path",
-      "from": "images/web-085.png",
-      "to": "../cases/GUI-WEB100-v4p4-085/web-085.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-085.png",
+          "after": "../cases/GUI-WEB100-v4p4-085/GUI-WEB100-v4p4-085.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-086",
-      "field": "image_path",
-      "from": "images/web-086.png",
-      "to": "../cases/GUI-WEB100-v4p4-086/web-086.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-086.png",
+          "after": "../cases/GUI-WEB100-v4p4-086/GUI-WEB100-v4p4-086.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p5-087",
-      "field": "image_path",
-      "from": "images/web-087.png",
-      "to": "../cases/GUI-WEB100-v4p5-087/web-087.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p5-087.png",
+          "after": "../cases/GUI-WEB100-v4p5-087/GUI-WEB100-v4p5-087.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-088",
-      "field": "image_path",
-      "from": "images/web-088.png",
-      "to": "../cases/GUI-WEB100-v4p4-088/web-088.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-088.png",
+          "after": "../cases/GUI-WEB100-v4p4-088/GUI-WEB100-v4p4-088.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-089",
-      "field": "image_path",
-      "from": "images/web-089.png",
-      "to": "../cases/GUI-WEB100-v4p4-089/web-089.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-089.png",
+          "after": "../cases/GUI-WEB100-v4p4-089/GUI-WEB100-v4p4-089.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p6-090",
-      "field": "image_path",
-      "from": "images/web-090.png",
-      "to": "../cases/GUI-WEB100-v4p6-090/web-090.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p6-090.png",
+          "after": "../cases/GUI-WEB100-v4p6-090/GUI-WEB100-v4p6-090.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-091",
-      "field": "image_path",
-      "from": "images/web-091.png",
-      "to": "../cases/GUI-WEB100-v4p4-091/web-091.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-091.png",
+          "after": "../cases/GUI-WEB100-v4p4-091/GUI-WEB100-v4p4-091.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-092",
-      "field": "image_path",
-      "from": "images/web-092.png",
-      "to": "../cases/GUI-WEB100-v4p4-092/web-092.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-092.png",
+          "after": "../cases/GUI-WEB100-v4p4-092/GUI-WEB100-v4p4-092.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-093",
-      "field": "image_path",
-      "from": "images/web-093.png",
-      "to": "../cases/GUI-WEB100-v4p4-093/web-093.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-093.png",
+          "after": "../cases/GUI-WEB100-v4p4-093/GUI-WEB100-v4p4-093.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-094",
-      "field": "image_path",
-      "from": "images/web-094.png",
-      "to": "../cases/GUI-WEB100-v4p4-094/web-094.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-094.png",
+          "after": "../cases/GUI-WEB100-v4p4-094/GUI-WEB100-v4p4-094.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p6-095",
-      "field": "image_path",
-      "from": "images/web-095.png",
-      "to": "../cases/GUI-WEB100-v4p6-095/web-095.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p6-095.png",
+          "after": "../cases/GUI-WEB100-v4p6-095/GUI-WEB100-v4p6-095.png"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p5-096",
-      "field": "image_path",
-      "from": "images/web-096.jpg",
-      "to": "../cases/GUI-WEB100-v4p5-096/web-096.jpg"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p5-096.jpg",
+          "after": "../cases/GUI-WEB100-v4p5-096/GUI-WEB100-v4p5-096.jpg"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p5-097",
-      "field": "image_path",
-      "from": "images/web-097.jpg",
-      "to": "../cases/GUI-WEB100-v4p5-097/web-097.jpg"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p5-097.jpg",
+          "after": "../cases/GUI-WEB100-v4p5-097/GUI-WEB100-v4p5-097.jpg"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-098",
-      "field": "image_path",
-      "from": "images/web-098.jpg",
-      "to": "../cases/GUI-WEB100-v4p4-098/web-098.jpg"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-098.jpg",
+          "after": "../cases/GUI-WEB100-v4p4-098/GUI-WEB100-v4p4-098.jpg"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-099",
-      "field": "image_path",
-      "from": "images/web-099.jpg",
-      "to": "../cases/GUI-WEB100-v4p4-099/web-099.jpg"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-099.jpg",
+          "after": "../cases/GUI-WEB100-v4p4-099/GUI-WEB100-v4p4-099.jpg"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-WEB100-v4p4-100",
-      "field": "image_path",
-      "from": "images/web-100.jpg",
-      "to": "../cases/GUI-WEB100-v4p4-100/web-100.jpg"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-WEB100-v4p4-100.jpg",
+          "after": "../cases/GUI-WEB100-v4p4-100/GUI-WEB100-v4p4-100.jpg"
+        },
+        "original_dataset_root": {
+          "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
+          "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-001",
-      "field": "image_path",
-      "from": "images/mobile-001.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-001/mobile-001.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-001.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-001/GUI-MOBILE100-v4p3-001.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-002",
-      "field": "image_path",
-      "from": "images/mobile-002.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-002/mobile-002.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-002.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-002/GUI-MOBILE100-v4p3-002.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-003",
-      "field": "image_path",
-      "from": "images/mobile-003.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-003/mobile-003.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-003.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-003/GUI-MOBILE100-v4p3-003.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-004",
-      "field": "image_path",
-      "from": "images/mobile-004.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-004/mobile-004.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-004.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-004/GUI-MOBILE100-v4p3-004.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-005",
-      "field": "image_path",
-      "from": "images/mobile-005.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-005/mobile-005.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-005.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-005/GUI-MOBILE100-v4p3-005.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-006",
-      "field": "image_path",
-      "from": "images/mobile-006.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-006/mobile-006.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-006.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-006/GUI-MOBILE100-v4p3-006.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-007",
-      "field": "image_path",
-      "from": "images/mobile-007.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-007/mobile-007.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-007.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-007/GUI-MOBILE100-v4p3-007.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-008",
-      "field": "image_path",
-      "from": "images/mobile-008.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-008/mobile-008.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-008.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-008/GUI-MOBILE100-v4p3-008.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-009",
-      "field": "image_path",
-      "from": "images/mobile-009.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-009/mobile-009.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-009.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-009/GUI-MOBILE100-v4p3-009.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-010",
-      "field": "image_path",
-      "from": "images/mobile-010.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-010/mobile-010.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-010.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-010/GUI-MOBILE100-v4p3-010.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-011",
-      "field": "image_path",
-      "from": "images/mobile-011.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-011/mobile-011.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-011.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-011/GUI-MOBILE100-v4p3-011.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-012",
-      "field": "image_path",
-      "from": "images/mobile-012.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-012/mobile-012.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-012.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-012/GUI-MOBILE100-v4p3-012.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-013",
-      "field": "image_path",
-      "from": "images/mobile-013.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-013/mobile-013.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-013.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-013/GUI-MOBILE100-v4p3-013.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-014",
-      "field": "image_path",
-      "from": "images/mobile-014.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-014/mobile-014.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-014.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-014/GUI-MOBILE100-v4p3-014.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-015",
-      "field": "image_path",
-      "from": "images/mobile-015.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-015/mobile-015.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-015.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-015/GUI-MOBILE100-v4p3-015.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p5-016",
-      "field": "image_path",
-      "from": "images/mobile-016.png",
-      "to": "../cases/GUI-MOBILE100-v4p5-016/mobile-016.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p5-016.png",
+          "after": "../cases/GUI-MOBILE100-v4p5-016/GUI-MOBILE100-v4p5-016.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p5-017",
-      "field": "image_path",
-      "from": "images/mobile-017.png",
-      "to": "../cases/GUI-MOBILE100-v4p5-017/mobile-017.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p5-017.png",
+          "after": "../cases/GUI-MOBILE100-v4p5-017/GUI-MOBILE100-v4p5-017.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p5-018",
-      "field": "image_path",
-      "from": "images/mobile-018.png",
-      "to": "../cases/GUI-MOBILE100-v4p5-018/mobile-018.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p5-018.png",
+          "after": "../cases/GUI-MOBILE100-v4p5-018/GUI-MOBILE100-v4p5-018.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-019",
-      "field": "image_path",
-      "from": "images/mobile-019.jpg",
-      "to": "../cases/GUI-MOBILE100-v4p3-019/mobile-019.jpg"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-019.jpg",
+          "after": "../cases/GUI-MOBILE100-v4p3-019/GUI-MOBILE100-v4p3-019.jpg"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-020",
-      "field": "image_path",
-      "from": "images/mobile-020.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-020/mobile-020.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-020.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-020/GUI-MOBILE100-v4p3-020.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-021",
-      "field": "image_path",
-      "from": "images/mobile-021.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-021/mobile-021.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-021.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-021/GUI-MOBILE100-v4p3-021.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-022",
-      "field": "image_path",
-      "from": "images/mobile-022.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-022/mobile-022.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-022.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-022/GUI-MOBILE100-v4p3-022.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p5-023",
-      "field": "image_path",
-      "from": "images/mobile-023.png",
-      "to": "../cases/GUI-MOBILE100-v4p5-023/mobile-023.png"
+      "case_name": "GUI-MOBILE100-factors-v1-023",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-023.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-023/GUI-MOBILE100-factors-v1-023.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-024",
-      "field": "image_path",
-      "from": "images/mobile-024.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-024/mobile-024.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-024.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-024/GUI-MOBILE100-v4p3-024.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p5-025",
-      "field": "image_path",
-      "from": "images/mobile-025.png",
-      "to": "../cases/GUI-MOBILE100-v4p5-025/mobile-025.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p5-025.png",
+          "after": "../cases/GUI-MOBILE100-v4p5-025/GUI-MOBILE100-v4p5-025.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-026",
-      "field": "image_path",
-      "from": "images/mobile-026.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-026/mobile-026.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-026.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-026/GUI-MOBILE100-v4p3-026.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-027",
-      "field": "image_path",
-      "from": "images/mobile-027.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-027/mobile-027.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-027.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-027/GUI-MOBILE100-v4p3-027.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-028",
-      "field": "image_path",
-      "from": "images/mobile-028.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-028/mobile-028.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-028.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-028/GUI-MOBILE100-v4p3-028.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-029",
-      "field": "image_path",
-      "from": "images/mobile-029.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-029/mobile-029.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-029.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-029/GUI-MOBILE100-v4p3-029.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p3-030",
-      "field": "image_path",
-      "from": "images/mobile-030.png",
-      "to": "../cases/GUI-MOBILE100-v4p3-030/mobile-030.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p3-030.png",
+          "after": "../cases/GUI-MOBILE100-v4p3-030/GUI-MOBILE100-v4p3-030.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-031",
-      "field": "image_path",
-      "from": "images/mobile-031.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-031/mobile-031.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-031.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-031/GUI-MOBILE100-v4p2-031.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-032",
-      "field": "image_path",
-      "from": "images/mobile-032.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-032/mobile-032.png"
+      "case_name": "GUI-MOBILE100-factors-v1-032",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-032.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-032/GUI-MOBILE100-factors-v1-032.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-033",
-      "field": "image_path",
-      "from": "images/mobile-033.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-033/mobile-033.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-033.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-033/GUI-MOBILE100-v4p2-033.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-034",
-      "field": "image_path",
-      "from": "images/mobile-034.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-034/mobile-034.png"
+      "case_name": "GUI-MOBILE100-factors-v1-034",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-034.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-034/GUI-MOBILE100-factors-v1-034.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-035",
-      "field": "image_path",
-      "from": "images/mobile-035.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-035/mobile-035.png"
+      "case_name": "GUI-MOBILE100-factors-v1-035",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-035.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-035/GUI-MOBILE100-factors-v1-035.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-036",
-      "field": "image_path",
-      "from": "images/mobile-036.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-036/mobile-036.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-036.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-036/GUI-MOBILE100-v4p2-036.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-037",
-      "field": "image_path",
-      "from": "images/mobile-037.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-037/mobile-037.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-037.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-037/GUI-MOBILE100-v4p2-037.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-038",
-      "field": "image_path",
-      "from": "images/mobile-038.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-038/mobile-038.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-038.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-038/GUI-MOBILE100-v4p2-038.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-039",
-      "field": "image_path",
-      "from": "images/mobile-039.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-039/mobile-039.png"
+      "case_name": "GUI-MOBILE100-factors-v1-039",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-039.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-039/GUI-MOBILE100-factors-v1-039.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-040",
-      "field": "image_path",
-      "from": "images/mobile-040.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-040/mobile-040.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-040.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-040/GUI-MOBILE100-v4p2-040.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-041",
-      "field": "image_path",
-      "from": "images/mobile-041.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-041/mobile-041.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-041.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-041/GUI-MOBILE100-v4p2-041.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-042",
-      "field": "image_path",
-      "from": "images/mobile-042.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-042/mobile-042.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-042.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-042/GUI-MOBILE100-v4p2-042.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-043",
-      "field": "image_path",
-      "from": "images/mobile-043.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-043/mobile-043.png"
+      "case_name": "GUI-MOBILE100-factors-v1-043",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-043.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-043/GUI-MOBILE100-factors-v1-043.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-044",
-      "field": "image_path",
-      "from": "images/mobile-044.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-044/mobile-044.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-044.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-044/GUI-MOBILE100-v4p2-044.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-045",
-      "field": "image_path",
-      "from": "images/mobile-045.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-045/mobile-045.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-045.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-045/GUI-MOBILE100-v4p2-045.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-046",
-      "field": "image_path",
-      "from": "images/mobile-046.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-046/mobile-046.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-046.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-046/GUI-MOBILE100-v4p2-046.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-047",
-      "field": "image_path",
-      "from": "images/mobile-047.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-047/mobile-047.png"
+      "case_name": "GUI-MOBILE100-factors-v1-047",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-047.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-047/GUI-MOBILE100-factors-v1-047.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-048",
-      "field": "image_path",
-      "from": "images/mobile-048.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-048/mobile-048.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-048.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-048/GUI-MOBILE100-v4p2-048.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-049",
-      "field": "image_path",
-      "from": "images/mobile-049.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-049/mobile-049.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-049.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-049/GUI-MOBILE100-v4p2-049.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-050",
-      "field": "image_path",
-      "from": "images/mobile-050.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-050/mobile-050.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-050.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-050/GUI-MOBILE100-v4p2-050.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-051",
-      "field": "image_path",
-      "from": "images/mobile-051.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-051/mobile-051.png"
+      "case_name": "GUI-MOBILE100-factors-v1-051",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-051.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-051/GUI-MOBILE100-factors-v1-051.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-052",
-      "field": "image_path",
-      "from": "images/mobile-052.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-052/mobile-052.png"
+      "case_name": "GUI-MOBILE100-factors-v1-052",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-052.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-052/GUI-MOBILE100-factors-v1-052.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-053",
-      "field": "image_path",
-      "from": "images/mobile-053.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-053/mobile-053.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-053.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-053/GUI-MOBILE100-v4p2-053.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-054",
-      "field": "image_path",
-      "from": "images/mobile-054.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-054/mobile-054.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-054.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-054/GUI-MOBILE100-v4p2-054.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-055",
-      "field": "image_path",
-      "from": "images/mobile-055.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-055/mobile-055.png"
+      "case_name": "GUI-MOBILE100-factors-v1-055",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-055.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-055/GUI-MOBILE100-factors-v1-055.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-056",
-      "field": "image_path",
-      "from": "images/mobile-056.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-056/mobile-056.png"
+      "case_name": "GUI-MOBILE100-factors-v1-056",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-056.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-056/GUI-MOBILE100-factors-v1-056.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-057",
-      "field": "image_path",
-      "from": "images/mobile-057.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-057/mobile-057.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-057.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-057/GUI-MOBILE100-v4p2-057.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-058",
-      "field": "image_path",
-      "from": "images/mobile-058.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-058/mobile-058.png"
+      "case_name": "GUI-MOBILE100-factors-v1-058",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-058.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-058/GUI-MOBILE100-factors-v1-058.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-059",
-      "field": "image_path",
-      "from": "images/mobile-059.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-059/mobile-059.png"
+      "case_name": "GUI-MOBILE100-factors-v1-059",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-059.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-059/GUI-MOBILE100-factors-v1-059.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-060",
-      "field": "image_path",
-      "from": "images/mobile-060.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-060/mobile-060.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-060.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-060/GUI-MOBILE100-v4p2-060.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-061",
-      "field": "image_path",
-      "from": "images/mobile-061.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-061/mobile-061.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-061.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-061/GUI-MOBILE100-v4p2-061.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-062",
-      "field": "image_path",
-      "from": "images/mobile-062.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-062/mobile-062.png"
+      "case_name": "GUI-MOBILE100-factors-v1-062",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-062.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-062/GUI-MOBILE100-factors-v1-062.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-063",
-      "field": "image_path",
-      "from": "images/mobile-063.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-063/mobile-063.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-063.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-063/GUI-MOBILE100-v4p2-063.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-064",
-      "field": "image_path",
-      "from": "images/mobile-064.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-064/mobile-064.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-064.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-064/GUI-MOBILE100-v4p2-064.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-065",
-      "field": "image_path",
-      "from": "images/mobile-065.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-065/mobile-065.png"
+      "case_name": "GUI-MOBILE100-factors-v1-065",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-065.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-065/GUI-MOBILE100-factors-v1-065.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-066",
-      "field": "image_path",
-      "from": "images/mobile-066.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-066/mobile-066.png"
+      "case_name": "GUI-MOBILE100-factors-v1-066",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-066.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-066/GUI-MOBILE100-factors-v1-066.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-067",
-      "field": "image_path",
-      "from": "images/mobile-067.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-067/mobile-067.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-067.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-067/GUI-MOBILE100-v4p2-067.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-068",
-      "field": "image_path",
-      "from": "images/mobile-068.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-068/mobile-068.png"
+      "case_name": "GUI-MOBILE100-factors-v1-068",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-068.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-068/GUI-MOBILE100-factors-v1-068.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-069",
-      "field": "image_path",
-      "from": "images/mobile-069.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-069/mobile-069.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-069.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-069/GUI-MOBILE100-v4p2-069.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-070",
-      "field": "image_path",
-      "from": "images/mobile-070.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-070/mobile-070.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-070.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-070/GUI-MOBILE100-v4p2-070.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-071",
-      "field": "image_path",
-      "from": "images/mobile-071.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-071/mobile-071.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-071.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-071/GUI-MOBILE100-v4p2-071.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-072",
-      "field": "image_path",
-      "from": "images/mobile-072.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-072/mobile-072.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-072.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-072/GUI-MOBILE100-v4p2-072.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-073",
-      "field": "image_path",
-      "from": "images/mobile-073.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-073/mobile-073.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-073.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-073/GUI-MOBILE100-v4p2-073.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-074",
-      "field": "image_path",
-      "from": "images/mobile-074.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-074/mobile-074.png"
+      "case_name": "GUI-MOBILE100-v4p7-074",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p7-074.png",
+          "after": "../cases/GUI-MOBILE100-v4p7-074/GUI-MOBILE100-v4p7-074.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-075",
-      "field": "image_path",
-      "from": "images/mobile-075.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-075/mobile-075.png"
+      "case_name": "GUI-MOBILE100-v4p7-075",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p7-075.png",
+          "after": "../cases/GUI-MOBILE100-v4p7-075/GUI-MOBILE100-v4p7-075.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-076",
-      "field": "image_path",
-      "from": "images/mobile-076.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-076/mobile-076.png"
+      "case_name": "GUI-MOBILE100-v4p7-076",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p7-076.png",
+          "after": "../cases/GUI-MOBILE100-v4p7-076/GUI-MOBILE100-v4p7-076.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-077",
-      "field": "image_path",
-      "from": "images/mobile-077.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-077/mobile-077.png"
+      "case_name": "GUI-MOBILE100-v4p7-077",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p7-077.png",
+          "after": "../cases/GUI-MOBILE100-v4p7-077/GUI-MOBILE100-v4p7-077.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-078",
-      "field": "image_path",
-      "from": "images/mobile-078.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-078/mobile-078.png"
+      "case_name": "GUI-MOBILE100-factors-v1-078",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-078.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-078/GUI-MOBILE100-factors-v1-078.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-079",
-      "field": "image_path",
-      "from": "images/mobile-079.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-079/mobile-079.png"
+      "case_name": "GUI-MOBILE100-v4p8-079",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p8-079.png",
+          "after": "../cases/GUI-MOBILE100-v4p8-079/GUI-MOBILE100-v4p8-079.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-080",
-      "field": "image_path",
-      "from": "images/mobile-080.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-080/mobile-080.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-080.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-080/GUI-MOBILE100-v4p2-080.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-081",
-      "field": "image_path",
-      "from": "images/mobile-081.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-081/mobile-081.png"
+      "case_name": "GUI-MOBILE100-v4p7-081",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p7-081.png",
+          "after": "../cases/GUI-MOBILE100-v4p7-081/GUI-MOBILE100-v4p7-081.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-082",
-      "field": "image_path",
-      "from": "images/mobile-082.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-082/mobile-082.png"
+      "case_name": "GUI-MOBILE100-v4p7-082",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p7-082.png",
+          "after": "../cases/GUI-MOBILE100-v4p7-082/GUI-MOBILE100-v4p7-082.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-083",
-      "field": "image_path",
-      "from": "images/mobile-083.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-083/mobile-083.png"
+      "case_name": "GUI-MOBILE100-v4p8-083",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p8-083.png",
+          "after": "../cases/GUI-MOBILE100-v4p8-083/GUI-MOBILE100-v4p8-083.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-084",
-      "field": "image_path",
-      "from": "images/mobile-084.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-084/mobile-084.png"
+      "case_name": "GUI-MOBILE100-v4p8-084",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p8-084.png",
+          "after": "../cases/GUI-MOBILE100-v4p8-084/GUI-MOBILE100-v4p8-084.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-085",
-      "field": "image_path",
-      "from": "images/mobile-085.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-085/mobile-085.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-085.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-085/GUI-MOBILE100-v4p2-085.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-086",
-      "field": "image_path",
-      "from": "images/mobile-086.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-086/mobile-086.png"
+      "case_name": "GUI-MOBILE100-factors-v1-086",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-086.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-086/GUI-MOBILE100-factors-v1-086.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-087",
-      "field": "image_path",
-      "from": "images/mobile-087.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-087/mobile-087.png"
+      "case_name": "GUI-MOBILE100-v4p7-087",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p7-087.png",
+          "after": "../cases/GUI-MOBILE100-v4p7-087/GUI-MOBILE100-v4p7-087.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-088",
-      "field": "image_path",
-      "from": "images/mobile-088.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-088/mobile-088.png"
+      "case_name": "GUI-MOBILE100-factors-v1-088",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-088.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-088/GUI-MOBILE100-factors-v1-088.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p2-089",
-      "field": "image_path",
-      "from": "images/mobile-089.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-089/mobile-089.png"
+      "case_name": "GUI-MOBILE100-factors-v1-089",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-089.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-089/GUI-MOBILE100-factors-v1-089.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-090",
-      "field": "image_path",
-      "from": "images/mobile-090.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-090/mobile-090.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-090.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-090/GUI-MOBILE100-v4p2-090.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p6-091",
-      "field": "image_path",
-      "from": "images/mobile-091.png",
-      "to": "../cases/GUI-MOBILE100-v4p6-091/mobile-091.png"
+      "case_name": "GUI-MOBILE100-v4p7-091",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p7-091.png",
+          "after": "../cases/GUI-MOBILE100-v4p7-091/GUI-MOBILE100-v4p7-091.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-092",
-      "field": "image_path",
-      "from": "images/mobile-092.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-092/mobile-092.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-092.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-092/GUI-MOBILE100-v4p2-092.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-093",
-      "field": "image_path",
-      "from": "images/mobile-093.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-093/mobile-093.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-093.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-093/GUI-MOBILE100-v4p2-093.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p6-094",
-      "field": "image_path",
-      "from": "images/mobile-094.png",
-      "to": "../cases/GUI-MOBILE100-v4p6-094/mobile-094.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p6-094.png",
+          "after": "../cases/GUI-MOBILE100-v4p6-094/GUI-MOBILE100-v4p6-094.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-095",
-      "field": "image_path",
-      "from": "images/mobile-095.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-095/mobile-095.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-095.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-095/GUI-MOBILE100-v4p2-095.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p6-096",
-      "field": "image_path",
-      "from": "images/mobile-096.png",
-      "to": "../cases/GUI-MOBILE100-v4p6-096/mobile-096.png"
+      "case_name": "GUI-MOBILE100-factors-v1-096",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-factors-v1-096.png",
+          "after": "../cases/GUI-MOBILE100-factors-v1-096/GUI-MOBILE100-factors-v1-096.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p6-097",
-      "field": "image_path",
-      "from": "images/mobile-097.png",
-      "to": "../cases/GUI-MOBILE100-v4p6-097/mobile-097.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p6-097.png",
+          "after": "../cases/GUI-MOBILE100-v4p6-097/GUI-MOBILE100-v4p6-097.png"
+        }
+      }
     },
     {
-      "case_name": "GUI-MOBILE100-v4p6-098",
-      "field": "image_path",
-      "from": "images/mobile-098.png",
-      "to": "../cases/GUI-MOBILE100-v4p6-098/mobile-098.png"
+      "case_name": "GUI-MOBILE100-v4p7-098",
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p7-098.jpg",
+          "after": "../cases/GUI-MOBILE100-v4p7-098/GUI-MOBILE100-v4p7-098.jpg"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-099",
-      "field": "image_path",
-      "from": "images/mobile-099.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-099/mobile-099.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-099.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-099/GUI-MOBILE100-v4p2-099.png"
+        }
+      }
     },
     {
       "case_name": "GUI-MOBILE100-v4p2-100",
-      "field": "image_path",
-      "from": "images/mobile-100.png",
-      "to": "../cases/GUI-MOBILE100-v4p2-100/mobile-100.png"
+      "fields": {
+        "image_path": {
+          "before": "images/GUI-MOBILE100-v4p2-100.png",
+          "after": "../cases/GUI-MOBILE100-v4p2-100/GUI-MOBILE100-v4p2-100.png"
+        }
+      }
     }
-  ],
-  "files": [
-    {
-      "path": "cases/GUI-WEB100-v4p2-001/index.json",
-      "sha256": "d9c40bd90ce90766172ecdd524a5c5fea46f4836ecee8df2dcc5cdc923b711f2",
-      "bytes": 632
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-001/web-001.png",
-      "sha256": "23cb3458fa767680727cc38fd2ec5f0f4381de30da6a7ae1ff147a32a8462683",
-      "bytes": 402187
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-002/index.json",
-      "sha256": "88959ba493711df22421707036363764d56e6e3fde76e4a2d64f4e8fa0007fb1",
-      "bytes": 651
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-002/web-002.png",
-      "sha256": "b872d125f50f68b0ab16cb83c45f0a3a076cbc5cb733c8608e14dd39ecc0ef12",
-      "bytes": 669574
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-003/index.json",
-      "sha256": "08a69167ce058ea1d6a390c007e930ef0edef30ae761e9ea3780bda78e7e608c",
-      "bytes": 658
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-003/web-003.png",
-      "sha256": "4bca1028fceece3a0216e18c3dfe7b204924b4c7e379d7769e65df87c9922d84",
-      "bytes": 532611
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-004/index.json",
-      "sha256": "c9381e378a5baba3d7f267f3c315f217c3e7ca536d93fc05af406cac7a5c89f9",
-      "bytes": 698
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-004/web-004.png",
-      "sha256": "9952bb0acf638bb3285fa52b6059a9c14d1db9de24ca550e254d3b60caed2fc6",
-      "bytes": 437403
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-005/index.json",
-      "sha256": "e13ec94fad97a30292828e2550898a35fe82998bf2525afaef7a30aed6371099",
-      "bytes": 699
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-005/web-005.png",
-      "sha256": "cc77a99afb7d1dbcc74fd81f9a944c2888e8e140890bda257c3fc4ca73ac58f7",
-      "bytes": 439473
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p3-006/index.json",
-      "sha256": "05891b3b94b78f9f1be80f19473ea4e40f6d088b0ad958215c518e951fe7b377",
-      "bytes": 649
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p3-006/web-006.png",
-      "sha256": "e00b7c341866a5c6d225ced19e16cb5fd7a26af182da4d15329f38c9f8273ac1",
-      "bytes": 505551
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-007/index.json",
-      "sha256": "ae9284bbb212d73d4200c80b4d943a7866e48dad690d6e00743a2f57712c08c9",
-      "bytes": 667
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-007/web-007.png",
-      "sha256": "ad01562e35b40ce63f93b44ad4dec61ee4af189dbb8f39840323c8f52245b3d2",
-      "bytes": 645467
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-008/index.json",
-      "sha256": "aae4a1c3946f0e737c6a315a206f588ac763624a967a4de33b670c33a4810719",
-      "bytes": 709
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-008/web-008.png",
-      "sha256": "4dca9d2e4d1ae537802188aa6877f4ab3703a426464ec470d768d00c166f0c26",
-      "bytes": 676049
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-009/index.json",
-      "sha256": "491e2306e2f096edb78a113feac26eba5abf4d9cb871ecc610586fbd3cfc7218",
-      "bytes": 712
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-009/web-009.png",
-      "sha256": "b4b4ee6ed86339b9adb6a23dc669fbcc5dc2b04ae2922d82ad1431b492719695",
-      "bytes": 609817
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-010/index.json",
-      "sha256": "e33d1e8933cc50be0ec2af91fdad8c8b8e96c80e4da67d445724948a3cc8985c",
-      "bytes": 669
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-010/web-010.png",
-      "sha256": "c23f0f3e95ad22d55130f2dd2bd721480e96094e2a5ae64f4b2028a370dc68c7",
-      "bytes": 969718
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-011/index.json",
-      "sha256": "bef32be8e81128ce4fd2960ef53b92fe7217cdaa33d97f6d08e80a3bb4da5375",
-      "bytes": 708
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-011/web-011.png",
-      "sha256": "9e255aed526f4755389b01fe06301b88d1d6376bb1c72ded425ba5e0af266b68",
-      "bytes": 1031691
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-012/index.json",
-      "sha256": "482b158b0488fb11299152e844ec9cd17b9ce418b904551f3326fdbdc1597fa8",
-      "bytes": 647
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-012/web-012.png",
-      "sha256": "57a419a264f2eefdfea2389dbb0088a38275a08de920c0eec88b7d0da652d361",
-      "bytes": 837731
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-013/index.json",
-      "sha256": "e70722f53ecac78cefa428fc48a360a192d9afb004e7bbd704bb08fedd0b4816",
-      "bytes": 676
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-013/web-013.png",
-      "sha256": "c4c391c200c7c52eab9dc6581326c01065bc611642483f9fde00bfc65aba00f1",
-      "bytes": 863091
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-014/index.json",
-      "sha256": "aad509dbdd231370cc57ffc6c112046e3ab418eafed68f89c7f35a26e6af4b97",
-      "bytes": 642
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-014/web-014.png",
-      "sha256": "758e0b6ad86c46806e86422a53c388cb367eae9d8fcdf4da9ec0c46ccd8f794d",
-      "bytes": 558249
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-015/index.json",
-      "sha256": "88ea04b19b5b9d08cfacb235a7475f1a57f90923c9c7e3fbd5ea6f0bde1da293",
-      "bytes": 640
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-015/web-015.png",
-      "sha256": "ec7d0d882134afe447d118603eddb4c52d869f378ba248b3a32b5acd70d715f6",
-      "bytes": 490210
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-016/index.json",
-      "sha256": "399390e029765ab2eba0ff6734e837cef9daf72a7c8502b89b675ea6cb536442",
-      "bytes": 672
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-016/web-016.png",
-      "sha256": "72884e2679539cdbe0dea6aeed74dc6b90d319a653c5c8fb48d1a7411149918b",
-      "bytes": 3768060
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-017/index.json",
-      "sha256": "64d1fbf3d0b0b6b2f087431cc9533f651872e1bb894213a4a731bbee52cc0ac6",
-      "bytes": 651
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-017/web-017.png",
-      "sha256": "7d300f81422d1f2496e6bd3871cd7759a892caf2f19f81065c7a8aa0067341cb",
-      "bytes": 3470845
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-018/index.json",
-      "sha256": "ba925a2c0f0867a2154ab9aa6c60210ffe476a5a787d58eac7d5b5dc3a5203e6",
-      "bytes": 654
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-018/web-018.png",
-      "sha256": "b2cd665cfc5ce62a674211759b7d8d1d427d3afca57540680eb4dc73e3b883cf",
-      "bytes": 3004983
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p3-019/index.json",
-      "sha256": "655e8f9baad1254a333c0c529901c497b91f6a352168c0ce20b1712b5817706e",
-      "bytes": 641
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p3-019/web-019.png",
-      "sha256": "f5b9335e366d0398a9d674a3342fb8553021e3210bf290fc8eea5ca66e3a7997",
-      "bytes": 2727445
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-020/index.json",
-      "sha256": "a0044605043a39bcd596f2a3d9f5289ad3cbacd0e4aae800f05dec525f8ea19b",
-      "bytes": 667
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-020/web-020.png",
-      "sha256": "36e2f431c0b981d2c4765fffad3feb7f9971d6dddab76413c8c03af7c9cf0670",
-      "bytes": 2945508
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-021/index.json",
-      "sha256": "f0029e2521ab762effe3864544c1f94c16b4d983e54d84cea39041b3bf6cb47f",
-      "bytes": 652
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-021/web-021.png",
-      "sha256": "21231834b77dd49047bda820a1a87a0661c428cc9d01e2264120a34be1d3d442",
-      "bytes": 760013
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-022/index.json",
-      "sha256": "f6935d5deab724fdfc977f8a414144b755370cf3d40cb20ed7748f3a85a148a6",
-      "bytes": 613
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-022/web-022.png",
-      "sha256": "68ad8b7bdee915fd668f4c0a7cddc08f8eacb25522fca308d5f7781191919471",
-      "bytes": 195351
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-023/index.json",
-      "sha256": "96d39bf55b99b65a52d670173d15c928307478da50be15dd3d7313742f946b0f",
-      "bytes": 621
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-023/web-023.png",
-      "sha256": "d121d8ff2f39cacf1cb0b6a875c16204d9ca3bb1cf0f63a883ec1f2a334c07d4",
-      "bytes": 3523499
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-024/index.json",
-      "sha256": "9c07f9621a86bde66cef87e39fcce8ceeb58e8be2020edcb391f65424a19bf53",
-      "bytes": 628
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-024/web-024.png",
-      "sha256": "5a03736ef8cb7a4264430e4d49368acc931b6d7c21ad48c24d304728652e1839",
-      "bytes": 3023540
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-025/index.json",
-      "sha256": "8c7d3a2ee685f51aedb29f7f7d1bae7edb07379eb70a72946b60237b458f0eef",
-      "bytes": 604
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-025/web-025.png",
-      "sha256": "c5b1ee6189fd9ec1e20d6bd7c77a3ca251cff0408b42df12a86505b5ccf05ef9",
-      "bytes": 2671444
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-026/index.json",
-      "sha256": "8b73cacf562a68e7ecafebb505c97588902c8dada22631707ba95c873461b245",
-      "bytes": 618
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-026/web-026.png",
-      "sha256": "9ed320fd18a06b61c252be6d623638c79a52fe5668827e05607be5fdf9a5ec3b",
-      "bytes": 1424339
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-027/index.json",
-      "sha256": "0127143a99fc679d3d1a3f1de65c1f62b6afb212a5a6368e313c0d0cfdcef45c",
-      "bytes": 625
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-027/web-027.png",
-      "sha256": "d30a753d9f07eea536506f17573d99c7ff7c7f278e2f3d61bf963c7ea62b331f",
-      "bytes": 2292992
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-028/index.json",
-      "sha256": "f70a0d92652a4fa2a273b30c954fb360a046bbeeeda8366f3f9148868daf2e3c",
-      "bytes": 622
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-028/web-028.png",
-      "sha256": "3ea5310213e12b37521f78257faa580c13fdd49986d47c2e0bd458114b8f62e5",
-      "bytes": 370109
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-029/index.json",
-      "sha256": "be7a1c620129dcd2f0ca6e0dc2c07e7ae66723f3dff609e19edfa7e5dc12f1f4",
-      "bytes": 612
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-029/web-029.png",
-      "sha256": "931dcb869023201711009d2421e65ee9b40fed1f17f28e4467d399940f7a4a96",
-      "bytes": 2679075
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-030/index.json",
-      "sha256": "5a78093c6b3fe25e602b43ed798a40cc67dac4bf3b882d40f5941d195b8bfd90",
-      "bytes": 615
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-030/web-030.png",
-      "sha256": "6d3d7202ae57e84e54ac715f9ffa0965b8c5f1bbc6ebf48a28daa20abace7e4d",
-      "bytes": 433540
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-031/index.json",
-      "sha256": "93540ba2731139166bc1e7da2ab1aff1d5b58e7dc39e4711671a6647493470a8",
-      "bytes": 649
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-031/web-031.png",
-      "sha256": "6ecd5d76cec770be421f338194ec095e95e87e4cd4012ca5745db7bf9df789b4",
-      "bytes": 583735
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-032/index.json",
-      "sha256": "dfca2b49313b7e4f4a81cacc5e0cd0b43a215395d8b92ac97e463e91744ca2f1",
-      "bytes": 598
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-032/web-032.png",
-      "sha256": "e7548d581ba6b98b4e81b2fd559f2b9633db263248c6f61b849d307176150d06",
-      "bytes": 2341644
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-033/index.json",
-      "sha256": "4af47e465c3555a3cb76c5b52ba60156898be6e078f69b934b6cfc17b168c75a",
-      "bytes": 646
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-033/web-033.png",
-      "sha256": "d494bbe625f85bb526760d8ab1949fc23c760568045511f135ae2c3985329606",
-      "bytes": 2065186
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-034/index.json",
-      "sha256": "9731f8d94938a59128e23293b0790c4b0d1973eb4d60db445cb561d96941cd18",
-      "bytes": 602
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-034/web-034.png",
-      "sha256": "1073b4cf9a7210125515484ea7fc4caa656930b5330c6f6ca99e66a5bccdae7e",
-      "bytes": 3729156
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-035/index.json",
-      "sha256": "2a8669342ab39b2e6f7b029502455d716f2c434a25fe628bc5c3b6dbfcfb0f50",
-      "bytes": 602
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-035/web-035.png",
-      "sha256": "7d5ae3bb4531745c63876871290ff8f26af483109f72457e1aa61c3600423fff",
-      "bytes": 813586
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-036/index.json",
-      "sha256": "307fa11793c8ba506f2d069ad34bafa3f4122c0f3fc02cd6c731747700fad802",
-      "bytes": 622
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-036/web-036.png",
-      "sha256": "548d8f303df9c697d9f876619a51ef95f7cbcfb2a9af038e33c8c4bf7f3c8197",
-      "bytes": 1978927
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-037/index.json",
-      "sha256": "9e243dce6283d05b08ae0feb82aaec8495104a44e186bedfa062d0082c0eb369",
-      "bytes": 622
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-037/web-037.png",
-      "sha256": "c9dd4eca32df83e627b946053b1725a4b352946d58b10c72de3379be886cb05d",
-      "bytes": 910156
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-038/index.json",
-      "sha256": "6fbe7aa58e565541b117023e4803b0aa91c10b8eb4f47bcdd758481a8d752ca5",
-      "bytes": 639
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-038/web-038.png",
-      "sha256": "0a1be38c10082077e35c284cc57dfcdbea1f6c8144db6c7649c656558ef8456e",
-      "bytes": 1956100
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-039/index.json",
-      "sha256": "540695a4d3a023d7cf2da8a7d0d297fbbbc361f72d369b37cff6e5018c2fc53b",
-      "bytes": 640
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-039/web-039.png",
-      "sha256": "e61d3b418f4009e3a33a137d721aa748abf3611151abef1226646eb1008437ac",
-      "bytes": 3669025
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-040/index.json",
-      "sha256": "b99b761eaa87de6fa03a35c13cb9c87a2bf85127c0c21a43d3156ff785d42abc",
-      "bytes": 605
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-040/web-040.png",
-      "sha256": "cd8837ca635c0fb9eb06d4f11848c9641ed271e504e5fe802ce98161d46dc03f",
-      "bytes": 699861
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-041/index.json",
-      "sha256": "a425e36eb47c67be3bc3de8fb983e318bb430f32234af82dce2c6112008fe35b",
-      "bytes": 609
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-041/web-041.png",
-      "sha256": "85b37b713eca5c1514b8c5f788821ad40d493f6f01fad01f8f4aa521572b6c6d",
-      "bytes": 2475405
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-042/index.json",
-      "sha256": "bf476f21872dfce0d65d56da87c0962efe2ac4cefeb6dcc01b75a5358b346e62",
-      "bytes": 618
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-042/web-042.png",
-      "sha256": "04254290f90906a80c13bdaca920fc061f6b3889a33a28e743280c0bd264a1eb",
-      "bytes": 3121498
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-043/index.json",
-      "sha256": "f3176c47be891f56696aac0bf5462ea5d91a8a1fff3c29d88fb4cec047ac6f0c",
-      "bytes": 616
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-043/web-043.png",
-      "sha256": "e67fbeed36c6c79df992daa89601babb2bbf75b97e0836504499045ccbb08552",
-      "bytes": 476532
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-044/index.json",
-      "sha256": "af8f0a51a2bed9765bd623c0d19281c384e844e4f6e8b42adf6a190bc9c8bf79",
-      "bytes": 644
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-044/web-044.png",
-      "sha256": "8ca5f16edfe94c899e86025fe7288f0b8322a4193de899f1649749e188de366e",
-      "bytes": 3819388
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-045/index.json",
-      "sha256": "40e80530b7c577302a6f9bc4acb63f33d25ef9766125c9832fbd79a9a6162dce",
-      "bytes": 618
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-045/web-045.png",
-      "sha256": "92e402e08782e48ba91404f708de45eccaba43d43581315c4e8c043d89e2eeb3",
-      "bytes": 760720
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-046/index.json",
-      "sha256": "10389d2f6b58d29a05f19ee4efa14a5b4ee6fc335aaf9fca33ceade76ffce893",
-      "bytes": 605
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-046/web-046.png",
-      "sha256": "aab93dff0883c29c2dc04ba51d29aed02f1d042bc594a369659317038f619aa2",
-      "bytes": 1053203
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-047/index.json",
-      "sha256": "e3dce7bc8f8b5a308e9bf84a58a94acea2805dbd2eae86b1765ca28c97208be1",
-      "bytes": 602
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-047/web-047.png",
-      "sha256": "99f08796c30701f7e5d3129482b5773003f6fa8329497878a486ae51c962ceb0",
-      "bytes": 565652
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-048/index.json",
-      "sha256": "ce437933d91101a18ee18b3cd944293eb340088aeaf08ed7168ccf0a6365892b",
-      "bytes": 612
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-048/web-048.png",
-      "sha256": "f028992d0baa2e96fd01fe30b9da33be5feed31ff84c1e75a961d5e9b16ae780",
-      "bytes": 1297479
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-049/index.json",
-      "sha256": "2f71f3ca771c51afe17fad88a7523fe20e6f3174fe6e717572f8c40a46b72f69",
-      "bytes": 653
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-049/web-049.png",
-      "sha256": "6c93049abaa30b38e3928dd56e60c5947eb2382d75d2d632f3f3fe47102cc923",
-      "bytes": 1071697
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-050/index.json",
-      "sha256": "0c080f4633943f09df208d84e7fcdab526f002febb7ed0691ed449701bbda8e7",
-      "bytes": 635
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-050/web-050.png",
-      "sha256": "3a253e5f6260a524c55f9cd52292097004308253d7edfdd875fc7f8885500aca",
-      "bytes": 652739
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-051/index.json",
-      "sha256": "dfb189a85b5c922a629922d00a5b7843545e0d4781763cf4faac50bc393235f3",
-      "bytes": 618
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-051/web-051.png",
-      "sha256": "da2d5f76fdeaec175a4fec06ab14a773cfd4bfffaec772f1680f45691e1a2108",
-      "bytes": 660288
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-052/index.json",
-      "sha256": "5f995edcb9ce977062996d8a34aab86cc8dbd3af3d3d1ef217879f6ae3a2e8c0",
-      "bytes": 612
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-052/web-052.png",
-      "sha256": "be819c6294062f5d58b72441691a77350efa73f81d3fd82014cf1667cec1c6d1",
-      "bytes": 9987628
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-053/index.json",
-      "sha256": "cb6f63565409cdc647bda0408151b681cf45496c4e3d076b1b05b3a8780e0dcb",
-      "bytes": 623
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-053/web-053.png",
-      "sha256": "5e7fd22c2870e4b8f8710ef6a29d3892a856c73c48115bdc8dc3915edd70755d",
-      "bytes": 3304440
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-054/index.json",
-      "sha256": "5deedea892fc839fbba908e8b40da663a69edc2d73f6cc962c6eeb67f597913a",
-      "bytes": 604
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-054/web-054.png",
-      "sha256": "b9da34825c0a0327f3b11e20a7b6adc21d33b2490ab846f7bcf009d026347529",
-      "bytes": 720338
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-055/index.json",
-      "sha256": "f1c1d3c67fb3489d8a045021d1adb1e541d7c7360cb3c52ae5a0893633444954",
-      "bytes": 620
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-055/web-055.png",
-      "sha256": "7c29bb3f01df0562c24f0036ae52d2daee7d9fa47384b56c9536a5a085bf4843",
-      "bytes": 1733398
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-056/index.json",
-      "sha256": "b044ee58ce855eb8e555837d486e7d028ab81eb38cee6e914525bc6e803c0884",
-      "bytes": 605
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-056/web-056.png",
-      "sha256": "90055beeef5ce6fdaf4202bb75e06be86b9ff0786aa10c1c02eb3cd7826fea79",
-      "bytes": 799463
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-057/index.json",
-      "sha256": "2e6732c8a403c646f91c7115eb415adadca8d9ea3c14cb61ba501802fc0117b5",
-      "bytes": 607
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-057/web-057.png",
-      "sha256": "8c2a8bde0754724980f436b4915152f3fd8afd0ba1a49b443859d3a355e8c2f4",
-      "bytes": 1101395
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-058/index.json",
-      "sha256": "646245f597a4bb7ab44e8a192a95da9067634b7c246dd52d7332ee8d0bbc96e7",
-      "bytes": 629
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-058/web-058.png",
-      "sha256": "23990382525b56d9ff5c785bf77183e4169706d2ca30f1b07f0549479d1e10fd",
-      "bytes": 1284109
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-059/index.json",
-      "sha256": "b96ae618e114307d50d8dec346b1569a504a032b629971832c572b8f0dbed4ea",
-      "bytes": 651
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-059/web-059.png",
-      "sha256": "a01f87b020bb45e10802b67e1e526711f38c07848818923f15fccb7e2094fc98",
-      "bytes": 574304
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-060/index.json",
-      "sha256": "3a4ddc6c5cd73e92856862b75ebef92336cefa666d8c1be38d294833edb92770",
-      "bytes": 625
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-060/web-060.png",
-      "sha256": "01a34c3e90756be99cf8f23b18559fea5898cb15e1c0d85b231f26ee85befc52",
-      "bytes": 815410
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-061/index.json",
-      "sha256": "185cc21b9f9b58f02a4c3bb5230b5427deb18ebfe4e27ba113c09c395fbcb160",
-      "bytes": 554
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-061/web-061.png",
-      "sha256": "63974862a6e9044b2caf282c084010a02f2bf5736559ef2c0fb8a23ec7cd0bf0",
-      "bytes": 2361076
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-062/index.json",
-      "sha256": "7b7f7206d95087281e60c949c2c0b0a9ba23a1b4a61d6c04b34d07876d00a642",
-      "bytes": 566
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-062/web-062.png",
-      "sha256": "5a1f20c847ca71c90d906ef6e35c08ef2847292c751fbe3f48c0b5bd3e33e12e",
-      "bytes": 735622
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-063/index.json",
-      "sha256": "366e844683602a6105d57dd4f633664bd590bf9085f3a9482bba1e507030dc02",
-      "bytes": 531
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-063/web-063.png",
-      "sha256": "4abeb5996db039dda0be864268066fe7fcd54942c95e29cf96677a77167de4a4",
-      "bytes": 1541427
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-064/index.json",
-      "sha256": "d2a86112e20a6e8fac4dc425d99b0de9c139f5340fc054df881ff7cd53135002",
-      "bytes": 574
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-064/web-064.png",
-      "sha256": "20c00822731eb2210cfc49ba0ccfb7f183aa870609af48b030cd081969459de6",
-      "bytes": 4802518
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-065/index.json",
-      "sha256": "517f55bdc7eb7c7efac5c4a3f293ab022f99dd0714af87f0acc72d98a21f3220",
-      "bytes": 521
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-065/web-065.png",
-      "sha256": "3140f2b5e9a84166966bdbec65eb95b74918528a9a4e892ea22d15e95bb32e0f",
-      "bytes": 771420
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-066/index.json",
-      "sha256": "becbf25bd3d98df53407618d60aafd1805b8fe20139439a05a43093d3fb28e36",
-      "bytes": 582
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-066/web-066.png",
-      "sha256": "6df414aa536dfc7595e11a2d1e9ab835370feaa0543412cc1c18e2e806544b25",
-      "bytes": 440802
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-067/index.json",
-      "sha256": "dbead09b135419490c48e15bd70fba5c339fbc5de084a37b824140d04f83f440",
-      "bytes": 536
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p7-067/web-067.png",
-      "sha256": "b53b191b8cd21c3a17b5abddfde50806d371e8282f60d021dadcba51fa167e1d",
-      "bytes": 1275195
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-068/index.json",
-      "sha256": "b989eca62a1cf346a7fcbff1256e5c5408a91f74f5c6e9b3479fde6d13492a12",
-      "bytes": 576
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-068/web-068.png",
-      "sha256": "c23e819f89ee02f83c369c9245f71e5dd79b8f473cc3c1945d8582e28a4c0fd0",
-      "bytes": 1026121
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-069/index.json",
-      "sha256": "7464cf6736261d84d9c48fadad803516cfc0a2fe739fc92ce25d99a326f8306a",
-      "bytes": 566
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-069/web-069.png",
-      "sha256": "f152d666ed4cfe41340165ee3c19aee3e1e466838cde4221e19ab6a8f9817d2d",
-      "bytes": 297006
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-070/index.json",
-      "sha256": "49af8bced4d7d75340852332aa3868da61d6b53204188c61f923b1e1d22d77a0",
-      "bytes": 605
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p2-070/web-070.png",
-      "sha256": "8038a932743bfd9a0d4760560a267e1a0f0f92a178b3ee57ac1159a6499e0969",
-      "bytes": 377060
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-071/index.json",
-      "sha256": "86592688fa4b5a7088ff136bf2ed84617dff1136355f435cae37e19f2c6438bc",
-      "bytes": 607
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-071/web-071.png",
-      "sha256": "3a777974699bd599703129c081f1bd90765c83a79852d111faec90aff9a97f48",
-      "bytes": 3149080
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-072/index.json",
-      "sha256": "72195dd9b20457c2d3738a0faeea6c7142150c9b50fc6174b83777e0be342b6e",
-      "bytes": 613
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-072/web-072.png",
-      "sha256": "d687b3f4363015b1d886a5fc0a7b8ea9715ab24ee37c2101023c4495f114b025",
-      "bytes": 291268
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-073/index.json",
-      "sha256": "b4f1682e0da0d1df3739a807f26ebf88e2b5921d99ea6ca6f57a1824a32471c7",
-      "bytes": 646
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-073/web-073.png",
-      "sha256": "2fd38f5bec94ed2ea1701c7333623e367155042329be804b1d3f5d6b01b219ae",
-      "bytes": 2205711
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-074/index.json",
-      "sha256": "ae15d75b66d6bee90c1b2243bb372428da431bee2bb5b4c54a9a07cb6a3794d6",
-      "bytes": 658
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-074/web-074.png",
-      "sha256": "6163ed3d858e7121bd187d5fc83dd732063990856c6246bfa6a8dde35b92dc62",
-      "bytes": 658705
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-075/index.json",
-      "sha256": "629ebc5ca92ca6791e8e3e11f529fd1ba4faf3c101f6d16bae99887ce46da69b",
-      "bytes": 630
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-075/web-075.png",
-      "sha256": "adcf77331df5b872db8cf10972853886493e510a8caeac8481d37b43d1e11cd8",
-      "bytes": 2345737
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-076/index.json",
-      "sha256": "2aeced6385672e5b947f5059e9b585b2fc486a08bc7b7f4af073fe6d8fec42a0",
-      "bytes": 600
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-076/web-076.png",
-      "sha256": "4a07090b99a75446343f6e60ea36e8323766b99f753d8480c34327a6c3b0ce68",
-      "bytes": 1178276
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-077/index.json",
-      "sha256": "536825df523f3bb12c61819dd94cf02ab4719233697c00a6f454e047fbfbfdf6",
-      "bytes": 641
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-077/web-077.png",
-      "sha256": "acfca7385ced434cad5e4f92be3a72e6361de4ce3efaf22263268bda9a01dc07",
-      "bytes": 1622426
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-078/index.json",
-      "sha256": "d855246e234c4fe71f16e7f3cd591f32baf3fd188d272e2ef90a52b5b500b056",
-      "bytes": 605
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-078/web-078.png",
-      "sha256": "a4c4755a205142cea1864f7ea4307706ede06c30f055350d580aa7f1a2fced48",
-      "bytes": 304268
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-079/index.json",
-      "sha256": "8e97468985fd2e642dd60d3e461a7b5cdb3dce48c2e1d03de7aa22daec7e8e62",
-      "bytes": 643
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-079/web-079.png",
-      "sha256": "3da1fc5f22561e304258f1b1d5dcc3eeb46d3cddbee91492a0bf7ec7185b1b14",
-      "bytes": 505494
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-080/index.json",
-      "sha256": "bce808754a8fae9a5a7c1315eff990f4df1c0c9e1fc6dc8c1d616cd1dcb9e3eb",
-      "bytes": 659
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-080/web-080.png",
-      "sha256": "30dc997b34e538c96c07e708c72646639eb55affdf12543aab1393415f04dfa7",
-      "bytes": 1933487
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-081/index.json",
-      "sha256": "9fb340c6f33de38604664fdcaf600e37692bc3522df09acff2dc98c42a16d5f6",
-      "bytes": 655
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-081/web-081.png",
-      "sha256": "8a2ae8f42a934266e5128f91bc25a19fcbc382ed24f6fe167c0cc4ce0c8123ce",
-      "bytes": 528444
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-082/index.json",
-      "sha256": "0d102b5107f63c43856968f455a43b013c1f053d609a0889f84b6c953bd79839",
-      "bytes": 638
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-082/web-082.png",
-      "sha256": "23364bcd772032806326b581874de42ddc51ac8d498f132268dd8aacc632eabf",
-      "bytes": 169175
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-083/index.json",
-      "sha256": "3454460802f1618143b28063ec216f9c1e81ceaa7b6e9f246b495c98f68445db",
-      "bytes": 647
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-083/web-083.png",
-      "sha256": "c29939081fde90466edaf7b3be314c8f21832a56a90bcfb52f99d34c1bb6625e",
-      "bytes": 819050
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-084/index.json",
-      "sha256": "212f026d117acea4213ec3716fcddf109cd203f749f06394b057dbaa1b6e7d5f",
-      "bytes": 638
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-084/web-084.png",
-      "sha256": "97e12b08735c4da01a739ee3b7aca79acb0a6cb7531f2bbdbedf7af9b4a68ca1",
-      "bytes": 785289
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-085/index.json",
-      "sha256": "069d2748314a984c34e7971a557e34ae7b6de456f07ca25ba01fb7ddaa1ffe5d",
-      "bytes": 632
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-085/web-085.png",
-      "sha256": "ebb1fad12e5c2c390ded44415075c3e2cca0e6e499d700489ec0e451a528466a",
-      "bytes": 674133
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-086/index.json",
-      "sha256": "0a3245ba431c9dedbb8e5b3e56a12ee70dab24ae520743d24a19ea6291e76ba9",
-      "bytes": 602
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-086/web-086.png",
-      "sha256": "a94884520f0e18f556f5b6256eb6016a22df0c54f0ae8891f91631ef2171c894",
-      "bytes": 503887
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p5-087/index.json",
-      "sha256": "37033bdbb9535b9d8b6ca7133b3c26188f947d43f2764855e8eb8b293d787eda",
-      "bytes": 598
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p5-087/web-087.png",
-      "sha256": "12a51f56420fb1459a974b060b7c9b52338a8454e4038480292423526d0a3091",
-      "bytes": 1706773
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-088/index.json",
-      "sha256": "51cf9afa84a25dcd93cc9f4160a663caa4a4bd7533028ee806c478b17e206f84",
-      "bytes": 583
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-088/web-088.png",
-      "sha256": "ea487493e4ed4807556b680b8b36e25d6490f480fac16de62fd46fe8adcdfdc9",
-      "bytes": 807728
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-089/index.json",
-      "sha256": "77e19ac362c2c8efc08eff5055bd755de08d208ecd6c13de418c7af9a9617138",
-      "bytes": 592
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-089/web-089.png",
-      "sha256": "0232d6e1e7a0c24c89c53a7388f205176ae0519b5e02dc5b9d2c9f8e4482c63b",
-      "bytes": 2813831
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p6-090/index.json",
-      "sha256": "8307e03ee57d313edd9caaeb1e79350a1b007c3a93ea6aa59385d838412bcb3b",
-      "bytes": 611
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p6-090/web-090.png",
-      "sha256": "0e9df1252f06b1220ba44c51c9b33b6e27298dcb0db64fa76cee6681440205c1",
-      "bytes": 2189891
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-091/index.json",
-      "sha256": "aa2a03e926d8a0e5c9a81b488469ec7c2dfd18f64e781af9493885c3788573d2",
-      "bytes": 581
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-091/web-091.png",
-      "sha256": "9f2cd7e5953486f58403398913aa9bc6b5151b62c9f907fe43023b6844677038",
-      "bytes": 789231
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-092/index.json",
-      "sha256": "b5b2ac5e2089e978e30d11293b15ed4e59d43217fcdc947f6fe6523f586c30e3",
-      "bytes": 593
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-092/web-092.png",
-      "sha256": "4d991cbe5ac7854439818ff7fe3cd520b8b155f0c39ac4326abc44f600e273ce",
-      "bytes": 5540876
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-093/index.json",
-      "sha256": "e471019962d742e5a5aa11c3229dca3da66810b941af1baf13c0187b331cfb6f",
-      "bytes": 573
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-093/web-093.png",
-      "sha256": "1ca2543193ce0494170c5677e22de165cfa48258183829f0de3814e9e619ec4d",
-      "bytes": 1272671
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-094/index.json",
-      "sha256": "f16e71460865229611a52b497f850ce4225f3cd1baf3c3e578d27582d31ef4c9",
-      "bytes": 587
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-094/web-094.png",
-      "sha256": "a378c2c9f40a90e953f6318609bf6cd5346573e6432e20fa35bce0599915190f",
-      "bytes": 1806381
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p6-095/index.json",
-      "sha256": "e206c6fcdc48d800a66d486a2bc539b87606338834382ae78c66acda85ab9040",
-      "bytes": 589
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p6-095/web-095.png",
-      "sha256": "a5f67062a220fd3f50480e43f72a3627c881a0f4d751ba514e5bb8e12877024b",
-      "bytes": 320954
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p5-096/index.json",
-      "sha256": "e98994a427971742aa026a2d3b2efd340cfcbe7f6df1d779b36d89cf809280f4",
-      "bytes": 639
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p5-096/web-096.jpg",
-      "sha256": "34e4bd6d0ba3e5876b6e8ac807d251d702c08aa0247c2def776a21c88247962a",
-      "bytes": 165031
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p5-097/index.json",
-      "sha256": "ab1539ab97545fec0a6f6a1ecb5b2a415ca8d78ba1d74264fe4624e41361a642",
-      "bytes": 603
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p5-097/web-097.jpg",
-      "sha256": "056bebcb1753869542a9ecdfe1fb922706149e37b11f02d67534c0f29732846c",
-      "bytes": 44991
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-098/index.json",
-      "sha256": "e62b21b6252278aaf9c919c31204cd4b6c808851af4e237867196e385331e93b",
-      "bytes": 602
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-098/web-098.jpg",
-      "sha256": "f773b6476d7395d6e2d85d2a8ba6fe8db057990625c2246a4a44fc2e5ce207df",
-      "bytes": 85142
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-099/index.json",
-      "sha256": "7c5a512f2ac32bfaf6cc59d76217de0761a77fed214a4a929152345ae3873367",
-      "bytes": 592
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-099/web-099.jpg",
-      "sha256": "0115a25b44325a76e84a129e4848ac9ba0a538692858599048e252dd9a6eb8fc",
-      "bytes": 59425
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-100/index.json",
-      "sha256": "ab529f42e371aa6bab67c36b58fdac45e9f2fe0eb8029b61ecb0fa743ac13b53",
-      "bytes": 596
-    },
-    {
-      "path": "cases/GUI-WEB100-v4p4-100/web-100.jpg",
-      "sha256": "a451bc91b3e3861cc9ee87c49b1ad41f4717a67d6c408860712447622d5ec520",
-      "bytes": 121950
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-001/index.json",
-      "sha256": "afd105f4f2c313003d2c7c2a34b397c726567a2997b5d84c29564d13ce63075e",
-      "bytes": 647
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-001/mobile-001.png",
-      "sha256": "12947b792ccc7d06dcc1ebed05c6bb130b3b000b3fab4889eea029312337b629",
-      "bytes": 465068
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-002/index.json",
-      "sha256": "2fa7261a709158e508a960c4c97ddd4e66dc8b3eda8250ec2f9368713d66fb68",
-      "bytes": 648
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-002/mobile-002.png",
-      "sha256": "7a2e5549e25b5ced83194de2a36f8b92f9f0a1ef935f84a0b3bc60b2368d0292",
-      "bytes": 647105
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-003/index.json",
-      "sha256": "fcb85a95c9d19072282b44fb2ac5e8c60694ed9353c22c2b1af032d33f1e82db",
-      "bytes": 630
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-003/mobile-003.png",
-      "sha256": "0173f73317fa03911ced35afb4e7e7d0b9a0a067b2a4ca8b3dff43e4cc70a4df",
-      "bytes": 1237479
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-004/index.json",
-      "sha256": "66afc7380e090b59c5edc20cfc1ec87b18ca1e66c68a1974bd68024c242c158f",
-      "bytes": 652
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-004/mobile-004.png",
-      "sha256": "685e7fd1fbd64fd5d72a7f2d16db756bc8df6c0d5ed91e974f5cee5e4d53990a",
-      "bytes": 628496
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-005/index.json",
-      "sha256": "87b67553eb94f7b6acf015277bb6f39a5d4cf4657d62cd07220c65a0ee9f363a",
-      "bytes": 662
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-005/mobile-005.png",
-      "sha256": "8eb67a3b20e6a4ba2c2cd2a9ff6387ab36338c9e79f5a780af7b32c5c5f46b94",
-      "bytes": 239554
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-006/index.json",
-      "sha256": "cd6e6c4218f6fae787553761b74ba59ca8ad37af60c45de2f3ab8a2a254b0ebc",
-      "bytes": 622
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-006/mobile-006.png",
-      "sha256": "e67cb880631c509f5c628ade0289d6732cd4ab3cede0520759ef7c355d2a8918",
-      "bytes": 168330
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-007/index.json",
-      "sha256": "5b3502b27d82267a072b0cfa6b73de4665f04c474159c3f5222646a748f1c751",
-      "bytes": 670
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-007/mobile-007.png",
-      "sha256": "a96853f0d603128447639c1a64a8a284745442ad24e0ca77036de6a96fca56c1",
-      "bytes": 784801
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-008/index.json",
-      "sha256": "aa41a2ef4a1ecbbc2aeb29646e5d79cf0119a19099bc4c88065285f9aad46620",
-      "bytes": 614
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-008/mobile-008.png",
-      "sha256": "62b4d3188a7ca085cbf1c701bf66f499c88d71b7c38f07101b5ac660c4acfce6",
-      "bytes": 2025762
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-009/index.json",
-      "sha256": "abbf23c0b89c1f3c72f7c8b3ad4faf879cbbef283527cfc96b04c63e0b7dd4ee",
-      "bytes": 665
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-009/mobile-009.png",
-      "sha256": "38915cf3d4d6e29bc75e3cb5a0dd72fb65e46ec6e83dd7ce65980a54ad6d3525",
-      "bytes": 1126287
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-010/index.json",
-      "sha256": "aa4024bc661b3867196990e1e6bf0385605592f0efe9ef2ac0a9f3f3a45c10a2",
-      "bytes": 637
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-010/mobile-010.png",
-      "sha256": "8d228be044ba463c0c13f5d9bdad9dc603d21737bda76310520fe1b36f376e4e",
-      "bytes": 424807
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-011/index.json",
-      "sha256": "a1f977693473eb30302732d4ee728ad2d32be4a5547a3a0eb480da6861a5e38f",
-      "bytes": 635
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-011/mobile-011.png",
-      "sha256": "450e0274b16f62785d22142d2c3b0c00dd76e7d2e6de4f0ca739355459fbcf64",
-      "bytes": 564962
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-012/index.json",
-      "sha256": "fcec57ec16d1dba34a2ec298f99ffa111f16b25df5e103ddb7cb090cfac2a047",
-      "bytes": 606
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-012/mobile-012.png",
-      "sha256": "eb30cb201fa751ca62207dab3e8b7b65e6a93cea71a936f164e3774f24d02926",
-      "bytes": 92475
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-013/index.json",
-      "sha256": "1de06aac7ae00c8b469244354a64d1d899ccc63053452eceb0d50a73ba5083fe",
-      "bytes": 665
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-013/mobile-013.png",
-      "sha256": "599861958e9e24a0d8f13871723d1a3a343f206c4cc1ae8cd198b3bb3fded022",
-      "bytes": 1397516
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-014/index.json",
-      "sha256": "04616f079ebce4a549338e90bcd2e054315f6fc8df0c7a5f787d72926c27e00b",
-      "bytes": 624
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-014/mobile-014.png",
-      "sha256": "8afecc9b2745123beeddbb4090bdc3de86915d661cc1dfd06fdc783af2f32c93",
-      "bytes": 299430
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-015/index.json",
-      "sha256": "5977078d0a06d2a9ce7faed320ba202dd8aa7970a0ee20830c45caac893af704",
-      "bytes": 625
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-015/mobile-015.png",
-      "sha256": "69c397e6153e639fd044790867ac44602199f6f11558e8f4740d62a12933d946",
-      "bytes": 1566220
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-016/index.json",
-      "sha256": "d44fd926feb4fa1bbff1c0e547b1b389fa37c8bdaf5c01d22ddf085990371378",
-      "bytes": 651
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-016/mobile-016.png",
-      "sha256": "e8ca73f60879c71845d2d71018561e4a6917953bd52cb367e6e471d37377f408",
-      "bytes": 480982
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-017/index.json",
-      "sha256": "f4f9b13dfb97a10ed10d43cf902f2a32800664ba26d684a2369c16f20b4235c3",
-      "bytes": 699
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-017/mobile-017.png",
-      "sha256": "b834f44264f1b96ed2c78793d6c78ac81bedf5a0f368c024c3b50afe82152eec",
-      "bytes": 453106
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-018/index.json",
-      "sha256": "9af62934cdd403f21b72b1d805050fecfac4cc10f3db3a67fee3c691e6e7a2c6",
-      "bytes": 621
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-018/mobile-018.png",
-      "sha256": "462c66d7e307e32b7885220267941a8ca2a9977b1beded2b74290b0bd793869e",
-      "bytes": 444628
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-019/index.json",
-      "sha256": "cc5791908f97e88d25a79d7bb1d41e080ca27f94f1d7ade3ca9892c96067df2e",
-      "bytes": 624
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-019/mobile-019.jpg",
-      "sha256": "69a39654e0c81c9ac38c16e4d57e9683dab92573da26cff614a81f7f6061c27a",
-      "bytes": 176938
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-020/index.json",
-      "sha256": "e063fbd3b41d811ce8baa0b2257402657b076a2ddb91f0013f7e6e5663d01fe2",
-      "bytes": 606
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-020/mobile-020.png",
-      "sha256": "7e1b7c7ec0741ffdaa5351a573fce665c36a9b6aa31ba30f8708ae7fccf357e2",
-      "bytes": 783186
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-021/index.json",
-      "sha256": "2e6d2bae82747b2febf23120d3cdc6ec9a361f5bcb46e0bb9a0d5d181883749b",
-      "bytes": 611
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-021/mobile-021.png",
-      "sha256": "5142f1f95d9f7ec452e47e73eb21eb38cca1c8ffb8bf9f3bb58f6fffba390f00",
-      "bytes": 345462
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-022/index.json",
-      "sha256": "4ecb371bb91f015ab5ac41451a20062dcb2430826bf8383a4703141bf49dff04",
-      "bytes": 602
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-022/mobile-022.png",
-      "sha256": "25726b347bb5c99a736c9874dd30695a7b944a4134372f18c4f80aee54194e6b",
-      "bytes": 284299
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-023/index.json",
-      "sha256": "454299e8f1b96aa61f9520a26c85d91d714afaf6ef6d961e4da149a689c84bf6",
-      "bytes": 669
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-023/mobile-023.png",
-      "sha256": "ec7b5dd163a05a52c7823814705d3614acc817b2bcca2c315d7b20a572c16b58",
-      "bytes": 293987
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-024/index.json",
-      "sha256": "2960a571a82fc5369122bdd7bd18d951c8b6b27dad118a5e1a57eee59eab670a",
-      "bytes": 597
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-024/mobile-024.png",
-      "sha256": "7d22eed86b5dfea33e18101fbdc132d8d5a5f4f82d024f8bfb1c56f168545122",
-      "bytes": 6766427
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-025/index.json",
-      "sha256": "e1351d7c6a51cd8a51822b30f697dfa233487b25d9279f91388dd863a2728d87",
-      "bytes": 665
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p5-025/mobile-025.png",
-      "sha256": "8674e6d574f2cd96ad7f9e0b6ce64ca2b92f8fe8fc36c6dd9703c62704117861",
-      "bytes": 1512087
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-026/index.json",
-      "sha256": "9b67ef29f2d6c7a86f68202ffdef2bdbb1d28bf98c134e393338a3889a41a3c6",
-      "bytes": 740
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-026/mobile-026.png",
-      "sha256": "1367733c35e0f27e2bf6c69a7ee2e870e99187a976fc75866d5c58239adb8f35",
-      "bytes": 1049365
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-027/index.json",
-      "sha256": "c0c331edd393ec8ffe257898ce7cef6935bfad7631664b6e090cc8bf3ade28a3",
-      "bytes": 630
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-027/mobile-027.png",
-      "sha256": "9e6e534754dd32d408052ad095403b6f13015c1ae470f824e314a9bd084ad23f",
-      "bytes": 2096498
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-028/index.json",
-      "sha256": "ee2380c2f9b2581769a82b5aed62da6ee3e7e4cee5a3124781b0a67e95b515d8",
-      "bytes": 663
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-028/mobile-028.png",
-      "sha256": "9d747ff3be6e8bfdd575c6c11d08f8840efa2326195f5d064cdf2591edcc7990",
-      "bytes": 391390
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-029/index.json",
-      "sha256": "401389cc8ddab6f6eb899d058ff9cf3344cc8e7ff101a5cbad65c0e6fed81416",
-      "bytes": 659
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-029/mobile-029.png",
-      "sha256": "0d94a39232da0d07aff89cabe7f265ac8c329ec731a4771e87bfa7aa7c8f43cc",
-      "bytes": 137846
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-030/index.json",
-      "sha256": "65353d7893eac0f2ad14a6b6773a5b0f973208a76bcec4119806406aca9bc6aa",
-      "bytes": 682
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p3-030/mobile-030.png",
-      "sha256": "856b13cc63b6b8c38b9f8bbe7c7cc0e97129a1e129d2dd2a45d97626c0f52bb5",
-      "bytes": 974654
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-031/index.json",
-      "sha256": "bb4ebcf53d5fcbfb7713188ce216cd261f4c45d4d53cc9f988a1375649709f9c",
-      "bytes": 629
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-031/mobile-031.png",
-      "sha256": "0886a9de956d7fa1de0bc6262a2bbb052e8be454e04e38feb593d6b98abef6c9",
-      "bytes": 134970
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-032/index.json",
-      "sha256": "62974d0eefecd42a23c0116376a4e8baddcd8f36056b817fa5c1d0dcd94495a5",
-      "bytes": 619
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-032/mobile-032.png",
-      "sha256": "2c10444e6630f774759761416e4bc55cf6e3c232d46a7ccd72f76a34c8e8a237",
-      "bytes": 225740
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-033/index.json",
-      "sha256": "df13ebadad7a4ca2595b415936b5ee332f37c03576d569cfd8a39338dc43383a",
-      "bytes": 627
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-033/mobile-033.png",
-      "sha256": "88dcb44f3122cb1a8cbb083fc760d71900392fdb036743282cb3b111656b5e80",
-      "bytes": 1646082
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-034/index.json",
-      "sha256": "90efa19ec7685ec8dfd54743c1898879f17a75d42ef9194f3d8eb6f62221590f",
-      "bytes": 642
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-034/mobile-034.png",
-      "sha256": "9203e3aebab31987a5b633781edccbf380bf2c149ecdf2bce4e5466a87f0197a",
-      "bytes": 882642
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-035/index.json",
-      "sha256": "85eb5744980d89004f72e76ffe2280381f1cd1e91e14c622c9f49ab9578e3354",
-      "bytes": 642
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-035/mobile-035.png",
-      "sha256": "af2d9b825e140187463285874edcfa1a3447ba107c2a27f85fab22c0d436a829",
-      "bytes": 139199
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-036/index.json",
-      "sha256": "3cc26996781f23a6fe8bb6966b13fe15a16df5688f5d1aac427e690220a0c8e3",
-      "bytes": 627
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-036/mobile-036.png",
-      "sha256": "dd2fdf79e7984aba5a430fb61743e79c73126bf48b7b44ca9693b7c3199f2026",
-      "bytes": 914386
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-037/index.json",
-      "sha256": "f6f937a0d163fba0ed554997be9fd27a96f5e4b50aa5ded4c7f5297f4599568e",
-      "bytes": 621
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-037/mobile-037.png",
-      "sha256": "b66c43575b63193d0c2a0ecc45b2019a2125cae21ee7a7ae2e6e70ab630b5686",
-      "bytes": 704712
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-038/index.json",
-      "sha256": "17c50aa35d119ecfb8bb084d9e14340817d4dc53d35802a47a07039ba2f4d7d4",
-      "bytes": 648
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-038/mobile-038.png",
-      "sha256": "ca38e6e26f98ed4a1c3fc8c4bf55735cc8c53c689601a9055abf8e4e06744dc4",
-      "bytes": 2115936
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-039/index.json",
-      "sha256": "8e1646e2282626297ac579c051ec367d0cdb64cc6115621beeeeeb22871d2ff5",
-      "bytes": 616
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-039/mobile-039.png",
-      "sha256": "343aa887480f44b317d97060e493a48805f5ab248687fb31334cf27221717ac6",
-      "bytes": 338794
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-040/index.json",
-      "sha256": "31bc0a14810c9067c2537a684994f98b20a60469eec7740c327c068355ed19ca",
-      "bytes": 625
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-040/mobile-040.png",
-      "sha256": "b30b15aa93ad28a62776dd2c1d6ac09d3a70315cfbeae78d565a91afb75da4bf",
-      "bytes": 983706
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-041/index.json",
-      "sha256": "455e05e441adcd4ae9d4ab7a29fd0096e078420956c0b439a81abc99943725f6",
-      "bytes": 636
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-041/mobile-041.png",
-      "sha256": "220dde2b70ba4a10605eff98d0e419daecff5f5348bf123288831bfa76e7dfcb",
-      "bytes": 1384145
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-042/index.json",
-      "sha256": "e8b3e6257def4d8c49362bbd6860c15ce250ff9b2c482b159ea42ee44cc79289",
-      "bytes": 608
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-042/mobile-042.png",
-      "sha256": "1c15b92923d952ff4f02483bd41eda6ed1e1ddf37226dec33be26865f9f071d2",
-      "bytes": 755395
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-043/index.json",
-      "sha256": "c0cd431568c249761e3436d73420f2436106fec421a83cf7cf2e43791be8743a",
-      "bytes": 642
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-043/mobile-043.png",
-      "sha256": "addc2b8eef1daab746c7fa1ff179a69cdc51946e1f3326503195ee7494c16c2a",
-      "bytes": 714096
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-044/index.json",
-      "sha256": "b2d8fb31a2302ffed0244796ca9dba94f180cb8e4dd3cfbdb55e1a8a137cdabb",
-      "bytes": 634
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-044/mobile-044.png",
-      "sha256": "9bcaf87a611338bf0a5269e6e7af3ba6412fad7d32ab9303ad6ada09c5e9fe86",
-      "bytes": 401649
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-045/index.json",
-      "sha256": "f7d8b108193462b3f1dd39a38c3b372288c5fb1930cd6ecb78e986a3d20d8334",
-      "bytes": 629
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-045/mobile-045.png",
-      "sha256": "29d99d6ab0a76215ad49a2904ee8d77c93e72a5cabf6ef33afb3c5cd755e78cb",
-      "bytes": 1493464
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-046/index.json",
-      "sha256": "60cc7937dde927774e66dcd9a310e28805831b59ab91bfa5a842ab1c691dc77c",
-      "bytes": 633
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-046/mobile-046.png",
-      "sha256": "9a4ecfd108545e8a3d10f87d9b1386065535a47285e3265fa8de5aa3981d7ca1",
-      "bytes": 669767
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-047/index.json",
-      "sha256": "5e417c70026fd94ec0c1a551d4fa0f79d1a1866979e1a4492c82c03fc88b2f80",
-      "bytes": 650
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-047/mobile-047.png",
-      "sha256": "cd24e83d7b8f8ef441e9aba2638a7ee950d4421d40246ca8db269b13a895c3c3",
-      "bytes": 902336
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-048/index.json",
-      "sha256": "f7247f23b41c29e179e62625b7fa4741aea057a72f56399fb9638b0fe85ce288",
-      "bytes": 620
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-048/mobile-048.png",
-      "sha256": "2a95c9a354ad978802edee11a346f474cc42c722419748c72a5661a8a5a21247",
-      "bytes": 1830583
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-049/index.json",
-      "sha256": "47a17de31f5bc930f6eb5621b26b94b9864282f7e1a96275b4fe54ef01744109",
-      "bytes": 616
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-049/mobile-049.png",
-      "sha256": "50fb29cd1d4303f8be4736b60b9241aebd253da2a67e73bf9833c89965208eae",
-      "bytes": 989833
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-050/index.json",
-      "sha256": "4b4afd4937fec270c26ed60939d74ec64d2bce7cdf77eb4091ea1824670078e1",
-      "bytes": 656
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-050/mobile-050.png",
-      "sha256": "393c4211221c65de9824011a92d22191f65864e3eef6a3fb1bbaaa0503b6a043",
-      "bytes": 434452
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-051/index.json",
-      "sha256": "60dbcb0ea2fda32dc2b915e3becc9ec97a4e242679620af57d7b4418821d2559",
-      "bytes": 641
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-051/mobile-051.png",
-      "sha256": "601f00506bc6c109a83ca77a154692b5b62792693c60bf479e8bce7d08ec7829",
-      "bytes": 302828
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-052/index.json",
-      "sha256": "68349ce189e083c73e8e696de3fc8be476d99e838a6fb393cab77317ec627d87",
-      "bytes": 620
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-052/mobile-052.png",
-      "sha256": "ec34fdff37c2264f17627f1d43327411c18c8c3acb6c434462aa35173d15684f",
-      "bytes": 266602
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-053/index.json",
-      "sha256": "ba452051ee02b2cd208e6ee4a577ffa1a17e003e760da324ad2d2057f8e70d47",
-      "bytes": 627
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-053/mobile-053.png",
-      "sha256": "b3542302877236a0fce3056777d3dc79f96b20014f4df7605f15aa95427ac960",
-      "bytes": 160720
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-054/index.json",
-      "sha256": "dcbf8c7bb402f7df06b8a43dbb480961e96fac88773c2acab3423aba1d03f626",
-      "bytes": 622
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-054/mobile-054.png",
-      "sha256": "1afc6fb6e4c25c56001e99df59de4f686d41eda1aee444ed678d89e819d9f00d",
-      "bytes": 174641
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-055/index.json",
-      "sha256": "f7e122105b8bfb18c0c47aa13670af907b226d25efed3c599e935fdc0583217b",
-      "bytes": 628
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-055/mobile-055.png",
-      "sha256": "1e6f2573dadf41ed449becb698a7c51785be3340e32e5db5e124f0a92cc7ecde",
-      "bytes": 123200
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-056/index.json",
-      "sha256": "461bef8de9271a8be34c0f7bc037f7174bdf4bf1b14cfe301ffd94b7c36c1107",
-      "bytes": 634
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-056/mobile-056.png",
-      "sha256": "b3427cb869963ef00767aafd0867d05056a3fe37d61f882351d78864a7becbab",
-      "bytes": 121277
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-057/index.json",
-      "sha256": "3b58714bf3e24993d598ba4b400bc259c5c16d874ce065da417044f699b865cb",
-      "bytes": 629
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-057/mobile-057.png",
-      "sha256": "8beb72ebd208c0df81ed267dddbc3d25ed4bee49939513d840751620c95fe28e",
-      "bytes": 134996
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-058/index.json",
-      "sha256": "29ab5eec67b19afc528fcbff1054abf6f80c909ebc78f6137f2fae1f8619040f",
-      "bytes": 655
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-058/mobile-058.png",
-      "sha256": "76d6f249a9fde2d4d9a24c8f1c6024dfb778b0e761c6a90fb797ad987aedbc1e",
-      "bytes": 245398
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-059/index.json",
-      "sha256": "33de4990bfeb159a16e6bca3e3084183c7fcdac27249b5c81baec3e1f79e570c",
-      "bytes": 626
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-059/mobile-059.png",
-      "sha256": "8218b5f93d7d5cfbcbb5e2b92012f2f3694a47e397148c68ad0d4edab9b89608",
-      "bytes": 258785
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-060/index.json",
-      "sha256": "8dc2dcce5937bd7194eaee9059908b722d5b8425212261cc88a8793ab8b7f1a4",
-      "bytes": 610
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-060/mobile-060.png",
-      "sha256": "d6c4d577f4809d724bf5353b6eda66bf4f3581d294d3a12412ac5591f24b4b3f",
-      "bytes": 342726
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-061/index.json",
-      "sha256": "e524978e76c39248f0f4b5d46899c863564b5530a7653bf92771f33a30be413c",
-      "bytes": 621
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-061/mobile-061.png",
-      "sha256": "6a568aa3ecbc36c4e81453d597ba499483b3b73440dba7b180f11491ab535e15",
-      "bytes": 314895
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-062/index.json",
-      "sha256": "9f21840313e5762ec8cbecab94eea01f502309730ecf425d4f3d5addb9fde455",
-      "bytes": 623
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-062/mobile-062.png",
-      "sha256": "10e0c27f3150d12c9d4ab1240ccc2b690032b1585b4be62e370d7de561503f2d",
-      "bytes": 478330
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-063/index.json",
-      "sha256": "10a52d727059f81318c818f7c9349f129f82cf869d9d4bd1a07e0fd6e3b774ad",
-      "bytes": 641
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-063/mobile-063.png",
-      "sha256": "aa624a53b93e15f10c7988798a83dea3462e8960a48a5e40ae6cb3adf7b56bc6",
-      "bytes": 599325
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-064/index.json",
-      "sha256": "c3fb40c223d0382a7204f50132daab577d4b33bbd9a66d8b403fc14002e79a25",
-      "bytes": 631
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-064/mobile-064.png",
-      "sha256": "390351916f29f9af774997f1c3d4c179b4e56ba8997215e403e0ff41bcab7e6d",
-      "bytes": 1269077
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-065/index.json",
-      "sha256": "597ead3c2e70b85f0d407b82ff0691d36f7510b88e3072c061fd2aa448144e9b",
-      "bytes": 622
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-065/mobile-065.png",
-      "sha256": "143faa82af68e9286a83dca485f31c300bd19573b66b06d4ca8ac5f7f8189b5d",
-      "bytes": 269177
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-066/index.json",
-      "sha256": "d0400c3ea36cb65508376baa0395896af6f9e043acec06a8c06d6f5fabce78bd",
-      "bytes": 623
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-066/mobile-066.png",
-      "sha256": "2b01fe8c45f4581de298717cf8a3af5f5d1a77f8a9111d6efaf71a807053596c",
-      "bytes": 339827
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-067/index.json",
-      "sha256": "2742c1bdc31e2ec6152620adbebc411f6d106dd6ade36985be96442e92039797",
-      "bytes": 631
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-067/mobile-067.png",
-      "sha256": "5cf138af02cdaed718e046066640c2ddf85a678fd465b753d18cabeff20aa225",
-      "bytes": 522751
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-068/index.json",
-      "sha256": "5699cc2f1d88db8e6585f2f6ea1a65d07db7cb59940f42a80a8b9c6fae07a332",
-      "bytes": 653
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-068/mobile-068.png",
-      "sha256": "3b8ed11dba89b70b54fc3446df8bd0e54dcfcfff0207338e12b0d935c1517150",
-      "bytes": 1142367
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-069/index.json",
-      "sha256": "cf3ad55b1771d7ea1951d83268625888c5fff99db3474dbe86109e168723a36e",
-      "bytes": 623
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-069/mobile-069.png",
-      "sha256": "cba5e35ffba023dc44f930a4e8cd0c167e65bc408f908c1dd5674c56c884580e",
-      "bytes": 141974
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-070/index.json",
-      "sha256": "ea7f4ef67eaaca083a705983ff942aadef3055ce957a94545403a0a26a593161",
-      "bytes": 645
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-070/mobile-070.png",
-      "sha256": "e4a481bd29ed73a239839118e5083c86e77314c723e2a740f97368855fce16e3",
-      "bytes": 147132
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-071/index.json",
-      "sha256": "10b971975ef60b97cf39e333ffdcb9c2e65e08dc9648ffc2ac78489604c629bd",
-      "bytes": 617
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-071/mobile-071.png",
-      "sha256": "c3076b464575097ffd837751f9dfae3db9ecdd5ed9d4b25905c1a9e96dc7b63c",
-      "bytes": 1401570
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-072/index.json",
-      "sha256": "7f23fc9836ebea4f3657d70ec4eae74cdc33cca007036390b305806c954ff2fa",
-      "bytes": 640
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-072/mobile-072.png",
-      "sha256": "691b80d55ee67fb381dc6f7c180222396ff43d97fae62b0e70aeadfd77bf6c8c",
-      "bytes": 268574
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-073/index.json",
-      "sha256": "9dbc23287ab7631187e3769616ac8ee6190e7513e12c43c6a0d7e5e335a307c7",
-      "bytes": 648
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-073/mobile-073.png",
-      "sha256": "d8ecd63a1e5452bc13679de7cdb8c74ab716ddc447e549730b4f5c61f54489cb",
-      "bytes": 584295
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-074/index.json",
-      "sha256": "676eec727c3eb4ae03496049c337251759780960e2c34043c281f080a438dc85",
-      "bytes": 632
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-074/mobile-074.png",
-      "sha256": "a4afe86d77278a7a9d1731bc5d71c51f22681334fe1dc5ab75bf92d3bd87ac39",
-      "bytes": 1200520
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-075/index.json",
-      "sha256": "2e0b85436d980be863e33596b105e533f34144560005c8d0f41d3fa035a93638",
-      "bytes": 673
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-075/mobile-075.png",
-      "sha256": "a9649934f4f9c5fef056f7fdef8b663820b580ec177c57ceac8e6e2f48cf33b1",
-      "bytes": 1679468
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-076/index.json",
-      "sha256": "41ba7b10153cdb8ba60ff9581565b52a0b39dec935a4e87884f74ff2b878f786",
-      "bytes": 648
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-076/mobile-076.png",
-      "sha256": "7f197531c7f061de4879cd66c2787b95efffa089b7ebc5c80359c01b5c595c81",
-      "bytes": 283898
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-077/index.json",
-      "sha256": "d4dd663e97ce05d4b123e87fdd1154bd1099907c06f3c75ffd33fc30eb9b28a0",
-      "bytes": 647
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-077/mobile-077.png",
-      "sha256": "34a37e898290c6daef221e730f38e63bd9b635c78c059a181ef35f82225c5fff",
-      "bytes": 498619
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-078/index.json",
-      "sha256": "e39eff24def07d63e1a464e5bea7da99a60251404d38f3f046dcf96c4076cc30",
-      "bytes": 647
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-078/mobile-078.png",
-      "sha256": "c4dd9ebb4c56d7beaff5bbc976577f948fe68699ffc1e8c9d650c4d6208ee85f",
-      "bytes": 1120233
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-079/index.json",
-      "sha256": "964884a1cd660364eab3b52027f7593e77f7fb886191309db45be2196ddf6e02",
-      "bytes": 680
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-079/mobile-079.png",
-      "sha256": "a807380e91b7e732769bfa3f47049398afedbc182899db09b3d292da16ae7555",
-      "bytes": 523716
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-080/index.json",
-      "sha256": "562e610190f8d2ea00a687601dc2722990a7e140eb401c2db95e2a539a02f7de",
-      "bytes": 655
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-080/mobile-080.png",
-      "sha256": "712807d800135b5dca08a20f2846f9ef2b31010c41c26212a79320f774b071f7",
-      "bytes": 1071140
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-081/index.json",
-      "sha256": "be4207371233a7da8f6bd57e2f5207093585e92dde35198cd90ba3c3fefc9e44",
-      "bytes": 642
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-081/mobile-081.png",
-      "sha256": "c8a5ab3b076735ac938cacaa116b2b21d68a459ef13edd5c0f5522afa5ca7a89",
-      "bytes": 247634
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-082/index.json",
-      "sha256": "6763f5612f7a3ee14f43bf7d0590c4f6b3358abc01701ba674892399294b62a8",
-      "bytes": 655
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-082/mobile-082.png",
-      "sha256": "ccb1f3707057f91aa9bfec4255591cd23b764bba5617ef6845eb22915139a30a",
-      "bytes": 193365
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-083/index.json",
-      "sha256": "b68d77e50173a21e4795491170b651f68653cbf6ce1135a6446fdaeb243afad3",
-      "bytes": 629
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-083/mobile-083.png",
-      "sha256": "235d724cf3b82dada69762fffa1f7aefca83a20a49980df48b211c52c652466c",
-      "bytes": 1811507
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-084/index.json",
-      "sha256": "b978dd06a2fb0ffee7e3dc936af4a56fc5b0b4a685493a824a75673f8ef4fbf8",
-      "bytes": 669
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-084/mobile-084.png",
-      "sha256": "b92f94a51309850a8cf3b5e689df79f1bdf64a247cbba8b2b8fdaedad998df6c",
-      "bytes": 2008431
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-085/index.json",
-      "sha256": "27422396dcc5b258fe4bcc02108a774192354d811fe9695d696add65749750c9",
-      "bytes": 649
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-085/mobile-085.png",
-      "sha256": "665ffc9fdfeef84b3b117c66ad196f8c93e6aabd6ed62644a0cf1320e426a8ba",
-      "bytes": 371798
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-086/index.json",
-      "sha256": "4cc6b39dba8188871af7a2ce45cdff6aa1f8f7bd063843d8ca48c33b37145cfc",
-      "bytes": 628
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-086/mobile-086.png",
-      "sha256": "481ed822dd68b358dabf32ed65eb045ce8049016fc8ef9a2a95a4505ec3a95d7",
-      "bytes": 136838
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-087/index.json",
-      "sha256": "55f4ea7c3e11635ae28964976eb0690e12ebc56f8a34b324eb2064b45fbecf54",
-      "bytes": 604
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-087/mobile-087.png",
-      "sha256": "302732068c909a1b11a6bc27f2714249cc7512a5ecf9d8d380a813ef05cfa97d",
-      "bytes": 855019
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-088/index.json",
-      "sha256": "122ddbc3ed809e11fb07b094a1d2fbf4f32363ff1092583e3d1bf8a960d26852",
-      "bytes": 632
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-088/mobile-088.png",
-      "sha256": "45a2355aa7a12ead0380508131513bf63ccd94a1ef6423420665486c5fb1da8a",
-      "bytes": 397384
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-089/index.json",
-      "sha256": "d09cf295aa431dbfdb33c83cef554c81652f9ff8bd222bb06612971ce6746b66",
-      "bytes": 626
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-089/mobile-089.png",
-      "sha256": "bd11e19784c14161fdbc5821ef078a8971bc8bb1851647e87df08c2e2ef200cf",
-      "bytes": 583656
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-090/index.json",
-      "sha256": "ae6a2c52a9deb657df4fdef219a91c067f4c0a6cfcc9676a6b031cffc55a13c6",
-      "bytes": 642
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-090/mobile-090.png",
-      "sha256": "3032a171754d83f4e9b858ee5688698958b142fc22a3de3884f849edd5050739",
-      "bytes": 760302
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-091/index.json",
-      "sha256": "120bdc364e1de3789946da1392b45a4b527eb4312b7c61f7198ad3d50b672943",
-      "bytes": 566
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-091/mobile-091.png",
-      "sha256": "79e68b985aad0edbfa96ef515fb86241a8f1cd33c137449644024dbfc16d957a",
-      "bytes": 1467815
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-092/index.json",
-      "sha256": "a41d6f4ca021aa7c27c291c9d37ea7ebd9dc79bc6888e399ea566ad13b138033",
-      "bytes": 608
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-092/mobile-092.png",
-      "sha256": "7f96222b714b0f267664406ad8562196c48db25acd344be9bf42e8ee51a17f5f",
-      "bytes": 473262
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-093/index.json",
-      "sha256": "6addefe671818cb4421ee755bf89fcd9ce72f6fb81403eca66589c44b4f1820f",
-      "bytes": 585
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-093/mobile-093.png",
-      "sha256": "95e7d0e0e7d694c434331db933ec3ede2c5c5d6dac5ae950625e3d20eb5c525f",
-      "bytes": 219191
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-094/index.json",
-      "sha256": "a14433d949e63451e2fa876b886d9feca150618038e85e7fd937593a843b00c9",
-      "bytes": 516
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-094/mobile-094.png",
-      "sha256": "65e217f2523f43a20b09903a08d719a40be0c349372645b92ef6902e8072de35",
-      "bytes": 355462
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-095/index.json",
-      "sha256": "d7f805274e793047b786b2b4fc6c9a940a4d5c422b44354a1a227f77ba3b532e",
-      "bytes": 583
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-095/mobile-095.png",
-      "sha256": "0dda2617f6e94265a7dd69ec76b41fec749cfbf7c4c4bfd92b9003cd41b73095",
-      "bytes": 115681
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-096/index.json",
-      "sha256": "3665ceb53fb1d0fb8a43d68b654635ee3aeb69b8a7da8f8d8c7c8e3df95ab68c",
-      "bytes": 539
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-096/mobile-096.png",
-      "sha256": "0ec6933e7ef183abce805fc0c2c6e6fbd28ac15a1af8e3b0b5f34ebd548d2570",
-      "bytes": 798701
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-097/index.json",
-      "sha256": "a18e4f99ec0968d0e08dfe4c37ca92e182f0607fb93d0544df6b14a911ff56eb",
-      "bytes": 555
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-097/mobile-097.png",
-      "sha256": "2440890eaf69f99511ed91b3a1fd3db16c76b51694d4475113ac06cff7d752e0",
-      "bytes": 549092
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-098/index.json",
-      "sha256": "eb3160976aa9fce4dc3a8ee0f9bd2963327f1f8728531ca0825f46f6afe40d73",
-      "bytes": 543
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p6-098/mobile-098.png",
-      "sha256": "b5148e262e26715c0abbd4a0ed3bd75ebcac4db23f1c3d1f645b5664604ace77",
-      "bytes": 104977
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-099/index.json",
-      "sha256": "a20379aab46fc277f9cf88584d43d2263db53c95b76530825a840b42cffccf06",
-      "bytes": 625
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-099/mobile-099.png",
-      "sha256": "4d054894b7c274c37c1c6ae299f87e8ccde2e733379433ff8e28055ca1a265db",
-      "bytes": 291830
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-100/index.json",
-      "sha256": "255c83aa9c04692b6092e3a5c64d84873fba3eaa2563a811669246db2db4e143",
-      "bytes": 625
-    },
-    {
-      "path": "cases/GUI-MOBILE100-v4p2-100/mobile-100.png",
-      "sha256": "b7585d726c1a00a4b130d840d32fa09229f0571f0d7ade12709951b13b45518b",
-      "bytes": 848965
-    }
-  ],
-  "review_evidence_files": [
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-061-reason-81-gt.jpg",
-      "sha256": "b90a4044796d1c7b61751cac548fda9e47237bf36c6c3035fdb767aa862e8fdc",
-      "bytes": 1056597
-    },
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-061-reason-81-gt-crop.png",
-      "sha256": "d2fd7ca0644b022f1f79b0dbabb17c7026319b9ad9d056acdc0b7be5cdb60ccc",
-      "bytes": 423352
-    },
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-063-reason-201-gt.jpg",
-      "sha256": "6c7c2f9356c4b39640538e5b3907e9cf6906a4bb9d001cc5a57dab6a7091b2e0",
-      "bytes": 752868
-    },
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-063-reason-201-gt-crop.png",
-      "sha256": "bfa934370a683e75826bc822e6b7cc77919bbb373313d869a97d4e45ed5cfca6",
-      "bytes": 453868
-    },
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-065-reason-453-gt.jpg",
-      "sha256": "a2e025bdbf3dfd86c451c1592792c3463aa2ecde19e69e8f388a19f98f609727",
-      "bytes": 666847
-    },
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-065-reason-453-gt-crop.png",
-      "sha256": "bb158317f021548899bd831b2e16158e7e6ae0962c0d937f6ff8617795a018c2",
-      "bytes": 32791
-    },
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-066-reason-582-gt.jpg",
-      "sha256": "e0cb5b5ece1c0fb676db77f700d116cd96e2516bb6f3fad701071686e1be9110",
-      "bytes": 556241
-    },
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-066-reason-582-gt-crop.png",
-      "sha256": "ef1e023e76f44890829c42a644cade4260fed49b4b64c69ca32f1a6ff03fc220",
-      "bytes": 23231
-    },
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-067-reason-962-gt.jpg",
-      "sha256": "9a1e7aacc10eaf28dfb5b0a3d0c9eb2c874061e8e8cfe8d91c3a9f8369512ff6",
-      "bytes": 617605
-    },
-    {
-      "path": "review-evidence/GUI-WEB100-v4p7-067-reason-962-gt-crop.png",
-      "sha256": "10021f3a527d74e26f39deaf2ab2e23acd4db343b723c4050b87d96337097b13",
-      "bytes": 46717
-    }
-  ],
-  "all_400_case_git_blobs_equal_source_commit": true,
-  "source_manifest_git_blob_equal_evaluated_snapshot": true
+  ]
 }
