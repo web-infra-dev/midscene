@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-013.png",
+      "fileName": "GUI-WEB100-v4p2-013.png",
       "imageType": "hd",
       "gtBox": [
         1965,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Find the task in the third phase with the date of December 12-14, and click to complete the task.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#591 | license=MIT | sha256=c4c391c200c7c52eab9dc6581326c01065bc611642483f9fde00bfc65aba00f1. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Disambiguation | source=VenusBench-GD | source_id=instruction/reason_grounding.json#591",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Disambiguation"
+  ],
+  "primaryFactor": "disambiguation",
+  "primaryFactorLabel": "Disambiguation"
 }

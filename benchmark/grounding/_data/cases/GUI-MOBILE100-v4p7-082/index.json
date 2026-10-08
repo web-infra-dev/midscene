@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-v4p7-082.png",
+      "imageType": "hd",
+      "gtBox": [
+        60.0111,
+        1362.0924,
+        1120.9932,
+        1716.0984
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A health metric card located between the Resting Heart Rate and Heart Rate Variability cards in the Heart section",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Relative Position | source=MMBench-GUI L2 | source_id=1409",
+  "tags": [
+    "evaluation_import",
+    "Relative Position"
+  ],
+  "primaryFactor": "relative",
+  "primaryFactorLabel": "Relative Position"
+}

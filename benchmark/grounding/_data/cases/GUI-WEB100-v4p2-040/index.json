@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-040.png",
+      "fileName": "GUI-WEB100-v4p2-040.png",
       "imageType": "hd",
       "gtBox": [
         35,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Generate project report",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#217 | license=MIT | sha256=cd8837ca635c0fb9eb06d4f11848c9641ed271e504e5fe802ce98161d46dc03f. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#217",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Functional"
+  ],
+  "primaryFactor": "functional",
+  "primaryFactorLabel": "Functional"
 }

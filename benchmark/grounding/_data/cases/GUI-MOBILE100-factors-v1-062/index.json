@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-062.png",
+      "imageType": "hd",
+      "gtBox": [
+        33.048,
+        1064.232,
+        844.992,
+        1257.282
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Explore the mobile version of the League of Legends auto-chess game featured in today's recommendations",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=MMBench-GUI L2 | source_id=2606",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-062.png",
+      "fileName": "GUI-WEB100-v4p2-062.png",
       "imageType": "hd",
       "gtBox": null,
       "expectedOutcome": "refusal"
@@ -9,8 +9,11 @@
   ],
   "prompt": "Find the back icon in the lower-left corner.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#13 | license=MIT | sha256=5a1f20c847ca71c90d906ef6e35c08ef2847292c751fbe3f48c0b5bd3e33e12e. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#13",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Refusal"
+  ],
+  "primaryFactor": "refusal",
+  "primaryFactorLabel": "Refusal"
 }

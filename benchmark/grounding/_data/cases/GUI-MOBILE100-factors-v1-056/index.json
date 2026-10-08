@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-056.png",
+      "imageType": "hd",
+      "gtBox": [
+        3.024,
+        1480.986,
+        1072.98,
+        1686.906
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Get information about the China versus Cameroon youth team match that hasn't started yet",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=MMBench-GUI L2 | source_id=2771",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

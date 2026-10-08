@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-021.png",
+      "fileName": "GUI-MOBILE100-v4p3-021.png",
       "imageType": "hd",
       "gtBox": [
         770,
@@ -14,8 +14,11 @@
   ],
   "prompt": "open the file named \"result\"",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=ScreenSpot-v2 | source_id=screenspot_mobile_v2.json#22 | license=Apache-2.0 | sha256=5142f1f95d9f7ec452e47e73eb21eb38cca1c8ffb8bf9f3bb58f6fffba390f00. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=ScreenSpot-v2 | source_id=screenspot_mobile_v2.json#22",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
 }

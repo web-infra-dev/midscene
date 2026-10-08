@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-003.png",
+      "fileName": "GUI-MOBILE100-v4p3-003.png",
       "imageType": "hd",
       "gtBox": [
         517,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Find the text \"Lowest price online? 17.8\".",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#647 | license=MIT | sha256=0173f73317fa03911ced35afb4e7e7d0b9a0a067b2a4ca8b3dff43e4cc70a4df. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#647",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
 }

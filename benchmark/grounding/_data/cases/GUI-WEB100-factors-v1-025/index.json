@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-025.png",
+      "imageType": "hd",
+      "gtBox": [
+        844.0,
+        1309.000000032,
+        891.0,
+        1347.999999984
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "A gray comparison/price history icon with vertical bars that appears below the air succulents product information.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Unfamiliar Icon | source=MMBench-GUI L2 | source_id=L2_annotations.json#1757",
+  "tags": [
+    "evaluation_import",
+    "Unfamiliar Icon"
+  ],
+  "primaryFactor": "unfamiliar",
+  "primaryFactorLabel": "Unfamiliar Icon"
+}

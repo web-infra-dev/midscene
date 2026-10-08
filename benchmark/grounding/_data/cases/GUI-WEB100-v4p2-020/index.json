@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-020.png",
+      "fileName": "GUI-WEB100-v4p2-020.png",
       "imageType": "hd",
       "gtBox": [
         2059,
@@ -14,8 +14,11 @@
   ],
   "prompt": "On the map, find the hotel nearest to Tianqiao Performing Arts that is already sold out.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#469 | license=MIT | sha256=36e2f431c0b981d2c4765fffad3feb7f9971d6dddab76413c8c03af7c9cf0670. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#469",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
 }

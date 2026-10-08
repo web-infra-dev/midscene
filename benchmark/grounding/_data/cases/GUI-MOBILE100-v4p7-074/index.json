@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-v4p7-074.png",
+      "imageType": "hd",
+      "gtBox": [
+        197,
+        1257,
+        410,
+        1458
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Choose the cheapest item from the store nearest to me.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#330",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

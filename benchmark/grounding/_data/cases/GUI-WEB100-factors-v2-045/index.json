@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v2-045.jpg",
+      "imageType": "hd",
+      "gtBox": [
+        37.0,
+        640.0,
+        61.0,
+        664.0
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Click on Black.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Color Recognition | source=GroundUI-18K | source_id=data/train-00018-of-00019.parquet#210",
+  "tags": [
+    "evaluation_import",
+    "Color Recognition"
+  ],
+  "primaryFactor": "color",
+  "primaryFactorLabel": "Color Recognition"
+}

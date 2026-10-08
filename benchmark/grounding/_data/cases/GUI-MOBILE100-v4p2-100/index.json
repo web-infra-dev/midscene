@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-100.png",
+      "fileName": "GUI-MOBILE100-v4p2-100.png",
       "imageType": "hd",
       "gtBox": null,
       "expectedOutcome": "refusal"
@@ -9,8 +9,11 @@
   ],
   "prompt": "Find the \"Choose podcasts\" button with a red background at the bottom of the interface.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p2 | class=refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#row=891 | license=MIT | sha256=b7585d726c1a00a4b130d840d32fa09229f0571f0d7ade12709951b13b45518b. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#row=891",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Refusal"
+  ],
+  "primaryFactor": "refusal",
+  "primaryFactorLabel": "Refusal"
 }

@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-005.png",
+      "fileName": "GUI-MOBILE100-v4p3-005.png",
       "imageType": "hd",
       "gtBox": [
         265,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Find the text \"Albany Transit System\" in the transportation agency options.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p3 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1078 | license=MIT | sha256=8eb67a3b20e6a4ba2c2cd2a9ff6387ab36338c9e79f5a780af7b32c5c5f46b94. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p3/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1078",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
 }

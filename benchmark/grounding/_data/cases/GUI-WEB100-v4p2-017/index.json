@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-017.png",
+      "fileName": "GUI-WEB100-v4p2-017.png",
       "imageType": "hd",
       "gtBox": [
         2298,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Select the product image for people paying more than 60 and less than 100",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#297 | license=MIT | sha256=7d300f81422d1f2496e6bd3871cd7759a892caf2f19f81065c7a8aa0067341cb. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#297",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
 }

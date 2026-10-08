@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-064.png",
+      "fileName": "GUI-WEB100-v4p2-064.png",
       "imageType": "hd",
       "gtBox": null,
       "expectedOutcome": "refusal"
@@ -9,8 +9,11 @@
   ],
   "prompt": "Find the red Create button at the top of the screen.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p2 | class=refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#53 | license=MIT | sha256=20c00822731eb2210cfc49ba0ccfb7f183aa870609af48b030cd081969459de6. 完整来源见 _data/imports/gui-grounding-web-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Refusal | source=VenusBench-GD | source_id=instruction/refusal_grounding.json#53",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Refusal"
+  ],
+  "primaryFactor": "refusal",
+  "primaryFactorLabel": "Refusal"
 }

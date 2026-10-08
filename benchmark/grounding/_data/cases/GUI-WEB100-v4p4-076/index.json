@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-076.png",
+      "fileName": "GUI-WEB100-v4p4-076.png",
       "imageType": "hd",
       "gtBox": [
         1473,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Find the pause icon.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p4 | class=basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#1216 | license=MIT | sha256=4a07090b99a75446343f6e60ea36e8323766b99f753d8480c34327a6c3b0ce68. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Small Target | source=VenusBench-GD | source_id=instruction/element_grounding.json#1216",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Small Target"
+  ],
+  "primaryFactor": "small",
+  "primaryFactorLabel": "Small Target"
 }

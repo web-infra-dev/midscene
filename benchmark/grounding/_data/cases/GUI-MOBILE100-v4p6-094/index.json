@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-094.png",
+      "fileName": "GUI-MOBILE100-v4p6-094.png",
       "imageType": "hd",
       "gtBox": [
         50,
@@ -14,8 +14,11 @@
   ],
   "prompt": "View the details of your end-of-August walking activity",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p6 | class=reason | source=MMBench-GUI L2 | source_id=2961 | sha256=65e217f2523f43a20b09903a08d719a40be0c349372645b92ef6902e8072de35",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=MMBench-GUI L2 | source_id=2961",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
 }

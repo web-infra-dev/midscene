@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "web-099.jpg",
+      "fileName": "GUI-WEB100-v4p4-099.jpg",
       "imageType": "hd",
       "gtBox": [
         32.0,
@@ -14,8 +14,11 @@
   ],
   "prompt": "digital wallets text link",
   "fallbackPrompt": "",
-  "note": "gui-grounding-web-100-v4p4 | class=basic | source=WebClick | source_id=default/test/963 | license=Apache-2.0 | sha256=0115a25b44325a76e84a129e4848ac9ba0a538692858599048e252dd9a6eb8fc. 完整来源见 _data/imports/gui-grounding-web-100-v4p4/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=WebClick | source_id=default/test/963",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
 }

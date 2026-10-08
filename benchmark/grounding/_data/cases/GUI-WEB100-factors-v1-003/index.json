@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-003.png",
+      "imageType": "hd",
+      "gtBox": [
+        1199,
+        585,
+        1337,
+        653
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the button labeled \"Nikon\" in the brand filter section.",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Element basic | source=VenusBench-GD | source_id=instruction/element_grounding.json#386",
+  "tags": [
+    "evaluation_import",
+    "Element basic"
+  ],
+  "primaryFactor": "element",
+  "primaryFactorLabel": "Element basic"
+}

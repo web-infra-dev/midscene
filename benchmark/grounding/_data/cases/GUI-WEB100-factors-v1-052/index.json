@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-WEB100-factors-v1-052.png",
+      "imageType": "hd",
+      "gtBox": [
+        210.999999936,
+        667.99999998,
+        243.999999936,
+        689.00000004
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Refine your search to view Charizard products from the company known for building block toys and figures",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=MMBench-GUI L2 | source_id=L2_annotations.json#3564",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

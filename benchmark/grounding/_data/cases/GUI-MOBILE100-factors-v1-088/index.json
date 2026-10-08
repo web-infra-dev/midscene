@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-088.png",
+      "imageType": "hd",
+      "gtBox": [
+        757.0,
+        274.0,
+        804.0,
+        384.00000000000006
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Find the current playback position of the first voice message",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Fine-grained Manipulation | source=FineState-Bench | source_id=mobile/ANumericRange240json/A4SeekBar40.json#1",
+  "tags": [
+    "evaluation_import",
+    "Fine-grained Manipulation"
+  ],
+  "primaryFactor": "fine",
+  "primaryFactorLabel": "Fine-grained Manipulation"
+}

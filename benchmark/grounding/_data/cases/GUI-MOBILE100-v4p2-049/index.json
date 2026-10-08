@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-049.png",
+      "fileName": "GUI-MOBILE100-v4p2-049.png",
       "imageType": "hd",
       "gtBox": [
         851,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Click to switch tabs",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p2 | class=functional | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=574 | license=MIT | sha256=50fb29cd1d4303f8be4736b60b9241aebd253da2a67e73bf9833c89965208eae. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Small Target | source=VenusBench-GD | source_id=instruction/functional_grounding.json#row=574",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Small Target"
+  ],
+  "primaryFactor": "small",
+  "primaryFactorLabel": "Small Target"
 }

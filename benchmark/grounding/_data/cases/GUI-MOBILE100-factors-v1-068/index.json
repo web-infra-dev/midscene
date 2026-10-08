@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "fileName": "GUI-MOBILE100-factors-v1-068.png",
+      "imageType": "hd",
+      "gtBox": [
+        899,
+        1920,
+        1024,
+        2038
+      ],
+      "expectedOutcome": "point"
+    }
+  ],
+  "prompt": "Book the room with the highest discount amount",
+  "fallbackPrompt": "",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#329",
+  "tags": [
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
+}

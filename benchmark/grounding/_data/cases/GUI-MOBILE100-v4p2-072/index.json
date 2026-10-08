@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "fileName": "mobile-072.png",
+      "fileName": "GUI-MOBILE100-v4p2-072.png",
       "imageType": "hd",
       "gtBox": [
         962,
@@ -14,8 +14,11 @@
   ],
   "prompt": "Help me save the stocks that are currently rising.",
   "fallbackPrompt": "",
-  "note": "gui-grounding-mobile-100-v4p2 | class=reason | source=VenusBench-GD | source_id=instruction/reason_grounding.json#row=232 | license=MIT | sha256=691b80d55ee67fb381dc6f7c180222396ff43d97fae62b0e70aeadfd77bf6c8c. 完整来源见 _data/imports/gui-grounding-mobile-100-v4p2/manifest.jsonl。",
+  "note": "Web100 v3 + Mobile100 v1 | primary=Reasoning | source=VenusBench-GD | source_id=instruction/reason_grounding.json#row=232",
   "tags": [
-    "evaluation_import"
-  ]
+    "evaluation_import",
+    "Reasoning"
+  ],
+  "primaryFactor": "reasoning",
+  "primaryFactorLabel": "Reasoning"
 }
