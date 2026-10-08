@@ -88,6 +88,7 @@ Usage:
   midscene-test --config <midscene.config.ts> [options]
   midscene-test nodes [directory] [--config midscene.config.ts]
   midscene-test create --help
+  midscene-test model verify    Check model connectivity and Midscene compatibility
 
 Options:
   --config <path>              Native TypeScript or JavaScript Test config
@@ -204,6 +205,13 @@ export async function runTestCli(
   io: TestCliIO = defaultCliIO,
 ): Promise<number> {
   try {
+    if (args[0] === 'model') {
+      const { runModelCommand } = await import('./model-command');
+      return runModelCommand(args, undefined, {
+        stdout: io.log,
+        stderr: io.error,
+      });
+    }
     if (args[0] === 'create') {
       const { runCreateCommand } = await import('./create-command');
       await runCreateCommand(args.slice(1), io);

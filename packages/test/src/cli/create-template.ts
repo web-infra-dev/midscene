@@ -94,12 +94,16 @@ const platformEnv: Record<CreatePlatform, string> = {
     '# Optional: select a display; leave empty for the default display.\nCOMPUTER_DISPLAY_ID=\n# Enable Xvfb on headless Linux after installing its dependencies.\nMIDSCENE_COMPUTER_HEADLESS_LINUX=false\n',
 };
 
-const modelEnv = `# Copy this file to .env before running tests.
+const modelEnv = (
+  packageManager: CreatePackageManager,
+) => `# Copy this file to .env before running tests.
 # Do not commit .env to your repository. In CI, inject these values as environment variables instead.
 # Choose a supported model and copy its four configuration values from:
 # https://midscenejs.com/model-common-config.html
 # For the complete environment variable reference, see:
 # https://midscenejs.com/model-config.html
+# After configuring .env, verify model connectivity and Midscene compatibility from the project directory:
+# ${packageManagerCommands[packageManager].verifyModel}
 MIDSCENE_MODEL_BASE_URL=
 MIDSCENE_MODEL_API_KEY=
 MIDSCENE_MODEL_NAME=
@@ -211,8 +215,8 @@ export default defineTestProject<ProjectContext>({
         : platform === 'computer'
           ? 'cases:\n  - name: Inspect the desktop\n    steps:\n      - aiAsk: Describe the current desktop\n'
           : 'cases:\n  - name: Inspect the home screen\n    steps:\n      - home: {}\n      - aiAsk: Describe the current screen\n',
-    '.env.example': `${modelEnv}\n${env}`,
+    '.env.example': `${modelEnv(packageManager)}\n${env}`,
     '.gitignore': 'node_modules/\n.env\nmidscene_run/\n',
-    'README.md': `# ${name}\n\nA Midscene Test project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-node-spec.${platform}.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run nodes\` manually.\n\nCopy \`.env.example\` to \`.env\`, then choose and configure a model using the [supported models and setup guide](https://midscenejs.com/model-common-config.html). Do not commit \`.env\` to your repository; inject the model configuration as environment variables in CI.\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-node-spec.${platform}.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run nodes\` to refresh the spec. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\nReports are written to \`midscene_run/report/\`.\n`,
+    'README.md': `# ${name}\n\nA Midscene Test project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-node-spec.${platform}.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run nodes\` manually.\n\nCopy \`.env.example\` to \`.env\`, then choose and configure a model using the [supported models and setup guide](https://midscenejs.com/model-common-config.html). Do not commit \`.env\` to your repository; inject the model configuration as environment variables in CI.\n\nAfter configuring \`.env\`, run \`${packageManagerCommands[packageManager].verifyModel}\` from the project directory to check model connectivity and Midscene compatibility. This check does not require a browser or device. If it fails, see [Model debugging and observability](https://midscenejs.com/model-debugging-observability.html) before running tests.\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-node-spec.${platform}.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run nodes\` to refresh the spec. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\nReports are written to \`midscene_run/report/\`.\n`,
   };
 }

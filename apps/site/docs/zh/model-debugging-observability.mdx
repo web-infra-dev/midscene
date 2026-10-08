@@ -45,6 +45,19 @@ curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/${model_endpoint}" \
 将模型配置放入 `.env` 文件，然后运行：
 
 ```bash
+# 如果当前项目已安装 @midscene/test
+pnpm exec midscene-test model verify
+
+# 不在项目中安装，直接运行最新版本
+pnpm dlx @midscene/test@latest model verify
+
+# 查看命令帮助
+pnpm exec midscene-test model verify --help
+```
+
+`@midscene/cli` 也提供相同的检查：
+
+```bash
 # 如果当前项目已安装 @midscene/cli，可以使用本地的 midscene 命令
 npx midscene model verify
 
@@ -53,6 +66,8 @@ npx @midscene/cli@latest model verify
 ```
 
 该命令会读取当前工作目录下的 `.env` 文件。Dotenv 的 Debug 日志默认开启。`.env` 中的变量会覆盖已有的 Shell 环境变量。
+
+两条命令都会检查 default、planning 和 insight 模型配置，无需加载 Test 项目或连接浏览器、设备。检查成功时退出码为 `0`，失败时为 `1`。
 
 如果 `curl` 请求成功，但 Midscene 验证命令失败，说明模型 API 可以连接。请继续检查模型能力和 Midscene 配置。
 
