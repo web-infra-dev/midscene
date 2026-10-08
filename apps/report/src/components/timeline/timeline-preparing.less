@@ -1,0 +1,79 @@
+.timeline-preparing {
+  --timeline-loading-surface: var(--runner-surface-muted, #f7f8fa);
+  --timeline-loading-border: var(--runner-border, #e8ebef);
+  --timeline-loading-text: var(--runner-subtle, #667085);
+  --timeline-loading-card: var(--runner-surface, #fff);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--timeline-loading-surface);
+  font-family: inherit;
+  place-items: center;
+  pointer-events: none;
+
+  .timeline-preparing-frames {
+    position: absolute;
+    inset: 5px;
+    display: flex;
+    gap: 5px;
+    opacity: 0.6;
+  }
+
+  .timeline-preparing-frames > span {
+    display: grid;
+    flex: 1 0 64px;
+    border: 1px solid var(--timeline-loading-border);
+    border-radius: 4px;
+    color: var(--timeline-loading-border);
+    background: var(--timeline-loading-card);
+    font-size: 18px;
+    place-items: center;
+  }
+
+  .timeline-preparing-label {
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--timeline-loading-border);
+    border-radius: 6px;
+    color: var(--timeline-loading-text);
+    background: var(--timeline-loading-card);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+  }
+
+  .timeline-preparing-spinner {
+    width: 12px;
+    height: 12px;
+    box-sizing: border-box;
+    border: 1.5px solid var(--timeline-loading-border);
+    border-top-color: var(--timeline-loading-text);
+    border-radius: 50%;
+    animation: timeline-preparing-spin 900ms linear infinite;
+  }
+}
+
+[data-theme='dark'] .timeline-preparing {
+  --timeline-loading-surface: var(--runner-surface-muted, #1d2024);
+  --timeline-loading-border: var(--runner-border, rgba(255, 255, 255, 0.1));
+  --timeline-loading-text: var(--runner-subtle, #969da7);
+  --timeline-loading-card: var(--runner-surface, #191c20);
+}
+
+@keyframes timeline-preparing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-preparing .timeline-preparing-spinner {
+    animation: none;
+  }
+}

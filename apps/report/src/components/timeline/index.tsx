@@ -1,15 +1,23 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import './index.less';
 import type { ExecutionTask } from '@midscene/core';
 import { useTheme } from '@midscene/visualizer';
 import { useAllCurrentTasks, useExecutionDump } from '../store';
 import { buildTimelineScreenshots } from './build-timeline-screenshots';
+import { timelineImageStore } from './timeline-image-store';
+import {
+  type TimelineThumbnail,
+  prepareTimelineImageGroups,
+  selectTimelineImageGroups,
+} from './timeline-images';
+import { TimelinePreparing } from './timeline-preparing';
 import {
   DEFAULT_TIMELINE_MAX_TIME_MS,
   createTimelineScale,
   formatTimelineTime,
 } from './timeline-scale';
+import { useTimelineViewport } from './use-timeline-viewport';
 
 interface TimelineItem {
   id: string;
@@ -36,15 +44,6 @@ function hexToCSS(hex: number): string {
   return `#${hex.toString(16).padStart(6, '0')}`;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
 const TimelineWidget = (props: {
   screenshots: TimelineItem[];
   onHighlight?: (param: HighlightParam) => any;
@@ -56,12 +55,16 @@ const TimelineWidget = (props: {
   const domRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stateRef = useRef<{
-    imgCache: Map<string, HTMLImageElement>;
+    imgCache: Map<string, TimelineThumbnail>;
+    failedImages: Map<string, unknown>;
+    screenshots: TimelineItem[] | null;
     hoverX: number | null;
     highlightMask?: HighlightMask;
     hoverMask?: HighlightMask;
   }>({
     imgCache: new Map(),
+    failedImages: new Map(),
+    screenshots: null,
     hoverX: null,
     highlightMask: props.highlightMask,
     hoverMask: props.hoverMask,
@@ -69,7 +72,14 @@ const TimelineWidget = (props: {
 
   const { isDarkMode } = useTheme();
 
-  const allScreenshots = props.screenshots || [];
+  const allScreenshots = props.screenshots;
+  const { visible, width: viewportWidth } = useTimelineViewport(
+    domRef,
+    allScreenshots.length > 0,
+  );
+  const [preparingScreenshots, setPreparingScreenshots] = useState<
+    TimelineItem[] | null
+  >(allScreenshots);
   let maxTime = DEFAULT_TIMELINE_MAX_TIME_MS;
   if (allScreenshots.length >= 2) {
     maxTime = Math.max(
@@ -144,15 +154,22 @@ const TimelineWidget = (props: {
     canvas.height = canvasHeight;
     canvasRef.current = canvas;
     domRef.current.replaceChildren(canvas);
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Unable to create the timeline canvas');
 
     const screenshotTop = timeTitleBottom + commonPadding * 1.5;
     const screenshotMaxHeight =
       canvasHeight - screenshotTop - commonPadding * 1.5;
 
-    // Viewport-aware lazy loading: downsample by pixel position, then load rest
-    const { imgCache } = stateRef.current;
-    let isMounted = true;
+    const { imgCache, failedImages } = stateRef.current;
+    if (!visible || stateRef.current.screenshots !== allScreenshots) {
+      imgCache.clear();
+      failedImages.clear();
+      stateRef.current.screenshots = allScreenshots;
+      stateRef.current.hoverX = null;
+    }
+    const controller = new AbortController();
+    const { signal } = controller;
 
     // Pre-compute x/y positions
     for (let i = 0; i < allScreenshots.length; i++) {
@@ -160,76 +177,23 @@ const TimelineWidget = (props: {
       allScreenshots[i].y = screenshotTop;
     }
 
-    const applyLayout = (index: number, img: HTMLImageElement) => {
-      const w = Math.floor(
-        (screenshotMaxHeight / img.naturalHeight) * img.naturalWidth,
-      );
-      allScreenshots[index].width = w;
-      allScreenshots[index].height = screenshotMaxHeight;
-    };
-
-    // Apply layout for already-cached images
-    for (let i = 0; i < allScreenshots.length; i++) {
-      const cached = imgCache.get(allScreenshots[i].img);
-      if (cached) {
-        applyLayout(i, cached);
+    const applyLayout = () => {
+      for (const shot of allScreenshots) {
+        const thumbnail = imgCache.get(shot.img);
+        shot.width = thumbnail?.width ?? screenshotMaxHeight;
+        shot.height = thumbnail?.height ?? screenshotMaxHeight;
       }
-    }
-
-    // Deduplicate concurrent loads: if a URL is already being fetched, reuse the same promise
-    const inflightLoads = new Map<string, Promise<void>>();
-    const loadAndApplyImage = (url: string): Promise<void> => {
-      if (imgCache.has(url)) return Promise.resolve();
-      const existing = inflightLoads.get(url);
-      if (existing) return existing;
-      const promise = loadImage(url)
-        .then((img) => {
-          if (!isMounted) return;
-          imgCache.set(url, img);
-          for (let j = 0; j < allScreenshots.length; j++) {
-            if (allScreenshots[j].img === url) {
-              applyLayout(j, img);
-            }
-          }
-        })
-        .finally(() => {
-          inflightLoads.delete(url);
-        });
-      inflightLoads.set(url, promise);
-      return promise;
     };
+    applyLayout();
 
-    // Downsample: evenly sample up to maxInitialCount screenshots.
-    // Remaining screenshots are loaded on-demand when user hovers/clicks.
-    const maxInitialCount = Math.max(
-      1,
-      Math.floor(canvasWidth / (20 * sizeRatio)),
+    const groups = selectTimelineImageGroups(
+      allScreenshots.map((shot) => ({ img: shot.img, x: shot.x! })),
+      20 * sizeRatio,
     );
-    const step = Math.max(
-      1,
-      Math.floor(allScreenshots.length / maxInitialCount),
-    );
-    const toLoad: string[] = [];
-    const seen = new Set<string>();
-    for (let i = 0; i < allScreenshots.length; i += step) {
-      const shot = allScreenshots[i];
-      if (shot.img && !imgCache.has(shot.img) && !seen.has(shot.img)) {
-        seen.add(shot.img);
-        toLoad.push(shot.img);
-      }
-    }
-
-    const loadAllImages = async () => {
-      const batchSize = 6;
-      for (let i = 0; i < toLoad.length; i += batchSize) {
-        if (!isMounted) return;
-        const batch = toLoad.slice(i, i + batchSize);
-        await Promise.all(
-          batch.map((url) => loadAndApplyImage(url).catch(() => {})),
-        );
-        if (isMounted) redraw();
-      }
-    };
+    const isPrepared = (url: string) =>
+      imgCache.has(url) || failedImages.has(url);
+    let initialReady = groups.initial.every(isPrepared);
+    setPreparingScreenshots(initialReady ? null : allScreenshots);
 
     // ── Draw function ──
     const drawAll = () => {
@@ -266,15 +230,24 @@ const TimelineWidget = (props: {
 
       // Screenshots
       for (const shot of allScreenshots) {
-        const img = imgCache.get(shot.img);
-        if (!img || shot.x == null || shot.width == null) continue;
-        ctx.drawImage(
-          img,
-          shot.x,
-          screenshotTop,
-          shot.width,
-          screenshotMaxHeight,
-        );
+        if (!initialReady || shot.x == null || shot.width == null) continue;
+        const thumbnail = imgCache.get(shot.img);
+        if (thumbnail) {
+          ctx.drawImage(
+            thumbnail.canvas,
+            shot.x,
+            screenshotTop,
+            shot.width,
+            screenshotMaxHeight,
+          );
+        } else if (failedImages.has(shot.img)) {
+          ctx.fillStyle = hexToCSS(sideBg);
+          ctx.fillRect(shot.x, screenshotTop, shot.width, screenshotMaxHeight);
+          ctx.fillStyle = hexToCSS(gridTextColor);
+          ctx.fillText('Unavailable', shot.x + 4, screenshotTop + 24);
+        } else {
+          continue;
+        }
         ctx.strokeStyle = hexToCSS(shotBorderColor);
         ctx.lineWidth = sizeRatio;
         ctx.strokeRect(shot.x, screenshotTop, shot.width, screenshotMaxHeight);
@@ -316,10 +289,16 @@ const TimelineWidget = (props: {
 
         // Hover screenshot clone
         if (closestScreenshot) {
-          const img = imgCache.get(closestScreenshot.img);
-          if (img && closestScreenshot.width && closestScreenshot.height) {
+          const thumbnail = initialReady
+            ? imgCache.get(closestScreenshot.img)
+            : undefined;
+          if (
+            thumbnail &&
+            closestScreenshot.width &&
+            closestScreenshot.height
+          ) {
             ctx.drawImage(
-              img,
+              thumbnail.canvas,
               hoverX,
               closestScreenshot.y!,
               closestScreenshot.width,
@@ -348,16 +327,6 @@ const TimelineWidget = (props: {
 
     redrawRef.current = drawAll;
 
-    // On-demand load: fetch a single screenshot when user hovers/clicks on it
-    const loadOnDemand = (shot: TimelineItem) => {
-      if (!shot.img || imgCache.has(shot.img)) return;
-      loadAndApplyImage(shot.img)
-        .then(() => {
-          if (isMounted) redraw();
-        })
-        .catch(() => {});
-    };
-
     // Event handlers
     const onPointerMove = (e: PointerEvent) => {
       const x = e.offsetX * sizeRatio;
@@ -367,7 +336,6 @@ const TimelineWidget = (props: {
 
       const { closestScreenshot } = closestScreenshotItemOnXY(x);
       if (closestScreenshot) {
-        loadOnDemand(closestScreenshot);
         props.onHighlight?.({
           mouseX: x / sizeRatio,
           mouseY: y / sizeRatio,
@@ -398,10 +366,29 @@ const TimelineWidget = (props: {
 
     // Initial draw + load images
     drawAll();
-    loadAllImages();
+    if (visible)
+      void prepareTimelineImageGroups(
+        groups,
+        (url) => timelineImageStore.load(url, screenshotMaxHeight, signal),
+        signal,
+        ({ images, failures, complete }) => {
+          for (const [url, thumbnail] of images) imgCache.set(url, thumbnail);
+          for (const [url, error] of failures) failedImages.set(url, error);
+          if (complete && failures.size)
+            console.error('Failed to prepare timeline screenshots', [
+              ...failures.values(),
+            ]);
+          applyLayout();
+          initialReady = true;
+          setPreparingScreenshots(null);
+          drawAll();
+        },
+      ).catch((error) => {
+        if (!signal.aborted) console.error('Failed to prepare timeline', error);
+      });
 
     return () => {
-      isMounted = false;
+      controller.abort();
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerout', onPointerOut);
       canvas.removeEventListener('pointerdown', onPointerDown);
@@ -415,9 +402,21 @@ const TimelineWidget = (props: {
     shotBorderColor,
     gridLineColor,
     gridHighlightColor,
+    allScreenshots,
+    visible,
+    viewportWidth,
   ]);
 
-  return <div className="timeline-canvas-wrapper" ref={domRef} />;
+  return (
+    <div className="timeline-widget">
+      <div className="timeline-canvas-wrapper" ref={domRef} />
+      {preparingScreenshots === allScreenshots && allScreenshots.length > 0 ? (
+        <div className="timeline-preparing-wrapper">
+          <TimelinePreparing />
+        </div>
+      ) : null}
+    </div>
+  );
 };
 
 const Timeline = () => {
