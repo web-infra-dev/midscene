@@ -105,6 +105,27 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
+  it('prints the original config stack and preserves the failure exit code', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'cli-config-error-'));
+    temporaryDirectories.push(root);
+    const config = join(root, 'midscene.config.mjs');
+    writeFileSync(
+      config,
+      `function failConfig() { throw new Error('original config failure'); }\nfailConfig();`,
+    );
+
+    const failure = await runFailure(['nodes', root]);
+
+    expect(failure.code).toBe(1);
+    expect(failure.stderr).toContain(
+      `Failed to load Midscene config "${config}"`,
+    );
+    expect(failure.stderr).toContain('Error: original config failure');
+    expect(failure.stderr).toMatch(
+      /at failConfig \(.*midscene\.config\.mjs:1:\d+\)/,
+    );
+  });
+
   it('rejects legacy workflows and batch configs with the matching-command guidance', async () => {
     const root = mkdtempSync(join(tmpdir(), 'strict-test-entry-'));
     temporaryDirectories.push(root);
@@ -318,6 +339,9 @@ describe('midscene-test CLI', () => {
       / {6}✗ step 1\/1: test\.record \(\d+ ms\) — Node "test\.record" failed: controlled case failure/,
     );
     expect(failure.stdout).toContain('2/3 cases passed, 1 failed, 0 not run');
+    expect(failure.stderr).toContain('steps[1] test.record');
+    expect(failure.stderr).toContain('Error: controlled case failure');
+    expect(failure.stderr).toMatch(/at .*midscene\.config\.ts:\d+:\d+/);
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
       'first:failed',
       'second:passed',
@@ -355,6 +379,9 @@ describe('midscene-test CLI', () => {
 
     expect(failure.code).toBe(1);
     expect(failure.stdout).toContain('0/1 cases passed, 0 failed, 1 not run');
+    expect(failure.stderr).toContain('beforeAll[1] before.fail');
+    expect(failure.stderr).toContain('Error: controlled beforeAll failure');
+    expect(failure.stderr).toMatch(/at .*midscene\.config\.ts:\d+:\d+/);
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
       'beforeAll',
       'afterAll',

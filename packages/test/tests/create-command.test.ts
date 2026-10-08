@@ -489,6 +489,31 @@ describe('create project', () => {
     expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
   });
 
+  it.each(['install', 'describe'])(
+    'preserves the original cause when %s fails',
+    async (phase) => {
+      const cwd = temp();
+      const runtime = services(cwd);
+      const cause = new Error('original package manager failure', {
+        cause: new Error('underlying dependency failure'),
+      });
+      runtime.runPackageManager = vi.fn(async (_manager, args) => {
+        if (phase === 'install' || args[0] !== 'install') throw cause;
+        return '';
+      });
+
+      const error = await runCreateCommand(
+        ['.', '--platform', 'web'],
+        io(),
+        runtime,
+      ).catch((error: unknown) => error);
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).cause).toBe(cause);
+      expect(existsSync(join(cwd, 'package.json'))).toBe(true);
+    },
+  );
+
   it.each(['', 'partial output'])(
     'fails when the command returns %j without generating a spec',
     async (output) => {

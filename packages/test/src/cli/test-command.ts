@@ -1,6 +1,7 @@
 import { existsSync, statSync, writeFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { version } from '../../package.json';
+import { formatCliError } from './error-format';
 import { renderNodeSpec, sortNodesForSpec } from './node-spec';
 import { loadTestProject } from './test-project';
 import {
@@ -226,9 +227,18 @@ export async function runTestCli(
       ...options,
       onProgress: (message) => io.log(message),
     });
+    const reportedErrors = new Set<Error>();
+    const reportError = (source: string, error: unknown): void => {
+      if (error instanceof Error) {
+        if (reportedErrors.has(error)) return;
+        reportedErrors.add(error);
+      }
+      io.error(`midscene-test: ${source}: ${formatCliError(error)}`);
+    };
     for (const failure of result.collectionErrors) {
-      io.error(
-        `midscene-test: ${failure.projectName}/${failure.sourcePath}: ${failure.error.message}`,
+      reportError(
+        `${failure.projectName}/${failure.sourcePath}`,
+        failure.error,
       );
     }
     const finalCases = new Map(
@@ -240,8 +250,9 @@ export async function runTestCli(
       const source = `${run.projectName}/${run.sourcePath} / ${run.name}`;
       for (const step of [...run.beforeEach, ...run.steps, ...run.afterEach]) {
         if (step.error) {
-          io.error(
-            `midscene-test: ${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}: ${step.error.message}`,
+          reportError(
+            `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
+            step.error,
           );
         }
       }
@@ -249,8 +260,43 @@ export async function runTestCli(
         ...(run.executionErrors ?? []),
         ...(run.teardownErrors ?? []),
       ]) {
-        io.error(`midscene-test: ${source}: ${error.message}`);
+        reportError(source, error);
       }
+    }
+    const finalDocuments = new Map(
+      result.documents.map((document) => [document.documentId, document]),
+    );
+    for (const document of finalDocuments.values()) {
+      if (document.status !== 'failed') continue;
+      const source = `${document.projectName}/${document.sourcePath}`;
+      for (const step of [...document.beforeAll, ...document.afterAll]) {
+        if (step.error) {
+          reportError(
+            `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
+            step.error,
+          );
+        }
+      }
+      for (const error of [
+        ...(document.executionErrors ?? []),
+        ...(document.teardownErrors ?? []),
+      ]) {
+        reportError(source, error);
+      }
+      for (const failure of document.hostErrors ?? []) {
+        reportError(`${source} / host ${failure.phase}`, failure.error);
+      }
+    }
+    for (const project of result.projects) {
+      if (project.lifecycle?.setupError) {
+        reportError(`${project.name} / setup`, project.lifecycle.setupError);
+      }
+      for (const error of project.lifecycle?.teardownErrors ?? []) {
+        reportError(`${project.name} / teardown`, error);
+      }
+    }
+    for (const error of result.errors ?? []) {
+      reportError('infrastructure', error);
     }
     io.log(
       `midscene-test: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
@@ -260,7 +306,7 @@ export async function runTestCli(
     if (result.reportPath) io.log(`Report: ${result.reportPath}`);
     return result.exitCode;
   } catch (error) {
-    io.error(error instanceof Error ? error.message : String(error));
+    io.error(formatCliError(error));
     return 1;
   }
 }

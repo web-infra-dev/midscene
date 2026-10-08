@@ -291,6 +291,7 @@ export async function runCreateCommand(
   } catch (error) {
     throw new Error(
       `Dependency installation or postinstall Node Spec generation failed. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')}, then ${packageManager} run nodes if lifecycle scripts are disabled.\nIf postinstall failed, check midscene.config.ts and the Node package factories, then run ${packageManager} run nodes.\n${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
   try {
@@ -308,6 +309,7 @@ export async function runCreateCommand(
   } catch (error) {
     throw new Error(
       `Node Spec generation failed. Project files are preserved in ${root}.\nCheck that each Node package exports createMidsceneTestNodes(options), returns a Node array synchronously, and does not register duplicate names.\nFix midscene.config.ts, then run ${packageManager} run nodes in the project directory.\n${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
   io.log(
