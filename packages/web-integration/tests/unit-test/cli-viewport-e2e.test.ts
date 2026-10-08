@@ -1,6 +1,6 @@
 import { once } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdtempSync } from 'node:fs';
+import { readFile, rm } from 'node:fs/promises';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -11,7 +11,7 @@ import {
 } from '@/agent-tools-puppeteer';
 import { parseWebCliOptions } from '@/cli-options';
 import { runToolsCLI } from '@midscene/shared/cli';
-import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import puppeteer from 'puppeteer-core';
 
 const html = `<!DOCTYPE html>
@@ -85,7 +85,7 @@ describe('midscene-web CLI viewport e2e', () => {
     } finally {
       // Chrome may still be flushing profile files shortly after web_close
       // returns, so retry the recursive cleanup for transient ENOTEMPTY errors.
-      rmSync(persistentRoot, {
+      await rm(persistentRoot, {
         recursive: true,
         force: true,
         maxRetries: 2,
@@ -110,34 +110,57 @@ describe('midscene-web CLI viewport e2e', () => {
     const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport, {
       persistence,
     });
-    await runToolsCLI(tools, 'midscene-web', {
-      stripPrefix: 'web_',
-      argv: parsedOptions.argv,
-    });
+    let metrics:
+      | {
+          innerWidth: number;
+          innerHeight: number;
+          clientWidth: number;
+          clientHeight: number;
+        }
+      | undefined;
+    const destroy = tools.destroy.bind(tools);
+    // Inspect while the CLI's emulated viewport is active. Disconnecting
+    // restores Chrome's native window size, which includes browser UI.
+    const destroySpy = rs
+      .spyOn(tools, 'destroy')
+      .mockImplementation(async () => {
+        try {
+          const endpoint = (
+            await readFile(persistence.endpointFile, 'utf-8')
+          ).trim();
+          const browser = await puppeteer.connect({
+            browserWSEndpoint: endpoint,
+            defaultViewport: null,
+          });
+          try {
+            const pages = await browser.pages();
+            const page = pages.find(
+              (item) => item.url() === `${baseUrl}/` || item.url() === baseUrl,
+            );
 
-    const endpoint = (await readFile(persistence.endpointFile, 'utf-8')).trim();
-    const browser = await puppeteer.connect({
-      browserWSEndpoint: endpoint,
-      defaultViewport: null,
-    });
+            if (!page) {
+              throw new Error(`Failed to find connected page for ${baseUrl}`);
+            }
+
+            metrics = await page.evaluate(() => ({
+              innerWidth: window.innerWidth,
+              innerHeight: window.innerHeight,
+              clientWidth: document.documentElement.clientWidth,
+              clientHeight: document.documentElement.clientHeight,
+            }));
+          } finally {
+            browser.disconnect();
+          }
+        } finally {
+          await destroy();
+        }
+      });
 
     try {
-      const pages = await browser.pages();
-      const page = pages.find(
-        (item) => item.url() === `${baseUrl}/` || item.url() === baseUrl,
-      );
-
-      if (!page) {
-        throw new Error(`Failed to find connected page for ${baseUrl}`);
-      }
-
-      const metrics = await page.evaluate(() => ({
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        clientWidth: document.documentElement.clientWidth,
-        clientHeight: document.documentElement.clientHeight,
-      }));
-
+      await runToolsCLI(tools, 'midscene-web', {
+        stripPrefix: 'web_',
+        argv: parsedOptions.argv,
+      });
       expect(metrics).toEqual({
         innerWidth: width,
         innerHeight: height,
@@ -145,7 +168,7 @@ describe('midscene-web CLI viewport e2e', () => {
         clientHeight: height,
       });
     } finally {
-      browser.disconnect();
+      destroySpy.mockRestore();
     }
   }, 60_000);
 });
