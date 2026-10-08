@@ -62,7 +62,11 @@ export const buildProjectResult = (
   const { project } = prepared;
   const projectFailed =
     prepared.collectionErrors.length > 0 ||
-    cases.some((item) => item.status !== 'success') ||
+    cases.some(
+      (item) =>
+        item.status !== 'success' ||
+        item.execution?.lifecycle?.status === 'failed',
+    ) ||
     documents.some((item) => item.status === 'failed') ||
     lifecycle?.status === 'failed';
   return {

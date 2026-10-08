@@ -32,6 +32,68 @@ const validResult = () => ({
 });
 
 describe('test executor result validation', () => {
+  it('rejects successful attempts containing failed steps, even when execution continued', () => {
+    const timing = {
+      startedAt: '2026-09-17T00:00:00Z',
+      endedAt: '2026-09-17T00:00:01Z',
+      durationMs: 1000,
+    };
+    const attempt = {
+      caseId: task.caseId,
+      runId: 'attempt-1',
+      projectName: task.projectName,
+      attemptIndex: 0,
+      name: task.caseName,
+      sourcePath: task.sourcePath,
+      caseIndex: 0,
+      status: 'success',
+      beforeEach: [],
+      afterEach: [],
+      ...timing,
+      steps: [
+        {
+          phase: 'steps',
+          stepIndex: 0,
+          node: 'fail',
+          input: {},
+          meta: { continueOnError: true },
+          status: 'failed',
+          continuedAfterError: true,
+          ...timing,
+        },
+      ],
+    };
+    expect(() =>
+      assertTestCaseTaskRunResult(task, {
+        case: {
+          ...validResult().case,
+          status: 'success',
+          notRunReason: undefined,
+          run: attempt,
+          attempts: [attempt],
+        },
+      }),
+    ).toThrow('inconsistent successful attempt');
+  });
+
+  it('rejects successful lifecycle records with cleanup errors', () => {
+    expect(() =>
+      assertTestCaseTaskRunResult(task, {
+        ...validResult(),
+        lifecycle: {
+          projectName: task.projectName,
+          status: 'success',
+          startedAt: '2026-09-17T00:00:00Z',
+          endedAt: '2026-09-17T00:00:01Z',
+          durationMs: 1000,
+          teardownErrors: [
+            { name: 'Error', message: 'cleanup failed', code: 'CLEANUP' },
+          ],
+        },
+      }),
+    ).toThrow('inconsistent successful lifecycle');
+  });
+
   it('accepts a result that matches its task', () => {
     expect(() =>
       assertTestCaseTaskRunResult(task, validResult()),
