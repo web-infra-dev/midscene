@@ -64,7 +64,6 @@ struct RdpScreenshotTestPeer {
   std::condition_variable refresh_request_cv;
   unsigned refresh_requests = 0;
   RECTANGLE_16 refresh_area{};
-  std::vector<RECTANGLE_16> refresh_areas;
   bool refresh_request_ok = true;
   RdpgfxClientContext graphics{};
   int graphics_start_calls = 0;
@@ -143,9 +142,8 @@ struct RdpScreenshotTestPeer {
       auto& peer = *reinterpret_cast<TestContext*>(context)->peer;
       {
         std::lock_guard<std::mutex> lock(peer.refresh_request_mutex);
-        if (count == 0) return FALSE;
+        if (count != 1) return FALSE;
         peer.refresh_area = areas[0];
-        peer.refresh_areas.assign(areas, areas + count);
         ++peer.refresh_requests;
       }
       peer.refresh_request_cv.notify_all();
@@ -663,23 +661,6 @@ void TestRefreshRequiresExactCoverage() {
   Expect(peer.WaitForRefresh(1), "refresh request was not sent");
   // Opposite corners span the desktop bounds, but do not cover the desktop.
   peer.PaintDisjointCorners(192);
-  Expect(peer.WaitForRefresh(2), "disjoint coverage did not request missing regions");
-  int requested[16][16]{};
-  for (const auto& rect : peer.refresh_areas) {
-    for (int y = rect.top; y <= rect.bottom; ++y) {
-      for (int x = rect.left; x <= rect.right; ++x) {
-        Expect(x < 16 && y < 16, "repair rectangle exceeded desktop bounds");
-        ++requested[y][x];
-      }
-    }
-  }
-  for (int y = 0; y < 16; ++y) {
-    for (int x = 0; x < 16; ++x) {
-      const bool painted = (x == 0 && y == 0) || (x == 15 && y == 15);
-      Expect(requested[y][x] == (painted ? 0 : 1),
-             "repair duplicated pixels or included already painted corners");
-    }
-  }
   Expect(capture.wait_for(50ms) == std::future_status::timeout,
          "a bounding rectangle was mistaken for full desktop coverage");
   peer.end_paint_ok = false;
@@ -729,61 +710,6 @@ void TestRefreshIgnoresOlderGraphicsFrames() {
   Expect(capture.wait_for(1s) == std::future_status::ready,
          "a new full graphics frame did not complete the refresh");
   Expect(HasColor(capture.get(), 192), "refresh returned an older graphics frame");
-}
-
-void TestClassicRefreshRepairsMissingStrip() {
-  RdpScreenshotTestPeer peer;
-  peer.InformativePaint();
-  peer.Paint(64);
-  peer.transport.CaptureFrame();
-  peer.EnableRefresh();
-  peer.transport.MouseMove(8, 8);
-  auto capture = std::async(std::launch::async,
-                           [&] { return peer.transport.CaptureFrame(); });
-  Expect(peer.WaitForRefresh(1), "initial refresh request was not sent");
-  peer.PaintRegion(192, {0, 2, 16, 16});
-  Expect(peer.WaitForRefresh(2), "partial classic refresh did not request missing pixels");
-  Expect(peer.refresh_area.left == 0 && peer.refresh_area.top == 0 &&
-             peer.refresh_area.right == 15 && peer.refresh_area.bottom == 1,
-         "repair request did not target the missing strip with inclusive edges");
-  peer.PaintRegion(192, {0, 2, 16, 16});
-  Expect(capture.wait_for(50ms) == std::future_status::timeout,
-         "partial repair returned an incomplete framebuffer");
-  Expect(peer.refresh_requests == 2, "partial paints caused an unbounded refresh loop");
-  peer.PaintRegion(192, {0, 0, 16, 2});
-  Expect(capture.wait_for(1s) == std::future_status::ready,
-         "repaired coverage did not finish the screenshot");
-  Expect(HasColor(capture.get(), 192), "repair returned old pixels in the missing strip");
-}
-
-void TestClassicRefreshRepairFailureCanRetry() {
-  RdpScreenshotTestPeer peer;
-  peer.InformativePaint();
-  peer.Paint(64);
-  peer.transport.CaptureFrame();
-  peer.EnableRefresh();
-  peer.transport.MouseMove(8, 8);
-  auto capture = std::async(std::launch::async,
-                           [&] { return peer.transport.CaptureFrame(); });
-  Expect(peer.WaitForRefresh(1), "initial refresh request was not sent");
-  peer.refresh_request_ok = false;
-  peer.PaintRegion(192, {0, 2, 16, 16});
-  Expect(peer.WaitForRefresh(2), "repair request was not attempted");
-  bool failed = false;
-  try {
-    capture.get();
-  } catch (const std::runtime_error& error) {
-    failed = std::string(error.what()).find("missing RDP framebuffer regions") != std::string::npos;
-  }
-  Expect(failed, "failed repair returned cached pixels instead of an error");
-  peer.refresh_request_ok = true;
-  auto retry = std::async(std::launch::async,
-                         [&] { return peer.transport.CaptureFrame(); });
-  Expect(peer.WaitForRefresh(3), "failed repair could not be retried");
-  peer.PaintRegion(192, {0, 0, 16, 2});
-  Expect(retry.wait_for(1s) == std::future_status::ready,
-         "successful repair retry did not complete");
-  Expect(HasColor(retry.get(), 192), "repair retry returned old pixels");
 }
 
 void TestUnsupportedRefreshUsesLiveFramebuffer() {
@@ -959,8 +885,6 @@ int main() {
     TestInputRequestsFullRefresh();
     TestRefreshRequiresExactCoverage();
     TestRefreshIgnoresOlderGraphicsFrames();
-    TestClassicRefreshRepairsMissingStrip();
-    TestClassicRefreshRepairFailureCanRetry();
     TestUnsupportedRefreshUsesLiveFramebuffer();
     TestRefreshFailureAndDisconnect();
     TestRefreshReissuesAfterResize();

@@ -478,43 +478,6 @@ std::vector<RECTANGLE_16> CopyInvalidatedRectangles(rdpContext* context) {
   return rectangles;
 }
 
-// Return inclusive RefreshRect coordinates for pixels not painted yet.
-std::vector<RECTANGLE_16> MissingRefreshRectangles(const REGION16& covered, Size size) {
-  std::vector<RECTANGLE_16> missing{{0, 0, static_cast<UINT16>(size.width),
-                                   static_cast<UINT16>(size.height)}};
-  UINT32 count = 0;
-  const auto* rectangles = region16_rects(&covered, &count);
-  for (UINT32 index = 0; index < count; ++index) {
-    const auto& painted = rectangles[index];
-    std::vector<RECTANGLE_16> remaining;
-    const auto append = [&](UINT16 left, UINT16 top, UINT16 right, UINT16 bottom) {
-      if (left < right && top < bottom) remaining.push_back({left, top, right, bottom});
-    };
-    for (const auto& rect : missing) {
-      const auto left = std::max(rect.left, painted.left);
-      const auto top = std::max(rect.top, painted.top);
-      const auto right = std::min(rect.right, painted.right);
-      const auto bottom = std::min(rect.bottom, painted.bottom);
-      if (left >= right || top >= bottom) {
-        remaining.push_back(rect);
-        continue;
-      }
-      append(rect.left, rect.top, rect.right, top);
-      append(rect.left, bottom, rect.right, rect.bottom);
-      append(rect.left, top, left, bottom);
-      append(right, top, rect.right, bottom);
-    }
-    missing.swap(remaining);
-  }
-  std::vector<RECTANGLE_16> result;
-  result.reserve(missing.size());
-  for (const auto& rect : missing) {
-    result.push_back({rect.left, rect.top, static_cast<UINT16>(rect.right - 1),
-                      static_cast<UINT16>(rect.bottom - 1)});
-  }
-  return result;
-}
-
 bool HasInformativeFramebuffer(rdpContext* context) {
   if (!context || !context->gdi || !context->gdi->primary_buffer ||
       context->gdi->width <= 0 || context->gdi->height <= 0 ||
@@ -591,6 +554,18 @@ RawFrame CopyFramebuffer(const rdpGdi& gdi) {
 // EndPaint hook chained onto FreeRDP's update pipeline. FreeRDP invokes this
 // after an update PDU; only paints with a GDI invalid region and informative
 // primary framebuffer prove that desktop pixels reached the client.
+BOOL TraceBitmapUpdate(rdpContext* context, const BITMAP_UPDATE* bitmap) {
+  auto* typed = reinterpret_cast<MidsceneRdpContext*>(context);
+  if (typed->owner->HasPendingFramebufferRefresh()) {
+    for (UINT32 i = 0; i < bitmap->number; ++i) {
+      const auto& r = bitmap->rectangles[i];
+      std::fprintf(stderr, "RDP_TRACE bitmap %u,%u-%u,%u size=%u,%u\n",
+                   r.destLeft, r.destTop, r.destRight, r.destBottom, r.width, r.height);
+    }
+  }
+  return typed->original_bitmap_update(context, bitmap);
+}
+
 BOOL MidsceneEndPaint(rdpContext* context) {
   auto* typed_context = reinterpret_cast<MidsceneRdpContext*>(context);
   BOOL ok = TRUE;
@@ -601,6 +576,14 @@ BOOL MidsceneEndPaint(rdpContext* context) {
                                     typed_context->owner->HasPendingFramebufferRefresh()
                                 ? CopyInvalidatedRectangles(context)
                                 : std::vector<RECTANGLE_16>{};
+    if (typed_context->owner->HasPendingFramebufferRefresh() && context->gdi) {
+      const auto* dc = context->gdi->primary->hdc;
+      const auto* clip = dc->clip;
+      if (clip) std::fprintf(stderr, "RDP_TRACE paint invalid=%d count=%d clip=%d,%d,%d,%d null=%d\n",
+                   framebuffer_invalidated, dc->hwnd->ninvalid,
+                   clip->x, clip->y, clip->w, clip->h, clip->null);
+      for (const auto& r : rectangles) std::fprintf(stderr, "RDP_TRACE region %u,%u-%u,%u\n", r.left,r.top,r.right,r.bottom);
+    }
     ok = typed_context->owner->CallOriginalEndPaint(context);
     const bool already_painted = typed_context->owner->HasFramePainted();
     if (ok && framebuffer_invalidated) {
@@ -816,6 +799,8 @@ BOOL PostConnect(freerdp* instance) {
     // Chain our hook after GDI update callbacks are installed so Connect() can
     // wait for the first paint that actually touches the primary framebuffer.
     typed_context->owner->HookEndPaint(instance->context->update);
+    typed_context->original_bitmap_update = instance->context->update->BitmapUpdate;
+    instance->context->update->BitmapUpdate = &TraceBitmapUpdate;
   }
 
   rdpInput* input = instance->context ? instance->context->input : nullptr;
@@ -1304,8 +1289,6 @@ RawFrame FreeRdpSessionTransport::CaptureFrame() {
       {
         std::lock_guard<std::mutex> frame_lock(frame_mutex_);
         region16_clear(&refreshed_region_);
-        refresh_repair_pending_ = false;
-        refresh_repair_sent_ = false;
         refresh_size_ = Size{gdi->width, gdi->height};
         required_refresh = ++refresh_requested_;
         refresh_after_graphics_frame_ =
@@ -1324,30 +1307,6 @@ RawFrame FreeRdpSessionTransport::CaptureFrame() {
       std::lock_guard<std::mutex> frame_lock(frame_mutex_);
       required_refresh = refresh_requested_;
     }
-    if (required_refresh && refresh_pending_.load(std::memory_order_acquire)) {
-      std::vector<RECTANGLE_16> missing;
-      {
-        std::lock_guard<std::mutex> frame_lock(frame_mutex_);
-        if (refresh_repair_pending_) {
-          missing = MissingRefreshRectangles(refreshed_region_, refresh_size_);
-          refresh_repair_pending_ = false;
-          refresh_repair_sent_ = true;
-        }
-      }
-      // Classic updates can overlap a refresh already being streamed by the
-      // server. Repair uncovered regions once; do not count a partial response
-      // as a complete screenshot or repeatedly restart the full refresh.
-      for (size_t offset = 0; offset < missing.size(); offset += UINT8_MAX) {
-        const auto count = static_cast<BYTE>(
-            std::min<size_t>(UINT8_MAX, missing.size() - offset));
-        if (!instance_->context->update->RefreshRect(
-                instance_->context, count, missing.data() + offset)) {
-          std::lock_guard<std::mutex> frame_lock(frame_mutex_);
-          refresh_repair_pending_ = true;
-          throw std::runtime_error("Failed to request missing RDP framebuffer regions");
-        }
-      }
-    }
     if (required_refresh && refresh_completed_.load(std::memory_order_acquire) <
                                 *required_refresh) {
       std::unique_lock<std::mutex> frame_lock(frame_mutex_);
@@ -1357,7 +1316,6 @@ RawFrame FreeRdpSessionTransport::CaptureFrame() {
           frame_lock, started + std::chrono::seconds(3), [this, &required_refresh] {
             return refresh_completed_.load(std::memory_order_acquire) >= *required_refresh ||
                    refresh_size_changed_.load(std::memory_order_acquire) ||
-                   refresh_repair_pending_ ||
                    !session_active_.load(std::memory_order_relaxed);
           });
       if (!refreshed) {
@@ -1694,8 +1652,6 @@ void FreeRdpSessionTransport::ResetStateLocked() {
     refresh_pending_.store(false, std::memory_order_relaxed);
     refresh_size_changed_.store(false, std::memory_order_relaxed);
     refresh_completed_.store(0, std::memory_order_relaxed);
-    refresh_repair_pending_ = false;
-    refresh_repair_sent_ = false;
     refresh_requested_ = 0;
     refresh_after_graphics_frame_ = 0;
     refresh_size_ = {};
@@ -1779,9 +1735,6 @@ BOOL FreeRdpSessionTransport::MarkFramebufferUpdated(
         if (ok && area == static_cast<uint64_t>(size.width) * size.height) {
           refresh_pending_.store(false, std::memory_order_release);
           refresh_completed_.store(refresh_requested_, std::memory_order_release);
-        } else if (ok && !rectangles.empty() && !refresh_repair_sent_ &&
-                   graphics_frames_started_.load(std::memory_order_acquire) == 0) {
-          refresh_repair_pending_ = true;
         }
       }
     }

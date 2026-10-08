@@ -127,8 +127,6 @@ class FreeRdpSessionTransport final : public SessionTransport {
   std::atomic<bool> refresh_pending_{false};
   std::atomic<bool> refresh_size_changed_{false};
   std::atomic<uint64_t> refresh_completed_{0};
-  bool refresh_repair_pending_ = false;
-  bool refresh_repair_sent_ = false;
   uint64_t refresh_requested_ = 0;
   uint64_t refresh_after_graphics_frame_ = 0;
   Size refresh_size_{};
