@@ -1,20 +1,24 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { createProjectRuntime } from '../engine/project-runtime';
-import { runWorkflowDocument } from '../engine/run-workflow-document';
+import {
+  WorkflowExecutionFailure,
+  runWorkflowDocument,
+} from '@midscene/core/internal/test-runner';
+import type { WorkflowReportSource } from '@midscene/core/internal/test-runner';
 import type {
   CaseRunOutcome,
   CaseRunResult,
   ProjectRuntimeResult,
   StepRunResult,
   WorkflowDocumentRunResult,
-} from '../engine/types';
-import { WorkflowError, isFatalDeviceError } from '../errors';
+} from '@midscene/core/internal/test-runner';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
   WorkflowDocumentSource,
-} from '../parser/types';
+} from '@midscene/core/internal/test-runner';
+import { createProjectRuntime } from '../engine/project-runtime';
+import { WorkflowError, isFatalDeviceError } from '../errors';
 import {
   asNotRun,
   buildProjectResult,
@@ -59,7 +63,7 @@ export interface PreparedCaseExecutionProject<TProjectContext = unknown> {
   collectionErrors: readonly TestProjectCollectionError[];
   selectedCaseCount: number;
   filteredCaseCount: number;
-  availableCaseIds: readonly string[];
+  availableCaseIds?: readonly string[];
 }
 
 interface PreparedCaseTask<TProjectContext = unknown> {
@@ -145,40 +149,50 @@ const reviveStep = (step: TestExecutorStepResultDto): StepRunResult => {
   };
 };
 
-const reviveAttempt = (
-  attempt: TestExecutorCaseAttemptDto,
-  resolveReportReference: (reference: string) => string,
-): CaseRunResult => {
-  const { teardownErrors, reportRefs, beforeEach, steps, afterEach, ...base } =
-    attempt;
+const reviveAttempt = (attempt: TestExecutorCaseAttemptDto): CaseRunResult => {
+  const {
+    executionErrors,
+    teardownErrors,
+    reportRefs,
+    beforeEach,
+    steps,
+    afterEach,
+    ...base
+  } = attempt;
   return {
     ...base,
     beforeEach: beforeEach.map(reviveStep),
     steps: steps.map(reviveStep),
     afterEach: afterEach.map(reviveStep),
+    ...(executionErrors
+      ? { executionErrors: executionErrors.map(reviveError) }
+      : {}),
     ...(teardownErrors
       ? { teardownErrors: teardownErrors.map(reviveError) }
-      : {}),
-    ...(reportRefs
-      ? { reportPaths: reportRefs.map(resolveReportReference) }
       : {}),
   };
 };
 
 const reviveDocument = (
   document: TestExecutorDocumentResultDto,
-  resolveReportReference: (reference: string) => string,
 ): WorkflowDocumentRunResult => {
-  const { teardownErrors, reportRefs, beforeAll, afterAll, ...base } = document;
+  const {
+    executionErrors,
+    teardownErrors,
+    reportRefs,
+    beforeAll,
+    afterAll,
+    ...base
+  } = document;
   return {
     ...base,
     beforeAll: beforeAll.map(reviveStep),
     afterAll: afterAll.map(reviveStep),
+    ...(executionErrors
+      ? { executionErrors: executionErrors.map(reviveError) }
+      : {}),
     ...(teardownErrors
       ? { teardownErrors: teardownErrors.map(reviveError) }
-      : {}),
-    ...(reportRefs
-      ? { reportPaths: reportRefs.map(resolveReportReference) }
       : {}),
   };
 };
@@ -203,14 +217,26 @@ const toTransportResult = (
     lifecycle?: ProjectRuntimeResult;
   },
   materializeReport: (sourcePath: string) => string,
+  materializeSource: (source: WorkflowReportSource) => string,
 ): TestCaseTaskRunResult => {
+  const transportReports = (
+    scope: Pick<CaseRunResult, 'reportPaths' | 'reportSources'>,
+  ) => [
+    ...(scope.reportSources ?? []).map(materializeSource),
+    ...(scope.reportPaths ?? [])
+      .filter(
+        (path) =>
+          !scope.reportSources?.some((source) => source.sourcePath === path),
+      )
+      .map(materializeReport),
+  ];
   const mapAttempt = (attempt: CaseRunResult) => {
-    const { reportPaths, ...transportAttempt } = attempt;
+    const { reportPaths, reportSources, reportScopeId, ...transportAttempt } =
+      attempt;
+    const reportRefs = transportReports(attempt);
     return {
       ...transportAttempt,
-      ...(reportPaths?.length
-        ? { reportRefs: reportPaths.map(materializeReport) }
-        : {}),
+      ...(reportRefs.length ? { reportRefs } : {}),
     };
   };
   const attempts = result.case.attempts?.map(mapAttempt);
@@ -218,12 +244,16 @@ const toTransportResult = (
   const { run: _run, attempts: _attempts, ...transportCase } = result.case;
   const document = result.document
     ? (() => {
-        const { reportPaths, ...transportDocument } = result.document;
+        const {
+          reportPaths,
+          reportSources,
+          reportScopeId,
+          ...transportDocument
+        } = result.document;
+        const reportRefs = transportReports(result.document);
         return {
           ...transportDocument,
-          ...(reportPaths?.length
-            ? { reportRefs: reportPaths.map(materializeReport) }
-            : {}),
+          ...(reportRefs.length ? { reportRefs } : {}),
         };
       })()
     : undefined;
@@ -243,14 +273,30 @@ const toTransportResult = (
 const fromTransportResult = (
   result: TestCaseTaskRunResult,
   resolveReportReference: (reference: string) => string,
+  resolveSource: (reference: string) => WorkflowReportSource | undefined,
 ): {
   case: TestProjectCaseRunResult;
   document?: WorkflowDocumentRunResult;
   lifecycle?: ProjectRuntimeResult;
 } => {
-  const attempts = result.case.attempts?.map((attempt) =>
-    reviveAttempt(attempt, resolveReportReference),
-  );
+  const resolveReports = (refs: readonly string[] | undefined) => {
+    const reportPaths: string[] = [];
+    const reportSources: WorkflowReportSource[] = [];
+    for (const ref of refs ?? []) {
+      const path = resolveReportReference(ref);
+      const source = resolveSource(ref);
+      if (source) reportSources.push(source);
+      else reportPaths.push(path);
+    }
+    return {
+      ...(reportPaths.length ? { reportPaths } : {}),
+      ...(reportSources.length ? { reportSources } : {}),
+    };
+  };
+  const attempts = result.case.attempts?.map((attempt) => ({
+    ...reviveAttempt(attempt),
+    ...resolveReports(attempt.reportRefs),
+  }));
   const run = attempts?.at(-1);
   const { run: _run, attempts: _attempts, ...caseBase } = result.case;
   return {
@@ -260,7 +306,12 @@ const fromTransportResult = (
       ...(attempts ? { attempts } : {}),
     },
     ...(result.document
-      ? { document: reviveDocument(result.document, resolveReportReference) }
+      ? {
+          document: {
+            ...reviveDocument(result.document),
+            ...resolveReports(result.document.reportRefs),
+          },
+        }
       : {}),
     ...(result.lifecycle
       ? { lifecycle: reviveLifecycle(result.lifecycle) }
@@ -273,6 +324,7 @@ const runLocalCase = async <TProjectContext>(
   options: RunCaseExecutionOptions<TProjectContext>,
   taskProgress: (message: string) => void,
   materializeReport: (sourcePath: string) => string,
+  materializeSource: (source: WorkflowReportSource) => string,
 ): Promise<TestCaseTaskRunResult> => {
   const { prepared, document, collectedCase, task } = preparedTask;
   const { project } = prepared;
@@ -317,6 +369,7 @@ const runLocalCase = async <TProjectContext>(
     }
   } catch (error) {
     executionError = error;
+    if (error instanceof WorkflowExecutionFailure) execution = error.result;
   } finally {
     const failed =
       executionError !== undefined ||
@@ -326,7 +379,10 @@ const runLocalCase = async <TProjectContext>(
     lifecycle = await runtime.finish(failed ? 'failed' : 'success');
   }
 
-  if (executionError) throw executionError;
+  if (executionError) {
+    if (!execution) throw executionError;
+    options.onInfrastructureError(executionError);
+  }
   if (!execution) {
     return toTransportResult(
       {
@@ -339,6 +395,7 @@ const runLocalCase = async <TProjectContext>(
         lifecycle,
       },
       materializeReport,
+      materializeSource,
     );
   }
   const outcome = execution.cases[0];
@@ -352,6 +409,7 @@ const runLocalCase = async <TProjectContext>(
       lifecycle,
     },
     materializeReport,
+    materializeSource,
   );
 };
 
@@ -360,6 +418,7 @@ const runCaseTask = async <TProjectContext>(
   taskIndex: number,
   taskCount: number,
   options: RunCaseExecutionOptions<TProjectContext>,
+  onCompleted: (result: CompletedCaseTaskResult) => void,
 ): Promise<CompletedCaseTaskResult> => {
   const { prepared, task } = preparedTask;
   const taskProgress = (message: string) =>
@@ -376,8 +435,12 @@ const runCaseTask = async <TProjectContext>(
     task.caseId,
   );
   mkdirSync(outputDir, { recursive: true });
-  const { materialize: materializeReport, resolve: resolveReportReference } =
-    createExecutorReports(outputDir);
+  const {
+    materialize: materializeReport,
+    materializeSource,
+    resolve: resolveReportReference,
+    resolveSource,
+  } = createExecutorReports(outputDir);
 
   if (prepared.collectionErrors.length > 0) {
     return {
@@ -406,7 +469,13 @@ const runCaseTask = async <TProjectContext>(
         outputDir,
         materializeReport,
         runLocal: () =>
-          runLocalCase(preparedTask, options, taskProgress, materializeReport),
+          runLocalCase(
+            preparedTask,
+            options,
+            taskProgress,
+            materializeReport,
+            materializeSource,
+          ),
       });
       executorFailure = undefined;
       break;
@@ -452,20 +521,12 @@ const runCaseTask = async <TProjectContext>(
     };
   }
   assertTestCaseTaskRunResult(task, result);
-  const internalResult = fromTransportResult(result, resolveReportReference);
-  for (const attempt of internalResult.case.attempts ?? []) {
-    writeCaseAttemptResult(
-      options.runDir,
-      task.projectId,
-      task.documentId,
-      attempt,
-    );
-  }
-  if (internalResult.document) {
-    writeWorkflowDocumentResult(options.runDir, internalResult.document);
-  }
-  taskProgress(internalResult.case.status);
-  return {
+  const internalResult = fromTransportResult(
+    result,
+    resolveReportReference,
+    resolveSource,
+  );
+  const completed = {
     ...internalResult,
     case: {
       ...internalResult.case,
@@ -481,6 +542,19 @@ const runCaseTask = async <TProjectContext>(
       },
     },
   };
+  onCompleted(completed);
+  for (const attempt of internalResult.case.attempts ?? []) {
+    await writeCaseAttemptResult(
+      options.runDir,
+      task.projectId,
+      task.documentId,
+      attempt,
+    );
+  }
+  if (internalResult.document)
+    await writeWorkflowDocumentResult(options.runDir, internalResult.document);
+  taskProgress(internalResult.case.status);
+  return completed;
 };
 
 export const runCaseExecution = async <TProjectContext>(
@@ -490,30 +564,40 @@ export const runCaseExecution = async <TProjectContext>(
   let failedCaseCount = 0;
   const bailReached = () =>
     options.test.bail > 0 && failedCaseCount >= options.test.bail;
-  const results =
-    tasks.length === 0
-      ? []
-      : await runTaskPool({
-          tasks: tasks.map((preparedTask) => preparedTask.task),
-          maxConcurrency: Math.min(options.test.maxConcurrency, tasks.length),
-          signal: options.signal,
-          shouldStop: bailReached,
-          run: async (_task, taskIndex) => {
-            try {
-              const result = await runCaseTask(
-                tasks[taskIndex],
-                taskIndex,
-                tasks.length,
-                options,
-              );
-              if (result.case.status === 'failed') failedCaseCount += 1;
-              return result;
-            } catch (error) {
-              options.onInfrastructureError(error);
-              throw error;
-            }
-          },
-        });
+  const results: Array<CompletedCaseTaskResult | undefined> = new Array(
+    tasks.length,
+  );
+  if (tasks.length > 0) {
+    try {
+      await runTaskPool({
+        tasks: tasks.map((preparedTask) => preparedTask.task),
+        maxConcurrency: Math.min(options.test.maxConcurrency, tasks.length),
+        signal: options.signal,
+        shouldStop: bailReached,
+        run: async (_task, taskIndex) => {
+          try {
+            const result = await runCaseTask(
+              tasks[taskIndex],
+              taskIndex,
+              tasks.length,
+              options,
+              (completed) => {
+                results[taskIndex] = completed;
+              },
+            );
+            results[taskIndex] = result;
+            if (result.case.status === 'failed') failedCaseCount += 1;
+            return result;
+          } catch (error) {
+            options.onInfrastructureError(error);
+            throw error;
+          }
+        },
+      });
+    } catch (error) {
+      options.onInfrastructureError(error);
+    }
+  }
 
   return options.projects.map((prepared, projectIndex) => {
     const projectTasks = tasks

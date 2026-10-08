@@ -5,11 +5,11 @@ import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import type { JsonValue } from '../cli/test-project';
 import { WorkflowParseError } from '../errors';
 import type { NodeDefinition } from '../node/types';
+import { isSafeResultPathSegment } from '../result-path-segment';
 import {
   createCaseInvocationId,
   createDocumentInvocationId,
 } from './identifiers';
-import { isSafeResultPathSegment } from '../result-path-segment';
 import { normalizeSteps } from './normalize';
 import type {
   CollectedCase,

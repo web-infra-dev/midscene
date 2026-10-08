@@ -196,6 +196,7 @@ export interface CaseRunOutcome {
     | 'project-setup-failed'
     | 'interrupted'
     | 'bail'
+    | 'executor-failed'
     | 'fatal-error';
 }
 

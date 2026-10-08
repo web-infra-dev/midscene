@@ -5,13 +5,12 @@ import {
 } from '@midscene/core/internal/test-runner';
 import type {
   CaseRunOutcome,
-  StepExecutionInfo,
-  StepRunResult,
   WorkflowDocumentExecutionResult,
   WorkflowDocumentRunResult,
 } from '@midscene/core/internal/test-runner';
 import { isFatalDeviceError } from '../errors';
 import type { PreparedDocumentInvocation } from './execution-plan';
+import { formatStep, formatStepResult } from './execution-result';
 import {
   writeCaseAttemptResult,
   writeWorkflowDocumentResult,
@@ -39,26 +38,6 @@ interface ExecuteDocumentInvocationOptions {
   onDocumentResult?(result: WorkflowDocumentRunResult): Promise<void>;
   sinks: DocumentInvocationSinks;
 }
-
-const stepPosition = (info: StepExecutionInfo) =>
-  info.scope === 'case' ? info.case : info.document;
-
-const formatStep = (info: StepExecutionInfo): string => {
-  const position = stepPosition(info);
-  const phase = position.phase === 'steps' ? 'step' : position.phase;
-  return `${phase} ${position.stepIndex + 1}/${info.stepCount}: ${info.node}`;
-};
-
-const formatStepResult = (
-  info: StepExecutionInfo,
-  result: StepRunResult,
-): string => {
-  const indent = info.scope === 'case' ? '      ' : '    ';
-  const symbol = result.status === 'success' ? '✓' : '✗';
-  const error = result.error ? ` — ${result.error.message}` : '';
-  const continuation = result.continuedAfterError ? '; continuing' : '';
-  return `${indent}${symbol} ${formatStep(info)} (${result.durationMs} ms)${error}${continuation}`;
-};
 
 const caseHasFatalError = (outcome: CaseRunOutcome): boolean =>
   (outcome.attempts ?? []).some(
@@ -126,7 +105,13 @@ export async function executeDocumentInvocation(
         },
         onStepResult: async (info, result) => {
           await invocation.bindings.onStepResult?.(info, result);
-          options.onProgress(formatStepResult(info, result));
+          options.onProgress(
+            formatStepResult(
+              info,
+              result,
+              info.scope === 'case' ? '      ' : '    ',
+            ),
+          );
         },
         onCaseResult: async (attempt) => {
           await writeCaseAttemptResult(

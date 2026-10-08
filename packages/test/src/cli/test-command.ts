@@ -63,7 +63,8 @@ export const parseTestCliArgs = (
       arg === '--exclude-tag'
     ) {
       const value = inlineValue ?? args[index + 1];
-      if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value.`);
+      if (!value || value.startsWith('--'))
+        throw new Error(`${arg} requires a value.`);
       if (arg === '--config') configPath = value;
       else if (arg === '--result-dir') resultDir = resolve(cwd, value);
       else if (arg === '--project') projectNames.push(value);

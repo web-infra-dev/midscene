@@ -1937,6 +1937,110 @@ cases:
     ).toBe(true);
   });
 
+  it('preserves document and case snapshots across a JSON executor boundary', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      import { mkdirSync, writeFileSync } from 'node:fs';
+      import { join } from 'node:path';
+      const state = globalThis.__testProjectRunnerState;
+      export default {
+        test: { executionUnit: 'case' },
+        executor: {
+          name: 'json-roundtrip',
+          async execute(_task, context) { return JSON.parse(JSON.stringify(await context.runLocal())); },
+        },
+        nodes: [{
+          name: 'snapshot',
+          execute(ctx) {
+            const id = ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
+            ctx.report.addTrace({ type: 'midscene-execution', executionId: id });
+            ctx.onTeardown(() => {
+              const directory = join(state.resultDir, 'sources', id);
+              mkdirSync(directory, { recursive: true });
+              const dumpPath = join(directory, 'snapshot.json');
+              writeFileSync(dumpPath, JSON.stringify({
+                sdkVersion: '1.14.0', groupName: 'snapshot', modelBriefs: [],
+                executions: [{ id, logTime: 1, name: 'snapshot-' + ctx.scope, tasks: [] }],
+              }));
+              return { reportSources: [{ sourcePath: join(directory, 'index.html'), dumpPath }] };
+            });
+          },
+        }],
+      };
+    `,
+    );
+    writeWorkflow(
+      root,
+      'snapshot.yaml',
+      'beforeAll: [{ snapshot: {} }]\ncases: [{ name: one, steps: [{ snapshot: {} }] }]',
+    );
+    const result = await runTestProject({ projectRoot: root, resultDir });
+    expect(result.status).toBe('success');
+    const html = readFileSync(result.reportPath!, 'utf8');
+    expect(html).toContain('snapshot-document');
+    expect(html).toContain('snapshot-case');
+    expect(result.cases[0].run?.reportPaths).toBeUndefined();
+    const dump = JSON.parse(
+      html.match(
+        /<script type="midscene_test_run_dump"[^>]*>([\s\S]*?)<\/script>/,
+      )![1],
+    );
+    const document = dump.projects[0].documents[0];
+    expect(document.beforeAll[0].agentDetails).toHaveLength(1);
+    expect(document.cases[0].attempts[0].steps[0].agentDetails).toHaveLength(1);
+    expect(dump.diagnostics ?? []).toEqual([]);
+  });
+
+  it('publishes completed and partial case results before rejecting an observer failure', async () => {
+    const root = createProject();
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `export default {
+      test: { executionUnit: 'case', maxConcurrency: 1 },
+      nodes: [{ name: 'pass', execute() {} }],
+    };`,
+    );
+    writeWorkflow(
+      root,
+      'case.yaml',
+      'cases:\n  - { name: first, steps: [{ pass: {} }] }\n  - { name: second, steps: [{ pass: {} }] }\n  - { name: third, steps: [{ pass: {} }] }',
+    );
+    let didThrow = false;
+    const error = await runTestProject({
+      projectRoot: root,
+      onProgress(message) {
+        if (!didThrow && message.includes('/ second: →')) {
+          didThrow = true;
+          throw new Error('case observer failed');
+        }
+      },
+    }).catch((error) => error);
+    expect(didThrow).toBe(true);
+    expect(
+      error.result.cases.map((item: { status: string }) => item.status),
+    ).toEqual(['success', 'failed', 'not-run']);
+    expect(error.result.cases[1].run.executionErrors).toHaveLength(1);
+    expect(error.result.errors[0].message).toContain('case observer failed');
+    expect(existsSync(error.result.reportPath)).toBe(true);
+    const summary = JSON.parse(readFileSync(error.result.summaryPath, 'utf8'));
+    expect(summary.status).toBe('failed');
+    expect(summary.projects[0].cases[0].status).toBe('success');
+    for (const item of summary.projects[0].cases.slice(0, 2)) {
+      expect(
+        existsSync(
+          resolve(
+            dirname(error.result.summaryPath),
+            item.attempts[0].resultFile,
+          ),
+        ),
+      ).toBe(true);
+    }
+  });
+
   it('marks every case not run when beforeAll fails and still cleans up', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');

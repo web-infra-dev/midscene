@@ -4,6 +4,7 @@ import { runPreparedTestProject } from './run-prepared-project';
 import type { TestProjectRunResult } from './types';
 
 export type { TestProjectRunOptions } from './execution-plan';
+export { discoverSelectedTestFiles } from './project-preparation';
 export { createTestRunId } from './prepare-test-run';
 export {
   DEFAULT_TEST_FILE_SELECTION,

@@ -75,6 +75,7 @@ export interface TestExecutorCaseAttemptDto {
   readonly beforeEach: readonly TestExecutorStepResultDto[];
   readonly steps: readonly TestExecutorStepResultDto[];
   readonly afterEach: readonly TestExecutorStepResultDto[];
+  readonly executionErrors?: readonly TestExecutorErrorDto[];
   readonly teardownErrors?: readonly TestExecutorErrorDto[];
   /** Opaque references returned by context.materializeReport(). */
   readonly reportRefs?: readonly string[];
@@ -115,6 +116,7 @@ export interface TestExecutorDocumentResultDto {
   readonly durationMs: number;
   readonly beforeAll: readonly TestExecutorStepResultDto[];
   readonly afterAll: readonly TestExecutorStepResultDto[];
+  readonly executionErrors?: readonly TestExecutorErrorDto[];
   readonly teardownErrors?: readonly TestExecutorErrorDto[];
   /** Opaque references returned by context.materializeReport(). */
   readonly reportRefs?: readonly string[];
@@ -268,6 +270,7 @@ const attemptSchema = z.strictObject({
   beforeEach: z.array(stepSchema),
   steps: z.array(stepSchema),
   afterEach: z.array(stepSchema),
+  executionErrors: z.array(errorSchema).optional(),
   teardownErrors: z.array(errorSchema).optional(),
   reportRefs: z.array(z.string().min(1)).optional(),
   startedAt: timestampSchema,
@@ -309,6 +312,7 @@ const resultSchema = z.strictObject({
       durationMs: z.number().nonnegative().finite(),
       beforeAll: z.array(stepSchema),
       afterAll: z.array(stepSchema),
+      executionErrors: z.array(errorSchema).optional(),
       teardownErrors: z.array(errorSchema).optional(),
       reportRefs: z.array(z.string().min(1)).optional(),
     })
@@ -386,6 +390,7 @@ export function assertTestCaseTaskRunResult(
     if (
       attempt.status === 'success' &&
       (attempt.steps.length === 0 ||
+        (attempt.executionErrors?.length ?? 0) > 0 ||
         steps.some((step) => step.status === 'failed') ||
         (attempt.teardownErrors?.length ?? 0) > 0)
     ) {
@@ -446,9 +451,10 @@ export function assertTestCaseTaskRunResult(
   const document = parsed.data.document;
   if (
     document?.status === 'success' &&
-    ([...document.beforeAll, ...document.afterAll].some(
-      (step) => step.status === 'failed',
-    ) ||
+    ((document.executionErrors?.length ?? 0) > 0 ||
+      [...document.beforeAll, ...document.afterAll].some(
+        (step) => step.status === 'failed',
+      ) ||
       (document.teardownErrors?.length ?? 0) > 0)
   ) {
     throw new TypeError(

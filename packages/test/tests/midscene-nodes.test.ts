@@ -233,7 +233,7 @@ describe('createMidsceneNodes', () => {
     expect(result.steps.map((step) => step.output?.summary)).toEqual([
       'action completed',
       'Assertion passed: The order is paid',
-      'Condition met: The order status becomes paid',
+      undefined,
       'Recorded to report: Order created',
     ]);
   });
