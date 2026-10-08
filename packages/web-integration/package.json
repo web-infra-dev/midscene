@@ -50,6 +50,11 @@
       "require": "./dist/lib/puppeteer/agent-launcher.js",
       "import": "./dist/es/puppeteer/agent-launcher.mjs"
     },
+    "./puppeteer/test": {
+      "types": "./dist/types/puppeteer/test-runner/index.d.ts",
+      "require": "./dist/lib/puppeteer/test-runner/index.js",
+      "import": "./dist/es/puppeteer/test-runner/index.mjs"
+    },
     "./playwright": {
       "types": "./dist/types/playwright/index.d.ts",
       "require": "./dist/lib/playwright/index.js",

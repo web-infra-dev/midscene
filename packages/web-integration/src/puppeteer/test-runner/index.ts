@@ -13,9 +13,9 @@ export type {
   SetViewportSizeNodeInput,
 } from '@/common/test-runner/nodes';
 export type {
-  PlaywrightTestRunnerOptions,
-  PlaywrightTestRunnerAgent,
-  PlaywrightCookieProfileContext,
-  PlaywrightNodeContext,
+  PuppeteerCookieProfileContext,
+  PuppeteerNodeContext,
+  PuppeteerTestRunnerAgent,
+  PuppeteerTestRunnerOptions,
 } from './types';
-export { playwrightAgentTestRunnerNodeDefinitions } from './agent-nodes';
+export { puppeteerAgentTestRunnerNodeDefinitions } from './agent-nodes';

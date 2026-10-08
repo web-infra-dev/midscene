@@ -94,58 +94,64 @@ describe('midscene-web CLI viewport e2e', () => {
     }
   });
 
-  it('applies CLI viewport flags to the launched Puppeteer page', async () => {
-    const width = 1536;
-    const height = 864;
-    const parsedOptions = parseWebCliOptions([
-      '--viewport-width',
-      String(width),
-      '--viewport-height',
-      String(height),
-      'connect',
-      '--url',
-      baseUrl,
-    ]);
+  it.each([
+    { width: 1536, height: 864 },
+    { width: 1280, height: 720 },
+  ])(
+    'preserves CLI viewport $width x $height after disconnect',
+    async ({ width, height }) => {
+      const targetUrl = `${baseUrl}/?viewport=${width}x${height}`;
+      const parsedOptions = parseWebCliOptions([
+        '--viewport-width',
+        String(width),
+        '--viewport-height',
+        String(height),
+        'connect',
+        '--url',
+        targetUrl,
+      ]);
 
-    const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport, {
-      persistence,
-    });
-    await runToolsCLI(tools, 'midscene-web', {
-      stripPrefix: 'web_',
-      argv: parsedOptions.argv,
-    });
-
-    const endpoint = (await readFile(persistence.endpointFile, 'utf-8')).trim();
-    const browser = await puppeteer.connect({
-      browserWSEndpoint: endpoint,
-      defaultViewport: null,
-    });
-
-    try {
-      const pages = await browser.pages();
-      const page = pages.find(
-        (item) => item.url() === `${baseUrl}/` || item.url() === baseUrl,
-      );
-
-      if (!page) {
-        throw new Error(`Failed to find connected page for ${baseUrl}`);
-      }
-
-      const metrics = await page.evaluate(() => ({
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        clientWidth: document.documentElement.clientWidth,
-        clientHeight: document.documentElement.clientHeight,
-      }));
-
-      expect(metrics).toEqual({
-        innerWidth: width,
-        innerHeight: height,
-        clientWidth: width,
-        clientHeight: height,
+      const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport, {
+        persistence,
       });
-    } finally {
-      browser.disconnect();
-    }
-  }, 60_000);
+      await runToolsCLI(tools, 'midscene-web', {
+        stripPrefix: 'web_',
+        argv: parsedOptions.argv,
+      });
+
+      const endpoint = (
+        await readFile(persistence.endpointFile, 'utf-8')
+      ).trim();
+      const browser = await puppeteer.connect({
+        browserWSEndpoint: endpoint,
+        defaultViewport: null,
+      });
+
+      try {
+        const pages = await browser.pages();
+        const page = pages.find((item) => item.url() === targetUrl);
+
+        if (!page) {
+          throw new Error(`Failed to find connected page for ${targetUrl}`);
+        }
+
+        const metrics = await page.evaluate(() => ({
+          innerWidth: window.innerWidth,
+          innerHeight: window.innerHeight,
+          clientWidth: document.documentElement.clientWidth,
+          clientHeight: document.documentElement.clientHeight,
+        }));
+
+        expect(metrics).toEqual({
+          innerWidth: width,
+          innerHeight: height,
+          clientWidth: width,
+          clientHeight: height,
+        });
+      } finally {
+        browser.disconnect();
+      }
+    },
+    60_000,
+  );
 });
