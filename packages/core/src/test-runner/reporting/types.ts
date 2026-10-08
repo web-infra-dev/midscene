@@ -29,6 +29,7 @@ export interface RunReportProjectInput {
 }
 
 export interface RunReportInput {
+  operationLog?: { path: string; snapshotAt: string };
   runId: string;
   status: 'success' | 'failed';
   startedAt: string;

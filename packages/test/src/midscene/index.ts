@@ -19,8 +19,9 @@ import {
 } from '@midscene/core/agent/test';
 import {
   type WorkflowReportSource,
-  assertResourceAvailable,
+  admitResourceOperation,
   hasPendingResourceOperation,
+  retainResourceForScope,
   trackResourceOperation,
 } from '@midscene/core/internal/test-runner';
 import {
@@ -170,7 +171,7 @@ export const createAgentTestRunnerNodes = <TContext>(
     runInYamlExecutionContext(async () => {
       const scopeId =
         ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
-      const isCleanupOwner = assertResourceAvailable(agent, true, ctx.signal);
+      const isCleanupOwner = admitResourceOperation(agent, ctx.signal);
       if (captureExecutions) {
         ctx.report.onSnapshot(async (signal, traces) => {
           signal.throwIfAborted();
@@ -356,11 +357,13 @@ export function createMidsceneNodes<TContext>(
         const agent = options.agentProvider
           ? await options.agentProvider.getAgent(runId, ctx)
           : await options.getAgent!(ctx);
+        retainResourceForScope(agent, ctx.signal);
         agent._prepareForTestRunner?.();
         scopeAgents.add(agent);
         return agent;
       }),
       ctx.signal,
+      'acquisition',
     );
   };
 

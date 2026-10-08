@@ -17,6 +17,7 @@ import {
   cleanupScopeResources,
   createResourceScope,
   recoverCancelledScopeResources,
+  setResourceOperationIdentity,
 } from './resource-operations';
 import { reportPathsFromTeardown } from './scope-teardown';
 import type {
@@ -62,6 +63,7 @@ export function createDocumentRuntime<TContext = undefined>(
   let context = options.projectContext as TContext;
   const resourceScope = createResourceScope(options.signal);
   const signal = resourceScope.signal;
+  setResourceOperationIdentity(signal, { scopeId: documentRunId });
   const nodeTeardownStack: Array<{
     registrationIndex: number;
     node: string;
@@ -99,8 +101,8 @@ export function createDocumentRuntime<TContext = undefined>(
       status:
         executionErrors.length > 0 ||
         hostErrors.length > 0 ||
-        beforeAll.some((step) => step.status === 'failed') ||
-        afterAll.some((step) => step.status === 'failed') ||
+        beforeAll.some((step) => step.status !== 'success') ||
+        afterAll.some((step) => step.status !== 'success') ||
         teardownErrors.length > 0
           ? 'failed'
           : 'success',
@@ -182,7 +184,7 @@ export function createDocumentRuntime<TContext = undefined>(
           source,
         );
       await options.onStepResult?.(stepInfo, result);
-      if (result.status === 'failed' && !result.continuedAfterError) break;
+      if (result.status !== 'success' && !result.continuedAfterError) break;
     }
   };
 
@@ -197,7 +199,7 @@ export function createDocumentRuntime<TContext = undefined>(
         executionErrors.length === 0 &&
         hostErrors.length === 0 &&
         !signal.aborted &&
-        !beforeAll.some((step) => step.status === 'failed')
+        !beforeAll.some((step) => step.status !== 'success')
       );
     },
     async start() {

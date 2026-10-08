@@ -147,8 +147,13 @@ describe('legacy YAML runtime', () => {
       actionSpace: [],
       setResult,
     }).runScript(script);
+    expect(reused.cases[0].run?.steps[0]).toMatchObject({
+      status: 'not-run',
+      error: { code: 'RESOURCE_OPERATION_PENDING' },
+    });
+    expect(reused.cases[0].run?.steps[0].startedAt).toBeUndefined();
     expect(legacyYamlOutcomeError(reused.cases[0]).message).toContain(
-      'Cannot reuse an Agent',
+      'was not started',
     );
     expect(agent.evaluateJavaScript).toHaveBeenCalledTimes(1);
     finish('late output');

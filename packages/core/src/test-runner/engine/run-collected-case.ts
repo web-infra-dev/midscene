@@ -12,6 +12,7 @@ import {
   cleanupScopeResources,
   createResourceScope,
   recoverCancelledScopeResources,
+  setResourceOperationIdentity,
 } from './resource-operations';
 import { reportPathsFromTeardown } from './scope-teardown';
 import type {
@@ -41,6 +42,7 @@ export async function runCollectedCase<TContext = undefined>(
   const scopeSignal = resourceScope.signal;
   const runId = options.createRunId?.() ?? randomUUID();
   const startedAt = new Date();
+  setResourceOperationIdentity(scopeSignal, { scopeId: runId });
   const beforeEach: StepRunResult[] = [];
   const steps: StepRunResult[] = [];
   const afterEach: StepRunResult[] = [];
@@ -120,14 +122,14 @@ export async function runCollectedCase<TContext = undefined>(
           source,
         );
       await options.onStepResult?.(stepInfo, result);
-      if (result.status === 'failed' && !result.continuedAfterError) break;
+      if (result.status !== 'success' && !result.continuedAfterError) break;
     }
   };
 
   const executionErrors: unknown[] = [];
   try {
     await runPhase('beforeEach', beforeEach);
-    if (!beforeEach.some((step) => step.status === 'failed')) {
+    if (!beforeEach.some((step) => step.status !== 'success')) {
       await runPhase('steps', steps);
     }
   } catch (error) {
@@ -212,9 +214,9 @@ export async function runCollectedCase<TContext = undefined>(
     caseIndex: collectedCase.caseIndex,
     status:
       executionErrors.length > 0 ||
-      beforeEach.some((step) => step.status === 'failed') ||
-      steps.some((step) => step.status === 'failed') ||
-      afterEach.some((step) => step.status === 'failed') ||
+      beforeEach.some((step) => step.status !== 'success') ||
+      steps.some((step) => step.status !== 'success') ||
+      afterEach.some((step) => step.status !== 'success') ||
       teardownErrors.length > 0
         ? 'failed'
         : 'success',

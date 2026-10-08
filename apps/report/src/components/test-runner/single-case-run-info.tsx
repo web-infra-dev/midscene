@@ -2,6 +2,7 @@ import type { TestRunReportDump } from '@midscene/core';
 import { Alert } from 'antd';
 import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
 import { MetricsCollection } from './metrics-collection';
+import { OperationLogs } from './operation-logs';
 import { TestPlan } from './test-plan';
 import { formatDuration, formatTimestamp } from './view-primitives';
 
@@ -56,6 +57,7 @@ export function SingleCaseRunInfo({
         </span>
       </div>
       <MetricsCollection metrics={dump.metrics} />
+      <OperationLogs logs={dump.operationLogs} />
       {dump.status === 'failed' && (
         <Alert
           type="error"

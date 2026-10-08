@@ -609,6 +609,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       waitAfterAction: this.opts.waitAfterAction,
       actionReadiness: this.actionReadiness,
       useDeviceTime: this.opts.useDeviceTime,
+      getAbortSignal: () => currentYamlSignal(this),
+      operationResource: this,
       actionSpace: this.fullActionSpace,
       hooks: {
         onSnapshotChange: async (runner) => {

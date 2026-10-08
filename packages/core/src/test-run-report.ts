@@ -86,6 +86,21 @@ export interface TestRunReportAgentDetail {
   executionId: string;
 }
 
+/** Operation facts are independent of Agent dump IDs and report snapshots. */
+export interface TestRunReportOperationEvent {
+  operationId: string;
+  operationKind: 'node' | 'resource' | 'acquisition' | 'cleanup' | 'readiness';
+  kind: 'started' | 'cancel-requested' | 'settled' | 'runner-returned';
+  at: string;
+  stepId?: string;
+  scopeId?: string;
+  node?: string;
+  status?: 'success' | 'failed' | 'not-run';
+  /** True only when the actual operation has not settled at Runner return. */
+  pending?: boolean;
+  error?: TestRunReportError;
+}
+
 export interface TestRunReportPlannedStep {
   id: string;
   phase: TestRunReportStepPhase;
@@ -141,6 +156,7 @@ interface TestRunReportStepBase {
     capturedAt?: string;
     errors?: TestRunReportError[];
   };
+  operations?: { capturedAt: string; events: TestRunReportOperationEvent[] };
 }
 
 export type TestRunReportStep = TestRunReportStepBase &
@@ -262,6 +278,7 @@ export interface TestRunReportDump {
   metrics: TestRunReportMetrics;
   projects: TestRunReportProject[];
   diagnostics?: TestRunReportDiagnostic[];
+  operationLogs?: { path: string; snapshotAt: string }[];
 }
 
 export interface TestRunReportSource {

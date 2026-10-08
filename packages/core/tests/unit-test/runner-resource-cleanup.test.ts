@@ -10,6 +10,7 @@ import {
   getResourceCleanupCompletion,
   linkResourceSignal,
   recoverCancelledScopeResources,
+  retainResourceForScope,
   runWorkflowDocument,
   trackResourceOperation,
 } from '@/test-runner';
@@ -208,6 +209,34 @@ describe('continuation after a resource operation times out', () => {
 });
 
 describe('resource-aware cancellation cleanup', () => {
+  test('waits for a shared resource discovered by a late acquisition before disposal', async () => {
+    const acquisition = deferred();
+    const action = deferred();
+    const resource = {};
+    const active = new AbortController();
+    trackResourceOperation(resource, action.promise, active.signal);
+    const scope = createResourceScope();
+    const acquiring = trackResourceOperation(
+      {},
+      acquisition.promise.then(() => {
+        retainResourceForScope(resource, scope.signal);
+      }),
+      scope.signal,
+      'acquisition',
+    );
+    const cleanup = rs.fn();
+    const completion = cleanupScopeResources(scope.signal, cleanup, {
+      onDeferredError() {},
+    });
+    acquisition.resolve();
+    await acquiring;
+    await Promise.resolve();
+    expect(cleanup).not.toHaveBeenCalled();
+    action.resolve();
+    await completion;
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    scope.dispose();
+  });
   test('concurrent finish calls share one document and Project cleanup', async () => {
     const gate = deferred();
     const cleanup = rs.fn(() => gate.promise);

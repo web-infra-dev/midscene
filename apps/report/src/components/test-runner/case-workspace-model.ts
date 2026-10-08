@@ -19,7 +19,9 @@ const phaseLabels = {
   afterAll: 'Document teardown',
 };
 const describeStepFailure = (step: TestRunReportStep): string =>
-  `${phaseLabels[step.phase]} step ${step.stepIndex + 1} failed: ${step.title ?? step.node}`;
+  step.status === 'not-run'
+    ? `${phaseLabels[step.phase]} step ${step.stepIndex + 1} was not run: ${step.notRunReason}`
+    : `${phaseLabels[step.phase]} step ${step.stepIndex + 1} failed: ${step.title ?? step.node}`;
 const notRunReasons: Record<string, string> = {
   'document-start-failed':
     'Document setup failed before this case could start.',
@@ -32,7 +34,7 @@ const notRunReasons: Record<string, string> = {
 
 export function getCaseNotRunReason(item: RunnerCaseView): string {
   const failure = item.document.beforeAll.find(
-    (step) => step.status === 'failed',
+    (step) => step.status !== 'success',
   );
   return failure
     ? describeStepFailure(failure)
@@ -89,9 +91,9 @@ export const getCaseWorkspaceStepGroups = (
   ): TestRunReportStep[] => {
     if (!planned) return [...actual];
     const failure =
-      preceding.find((step) => step.status === 'failed') ??
+      preceding.find((step) => step.status !== 'success') ??
       actual.find(
-        (step) => step.status === 'failed' && !step.continuedAfterError,
+        (step) => step.status !== 'success' && !step.continuedAfterError,
       );
     const reason = failure
       ? describeStepFailure(failure)
@@ -161,8 +163,8 @@ export const getDefaultCaseWorkspaceStep = (
   );
   const documentSteps = [...document.beforeAll, ...document.afterAll];
   return (
-    attemptSteps.find((step) => step.status === 'failed') ??
-    documentSteps.find((step) => step.status === 'failed') ??
+    attemptSteps.find((step) => step.status !== 'success') ??
+    documentSteps.find((step) => step.status !== 'success') ??
     attempt?.steps.find((step) => step.agentDetails?.length) ??
     attempt?.steps[0] ??
     attemptSteps[0] ??

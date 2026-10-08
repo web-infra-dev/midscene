@@ -73,6 +73,66 @@ afterEach(() => {
 });
 
 describe('test project main-process runner', () => {
+  it('publishes a fixed snapshot and keeps appending the original node late outcome to its journal', async () => {
+    const root = createProject();
+    const pending = createDeferred();
+    const state = Object.assign(setRunnerState(join(root, 'results')), {
+      pending: pending.promise,
+    });
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      export default {
+        projects: [{ name: 'late' }],
+        nodes: [{ name: 'pending', execute() { return globalThis.__testProjectRunnerState.pending; } }],
+      };
+    `,
+    );
+    writeWorkflow(
+      root,
+      'case.yaml',
+      'cases:\n  - name: late outcome\n    steps:\n      - pending:\n          $:\n            timeout: 10\n',
+    );
+    const result = await runTestProject({
+      projectRoot: root,
+      resultDir: state.resultDir,
+    });
+    expect(result.collectionErrors).toEqual([]);
+    expect(result.cases).toHaveLength(1);
+    expect(result.cases[0].run?.steps[0].node).toBe('pending');
+    expect(result.status).toBe('failed');
+    const summaryBefore = readFileSync(result.summaryPath, 'utf8');
+    const summary = JSON.parse(summaryBefore);
+    expect(summary.operationLog.path).toBe('operations.jsonl');
+    const journalPath = result.operationLog!.path;
+    const before = readFileSync(journalPath, 'utf8');
+    const events = before
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    const returned = events.find((event) => event.kind === 'runner-returned');
+    expect(returned).toMatchObject({ pending: true, node: 'pending' });
+    pending.resolve();
+    await pending.promise;
+    await Promise.resolve();
+    await Promise.resolve();
+    const after = readFileSync(journalPath, 'utf8');
+    expect(after.startsWith(before)).toBe(true);
+    expect(
+      after
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line)),
+    ).toContainEqual(
+      expect.objectContaining({
+        kind: 'settled',
+        operationId: returned.operationId,
+        stepId: returned.stepId,
+        status: 'success',
+      }),
+    );
+    expect(readFileSync(result.summaryPath, 'utf8')).toBe(summaryBefore);
+  });
   it('persists the full safe plan before setup, including filtered cases and unresolved variables', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');

@@ -1,3 +1,4 @@
+import type { TestRunReportOperationEvent } from '../../test-run-report';
 import type { WorkflowError } from '../errors';
 import type {
   NodeDefinition,
@@ -41,17 +42,17 @@ export type CaseNodePhase = 'beforeEach' | 'steps' | 'afterEach';
 export type DocumentNodePhase = 'beforeAll' | 'afterAll';
 export type NodeExecutionPhase = CaseNodePhase | DocumentNodePhase;
 
-export interface StepRunResult<TOutputData = unknown> {
+interface StepRunResultBase<TOutputData = unknown> {
   phase: NodeExecutionPhase;
   stepIndex: number;
   node: string;
   input: unknown;
   meta: NormalizedStepMeta;
-  status: 'success' | 'failed';
   continuedAfterError: boolean;
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
+  operations?: {
+    capturedAt: string;
+    events: readonly TestRunReportOperationEvent[];
+  };
   output?: NodeResult<TOutputData>;
   error?: WorkflowError;
   report?: {
@@ -60,6 +61,27 @@ export interface StepRunResult<TOutputData = unknown> {
     collectionErrors?: readonly WorkflowError[];
   };
 }
+
+export type StepRunResult<TOutputData = unknown> =
+  StepRunResultBase<TOutputData> &
+    (
+      | {
+          status: 'success' | 'failed';
+          startedAt: string;
+          endedAt: string;
+          durationMs: number;
+          notRunReason?: never;
+          blockedBy?: never;
+        }
+      | {
+          status: 'not-run';
+          notRunReason: string;
+          blockedBy?: string;
+          startedAt?: never;
+          endedAt?: never;
+          durationMs?: never;
+        }
+    );
 
 export interface CaseRunResult {
   caseId: string;

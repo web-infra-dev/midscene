@@ -6,13 +6,13 @@
 
 ## 实现批次与进度
 
-分支：`fix/test-report-pipeline`，从 2026-10-08 拉取的 `origin/main`（`98062b63`）创建。第一批已提交为 `12355393`（`fix(report): preserve test plans and show setup timelines`）；第二批随本次证据采集与指标完整性修改提交。尚未推送。
+分支：`fix/test-report-pipeline`，从 2026-10-08 拉取的 `origin/main`（`98062b63`）创建。第一批已提交为 `12355393`（`fix(report): preserve test plans and show setup timelines`）；第二批已提交为 `d8dbba6a`（`fix(report): capture evidence independently of resource cleanup`）；第三批为本次提交（`fix(report): track cancellation and block unavailable resources`）。尚未推送。
 
 | 批次 | 范围 | 状态 |
 | --- | --- | --- |
 | 1 | 独立计划、未执行步骤、准备/收尾时间线（01、06） | 本批基础实现完成，见下方范围与验收记录 |
 | 2 | 证据采集与释放分离、指标完整性（02、07） | 本批原生 Runner 实现完成，见下方范围与验收记录 |
-| 3 | 取消契约、资源调度、操作与取消事件（03、04、05 的事件部分） | 待实施 |
+| 3 | 取消契约、资源调度、操作与取消事件（03、04、05 的事件部分） | 共享运行链路实现完成；具体设备适配器的中断能力仍需逐项验证 |
 | 4 | 错误原因、诊断归组、清理与重试状态（05 的错误部分、08、09） | 待实施 |
 | 5 | 宿主初始化及各阶段耗时（10） | 待实施 |
 
@@ -76,6 +76,41 @@
 
 234 条相关回归测试（Core 110、Test 72、Report 52）、三个项目的构建、报告模板检查与上述 lint 检查均已通过。采集边界改动后另单独重跑了 5 条快照集成回归，结果通过。第二批验收完成。
 
+### 第三批已经落地
+
+- TaskRunner 接收执行信号，在任务 hook、截图/上下文获取、执行器返回及下一任务提交边界检查取消；未启动的排队任务标为取消，不生成开始时间。
+- TaskExecutor 继承当前 YAML/Runner 信号，向动作上下文、动作前后 hook、默认就绪等待、定位和模型请求传递。Sleep 与动作前后延时可以响应取消；aiWaitFor 不再在取消后继续查询或等待。
+- Runner 结束等待与底层 Promise 实际完成分开记录。普通 Node 的实际执行也纳入作用域排空，避免自定义 Node 仍在运行时提前调用其 teardown。
+- 自定义就绪 hook 的取消等待仍有界，但底层 hook 的真实完成单独跟踪。hook 未退出时资源保持占用，不把“结束等待”当作“hook 已结束”。
+- 原生 Agent Node 和旧 YAML 适配器都将资源拒绝表达为结构化 `not-run`，保存阻塞操作和步骤身份，不调用对应 Agent 方法，不产生虚假的动作时间或执行引用缺失警告。CLI 与报告均显示未执行原因。
+- 按明确的继续策略处理后续步骤：同一资源被阻塞，独立资源/普通步骤仍可继续；未允许继续时停止当前阶段。取消过的资源即使稍后空闲，同一作用域也要求显式收尾，不自动认定业务状态恢复。afterEach/afterAll 保留专用清理信号与授权边界。
+- 获取 Agent 时即登记清理责任；动作未被准入也不允许提前释放其他作用域还在使用的 Agent。晚完成的获取如果带来一个仍忙的共享资源，排空会继续等待该资源。
+- 为 Node、Agent 操作、获取、就绪 hook 和清理建立稳定操作 ID，记录开始、取消请求、实际结束及 Runner 返回。步骤身份在执行边界建立，不依赖 Agent dump。步骤证据与事件快照有明确截止时间。
+- CLI 在运行目录写入 `operations.jsonl`，快照发布后继续追加原操作的晚成功/晚失败及清理结束事件。`summary.json` 和 HTML 保存日志引用；合并报告保留引用并重映射步骤链接。页面展示操作生命周期和快照边界，晚事件不会修改已有步骤结论。
+
+### 第三批范围与限制
+
+- 条目 03 的共享取消链路已补齐，但不将所有设备/外部适配器的实际中断能力标为完成。接口收到信号不等于底层系统调用能被终止；不支持取消的调用继续按实际完成进行隔离与排空，需要后续逐项接入并验证。
+- 原生 CLI 自动保存事件；程序化调用可订阅 `observeResourceOperations` 自行保存，当前没有自动为所有 Agent API 或旧宿主入口创建日志文件。
+- 晚事件只能记录进程仍存活期间观察到的完成；进程被强制结束时不虚构最终状态。报告是快照，当前不会自动载入晚到日志更新页面。
+- 尚未加入任意业务流程的自动恢复，也未改变外部适配器的释放接口或保证所有 disposer 有界退出。错误原因链、清理状态汇总、重试停止原因继续由第四批处理。
+- 使用可控 Promise、假 Agent、模型服务和组件测试验证；真实模型/设备 e2e 与浏览器视觉验收未运行。
+
+### 第三批验证
+
+- `pnpm exec nx test @midscene/core -- tests/unit-test/task-runner-cancellation.test.ts tests/unit-test/runner-operation-events.test.ts tests/unit-test/task-runner/index.test.ts tests/unit-test/action-readiness.test.ts tests/unit-test/agent-action-readiness.test.ts tests/unit-test/task-executor-concurrency.test.ts tests/unit-test/task-builder.test.ts tests/unit-test/runner-resource-cleanup.test.ts tests/unit-test/runner-report-merge.test.ts tests/unit-test/runner-report-projection.test.ts tests/unit-test/runner-cancellation.test.ts tests/unit-test/test-runner-nodes.test.ts tests/unit-test/runner-report-collection.test.ts`
+- `pnpm exec nx test @midscene/core -- tests/unit-test/legacy-yaml-runtime.test.ts tests/unit-test/legacy-yaml-executable-contract.test.ts tests/unit-test/yaml-test-runner-compat.test.ts tests/unit-test/runner-legacy-output-projection.test.ts`
+- `pnpm exec nx test @midscene/test -- tests/resource-admission.test.ts tests/operation-journal.test.ts tests/midscene-nodes.test.ts tests/report-snapshot.test.ts tests/test-project-runner.test.ts tests/test-run-report.test.ts`
+- `pnpm exec nx test @midscene/report -- src/components/test-runner/evidence-inspector.test.tsx src/components/test-runner/model.test.ts src/components/test-runner/lifecycle.test.tsx src/components/test-runner/file-retry-report.test.tsx`
+- `pnpm exec nx build @midscene/core --excludeTaskDependencies`
+- `pnpm exec nx build @midscene/test --excludeTaskDependencies`
+- `pnpm exec nx build @midscene/report --excludeTaskDependencies`
+- `node scripts/validate-core-report-template.mjs`
+- `pnpm run lint --config-path /private/tmp/midscene-report-lint`：沿用前两批的临时配置，不修改仓库规则、不涉及 `impeccable`。
+- `git diff --check`
+
+335 条相关回归测试（Core 206、Test 75、Report 54）、三个项目的构建、报告模板检查与上述 lint 检查均已通过。共享运行链路本批验收完成；具体设备/外部适配器的中断能力仍按上述限制保留为后续工作。
+
 ## 两份报告暴露的事实
 
 | 报告 | 具体情况 | 暴露的问题 |
@@ -135,7 +170,7 @@
 
 ### 04 让资源可用性参与后续调度
 
-- [ ] 明确表达被阻塞、未启动的步骤，避免把它们当成实际执行后的业务失败。
+- [x] 原生 Agent Node 与旧 YAML 适配器将资源阻塞表达为未启动，并保留阻塞来源与明确的继续/停止策略。
 
 **具体例子：** PIA 的 23 个点击/断言在 0～1 毫秒内被拒绝；它们没有真正验证 snapshot、NSR 或 SSR 功能。
 

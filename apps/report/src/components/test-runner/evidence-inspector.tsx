@@ -138,6 +138,26 @@ export function RunnerEvidenceInspector({
         </p>
       ) : null}
       {step.agentDetailDiagnostic ? <p>{step.agentDetailDiagnostic}</p> : null}
+      {step.operations ? (
+        <details>
+          <summary>Operation lifecycle</summary>
+          <p>
+            Snapshot boundary: {step.operations.capturedAt}. Runner return and
+            actual operation settlement are recorded separately. This snapshot
+            does not update when an operation settles later.
+          </p>
+          <ul>
+            {step.operations.events.map((event, index) => (
+              <li key={`${event.operationId}:${index}`}>
+                {event.at}: {event.operationKind} — {event.kind}
+                {event.status ? ` (${event.status})` : ''}
+                {event.pending ? '; still running when Runner returned' : ''}
+                {event.error ? `: ${event.error.message}` : ''}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
       {step.evidenceCollection &&
       step.evidenceCollection.status !== 'complete' ? (
         <p>

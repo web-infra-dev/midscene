@@ -65,6 +65,28 @@ const buildStep = (
   executionId: string,
   plan?: TestRunReportPlannedStep,
 ): TestRunReportStep => {
+  if (step.status === 'not-run')
+    return {
+      id: `${executionId}:${step.phase}:${step.stepIndex}`,
+      ...(plan ? { planStepId: plan.id, title: plan.title } : {}),
+      phase: step.phase,
+      stepIndex: step.stepIndex,
+      node: step.node,
+      status: 'not-run',
+      notRunReason: sanitizeReportText(step.notRunReason),
+      ...(step.blockedBy ? { blockedBy: step.blockedBy } : {}),
+      continuedAfterError: step.continuedAfterError,
+      input: sanitizeReportValue(step.input),
+      ...(step.error ? { error: sanitizeReportError(step.error) } : {}),
+      ...(step.operations
+        ? {
+            operations: {
+              ...step.operations,
+              events: [...step.operations.events],
+            },
+          }
+        : {}),
+    };
   const details: TestRunReportAgentDetail[] = [];
   const unresolvedExecutionIds: string[] = [];
   for (const trace of step.report?.traces ?? []) {
@@ -192,6 +214,14 @@ const buildStep = (
     startedAt: step.startedAt,
     endedAt: step.endedAt,
     durationMs: step.durationMs,
+    ...(step.operations
+      ? {
+          operations: {
+            ...step.operations,
+            events: [...step.operations.events],
+          },
+        }
+      : {}),
     input: sanitizeReportValue(step.input),
     ...(step.output
       ? {
@@ -643,6 +673,9 @@ export function buildTestRunReportDump(
     schemaVersion: 1,
     kind: 'test-runner',
     runId: result.runId,
+    ...(result.operationLog
+      ? { operationLogs: [{ ...result.operationLog }] }
+      : {}),
     status: result.status,
     startedAt: result.startedAt,
     endedAt: result.endedAt,

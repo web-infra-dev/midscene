@@ -51,6 +51,7 @@ export interface TestExecutionProjectRunResult {
 }
 
 export interface TestProjectRunResult {
+  operationLog?: { path: string; snapshotAt: string };
   schemaVersion: 3;
   runId: string;
   startedAt: string;

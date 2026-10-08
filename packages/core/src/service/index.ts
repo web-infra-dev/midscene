@@ -77,12 +77,14 @@ interface LocateSearchAreaResult {
 const debug = getDebug('ai:service');
 
 export default class Service {
-  contextRetrieverFn: () => Promise<UIContext> | UIContext;
+  contextRetrieverFn: (signal?: AbortSignal) => Promise<UIContext> | UIContext;
 
   taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
 
   constructor(
-    context: UIContext | (() => Promise<UIContext> | UIContext),
+    context:
+      | UIContext
+      | ((signal?: AbortSignal) => Promise<UIContext> | UIContext),
     opt?: ServiceOptions,
   ) {
     assert(context, 'context is required for Service');

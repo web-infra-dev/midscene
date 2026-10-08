@@ -17,7 +17,12 @@ export interface MergeTestRunReportSource {
 function agentReportAsTestRun(
   source: MergeTestRunReportSource,
 ): Pick<TestRunReportDump, 'status' | 'summary' | 'projects'> &
-  Partial<Pick<TestRunReportDump, 'startedAt' | 'endedAt' | 'diagnostics'>> {
+  Partial<
+    Pick<
+      TestRunReportDump,
+      'startedAt' | 'endedAt' | 'diagnostics' | 'operationLogs'
+    >
+  > {
   const { attributes, reportId } = source;
   const status =
     attributes.testStatus === 'skipped'
@@ -191,18 +196,35 @@ export function mergeTestRunReportDumps(
     const id = (value: string) => `${source.reportId}:${value}`;
     const scopeReports = (reportIds: string[] | undefined) =>
       reportIds?.length ? [source.reportId] : reportIds;
-    const step = (value: TestRunReportStep): TestRunReportStep => ({
-      ...value,
-      id: id(value.id),
-      ...(value.agentDetails
-        ? {
-            agentDetails: value.agentDetails.map((detail) => ({
-              ...detail,
-              reportId: source.reportId,
-            })),
-          }
-        : {}),
-    });
+    const step = (value: TestRunReportStep): TestRunReportStep => {
+      const result: TestRunReportStep = {
+        ...value,
+        id: id(value.id),
+        ...(value.operations
+          ? {
+              operations: {
+                ...value.operations,
+                events: value.operations.events.map((event) => ({
+                  ...event,
+                  ...(event.stepId ? { stepId: id(event.stepId) } : {}),
+                  ...(event.scopeId ? { scopeId: id(event.scopeId) } : {}),
+                })),
+              },
+            }
+          : {}),
+        ...(value.agentDetails
+          ? {
+              agentDetails: value.agentDetails.map((detail) => ({
+                ...detail,
+                reportId: source.reportId,
+              })),
+            }
+          : {}),
+      };
+      if (result.status === 'not-run' && result.blockedBy)
+        result.blockedBy = id(result.blockedBy);
+      return result;
+    };
     const documentScope = <
       T extends Omit<TestRunReportDocument, 'cases' | 'attempts'>,
     >(
@@ -356,6 +378,9 @@ export function mergeTestRunReportDumps(
     summary,
     metrics: { ...metrics, collection },
     projects: dumps.flatMap((dump) => dump.projects),
+    ...(dumps.some((dump) => dump.operationLogs?.length)
+      ? { operationLogs: dumps.flatMap((dump) => dump.operationLogs ?? []) }
+      : {}),
     ...(diagnostics.length ? { diagnostics } : {}),
   };
 }

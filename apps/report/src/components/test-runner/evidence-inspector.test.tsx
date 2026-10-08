@@ -102,6 +102,29 @@ describe('case evidence inspection', () => {
     expect(html).not.toContain('role="dialog"');
   });
 
+  it('distinguishes Runner return from actual operation settlement at the snapshot boundary', () => {
+    const { html } = render('logs', [report], {
+      ...step,
+      operations: {
+        capturedAt: '2026-10-08T11:00:00.000Z',
+        events: [
+          {
+            operationId: 'operation',
+            operationKind: 'node',
+            kind: 'runner-returned',
+            at: '2026-10-08T10:59:59.000Z',
+            pending: true,
+            status: 'failed',
+          },
+        ],
+      },
+    });
+    expect(html).toContain('Operation lifecycle');
+    expect(html).toContain('still running when Runner returned');
+    expect(html).toContain('does not update when an operation settles later');
+    expect(html).toContain('2026-10-08T11:00:00.000Z');
+  });
+
   it('does not mount the player when inspecting data or events', () => {
     for (const tab of ['io', 'logs'] as const) {
       const { html, renderAgentReport } = render(tab);

@@ -54,6 +54,8 @@ const formatStepResult = (
   result: StepRunResult,
 ): string => {
   const indent = info.scope === 'case' ? '      ' : '    ';
+  if (result.status === 'not-run')
+    return `${indent}– ${formatStep(info)} (not run: ${result.notRunReason})`;
   const symbol = result.status === 'success' ? '✓' : '✗';
   const error = result.error ? ` — ${result.error.message}` : '';
   const continuation = result.continuedAfterError ? '; continuing' : '';

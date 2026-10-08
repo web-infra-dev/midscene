@@ -131,6 +131,66 @@ function runnerDump(reportId: string): TestRunReportDump {
   };
 }
 
+test('preserves journal references and remaps blocked-step and event links on merge', () => {
+  const dump = runnerDump('source');
+  dump.operationLogs = [{ path: '/tmp/operations.jsonl', snapshotAt: time }];
+  const attempt = dump.projects[0].documents[0].cases[0].attempts[0];
+  attempt.steps.push({
+    id: 'blocked',
+    phase: 'steps',
+    stepIndex: 1,
+    node: 'aiAct',
+    status: 'not-run',
+    notRunReason: 'Agent still running',
+    blockedBy: 'step-0',
+    continuedAfterError: false,
+    operations: {
+      capturedAt: time,
+      events: [
+        {
+          operationId: 'op',
+          operationKind: 'node',
+          kind: 'runner-returned',
+          at: time,
+          stepId: 'blocked',
+          scopeId: 'attempt-0',
+          status: 'not-run',
+          pending: false,
+        },
+      ],
+    },
+  });
+  const merged = mergeTestRunReportDumps(
+    [
+      {
+        reportId: 'merged-source',
+        sourcePath: 'source.html',
+        attributes: {
+          testId: 'test',
+          testTitle: 'test',
+          testDescription: '',
+          testStatus: 'passed',
+          testDuration: 0,
+        },
+        dump,
+      },
+    ],
+    dump.metrics,
+    'merged-run',
+  );
+  const blocked = merged.projects[0].documents[0].cases[0].attempts[0].steps[1];
+  expect(blocked).toMatchObject({
+    id: 'merged-source:blocked',
+    blockedBy: 'merged-source:step-0',
+  });
+  expect(blocked.operations?.events[0]).toMatchObject({
+    operationId: 'op',
+    stepId: 'merged-source:blocked',
+    scopeId: 'merged-source:attempt-0',
+  });
+  expect(merged.operationLogs).toEqual(dump.operationLogs);
+});
+
 function writeSource(
   name: string,
   dump?: TestRunReportDump,

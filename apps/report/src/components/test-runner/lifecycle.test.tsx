@@ -43,6 +43,59 @@ const lifecycle = () =>
 const noop = () => {};
 
 describe('report lifecycle failures', () => {
+  it('uses a resource-blocked setup step as the reason for unexecuted planned steps', () => {
+    const item = flattenRunnerCases(lifecycle()).find(
+      (item) => item.testCase.caseId === 'blocked-case',
+    )!;
+    item.document.beforeAll = [
+      {
+        id: 'resource-blocked',
+        phase: 'beforeAll',
+        stepIndex: 0,
+        node: 'aiAct',
+        status: 'not-run',
+        notRunReason: 'Agent is still running',
+        blockedBy: 'original-step',
+        continuedAfterError: false,
+      },
+    ];
+    item.testCase.plan = {
+      caseId: item.testCase.caseId,
+      name: item.testCase.name,
+      caseIndex: 0,
+      selected: true,
+      tags: [],
+      beforeEach: [],
+      afterEach: [],
+      steps: [
+        {
+          id: 'planned',
+          phase: 'steps',
+          stepIndex: 0,
+          node: 'aiAssert',
+          input: { value: {} },
+          inputMode: 'template',
+          continueOnError: false,
+        },
+      ],
+    };
+    const planned = getCaseWorkspaceStepGroups(item).find(
+      (group) => group.label === 'Case steps',
+    )!.steps[0];
+    expect(planned).toMatchObject({
+      status: 'not-run',
+      blockedBy: 'resource-blocked',
+      notRunReason: expect.stringContaining('Agent is still running'),
+    });
+    expect(planned.startedAt).toBeUndefined();
+    const dump = lifecycle();
+    dump.operationLogs = [
+      { path: '/tmp/operations.jsonl', snapshotAt: '2026-10-08T11:00:00.000Z' },
+    ];
+    const html = renderToStaticMarkup(<SingleCaseRunInfo dump={dump} />);
+    expect(html).toContain('Operation event logs');
+    expect(html).toContain('/tmp/operations.jsonl');
+  });
   it('keeps known calls visible when provider tokens and duration are unknown', () => {
     const dump = lifecycle();
     dump.metrics.collection = {

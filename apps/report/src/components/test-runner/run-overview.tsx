@@ -16,6 +16,7 @@ import {
   filterAndSortRunnerProjectBreakdown,
   toggleAllRunnerProjectKeys,
 } from './model';
+import { OperationLogs } from './operation-logs';
 import { ProjectBreakdownTree } from './project-breakdown';
 import { RunSummary } from './run-summary';
 import { TestPlan } from './test-plan';
@@ -135,6 +136,7 @@ export function RunOverview({
         )}
       />
       <MetricsCollection metrics={dump.metrics} />
+      <OperationLogs logs={dump.operationLogs} />
       <TestPlan dump={dump} />
       <section
         ref={breakdownRef}

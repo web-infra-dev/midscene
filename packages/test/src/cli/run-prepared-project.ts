@@ -3,6 +3,7 @@ import {
   WorkflowExecutionFailure,
   WorkflowPublicationError,
   asExecutionError,
+  observeResourceOperations,
   runConcurrentJobs,
 } from '@midscene/core/internal/test-runner';
 import type {
@@ -25,6 +26,7 @@ import type {
   PreparedExecutionProject,
   PreparedTestRunPlan,
 } from './execution-plan';
+import { createOperationJournal } from './operation-journal';
 import { writeTestProjectRunResult, writeTestRunPlan } from './result-store';
 import type {
   TestExecutionProjectRunResult,
@@ -150,6 +152,7 @@ export async function runPreparedTestProject(
     preparedProjects.length,
   );
   await writeTestRunPlan(runDir, preparedProjects);
+  const journal = createOperationJournal(runDir);
   const rootController = new AbortController();
   setMaxListeners(
     Math.max(10, effectiveConcurrency + 1),
@@ -184,6 +187,21 @@ export async function runPreparedTestProject(
       throw error;
     }
   };
+  const stopObservingOperations = observeResourceOperations(
+    rootController.signal,
+    (event) => {
+      try {
+        journal.append(event);
+      } catch (error) {
+        recordInfrastructureError(
+          new WorkflowPublicationError('write-result', journal.path, error),
+        );
+        getDebug('test-runner:operations', { console: true })(
+          `Could not persist operation event: ${String(error)}`,
+        );
+      }
+    },
+  );
   type PreparedProject = (typeof preparedProjects)[number];
   const announceProject = (prepared: PreparedProject, projectIndex: number) => {
     const { project } = prepared;
@@ -447,6 +465,7 @@ export async function runPreparedTestProject(
   } catch (error) {
     recordInfrastructureError(error);
   } finally {
+    stopObservingOperations();
     process.off('SIGINT', sigint);
     process.off('SIGTERM', sigterm);
   }
@@ -483,6 +502,7 @@ export async function runPreparedTestProject(
   const endedAt = new Date();
   const result: TestProjectRunResult = {
     schemaVersion: 3,
+    operationLog: { path: journal.path, snapshotAt: endedAt.toISOString() },
     runId,
     startedAt: startedAt.toISOString(),
     endedAt: endedAt.toISOString(),

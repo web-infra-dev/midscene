@@ -149,6 +149,17 @@ export const writeTestProjectRunResult = (
     ...(options.configPath ? { configPath: options.configPath } : {}),
     factsRoot: '.',
     plan: 'plan.json',
+    ...(result.operationLog
+      ? {
+          operationLog: {
+            ...result.operationLog,
+            path: relativeToSummary(
+              result.summaryPath,
+              result.operationLog.path,
+            ),
+          },
+        }
+      : {}),
     reportDir: relativeToSummary(result.summaryPath, result.reportDir),
     ...(result.reportPath
       ? { report: relativeToSummary(result.summaryPath, result.reportPath) }
