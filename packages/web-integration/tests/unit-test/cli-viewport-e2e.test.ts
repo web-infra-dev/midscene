@@ -1,6 +1,6 @@
 import { once } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdtempSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -12,7 +12,6 @@ import {
 import { parseWebCliOptions } from '@/cli-options';
 import { runToolsCLI } from '@midscene/shared/cli';
 import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
-import puppeteer from 'puppeteer-core';
 
 const html = `<!DOCTYPE html>
 <html lang="en">
@@ -23,6 +22,14 @@ const html = `<!DOCTYPE html>
   </head>
   <body>
     <main id="app">viewport test</main>
+    <script>
+      fetch('/viewport-metrics?' + new URLSearchParams({
+        innerWidth: String(window.innerWidth),
+        innerHeight: String(window.innerHeight),
+        clientWidth: String(document.documentElement.clientWidth),
+        clientHeight: String(document.documentElement.clientHeight),
+      }));
+    </script>
   </body>
 </html>`;
 
@@ -48,6 +55,7 @@ describe('midscene-web CLI viewport e2e', () => {
   let baseUrl: string;
   let persistentRoot: string;
   let persistence: Required<PuppeteerPersistenceOptions>;
+  let reportedMetrics: Record<string, number> | undefined;
 
   beforeAll(async () => {
     persistentRoot = mkdtempSync(join(tmpdir(), 'midscene-cli-viewport-'));
@@ -57,7 +65,16 @@ describe('midscene-web CLI viewport e2e', () => {
       targetIdFile: join(persistentRoot, 'target-id'),
     };
 
-    server = createServer((_req, res) => {
+    server = createServer((req, res) => {
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      if (url.pathname === '/viewport-metrics') {
+        reportedMetrics = Object.fromEntries(
+          [...url.searchParams].map(([key, value]) => [key, Number(value)]),
+        );
+        res.writeHead(204);
+        res.end();
+        return;
+      }
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end(html);
     });
@@ -85,16 +102,17 @@ describe('midscene-web CLI viewport e2e', () => {
     } finally {
       // Chrome may still be flushing profile files shortly after web_close
       // returns, so retry the recursive cleanup for transient ENOTEMPTY errors.
-      rmSync(persistentRoot, {
+      await rm(persistentRoot, {
         recursive: true,
         force: true,
-        maxRetries: 2,
-        retryDelay: 1000,
+        maxRetries: 10,
+        retryDelay: 200,
       });
     }
   });
 
   it('applies CLI viewport flags to the launched Puppeteer page', async () => {
+    reportedMetrics = undefined;
     const width = 1536;
     const height = 864;
     const parsedOptions = parseWebCliOptions([
@@ -115,37 +133,15 @@ describe('midscene-web CLI viewport e2e', () => {
       argv: parsedOptions.argv,
     });
 
-    const endpoint = (await readFile(persistence.endpointFile, 'utf-8')).trim();
-    const browser = await puppeteer.connect({
-      browserWSEndpoint: endpoint,
-      defaultViewport: null,
-    });
-
-    try {
-      const pages = await browser.pages();
-      const page = pages.find(
-        (item) => item.url() === `${baseUrl}/` || item.url() === baseUrl,
-      );
-
-      if (!page) {
-        throw new Error(`Failed to find connected page for ${baseUrl}`);
-      }
-
-      const metrics = await page.evaluate(() => ({
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        clientWidth: document.documentElement.clientWidth,
-        clientHeight: document.documentElement.clientHeight,
-      }));
-
-      expect(metrics).toEqual({
+    // Measure during the CLI session. Disconnecting its CDP client may clear
+    // viewport emulation; a later connection measures the native window instead.
+    await expect
+      .poll(() => reportedMetrics)
+      .toEqual({
         innerWidth: width,
         innerHeight: height,
         clientWidth: width,
         clientHeight: height,
       });
-    } finally {
-      browser.disconnect();
-    }
   }, 60_000);
 });

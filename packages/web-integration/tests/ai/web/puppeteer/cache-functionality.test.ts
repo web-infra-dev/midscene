@@ -310,7 +310,10 @@ describe('Cache Operation Tests', () => {
     try {
       // Perform some actions to generate cache content
       await agentReadOnly.aiAssert('this is the example.com page');
-      await agentReadOnly.aiQuery('What is the page title?');
+      const heading = await agentReadOnly.aiQuery(
+        'string, the large visible heading in the page content, not the browser tab title',
+      );
+      expect(heading).toBe('Example Domain');
     } finally {
       await agentReadOnly.destroy();
     }
