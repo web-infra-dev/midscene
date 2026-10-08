@@ -246,6 +246,18 @@ export const parseOpenaiSdkConfig = ({
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
+    protocol: (() => {
+      const value = provider[keys.protocol];
+      if (value === undefined) {
+        return undefined;
+      }
+      if (value === 'openai-chat' || value === 'openai-responses') {
+        return value;
+      }
+      throw new Error(
+        `${keys.protocol} must be one of: openai-chat, openai-responses. Got: ${value}`,
+      );
+    })(),
     modelFamily,
     uiTarsModelVersion,
     modelName: modelName!,

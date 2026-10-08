@@ -82,6 +82,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -111,6 +112,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -140,6 +142,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -181,6 +184,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -210,6 +214,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-planning-key",
           "openaiBaseURL": "https://api.smaple-planning.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -239,6 +244,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-insight-key",
           "openaiBaseURL": "https://api.sample-insight.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -521,7 +527,7 @@ describe('Agent with custom OpenAI client', () => {
         'default',
       );
 
-      // Simulate what createChatClient does
+      // Simulate invoking the custom client hook.
       const baseClient = { chat: { completions: { create: rs.fn() } } };
       const options = {
         baseURL: config.openaiBaseURL,

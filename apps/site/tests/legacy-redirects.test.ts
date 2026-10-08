@@ -16,6 +16,29 @@ const rules = readFileSync(new URL('public/_redirects', docs), 'utf8')
   });
 
 describe('legacy HTTP redirects', () => {
+  it('redirects reported missing documentation URLs to their replacements', () => {
+    const expected = {
+      '/android-integration': '/platforms/android',
+      '/zh/quick-experience.html': '/zh/quick-start#chrome-extension',
+      '/zh/batch-yaml.html': '/zh/yaml-script-runner',
+      '/zh/test-runner-overview': '/zh/midscene-test/overview',
+      '/reference.html': '/reference/',
+      '/report.html': '/consume-report-file',
+      '/benchmark': '/introduction',
+      '/api-reference': '/reference/',
+      '/choose-a-model': '/model-common-config',
+      '/integrate-with-yaml.html': '/automate-with-scripts-in-yaml',
+    };
+
+    for (const [from, to] of Object.entries(expected)) {
+      expect(rules.find((rule) => rule.from === from)).toEqual({
+        from,
+        to,
+        status: '301',
+      });
+    }
+  });
+
   it('uses unique sources and existing targets, including fragment anchors', () => {
     expect(new Set(rules.map(({ from }) => from)).size).toBe(rules.length);
     for (const { from, to, status } of rules) {
@@ -28,13 +51,13 @@ describe('legacy HTTP redirects', () => {
       const localized = pathname.startsWith('/zh/')
         ? pathname.slice(1)
         : `en${pathname}`;
-      const target = new URL(
-        `${localized.replace(/\.html$/, '')}${pathname.endsWith('/') ? 'index' : ''}.mdx`,
-        docs,
-      );
-      expect(existsSync(target), `${from} -> ${to}`).toBe(true);
+      const targetStem = `${localized.replace(/\.html$/, '')}${pathname.endsWith('/') ? 'index' : ''}`;
+      const target = ['mdx', 'md']
+        .map((extension) => new URL(`${targetStem}.${extension}`, docs))
+        .find((candidate) => existsSync(candidate));
+      expect(target, `${from} -> ${to}`).toBeDefined();
       if (fragment) {
-        expect(readFileSync(target, 'utf8')).toContain(`{#${fragment}}`);
+        expect(readFileSync(target!, 'utf8')).toContain(`{#${fragment}}`);
       }
     }
   });

@@ -1,11 +1,8 @@
 export const EN_US = {
-  // Banner - New Badge
-  newBadge: 'Now supports the DeepSeek V4 vision model',
-  changelogLink: 'Details',
-
   // Banner - Title
-  heroTitle: 'Midscene.js\nthe GUI Agent\nfor E2E Testing',
-  heroSubtitle: 'AI-powered vision. Cross-platform. Batteries included.',
+  heroTitle:
+    'Midscene.js\nUse software like a human\nE2E testing in natural language',
+  heroSubtitle: 'A vision-based GUI Agent for web, mobile, and desktop apps.',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -44,21 +41,24 @@ and more`,
 
   // Feature Sections - MODELS
   modelsTitle: 'MODEL STRATEGY',
-  modelsHeading: 'Pure vision at the core',
-  modelsDesc1: 'Works from screenshots — no selectors or annotations',
-  modelsDesc2: 'Start with one model; add specialists for complex tasks',
-  modelsDesc3: 'Choose from supported models, including self-hosted options',
+  modelsHeading: 'Vision-driven\nCapable, cost-effective',
+  modelsDesc1:
+    'Observe interfaces, perform actions, and verify results as people do',
+  modelsDesc2:
+    'Use cost-effective vision models to reduce API costs for frequent E2E testing',
+  modelsDesc3:
+    'Choose from multiple models and combine planning, localization, and page understanding as needed',
 
   // Model Cards
   modelSeedName: 'Doubao Seed',
   modelSeedDesc:
     'Strong visual grounding for reliable element location — a solid default for Midscene.',
   modelSupportedName: 'Multiple model options',
-  modelSupportedDesc:
-    'Works with Qwen, GPT, Gemini, Kimi, and more — choose what fits your needs.',
-  modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
-  modelDeepSeekDesc:
-    'Extremely fast visual grounding, but less reliable on complex interfaces.',
+  modelSupportedDesc: 'Supports DeepSeek, Qwen, GPT, Gemini, Kimi, and more.',
+  modelCostName: 'Model API cost',
+  modelCostDesc:
+    'Doubao Seed 2.1 Turbo: $0.59 total API cost for 60 AppControlBench tasks, with 58 passed.',
+  modelCostMetric: 'Total model API cost for 60 tasks',
   modelMultiModelName: 'Multi-model combo',
   modelMultiModelDesc:
     'Pair a planning model with a vision model to raise task completion rates.',
