@@ -1304,13 +1304,19 @@ RawFrame FreeRdpSessionTransport::CaptureFrame() {
           area += static_cast<uint64_t>(rectangles[index].right - rectangles[index].left) *
                   (rectangles[index].bottom - rectangles[index].top);
         }
+        std::string coverage;
+        for (UINT32 index = 0; index < std::min<UINT32>(count, 8); ++index) {
+          const auto& rect = rectangles[index];
+          coverage += " [" + std::to_string(rect.left) + "," + std::to_string(rect.top) +
+                      "," + std::to_string(rect.right) + "," + std::to_string(rect.bottom) + "]";
+        }
         throw std::runtime_error(
             "RDP screenshot timed out waiting for framebuffer refresh (covered " +
             std::to_string(area) + "/" +
             std::to_string(static_cast<uint64_t>(refresh_size_.width) * refresh_size_.height) +
             " pixels, graphics frames " +
             std::to_string(graphics_frames_completed_.load()) + "/" +
-            std::to_string(graphics_frames_started_.load()) + ")");
+            std::to_string(graphics_frames_started_.load()) + ", regions" + coverage + ")");
       }
       // Take the graphics-frame target after the refreshed pixels arrive.
       required_graphics_frame.reset();

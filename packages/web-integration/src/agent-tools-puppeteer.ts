@@ -506,10 +506,10 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
       const { windowId, bounds } = await client.send(
         'Browser.getWindowForTarget',
       );
-      const content = await page.evaluate(() => ({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      }));
+      // Browser snippets must remain free of Node-side coverage counters.
+      const content = (await page.evaluate(
+        '({ width: window.innerWidth, height: window.innerHeight })',
+      )) as { width: number; height: number };
       if (bounds.width === undefined || bounds.height === undefined) {
         throw new Error('Chrome did not return window dimensions');
       }
@@ -521,10 +521,8 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
         },
       });
       await page.waitForFunction(
-        ({ width, height }) =>
-          window.innerWidth === width && window.innerHeight === height,
+        `window.innerWidth === ${JSON.stringify(viewport.width)} && window.innerHeight === ${JSON.stringify(viewport.height)}`,
         { timeout: 10_000 },
-        viewport,
       );
     } finally {
       await client.detach();
