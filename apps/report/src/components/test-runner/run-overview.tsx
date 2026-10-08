@@ -3,6 +3,7 @@ import { Alert } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { CaseDensitySwitch } from './case-density-switch';
 import { CaseFilters } from './case-filters';
+import { MetricsCollection } from './metrics-collection';
 import {
   type RunnerBreakdownSort,
   type RunnerBreakdownSortDirection,
@@ -133,6 +134,7 @@ export function RunOverview({
           getProjectLifecycleIssues(project),
         )}
       />
+      <MetricsCollection metrics={dump.metrics} />
       <TestPlan dump={dump} />
       <section
         ref={breakdownRef}

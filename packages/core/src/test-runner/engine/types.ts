@@ -19,10 +19,13 @@ import type {
 
 export type Awaitable<T> = T | Promise<T>;
 
-/** Immutable Agent dump plus its public report entry. Images are relative to dumpPath. */
+/** Native captures include an immutable dumpPath. External providers without
+ * snapshot support may expose a partial HTML source instead.
+ */
 export interface WorkflowReportSource {
   sourcePath: string;
-  dumpPath: string;
+  dumpPath?: string;
+  collection?: import('../../test-run-report').TestRunReportSnapshotCollection;
 }
 
 export interface NodeScopeTeardownResult {
@@ -51,7 +54,11 @@ export interface StepRunResult<TOutputData = unknown> {
   durationMs: number;
   output?: NodeResult<TOutputData>;
   error?: WorkflowError;
-  report?: { traces: readonly NodeReportTrace[] };
+  report?: {
+    traces: readonly NodeReportTrace[];
+    sources?: readonly WorkflowReportSource[];
+    collectionErrors?: readonly WorkflowError[];
+  };
 }
 
 export interface CaseRunResult {

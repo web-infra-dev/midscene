@@ -284,6 +284,65 @@ export function mergeTestRunReportDumps(
       summary[key] += dump.summary[key];
   }
   const diagnostics = dumps.flatMap((dump) => dump.diagnostics ?? []);
+  const collections = sources.flatMap((source) =>
+    source.dump ? [source.dump.metrics.collection] : [],
+  );
+  const incomplete =
+    metrics.collection?.status === 'partial' ||
+    metrics.collection?.status === 'unknown' ||
+    collections.some((collection) => collection?.status !== 'complete');
+  const collection = {
+    status: (incomplete
+      ? metrics.modelCallCount > 0 ||
+        collections.some(
+          (value) =>
+            value?.status === 'complete' || value?.status === 'partial',
+        )
+        ? 'partial'
+        : 'unknown'
+      : 'complete') as 'complete' | 'partial' | 'unknown',
+    expectedExecutionCount: collections.reduce(
+      (count, value) => count + (value?.expectedExecutionCount ?? 0),
+      0,
+    ),
+    capturedExecutionCount: collections.reduce(
+      (count, value) => count + (value?.capturedExecutionCount ?? 0),
+      0,
+    ),
+    reasons: [
+      ...(metrics.collection?.reasons ?? []),
+      ...new Set(
+        collections.flatMap(
+          (value) =>
+            value?.reasons ?? [
+              'Model metric collection status is unavailable in a source report.',
+            ],
+        ),
+      ),
+    ],
+    fields: Object.fromEntries(
+      (['modelCallCount', 'modelTimeMs', 'totalTokens'] as const).map(
+        (field) => {
+          const states = [
+            ...collections.map(
+              (value) => value?.fields?.[field] ?? value?.status ?? 'unknown',
+            ),
+            ...(metrics.collection?.fields
+              ? [metrics.collection.fields[field]]
+              : []),
+          ];
+          return [
+            field,
+            states.every((state) => state === 'complete')
+              ? 'complete'
+              : states.every((state) => state === 'unknown')
+                ? 'unknown'
+                : 'partial',
+          ];
+        },
+      ),
+    ) as NonNullable<NonNullable<TestRunReportMetrics['collection']>['fields']>,
+  };
   return {
     schemaVersion: 1,
     kind: 'test-runner',
@@ -295,7 +354,7 @@ export function mergeTestRunReportDumps(
     endedAt,
     durationMs: Math.max(0, Date.parse(endedAt) - Date.parse(startedAt)),
     summary,
-    metrics,
+    metrics: { ...metrics, collection },
     projects: dumps.flatMap((dump) => dump.projects),
     ...(diagnostics.length ? { diagnostics } : {}),
   };

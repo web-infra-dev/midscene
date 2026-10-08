@@ -119,6 +119,21 @@ describe('case evidence inspection', () => {
     expect(html).toContain('The referenced Agent report group is missing.');
   });
 
+  it('shows a partial capture boundary and collection errors alongside available evidence', () => {
+    const { html, renderAgentReport } = render('record', [report], {
+      ...step,
+      evidenceCollection: {
+        status: 'partial',
+        capturedAt: '2026-10-08T00:00:00.000Z',
+        errors: [{ name: 'Error', message: 'Snapshot write failed.' }],
+      },
+    });
+    expect(renderAgentReport).toHaveBeenCalledTimes(1);
+    expect(html).toContain('Evidence is partial');
+    expect(html).toContain('capture boundary 2026-10-08T00:00:00.000Z');
+    expect(html).toContain('Snapshot write failed.');
+  });
+
   it('hides Record and falls back to Input & output when the step has no recording or screenshot', () => {
     const { html, renderAgentReport } = render('record', [], {
       ...step,

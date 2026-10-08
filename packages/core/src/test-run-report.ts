@@ -47,6 +47,7 @@ export interface TestRunReportDiagnostic {
     | 'agent-detail-unavailable'
     | 'large-report'
     | 'run-infrastructure-error'
+    | 'agent-source-unavailable'
     | 'source-without-executions';
   message: string;
   scopeId?: string;
@@ -61,6 +62,23 @@ export interface TestRunReportMetrics {
   cachedInputTokens: number;
   completionTokens: number;
   totalTokens: number;
+  collection?: {
+    status: 'complete' | 'partial' | 'unknown';
+    expectedExecutionCount: number;
+    capturedExecutionCount: number;
+    reasons: string[];
+    fields?: Record<
+      'modelCallCount' | 'modelTimeMs' | 'totalTokens',
+      'complete' | 'partial' | 'unknown'
+    >;
+  };
+}
+
+export interface TestRunReportSnapshotCollection {
+  status: 'complete' | 'partial';
+  /** Native dump cutoff before I/O; observation time for partial live sources. */
+  capturedAt: string;
+  reason?: string;
 }
 
 export interface TestRunReportAgentDetail {
@@ -118,6 +136,11 @@ interface TestRunReportStepBase {
   error?: TestRunReportError;
   agentDetails?: TestRunReportAgentDetail[];
   agentDetailDiagnostic?: string;
+  evidenceCollection?: {
+    status: 'complete' | 'partial' | 'unknown';
+    capturedAt?: string;
+    errors?: TestRunReportError[];
+  };
 }
 
 export type TestRunReportStep = TestRunReportStepBase &
@@ -242,12 +265,13 @@ export interface TestRunReportDump {
 }
 
 export interface TestRunReportSource {
-  /** Resource/report scope that owns this finalized Midscene Agent report. */
+  /** Resource/report scope that owns this Midscene Agent source. */
   scopeId: string;
-  /** Absolute path to a finalized Midscene Agent report. */
+  /** Absolute path identifying the Midscene Agent report. */
   sourcePath: string;
   /** Current Agent dump JSON; when present, HTML is not parsed for execution data. */
   dumpPath?: string;
+  collection?: TestRunReportSnapshotCollection;
 }
 
 export interface IndexedTestRunReportSource {
@@ -255,11 +279,13 @@ export interface IndexedTestRunReportSource {
   scopeId: string;
   sourcePath: string;
   executionIds: string[];
+  collection?: TestRunReportSnapshotCollection;
 }
 
 export interface TestRunReportSourceIndex {
   sources: IndexedTestRunReportSource[];
   metrics: TestRunReportMetrics;
+  diagnostics?: TestRunReportDiagnostic[];
 }
 
 export interface AssembleTestRunReportOptions {

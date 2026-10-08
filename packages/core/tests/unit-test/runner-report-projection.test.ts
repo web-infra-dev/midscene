@@ -74,6 +74,63 @@ async function input() {
 }
 
 describe('entry-independent report projection', () => {
+  test('distinguishes complete zero metrics, missing evidence and partial coverage', async () => {
+    const { report } = await input();
+    expect(
+      buildTestRunReportDump(report, index).metrics.collection?.status,
+    ).toBe('complete');
+    const attempt = report.projects[0].cases[0].run!;
+    attempt.steps[0].node = 'aiAct';
+    attempt.steps[0].report = {
+      traces: [
+        { type: 'midscene-execution', executionId: 'known' },
+        { type: 'midscene-execution', executionId: 'missing' },
+      ],
+    };
+    expect(
+      buildTestRunReportDump(report, index).metrics.collection,
+    ).toMatchObject({
+      status: 'unknown',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 0,
+    });
+    const partial = buildTestRunReportDump(report, {
+      ...index,
+      sources: [
+        {
+          reportId: 'agent',
+          scopeId: attempt.reportScopeId ?? attempt.runId,
+          sourcePath: 'agent.html',
+          executionIds: ['known'],
+        },
+      ],
+    });
+    expect(partial.metrics.collection).toMatchObject({
+      status: 'partial',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 1,
+    });
+    expect(
+      partial.projects[0].documents[0].cases[0].attempts[0].steps[0]
+        .evidenceCollection?.status,
+    ).toBe('partial');
+    const complete = buildTestRunReportDump(report, {
+      ...index,
+      sources: [
+        {
+          reportId: 'agent',
+          scopeId: attempt.reportScopeId ?? attempt.runId,
+          sourcePath: 'agent.html',
+          executionIds: ['known', 'missing'],
+        },
+      ],
+    });
+    expect(complete.metrics.collection).toMatchObject({
+      status: 'complete',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 2,
+    });
+  });
   test('preserves known platforms and omits unavailable platform metadata', async () => {
     const { report } = await input();
     expect(buildTestRunReportDump(report, index).projects[0].platform).toBe(

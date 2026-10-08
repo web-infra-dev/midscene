@@ -10,6 +10,7 @@ import {
 import { ReportMergingTool } from '@/report';
 import { mergeReportFiles } from '@/report-cli';
 import type { TestRunReportDump, TestRunReportStep } from '@/test-run-report';
+import { mergeTestRunReportDumps } from '@/test-runner/reporting/merge-report';
 import { type AIUsageInfo, ExecutionDump, ReportActionDump } from '@/types';
 import { getVersion } from '@/utils';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -189,6 +190,58 @@ function writeSource(
 }
 
 describe('merging Midscene Test reports', () => {
+  test('preserves incomplete metric coverage when merging with a complete report', () => {
+    const complete = runnerDump('first');
+    complete.metrics.collection = {
+      status: 'complete',
+      expectedExecutionCount: 1,
+      capturedExecutionCount: 1,
+      reasons: [],
+      fields: {
+        modelCallCount: 'complete',
+        modelTimeMs: 'complete',
+        totalTokens: 'complete',
+      },
+    };
+    const unknown = runnerDump('second');
+    unknown.metrics.collection = {
+      status: 'unknown',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 0,
+      reasons: ['Missing Agent source.'],
+    };
+    const attributes = {
+      testId: 'test',
+      testTitle: 'test',
+      testStatus: 'passed' as const,
+      testDuration: 0,
+    };
+    const merged = mergeTestRunReportDumps(
+      [
+        {
+          reportId: 'first',
+          sourcePath: 'first.html',
+          attributes,
+          dump: complete,
+        },
+        {
+          reportId: 'second',
+          sourcePath: 'second.html',
+          attributes,
+          dump: unknown,
+        },
+      ],
+      complete.metrics,
+      'merged',
+    );
+    expect(merged.metrics.collection).toMatchObject({
+      status: 'partial',
+      expectedExecutionCount: 3,
+      capturedExecutionCount: 1,
+      reasons: ['Missing Agent source.'],
+      fields: { totalTokens: 'partial' },
+    });
+  });
   test('rejects an invalid source execution timestamp', () => {
     const dump = runnerDump('invalid-group');
     dump.startedAt = '';

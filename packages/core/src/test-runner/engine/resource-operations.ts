@@ -50,6 +50,10 @@ export const getResourceCleanupCompletion = (
 export const RESOURCE_CLEANUP_GRACE_MS = 1000;
 export const RESOURCE_RECOVERY_GRACE_MS = 30_000;
 
+/** Snapshotting must not wait for a timed-out operation to release its resource. */
+export const hasPendingResourceOperation = (resource: object): boolean =>
+  (resources.get(resource)?.operations.size ?? 0) > 0;
+
 /** Resource ancestry is independent of cancellation: cleanup can outlive abort. */
 export function linkResourceSignal(signal: AbortSignal, parent?: AbortSignal) {
   if (parent && parent !== signal) parents.set(signal, parent);

@@ -20,6 +20,7 @@ import {
 import {
   type WorkflowReportSource,
   assertResourceAvailable,
+  hasPendingResourceOperation,
   trackResourceOperation,
 } from '@midscene/core/internal/test-runner';
 import {
@@ -38,6 +39,7 @@ export type MidsceneUIAgent = CommonAgentTestRunnerApi & {
   _prepareForTestRunner?(): void;
   _createReportSource?(
     scopeId: string,
+    executionIds?: readonly string[],
   ): Promise<WorkflowReportSource | undefined>;
   flushReport?(): Promise<string | undefined>;
   addDumpUpdateListener?(
@@ -169,6 +171,53 @@ export const createAgentTestRunnerNodes = <TContext>(
       const scopeId =
         ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
       const isCleanupOwner = assertResourceAvailable(agent, true, ctx.signal);
+      if (captureExecutions) {
+        ctx.report.onSnapshot(async (signal, traces) => {
+          signal.throwIfAborted();
+          const partial = hasPendingResourceOperation(agent);
+          const capturedAt = new Date().toISOString();
+          let source = await agent._createReportSource?.(
+            scopeId,
+            traces.map((trace) => trace.executionId),
+          );
+          // External adapters may only expose HTML. Capture it independently
+          // of cleanup, while marking its mutable source as partial.
+          if (!source) {
+            const path = await agent.flushReport?.();
+            if (path)
+              source = {
+                sourcePath: path,
+                collection: {
+                  status: 'partial',
+                  capturedAt,
+                  reason:
+                    'This provider exposes live HTML without immutable snapshot support.',
+                },
+              };
+          }
+          signal.throwIfAborted();
+          if (!source)
+            throw new Error('Agent did not return a report snapshot.');
+          return {
+            ...source,
+            collection: {
+              status:
+                partial || source.collection?.status === 'partial'
+                  ? ('partial' as const)
+                  : ('complete' as const),
+              capturedAt: source.collection?.capturedAt ?? capturedAt,
+              ...(source.collection?.reason
+                ? { reason: source.collection.reason }
+                : partial
+                  ? {
+                      reason:
+                        'An Agent operation was still running at the snapshot cutoff.',
+                    }
+                  : {}),
+            },
+          };
+        });
+      }
       // Native Steps own the root report. Any Agent.runYaml invoked underneath
       // contributes to that Step instead of publishing another root snapshot.
       const yamlBoundary = enterYamlExecution(agent, {
@@ -288,43 +337,12 @@ export function createMidsceneNodes<TContext>(
     if (!agents) {
       agents = new Set();
       agentsByScope.set(runId, agents);
-      const ownedScope = agents;
       ctx.onTeardown(async () => {
-        const errors: unknown[] = [];
-        const reportPaths: string[] = [];
-        const reportSources: WorkflowReportSource[] = [];
         try {
-          for (const agent of ownedScope) {
-            try {
-              const path = await agent.flushReport?.();
-              if (path) reportPaths.push(path);
-              const source = await agent._createReportSource?.(runId);
-              if (source) reportSources.push(source);
-            } catch (error) {
-              errors.push(error);
-            }
-          }
-          // Publication failure never prevents the owner from disposing its Agent.
-          try {
-            const released = await options.agentProvider?.releaseAgent?.(runId);
-            if (
-              released?.reportPath &&
-              !reportPaths.includes(released.reportPath)
-            )
-              reportPaths.push(released.reportPath);
-          } catch (error) {
-            errors.push(error);
-          }
-          if (errors.length === 1) throw errors[0];
-          if (errors.length)
-            throw new AggregateError(
-              errors,
-              'Agent report publication and release failed',
-            );
-          return {
-            reportPaths,
-            ...(reportSources.length ? { reportSources } : {}),
-          };
+          const released = await options.agentProvider?.releaseAgent?.(runId);
+          return released?.reportPath
+            ? { reportPaths: [released.reportPath] }
+            : undefined;
         } finally {
           agentsByScope.delete(runId);
         }

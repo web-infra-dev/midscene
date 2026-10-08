@@ -1,8 +1,10 @@
 import type { z } from 'zod/v4';
 import type {
+  Awaitable,
   NodeCaseContext,
   NodeDocumentContext,
   NodeScopeTeardown,
+  WorkflowReportSource,
 } from '../engine/types';
 import type { NormalizedStepMeta } from '../parser/types';
 
@@ -23,6 +25,16 @@ export interface NodeReportTrace {
 /** Collects report references produced while the current Step is executing. */
 export interface NodeReportCollector {
   addTrace(trace: NodeReportTrace): void;
+  /** Read-only capture after the Step settles, independently of resource cleanup.
+   * Immutable dumps must freeze inputs before I/O. Other sources must be marked
+   * partial. Capture should honor its dedicated cancellation signal.
+   */
+  onSnapshot(
+    capture: (
+      signal: AbortSignal,
+      traces: readonly NodeReportTrace[],
+    ) => Awaitable<WorkflowReportSource>,
+  ): void;
 }
 
 interface NodeExecutionContextBase<TInput = unknown, TContext = unknown> {

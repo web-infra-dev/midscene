@@ -6,12 +6,12 @@
 
 ## 实现批次与进度
 
-分支：`fix/test-report-pipeline`，从 2026-10-08 拉取的 `origin/main`（`98062b63`）创建。当前修改保留在工作区，未提交或推送。
+分支：`fix/test-report-pipeline`，从 2026-10-08 拉取的 `origin/main`（`98062b63`）创建。第一批已提交为 `12355393`（`fix(report): preserve test plans and show setup timelines`）；第二批随本次证据采集与指标完整性修改提交。尚未推送。
 
 | 批次 | 范围 | 状态 |
 | --- | --- | --- |
 | 1 | 独立计划、未执行步骤、准备/收尾时间线（01、06） | 本批基础实现完成，见下方范围与验收记录 |
-| 2 | 证据采集与释放分离、指标完整性（02、07） | 待实施 |
+| 2 | 证据采集与释放分离、指标完整性（02、07） | 本批原生 Runner 实现完成，见下方范围与验收记录 |
 | 3 | 取消契约、资源调度、操作与取消事件（03、04、05 的事件部分） | 待实施 |
 | 4 | 错误原因、诊断归组、清理与重试状态（05 的错误部分、08、09） | 待实施 |
 | 5 | 宿主初始化及各阶段耗时（10） | 待实施 |
@@ -43,6 +43,38 @@
 - `pnpm run lint --config-path /private/tmp/midscene-report-lint`：临时配置复制根目录规则，仅额外排除用户指定忽略的 `impeccable` 和本地 `.pnpm-store` 缓存。仓库 lint 配置未修改。
 
 113 条相关回归测试、构建与上述检查已通过。页面行为通过组件回归验证；浏览器策略禁止直接打开本地 HTML，因此未进行该预览的浏览器验收。真实模型/设备 e2e 未运行。
+
+### 第二批已经落地
+
+- 增加独立的步骤证据采集边界：动作成功、失败或 Runner 超时返回后即可采集，不再等待资源排空或释放。
+- 原生 Agent 在第一次异步 I/O 之前冻结当前步骤关联的执行数据，独立保存 JSON 与图片引用；不等待 HTML 写入队列。每个快照有独立文件及采集截止时间，进行中操作标为部分数据。
+- 每步只保存关联的执行详情；报告生成时按 Agent 与作用域合并，执行 ID 用于去重统计。同一个 Agent 的跨作用域快照不会把后续作用域的执行 ID 填到先前作用域里。
+- Case 与文档都保留已成功采集的来源。后续采集失败不会丢掉之前的快照；清理延后或释放失败也不会丢掉已完成步骤的数据。
+- 采集最多等待 5 秒；超时会取消采集等待、保存独立诊断，并忽略晚到的采集结果。采集错误不改变动作本身的成功结论，也不把它变成需要重跑的业务失败。
+- 单个来源无法读取或解析时，其他来源仍进入报告，失败来源产生诊断。执行身份存在歧义等约束错误仍会抛出。
+- 模型指标保存完整、部分、未知状态及执行引用覆盖数量、缺失原因。页面显示真实零值、已知的部分值或未知 `—`；模型服务缺少 tokens 或耗时时，该字段独立显示未知。合并报告保留完整性状态。
+- 当前步骤展示部分证据的采集边界及采集错误；整体报告展示指标完整性说明。
+
+### 第二批范围与限制
+
+- 完整的不可变快照由原生 Agent 提供。外部适配器仅支持 `flushReport()` 时，仍独立采集其 HTML 来源，但明确标为部分数据，并说明不具备不可变快照能力；该来源的时间仅表示采集观察边界。外部适配器需实现快照接口才能达到同样的封存保证。
+- 本批不会提前销毁仍在运行的 Agent。操作取消、资源阻塞步骤调度、晚结束/晚失败记录及重试停止原因仍由第三、四批处理。
+- 采集结束后的运行仍沿用既有资源释放契约；没有将任意外部适配器的释放操作改为可取消操作。只有步骤边界的采集等待增加了明确上限。
+- 未运行真实模型/设备 e2e，也未进行浏览器视觉验收；这批使用可控 Agent、Promise、固定报告数据和组件测试验证。
+
+### 第二批验证
+
+- `pnpm exec nx test @midscene/core -- tests/unit-test/runner-report-collection.test.ts tests/unit-test/test-run-report.test.ts tests/unit-test/runner-report-projection.test.ts tests/unit-test/runner-report-merge.test.ts tests/unit-test/report-generator.test.ts tests/unit-test/runner-resource-cleanup.test.ts tests/unit-test/report-stats.test.ts tests/unit-test/test-runner-nodes.test.ts tests/unit-test/report-generator-reference-images.test.ts`
+- `pnpm exec nx test @midscene/test -- tests/report-snapshot.test.ts tests/midscene-nodes.test.ts tests/agent-report-trace.test.ts tests/test-run-report.test.ts tests/test-project-runner.test.ts`
+- `pnpm exec nx test @midscene/report -- src/components/test-runner/lifecycle.test.tsx src/components/test-runner/model.test.ts src/components/test-runner/evidence-inspector.test.tsx src/components/test-runner/file-retry-report.test.tsx`
+- `pnpm exec nx build @midscene/core --excludeTaskDependencies`
+- `pnpm exec nx build @midscene/test --excludeTaskDependencies`
+- `pnpm exec nx build @midscene/report --excludeTaskDependencies`
+- `node scripts/validate-core-report-template.mjs`
+- `pnpm run lint --config-path /private/tmp/midscene-report-lint`：沿用第一批临时配置，不修改仓库 lint 规则，不涉及 `impeccable`。
+- `git diff --check`
+
+234 条相关回归测试（Core 110、Test 72、Report 52）、三个项目的构建、报告模板检查与上述 lint 检查均已通过。采集边界改动后另单独重跑了 5 条快照集成回归，结果通过。第二批验收完成。
 
 ## 两份报告暴露的事实
 
@@ -79,7 +111,7 @@
 
 ### 02 将证据保存与资源释放拆开
 
-- [ ] 已完成步骤的详情和进行中操作的部分数据，应在资源清理被延后时仍然能够发布。
+- [x] 原生 Agent 已完成步骤的详情和进行中操作的部分数据，在资源清理被延后时仍然能够发布；仅提供 HTML 的外部适配器按上述限制标为部分数据。
 
 **具体例子：** PIA 的 prefetch 已成功，但后面的 NSR 操作没有及时退出，最终连 prefetch 的截图和模型过程也无法关联。
 
@@ -141,7 +173,7 @@
 
 ### 07 区分指标的真实零值与数据缺失
 
-- [ ] 为模型调用、耗时和 tokens 保存采集完整性，支持完整、部分和未知的表达。
+- [x] 为模型调用、耗时和 tokens 保存采集完整性，支持完整、部分和未知的表达。
 
 **具体例子：** 第一份没有取得 Agent 来源，却显示 0 次模型调用；第二份取得来源后正常显示 14 次调用。
 

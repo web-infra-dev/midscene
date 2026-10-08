@@ -74,6 +74,10 @@ export function createDocumentRuntime<TContext = undefined>(
   let finishPromise: Promise<WorkflowDocumentRunResult> | undefined;
   const reportPaths = new Set<string>();
   const reportSources: import('./types').WorkflowReportSource[] = [];
+  const capturedSources = new Map<
+    string,
+    import('./types').WorkflowReportSource
+  >();
   const executionErrors: unknown[] = [];
   const hostErrors: WorkflowHostError[] = [];
   let acceptingSetupTeardowns = false;
@@ -113,7 +117,9 @@ export function createDocumentRuntime<TContext = undefined>(
         ? { teardownErrors: [...teardownErrors] }
         : {}),
       ...(reportPaths.size > 0 ? { reportPaths: [...reportPaths] } : {}),
-      ...(reportSources.length ? { reportSources: [...reportSources] } : {}),
+      ...(capturedSources.size || reportSources.length
+        ? { reportSources: [...capturedSources.values(), ...reportSources] }
+        : {}),
     };
   };
 
@@ -170,6 +176,11 @@ export function createDocumentRuntime<TContext = undefined>(
         },
       );
       results.push(result);
+      for (const source of result.report?.sources ?? [])
+        capturedSources.set(
+          `${source.sourcePath}\u0000${source.dumpPath ?? ''}`,
+          source,
+        );
       await options.onStepResult?.(stepInfo, result);
       if (result.status === 'failed' && !result.continuedAfterError) break;
     }

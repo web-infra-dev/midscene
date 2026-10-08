@@ -37,6 +37,10 @@ interface ManifestBuildContext {
   sourcesByScope: Map<string, IndexedTestRunReportSource[]>;
   detailsByScopeAndExecution: Map<string, TestRunReportAgentDetail>;
   tracedScopeByExecution: Map<string, string>;
+  expectedExecutions: Set<string>;
+  capturedExecutions: Set<string>;
+  collectionReasons: Set<string>;
+  coverageIncomplete: boolean;
 }
 
 const scopedExecutionKey = (scopeId: string, executionId: string): string =>
@@ -64,6 +68,9 @@ const buildStep = (
   const details: TestRunReportAgentDetail[] = [];
   const unresolvedExecutionIds: string[] = [];
   for (const trace of step.report?.traces ?? []) {
+    context.expectedExecutions.add(
+      scopedExecutionKey(scopeId, trace.executionId),
+    );
     const previousScope = context.tracedScopeByExecution.get(trace.executionId);
     if (previousScope && previousScope !== scopeId) {
       throw new Error(
@@ -74,13 +81,19 @@ const buildStep = (
     const detail = context.detailsByScopeAndExecution.get(
       scopedExecutionKey(scopeId, trace.executionId),
     );
-    if (detail) details.push(detail);
-    else unresolvedExecutionIds.push(trace.executionId);
+    if (detail) {
+      details.push(detail);
+      context.capturedExecutions.add(
+        scopedExecutionKey(scopeId, trace.executionId),
+      );
+    } else unresolvedExecutionIds.push(trace.executionId);
   }
 
   let agentDetailDiagnostic: string | undefined;
   if (unresolvedExecutionIds.length > 0) {
+    context.coverageIncomplete = true;
     agentDetailDiagnostic = `Agent detail could not be resolved for ${unresolvedExecutionIds.join(', ')}.`;
+    context.collectionReasons.add(agentDetailDiagnostic);
     const sources = reportSourcesForScope(context, scopeId);
     for (const executionId of unresolvedExecutionIds) {
       addDiagnostic(context, {
@@ -95,8 +108,10 @@ const buildStep = (
       });
     }
   } else if (details.length === 0 && exactMidsceneDetailNodes.has(step.node)) {
+    context.coverageIncomplete = true;
     agentDetailDiagnostic =
       'This Agent did not expose a stable execution reference for the Step.';
+    context.collectionReasons.add(agentDetailDiagnostic);
     addDiagnostic(context, {
       level: 'warning',
       code: 'agent-detail-unavailable',
@@ -111,6 +126,47 @@ const buildStep = (
         : {}),
     });
   }
+
+  const collectionErrors =
+    step.report?.collectionErrors?.map(sanitizeReportError) ?? [];
+  for (const error of collectionErrors) {
+    context.coverageIncomplete = true;
+    context.collectionReasons.add(error.message);
+    addDiagnostic(context, {
+      level: 'warning',
+      code: 'agent-source-unavailable',
+      scopeId,
+      message: `Report collection for ${step.node}: ${error.message}`,
+    });
+  }
+  const snapshots =
+    step.report?.sources?.flatMap((source) =>
+      source.collection ? [source.collection] : [],
+    ) ?? [];
+  const evidenceCollection =
+    snapshots.length ||
+    collectionErrors.length ||
+    details.length ||
+    unresolvedExecutionIds.length
+      ? {
+          status: (collectionErrors.length ||
+          unresolvedExecutionIds.length ||
+          snapshots.some((snapshot) => snapshot.status === 'partial')
+            ? details.length
+              ? 'partial'
+              : 'unknown'
+            : 'complete') as 'complete' | 'partial' | 'unknown',
+          ...(snapshots.length
+            ? {
+                capturedAt: snapshots
+                  .map((snapshot) => snapshot.capturedAt)
+                  .sort()
+                  .at(-1),
+              }
+            : {}),
+          ...(collectionErrors.length ? { errors: collectionErrors } : {}),
+        }
+      : undefined;
 
   const input = step.input as Record<string, unknown> | undefined;
   const candidateTitle =
@@ -152,6 +208,7 @@ const buildStep = (
     ...(step.error ? { error: sanitizeReportError(step.error) } : {}),
     ...(details.length > 0 ? { agentDetails: details } : {}),
     ...(agentDetailDiagnostic ? { agentDetailDiagnostic } : {}),
+    ...(evidenceCollection ? { evidenceCollection } : {}),
   };
 };
 
@@ -529,10 +586,23 @@ export function buildTestRunReportDump(
     }
   }
   const context: ManifestBuildContext = {
-    diagnostics: [],
+    diagnostics: (index.diagnostics ?? []).map((diagnostic) => ({
+      ...diagnostic,
+      message: sanitizeReportText(diagnostic.message),
+    })),
     sourcesByScope,
     detailsByScopeAndExecution,
     tracedScopeByExecution: new Map(),
+    expectedExecutions: new Set(),
+    capturedExecutions: new Set(),
+    collectionReasons: new Set(
+      index.metrics.collection?.reasons.map((reason) =>
+        sanitizeReportText(reason),
+      ) ?? [],
+    ),
+    coverageIncomplete:
+      (index.diagnostics?.length ?? 0) > 0 ||
+      index.sources.some((source) => source.collection?.status === 'partial'),
   };
   for (const error of result.errors ?? []) {
     addDiagnostic(context, {
@@ -556,6 +626,19 @@ export function buildTestRunReportDump(
   const projects = result.projects.map((project) =>
     buildProject(project, context),
   );
+  for (const source of index.sources) {
+    if (source.collection?.status === 'partial')
+      context.collectionReasons.add(
+        sanitizeReportText(
+          source.collection.reason ??
+            `Agent snapshot is partial at ${source.collection.capturedAt}.`,
+        ),
+      );
+  }
+  const incomplete =
+    context.collectionReasons.size > 0 ||
+    index.metrics.collection?.status === 'unknown' ||
+    index.metrics.collection?.status === 'partial';
   return {
     schemaVersion: 1,
     kind: 'test-runner',
@@ -565,7 +648,45 @@ export function buildTestRunReportDump(
     endedAt: result.endedAt,
     durationMs: result.durationMs,
     summary: { ...result.summary },
-    metrics: index.metrics,
+    metrics: {
+      ...index.metrics,
+      collection: {
+        status: incomplete
+          ? index.sources.some((source) => source.executionIds.length > 0) &&
+            (!index.metrics.collection?.fields ||
+              Object.values(index.metrics.collection.fields).some(
+                (status) => status !== 'unknown',
+              ))
+            ? 'partial'
+            : 'unknown'
+          : 'complete',
+        expectedExecutionCount: context.expectedExecutions.size,
+        capturedExecutionCount: context.capturedExecutions.size,
+        reasons: [...context.collectionReasons],
+        ...(index.metrics.collection?.fields
+          ? {
+              fields: Object.fromEntries(
+                Object.entries(index.metrics.collection.fields).map(
+                  ([field, status]) => [
+                    field,
+                    context.coverageIncomplete
+                      ? index.sources.length === 0
+                        ? 'unknown'
+                        : status === 'complete'
+                          ? 'partial'
+                          : status
+                      : status,
+                  ],
+                ),
+              ) as NonNullable<
+                NonNullable<
+                  TestRunReportSourceIndex['metrics']['collection']
+                >['fields']
+              >,
+            }
+          : {}),
+      },
+    },
     projects,
     ...(context.diagnostics.length > 0
       ? { diagnostics: context.diagnostics }

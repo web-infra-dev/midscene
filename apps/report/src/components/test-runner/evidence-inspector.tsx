@@ -138,6 +138,22 @@ export function RunnerEvidenceInspector({
         </p>
       ) : null}
       {step.agentDetailDiagnostic ? <p>{step.agentDetailDiagnostic}</p> : null}
+      {step.evidenceCollection &&
+      step.evidenceCollection.status !== 'complete' ? (
+        <p>
+          Evidence{' '}
+          {step.evidenceCollection.status === 'partial'
+            ? 'is partial'
+            : 'is unavailable'}
+          {step.evidenceCollection.capturedAt
+            ? `; capture boundary ${step.evidenceCollection.capturedAt}`
+            : ''}
+          .
+          {step.evidenceCollection.errors
+            ?.map((error) => ` ${error.message}`)
+            .join('')}
+        </p>
+      ) : null}
       {step.error ? (
         <div className="runner-detail-failure-summary">
           <CloseCircleFilled className="runner-detail-failure-icon" />

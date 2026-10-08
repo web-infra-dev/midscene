@@ -2,6 +2,7 @@ import {
   NodeExecutionError,
   NodeInputValidationError,
   StepTimeoutError,
+  WorkflowError,
   normalizeNodeExecutionError,
 } from '../errors';
 import type {
@@ -18,7 +19,10 @@ import type {
   NodeExecutionPhase,
   NodeScopeTeardown,
   StepRunResult,
+  WorkflowReportSource,
 } from './types';
+
+export const REPORT_SNAPSHOT_TIMEOUT_MS = 5000;
 
 function validateNodeOutput<TData>(
   output: unknown,
@@ -171,13 +175,22 @@ type StepExecutionTarget =
 
 function createNodeReportCollector(node: string): {
   collector: NodeReportCollector;
-  close(): readonly NodeReportTrace[];
+  close(): Promise<NonNullable<StepRunResult['report']>>;
 } {
   const traces = new Map<string, NodeReportTrace>();
+  const captures: Array<Parameters<NodeReportCollector['onSnapshot']>[0]> = [];
   let accepting = true;
 
   return {
     collector: Object.freeze({
+      onSnapshot(capture: Parameters<NodeReportCollector['onSnapshot']>[0]) {
+        if (!accepting || typeof capture !== 'function')
+          throw new WorkflowError(
+            'A report snapshot callback must be registered while the Step is running.',
+            { code: 'REPORT_SNAPSHOT_REGISTRATION' },
+          );
+        captures.push(capture);
+      },
       addTrace(trace: NodeReportTrace): void {
         if (!accepting) {
           throw new NodeExecutionError(
@@ -213,9 +226,91 @@ function createNodeReportCollector(node: string): {
         traces.set(`${normalized.type}:${normalized.executionId}`, normalized);
       },
     }),
-    close(): readonly NodeReportTrace[] {
+    async close(): Promise<NonNullable<StepRunResult['report']>> {
       accepting = false;
-      return Object.freeze([...traces.values()]);
+      const closedTraces = Object.freeze([...traces.values()]);
+      if (!captures.length) return Object.freeze({ traces: closedTraces });
+      const controller = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const expired = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          const error = new WorkflowError(
+            'Agent report snapshot collection timed out.',
+            {
+              code: 'REPORT_SNAPSHOT_TIMEOUT',
+              details: { timeoutMs: REPORT_SNAPSHOT_TIMEOUT_MS },
+            },
+          );
+          controller.abort(error);
+          reject(error);
+        }, REPORT_SNAPSHOT_TIMEOUT_MS);
+      });
+      const outcomes = await Promise.all(
+        captures.map(async (capture) => {
+          try {
+            const source = await Promise.race([
+              Promise.resolve().then(() =>
+                capture(controller.signal, closedTraces),
+              ),
+              expired,
+            ]);
+            if (
+              !source ||
+              typeof source.sourcePath !== 'string' ||
+              !source.sourcePath.trim() ||
+              (source.dumpPath !== undefined &&
+                (typeof source.dumpPath !== 'string' ||
+                  !source.dumpPath.trim()))
+            )
+              throw new Error(
+                'Agent report capture must return sourcePath and a valid optional dumpPath.',
+              );
+            const captured = source.dumpPath
+              ? source
+              : {
+                  ...source,
+                  collection: {
+                    status: 'partial' as const,
+                    capturedAt:
+                      source.collection?.capturedAt ?? new Date().toISOString(),
+                    reason:
+                      source.collection?.reason ??
+                      'HTML report captures do not guarantee an immutable cutoff.',
+                  },
+                };
+            return {
+              source: Object.freeze({
+                ...captured,
+                ...(captured.collection
+                  ? { collection: Object.freeze({ ...captured.collection }) }
+                  : {}),
+              }),
+            };
+          } catch (error) {
+            return {
+              error:
+                error instanceof WorkflowError
+                  ? error
+                  : new WorkflowError(
+                      `Agent report snapshot collection failed: ${String(error)}`,
+                      { code: 'REPORT_SNAPSHOT_FAILED', cause: error },
+                    ),
+            };
+          }
+        }),
+      );
+      if (timer !== undefined) clearTimeout(timer);
+      const sources = outcomes.flatMap((outcome) =>
+        outcome.source ? [outcome.source] : [],
+      );
+      const errors = outcomes.flatMap((outcome) =>
+        outcome.error ? [outcome.error] : [],
+      );
+      return Object.freeze({
+        traces: closedTraces,
+        ...(sources.length ? { sources: Object.freeze(sources) } : {}),
+        ...(errors.length ? { collectionErrors: Object.freeze(errors) } : {}),
+      });
     },
   };
 }
@@ -298,9 +393,14 @@ export async function executeStep<
       },
     );
   } finally {
-    const traces = reportCollector.close();
-    if (traces.length > 0 && result) {
-      result = { ...result, report: { traces } };
+    const report = await reportCollector.close();
+    if (
+      (report.traces.length ||
+        report.sources?.length ||
+        report.collectionErrors?.length) &&
+      result
+    ) {
+      result = { ...result, report };
     }
   }
 

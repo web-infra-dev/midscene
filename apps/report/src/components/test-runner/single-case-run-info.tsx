@@ -1,6 +1,7 @@
 import type { TestRunReportDump } from '@midscene/core';
 import { Alert } from 'antd';
 import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
+import { MetricsCollection } from './metrics-collection';
 import { TestPlan } from './test-plan';
 import { formatDuration, formatTimestamp } from './view-primitives';
 
@@ -12,6 +13,15 @@ export function SingleCaseRunInfo({
   );
   const diagnostics = dump.diagnostics ?? [];
   const issueCount = errors.length + diagnostics.length;
+  const metricStatus = (
+    field: 'modelCallCount' | 'modelTimeMs' | 'totalTokens',
+  ) => {
+    const collection = dump.metrics.collection;
+    if (!collection || collection.status === 'unknown') return 'unknown';
+    return collection.fields?.[field] ?? collection.status;
+  };
+  const partial = (field: 'modelCallCount' | 'modelTimeMs' | 'totalTokens') =>
+    metricStatus(field) === 'partial' ? ' (partial)' : '';
 
   return (
     <section className="runner-single-run-info" aria-label="Run information">
@@ -21,15 +31,31 @@ export function SingleCaseRunInfo({
           <strong>{formatDuration(dump.durationMs)}</strong> run time
         </span>
         <span>
-          <strong>{formatDuration(dump.metrics.modelTimeMs)}</strong> model time
+          <strong>
+            {metricStatus('modelTimeMs') === 'unknown'
+              ? '—'
+              : formatDuration(dump.metrics.modelTimeMs)}
+          </strong>{' '}
+          model time{partial('modelTimeMs')}
         </span>
         <span>
-          <strong>{dump.metrics.modelCallCount}</strong> model calls
+          <strong>
+            {metricStatus('modelCallCount') === 'unknown'
+              ? '—'
+              : dump.metrics.modelCallCount}
+          </strong>{' '}
+          model calls{partial('modelCallCount')}
         </span>
         <span>
-          <strong>{dump.metrics.totalTokens.toLocaleString()}</strong> tokens
+          <strong>
+            {metricStatus('totalTokens') === 'unknown'
+              ? '—'
+              : dump.metrics.totalTokens.toLocaleString()}
+          </strong>{' '}
+          tokens{partial('totalTokens')}
         </span>
       </div>
+      <MetricsCollection metrics={dump.metrics} />
       {dump.status === 'failed' && (
         <Alert
           type="error"

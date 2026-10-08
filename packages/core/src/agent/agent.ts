@@ -213,8 +213,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   _prepareForTestRunner(): void {
     this.reportGenerator.enableSourceSnapshots?.();
   }
-  async _createReportSource(scopeId: string) {
-    return this.reportGenerator.createSourceSnapshot?.(scopeId);
+  async _createReportSource(scopeId: string, executionIds?: readonly string[]) {
+    return this.reportGenerator.createSourceSnapshot?.(scopeId, executionIds);
   }
 
   /** @internal The Agent owns one report stream across root YAML invocations. */

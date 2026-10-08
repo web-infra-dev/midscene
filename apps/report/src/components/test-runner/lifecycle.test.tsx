@@ -43,6 +43,54 @@ const lifecycle = () =>
 const noop = () => {};
 
 describe('report lifecycle failures', () => {
+  it('keeps known calls visible when provider tokens and duration are unknown', () => {
+    const dump = lifecycle();
+    dump.metrics.collection = {
+      status: 'partial',
+      expectedExecutionCount: 1,
+      capturedExecutionCount: 1,
+      reasons: ['Provider usage is missing.'],
+      fields: {
+        modelCallCount: 'complete',
+        modelTimeMs: 'unknown',
+        totalTokens: 'unknown',
+      },
+    };
+    dump.metrics.modelCallCount = 1;
+    const html = renderToStaticMarkup(<SingleCaseRunInfo dump={dump} />);
+    expect(html).toContain('<strong>1</strong> model calls');
+    expect(html).toContain('<strong>—</strong> tokens');
+    expect(html).toContain('<strong>—</strong> model time');
+  });
+  it.each(['complete', 'partial', 'unknown'] as const)(
+    'presents %s model metric collection honestly',
+    (status) => {
+      const dump = lifecycle();
+      dump.metrics = {
+        ...dump.metrics,
+        modelCallCount: 5,
+        totalTokens: 1234,
+        collection: {
+          status,
+          expectedExecutionCount: 7,
+          capturedExecutionCount: status === 'unknown' ? 0 : 5,
+          reasons: status === 'complete' ? [] : ['Snapshot collection failed.'],
+        },
+      };
+      const markup = renderToStaticMarkup(<SingleCaseRunInfo dump={dump} />);
+      if (status === 'unknown') {
+        expect(markup).toContain('Model metrics unknown');
+        expect(markup).toContain('<strong>—</strong> model calls');
+        expect(markup).not.toContain('<strong>5</strong> model calls');
+      } else {
+        expect(markup).toContain('<strong>5</strong> model calls');
+        expect(markup).toContain('<strong>1,234</strong> tokens');
+        expect(markup.includes('Partial model metrics')).toBe(
+          status === 'partial',
+        );
+      }
+    },
+  );
   it('hides an empty diagnostics list', () => {
     expect(renderToStaticMarkup(<LifecycleErrors issues={[]} />)).toBe('');
   });

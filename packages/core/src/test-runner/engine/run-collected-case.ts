@@ -44,6 +44,10 @@ export async function runCollectedCase<TContext = undefined>(
   const beforeEach: StepRunResult[] = [];
   const steps: StepRunResult[] = [];
   const afterEach: StepRunResult[] = [];
+  const capturedSources = new Map<
+    string,
+    import('./types').WorkflowReportSource
+  >();
   const teardownStack: Array<{
     registrationIndex: number;
     node: string;
@@ -110,6 +114,11 @@ export async function runCollectedCase<TContext = undefined>(
         },
       );
       results.push(result);
+      for (const source of result.report?.sources ?? [])
+        capturedSources.set(
+          `${source.sourcePath}\u0000${source.dumpPath ?? ''}`,
+          source,
+        );
       await options.onStepResult?.(stepInfo, result);
       if (result.status === 'failed' && !result.continuedAfterError) break;
     }
@@ -219,7 +228,9 @@ export async function runCollectedCase<TContext = undefined>(
       ? { teardownErrors: [...teardownErrors] }
       : {}),
     ...(reportPaths.size > 0 ? { reportPaths: [...reportPaths] } : {}),
-    ...(reportSources.length ? { reportSources: [...reportSources] } : {}),
+    ...(capturedSources.size || reportSources.length
+      ? { reportSources: [...capturedSources.values(), ...reportSources] }
+      : {}),
     ...(options.reportScopeId ? { reportScopeId: options.reportScopeId } : {}),
     startedAt: startedAt.toISOString(),
     endedAt: endedAt.toISOString(),
