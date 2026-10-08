@@ -190,6 +190,29 @@ struct RdpScreenshotTestPeer {
     window.cinvalid = nullptr;
   }
 
+  void PaintTopStripWithEmptyAggregate(uint8_t color) {
+    std::lock_guard<std::mutex> lock(transport.mutex_);
+    for (int y = 0; y < 8; ++y) {
+      for (int x = 0; x < 16; ++x) {
+        std::fill_n(pixels.data() + y * gdi.stride + x * 4, 3, color);
+      }
+    }
+    GDI_RGN areas[3]{};
+    areas[0].y = 4;
+    areas[0].w = 16;
+    areas[0].h = 4;
+    areas[1].y = 1;
+    areas[1].w = 16;
+    areas[1].h = 3;
+    areas[2].w = 16;
+    areas[2].h = 1;
+    window.ninvalid = 3;
+    window.cinvalid = areas;
+    invalid.null = TRUE;
+    update.EndPaint(&context.context);
+    window.cinvalid = nullptr;
+  }
+
   void ResizeWidth(int width) {
     std::lock_guard<std::mutex> lock(transport.mutex_);
     gdi.width = width;
@@ -712,6 +735,26 @@ void TestRefreshIgnoresOlderGraphicsFrames() {
   Expect(HasColor(capture.get(), 192), "refresh returned an older graphics frame");
 }
 
+void TestRefreshUsesDetailedRegionsWithEmptyAggregate() {
+  RdpScreenshotTestPeer peer;
+  peer.InformativePaint();
+  peer.Paint(64);
+  peer.transport.CaptureFrame();
+  peer.EnableRefresh();
+  peer.transport.MouseMove(8, 8);
+  auto capture = std::async(std::launch::async,
+                           [&] { return peer.transport.CaptureFrame(); });
+  Expect(peer.WaitForRefresh(1), "refresh request was not sent");
+  peer.PaintRegion(192, {0, 8, 16, 16});
+  Expect(capture.wait_for(50ms) == std::future_status::timeout,
+         "partial refresh was accepted before the top strip arrived");
+  peer.PaintTopStripWithEmptyAggregate(192);
+  Expect(capture.wait_for(1s) == std::future_status::ready,
+         "empty aggregate bounds hid valid detailed paint regions");
+  Expect(HasColor(capture.get(), 192), "refresh lost the top strip pixels");
+  Expect(peer.refresh_requests == 1, "valid paint regions triggered an extra refresh");
+}
+
 void TestUnsupportedRefreshUsesLiveFramebuffer() {
   RdpScreenshotTestPeer peer;
   peer.InformativePaint();
@@ -885,6 +928,7 @@ int main() {
     TestInputRequestsFullRefresh();
     TestRefreshRequiresExactCoverage();
     TestRefreshIgnoresOlderGraphicsFrames();
+    TestRefreshUsesDetailedRegionsWithEmptyAggregate();
     TestUnsupportedRefreshUsesLiveFramebuffer();
     TestRefreshFailureAndDisconnect();
     TestRefreshReissuesAfterResize();

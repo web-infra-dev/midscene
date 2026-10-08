@@ -454,8 +454,19 @@ bool HasPendingFramebufferInvalidation(rdpContext* context) {
     return false;
   }
 
-  HGDI_WND hwnd = context->gdi->primary->hdc->hwnd;
-  return hwnd->ninvalid > 0 && hwnd->invalid && !hwnd->invalid->null;
+  const auto* window = context->gdi->primary->hdc->hwnd;
+  if (window->ninvalid <= 0) return false;
+  // Some FreeRDP versions mark the aggregate bounds empty for updates ending
+  // with a one-pixel row at y=0. The detailed invalidation list still contains
+  // the pixels actually painted, so it takes precedence over those bounds.
+  if (window->cinvalid) {
+    for (int index = 0; index < window->ninvalid; ++index) {
+      const auto& area = window->cinvalid[index];
+      if (!area.null && area.w > 0 && area.h > 0) return true;
+    }
+    return false;
+  }
+  return window->invalid && !window->invalid->null;
 }
 
 std::vector<RECTANGLE_16> CopyInvalidatedRectangles(rdpContext* context) {
@@ -554,18 +565,6 @@ RawFrame CopyFramebuffer(const rdpGdi& gdi) {
 // EndPaint hook chained onto FreeRDP's update pipeline. FreeRDP invokes this
 // after an update PDU; only paints with a GDI invalid region and informative
 // primary framebuffer prove that desktop pixels reached the client.
-BOOL TraceBitmapUpdate(rdpContext* context, const BITMAP_UPDATE* bitmap) {
-  auto* typed = reinterpret_cast<MidsceneRdpContext*>(context);
-  if (typed->owner->HasPendingFramebufferRefresh()) {
-    for (UINT32 i = 0; i < bitmap->number; ++i) {
-      const auto& r = bitmap->rectangles[i];
-      std::fprintf(stderr, "RDP_TRACE bitmap %u,%u-%u,%u size=%u,%u\n",
-                   r.destLeft, r.destTop, r.destRight, r.destBottom, r.width, r.height);
-    }
-  }
-  return typed->original_bitmap_update(context, bitmap);
-}
-
 BOOL MidsceneEndPaint(rdpContext* context) {
   auto* typed_context = reinterpret_cast<MidsceneRdpContext*>(context);
   BOOL ok = TRUE;
@@ -576,14 +575,6 @@ BOOL MidsceneEndPaint(rdpContext* context) {
                                     typed_context->owner->HasPendingFramebufferRefresh()
                                 ? CopyInvalidatedRectangles(context)
                                 : std::vector<RECTANGLE_16>{};
-    if (typed_context->owner->HasPendingFramebufferRefresh() && context->gdi) {
-      const auto* dc = context->gdi->primary->hdc;
-      const auto* clip = dc->clip;
-      if (clip) std::fprintf(stderr, "RDP_TRACE paint invalid=%d count=%d clip=%d,%d,%d,%d null=%d\n",
-                   framebuffer_invalidated, dc->hwnd->ninvalid,
-                   clip->x, clip->y, clip->w, clip->h, clip->null);
-      for (const auto& r : rectangles) std::fprintf(stderr, "RDP_TRACE region %u,%u-%u,%u\n", r.left,r.top,r.right,r.bottom);
-    }
     ok = typed_context->owner->CallOriginalEndPaint(context);
     const bool already_painted = typed_context->owner->HasFramePainted();
     if (ok && framebuffer_invalidated) {
@@ -799,8 +790,6 @@ BOOL PostConnect(freerdp* instance) {
     // Chain our hook after GDI update callbacks are installed so Connect() can
     // wait for the first paint that actually touches the primary framebuffer.
     typed_context->owner->HookEndPaint(instance->context->update);
-    typed_context->original_bitmap_update = instance->context->update->BitmapUpdate;
-    instance->context->update->BitmapUpdate = &TraceBitmapUpdate;
   }
 
   rdpInput* input = instance->context ? instance->context->input : nullptr;
