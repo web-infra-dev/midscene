@@ -105,6 +105,75 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
+  it.each(['report', 'teardown'])(
+    'keeps %s failures focused after an action recovers on retry',
+    async (phase) => {
+      const root = mkdtempSync(join(tmpdir(), 'cli-infrastructure-error-'));
+      temporaryDirectories.push(root);
+      const resultDir = join(root, 'results');
+      writeFileSync(
+        join(root, 'midscene.config.mjs'),
+        `
+        let attempts = 0;
+        function failCleanup() { throw new Error('controlled cleanup failure'); }
+        export default {
+          projects: [{ name: 'demo', retry: 1 }],
+          ${phase === 'report' ? "output: { reportDir: 'blocked-report-directory' }," : ''}
+          nodes: [{
+            name: 'demo.retry',
+            execute({ onTeardown }) {
+              attempts += 1;
+              if (attempts === 1) throw new Error('recovered action failure');
+              ${phase === 'teardown' ? 'onTeardown(failCleanup);' : ''}
+              return { data: { marker: 'unrelated output marker' } };
+            },
+          }],
+        };
+      `,
+      );
+      writeFileSync(
+        join(root, 'case.yaml'),
+        `
+cases:
+  - name: recovered action
+    steps:
+      - demo.retry:
+          marker: unrelated input marker
+`,
+      );
+      if (phase === 'report') {
+        writeFileSync(
+          join(root, 'blocked-report-directory'),
+          'Block report creation.',
+        );
+      }
+
+      const failure = await runFailure([root, '--result-dir', resultDir]);
+
+      expect(failure.code).toBe(1);
+      expect(failure.stdout).toContain('✓ step 1/1: demo.retry');
+      expect(failure.stdout).toContain(
+        phase === 'report'
+          ? '1/1 cases passed, 0 failed, 0 not run'
+          : '0/1 cases passed, 1 failed, 0 not run',
+      );
+      expect(failure.stdout).toContain('Summary:');
+      expect(failure.stderr).not.toContain('recovered action failure');
+      expect(failure.stderr).not.toContain('unrelated input marker');
+      expect(failure.stderr).not.toContain('unrelated output marker');
+      expect(failure.stderr).not.toContain('result: {');
+      expect(failure.stderr.match(/^midscene-test:/gm)).toHaveLength(1);
+      if (phase === 'report') {
+        expect(failure.stderr).toContain('infrastructure:');
+        expect(failure.stderr).toContain('Failed to write-report');
+        expect(failure.stderr).toContain('EEXIST');
+      } else {
+        expect(failure.stderr).toContain('controlled cleanup failure');
+        expect(failure.stderr.match(/at failCleanup/g)).toHaveLength(1);
+      }
+    },
+  );
+
   it('prints the original config stack and preserves the failure exit code', async () => {
     const root = mkdtempSync(join(tmpdir(), 'cli-config-error-'));
     temporaryDirectories.push(root);

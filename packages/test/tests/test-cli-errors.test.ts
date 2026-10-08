@@ -1,3 +1,4 @@
+import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runCreateCommand } from '../src/cli/create-command';
 import { runTestCli } from '../src/cli/test-command';
@@ -196,7 +197,9 @@ describe('Test CLI failure diagnostics', () => {
       },
     ];
     result.errors = [cleanup, failure('publication failed')];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    vi.mocked(runTestProject).mockRejectedValue(
+      new WorkflowExecutionFailure(result, result.errors),
+    );
     const io = output();
 
     expect(await runTestCli([], io)).toBe(1);
@@ -218,6 +221,94 @@ describe('Test CLI failure diagnostics', () => {
       expect(diagnostic).toContain('at user-config.ts:42:5');
     }
     expect(io.log).toHaveBeenCalledWith('Summary: /results/summary.json');
+  });
+
+  it('filters recovered attempts when infrastructure failure rejects with a result', async () => {
+    const result = failedResult();
+    result.summary = {
+      ...result.summary,
+      passed: 1,
+      failed: 0,
+      passedAfterRetry: 1,
+    };
+    const recovered = failedCase();
+    recovered.steps = [
+      failedStep('steps', failure('recovered attempt failure')),
+    ];
+    const successful: CaseRunResult = {
+      ...recovered,
+      status: 'success',
+      steps: [
+        {
+          ...recovered.steps[0],
+          status: 'success',
+          error: undefined,
+          input: { marker: 'unrelated input payload' },
+          output: { data: { marker: 'unrelated output payload' } },
+        },
+      ],
+    };
+    result.cases = [
+      {
+        ...successful,
+        documentId: 'document',
+        run: successful,
+        attempts: [recovered, successful],
+      },
+    ];
+    const document = failedDocument();
+    document.beforeAll = [
+      failedStep('beforeAll', failure('recovered hook failure')),
+    ];
+    result.documents = [
+      document,
+      { ...document, status: 'success', beforeAll: [] },
+    ];
+    const publication = failure('report publication failed');
+    result.errors = [publication];
+    vi.mocked(runTestProject).mockRejectedValue(
+      new WorkflowExecutionFailure(result, [publication, publication]),
+    );
+    const io = output();
+
+    expect(await runTestCli([], io)).toBe(1);
+    expect(io.error).toHaveBeenCalledTimes(1);
+    const diagnostic = io.error.mock.calls[0][0];
+    expect(diagnostic).toContain('midscene-test: infrastructure:');
+    expect(diagnostic).toContain('at user-config.ts:42:5');
+    expect(diagnostic).not.toContain('recovered attempt failure');
+    expect(diagnostic).not.toContain('recovered hook failure');
+    expect(diagnostic).not.toContain('unrelated input payload');
+    expect(diagnostic).not.toContain('unrelated output payload');
+    expect(diagnostic).not.toContain('result: {');
+    expect(io.log).toHaveBeenCalledWith(
+      'midscene-test: 1/1 cases passed, 0 failed, 0 not run',
+    );
+  });
+
+  it('does not repeat a raw infrastructure error already printed as a cause', async () => {
+    const result = failedResult();
+    const original = new Error('raw infrastructure failure');
+    original.stack =
+      'Error: raw infrastructure failure\n    at callback.ts:12:34';
+    const contextual = new WorkflowError('document callback failed', {
+      cause: original,
+    });
+    const document = failedDocument();
+    document.executionErrors = [contextual];
+    result.documents = [document];
+    result.errors = [
+      new WorkflowError('execution failed', { cause: original }),
+    ];
+    vi.mocked(runTestProject).mockRejectedValue(
+      new WorkflowExecutionFailure(result, [original]),
+    );
+    const io = output();
+
+    expect(await runTestCli([], io)).toBe(1);
+    expect(io.error).toHaveBeenCalledTimes(1);
+    expect(io.error.mock.calls[0][0]).toContain('web/flow.yaml:');
+    expect(io.error.mock.calls[0][0]).toContain('at callback.ts:12:34');
   });
 
   it('does not report recovered Case or document attempts as final failures', async () => {
