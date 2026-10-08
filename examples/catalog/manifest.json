@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "templates": [
+    {
+      "id": "test-web",
+      "sourceDir": "test/web",
+      "examplePath": "midscene-test-runner-demo",
+      "projectName": "midscene-test-runner-demo",
+      "exposure": "create",
+      "platform": "web",
+      "verification": "web",
+      "referenceCase": "midscene-test-runner-demo/cases/todo.yaml",
+      "referenceCommit": "9f010cda6729b01725c159910be51613744f1a5b"
+    },
+    {
+      "id": "test-android",
+      "sourceDir": "test/android",
+      "examplePath": "midscene-test-android-demo",
+      "projectName": "midscene-test-android-demo",
+      "exposure": "create",
+      "platform": "android",
+      "verification": "device",
+      "referenceCase": "android/vitest-demo/tests/todo.test.ts",
+      "referenceCommit": "be546aa0da0d533da4faa223e946f25fc8670a55"
+    },
+    {
+      "id": "test-ios",
+      "sourceDir": "test/ios",
+      "examplePath": "midscene-test-ios-demo",
+      "projectName": "midscene-test-ios-demo",
+      "exposure": "create",
+      "platform": "ios",
+      "verification": "device",
+      "referenceCase": "ios/vitest-demo/todo.test.ts",
+      "referenceCommit": "be546aa0da0d533da4faa223e946f25fc8670a55"
+    },
+    {
+      "id": "test-harmony",
+      "sourceDir": "test/harmony",
+      "examplePath": "midscene-test-harmony-demo",
+      "projectName": "midscene-test-harmony-demo",
+      "exposure": "create",
+      "platform": "harmony",
+      "verification": "device",
+      "referenceCase": "harmony/vitest-demo/tests/todo.test.ts",
+      "referenceCommit": "be546aa0da0d533da4faa223e946f25fc8670a55"
+    },
+    {
+      "id": "test-computer",
+      "sourceDir": "test/computer",
+      "examplePath": "midscene-test-computer-demo",
+      "projectName": "midscene-test-computer-demo",
+      "exposure": "create",
+      "platform": "computer",
+      "verification": "desktop",
+      "referenceCase": "computer/vitest-demo/tests/desktop.test.ts",
+      "referenceCommit": "be546aa0da0d533da4faa223e946f25fc8670a55"
+    }
+  ]
+}

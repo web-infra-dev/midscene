@@ -1,0 +1,23 @@
+beforeEach:
+  - aiAct: >-
+      Open a browser and navigate to https://todomvc.com/examples/react/dist/.
+      On macOS, use Safari with Cmd+Space and Cmd+L; on Windows or Linux,
+      use Chrome with the Windows key and Ctrl+L.
+
+cases:
+  - name: Manage TodoMVC on the desktop
+    steps:
+      - aiAssert: The Todo input box is visible
+      - aiAct: Type "Learn JS today" in the new Todo input and press Enter
+      - aiAct: Type "Learn Rust tomorrow" in the new Todo input and press Enter
+      - aiAct: Type "Learning AI the day after tomorrow" in the new Todo input and press Enter
+      - aiAssert: >-
+          The Todo list contains "Learn JS today", "Learn Rust tomorrow",
+          and "Learning AI the day after tomorrow".
+      - aiAct: Hover over the second Todo, "Learn Rust tomorrow", then click its delete button
+      - aiAct: Complete the second remaining Todo, "Learning AI the day after tomorrow"
+      - aiAct: Select the Completed filter below the Todo list
+      - aiAssert: >-
+          The Completed list shows exactly one Todo,
+          "Learning AI the day after tomorrow".
+      - aiAssert: The input placeholder says "What needs to be done?"

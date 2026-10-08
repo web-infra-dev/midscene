@@ -1,0 +1,63 @@
+beforeAll:
+  - setViewportSize:
+      width: 1280
+      height: 720
+
+beforeEach:
+  - gotoUrl:
+      url: https://todomvc.com/examples/react/dist/
+  - todo.seed:
+      items:
+        - Learn JS today
+        - Learn Rust tomorrow
+        - Learn AI the day after tomorrow
+
+cases:
+  - name: Seed TodoMVC with deterministic Nodes
+    tags: [deterministic]
+    steps:
+      - todo.expectState:
+          items:
+            - title: Learn JS today
+              completed: false
+            - title: Learn Rust tomorrow
+              completed: false
+            - title: Learn AI the day after tomorrow
+              completed: false
+
+  - name: Manage TodoMVC with AI
+    tags: [smoke, ai]
+    steps:
+      - aiAct:
+          prompt: Delete the Todo named "Learn Rust tomorrow".
+          $:
+            timeout: 60000
+      - aiAct:
+          prompt: Mark the Todo named "Learn AI the day after tomorrow" as completed.
+          $:
+            timeout: 60000
+      - aiAssert:
+          prompt: >-
+            Exactly two Todos remain. "Learn AI the day after tomorrow" is
+            completed, "Learn JS today" is not completed, and the footer says
+            "1 item left".
+          message: TodoMVC does not show the expected final state.
+          $:
+            timeout: 60000
+      - todo.expectState:
+          items:
+            - title: Learn JS today
+              completed: false
+            - title: Learn AI the day after tomorrow
+              completed: true
+
+afterEach:
+  - todo.captureState: {}
+
+afterAll:
+  - recordToReport:
+      title: TodoMVC Test Runner demo completed
+      options:
+        content: >-
+          This workflow combines reusable deterministic Nodes with Midscene AI
+          actions and assertions.

@@ -344,13 +344,13 @@ describe('generated project integration', () => {
         import { loadTestProject } from '@midscene/test/config';
         import { resolve } from 'node:path';
         const project = await loadTestProject(resolve('midscene.config.ts'));
-        const document = collectWorkflowDocument({ projectId: 'example', sourcePath: 'cases/example.yaml', absolutePath: resolve('cases/example.yaml') }, { resolveNode: name => project.resolveNode(name) });
+        const document = collectWorkflowDocument({ projectId: 'example', sourcePath: 'cases/todo.yaml', absolutePath: resolve('cases/todo.yaml') }, { resolveNode: name => project.resolveNode(name) });
         console.log(String(document.cases.length));
       `,
         ],
         { cwd },
       );
-      expect(collected.stdout.trim()).toBe('1');
+      expect(collected.stdout.trim()).toBe(platform === 'web' ? '2' : '1');
       expect(existsSync(join(cwd, 'midscene_run'))).toBe(false);
       await execFileAsync(process.execPath, [
         join(packageRoot, 'node_modules/typescript/bin/tsc'),
@@ -358,6 +358,17 @@ describe('generated project integration', () => {
         cwd,
       ]);
       if (platform === 'web') {
+        for (const node of [
+          'todo.seed',
+          'todo.expectState',
+          'todo.captureState',
+        ]) {
+          expect(markdown).toContain(`## \`${node}\``);
+        }
+        expect(existsSync(join(cwd, 'public/todo.html'))).toBe(false);
+        expect(readFileSync(join(cwd, 'cases/todo.yaml'), 'utf8')).toContain(
+          'todomvc.com',
+        );
         const files = await execFileAsync(process.execPath, [
           join(packageRoot, 'node_modules/typescript/bin/tsc'),
           '-p',
@@ -527,7 +538,7 @@ process.exit(result.status ?? 1);
       const readme = readFileSync(join(root, 'README.md'), 'utf8');
       expect(readme).toContain(`${packageManager} test`);
       expect(readme).toContain(`${packageManager} run nodes`);
-      expect(existsSync(join(root, 'README.zh.md'))).toBe(false);
+      expect(existsSync(join(root, 'README.zh.md'))).toBe(true);
     },
   );
 });

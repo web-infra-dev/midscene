@@ -11,8 +11,8 @@ import {
 } from '@/agent-tools-puppeteer';
 import { parseWebCliOptions } from '@/cli-options';
 import { runToolsCLI } from '@midscene/shared/cli';
-import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
-import puppeteer from 'puppeteer-core';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 
 const html = `<!DOCTYPE html>
 <html lang="en">
@@ -41,6 +41,23 @@ async function closePersistentBrowser(
 
   await closeTool.handler({});
   await tools.destroy();
+}
+
+async function removePersistentRoot(root: string): Promise<void> {
+  // Chrome may still write profile files after web_close returns. Retry the
+  // entire removal so new files get removed on the next attempt.
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      rmSync(root, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (attempt === 9 || (code !== 'ENOTEMPTY' && code !== 'EBUSY')) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
 }
 
 describe('midscene-web CLI viewport e2e', () => {
@@ -83,14 +100,7 @@ describe('midscene-web CLI viewport e2e', () => {
         });
       });
     } finally {
-      // Chrome may still be flushing profile files shortly after web_close
-      // returns, so retry the recursive cleanup for transient ENOTEMPTY errors.
-      rmSync(persistentRoot, {
-        recursive: true,
-        force: true,
-        maxRetries: 2,
-        retryDelay: 1000,
-      });
+      await removePersistentRoot(persistentRoot);
     }
   });
 
@@ -110,42 +120,31 @@ describe('midscene-web CLI viewport e2e', () => {
     const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport, {
       persistence,
     });
-    await runToolsCLI(tools, 'midscene-web', {
-      stripPrefix: 'web_',
-      argv: parsedOptions.argv,
-    });
-
-    const endpoint = (await readFile(persistence.endpointFile, 'utf-8')).trim();
-    const browser = await puppeteer.connect({
-      browserWSEndpoint: endpoint,
-      defaultViewport: null,
-    });
-
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
+    let screenshotPath: string | undefined;
     try {
-      const pages = await browser.pages();
-      const page = pages.find(
-        (item) => item.url() === `${baseUrl}/` || item.url() === baseUrl,
-      );
+      await runToolsCLI(tools, 'midscene-web', {
+        stripPrefix: 'web_',
+        argv: parsedOptions.argv,
+      });
 
-      if (!page) {
-        throw new Error(`Failed to find connected page for ${baseUrl}`);
+      const screenshotMessage = consoleSpy.mock.calls
+        .map(([message]) => String(message))
+        .find((message) => message.startsWith('Screenshot saved: '));
+      if (!screenshotMessage) {
+        throw new Error('CLI did not save a screenshot of the connected page');
       }
-
-      const metrics = await page.evaluate(() => ({
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        clientWidth: document.documentElement.clientWidth,
-        clientHeight: document.documentElement.clientHeight,
-      }));
-
-      expect(metrics).toEqual({
-        innerWidth: width,
-        innerHeight: height,
-        clientWidth: width,
-        clientHeight: height,
+      screenshotPath = screenshotMessage.slice('Screenshot saved: '.length);
+      const screenshot = await readFile(screenshotPath);
+      expect(await imageInfoOfBase64(screenshot.toString('base64'))).toEqual({
+        width,
+        height,
       });
     } finally {
-      browser.disconnect();
+      consoleSpy.mockRestore();
+      if (screenshotPath) {
+        rmSync(screenshotPath, { force: true });
+      }
     }
   }, 60_000);
 });

@@ -38,7 +38,7 @@
   },
   "files": ["dist", "bin"],
   "scripts": {
-    "build": "rslib build",
+    "build": "rslib build && node ../../scripts/copy-create-templates.mjs",
     "build:watch": "rslib build --watch --no-clean",
     "test": "vitest --run",
     "test:types": "tsc -p tests/types/tsconfig.json",
