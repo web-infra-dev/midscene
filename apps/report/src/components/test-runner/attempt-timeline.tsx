@@ -4,8 +4,11 @@ import {
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import type { TestRunReportAttempt } from '@midscene/core';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ThumbnailCanvas } from '../timeline/thumbnail-canvas';
+import { TimelinePreparing } from '../timeline/timeline-preparing';
 import { formatTimelineTime } from '../timeline/timeline-scale';
+import { useTimelineImages } from '../timeline/use-timeline-images';
 import type { RunnerPositionedVisualFrame } from './model';
 
 export type RunnerAttemptTimelineVariant = 'standalone' | 'detail' | 'overview';
@@ -81,6 +84,15 @@ export function RunnerAttemptTimeline({
   onTogglePlay?(): void;
 }): JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null);
+  const imageItems = useMemo(
+    () =>
+      frames.map((item) => ({
+        img: item.frame.screenshot.base64,
+        ratio: item.offsetPercent / 100,
+      })),
+    [frames],
+  );
+  const prepared = useTimelineImages(imageItems, trackRef);
   const previewCalloutRef = useRef<HTMLElement>(null);
   const [previewPlacement, setPreviewPlacement] =
     useState<RunnerTimelinePreviewPlacement>('below');
@@ -165,6 +177,7 @@ export function RunnerAttemptTimeline({
         <div
           ref={trackRef}
           className="runner-detail-timeline-track"
+          aria-busy={!prepared.initialReady}
           onMouseLeave={() => onPreview(undefined)}
         >
           <div className="runner-detail-timeline-axis" aria-hidden="true">
@@ -180,6 +193,7 @@ export function RunnerAttemptTimeline({
             ))}
           </div>
           <div className="runner-detail-timeline-lane">
+            {!prepared.initialReady ? <TimelinePreparing /> : null}
             {ticks.map((tick, index) => (
               <i
                 key={`${tick}-${index}`}
@@ -191,6 +205,12 @@ export function RunnerAttemptTimeline({
               const isSelected = item.stepId
                 ? item.stepId === selectedStepId
                 : item.frame.key === lockedFrameKey;
+              const thumbnail = prepared.images.get(
+                item.frame.screenshot.base64,
+              );
+              const failed = prepared.failures.has(
+                item.frame.screenshot.base64,
+              );
               return (
                 <button
                   type="button"
@@ -198,6 +218,7 @@ export function RunnerAttemptTimeline({
                     item.offsetMs,
                   )}`}
                   aria-pressed={isSelected}
+                  hidden={!prepared.initialReady || (!thumbnail && !failed)}
                   className={`runner-detail-timeline-frame ${
                     isSelected ? 'is-selected' : ''
                   } ${isPreview ? 'is-preview' : ''}`}
@@ -214,11 +235,20 @@ export function RunnerAttemptTimeline({
                   onFocus={() => onPreview(item.frame.key)}
                   onMouseEnter={() => onPreview(item.frame.key)}
                 >
-                  <img
-                    alt={item.frame.label || 'Captured application state'}
-                    loading="lazy"
-                    src={item.frame.screenshot.base64}
-                  />
+                  {thumbnail ? (
+                    <ThumbnailCanvas
+                      thumbnail={thumbnail}
+                      label={item.frame.label || 'Captured application state'}
+                    />
+                  ) : (
+                    <div
+                      className="runner-timeline-unavailable"
+                      role="img"
+                      aria-label="Screenshot unavailable"
+                    >
+                      <PictureOutlined />
+                    </div>
+                  )}
                   <span>{index + 1}</span>
                 </button>
               );
