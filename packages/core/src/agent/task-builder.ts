@@ -438,7 +438,7 @@ export class TaskBuilder {
           task.log = {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
-            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+            rawAssistantOutput: dump.taskInfo?.rawAssistantOutput,
             searchAreaRawChoiceMessage:
               dump.taskInfo?.searchAreaRawChoiceMessage,
           };

@@ -130,10 +130,8 @@ describe('runConnectivityTest', () => {
       role: 'user',
       content: expect.arrayContaining([
         expect.objectContaining({
-          type: 'image_url',
-          image_url: expect.objectContaining({
-            url: expect.stringMatching(/^data:image\/png;base64,/),
-          }),
+          type: 'image',
+          url: expect.stringMatching(/^data:image\/png;base64,/),
         }),
       ]),
     });

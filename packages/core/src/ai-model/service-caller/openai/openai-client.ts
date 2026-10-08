@@ -109,7 +109,7 @@ const createAndWrapClient = async ({
   return openai;
 };
 
-export async function createChatClient({
+export async function createClient({
   modelConfig,
   proxyAgent,
   effectiveTimeoutMs,
@@ -122,7 +122,7 @@ export async function createChatClient({
   executionId: string;
   recordEvent?: (event: Record<string, unknown>) => void;
 }): Promise<{
-  completion: OpenAI.Chat.Completions;
+  openai: OpenAI;
   openAIRequestContext: OpenAIRequestContext;
 }> {
   const { openaiBaseURL, openaiApiKey, openaiExtraConfig, createOpenAIClient } =
@@ -144,7 +144,7 @@ export async function createChatClient({
   });
 
   return {
-    completion: openai.chat.completions,
+    openai,
     openAIRequestContext,
   };
 }

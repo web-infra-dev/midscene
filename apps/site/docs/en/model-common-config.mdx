@@ -1,4 +1,4 @@
-import { ModelConfigTab, ModelConfigTabs, PackageManagerTabs } from '@theme';
+import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 # Supported Models and Setup
 
@@ -30,38 +30,14 @@ Midscene supports the following multimodal models for operating user interfaces.
 
 Environment variable configuration example, using `doubao-seed-2.1-turbo`:
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" # Volcano Engine endpoint
-MIDSCENE_MODEL_API_KEY="...."
-MIDSCENE_MODEL_NAME="doubao-seed-2-1-turbo-260628"
-MIDSCENE_MODEL_FAMILY="doubao-seed"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" # Volcano Engine endpoint
-MIDSCENE_PLANNING_MODEL_API_KEY="...."
-MIDSCENE_PLANNING_MODEL_NAME="doubao-seed-2-1-turbo-260628"
-MIDSCENE_PLANNING_MODEL_FAMILY="doubao-seed"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" # Volcano Engine endpoint
-MIDSCENE_INSIGHT_MODEL_API_KEY="...."
-MIDSCENE_INSIGHT_MODEL_NAME="doubao-seed-2-1-turbo-260628"
-MIDSCENE_INSIGHT_MODEL_FAMILY="doubao-seed"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://ark.cn-beijing.volces.com/api/v3",
+    comment: "Volcano Engine endpoint",
+  }}
+  modelName="doubao-seed-2-1-turbo-260628"
+  modelFamily="doubao-seed"
+/>
 
 If your Volcano Engine account has Fast Tier quota enabled, add the extra request body below to use it. This usually improves model response speed by about 30%-50%.
 
@@ -89,38 +65,17 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 Environment variable configuration example, using `qwen3.7-plus`:
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # Alibaba Cloud endpoint
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3" # If you use another Qwen version, replace this with the corresponding model family
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # Alibaba Cloud endpoint
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_PLANNING_MODEL_FAMILY="qwen3" # If you use another Qwen version, replace this with the corresponding model family
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # Alibaba Cloud endpoint
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # If you use another Qwen version, replace this with the corresponding model family
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    comment: "Alibaba Cloud endpoint",
+  }}
+  modelName="qwen3.7-plus"
+  modelFamily={{
+    value: "qwen3",
+    comment: "If you use another Qwen version, replace this with the corresponding model family",
+  }}
+/>
 
 ### DeepSeek Series {#deepseek}
 
@@ -138,38 +93,14 @@ Midscene supports DeepSeek starting from v1.12.0.
 
 Environment variable configuration example, using `deepseek-flash`:
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="deepseek-flash"
-MIDSCENE_MODEL_FAMILY="deepseek"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="deepseek-flash"
-MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="deepseek-flash"
-MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.deepseek.com",
+    comment: "DeepSeek API endpoint",
+  }}
+  modelName="deepseek-flash"
+  modelFamily="deepseek"
+/>
 
 ### Google Gemini Series {#gemini}
 
@@ -185,38 +116,14 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
 
 Environment variable configuration example, using `gemini-3.5-flash`:
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" # Google Gemini API endpoint
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="gemini-3.5-flash"
-MIDSCENE_MODEL_FAMILY="gemini"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" # Google Gemini API endpoint
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="gemini-3.5-flash"
-MIDSCENE_PLANNING_MODEL_FAMILY="gemini"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" # Google Gemini API endpoint
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="gemini-3.5-flash"
-MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    comment: "Google Gemini API endpoint",
+  }}
+  modelName="gemini-3.5-flash"
+  modelFamily="gemini"
+/>
 
 ### OpenAI GPT Series {#gpt}
 
@@ -233,38 +140,15 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 Environment variable configuration example, using `gpt-6-sol`:
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
-MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-6-sol"
-MIDSCENE_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
-MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
-MIDSCENE_PLANNING_MODEL_NAME="gpt-6-sol"
-MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
-MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
-MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-sol"
-MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.openai.com/v1",
+    comment: "OpenAI API endpoint; or your compatible endpoint",
+  }}
+  modelName="gpt-6-sol"
+  modelFamily="gpt-6"
+  responses
+/>
 
 **Fast mode**
 
@@ -307,7 +191,7 @@ When using GPT-5, note the following:
 - For UI localization with GPT, Midscene currently supports `gpt-5.4` and later models. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while some smaller GPT-5 variants, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
 - According to OpenAI, GPT-5 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
-- With Azure OpenAI, Azure may not handle `"detail": "original"` correctly, causing click-coordinate offsets. See [Clicks are offset when using Azure OpenAI](./faq#clicks-are-offset-when-using-azure-openai).
+- Azure OpenAI's Chat Completions API may not handle `"detail": "original"` correctly, causing click-coordinate offsets. If you encounter this issue, you can switch to the Responses API. See [Clicks are offset when using Azure OpenAI](./faq#clicks-are-offset-when-using-azure-openai).
 - If you use an older GPT-5 model, we recommend using it only as the planning model and pairing it with another multimodal model for localization. See the [multi-model combination example](#multi-model-combination-example).
 
 ### Moonshot Kimi Series {#kimi}
@@ -325,38 +209,17 @@ When using GPT-5, note the following:
 
 Environment variable configuration example, using `kimi-k3`:
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API endpoint
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="kimi-k3"
-MIDSCENE_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API endpoint
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="kimi-k3"
-MIDSCENE_PLANNING_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API endpoint
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="kimi-k3"
-MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.moonshot.cn/v1",
+    comment: "Moonshot AI API endpoint",
+  }}
+  modelName="kimi-k3"
+  modelFamily={{
+    value: "kimi3",
+    comment: "For kimi-k2.6, use \"kimi\"",
+  }}
+/>
 
 ### Xiaomi MiMo Series {#xiaomi-mimo}
 
@@ -372,38 +235,14 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 
 Environment variable configuration example, using `mimo-v2.6-pro`:
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # Xiaomi MiMo API endpoint
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="mimo-v2.6-pro"
-MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # Xiaomi MiMo API endpoint
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="mimo-v2.6-pro"
-MIDSCENE_PLANNING_MODEL_FAMILY="xiaomi-mimo"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # Xiaomi MiMo API endpoint
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="mimo-v2.6-pro"
-MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.xiaomimimo.com/v1",
+    comment: "Xiaomi MiMo API endpoint",
+  }}
+  modelName="mimo-v2.6-pro"
+  modelFamily="xiaomi-mimo"
+/>
 
 ### Zhipu GLM-V Series {#glm-v}
 
@@ -420,38 +259,14 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
 
 Environment variable configuration example, using `glm-5v-turbo`:
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # BigModel API endpoint; use https://api.z.ai/api/paas/v4 for Z.AI
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="glm-5v-turbo"
-MIDSCENE_MODEL_FAMILY="glm-v"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # BigModel API endpoint; use https://api.z.ai/api/paas/v4 for Z.AI
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="glm-5v-turbo"
-MIDSCENE_PLANNING_MODEL_FAMILY="glm-v"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # BigModel API endpoint; use https://api.z.ai/api/paas/v4 for Z.AI
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="glm-5v-turbo"
-MIDSCENE_INSIGHT_MODEL_FAMILY="glm-v"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://open.bigmodel.cn/api/paas/v4",
+    comment: "BigModel API endpoint; use https://api.z.ai/api/paas/v4 for Z.AI",
+  }}
+  modelName="glm-5v-turbo"
+  modelFamily="glm-v"
+/>
 
 **Learn more about the open-source GLM-4.6V model**
 

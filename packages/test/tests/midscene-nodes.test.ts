@@ -1,10 +1,20 @@
 import { resolve } from 'node:path';
 import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
+import { load } from 'js-yaml';
 import { describe, expect, it, vi } from 'vitest';
-import { NodeRegistry, createDocumentRuntime, defineNode } from '../src';
+import {
+  NodeRegistry,
+  createDocumentRuntime,
+  defineNode,
+  normalizeSteps,
+} from '../src';
 import { renderNodeSpec } from '../src/cli/node-spec';
 import { runCollectedCase } from '../src/engine/run-collected-case';
-import { type MidsceneUIAgent, createMidsceneNodes } from '../src/midscene';
+import {
+  type MidsceneUIAgent,
+  createMidsceneNodes,
+  setAIContextInputSchema,
+} from '../src/midscene';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
@@ -39,6 +49,52 @@ const testAgentClass = {
 };
 
 describe('createMidsceneNodes', () => {
+  it('runs setAIContext from YAML with text, empty text, and omitted context', async () => {
+    const setAIContext = vi.fn();
+    const agent = { ...commonAgent(), setAIContext };
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => agent,
+        agentClass: testAgentClass,
+      }),
+    );
+    expect(registry.require('setAIContext').inputSchema).toBe(
+      setAIContextInputSchema,
+    );
+    const result = await runCollectedCase(
+      collected(
+        normalizeSteps(
+          load(`
+- setAIContext:
+    target: default
+    context: Shared guidance
+- setAIContext:
+    target: aiAct
+    context: ""
+- aiAct: Open settings
+- setAIContext:
+    target: aiAct
+`),
+          registry.require.bind(registry),
+        ),
+      ),
+      { resolveNode: registry.require.bind(registry) },
+    );
+    expect(result.status).toBe('success');
+    expect(setAIContext.mock.calls).toEqual([
+      ['default', 'Shared guidance'],
+      ['aiAct', ''],
+      ['aiAct', undefined],
+    ]);
+    expect(agent.aiAct).toHaveBeenCalledWith(
+      'Open settings',
+      expect.any(Object),
+    );
+    expect(renderNodeSpec(registry.definitions()).markdown).toContain(
+      '### `setAIContext`',
+    );
+  });
+
   it('documents approved effort, without YAML metadata or planning markers in the native Spec', async () => {
     const aiAct = vi.fn(async () => undefined);
     const registry = new NodeRegistry(

@@ -1,0 +1,84 @@
+# HTTP compatibility for retired pages; Rspress client redirects run after the response.
+# Keep document destinations aligned with rspress.config.ts.
+/android-integration /platforms/android 301
+/android-integration.html /platforms/android 301
+/android-integration/ /platforms/android 301
+/zh/quick-experience /zh/quick-start#chrome-extension 301
+/zh/quick-experience.html /zh/quick-start#chrome-extension 301
+/zh/quick-experience/ /zh/quick-start#chrome-extension 301
+/zh/batch-yaml /zh/yaml-script-runner 301
+/zh/batch-yaml.html /zh/yaml-script-runner 301
+/zh/batch-yaml/ /zh/yaml-script-runner 301
+/zh/test-runner-overview /zh/midscene-test/overview 301
+/zh/test-runner-overview.html /zh/midscene-test/overview 301
+/zh/test-runner-overview/ /zh/midscene-test/overview 301
+/reference.html /reference/ 301
+/report /consume-report-file 301
+/report.html /consume-report-file 301
+/report/ /consume-report-file 301
+/benchmark /introduction 301
+/benchmark.html /introduction 301
+/benchmark/ /introduction 301
+/api-reference /reference/ 301
+/api-reference.html /reference/ 301
+/api-reference/ /reference/ 301
+/choose-a-model /model-common-config 301
+/choose-a-model.html /model-common-config 301
+/choose-a-model/ /model-common-config 301
+/integrate-with-yaml /automate-with-scripts-in-yaml 301
+/integrate-with-yaml.html /automate-with-scripts-in-yaml 301
+/integrate-with-yaml/ /automate-with-scripts-in-yaml 301
+/web-api-reference /reference/#web 301
+/web-api-reference.html /reference/#web 301
+/web-api-reference/ /reference/#web 301
+/api /reference/#common 301
+/api.html /reference/#common 301
+/api/ /reference/#common 301
+/ios-getting-started /platforms/ios 301
+/ios-getting-started.html /platforms/ios 301
+/ios-getting-started/ /platforms/ios 301
+/android-getting-started /platforms/android 301
+/android-getting-started.html /platforms/android 301
+/android-getting-started/ /platforms/android 301
+/zh/web-api-reference /zh/reference/#web 301
+/zh/web-api-reference.html /zh/reference/#web 301
+/zh/web-api-reference/ /zh/reference/#web 301
+/zh/api /zh/reference/#common 301
+/zh/api.html /zh/reference/#common 301
+/zh/api/ /zh/reference/#common 301
+/zh/ios-getting-started /zh/platforms/ios 301
+/zh/ios-getting-started.html /zh/platforms/ios 301
+/zh/ios-getting-started/ /zh/platforms/ios 301
+/zh/android-getting-started /zh/platforms/android 301
+/zh/android-getting-started.html /zh/platforms/android 301
+/zh/android-getting-started/ /zh/platforms/android 301
+
+/model-provider /model-common-config.html 301
+/model-provider.html /model-common-config.html 301
+/model-provider/ /model-common-config.html 301
+/integrate-with-android /platforms/android 301
+/integrate-with-android.html /platforms/android 301
+/integrate-with-android/ /platforms/android 301
+/zh/model-provider /zh/model-common-config.html 301
+/zh/model-provider.html /zh/model-common-config.html 301
+/zh/model-provider/ /zh/model-common-config.html 301
+/zh/integrate-with-android /zh/platforms/android 301
+/zh/integrate-with-android.html /zh/platforms/android 301
+/zh/integrate-with-android/ /zh/platforms/android 301
+
+# Serve favicon aliases internally to avoid a loop with the existing geo redirect.
+# The geo rule must still exclude root metadata files and shared asset directories.
+/favicon.ico /favicon.png 200
+/zh/favicon.ico /favicon.png 200
+/zh/favicon.png /favicon.png 200
+
+# Public image moved in September 2026.
+/midscene-icon.png /images/brand/midscene-icon.png 301
+/zh/midscene-icon.png /images/brand/midscene-icon.png 301
+
+# Conventional Apple icon probes and previously localized metadata images.
+/apple-touch-icon.png /favicon.png 200
+/apple-touch-icon-precomposed.png /favicon.png 200
+/zh/apple-touch-icon.png /favicon.png 200
+/zh/apple-touch-icon-precomposed.png /favicon.png 200
+/zh/og-image.png /og-image.png 200

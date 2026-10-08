@@ -57,6 +57,7 @@ export {
   aiWaitForInputSchema,
   javascriptInputSchema,
   runGherkinScenarioInputSchema,
+  setAIContextInputSchema,
 } from '@midscene/core/agent/test';
 export type {
   ActionNodeInput,
@@ -70,6 +71,7 @@ export type {
   AiWaitForNodeInput,
   JavascriptNodeInput,
   RunGherkinScenarioNodeInput,
+  SetAIContextNodeInput,
 } from '@midscene/core/agent/test';
 
 export {

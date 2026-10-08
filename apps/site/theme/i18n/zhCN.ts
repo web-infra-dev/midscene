@@ -1,13 +1,9 @@
 import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
-  // Banner - New Badge
-  newBadge: '全新支持 deepseek v4 视觉模型',
-  changelogLink: '了解更多',
-
   // Banner - Title
-  heroTitle: 'Midscene.js - 端到端测试\n的 GUI Agent',
-  heroSubtitle: 'AI 视觉驱动。全平台覆盖。开箱即用。',
+  heroTitle: 'Midscene.js\n像人一样使用软件\n用自然语言完成 E2E 测试',
+  heroSubtitle: '基于视觉的 GUI Agent，支持 Web、移动端和桌面应用。',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -42,24 +38,26 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Sections - MODELS
   modelsTitle: '模型策略',
-  modelsHeading: '以纯视觉为核心',
-  modelsDesc1: '直接分析截图，无需维护 Selector 或额外标注',
-  modelsDesc2: '默认使用单模型，复杂场景按需增加专用模型',
-  modelsDesc3: '支持多种适配模型，包括可自托管选项',
+  modelsHeading: '视觉驱动\n兼顾效果与成本',
+  modelsDesc1: '模拟人类观察界面、执行操作与验证结果的方式',
+  modelsDesc2: '选用高性价比视觉模型，降低高频 E2E 测试的调用成本',
+  modelsDesc3: '支持多种模型，按需组合规划、定位与界面理解能力',
 
   // Model Cards
   modelSeedName: '豆包 Seed',
   modelSeedDesc: '强大的视觉定位能力，元素定位可靠——Midscene 的稳妥默认选择。',
   modelSupportedName: '支持多种模型',
-  modelSupportedDesc: '适配 Qwen、GPT、Gemini、Kimi 等多款模型，可按需选择。',
-  modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
-  modelDeepSeekDesc: '视觉定位速度极快，但在复杂界面下稳定性相对有限。',
+  modelSupportedDesc: '适配 DeepSeek、Qwen、GPT、Gemini、Kimi 等模型。',
+  modelCostName: '模型调用成本',
+  modelCostDesc:
+    '豆包 Seed 2.1 Turbo 在 AppControlBench 中的调用总费用为 $0.59，60 项任务通过 58 项。',
+  modelCostMetric: '60 项任务的模型调用总费用',
   modelMultiModelName: '多模型组合',
   modelMultiModelDesc: '让规划模型与视觉模型协同，提升任务完成率。',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '测试工具箱',
-  debuggingHeading: '开箱即用的 UI 测试套件',
+  debuggingHeading: '开箱即用的\nUI 测试套件',
   debuggingDesc1: '丰富的 API，用于编写测试与控制自动化流程',
   debuggingDesc2: '支持扩展自己的 UI 操作 Agent',
   debuggingDesc3: '大幅降低 UI 测试的维护成本',
@@ -83,7 +81,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureFlexibleIntegration: '灵活集成',
   featureFlexibleIntegrationDesc:
     '使用 Midscene Test 编写 YAML 测试，并通过自定义 TypeScript Node 扩展。',
-  featureRichAPIsLink: '/api',
+  featureRichAPIsLink: '/reference/',
   featureSkillsLink: '/skills',
   featureReportsPlaygroundLink: '/quick-start#chrome-extension',
   featureFlexibleIntegrationLink: '/midscene-test/overview',

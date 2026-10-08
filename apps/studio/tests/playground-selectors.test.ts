@@ -93,6 +93,55 @@ describe('resolveVisibleSidebarPlatforms', () => {
 });
 
 describe('buildStudioSidebarDeviceBuckets', () => {
+  it('keeps the gateway URL for reconnection while using a path-specific opaque id', () => {
+    const formValues = {
+      platformId: 'ios',
+      'ios.baseUrl': 'https://gateway.example/device-a/wda',
+      'ios.mjpegUrl': 'https://gateway.example/device-a/mjpeg?token=secret',
+    };
+    const id = resolveSelectedDeviceId(formValues);
+    const otherId = resolveSelectedDeviceId({
+      ...formValues,
+      'ios.baseUrl': 'https://gateway.example/device-b/wda',
+    });
+    expect(id).toMatch(/^ios-gateway-[a-f0-9]{64}$/);
+    expect(otherId).not.toBe(id);
+    expect(
+      resolveSelectedDeviceId({
+        ...formValues,
+        'ios.baseUrl': 'https://gateway.example/device-a/wda/',
+      }),
+    ).toBe(id);
+
+    const bucket = buildStudioSidebarDeviceBuckets({
+      formValues,
+      runtimeInfo: {
+        platformId: 'ios',
+        interface: { type: 'ios' },
+        preview: { kind: 'mjpeg' },
+        executionUxHints: [],
+        metadata: {
+          wdaGatewayId: id,
+          wdaHost: 'gateway.example',
+          wdaPort: 443,
+          sessionDisplayName: 'iPhone',
+        },
+      },
+      targets: [],
+    }).ios;
+    expect(bucket[0]?.id).toBe(id);
+    expect(bucket[0]?.label).toBe('iPhone');
+    expect(bucket[0]?.sessionValues).toEqual({
+      baseUrl: formValues['ios.baseUrl'],
+      mjpegUrl: formValues['ios.mjpegUrl'],
+    });
+    expect(buildDeviceSelectionFormValues('ios', bucket[0])).toMatchObject({
+      'ios.baseUrl': formValues['ios.baseUrl'],
+      'ios.host': null,
+      'ios.port': null,
+    });
+    expect(bucket[0]?.id).not.toContain('secret');
+  });
   it('only populates Android when the runtime is Android', () => {
     const buckets = buildStudioSidebarDeviceBuckets({
       formValues: {
@@ -626,6 +675,10 @@ describe('buildDeviceSelectionFormValues', () => {
       platformId: 'ios',
       'ios.host': 'localhost',
       'ios.port': 8100,
+      'ios.baseUrl': null,
+      'ios.mjpegUrl': null,
+      'ios.mjpegPort': null,
+      'ios.sessionId': null,
     });
   });
 });
