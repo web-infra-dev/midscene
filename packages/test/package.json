@@ -30,6 +30,11 @@
       "import": "./dist/es/midscene/index.mjs",
       "require": "./dist/lib/midscene/index.js"
     },
+    "./internal/model-command": {
+      "types": "./dist/types/cli/model-command.d.ts",
+      "import": "./dist/es/cli/model-command.mjs",
+      "require": "./dist/lib/cli/model-command.js"
+    },
     "./internal/yaml-runtime": {
       "types": "./dist/types/runtime/index.d.ts",
       "import": "./dist/es/runtime/index.mjs",
@@ -48,6 +53,7 @@
     "@inquirer/prompts": "^7.8.6",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
+    "chalk": "4.1.2",
     "dotenv": "^16.4.5",
     "execa": "9.3.0",
     "glob": "11.0.0",

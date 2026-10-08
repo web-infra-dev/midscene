@@ -143,6 +143,13 @@ describe('create installation confirmation and postinstall', () => {
         output,
         runtime,
       );
+      expect(output.log).toHaveBeenLastCalledWith(
+        expect.stringContaining(
+          packageManager === 'npm'
+            ? 'npm exec -- midscene-test model verify'
+            : 'pnpm exec midscene-test model verify',
+        ),
+      );
       expect(runtime.confirmInstall).toHaveBeenCalledTimes(1);
       expect(runtime.runPackageManager).not.toHaveBeenCalled();
       expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
@@ -551,6 +558,25 @@ describe('create package manager selection', () => {
         packageManager === 'npm'
           ? 'npm exec -- playwright install chromium'
           : 'pnpm exec playwright install chromium';
+      const verifyModel =
+        packageManager === 'npm'
+          ? 'npm exec -- midscene-test model verify'
+          : 'pnpm exec midscene-test model verify';
+      expect(readFileSync(join(cwd, '.env.example'), 'utf8')).toContain(
+        `# ${verifyModel}\n`,
+      );
+      expect(readme).toContain(verifyModel);
+      expect(readme.indexOf('Copy `.env.example`')).toBeLessThan(
+        readme.indexOf(verifyModel),
+      );
+      expect(readme.indexOf(verifyModel)).toBeLessThan(
+        readme.indexOf(chromium),
+      );
+      expect(output.log).toHaveBeenLastCalledWith(
+        expect.stringContaining(
+          `Verify the model from the project directory: ${verifyModel}`,
+        ),
+      );
       expect(readme).toContain(chromium);
       expect(readme).toContain(`${packageManager} test`);
       expect(readme).toContain('A Midscene Test project for web.');

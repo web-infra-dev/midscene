@@ -206,20 +206,27 @@ async function callModelOnce(
   attempt: number,
 ): Promise<ModelCallResult> {
   const { config: modelConfig } = modelRuntime;
-  const recordEvent = isModelCallRecordingEnabled()
-    ? (event: Record<string, unknown>) => {
-        void recordModelCallEvent({
-          executionId,
-          callId: internalCallId,
-          semanticRetryAttempt: options?.semanticRetryAttempt,
-          slot: modelConfig.slot,
-          intent: modelConfig.intent,
-          modelFamily: modelConfig.modelFamily,
-          ...event,
-          attempt,
-        });
-      }
-    : undefined;
+  const recordingEnabled = isModelCallRecordingEnabled();
+  const recordEvent =
+    recordingEnabled || modelRuntime.onRequest
+      ? (event: Record<string, unknown>) => {
+          if (event.type === 'request') {
+            const request = event.request as { url?: string } | undefined;
+            modelRuntime.onRequest?.(request?.url);
+          }
+          if (!recordingEnabled) return;
+          void recordModelCallEvent({
+            executionId,
+            callId: internalCallId,
+            semanticRetryAttempt: options?.semanticRetryAttempt,
+            slot: modelConfig.slot,
+            intent: modelConfig.intent,
+            modelFamily: modelConfig.modelFamily,
+            ...event,
+            attempt,
+          });
+        }
+      : undefined;
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig.timeout);
   const { signal: requestSignal, cleanup } = buildRequestAbortSignal(
     effectiveTimeoutMs,

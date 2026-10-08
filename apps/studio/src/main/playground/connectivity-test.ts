@@ -21,6 +21,8 @@ export async function runConnectivityTest(
   if ('error' in resolvedWithConfig) {
     return {
       passed: false,
+      checks: [],
+      requestCount: 0,
       message: resolvedWithConfig.error,
     };
   }

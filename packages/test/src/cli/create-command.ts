@@ -281,7 +281,7 @@ export async function runCreateCommand(
   }
   if (!install) {
     io.log(
-      `Project files ready: ${root}\nNext: run ${packageManager} ${commands.install.join(' ')} in the project directory. The postinstall script will generate midscene-node-spec.${platform}.md.\nThen follow README.md to configure your model and run tests.`,
+      `Project files ready: ${root}\nNext: run ${packageManager} ${commands.install.join(' ')} in the project directory. The postinstall script will generate midscene-node-spec.${platform}.md.\nThen copy .env.example to .env and configure your model.\nVerify the model from the project directory: ${commands.verifyModel}\nFollow README.md to prepare your runtime and run tests.`,
     );
     return;
   }
@@ -311,6 +311,6 @@ export async function runCreateCommand(
     );
   }
   io.log(
-    `Project ready: ${root}\nNode Spec: ${resolve(root, `midscene-node-spec.${platform}.md`)}\nNext: copy .env.example to .env and configure your model.${platform === 'web' ? `\nInstall Chromium: ${commands.installChromium}` : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: ${packageManager} test`,
+    `Project ready: ${root}\nNode Spec: ${resolve(root, `midscene-node-spec.${platform}.md`)}\nNext: copy .env.example to .env and configure your model.\nVerify the model from the project directory: ${commands.verifyModel}${platform === 'web' ? `\nInstall Chromium: ${commands.installChromium}` : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: ${packageManager} test`,
   );
 }

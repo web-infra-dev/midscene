@@ -30,6 +30,7 @@ export default defineConfig({
     entry: {
       index: './src/index.ts',
       'test-cli': './src/test-cli.ts',
+      'cli/model-command': './src/cli/model-command.ts',
       'cli/index': './src/cli/index.ts',
       'runtime/index': './src/runtime/index.ts',
       'midscene/index': './src/midscene/index.ts',

@@ -3,18 +3,20 @@ import {
   type TIntent,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import { describe, expect, it, rs } from '@rstest/core';
-import { loadDotenvConfig } from '../../src/dotenv-loader';
+import { describe, expect, it, vi } from 'vitest';
+import { loadDotenvConfig } from '../src/cli/dotenv-loader';
 import {
   buildModelVerifyCurlCommands,
   runModelCommand,
-} from '../../src/model-command';
+} from '../src/cli/model-command';
 
-rs.mock('../../src/dotenv-loader', () => ({
-  loadDotenvConfig: rs.fn(),
+vi.mock('@midscene/core', () => ({ runConnectivityTest: vi.fn() }));
+
+vi.mock('../src/cli/dotenv-loader', () => ({
+  loadDotenvConfig: vi.fn(),
 }));
 
-rs.spyOn(globalModelConfigManager, 'getModelConfig');
+vi.spyOn(globalModelConfigManager, 'getModelConfig');
 
 function createModelConfig(
   overrides: Partial<IModelConfig> = {},
@@ -32,12 +34,82 @@ function createModelConfig(
 
 function createIO() {
   return {
-    stdout: rs.fn(),
-    stderr: rs.fn(),
+    stdout: vi.fn(),
+    stderr: vi.fn(),
   };
 }
 
 describe('model command', () => {
+  it('prints models, safe endpoints, actual request counts and mixed check results', async () => {
+    const io = createIO();
+    const checks = [
+      {
+        name: 'text' as const,
+        intent: 'planning' as const,
+        modelName: 'planner',
+        passed: true,
+        requestCount: 1,
+        durationMs: 120,
+        endpoints: [
+          'https://user:secret@example.com/v1/responses?api_key=secret',
+        ],
+        message: '',
+      },
+      {
+        name: 'vision' as const,
+        intent: 'insight' as const,
+        modelName: 'vision',
+        passed: false,
+        requestCount: 0,
+        durationMs: 0,
+        endpoints: [],
+        message: 'Invalid configuration',
+      },
+      {
+        name: 'aiLocate' as const,
+        intent: 'default' as const,
+        modelName: 'locator',
+        passed: true,
+        requestCount: 2,
+        durationMs: 250,
+        endpoints: ['https://example.com/v1/chat/completions'],
+        message: '',
+      },
+    ];
+    expect(
+      await runModelCommand(
+        ['model', 'verify'],
+        {
+          loadDotenv: vi.fn(),
+          getModelConfig: (intent) =>
+            createModelConfig({
+              intent,
+              openaiBaseURL:
+                'https://user:secret@example.com/v1?api_key=secret',
+            }),
+          verifyModel: vi.fn().mockResolvedValue({
+            passed: false,
+            requestCount: 3,
+            checks,
+            message: 'Invalid configuration',
+          }),
+        },
+        io,
+      ),
+    ).toBe(1);
+    const output = io.stdout.mock.calls.flat().join('\n');
+    expect(output).toMatch(/Model role\s+Model\s+Check\s+Endpoint/);
+    expect(output).toMatch(/planning\s+gpt-4o\s+Text response\s+\[1\]/);
+    expect(output).toContain('[1] Base URL: https://example.com/v1');
+    expect(output.match(/Base URL:/g)).toHaveLength(1);
+    expect(output).toMatch(/planning\s+Text response\s+PASS\s+1\s+120 ms/);
+    expect(output).toMatch(/insight\s+Image understanding\s+FAIL\s+0\s+0 ms/);
+    expect(output).toMatch(/default\s+AI locate\s+PASS\s+2\s+250 ms/);
+    expect(output).toContain('planning: https://example.com/v1/responses');
+    expect(output).toContain('Requests sent: 3. Checks: 2 passed, 1 failed.');
+    expect(output).not.toContain('secret');
+  });
+
   it('deduplicates curl commands by base URL, API key, and model name', () => {
     const commands = buildModelVerifyCurlCommands([
       {
@@ -89,14 +161,14 @@ describe('model command', () => {
 
   it('runs model verify with model configs', async () => {
     const io = createIO();
-    const loadDotenv = rs.fn();
+    const loadDotenv = vi.fn();
     const configs: Record<TIntent, IModelConfig> = {
       default: createModelConfig({ intent: 'default', slot: 'default' }),
       planning: createModelConfig({ intent: 'planning', slot: 'planning' }),
       insight: createModelConfig({ intent: 'insight', slot: 'insight' }),
     };
-    const getModelConfig = rs.fn((intent: TIntent) => configs[intent]);
-    const verifyModel = rs
+    const getModelConfig = vi.fn((intent: TIntent) => configs[intent]);
+    const verifyModel = vi
       .fn()
       .mockResolvedValue({ checks: [], requestCount: 0, passed: true });
 
@@ -122,7 +194,7 @@ describe('model command', () => {
     );
     expect(io.stdout).toHaveBeenCalledWith('');
     expect(io.stdout).toHaveBeenCalledWith('✅ Model verify passed.');
-    expect(rs.mocked(io.stdout).mock.invocationCallOrder[0]).toBeLessThan(
+    expect(vi.mocked(io.stdout).mock.invocationCallOrder[0]).toBeLessThan(
       loadDotenv.mock.invocationCallOrder[0],
     );
   });
@@ -141,7 +213,7 @@ describe('model command', () => {
       intent: 'insight',
       slot: 'insight',
     });
-    const getModelConfig = rs.mocked(globalModelConfigManager.getModelConfig);
+    const getModelConfig = vi.mocked(globalModelConfigManager.getModelConfig);
     getModelConfig.mockImplementation((intent: TIntent) => {
       const configs: Record<TIntent, IModelConfig> = {
         default: defaultConfig,
@@ -154,7 +226,7 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        verifyModel: rs
+        verifyModel: vi
           .fn()
           .mockResolvedValue({ checks: [], requestCount: 0, passed: true }),
       },
@@ -198,9 +270,9 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        loadDotenv: rs.fn(),
-        getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
-        verifyModel: rs.fn().mockResolvedValue({
+        loadDotenv: vi.fn(),
+        getModelConfig: vi.fn((intent: TIntent) => configs[intent]),
+        verifyModel: vi.fn().mockResolvedValue({
           checks: [],
           requestCount: 0,
           passed: false,
@@ -211,7 +283,7 @@ describe('model command', () => {
     );
 
     expect(exitCode).toBe(1);
-    const output = rs.mocked(io.stderr).mock.calls[0][0];
+    const output = vi.mocked(io.stderr).mock.calls[0][0];
     expect(output).toContain('────────────────────────────────────────');
     expect(output).toContain('❌ Model verify failed with messages:');
     expect(output).toContain(
@@ -254,9 +326,9 @@ describe('model command', () => {
     await runModelCommand(
       ['model', 'verify'],
       {
-        loadDotenv: rs.fn(),
-        getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
-        verifyModel: rs.fn().mockResolvedValue({
+        loadDotenv: vi.fn(),
+        getModelConfig: vi.fn((intent: TIntent) => configs[intent]),
+        verifyModel: vi.fn().mockResolvedValue({
           checks: [],
           requestCount: 0,
           passed: false,
@@ -266,7 +338,7 @@ describe('model command', () => {
       io,
     );
 
-    const output = rs.mocked(io.stderr).mock.calls[0][0];
+    const output = vi.mocked(io.stderr).mock.calls[0][0];
     expect(output).toContain(
       '# default (base URL not configured; using OpenAI SDK default)',
     );
@@ -282,7 +354,7 @@ describe('model command', () => {
 
     expect(exitCode).toBe(1);
     expect(io.stderr).toHaveBeenCalledWith(
-      'midscene model eval is not implemented yet. It is reserved for future model evaluation suites.',
+      'midscene-test model eval is not implemented yet. It is reserved for future model evaluation suites.',
     );
   });
 });

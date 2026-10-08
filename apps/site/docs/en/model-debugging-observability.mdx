@@ -45,6 +45,19 @@ This command checks both model connectivity and Midscene compatibility.
 Put your model configuration in a `.env` file, then run:
 
 ```bash
+# If the current project has @midscene/test installed
+pnpm exec midscene-test model verify
+
+# Run the latest version without installing it in the project
+pnpm dlx @midscene/test@latest model verify
+
+# Show command help
+pnpm exec midscene-test model verify --help
+```
+
+The same check is also available through `@midscene/cli`:
+
+```bash
 # If the current project has @midscene/cli installed, use the local midscene command
 npx midscene model verify
 
@@ -53,6 +66,12 @@ npx @midscene/cli@latest model verify
 ```
 
 The command reads the `.env` file in the current working directory. Dotenv debug logging is enabled by default, and values from `.env` override existing shell environment variables.
+
+Both commands check the default, planning, and insight model configurations without loading a Test project or connecting to a browser or device. The exit code is `0` on success and `1` on failure.
+
+The output lists each model and endpoint, then shows the text, vision, and AI locate check results, durations, and actual request counts. The summary includes total requests and passed/failed checks; a check that fails before sending a request has a count of `0`.
+
+The `Model role` column identifies the configuration being tested. `planning` uses a simple text-response check, `insight` uses an image-understanding check, and `default` uses AI locate. The planning check verifies a basic response from that model; it does not evaluate task-planning quality. Shared endpoints are listed once below the table. The command usually completes within 30 seconds.
 
 If the `curl` request succeeds but the Midscene verification command fails, the model API is reachable. Continue by checking the model capabilities and Midscene configuration.
 
