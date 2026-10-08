@@ -4,7 +4,10 @@ import type { UIContext } from '@/types';
 import { describe, expect, it } from '@rstest/core';
 
 const fakeUIContextBuilder = async () => {
-  const screenshot = ScreenshotItem.create('', Date.now());
+  const screenshot = ScreenshotItem.create(
+    'data:image/png;base64,iVBORw0KGgoAAAAA',
+    Date.now(),
+  );
   return {
     screenshot,
     tree: { node: null, children: [] },

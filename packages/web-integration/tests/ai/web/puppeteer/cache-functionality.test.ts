@@ -1,14 +1,51 @@
+import { once } from 'node:events';
 import fs from 'node:fs';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { PuppeteerAgent } from '@/puppeteer';
 import { TaskCache } from '@midscene/core/agent';
 import { sleep } from '@midscene/core/utils';
 import { uuid } from '@midscene/shared/utils';
-import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  rs,
+} from '@rstest/core';
 import yaml from 'js-yaml';
 import { launchPage } from './utils';
 
 rs.setConfig({
   testTimeout: 3 * 60 * 1000,
+});
+
+// Cache behavior should not depend on the current contents of a public website.
+const fixtureHtml = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Example Domain</title>
+<style>body{font:24px sans-serif;background:#fff;color:#111;padding:64px}h1{font-size:48px}</style>
+</head><body><h1>Example Domain</h1><p>A local example.com fixture for cache tests.</p></body></html>`;
+const fixtureServer = createServer((_req, res) => {
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+  res.end(fixtureHtml);
+});
+let fixtureUrl: string;
+
+beforeAll(async () => {
+  fixtureServer.listen(0, '127.0.0.1');
+  await once(fixtureServer, 'listening');
+  fixtureUrl = `http://127.0.0.1:${(fixtureServer.address() as AddressInfo).port}/`;
+});
+
+afterAll(async () => {
+  if (fixtureServer.listening) {
+    await new Promise<void>((resolve, reject) => {
+      fixtureServer.close((error) => (error ? reject(error) : resolve()));
+      fixtureServer.closeAllConnections();
+    });
+  }
 });
 
 describe('Cache Configuration Tests', () => {
@@ -28,7 +65,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with explicit cache ID (read-write mode)', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -59,7 +96,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with cache: false (disabled mode)', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -78,7 +115,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with cache: { strategy: "read-only" } mode', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -109,7 +146,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with cache: { strategy: "write-only" } mode', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -136,7 +173,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should prioritize new cache config over legacy cacheId', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -159,7 +196,7 @@ describe('Cache Configuration Tests', () => {
     process.env.MIDSCENE_CACHE = 'true';
 
     try {
-      const { originPage, reset } = await launchPage('https://example.com/');
+      const { originPage, reset } = await launchPage(fixtureUrl);
       resetFn = reset;
 
       agent = new PuppeteerAgent(originPage, {
@@ -192,7 +229,7 @@ describe('Cache Configuration Tests', () => {
     process.env.MIDSCENE_CACHE = 'false';
 
     try {
-      const { originPage, reset } = await launchPage('https://example.com/');
+      const { originPage, reset } = await launchPage(fixtureUrl);
       resetFn = reset;
 
       agent = new PuppeteerAgent(originPage, {
@@ -259,7 +296,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should cache and reuse planning results', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     // First agent - should create cache
@@ -286,7 +323,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should handle cache operations correctly', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     // Test flushCache with no cache configured
@@ -310,14 +347,17 @@ describe('Cache Operation Tests', () => {
     try {
       // Perform some actions to generate cache content
       await agentReadOnly.aiAssert('this is the example.com page');
-      await agentReadOnly.aiQuery('What is the page title?');
+      const heading = await agentReadOnly.aiQuery(
+        'string, the large visible heading in the page content, not the browser tab title',
+      );
+      expect(heading).toBe('Example Domain');
     } finally {
       await agentReadOnly.destroy();
     }
   });
 
   it('should handle cache file operations correctly', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     const cacheId = 'file-ops-test-001';
@@ -349,7 +389,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should overwrite stale empty-flow planning cache and reuse the refreshed cache', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     const prompt = 'click the title';
@@ -421,7 +461,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should handle cache with cacheable: false option', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -437,7 +477,9 @@ describe('Cache Operation Tests', () => {
     expect(agent.taskCache).toBeDefined();
 
     // Perform another action (use assert which is more reliable)
-    await agent.aiAssert('the page title contains text');
+    await agent.aiAssert(
+      'the page content has a visible heading reading Example Domain',
+    );
 
     await sleep(1000);
 
@@ -483,7 +525,7 @@ describe('Cache Edge Cases', () => {
   });
 
   it('should handle very long cache IDs by truncating', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     const longCacheId = 'a'.repeat(300); // Very long ID
@@ -501,7 +543,7 @@ describe('Cache Edge Cases', () => {
   });
 
   it('should handle special characters in cache ID', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     const specialCacheId = 'test/cache\\id:with*special?chars<>|"';
@@ -528,7 +570,7 @@ describe('Cache Edge Cases', () => {
   });
 
   it('should handle multiple agents with same cache ID correctly', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(fixtureUrl);
     resetFn = reset;
 
     const sharedCacheId = 'shared-cache-test-001';

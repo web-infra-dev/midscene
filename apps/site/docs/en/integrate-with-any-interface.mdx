@@ -342,6 +342,7 @@ abstract class AbstractInterface {
 
 These are the optional methods that you can implement:
 
+- `screenshot?(): Promise<{ bytes: Uint8Array; format: 'png' | 'jpeg' | 'webp' }>`: return the original encoded bytes and their format. Midscene prefers this method when provided, avoiding a Base64 round trip. Keep `screenshotBase64()` for compatibility. The bytes must match the declared format and must not be mutated after being returned.
 - `destroy?(): Promise<void>`: destroy the interface
 - `describe?(): string`: describe the interface, this may be used for the report and the playground. But it will not be provided to the AI model.
 - `beforeInvokeAction?(actionName: string, param: any): Promise<void>`: a hook function before invoking an action in action space

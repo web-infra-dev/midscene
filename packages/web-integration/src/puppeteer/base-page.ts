@@ -462,18 +462,26 @@ export class Page<
   }
 
   async screenshotBase64(): Promise<string> {
+    const image = await this.screenshot();
+    return createImgBase64ByFormat(
+      image.format,
+      Buffer.from(image.bytes).toString('base64'),
+    );
+  }
+
+  async screenshot(): Promise<{ bytes: Uint8Array; format: 'jpeg' }> {
     const imgType = 'jpeg' as const;
     const quality = 90;
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
 
-    let base64: string;
+    let bytes: Uint8Array;
     if (this.interfaceType === 'puppeteer') {
       const result = await capturePuppeteerScreenshot(
         this.underlyingPage as PuppeteerPage,
-        { type: imgType, quality, encoding: 'base64' },
+        { type: imgType, quality, encoding: 'binary' },
       );
-      base64 = createImgBase64ByFormat(imgType, result);
+      bytes = result;
     } else if (this.interfaceType === 'playwright') {
       const page = this.underlyingPage as PlaywrightPage;
       try {
@@ -482,7 +490,7 @@ export class Page<
           quality,
           timeout: 10 * 1000,
         });
-        base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
+        bytes = buffer;
       } catch (error) {
         if (isClosedPageError(error) || page.isClosed()) {
           throw error;
@@ -496,14 +504,17 @@ export class Page<
           'playwright screenshot failed, trying CDP fallback: %s',
           error,
         );
-        base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
+        bytes = Buffer.from(
+          await this.screenshotBase64ByPlaywrightCdp(imgType, quality),
+          'base64',
+        );
       }
     } else {
       throw new Error('Unsupported page type for screenshot');
     }
     const endTime = Date.now();
     debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
-    return base64;
+    return { bytes, format: imgType };
   }
 
   private async screenshotBase64ByPlaywrightCdp(
@@ -537,7 +548,7 @@ export class Page<
       })) as {
         data: string;
       };
-      return createImgBase64ByFormat(imgType, result.data);
+      return result.data;
     } finally {
       void client.detach().catch((error) => {
         debugPage('failed to detach CDP screenshot session: %s', error);

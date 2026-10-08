@@ -10,7 +10,13 @@ export function fakeBase64(
   sizeBytes: number,
   format: 'png' | 'jpeg' | 'webp' = 'png',
 ): string {
-  return `data:image/${format};base64,${'A'.repeat(sizeBytes)}`;
+  const signature = {
+    png: 'iVBORw0KGgoAAAAA',
+    jpeg: '/9j/4AAQSkZJRgAB',
+    webp: 'UklGRgAAAABXRUJQ',
+  }[format];
+  const body = `${signature}${'A'.repeat(Math.max(0, sizeBytes - signature.length))}`;
+  return `data:image/${format};base64,${body}`;
 }
 
 export const defaultReportMeta: ReportMeta = {

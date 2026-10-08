@@ -7,6 +7,7 @@ import type {
   LocateResultElement,
 } from '@/types';
 import type { ElementNode } from '@midscene/shared/extractor';
+import { EncodedImage, type ScreenshotImageFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
@@ -21,6 +22,17 @@ import { type InputStrategy, inputStrategies } from './input-strategy';
 
 export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
+}
+
+/** Resolve byte-native and legacy devices at one compatibility boundary. */
+export async function captureDeviceScreenshot(
+  device: Pick<AbstractInterface, 'screenshot' | 'screenshotBase64'>,
+): Promise<EncodedImage> {
+  if (device.screenshot) {
+    const image = await device.screenshot();
+    return EncodedImage.fromBytes(image.bytes, image.format);
+  }
+  return EncodedImage.fromBase64(await device.screenshotBase64());
 }
 
 export interface FileChooserRegistration {
@@ -175,6 +187,8 @@ export abstract class AbstractInterface {
   abstract interfaceType: string;
 
   abstract screenshotBase64(): Promise<string>;
+  /** Optional byte-native capture. Legacy adapters only need screenshotBase64. */
+  screenshot?(): Promise<{ bytes: Uint8Array; format: ScreenshotImageFormat }>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[];
 

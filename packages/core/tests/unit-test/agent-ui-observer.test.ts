@@ -159,7 +159,13 @@ describe('Agent.startObserving', () => {
     tempDirectories.push(directory);
     const framePaths = ['before', 'toast', 'after'].map((name) => {
       const path = join(directory, `${name}.png`);
-      writeFileSync(path, Buffer.from(name));
+      writeFileSync(
+        path,
+        Buffer.concat([
+          Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+          Buffer.from(name),
+        ]),
+      );
       return path;
     });
 
@@ -196,7 +202,7 @@ describe('Agent.startObserving', () => {
     expect(
       executionOptions.uiContext.screenshotSequence.map(
         (frame: ScreenshotItem) =>
-          Buffer.from(frame.rawBase64, 'base64').toString(),
+          Buffer.from(frame.rawBase64, 'base64').subarray(8).toString(),
       ),
     ).toEqual(['before', 'toast', 'after']);
 
@@ -245,7 +251,13 @@ describe('Agent.startObserving', () => {
     const directory = mkdtempSync(join(tmpdir(), 'midscene-adapter-record-'));
     tempDirectories.push(directory);
     const framePath = join(directory, 'frame.png');
-    writeFileSync(framePath, Buffer.from('frame'));
+    writeFileSync(
+      framePath,
+      Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.from('frame'),
+      ]),
+    );
     const record: UIObservationRecord = {
       type: 'midscene_ui_observation',
       version: 1,
