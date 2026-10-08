@@ -11,7 +11,6 @@ namespace midscene::rdp {
 struct MidsceneRdpContext {
   rdpContext context;
   FreeRdpSessionTransport* owner = nullptr;
-  pBitmapUpdate original_bitmap_update = nullptr;
   pcRdpgfxStartFrame original_graphics_start_frame = nullptr;
   pcRdpgfxEndFrame original_graphics_end_frame = nullptr;
 };
