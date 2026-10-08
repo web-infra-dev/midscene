@@ -11,7 +11,7 @@ import {
 } from '@/agent-tools-puppeteer';
 import { parseWebCliOptions } from '@/cli-options';
 import { runToolsCLI } from '@midscene/shared/cli';
-import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import puppeteer from 'puppeteer-core';
 
 const html = `<!DOCTYPE html>
@@ -93,6 +93,84 @@ describe('midscene-web CLI viewport e2e', () => {
       });
     }
   });
+
+  it('applies CLI viewport flags to the launched Puppeteer page', async () => {
+    const width = 1536;
+    const height = 864;
+    const parsedOptions = parseWebCliOptions([
+      '--viewport-width',
+      String(width),
+      '--viewport-height',
+      String(height),
+      'connect',
+      '--url',
+      baseUrl,
+    ]);
+
+    const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport, {
+      persistence,
+    });
+    let metrics:
+      | {
+          innerWidth: number;
+          innerHeight: number;
+          clientWidth: number;
+          clientHeight: number;
+        }
+      | undefined;
+    const destroy = tools.destroy.bind(tools);
+    // Inspect while the CLI's emulated viewport is active. Disconnecting
+    // restores Chrome's native window size, which includes browser UI.
+    const destroySpy = rs
+      .spyOn(tools, 'destroy')
+      .mockImplementation(async () => {
+        try {
+          const endpoint = (
+            await readFile(persistence.endpointFile, 'utf-8')
+          ).trim();
+          const browser = await puppeteer.connect({
+            browserWSEndpoint: endpoint,
+            defaultViewport: null,
+          });
+          try {
+            const pages = await browser.pages();
+            const page = pages.find(
+              (item) => item.url() === `${baseUrl}/` || item.url() === baseUrl,
+            );
+
+            if (!page) {
+              throw new Error(`Failed to find connected page for ${baseUrl}`);
+            }
+
+            metrics = await page.evaluate(() => ({
+              innerWidth: window.innerWidth,
+              innerHeight: window.innerHeight,
+              clientWidth: document.documentElement.clientWidth,
+              clientHeight: document.documentElement.clientHeight,
+            }));
+          } finally {
+            browser.disconnect();
+          }
+        } finally {
+          await destroy();
+        }
+      });
+
+    try {
+      await runToolsCLI(tools, 'midscene-web', {
+        stripPrefix: 'web_',
+        argv: parsedOptions.argv,
+      });
+      expect(metrics).toEqual({
+        innerWidth: width,
+        innerHeight: height,
+        clientWidth: width,
+        clientHeight: height,
+      });
+    } finally {
+      destroySpy.mockRestore();
+    }
+  }, 60_000);
 
   it.each([
     [1536, 864],
