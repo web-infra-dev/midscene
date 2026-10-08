@@ -2,8 +2,11 @@ import type {
   StepExecutionInfo,
   StepRunResult,
   WorkflowDocumentRunResult,
-} from '../engine/types';
-import type { CollectedCase, WorkflowDocumentSource } from '../parser/types';
+} from '@midscene/core/internal/test-runner';
+import type {
+  CollectedCase,
+  WorkflowDocumentSource,
+} from '@midscene/core/internal/test-runner';
 import type { LoadedExecutionProject, TestFileSelection } from './test-project';
 import type {
   TestExecutionProjectRunResult,
@@ -13,11 +16,13 @@ import type {
 
 export interface ProjectResultInput {
   readonly project: LoadedExecutionProject;
+  readonly platform?: string;
   readonly fileSelection: TestFileSelection;
   readonly sources: readonly WorkflowDocumentSource[];
   readonly collectionErrors: readonly TestProjectCollectionError[];
   readonly selectedCaseCount: number;
   readonly filteredCaseCount: number;
+  readonly plans?: TestExecutionProjectRunResult['plans'];
 }
 
 export const asNotRun = (
@@ -47,11 +52,18 @@ export const formatStepResult = (
   result: StepRunResult,
   indent = '',
 ): string => {
+  if (result.status === 'not-run')
+    return `${indent}– ${formatStep(info)} (not run: ${result.notRunReason})`;
   const symbol = result.status === 'success' ? '✓' : '✗';
   const error = result.error ? ` — ${result.error.message}` : '';
   const continuation = result.continuedAfterError ? '; continuing' : '';
   return `${indent}${symbol} ${formatStep(info)} (${result.durationMs} ms)${error}${continuation}`;
 };
+
+export const latestById = <T>(
+  items: readonly T[],
+  id: (item: T) => string,
+): T[] => [...new Map(items.map((item) => [id(item), item])).values()];
 
 export const buildProjectResult = (
   prepared: ProjectResultInput,
@@ -62,16 +74,19 @@ export const buildProjectResult = (
   const { project } = prepared;
   const projectFailed =
     prepared.collectionErrors.length > 0 ||
-    cases.some(
+    latestById(cases, (item) => item.caseId).some(
       (item) =>
         item.status !== 'success' ||
         item.execution?.lifecycle?.status === 'failed',
     ) ||
-    documents.some((item) => item.status === 'failed') ||
+    latestById(documents, (item) => item.documentId).some(
+      (item) => item.status === 'failed',
+    ) ||
     lifecycle?.status === 'failed';
   return {
     projectId: project.projectId,
     name: project.name,
+    ...(prepared.platform ? { platform: prepared.platform } : {}),
     status: projectFailed ? 'failed' : 'success',
     retry: project.retry,
     fileSelection: prepared.fileSelection,
@@ -81,6 +96,7 @@ export const buildProjectResult = (
     filteredCaseCount: prepared.filteredCaseCount,
     ...(lifecycle ? { lifecycle } : {}),
     cases,
+    ...(prepared.plans ? { plans: prepared.plans } : {}),
     documents,
     collectionErrors: prepared.collectionErrors,
   };

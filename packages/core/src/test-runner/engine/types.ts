@@ -248,6 +248,7 @@ export interface CaseRunOutcome {
     | 'cleanup-pending'
     | 'cleanup-failed'
     | 'operation-pending'
+    | 'executor-failed'
     | 'fatal-error';
 }
 

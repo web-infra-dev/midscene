@@ -6,10 +6,7 @@ import {
   observeResourceOperations,
   runConcurrentJobs,
 } from '@midscene/core/internal/test-runner';
-import type {
-  CollectedCase,
-  WorkflowDocumentRunResult,
-} from '@midscene/core/internal/test-runner';
+import type { WorkflowDocumentRunResult } from '@midscene/core/internal/test-runner';
 import {
   TestRunReportAssembler,
   calculateTestRunHealth,
@@ -20,6 +17,7 @@ import {
   buildTestRunReportDump,
   collectTestRunReportSources,
 } from '../report/test-run-report';
+import { runCaseExecution } from './case-execution';
 import { executeDocumentInvocation } from './document-invocation';
 import type {
   PreparedDocumentInvocation,
@@ -28,28 +26,13 @@ import type {
 } from './execution-plan';
 import { createOperationJournal } from './operation-journal';
 import { writeTestProjectRunResult, writeTestRunPlan } from './result-store';
+import { asNotRun, buildProjectResult, latestById } from './execution-result';
 import type {
   TestExecutionProjectRunResult,
   TestProjectCaseRunResult,
   TestProjectRunResult,
   TestProjectRunSummary,
 } from './types';
-
-const asNotRun = (
-  documentId: string,
-  collectedCase: CollectedCase,
-  projectName: string,
-  reason: NonNullable<TestProjectCaseRunResult['notRunReason']>,
-): TestProjectCaseRunResult => ({
-  documentId,
-  caseId: collectedCase.caseId,
-  projectName,
-  name: collectedCase.definition.name,
-  sourcePath: collectedCase.sourcePath,
-  caseIndex: collectedCase.caseIndex,
-  status: 'not-run',
-  notRunReason: reason,
-});
 
 const summarize = (
   projects: readonly TestExecutionProjectRunResult[],
@@ -99,10 +82,6 @@ const summarize = (
       .length,
   };
 };
-
-const latestById = <T>(items: readonly T[], id: (item: T) => string): T[] => [
-  ...new Map(items.map((item) => [id(item), item])).values(),
-];
 
 const notRunSuite = (
   prepared: PreparedExecutionProject,
@@ -155,7 +134,12 @@ export async function runPreparedTestProject(
   const journal = createOperationJournal(runDir);
   const rootController = new AbortController();
   setMaxListeners(
-    Math.max(10, effectiveConcurrency + 1),
+    Math.max(
+      10,
+      (definition.test.executionUnit === 'case'
+        ? Math.min(definition.test.maxConcurrency, totalCases)
+        : effectiveConcurrency) + 1,
+    ),
     rootController.signal,
   );
   const handleSignal = (signal: NodeJS.Signals) => {
@@ -210,40 +194,6 @@ export async function runPreparedTestProject(
         `[project ${projectIndex + 1}/${preparedProjects.length}] ${project.name}`,
       ),
     );
-  };
-  const buildProjectResult = (
-    prepared: PreparedProject,
-    cases: readonly TestProjectCaseRunResult[],
-    documents: readonly WorkflowDocumentRunResult[],
-    lifecycle?: TestExecutionProjectRunResult['lifecycle'],
-  ): TestExecutionProjectRunResult => {
-    const { project } = prepared;
-    const projectFailed =
-      prepared.collectionErrors.length > 0 ||
-      latestById(cases, (item) => item.caseId).some(
-        (item) => item.status !== 'success',
-      ) ||
-      latestById(documents, (item) => item.documentId).some(
-        (item) => item.status === 'failed',
-      ) ||
-      lifecycle?.status === 'failed';
-    return {
-      projectId: project.projectId,
-      name: project.name,
-      ...(prepared.platform ? { platform: prepared.platform } : {}),
-      status: projectFailed ? 'failed' : 'success',
-      retry: project.retry,
-      fileSelection: prepared.fileSelection,
-      tagSelection: project.tags,
-      sourceCount: prepared.sources.length,
-      selectedCaseCount: prepared.selectedCaseCount,
-      filteredCaseCount: prepared.filteredCaseCount,
-      ...(lifecycle ? { lifecycle } : {}),
-      cases,
-      plans: prepared.plans,
-      documents,
-      collectionErrors: prepared.collectionErrors,
-    };
   };
   const buildSkippedProjectResult = (
     prepared: PreparedProject,
@@ -444,24 +394,41 @@ export async function runPreparedTestProject(
     new Array(preparedProjects.length);
 
   try {
-    await runConcurrentJobs(
-      preparedProjects,
-      {
-        concurrency: effectiveConcurrency,
-        shouldStop: () =>
-          hasInfrastructureError ||
-          rootController.signal.aborted ||
-          bailReached(),
-      },
-      async (prepared, index) => {
-        try {
-          projectResults[index] = await runPreparedProject(prepared, index);
-        } catch (error) {
-          recordInfrastructureError(error);
-          throw error;
-        }
-      },
-    );
+    if (
+      definition.test.executionUnit === 'case' &&
+      !(plan.preflightScope === 'run' && totalErrors > 0)
+    ) {
+      const results = await runCaseExecution({
+        projects: preparedProjects,
+        test: definition.test,
+        executor: definition.executor,
+        runDir,
+        signal: rootController.signal,
+        progress,
+        onInfrastructureError: recordInfrastructureError,
+      });
+      results.forEach((result, index) => {
+        projectResults[index] = result;
+      });
+    } else
+      await runConcurrentJobs(
+        preparedProjects,
+        {
+          concurrency: effectiveConcurrency,
+          shouldStop: () =>
+            hasInfrastructureError ||
+            rootController.signal.aborted ||
+            bailReached(),
+        },
+        async (prepared, index) => {
+          try {
+            projectResults[index] = await runPreparedProject(prepared, index);
+          } catch (error) {
+            recordInfrastructureError(error);
+            throw error;
+          }
+        },
+      );
   } catch (error) {
     recordInfrastructureError(error);
   } finally {

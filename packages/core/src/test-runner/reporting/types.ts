@@ -1,5 +1,6 @@
 import type {
   TestRunReportDocumentPlan,
+  TestRunReportCaseExecution,
   TestRunReportSummary,
 } from '../../test-run-report';
 import type {
@@ -13,6 +14,16 @@ export interface RunReportCaseInput extends CaseRunOutcome {
   documentId: string;
   /** Required when the same logical document has multiple invocations. */
   documentRunId?: string;
+  execution?: Omit<
+    TestRunReportCaseExecution,
+    'resources' | 'lifecycle' | 'artifacts'
+  > & {
+    resources: readonly string[];
+    lifecycle?: ProjectRuntimeResult;
+    artifacts?: readonly NonNullable<
+      TestRunReportCaseExecution['artifacts']
+    >[number][];
+  };
 }
 
 export interface RunReportProjectInput {

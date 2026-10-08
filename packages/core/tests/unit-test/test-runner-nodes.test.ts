@@ -4,6 +4,18 @@ import { commonAgentTestRunnerNodeDefinitions } from '../../src/agent/test-runne
 
 describe('Agent Test Runner Node definitions', () => {
   it.each([
+    { timeoutMs: 100, checkIntervalMs: 200 },
+    { timeoutMs: 100 },
+    { checkIntervalMs: 16000 },
+  ])('validates aiWaitFor intervals including defaults: %j', (options) => {
+    const definition = commonAgentTestRunnerNodeDefinitions.find(
+      (node) => node.name === 'aiWaitFor',
+    )!;
+    expect(
+      definition.inputSchema.safeParse({ prompt: 'ready', options }).success,
+    ).toBe(false);
+  });
+  it.each([
     { target: 'aiAct', context: 'Use the test account.' },
     { target: 'default', context: '' },
     { target: 'aiAssert' },
@@ -129,7 +141,6 @@ describe('Agent Test Runner Node definitions', () => {
       ['aiAct', 'prompt'],
       ['aiTap', 'prompt'],
       ['aiAssert', 'prompt'],
-      ['aiWaitFor', 'prompt'],
       ['aiBoolean', 'prompt'],
       ['aiNumber', 'prompt'],
       ['aiString', 'prompt'],
