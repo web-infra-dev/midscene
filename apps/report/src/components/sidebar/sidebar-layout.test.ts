@@ -84,7 +84,7 @@ describe('sidebar layout', () => {
   });
 
   it('provides mobile steps and player panes with a safe-area bottom inset', () => {
-    expect(appStyles).toContain(mobileReportMediaQuery);
+    expect(appStyles.replace(/\s+/g, ' ')).toContain(mobileReportMediaQuery);
     expect(appStyles).toMatch(/\.mobile-report-tabs\s*{[\s\S]*?display: grid;/);
     expect(appStyles).toMatch(/\.mobile-pane-hidden\s*{[\s\S]*?display: none;/);
     expect(appStyles).toContain(
@@ -144,7 +144,9 @@ describe('sidebar layout', () => {
     expect(appStyles).toMatch(
       /\.mobile-report-tabs\s*{[\s\S]*?padding: 2px;[\s\S]*?button\s*{[\s\S]*?height: 44px;/,
     );
-    expect(detailPanelStyles).toContain(mobileReportMediaQuery);
+    expect(detailPanelStyles.replace(/\s+/g, ' ')).toContain(
+      mobileReportMediaQuery,
+    );
     expect(detailPanelStyles).toMatch(
       /\.copy-json-label,\s*\.open-in-playground-trigger\s*{\s*display: none;/,
     );
