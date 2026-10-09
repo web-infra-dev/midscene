@@ -195,10 +195,10 @@ export MIDSCENE_MODEL_FAMILY="gpt-6"
 1. 首次获取凭据
 
    ```bash
-   npx midscene model siwc login
+   npx @midscene/cli model siwc login
    ```
 
-   按照终端提示在浏览器中完成授权。命令会打印 Access token，可将其配置为 `MIDSCENE_MODEL_API_KEY`。完整凭据保存在本地 `~/.midscene/siwc.json`，Midscene 不会收集你的凭据。
+   按照终端提示在浏览器中完成授权。授权时可为 Agent 自行取名，名称没有特殊要求；完成后，你可以在 ChatGPT 的使用情况页面查看已授权的 Agent。命令会打印 Access token，可将其配置为 `MIDSCENE_MODEL_API_KEY`。完整凭据保存在本地 `~/.midscene/siwc.json`，Midscene 不会收集你的凭据。
 
    使用 access token 时的环境变量配置示例，以 `gpt-6-sol` 为例：
 
@@ -222,7 +222,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-6"
    Access token 会过期（默认有效期为 1 小时），需要主动更新凭据，使用下面的命令：
 
    ```bash
-   npx midscene model siwc refresh
+   npx @midscene/cli model siwc refresh
    ```
 
    命令会更新本地凭据并打印新的 Access token，请同步更新模型配置中的 token。

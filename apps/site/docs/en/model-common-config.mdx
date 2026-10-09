@@ -195,10 +195,10 @@ Usage:
 1. Obtain credentials for the first time
 
    ```bash
-   npx midscene model siwc login
+   npx @midscene/cli model siwc login
    ```
 
-   Follow the terminal instructions to authorize in your browser. The command prints an access token, which you can set as `MIDSCENE_MODEL_API_KEY`. Full credentials are saved locally to `~/.midscene/siwc.json`. Midscene does not collect your credentials.
+   Follow the terminal instructions to authorize in your browser. You can choose any name for your Agent during authorization. Once authorized, the Agent will appear on your ChatGPT usage page. The command prints an access token, which you can set as `MIDSCENE_MODEL_API_KEY`. Full credentials are saved locally to `~/.midscene/siwc.json`. Midscene does not collect your credentials.
 
    Environment variable configuration for using an access token, with `gpt-6-sol` as an example:
 
@@ -222,7 +222,7 @@ Usage:
    Access tokens expire after 1 hour by default. Refresh your credentials manually with:
 
    ```bash
-   npx midscene model siwc refresh
+   npx @midscene/cli model siwc refresh
    ```
 
    The command updates your local credentials and prints a new access token. Update the token in your model configuration as well.
