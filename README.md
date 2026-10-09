@@ -21,7 +21,7 @@ Midscene.js helps developers bring AI to E2E testing. Describe UI steps and expe
 
 ### YAML test cases with Midscene Test
 
-After [creating a Midscene Test project](https://midscenejs.com/midscene-test/extend) and configuring a model and the Web runtime, write a case like this. Replace the example URL with your app's address:
+After [creating a Midscene Test project](https://midscenejs.com/midscene-test/use) and configuring a model and the Web runtime, write a case like this. Replace the example URL with your app's address:
 
 ```yaml
 beforeEach:
@@ -95,7 +95,7 @@ Use the same Agent APIs to describe actions and assertions across platforms:
 - **Reuse business capabilities through TypeScript Nodes.** Wrap data preparation, API calls, and cleanup in nodes that different cases can share. A refund test can prepare an order through an API, request a refund through the UI, and verify the result in one workflow.
 - **Generate a Node Spec for developers and AI Agents.** Export registered nodes and their parameter schemas as Markdown, so both can discover project capabilities and co-maintain test cases.
 
-Start with [Create and extend a project](https://midscenejs.com/midscene-test/extend), then [Write and run tests](https://midscenejs.com/midscene-test/use).
+Start with [Create and use test projects](https://midscenejs.com/midscene-test/use), then [Develop custom Nodes](https://midscenejs.com/midscene-test/extend) to add business capabilities.
 
 ## 🧰 Tools for writing and debugging tests
 
@@ -125,7 +125,7 @@ Explore [cross-platform showcases](https://midscenejs.com/showcases), from web f
 
 ## 🚀 Get started
 
-- **Write YAML test cases** — [create a Midscene Test project](https://midscenejs.com/midscene-test/extend).
+- **Write YAML test cases** — [create a Midscene Test project](https://midscenejs.com/midscene-test/use).
 - **Add visual capabilities to existing tests** — integrate with [Playwright](https://midscenejs.com/integrate-with-playwright) or [Puppeteer](https://midscenejs.com/integrate-with-puppeteer).
 - **Try it before writing tests** — use the [Chrome extension](https://midscenejs.com/quick-start), or launch a [Playground for mobile or desktop](https://midscenejs.com/quick-start#use-midscene-on-other-platforms).
 - **Let your AI agent operate the UI** — install [Midscene Skills](https://midscenejs.com/skills).

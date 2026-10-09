@@ -21,7 +21,7 @@ Midscene.js 帮助开发者将 AI 引入 E2E 测试。用自然语言描述界�
 
 ### 使用 Midscene Test 编写 YAML 用例
 
-[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/extend)，配置好模型和 Web 运行环境后，就可以编写下面这样的用例。请将示例网址替换为你的应用地址：
+[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)，配置好模型和 Web 运行环境后，就可以编写下面这样的用例。请将示例网址替换为你的应用地址：
 
 ```yaml
 beforeEach:
@@ -95,7 +95,7 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`
 - **用 TypeScript 节点复用业务能力**：将数据准备、接口调用与清理封装为节点，供不同用例复用。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。
 - **为开发者和 AI Agent 生成 Node 说明书**：将已注册节点与参数定义导出为 Markdown，让双方都能了解项目能力，共同编写和维护用例。
 
-从[创建与扩展测试项目](https://midscenejs.com/zh/midscene-test/extend)开始，再了解如何[编写与运行用例](https://midscenejs.com/zh/midscene-test/use)。
+从[创建和使用测试项目](https://midscenejs.com/zh/midscene-test/use)开始，再通过[编写自定义 Node](https://midscenejs.com/zh/midscene-test/extend)扩展业务能力。
 
 ## 🧰 编写与调试测试的工具链
 
@@ -125,7 +125,7 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`
 
 ## 🚀 开始使用
 
-- **编写 YAML 测试用例**：先[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/extend)。
+- **编写 YAML 测试用例**：先[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)。
 - **为现有测试引入视觉能力**：接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) 或 [Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer)。
 - **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/quick-start)，或启动[移动端或桌面端 Playground](https://midscenejs.com/zh/quick-start#在其他平台使用-midscene)。
 - **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。
