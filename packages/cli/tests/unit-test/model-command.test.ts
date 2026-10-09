@@ -9,10 +9,13 @@ import {
   buildModelVerifyCurlCommands,
   runModelCommand,
 } from '../../src/model-command';
+import { runSiwcCommand } from '../../src/siwc-command';
 
 rs.mock('../../src/dotenv-loader', () => ({
   loadDotenvConfig: rs.fn(),
 }));
+
+rs.mock('../../src/siwc-command', () => ({ runSiwcCommand: rs.fn() }));
 
 rs.spyOn(globalModelConfigManager, 'getModelConfig');
 
@@ -38,6 +41,34 @@ function createIO() {
 }
 
 describe('model command', () => {
+  it('includes SIWC in model command help', async () => {
+    const io = createIO();
+    expect(await runModelCommand(['model', '--help'], {}, io)).toBe(0);
+    expect(io.stdout).toHaveBeenCalledWith(
+      expect.stringContaining('midscene model siwc <login|refresh> [options]'),
+    );
+  });
+
+  it('routes siwc options and output without loading model configuration', async () => {
+    const io = createIO();
+    const loadDotenv = rs.fn();
+    const getModelConfig = rs.fn();
+    rs.mocked(runSiwcCommand).mockResolvedValueOnce(0);
+    expect(
+      await runModelCommand(
+        ['model', 'siwc', 'login', '--no-open', '--port', '1455'],
+        { loadDotenv, getModelConfig },
+        io,
+      ),
+    ).toBe(0);
+    expect(runSiwcCommand).toHaveBeenCalledWith(
+      ['login', '--no-open', '--port', '1455'],
+      io,
+    );
+    expect(loadDotenv).not.toHaveBeenCalled();
+    expect(getModelConfig).not.toHaveBeenCalled();
+  });
+
   it('deduplicates curl commands by base URL, API key, and model name', () => {
     const commands = buildModelVerifyCurlCommands([
       {

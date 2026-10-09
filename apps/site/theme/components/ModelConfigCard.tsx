@@ -37,7 +37,7 @@ export function ModelConfigCard(props: ModelConfigCardProps) {
 
   return (
     <div className="model-config-tabs">
-      {props.responses && (
+      {props.responses && !props.protocol && (
         <fieldset
           className="model-api-selector"
           aria-label={lang === 'zh' ? '协议类型' : 'Protocol'}

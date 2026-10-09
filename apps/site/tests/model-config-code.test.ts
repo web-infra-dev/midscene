@@ -36,10 +36,40 @@ describe('model configuration examples', () => {
         'openai-responses',
       );
       expect(code).toBe(
-        `${prefix}_PROTOCOL="openai-responses"\n${buildModelConfigCode(config, purpose, 'openai-chat')}`,
+        `${buildModelConfigCode(config, purpose, 'openai-chat')}\n${prefix}_PROTOCOL="openai-responses"`,
       );
     },
   );
+
+  it.each([
+    ['default', 'MIDSCENE_MODEL'],
+    ['planning', 'MIDSCENE_PLANNING_MODEL'],
+    ['insight', 'MIDSCENE_INSIGHT_MODEL'],
+  ] as const)('generates the %s SIWC configuration', (purpose, prefix) => {
+    const code = buildModelConfigCode(
+      {
+        ...config,
+        apiKey: '<your-access-token>',
+        protocol: {
+          value: 'openai-responses',
+          comment: 'SIWC requires the Responses API',
+        },
+        streamMode: {
+          value: 'stream',
+          comment: 'SIWC requires streaming',
+        },
+      },
+      purpose,
+      'openai-chat',
+    );
+    expect(code).toContain(
+      `${prefix}_PROTOCOL="openai-responses" # SIWC requires the Responses API`,
+    );
+    expect(code).toContain(`${prefix}_API_KEY="<your-access-token>"`);
+    expect(code).toContain(
+      'MIDSCENE_MODEL_STREAM_MODE="stream" # SIWC requires streaming',
+    );
+  });
 
   it('applies the endpoint override only to Responses', () => {
     const withOverride = {

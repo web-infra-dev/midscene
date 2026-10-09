@@ -38,6 +38,7 @@ Homepage: https://midscenejs.com
 Github: https://github.com/web-infra-dev/midscene
 
 Usage: 
+      $0 model siwc <login|refresh> [options]
       $0 [options] <path-to-yaml-script-file-or-directory>
       $0 [options] --files <yaml-file1> <yaml-file2 ...>
       $0 [options] --config <path-to-config-yaml-file>

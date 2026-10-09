@@ -138,6 +138,55 @@ Environment variable configuration example, using `gemini-3.5-flash`:
 
 </div>
 
+**Use your ChatGPT subscription (recommended)**
+
+If you have a ChatGPT plan subscription, you can obtain a ChatGPT authorization token through [SIWC (Sign in with ChatGPT)](https://developers.openai.com/siwc/token-sharing-open-source/sign-in). You can use this token to call OpenAI services in Midscene, just like an OpenAI API Key.
+
+Usage:
+
+1. Obtain credentials for the first time
+
+   ```bash
+   npx @midscene/cli model siwc login
+   ```
+
+   Follow the terminal instructions to authorize in your browser. You can choose any name for your Agent during authorization. Once authorized, the Agent will appear on your ChatGPT usage page. The command prints an access token, which you can set as `MIDSCENE_MODEL_API_KEY`. Full credentials are saved locally to `~/.midscene/siwc.json`. Midscene does not collect your credentials.
+
+   Environment variable configuration for using an access token, with `gpt-6-sol` as an example:
+
+   <ModelConfigCard
+     baseUrl="https://api.openai.com/v1"
+     apiKey="<your-access-token>"
+     modelName="gpt-6-sol"
+     modelFamily="gpt-6"
+     protocol={{
+       value: "openai-responses",
+       comment: "SIWC requires the Responses API",
+     }}
+     streamMode={{
+       value: "stream",
+       comment: "SIWC requires streaming",
+     }}
+   />
+
+2. Refresh the access token
+
+   Access tokens expire after 1 hour by default. Refresh your credentials manually with:
+
+   ```bash
+   npx @midscene/cli model siwc refresh
+   ```
+
+   The command updates your local credentials and prints a new access token. Update the token in your model configuration as well.
+
+Notes:
+
+1. Please comply with OpenAI's regional restrictions and terms of use. See the [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/).
+2. SIWC consumes your subscription usage. ChatGPT determines how token consumption translates into subscription usage. You can view token consumption for each task step in Midscene reports.
+3. To call models through SIWC, use the Responses API with streaming enabled.
+
+**Use an API Key**
+
 Environment variable configuration example, using `gpt-6-sol`:
 
 <ModelConfigCard
@@ -150,7 +199,7 @@ Environment variable configuration example, using `gpt-6-sol`:
   responses
 />
 
-**Fast mode**
+**Enable Fast mode (`service_tier="fast"`)**
 
 Both GPT-5.6 Sol and GPT-6 Astra support Fast mode. Add the `service_tier` request body parameter to enable it. For example, with GPT-5.6 Sol:
 
@@ -170,8 +219,8 @@ If you already signed in with Codex CLI (`codex login`) and want Midscene to use
 
 ```bash
 export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-5.4" # or another model shown by Codex model/list
-export MIDSCENE_MODEL_FAMILY="gpt-5"
+export MIDSCENE_MODEL_NAME="gpt-6-sol" # or another model shown by Codex model/list
+export MIDSCENE_MODEL_FAMILY="gpt-6"
 ```
 
 Notes:
@@ -186,13 +235,12 @@ Compared with calling an OpenAI-compatible API directly, we have observed that t
 
 :::
 
-When using GPT-5, note the following:
+**When using GPT, note the following:**
 
-- For UI localization with GPT, Midscene currently supports `gpt-5.4` and later models. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while some smaller GPT-5 variants, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
+- GPT-5.4 or later is required for UI localization. Midscene does not support earlier versions.
 - According to OpenAI, GPT-5 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
 - Azure OpenAI's Chat Completions API may not handle `"detail": "original"` correctly, causing click-coordinate offsets. If you encounter this issue, you can switch to the Responses API. See [Clicks are offset when using Azure OpenAI](./faq#clicks-are-offset-when-using-azure-openai).
-- If you use an older GPT-5 model, we recommend using it only as the planning model and pairing it with another multimodal model for localization. See the [multi-model combination example](#multi-model-combination-example).
 
 ### Moonshot Kimi Series {#kimi}
 
