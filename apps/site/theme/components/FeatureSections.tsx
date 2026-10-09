@@ -1,14 +1,18 @@
 import { Link } from '@rspress/core/theme-original';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, CircleCheck, ScanSearch } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useI18n, useI18nUrl } from '../i18n';
+import { FeatureCard } from './FeatureCard';
+import { PlatformTable } from './PlatformTable';
 import { SectionDivider } from './SectionDivider';
+import { TestFramework } from './TestFramework';
+import { TestingToolkit } from './TestingToolkit';
 import { TiltCard } from './TiltCard';
 
 interface FeatureSectionProps {
   eyebrow: string;
   heading: string;
-  descriptions: string[];
+  descriptions?: string[];
   variant: 'platforms' | 'models' | 'toolkit' | 'benchmarks';
   action?: {
     href: string;
@@ -21,7 +25,7 @@ interface FeatureSectionProps {
 function FeatureSection({
   eyebrow,
   heading,
-  descriptions,
+  descriptions = [],
   variant,
   action,
   children,
@@ -38,78 +42,32 @@ function FeatureSection({
             <h2>{heading}</h2>
           </div>
 
-          <div className="home-feature__details">
-            <ul>
-              {descriptions.map((description) => (
-                <li key={description}>
-                  <span>{description}</span>
-                </li>
-              ))}
-            </ul>
-            {action && (
-              <Link
-                className="home-feature__action"
-                href={action.href}
-                title={action.description}
-              >
-                <span>{action.label}</span>
-                <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
-              </Link>
-            )}
-          </div>
+          {(descriptions.length > 0 || action) && (
+            <div className="home-feature__details">
+              <ul>
+                {descriptions.map((description) => (
+                  <li key={description}>
+                    <span>{description}</span>
+                  </li>
+                ))}
+              </ul>
+              {action && (
+                <Link
+                  className="home-feature__action"
+                  href={action.href}
+                  title={action.description}
+                >
+                  <span>{action.label}</span>
+                  <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
+                </Link>
+              )}
+            </div>
+          )}
         </header>
 
         {children}
       </div>
     </section>
-  );
-}
-
-interface FeatureCardProps {
-  href: string;
-  title: string;
-  description: string;
-  lightBackground: string;
-  darkBackground: string;
-  visualClassName?: string;
-  lightContent?: ReactNode;
-  darkContent?: ReactNode;
-}
-
-function FeatureCard({
-  href,
-  title,
-  description,
-  lightBackground,
-  darkBackground,
-  visualClassName,
-  lightContent,
-  darkContent,
-}: FeatureCardProps) {
-  return (
-    <TiltCard href={href} className="home-feature-card">
-      <div
-        className={`home-feature-card__visual${visualClassName ? ` ${visualClassName}` : ''}`}
-        aria-hidden="true"
-      >
-        <div
-          className="home-feature-card__theme home-feature-card__theme--light"
-          style={{ backgroundImage: `url(${lightBackground})` }}
-        >
-          {lightContent}
-        </div>
-        <div
-          className="home-feature-card__theme home-feature-card__theme--dark"
-          style={{ backgroundImage: `url(${darkBackground})` }}
-        >
-          {darkContent ?? lightContent}
-        </div>
-      </div>
-      <div className="home-feature-card__content">
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </div>
-    </TiltCard>
   );
 }
 
@@ -152,112 +110,23 @@ export function FeatureSections() {
   return (
     <div className="home-features">
       <FeatureSection
-        eyebrow={t('clientsTitle')}
-        heading={t('clientsHeading')}
-        descriptions={[t('clientsDesc1'), t('clientsDesc2'), t('clientsDesc3')]}
-        variant="platforms"
-      >
-        <div className="home-feature-grid home-feature-grid--platforms">
-          <FeatureCard
-            href={tUrl(t('platformWebLink'))}
-            title={t('platformWeb')}
-            description={t('platformWebDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <img
-                src="/images/platforms/web-light.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--web"
-              />
-            }
-            darkContent={
-              <img
-                src="/images/platforms/web-dark.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--web"
-              />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('platformPCLink'))}
-            title={t('platformPC')}
-            description={t('platformPCDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <img
-                src="/images/platforms/pc-light.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--pc"
-              />
-            }
-            darkContent={
-              <img
-                src="/images/platforms/pc-dark.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--pc"
-              />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('platformMobileLink'))}
-            title={t('platformMobile')}
-            description={t('platformMobileDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <div className="home-feature-card__phones">
-                <img src="/images/platforms/android-light.png" alt="" />
-                <img src="/images/platforms/ios-light.png" alt="" />
-              </div>
-            }
-            darkContent={
-              <div className="home-feature-card__phones">
-                <img src="/images/platforms/android-dark.png" alt="" />
-                <img src="/images/platforms/ios-dark.png" alt="" />
-              </div>
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('platformAnyInterfaceLink'))}
-            title={t('platformAnyInterface')}
-            description={t('platformAnyInterfaceDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <img
-                src="/images/platforms/any-interface-light.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--interface"
-              />
-            }
-            darkContent={
-              <img
-                src="/images/platforms/any-interface-dark.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--interface"
-              />
-            }
-          />
-        </div>
-      </FeatureSection>
-
-      <SectionDivider className="home-feature__divider" />
-
-      <FeatureSection
         eyebrow={t('modelsTitle')}
         heading={t('modelsHeading')}
-        descriptions={[t('modelsDesc1'), t('modelsDesc2'), t('modelsDesc3')]}
         variant="models"
       >
         <div className="home-feature-grid">
           <FeatureCard
-            href={tUrl('/model-common-config#doubao-seed-model')}
-            title={t('modelSeedName')}
-            description={t('modelSeedDesc')}
-            lightBackground="/images/backgrounds/doubao.svg"
-            darkBackground="/images/backgrounds/doubao-dark.svg"
+            href={tUrl('/model-strategy')}
+            title={t('modelVisionName')}
+            description={t('modelVisionDesc')}
+            lightBackground="/images/backgrounds/gradient-light.svg"
+            darkBackground="/images/backgrounds/gradient-dark.svg"
+            lightContent={
+              <div className="home-model-visual">
+                <ScanSearch size={72} strokeWidth={1} />
+                <span>{t('modelVisionMetric')}</span>
+              </div>
+            }
           />
           <FeatureCard
             href={tUrl('/model-common-config')}
@@ -270,22 +139,32 @@ export function FeatureSections() {
             href={tUrl('/app-control-bench-report')}
             title={t('modelCostName')}
             description={t('modelCostDesc')}
+            actionLabel={t('modelCostReport')}
             lightBackground="/images/backgrounds/gradient-light.svg"
             darkBackground="/images/backgrounds/gradient-dark.svg"
             visualClassName="home-feature-card__visual--cost"
             lightContent={
               <div className="home-model-cost">
+                <span className="home-model-cost__eyebrow">
+                  {t('modelCostExample')}
+                </span>
                 <strong>$0.59</strong>
                 <span>{t('modelCostMetric')}</span>
               </div>
             }
           />
           <FeatureCard
-            href={tUrl(t('multiModelStrategyLink'))}
-            title={t('modelMultiModelName')}
-            description={t('modelMultiModelDesc')}
-            lightBackground="/images/models/multi-model-combo-light.svg"
-            darkBackground="/images/models/multi-model-combo-dark.svg"
+            href={tUrl('/introduction')}
+            title={t('modelAssertName')}
+            description={t('modelAssertDesc')}
+            lightBackground="/images/backgrounds/gradient-light.svg"
+            darkBackground="/images/backgrounds/gradient-dark.svg"
+            lightContent={
+              <div className="home-model-visual">
+                <CircleCheck size={72} strokeWidth={1} />
+                <span>{t('modelAssertMetric')}</span>
+              </div>
+            }
           />
         </div>
       </FeatureSection>
@@ -293,78 +172,25 @@ export function FeatureSections() {
       <SectionDivider className="home-feature__divider" />
 
       <FeatureSection
+        eyebrow={t('clientsTitle')}
+        heading={t('clientsHeading')}
+        variant="platforms"
+      >
+        <PlatformTable />
+      </FeatureSection>
+
+      <SectionDivider className="home-feature__divider" />
+
+      <TestFramework />
+
+      <SectionDivider className="home-feature__divider" />
+
+      <FeatureSection
         eyebrow={t('debuggingTitle')}
         heading={t('debuggingHeading')}
-        descriptions={[
-          t('debuggingDesc1'),
-          t('debuggingDesc2'),
-          t('debuggingDesc3'),
-        ]}
         variant="toolkit"
-        action={{
-          href: tUrl('/reference/'),
-          label: t('apiMoreLink'),
-          description: t('apiMoreDesc'),
-        }}
       >
-        <div className="home-feature-grid">
-          <FeatureCard
-            href={tUrl(t('featureRichAPIsLink'))}
-            title={t('featureRichAPIs')}
-            description={t('featureRichAPIsDesc')}
-            lightBackground="/images/backgrounds/grid-light.svg"
-            darkBackground="/images/backgrounds/grid-dark.svg"
-            lightContent={
-              <img
-                src="/images/toolkit/rich-apis.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--tool"
-              />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('featureSkillsLink'))}
-            title={t('featureSkills')}
-            description={t('featureSkillsDesc')}
-            lightBackground="/images/backgrounds/grid-light.svg"
-            darkBackground="/images/backgrounds/grid-dark.svg"
-            lightContent={
-              <img
-                src="/images/toolkit/skills.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--tool"
-              />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('featureReportsPlaygroundLink'))}
-            title={t('featureReportsPlayground')}
-            description={t('featureReportsPlaygroundDesc')}
-            lightBackground="/images/backgrounds/grid-light.svg"
-            darkBackground="/images/backgrounds/grid-dark.svg"
-            lightContent={
-              <img
-                src="/images/toolkit/reports-playground.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--tool"
-              />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('featureFlexibleIntegrationLink'))}
-            title={t('featureFlexibleIntegration')}
-            description={t('featureFlexibleIntegrationDesc')}
-            lightBackground="/images/backgrounds/grid-light.svg"
-            darkBackground="/images/backgrounds/grid-dark.svg"
-            lightContent={
-              <img
-                src="/images/toolkit/flexible-integration.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--tool"
-              />
-            }
-          />
-        </div>
+        <TestingToolkit />
       </FeatureSection>
 
       <SectionDivider className="home-feature__divider" />
@@ -372,7 +198,6 @@ export function FeatureSections() {
       <FeatureSection
         eyebrow={t('benchmarksTitle')}
         heading={t('benchmarksHeading')}
-        descriptions={[t('benchmarksDesc')]}
         variant="benchmarks"
       >
         <div className="home-benchmark-grid">

@@ -2,8 +2,9 @@ import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Banner - Title
-  heroTitle: 'Midscene.js\n像人一样使用软件\n用自然语言完成 E2E 测试',
-  heroSubtitle: '基于视觉的 GUI Agent，支持 Web、移动端和桌面应用。',
+  heroTitle: '像人一样看懂界面\n用自然语言完成 E2E 测试',
+  heroSubtitle:
+    'Midscene.js 帮助开发者将 AI 引入 E2E 测试，提供基于视觉的 GUI Agent 与可扩展的测试框架，覆盖 Web、移动端和桌面应用。',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -15,58 +16,119 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   benchmark: 'Pass@1',
   completion: '完成率',
 
-  // Feature Sections - CLIENTS
-  clientsTitle: '平台',
-  clientsHeading: `Web、PC、Mobile
-等多端支持`,
-  clientsDesc1: '用自然语言测试与自动化 Web、移动端和桌面应用',
-  clientsDesc2: '一套 API、一套用例，在每个平台都一样',
-  clientsDesc3:
-    '触达选择器够不到的地方——无语义标注的元素、canvas、原生应用、跨域 iframe',
+  // Natural-language test example
+  exampleYamlTitle: '@midscene/test + yaml 格式的用例',
+  exampleSetupOmitted: '省略模型配置、page 初始化与资源清理',
+  exampleEyebrow: '编写测试',
+  exampleHeading: '用自然语言描述步骤与预期',
+  exampleCase: '筛选 100 美元以下的耳机',
+  exampleAct: '搜索耳机，然后将结果筛选为价格低于 100 美元',
+  exampleWait: '筛选后的搜索结果已显示',
+  exampleAssert: '搜索结果中有商品，且每件商品价格都低于 100 美元',
 
-  // Feature Sections - Platforms
+  // Platforms
+  platformGuide: '接入指南',
+  clientsTitle: '跨端支持',
+  clientsHeading: '一套 API，覆盖不同平台',
   platformWeb: 'Web',
-  platformPC: 'PC',
-  platformMobile: 'Mobile',
-  platformAnyInterface: '任意界面',
-  platformWebDesc:
-    '把 Midscene 接入你的 Playwright 或 Puppeteer 测试，或用桥接模式驱动自己的 Chrome。',
-  platformPCDesc: '用自然语言测试与自动化 macOS、Windows、Linux 上的桌面应用。',
-  platformMobileDesc:
-    '在真机与模拟器上测试与自动化 Android、iOS 和 HarmonyOS 应用。',
-  platformAnyInterfaceDesc: '凡可截图皆可自动化——突破 DOM 与无障碍树的限制。',
+  platformWebAccess: 'Playwright · Puppeteer · 桌面 Chrome',
+  platformDesktop: '桌面',
+  platformDesktopAccess: 'macOS · Windows · Linux，支持远程 RDP',
+  platformAndroidAccess: '真机 / 模拟器 · ADB',
+  platformIosAccess: '真机 / 模拟器 · WebDriverAgent',
+  platformHarmonyAccess: 'HarmonyOS NEXT · HDC',
+  platformCustom: '自定义界面',
+  platformCustomAccess: '提供截图与操作能力，即可接入',
+  platformCustomDoc: '扩展指南',
+  platformBridgeDoc: 'Bridge 模式',
 
   // Feature Sections - MODELS
-  modelsTitle: '模型策略',
-  modelsHeading: '视觉驱动\n兼顾效果与成本',
-  modelsDesc1: '模拟人类观察界面、执行操作与验证结果的方式',
-  modelsDesc2: '选用高性价比视觉模型，降低高频 E2E 测试的调用成本',
-  modelsDesc3: '支持多种模型，按需组合规划、定位与界面理解能力',
+  modelsTitle: '视觉模型与策略',
+  modelsHeading: '视觉驱动\n低成本运行测试',
 
   // Model Cards
-  modelSeedName: '豆包 Seed',
-  modelSeedDesc: '强大的视觉定位能力，元素定位可靠——Midscene 的稳妥默认选择。',
+  modelVisionName: '截图定位与操作',
+  modelVisionDesc:
+    '直接根据截图定位元素并操作界面，无需维护选择器或额外标注，支持 Canvas 等自定义界面。',
+  modelVisionMetric: '截图 → 定位 → 操作',
+  modelAssertName: '验证用户看到的结果',
+  modelAssertDesc:
+    '用自然语言描述预期颜色、布局与状态，通过视觉断言检查界面实际呈现的效果。',
+  modelAssertMetric: '颜色 · 布局 · 状态',
   modelSupportedName: '支持多种模型',
-  modelSupportedDesc: '适配 DeepSeek、Qwen、GPT、Gemini、Kimi 等模型。',
-  modelCostName: '模型调用成本',
+  modelSupportedDesc:
+    '支持豆包、DeepSeek、Qwen、GPT、Gemini、Kimi 等模型，按效果与预算选择。',
+  modelCostName: '低模型调用成本',
   modelCostDesc:
-    '豆包 Seed 2.1 Turbo 在 AppControlBench 中的调用总费用为 $0.59，60 项任务通过 58 项。',
+    '以豆包 Seed 2.1 Turbo 为例：该次 AppControlBench 评测中，60 项任务通过 58 项，模型调用总费用为 $0.59。',
+  modelCostExample: '评测案例 · AppControlBench',
+  modelCostReport: '查看评测报告',
   modelCostMetric: '60 项任务的模型调用总费用',
-  modelMultiModelName: '多模型组合',
-  modelMultiModelDesc: '让规划模型与视觉模型协同，提升任务完成率。',
 
-  // Feature Sections - DEBUGGING
-  debuggingTitle: '测试工具箱',
-  debuggingHeading: '开箱即用的\nUI 测试套件',
-  debuggingDesc1: '丰富的 API，用于编写测试与控制自动化流程',
-  debuggingDesc2: '支持扩展自己的 UI 操作 Agent',
-  debuggingDesc3: '大幅降低 UI 测试的维护成本',
+  // Test framework
+  frameworkHeading: '用 YAML 组织用例\n用 TypeScript 扩展',
+  frameworkYamlTitle: '用自然语言组织测试用例',
+  frameworkYamlDesc:
+    '在 YAML 中组合界面操作、断言与业务节点，专注描述测试流程。',
+  frameworkNodeTitle: '把业务能力封装为可复用节点',
+  frameworkNodeDesc:
+    '用 TypeScript 实现数据准备、接口调用与清理，供不同用例复用。',
+  frameworkSpecTitle: '自动生成 Node 说明书',
+  frameworkSpecDesc:
+    '将已注册节点与参数定义导出为 Markdown，让开发者和 AI Agent 了解项目能力，共同编写与维护用例。',
+  frameworkSpecOmitted: '其余 Schema 字段与节点说明省略。',
+  frameworkSpecNote:
+    '运行 pnpm exec midscene-test nodes 自动生成。这里展示 user.create 的说明片段，与 TypeScript 节点定义对应。',
+  frameworkLink: '了解 Midscene Test',
+  frameworkYamlTab: 'YAML 用例',
+  frameworkNodeTab: 'TypeScript 扩展节点',
+  frameworkCase: '搜索新建用户',
+  frameworkAct: '搜索用户名 Alice',
+  frameworkAssert: '搜索结果中显示用户 Alice',
+  frameworkNodeDescription: '创建测试用户，并在用例结束后清理',
+  frameworkYamlNote:
+    '示例：准备用户数据，再通过界面搜索并验证。需先配置模型与 Web 运行环境，并替换示例网址。',
+  frameworkNodeNote:
+    'user.create 对应 YAML 中的同名步骤；userService 是你实现的业务接口，负责创建和删除测试用户。',
+
+  // Testing toolkit
+  debuggingTitle: '测试工具链',
+  debuggingHeading: '完整的 AI Native 测试工具链',
+  toolkitFrameworkTitle: 'AI Native 测试框架',
+  toolkitFrameworkDesc:
+    '用 YAML 与自然语言写用例，用 TypeScript 扩展业务节点，组合 AI 操作与业务逻辑。',
+  toolkitYaml: '描述用例与预期',
+  toolkitTs: '扩展业务节点',
+  toolkitEngineering: '脚手架与平台预设、生命周期、重试、隔离与并发执行。',
+  toolkitNodeDocs: '自动生成 Node 说明书，让人和 AI Agent 共同维护用例。',
+  toolkitFrameworkLink: '了解 Midscene Test',
+  toolkitApiMetric: '操作 · 断言 · 数据提取',
+  toolkitSkillsTitle: '让 AI 编程 Agent 操作界面',
+  toolkitSkillsDesc:
+    '通过 Midscene Skills，让 AI 编程 Agent 操作应用、验证界面，查看执行结果。',
+  toolkitApiTitle: '丰富而灵活的 API',
+  toolkitApiDesc:
+    '覆盖自动规划、精细操作、视觉断言与数据提取，灵活接入已有测试工程。',
+  toolkitPlan: '自动规划',
+  toolkitAction: '精细操作',
+  toolkitAssert: '视觉断言',
+  toolkitQuery: '数据提取',
+  toolkitIntegration:
+    '接入 Playwright、Puppeteer 或 JavaScript 工程；AI 编程 Agent 也可通过 Skills 操作界面。',
+  toolkitApiLink: '查看 API',
+  toolkitSkillsLink: 'Skills',
+  toolkitReportTitle: '回放执行，交互调试',
+  toolkitReportDesc:
+    '通过报告回看截图、AI 决策与执行结果，在 Playground 中试验和调整指令。',
+  toolkitPlaygroundDesc:
+    '结合运行日志定位问题，在 Playground 中试验和调整指令。',
+  toolkitReportAlt: 'Midscene HTML 报告：步骤列表、执行时间线与界面操作回放',
+  toolkitReportLink: '查看报告能力',
+  toolkitPlaygroundLink: '体验 Playground',
 
   // Feature Sections - BENCHMARKS
   benchmarksTitle: '评测',
   benchmarksHeading: 'Benchmark 成绩',
-  benchmarksDesc:
-    '查看 Midscene 在 AndroidWorld、MobileWorld 和 AppControlBench 上的成绩。',
 
   // Feature Cards
   featureRichAPIs: '丰富的 API',
@@ -111,14 +173,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   userDongchedi: '懂车帝',
 
   // Bottom CTA and Footer
-  bottomCtaTitle: '面向 E2E 测试的 GUI Agent',
+  bottomCtaTitle: '用自然语言，写下你的第一个 E2E 测试',
+  bottomCtaStart: '开始使用',
+  bottomCtaExamples: '查看案例',
   licenseNotice: 'Midscene 是基于 MIT 许可证发布的免费开源软件。',
   copyrightNotice: '© 2024–至今 ByteDance Inc. 及其关联公司。',
-
-  // Links
-  multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
-  platformWebLink: '/quick-start#chrome-extension',
-  platformPCLink: '/quick-start#chrome-extension',
-  platformMobileLink: '/platforms/android.html',
-  platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 };
