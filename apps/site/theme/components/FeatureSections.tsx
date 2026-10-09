@@ -2,6 +2,7 @@ import { Link } from '@rspress/core/theme-original';
 import { ArrowRight, CircleCheck, ScanSearch } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useI18n, useI18nUrl } from '../i18n';
+import { PlatformTable } from './PlatformTable';
 import { SectionDivider } from './SectionDivider';
 import { TiltCard } from './TiltCard';
 
@@ -214,93 +215,9 @@ export function FeatureSections() {
       <FeatureSection
         eyebrow={t('clientsTitle')}
         heading={t('clientsHeading')}
-        descriptions={[t('clientsDesc1'), t('clientsDesc2'), t('clientsDesc3')]}
         variant="platforms"
       >
-        <div className="home-feature-grid home-feature-grid--platforms">
-          <FeatureCard
-            href={tUrl(t('platformWebLink'))}
-            title={t('platformWeb')}
-            description={t('platformWebDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <img
-                src="/images/platforms/web-light.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--web"
-              />
-            }
-            darkContent={
-              <img
-                src="/images/platforms/web-dark.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--web"
-              />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('platformPCLink'))}
-            title={t('platformPC')}
-            description={t('platformPCDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <img
-                src="/images/platforms/pc-light.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--pc"
-              />
-            }
-            darkContent={
-              <img
-                src="/images/platforms/pc-dark.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--pc"
-              />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('platformMobileLink'))}
-            title={t('platformMobile')}
-            description={t('platformMobileDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <div className="home-feature-card__phones">
-                <img src="/images/platforms/android-light.png" alt="" />
-                <img src="/images/platforms/ios-light.png" alt="" />
-              </div>
-            }
-            darkContent={
-              <div className="home-feature-card__phones">
-                <img src="/images/platforms/android-dark.png" alt="" />
-                <img src="/images/platforms/ios-dark.png" alt="" />
-              </div>
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('platformAnyInterfaceLink'))}
-            title={t('platformAnyInterface')}
-            description={t('platformAnyInterfaceDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <img
-                src="/images/platforms/any-interface-light.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--interface"
-              />
-            }
-            darkContent={
-              <img
-                src="/images/platforms/any-interface-dark.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--interface"
-              />
-            }
-          />
-        </div>
+        <PlatformTable />
       </FeatureSection>
 
       <SectionDivider className="home-feature__divider" />

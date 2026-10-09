@@ -26,30 +26,21 @@ export const EN_US = {
   exampleAssert:
     'There are products in the search results, and each costs less than $100',
 
-  // Feature Sections - CLIENTS
-  clientsTitle: 'Platforms',
-  clientsHeading: `Web, PC, Mobile,
-and more`,
-  clientsDesc1:
-    'Test and automate with natural language across web, mobile, and desktop',
-  clientsDesc2:
-    'One unified API and test suite — the same way on every platform',
-  clientsDesc3:
-    'Reaches what selectors cannot — unlabeled elements, canvas, native apps, and cross-origin frames',
-
-  // Feature Sections - Platforms
+  // Platforms
+  platformGuide: 'Get started',
+  clientsTitle: 'PLATFORMS',
+  clientsHeading: 'One API, across platforms',
   platformWeb: 'Web',
-  platformPC: 'PC',
-  platformMobile: 'Mobile',
-  platformAnyInterface: 'Any Interface',
-  platformWebDesc:
-    'Add Midscene to your Playwright or Puppeteer tests, or drive your own Chrome via Bridge Mode.',
-  platformPCDesc:
-    'Test and automate desktop apps on macOS, Windows, and Linux with natural language.',
-  platformMobileDesc:
-    'Test and automate Android, iOS, and HarmonyOS apps on real devices and simulators.',
-  platformAnyInterfaceDesc:
-    'Automate any interface you can screenshot — beyond DOM and accessibility limits.',
+  platformWebAccess: 'Playwright · Puppeteer · Desktop Chrome',
+  platformDesktop: 'Desktop',
+  platformDesktopAccess: 'macOS · Windows · Linux, with remote RDP',
+  platformAndroidAccess: 'Devices / emulators · ADB',
+  platformIosAccess: 'Devices / simulators · WebDriverAgent',
+  platformHarmonyAccess: 'HarmonyOS NEXT · HDC',
+  platformCustom: 'Custom interfaces',
+  platformCustomAccess: 'Connect through screenshots and actions',
+  platformCustomDoc: 'Extension guide',
+  platformBridgeDoc: 'Bridge Mode',
 
   // Feature Sections - MODELS
   modelsTitle: 'VISION MODELS & STRATEGY',
@@ -134,10 +125,4 @@ UI testing toolkit`,
   licenseNotice:
     'Midscene is free and open source software released under the MIT license.',
   copyrightNotice: '© 2024-present ByteDance Inc. and its affiliates.',
-
-  // Links
-  platformWebLink: '/quick-start#chrome-extension',
-  platformPCLink: '/quick-start#chrome-extension',
-  platformMobileLink: '/platforms/android.html',
-  platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 } as const;

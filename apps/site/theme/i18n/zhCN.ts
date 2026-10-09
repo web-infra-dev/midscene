@@ -26,26 +26,21 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   exampleWait: '筛选后的搜索结果已显示',
   exampleAssert: '搜索结果中有商品，且每件商品价格都低于 100 美元',
 
-  // Feature Sections - CLIENTS
-  clientsTitle: '平台',
-  clientsHeading: `Web、PC、Mobile
-等多端支持`,
-  clientsDesc1: '用自然语言测试与自动化 Web、移动端和桌面应用',
-  clientsDesc2: '一套 API、一套用例，在每个平台都一样',
-  clientsDesc3:
-    '触达选择器够不到的地方——无语义标注的元素、canvas、原生应用、跨域 iframe',
-
-  // Feature Sections - Platforms
+  // Platforms
+  platformGuide: '接入指南',
+  clientsTitle: '跨端支持',
+  clientsHeading: '一套 API，覆盖不同平台',
   platformWeb: 'Web',
-  platformPC: 'PC',
-  platformMobile: 'Mobile',
-  platformAnyInterface: '任意界面',
-  platformWebDesc:
-    '把 Midscene 接入你的 Playwright 或 Puppeteer 测试，或用桥接模式驱动自己的 Chrome。',
-  platformPCDesc: '用自然语言测试与自动化 macOS、Windows、Linux 上的桌面应用。',
-  platformMobileDesc:
-    '在真机与模拟器上测试与自动化 Android、iOS 和 HarmonyOS 应用。',
-  platformAnyInterfaceDesc: '凡可截图皆可自动化——突破 DOM 与无障碍树的限制。',
+  platformWebAccess: 'Playwright · Puppeteer · 桌面 Chrome',
+  platformDesktop: '桌面',
+  platformDesktopAccess: 'macOS · Windows · Linux，支持远程 RDP',
+  platformAndroidAccess: '真机 / 模拟器 · ADB',
+  platformIosAccess: '真机 / 模拟器 · WebDriverAgent',
+  platformHarmonyAccess: 'HarmonyOS NEXT · HDC',
+  platformCustom: '自定义界面',
+  platformCustomAccess: '提供截图与操作能力，即可接入',
+  platformCustomDoc: '扩展指南',
+  platformBridgeDoc: 'Bridge 模式',
 
   // Feature Sections - MODELS
   modelsTitle: '视觉模型与策略',
@@ -127,10 +122,4 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   bottomCtaTitle: '面向 E2E 测试的 GUI Agent',
   licenseNotice: 'Midscene 是基于 MIT 许可证发布的免费开源软件。',
   copyrightNotice: '© 2024–至今 ByteDance Inc. 及其关联公司。',
-
-  // Links
-  platformWebLink: '/quick-start#chrome-extension',
-  platformPCLink: '/quick-start#chrome-extension',
-  platformMobileLink: '/platforms/android.html',
-  platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 };
