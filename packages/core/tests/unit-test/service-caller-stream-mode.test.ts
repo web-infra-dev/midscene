@@ -91,7 +91,7 @@ describe('model request stream mode', () => {
       expect(result).toMatchObject({
         content: 'Hello',
         isStreamed: true,
-        usage: { total_tokens: 12 },
+        usage: { total_tokens: 12, stream: true },
       });
       expect(runtime.onUsage).toHaveBeenCalledTimes(1);
       expect(result.rawAssistantOutput).toMatchObject(
@@ -122,7 +122,7 @@ describe('model request stream mode', () => {
         expect(result).toMatchObject({
           content: 'Hello',
           isStreamed: false,
-          usage: { total_tokens: 12 },
+          usage: { total_tokens: 12, stream: false },
         });
       });
     }
@@ -156,6 +156,7 @@ describe('model request stream mode', () => {
       });
       expect(result.content).toBe('Hello');
       expect(result.isStreamed).toBe(true);
+      expect(result.usage?.stream).toBe(true);
       expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).stream).toBe(
         true,
       );

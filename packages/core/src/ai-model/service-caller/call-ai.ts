@@ -109,6 +109,7 @@ export async function callAI(
 
   const usage = buildUsageInfo({
     apiType: prepared.protocol,
+    stream: response.isStreamed,
     usageData: rawUsage,
     timeCost,
     totalTimeCost,

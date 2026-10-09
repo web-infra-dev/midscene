@@ -65,6 +65,8 @@ export type AIUsageInfo = Record<string, any> & {
   retry_count?: number;
   /** Actual protocol used for the model call, resolved by Midscene. */
   api_type?: 'chat-completion' | 'responses' | 'codex';
+  /** Whether the model call used streaming, after resolving call options. */
+  stream?: boolean;
   model_name: string | undefined;
   model_description: string | undefined;
   /**
