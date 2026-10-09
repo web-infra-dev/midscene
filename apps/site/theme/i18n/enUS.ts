@@ -60,22 +60,48 @@ export const EN_US = {
     'Choose from Doubao, DeepSeek, Qwen, GPT, Gemini, Kimi, and more to fit your tasks and budget.',
   modelCostName: 'Low model API cost',
   modelCostDesc:
-    'Doubao Seed 2.1 Turbo: $0.59 total API cost for 60 AppControlBench tasks, with 58 passed.',
+    'In this AppControlBench run, Doubao Seed 2.1 Turbo passed 58 of 60 tasks at a total model API cost of $0.59.',
+  modelCostExample: 'Benchmark example · AppControlBench',
+  modelCostReport: 'View benchmark report',
   modelCostMetric: 'Total model API cost for 60 tasks',
 
-  // Feature Sections - DEBUGGING
+  // Testing toolkit
   debuggingTitle: 'TESTING TOOLKIT',
-  debuggingHeading: `Ready-to-use
-UI testing toolkit`,
-  debuggingDesc1: 'Practical APIs to script tests and control automation flows',
-  debuggingDesc2: 'Supports extending your own UI action agents',
-  debuggingDesc3: 'Lowers the maintenance cost of your UI tests',
+  debuggingHeading: 'A complete toolkit for AI-native testing',
+  toolkitFrameworkTitle: 'An AI-native testing framework',
+  toolkitFrameworkDesc:
+    'Write tests in YAML and natural language. Extend them with TypeScript Nodes to combine AI actions with business logic.',
+  toolkitYaml: 'Test flows & expectations',
+  toolkitTs: 'Custom business Nodes',
+  toolkitEngineering:
+    'Scaffolding, platform presets, lifecycle hooks, retries, isolation, and concurrency.',
+  toolkitNodeDocs:
+    'Generate Node references so people and AI agents can maintain tests together.',
+  toolkitFrameworkLink: 'Explore Midscene Test',
+  toolkitApiTitle: 'Rich, flexible APIs',
+  toolkitApiDesc:
+    'Bring autonomous flows, precise actions, visual assertions, and data extraction into your existing test stack.',
+  toolkitPlan: 'Autonomous flows',
+  toolkitAction: 'Precise actions',
+  toolkitAssert: 'Visual assertions',
+  toolkitQuery: 'Data extraction',
+  toolkitIntegration:
+    'Integrate with Playwright, Puppeteer, or JavaScript. AI coding agents can also operate interfaces through Skills.',
+  toolkitApiLink: 'Explore APIs',
+  toolkitSkillsLink: 'Skills',
+  toolkitReportTitle: 'Replay and inspect every step',
+  toolkitReportDesc:
+    'Replay actions and screenshots, inspect AI and custom steps, and refine instructions in the Playground.',
+  toolkitPlaygroundDesc:
+    'Investigate failures with runtime logs. Try and refine instructions in the Playground.',
+  toolkitReportAlt:
+    'Midscene HTML report with an action list, execution timeline, and interface replay',
+  toolkitReportLink: 'Explore reporting',
+  toolkitPlaygroundLink: 'Try the Playground',
 
   // Feature Sections - BENCHMARKS
   benchmarksTitle: 'EVALUATION',
   benchmarksHeading: 'Benchmarks',
-  benchmarksDesc:
-    "Explore Midscene's results on AndroidWorld, MobileWorld, and AppControlBench.",
 
   // Feature Cards
   featureRichAPIs: 'Rich APIs',

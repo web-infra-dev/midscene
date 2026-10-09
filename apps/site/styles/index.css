@@ -1508,3 +1508,21 @@
 .dark .home-model-visual span {
   color: rgb(255 255 255 / 70%);
 }
+
+.home-model-cost .home-model-cost__eyebrow {
+  color: var(--rp-c-text-2);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.home-feature-card__action {
+  margin-top: auto;
+  padding-top: 8px;
+  color: #0555ff;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.dark .home-feature-card__action {
+  color: rgb(128 168 255);
+}
