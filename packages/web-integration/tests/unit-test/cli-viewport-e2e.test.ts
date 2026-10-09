@@ -11,7 +11,7 @@ import {
 } from '@/agent-tools-puppeteer';
 import { parseWebCliOptions } from '@/cli-options';
 import { runToolsCLI } from '@midscene/shared/cli';
-import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import puppeteer from 'puppeteer-core';
 
 const html = `<!DOCTYPE html>
@@ -110,42 +110,58 @@ describe('midscene-web CLI viewport e2e', () => {
     const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport, {
       persistence,
     });
-    await runToolsCLI(tools, 'midscene-web', {
-      stripPrefix: 'web_',
-      argv: parsedOptions.argv,
-    });
+    const destroy = tools.destroy.bind(tools);
+    // Viewport emulation belongs to the CLI's DevTools session. Inspect it
+    // before disconnecting; a later connection may see the native window size.
+    const destroySpy = rs
+      .spyOn(tools, 'destroy')
+      .mockImplementation(async () => {
+        try {
+          const endpoint = (
+            await readFile(persistence.endpointFile, 'utf-8')
+          ).trim();
+          const browser = await puppeteer.connect({
+            browserWSEndpoint: endpoint,
+            defaultViewport: null,
+          });
 
-    const endpoint = (await readFile(persistence.endpointFile, 'utf-8')).trim();
-    const browser = await puppeteer.connect({
-      browserWSEndpoint: endpoint,
-      defaultViewport: null,
-    });
+          try {
+            const pages = await browser.pages();
+            const page = pages.find(
+              (item) => item.url() === `${baseUrl}/` || item.url() === baseUrl,
+            );
+            if (!page) {
+              throw new Error(`Failed to find connected page for ${baseUrl}`);
+            }
+
+            const metrics = await page.evaluate(() => ({
+              innerWidth: window.innerWidth,
+              innerHeight: window.innerHeight,
+              clientWidth: document.documentElement.clientWidth,
+              clientHeight: document.documentElement.clientHeight,
+            }));
+            expect(metrics).toEqual({
+              innerWidth: width,
+              innerHeight: height,
+              clientWidth: width,
+              clientHeight: height,
+            });
+          } finally {
+            await browser.disconnect();
+          }
+        } finally {
+          await destroy();
+        }
+      });
 
     try {
-      const pages = await browser.pages();
-      const page = pages.find(
-        (item) => item.url() === `${baseUrl}/` || item.url() === baseUrl,
-      );
-
-      if (!page) {
-        throw new Error(`Failed to find connected page for ${baseUrl}`);
-      }
-
-      const metrics = await page.evaluate(() => ({
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        clientWidth: document.documentElement.clientWidth,
-        clientHeight: document.documentElement.clientHeight,
-      }));
-
-      expect(metrics).toEqual({
-        innerWidth: width,
-        innerHeight: height,
-        clientWidth: width,
-        clientHeight: height,
+      await runToolsCLI(tools, 'midscene-web', {
+        stripPrefix: 'web_',
+        argv: parsedOptions.argv,
       });
+      expect(destroySpy).toHaveBeenCalledTimes(1);
     } finally {
-      browser.disconnect();
+      destroySpy.mockRestore();
     }
   }, 60_000);
 });
