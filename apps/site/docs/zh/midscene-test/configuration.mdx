@@ -433,6 +433,8 @@ pnpm exec midscene-test nodes --project android-smoke
 
 Node 通过 `AbortSignal` 接收取消通知，内部的异步操作不会因此自动终止。自定义 Node 需要将 `signal` 传给支持取消的 API，或主动检查取消状态，具体用法见[异步操作、错误与取消](./extend#异步操作错误与取消)。
 
+当超时步骤允许继续执行时，Runner 会在启动下一步前，最多等待 30 秒，让当前作用域中已跟踪的取消操作结束。恢复等待计入 Case 或文档的总耗时，下一步仍保留完整的超时预算。恢复超时后，框架通过 `RESOURCE_RECOVERY_TIMEOUT` 停止执行并进入清理，不再重试该 Case，也不启动文档中的后续 Case。原步骤仍报告 `STEP_TIMEOUT`；操作实际结束前，Agent 的占用不会解除。这项保护适用于 Runner 已跟踪的操作，包括官方 Agent Node；自定义 Node 仍需自行处理取消。
+
 运行被中断后，框架仍会尝试执行 `afterEach`、`afterAll` 和通过 `onTeardown()` 注册的清理函数。执行 `afterEach` 和 `afterAll` 中的 Node 时，如果运行的 `signal` 已被取消，框架会换用新的、尚未取消的 `signal`，使清理操作能够继续执行。这些清理步骤仍受步骤超时配置约束。
 
 通过 `onTeardown()` 注册的清理函数不会收到新的 `signal`。不要在这些函数中复用原步骤的 `signal`：它可能已因超时或运行中断而被取消，导致清理请求立即失败。

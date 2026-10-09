@@ -13,6 +13,14 @@ import { TaskExecutionError } from '@/task-runner';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../../utils';
 
+const deferred = <T = void>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((yes) => {
+    resolve = yes;
+  });
+  return { promise, resolve };
+};
+
 // Mock AI service caller
 rs.mock('@/ai-model/service-caller/index', () => ({
   callAI: rs.fn(),
@@ -74,6 +82,72 @@ const fakeUIContextBuilder = async () => {
     shrunkShotToLogicalRatio: 1,
   } as unknown as UIContext;
 };
+
+describe('task-runner cancellation', () => {
+  it('does not start another queued task or screenshot after cancellation', async () => {
+    const controller = new AbortController();
+    const context = rs.fn(fakeUIContextBuilder);
+    const next = rs.fn();
+    const runner = new TaskRunner('cancel queued actions', context, {
+      abortSignal: controller.signal,
+      tasks: [
+        {
+          type: 'Action Space',
+          executor: async () => {
+            controller.abort(new Error('stop actions'));
+          },
+        },
+        { type: 'Action Space', executor: next },
+      ],
+    });
+    await expect(runner.flush()).rejects.toThrow('stop actions');
+    expect(next).not.toHaveBeenCalled();
+    expect(context).toHaveBeenCalledTimes(1);
+    expect(runner.tasks.map((task) => task.status)).toEqual([
+      'failed',
+      'cancelled',
+    ]);
+  });
+
+  it.each(['onTaskStart', 'context', 'post-task screenshot'] as const)(
+    'checks cancellation after awaiting %s',
+    async (boundary) => {
+      const controller = new AbortController();
+      const started = deferred();
+      const release = deferred();
+      const executor = rs.fn(async () => undefined);
+      let captures = 0;
+      const pause = async () => {
+        started.resolve();
+        await release.promise;
+      };
+      const context = rs.fn(async () => {
+        captures++;
+        if (
+          (boundary === 'context' && captures === 1) ||
+          (boundary === 'post-task screenshot' && captures === 2)
+        )
+          await pause();
+        return fakeUIContextBuilder();
+      });
+      const runner = new TaskRunner('cancel an async boundary', context, {
+        abortSignal: controller.signal,
+        onTaskStart: boundary === 'onTaskStart' ? pause : undefined,
+        tasks: [{ type: 'Planning', executor }],
+      });
+      const pending = runner.flush();
+      const rejected = expect(pending).rejects.toThrow('stop at boundary');
+      await started.promise;
+      controller.abort(new Error('stop at boundary'));
+      release.resolve();
+      await rejected;
+      expect(executor).toHaveBeenCalledTimes(
+        boundary === 'post-task screenshot' ? 1 : 0,
+      );
+      expect(runner.tasks[0].status).toBe('failed');
+    },
+  );
+});
 
 describe(
   'task-runner',
