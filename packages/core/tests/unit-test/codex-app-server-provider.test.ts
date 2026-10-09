@@ -545,7 +545,7 @@ describe('codex app-server provider helper', () => {
     );
     expect(chunks.at(-1)?.usage).toEqual(expectedUsage);
     expect(enriched.usage).toMatchObject({
-      api_type: 'codex',
+      api_protocol: 'codex',
       ...expectedUsage,
       cached_input: 3,
       model_name: baseModelConfig.modelName,

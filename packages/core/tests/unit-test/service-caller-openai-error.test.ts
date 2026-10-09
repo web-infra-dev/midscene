@@ -1,14 +1,13 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
+import OpenAI from 'openai' with { rstest: 'importActual' };
 
 const mockCreate = rs.fn();
-const mockOpenAIConstructor = rs.fn().mockImplementation(() => ({
-  chat: {
-    completions: {
-      create: mockCreate,
-    },
-  },
-}));
+const mockOpenAIConstructor = rs.fn().mockImplementation((options) => {
+  const client = new OpenAI(options);
+  client.chat.completions.create = mockCreate;
+  return client;
+});
 
 rs.mock('openai', () => ({
   default: mockOpenAIConstructor,
@@ -504,13 +503,26 @@ describe('service-caller OpenAI error handling', () => {
           method: 'POST',
           body: JSON.stringify({ model: 'gpt-4o' }),
         });
-      return (async function* () {
-        yield { choices: [{ delta: { content: 'hel' } }] };
-        yield {
-          choices: [{ delta: { content: 'lo' }, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-        };
-      })();
+      return Object.assign(
+        (async function* () {
+          yield {
+            choices: [
+              {
+                index: 0,
+                delta: { role: 'assistant', content: 'hel' },
+                finish_reason: null,
+              },
+            ],
+          };
+          yield {
+            choices: [
+              { index: 0, delta: { content: 'lo' }, finish_reason: 'stop' },
+            ],
+            usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+          };
+        })(),
+        { controller: new AbortController() },
+      );
     });
 
     await callAI(

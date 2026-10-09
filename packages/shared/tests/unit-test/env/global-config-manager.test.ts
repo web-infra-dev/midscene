@@ -7,6 +7,7 @@ import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_MODEL_STREAM_MODE,
   MIDSCENE_PREFERRED_LANGUAGE,
   ModelConfigManager,
   OPENAI_API_KEY,
@@ -553,6 +554,60 @@ describe('getEnvConfigValue', () => {
 
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
       true,
+    );
+  });
+});
+
+describe('model stream mode configuration', () => {
+  afterEach(() => {
+    rs.unstubAllEnvs();
+  });
+
+  it('defaults to non-stream when unset', () => {
+    rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, undefined);
+    expect(
+      new GlobalConfigManager().getEnvConfigValue(MIDSCENE_MODEL_STREAM_MODE),
+    ).toBe('non-stream');
+  });
+
+  it('trims the configured mode', () => {
+    rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, ' stream ');
+    expect(
+      new GlobalConfigManager().getEnvConfigValue(MIDSCENE_MODEL_STREAM_MODE),
+    ).toBe('stream');
+  });
+
+  for (const value of ['auto', 'true', 'invalid', '']) {
+    it(`rejects unsupported mode "${value}" during config parsing`, () => {
+      rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, value);
+      expect(() =>
+        new GlobalConfigManager().getEnvConfigValue(MIDSCENE_MODEL_STREAM_MODE),
+      ).toThrow('Invalid MIDSCENE_MODEL_STREAM_MODE');
+    });
+  }
+
+  it('reads the stream mode and supports a global override', () => {
+    const manager = new GlobalConfigManager();
+    manager.registerModelConfigManager(new ModelConfigManager());
+    rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, 'stream');
+    manager.overrideAIConfig(
+      { [MIDSCENE_MODEL_STREAM_MODE]: 'non-stream' },
+      true,
+    );
+    expect(manager.getEnvConfigValue(MIDSCENE_MODEL_STREAM_MODE)).toBe(
+      'non-stream',
+    );
+  });
+
+  it('reads changes to the environment without restarting', () => {
+    const manager = new GlobalConfigManager();
+    rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, 'stream');
+    expect(manager.getEnvConfigValue(MIDSCENE_MODEL_STREAM_MODE)).toBe(
+      'stream',
+    );
+    rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, 'non-stream');
+    expect(manager.getEnvConfigValue(MIDSCENE_MODEL_STREAM_MODE)).toBe(
+      'non-stream',
     );
   });
 });

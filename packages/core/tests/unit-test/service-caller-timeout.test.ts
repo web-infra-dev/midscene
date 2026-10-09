@@ -1,17 +1,18 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import OpenAI from 'openai' with { rstest: 'importActual' };
 
 const mockCreate = rs.fn();
 
-rs.mock('openai', () => ({
-  default: rs.fn().mockImplementation(() => ({
-    chat: {
-      completions: {
-        create: mockCreate,
-      },
-    },
-  })),
-}));
+rs.mock('openai', () => {
+  return {
+    default: rs.fn().mockImplementation((options) => {
+      const client = new OpenAI(options);
+      client.chat.completions.create = mockCreate;
+      return client;
+    }),
+  };
+});
 
 const baseConfig = (overrides: Partial<IModelConfig> = {}): IModelConfig =>
   ({

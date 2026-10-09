@@ -47,6 +47,7 @@ MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）。模型请求遇到 HTTP 错误，或模型返回值无法被结构化解析时，都会发起重试 |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | AI 调用重试间隔毫秒数，默认 2000 |
+| `MIDSCENE_MODEL_STREAM_MODE` | 默认是非流式（`non-stream`）；如果指定为流式（`stream`），会将流式的结果聚合为完整结果再解析。 |
 | `MIDSCENE_MODEL_REASONING_ENABLED` | 控制是否启用模型的原生思考能力，Midscene 默认关闭。详见[模型原生思考](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | 控制模型的原生思考力度，部分模型支持。常用值：`low`、`medium`、`high`。详见[模型原生思考](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 Token 预算（数字），部分模型支持。详见[模型原生思考](#model-native-reasoning) |
