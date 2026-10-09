@@ -14,6 +14,18 @@ export const EN_US = {
   benchmark: 'Pass@1',
   completion: 'Completion',
 
+  // Natural-language test example
+  exampleYamlTitle: '@midscene/test + YAML test cases',
+  exampleSetupOmitted: 'Model configuration, page setup, and cleanup omitted',
+  exampleEyebrow: 'WRITE A TEST',
+  exampleHeading: 'Describe steps and expectations in natural language',
+  exampleCase: 'Find headphones under $100',
+  exampleAct:
+    'Search for headphones and filter the results to prices under $100',
+  exampleWait: 'The filtered search results are visible',
+  exampleAssert:
+    'There are products in the search results, and each costs less than $100',
+
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',
   clientsHeading: `Web, PC, Mobile,

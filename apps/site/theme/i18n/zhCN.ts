@@ -16,6 +16,16 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   benchmark: 'Pass@1',
   completion: '完成率',
 
+  // Natural-language test example
+  exampleYamlTitle: '@midscene/test + yaml 格式的用例',
+  exampleSetupOmitted: '省略模型配置、page 初始化与资源清理',
+  exampleEyebrow: '编写测试',
+  exampleHeading: '用自然语言描述步骤与预期',
+  exampleCase: '筛选 100 美元以下的耳机',
+  exampleAct: '搜索耳机，然后将结果筛选为价格低于 100 美元',
+  exampleWait: '筛选后的搜索结果已显示',
+  exampleAssert: '搜索结果中有商品，且每件商品价格都低于 100 美元',
+
   // Feature Sections - CLIENTS
   clientsTitle: '平台',
   clientsHeading: `Web、PC、Mobile
