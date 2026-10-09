@@ -195,7 +195,6 @@
     margin-top: 24px;
     overflow: visible;
     flex-direction: column;
-    gap: 40px;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -204,9 +203,10 @@
 
   .runner-detail-step-panel {
     width: 100%;
-    height: 548px;
+    height: auto;
     min-height: 0;
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
     border: 1px solid var(--runner-border);
     border-radius: 16px;
     background: var(--runner-surface);
@@ -220,12 +220,21 @@
     border-bottom: 1px solid var(--runner-border);
   }
 
-  .runner-detail-step-scroll[hidden] {
+  .runner-detail-execution-body {
+    display: grid;
+    grid-template-columns: 331px minmax(0, 1fr);
+    padding: 8px;
+    align-items: start;
+    gap: 8px;
+  }
+
+  .runner-detail-execution-body[hidden] {
     display: none;
   }
 
   .runner-execution-yaml {
-    min-height: 0;
+    min-height: 500px;
+    max-height: 75vh;
     flex: 1;
     padding: 16px 20px;
     overflow: auto;
@@ -257,6 +266,7 @@
   }
 
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-track {
+    min-width: 0;
     height: 120px;
     min-height: 120px;
     padding: 0;
@@ -319,22 +329,26 @@
   }
 
   .runner-detail-step-scroll {
+    position: sticky;
+    top: 16px;
     display: flex;
-    height: 372px;
+    height: auto;
     min-height: 0;
-    padding: 8px;
-    overflow: auto hidden;
+    max-height: calc(100vh - 96px);
+    padding: 0;
+    overflow: hidden auto;
+    flex-direction: column;
     gap: 8px;
-    overscroll-behavior-x: contain;
+    overscroll-behavior-y: contain;
   }
 
   .runner-detail-step-group {
     display: flex;
-    width: 307px;
-    min-width: 307px;
-    height: 100%;
+    width: 100%;
+    min-width: 0;
+    height: auto;
     min-height: 0;
-    flex: 1 0 307px;
+    flex: none;
     flex-direction: column;
     padding: 8px;
     overflow: hidden;
@@ -393,9 +407,8 @@
 
   .runner-detail-step-list {
     min-height: 0;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-    overscroll-behavior-y: contain;
+    overflow: visible;
+    scrollbar-gutter: auto;
   }
 
   .runner-detail-step-list > button {

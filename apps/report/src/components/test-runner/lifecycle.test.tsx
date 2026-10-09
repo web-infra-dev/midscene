@@ -112,6 +112,13 @@ describe('report lifecycle failures', () => {
     expect(html).toContain('MODEL_METRICS_UNKNOWN');
     expect(html).toContain('Database connection refused.');
     expect(html).not.toContain('Case · Attempt');
+    expect(html.indexOf('aria-label="Other issues"')).toBeLessThan(
+      html.indexOf('runner-case-run-bar'),
+    );
+    expect(html.indexOf('runner-detail-execution-body')).toBeLessThan(
+      html.indexOf('aria-label="Node issues"'),
+    );
+    expect(html.match(/Database connection refused\./g)).toHaveLength(1);
   });
 
   it('uses a resource-blocked setup step as the reason for unexecuted planned steps', () => {

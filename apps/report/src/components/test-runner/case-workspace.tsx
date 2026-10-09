@@ -146,14 +146,14 @@ export function CaseWorkspace({
         onSelectAttempt={selectAttempt}
         onSelectDocumentAttempt={selectDocumentAttempt}
         stepSummary={stepSummary}
-      />
-
-      <ErrorCards
-        issues={otherIssues}
-        label="Other issues"
-        navigableStepIds={navigableStepIds}
-        showDetails
-      />
+      >
+        <ErrorCards
+          issues={otherIssues}
+          label="Other issues"
+          navigableStepIds={navigableStepIds}
+          showDetails
+        />
+      </CaseWorkspaceHeader>
 
       {workspaceSteps.length > 0 ? (
         <div className="runner-detail-debug-workbench">
@@ -180,29 +180,30 @@ export function CaseWorkspace({
             sourcePath={item.document.sourcePath}
             sourceYaml={item.document.plan?.sourceYaml}
             onSelect={selectStep}
-          />
-          {selectedStep ? (
-            <RunnerEvidenceInspector
-              key={`${selectedAttempt?.attemptId ?? 'document'}:${selectedStep.id}`}
-              item={item}
-              attempt={selectedAttempt}
-              step={selectedStep}
-              plannedStep={plannedStep}
-              issues={reportIssues.nodes.get(selectedStep.id)}
-              navigableStepIds={navigableStepIds}
-              activeFrame={activeFrame}
-              activePosition={activePosition}
-              tab={inspectorTab}
-              reports={reports}
-              renderAgentReport={renderAgentReport}
-              onTabChange={selectInspectorTab}
-            />
-          ) : (
-            <div className="runner-select-step-hint">
-              <BugOutlined />
-              Select a Step to inspect its evidence and runtime data.
-            </div>
-          )}
+          >
+            {selectedStep ? (
+              <RunnerEvidenceInspector
+                key={`${selectedAttempt?.attemptId ?? 'document'}:${selectedStep.id}`}
+                item={item}
+                attempt={selectedAttempt}
+                step={selectedStep}
+                plannedStep={plannedStep}
+                issues={reportIssues.nodes.get(selectedStep.id)}
+                navigableStepIds={navigableStepIds}
+                activeFrame={activeFrame}
+                activePosition={activePosition}
+                tab={inspectorTab}
+                reports={reports}
+                renderAgentReport={renderAgentReport}
+                onTabChange={selectInspectorTab}
+              />
+            ) : (
+              <div className="runner-select-step-hint">
+                <BugOutlined />
+                Select a Step to inspect its evidence and runtime data.
+              </div>
+            )}
+          </RunnerExecutionPanel>
         </div>
       ) : null}
     </div>

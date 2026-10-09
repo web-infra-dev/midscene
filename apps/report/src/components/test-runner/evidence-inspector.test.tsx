@@ -191,6 +191,12 @@ describe('case evidence inspection', () => {
     expect(html.match(/Snapshot write failed\./g)).toHaveLength(1);
     expect(html).toContain('2026-10-08T00:00:00.000Z');
     expect(html).toContain('runner-error-card is-warning');
+    expect(html.indexOf('</header>')).toBeLessThan(
+      html.indexOf('aria-label="Node issues"'),
+    );
+    expect(html.indexOf('aria-label="Node issues"')).toBeLessThan(
+      html.indexOf('role="tablist"'),
+    );
   });
 
   it('hides Record and falls back to Information when the step has no recording or screenshot', () => {

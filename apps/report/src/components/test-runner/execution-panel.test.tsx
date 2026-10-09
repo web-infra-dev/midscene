@@ -56,11 +56,19 @@ describe('execution panel', () => {
         selectedStepId="aiAct"
         timeline={<div data-testid="timeline" />}
         onSelect={() => {}}
-      />,
+      >
+        <section data-testid="node-details" />
+      </RunnerExecutionPanel>,
     );
     expect(html).toContain('data-testid="timeline"');
     expect(html).toContain('class="is-selected"');
     expect(html).toContain('aria-pressed="true"');
+    expect(html.indexOf('data-testid="timeline"')).toBeLessThan(
+      html.indexOf('runner-detail-execution-body'),
+    );
+    expect(html).toMatch(
+      /<nav[^>]*aria-label="Execution steps"[\s\S]*<\/nav><section data-testid="node-details"/,
+    );
     expect(html).not.toContain('is-playing');
     expect(html).not.toContain('timeline-control');
   });
@@ -79,14 +87,17 @@ describe('execution panel', () => {
         view="yaml"
         timeline={<div data-testid="timeline" />}
         onSelect={() => {}}
-      />,
+      >
+        <section data-testid="node-details" />
+      </RunnerExecutionPanel>,
     );
     expect(html).toContain('cases/search.yaml');
     expect(html).toContain('# Original comment\ncases: $' + '{search}\n');
     expect(html).toContain('Sensitive fields are redacted.');
     expect(html).toContain('Source YAML is truncated.');
     expect(html).not.toContain('data-testid="timeline"');
-    expect(html).toContain('class="runner-detail-step-scroll" hidden=""');
+    expect(html).toContain('class="runner-detail-execution-body" hidden=""');
+    expect(html).toContain('data-testid="node-details"');
     expect(html).toContain('aria-pressed="true"');
   });
 

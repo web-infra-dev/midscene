@@ -1,5 +1,6 @@
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import type { TestRunReportAttempt, TestRunReportDump } from '@midscene/core';
+import type { ReactNode } from 'react';
 import { AttemptSelect } from './attempt-select';
 import type { RunnerCaseView } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
@@ -16,6 +17,7 @@ export function CaseWorkspaceHeader({
   onSelectDocumentAttempt,
   standaloneRun,
   stepSummary,
+  children,
 }: {
   item: RunnerCaseView;
   selectedAttempt?: TestRunReportAttempt;
@@ -25,6 +27,7 @@ export function CaseWorkspaceHeader({
   onSelectAttempt(attempt: TestRunReportAttempt): void;
   onSelectDocumentAttempt?(attemptIndex: number): void;
   standaloneRun?: TestRunReportDump;
+  children?: ReactNode;
   stepSummary?: {
     total: number;
     passed: number;
@@ -87,6 +90,7 @@ export function CaseWorkspaceHeader({
         </div>
       </div>
       {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
+      {children}
       <div className="runner-case-run-bar">
         <AttemptSelect
           item={item}

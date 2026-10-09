@@ -33,6 +33,7 @@ export function RunnerExecutionPanel({
   issues,
   selectedStepId,
   timeline,
+  children,
   sourcePath,
   sourceYaml,
   view = 'visual',
@@ -43,6 +44,7 @@ export function RunnerExecutionPanel({
   issues?: ReportIssues['nodes'];
   selectedStepId?: string;
   timeline?: ReactNode;
+  children?: ReactNode;
   sourcePath?: string;
   sourceYaml?: TestRunReportDocumentPlan['sourceYaml'];
   view?: 'visual' | 'yaml';
@@ -53,7 +55,7 @@ export function RunnerExecutionPanel({
     typeof sourceYaml?.value === 'string' ? sourceYaml.value : undefined;
   const showYaml = view === 'yaml' && yaml !== undefined;
   return (
-    <aside className="runner-detail-step-panel" aria-label="Execution steps">
+    <section className="runner-detail-step-panel" aria-label="Execution">
       <div className="runner-detail-panel-heading">
         <span>
           <UnorderedListOutlined />
@@ -90,78 +92,83 @@ export function RunnerExecutionPanel({
         </section>
       ) : null}
       {!showYaml ? timeline : null}
-      <div className="runner-detail-step-scroll" hidden={showYaml}>
-        {groups.map((group) => (
-          <section className="runner-detail-step-group" key={group.label}>
-            <h3>
-              <span>{group.label}</span>
-            </h3>
-            <div className="runner-detail-step-list">
-              {group.steps.map((step) => {
-                const isSelected = selectedStepId === step.id;
+      <div className="runner-detail-execution-body" hidden={showYaml}>
+        <nav className="runner-detail-step-scroll" aria-label="Execution steps">
+          {groups.map((group) => (
+            <section className="runner-detail-step-group" key={group.label}>
+              <h3>
+                <span>{group.label}</span>
+              </h3>
+              <div className="runner-detail-step-list">
+                {group.steps.map((step) => {
+                  const isSelected = selectedStepId === step.id;
 
-                return (
-                  <button
-                    type="button"
-                    className={isSelected ? 'is-selected' : ''}
-                    key={step.id}
-                    aria-pressed={isSelected}
-                    onClick={() => onSelect(step)}
-                  >
-                    <span
-                      className={`runner-detail-step-type ${
-                        step.status === 'failed'
-                          ? 'is-error'
-                          : step.agentDetails?.length
-                            ? 'is-agent'
-                            : step.phase !== 'steps'
-                              ? 'is-hook'
-                              : step.node.toLocaleLowerCase().includes('assert')
-                                ? 'is-assert'
-                                : 'is-data'
-                      }`}
+                  return (
+                    <button
+                      type="button"
+                      className={isSelected ? 'is-selected' : ''}
+                      key={step.id}
+                      aria-pressed={isSelected}
+                      onClick={() => onSelect(step)}
                     >
-                      <RunnerStepTypeIcon step={step} />
-                    </span>
-                    <span className="runner-detail-step-copy">
-                      <strong>
-                        {step.node}
-                        {issues
-                          ?.get(step.id)
-                          ?.some((issue) => issue.severity === 'warning') ? (
-                          <WarningFilled
-                            className="runner-step-warning"
-                            aria-label="Step warning"
-                            title="Step warning"
-                          />
-                        ) : null}
-                        {step.agentDetails?.length ? (
-                          <span
-                            className="runner-detail-recording-icon"
-                            role="img"
-                            aria-label="Has recording"
-                          />
-                        ) : null}
-                      </strong>
-                      <small title={getStepDisplayName(step)}>
-                        {getStepDisplayName(step)}
-                      </small>
-                    </span>
-                    <span className="runner-detail-step-tail">
-                      <StepStatus status={step.status} />
-                      <time>
-                        {step.status === 'not-run'
-                          ? 'Not run'
-                          : formatDuration(step.durationMs)}
-                      </time>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                      <span
+                        className={`runner-detail-step-type ${
+                          step.status === 'failed'
+                            ? 'is-error'
+                            : step.agentDetails?.length
+                              ? 'is-agent'
+                              : step.phase !== 'steps'
+                                ? 'is-hook'
+                                : step.node
+                                      .toLocaleLowerCase()
+                                      .includes('assert')
+                                  ? 'is-assert'
+                                  : 'is-data'
+                        }`}
+                      >
+                        <RunnerStepTypeIcon step={step} />
+                      </span>
+                      <span className="runner-detail-step-copy">
+                        <strong>
+                          {step.node}
+                          {issues
+                            ?.get(step.id)
+                            ?.some((issue) => issue.severity === 'warning') ? (
+                            <WarningFilled
+                              className="runner-step-warning"
+                              aria-label="Step warning"
+                              title="Step warning"
+                            />
+                          ) : null}
+                          {step.agentDetails?.length ? (
+                            <span
+                              className="runner-detail-recording-icon"
+                              role="img"
+                              aria-label="Has recording"
+                            />
+                          ) : null}
+                        </strong>
+                        <small title={getStepDisplayName(step)}>
+                          {getStepDisplayName(step)}
+                        </small>
+                      </span>
+                      <span className="runner-detail-step-tail">
+                        <StepStatus status={step.status} />
+                        <time>
+                          {step.status === 'not-run'
+                            ? 'Not run'
+                            : formatDuration(step.durationMs)}
+                        </time>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </nav>
+        {children}
       </div>
-    </aside>
+    </section>
   );
 }
