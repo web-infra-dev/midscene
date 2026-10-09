@@ -52,28 +52,25 @@ and more`,
     'Automate any interface you can screenshot — beyond DOM and accessibility limits.',
 
   // Feature Sections - MODELS
-  modelsTitle: 'MODEL STRATEGY',
-  modelsHeading: 'Vision-driven\nCapable, cost-effective',
-  modelsDesc1:
-    'Observe interfaces, perform actions, and verify results as people do',
-  modelsDesc2:
-    'Use cost-effective vision models to reduce API costs for frequent E2E testing',
-  modelsDesc3:
-    'Choose from multiple models and combine planning, localization, and page understanding as needed',
+  modelsTitle: 'VISION MODELS & STRATEGY',
+  modelsHeading: 'Vision-driven\nLow-cost testing',
 
   // Model Cards
-  modelSeedName: 'Doubao Seed',
-  modelSeedDesc:
-    'Strong visual grounding for reliable element location — a solid default for Midscene.',
+  modelVisionName: 'Locate and act from screenshots',
+  modelVisionDesc:
+    'Locate elements and operate interfaces from screenshots, without maintaining selectors or annotations. Works with custom interfaces such as Canvas.',
+  modelVisionMetric: 'Screenshot → Locate → Act',
+  modelAssertName: 'Verify what users see',
+  modelAssertDesc:
+    'Describe expected colors, layouts, and states in natural language. Visual assertions check what the interface actually shows.',
+  modelAssertMetric: 'Colors · Layouts · States',
   modelSupportedName: 'Multiple model options',
-  modelSupportedDesc: 'Supports DeepSeek, Qwen, GPT, Gemini, Kimi, and more.',
-  modelCostName: 'Model API cost',
+  modelSupportedDesc:
+    'Choose from Doubao, DeepSeek, Qwen, GPT, Gemini, Kimi, and more to fit your tasks and budget.',
+  modelCostName: 'Low model API cost',
   modelCostDesc:
     'Doubao Seed 2.1 Turbo: $0.59 total API cost for 60 AppControlBench tasks, with 58 passed.',
   modelCostMetric: 'Total model API cost for 60 tasks',
-  modelMultiModelName: 'Multi-model combo',
-  modelMultiModelDesc:
-    'Pair a planning model with a vision model to raise task completion rates.',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: 'TESTING TOOLKIT',
@@ -139,7 +136,6 @@ UI testing toolkit`,
   copyrightNotice: '© 2024-present ByteDance Inc. and its affiliates.',
 
   // Links
-  multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
   platformWebLink: '/quick-start#chrome-extension',
   platformPCLink: '/quick-start#chrome-extension',
   platformMobileLink: '/platforms/android.html',

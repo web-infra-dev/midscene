@@ -48,23 +48,25 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   platformAnyInterfaceDesc: '凡可截图皆可自动化——突破 DOM 与无障碍树的限制。',
 
   // Feature Sections - MODELS
-  modelsTitle: '模型策略',
-  modelsHeading: '视觉驱动\n兼顾效果与成本',
-  modelsDesc1: '模拟人类观察界面、执行操作与验证结果的方式',
-  modelsDesc2: '选用高性价比视觉模型，降低高频 E2E 测试的调用成本',
-  modelsDesc3: '支持多种模型，按需组合规划、定位与界面理解能力',
+  modelsTitle: '视觉模型与策略',
+  modelsHeading: '视觉驱动\n低成本运行测试',
 
   // Model Cards
-  modelSeedName: '豆包 Seed',
-  modelSeedDesc: '强大的视觉定位能力，元素定位可靠——Midscene 的稳妥默认选择。',
+  modelVisionName: '截图定位与操作',
+  modelVisionDesc:
+    '直接根据截图定位元素并操作界面，无需维护选择器或额外标注，支持 Canvas 等自定义界面。',
+  modelVisionMetric: '截图 → 定位 → 操作',
+  modelAssertName: '验证用户看到的结果',
+  modelAssertDesc:
+    '用自然语言描述预期颜色、布局与状态，通过视觉断言检查界面实际呈现的效果。',
+  modelAssertMetric: '颜色 · 布局 · 状态',
   modelSupportedName: '支持多种模型',
-  modelSupportedDesc: '适配 DeepSeek、Qwen、GPT、Gemini、Kimi 等模型。',
-  modelCostName: '模型调用成本',
+  modelSupportedDesc:
+    '支持豆包、DeepSeek、Qwen、GPT、Gemini、Kimi 等模型，按效果与预算选择。',
+  modelCostName: '低模型调用成本',
   modelCostDesc:
     '豆包 Seed 2.1 Turbo 在 AppControlBench 中的调用总费用为 $0.59，60 项任务通过 58 项。',
   modelCostMetric: '60 项任务的模型调用总费用',
-  modelMultiModelName: '多模型组合',
-  modelMultiModelDesc: '让规划模型与视觉模型协同，提升任务完成率。',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '测试工具箱',
@@ -127,7 +129,6 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   copyrightNotice: '© 2024–至今 ByteDance Inc. 及其关联公司。',
 
   // Links
-  multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
   platformWebLink: '/quick-start#chrome-extension',
   platformPCLink: '/quick-start#chrome-extension',
   platformMobileLink: '/platforms/android.html',

@@ -1,5 +1,5 @@
 import { Link } from '@rspress/core/theme-original';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, CircleCheck, ScanSearch } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useI18n, useI18nUrl } from '../i18n';
 import { SectionDivider } from './SectionDivider';
@@ -8,7 +8,7 @@ import { TiltCard } from './TiltCard';
 interface FeatureSectionProps {
   eyebrow: string;
   heading: string;
-  descriptions: string[];
+  descriptions?: string[];
   variant: 'platforms' | 'models' | 'toolkit' | 'benchmarks';
   action?: {
     href: string;
@@ -21,7 +21,7 @@ interface FeatureSectionProps {
 function FeatureSection({
   eyebrow,
   heading,
-  descriptions,
+  descriptions = [],
   variant,
   action,
   children,
@@ -38,25 +38,27 @@ function FeatureSection({
             <h2>{heading}</h2>
           </div>
 
-          <div className="home-feature__details">
-            <ul>
-              {descriptions.map((description) => (
-                <li key={description}>
-                  <span>{description}</span>
-                </li>
-              ))}
-            </ul>
-            {action && (
-              <Link
-                className="home-feature__action"
-                href={action.href}
-                title={action.description}
-              >
-                <span>{action.label}</span>
-                <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
-              </Link>
-            )}
-          </div>
+          {(descriptions.length > 0 || action) && (
+            <div className="home-feature__details">
+              <ul>
+                {descriptions.map((description) => (
+                  <li key={description}>
+                    <span>{description}</span>
+                  </li>
+                ))}
+              </ul>
+              {action && (
+                <Link
+                  className="home-feature__action"
+                  href={action.href}
+                  title={action.description}
+                >
+                  <span>{action.label}</span>
+                  <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
+                </Link>
+              )}
+            </div>
+          )}
         </header>
 
         {children}
@@ -152,6 +154,64 @@ export function FeatureSections() {
   return (
     <div className="home-features">
       <FeatureSection
+        eyebrow={t('modelsTitle')}
+        heading={t('modelsHeading')}
+        variant="models"
+      >
+        <div className="home-feature-grid">
+          <FeatureCard
+            href={tUrl('/model-strategy')}
+            title={t('modelVisionName')}
+            description={t('modelVisionDesc')}
+            lightBackground="/images/backgrounds/gradient-light.svg"
+            darkBackground="/images/backgrounds/gradient-dark.svg"
+            lightContent={
+              <div className="home-model-visual">
+                <ScanSearch size={72} strokeWidth={1} />
+                <span>{t('modelVisionMetric')}</span>
+              </div>
+            }
+          />
+          <FeatureCard
+            href={tUrl('/model-common-config')}
+            title={t('modelSupportedName')}
+            description={t('modelSupportedDesc')}
+            lightBackground="/images/models/supported-models-light.svg"
+            darkBackground="/images/models/supported-models-dark.svg"
+          />
+          <FeatureCard
+            href={tUrl('/app-control-bench-report')}
+            title={t('modelCostName')}
+            description={t('modelCostDesc')}
+            lightBackground="/images/backgrounds/gradient-light.svg"
+            darkBackground="/images/backgrounds/gradient-dark.svg"
+            visualClassName="home-feature-card__visual--cost"
+            lightContent={
+              <div className="home-model-cost">
+                <strong>$0.59</strong>
+                <span>{t('modelCostMetric')}</span>
+              </div>
+            }
+          />
+          <FeatureCard
+            href={tUrl('/introduction')}
+            title={t('modelAssertName')}
+            description={t('modelAssertDesc')}
+            lightBackground="/images/backgrounds/gradient-light.svg"
+            darkBackground="/images/backgrounds/gradient-dark.svg"
+            lightContent={
+              <div className="home-model-visual">
+                <CircleCheck size={72} strokeWidth={1} />
+                <span>{t('modelAssertMetric')}</span>
+              </div>
+            }
+          />
+        </div>
+      </FeatureSection>
+
+      <SectionDivider className="home-feature__divider" />
+
+      <FeatureSection
         eyebrow={t('clientsTitle')}
         heading={t('clientsHeading')}
         descriptions={[t('clientsDesc1'), t('clientsDesc2'), t('clientsDesc3')]}
@@ -239,53 +299,6 @@ export function FeatureSections() {
                 className="home-feature-card__asset home-feature-card__asset--interface"
               />
             }
-          />
-        </div>
-      </FeatureSection>
-
-      <SectionDivider className="home-feature__divider" />
-
-      <FeatureSection
-        eyebrow={t('modelsTitle')}
-        heading={t('modelsHeading')}
-        descriptions={[t('modelsDesc1'), t('modelsDesc2'), t('modelsDesc3')]}
-        variant="models"
-      >
-        <div className="home-feature-grid">
-          <FeatureCard
-            href={tUrl('/model-common-config#doubao-seed-model')}
-            title={t('modelSeedName')}
-            description={t('modelSeedDesc')}
-            lightBackground="/images/backgrounds/doubao.svg"
-            darkBackground="/images/backgrounds/doubao-dark.svg"
-          />
-          <FeatureCard
-            href={tUrl('/model-common-config')}
-            title={t('modelSupportedName')}
-            description={t('modelSupportedDesc')}
-            lightBackground="/images/models/supported-models-light.svg"
-            darkBackground="/images/models/supported-models-dark.svg"
-          />
-          <FeatureCard
-            href={tUrl('/app-control-bench-report')}
-            title={t('modelCostName')}
-            description={t('modelCostDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            visualClassName="home-feature-card__visual--cost"
-            lightContent={
-              <div className="home-model-cost">
-                <strong>$0.59</strong>
-                <span>{t('modelCostMetric')}</span>
-              </div>
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('multiModelStrategyLink'))}
-            title={t('modelMultiModelName')}
-            description={t('modelMultiModelDesc')}
-            lightBackground="/images/models/multi-model-combo-light.svg"
-            darkBackground="/images/models/multi-model-combo-dark.svg"
           />
         </div>
       </FeatureSection>

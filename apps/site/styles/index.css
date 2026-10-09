@@ -609,7 +609,6 @@
   box-sizing: border-box;
 }
 
-.home-feature--models .home-feature__header,
 .home-feature--toolkit .home-feature__header {
   min-height: 150px;
 }
@@ -1252,7 +1251,6 @@
   }
 
   .home-feature--platforms .home-feature__header,
-  .home-feature--models .home-feature__header,
   .home-feature--toolkit .home-feature__header,
   .home-feature--benchmarks .home-feature__header {
     min-height: 0;
@@ -1481,4 +1479,32 @@
 
 .model-series-table code {
   white-space: nowrap;
+}
+
+.home-feature--models .home-feature__header {
+  display: block;
+}
+
+.home-model-visual {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  color: #0555ff;
+}
+
+.dark .home-model-visual {
+  color: rgb(128 168 255);
+}
+
+.home-model-visual span {
+  color: rgb(16 24 40 / 70%);
+  font-family: var(--rp-font-family-mono, monospace);
+  font-size: 13px;
+}
+
+.dark .home-model-visual span {
+  color: rgb(255 255 255 / 70%);
 }
