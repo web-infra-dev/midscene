@@ -532,11 +532,12 @@ describe('Midscene Test hybrid report model', () => {
         message: 'Trace unavailable',
       },
     ];
+    const issues = collectReportIssues(run);
     const standalone = renderToStaticMarkup(
       createElement(CaseWorkspace, {
         item,
         standaloneRun: run,
-        issues: collectReportIssues(run),
+        issues,
         reports: [],
         visualIndex: buildRunnerVisualIndex([]),
         renderAgentReport: () => null,
@@ -552,7 +553,12 @@ describe('Midscene Test hybrid report model', () => {
     expect(standalone).toContain('tokens');
     expect(standalone).not.toContain('Run diagnostics');
     expect(standalone).toContain('Browser cleanup failed');
-    expect(standalone).toContain('Trace unavailable');
+    expect(standalone).toContain('View all 3 issues');
+    expect(issues.others).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: 'Trace unavailable' }),
+      ]),
+    );
     const regular = renderToStaticMarkup(
       createElement(CaseWorkspaceHeader, props),
     );

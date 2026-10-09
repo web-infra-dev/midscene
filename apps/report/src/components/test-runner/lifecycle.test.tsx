@@ -98,10 +98,11 @@ describe('report lifecycle failures', () => {
     const item = flattenRunnerCases(dump).find(
       (item) => item.testCase.caseId === 'blocked-case',
     )!;
+    const issues = collectReportIssues(dump);
     const html = renderToStaticMarkup(
       <CaseWorkspace
         item={item}
-        issues={collectReportIssues(dump)}
+        issues={issues}
         reports={[]}
         visualIndex={buildRunnerVisualIndex([])}
         renderAgentReport={() => null}
@@ -109,7 +110,10 @@ describe('report lifecycle failures', () => {
         backLabel="Overview"
       />,
     );
-    expect(html).toContain('MODEL_METRICS_UNKNOWN');
+    expect(
+      issues.others.some((issue) => issue.code === 'MODEL_METRICS_UNKNOWN'),
+    ).toBe(true);
+    expect(html).toContain('View all 2 issues');
     expect(html).toContain('Database connection refused.');
     expect(html).not.toContain('Case · Attempt');
     expect(html.indexOf('aria-label="Other issues"')).toBeLessThan(
@@ -229,7 +233,11 @@ describe('report lifecycle failures', () => {
         <>
           <SingleCaseRunInfo dump={dump} />
           <ErrorCards
-            issues={collectReportIssues(dump).others}
+            issues={collectReportIssues(dump).others.filter((issue) =>
+              ['PARTIAL_MODEL_METRICS', 'MODEL_METRICS_UNKNOWN'].includes(
+                issue.code,
+              ),
+            )}
             label="Other issues"
           />
         </>,
@@ -500,7 +508,12 @@ describe('report lifecycle failures', () => {
         backLabel="Overview"
       />,
     );
-    expect(html).toContain('Case session disposal failed.');
+    expect(html).toContain('View all 3 issues');
+    expect(collectReportIssues({ projects: [item.project] }).others).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: 'Case session disposal failed.' }),
+      ]),
+    );
     expect(html).toContain('cart.verify');
   });
 
@@ -518,7 +531,8 @@ describe('report lifecycle failures', () => {
     const html = renderToStaticMarkup(
       <ErrorCards issues={issues.others} label="Other issues" />,
     );
-    for (const issue of issues.others) expect(html).toContain(issue.message);
+    expect(html).toContain('Project browser disposal failed.');
+    expect(html).toContain('View all 3 issues');
     expect(html).not.toContain('Database connection refused.');
   });
 

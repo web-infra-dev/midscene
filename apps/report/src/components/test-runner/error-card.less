@@ -45,8 +45,14 @@
   }
 
   .runner-error-icon {
-    font-size: 14px;
-    line-height: 20px;
+    display: block;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    background: url('./assets/issue-error.svg') no-repeat center;
+  }
+  .runner-error-card.is-warning .runner-error-icon {
+    background-image: url('./assets/issue-warning.svg');
   }
   .runner-error-content {
     min-width: 0;
@@ -77,16 +83,68 @@
     color: var(--runner-muted);
   }
   .runner-error-more {
-    > summary {
-      width: fit-content;
-      padding: 8px 0;
-      color: var(--runner-muted);
-      font-size: 12px;
-      cursor: pointer;
+    display: block;
+    width: fit-content;
+    padding: 8px 0;
+    border: 0;
+    background: transparent;
+    color: var(--runner-muted);
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--runner-primary);
     }
-    .runner-error-card + .runner-error-card {
-      margin-top: 8px;
+  }
+
+  .runner-issue-drawer {
+    .ant-drawer-mask {
+      background: rgba(0, 0, 0, 0.5);
     }
+    .ant-drawer-content-wrapper {
+      max-width: 100vw;
+    }
+    .ant-drawer-content {
+      color: var(--runner-text);
+      background: var(--runner-surface);
+      font-family: inherit;
+    }
+    .ant-drawer-header {
+      min-height: 48px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--runner-border);
+    }
+    .ant-drawer-header-title {
+      flex-direction: row-reverse;
+    }
+    .ant-drawer-title {
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 24px;
+    }
+    .ant-drawer-close {
+      width: 16px;
+      height: 16px;
+      margin: 0 0 0 16px;
+      padding: 0;
+      color: var(--runner-text);
+    }
+    .ant-drawer-body {
+      padding: 24px 32px;
+    }
+  }
+
+  .runner-issue-drawer-close {
+    display: block;
+    width: 16px;
+    height: 16px;
+    background: currentColor;
+    mask: url('./assets/issue-close.svg') no-repeat center;
+  }
+
+  .runner-issue-drawer-list {
+    display: grid;
+    gap: 12px;
   }
 }
 
@@ -101,6 +159,9 @@
 }
 
 @media (max-width: 600px) {
+  .test-runner-report .runner-issue-drawer .ant-drawer-body {
+    padding: 20px 16px;
+  }
   .test-runner-report .runner-detail-io-grid > section {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;

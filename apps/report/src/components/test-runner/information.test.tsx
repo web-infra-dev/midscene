@@ -117,7 +117,7 @@ describe('one home for errors and supporting information', () => {
     expect(html).toContain('<h5>Cause</h5>');
     expect(html).toContain('DevicePermissionError');
     expect(html).toContain('DEVICE_PERMISSION_DENIED');
-    expect(html).not.toContain('Show 1 more issue');
+    expect(html).not.toContain('View all');
   });
 
   it('keeps distinct aggregated errors even when their messages are identical', () => {
@@ -143,7 +143,7 @@ describe('one home for errors and supporting information', () => {
     expect(html).toContain('SESSION_RELEASE_FAILED');
   });
 
-  it('folds additional errors and warnings together without counting info', () => {
+  it('shows the primary issue and opens all errors and warnings in a drawer without counting info', () => {
     const html = renderToStaticMarkup(
       <ErrorCards
         label="Node issues"
@@ -170,9 +170,14 @@ describe('one home for errors and supporting information', () => {
         ]}
       />,
     );
-    expect(html).toContain('Show 2 more issues');
-    expect(html).toContain('Evidence is incomplete.');
+    expect(html).toContain('View all 3 issues');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html.match(/class="runner-error-card /g)).toHaveLength(1);
+    expect(html).not.toContain('Another independent error.');
+    expect(html).not.toContain('Evidence is incomplete.');
     expect(html).not.toContain('Optional note.');
+    expect(html).not.toContain('<summary>');
   });
 
   it('explains partial metrics in a warning title and body without raw collection JSON', () => {

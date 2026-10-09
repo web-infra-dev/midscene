@@ -208,8 +208,8 @@ describe('node and non-node error cards', () => {
       <ErrorCards issues={issues} label="Node issues" />,
     );
     expect(html).toContain('STEP_TIMEOUT');
-    expect(html).toContain('Show 1 more issue');
-    expect(html.match(/Snapshot write failed\./g)).toHaveLength(1);
+    expect(html).toContain('View all 2 issues');
+    expect(html).not.toContain('Snapshot write failed.');
     const information = renderToStaticMarkup(
       <IssueInformation issues={issues} />,
     );
@@ -315,16 +315,18 @@ describe('node and non-node error cards', () => {
       decision: 'stop',
       reason: 'cleanup-failed',
     };
+    const issues = collectReportIssues(dump).others;
     const html = renderToStaticMarkup(
-      <ErrorCards
-        issues={collectReportIssues(dump).others}
-        label="Other issues"
-        showDetails
-      />,
+      <ErrorCards issues={issues} label="Other issues" showDetails />,
     );
     expect(html).not.toContain('authored execution');
     expect(html.match(/&lt;release failed&gt;/g)).toHaveLength(1);
-    expect(html).toContain('1 of 4 allowed attempts ran.');
+    expect(html).toContain('View all 3 issues');
+    const retry = issues.filter((issue) => issue.code === 'RETRY_STOPPED');
+    expect(retry).toHaveLength(1);
+    expect(
+      renderToStaticMarkup(<ErrorCards issues={retry} label="Other issues" />),
+    ).toContain('1 of 4 allowed attempts ran.');
     expect(html).toContain('connection closed');
     expect(html).not.toContain('<release failed>');
   });
