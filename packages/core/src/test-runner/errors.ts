@@ -1,4 +1,7 @@
 import type { z } from 'zod/v4';
+import { sanitizeReportError } from './reporting/sanitize';
+
+const workflowErrorKey = Symbol.for('@midscene/core/workflow-error');
 
 export interface WorkflowErrorOptions {
   code?: string;
@@ -7,6 +10,7 @@ export interface WorkflowErrorOptions {
 }
 
 export class WorkflowError extends Error {
+  readonly [workflowErrorKey] = true;
   readonly code: string;
   readonly details?: unknown;
 
@@ -18,12 +22,7 @@ export class WorkflowError extends Error {
   }
 
   toJSON(): Record<string, unknown> {
-    return {
-      name: this.name,
-      message: this.message,
-      code: this.code,
-      ...(this.details === undefined ? {} : { details: this.details }),
-    };
+    return { ...sanitizeReportError(this) };
   }
 }
 
@@ -182,21 +181,31 @@ export class FatalDeviceError extends WorkflowError {
 }
 
 export const isFatalDeviceError = (error: unknown): boolean => {
-  if (error instanceof FatalDeviceError) return true;
-  if (error instanceof WorkflowError && error.code === 'FATAL_DEVICE_ERROR') {
-    return true;
-  }
-  if (
-    error instanceof Error &&
-    /device offline|device not found|(?:adb|bdc|device) connection (?:was )?closed/i.test(
-      error.message,
+  const seen = new Set<object>();
+  const pending: unknown[] = [error];
+  while (pending.length && seen.size < 50) {
+    const current = pending.pop();
+    if (typeof current !== 'object' || current === null || seen.has(current))
+      continue;
+    seen.add(current);
+    if (
+      current instanceof FatalDeviceError ||
+      (current as { code?: unknown }).code === 'FATAL_DEVICE_ERROR'
     )
-  ) {
-    return true;
+      return true;
+    if (
+      current instanceof Error &&
+      /device offline|device not found|(?:adb|bdc|device) connection (?:was )?closed/i.test(
+        current.message,
+      )
+    )
+      return true;
+    const nested = current as { cause?: unknown; errors?: unknown };
+    if (nested.cause !== undefined) pending.push(nested.cause);
+    if (Array.isArray(nested.errors))
+      pending.push(...nested.errors.slice(0, 50));
   }
-  return error instanceof Error && error.cause !== undefined
-    ? isFatalDeviceError(error.cause)
-    : false;
+  return false;
 };
 
 export class CaseExecutionError extends WorkflowError {
@@ -230,7 +239,14 @@ export function normalizeNodeExecutionError(
   error: unknown,
   node: string,
 ): WorkflowError {
-  return error instanceof WorkflowError
-    ? error
-    : new NodeExecutionError(node, error);
+  return isWorkflowError(error) ? error : new NodeExecutionError(node, error);
+}
+
+/** CJS and ESM integrations share error identity without wrapping it twice. */
+export function isWorkflowError(error: unknown): error is WorkflowError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as WorkflowError)[workflowErrorKey] === true
+  );
 }

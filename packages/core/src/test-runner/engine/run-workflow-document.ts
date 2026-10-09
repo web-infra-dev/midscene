@@ -5,6 +5,7 @@ import {
   WorkflowExecutionFailure,
   asExecutionError,
 } from './execution-failure';
+import { decideRetry } from './result-metadata';
 import { runCollectedCase } from './run-collected-case';
 import type {
   CaseRunOutcome,
@@ -116,6 +117,7 @@ export async function runWorkflowDocument<TContext = undefined>(
         await options.onCaseStart?.(collectedCase);
         const attempts = [];
         for (let attemptIndex = 0; attemptIndex <= retry; attemptIndex += 1) {
+          let attemptFatalError = false;
           let attemptFailure:
             | WorkflowExecutionFailure<CaseRunResult>
             | undefined;
@@ -130,7 +132,25 @@ export async function runWorkflowDocument<TContext = undefined>(
             defaultTimeoutMs: options.defaultTimeoutMs,
             onStepStart: options.onStepStart,
             onStepResult: options.onStepResult,
-            onResult: options.onCaseResult,
+            onResult: async (result) => {
+              attemptFatalError = options.isFatalError?.(result) ?? false;
+              result.retryDecision = decideRetry({
+                scope: 'case',
+                retryCount: retry,
+                attemptIndex,
+                status: result.status,
+                cleanupPending: result.cleanup?.status === 'pending',
+                operationPending: !!result.pendingOperations?.length,
+                cleanupFailed:
+                  result.cleanup?.status === 'failed' ||
+                  !!result.teardownErrors?.length,
+                infrastructureError: !!result.executionErrors?.length,
+                fatalError: attemptFatalError,
+                interrupted: signal.aborted,
+                shouldStop: options.shouldStop?.(),
+              });
+              await options.onCaseResult?.(result);
+            },
             reportScopeId: options.resolveCaseReportScopeId?.(
               collectedCase,
               attemptIndex,
@@ -146,6 +166,13 @@ export async function runWorkflowDocument<TContext = undefined>(
           });
           attempts.push(run);
           if (attemptFailure) {
+            run.retryDecision = decideRetry({
+              scope: 'case',
+              retryCount: retry,
+              attemptIndex,
+              status: run.status,
+              infrastructureError: true,
+            });
             cases.push({
               caseId: collectedCase.caseId,
               projectName,
@@ -161,17 +188,23 @@ export async function runWorkflowDocument<TContext = undefined>(
             });
             throw attemptFailure;
           }
-          fatalError = options.isFatalError?.(run) ?? false;
-          if (
-            run.status === 'success' ||
-            // Retrying cannot repair cleanup/report publication and would
-            // replay actions that may already have completed successfully.
-            !!run.teardownErrors?.length ||
-            fatalError ||
-            signal.aborted ||
-            options.shouldStop?.()
-          )
-            break;
+          fatalError = attemptFatalError;
+          // Result callbacks can interrupt execution or trigger bail. Observe
+          // that boundary again before admitting another attempt.
+          run.retryDecision = decideRetry({
+            scope: 'case',
+            retryCount: retry,
+            attemptIndex,
+            status: run.status,
+            cleanupPending: run.cleanup?.status === 'pending',
+            cleanupFailed:
+              run.cleanup?.status === 'failed' || !!run.teardownErrors?.length,
+            operationPending: !!run.pendingOperations?.length,
+            fatalError,
+            interrupted: signal.aborted,
+            shouldStop: options.shouldStop?.(),
+          });
+          if (run.retryDecision?.decision !== 'retry') break;
         }
         const run = attempts.at(-1)!;
         const outcome: CaseRunOutcome = {

@@ -7,11 +7,16 @@ import {
   RunnerTimelinePlaybackControl,
 } from './attempt-timeline';
 import { CaseWorkspaceHeader } from './case-workspace-header';
-import { getCaseWorkspaceLifecycleIssues } from './case-workspace-model';
+import {
+  getCaseWorkspaceDocument,
+  getCaseWorkspaceLifecycleIssues,
+} from './case-workspace-model';
 import { RunnerEvidenceInspector } from './evidence-inspector';
 import { RunnerExecutionPanel } from './execution-panel';
 import { LifecycleErrors } from './lifecycle-errors';
 import type { RunnerCaseView, RunnerVisualIndex } from './model';
+import { getRunnerCaseStepTargets } from './model';
+import { ScopeOutcome } from './scope-outcome';
 import { useCaseWorkspace } from './use-case-workspace';
 
 export { getWorkspaceStepSummary } from './use-case-workspace';
@@ -59,6 +64,9 @@ export function CaseWorkspace({
     workspaceSteps,
     timelineRange,
   } = useCaseWorkspace({ item, initialStepId, visualIndex });
+  const navigableStepIds = new Set(
+    getRunnerCaseStepTargets(item).map(({ step }) => step.id),
+  );
 
   return (
     <div className="runner-page runner-case-workspace">
@@ -81,6 +89,22 @@ export function CaseWorkspace({
           selectedDocumentAttemptIndex,
         )}
       />
+      <ScopeOutcome
+        value={getCaseWorkspaceDocument(
+          item,
+          selectedAttempt,
+          selectedDocumentAttemptIndex,
+        )}
+        label="Document lifecycle"
+        navigableStepIds={navigableStepIds}
+      />
+      {selectedAttempt ? (
+        <ScopeOutcome
+          value={selectedAttempt}
+          label={`Case attempt ${selectedAttempt.attemptIndex + 1}`}
+          navigableStepIds={navigableStepIds}
+        />
+      ) : null}
 
       {workspaceSteps.length > 0 ? (
         <div className="runner-detail-debug-workbench">

@@ -65,9 +65,10 @@ const buildStep = (
   executionId: string,
   plan?: TestRunReportPlannedStep,
 ): TestRunReportStep => {
+  const stepId = `${executionId}:${step.phase}:${step.stepIndex}`;
   if (step.status === 'not-run')
     return {
-      id: `${executionId}:${step.phase}:${step.stepIndex}`,
+      id: stepId,
       ...(plan ? { planStepId: plan.id, title: plan.title } : {}),
       phase: step.phase,
       stepIndex: step.stepIndex,
@@ -124,6 +125,7 @@ const buildStep = (
         message: `Agent detail could not be resolved for execution ${executionId} in test scope ${scopeId}.`,
         scopeId,
         executionId,
+        stepId,
         ...(sources.length > 0
           ? { sourcePaths: sources.map((source) => source.sourcePath) }
           : {}),
@@ -139,6 +141,7 @@ const buildStep = (
       code: 'agent-detail-unavailable',
       message: `No stable Agent execution reference was captured for ${step.node} in test scope ${scopeId}.`,
       scopeId,
+      stepId,
       ...(reportSourcesForScope(context, scopeId).length > 0
         ? {
             sourcePaths: reportSourcesForScope(context, scopeId).map(
@@ -158,6 +161,8 @@ const buildStep = (
       level: 'warning',
       code: 'agent-source-unavailable',
       scopeId,
+      stepId,
+      error,
       message: `Report collection for ${step.node}: ${error.message}`,
     });
   }
@@ -203,7 +208,7 @@ const buildStep = (
         ? candidateTitle.prompt
         : undefined;
   return {
-    id: `${executionId}:${step.phase}:${step.stepIndex}`,
+    id: stepId,
     ...(plan ? { planStepId: plan.id } : {}),
     phase: step.phase,
     stepIndex: step.stepIndex,
@@ -255,6 +260,15 @@ const buildAttempt = (
     attemptId: attempt.runId,
     attemptIndex: attempt.attemptIndex,
     status: attempt.status,
+    ...(attempt.executionStatus
+      ? { executionStatus: attempt.executionStatus }
+      : {}),
+    ...(attempt.phases ? { phases: attempt.phases } : {}),
+    ...(attempt.cleanup ? { cleanup: attempt.cleanup } : {}),
+    ...(attempt.pendingOperations
+      ? { pendingOperations: attempt.pendingOperations }
+      : {}),
+    ...(attempt.retryDecision ? { retryDecision: attempt.retryDecision } : {}),
     startedAt: attempt.startedAt,
     endedAt: attempt.endedAt,
     durationMs: attempt.durationMs,
@@ -353,6 +367,17 @@ const buildDocument = (
       : {}),
     sourcePath,
     status,
+    ...(document?.executionStatus
+      ? { executionStatus: document.executionStatus }
+      : {}),
+    ...(document?.phases ? { phases: document.phases } : {}),
+    ...(document?.cleanup ? { cleanup: document.cleanup } : {}),
+    ...(document?.pendingOperations
+      ? { pendingOperations: document.pendingOperations }
+      : {}),
+    ...(document?.retryDecision
+      ? { retryDecision: document.retryDecision }
+      : {}),
     ...(document
       ? {
           startedAt: document.startedAt,
@@ -536,6 +561,12 @@ const buildProject = (
             startedAt: project.lifecycle.startedAt,
             endedAt: project.lifecycle.endedAt,
             durationMs: project.lifecycle.durationMs,
+            ...(project.lifecycle.cleanup
+              ? { cleanup: project.lifecycle.cleanup }
+              : {}),
+            ...(project.lifecycle.pendingOperations
+              ? { pendingOperations: project.lifecycle.pendingOperations }
+              : {}),
             ...(project.lifecycle.setupError
               ? {
                   setupError: sanitizeReportError(project.lifecycle.setupError),
@@ -639,6 +670,7 @@ export function buildTestRunReportDump(
       level: 'error',
       code: 'run-infrastructure-error',
       message: sanitizeReportError(error).message,
+      error: sanitizeReportError(error),
     });
   }
   for (const source of index.sources) {

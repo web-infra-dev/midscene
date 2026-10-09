@@ -156,7 +156,8 @@ describe('independent Agent report snapshots', () => {
           collection: expect.objectContaining({ status: 'partial' }),
         }),
       ]);
-      expect(result.teardownErrors?.[0].code).toBe('NODE_SCOPE_TEARDOWN_ERROR');
+      expect(result.cleanup?.status).toBe('pending');
+      expect(result.teardownErrors).toBeUndefined();
       expect(releaseAgent).not.toHaveBeenCalled();
       expect(executionIds).toEqual(['completed', 'pending']);
       const published = JSON.stringify(result);

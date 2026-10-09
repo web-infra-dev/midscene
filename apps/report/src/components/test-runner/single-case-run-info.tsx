@@ -1,19 +1,16 @@
 import type { TestRunReportDump } from '@midscene/core';
 import { Alert } from 'antd';
-import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
 import { MetricsCollection } from './metrics-collection';
 import { OperationLogs } from './operation-logs';
+import { RunDiagnostics } from './run-diagnostics';
+import { getRunDiagnostics } from './run-diagnostics-model';
 import { TestPlan } from './test-plan';
 import { formatDuration, formatTimestamp } from './view-primitives';
 
 export function SingleCaseRunInfo({
   dump,
 }: { dump: TestRunReportDump }): JSX.Element {
-  const errors = dump.projects.flatMap((project) =>
-    getProjectLifecycleIssues(project, false),
-  );
-  const diagnostics = dump.diagnostics ?? [];
-  const issueCount = errors.length + diagnostics.length;
+  const { summary } = getRunDiagnostics(dump);
   const metricStatus = (
     field: 'modelCallCount' | 'modelTimeMs' | 'totalTokens',
   ) => {
@@ -63,26 +60,13 @@ export function SingleCaseRunInfo({
           type="error"
           showIcon
           message="Run failed"
-          description="The run did not complete successfully. Check the execution steps and run diagnostics."
+          description={
+            summary ||
+            'The run did not complete successfully. Check the execution steps and run diagnostics.'
+          }
         />
       )}
-      {issueCount > 0 && (
-        <details
-          className="runner-single-run-diagnostics"
-          open={dump.status === 'failed'}
-        >
-          <summary>Run diagnostics ({issueCount})</summary>
-          <LifecycleErrors issues={errors} />
-          {diagnostics.map((diagnostic, index) => (
-            <Alert
-              key={`${diagnostic.code}-${index}`}
-              type={diagnostic.level === 'error' ? 'error' : 'warning'}
-              showIcon
-              message={diagnostic.message}
-            />
-          ))}
-        </details>
-      )}
+      <RunDiagnostics dump={dump} />
       <TestPlan dump={dump} />
     </section>
   );

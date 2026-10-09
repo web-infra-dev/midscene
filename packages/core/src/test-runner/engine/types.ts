@@ -1,4 +1,11 @@
-import type { TestRunReportOperationEvent } from '../../test-run-report';
+import type {
+  TestRunReportCleanup,
+  TestRunReportOperationEvent,
+  TestRunReportOperationReference,
+  TestRunReportPhaseResult,
+  TestRunReportRetryDecision,
+  TestRunReportStepPhase,
+} from '../../test-run-report';
 import type { WorkflowError } from '../errors';
 import type {
   NodeDefinition,
@@ -92,6 +99,11 @@ export interface CaseRunResult {
   sourcePath: string;
   caseIndex: number;
   status: 'success' | 'failed';
+  executionStatus?: 'success' | 'failed' | 'not-run';
+  phases?: Partial<Record<TestRunReportStepPhase, TestRunReportPhaseResult>>;
+  cleanup?: TestRunReportCleanup;
+  pendingOperations?: TestRunReportOperationReference[];
+  retryDecision?: TestRunReportRetryDecision;
   beforeEach: StepRunResult[];
   steps: StepRunResult[];
   afterEach: StepRunResult[];
@@ -117,6 +129,11 @@ export interface WorkflowDocumentRunResult {
   projectName: string;
   sourcePath: string;
   status: 'success' | 'failed';
+  executionStatus?: 'success' | 'failed' | 'not-run';
+  phases?: Partial<Record<TestRunReportStepPhase, TestRunReportPhaseResult>>;
+  cleanup?: TestRunReportCleanup;
+  pendingOperations?: TestRunReportOperationReference[];
+  retryDecision?: TestRunReportRetryDecision;
   startedAt: string;
   endedAt: string;
   durationMs: number;
@@ -296,6 +313,8 @@ export interface ProjectRuntimeResult<TProjectContext = unknown> {
   status: 'success' | 'failed';
   setupError?: WorkflowError;
   teardownErrors?: readonly WorkflowError[];
+  cleanup?: TestRunReportCleanup;
+  pendingOperations?: TestRunReportOperationReference[];
   startedAt: string;
   endedAt: string;
   durationMs: number;

@@ -1,6 +1,10 @@
 import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
-import type { TestRunReportOperationEvent } from '../../test-run-report';
+import type {
+  TestRunReportCleanup,
+  TestRunReportOperationEvent,
+  TestRunReportOperationReference,
+} from '../../test-run-report';
 import { WorkflowError } from '../errors';
 import { sanitizeReportError } from '../reporting/sanitize';
 
@@ -13,6 +17,8 @@ interface ResourceOperation {
   signal: AbortSignal;
   operationId: string;
   identity?: OperationIdentity;
+  settled?: boolean;
+  blockers?: Set<ResourceOperation>;
 }
 type OperationListener = (event: Readonly<TestRunReportOperationEvent>) => void;
 
@@ -32,6 +38,12 @@ interface ResourceHandle {
   operations: Map<Promise<unknown>, ResourceOperation>;
   retiring: Set<CleanupOwner>;
   cleanup?: Promise<unknown>;
+  cleanupState?: {
+    operationId?: string;
+    status: 'pending' | 'completed' | 'failed';
+    blockers: Set<ResourceOperation>;
+    error?: unknown;
+  };
   interrupted: WeakMap<AbortSignal, ResourceOperation[]>;
 }
 
@@ -76,8 +88,57 @@ export const getResourceCleanupCompletion = (
   owner: object,
 ): Promise<unknown> | undefined => resources.get(owner)?.cleanup;
 
+function blockingReferences(
+  blockers: Iterable<ResourceOperation>,
+): TestRunReportOperationReference[] {
+  const references = new Map<string, TestRunReportOperationReference>();
+  const visited = new Set<ResourceOperation>();
+  const visit = (record: ResourceOperation) => {
+    if (visited.has(record)) return;
+    visited.add(record);
+    if (!record.settled)
+      references.set(record.operationId, {
+        operationId: record.operationId,
+        ...record.identity,
+      });
+    for (const blocker of record.blockers ?? []) visit(blocker);
+  };
+  for (const blocker of blockers) visit(blocker);
+  return [...references.values()];
+}
+
+/** Read a copy at the publication boundary; never expose the live cleanup state. */
+export function getResourceCleanupSnapshot(
+  owner: object,
+): TestRunReportCleanup {
+  const state = resources.get(owner)?.cleanupState;
+  return freezeEvent({
+    capturedAt: new Date().toISOString(),
+    status: state?.status ?? 'not-required',
+    ...(state?.operationId ? { operationId: state.operationId } : {}),
+    ...(state?.status === 'pending'
+      ? { blockingOperations: blockingReferences(state.blockers) }
+      : {}),
+    ...(state?.error === undefined
+      ? {}
+      : { error: sanitizeReportError(state.error) }),
+  });
+}
+
 export const RESOURCE_CLEANUP_GRACE_MS = 1000;
 export const RESOURCE_RECOVERY_GRACE_MS = 30_000;
+
+export function getPendingScopeOperations(
+  signal: AbortSignal,
+): TestRunReportOperationReference[] {
+  return freezeEvent(
+    blockingReferences(
+      [...(scopes.get(signal)?.operations.keys() ?? [])].flatMap((resource) => [
+        ...(resources.get(resource)?.operations.values() ?? []),
+      ]),
+    ),
+  );
+}
 
 /** Snapshotting must not wait for a timed-out operation to release its resource. */
 export const hasPendingResourceOperation = (resource: object): boolean =>
@@ -229,6 +290,7 @@ export function recordOperation(
     error?: unknown,
   ) => {
     settled = true;
+    record.settled = true;
     signal.removeEventListener('abort', abort);
     emit({
       kind: 'settled',
@@ -245,6 +307,12 @@ export function recordOperation(
     record,
     runnerReturned(status: 'success' | 'failed' | 'not-run') {
       emit({ kind: 'runner-returned', status, pending: !settled });
+    },
+    cleanupDeferred(blockers: Iterable<ResourceOperation>) {
+      emit({
+        kind: 'cleanup-deferred',
+        blockingOperations: blockingReferences(blockers),
+      });
     },
   };
 }
@@ -573,12 +641,31 @@ async function runResourceCleanup<T>(
     ? recordOperation(completion, options.signal, 'cleanup')
     : undefined;
   const ownerKey = options.owner ?? beforeCleanup?.signal ?? resources[0];
-  if (ownerKey) resourceHandle(ownerKey).cleanup = completion;
+  const cleanupState: NonNullable<ResourceHandle['cleanupState']> = {
+    status: 'pending',
+    operationId: cleanupObservation?.record.operationId,
+    blockers: owner.blockers,
+  };
+  if (cleanupObservation) cleanupObservation.record.blockers = owner.blockers;
+  if (ownerKey) {
+    resourceHandle(ownerKey).cleanup = completion;
+    resourceHandle(ownerKey).cleanupState = cleanupState;
+  }
+  void completion.then(
+    () => {
+      cleanupState.status = 'completed';
+    },
+    (error) => {
+      cleanupState.status = 'failed';
+      cleanupState.error = error;
+    },
+  );
   const outcome = await Promise.race([
     completion.then((value) => ({ value })),
     deferred,
   ]);
   if ('deferred' in outcome) {
+    cleanupObservation?.cleanupDeferred(owner.blockers);
     void completion.catch((error) => {
       try {
         options.onDeferredError(error);

@@ -1,7 +1,9 @@
 import type {
+  TestRunReportCleanup,
   TestRunReportDocument,
   TestRunReportDump,
   TestRunReportMetrics,
+  TestRunReportOperationReference,
   TestRunReportStep,
 } from '../../test-run-report';
 import type { ReportFileAttributes } from '../../types';
@@ -194,6 +196,22 @@ export function mergeTestRunReportDumps(
       );
     const dump = retainHostFailure(source) ?? agentReportAsTestRun(source);
     const id = (value: string) => `${source.reportId}:${value}`;
+    const reference = (
+      value: TestRunReportOperationReference,
+    ): TestRunReportOperationReference => ({
+      ...value,
+      ...(value.stepId ? { stepId: id(value.stepId) } : {}),
+      ...(value.scopeId ? { scopeId: id(value.scopeId) } : {}),
+    });
+    const cleanup = (value: TestRunReportCleanup | undefined) =>
+      value
+        ? {
+            ...value,
+            ...(value.blockingOperations
+              ? { blockingOperations: value.blockingOperations.map(reference) }
+              : {}),
+          }
+        : undefined;
     const scopeReports = (reportIds: string[] | undefined) =>
       reportIds?.length ? [source.reportId] : reportIds;
     const step = (value: TestRunReportStep): TestRunReportStep => {
@@ -208,6 +226,12 @@ export function mergeTestRunReportDumps(
                   ...event,
                   ...(event.stepId ? { stepId: id(event.stepId) } : {}),
                   ...(event.scopeId ? { scopeId: id(event.scopeId) } : {}),
+                  ...(event.blockingOperations
+                    ? {
+                        blockingOperations:
+                          event.blockingOperations.map(reference),
+                      }
+                    : {}),
                 })),
               },
             }
@@ -231,6 +255,10 @@ export function mergeTestRunReportDumps(
       value: T,
     ): T => ({
       ...value,
+      ...(value.cleanup ? { cleanup: cleanup(value.cleanup) } : {}),
+      ...(value.pendingOperations
+        ? { pendingOperations: value.pendingOperations.map(reference) }
+        : {}),
       documentId: id(value.documentId),
       ...(value.logicalDocumentId
         ? { logicalDocumentId: id(value.logicalDocumentId) }
@@ -249,6 +277,22 @@ export function mergeTestRunReportDumps(
       projects: dump.projects.map((project) => ({
         ...project,
         projectId: id(project.projectId),
+        ...(project.lifecycle
+          ? {
+              lifecycle: {
+                ...project.lifecycle,
+                ...(project.lifecycle.cleanup
+                  ? { cleanup: cleanup(project.lifecycle.cleanup) }
+                  : {}),
+                ...(project.lifecycle.pendingOperations
+                  ? {
+                      pendingOperations:
+                        project.lifecycle.pendingOperations.map(reference),
+                    }
+                  : {}),
+              },
+            }
+          : {}),
         documents: project.documents.map((document) => ({
           ...documentScope(document),
           ...(document.attempts
@@ -260,6 +304,12 @@ export function mergeTestRunReportDumps(
             attempts: testCase.attempts.map((attempt) => ({
               ...attempt,
               attemptId: id(attempt.attemptId),
+              ...(attempt.cleanup ? { cleanup: cleanup(attempt.cleanup) } : {}),
+              ...(attempt.pendingOperations
+                ? {
+                    pendingOperations: attempt.pendingOperations.map(reference),
+                  }
+                : {}),
               beforeEach: attempt.beforeEach.map(step),
               steps: attempt.steps.map(step),
               afterEach: attempt.afterEach.map(step),
@@ -271,6 +321,7 @@ export function mergeTestRunReportDumps(
       diagnostics: dump.diagnostics?.map((diagnostic) => ({
         ...diagnostic,
         ...(diagnostic.scopeId ? { scopeId: id(diagnostic.scopeId) } : {}),
+        ...(diagnostic.stepId ? { stepId: id(diagnostic.stepId) } : {}),
       })),
     };
   });

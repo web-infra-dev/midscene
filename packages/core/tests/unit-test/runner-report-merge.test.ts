@@ -160,6 +160,43 @@ test('preserves journal references and remaps blocked-step and event links on me
       ],
     },
   });
+  const blocker = {
+    operationId: 'root-operation',
+    scopeId: 'attempt-0',
+    stepId: 'step-0',
+  };
+  attempt.cleanup = {
+    status: 'pending',
+    capturedAt: time,
+    operationId: 'cleanup-operation',
+    blockingOperations: [blocker],
+  };
+  attempt.pendingOperations = [blocker];
+  attempt.retryDecision = {
+    scope: 'case',
+    retryCount: 3,
+    attemptIndex: 0,
+    decision: 'stop',
+    reason: 'cleanup-pending',
+  };
+  dump.projects[0].documents[0].cleanup = attempt.cleanup;
+  dump.projects[0].lifecycle = {
+    status: 'failed',
+    startedAt: time,
+    endedAt: time,
+    durationMs: 0,
+    cleanup: attempt.cleanup,
+  };
+  dump.diagnostics = [
+    {
+      level: 'warning',
+      code: 'agent-detail-unresolved',
+      message: 'Missing detail',
+      scopeId: 'attempt-0',
+      stepId: 'step-0',
+    },
+  ];
+  attempt.steps[1].operations!.events[0].blockingOperations = [blocker];
   const merged = mergeTestRunReportDumps(
     [
       {
@@ -189,6 +226,23 @@ test('preserves journal references and remaps blocked-step and event links on me
     scopeId: 'merged-source:attempt-0',
   });
   expect(merged.operationLogs).toEqual(dump.operationLogs);
+  const mergedAttempt = merged.projects[0].documents[0].cases[0].attempts[0];
+  const expected = {
+    operationId: 'root-operation',
+    scopeId: 'merged-source:attempt-0',
+    stepId: 'merged-source:step-0',
+  };
+  expect(mergedAttempt.cleanup?.blockingOperations).toEqual([expected]);
+  expect(mergedAttempt.pendingOperations).toEqual([expected]);
+  expect(mergedAttempt.retryDecision).toEqual(attempt.retryDecision);
+  expect(merged.projects[0].documents[0].cleanup?.blockingOperations).toEqual([
+    expected,
+  ]);
+  expect(merged.projects[0].lifecycle?.cleanup?.blockingOperations).toEqual([
+    expected,
+  ]);
+  expect(merged.diagnostics?.[0].stepId).toBe('merged-source:step-0');
+  expect(blocked.operations?.events[0].blockingOperations).toEqual([expected]);
 });
 
 function writeSource(

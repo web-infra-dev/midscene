@@ -16,9 +16,12 @@ import {
   ResourceCleanupDeferredError,
   cleanupScopeResources,
   createResourceScope,
+  getPendingScopeOperations,
+  getResourceCleanupSnapshot,
   recoverCancelledScopeResources,
   setResourceOperationIdentity,
 } from './resource-operations';
+import { phaseResult } from './result-metadata';
 import { reportPathsFromTeardown } from './scope-teardown';
 import type {
   CreateDocumentRuntimeOptions,
@@ -88,6 +91,12 @@ export function createDocumentRuntime<TContext = undefined>(
     teardownErrors: WorkflowError[] = [],
   ): WorkflowDocumentRunResult => {
     const endedAt = new Date();
+    const cleanup = getResourceCleanupSnapshot(signal);
+    const pendingOperations = getPendingScopeOperations(signal);
+    const phaseResults = {
+      beforeAll: phaseResult(document.lifecycle.beforeAll.length, beforeAll),
+      afterAll: phaseResult(document.lifecycle.afterAll.length, afterAll),
+    };
     return {
       plan,
       documentId: document.documentId,
@@ -103,9 +112,26 @@ export function createDocumentRuntime<TContext = undefined>(
         hostErrors.length > 0 ||
         beforeAll.some((step) => step.status !== 'success') ||
         afterAll.some((step) => step.status !== 'success') ||
+        cleanup.status === 'pending' ||
+        cleanup.status === 'failed' ||
+        pendingOperations.length > 0 ||
         teardownErrors.length > 0
           ? 'failed'
           : 'success',
+      executionStatus: Object.values(phaseResults).some(
+        (phase) => phase.status === 'failed',
+      )
+        ? 'failed'
+        : Object.values(phaseResults).some(
+              (phase) => phase.status === 'not-run',
+            ) ||
+            hostErrors.some(({ phase }) => phase === 'setup') ||
+            (signal.aborted && !beforeAll.length && !afterAll.length)
+          ? 'not-run'
+          : 'success',
+      phases: phaseResults,
+      cleanup,
+      ...(pendingOperations.length ? { pendingOperations } : {}),
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),
       durationMs: Math.max(0, endedAt.getTime() - startedAt.getTime()),
@@ -301,16 +327,13 @@ export function createDocumentRuntime<TContext = undefined>(
               );
             }
           }
-          if (deferredCleanup) {
+          {
             const errors = [
               ...cleanupExecutionErrors,
               ...teardownErrors.slice(priorTeardownErrors),
             ];
             if (errors.length)
-              throw new AggregateError(
-                errors,
-                'Deferred document cleanup failed',
-              );
+              throw new AggregateError(errors, 'Document cleanup failed');
           }
         };
         try {
@@ -334,14 +357,19 @@ export function createDocumentRuntime<TContext = undefined>(
         } catch (error) {
           deferredCleanup = error instanceof ResourceCleanupDeferredError;
           if (!deferredCleanup) acceptingNodeTeardowns = false;
-          teardownErrors.push(
-            new NodeScopeTeardownError(error, {
-              scope: 'document',
-              scopeId: documentRunId,
-              node: 'resource-drain',
-              registrationIndex: -1,
-            }),
-          );
+          if (
+            !deferredCleanup &&
+            !teardownErrors.length &&
+            !cleanupExecutionErrors.length
+          )
+            teardownErrors.push(
+              new NodeScopeTeardownError(error, {
+                scope: 'document',
+                scopeId: documentRunId,
+                node: 'resource-drain',
+                registrationIndex: -1,
+              }),
+            );
         }
         finishedResult = createResult(teardownErrors);
         try {

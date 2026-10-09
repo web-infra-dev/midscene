@@ -110,7 +110,7 @@ export function RunSummary({
           value={formatPercent(health.firstPassRate)}
         />
         <RunMetric
-          label="Failed"
+          label="Failed cases"
           value={dump.summary.failed}
           tone={dump.summary.failed ? 'danger' : undefined}
         />
@@ -120,12 +120,16 @@ export function RunSummary({
           tone={health.retryPassedCount ? 'warning' : undefined}
         />
         <RunMetric
-          label="Not run"
+          label="Cases not run"
           value={dump.summary.notRun}
           tone={dump.summary.notRun ? 'warning' : undefined}
         />
         <RunMetric label="Run time" value={formatDuration(dump.durationMs)} />
       </div>
+      <p>
+        Case counts summarize final Case outcomes. Run status also includes
+        preparation, cleanup and host errors.
+      </p>
       <span
         className="runner-overview-pass-percentage"
         aria-label="Percentage of all cases passed"

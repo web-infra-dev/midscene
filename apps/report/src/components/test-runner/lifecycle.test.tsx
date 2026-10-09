@@ -389,8 +389,9 @@ describe('report lifecycle failures', () => {
     const standalone = renderToStaticMarkup(<SingleCaseRunInfo dump={dump} />);
     expect(standalone).toContain('Project browser disposal failed.');
     expect(standalone).toContain('Document fixture disposal failed.');
-    // Attempt errors are rendered beside the selected attempt, not repeated in run diagnostics.
-    expect(standalone).not.toContain('Case session disposal failed.');
+    // The run summary includes cleanup consequences from every attempt, so a
+    // failed run cannot hide them behind the currently selected workspace.
+    expect(standalone).toContain('Case session disposal failed.');
   });
 
   it('prioritizes a failed document teardown over a successful case step', () => {

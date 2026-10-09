@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import type { PlaywrightTasks } from '../../types';
 import { formatTimelineTime } from '../timeline/timeline-scale';
 import { RunnerAgentTraceContent } from './agent-trace';
+import { ErrorDetails } from './error-details';
 import { EvidenceTabs, type RunnerInspectorTab } from './evidence-tabs';
 import type {
   RunnerCaseView,
@@ -102,11 +103,7 @@ export function RunnerEvidenceInspector({
 
   const copyError = async () => {
     try {
-      await copyRunnerText(
-        [step.error?.code, step.error?.name, step.error?.message]
-          .filter(Boolean)
-          .join(': '),
-      );
+      await copyRunnerText(JSON.stringify(step.error, null, 2));
       setCopyState('copied');
     } catch {
       setCopyState('failed');
@@ -175,21 +172,27 @@ export function RunnerEvidenceInspector({
         </p>
       ) : null}
       {step.error ? (
-        <div className="runner-detail-failure-summary">
-          <CloseCircleFilled className="runner-detail-failure-icon" />
-          <span className="runner-detail-failure-content">
-            <strong>{step.error.code || step.error.name}</strong>
-            <small>{step.error.message}</small>
-          </span>
-          <button
-            type="button"
-            aria-label={copyErrorLabel}
-            title={copyErrorLabel}
-            onClick={copyError}
-          >
-            <CopyOutlined />
-          </button>
-        </div>
+        <>
+          <div className="runner-detail-failure-summary">
+            <CloseCircleFilled className="runner-detail-failure-icon" />
+            <span className="runner-detail-failure-content">
+              <strong>{step.error.code || step.error.name}</strong>
+              <small>{step.error.message}</small>
+            </span>
+            <button
+              type="button"
+              aria-label={copyErrorLabel}
+              title={copyErrorLabel}
+              onClick={copyError}
+            >
+              <CopyOutlined />
+            </button>
+          </div>
+          <details>
+            <summary>Error causes and context</summary>
+            <ErrorDetails error={step.error} />
+          </details>
+        </>
       ) : null}
       <section className="runner-detail-inspector">
         <div className="runner-detail-tabs-row">

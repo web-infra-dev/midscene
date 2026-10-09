@@ -23,10 +23,54 @@ export interface TestRunReportValue {
 }
 
 export interface TestRunReportError {
+  format?: 'midscene-error';
   name: string;
   message: string;
   code?: string;
   details?: TestRunReportValue;
+  cause?: TestRunReportError;
+  errors?: TestRunReportError[];
+  truncated?: boolean;
+}
+
+export interface TestRunReportOperationReference {
+  operationId: string;
+  scopeId?: string;
+  stepId?: string;
+  node?: string;
+}
+
+/** Immutable observation; late completion remains in the operation journal. */
+export interface TestRunReportCleanup {
+  status: 'not-required' | 'completed' | 'pending' | 'failed';
+  capturedAt: string;
+  operationId?: string;
+  blockingOperations?: TestRunReportOperationReference[];
+  error?: TestRunReportError;
+}
+
+export interface TestRunReportRetryDecision {
+  scope: 'case' | 'document';
+  retryCount: number;
+  attemptIndex: number;
+  decision: 'retry' | 'stop';
+  reason:
+    | 'passed'
+    | 'attempt-failed'
+    | 'budget-exhausted'
+    | 'cleanup-pending'
+    | 'cleanup-failed'
+    | 'operation-pending'
+    | 'fatal-error'
+    | 'interrupted'
+    | 'bail'
+    | 'infrastructure-error';
+}
+
+export interface TestRunReportPhaseResult {
+  status: 'success' | 'failed' | 'not-run' | 'not-required';
+  plannedStepCount: number;
+  executedStepCount: number;
 }
 
 export interface TestRunReportHostError {
@@ -53,6 +97,8 @@ export interface TestRunReportDiagnostic {
   scopeId?: string;
   executionId?: string;
   sourcePaths?: string[];
+  stepId?: string;
+  error?: TestRunReportError;
 }
 
 export interface TestRunReportMetrics {
@@ -90,7 +136,12 @@ export interface TestRunReportAgentDetail {
 export interface TestRunReportOperationEvent {
   operationId: string;
   operationKind: 'node' | 'resource' | 'acquisition' | 'cleanup' | 'readiness';
-  kind: 'started' | 'cancel-requested' | 'settled' | 'runner-returned';
+  kind:
+    | 'started'
+    | 'cancel-requested'
+    | 'settled'
+    | 'runner-returned'
+    | 'cleanup-deferred';
   at: string;
   stepId?: string;
   scopeId?: string;
@@ -99,6 +150,7 @@ export interface TestRunReportOperationEvent {
   /** True only when the actual operation has not settled at Runner return. */
   pending?: boolean;
   error?: TestRunReportError;
+  blockingOperations?: TestRunReportOperationReference[];
 }
 
 export interface TestRunReportPlannedStep {
@@ -183,6 +235,11 @@ export interface TestRunReportAttempt {
   attemptId: string;
   attemptIndex: number;
   status: TestRunReportRunStatus;
+  executionStatus?: TestRunReportCaseStatus;
+  phases?: Partial<Record<TestRunReportStepPhase, TestRunReportPhaseResult>>;
+  cleanup?: TestRunReportCleanup;
+  pendingOperations?: TestRunReportOperationReference[];
+  retryDecision?: TestRunReportRetryDecision;
   startedAt: string;
   endedAt: string;
   durationMs: number;
@@ -214,6 +271,11 @@ export interface TestRunReportDocument {
   attemptIndex?: number;
   sourcePath: string;
   status: TestRunReportRunStatus;
+  executionStatus?: TestRunReportCaseStatus;
+  phases?: Partial<Record<TestRunReportStepPhase, TestRunReportPhaseResult>>;
+  cleanup?: TestRunReportCleanup;
+  pendingOperations?: TestRunReportOperationReference[];
+  retryDecision?: TestRunReportRetryDecision;
   startedAt?: string;
   endedAt?: string;
   durationMs?: number;
@@ -240,6 +302,8 @@ export interface TestRunReportProjectLifecycle {
   durationMs: number;
   setupError?: TestRunReportError;
   teardownErrors?: TestRunReportError[];
+  cleanup?: TestRunReportCleanup;
+  pendingOperations?: TestRunReportOperationReference[];
 }
 
 export interface TestRunReportProject {

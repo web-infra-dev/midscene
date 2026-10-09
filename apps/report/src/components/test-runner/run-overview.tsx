@@ -1,5 +1,4 @@
 import type { TestRunReportDump } from '@midscene/core';
-import { Alert } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { CaseDensitySwitch } from './case-density-switch';
 import { CaseFilters } from './case-filters';
@@ -22,7 +21,7 @@ import { RunSummary } from './run-summary';
 import { TestPlan } from './test-plan';
 import type { RunnerCaseDisplayMode } from './view-primitives';
 
-import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
+import { RunDiagnostics } from './run-diagnostics';
 
 export function RunOverview({
   visualIndex,
@@ -130,11 +129,7 @@ export function RunOverview({
         onReviewOutcome={focusOutcomeCases}
       />
 
-      <LifecycleErrors
-        issues={dump.projects.flatMap((project) =>
-          getProjectLifecycleIssues(project),
-        )}
-      />
+      <RunDiagnostics dump={dump} />
       <MetricsCollection metrics={dump.metrics} />
       <OperationLogs logs={dump.operationLogs} />
       <TestPlan dump={dump} />
@@ -182,25 +177,6 @@ export function RunOverview({
           onOpenCase={onOpenCase}
         />
       </section>
-
-      {dump.diagnostics?.length ? (
-        <section className="runner-panel runner-diagnostics">
-          <div className="runner-section-heading">
-            <div>
-              <div className="runner-eyebrow">Report assembly</div>
-              <h2>Diagnostics</h2>
-            </div>
-          </div>
-          {dump.diagnostics.map((diagnostic, index) => (
-            <Alert
-              key={`${diagnostic.code}-${diagnostic.scopeId ?? index}`}
-              type={diagnostic.level === 'error' ? 'error' : 'warning'}
-              showIcon
-              message={diagnostic.message}
-            />
-          ))}
-        </section>
-      ) : null}
     </div>
   );
 }

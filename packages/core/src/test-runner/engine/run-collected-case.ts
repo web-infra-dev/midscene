@@ -11,9 +11,12 @@ import {
   ResourceCleanupDeferredError,
   cleanupScopeResources,
   createResourceScope,
+  getPendingScopeOperations,
+  getResourceCleanupSnapshot,
   recoverCancelledScopeResources,
   setResourceOperationIdentity,
 } from './resource-operations';
+import { phaseResult } from './result-metadata';
 import { reportPathsFromTeardown } from './scope-teardown';
 import type {
   CaseNodePhase,
@@ -165,13 +168,13 @@ export async function runCollectedCase<TContext = undefined>(
         );
       }
     }
-    if (deferredCleanup) {
+    {
       const errors = [
         ...cleanupExecutionErrors,
         ...teardownErrors.slice(priorTeardownErrors),
       ];
       if (errors.length)
-        throw new AggregateError(errors, 'Deferred Case cleanup failed');
+        throw new AggregateError(errors, 'Case cleanup failed');
     }
   };
   try {
@@ -194,16 +197,28 @@ export async function runCollectedCase<TContext = undefined>(
   } catch (error) {
     deferredCleanup = error instanceof ResourceCleanupDeferredError;
     if (!deferredCleanup) acceptingTeardowns = false;
-    teardownErrors.push(
-      new NodeScopeTeardownError(error, {
-        scope: 'case',
-        scopeId: runId,
-        node: 'resource-drain',
-        registrationIndex: -1,
-      }),
-    );
+    if (
+      !deferredCleanup &&
+      !teardownErrors.length &&
+      !cleanupExecutionErrors.length
+    )
+      teardownErrors.push(
+        new NodeScopeTeardownError(error, {
+          scope: 'case',
+          scopeId: runId,
+          node: 'resource-drain',
+          registrationIndex: -1,
+        }),
+      );
   }
   const endedAt = new Date();
+  const cleanupSnapshot = getResourceCleanupSnapshot(scopeSignal);
+  const pendingOperations = getPendingScopeOperations(scopeSignal);
+  const phaseResults = {
+    beforeEach: phaseResult(phases.beforeEach.length, beforeEach),
+    steps: phaseResult(phases.steps.length, steps),
+    afterEach: phaseResult(phases.afterEach.length, afterEach),
+  };
   const result: CaseRunResult = {
     caseId: collectedCase.caseId,
     runId,
@@ -217,12 +232,25 @@ export async function runCollectedCase<TContext = undefined>(
       beforeEach.some((step) => step.status !== 'success') ||
       steps.some((step) => step.status !== 'success') ||
       afterEach.some((step) => step.status !== 'success') ||
+      cleanupSnapshot.status === 'pending' ||
+      cleanupSnapshot.status === 'failed' ||
+      pendingOperations.length > 0 ||
       teardownErrors.length > 0
         ? 'failed'
         : 'success',
     beforeEach: [...beforeEach],
     steps: [...steps],
     afterEach: [...afterEach],
+    executionStatus: Object.values(phaseResults).some(
+      (phase) => phase.status === 'failed',
+    )
+      ? 'failed'
+      : Object.values(phaseResults).some((phase) => phase.status === 'not-run')
+        ? 'not-run'
+        : 'success',
+    phases: phaseResults,
+    cleanup: cleanupSnapshot,
+    ...(pendingOperations.length ? { pendingOperations } : {}),
     ...(executionErrors.length
       ? { executionErrors: executionErrors.map(asExecutionError) }
       : {}),

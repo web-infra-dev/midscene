@@ -1,6 +1,6 @@
 import { CloseCircleFilled, RightOutlined } from '@ant-design/icons';
 import type { TestRunReportError, TestRunReportProject } from '@midscene/core';
-import { ReportValue } from './view-primitives';
+import { ErrorDetails } from './error-details';
 
 export interface LifecycleIssue {
   label: string;
@@ -85,20 +85,7 @@ export function LifecycleErrors({
             </span>
           </summary>
           <div className="runner-lifecycle-diagnostics">
-            <dl>
-              <div>
-                <dt>Type</dt>
-                <dd>{error.name}</dd>
-              </div>
-              {error.code ? (
-                <div>
-                  <dt>Code</dt>
-                  <dd>{error.code}</dd>
-                </div>
-              ) : null}
-            </dl>
-            <p>{error.message}</p>
-            {error.details ? <ReportValue value={error.details} /> : null}
+            <ErrorDetails error={error} />
           </div>
         </details>
       ))}

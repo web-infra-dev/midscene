@@ -1,5 +1,7 @@
 import {
+  WorkflowError,
   WorkflowExecutionFailure,
+  decideRetry,
   runDocumentAttempts,
   runWorkflowDocument,
 } from '@midscene/core/internal/test-runner';
@@ -151,6 +153,26 @@ export async function executeDocumentInvocation(
       }).catch(async (error: unknown) => {
         if (error instanceof WorkflowExecutionFailure) {
           const partial = error.result as WorkflowDocumentExecutionResult;
+          const cleanupOnly =
+            error.errors.length > 0 &&
+            error.errors.every((failure) =>
+              partial.document.hostErrors?.some(
+                (host) =>
+                  host.phase === 'cleanup' &&
+                  (host.error === failure ||
+                    (host.error instanceof Error &&
+                      host.error.cause === failure)),
+              ),
+            );
+          if (documentRetry)
+            partial.document.retryDecision = decideRetry({
+              scope: 'document',
+              retryCount: invocation.retry.count,
+              attemptIndex: documentAttemptIndex,
+              status: 'failed',
+              cleanupFailed: cleanupOnly,
+              infrastructureError: !cleanupOnly,
+            });
           attempts.push(partial);
           sinks.documents.push(partial.document);
           sinks.cases.push(
@@ -161,6 +183,14 @@ export async function executeDocumentInvocation(
             })),
           );
           try {
+            for (const outcome of partial.cases)
+              for (const attempt of outcome.attempts ?? [])
+                await writeCaseAttemptResult(
+                  options.runDir,
+                  project.projectId,
+                  document.documentId,
+                  attempt,
+                );
             await writeWorkflowDocumentResult(options.runDir, partial.document);
           } catch (publicationError) {
             throw new WorkflowExecutionFailure(partial, [
@@ -172,6 +202,40 @@ export async function executeDocumentInvocation(
         throw error;
       });
 
+      if (documentHasFatalError(execution.document)) options.markProjectFatal();
+      const owners = [
+        execution.document,
+        ...execution.cases.flatMap((outcome) => outcome.attempts ?? []),
+      ];
+      const cleanupPending = owners.some(
+        (owner) => owner.cleanup?.status === 'pending',
+      );
+      const operationPending = owners.some(
+        (owner) => !!owner.pendingOperations?.length,
+      );
+      const cleanupFailed = owners.some(
+        (owner) =>
+          owner.cleanup?.status === 'failed' ||
+          !!owner.teardownErrors?.length ||
+          ('hostErrors' in owner &&
+            owner.hostErrors?.some(({ phase }) => phase === 'cleanup')),
+      );
+      const failed =
+        execution.document.status === 'failed' ||
+        execution.cases.some((item) => item.status !== 'success');
+      const decision = decideRetry({
+        scope: 'document',
+        retryCount: invocation.retry.count,
+        attemptIndex: documentAttemptIndex,
+        status: failed ? 'failed' : 'success',
+        cleanupPending,
+        cleanupFailed,
+        operationPending,
+        fatalError: options.isProjectFatal(),
+        interrupted: options.signal.aborted || options.rootSignal.aborted,
+        shouldStop: options.shouldBail(),
+      });
+      if (documentRetry) execution.document.retryDecision = decision;
       attempts.push(execution);
       sinks.cases.push(
         ...execution.cases.map((outcome) => ({
@@ -181,22 +245,65 @@ export async function executeDocumentInvocation(
         })),
       );
       sinks.documents.push(execution.document);
-      await writeWorkflowDocumentResult(options.runDir, execution.document);
-      if (documentHasFatalError(execution.document)) options.markProjectFatal();
+      // Per-attempt callbacks publish incremental facts; seal the final retry
+      // decision after callback-driven interruption/bail has been observed.
+      try {
+        for (const outcome of execution.cases)
+          for (const attempt of outcome.attempts ?? [])
+            await writeCaseAttemptResult(
+              options.runDir,
+              project.projectId,
+              document.documentId,
+              attempt,
+            );
+        await writeWorkflowDocumentResult(options.runDir, execution.document);
+      } catch (error) {
+        execution.document.status = 'failed';
+        execution.document.hostErrors = [
+          ...(execution.document.hostErrors ?? []),
+          { phase: 'publication', error },
+        ];
+        if (documentRetry)
+          execution.document.retryDecision = decideRetry({
+            scope: 'document',
+            retryCount: invocation.retry.count,
+            attemptIndex: documentAttemptIndex,
+            status: 'failed',
+            infrastructureError: true,
+          });
+        throw new WorkflowExecutionFailure(execution, [error]);
+      }
       const cleanupErrors = [
         ...(execution.document.teardownErrors ?? []),
+        ...(execution.document.hostErrors ?? [])
+          .filter(({ phase }) => phase === 'cleanup')
+          .map(({ error }) => error),
         ...execution.cases.flatMap((outcome) =>
           (outcome.attempts ?? []).flatMap(
             (attempt) => attempt.teardownErrors ?? [],
           ),
         ),
       ];
-      if (cleanupErrors.length)
-        throw new WorkflowExecutionFailure(execution, cleanupErrors);
-      const failed =
-        execution.document.status === 'failed' ||
-        execution.cases.some((item) => item.status !== 'success');
-      return failed ? 'failed' : 'success';
+      if (cleanupFailed)
+        throw new WorkflowExecutionFailure(
+          execution,
+          cleanupErrors.length
+            ? cleanupErrors
+            : [
+                new WorkflowError(
+                  'Cleanup failed; further attempts were stopped.',
+                  {
+                    code: 'RESOURCE_CLEANUP_FAILED',
+                    details: {
+                      cleanup: owners
+                        .map((owner) => owner.cleanup)
+                        .filter(Boolean),
+                    },
+                  },
+                ),
+              ],
+        );
+      return decision.decision === 'retry' ? 'failed' : undefined;
     },
   );
 

@@ -6,14 +6,14 @@
 
 ## 实现批次与进度
 
-分支：`fix/test-report-pipeline`，从 2026-10-08 拉取的 `origin/main`（`98062b63`）创建。第一批已提交为 `12355393`（`fix(report): preserve test plans and show setup timelines`）；第二批已提交为 `d8dbba6a`（`fix(report): capture evidence independently of resource cleanup`）；第三批为本次提交（`fix(report): track cancellation and block unavailable resources`）。尚未推送。
+分支：`fix/test-report-pipeline`，从 2026-10-08 拉取的 `origin/main`（`98062b63`）创建。第一批已提交为 `12355393`（`fix(report): preserve test plans and show setup timelines`）；第二批已提交为 `d8dbba6a`（`fix(report): capture evidence independently of resource cleanup`）；第三批已提交为 `ac259f2e`（`fix(report): track cancellation and block unavailable resources`）。第四批随本次提交（`fix(report): structure diagnostics and record retry decisions`）保存。尚未推送。
 
 | 批次 | 范围 | 状态 |
 | --- | --- | --- |
 | 1 | 独立计划、未执行步骤、准备/收尾时间线（01、06） | 本批基础实现完成，见下方范围与验收记录 |
 | 2 | 证据采集与释放分离、指标完整性（02、07） | 本批原生 Runner 实现完成，见下方范围与验收记录 |
 | 3 | 取消契约、资源调度、操作与取消事件（03、04、05 的事件部分） | 共享运行链路实现完成；具体设备适配器的中断能力仍需逐项验证 |
-| 4 | 错误原因、诊断归组、清理与重试状态（05 的错误部分、08、09） | 待实施 |
+| 4 | 错误原因、诊断归组、清理与重试状态（05 的错误部分、08、09） | 原生 CLI 与共享 Runner 实现完成，见下方范围与验收记录 |
 | 5 | 宿主初始化及各阶段耗时（10） | 待实施 |
 
 ### 第一批已经落地
@@ -111,6 +111,41 @@
 
 335 条相关回归测试（Core 206、Test 75、Report 54）、三个项目的构建、报告模板检查与上述 lint 检查均已通过。共享运行链路本批验收完成；具体设备/外部适配器的中断能力仍按上述限制保留为后续工作。
 
+### 第四批已经落地
+
+- 错误以结构化的类型、代码、上下文、`cause` 与聚合分支保存，限制深度、数量和总大小，移除堆栈、脱敏常见凭据并标明截断。当前格式有明确标记，跨 JSON 边界再次保存不会逐层包裹已编码的上下文。CJS/ESM 的 WorkflowError 使用共享身份，避免重复添加 Node 失败前缀。
+- Case、文档和 Project 独立保存清理状态：无需清理、完成、等待、失败。等待清理不再生成假的 teardown 失败；真实释放失败继续抛出或返回失败，保留现有调用方的错误契约。
+- Case 和文档独立保存作者步骤的执行结论及阶段计划/实际执行数量。动作全部成功但释放失败时，动作仍显示成功，整体运行显示失败，并说明失败发生在清理阶段。
+- 清理记录通过稳定操作 ID 和阻塞步骤关联，父级清理可以追溯到子级仍未结束的操作。报告封存时保存不可变观察；进程存活期间晚完成或晚失败追加到 `operations.jsonl`，不覆盖已有步骤及清理快照。
+- Case 和整文件重试保存预算、实际 attempt、继续/停止决策和原因，区分预算耗尽、清理等待/失败、操作未结束、设备致命错误、中断、bail 和基础设施错误。没有 disposer 的普通 Node 仍在运行时，也不允许自动开始下一轮。结果回调引发中断后，CLI 在最终落盘前重新记录停止决策。
+- 页面首先呈现实际执行失败，再按明确关联归组未执行步骤、证据缺失和清理后果。独立的验证码失败与两个 AI 超时分别保留；同源的 Case/文档/Project 清理等待可合并为影响链。原始记录、UUID 和错误原因可展开，已知可浏览的步骤支持定位。
+- 汇总明确 `Failed cases` 和 `Cases not run` 的统计口径；准备失败但没有正式用例失败时，说明准备阶段失败和用例未启动。阶段详情显示例如“3 次额外重试预算，实际完成 1 次，因清理等待而停止”。
+
+### 第四批范围与限制
+
+- 新状态来自实际运行边界，需重新生成报告；两份历史报告不能补出当时未记录的实际取消位置、最终清理结论或阻塞身份。
+- 页面不会自动加载晚到日志；当前采用明确的快照加独立事件日志策略。程序化调用仍需自行订阅和保存事件，进程退出后无法继续观察晚完成。
+- 诊断仅按明确记录的阻塞关系或同类数据/作用域归组，不从相似错误文本推断根因。没有 Case 可承载的文档步骤或外部作用域步骤，不生成无法浏览的定位链接。
+- 未改变任意外部适配器 disposer 的中断能力；具体设备/网络调用的取消验证仍属于条目 03。旧/自定义收集适配器的执行前计划快照仍属于条目 01。
+- 页面通过固定数据和组件回归验证，未进行浏览器视觉验收；真实模型/设备 e2e 未运行。宿主初始化、资源等待及报告生成的完整阶段耗时留给第五批。
+
+### 第四批验证
+
+- `pnpm exec nx test @midscene/core -- tests/unit-test/runner-result-diagnostics.test.ts tests/unit-test/runner-execution-failure.test.ts tests/unit-test/runner-resource-cleanup.test.ts tests/unit-test/runner-cancellation.test.ts tests/unit-test/runner-report-projection.test.ts tests/unit-test/runner-report-merge.test.ts tests/unit-test/runner-report-collection.test.ts tests/unit-test/runner-field-mapping.test.ts tests/unit-test/runner-operation-events.test.ts tests/unit-test/legacy-yaml-runtime.test.ts tests/unit-test/yaml-test-runner-compat.test.ts tests/unit-test/test-runner-nodes.test.ts`
+- 错误编码调整后重跑：`pnpm exec nx test @midscene/core -- tests/unit-test/runner-result-diagnostics.test.ts tests/unit-test/runner-execution-failure.test.ts tests/unit-test/runner-report-projection.test.ts tests/unit-test/runner-report-merge.test.ts`
+- 宿主释放错误契约修正后重跑：`pnpm exec nx test @midscene/core -- tests/unit-test/runner-result-diagnostics.test.ts tests/unit-test/runner-execution-failure.test.ts tests/unit-test/runner-resource-cleanup.test.ts`
+- `pnpm exec nx test @midscene/test -- tests/document-invocation.test.ts tests/test-project-runner.test.ts tests/test-run-report.test.ts tests/operation-journal.test.ts tests/resource-admission.test.ts tests/report-snapshot.test.ts tests/agent-report-trace.test.ts tests/document-runtime.test.ts tests/legacy-cli-entry.test.ts`
+- `pnpm exec nx test @midscene/report -- src/components/test-runner/run-diagnostics.test.tsx src/components/test-runner/lifecycle.test.tsx src/components/test-runner/evidence-inspector.test.tsx src/components/test-runner/file-retry-report.test.tsx src/components/test-runner/model.test.ts`
+- 定位链接调整后重跑：`pnpm exec nx test @midscene/report -- src/components/test-runner/run-diagnostics.test.tsx src/components/test-runner/lifecycle.test.tsx`
+- `pnpm exec nx build @midscene/core --excludeTaskDependencies`
+- `pnpm exec nx build @midscene/test --excludeTaskDependencies`
+- `pnpm exec nx build @midscene/report --excludeTaskDependencies`
+- `node scripts/validate-core-report-template.mjs`
+- `pnpm run lint --config-path /private/tmp/midscene-report-lint`：沿用前三批临时配置，根目录规则不变，仅排除用户指定忽略的 `impeccable` 和本地 `.pnpm-store` 缓存。
+- `git diff --check`
+
+266 条相关回归测试（Core 124、Test 82、Report 60）、三个项目的构建、报告模板检查与上述 lint 检查均已通过。重复执行的测试不重复计数。第四批验收完成，随本批提交保存。
+
 ## 两份报告暴露的事实
 
 | 报告 | 具体情况 | 暴露的问题 |
@@ -184,7 +219,7 @@
 
 ### 05 贯通执行身份、事件和错误原因
 
-- [ ] 让计划步骤、实际操作、取消、详情采集和清理能够关联，并保留结构化原因链。
+- [x] 共享 Runner 与原生 CLI 能关联计划、操作、取消、证据和清理，保存有界且脱敏的结构化原因链与晚事件。
 
 **具体例子：** 第一份报告知道“有操作未结束”，却没有直接指出是哪一步阻塞清理；第二份错误出现两层 `Node "aiAssert" failed` 前缀。
 
@@ -220,7 +255,7 @@
 
 ### 08 按原因归组诊断并突出主要失败
 
-- [ ] 区分主要执行失败、被阻塞步骤、数据缺失和清理后果，并支持点击定位。
+- [x] 区分实际执行失败、明确被阻塞步骤、数据缺失和清理后果，按已记录的关联归组并支持定位。
 
 **具体例子：** 第一份首屏铺开 32 条诊断，而真正的两个 180 秒超时在后面；23 个未启动步骤又各自得到“没有稳定执行引用”的警告。
 
@@ -232,7 +267,7 @@
 
 ### 09 明确阶段结果、清理状态和重试决策
 
-- [ ] 分别表达测试结果、准备/收尾结果、清理等待/完成/失败，以及是否继续重试。
+- [x] 共享 Runner 与原生 CLI 分别保存和呈现作者步骤结果、阶段结果、清理状态与重试预算/决策；晚完成采用独立日志策略。
 
 **具体例子：** 第二份 `failed: 0`、`notRun: 1`，整次运行却失败，因为失败发生在准备阶段。第一份清理被延后却显示 teardown failed，配置 retry 3 但只有一次 attempt。
 

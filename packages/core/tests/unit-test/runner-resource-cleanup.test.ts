@@ -431,9 +431,8 @@ describe('resource-aware cancellation cleanup', () => {
       const result = await execution;
       const owner =
         phase === 'afterEach' ? result.cases[0].run! : result.document;
-      const error = owner.teardownErrors?.[0]
-        .cause as ResourceCleanupDeferredError;
-      expect(error).toBeInstanceOf(ResourceCleanupDeferredError);
+      expect(owner.cleanup?.status).toBe('pending');
+      expect(owner.teardownErrors).toBeUndefined();
       expect(calls).toEqual(['hook:start']);
       expect(() => assertResourceAvailable(resource, true)).toThrow(
         'cleanup is pending',
@@ -553,18 +552,15 @@ describe('resource-aware cancellation cleanup', () => {
       });
       await rs.advanceTimersByTimeAsync(2100);
       const result = await execution;
-      expect(result.cases[0].run?.teardownErrors?.[0].cause).toBeInstanceOf(
-        ResourceCleanupDeferredError,
-      );
-      expect(result.document.teardownErrors?.[0].cause).toBeInstanceOf(
-        ResourceCleanupDeferredError,
-      );
+      expect(result.cases[0].run?.cleanup?.status).toBe('pending');
+      expect(result.document.cleanup?.status).toBe('pending');
+      expect(result.cases[0].run?.teardownErrors).toBeUndefined();
+      expect(result.document.teardownErrors).toBeUndefined();
       const finish = runtime.finish('failed');
       await rs.advanceTimersByTimeAsync(1100);
       const projectResult = await finish;
-      expect(projectResult.teardownErrors?.[0].cause).toBeInstanceOf(
-        ResourceCleanupDeferredError,
-      );
+      expect(projectResult.cleanup?.status).toBe('pending');
+      expect(projectResult.teardownErrors).toBeUndefined();
       expect(calls).toEqual(['document']);
       const snapshot = JSON.stringify(result);
       action.resolve();
