@@ -138,31 +138,7 @@ Environment variable configuration example, using `gemini-3.5-flash`:
 
 </div>
 
-Environment variable configuration example, using `gpt-6-sol`:
-
-<ModelConfigCard
-  baseUrl={{
-    value: "https://api.openai.com/v1",
-    comment: "OpenAI API endpoint; or your compatible endpoint",
-  }}
-  modelName="gpt-6-sol"
-  modelFamily="gpt-6"
-  responses
-/>
-
-**Fast mode**
-
-Both GPT-5.6 Sol and GPT-6 Astra support Fast mode. Add the `service_tier` request body parameter to enable it. For example, with GPT-5.6 Sol:
-
-```bash
-MIDSCENE_MODEL_NAME="gpt-5.6-sol"
-MIDSCENE_MODEL_FAMILY="gpt-5"
-MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
-```
-
-According to OpenAI, Fast mode can deliver up to 2–2.5× the speed at twice the Standard rate. Refer to the [official documentation](https://developers.openai.com/api/docs/guides/fast-mode) for current speed, pricing, and usage restrictions.
-
-**Use your ChatGPT plan usage**
+**Use your ChatGPT subscription (recommended)**
 
 If you have a ChatGPT plan subscription, you can obtain a ChatGPT authorization token through [SIWC (Sign in with ChatGPT)](https://developers.openai.com/siwc/token-sharing-open-source/sign-in). You can use this token to call OpenAI services in Midscene, just like an OpenAI API Key.
 
@@ -209,6 +185,32 @@ Notes:
 2. SIWC consumes your subscription usage. ChatGPT determines how token consumption translates into subscription usage. You can view token consumption for each task step in Midscene reports.
 3. To call models through SIWC, use the Responses API with streaming enabled.
 
+**Use an API Key**
+
+Environment variable configuration example, using `gpt-6-sol`:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.openai.com/v1",
+    comment: "OpenAI API endpoint; or your compatible endpoint",
+  }}
+  modelName="gpt-6-sol"
+  modelFamily="gpt-6"
+  responses
+/>
+
+**Enable Fast mode (`service_tier="fast"`)**
+
+Both GPT-5.6 Sol and GPT-6 Astra support Fast mode. Add the `service_tier` request body parameter to enable it. For example, with GPT-5.6 Sol:
+
+```bash
+MIDSCENE_MODEL_NAME="gpt-5.6-sol"
+MIDSCENE_MODEL_FAMILY="gpt-5"
+MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
+```
+
+According to OpenAI, Fast mode can deliver up to 2–2.5× the speed at twice the Standard rate. Refer to the [official documentation](https://developers.openai.com/api/docs/guides/fast-mode) for current speed, pricing, and usage restrictions.
+
 <span id="use-codex-app-server-oauth-no-api-key" />
 
 **Use Codex App Server (OAuth, no API Key)**
@@ -235,11 +237,10 @@ Compared with calling an OpenAI-compatible API directly, we have observed that t
 
 **When using GPT, note the following:**
 
-- For UI localization with GPT, Midscene currently supports `gpt-5.4` and later models. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while some smaller GPT-5 variants, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
+- GPT-5.4 or later is required for UI localization. Midscene does not support earlier versions.
 - According to OpenAI, GPT-5 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
 - Azure OpenAI's Chat Completions API may not handle `"detail": "original"` correctly, causing click-coordinate offsets. If you encounter this issue, you can switch to the Responses API. See [Clicks are offset when using Azure OpenAI](./faq#clicks-are-offset-when-using-azure-openai).
-- If you use an older GPT-5 model, we recommend using it only as the planning model and pairing it with another multimodal model for localization. See the [multi-model combination example](#multi-model-combination-example).
 
 ### Moonshot Kimi Series {#kimi}
 
