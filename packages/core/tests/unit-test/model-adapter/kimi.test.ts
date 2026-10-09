@@ -46,6 +46,25 @@ describe('kimi model adapter', () => {
     expect(result).toEqual([950, 530, 970, 550]);
   });
 
+  it.each([
+    { point: [0.5, 0.5, 0.5] },
+    { point: [960, 540, 100] },
+    { point: '960 540 100' },
+  ])(
+    'rejects Kimi point results with extra coordinates: $point',
+    ({ point }) => {
+      const locateAdapter = kimiAdapter.locate;
+      if (locateAdapter.kind !== 'standard') {
+        throw new Error('kimi should use standard locate adapter');
+      }
+      expect(() =>
+        locateAdapter.element.resultCodec.toPixelBbox(point, {
+          preparedSize: { width: 1920, height: 1080 },
+        }),
+      ).toThrow(/invalid point data/);
+    },
+  );
+
   it('rejects out-of-range kimi pixel point coordinates', () => {
     const locateAdapter = kimiAdapter.locate;
     expect(locateAdapter.kind).toBe('standard');
