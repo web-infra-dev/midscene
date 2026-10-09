@@ -64,10 +64,18 @@ describe('model request stream mode', () => {
                 { type: 'response.completed', response },
               ]
             : [
-                { choices: [{ delta: { content: 'Hel' } }] },
                 {
                   choices: [
-                    { delta: { content: 'lo' }, finish_reason: 'stop' },
+                    { index: 0, delta: { role: 'assistant', content: 'Hel' } },
+                  ],
+                },
+                {
+                  choices: [
+                    {
+                      index: 0,
+                      delta: { content: 'lo' },
+                      finish_reason: 'stop',
+                    },
                   ],
                 },
                 { choices: [], usage: chatResponse.usage },
@@ -86,6 +94,14 @@ describe('model request stream mode', () => {
         usage: { total_tokens: 12 },
       });
       expect(runtime.onUsage).toHaveBeenCalledTimes(1);
+      expect(result.rawAssistantOutput).toMatchObject(
+        protocol === 'openai-responses'
+          ? { type: 'responses', rawValue: response.output }
+          : {
+              type: 'chat-completion',
+              rawValue: { role: 'assistant', content: 'Hello' },
+            },
+      );
     });
     for (const mode of [undefined, 'non-stream', 'stream'] as const) {
       it(`${protocol}: non-streaming with mode ${mode} and explicit override when needed`, async () => {
@@ -122,7 +138,11 @@ describe('model request stream mode', () => {
             : [
                 {
                   choices: [
-                    { delta: { content: 'Hello' }, finish_reason: 'stop' },
+                    {
+                      index: 0,
+                      delta: { role: 'assistant', content: 'Hello' },
+                      finish_reason: 'stop',
+                    },
                   ],
                 },
                 { choices: [], usage: chatResponse.usage },
