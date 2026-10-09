@@ -34,16 +34,40 @@ const collectedDocument = (name: string): CollectedWorkflowDocument => ({
   ],
 });
 
+const invocationOptions = (runDir: string, retry = 3) => {
+  const signal = new AbortController().signal;
+  return {
+    runDir,
+    sinks: {
+      cases: [] as TestProjectCaseRunResult[],
+      documents: [] as WorkflowDocumentRunResult[],
+    },
+    signal,
+    rootSignal: signal,
+    projectContext: undefined,
+    project: {
+      projectId: 'project',
+      name: 'test',
+      retry,
+      tags: { include: [], exclude: [] },
+      variables: {},
+      nodes: new NodeRegistry(),
+    },
+    shouldBail: () => false,
+    isProjectFatal: () => false,
+    markProjectFatal() {},
+    addFailedCases() {},
+    onProgress() {},
+  };
+};
+
 describe('persisted retry decisions', () => {
   it('records cleanup failure as the stop reason while still rejecting host disposal errors', async () => {
     const runDir = mkdtempSync(join(tmpdir(), 'midscene-retry-disposal-'));
     try {
       const document = collectedDocument('successful case');
-      const signal = new AbortController().signal;
-      const sinks = {
-        cases: [] as TestProjectCaseRunResult[],
-        documents: [] as WorkflowDocumentRunResult[],
-      };
+      const options = invocationOptions(runDir);
+      const { sinks } = options;
       let calls = 0;
       await expect(
         executeDocumentInvocation({
@@ -69,24 +93,7 @@ describe('persisted retry decisions', () => {
               },
             },
           },
-          runDir,
-          sinks,
-          signal,
-          rootSignal: signal,
-          projectContext: undefined,
-          project: {
-            projectId: document.projectId,
-            name: 'test',
-            retry: 3,
-            tags: { include: [], exclude: [] },
-            variables: {},
-            nodes: new NodeRegistry(),
-          },
-          shouldBail: () => false,
-          isProjectFatal: () => false,
-          markProjectFatal() {},
-          addFailedCases() {},
-          onProgress() {},
+          ...options,
         }),
       ).rejects.toThrow('close failed');
       expect(calls).toBe(1);
@@ -108,11 +115,8 @@ describe('persisted retry decisions', () => {
     );
     try {
       const document = collectedDocument('successful case');
-      const signal = new AbortController().signal;
-      const sinks = {
-        cases: [] as TestProjectCaseRunResult[],
-        documents: [] as WorkflowDocumentRunResult[],
-      };
+      const options = invocationOptions(runDir);
+      const { sinks } = options;
       let calls = 0;
       await expect(
         executeDocumentInvocation({
@@ -130,24 +134,7 @@ describe('persisted retry decisions', () => {
                 }),
             },
           },
-          runDir,
-          sinks,
-          signal,
-          rootSignal: signal,
-          projectContext: undefined,
-          project: {
-            projectId: document.projectId,
-            name: 'test',
-            retry: 3,
-            tags: { include: [], exclude: [] },
-            variables: {},
-            nodes: new NodeRegistry(),
-          },
-          shouldBail: () => false,
-          isProjectFatal: () => false,
-          markProjectFatal() {},
-          addFailedCases() {},
-          onProgress() {},
+          ...options,
         }),
       ).rejects.toMatchObject({ errors: [publicationError] });
       expect(calls).toBe(1);
@@ -182,31 +169,11 @@ describe('persisted retry decisions', () => {
               }),
           },
         };
-        const signal = new AbortController().signal;
-        const sinks = {
-          cases: [] as TestProjectCaseRunResult[],
-          documents: [] as WorkflowDocumentRunResult[],
-        };
+        const options = invocationOptions(runDir, 1);
+        const { sinks } = options;
         await executeDocumentInvocation({
           invocation,
-          runDir,
-          sinks,
-          signal,
-          rootSignal: signal,
-          projectContext: undefined,
-          project: {
-            projectId: document.projectId,
-            name: 'test',
-            retry: 1,
-            tags: { include: [], exclude: [] },
-            variables: {},
-            nodes: new NodeRegistry(),
-          },
-          shouldBail: () => false,
-          isProjectFatal: () => false,
-          markProjectFatal() {},
-          addFailedCases() {},
-          onProgress() {},
+          ...options,
         });
         const decisions =
           scope === 'document'
@@ -266,11 +233,8 @@ describe('persisted retry decisions', () => {
     });
     try {
       const document = collectedDocument('pending case');
-      const signal = new AbortController().signal;
-      const sinks = {
-        cases: [] as TestProjectCaseRunResult[],
-        documents: [] as WorkflowDocumentRunResult[],
-      };
+      const options = invocationOptions(runDir);
+      const { sinks } = options;
       let calls = 0;
       await executeDocumentInvocation({
         invocation: {
@@ -289,24 +253,7 @@ describe('persisted retry decisions', () => {
               }),
           },
         },
-        runDir,
-        sinks,
-        signal,
-        rootSignal: signal,
-        projectContext: undefined,
-        project: {
-          projectId: document.projectId,
-          name: 'test',
-          retry: 3,
-          tags: { include: [], exclude: [] },
-          variables: {},
-          nodes: new NodeRegistry(),
-        },
-        shouldBail: () => false,
-        isProjectFatal: () => false,
-        markProjectFatal() {},
-        addFailedCases() {},
-        onProgress() {},
+        ...options,
       });
       expect(calls).toBe(1);
       expect(sinks.documents).toHaveLength(1);

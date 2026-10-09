@@ -264,7 +264,12 @@ export async function runWorkflowDocument<TContext = undefined>(
         .map((item) => asNotRun(item, projectName, 'interrupted')),
     );
     documentResult.status = 'failed';
-    documentResult.executionErrors = executionErrors.map(asExecutionError);
+    documentResult.executionErrors = executionErrors
+      .filter(
+        (error) =>
+          !documentResult.hostErrors?.some((host) => host.error === error),
+      )
+      .map(asExecutionError);
     throw new WorkflowExecutionFailure(
       { document: documentResult, cases },
       executionErrors,

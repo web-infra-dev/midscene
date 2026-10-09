@@ -1,8 +1,7 @@
 import type {
-  TestRunReportCleanup,
+  TestRunReportAttempt,
   TestRunReportDump,
   TestRunReportError,
-  TestRunReportOperationReference,
   TestRunReportRetryDecision,
   TestRunReportStep,
 } from '@midscene/core';
@@ -92,16 +91,27 @@ export function getStepIssues(
 
 type IssueInput = Pick<TestRunReportDump, 'projects'> &
   Partial<Pick<TestRunReportDump, 'diagnostics' | 'metrics'>>;
+type IssueScope = Pick<
+  TestRunReportAttempt,
+  | 'cleanup'
+  | 'teardownErrors'
+  | 'pendingOperations'
+  | 'retryDecision'
+  | 'hostErrors'
+>;
+type IssueOwner = Pick<
+  ReportIssue,
+  'projectId' | 'documentId' | 'scopeId' | 'label'
+>;
 
 /** Cleanup failures keep their owner; waiting warnings follow a known blocker. */
 export function collectReportIssues(dump: IssueInput) {
   const nodes = new Map<string, ReportIssue[]>();
-  const nodeLabels = new Map<string, string>();
   const others: ReportIssue[] = [];
   const coveredOperations = new Set<string>();
   const pending = new Map<string, ReportIssue>();
   const scopeOwners = new Map<string, Partial<ReportIssue>>();
-  const addSteps = (steps: readonly TestRunReportStep[], label: string) => {
+  const addSteps = (steps: readonly TestRunReportStep[]) => {
     const blockedCounts = new Map<string, number>();
     for (const step of steps)
       if (step.status === 'not-run' && step.blockedBy)
@@ -112,10 +122,6 @@ export function collectReportIssues(dump: IssueInput) {
     for (const step of steps) {
       if (nodes.has(step.id)) continue;
       nodes.set(step.id, getStepIssues(step, blockedCounts.get(step.id)));
-      nodeLabels.set(
-        step.id,
-        `${label} · ${step.phase} ${step.stepIndex + 1}: ${step.node}`,
-      );
     }
   };
   const addError = (
@@ -132,13 +138,21 @@ export function collectReportIssues(dump: IssueInput) {
       ...owner,
     });
   };
-  const addCleanup = (
-    cleanup: TestRunReportCleanup | undefined,
-    errors: TestRunReportError[] | undefined,
-    operations: TestRunReportOperationReference[] | undefined,
-    owner: Pick<ReportIssue, 'projectId' | 'documentId' | 'scopeId' | 'label'>,
+  const addScope = (
+    scope: IssueScope,
+    owner: IssueOwner,
     scopeName: 'Project' | 'Document' | 'Case',
   ) => {
+    const {
+      cleanup,
+      teardownErrors: errors,
+      pendingOperations: operations,
+      retryDecision: retry,
+    } = scope;
+    const cleanupOwner = {
+      ...owner,
+      label: `${owner.label} · ${scopeName} cleanup`,
+    };
     if (cleanup?.status === 'pending' || cleanup?.status === 'failed') {
       if (cleanup.operationId) coveredOperations.add(cleanup.operationId);
       for (const ref of cleanup.blockingOperations ?? [])
@@ -167,11 +181,11 @@ export function collectReportIssues(dump: IssueInput) {
         relatedStepIds: cleanup.blockingOperations?.flatMap((ref) =>
           ref.stepId ? [ref.stepId] : [],
         ),
-        ...owner,
+        ...cleanupOwner,
       });
     } else {
       for (const [index, error] of (errors ?? []).entries())
-        addError(`cleanup:${owner.scopeId}:${index}`, error, owner);
+        addError(`cleanup:${owner.scopeId}:${index}`, error, cleanupOwner);
     }
     for (const ref of operations ?? [])
       if (!pending.has(ref.operationId))
@@ -182,20 +196,9 @@ export function collectReportIssues(dump: IssueInput) {
           message: 'An operation is still running at this snapshot.',
           context: { ...ref },
           relatedStepIds: ref.stepId ? [ref.stepId] : [],
-          ...owner,
+          ...cleanupOwner,
         });
-  };
-  const addRetryWarning = (
-    retry: TestRunReportRetryDecision | undefined,
-    owner: Partial<ReportIssue>,
-    blockers: readonly TestRunReportOperationReference[] = [],
-  ) => {
-    if (
-      !retry ||
-      retry.decision !== 'stop' ||
-      retry.attemptIndex >= retry.retryCount
-    )
-      return;
+    const blockers = cleanup?.blockingOperations ?? operations ?? [];
     const reasons: Partial<
       Record<TestRunReportRetryDecision['reason'], string>
     > = {
@@ -207,20 +210,32 @@ export function collectReportIssues(dump: IssueInput) {
       bail: 'the stop policy ended the run',
       'infrastructure-error': 'the test environment failed',
     };
-    const reason = reasons[retry.reason];
-    if (!reason) return;
-    others.push({
-      id: `retry:${owner.scopeId}`,
-      severity: 'warning',
-      code: 'RETRY_STOPPED',
-      title: `${retry.scope === 'case' ? 'Case' : 'Document'} retries stopped because ${reason}`,
-      message: `${retry.attemptIndex + 1} of ${retry.retryCount + 1} allowed attempts ran. The remaining attempts were not started.`,
-      relatedStepIds: blockers.flatMap((ref) =>
-        ref.stepId ? [ref.stepId] : [],
-      ),
-      ...owner,
-      label: owner.label ? `${owner.label} · Retry` : undefined,
-    });
+    const reason = retry && reasons[retry.reason];
+    if (
+      retry?.decision === 'stop' &&
+      retry.attemptIndex < retry.retryCount &&
+      reason
+    )
+      others.push({
+        id: `retry:${owner.scopeId}`,
+        severity: 'warning',
+        code: 'RETRY_STOPPED',
+        title: `${retry.scope === 'case' ? 'Case' : 'Document'} retries stopped because ${reason}`,
+        message: `${retry.attemptIndex + 1} of ${retry.retryCount + 1} allowed attempts ran. The remaining attempts were not started.`,
+        relatedStepIds: blockers.flatMap((ref) =>
+          ref.stepId ? [ref.stepId] : [],
+        ),
+        ...owner,
+        label: owner.label ? `${owner.label} · Retry` : undefined,
+      });
+    for (const [index, host] of (scope.hostErrors ?? []).entries()) {
+      if (host.phase === 'cleanup' && scope.cleanup?.status === 'failed')
+        continue;
+      addError(`host:${owner.scopeId}:${index}`, host.error, {
+        ...owner,
+        label: `${owner.label} · ${host.phase}`,
+      });
+    }
   };
   for (const project of dump.projects) {
     const projectOwner = {
@@ -235,13 +250,7 @@ export function collectReportIssues(dump: IssueInput) {
         project.lifecycle.setupError,
         projectOwner,
       );
-    addCleanup(
-      project.lifecycle?.cleanup,
-      project.lifecycle?.teardownErrors,
-      project.lifecycle?.pendingOperations,
-      { ...projectOwner, label: `${projectOwner.label} · Cleanup` },
-      'Project',
-    );
+    if (project.lifecycle) addScope(project.lifecycle, projectOwner, 'Project');
     for (const [index, item] of project.collectionErrors.entries())
       addError(`collection:${project.projectId}:${index}`, item.error, {
         ...projectOwner,
@@ -257,61 +266,20 @@ export function collectReportIssues(dump: IssueInput) {
         const scopeId = attempt.documentRunId ?? attempt.documentId;
         scopeOwners.set(scopeId, { ...owner, scopeId });
         const label = `${owner.label}${attempt.attemptIndex === undefined ? '' : ` · File attempt ${attempt.attemptIndex + 1}`}`;
-        addSteps([...attempt.beforeAll, ...attempt.afterAll], label);
-        addCleanup(
-          attempt.cleanup,
-          attempt.teardownErrors,
-          attempt.pendingOperations,
-          { ...owner, scopeId, label: `${label} · Document cleanup` },
-          'Document',
-        );
-        addRetryWarning(
-          attempt.retryDecision,
-          { ...owner, scopeId, label },
-          attempt.cleanup?.blockingOperations ?? attempt.pendingOperations,
-        );
-        for (const [index, host] of (attempt.hostErrors ?? []).entries()) {
-          if (host.phase === 'cleanup' && attempt.cleanup?.status === 'failed')
-            continue;
-          addError(`host:${scopeId}:${index}`, host.error, {
-            ...owner,
-            scopeId,
-            label: `${label} · ${host.phase}`,
-          });
-        }
+        addSteps([...attempt.beforeAll, ...attempt.afterAll]);
+        addScope(attempt, { ...owner, scopeId, label }, 'Document');
       }
       for (const testCase of document.cases)
         for (const attempt of testCase.attempts) {
           const label = `${owner.label} · ${testCase.name} · Attempt ${attempt.attemptIndex + 1}`;
-          const scope = { ...owner, scopeId: attempt.attemptId };
+          const scope = { ...owner, scopeId: attempt.attemptId, label };
           scopeOwners.set(attempt.attemptId, scope);
-          addSteps(
-            [...attempt.beforeEach, ...attempt.steps, ...attempt.afterEach],
-            label,
-          );
-          addCleanup(
-            attempt.cleanup,
-            attempt.teardownErrors,
-            attempt.pendingOperations,
-            { ...scope, label: `${label} · Case cleanup` },
-            'Case',
-          );
-          addRetryWarning(
-            attempt.retryDecision,
-            { ...scope, label },
-            attempt.cleanup?.blockingOperations ?? attempt.pendingOperations,
-          );
-          for (const [index, host] of (attempt.hostErrors ?? []).entries()) {
-            if (
-              host.phase === 'cleanup' &&
-              attempt.cleanup?.status === 'failed'
-            )
-              continue;
-            addError(`host:${attempt.attemptId}:${index}`, host.error, {
-              ...scope,
-              label: `${label} · ${host.phase}`,
-            });
-          }
+          addSteps([
+            ...attempt.beforeEach,
+            ...attempt.steps,
+            ...attempt.afterEach,
+          ]);
+          addScope(attempt, scope, 'Case');
         }
     }
   }
@@ -404,7 +372,7 @@ export function collectReportIssues(dump: IssueInput) {
     nodes.get(blockers[0])!.push(issue);
     others.splice(index, 1);
   }
-  return { nodes, nodeLabels, others: sortIssues(others) };
+  return { nodes, others: sortIssues(others) };
 }
 
 export type ReportIssues = ReturnType<typeof collectReportIssues>;

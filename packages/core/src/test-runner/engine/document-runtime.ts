@@ -138,7 +138,13 @@ export function createDocumentRuntime<TContext = undefined>(
       beforeAll: [...beforeAll],
       afterAll: [...afterAll],
       ...(executionErrors.length
-        ? { executionErrors: executionErrors.map(asExecutionError) }
+        ? {
+            executionErrors: executionErrors
+              .filter(
+                (error) => !hostErrors.some((host) => host.error === error),
+              )
+              .map(asExecutionError),
+          }
         : {}),
       ...(hostErrors.length ? { hostErrors: [...hostErrors] } : {}),
       ...(teardownErrors.length > 0
@@ -309,11 +315,12 @@ export function createDocumentRuntime<TContext = undefined>(
               }
             } catch (error) {
               if (host) {
+                const failure = asExecutionError(error);
                 hostErrors.push({
                   phase: 'cleanup',
-                  error: asExecutionError(error),
+                  error: failure,
                 });
-                executionErrors.push(error);
+                executionErrors.push(failure);
                 cleanupExecutionErrors.push(error);
                 continue;
               }

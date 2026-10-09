@@ -99,19 +99,28 @@ export const getCaseWorkspaceStepGroups = (
       : (notRunReasons[item.testCase.notRunReason ?? ''] ??
         item.testCase.notRunReason ??
         'Execution stopped before this step.');
-    const results = new Map(actual.map((step) => [step.stepIndex, step]));
-    return planned.map(
-      (step) =>
-        results.get(step.stepIndex) ?? {
-          ...step,
-          id: `plan:${step.id}`,
-          planStepId: step.id,
-          status: 'not-run',
-          notRunReason: reason,
-          blockedBy: failure?.id,
-          continuedAfterError: false,
-        },
-    );
+    const remaining = new Set(actual);
+    const steps = planned.map((step): TestRunReportStep => {
+      const result = actual.find((result) =>
+        result.planStepId
+          ? result.planStepId === step.id
+          : result.stepIndex === step.stepIndex && result.node === step.node,
+      );
+      if (result) {
+        remaining.delete(result);
+        return result;
+      }
+      return {
+        ...step,
+        id: `plan:${step.id}`,
+        planStepId: step.id,
+        status: 'not-run',
+        notRunReason: reason,
+        blockedBy: failure?.id,
+        continuedAfterError: false,
+      };
+    });
+    return [...steps, ...remaining];
   };
   const plan = item.testCase.plan;
   return [

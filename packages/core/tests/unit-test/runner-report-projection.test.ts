@@ -1,9 +1,11 @@
 import type { TestRunReportSourceIndex } from '@/test-run-report';
 import { type RunReportInput, buildTestRunReportDump } from '@/test-runner';
 import { executionRecordsToReportInput } from '@/test-runner';
+import { runWorkflowDocument } from '@/test-runner';
 import { createLegacyYamlRuntime } from '@/yaml/legacy-yaml-runtime';
 import { ScriptPlayer } from '@/yaml/player';
 import { getLegacyYamlPlayerState } from '@/yaml/player-state';
+import { collectLegacyYamlDocument } from '@/yaml/test-runner-compat';
 import { describe, expect, test } from '@rstest/core';
 
 const index: TestRunReportSourceIndex = {
@@ -74,6 +76,48 @@ async function input() {
 }
 
 describe('entry-independent report projection', () => {
+  test('projects cleanup failures once without dropping an independent error with the same message', async () => {
+    const failure = await runWorkflowDocument(
+      collectLegacyYamlDocument({ tasks: [] }),
+      {
+        resolveNode: () => {
+          throw new Error('No authored steps');
+        },
+        documentSetup: {
+          name: 'owner',
+          setup({ onTeardown }) {
+            onTeardown(() => {
+              throw new Error('close failed');
+            });
+          },
+        },
+        onDocumentResult() {
+          throw new Error('close failed');
+        },
+      },
+    ).catch((error) => error);
+    const { report } = await input();
+    report.projects[0].documents = [failure.result.document];
+    report.projects[0].cases = [];
+    expect(failure.result.document.executionErrors).toHaveLength(1);
+    // Replaying persisted results must not depend on shared Error object identity.
+    const document = buildTestRunReportDump(report, index).projects[0]
+      .documents[0];
+    expect(
+      buildTestRunReportDump(JSON.parse(JSON.stringify(report)), index)
+        .projects[0].documents[0].hostErrors,
+    ).toEqual(document.hostErrors);
+    expect(document.cleanup?.status).toBe('failed');
+    expect(document.hostErrors?.map(({ phase }) => phase)).toEqual([
+      'cleanup',
+      'execution',
+    ]);
+    expect(document.hostErrors?.map(({ error }) => error.message)).toEqual([
+      'close failed',
+      'close failed',
+    ]);
+    expect(document.cleanup?.error?.errors).toHaveLength(1);
+  });
   test('distinguishes complete zero metrics, missing evidence and partial coverage', async () => {
     const { report } = await input();
     expect(

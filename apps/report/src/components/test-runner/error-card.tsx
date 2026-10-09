@@ -94,29 +94,24 @@ export function ErrorCards({
     (issue) => issue.severity !== 'info',
   );
   if (!first) return null;
+  const renderCard = (issue: ReportIssue) => (
+    <ErrorCard
+      key={issue.id}
+      issue={issue}
+      navigableStepIds={navigableStepIds}
+      showDetails={showDetails}
+      currentStepId={currentStepId}
+    />
+  );
   return (
     <section className="runner-error-cards" aria-label={label}>
-      <ErrorCard
-        key={first.id}
-        issue={first}
-        navigableStepIds={navigableStepIds}
-        showDetails={showDetails}
-        currentStepId={currentStepId}
-      />
+      {renderCard(first)}
       {rest.length ? (
         <details className="runner-error-more">
           <summary>
             Show {rest.length} more {rest.length === 1 ? 'issue' : 'issues'}
           </summary>
-          {rest.map((issue) => (
-            <ErrorCard
-              key={issue.id}
-              issue={issue}
-              navigableStepIds={navigableStepIds}
-              showDetails={showDetails}
-              currentStepId={currentStepId}
-            />
-          ))}
+          {rest.map(renderCard)}
         </details>
       ) : null}
     </section>

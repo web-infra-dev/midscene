@@ -19,6 +19,7 @@ import {
   getRunnerHealth,
 } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
+import { getWorkspaceStepSummary } from './use-case-workspace';
 
 const source = {
   sources: [
@@ -43,6 +44,55 @@ const lifecycle = () =>
 const noop = () => {};
 
 describe('report lifecycle failures', () => {
+  it.each([false, true])(
+    'preserves a host failure when a teardown plan exists: %s',
+    (hasPlannedStep) => {
+      const item = flattenRunnerCases(
+        createTestReportFixture(source) as TestRunReportDump,
+      )[0];
+      const step = item.finalAttempt!.steps[0];
+      if (step.status === 'not-run')
+        throw new Error('Fixture needs an executed step');
+      item.document.plan = {
+        documentId: item.document.documentId,
+        sourcePath: item.document.sourcePath,
+        retry: { scope: 'case', count: 0 },
+        beforeAll: [],
+        afterAll: hasPlannedStep
+          ? [
+              {
+                id: 'planned-cleanup',
+                phase: 'afterAll',
+                stepIndex: step.stepIndex,
+                node: 'cleanup',
+                input: { value: {} },
+                inputMode: 'template',
+                continueOnError: false,
+              },
+            ]
+          : [],
+        cases: [],
+      };
+      item.document.afterAll = [
+        {
+          ...step,
+          id: 'host-failure',
+          phase: 'afterAll',
+          node: 'runner:host-result',
+          status: 'failed',
+        },
+      ];
+      const steps = getCaseWorkspaceStepGroups(item, item.finalAttempt).flatMap(
+        (group) => group.steps,
+      );
+      expect(steps).toContainEqual(item.document.afterAll[0]);
+      expect(getWorkspaceStepSummary(steps).failed).toBe(1);
+      expect(getWorkspaceStepSummary(steps).notRun).toBe(
+        hasPlannedStep ? 1 : 0,
+      );
+    },
+  );
+
   it('keeps global warnings safe when no Case attempt exists', () => {
     const dump = lifecycle();
     const item = flattenRunnerCases(dump).find(
