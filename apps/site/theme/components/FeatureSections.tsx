@@ -5,6 +5,7 @@ import { useI18n, useI18nUrl } from '../i18n';
 import { FeatureCard } from './FeatureCard';
 import { PlatformTable } from './PlatformTable';
 import { SectionDivider } from './SectionDivider';
+import { TestFramework } from './TestFramework';
 import { TestingToolkit } from './TestingToolkit';
 import { TiltCard } from './TiltCard';
 
@@ -177,6 +178,10 @@ export function FeatureSections() {
       >
         <PlatformTable />
       </FeatureSection>
+
+      <SectionDivider className="home-feature__divider" />
+
+      <TestFramework />
 
       <SectionDivider className="home-feature__divider" />
 

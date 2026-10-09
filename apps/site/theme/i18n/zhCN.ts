@@ -65,6 +65,32 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelCostReport: '查看评测报告',
   modelCostMetric: '60 项任务的模型调用总费用',
 
+  // Test framework
+  frameworkHeading: '用 YAML 组织用例\n用 TypeScript 扩展',
+  frameworkYamlTitle: '用自然语言组织测试用例',
+  frameworkYamlDesc:
+    '在 YAML 中组合界面操作、断言与业务节点，专注描述测试流程。',
+  frameworkNodeTitle: '把业务能力封装为可复用节点',
+  frameworkNodeDesc:
+    '用 TypeScript 实现数据准备、接口调用与清理，供不同用例复用。',
+  frameworkSpecTitle: '自动生成 Node 说明书',
+  frameworkSpecDesc:
+    '将已注册节点与参数定义导出为 Markdown，让开发者和 AI Agent 了解项目能力，共同编写与维护用例。',
+  frameworkSpecOmitted: '其余 Schema 字段与节点说明省略。',
+  frameworkSpecNote:
+    '运行 pnpm exec midscene-test nodes 自动生成。这里展示 user.create 的说明片段，与 TypeScript 节点定义对应。',
+  frameworkLink: '了解 Midscene Test',
+  frameworkYamlTab: 'YAML 用例',
+  frameworkNodeTab: 'TypeScript 扩展节点',
+  frameworkCase: '搜索新建用户',
+  frameworkAct: '搜索用户名 Alice',
+  frameworkAssert: '搜索结果中显示用户 Alice',
+  frameworkNodeDescription: '创建测试用户，并在用例结束后清理',
+  frameworkYamlNote:
+    '示例：准备用户数据，再通过界面搜索并验证。需先配置模型与 Web 运行环境，并替换示例网址。',
+  frameworkNodeNote:
+    'user.create 对应 YAML 中的同名步骤；userService 是你实现的业务接口，负责创建和删除测试用户。',
+
   // Testing toolkit
   debuggingTitle: '测试工具链',
   debuggingHeading: '完整的 AI Native 测试工具链',

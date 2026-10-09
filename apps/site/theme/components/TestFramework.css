@@ -1,0 +1,94 @@
+.home-framework .home-framework__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr);
+  align-items: start;
+  column-gap: 64px;
+  row-gap: 32px;
+}
+
+.home-framework__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.home-framework__copy p {
+  margin: 0;
+  color: var(--rp-c-text-2);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.home-framework__points {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.home-framework__points h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.home-framework__link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  color: #0555ff;
+  font-size: 14px;
+}
+
+.dark .home-framework__link {
+  color: rgb(128 168 255);
+}
+
+.home-framework__examples {
+  min-width: 0;
+  margin-top: 48px;
+  overflow-anchor: none;
+}
+
+.home-framework__examples .rp-tabs {
+  margin: 0;
+}
+
+.home-framework__examples .rp-tabs__content {
+  padding: 0;
+}
+
+.home-framework__examples .rp-codeblock {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.home-framework__examples pre {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.home-framework__examples pre {
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+@media (max-width: 1000px) {
+  .home-framework .home-framework__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .home-framework__examples {
+    margin-top: 0;
+  }
+}
+
+.home-framework__examples pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
