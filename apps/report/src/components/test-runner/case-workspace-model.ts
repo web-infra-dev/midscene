@@ -3,7 +3,6 @@ import type {
   TestRunReportPlannedStep,
   TestRunReportStep,
 } from '@midscene/core';
-import type { LifecycleIssue } from './lifecycle-errors';
 import { type RunnerCaseView, flattenAttemptSteps } from './model';
 
 export interface RunnerStepGroup {
@@ -172,38 +171,6 @@ export const getDefaultCaseWorkspaceStep = (
     document.afterAll[0] ??
     getCaseWorkspaceStepGroups(item, attempt, documentAttemptIndex)[0]?.steps[0]
   );
-};
-
-export const getCaseWorkspaceLifecycleIssues = (
-  item: RunnerCaseView,
-  attempt?: TestRunReportAttempt,
-  documentAttemptIndex?: number,
-): LifecycleIssue[] => {
-  const document = getCaseWorkspaceDocument(
-    item,
-    attempt,
-    documentAttemptIndex,
-  );
-  const attemptLabel = `Attempt ${(attempt?.attemptIndex ?? 0) + 1}`;
-
-  return [
-    ...(attempt?.hostErrors ?? []).map(({ phase, error }) => ({
-      label: `${attemptLabel}: ${phase} failed`,
-      error,
-    })),
-    ...(document.hostErrors ?? []).map(({ phase, error }) => ({
-      label: `Document ${phase} failed`,
-      error,
-    })),
-    ...(attempt?.teardownErrors ?? []).map((error) => ({
-      label: `${attemptLabel}: Case teardown failed`,
-      error,
-    })),
-    ...(document.teardownErrors ?? []).map((error) => ({
-      label: 'Document teardown failed',
-      error,
-    })),
-  ];
 };
 
 export function getWorkspaceTimelineRange(

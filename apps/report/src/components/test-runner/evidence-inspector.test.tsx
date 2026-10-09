@@ -119,10 +119,14 @@ describe('case evidence inspection', () => {
         ],
       },
     });
-    expect(html).toContain('Operation lifecycle');
+    expect(html).not.toContain('Operation lifecycle');
     expect(html).toContain('still running when Runner returned');
-    expect(html).toContain('does not update when an operation settles later');
-    expect(html).toContain('2026-10-08T11:00:00.000Z');
+    const { html: information } = render('io', [report], {
+      ...step,
+      operations: { capturedAt: '2026-10-08T11:00:00.000Z', events: [] },
+    });
+    expect(information).toContain('this snapshot does not update');
+    expect(information).toContain('2026-10-08T11:00:00.000Z');
   });
 
   it('does not mount the player when inspecting data or events', () => {
@@ -142,8 +146,8 @@ describe('case evidence inspection', () => {
     expect(html).toContain('The referenced Agent report group is missing.');
   });
 
-  it('shows a partial capture boundary and collection errors alongside available evidence', () => {
-    const { html, renderAgentReport } = render('record', [report], {
+  it('shows partial collection as a warning card and keeps capture details in Information', () => {
+    const { html, renderAgentReport } = render('io', [report], {
       ...step,
       evidenceCollection: {
         status: 'partial',
@@ -151,13 +155,14 @@ describe('case evidence inspection', () => {
         errors: [{ name: 'Error', message: 'Snapshot write failed.' }],
       },
     });
-    expect(renderAgentReport).toHaveBeenCalledTimes(1);
-    expect(html).toContain('Evidence is partial');
-    expect(html).toContain('capture boundary 2026-10-08T00:00:00.000Z');
-    expect(html).toContain('Snapshot write failed.');
+    expect(renderAgentReport).not.toHaveBeenCalled();
+    expect(html).toContain('Node issues');
+    expect(html.match(/Snapshot write failed\./g)).toHaveLength(1);
+    expect(html).toContain('2026-10-08T00:00:00.000Z');
+    expect(html).toContain('runner-error-card is-warning');
   });
 
-  it('hides Record and falls back to Input & output when the step has no recording or screenshot', () => {
+  it('hides Record and falls back to Information when the step has no recording or screenshot', () => {
     const { html, renderAgentReport } = render('record', [], {
       ...step,
       node: 'custom.verify',
@@ -166,7 +171,7 @@ describe('case evidence inspection', () => {
     expect(renderAgentReport).not.toHaveBeenCalled();
     expect(html).not.toContain('>Record</button>');
     expect(html).toMatch(
-      /aria-selected="true" class="is-selected">Input &amp; output<\/button>/,
+      /aria-selected="true" class="is-selected">Information<\/button>/,
     );
     expect(html).toContain('<h4>Input</h4>');
     expect(html).not.toContain('Open AI trace in new tab');
@@ -220,8 +225,8 @@ describe('case evidence inspection', () => {
     expect(html).toContain(
       '<p class="runner-detail-step-description">[parallel-watch] Case B passed on retry Attempt 2.</p>',
     );
-    expect(html).toContain('aria-label="Copy error details"');
-    expect(html).toContain('title="Copy error details"');
+    expect(html).toContain('aria-label="Copy issue details"');
+    expect(html).toContain('title="Copy issue details"');
     expect(html).not.toContain('>Copy error</button>');
   });
 });

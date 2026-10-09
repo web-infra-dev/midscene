@@ -19,6 +19,33 @@ const step = (
 });
 
 describe('execution panel', () => {
+  it('marks evidence warnings without changing the successful node status', () => {
+    const html = renderToStaticMarkup(
+      <RunnerExecutionPanel
+        groups={[{ label: 'Case steps', steps: [step('aiAct')] }]}
+        issues={
+          new Map([
+            [
+              'aiAct',
+              [
+                {
+                  id: 'evidence',
+                  severity: 'warning',
+                  code: 'PARTIAL_EVIDENCE',
+                  message: 'Partial capture.',
+                },
+              ],
+            ],
+          ])
+        }
+        onSelect={() => {}}
+      />,
+    );
+    expect(html).toContain('Step warning');
+    expect(html).toContain('is-success');
+    expect(html).not.toContain('is-error');
+  });
+
   it('places playback in the case-step column and marks the playing step', () => {
     const html = renderToStaticMarkup(
       <RunnerExecutionPanel

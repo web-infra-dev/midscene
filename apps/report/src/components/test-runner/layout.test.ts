@@ -69,16 +69,6 @@ const appSource = readFileSync(
 );
 
 describe('Midscene Test report layout', () => {
-  it('keeps lifecycle hover rows square inside the rounded list', () => {
-    expect(baseStyles).toMatch(
-      /\.runner-lifecycle-errors\s*\{[^}]*overflow: hidden;/,
-    );
-    expect(baseStyles).not.toMatch(
-      /\.runner-lifecycle-issue\s*\{\s*summary\s*\{[^}]*border-radius:/,
-    );
-    expect(styles).not.toContain('.runner-project-tree-overview::before');
-  });
-
   it('keeps the brand in the logo without repeating it in the report title', () => {
     expect(source).toContain('<Logo />');
     expect(source).toContain('<strong>Test Report</strong>');

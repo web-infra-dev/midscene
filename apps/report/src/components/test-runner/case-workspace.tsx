@@ -8,15 +8,19 @@ import {
 } from './attempt-timeline';
 import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
+  getCaseNotRunReason,
   getCaseWorkspaceDocument,
-  getCaseWorkspaceLifecycleIssues,
 } from './case-workspace-model';
+import { ErrorCards } from './error-card';
 import { RunnerEvidenceInspector } from './evidence-inspector';
 import { RunnerExecutionPanel } from './execution-panel';
-import { LifecycleErrors } from './lifecycle-errors';
+import {
+  type ReportIssue,
+  type ReportIssues,
+  collectReportIssues,
+} from './issues';
 import type { RunnerCaseView, RunnerVisualIndex } from './model';
 import { getRunnerCaseStepTargets } from './model';
-import { ScopeOutcome } from './scope-outcome';
 import { useCaseWorkspace } from './use-case-workspace';
 
 export { getWorkspaceStepSummary } from './use-case-workspace';
@@ -24,6 +28,7 @@ export { getWorkspaceStepSummary } from './use-case-workspace';
 export function CaseWorkspace({
   item,
   standaloneRun,
+  issues,
   visualIndex,
   reports,
   initialStepId,
@@ -33,6 +38,7 @@ export function CaseWorkspace({
 }: {
   item: RunnerCaseView;
   standaloneRun?: TestRunReportDump;
+  issues?: ReportIssues;
   visualIndex: RunnerVisualIndex;
   reports: PlaywrightTasks[];
   initialStepId?: string;
@@ -68,6 +74,69 @@ export function CaseWorkspace({
     getRunnerCaseStepTargets(item).map(({ step }) => step.id),
   );
 
+  const document = getCaseWorkspaceDocument(
+    item,
+    selectedAttempt,
+    selectedDocumentAttemptIndex,
+  );
+  const reportIssues =
+    issues ??
+    collectReportIssues(
+      standaloneRun ?? {
+        projects: [{ ...item.project, documents: [item.document] }],
+      },
+    );
+  const scopeIds = new Set([
+    item.project.projectId,
+    document.documentRunId ?? document.documentId,
+    selectedAttempt?.attemptId,
+  ]);
+  const otherIssues: ReportIssue[] = reportIssues.others
+    .filter(
+      (issue) =>
+        (!issue.projectId || issue.projectId === item.project.projectId) &&
+        (!issue.documentId || issue.documentId === item.document.documentId) &&
+        (!issue.documentId || !issue.scopeId || scopeIds.has(issue.scopeId)),
+    )
+    .map((issue) => ({
+      ...issue,
+      label:
+        selectedAttempt && issue.scopeId === selectedAttempt.attemptId
+          ? `Case · Attempt ${selectedAttempt!.attemptIndex + 1} · ${issue.label?.split(' · ').at(-1)}`
+          : issue.documentId
+            ? `Document · ${issue.label?.split(' · ').at(-1)}`
+            : issue.label,
+    }));
+  const plannedStep = selectedStep
+    ? [
+        ...(document.plan?.beforeAll ?? []),
+        ...(item.testCase.plan?.beforeEach ?? []),
+        ...(item.testCase.plan?.steps ?? []),
+        ...(item.testCase.plan?.afterEach ?? []),
+        ...(document.plan?.afterAll ?? []),
+      ].find((step) =>
+        selectedStep.planStepId
+          ? step.id === selectedStep.planStepId
+          : step.phase === selectedStep.phase &&
+            step.stepIndex === selectedStep.stepIndex &&
+            step.node === selectedStep.node,
+      )
+    : undefined;
+  if (
+    !workspaceSteps.length &&
+    !selectedAttempt &&
+    !otherIssues.some((issue) => issue.severity === 'error')
+  ) {
+    const reason = getCaseNotRunReason(item);
+    if (reason)
+      otherIssues.push({
+        id: `not-started:${item.testCase.caseId}`,
+        severity: 'warning',
+        code: 'CASE_NOT_STARTED',
+        message: reason,
+      });
+  }
+
   return (
     <div className="runner-page runner-case-workspace">
       <CaseWorkspaceHeader
@@ -82,34 +151,18 @@ export function CaseWorkspace({
         stepSummary={stepSummary}
       />
 
-      <LifecycleErrors
-        issues={getCaseWorkspaceLifecycleIssues(
-          item,
-          selectedAttempt,
-          selectedDocumentAttemptIndex,
-        )}
-      />
-      <ScopeOutcome
-        value={getCaseWorkspaceDocument(
-          item,
-          selectedAttempt,
-          selectedDocumentAttemptIndex,
-        )}
-        label="Document lifecycle"
+      <ErrorCards
+        issues={otherIssues}
+        label="Other issues"
         navigableStepIds={navigableStepIds}
+        showDetails
       />
-      {selectedAttempt ? (
-        <ScopeOutcome
-          value={selectedAttempt}
-          label={`Case attempt ${selectedAttempt.attemptIndex + 1}`}
-          navigableStepIds={navigableStepIds}
-        />
-      ) : null}
 
       {workspaceSteps.length > 0 ? (
         <div className="runner-detail-debug-workbench">
           <RunnerExecutionPanel
             groups={stepGroups}
+            issues={reportIssues.nodes}
             selectedStepId={selectedStep?.id}
             playingStepId={playingStepId}
             timeline={
@@ -146,6 +199,9 @@ export function CaseWorkspace({
               item={item}
               attempt={selectedAttempt}
               step={selectedStep}
+              plannedStep={plannedStep}
+              issues={reportIssues.nodes.get(selectedStep.id)}
+              navigableStepIds={navigableStepIds}
               activeFrame={activeFrame}
               activePosition={activePosition}
               tab={inspectorTab}

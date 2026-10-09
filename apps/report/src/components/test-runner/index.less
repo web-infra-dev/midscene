@@ -1,111 +1,4 @@
 .test-runner-report {
-  .runner-lifecycle-errors {
-    margin-block: 16px;
-    border: 1px solid var(--runner-border);
-    border-radius: 12px;
-    overflow: hidden;
-    background: var(--runner-surface);
-    color: var(--runner-text);
-    font-size: 14px;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-  }
-
-  .runner-lifecycle-issue + .runner-lifecycle-issue {
-    border-top: 1px solid var(--runner-border);
-  }
-
-  .runner-lifecycle-issue {
-    summary {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      cursor: pointer;
-      list-style: none;
-
-      &::-webkit-details-marker {
-        display: none;
-      }
-      &:hover {
-        background: var(--runner-hover);
-      }
-      &:focus-visible {
-        outline: 2px solid var(--runner-primary);
-        outline-offset: -2px;
-      }
-    }
-
-    &[open] .runner-lifecycle-toggle .anticon {
-      transform: rotate(90deg);
-    }
-  }
-
-  .runner-lifecycle-icon {
-    flex: none;
-    color: var(--runner-danger);
-    font-size: 16px;
-  }
-
-  .runner-lifecycle-summary {
-    display: grid;
-    flex: 1;
-    min-width: 0;
-    gap: 2px;
-  }
-
-  .runner-lifecycle-label {
-    font-weight: 500;
-  }
-
-  .runner-lifecycle-message {
-    overflow: hidden;
-    color: var(--runner-muted);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .runner-lifecycle-toggle {
-    display: flex;
-    flex: none;
-    align-items: center;
-    gap: 8px;
-    color: var(--runner-muted);
-  }
-
-  .runner-lifecycle-diagnostics {
-    padding: 0 16px 16px 44px;
-    min-width: 0;
-
-    dl {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 24px;
-      margin: 0;
-    }
-
-    dl > div {
-      min-width: 0;
-    }
-    dt {
-      color: var(--runner-muted);
-    }
-    dd {
-      margin: 0;
-    }
-    p {
-      margin: 12px 0 0;
-      white-space: pre-wrap;
-    }
-    .runner-json-block {
-      margin-top: 12px;
-    }
-    pre {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-  }
-
   --runner-bg: #f7f8fa;
   --runner-surface: #fff;
   --runner-surface-muted: #f3f5f7;
@@ -263,11 +156,6 @@
     overflow: auto;
     outline: none;
     flex: 1;
-  }
-
-  .runner-step-selector-alert {
-    width: min(1296px, calc(100% - 64px));
-    margin: 24px auto 0;
   }
 
   .runner-page {
@@ -853,15 +741,6 @@
     content: '•';
   }
 
-  .runner-diagnostics {
-    display: grid;
-    gap: 10px;
-  }
-
-  .runner-diagnostics .runner-section-heading {
-    margin-bottom: 4px;
-  }
-
   .runner-search-clear {
     display: grid;
     padding: 3px;
@@ -907,14 +786,6 @@
 
   .runner-step-status.is-failed {
     color: var(--runner-danger);
-  }
-
-  .runner-not-run-message {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    gap: 8px;
-    color: var(--runner-muted);
   }
 
   .runner-json-block pre {
@@ -1371,64 +1242,6 @@
     line-height: 1.45;
   }
 
-  .runner-detail-failure-summary {
-    display: grid;
-    grid-template-columns: 16px minmax(0, 1fr) auto;
-    align-items: start;
-    margin-top: 13px;
-    gap: 9px;
-    border: 1px solid color-mix(in srgb, var(--runner-danger) 28%, transparent);
-    border-radius: 9px;
-  }
-
-  .runner-detail-failure-icon {
-    display: inline-flex;
-    width: 16px;
-    height: 20px;
-    align-items: center;
-    justify-content: center;
-    margin-top: 0;
-    font-size: 16px;
-    line-height: 20px;
-  }
-
-  .runner-detail-failure-content {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    flex: 1;
-  }
-
-  .runner-detail-failure-summary strong {
-    font-size: 14px;
-  }
-
-  .runner-detail-failure-summary small {
-    display: -webkit-box;
-    margin-top: 2px;
-    overflow: hidden;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
-  .runner-detail-failure-summary button {
-    display: inline-flex;
-    min-height: 28px;
-    align-items: center;
-    padding: 0 8px;
-    gap: 5px;
-    color: var(--runner-danger);
-    border: 1px solid color-mix(in srgb, var(--runner-danger) 30%, transparent);
-    border-radius: 7px;
-    font-size: 14px;
-    font-weight: 650;
-    align-self: center;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-
   .runner-detail-screenshot-stage {
     min-width: 0;
   }
@@ -1605,10 +1418,6 @@
     color: var(--runner-danger);
   }
 
-  .runner-agent-trace-content > .ant-alert {
-    margin: 12px;
-  }
-
   .runner-detail-trace-view {
     height: 720px;
     min-height: 0;
@@ -1620,51 +1429,6 @@
     height: 100% !important;
     padding: 0;
     border: 0;
-  }
-
-  .runner-detail-raw-context summary {
-    padding: 11px 14px;
-    color: var(--runner-muted);
-    font-size: 14px;
-    font-weight: 650;
-    list-style: none;
-    cursor: pointer;
-  }
-
-  .runner-detail-raw-context summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .runner-detail-raw-context summary svg {
-    margin-right: 7px;
-  }
-
-  .runner-detail-raw-context dl {
-    margin: 0;
-    padding: 0 14px 14px;
-  }
-
-  .runner-detail-raw-context dl > div {
-    display: grid;
-    grid-template-columns: 74px minmax(0, 1fr);
-    padding: 7px 0;
-    border-top: 1px solid var(--runner-border);
-    gap: 8px;
-    font-size: 14px;
-  }
-
-  .runner-detail-raw-context dt {
-    color: var(--runner-subtle);
-  }
-
-  .runner-detail-raw-context dd {
-    margin: 0;
-    overflow: hidden;
-    color: var(--runner-muted);
-    font-family:
-      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 }
 
@@ -1960,16 +1724,6 @@
       flex-wrap: wrap;
     }
 
-    .runner-detail-failure-summary {
-      grid-template-columns: 16px minmax(0, 1fr);
-    }
-
-    .runner-detail-failure-summary button {
-      grid-column: 2;
-      margin-left: 0;
-      justify-self: start;
-    }
-
     .runner-detail-screenshot-canvas {
       min-height: 280px;
       padding: 10px;
@@ -1989,3 +1743,5 @@
 @import './detail.less';
 @import './refinements.less';
 @import './figma-layout.less';
+
+@import './error-card.less';

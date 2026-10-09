@@ -1,9 +1,9 @@
-import { ArrowLeftOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import type { TestRunReportAttempt, TestRunReportDump } from '@midscene/core';
 import { AttemptSelect } from './attempt-select';
-import { getCaseNotRunReason } from './case-workspace-model';
 import type { RunnerCaseView } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
+import { StatusBadge } from './status-badge';
 import { CaseStatus, formatDuration } from './view-primitives';
 
 export function CaseWorkspaceHeader({
@@ -53,6 +53,9 @@ export function CaseWorkspaceHeader({
           <div className="runner-detail-title-line">
             <h1>{item.testCase.name}</h1>
             <CaseStatus status={item.status} quiet />
+            {standaloneRun?.status === 'failed' && item.status !== 'failed' ? (
+              <StatusBadge label="Run failed" tone="failed" />
+            ) : null}
           </div>
           <div className="runner-case-meta">
             <span>{item.project.name}</span>
@@ -115,12 +118,6 @@ export function CaseWorkspaceHeader({
           </div>
         </dl>
       </div>
-      {!item.testCase.attempts.length ? (
-        <div className="runner-not-run-message">
-          <ClockCircleOutlined />
-          {getCaseNotRunReason(item)}
-        </div>
-      ) : null}
     </section>
   );
 }

@@ -5,10 +5,12 @@ import {
   SettingOutlined,
   ThunderboltOutlined,
   UnorderedListOutlined,
+  WarningFilled,
 } from '@ant-design/icons';
 import type { TestRunReportStep } from '@midscene/core';
 import type { ReactNode } from 'react';
 import type { RunnerStepGroup } from './case-workspace-model';
+import type { ReportIssues } from './issues';
 import { getStepDisplayName } from './model';
 import { StepStatus, formatDuration } from './view-primitives';
 
@@ -24,6 +26,7 @@ function RunnerStepTypeIcon({
 
 export function RunnerExecutionPanel({
   groups,
+  issues,
   selectedStepId,
   playingStepId,
   timeline,
@@ -31,6 +34,7 @@ export function RunnerExecutionPanel({
   onSelect,
 }: {
   groups: readonly RunnerStepGroup[];
+  issues?: ReportIssues['nodes'];
   selectedStepId?: string;
   playingStepId?: string;
   timeline?: ReactNode;
@@ -87,6 +91,15 @@ export function RunnerExecutionPanel({
                     <span className="runner-detail-step-copy">
                       <strong>
                         {step.node}
+                        {issues
+                          ?.get(step.id)
+                          ?.some((issue) => issue.severity === 'warning') ? (
+                          <WarningFilled
+                            className="runner-step-warning"
+                            aria-label="Step warning"
+                            title="Step warning"
+                          />
+                        ) : null}
                         {step.agentDetails?.length ? (
                           <span
                             className="runner-detail-recording-icon"

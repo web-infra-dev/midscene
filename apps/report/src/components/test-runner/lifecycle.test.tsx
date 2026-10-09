@@ -11,14 +11,14 @@ import {
   getDefaultCaseWorkspaceStep,
   getWorkspaceTimelineRange,
 } from './case-workspace-model';
-import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
+import { ErrorCards } from './error-card';
+import { collectReportIssues } from './issues';
 import {
   buildRunnerVisualIndex,
   flattenRunnerCases,
   getRunnerHealth,
 } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
-import { TestPlan } from './test-plan';
 
 const source = {
   sources: [
@@ -43,6 +43,27 @@ const lifecycle = () =>
 const noop = () => {};
 
 describe('report lifecycle failures', () => {
+  it('keeps global warnings safe when no Case attempt exists', () => {
+    const dump = lifecycle();
+    const item = flattenRunnerCases(dump).find(
+      (item) => item.testCase.caseId === 'blocked-case',
+    )!;
+    const html = renderToStaticMarkup(
+      <CaseWorkspace
+        item={item}
+        issues={collectReportIssues(dump)}
+        reports={[]}
+        visualIndex={buildRunnerVisualIndex([])}
+        renderAgentReport={() => null}
+        onBack={noop}
+        backLabel="Overview"
+      />,
+    );
+    expect(html).toContain('MODEL_METRICS_UNKNOWN');
+    expect(html).toContain('Database connection refused.');
+    expect(html).not.toContain('Case · Attempt');
+  });
+
   it('uses a resource-blocked setup step as the reason for unexecuted planned steps', () => {
     const item = flattenRunnerCases(lifecycle()).find(
       (item) => item.testCase.caseId === 'blocked-case',
@@ -92,9 +113,18 @@ describe('report lifecycle failures', () => {
     dump.operationLogs = [
       { path: '/tmp/operations.jsonl', snapshotAt: '2026-10-08T11:00:00.000Z' },
     ];
-    const html = renderToStaticMarkup(<SingleCaseRunInfo dump={dump} />);
-    expect(html).toContain('Operation event logs');
-    expect(html).toContain('/tmp/operations.jsonl');
+    const html = renderToStaticMarkup(
+      <>
+        <SingleCaseRunInfo dump={dump} />
+        <ErrorCards
+          issues={collectReportIssues(dump).others}
+          label="Other issues"
+        />
+      </>,
+    );
+    expect(html).not.toContain('Operation event logs');
+    expect(html).not.toContain('/tmp/operations.jsonl');
+    expect(dump.operationLogs).toHaveLength(1);
   });
   it('keeps known calls visible when provider tokens and duration are unknown', () => {
     const dump = lifecycle();
@@ -110,7 +140,15 @@ describe('report lifecycle failures', () => {
       },
     };
     dump.metrics.modelCallCount = 1;
-    const html = renderToStaticMarkup(<SingleCaseRunInfo dump={dump} />);
+    const html = renderToStaticMarkup(
+      <>
+        <SingleCaseRunInfo dump={dump} />
+        <ErrorCards
+          issues={collectReportIssues(dump).others}
+          label="Other issues"
+        />
+      </>,
+    );
     expect(html).toContain('<strong>1</strong> model calls');
     expect(html).toContain('<strong>—</strong> tokens');
     expect(html).toContain('<strong>—</strong> model time');
@@ -130,29 +168,45 @@ describe('report lifecycle failures', () => {
           reasons: status === 'complete' ? [] : ['Snapshot collection failed.'],
         },
       };
-      const markup = renderToStaticMarkup(<SingleCaseRunInfo dump={dump} />);
+      const markup = renderToStaticMarkup(
+        <>
+          <SingleCaseRunInfo dump={dump} />
+          <ErrorCards
+            issues={collectReportIssues(dump).others}
+            label="Other issues"
+          />
+        </>,
+      );
       if (status === 'unknown') {
-        expect(markup).toContain('Model metrics unknown');
+        expect(markup).toContain('MODEL_METRICS_UNKNOWN');
         expect(markup).toContain('<strong>—</strong> model calls');
         expect(markup).not.toContain('<strong>5</strong> model calls');
       } else {
         expect(markup).toContain('<strong>5</strong> model calls');
         expect(markup).toContain('<strong>1,234</strong> tokens');
-        expect(markup.includes('Partial model metrics')).toBe(
+        expect(markup.includes('PARTIAL_MODEL_METRICS')).toBe(
           status === 'partial',
         );
       }
     },
   );
   it('hides an empty diagnostics list', () => {
-    expect(renderToStaticMarkup(<LifecycleErrors issues={[]} />)).toBe('');
+    expect(
+      renderToStaticMarkup(<ErrorCards issues={[]} label="Other issues" />),
+    ).toBe('');
   });
 
-  it('renders collapsed diagnostics with safe text and sanitization notices', () => {
+  it('renders non-node issue details in their card with safe text and sanitization notices', () => {
     const html = renderToStaticMarkup(
-      <LifecycleErrors
+      <ErrorCards
+        label="Other issues"
+        showDetails
         issues={[
           {
+            id: 'cleanup',
+            severity: 'error',
+            code: 'PROJECT_TEARDOWN_ERROR',
+            message: '<script>failed</script>',
             label: 'Project cleanup',
             error: {
               name: 'ProjectTeardownError',
@@ -168,17 +222,18 @@ describe('report lifecycle failures', () => {
         ]}
       />,
     );
-    expect(html).toContain('<details class="runner-lifecycle-issue">');
+    expect(html).toContain('runner-error-card');
+    expect(html).not.toContain('runner-run-information');
     expect(html).not.toContain(' open=""');
-    expect(html).toContain('<summary>');
-    expect(html).not.toContain('Details');
+    expect(html).not.toContain('Causes and context');
+    expect(html).not.toContain('Run diagnostics');
     expect(html).toContain('PROJECT_TEARDOWN_ERROR');
     expect(html).toContain('ProjectTeardownError');
     expect(html).toContain('registrationIndex');
     expect(html).toContain('Redacted: $.apiKey');
     expect(html).toContain('Truncated: $.logs');
     expect(html).not.toContain('<script>');
-    expect(html).toContain('&lt;script&gt;failed&lt;/script&gt;');
+    expect(html.match(/&lt;script&gt;failed&lt;\/script&gt;/g)).toHaveLength(1);
   });
 
   it('keeps fixture outcomes and retry metrics deterministic', () => {
@@ -216,7 +271,10 @@ describe('report lifecycle failures', () => {
     );
     expect(html).toContain('runner-detail-debug-workbench');
     expect(html).toContain('Database connection refused.');
-    expect(html).toContain('fixture-database');
+    expect(html).not.toContain('runner-not-run-message');
+    expect(html.match(/Database connection refused\./g)).toHaveLength(1);
+    expect(html).not.toContain('authored execution');
+    expect(html).not.toContain('Test plan');
     expect(html).not.toContain('aria-label="Attempts"');
     expect(html).not.toContain('runner-single-attempt-label');
     expect(html).not.toContain('Attempt 1');
@@ -277,7 +335,8 @@ describe('report lifecycle failures', () => {
       />,
     );
     expect(html).toContain('Preview Beijing map');
-    expect(html).toContain('Document setup step 1 failed');
+    expect(html).not.toContain('Document setup step 1 failed');
+    expect(html).toContain('Blocked by a preceding step.');
     expect(html).toContain('View blocking step');
     expect(html).not.toContain('Attempt 1');
     expect(item.testCase.attempts).toEqual([]);
@@ -311,7 +370,7 @@ describe('report lifecycle failures', () => {
     });
   });
 
-  it('shows filtered cases in the independent plan without adding execution outcomes', () => {
+  it('preserves filtered plans in data without displaying optional selection details', () => {
     const dump = lifecycle();
     const beforeAll = dump.projects[0].documents[0].beforeAll;
     dump.projects[0].plans = [
@@ -345,11 +404,24 @@ describe('report lifecycle failures', () => {
         ],
       },
     ];
-    const html = renderToStaticMarkup(<TestPlan dump={dump} />);
-    expect(html).toContain('Filtered Beijing preview');
-    expect(html).toContain('Filtered by case selection');
-    expect(html).toContain('${mapLocation}');
-    expect(html).toContain('Variables remain as placeholders');
+    const html = renderToStaticMarkup(
+      <CaseWorkspace
+        item={flattenRunnerCases(dump)[0]}
+        standaloneRun={dump}
+        reports={[]}
+        visualIndex={buildRunnerVisualIndex([])}
+        renderAgentReport={() => null}
+        onBack={noop}
+        backLabel="Overview"
+      />,
+    );
+    expect(html).not.toContain('Filtered Beijing preview');
+    expect(html).not.toContain('Filtered by case selection');
+    expect(html).not.toContain('runner-run-information');
+    expect(dump.projects[0].plans[0].cases[0].steps[0].input.value).toEqual({
+      prompt: '${mapLocation}',
+    });
+    expect(html).not.toContain('map.preview');
     expect(dump.projects[0].documents[0].beforeAll).toBe(beforeAll);
     expect(
       flattenRunnerCases(dump).some(
@@ -375,23 +447,22 @@ describe('report lifecycle failures', () => {
     expect(html).toContain('cart.verify');
   });
 
-  it('collects project, document, and attempt errors without dropping the blocked document', () => {
+  it('keeps setup node errors out of scope errors without dropping either', () => {
     const dump = lifecycle();
-    const issues = getProjectLifecycleIssues(dump.projects[0]);
-    expect(issues.map((issue) => issue.error.message)).toEqual([
+    const issues = collectReportIssues({ projects: dump.projects });
+    expect(issues.others.map((issue) => issue.message)).toEqual([
       'Project browser disposal failed.',
       'Document fixture disposal failed.',
       'Case session disposal failed.',
-      'Database connection refused.',
     ]);
-    const html = renderToStaticMarkup(<LifecycleErrors issues={issues} />);
-    for (const issue of issues) expect(html).toContain(issue.error.message);
-    const standalone = renderToStaticMarkup(<SingleCaseRunInfo dump={dump} />);
-    expect(standalone).toContain('Project browser disposal failed.');
-    expect(standalone).toContain('Document fixture disposal failed.');
-    // The run summary includes cleanup consequences from every attempt, so a
-    // failed run cannot hide them behind the currently selected workspace.
-    expect(standalone).toContain('Case session disposal failed.');
+    expect(issues.nodes.get('blocked:beforeAll:0')?.[0].message).toBe(
+      'Database connection refused.',
+    );
+    const html = renderToStaticMarkup(
+      <ErrorCards issues={issues.others} label="Other issues" />,
+    );
+    for (const issue of issues.others) expect(html).toContain(issue.message);
+    expect(html).not.toContain('Database connection refused.');
   });
 
   it('prioritizes a failed document teardown over a successful case step', () => {

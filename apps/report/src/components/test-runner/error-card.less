@@ -1,0 +1,108 @@
+.test-runner-report {
+  .runner-error-cards {
+    min-width: 0;
+    margin-block: 16px;
+  }
+
+  .runner-error-card {
+    --issue-color: var(--runner-danger);
+    --issue-bg: var(--runner-danger-soft);
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) 32px;
+    align-items: start;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid color-mix(in srgb, var(--issue-color) 28%, transparent);
+    border-radius: 12px;
+    background: var(--issue-bg);
+    color: var(--issue-color);
+    font-size: 12px;
+    line-height: 20px;
+
+    &.is-warning {
+      --issue-color: var(--runner-warning);
+      --issue-bg: var(--runner-warning-soft);
+    }
+
+    > button {
+      display: inline-flex;
+      width: 32px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      align-self: center;
+      padding: 0;
+      border: 1px solid color-mix(in srgb, var(--issue-color) 28%, transparent);
+      border-radius: 8px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+
+      &:hover {
+        background: color-mix(in srgb, var(--issue-color) 8%, transparent);
+      }
+    }
+  }
+
+  .runner-error-icon {
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .runner-error-content {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    strong {
+      font-size: 12px;
+      font-weight: 600;
+    }
+    p {
+      margin: 8px 0 0;
+      white-space: pre-wrap;
+    }
+    > a {
+      display: inline-block;
+      margin: 8px 12px 0 0;
+    }
+  }
+
+  .runner-step-warning {
+    margin-left: 6px;
+    color: var(--runner-warning);
+    font-size: 12px;
+  }
+
+  .runner-error-label {
+    display: block;
+    margin-top: 4px;
+    color: var(--runner-muted);
+  }
+  .runner-error-more {
+    > summary {
+      width: fit-content;
+      padding: 8px 0;
+      color: var(--runner-muted);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .runner-error-card + .runner-error-card {
+      margin-top: 8px;
+    }
+  }
+}
+
+.test-runner-report .runner-issue-information {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.test-runner-report .runner-information-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .test-runner-report .runner-detail-io-grid > section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+}

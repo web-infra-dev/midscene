@@ -7,8 +7,10 @@ import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlaywrightTasks } from '../../types';
-import { getWorkspaceStepSummary } from './case-workspace';
+import { CaseWorkspace, getWorkspaceStepSummary } from './case-workspace';
 import { CaseWorkspaceHeader } from './case-workspace-header';
+import { ErrorCards } from './error-card';
+import { collectReportIssues } from './issues';
 import {
   buildRunnerStepIndex,
   buildRunnerVisualIndex,
@@ -531,7 +533,16 @@ describe('Midscene Test hybrid report model', () => {
       },
     ];
     const standalone = renderToStaticMarkup(
-      createElement(CaseWorkspaceHeader, { ...props, standaloneRun: run }),
+      createElement(CaseWorkspace, {
+        item,
+        standaloneRun: run,
+        issues: collectReportIssues(run),
+        reports: [],
+        visualIndex: buildRunnerVisualIndex([]),
+        renderAgentReport: () => null,
+        onBack() {},
+        backLabel: 'Overview',
+      }),
     );
     expect(standalone).not.toContain('runner-back-button');
     expect(standalone).not.toContain('Copy case link');
@@ -539,7 +550,7 @@ describe('Midscene Test hybrid report model', () => {
     expect(standalone).toContain('run time');
     expect(standalone).toContain('model calls');
     expect(standalone).toContain('tokens');
-    expect(standalone).toContain('Run failed');
+    expect(standalone).not.toContain('Run diagnostics');
     expect(standalone).toContain('Browser cleanup failed');
     expect(standalone).toContain('Trace unavailable');
     const regular = renderToStaticMarkup(
@@ -788,7 +799,12 @@ describe('Midscene Test hybrid report model', () => {
       page: 'case',
       selectedCaseKey: 'web:document:passed',
       deepLinkedStepId: undefined,
-      unmatchedStepSelector: 'last-error',
+      navigationIssue: {
+        id: 'navigation',
+        severity: 'warning',
+        code: 'STEP_NOT_FOUND',
+        message: 'No Step matches runner-step=last-error.',
+      },
     });
   });
 
@@ -819,9 +835,42 @@ describe('Midscene Test hybrid report model', () => {
       page: 'case',
       selectedCaseKey: 'web:document:passed',
       deepLinkedStepId: undefined,
-      unmatchedStepSelector: 'last-error',
+      navigationIssue: {
+        severity: 'warning',
+        code: 'STEP_NOT_FOUND',
+      },
     });
   });
+
+  it.each(['last-error', 'missing-step-id'])(
+    'shows a warning for an unresolved Step link (%s)',
+    (reference) => {
+      const cases = flattenRunnerCases(dump);
+      const projects = groupRunnerProjects(dump, cases);
+      const stepIndex = buildRunnerStepIndex(dump, cases);
+      const navigation = resolveRunnerNavigation(
+        `#runner-page=case&runner-project=web&runner-case=web%3Adocument%3Apassed&runner-step=${reference}`,
+        cases,
+        projects,
+        stepIndex,
+      );
+      expect(navigation).toMatchObject({
+        page: 'case',
+        selectedCaseKey: 'web:document:passed',
+        deepLinkedStepId: undefined,
+        navigationIssue: { severity: 'warning', code: 'STEP_NOT_FOUND' },
+      });
+      const html = renderToStaticMarkup(
+        createElement(ErrorCards, {
+          label: 'Navigation issue',
+          issues: [navigation.navigationIssue!],
+        }),
+      );
+      expect(html).toContain('is-warning');
+      expect(html).toContain('The requested step could not be found');
+      expect(html).toContain(`No Step matches runner-step=${reference}.`);
+    },
+  );
 
   it('includes document lifecycle Steps in portable links', () => {
     const lifecycleDump = structuredClone(dump);

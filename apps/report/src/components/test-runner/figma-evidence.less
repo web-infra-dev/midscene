@@ -43,74 +43,6 @@
     line-height: 20px;
   }
 
-  .runner-detail-failure-summary {
-    grid-template-columns: 16px minmax(0, 1fr) 32px;
-    min-height: 80px;
-    align-items: start;
-    margin: 24px 0 0;
-    padding: 16px;
-    gap: 8px;
-    color: var(--runner-danger);
-    border: 1px solid color-mix(in srgb, var(--runner-danger) 28%, transparent);
-    border-radius: 12px;
-    background: var(--runner-danger-soft);
-  }
-
-  .runner-detail-failure-icon {
-    width: 16px;
-    height: 20px;
-    margin-top: 0;
-    color: var(--runner-danger);
-    font-size: 14px;
-    line-height: 20px;
-  }
-
-  .runner-detail-failure-content {
-    gap: 8px;
-  }
-
-  .runner-detail-failure-summary strong,
-  .runner-detail-failure-summary small {
-    color: var(--runner-danger);
-    font-size: 12px;
-    line-height: 20px;
-  }
-
-  .runner-detail-failure-summary strong {
-    font-weight: 600;
-  }
-
-  .runner-detail-failure-summary small {
-    display: block;
-    margin: 0;
-    overflow: visible;
-    color: #7f1c1e;
-    overflow-wrap: anywhere;
-    -webkit-line-clamp: unset;
-  }
-
-  .runner-detail-failure-summary button {
-    display: inline-flex;
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    min-height: 32px;
-    align-items: center;
-    justify-content: center;
-    align-self: center;
-    padding: 0;
-    color: var(--runner-danger);
-    border: 1px solid color-mix(in srgb, var(--runner-danger) 28%, transparent);
-    border-radius: 8px;
-    background: transparent;
-    font-size: 14px;
-  }
-
-  .runner-detail-failure-summary button:hover {
-    border-color: var(--runner-danger);
-    background: color-mix(in srgb, var(--runner-danger) 8%, transparent);
-  }
-
   .runner-detail-inspector {
     margin-top: 24px;
     border: 0;
@@ -213,7 +145,7 @@
 
   .runner-detail-io-grid > section {
     display: grid;
-    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-columns: 128px minmax(0, 1fr);
     min-height: 0;
     padding: 16px 0;
     gap: 24px;
@@ -357,9 +289,5 @@
       justify-items: start;
       row-gap: 8px;
     }
-  }
-
-  .runner-detail-raw-context {
-    display: none;
   }
 }

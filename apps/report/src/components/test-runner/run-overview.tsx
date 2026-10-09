@@ -2,7 +2,6 @@ import type { TestRunReportDump } from '@midscene/core';
 import { useMemo, useRef, useState } from 'react';
 import { CaseDensitySwitch } from './case-density-switch';
 import { CaseFilters } from './case-filters';
-import { MetricsCollection } from './metrics-collection';
 import {
   type RunnerBreakdownSort,
   type RunnerBreakdownSortDirection,
@@ -15,17 +14,17 @@ import {
   filterAndSortRunnerProjectBreakdown,
   toggleAllRunnerProjectKeys,
 } from './model';
-import { OperationLogs } from './operation-logs';
 import { ProjectBreakdownTree } from './project-breakdown';
 import { RunSummary } from './run-summary';
-import { TestPlan } from './test-plan';
 import type { RunnerCaseDisplayMode } from './view-primitives';
 
-import { RunDiagnostics } from './run-diagnostics';
+import { ErrorCards } from './error-card';
+import { type ReportIssues, collectReportIssues } from './issues';
 
 export function RunOverview({
   visualIndex,
   dump,
+  issues,
   cases,
   health,
   projects,
@@ -37,6 +36,7 @@ export function RunOverview({
 }: {
   visualIndex: RunnerVisualIndex;
   dump: TestRunReportDump;
+  issues?: ReportIssues;
   cases: RunnerCaseView[];
   health: RunnerHealthStats;
   projects: RunnerProjectView[];
@@ -46,6 +46,8 @@ export function RunOverview({
   onExpandedProjectKeysChange(keys: Set<string>): void;
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
+  const reportIssues = issues ?? collectReportIssues(dump);
+  const navigableStepIds = new Set(reportIssues.nodes.keys());
   const breakdownRef = useRef<HTMLElement>(null);
   const [breakdownQuery, setBreakdownQuery] = useState('');
   const [breakdownStatus, setBreakdownStatus] =
@@ -129,10 +131,12 @@ export function RunOverview({
         onReviewOutcome={focusOutcomeCases}
       />
 
-      <RunDiagnostics dump={dump} />
-      <MetricsCollection metrics={dump.metrics} />
-      <OperationLogs logs={dump.operationLogs} />
-      <TestPlan dump={dump} />
+      <ErrorCards
+        issues={reportIssues.others}
+        label="Other issues"
+        navigableStepIds={navigableStepIds}
+        showDetails
+      />
       <section
         ref={breakdownRef}
         className="runner-panel runner-breakdown-panel"

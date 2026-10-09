@@ -6,7 +6,7 @@
 
 ## 实现批次与进度
 
-分支：`fix/test-report-pipeline`，从 2026-10-08 拉取的 `origin/main`（`98062b63`）创建。第一批已提交为 `12355393`（`fix(report): preserve test plans and show setup timelines`）；第二批已提交为 `d8dbba6a`（`fix(report): capture evidence independently of resource cleanup`）；第三批已提交为 `ac259f2e`（`fix(report): track cancellation and block unavailable resources`）。第四批随本次提交（`fix(report): structure diagnostics and record retry decisions`）保存。尚未推送。
+分支：`fix/test-report-pipeline`，从 2026-10-08 拉取的 `origin/main`（`98062b63`）创建。第一批已提交为 `12355393`（`fix(report): preserve test plans and show setup timelines`）；第二批已提交为 `d8dbba6a`（`fix(report): capture evidence independently of resource cleanup`）；第三批已提交为 `ac259f2e`（`fix(report): track cancellation and block unavailable resources`）。第四批已提交为 `71217d3d`（`fix(report): structure diagnostics and record retry decisions`）。尚未推送。
 
 | 批次 | 范围 | 状态 |
 | --- | --- | --- |
@@ -15,6 +15,19 @@
 | 3 | 取消契约、资源调度、操作与取消事件（03、04、05 的事件部分） | 共享运行链路实现完成；具体设备适配器的中断能力仍需逐项验证 |
 | 4 | 错误原因、诊断归组、清理与重试状态（05 的错误部分、08、09） | 原生 CLI 与共享 Runner 实现完成，见下方范围与验收记录 |
 | 5 | 宿主初始化及各阶段耗时（10） | 待实施 |
+
+### 报告界面收敛（2026-10-09）
+
+- 问题只分节点问题和非节点问题，统一使用红色错误 card、黄色警告 card；多条通过“Show N more issues”展开。未执行原因保留在节点 Information，不额外生成执行错误。
+- 标题说明问题和已知影响，例如“Document setup assertion failed; cases could not start”和“Step timed out; 4 later steps not run”。只统计明确通过 `blockedBy` 关联的未执行步骤，不把 aiAssert 的网络异常误称为断言不匹配。
+- 节点执行、证据采集和稳定引用问题放在对应节点下。清理等待、操作未退出及重试提前停止有唯一已知阻塞节点时归到该节点；无法确定归属时留在非节点 card。真实资源释放失败保留其作用域归属。
+- 核心错误正文只在 card 中呈现，类型、代码、上下文、原因链和截断提示放节点 Information；同文案的原因仍保留有效类型、代码及聚合分支，没有有效补充信息时不显示空 Cause。
+- 节点保留计划配置、输入、输出、不同于运行时输入的计划输入、未执行原因和时间线；操作生命周期保留在 Events。成功节点存在证据警告时，Execution 显示黄色提示，但不改变其成功状态。
+- 移除运行级 Information/Run details、日志路径、筛选说明和正常重试说明。删除旧 RunDiagnostics、MetricsCollection、LifecycleErrors、ScopeOutcome、TestPlan、OperationLogs 组件、诊断分组模型和重复样式。独立计划及事件日志数据仍保存在报告和运行产物中。
+- Case 页面按当前文件和 Case attempt 筛选问题，避免串入其他重试次数。失效的节点 ID 或 `last-error` 等链接显示黄色警告，不静默跳到无关执行记录。
+- 验证：`pnpm exec nx test @midscene/report -- src/components/test-runner`（11 个文件、111 项通过）；`pnpm exec nx build @midscene/report --excludeTaskDependencies`（含类型检查）、`node scripts/validate-core-report-template.mjs`、`git diff --check` 通过。
+- Lint：`pnpm run lint --config-path /private/tmp/midscene-report-lint` 通过。临时配置沿用仓库规则，仅排除用户要求暂不涉及的 `impeccable` 及本地 `.pnpm-store`；仓库配置没有改动。
+- 前一版界面的 Demo 验收：使用原有两个 YAML 生成报告，数据及浏览器检查共 32 项通过；产物在 `/Users/bytedance/work/midscene-demo/midscene_run/report-chain-repro/error-cards-1791527276834`。该验收早于本次 Information 和文案收敛；本次通过上述组件回归及构建验证，未重跑模型/设备 e2e。
 
 ### 第一批已经落地
 
