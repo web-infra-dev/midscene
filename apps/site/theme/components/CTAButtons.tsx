@@ -34,17 +34,17 @@ export function CTAButtons({ variant = 'default' }: CTAButtonsProps) {
   return (
     <div className="home-hero__actions home-bottom-cta__actions">
       <Link
-        href={tUrl('/introduction')}
+        href={tUrl('/quick-start')}
         className="home-hero__button home-hero__button--primary"
       >
-        <span>{t('introduction')}</span>
+        <span>{t('bottomCtaStart')}</span>
         <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
       </Link>
       <Link
         href={tUrl('/showcases')}
         className="home-hero__button home-hero__button--secondary"
       >
-        <span>{t('whatsNew')}</span>
+        <span>{t('bottomCtaExamples')}</span>
         <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
       </Link>
     </div>

@@ -1,4 +1,4 @@
-import { Braces, History, Workflow } from 'lucide-react';
+import { Bot, Braces, History } from 'lucide-react';
 import { useI18n, useI18nUrl } from '../i18n';
 import { FeatureCard } from './FeatureCard';
 import './TestingToolkit.css';
@@ -8,18 +8,11 @@ export function TestingToolkit() {
   const tUrl = useI18nUrl();
   const cards = [
     {
-      title: t('toolkitFrameworkTitle'),
-      description: t('toolkitFrameworkDesc'),
-      href: '/midscene-test/overview',
-      Icon: Workflow,
-      label: 'YAML + TypeScript',
-    },
-    {
       title: t('toolkitApiTitle'),
       description: t('toolkitApiDesc'),
       href: '/reference/',
       Icon: Braces,
-      label: `${t('toolkitPlan')} · ${t('toolkitAction')} · ${t('toolkitQuery')}`,
+      label: t('toolkitApiMetric'),
     },
     {
       title: t('toolkitReportTitle'),
@@ -27,6 +20,13 @@ export function TestingToolkit() {
       href: '/midscene-test/use',
       Icon: History,
       label: 'Report · Replay · Playground',
+    },
+    {
+      title: t('toolkitSkillsTitle'),
+      description: t('toolkitSkillsDesc'),
+      href: '/skills',
+      Icon: Bot,
+      label: 'Skills · GUI Automation',
     },
   ];
   return (

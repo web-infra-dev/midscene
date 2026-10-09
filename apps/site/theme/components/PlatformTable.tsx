@@ -18,12 +18,6 @@ export function PlatformTable() {
       ],
     },
     {
-      name: t('platformDesktop'),
-      packageName: '@midscene/computer',
-      access: t('platformDesktopAccess'),
-      links: [[t('platformGuide'), '/platforms/desktop']],
-    },
-    {
       name: 'Android',
       packageName: '@midscene/android',
       access: t('platformAndroidAccess'),
@@ -40,6 +34,12 @@ export function PlatformTable() {
       packageName: '@midscene/harmony',
       access: t('platformHarmonyAccess'),
       links: [[t('platformGuide'), '/platforms/harmonyos']],
+    },
+    {
+      name: t('platformDesktop'),
+      packageName: '@midscene/computer',
+      access: t('platformDesktopAccess'),
+      links: [[t('platformGuide'), '/platforms/desktop']],
     },
     {
       name: t('platformCustom'),

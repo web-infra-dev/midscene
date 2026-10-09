@@ -102,6 +102,10 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   toolkitEngineering: '脚手架与平台预设、生命周期、重试、隔离与并发执行。',
   toolkitNodeDocs: '自动生成 Node 说明书，让人和 AI Agent 共同维护用例。',
   toolkitFrameworkLink: '了解 Midscene Test',
+  toolkitApiMetric: '操作 · 断言 · 数据提取',
+  toolkitSkillsTitle: '让 AI 编程 Agent 操作界面',
+  toolkitSkillsDesc:
+    '通过 Midscene Skills，让 AI 编程 Agent 操作应用、验证界面，查看执行结果。',
   toolkitApiTitle: '丰富而灵活的 API',
   toolkitApiDesc:
     '覆盖自动规划、精细操作、视觉断言与数据提取，灵活接入已有测试工程。',
@@ -113,9 +117,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '接入 Playwright、Puppeteer 或 JavaScript 工程；AI 编程 Agent 也可通过 Skills 操作界面。',
   toolkitApiLink: '查看 API',
   toolkitSkillsLink: 'Skills',
-  toolkitReportTitle: '可回放、可观察的执行过程',
+  toolkitReportTitle: '回放执行，交互调试',
   toolkitReportDesc:
-    '回放操作与截图，追踪 AI 和自定义步骤，在 Playground 中调试指令。',
+    '通过报告回看截图、AI 决策与执行结果，在 Playground 中试验和调整指令。',
   toolkitPlaygroundDesc:
     '结合运行日志定位问题，在 Playground 中试验和调整指令。',
   toolkitReportAlt: 'Midscene HTML 报告：步骤列表、执行时间线与界面操作回放',
@@ -169,7 +173,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   userDongchedi: '懂车帝',
 
   // Bottom CTA and Footer
-  bottomCtaTitle: '面向 E2E 测试的 GUI Agent',
+  bottomCtaTitle: '用自然语言，写下你的第一个 E2E 测试',
+  bottomCtaStart: '开始使用',
+  bottomCtaExamples: '查看案例',
   licenseNotice: 'Midscene 是基于 MIT 许可证发布的免费开源软件。',
   copyrightNotice: '© 2024–至今 ByteDance Inc. 及其关联公司。',
 };

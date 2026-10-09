@@ -105,6 +105,10 @@ export const EN_US = {
   toolkitNodeDocs:
     'Generate Node references so people and AI agents can maintain tests together.',
   toolkitFrameworkLink: 'Explore Midscene Test',
+  toolkitApiMetric: 'Actions · Assertions · Data extraction',
+  toolkitSkillsTitle: 'Let AI coding agents operate your UI',
+  toolkitSkillsDesc:
+    'Give AI coding agents Midscene Skills to operate apps, verify interfaces, and inspect execution results.',
   toolkitApiTitle: 'Rich, flexible APIs',
   toolkitApiDesc:
     'Bring autonomous flows, precise actions, visual assertions, and data extraction into your existing test stack.',
@@ -116,9 +120,9 @@ export const EN_US = {
     'Integrate with Playwright, Puppeteer, or JavaScript. AI coding agents can also operate interfaces through Skills.',
   toolkitApiLink: 'Explore APIs',
   toolkitSkillsLink: 'Skills',
-  toolkitReportTitle: 'Replay and inspect every step',
+  toolkitReportTitle: 'Replay runs, debug interactively',
   toolkitReportDesc:
-    'Replay actions and screenshots, inspect AI and custom steps, and refine instructions in the Playground.',
+    'Review screenshots, AI decisions, and execution results in reports. Try and refine instructions in the Playground.',
   toolkitPlaygroundDesc:
     'Investigate failures with runtime logs. Try and refine instructions in the Playground.',
   toolkitReportAlt:
@@ -174,7 +178,9 @@ export const EN_US = {
   userDongchedi: 'Dongchedi',
 
   // Bottom CTA and Footer
-  bottomCtaTitle: 'The GUI Agent for E2E Testing',
+  bottomCtaTitle: 'Write your first E2E test in natural language',
+  bottomCtaStart: 'Get started',
+  bottomCtaExamples: 'Explore examples',
   licenseNotice:
     'Midscene is free and open source software released under the MIT license.',
   copyrightNotice: '© 2024-present ByteDance Inc. and its affiliates.',
