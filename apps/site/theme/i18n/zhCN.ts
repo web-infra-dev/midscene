@@ -2,8 +2,9 @@ import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Banner - Title
-  heroTitle: 'Midscene.js\n像人一样使用软件\n用自然语言完成 E2E 测试',
-  heroSubtitle: '基于视觉的 GUI Agent，支持 Web、移动端和桌面应用。',
+  heroTitle: '像人一样看懂界面\n用自然语言完成 E2E 测试',
+  heroSubtitle:
+    'Midscene.js 帮助开发者将 AI 引入 E2E 测试，提供基于视觉的 GUI Agent 与可扩展的测试框架，覆盖 Web、移动端和桌面应用。',
 
   // Banner - Stats
   githubStars: 'Github Stars',

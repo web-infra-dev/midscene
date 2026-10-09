@@ -143,29 +143,23 @@
 
 .home-hero__message h1 {
   display: flex;
-  width: max-content;
+  width: 100%;
   max-width: 100%;
-  min-height: 128px;
+  min-height: 0;
   flex-direction: column;
   align-items: flex-start;
   margin: 0;
   color: rgb(16 24 40 / 90%);
   font-family: "TASA Orbiter", var(--rp-font-family-base, sans-serif);
-  font-size: 48px;
+  font-size: 38px;
   font-weight: 600;
-  letter-spacing: -0.96px;
-  line-height: 64px;
+  letter-spacing: -0.64px;
+  line-height: 44px;
 }
 
 .home-hero__message h1 span {
   display: block;
   white-space: nowrap;
-}
-
-:lang(en) .home-hero__message h1 {
-  font-size: 38px;
-  letter-spacing: -0.64px;
-  line-height: 44px;
 }
 
 .dark .home-hero__message h1 {
@@ -413,6 +407,30 @@
   margin-inline: auto;
 }
 
+@media (min-width: 1248px) {
+  .home-hero__stage {
+    --hero-title-width: 600px;
+    --hero-column-gap: 60px;
+
+    grid-template-columns: var(--hero-title-width) 540px;
+  }
+
+  .home-hero__message p {
+    max-width: 460px;
+  }
+
+  .home-hero__visual {
+    width: 540px;
+    height: auto;
+    aspect-ratio: 640 / 431.61;
+  }
+
+  .home-hero__fade {
+    left: 600px;
+    width: 672px;
+  }
+}
+
 @media (max-width: 1247px) {
   :root:has(.home-page) .rp-nav.rp-nav {
     padding-inline: 24px;
@@ -499,19 +517,14 @@
   .home-hero__message h1 {
     width: 100%;
     min-height: 0;
-    font-size: 36px;
-    line-height: 44px;
+    font-size: 20px;
+    letter-spacing: -0.4px;
+    line-height: 30px;
   }
 
   .home-hero__message p {
     font-size: 16px;
     line-height: 22px;
-  }
-
-  :lang(en) .home-hero__message h1 {
-    font-size: 20px;
-    letter-spacing: -0.4px;
-    line-height: 30px;
   }
 
   :lang(zh) .home-hero__message h1 span:last-child {
