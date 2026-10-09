@@ -1,3 +1,4 @@
+import { isActionReadinessError } from '@/agent/action-readiness';
 import type { Agent } from '@/agent/agent';
 import { deriveCaseStatus } from '@/dump/task-status';
 import type {
@@ -214,6 +215,11 @@ const runLegacyYamlDocument = (
 ): Promise<WorkflowDocumentExecutionResult> => {
   return runWorkflowDocument(document, {
     ...(runOptions ?? {}),
+    isFatalError: (run) =>
+      [...run.beforeEach, ...run.steps, ...run.afterEach].some((step) =>
+        isActionReadinessError(step.error?.cause),
+      ) ||
+      (runOptions?.isFatalError?.(run) ?? false),
     onStepResult: async (info, result) => {
       if (
         result.meta.captureResult &&

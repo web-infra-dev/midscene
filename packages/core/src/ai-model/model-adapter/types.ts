@@ -337,6 +337,8 @@ export interface ModelRuntime {
    * such as order-sensitive judging and deep-locate search-area calls).
    */
   onUsage?: (usage: AIUsageInfo) => void;
+  /** Called when a protocol request is sent, including failed requests. */
+  onRequest?: (endpoint?: string) => void;
 }
 
 export interface ModelAdapterDefinition {

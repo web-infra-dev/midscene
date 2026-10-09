@@ -1,6 +1,6 @@
 import { once } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdtempSync } from 'node:fs';
+import { readFile, rm } from 'node:fs/promises';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -85,7 +85,7 @@ describe('midscene-web CLI viewport e2e', () => {
     } finally {
       // Chrome may still be flushing profile files shortly after web_close
       // returns, so retry the recursive cleanup for transient ENOTEMPTY errors.
-      rmSync(persistentRoot, {
+      await rm(persistentRoot, {
         recursive: true,
         force: true,
         maxRetries: 2,
@@ -110,9 +110,17 @@ describe('midscene-web CLI viewport e2e', () => {
     const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport, {
       persistence,
     });
+    let metrics:
+      | {
+          innerWidth: number;
+          innerHeight: number;
+          clientWidth: number;
+          clientHeight: number;
+        }
+      | undefined;
     const destroy = tools.destroy.bind(tools);
-    // Viewport emulation belongs to the CLI's DevTools session. Inspect it
-    // before disconnecting; a later connection may see the native window size.
+    // Inspect while the CLI's emulated viewport is active. Disconnecting
+    // restores Chrome's native window size, which includes browser UI.
     const destroySpy = rs
       .spyOn(tools, 'destroy')
       .mockImplementation(async () => {
@@ -124,30 +132,24 @@ describe('midscene-web CLI viewport e2e', () => {
             browserWSEndpoint: endpoint,
             defaultViewport: null,
           });
-
           try {
             const pages = await browser.pages();
             const page = pages.find(
               (item) => item.url() === `${baseUrl}/` || item.url() === baseUrl,
             );
+
             if (!page) {
               throw new Error(`Failed to find connected page for ${baseUrl}`);
             }
 
-            const metrics = await page.evaluate(() => ({
+            metrics = await page.evaluate(() => ({
               innerWidth: window.innerWidth,
               innerHeight: window.innerHeight,
               clientWidth: document.documentElement.clientWidth,
               clientHeight: document.documentElement.clientHeight,
             }));
-            expect(metrics).toEqual({
-              innerWidth: width,
-              innerHeight: height,
-              clientWidth: width,
-              clientHeight: height,
-            });
           } finally {
-            await browser.disconnect();
+            browser.disconnect();
           }
         } finally {
           await destroy();
@@ -158,6 +160,12 @@ describe('midscene-web CLI viewport e2e', () => {
       await runToolsCLI(tools, 'midscene-web', {
         stripPrefix: 'web_',
         argv: parsedOptions.argv,
+      });
+      expect(metrics).toEqual({
+        innerWidth: width,
+        innerHeight: height,
+        clientWidth: width,
+        clientHeight: height,
       });
       expect(destroySpy).toHaveBeenCalledTimes(1);
     } finally {

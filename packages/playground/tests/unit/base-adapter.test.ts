@@ -20,7 +20,7 @@ class TestAdapter extends BasePlaygroundAdapter {
   async overrideConfig(): Promise<void> {}
 
   async runConnectivityTest(_config: TModelConfig) {
-    return { passed: true };
+    return { passed: true, checks: [], requestCount: 0 };
   }
 }
 

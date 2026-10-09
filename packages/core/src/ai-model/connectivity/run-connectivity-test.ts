@@ -12,17 +12,21 @@ import {
 
 const TEXT_EXPECTED_TOKEN = 'CONNECTIVITY_OK';
 
-interface ConnectivityCheckResultItem {
+export interface ConnectivityCheckResultItem {
   name: 'text' | 'vision' | 'aiLocate';
   intent: TIntent;
   modelName: string;
   modelFamily?: string;
   passed: boolean;
   durationMs: number;
+  requestCount: number;
+  endpoints: string[];
   message: string;
 }
 
 export interface ConnectivityTestResult {
+  checks: ConnectivityCheckResultItem[];
+  requestCount: number;
   passed: boolean;
   message?: string;
 }
@@ -59,7 +63,12 @@ function buildCheckResult(
   modelRuntime: ModelRuntime,
   result: Omit<
     ConnectivityCheckResultItem,
-    'name' | 'intent' | 'modelName' | 'modelFamily'
+    | 'name'
+    | 'intent'
+    | 'modelName'
+    | 'modelFamily'
+    | 'requestCount'
+    | 'endpoints'
   >,
 ): ConnectivityCheckResultItem {
   const { config } = modelRuntime;
@@ -68,6 +77,8 @@ function buildCheckResult(
     intent: config.intent,
     modelName: config.modelName,
     modelFamily: config.modelFamily,
+    requestCount: 0,
+    endpoints: [],
     ...result,
   };
 }
@@ -211,23 +222,33 @@ async function runAiLocateConnectivityCheck(
 export async function runConnectivityTest(
   config: ConnectivityTestConfig,
 ): Promise<ConnectivityTestResult> {
-  const planningModelRuntime = buildConnectivityModelRuntime(
-    config.planningModelConfig,
-  );
-  const insightModelRuntime = buildConnectivityModelRuntime(
-    config.insightModelConfig,
-  );
-  const defaultModelRuntime = buildConnectivityModelRuntime(
-    config.defaultModelConfig,
-  );
+  const runCheck = async (
+    modelConfig: IModelConfig,
+    check: (runtime: ModelRuntime) => Promise<ConnectivityCheckResultItem>,
+  ) => {
+    const runtime = buildConnectivityModelRuntime(modelConfig);
+    let requestCount = 0;
+    const endpoints = new Set<string>();
+    runtime.onRequest = (endpoint) => {
+      requestCount += 1;
+      if (endpoint) endpoints.add(endpoint);
+    };
+    const result = await check(runtime);
+    return { ...result, requestCount, endpoints: [...endpoints] };
+  };
   const checks = await Promise.all([
-    runTextConnectivityCheck(planningModelRuntime),
-    runVisionConnectivityCheck(insightModelRuntime),
-    runAiLocateConnectivityCheck(defaultModelRuntime),
+    runCheck(config.planningModelConfig, runTextConnectivityCheck),
+    runCheck(config.insightModelConfig, runVisionConnectivityCheck),
+    runCheck(config.defaultModelConfig, runAiLocateConnectivityCheck),
   ]);
 
   const passed = checks.every((item) => item.passed);
   return {
+    checks,
+    requestCount: checks.reduce(
+      (total, check) => total + check.requestCount,
+      0,
+    ),
     passed,
     message: passed ? undefined : buildConnectivityFailureMessage(checks),
   };

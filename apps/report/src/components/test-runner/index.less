@@ -1128,13 +1128,26 @@
     box-shadow: 0 0 0 3px rgba(20, 86, 240, 0.1);
   }
 
-  .runner-detail-timeline-frame img {
+  .runner-detail-timeline-frame canvas {
     display: block;
     width: 100%;
     height: 100%;
     border-radius: 2px;
     object-fit: cover;
     object-position: top;
+  }
+
+  .runner-detail-timeline-frame[hidden] {
+    display: none;
+  }
+
+  .runner-timeline-unavailable {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    color: var(--runner-subtle);
+    background: var(--runner-surface-muted);
+    place-items: center;
   }
 
   .runner-detail-timeline-frame > span {

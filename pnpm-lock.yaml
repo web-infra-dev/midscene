@@ -1395,6 +1395,9 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      chalk:
+        specifier: 4.1.2
+        version: 4.1.2
       dotenv:
         specifier: ^16.4.5
         version: 16.4.7

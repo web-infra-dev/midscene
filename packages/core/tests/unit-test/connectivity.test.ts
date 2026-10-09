@@ -70,7 +70,10 @@ describe('runConnectivityTest', () => {
 
   it('returns passed when all checks succeed', async () => {
     rs.mocked(callAI)
-      .mockResolvedValueOnce({ content: 'CONNECTIVITY_OK' } as any)
+      .mockImplementationOnce(async (_messages, runtime) => {
+        runtime.onRequest?.('https://planning.example/v1/chat/completions');
+        return { content: 'CONNECTIVITY_OK' } as any;
+      })
       .mockResolvedValueOnce({ content: 'What needs to be done?' } as any);
 
     const locate = rs.fn().mockResolvedValue({
@@ -96,6 +99,29 @@ describe('runConnectivityTest', () => {
 
     expect(result.passed).toBe(true);
     expect(result.message).toBeUndefined();
+    expect(result.requestCount).toBe(1);
+    expect(result.checks).toEqual([
+      expect.objectContaining({
+        name: 'text',
+        intent: 'planning',
+        passed: true,
+        requestCount: 1,
+        endpoints: ['https://planning.example/v1/chat/completions'],
+        durationMs: expect.any(Number),
+      }),
+      expect.objectContaining({
+        name: 'vision',
+        intent: 'insight',
+        passed: true,
+        requestCount: 0,
+      }),
+      expect.objectContaining({
+        name: 'aiLocate',
+        intent: 'default',
+        passed: true,
+        requestCount: 0,
+      }),
+    ]);
     expect(locate).toHaveBeenCalledWith(
       { prompt: 'the main todo input box' },
       {},
@@ -140,7 +166,10 @@ describe('runConnectivityTest', () => {
   it('marks individual failures without throwing', async () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({ content: 'wrong-token' } as any)
-      .mockRejectedValueOnce(new Error('vision failed'));
+      .mockImplementationOnce(async (_messages, runtime) => {
+        runtime.onRequest?.('https://vision.example/v1/responses');
+        throw new Error('vision failed');
+      });
 
     const locate = rs.fn().mockResolvedValue({
       rect: { left: 10, top: 10, width: 20, height: 20 },
@@ -164,6 +193,13 @@ describe('runConnectivityTest', () => {
     });
 
     expect(result.passed).toBe(false);
+    expect(result.requestCount).toBe(1);
+    expect(result.checks[1]).toMatchObject({
+      passed: false,
+      requestCount: 1,
+      endpoints: ['https://vision.example/v1/responses'],
+      message: 'vision failed',
+    });
     expect(result.message).toContain(
       '[Text check - test-planning-model (planning)]: Unexpected response: wrong-token',
     );
