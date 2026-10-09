@@ -44,11 +44,11 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 | Name | Description |
 |------|-------------|
 | `MIDSCENE_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-responses`. The latter requires a provider that supports the Responses API. |
-| `MIDSCENE_MODEL_STREAM_MODE` | Defaults to non-streaming (`non-stream`). When set to `stream`, streamed results are aggregated into a complete result before parsing. |
 | `MIDSCENE_MODEL_TIMEOUT` | Hard timeout per AI API request in milliseconds (default intent). Defaults to `180000` (180 seconds). Covers the full request lifetime, including reading the response body. Each retry starts a fresh timeout using the same configuration; retry delays are excluded, so the total call duration may exceed this value. Set to `0` to disable only the Midscene hard timeout. SDK and underlying network timeouts may still apply, and callers can cancel requests with an `AbortSignal`. |
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure). Retries occur when the model request encounters an HTTP error or when the model response cannot be structurally parsed |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | Interval between retries in milliseconds, default 2000 |
+| `MIDSCENE_MODEL_STREAM_MODE` | Defaults to non-streaming (`non-stream`). When set to `stream`, streamed results are aggregated into a complete result before parsing. |
 | `MIDSCENE_MODEL_REASONING_ENABLED` | Controls whether model-native thinking is enabled. Midscene disables it by default. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number), supported by some models. See [Model-native thinking](#model-native-reasoning) |
