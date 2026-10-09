@@ -43,6 +43,7 @@ MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 | 名称 | 描述 |
 |------|-------------|
 | `MIDSCENE_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-responses`。后者要求服务商支持 Responses API。 |
+| `MIDSCENE_MODEL_STREAM_MODE` | 默认是非流式（`non-stream`）；如果指定为流式（`stream`），会将流式的结果聚合为完整结果再解析。 |
 | `MIDSCENE_MODEL_TIMEOUT` | AI 接口单次请求的硬超时（毫秒，默认意图），默认 `180000`（180 秒）。计时覆盖完整请求生命周期，包括响应体读取。每次重试都会重新开始计时，使用相同的超时配置；重试等待时间不计入，因此整个调用的总耗时可能超过该值。设为 `0` 仅禁用 Midscene 的硬超时，SDK 和底层网络的超时限制仍可能生效，调用方也可通过 `AbortSignal` 取消请求 |
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）。模型请求遇到 HTTP 错误，或模型返回值无法被结构化解析时，都会发起重试 |

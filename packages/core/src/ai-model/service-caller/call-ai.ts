@@ -41,9 +41,15 @@ export async function callAI(
   options?.abortSignal?.throwIfAborted();
   const isStreaming = options?.stream === true;
   if (isStreaming) {
+    // Explicit streaming is currently used only by recorder code generation.
+    // Streaming can also be aggregated without onChunk, but then the caller
+    // cannot consume incremental output, which is the purpose of this option.
+    // Environment-enabled streaming supports that aggregation-only use case.
+    // Once onChunk delivers a chunk, later errors are not retried to avoid
+    // delivering duplicate content. Errors before the first chunk can retry.
     assert(
       typeof options?.onChunk === 'function',
-      'onChunk is required when stream is true',
+      'onChunk is required when stream: true is explicitly specified',
     );
   }
 

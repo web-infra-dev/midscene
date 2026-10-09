@@ -80,7 +80,9 @@ describe('GPT image detail handling', () => {
           getModelRuntime({ ...baseModelConfig, openaiBaseURL }),
           { stream: true },
         ),
-      ).rejects.toThrow('onChunk is required when stream is true');
+      ).rejects.toThrow(
+        'onChunk is required when stream: true is explicitly specified',
+      );
       expect(mockCreate).not.toHaveBeenCalled();
       expect(mockCodexCall).not.toHaveBeenCalled();
     },
