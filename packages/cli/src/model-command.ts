@@ -6,12 +6,14 @@ import {
 } from '@midscene/shared/env';
 import chalk from 'chalk';
 import { loadDotenvConfig } from './dotenv-loader';
+import { runSiwcCommand } from './siwc-command';
 
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const MODEL_VERIFY_SEPARATOR = '────────────────────────────────────────';
 const MODEL_COMMAND_USAGE = `Usage:
   midscene model verify
   midscene model eval
+  midscene model siwc <login|refresh> [options]
 `;
 
 interface ModelCommandIO {
@@ -211,6 +213,10 @@ export async function runModelCommand(
   if (!action || action === '--help' || action === '-h') {
     io.stdout(MODEL_COMMAND_USAGE);
     return 0;
+  }
+
+  if (action === 'siwc') {
+    return runSiwcCommand(restArgs, io);
   }
 
   if (action === 'verify') {

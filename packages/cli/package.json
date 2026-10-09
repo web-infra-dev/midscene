@@ -43,6 +43,7 @@
     "@midscene/web": "workspace:*",
     "@rstest/core": "0.12.0",
     "http-server": "14.1.1",
+    "jose": "5.9.6",
     "lodash.merge": "4.6.2",
     "puppeteer": "24.6.0"
   },

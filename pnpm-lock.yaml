@@ -812,6 +812,9 @@ importers:
       http-server:
         specifier: 14.1.1
         version: 14.1.1
+      jose:
+        specifier: 5.9.6
+        version: 5.9.6
       lodash.merge:
         specifier: 4.6.2
         version: 4.6.2
