@@ -559,7 +559,9 @@ describe('getEnvConfigValue', () => {
 });
 
 describe('model stream mode configuration', () => {
-  afterEach(() => rs.unstubAllEnvs());
+  afterEach(() => {
+    rs.unstubAllEnvs();
+  });
 
   it('defaults to non-stream when unset', () => {
     rs.stubEnv(MIDSCENE_MODEL_STREAM_MODE, undefined);
