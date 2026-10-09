@@ -162,30 +162,6 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 按照 OpenAI 官方说明，Fast mode 可获得最高 2～2.5 倍的速度，费率为 Standard 费率的两倍。具体速度、价格和使用限制以[官方说明](https://developers.openai.com/api/docs/guides/fast-mode)为准。
 
-<span id="use-codex-app-server-oauth-no-api-key" />
-
-**使用 Codex App Server（OAuth，无需 API Key）**
-
-如果你已经通过 Codex CLI 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-6-sol" # 或者使用 Codex model/list 可见的其他模型
-export MIDSCENE_MODEL_FAMILY="gpt-6"
-```
-
-说明：
-
-- 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
-- Midscene 会通过 stdio 调用 `codex app-server`。
-- 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
-
-:::warning 已知限制
-
-相比于直接调用 OpenAI 兼容 API，我们观察到这种方式可能耗时更长、token 消耗更多，具体原因还在排查中。
-
-:::
-
 **使用 ChatGPT plan 中的额度**
 
 如果你已经订阅了 ChatGPT plan，则可以通过 [SIWC（Sign in with ChatGPT）](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) 获得一个 ChatGPT 授权 token。该 token 同样可以用于在 Midscene 中调用 OpenAI 服务，就像 OpenAI 的 API Key 一样。
@@ -232,6 +208,30 @@ export MIDSCENE_MODEL_FAMILY="gpt-6"
 1. 请遵守 OpenAI 的地区限制和使用条款，参见 [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/)。
 2. 使用 SIWC 时会消耗你的订阅额度，具体 token 消耗和订阅额度的换算以 ChatGPT 官方为准。你可以在 Midscene 的报告中查看每步任务的 token 消耗。
 3. 通过 SIWC 调用模型时，需要使用 Responses API，并开启流式返回。
+
+<span id="use-codex-app-server-oauth-no-api-key" />
+
+**使用 Codex App Server（OAuth，无需 API Key）**
+
+如果你已经通过 Codex CLI 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
+
+```bash
+export MIDSCENE_MODEL_BASE_URL="codex://app-server"
+export MIDSCENE_MODEL_NAME="gpt-6-sol" # 或者使用 Codex model/list 可见的其他模型
+export MIDSCENE_MODEL_FAMILY="gpt-6"
+```
+
+说明：
+
+- 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
+- Midscene 会通过 stdio 调用 `codex app-server`。
+- 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
+
+:::warning 已知限制
+
+相比于直接调用 OpenAI 兼容 API，我们观察到这种方式可能耗时更长、token 消耗更多，具体原因还在排查中。
+
+:::
 
 **使用 GPT 时，请注意以下事项：**
 

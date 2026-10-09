@@ -162,30 +162,6 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 According to OpenAI, Fast mode can deliver up to 2–2.5× the speed at twice the Standard rate. Refer to the [official documentation](https://developers.openai.com/api/docs/guides/fast-mode) for current speed, pricing, and usage restrictions.
 
-<span id="use-codex-app-server-oauth-no-api-key" />
-
-**Use Codex App Server (OAuth, no API Key)**
-
-If you already signed in with Codex CLI (`codex login`) and want Midscene to use that OAuth session directly, set:
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-6-sol" # or another model shown by Codex model/list
-export MIDSCENE_MODEL_FAMILY="gpt-6"
-```
-
-Notes:
-
-- `MIDSCENE_MODEL_API_KEY` is not required in this mode.
-- Midscene will call `codex app-server` through stdio.
-- Make sure `codex` is available in your PATH and verify auth with `codex login status`.
-
-:::warning Known limitation
-
-Compared with calling an OpenAI-compatible API directly, we have observed that this route may take longer and consume more tokens. We are still investigating the cause.
-
-:::
-
 **Use your ChatGPT plan usage**
 
 If you have a ChatGPT plan subscription, you can obtain a ChatGPT authorization token through [SIWC (Sign in with ChatGPT)](https://developers.openai.com/siwc/token-sharing-open-source/sign-in). You can use this token to call OpenAI services in Midscene, just like an OpenAI API Key.
@@ -232,6 +208,30 @@ Notes:
 1. Please comply with OpenAI's regional restrictions and terms of use. See the [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/).
 2. SIWC consumes your subscription usage. ChatGPT determines how token consumption translates into subscription usage. You can view token consumption for each task step in Midscene reports.
 3. To call models through SIWC, use the Responses API with streaming enabled.
+
+<span id="use-codex-app-server-oauth-no-api-key" />
+
+**Use Codex App Server (OAuth, no API Key)**
+
+If you already signed in with Codex CLI (`codex login`) and want Midscene to use that OAuth session directly, set:
+
+```bash
+export MIDSCENE_MODEL_BASE_URL="codex://app-server"
+export MIDSCENE_MODEL_NAME="gpt-6-sol" # or another model shown by Codex model/list
+export MIDSCENE_MODEL_FAMILY="gpt-6"
+```
+
+Notes:
+
+- `MIDSCENE_MODEL_API_KEY` is not required in this mode.
+- Midscene will call `codex app-server` through stdio.
+- Make sure `codex` is available in your PATH and verify auth with `codex login status`.
+
+:::warning Known limitation
+
+Compared with calling an OpenAI-compatible API directly, we have observed that this route may take longer and consume more tokens. We are still investigating the cause.
+
+:::
 
 **When using GPT, note the following:**
 
