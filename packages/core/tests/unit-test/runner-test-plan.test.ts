@@ -90,6 +90,22 @@ describe('independent test plan', () => {
     expect(JSON.stringify(plan)).not.toContain('secret');
   });
 
+  test('keeps the captured YAML independent of later document mutation', () => {
+    const original = document();
+    original.sourceYaml = {
+      value: '# YAML snapshot\ncases: []\n',
+      redactedPaths: ['$..password'],
+    };
+    const plan = buildTestRunReportPlan(original);
+    original.sourceYaml.value = 'changed';
+    original.sourceYaml.redactedPaths!.push('changed');
+    expect(plan.sourceYaml).toEqual({
+      value: '# YAML snapshot\ncases: []\n',
+      redactedPaths: ['$..password'],
+    });
+    expect(buildTestRunReportPlan(document()).sourceYaml).toBeUndefined();
+  });
+
   test('retains planned Case steps and links setup results when beforeAll fails without creating attempts', async () => {
     const original = document();
     const execution = await runWorkflowDocument(original, {

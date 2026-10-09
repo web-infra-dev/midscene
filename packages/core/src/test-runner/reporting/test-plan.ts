@@ -69,6 +69,9 @@ export function buildTestRunReportPlan(
   return {
     documentId: document.documentId,
     sourcePath: document.sourcePath,
+    ...(document.sourceYaml
+      ? { sourceYaml: structuredClone(document.sourceYaml) }
+      : {}),
     retry: options.retry ?? { scope: 'case', count: 0 },
     beforeAll: steps(document.lifecycle.beforeAll, 'beforeAll', 'document'),
     cases,

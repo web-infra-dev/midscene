@@ -1,11 +1,8 @@
 import { BugOutlined } from '@ant-design/icons';
 import type { TestRunReportDump } from '@midscene/core';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import type { PlaywrightTasks } from '../../types';
-import {
-  RunnerAttemptTimeline,
-  RunnerTimelinePlaybackControl,
-} from './attempt-timeline';
+import { RunnerAttemptTimeline } from './attempt-timeline';
 import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
   getCaseNotRunReason,
@@ -46,14 +43,15 @@ export function CaseWorkspace({
   onBack(): void;
   backLabel: string;
 }): JSX.Element {
+  const [executionView, setExecutionView] = useState<'visual' | 'yaml'>(
+    'visual',
+  );
   const {
     activeFrame,
     activePosition,
     inspectorTab,
-    isPlaying,
     lockedFrameKey,
     positionedFrames,
-    playingStepId,
     previewFrameKey,
     selectedAttempt,
     selectedDocumentAttemptIndex,
@@ -66,7 +64,6 @@ export function CaseWorkspace({
     setPreviewFrameKey,
     stepGroups,
     stepSummary,
-    togglePlayback,
     workspaceSteps,
     timelineRange,
   } = useCaseWorkspace({ item, initialStepId, visualIndex });
@@ -164,7 +161,6 @@ export function CaseWorkspace({
             groups={stepGroups}
             issues={reportIssues.nodes}
             selectedStepId={selectedStep?.id}
-            playingStepId={playingStepId}
             timeline={
               timelineRange ? (
                 <RunnerAttemptTimeline
@@ -173,24 +169,16 @@ export function CaseWorkspace({
                   selectedStepId={selectedStep?.id}
                   previewFrameKey={previewFrameKey}
                   lockedFrameKey={lockedFrameKey}
-                  isPlaying={isPlaying}
                   variant="detail"
                   onPreview={setPreviewFrameKey}
                   onSelectFrame={selectFrame}
-                  onTogglePlay={togglePlayback}
                 />
               ) : undefined
             }
-            timelineControl={
-              timelineRange ? (
-                <RunnerTimelinePlaybackControl
-                  frameCount={positionedFrames.length}
-                  isPlaying={isPlaying}
-                  compact
-                  onTogglePlay={togglePlayback}
-                />
-              ) : undefined
-            }
+            view={executionView}
+            onViewChange={setExecutionView}
+            sourcePath={item.document.sourcePath}
+            sourceYaml={item.document.plan?.sourceYaml}
             onSelect={selectStep}
           />
           {selectedStep ? (

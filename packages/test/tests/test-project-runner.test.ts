@@ -172,6 +172,9 @@ describe('test project main-process runner', () => {
     );
     const result = await runTestProject({ projectRoot: root, resultDir });
     const plans = state.planAtSetup.projects[0].documents;
+    expect(plans[0].sourceYaml.value).toBe(
+      readFileSync(join(root, 'map.yaml'), 'utf8'),
+    );
     expect(plans[0].cases.map((item: any) => item.selected)).toEqual([
       true,
       false,

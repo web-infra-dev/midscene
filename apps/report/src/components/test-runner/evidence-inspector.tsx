@@ -17,8 +17,8 @@ import type {
   RunnerPositionedVisualFrame,
   RunnerVisualFrame,
 } from './model';
-import { getStepDisplayName } from './model';
-import { CaseStatus } from './view-primitives';
+import { getStepDisplayName, isStepTimeout } from './model';
+import { StatusBadge } from './status-badge';
 
 export function RunnerEvidenceInspector({
   item,
@@ -126,8 +126,21 @@ export function RunnerEvidenceInspector({
       <header className="runner-detail-evidence-heading">
         <div className="runner-detail-evidence-title">
           <h2>{step.node}</h2>
-          <CaseStatus
-            status={step.status === 'success' ? 'passed' : step.status}
+          <StatusBadge
+            label={
+              isStepTimeout(step)
+                ? 'Timeout'
+                : step.status === 'not-run'
+                  ? 'Not run'
+                  : step.status
+            }
+            tone={
+              step.status === 'success'
+                ? 'success'
+                : step.status === 'failed'
+                  ? 'failed'
+                  : 'neutral'
+            }
             quiet
           />
         </div>

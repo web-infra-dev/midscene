@@ -18,6 +18,7 @@ import {
   getDefaultVisualFrameForStep,
   getStepForVisualFrame,
   getVisualFrames,
+  isStepTimeout,
   positionAttemptVisualFrames,
 } from './model';
 
@@ -67,14 +68,7 @@ export function getWorkspaceStepSummary(steps: readonly TestRunReportStep[]): {
   timeout: number;
   notRun: number;
 } {
-  const timeout = steps.filter((step) => {
-    if (step.status !== 'failed' || !step.error) return false;
-    return /timeout|timed out/i.test(
-      [step.error.code, step.error.name, step.error.message]
-        .filter(Boolean)
-        .join(' '),
-    );
-  }).length;
+  const timeout = steps.filter(isStepTimeout).length;
   const failed =
     steps.filter((step) => step.status === 'failed').length - timeout;
 
@@ -117,8 +111,6 @@ export function useCaseWorkspace({
   const [inspectorTab, setInspectorTab] = useState<RunnerInspectorTab>(
     initialSelection.step?.agentDetails?.length ? 'record' : 'io',
   );
-  const [isPlaying, setIsPlaying] = useState(false);
-  const playbackIndexRef = useRef(0);
 
   const resetSelection = (selection: WorkspaceSelection) => {
     setSelectedDocumentAttemptIndex(selection.documentAttemptIndex);
@@ -127,7 +119,6 @@ export function useCaseWorkspace({
     setPreviewFrameKey(undefined);
     setLockedFrameKey(undefined);
     setInspectorTab(selection.step?.agentDetails?.length ? 'record' : 'io');
-    setIsPlaying(false);
   };
 
   useEffect(() => {
@@ -203,34 +194,6 @@ export function useCaseWorkspace({
   const activePosition = positionedFrames.find(
     (positioned) => positioned.frame.key === activeFrame?.key,
   );
-  const playingStepId = isPlaying
-    ? positionedFrames.find(
-        (positioned) => positioned.frame.key === lockedFrameKey,
-      )?.stepId
-    : undefined;
-
-  useEffect(() => {
-    if (!isPlaying || !positionedFrames.length) return;
-    const advance = () => {
-      const nextFrame = positionedFrames[playbackIndexRef.current];
-      if (!nextFrame) {
-        setIsPlaying(false);
-        return;
-      }
-      setPreviewFrameKey(undefined);
-      setLockedFrameKey(nextFrame.frame.key);
-      if (nextFrame.stepId) {
-        setSelectedStepId(nextFrame.stepId);
-        updateRunnerStepHash(nextFrame.stepId);
-      }
-      setInspectorTab('record');
-      playbackIndexRef.current += 1;
-    };
-    advance();
-    const interval = window.setInterval(advance, 900);
-    return () => window.clearInterval(interval);
-  }, [isPlaying, positionedFrames]);
-
   const selectAttempt = (
     attempt?: TestRunReportAttempt,
     documentAttemptIndex?: number,
@@ -255,7 +218,6 @@ export function useCaseWorkspace({
     setPreviewFrameKey(undefined);
     setLockedFrameKey(getDefaultVisualFrameForStep(step, visualFrames)?.key);
     setInspectorTab(step.agentDetails?.length ? 'record' : 'io');
-    setIsPlaying(false);
     updateRunnerStepHash(step.id);
   };
   const selectFrame = (positioned: RunnerPositionedVisualFrame) => {
@@ -267,32 +229,14 @@ export function useCaseWorkspace({
       updateRunnerStepHash(owningStep.id);
     }
     setInspectorTab(owningStep?.agentDetails?.length ? 'record' : 'io');
-    setIsPlaying(false);
-  };
-  const togglePlayback = () => {
-    if (isPlaying) {
-      setIsPlaying(false);
-      return;
-    }
-    const lockedIndex = positionedFrames.findIndex(
-      (positioned) => positioned.frame.key === lockedFrameKey,
-    );
-    playbackIndexRef.current =
-      lockedIndex < 0 || lockedIndex >= positionedFrames.length - 1
-        ? 0
-        : lockedIndex + 1;
-    if (playbackIndexRef.current === 0) setLockedFrameKey(undefined);
-    setIsPlaying(true);
   };
 
   return {
     activeFrame,
     activePosition,
     inspectorTab,
-    isPlaying,
     lockedFrameKey,
     positionedFrames,
-    playingStepId,
     previewFrameKey,
     selectedAttempt,
     selectedDocumentAttemptIndex,
@@ -305,7 +249,6 @@ export function useCaseWorkspace({
     setPreviewFrameKey,
     stepGroups,
     stepSummary,
-    togglePlayback,
     workspaceSteps,
     timelineRange,
   };

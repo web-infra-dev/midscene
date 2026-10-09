@@ -62,7 +62,7 @@ describe('case evidence inspection', () => {
   const render = (
     tab: RunnerInspectorTab,
     reports = [report],
-    selectedStep = step,
+    selectedStep: TestRunReportStep = step,
     activeFrame?: RunnerVisualFrame,
   ) => {
     const renderAgentReport = rs.fn((reports: PlaywrightTasks[]) => (
@@ -88,6 +88,37 @@ describe('case evidence inspection', () => {
     );
     return { html, renderAgentReport };
   };
+
+  it.each([
+    ['success', undefined, 'success'],
+    ['failed', { name: 'Error', message: 'Assertion failed' }, 'failed'],
+    ['failed', { name: 'TimeoutError', message: 'Timed out' }, 'timeout'],
+    ['not-run', undefined, 'not run'],
+  ] as const)(
+    'labels step status independently of Case pass: %s',
+    (status, error, label) => {
+      const { html } = render(
+        'io',
+        [],
+        status === 'not-run'
+          ? {
+              ...step,
+              status,
+              startedAt: undefined,
+              endedAt: undefined,
+              durationMs: undefined,
+              notRunReason: 'Previous step failed.',
+            }
+          : { ...step, status, error },
+      );
+      const heading = html.slice(
+        html.indexOf('runner-detail-evidence-title'),
+        html.indexOf('</header>'),
+      );
+      expect(heading).toContain(`<span>${label}</span>`);
+      expect(heading).not.toContain('<span>passed</span>');
+    },
+  );
 
   it('embeds only the selected step executions inside the case page', () => {
     const { html, renderAgentReport } = render('record');

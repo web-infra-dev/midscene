@@ -101,11 +101,11 @@ export function CaseWorkspaceHeader({
             <dd>{visibleStepSummary.total}</dd>
           </div>
           <div className="is-passed">
-            <dt>Passed</dt>
+            <dt>Success</dt>
             <dd>{visibleStepSummary.passed}</dd>
           </div>
           <div className="is-failed">
-            <dt>failed</dt>
+            <dt>Failed</dt>
             <dd>{visibleStepSummary.failed}</dd>
           </div>
           <div className="is-timeout">

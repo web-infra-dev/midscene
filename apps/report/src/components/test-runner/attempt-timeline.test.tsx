@@ -54,11 +54,9 @@ const renderTimeline = ({
       selectedStepId="step-1"
       previewFrameKey={previewFrameKey}
       lockedFrameKey={lockedFrameKey}
-      isPlaying={false}
       variant="detail"
       onPreview={() => {}}
       onSelectFrame={() => {}}
-      onTogglePlay={() => {}}
     />,
   );
 
@@ -69,6 +67,7 @@ describe('attempt timeline', () => {
     expect(html).toContain('Preparing screenshots…');
     expect(html.match(/hidden=""/g)).toHaveLength(2);
     expect(html).not.toContain('loading="lazy"');
+    expect(html).not.toContain('timeline-control');
     expect(html).not.toContain('src="data:image/png;base64,first"');
     expect(html).not.toContain('src="data:image/png;base64,second"');
   });

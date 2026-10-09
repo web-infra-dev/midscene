@@ -1,3 +1,5 @@
+import type { TestRunReportValue } from '../../test-run-report';
+
 export type DurationInput = number;
 
 export interface StepMetaInput {
@@ -71,6 +73,8 @@ export interface CollectedWorkflowDocument {
   documentId: string;
   projectId: string;
   sourcePath: string;
+  /** Redacted source snapshot, captured before resolving variables. */
+  sourceYaml?: TestRunReportValue;
   lifecycle: CollectedDocumentLifecycle;
   cases: readonly CollectedCase[];
 }

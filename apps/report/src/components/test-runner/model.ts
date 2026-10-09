@@ -339,6 +339,17 @@ export const groupRunnerProjects = (
     };
   });
 
+export const isStepTimeout = (step: TestRunReportStep): boolean =>
+  step.status === 'failed' &&
+  Boolean(
+    step.error &&
+      /timeout|timed out/i.test(
+        [step.error.code, step.error.name, step.error.message]
+          .filter(Boolean)
+          .join(' '),
+      ),
+  );
+
 export const getStepDisplayName = (step: TestRunReportStep): string =>
   step.title?.trim() || step.output?.summary?.trim() || step.node;
 

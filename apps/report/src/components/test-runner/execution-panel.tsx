@@ -7,7 +7,11 @@ import {
   UnorderedListOutlined,
   WarningFilled,
 } from '@ant-design/icons';
-import type { TestRunReportStep } from '@midscene/core';
+import type {
+  TestRunReportDocumentPlan,
+  TestRunReportStep,
+} from '@midscene/core';
+import { Segmented } from 'antd';
 import type { ReactNode } from 'react';
 import type { RunnerStepGroup } from './case-workspace-model';
 import type { ReportIssues } from './issues';
@@ -28,19 +32,26 @@ export function RunnerExecutionPanel({
   groups,
   issues,
   selectedStepId,
-  playingStepId,
   timeline,
-  timelineControl,
+  sourcePath,
+  sourceYaml,
+  view = 'visual',
+  onViewChange,
   onSelect,
 }: {
   groups: readonly RunnerStepGroup[];
   issues?: ReportIssues['nodes'];
   selectedStepId?: string;
-  playingStepId?: string;
   timeline?: ReactNode;
-  timelineControl?: ReactNode;
+  sourcePath?: string;
+  sourceYaml?: TestRunReportDocumentPlan['sourceYaml'];
+  view?: 'visual' | 'yaml';
+  onViewChange?(view: 'visual' | 'yaml'): void;
   onSelect(step: TestRunReportStep): void;
 }): JSX.Element {
+  const yaml =
+    typeof sourceYaml?.value === 'string' ? sourceYaml.value : undefined;
+  const showYaml = view === 'yaml' && yaml !== undefined;
   return (
     <aside className="runner-detail-step-panel" aria-label="Execution steps">
       <div className="runner-detail-panel-heading">
@@ -48,28 +59,52 @@ export function RunnerExecutionPanel({
           <UnorderedListOutlined />
           <strong>Execution</strong>
         </span>
+        <Segmented
+          aria-label="Execution view"
+          value={showYaml ? 'yaml' : 'visual'}
+          options={[
+            { label: 'Visual', value: 'visual' },
+            {
+              label: 'YAML',
+              value: 'yaml',
+              disabled: yaml === undefined,
+              title:
+                yaml === undefined
+                  ? 'Source YAML is unavailable for this document.'
+                  : undefined,
+            },
+          ]}
+          onChange={(value) => onViewChange?.(value as 'visual' | 'yaml')}
+        />
       </div>
-      {timeline}
-      <div className="runner-detail-step-scroll">
+      {showYaml ? (
+        <section className="runner-execution-yaml" aria-label="Source YAML">
+          <strong>{sourcePath}</strong>
+          {sourceYaml?.redactedPaths?.length ? (
+            <p>Sensitive fields are redacted.</p>
+          ) : null}
+          {sourceYaml?.truncatedPaths?.length ? (
+            <p>Source YAML is truncated.</p>
+          ) : null}
+          <pre>{yaml}</pre>
+        </section>
+      ) : null}
+      {!showYaml ? timeline : null}
+      <div className="runner-detail-step-scroll" hidden={showYaml}>
         {groups.map((group) => (
           <section className="runner-detail-step-group" key={group.label}>
             <h3>
               <span>{group.label}</span>
-              {group.label === 'Case steps' ? timelineControl : null}
             </h3>
             <div className="runner-detail-step-list">
               {group.steps.map((step) => {
                 const isSelected = selectedStepId === step.id;
-                const isPlaying = playingStepId === step.id;
 
                 return (
                   <button
                     type="button"
-                    className={`${isSelected ? 'is-selected' : ''} ${
-                      isPlaying ? 'is-playing' : ''
-                    }`.trim()}
+                    className={isSelected ? 'is-selected' : ''}
                     key={step.id}
-                    aria-current={isPlaying ? 'step' : undefined}
                     aria-pressed={isSelected}
                     onClick={() => onSelect(step)}
                   >

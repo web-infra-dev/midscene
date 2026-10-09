@@ -220,36 +220,27 @@
     border-bottom: 1px solid var(--runner-border);
   }
 
-  .runner-detail-timeline-control.is-compact {
-    display: inline-flex;
-    width: 20px;
-    height: 20px;
-    padding: 0;
-    align-items: center;
-    justify-content: center;
-    color: var(--runner-muted);
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    box-shadow: none;
-    font-size: 16px;
-    cursor: pointer;
+  .runner-detail-step-scroll[hidden] {
+    display: none;
   }
 
-  .runner-detail-timeline-control.is-compact:hover,
-  .runner-detail-timeline-control.is-compact:focus-visible {
-    color: var(--runner-text);
-    outline: none;
-    background: color-mix(
-      in srgb,
-      var(--runner-control-bg) 72%,
-      var(--runner-surface)
-    );
-  }
+  .runner-execution-yaml {
+    min-height: 0;
+    flex: 1;
+    padding: 16px 20px;
+    overflow: auto;
 
-  .runner-detail-timeline-control.is-compact:disabled {
-    opacity: 0.35;
-    cursor: default;
+    p {
+      color: var(--runner-muted);
+      font-size: 12px;
+    }
+
+    pre {
+      margin: 16px 0 0;
+      font-size: 13px;
+      line-height: 1.6;
+      tab-size: 2;
+    }
   }
 
   .runner-detail-step-panel > .runner-detail-timeline-card.is-detail {
@@ -426,33 +417,15 @@
     z-index: 1;
   }
 
+  .runner-detail-step-list > button:focus-visible {
+    outline: 2px solid var(--runner-primary);
+    outline-offset: -2px;
+  }
+
   .runner-detail-step-list > button.is-selected {
     border-color: #b5cbff;
     background: var(--runner-primary-soft);
     box-shadow: none;
-  }
-
-  .runner-detail-step-list > button.is-playing {
-    border-color: var(--runner-border);
-    background: var(--runner-playback-bg);
-  }
-
-  .runner-detail-step-list > button.is-playing::before {
-    position: absolute;
-    z-index: 0;
-    top: 0;
-    bottom: 0;
-    left: -85%;
-    width: 85%;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--runner-playback-glow) 50%,
-      transparent 100%
-    );
-    animation: runner-step-playback-glow 1.6s ease-in-out infinite;
-    content: '';
-    pointer-events: none;
   }
 
   .runner-detail-step-type {
@@ -506,23 +479,5 @@
   .runner-detail-step-copy small,
   .runner-detail-step-tail time {
     font-size: 14px;
-  }
-}
-
-@keyframes runner-step-playback-glow {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(220%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .test-runner-report .runner-detail-step-list > button.is-playing::before {
-    left: 8%;
-    width: 84%;
-    animation: none;
   }
 }

@@ -181,6 +181,7 @@ export interface TestRunReportCasePlan {
 export interface TestRunReportDocumentPlan {
   documentId: string;
   sourcePath: string;
+  sourceYaml?: TestRunReportValue;
   retry: { scope: 'case' | 'document'; count: number };
   beforeAll: TestRunReportPlannedStep[];
   cases: TestRunReportCasePlan[];

@@ -23,7 +23,7 @@ const normalizedSecretKeys = [
 const normalizedKey = (key: string): string =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-const isSecretKey = (key: string): boolean => {
+export const isReportSecretKey = (key: string): boolean => {
   const normalized = normalizedKey(key);
   return normalizedSecretKeys.some((secret) => normalized.includes(secret));
 };
@@ -143,7 +143,7 @@ export function sanitizeReportValue(value: unknown): TestRunReportValue {
     for (const key of keys.slice(0, MAX_OBJECT_KEYS)) {
       const childPath = objectPath(path, key);
       if (!consume(childPath, key)) break;
-      if (isSecretKey(key)) {
+      if (isReportSecretKey(key)) {
         output[key] = '[REDACTED]';
         redactedPaths.add(childPath);
       } else {

@@ -46,7 +46,7 @@ describe('execution panel', () => {
     expect(html).not.toContain('is-error');
   });
 
-  it('places playback in the case-step column and marks the playing step', () => {
+  it('keeps the selected step and timeline without playback controls', () => {
     const html = renderToStaticMarkup(
       <RunnerExecutionPanel
         groups={[
@@ -54,28 +54,54 @@ describe('execution panel', () => {
           { label: 'Case steps', steps: [step('aiAct')] },
         ]}
         selectedStepId="aiAct"
-        playingStepId="aiAct"
         timeline={<div data-testid="timeline" />}
-        timelineControl={
-          <button type="button" data-testid="playback">
-            Pause
-          </button>
-        }
         onSelect={() => {}}
       />,
     );
+    expect(html).toContain('data-testid="timeline"');
+    expect(html).toContain('class="is-selected"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).not.toContain('is-playing');
+    expect(html).not.toContain('timeline-control');
+  });
 
-    const panelHeading = html.slice(
-      html.indexOf('runner-detail-panel-heading'),
-      html.indexOf('data-testid="timeline"'),
+  it('shows the captured YAML with author comments, placeholders and redaction notes', () => {
+    const html = renderToStaticMarkup(
+      <RunnerExecutionPanel
+        groups={[{ label: 'Case steps', steps: [step('aiAct')] }]}
+        selectedStepId="aiAct"
+        sourcePath="cases/search.yaml"
+        sourceYaml={{
+          value: '# Original comment\ncases: $' + '{search}\n',
+          redactedPaths: ['$..password'],
+          truncatedPaths: ['$'],
+        }}
+        view="yaml"
+        timeline={<div data-testid="timeline" />}
+        onSelect={() => {}}
+      />,
     );
-    expect(panelHeading).not.toContain('data-testid="playback"');
-    expect(panelHeading).not.toContain('2 steps');
-    expect(html.match(/data-testid="playback"/g)).toHaveLength(1);
-    expect(html).toMatch(
-      /<h3><span>Case steps<\/span><button[^>]*data-testid="playback">Pause<\/button><\/h3>/,
+    expect(html).toContain('cases/search.yaml');
+    expect(html).toContain('# Original comment\ncases: $' + '{search}\n');
+    expect(html).toContain('Sensitive fields are redacted.');
+    expect(html).toContain('Source YAML is truncated.');
+    expect(html).not.toContain('data-testid="timeline"');
+    expect(html).toContain('class="runner-detail-step-scroll" hidden=""');
+    expect(html).toContain('aria-pressed="true"');
+  });
+
+  it('keeps Visual available when no YAML snapshot was captured', () => {
+    const html = renderToStaticMarkup(
+      <RunnerExecutionPanel
+        groups={[{ label: 'Case steps', steps: [step('aiAct')] }]}
+        view="yaml"
+        selectedStepId="aiAct"
+        onSelect={() => {}}
+      />,
     );
-    expect(html).toContain('class="is-selected is-playing"');
-    expect(html).toContain('aria-current="step"');
+    expect(html).toContain('Source YAML is unavailable for this document.');
+    expect(html).toContain('disabled=""');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).not.toContain('aria-label="Source YAML"');
   });
 });
