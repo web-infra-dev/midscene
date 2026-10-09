@@ -84,7 +84,7 @@ describe('service-caller streaming usage', () => {
     expect(result.usage).toMatchObject(usage);
     expect(onUsage).toHaveBeenCalledWith(result.usage);
     expect(result.usage).toMatchObject({
-      api_type: 'chat-completion',
+      api_protocol: 'chat-completion',
       slot: 'default',
       model_description: 'test',
     });

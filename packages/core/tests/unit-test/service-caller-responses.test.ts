@@ -220,7 +220,7 @@ describe('Responses protocol', () => {
         request_id: 'req-test',
         slot: 'default',
         retry_count: 0,
-        api_type: 'responses',
+        api_protocol: 'responses',
       },
     });
     expect(onUsage).toHaveBeenCalledExactlyOnceWith(result.usage);
