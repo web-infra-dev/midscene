@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -51,8 +51,15 @@ describe('model siwc command', () => {
     });
     expect(await runSiwcCommand(['login', '--no-open'], io, path)).toBe(0);
     const saved = JSON.parse(await readFile(path, 'utf8'));
-    expect(saved.access_token).toBe('test-access');
-    expect(io.stdout).toHaveBeenCalledExactlyOnceWith(saved.access_token);
+    expect(saved.credentials.access_token).toBe('test-access');
+    expect(saved.access_token).toBeUndefined();
+    expect(Number.isFinite(Date.parse(saved.created_at))).toBe(true);
+    expect(Date.parse(saved.updated_at)).toBeGreaterThanOrEqual(
+      Date.parse(saved.created_at),
+    );
+    expect(io.stdout).toHaveBeenCalledExactlyOnceWith(
+      saved.credentials.access_token,
+    );
     expect(io.stderr.mock.calls[0][0]).toBe(
       chalk.cyan.bold('🔄 Starting OpenAI SIWC login...'),
     );
@@ -83,7 +90,15 @@ describe('model siwc command', () => {
   });
 
   it('rotates stored credentials on refresh without opening login', async () => {
-    await saveRegistration(path, credentials);
+    const createdAt = '2026-01-01T00:00:00.000Z';
+    await writeFile(
+      path,
+      JSON.stringify({
+        created_at: createdAt,
+        updated_at: createdAt,
+        credentials,
+      }),
+    );
     const replacement = {
       ...credentials,
       access_token: 'new-access',
@@ -93,6 +108,9 @@ describe('model siwc command', () => {
     rs.mocked(refreshOpenAICredentials).mockResolvedValue(replacement);
     expect(await runSiwcCommand(['refresh'], io, path)).toBe(0);
     expect(await readRegistration(path)).toEqual(replacement);
+    const saved = JSON.parse(await readFile(path, 'utf8'));
+    expect(saved.created_at).toBe(createdAt);
+    expect(Date.parse(saved.updated_at)).toBeGreaterThan(Date.parse(createdAt));
     expect(io.stdout).toHaveBeenCalledExactlyOnceWith(replacement.access_token);
     expect(io.stderr).toHaveBeenCalledWith(
       `\nExpires at: ${new Intl.DateTimeFormat('en-GB', {
@@ -105,11 +123,13 @@ describe('model siwc command', () => {
 
   it('keeps old credentials and redacts failure details', async () => {
     await saveRegistration(path, credentials);
+    const original = await readFile(path, 'utf8');
     rs.mocked(refreshOpenAICredentials).mockRejectedValue(
       new Error('refresh_token=secret'),
     );
     expect(await runSiwcCommand(['refresh'], io, path)).toBe(1);
     expect(await readRegistration(path)).toEqual(credentials);
+    expect(await readFile(path, 'utf8')).toBe(original);
     expect(io.stdout).not.toHaveBeenCalled();
     expect(io.stderr.mock.calls.flat().join('\n')).not.toContain(
       'refresh_token=secret',
@@ -139,6 +159,13 @@ describe('model siwc command', () => {
   it('requires saved credentials for refresh', async () => {
     expect(await runSiwcCommand(['refresh'], io, path)).toBe(1);
     expect(refreshOpenAICredentials).not.toHaveBeenCalled();
+  });
+
+  it('rejects the old flat credentials format', async () => {
+    await writeFile(path, JSON.stringify(credentials));
+    await expect(readRegistration(path)).rejects.toThrow(
+      'Invalid local SIWC credentials file.',
+    );
   });
 
   it('rejects invalid options before authorization', async () => {

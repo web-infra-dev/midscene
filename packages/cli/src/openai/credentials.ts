@@ -19,12 +19,18 @@ export interface OpenAICredentials {
 export type Registration = Pick<OpenAICredentials, 'ext_agent_host_id'> &
   Partial<OpenAICredentials>;
 
+interface CredentialsFile {
+  created_at: string;
+  updated_at: string;
+  credentials: Registration;
+}
+
 export const defaultCredentialsPath = () =>
   join(homedir(), '.midscene', 'siwc.json');
 
-export async function readRegistration(
+async function readCredentialsFile(
   path: string,
-): Promise<Registration | undefined> {
+): Promise<CredentialsFile | undefined> {
   const content = await readFile(path, 'utf8').catch((error) => {
     if (error.code === 'ENOENT') {
       return undefined;
@@ -38,10 +44,10 @@ export async function readRegistration(
     const value = JSON.parse(content);
     if (
       !value ||
-      typeof value.ext_agent_host_id !== 'string' ||
-      !value.ext_agent_host_id
+      typeof value.credentials?.ext_agent_host_id !== 'string' ||
+      !value.credentials.ext_agent_host_id
     ) {
-      throw new Error('Missing host ID');
+      throw new Error('Invalid SIWC credentials record.');
     }
     return value;
   } catch {
@@ -49,10 +55,24 @@ export async function readRegistration(
   }
 }
 
+export async function readRegistration(
+  path: string,
+): Promise<Registration | undefined> {
+  return (await readCredentialsFile(path))?.credentials;
+}
+
 export async function saveRegistration(path: string, value: Registration) {
+  const saved = await readCredentialsFile(path);
+  const now = new Date().toISOString();
+  const record: CredentialsFile = {
+    ...saved,
+    created_at: saved?.created_at ?? now,
+    updated_at: now,
+    credentials: value,
+  };
   const temporary = `${path}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, {
+    await writeFile(temporary, `${JSON.stringify(record, null, 2)}\n`, {
       mode: 0o600,
       flag: 'wx',
     });
