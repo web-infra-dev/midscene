@@ -69,7 +69,8 @@ describe('JPEG conversion in browser environments', () => {
       /^data:image\/jpeg;base64,/,
     );
 
-    expect(photonMocks.newFromBase64).toHaveBeenCalledOnce();
+    expect(photonMocks.newFromByteslice).toHaveBeenCalledOnce();
+    expect(photonMocks.newFromBase64).not.toHaveBeenCalled();
     expect(photonMocks.inputGetBytesJpeg).toHaveBeenCalledWith(77);
     expect(photonMocks.inputFree).toHaveBeenCalledOnce();
     expect(photonMocks.resize).not.toHaveBeenCalled();
