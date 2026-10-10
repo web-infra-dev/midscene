@@ -637,7 +637,12 @@ export class TaskExecutor {
               screenshot: planningUiContext.screenshot,
             });
 
-            const actionSpace = this.getActionSpace();
+            const providedActionSpace = this.getActionSpace();
+            const actionSpace = this.interface.prepareActionSpaceForPlanning
+              ? await this.interface.prepareActionSpaceForPlanning(
+                  providedActionSpace,
+                )
+              : providedActionSpace;
             debug(
               'actionSpace for this interface is:',
               actionSpace.map((action) => action.name).join(', '),

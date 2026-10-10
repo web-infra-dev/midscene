@@ -281,6 +281,21 @@ const mid = new PlaywrightBrowserAgent(context, page, {
 
 Use `new PlaywrightBrowserAgent(context, page, options)` when you explicitly choose the initial active page. Use `PlaywrightBrowserAgent.create(context, options)` when you want Midscene to choose or create the initial active page; the factory uses `initialPage` when provided, otherwise it reuses the first existing context page or creates a new page.
 
+### Use WebMCP tools
+
+Pass `enableWebMCP: true` to `PlaywrightAgent` or `PlaywrightBrowserAgent` to let `aiAct` call WebMCP tools exposed by the current page, including tools that change data. This option is off by default.
+
+```typescript
+const agent = new PlaywrightAgent(page, { enableWebMCP: true });
+await agent.aiAct('Save the note as a draft');
+```
+
+For Playwright tests using the Midscene fixture, set `PlaywrightAiFixture({ enableWebMCP: true })` in `fixture.ts`. The fixture passes this option when it first creates an Agent for the page.
+
+Midscene reads the current page's same-origin tools before each planning step and checks that a tool still exists before calling it. If the browser does not expose `document.modelContext` or the page has no tools, `aiAct` continues with visual actions.
+
+WebMCP is experimental and requires a Chrome version with WebMCP enabled. For local testing, enable `chrome://flags/#enable-webmcp-testing` and relaunch Chrome. Websites can also enable WebMCP through an origin trial.
+
 ### Browser support
 
 Some Midscene web automation features rely on Chrome DevTools Protocol (CDP), which is provided by Chromium-based browsers. These include browser-level events, touch gestures, and CDP fallback paths used by specific interactions.

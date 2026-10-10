@@ -171,6 +171,32 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 
 `createMidsceneNodes()` does not mutate a global registry; its Nodes become available only after the returned array is included in project configuration. `agentClass` is the sole source of Agent-backed Node definitions, while `getAgent` describes how execution obtains an Agent instance from the current context. The factory throws during registration if the class does not expose `getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent provide common and platform Node definitions together. The base Agent, other Web Agents, and ComputerAgent only provide common Agent Nodes.
 
+To let `aiAct` in YAML cases call WebMCP tools provided by a webpage, make these two changes in `midscene.config.ts`. The example below uses a locally installed Chrome:
+
+1. In `setup`, add the WebMCP launch argument when starting Chrome:
+
+   ```ts
+   const browser = await chromium.launch({
+     channel: 'chrome',
+     headless: true,
+     args: ['--enable-features=WebMCP'],
+   });
+   ```
+
+2. In the `getAgent` callback of `createMidsceneNodes()`, pass `enableWebMCP: true` when first creating the Playwright Agent so that `aiAct` can call the page's WebMCP tools:
+
+   ```ts
+   const midsceneNodes = createMidsceneNodes<ProjectContext>({
+     agentClass: PlaywrightAgent,
+     getAgent: ({ context }) => {
+       context.agent ??= new PlaywrightAgent(context.page, { enableWebMCP: true });
+       return context.agent;
+     },
+   });
+   ```
+
+If the page has no WebMCP tools, `aiAct` continues with visual actions.
+
 For an Android/iOS registration example, see [Configure multiple execution projects](#configure-multiple-execution-projects).
 
 When integrating an Agent on device platforms such as Android or iOS, observe resource ownership. Each device instance belongs to one Agent. `Agent.destroy()` also destroys its device. Create separate resources for each execution project, and do not reuse a device after its Agent is destroyed.

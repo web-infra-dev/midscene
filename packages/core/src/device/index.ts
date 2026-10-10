@@ -213,6 +213,11 @@ export abstract class AbstractInterface {
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[];
 
+  /** Return a planning-only snapshot; execution still uses actionSpace(). */
+  prepareActionSpaceForPlanning?(
+    actionSpace: DeviceAction[],
+  ): Promise<DeviceAction[]>;
+
   abstract cacheFeatureForPoint?(
     center: [number, number],
     options?: {
