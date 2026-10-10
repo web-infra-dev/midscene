@@ -97,6 +97,7 @@ export class EventRecorder {
   private scrollThrottleDelay = RECORDER_SCROLL_BATCH_DELAY_MS;
   private inputThrottleTimer: number | null = null;
   private inputThrottleDelay = RECORDER_INPUT_BATCH_DELAY_MS;
+  private pendingInputEvent: RecordedEvent | null = null;
   private lastViewportScroll: { x: number; y: number } | null = null;
   private sessionId: string;
   private mutationObserver: MutationObserver | null = null;
@@ -157,17 +158,14 @@ export class EventRecorder {
       return;
     }
 
-    this.isRecording = false;
     debugLog('Stopping event recording');
 
     if (this.scrollThrottleTimer) {
       clearTimeout(this.scrollThrottleTimer);
       this.scrollThrottleTimer = null;
     }
-    if (this.inputThrottleTimer) {
-      clearTimeout(this.inputThrottleTimer);
-      this.inputThrottleTimer = null;
-    }
+    this.flushPendingInput();
+    this.isRecording = false;
     document.removeEventListener('click', this.handleClick, true);
     document.removeEventListener('input', this.handleInput);
     document.removeEventListener('scroll', this.handleScroll, true);
@@ -178,6 +176,8 @@ export class EventRecorder {
   // Click event handler
   private handleClick = (event: MouseEvent): void => {
     if (!this.isRecording) return;
+
+    this.flushPendingInput();
 
     const target = event.target as HTMLElement;
     const { isLabelClick, labelInfo } = this.checkLabelClick(target);
@@ -296,40 +296,42 @@ export class EventRecorder {
       height: Number(rect.height.toFixed(2)),
     };
 
-    // Throttle logic: clear existing timer and set new one
-    if (this.inputThrottleTimer) {
+    if (this.pendingInputEvent?.element !== target) {
+      this.flushPendingInput();
+    }
+    if (this.inputThrottleTimer !== null) {
       clearTimeout(this.inputThrottleTimer);
     }
-    this.inputThrottleTimer = window.setTimeout(() => {
-      if (this.isRecording) {
-        const inputEvent: RecordedEvent = {
-          type: 'input',
-          value: target.type !== 'password' ? target.value : '*****',
-          timestamp: Date.now(),
-          hashId: generateHashId('input', {
-            ...elementRect,
-          }),
-          element: target,
-          inputType: target.type || 'text',
-          elementRect,
-          pageInfo: {
-            width: window.innerWidth,
-            height: window.innerHeight,
-          },
-        };
-
-        debugLog('Throttled input event:', {
-          value: inputEvent.value,
-          timestamp: inputEvent.timestamp,
-          target: target.tagName,
-          inputType: target.type,
-        });
-
-        this.eventCallback(inputEvent);
-      }
-      this.inputThrottleTimer = null;
-    }, this.inputThrottleDelay);
+    this.pendingInputEvent = {
+      type: 'input',
+      value: target.type !== 'password' ? target.value : '*****',
+      timestamp: Date.now(),
+      hashId: generateHashId('input', elementRect),
+      element: target,
+      inputType: target.type || 'text',
+      elementRect,
+      pageInfo: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+    };
+    this.inputThrottleTimer = window.setTimeout(
+      () => this.flushPendingInput(),
+      this.inputThrottleDelay,
+    );
   };
+
+  private flushPendingInput(): void {
+    if (this.inputThrottleTimer !== null) {
+      clearTimeout(this.inputThrottleTimer);
+      this.inputThrottleTimer = null;
+    }
+    if (this.pendingInputEvent) {
+      const inputEvent = this.pendingInputEvent;
+      this.pendingInputEvent = null;
+      this.eventCallback(inputEvent);
+    }
+  }
 
   // Check if it's a label click
   private checkLabelClick(target: HTMLElement): {

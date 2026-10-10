@@ -473,9 +473,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       );
     }
 
+    let forwarded = false;
     connectedPorts.forEach((port) => {
       try {
         port.postMessage(request);
+        forwarded = true;
       } catch (error) {
         console.error(
           '[ServiceWorker] Failed to forward message to port:',
@@ -484,7 +486,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         connectedPorts.delete(port); // Remove invalid port
       }
     });
-    sendResponse({ success: true });
+    sendResponse(
+      forwarded
+        ? { success: true }
+        : { success: false, error: 'No recording page received the event' },
+    );
     return true;
   }
 

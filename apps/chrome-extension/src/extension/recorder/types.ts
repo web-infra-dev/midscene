@@ -8,6 +8,7 @@ export interface RecordMessage {
   action: 'start' | 'stop' | 'event' | 'events' | 'event-update';
   data?: any;
   eventIndex?: number;
+  replacesHashId?: string;
   totalEvents?: number;
   sessionId?: string;
 }
