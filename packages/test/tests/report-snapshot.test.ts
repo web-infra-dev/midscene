@@ -38,6 +38,47 @@ const gate = () => {
 };
 
 describe('independent Agent report snapshots', () => {
+  it('keeps usage independently of failed detail storage and freezes it at publication', async () => {
+    let listener: ((dump: string, execution: any) => void) | undefined;
+    const usage = { total_tokens: 42, time_cost: 125 };
+    const agent = {
+      action: async () =>
+        listener?.('{}', {
+          id: 'execution',
+          tasks: [{ type: 'Insight', status: 'failed', usage }],
+        }),
+      addDumpUpdateListener(callback: typeof listener) {
+        listener = callback;
+        return () => {
+          listener = undefined;
+        };
+      },
+      _createReportSource: async () => {
+        throw new Error('snapshot storage unavailable');
+      },
+    };
+    const registry = new NodeRegistry(
+      createMidsceneNodes({ getAgent: () => agent as any, agentClass }),
+    );
+    const result = await runCollectedCase(collected([step('done')]), {
+      resolveNode: registry.require.bind(registry),
+    });
+    expect(result.steps[0].status).toBe('success');
+    expect(result.steps[0].report?.collectionErrors?.[0].message).toContain(
+      'snapshot storage unavailable',
+    );
+    const metrics = result.steps[0].report?.traces[0].metrics;
+    expect(metrics).toMatchObject({
+      modelCallCount: 1,
+      modelTimeMs: 125,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+    usage.total_tokens = 1000;
+    expect(metrics?.totalTokens).toBe(42);
+    expect(listener).toBeUndefined();
+  });
+
   it('preserves external HTML-only providers at the collection boundary and marks them partial', async () => {
     const agent = {
       action: vi.fn(),

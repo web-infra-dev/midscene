@@ -272,6 +272,7 @@ function createNodeReportCollector(node: string): {
         const normalized = Object.freeze({
           type: 'midscene-execution' as const,
           executionId: trace.executionId,
+          ...(trace.metrics ? { metrics: structuredClone(trace.metrics) } : {}),
         });
         traces.set(`${normalized.type}:${normalized.executionId}`, normalized);
       },

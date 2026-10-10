@@ -11,6 +11,7 @@ import { ReportMergingTool } from '@/report';
 import { mergeReportFiles } from '@/report-cli';
 import type { TestRunReportDump, TestRunReportStep } from '@/test-run-report';
 import { mergeTestRunReportDumps } from '@/test-runner/reporting/merge-report';
+import { sumTestRunReportMetrics } from '@/test-runner/reporting/metrics';
 import { type AIUsageInfo, ExecutionDump, ReportActionDump } from '@/types';
 import { getVersion } from '@/utils';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -304,6 +305,42 @@ function writeSource(
 }
 
 describe('merging Midscene Test reports', () => {
+  test('merges independent usage with raw Agent reports without losing or double-counting calls', () => {
+    const dump = runnerDump('source');
+    const saved = sumTestRunReportMetrics([
+      { ...dump.metrics, modelCallCount: 1, totalTokens: 12 },
+    ]);
+    const lost = sumTestRunReportMetrics([{ ...saved, totalTokens: 42 }]);
+    dump.metrics = sumTestRunReportMetrics([saved, lost]);
+    dump.executionMetrics = { saved, lost };
+    const attributes = {
+      testId: 'test',
+      testTitle: 'test',
+      testStatus: 'passed' as const,
+      testDuration: 0,
+    };
+    const merged = mergeTestRunReportDumps(
+      [
+        { reportId: 'runner', sourcePath: 'runner.html', attributes, dump },
+        {
+          reportId: 'raw',
+          sourcePath: 'agent.html',
+          attributes,
+          timing: { startedAt: time, endedAt: time, durationMs: 0 },
+        },
+      ],
+      sumTestRunReportMetrics([saved, { ...saved, totalTokens: 13 }]),
+      'merged',
+      { saved },
+    );
+    expect(merged.metrics).toMatchObject({
+      modelCallCount: 3,
+      totalTokens: 67,
+      collection: { status: 'complete' },
+    });
+    expect(Object.keys(merged.executionMetrics!)).toEqual(['saved', 'lost']);
+  });
+
   test('preserves incomplete metric coverage when merging with a complete report', () => {
     const complete = runnerDump('first');
     complete.metrics.collection = {

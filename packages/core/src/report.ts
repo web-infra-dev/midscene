@@ -492,15 +492,31 @@ export class ReportMergingTool {
       }
 
       if (hasRunnerDump) {
-        const metrics = collectTestRunReportMetrics({
-          executions: dedupeExecutionsKeepLatest(
-            agentReports.flatMap((report) => report.executions),
+        const executions = dedupeExecutionsKeepLatest(
+          agentReports.flatMap((report) => report.executions),
+        );
+        const metrics = collectTestRunReportMetrics({ executions });
+        const executionMetrics = Object.fromEntries(
+          executions.flatMap((execution) =>
+            execution.id
+              ? [
+                  [
+                    execution.id,
+                    collectTestRunReportMetrics({ executions: [execution] }),
+                  ],
+                ]
+              : [],
           ),
-        });
+        );
         appendFileSync(
           outputFilePath,
           runnerDumpScript(
-            mergeTestRunReportDumps(runnerSources, metrics, uuid()),
+            mergeTestRunReportDumps(
+              runnerSources,
+              metrics,
+              uuid(),
+              executionMetrics,
+            ),
           ),
         );
       }
@@ -617,6 +633,8 @@ const prepareTestRunReportSources = (
 ): {
   sources: PreparedTestRunReportSource[];
   metrics: TestRunReportMetrics;
+  capturedMetrics: TestRunReportMetrics;
+  executionMetrics: Record<string, TestRunReportMetrics>;
   diagnostics: import('./test-run-report').TestRunReportDiagnostic[];
 } => {
   const prepared: PreparedTestRunReportSource[] = [];
@@ -754,14 +772,27 @@ const prepareTestRunReportSources = (
 
   // A legacy invocation can preserve a snapshot of an Agent also used by
   // native scopes. Count stable executions once across both paths.
-  const metrics = collectTestRunReportMetrics({
-    executions: dedupeExecutionsKeepLatest(
-      [...preparedByPath.values()].flatMap((source) => source.dump.executions),
+  const executions = dedupeExecutionsKeepLatest(
+    [...preparedByPath.values()].flatMap((source) => source.dump.executions),
+  );
+  const metrics = collectTestRunReportMetrics({ executions });
+  const executionMetrics = Object.fromEntries(
+    executions.flatMap((execution) =>
+      execution.id
+        ? [
+            [
+              execution.id,
+              collectTestRunReportMetrics({ executions: [execution] }),
+            ],
+          ]
+        : [],
     ),
-  });
+  );
   return {
     sources: prepared,
     diagnostics,
+    capturedMetrics: metrics,
+    executionMetrics,
     metrics: {
       ...metrics,
       collection: {
@@ -769,8 +800,7 @@ const prepareTestRunReportSources = (
         fields: Object.fromEntries(
           Object.entries(metrics.collection!.fields!).map(([field, status]) => [
             field,
-            diagnostics.length ||
-            prepared.some((source) => source.collection?.status === 'partial')
+            diagnostics.length
               ? prepared.length === 0
                 ? 'unknown'
                 : status === 'complete'
@@ -781,25 +811,16 @@ const prepareTestRunReportSources = (
         ) as NonNullable<
           NonNullable<TestRunReportMetrics['collection']>['fields']
         >,
-        status:
-          diagnostics.length ||
-          prepared.some((source) => source.collection?.status === 'partial')
-            ? prepared.length
-              ? 'partial'
-              : 'unknown'
-            : metrics.collection!.status,
+        status: diagnostics.length
+          ? prepared.length
+            ? 'partial'
+            : 'unknown'
+          : metrics.collection!.status,
         expectedExecutionCount: 0,
         capturedExecutionCount: 0,
         reasons: [
           ...metrics.collection!.reasons,
           ...diagnostics.map((diagnostic) => diagnostic.message),
-          ...prepared
-            .filter((source) => source.collection?.status === 'partial')
-            .map(
-              (source) =>
-                source.collection!.reason ??
-                `Agent snapshot is partial at ${source.collection!.capturedAt}.`,
-            ),
         ],
       },
     },
@@ -841,6 +862,8 @@ export class TestRunReportAssembler {
     const dump = options.buildRunnerDump({
       sources: prepared.sources,
       metrics: prepared.metrics,
+      capturedMetrics: prepared.capturedMetrics,
+      executionMetrics: prepared.executionMetrics,
       diagnostics: prepared.diagnostics,
     });
     if (dump.kind !== 'test-runner' || dump.schemaVersion !== 1)
@@ -977,6 +1000,8 @@ export class TestRunReportAssembler {
         }),
       ),
       metrics: prepared.metrics,
+      capturedMetrics: prepared.capturedMetrics,
+      executionMetrics: prepared.executionMetrics,
       diagnostics: prepared.diagnostics,
     };
     const runnerDump = options.buildRunnerDump(index);

@@ -106,7 +106,7 @@ describe('collectReportSummary', () => {
             time_cost: 10,
           }),
         }),
-        createTask({ status: 'running' }),
+        createTask({ status: 'running', timing: { callAiStart: 1 } }),
       ]),
     );
     expect(partial).toMatchObject({
@@ -119,6 +119,20 @@ describe('collectReportSummary', () => {
           modelTimeMs: 'partial',
           totalTokens: 'partial',
         },
+      },
+    });
+  });
+  it('keeps usage complete for a pending device task with no model request', () => {
+    expect(
+      collectTestRunReportMetrics(
+        createReport([createTask({ status: 'running', type: 'Action' })]),
+      ).collection,
+    ).toMatchObject({
+      status: 'complete',
+      fields: {
+        modelCallCount: 'complete',
+        modelTimeMs: 'complete',
+        totalTokens: 'complete',
       },
     });
   });

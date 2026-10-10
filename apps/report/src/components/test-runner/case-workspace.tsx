@@ -15,6 +15,9 @@ import {
   type ReportIssue,
   type ReportIssues,
   collectReportIssues,
+  getCaseIssues,
+  getProjectIssues,
+  getRunIssues,
 } from './issues';
 import type { RunnerCaseView, RunnerVisualIndex } from './model';
 import { getRunnerCaseStepTargets } from './model';
@@ -84,26 +87,34 @@ export function CaseWorkspace({
       },
     );
   const scopeIds = new Set([
-    item.project.projectId,
     document.documentRunId ?? document.documentId,
     selectedAttempt?.attemptId,
   ]);
-  const otherIssues: ReportIssue[] = reportIssues.others
-    .filter(
-      (issue) =>
-        (!issue.projectId || issue.projectId === item.project.projectId) &&
-        (!issue.documentId || issue.documentId === item.document.documentId) &&
-        (!issue.documentId || !issue.scopeId || scopeIds.has(issue.scopeId)),
-    )
-    .map((issue) => ({
-      ...issue,
-      label:
-        selectedAttempt && issue.scopeId === selectedAttempt.attemptId
-          ? `Case · Attempt ${selectedAttempt!.attemptIndex + 1} · ${issue.label?.split(' · ').at(-1)}`
-          : issue.documentId
-            ? `Document · ${issue.label?.split(' · ').at(-1)}`
-            : issue.label,
-    }));
+  const otherIssues: ReportIssue[] = [
+    ...getCaseIssues(
+      reportIssues,
+      {
+        projectId: item.project.projectId,
+        documentId: item.document.documentId,
+        caseId: item.testCase.caseId,
+      },
+      scopeIds,
+    ),
+    ...(standaloneRun
+      ? [
+          ...getRunIssues(reportIssues),
+          ...getProjectIssues(reportIssues, item.project.projectId),
+        ]
+      : []),
+  ].map((issue) => ({
+    ...issue,
+    label:
+      selectedAttempt && issue.scopeId === selectedAttempt.attemptId
+        ? `Case · Attempt ${selectedAttempt!.attemptIndex + 1} · ${issue.label?.split(' · ').at(-1)}`
+        : issue.documentId
+          ? `Document · ${issue.label?.split(' · ').at(-1)}`
+          : issue.label,
+  }));
   const plannedStep = selectedStep
     ? [
         ...(document.plan?.beforeAll ?? []),

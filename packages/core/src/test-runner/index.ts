@@ -17,4 +17,8 @@ export * from './reporting/types';
 export * from './reporting/test-plan';
 export * from './reporting/sanitize';
 export * from './reporting/test-run-report';
+export {
+  collectTestRunReportMetrics,
+  sumTestRunReportMetrics,
+} from './reporting/metrics';
 export * from './reporting/execution-record';

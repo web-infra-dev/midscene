@@ -26,6 +26,11 @@ const titles: Record<string, string> = {
   'agent-source-unavailable': 'An Agent report source could not be read',
   'run-infrastructure-error': 'The test environment failed',
 };
+const metricLabels: Record<string, string> = {
+  modelCallCount: 'model call count',
+  modelTimeMs: 'model time',
+  totalTokens: 'token total',
+};
 
 const hasAssertionFailure = (error: TestRunReportError): boolean =>
   error.name === 'AssertionError' ||
@@ -59,9 +64,24 @@ export function getStepIssueTitle(
 
 export function getIssuePresentation(issue: ReportIssue) {
   const title = issue.title ?? titles[issue.code] ?? issue.message;
-  const message =
-    issue.code === 'PARTIAL_MODEL_METRICS'
-      ? 'Some model usage data is missing. The reported call count, model time or token total may undercount actual usage.'
+  const usage = issue.context?.modelUsage as
+    | { collection?: { fields?: Record<string, string> } }
+    | undefined;
+  const fields = usage?.collection?.fields ?? issue.context?.fields;
+  const missingFields =
+    fields && typeof fields === 'object'
+      ? Object.entries(fields)
+          .filter(([, status]) => status !== 'complete')
+          .map(([field]) => metricLabels[field])
+          .filter(Boolean)
+      : [];
+  const usageImpact = missingFields.length
+    ? `The ${missingFields.join(', ')} could not be fully collected; displayed values may undercount usage.`
+    : 'Some model usage data is missing. The reported call count, model time or token total may undercount actual usage.';
+  const message = usage
+    ? `${issue.error?.cause?.message ?? issue.error?.message ?? issue.message} ${usageImpact}`
+    : issue.code === 'PARTIAL_MODEL_METRICS'
+      ? usageImpact
       : issue.code === 'MODEL_METRICS_UNKNOWN'
         ? 'The report could not collect reliable model usage totals. Unavailable values are shown as —.'
         : [

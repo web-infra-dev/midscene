@@ -1,4 +1,5 @@
 import type { z } from 'zod/v4';
+import type { TestRunReportMetrics } from '../../test-run-report';
 import type {
   Awaitable,
   NodeCaseContext,
@@ -20,6 +21,8 @@ export interface NodeResult<TData = unknown> {
 export interface NodeReportTrace {
   type: 'midscene-execution';
   executionId: string;
+  /** Collected in memory, independently of report artifact I/O. */
+  metrics?: TestRunReportMetrics;
 }
 
 /** Collects report references produced while the current Step is executing. */

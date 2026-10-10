@@ -6,6 +6,12 @@ import {
 import { Button, Empty, Tooltip } from 'antd';
 import { useId, useMemo, useState } from 'react';
 import { RunnerAttemptTimeline } from './attempt-timeline';
+import { ErrorCards } from './error-card';
+import {
+  type ReportIssue,
+  type ReportIssues,
+  getProjectIssues,
+} from './issues';
 import {
   type RunnerBreakdownSort,
   type RunnerBreakdownSortDirection,
@@ -175,6 +181,7 @@ function ProjectBreakdownNode({
   view,
   expanded,
   caseDisplayMode,
+  issues,
   onToggle,
   onOpenCase,
 }: {
@@ -182,6 +189,7 @@ function ProjectBreakdownNode({
   view: RunnerProjectBreakdownView;
   expanded: boolean;
   caseDisplayMode: RunnerCaseDisplayMode;
+  issues: ReportIssue[];
   onToggle(): void;
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
@@ -192,6 +200,8 @@ function ProjectBreakdownNode({
       item.failedCount && `${item.failedCount} failed`,
       item.retryPassedCount && `${item.retryPassedCount} retried`,
       item.notRunCount && `${item.notRunCount} not run`,
+      issues.length &&
+        `${issues.length} project ${issues.length === 1 ? 'issue' : 'issues'}`,
     ]
       .filter(Boolean)
       .join(' · ') || '0 retried';
@@ -246,6 +256,14 @@ function ProjectBreakdownNode({
           </span>
         </span>
       </button>
+      {expanded && issues.length > 0 ? (
+        <div className="runner-project-tree-issues">
+          <ErrorCards
+            issues={issues}
+            label={`Project ${item.project.name} issues`}
+          />
+        </div>
+      ) : null}
       {expanded ? (
         <ul
           className={`runner-project-tree-children is-${caseDisplayMode}`}
@@ -275,6 +293,7 @@ function ProjectBreakdownNode({
 export function ProjectBreakdownTree({
   visualIndex,
   projects,
+  issues,
   caseDisplayMode,
   expandedProjectKeys,
   sort,
@@ -287,6 +306,7 @@ export function ProjectBreakdownTree({
 }: {
   visualIndex: RunnerVisualIndex;
   projects: RunnerProjectBreakdownView[];
+  issues?: ReportIssues;
   caseDisplayMode: RunnerCaseDisplayMode;
   expandedProjectKeys: Set<string>;
   sort: RunnerBreakdownSort;
@@ -362,6 +382,11 @@ export function ProjectBreakdownTree({
       >
         {projects.map((view) => (
           <ProjectBreakdownNode
+            issues={
+              issues
+                ? getProjectIssues(issues, view.item.project.projectId)
+                : []
+            }
             visualIndex={visualIndex}
             view={view}
             key={view.item.key}

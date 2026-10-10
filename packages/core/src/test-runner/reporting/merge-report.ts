@@ -7,6 +7,7 @@ import type {
   TestRunReportStep,
 } from '../../test-run-report';
 import type { ReportFileAttributes } from '../../types';
+import { sumTestRunReportMetrics } from './metrics';
 
 export interface MergeTestRunReportSource {
   reportId: string;
@@ -183,6 +184,7 @@ export function mergeTestRunReportDumps(
   sources: readonly MergeTestRunReportSource[],
   metrics: TestRunReportMetrics,
   runId: string,
+  rawExecutionMetrics?: Record<string, TestRunReportMetrics>,
 ): TestRunReportDump {
   const dumps = sources.map((source) => {
     if (
@@ -357,6 +359,20 @@ export function mergeTestRunReportDumps(
       summary[key] += dump.summary[key];
   }
   const diagnostics = dumps.flatMap((dump) => dump.diagnostics ?? []);
+  const executionMetrics: Record<string, TestRunReportMetrics> = Object.assign(
+    {},
+    rawExecutionMetrics,
+    ...sources.map((source) => source.dump?.executionMetrics),
+  );
+  if (rawExecutionMetrics)
+    metrics = sumTestRunReportMetrics([
+      metrics,
+      ...Object.entries(executionMetrics)
+        .filter(([id]) => !rawExecutionMetrics[id])
+        .map(([, value]) => value),
+    ]);
+  else if (sources.every((source) => source.dump?.executionMetrics))
+    metrics = sumTestRunReportMetrics(Object.values(executionMetrics));
   const collections = sources.flatMap((source) =>
     source.dump ? [source.dump.metrics.collection] : [],
   );
@@ -428,6 +444,7 @@ export function mergeTestRunReportDumps(
     durationMs: Math.max(0, Date.parse(endedAt) - Date.parse(startedAt)),
     summary,
     metrics: { ...metrics, collection },
+    ...(Object.keys(executionMetrics).length ? { executionMetrics } : {}),
     projects: dumps.flatMap((dump) => dump.projects),
     ...(dumps.some((dump) => dump.operationLogs?.length)
       ? { operationLogs: dumps.flatMap((dump) => dump.operationLogs ?? []) }

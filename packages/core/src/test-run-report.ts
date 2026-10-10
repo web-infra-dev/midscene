@@ -204,8 +204,12 @@ interface TestRunReportStepBase {
   error?: TestRunReportError;
   agentDetails?: TestRunReportAgentDetail[];
   agentDetailDiagnostic?: string;
+  /** Usage survives even when screenshots or execution detail storage fails. */
+  metrics?: TestRunReportMetrics;
   evidenceCollection?: {
     status: 'complete' | 'partial' | 'unknown';
+    /** The missing source also prevented independent usage recovery. */
+    modelUsageUnavailable?: boolean;
     capturedAt?: string;
     errors?: TestRunReportError[];
   };
@@ -341,6 +345,7 @@ export interface TestRunReportDump {
   durationMs: number;
   summary: TestRunReportSummary;
   metrics: TestRunReportMetrics;
+  executionMetrics?: Record<string, TestRunReportMetrics>;
   projects: TestRunReportProject[];
   diagnostics?: TestRunReportDiagnostic[];
   operationLogs?: { path: string; snapshotAt: string }[];
@@ -367,6 +372,9 @@ export interface IndexedTestRunReportSource {
 export interface TestRunReportSourceIndex {
   sources: IndexedTestRunReportSource[];
   metrics: TestRunReportMetrics;
+  executionMetrics?: Record<string, TestRunReportMetrics>;
+  /** Usage from readable sources, before applying source-availability diagnostics. */
+  capturedMetrics?: TestRunReportMetrics;
   diagnostics?: TestRunReportDiagnostic[];
 }
 

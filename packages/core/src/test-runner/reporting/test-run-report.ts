@@ -8,6 +8,7 @@ import type {
   TestRunReportDocument,
   TestRunReportDocumentPlan,
   TestRunReportDump,
+  TestRunReportMetrics,
   TestRunReportPlannedStep,
   TestRunReportProject,
   TestRunReportSource,
@@ -19,6 +20,7 @@ import type {
   StepRunResult,
   WorkflowDocumentRunResult,
 } from '../engine/types';
+import { sumTestRunReportMetrics } from './metrics';
 import {
   sanitizeReportError,
   sanitizeReportText,
@@ -39,8 +41,9 @@ interface ManifestBuildContext {
   tracedScopeByExecution: Map<string, string>;
   expectedExecutions: Set<string>;
   capturedExecutions: Set<string>;
-  collectionReasons: Set<string>;
-  coverageIncomplete: boolean;
+  executionMetrics: Map<string, TestRunReportMetrics>;
+  missingMetrics: Set<string>;
+  tracedScopes: Set<string>;
 }
 
 const scopedExecutionKey = (scopeId: string, executionId: string): string =>
@@ -90,7 +93,16 @@ const buildStep = (
     };
   const details: TestRunReportAgentDetail[] = [];
   const unresolvedExecutionIds: string[] = [];
+  const usage: TestRunReportMetrics[] = [];
+  const missingUsage: string[] = [];
   for (const trace of step.report?.traces ?? []) {
+    context.tracedScopes.add(scopeId);
+    const metrics =
+      context.executionMetrics.get(trace.executionId) ?? trace.metrics;
+    if (metrics) {
+      context.executionMetrics.set(trace.executionId, metrics);
+      usage.push(metrics);
+    }
     context.expectedExecutions.add(
       scopedExecutionKey(scopeId, trace.executionId),
     );
@@ -109,14 +121,19 @@ const buildStep = (
       context.capturedExecutions.add(
         scopedExecutionKey(scopeId, trace.executionId),
       );
-    } else unresolvedExecutionIds.push(trace.executionId);
+    } else {
+      unresolvedExecutionIds.push(trace.executionId);
+      if (!metrics) {
+        const reason = `Model usage is unavailable for execution ${trace.executionId}.`;
+        missingUsage.push(reason);
+        context.missingMetrics.add(reason);
+      }
+    }
   }
 
   let agentDetailDiagnostic: string | undefined;
   if (unresolvedExecutionIds.length > 0) {
-    context.coverageIncomplete = true;
     agentDetailDiagnostic = `Agent detail could not be resolved for ${unresolvedExecutionIds.join(', ')}.`;
-    context.collectionReasons.add(agentDetailDiagnostic);
     const sources = reportSourcesForScope(context, scopeId);
     for (const executionId of unresolvedExecutionIds) {
       addDiagnostic(context, {
@@ -132,10 +149,8 @@ const buildStep = (
       });
     }
   } else if (details.length === 0 && exactMidsceneDetailNodes.has(step.node)) {
-    context.coverageIncomplete = true;
     agentDetailDiagnostic =
       'This Agent did not expose a stable execution reference for the Step.';
-    context.collectionReasons.add(agentDetailDiagnostic);
     addDiagnostic(context, {
       level: 'warning',
       code: 'agent-detail-unavailable',
@@ -155,8 +170,6 @@ const buildStep = (
   const collectionErrors =
     step.report?.collectionErrors?.map(sanitizeReportError) ?? [];
   for (const error of collectionErrors) {
-    context.coverageIncomplete = true;
-    context.collectionReasons.add(error.message);
     addDiagnostic(context, {
       level: 'warning',
       code: 'agent-source-unavailable',
@@ -194,6 +207,16 @@ const buildStep = (
           ...(collectionErrors.length ? { errors: collectionErrors } : {}),
         }
       : undefined;
+  // A missing link does not invalidate usage already captured independently.
+  if (
+    !step.report?.traces.length &&
+    collectionErrors.length &&
+    !details.length
+  ) {
+    const reason = `Model usage could not be collected for step ${stepId}.`;
+    missingUsage.push(reason);
+    context.missingMetrics.add(reason);
+  }
 
   const input = step.input as Record<string, unknown> | undefined;
   const candidateTitle =
@@ -243,7 +266,17 @@ const buildStep = (
     ...(step.error ? { error: sanitizeReportError(step.error) } : {}),
     ...(details.length > 0 ? { agentDetails: details } : {}),
     ...(agentDetailDiagnostic ? { agentDetailDiagnostic } : {}),
-    ...(evidenceCollection ? { evidenceCollection } : {}),
+    ...(usage.length || missingUsage.length
+      ? { metrics: sumTestRunReportMetrics(usage, missingUsage) }
+      : {}),
+    ...(evidenceCollection
+      ? {
+          evidenceCollection: {
+            ...evidenceCollection,
+            ...(missingUsage.length ? { modelUsageUnavailable: true } : {}),
+          },
+        }
+      : {}),
   };
 };
 
@@ -656,14 +689,9 @@ export function buildTestRunReportDump(
     tracedScopeByExecution: new Map(),
     expectedExecutions: new Set(),
     capturedExecutions: new Set(),
-    collectionReasons: new Set(
-      index.metrics.collection?.reasons.map((reason) =>
-        sanitizeReportText(reason),
-      ) ?? [],
-    ),
-    coverageIncomplete:
-      (index.diagnostics?.length ?? 0) > 0 ||
-      index.sources.some((source) => source.collection?.status === 'partial'),
+    executionMetrics: new Map(Object.entries(index.executionMetrics ?? {})),
+    missingMetrics: new Set(),
+    tracedScopes: new Set(),
   };
   for (const error of result.errors ?? []) {
     addDiagnostic(context, {
@@ -688,19 +716,25 @@ export function buildTestRunReportDump(
   const projects = result.projects.map((project) =>
     buildProject(project, context),
   );
-  for (const source of index.sources) {
-    if (source.collection?.status === 'partial')
-      context.collectionReasons.add(
-        sanitizeReportText(
-          source.collection.reason ??
-            `Agent snapshot is partial at ${source.collection.capturedAt}.`,
-        ),
-      );
-  }
-  const incomplete =
-    context.collectionReasons.size > 0 ||
-    index.metrics.collection?.status === 'unknown' ||
-    index.metrics.collection?.status === 'partial';
+  for (const diagnostic of index.diagnostics ?? [])
+    if (
+      diagnostic.code === 'agent-source-unavailable' &&
+      (!diagnostic.scopeId || !context.tracedScopes.has(diagnostic.scopeId))
+    )
+      context.missingMetrics.add(diagnostic.message);
+  const metrics = sumTestRunReportMetrics(
+    [
+      ...(index.sources.length ||
+      (!index.executionMetrics &&
+        (index.metrics.modelCallCount || index.metrics.collection))
+        ? [index.capturedMetrics ?? index.metrics]
+        : []),
+      ...[...context.executionMetrics.entries()]
+        .filter(([id]) => !index.executionMetrics?.[id])
+        .map(([, value]) => value),
+    ],
+    [...context.missingMetrics],
+  );
   return {
     schemaVersion: 1,
     kind: 'test-runner',
@@ -714,44 +748,16 @@ export function buildTestRunReportDump(
     durationMs: result.durationMs,
     summary: { ...result.summary },
     metrics: {
-      ...index.metrics,
+      ...metrics,
       collection: {
-        status: incomplete
-          ? index.sources.some((source) => source.executionIds.length > 0) &&
-            (!index.metrics.collection?.fields ||
-              Object.values(index.metrics.collection.fields).some(
-                (status) => status !== 'unknown',
-              ))
-            ? 'partial'
-            : 'unknown'
-          : 'complete',
+        ...metrics.collection!,
         expectedExecutionCount: context.expectedExecutions.size,
         capturedExecutionCount: context.capturedExecutions.size,
-        reasons: [...context.collectionReasons],
-        ...(index.metrics.collection?.fields
-          ? {
-              fields: Object.fromEntries(
-                Object.entries(index.metrics.collection.fields).map(
-                  ([field, status]) => [
-                    field,
-                    context.coverageIncomplete
-                      ? index.sources.length === 0
-                        ? 'unknown'
-                        : status === 'complete'
-                          ? 'partial'
-                          : status
-                      : status,
-                  ],
-                ),
-              ) as NonNullable<
-                NonNullable<
-                  TestRunReportSourceIndex['metrics']['collection']
-                >['fields']
-              >,
-            }
-          : {}),
       },
     },
+    ...(index.executionMetrics || context.executionMetrics.size
+      ? { executionMetrics: Object.fromEntries(context.executionMetrics) }
+      : {}),
     projects,
     ...(context.diagnostics.length > 0
       ? { diagnostics: context.diagnostics }

@@ -93,7 +93,7 @@ describe('report lifecycle failures', () => {
     },
   );
 
-  it('keeps global warnings safe when no Case attempt exists', () => {
+  it('keeps global and project warnings out of a Case with no attempt', () => {
     const dump = lifecycle();
     const item = flattenRunnerCases(dump).find(
       (item) => item.testCase.caseId === 'blocked-case',
@@ -113,12 +113,11 @@ describe('report lifecycle failures', () => {
     expect(
       issues.others.some((issue) => issue.code === 'MODEL_METRICS_UNKNOWN'),
     ).toBe(true);
-    expect(html).toContain('View all 2 issues');
+    expect(html).not.toContain('Model usage totals');
+    expect(html).not.toContain('Project browser disposal failed.');
     expect(html).toContain('Database connection refused.');
     expect(html).not.toContain('Case · Attempt');
-    expect(html.indexOf('aria-label="Other issues"')).toBeLessThan(
-      html.indexOf('runner-case-run-bar'),
-    );
+    expect(html).not.toContain('aria-label="Other issues"');
     expect(html.indexOf('runner-detail-execution-body')).toBeLessThan(
       html.indexOf('aria-label="Node issues"'),
     );
@@ -507,7 +506,8 @@ describe('report lifecycle failures', () => {
         backLabel="Overview"
       />,
     );
-    expect(html).toContain('View all 3 issues');
+    expect(html).toContain('View all 2 issues');
+    expect(html).not.toContain('Project browser disposal failed.');
     expect(collectReportIssues({ projects: [item.project] }).others).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ message: 'Case session disposal failed.' }),

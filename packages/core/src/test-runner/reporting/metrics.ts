@@ -15,7 +15,9 @@ export function collectTestRunReportMetrics(
     [task.usage, task.searchAreaUsage].filter(hasUsage),
   );
   const live = tasks.some(
-    (task) => task.status === 'pending' || task.status === 'running',
+    (task) =>
+      task.timing?.callAiStart !== undefined &&
+      (task.status === 'pending' || task.status === 'running'),
   );
   const unrecorded = tasks.some(
     (task) => task.timing?.callAiStart !== undefined && !hasUsage(task.usage),
@@ -29,7 +31,8 @@ export function collectTestRunReportMetrics(
       (number(usage.prompt_tokens) && number(usage.completion_tokens)),
   ).length;
   const reasons: string[] = [];
-  if (live) reasons.push('The captured Agent data contains unfinished tasks.');
+  if (live)
+    reasons.push('A model request was still running when usage was captured.');
   if (unrecorded)
     reasons.push('A model request started but its usage was not recorded.');
   if (knownTimes < usages.length)
@@ -68,4 +71,58 @@ export function collectTestRunReportMetrics(
       fields,
     },
   };
+}
+
+/** Add usage facts without treating missing screenshots as missing model calls. */
+export function sumTestRunReportMetrics(
+  values: readonly TestRunReportMetrics[],
+  missingReasons: readonly string[] = [],
+): TestRunReportMetrics {
+  const total: TestRunReportMetrics = {
+    modelCallCount: 0,
+    modelTimeMs: 0,
+    promptTokens: 0,
+    cachedInputTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+  };
+  for (const value of values)
+    for (const key of Object.keys(total) as (keyof typeof total)[])
+      if (key !== 'collection') total[key] += value[key];
+  const fields = Object.fromEntries(
+    (['modelCallCount', 'modelTimeMs', 'totalTokens'] as const).map((field) => {
+      const states = values.map(
+        (value) =>
+          value.collection?.fields?.[field] ??
+          value.collection?.status ??
+          'complete',
+      );
+      if (missingReasons.length) states.push('unknown');
+      return [
+        field,
+        states.every((state) => state === 'complete')
+          ? 'complete'
+          : states.every((state) => state === 'unknown')
+            ? 'unknown'
+            : 'partial',
+      ];
+    }),
+  ) as NonNullable<TestRunReportMetrics['collection']>['fields'] & {};
+  total.collection = {
+    status: Object.values(fields).every((state) => state === 'complete')
+      ? 'complete'
+      : Object.values(fields).every((state) => state === 'unknown')
+        ? 'unknown'
+        : 'partial',
+    fields,
+    expectedExecutionCount: 0,
+    capturedExecutionCount: 0,
+    reasons: [
+      ...new Set([
+        ...values.flatMap((value) => value.collection?.reasons ?? []),
+        ...missingReasons,
+      ]),
+    ],
+  };
+  return total;
 }

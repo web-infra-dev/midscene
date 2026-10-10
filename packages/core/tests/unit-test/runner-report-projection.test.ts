@@ -2,6 +2,7 @@ import type { TestRunReportSourceIndex } from '@/test-run-report';
 import { type RunReportInput, buildTestRunReportDump } from '@/test-runner';
 import { executionRecordsToReportInput } from '@/test-runner';
 import { runWorkflowDocument } from '@/test-runner';
+import { sumTestRunReportMetrics } from '@/test-runner/reporting/metrics';
 import { createLegacyYamlRuntime } from '@/yaml/legacy-yaml-runtime';
 import { ScriptPlayer } from '@/yaml/player';
 import { getLegacyYamlPlayerState } from '@/yaml/player-state';
@@ -76,6 +77,112 @@ async function input() {
 }
 
 describe('entry-independent report projection', () => {
+  test('retains captured usage even when an external source lacks execution IDs', async () => {
+    const { report } = await input();
+    const usage = sumTestRunReportMetrics([
+      { ...index.metrics, modelCallCount: 1, totalTokens: 42 },
+    ]);
+    const dump = buildTestRunReportDump(report, {
+      ...index,
+      capturedMetrics: usage,
+      executionMetrics: {},
+      sources: [
+        {
+          reportId: 'external',
+          scopeId: 'external',
+          sourcePath: 'external.html',
+          executionIds: [],
+        },
+      ],
+    });
+    expect(dump.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+  });
+
+  test('retains independently captured usage when Agent detail storage fails', async () => {
+    const { report } = await input();
+    const attempt = report.projects[0].cases[0].run!;
+    const usage = sumTestRunReportMetrics([
+      {
+        ...index.metrics,
+        modelCallCount: 1,
+        modelTimeMs: 125,
+        totalTokens: 42,
+      },
+    ]);
+    attempt.steps[0].node = 'aiAssert';
+    attempt.steps[0].report = {
+      traces: [
+        { type: 'midscene-execution', executionId: 'lost', metrics: usage },
+      ],
+    };
+    const dump = buildTestRunReportDump(report, {
+      ...index,
+      executionMetrics: {},
+    });
+    const step = dump.projects[0].documents[0].cases[0].attempts[0].steps[0];
+    expect(step.agentDetailDiagnostic).toContain('lost');
+    expect(step.evidenceCollection?.status).toBe('unknown');
+    expect(step.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+    expect(dump.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: {
+        status: 'complete',
+        expectedExecutionCount: 1,
+        capturedExecutionCount: 0,
+      },
+    });
+    expect(dump.executionMetrics?.lost).toEqual(usage);
+  });
+
+  test('does not count usage twice or invalidate it when a device operation is unfinished', async () => {
+    const { report } = await input();
+    const attempt = report.projects[0].cases[0].run!;
+    const usage = sumTestRunReportMetrics([
+      { ...index.metrics, modelCallCount: 1, totalTokens: 42 },
+    ]);
+    const source = {
+      reportId: 'agent',
+      scopeId: attempt.reportScopeId ?? attempt.runId,
+      sourcePath: 'agent.html',
+      executionIds: ['saved'],
+      collection: {
+        status: 'partial' as const,
+        capturedAt: '2026-10-10T00:00:00Z',
+        reason: 'Device operation pending.',
+      },
+    };
+    attempt.steps[0].report = {
+      traces: [
+        { type: 'midscene-execution', executionId: 'saved', metrics: usage },
+      ],
+      sources: [source],
+    };
+    const dump = buildTestRunReportDump(report, {
+      ...index,
+      metrics: usage,
+      executionMetrics: { saved: usage },
+      sources: [source],
+    });
+    expect(dump.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+    expect(
+      dump.projects[0].documents[0].cases[0].attempts[0].steps[0]
+        .evidenceCollection?.status,
+    ).toBe('partial');
+  });
+
   test('projects cleanup failures once without dropping an independent error with the same message', async () => {
     const failure = await runWorkflowDocument(
       collectLegacyYamlDocument({ tasks: [] }),

@@ -143,7 +143,7 @@ describe('TestRunReportAssembler', () => {
     expect(index.sources[0].collection?.status).toBe('partial');
     expect(index.metrics.modelCallCount).toBe(3);
     expect(index.metrics.totalTokens).toBe(21);
-    expect(index.metrics.collection?.status).toBe('partial');
+    expect(index.metrics.collection?.status).toBe('complete');
     expect(
       readFileSync(reportPath, 'utf8').match(
         /data-report-id="runner-report-1"/g,

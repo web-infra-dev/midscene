@@ -19,6 +19,7 @@ export interface ReportIssue {
   relatedStepIds?: string[];
   projectId?: string;
   documentId?: string;
+  caseId?: string;
   scopeId?: string;
 }
 
@@ -108,11 +109,57 @@ export function getStepIssues(
         ...issue.context,
         capturedAt: step.evidenceCollection.capturedAt,
       };
+  const collection = step.metrics?.collection;
+  if (
+    step.status !== 'not-run' &&
+    collection &&
+    collection.status !== 'complete'
+  ) {
+    const captureFailure = issues.find(
+      (issue) =>
+        issue.id.includes(':evidence:') &&
+        step.evidenceCollection?.modelUsageUnavailable,
+    );
+    if (captureFailure) {
+      captureFailure.title = 'Execution details and model usage are incomplete';
+      captureFailure.message +=
+        ' Model usage for this step could not be fully collected.';
+      captureFailure.context = {
+        ...captureFailure.context,
+        modelUsage: step.metrics,
+      };
+    } else
+      issues.push({
+        id: `${step.id}:metrics`,
+        severity: 'warning',
+        code:
+          collection.status === 'partial'
+            ? 'PARTIAL_MODEL_METRICS'
+            : 'MODEL_METRICS_UNKNOWN',
+        message: 'Model usage for this step could not be fully collected.',
+        context: { ...collection },
+      });
+  }
+  const captureFailure = issues.find((issue) =>
+    issue.id.includes(':evidence:'),
+  );
+  if (captureFailure && step.agentDetailDiagnostic) {
+    captureFailure.context = {
+      ...captureFailure.context,
+      executionDetail: step.agentDetailDiagnostic,
+    };
+    const referenceIndex = issues.findIndex((issue) =>
+      issue.id.endsWith(':reference'),
+    );
+    if (referenceIndex >= 0) issues.splice(referenceIndex, 1);
+  }
   return issues.flatMap(splitIssue);
 }
 
 type IssueInput = Pick<TestRunReportDump, 'projects'> &
-  Partial<Pick<TestRunReportDump, 'diagnostics' | 'metrics'>>;
+  Partial<
+    Pick<TestRunReportDump, 'diagnostics' | 'metrics' | 'executionMetrics'>
+  >;
 type IssueScope = Pick<
   TestRunReportAttempt,
   | 'cleanup'
@@ -123,7 +170,7 @@ type IssueScope = Pick<
 >;
 type IssueOwner = Pick<
   ReportIssue,
-  'projectId' | 'documentId' | 'scopeId' | 'label'
+  'projectId' | 'documentId' | 'caseId' | 'scopeId' | 'label'
 >;
 
 /** Cleanup failures keep their owner; waiting warnings follow a known blocker. */
@@ -133,6 +180,8 @@ export function collectReportIssues(dump: IssueInput) {
   const coveredOperations = new Set<string>();
   const pending = new Map<string, ReportIssue>();
   const scopeOwners = new Map<string, Partial<ReportIssue>>();
+  const explainedMetricReasons = new Set<string>();
+  const ownedExecutions = new Set<string>();
   const addIssue = (issue: ReportIssue) => others.push(...splitIssue(issue));
   const addSteps = (steps: readonly TestRunReportStep[]) => {
     const blockedCounts = new Map<string, number>();
@@ -145,6 +194,10 @@ export function collectReportIssues(dump: IssueInput) {
     for (const step of steps) {
       if (nodes.has(step.id)) continue;
       nodes.set(step.id, getStepIssues(step, blockedCounts.get(step.id)));
+      for (const reason of step.metrics?.collection?.reasons ?? [])
+        explainedMetricReasons.add(reason);
+      for (const detail of step.agentDetails ?? [])
+        ownedExecutions.add(detail.executionId);
     }
   };
   const addError = (
@@ -283,6 +336,9 @@ export function collectReportIssues(dump: IssueInput) {
       const owner = {
         projectId: project.projectId,
         documentId: document.documentId,
+        ...(document.cases.length === 1
+          ? { caseId: document.cases[0].caseId }
+          : {}),
         label: `${project.name} · ${document.sourcePath}`,
       };
       for (const attempt of document.attempts ?? [document]) {
@@ -295,7 +351,12 @@ export function collectReportIssues(dump: IssueInput) {
       for (const testCase of document.cases)
         for (const attempt of testCase.attempts) {
           const label = `${owner.label} · ${testCase.name} · Attempt ${attempt.attemptIndex + 1}`;
-          const scope = { ...owner, scopeId: attempt.attemptId, label };
+          const scope = {
+            ...owner,
+            caseId: testCase.caseId,
+            scopeId: attempt.attemptId,
+            label,
+          };
           scopeOwners.set(attempt.attemptId, scope);
           addSteps([
             ...attempt.beforeEach,
@@ -341,6 +402,7 @@ export function collectReportIssues(dump: IssueInput) {
       ? nodes.get(diagnostic.stepId)
       : undefined;
     if (stepIssues) {
+      if (diagnostic.executionId) ownedExecutions.add(diagnostic.executionId);
       // The step already contains the human-readable reference/collection issue.
       if (stepIssues.some((item) => item.id.endsWith(':not-run'))) continue;
       const existing = stepIssues.find(
@@ -349,6 +411,10 @@ export function collectReportIssues(dump: IssueInput) {
             diagnostic.code,
           ) &&
             item.id.endsWith(':reference')) ||
+          (['agent-detail-unresolved', 'agent-detail-unavailable'].includes(
+            diagnostic.code,
+          ) &&
+            item.context?.executionDetail) ||
           item.message === diagnostic.error?.message ||
           item.message === diagnostic.message,
       );
@@ -383,7 +449,20 @@ export function collectReportIssues(dump: IssueInput) {
     }
   }
   const collection = dump.metrics?.collection;
-  if (dump.metrics && collection?.status !== 'complete')
+  const unownedUsage = Object.entries(dump.executionMetrics ?? {}).some(
+    ([executionId, metrics]) =>
+      !ownedExecutions.has(executionId) &&
+      metrics.collection?.status !== 'complete',
+  );
+  const unexplainedReasons =
+    collection?.reasons.filter(
+      (reason) => !explainedMetricReasons.has(reason),
+    ) ?? [];
+  if (
+    dump.metrics &&
+    collection?.status !== 'complete' &&
+    (unownedUsage || unexplainedReasons.length || !explainedMetricReasons.size)
+  )
     others.push({
       id: 'metrics',
       severity: 'warning',
@@ -395,7 +474,9 @@ export function collectReportIssues(dump: IssueInput) {
         collection?.status === 'partial'
           ? 'Model metrics are partial; collected values may undercount usage.'
           : 'Model usage is unknown.',
-      context: collection ? { ...collection } : undefined,
+      context: collection
+        ? { ...collection, reasons: unexplainedReasons }
+        : undefined,
     });
   for (let index = others.length - 1; index >= 0; index--) {
     const issue = others[index];
@@ -409,3 +490,24 @@ export function collectReportIssues(dump: IssueInput) {
 }
 
 export type ReportIssues = ReturnType<typeof collectReportIssues>;
+
+export const getRunIssues = (issues: ReportIssues) =>
+  issues.others.filter((issue) => !issue.projectId);
+
+export const getProjectIssues = (issues: ReportIssues, projectId: string) =>
+  issues.others.filter(
+    (issue) => issue.projectId === projectId && !issue.caseId,
+  );
+
+export const getCaseIssues = (
+  issues: ReportIssues,
+  owner: { projectId: string; documentId: string; caseId: string },
+  scopeIds: ReadonlySet<string | undefined>,
+) =>
+  issues.others.filter(
+    (issue) =>
+      issue.projectId === owner.projectId &&
+      issue.documentId === owner.documentId &&
+      issue.caseId === owner.caseId &&
+      scopeIds.has(issue.scopeId),
+  );

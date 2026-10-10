@@ -19,7 +19,7 @@ import { RunSummary } from './run-summary';
 import type { RunnerCaseDisplayMode } from './view-primitives';
 
 import { ErrorCards } from './error-card';
-import { type ReportIssues, collectReportIssues } from './issues';
+import { type ReportIssues, collectReportIssues, getRunIssues } from './issues';
 
 export function RunOverview({
   visualIndex,
@@ -132,8 +132,8 @@ export function RunOverview({
       />
 
       <ErrorCards
-        issues={reportIssues.others}
-        label="Other issues"
+        issues={getRunIssues(reportIssues)}
+        label="Run issues"
         navigableStepIds={navigableStepIds}
       />
       <section
@@ -165,6 +165,7 @@ export function RunOverview({
           />
         </div>
         <ProjectBreakdownTree
+          issues={reportIssues}
           visualIndex={visualIndex}
           projects={breakdownProjects}
           caseDisplayMode={caseDisplayMode}

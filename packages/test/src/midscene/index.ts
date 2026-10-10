@@ -1,3 +1,4 @@
+import type { IExecutionDump } from '@midscene/core';
 import {
   type AgentTestRunnerNodeDefinition,
   type AgentTestRunnerNodeProvider,
@@ -20,6 +21,7 @@ import {
 import {
   type WorkflowReportSource,
   admitResourceOperation,
+  collectTestRunReportMetrics,
   hasPendingResourceOperation,
   retainResourceForScope,
   trackResourceOperation,
@@ -96,6 +98,7 @@ export {
 
 export interface MidsceneExecutionRef {
   id?: string;
+  tasks?: IExecutionDump['tasks'];
 }
 
 export interface AgentProvider<TContext> {
@@ -244,6 +247,20 @@ export const createAgentTestRunnerNodes = <TContext>(
             ctx.report.addTrace({
               type: 'midscene-execution',
               executionId: execution.id,
+              ...(execution.tasks
+                ? {
+                    metrics: collectTestRunReportMetrics({
+                      executions: [
+                        {
+                          id: execution.id,
+                          name: node,
+                          logTime: 0,
+                          tasks: execution.tasks,
+                        },
+                      ],
+                    }),
+                  }
+                : {}),
             });
           });
           if (ctx.signal.aborted) stopListening();
