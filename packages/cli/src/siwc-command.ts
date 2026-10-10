@@ -8,6 +8,7 @@ import {
   requireCredentials,
   saveRegistration,
 } from './openai/credentials';
+import { SiwcError, describeSiwcError, withSiwcStage } from './openai/errors';
 import { loginWithOpenAI } from './openai/login';
 import { refreshOpenAICredentials } from './openai/refresh';
 
@@ -87,7 +88,7 @@ export async function runSiwcCommand(
   }
   const unlock = await lockCredentials(credentialsPath).catch(
     (error: Error) => {
-      io.stderr(error.message);
+      io.stderr(describeSiwcError(error));
       return undefined;
     },
   );
@@ -101,12 +102,16 @@ export async function runSiwcCommand(
   process.once('SIGTERM', cancel);
   try {
     io.stderr(chalk.cyan.bold(`🔄 Starting OpenAI SIWC ${action}...`));
-    const saved = await readRegistration(credentialsPath);
+    const saved = await withSiwcStage('Read credentials', () =>
+      readRegistration(credentialsPath),
+    );
     const credentials = await (async () => {
       if (action === 'refresh') {
-        return refreshOpenAICredentials(
-          requireCredentials(saved),
-          controller.signal,
+        return withSiwcStage('Refresh', () =>
+          refreshOpenAICredentials(
+            requireCredentials(saved),
+            controller.signal,
+          ),
         );
       }
       const registration = saved ?? {
@@ -114,32 +119,38 @@ export async function runSiwcCommand(
       };
       // Persist the host ID before authorization, including unsuccessful attempts.
       if (!saved) {
-        await saveRegistration(credentialsPath, registration);
+        await withSiwcStage('Save registration', () =>
+          saveRegistration(credentialsPath, registration),
+        );
       }
-      const result = await loginWithOpenAI({
-        port: portOptions.port,
-        hostId: registration.ext_agent_host_id,
-        clientId: registration.client_id,
-        signal: controller.signal,
-        onAuthorization: async (url) => {
-          io.stderr(
-            `\n${chalk.bold('Continue with ChatGPT:')}\n${url}\n\n${chalk.gray('Waiting for authorization...')}`,
-          );
-          if (!portOptions.noOpen) {
-            try {
-              await openBrowser(url);
-            } catch {
-              io.stderr('Open the URL above in your browser to continue.');
+      const result = await withSiwcStage('Login', () =>
+        loginWithOpenAI({
+          port: portOptions.port,
+          hostId: registration.ext_agent_host_id,
+          clientId: registration.client_id,
+          signal: controller.signal,
+          onAuthorization: async (url) => {
+            io.stderr(
+              `\n${chalk.bold('Continue with ChatGPT:')}\n${url}\n\n${chalk.gray('Waiting for authorization...')}`,
+            );
+            if (!portOptions.noOpen) {
+              try {
+                await openBrowser(url);
+              } catch {
+                io.stderr('Open the URL above in your browser to continue.');
+              }
             }
-          }
-        },
-      });
+          },
+        }),
+      );
       if (registration.subject && result.subject !== registration.subject) {
-        throw new Error('Login identity does not match the saved account.');
+        throw new SiwcError('Login identity does not match the saved account.');
       }
       return result;
     })();
-    await saveRegistration(credentialsPath, credentials);
+    await withSiwcStage('Save credentials', () =>
+      saveRegistration(credentialsPath, credentials),
+    );
     io.stderr('\n🔑 your Access token:');
     io.stdout(credentials.access_token);
     const expiresAt = new Intl.DateTimeFormat('en-GB', {
@@ -160,13 +171,12 @@ export async function runSiwcCommand(
       `\n${chalk.green(`✅ SIWC ${action} succeeded.`)}\n\nYou can use this access token as your model API Key in Midscene by setting MIDSCENE_MODEL_API_KEY.\n\nFull credentials are saved locally to:\n${chalk.cyan(credentialsPath)}\n\n${chalk.gray('Midscene does not collect your credentials.')}`,
     );
     return 0;
-  } catch {
-    // Do not print token responses, callback URLs, or errors that may contain credentials.
+  } catch (error) {
     io.stderr(
       chalk.red(
         controller.signal.aborted
-          ? `OpenAI ${action} cancelled or timed out.`
-          : `OpenAI ${action} failed. Check the local credentials file permissions or run midscene model siwc login to authorize again.`,
+          ? `OpenAI ${action} cancelled or timed out.\n${describeSiwcError(error)}`
+          : `OpenAI ${action} failed.\n${describeSiwcError(error)}`,
       ),
     );
     return 1;
