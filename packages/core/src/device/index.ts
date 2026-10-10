@@ -822,7 +822,11 @@ function createActionSwipeParamSchema(
     duration: z
       .number()
       .default(defaultDuration)
-      .describe('Duration of the swipe gesture in milliseconds'),
+      .describe(
+        inputMode === 'touch'
+          ? 'Duration of the finger movement in milliseconds. Together with distance, this controls gesture speed and momentum. Keep the default for a quick swipe or flick; explicitly choose a longer duration (e.g. 500ms) with a short distance when fine control is needed, such as selecting a nearby value in a wheel picker. Adjust distance and duration based on the observed result; do not repeat an overshooting gesture unchanged.'
+          : 'Duration of the swipe gesture in milliseconds',
+      ),
     repeat: z
       .number()
       .optional()
@@ -929,7 +933,7 @@ export const defineActionSwipe = (config: {
     name: 'Swipe',
     description:
       inputMode === 'touch'
-        ? 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
+        ? 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. For precise wheel-picker adjustments, use Swipe and choose an explicit duration to control momentum. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
         : 'Perform a primary-mouse-button gesture that continuously presses and moves the pointer across the desktop UI. Use it to adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it. For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".',
     interfaceAlias: 'aiSwipe',
     paramSchema:

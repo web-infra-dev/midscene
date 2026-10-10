@@ -229,7 +229,7 @@ describe('IOSDevice', () => {
   });
 
   describe('Action Space', () => {
-    it.each([undefined, 300, 800])(
+    it.each([undefined, 300, 500, 800])(
       'uses a 300ms default swipe and preserves explicit %s duration',
       async (duration) => {
         const action = device
