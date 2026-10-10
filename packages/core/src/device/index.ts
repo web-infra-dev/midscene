@@ -683,13 +683,23 @@ export const actionScrollParamSchema = z.object({
 
 export const defineActionScroll = (
   scroll: ScrollInputPrimitives['scroll'],
+  inputMode?: SwipeInputMode,
 ): DeviceAction<ActionScrollParam> => {
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
       'Scroll a page or scrollable region to reveal off-screen content. Use Scroll when the goal is to browse content outside the current viewport. For direct gesture interactions, such as adjusting a slider or wheel picker, switching between paged cards or images, following an on-screen swipe gesture to continue or dismiss, or swiping an item to delete it, use Swipe instead if available in the current Action Space. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
     interfaceAlias: 'aiScroll',
-    paramSchema: actionScrollParamSchema,
+    paramSchema:
+      inputMode === 'touch'
+        ? actionScrollParamSchema.extend({
+            locate: getMidsceneLocationSchema()
+              .optional()
+              .describe(
+                'The safe touch origin within the scrollable region. Its center is where the finger presses down, not just a description of the containing panel. Before scrolling a parent form with an expanded date/time wheel picker, collapse the picker using its visible toggle. Blank padding beside a picker can still capture the gesture and change its value. Otherwise choose a small non-interactive area in the intended scroll container, outside the entire hit area of sliders, maps, carousels and nested scroll regions. Do not target a whole panel whose center overlaps these controls. Scroll only when the desired content is off-screen; use visible controls directly.',
+              ),
+          })
+        : actionScrollParamSchema,
     sample: {
       direction: 'down',
       scrollType: 'singleAction',
@@ -1196,7 +1206,7 @@ export function defineActionsFromInputPrimitives(
   }
 
   if (scroll) {
-    actions.push(defineActionScroll(scroll.scroll));
+    actions.push(defineActionScroll(scroll.scroll, touch ? 'touch' : 'mouse'));
   }
 
   const swipeConfig = resolveSwipeInputPrimitive({ pointer, touch });

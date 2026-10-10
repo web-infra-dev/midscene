@@ -92,6 +92,52 @@ describe('IOSDevice', () => {
     }
   });
 
+  describe('scroll gesture bounds', () => {
+    it.each([
+      ['down', 319, 773, 319, 1],
+      ['up', 100, 100, 100, 811],
+      ['left', 100, 400, 374, 400],
+      ['right', 300, 400, 1, 400],
+    ] as const)(
+      'keeps an oversized %s scroll on screen without moving its touch origin',
+      async (direction, x, y, endX, endY) => {
+        await device.connect();
+        const scroll = device
+          .actionSpace()
+          .find((action) => action.name === 'Scroll')!;
+        await scroll.call(
+          { direction, distance: 1000, locate: { center: [x, y] } },
+          mockExecutorContext,
+        );
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(x, y, endX, endY, 500);
+      },
+    );
+  });
+
+  describe('scroll origin validation', () => {
+    it('preserves a short scroll and its chosen origin', async () => {
+      await device.connect();
+      await device.scrollDown(100, { left: 319, top: 773 });
+      expect(mockWdaClient.swipe).toHaveBeenCalledWith(319, 773, 319, 673, 500);
+    });
+
+    it('rejects an off-screen origin instead of redirecting the gesture', async () => {
+      await device.connect();
+      await expect(
+        device.scrollDown(100, { left: -1, top: 400 }),
+      ).rejects.toThrow('origin');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+
+    it('does not reverse direction at the screen edge', async () => {
+      await device.connect();
+      await expect(
+        device.scrollDown(100, { left: 100, top: 0 }),
+      ).rejects.toThrow('No room');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Constructor', () => {
     it('should create device with options', () => {
       expect(device).toBeDefined();
