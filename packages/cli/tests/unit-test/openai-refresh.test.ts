@@ -78,14 +78,16 @@ describe('SIWC refresh', () => {
     });
   }
 
-  it('rejects invalid grants without exposing the response body', async () => {
-    await expect(
-      refreshOpenAICredentials(
-        saved,
-        new AbortController().signal,
-        await dependencies({ error: 'invalid_grant', secret: 'secret' }, 400),
-      ),
-    ).rejects.toThrow('OpenAI refresh failed.');
+  it('includes the HTTP status and original response on invalid grants', async () => {
+    const error = await refreshOpenAICredentials(
+      saved,
+      new AbortController().signal,
+      await dependencies({ error: 'invalid_grant', secret: 'secret' }, 400),
+    ).catch((error) => error);
+    expect(error.message).toBe('Stage: Token refresh');
+    expect(error.cause.message).toContain('HTTP status: 400');
+    expect(error.cause.message).toContain('invalid_grant');
+    expect(error.cause.message).toContain('secret');
   });
 
   for (const subject of ['user', 'other-user']) {
