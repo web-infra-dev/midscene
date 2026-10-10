@@ -221,6 +221,48 @@ describe('HarmonyDevice', () => {
   });
 
   describe('swipe', () => {
+    it.each([undefined, 300, 800])(
+      'uses the touch default while preserving explicit Swipe duration %s',
+      async (duration) => {
+        rs.spyOn(device, 'size').mockResolvedValue({ width: 400, height: 800 });
+        const start = { x: 200, y: 400 };
+        const end = { x: 200, y: 100 };
+        await device.inputPrimitives.touch.swipe(
+          start,
+          end,
+          duration === undefined ? undefined : { duration },
+        );
+        const speed = Math.round(300000 / (duration ?? 500));
+        expect(mockHdc.swipe).toHaveBeenLastCalledWith(
+          200,
+          400,
+          200,
+          100,
+          speed,
+        );
+        const action = device
+          .actionSpace()
+          .find((entry) => entry.name === 'Swipe')!;
+        const param = {
+          direction: 'up',
+          distance: 300,
+          ...(duration === undefined ? {} : { duration }),
+        };
+        const parsed = action.paramSchema!.parse(param);
+        expect(parsed.duration).toBe(duration ?? 500);
+        for (const input of [param, parsed]) {
+          await action.call(input);
+          expect(mockHdc.swipe).toHaveBeenLastCalledWith(
+            200,
+            400,
+            200,
+            100,
+            speed,
+          );
+        }
+      },
+    );
+
     it('should pass the converted speed to HDC for every repeat', async () => {
       await device.connect();
       await device.inputPrimitives.touch.swipe(

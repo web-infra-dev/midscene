@@ -47,10 +47,45 @@ describe('defineActionsFromInputPrimitives', () => {
     expect(touchSwipe).toHaveBeenCalledWith(
       { x: 200, y: 400 },
       { x: 200, y: 300 },
-      { duration: 300 },
+      { duration: 500 },
     );
     expect(pointerSwipe).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['touch', undefined, 500],
+    ['touch', 300, 300],
+    ['touch', 800, 800],
+    ['mouse', undefined, 300],
+    ['mouse', 500, 500],
+  ] as const)(
+    'keeps schema and dispatch aligned for %s swipe duration %s',
+    async (mode, duration, expected) => {
+      const swipe = rs.fn();
+      const actions = defineActionsFromInputPrimitives(
+        mode === 'touch'
+          ? { touch: { swipe } }
+          : { pointer: { tap: rs.fn(), swipe } },
+        { size: async () => ({ width: 400, height: 800 }) },
+      );
+      const action = actions.find((entry) => entry.name === 'Swipe')!;
+      const param = {
+        direction: 'up',
+        distance: 100,
+        ...(duration === undefined ? {} : { duration }),
+      };
+      const parsed = action.paramSchema!.parse(param);
+      expect(parsed.duration).toBe(expected);
+      for (const input of [param, parsed]) {
+        await action.call(input);
+        expect(swipe).toHaveBeenLastCalledWith(
+          { x: 200, y: 400 },
+          { x: 200, y: 300 },
+          { duration: expected },
+        );
+      }
+    },
+  );
 
   it('should expose configured system input primitives as actions', async () => {
     const backButton = rs.fn();

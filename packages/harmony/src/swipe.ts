@@ -1,14 +1,16 @@
-import type { PointerPoint } from '@midscene/core/device';
+import {
+  type PointerPoint,
+  defaultTouchSwipeDuration,
+} from '@midscene/core/device';
 import { getDebug } from '@midscene/shared/logger';
 import { uiInputSpeedRange } from './hdc-constraints';
 
-const defaultSwipeDuration = 300;
 const warnSwipe = getDebug('harmony:swipe', { console: true });
 
 export function resolveSwipeSpeed(
   start: PointerPoint,
   end: PointerPoint,
-  duration = defaultSwipeDuration,
+  duration = defaultTouchSwipeDuration,
 ): number {
   if (!Number.isFinite(duration) || duration <= 0) {
     throw new Error('Harmony swipe duration must be a positive finite number');

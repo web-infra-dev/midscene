@@ -23,7 +23,7 @@ describe('Swipe Action Parameter Validation', () => {
       expect(parsed).toEqual({
         direction: 'up',
         distance: 200,
-        duration: 300,
+        duration: 500,
       });
     });
 
@@ -47,6 +47,7 @@ describe('Swipe Action Parameter Validation', () => {
     it('uses the screen center when an endpoint swipe omits start', () => {
       const result = normalizeSwipeParam({ end: endpoint }, screenSize);
 
+      expect(result.duration).toBe(500);
       expect(result.startPoint).toEqual({ x: 200, y: 400 });
       expect(result.endPoint).toEqual({ x: 100, y: 200 });
     });
@@ -57,6 +58,7 @@ describe('Swipe Action Parameter Validation', () => {
         screenSize,
       );
 
+      expect(result.duration).toBe(500);
       expect(result.startPoint).toEqual({ x: 200, y: 400 });
       expect(result.endPoint).toEqual({ x: 200, y: 250 });
     });
