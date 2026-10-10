@@ -2623,8 +2623,8 @@ Stdout:
           -1,
         )?.[0] as string;
 
-        expect(rightSwipeCmd).toBe('input swipe 270 480 0 480 1000');
-        expect(leftSwipeCmd).toBe('input swipe 810 480 1080 480 1000');
+        expect(rightSwipeCmd).toBe('input swipe 810 960 0 960 1000');
+        expect(leftSwipeCmd).toBe('input swipe 270 960 1080 960 1000');
         expect(console.warn).not.toHaveBeenCalled();
 
         adjustCoordinatesSpy.mockRestore();
@@ -2654,7 +2654,7 @@ Stdout:
 
         expect(console.warn).toHaveBeenCalledWith(
           '[Midscene]',
-          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (9999999px) exceeds the maximum single swipe distance (480px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
+          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (9999999px) exceeds the maximum single swipe distance (1440px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
         );
       });
 
