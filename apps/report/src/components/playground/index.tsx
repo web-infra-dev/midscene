@@ -86,6 +86,7 @@ function getRunButtonEnabled(
 }
 interface PlaygroundProps {
   getAgent: (forceSameTabNavigation?: boolean) => StaticPageAgent | null;
+  initialUIContext?: UIContext;
   hideLogo?: boolean;
   showContextPreview?: boolean;
   dryMode?: boolean;
@@ -95,6 +96,7 @@ interface PlaygroundProps {
 // Standard Playground Component (In-Browser and Server modes)
 export function StandardPlayground({
   getAgent,
+  initialUIContext,
   hideLogo = false,
   showContextPreview = true,
   dryMode = false,
@@ -105,7 +107,7 @@ export function StandardPlayground({
   // State management
   const [uiContextPreview, setUiContextPreview] = useState<
     UIContext | undefined
-  >(undefined);
+  >(initialUIContext);
   const [loading, setLoading] = useState(false);
   const [loadingProgressText, setLoadingProgressText] = useState('');
   const [result, setResult] = useState<PlaygroundResult | null>(null);
