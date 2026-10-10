@@ -337,15 +337,27 @@ export const aiQueryInputSchema = z.strictObject({
   options: insightOptionsInputSchema.optional(),
 });
 
+export const aiWaitForOptionsInputSchema = insightOptionsInputSchema
+  .extend({
+    timeoutMs: z.number().positive().optional(),
+    checkIntervalMs: z.number().positive().optional(),
+  })
+  .superRefine((input, context) => {
+    if ((input.checkIntervalMs ?? 3000) > (input.timeoutMs ?? 15000)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['checkIntervalMs'],
+        message: 'checkIntervalMs must not exceed timeoutMs',
+      });
+    }
+  });
+
 export const aiWaitForInputSchema = z.strictObject({
   prompt: userPromptInputSchema,
-  options: insightOptionsInputSchema
-    .extend({
-      timeoutMs: z.number().positive().optional(),
-      checkIntervalMs: z.number().positive().optional(),
-    })
-    .optional(),
+  options: aiWaitForOptionsInputSchema.optional(),
 });
+
+export type AiWaitForNodeOptions = z.infer<typeof aiWaitForOptionsInputSchema>;
 
 export const javascriptInputSchema = z.strictObject({
   script: nonBlankText('JavaScript to evaluate through the current interface.'),

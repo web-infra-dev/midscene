@@ -1,4 +1,6 @@
 export * from './types';
+export * from './test-executor';
+export { discoverSelectedTestFiles } from './project-preparation';
 export * from './test-project';
 export {
   DEFAULT_TEST_FILE_SELECTION,

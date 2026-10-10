@@ -5,6 +5,7 @@ import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import type { JsonValue } from '../cli/test-project';
 import { WorkflowParseError } from '../errors';
 import type { NodeDefinition } from '../node/types';
+import { isSafeResultPathSegment } from '../result-path-segment';
 import {
   createCaseInvocationId,
   createDocumentInvocationId,
@@ -165,9 +166,18 @@ export function collectWorkflowDocument(
     }
     rejectUnknownKeys(
       definition,
-      ['name', 'tags', 'steps'],
+      ['id', 'name', 'tags', 'resources', 'steps'],
       `Case ${caseIndex + 1}`,
     );
+    if (
+      definition.id !== undefined &&
+      !isSafeResultPathSegment(definition.id)
+    ) {
+      throw new WorkflowParseError(
+        `Case ${caseIndex + 1} id must start with an ASCII letter or number, contain only letters, numbers, dots, underscores, or hyphens, and be at most 128 characters.`,
+        { caseIndex },
+      );
+    }
     if (
       typeof definition.name !== 'string' ||
       definition.name.trim().length === 0
@@ -193,6 +203,25 @@ export function collectWorkflowDocument(
         { caseIndex },
       );
     }
+    const resources = definition.resources ?? [];
+    if (
+      !Array.isArray(resources) ||
+      resources.some(
+        (resource) =>
+          typeof resource !== 'string' || resource.trim().length === 0,
+      )
+    ) {
+      throw new WorkflowParseError(
+        `Case ${caseIndex + 1} resources must be an array of non-empty strings.`,
+        { caseIndex },
+      );
+    }
+    if (new Set(resources).size !== resources.length) {
+      throw new WorkflowParseError(
+        `Case ${caseIndex + 1} resources must not contain duplicates.`,
+        { caseIndex },
+      );
+    }
 
     const steps = normalizeSteps(definition.steps, options.resolveNode).map(
       (normalized, stepIndex) => {
@@ -205,7 +234,10 @@ export function collectWorkflowDocument(
         return resolveStepVariables(normalized, 'steps', stepIndex, caseIndex);
       },
     );
-    const caseId = createCaseId(source.projectId, sourcePath, caseIndex);
+    const caseId =
+      typeof definition.id === 'string'
+        ? definition.id
+        : createCaseId(source.projectId, sourcePath, caseIndex);
     if (ids.has(caseId)) {
       throw new WorkflowParseError(`Case id collision: ${caseId}.`, {
         caseId,
@@ -219,8 +251,10 @@ export function collectWorkflowDocument(
       sourcePath,
       caseIndex,
       definition: {
+        ...(typeof definition.id === 'string' ? { id: definition.id } : {}),
         name: definition.name,
         tags: tags as string[],
+        ...(resources.length > 0 ? { resources: resources as string[] } : {}),
         steps,
       },
     };

@@ -1,5 +1,5 @@
-import { readdirSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
+import { existsSync, readdirSync, statSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { CollectedWorkflowDocument } from '@midscene/core/internal/test-runner';
 import { globSync } from 'tinyglobby';
 import { WorkflowError, WorkflowParseError } from '../errors';
@@ -35,6 +35,48 @@ export const DEFAULT_TEST_FILE_SELECTION: TestFileSelection = {
 };
 
 const toPosix = (value: string): string => value.split(sep).join('/');
+
+export const discoverSelectedTestFiles = (
+  projectRoot: string,
+  paths: readonly string[],
+): string[] => {
+  const root = resolve(projectRoot);
+  const files = new Set<string>();
+  for (const requestedPath of paths) {
+    if (
+      typeof requestedPath !== 'string' ||
+      requestedPath.trim().length === 0
+    ) {
+      throw new TypeError('Test selection paths must be non-empty strings.');
+    }
+    const absolutePath = resolve(root, requestedPath);
+    const relativePath = relative(root, absolutePath);
+    if (
+      relativePath === '..' ||
+      relativePath.startsWith(`..${sep}`) ||
+      isAbsolute(relativePath)
+    ) {
+      throw new Error(
+        `Test selection path is outside the project: ${requestedPath}`,
+      );
+    }
+    if (!existsSync(absolutePath)) {
+      throw new Error(`Test selection path does not exist: ${requestedPath}`);
+    }
+    if (statSync(absolutePath).isDirectory()) {
+      for (const file of discoverTestFiles(absolutePath)) files.add(file);
+    } else if (/\.ya?ml$/i.test(absolutePath)) {
+      files.add(absolutePath);
+    } else {
+      throw new Error(`Test selection file must be YAML: ${requestedPath}`);
+    }
+  }
+  return [...files].sort((a, b) => {
+    const relativeA = toPosix(relative(root, a));
+    const relativeB = toPosix(relative(root, b));
+    return relativeA < relativeB ? -1 : relativeA > relativeB ? 1 : 0;
+  });
+};
 
 const discoverResolvedTestFiles = (
   projectRoot: string,
@@ -137,10 +179,19 @@ export const matchesTags = (
 const filterDocumentCases = (
   document: CollectedWorkflowDocument,
   project: LoadedExecutionProject,
+  selection: ProjectPreparationOptions['selection'],
 ): { document?: CollectedWorkflowDocument; filtered: number } => {
-  const cases = document.cases.filter((item) =>
-    matchesTags(item.definition.tags ?? [], project.tags),
-  );
+  const cases = document.cases.filter((item) => {
+    const tags = item.definition.tags ?? [];
+    return (
+      matchesTags(tags, project.tags) &&
+      matchesTags(tags, {
+        include: selection?.tags?.include ?? [],
+        exclude: selection?.tags?.exclude ?? [],
+      }) &&
+      (!selection?.caseIds?.length || selection.caseIds.includes(item.caseId))
+    );
+  });
   const filtered = document.cases.length - cases.length;
   return cases.length === 0
     ? { filtered }
@@ -175,8 +226,14 @@ export async function prepareProject(
   const prerequisiteFile = options.prerequisiteFile
     ? resolve(options.prerequisiteFile)
     : undefined;
-  const mainFiles =
+  const projectFiles =
     options.files ?? discoverResolvedTestFiles(projectRoot, fileSelection);
+  const selectedFiles = options.selection?.paths?.length
+    ? new Set(discoverSelectedTestFiles(projectRoot, options.selection.paths))
+    : undefined;
+  const mainFiles = selectedFiles
+    ? projectFiles.filter((file) => selectedFiles.has(file))
+    : projectFiles;
   const files = [
     ...(prerequisiteFile ? [prerequisiteFile] : []),
     ...mainFiles.filter((file) => file !== prerequisiteFile),
@@ -196,6 +253,7 @@ export async function prepareProject(
   const collectionErrors: TestProjectCollectionError[] = [];
   const invocations: PreparedDocumentInvocation[] = [];
   let filteredCaseCount = 0;
+  const availableCaseIds = new Set<string>();
 
   if (sources.length === 0) {
     const error = asCollectionError(
@@ -224,10 +282,19 @@ export async function prepareProject(
         variables: project.variables,
         env: process.env,
       });
+      const duplicate = document.cases.find((item) =>
+        availableCaseIds.has(item.caseId),
+      );
+      if (duplicate)
+        throw new WorkflowParseError(
+          `Case id collision in project "${project.name}": ${duplicate.caseId}.`,
+          { caseId: duplicate.caseId, projectName: project.name },
+        );
+      for (const item of document.cases) availableCaseIds.add(item.caseId);
       const filtered =
         source.absolutePath === prerequisiteFile
           ? { document, filtered: 0 }
-          : filterDocumentCases(document, project);
+          : filterDocumentCases(document, project, options.selection);
       filteredCaseCount += filtered.filtered;
       if (filtered.document)
         invocations.push({
@@ -273,5 +340,6 @@ export async function prepareProject(
       0,
     ),
     filteredCaseCount,
+    availableCaseIds: [...availableCaseIds],
   };
 }
