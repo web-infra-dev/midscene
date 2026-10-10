@@ -97,6 +97,12 @@ function isLoopbackOrigin(origin?: string) {
     return true;
   }
 
+  // Local HTML reports opened through file:// have an opaque origin, which
+  // browsers serialize as "null" in CORS requests.
+  if (origin === 'null') {
+    return true;
+  }
+
   try {
     const url = new URL(origin);
     return LOOPBACK_HOSTS.has(url.hostname);
