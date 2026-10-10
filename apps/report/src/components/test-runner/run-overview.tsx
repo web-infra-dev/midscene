@@ -135,7 +135,6 @@ export function RunOverview({
         issues={reportIssues.others}
         label="Other issues"
         navigableStepIds={navigableStepIds}
-        showDetails
       />
       <section
         ref={breakdownRef}

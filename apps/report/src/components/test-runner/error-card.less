@@ -1,4 +1,5 @@
 .test-runner-report {
+  --runner-issue-link: #b42318;
   .runner-error-cards {
     min-width: 0;
     margin-block: 16px;
@@ -9,13 +10,13 @@
     --issue-bg: var(--runner-danger-soft);
     display: grid;
     grid-template-columns: 16px minmax(0, 1fr) 32px;
-    align-items: start;
+    align-items: center;
     gap: 8px;
     padding: 16px;
     border: 1px solid color-mix(in srgb, var(--issue-color) 28%, transparent);
     border-radius: 12px;
     background: var(--issue-bg);
-    color: var(--issue-color);
+    color: var(--runner-text);
     font-size: 12px;
     line-height: 20px;
 
@@ -35,7 +36,7 @@
       border: 1px solid color-mix(in srgb, var(--issue-color) 28%, transparent);
       border-radius: 8px;
       background: transparent;
-      color: inherit;
+      color: var(--issue-color);
       cursor: pointer;
 
       &:hover {
@@ -48,7 +49,6 @@
     display: block;
     width: 16px;
     height: 16px;
-    margin-top: 2px;
     background: url('./assets/issue-error.svg') no-repeat center;
   }
   .runner-error-card.is-warning .runner-error-icon {
@@ -58,16 +58,112 @@
     min-width: 0;
     overflow-wrap: anywhere;
     strong {
+      color: var(--issue-color);
       font-size: 12px;
       font-weight: 600;
     }
+  }
+
+  .runner-error-body {
+    grid-column: 2 / -1;
+    min-width: 0;
+    overflow-wrap: anywhere;
     p {
-      margin: 8px 0 0;
+      margin: 0;
       white-space: pre-wrap;
+    }
+    > * + * {
+      margin-top: 8px;
     }
     > a {
       display: inline-block;
-      margin: 8px 12px 0 0;
+    }
+  }
+  .runner-error-reasons {
+    margin: 0;
+    padding-left: 18px;
+    li + li {
+      margin-top: 4px;
+    }
+  }
+  .runner-error-reasons-more,
+  .runner-error-details {
+    > summary {
+      width: fit-content;
+      color: var(--runner-text);
+      cursor: pointer;
+      font-weight: 500;
+      &:hover {
+        text-decoration: underline;
+      }
+      &:focus-visible {
+        outline: 2px solid var(--runner-primary);
+        outline-offset: 2px;
+      }
+    }
+    .when-open {
+      display: none;
+    }
+    &[open] > summary {
+      .when-open {
+        display: inline;
+      }
+      .when-closed {
+        display: none;
+      }
+    }
+    > ul {
+      margin-top: 8px;
+    }
+  }
+  .runner-error-details-body {
+    margin-top: 8px;
+    .runner-error-detail {
+      dl {
+        margin: 0;
+      }
+      dl > div {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 8px;
+      }
+      dt {
+        color: var(--runner-muted);
+      }
+      dd {
+        margin: 0;
+      }
+      p {
+        margin: 8px 0 0;
+      }
+      section {
+        margin-top: 12px;
+      }
+      h5 {
+        margin: 0 0 8px;
+        color: var(--runner-text);
+        font-size: 12px;
+        font-weight: 600;
+      }
+    }
+    .runner-json-block {
+      margin-top: 8px;
+      border-radius: 8px;
+      color: var(--runner-text);
+      background: color-mix(
+        in srgb,
+        var(--issue-color) 6%,
+        var(--runner-surface)
+      );
+      pre {
+        max-height: 240px;
+        overflow: auto;
+        border-radius: inherit;
+        color: inherit;
+        background: transparent;
+        font-size: 12px;
+        line-height: 20px;
+      }
     }
   }
 
@@ -88,16 +184,23 @@
     padding: 8px 0;
     border: 0;
     background: transparent;
-    color: var(--runner-muted);
+    color: var(--runner-issue-link);
     font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
 
     &:hover {
-      color: var(--runner-primary);
+      text-decoration: underline;
     }
   }
 
   .runner-issue-drawer {
+    font-family:
+      'Report Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
     .ant-drawer-mask {
       background: rgba(0, 0, 0, 0.5);
     }
@@ -146,6 +249,10 @@
     display: grid;
     gap: 12px;
   }
+}
+
+.test-runner-report[data-theme='dark'] {
+  --runner-issue-link: #ff938a;
 }
 
 .test-runner-report .runner-issue-information {

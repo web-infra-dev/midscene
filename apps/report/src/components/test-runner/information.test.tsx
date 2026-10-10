@@ -30,7 +30,7 @@ const step: TestRunReportStep = {
 };
 
 describe('one home for errors and supporting information', () => {
-  it('renders the core message once and keeps cause details only in Information', () => {
+  it('renders the core message once and keeps technical details collapsed in its card', () => {
     const issues = getStepIssues(step);
     const html = renderToStaticMarkup(
       <>
@@ -41,11 +41,13 @@ describe('one home for errors and supporting information', () => {
     expect(html.match(/Unexpected title\./g)).toHaveLength(1);
     expect(html).toContain('Debugger Tool');
     expect(html).not.toContain('Causes and context');
-    expect(html).not.toContain('<summary>');
+    expect(html).toContain('<summary>details</summary>');
+    expect(html).not.toContain(' open=""');
     const card = renderToStaticMarkup(
       <ErrorCards issues={issues} label="Node issues" />,
     );
-    expect(card).not.toContain('Debugger Tool');
+    expect(card).toContain('Debugger Tool');
+    expect(renderToStaticMarkup(<IssueInformation issues={issues} />)).toBe('');
   });
 
   it('shows warnings as cards and removes optional info without repeating messages', () => {
@@ -120,7 +122,7 @@ describe('one home for errors and supporting information', () => {
     expect(html).not.toContain('View all');
   });
 
-  it('keeps distinct aggregated errors even when their messages are identical', () => {
+  it('splits independent aggregated errors while keeping their distinct metadata', () => {
     const issues = getStepIssues({
       ...step,
       error: {
@@ -137,10 +139,18 @@ describe('one home for errors and supporting information', () => {
         <IssueInformation issues={issues} />
       </>,
     );
-    expect(html.match(/Cleanup failed\./g)).toHaveLength(1);
-    expect(html).toContain('Related errors (2)');
+    expect(html.split('<details')[0].match(/Cleanup failed\./g)).toHaveLength(
+      1,
+    );
+    expect(issues).toHaveLength(2);
+    expect(issues.map((issue) => issue.error?.code)).toEqual([
+      'DEVICE_RELEASE_FAILED',
+      'SESSION_RELEASE_FAILED',
+    ]);
+    expect(html).toContain('View all 2 issues');
+    expect(html).not.toContain('Related errors');
     expect(html).toContain('DEVICE_RELEASE_FAILED');
-    expect(html).toContain('SESSION_RELEASE_FAILED');
+    expect(html).not.toContain('SESSION_RELEASE_FAILED');
   });
 
   it('shows the primary issue and opens all errors and warnings in a drawer without counting info', () => {
@@ -177,14 +187,14 @@ describe('one home for errors and supporting information', () => {
     expect(html).not.toContain('Another independent error.');
     expect(html).not.toContain('Evidence is incomplete.');
     expect(html).not.toContain('Optional note.');
-    expect(html).not.toContain('<summary>');
+    expect(html).toContain('<summary>details</summary>');
+    expect(html).not.toContain(' open=""');
   });
 
-  it('explains partial metrics in a warning title and body without raw collection JSON', () => {
+  it('keeps partial metrics metadata behind technical details', () => {
     const html = renderToStaticMarkup(
       <ErrorCards
         label="Other issues"
-        showDetails
         issues={[
           {
             id: 'metrics',
@@ -212,9 +222,65 @@ describe('one home for errors and supporting information', () => {
     expect(
       html.match(/An operation was still running at capture\./g),
     ).toHaveLength(1);
-    expect(html).not.toContain('expectedExecutionCount');
+    expect(html).toContain('expectedExecutionCount');
     expect(html).not.toContain('Legacy metric message.');
-    expect(html).not.toContain('<summary>');
+    expect(html).toContain('<summary>details</summary>');
+    expect(html).not.toContain(' open=""');
+  });
+
+  it('shows at most two distinct reasons before a closed disclosure', () => {
+    const html = renderToStaticMarkup(
+      <ErrorCards
+        label="Other issues"
+        issues={[
+          {
+            id: 'metrics',
+            severity: 'warning',
+            code: 'PARTIAL_MODEL_METRICS',
+            message: 'Partial metrics.',
+            context: {
+              reasons: [
+                'First reason.',
+                'Second reason.',
+                'First reason.',
+                'Third reason.',
+                'Fourth reason.',
+              ],
+            },
+          },
+        ]}
+      />,
+    );
+    const [visible, hidden] = html.split(
+      '<details class="runner-error-reasons-more">',
+    );
+    expect(visible).toContain('First reason.');
+    expect(visible).toContain('Second reason.');
+    expect(visible).not.toContain('Third reason.');
+    expect(hidden).toContain('Show 2 more reasons');
+    expect(hidden).toContain('Third reason.');
+    expect(hidden).toContain('Fourth reason.');
+    expect(html.match(/First reason\./g)).toHaveLength(1);
+    expect(html).not.toContain(' open=""');
+  });
+
+  it('keeps a message-only card compact without empty technical details', () => {
+    const html = renderToStaticMarkup(
+      <ErrorCards
+        label="Node issues"
+        issues={[
+          {
+            id: 'plain',
+            severity: 'error',
+            code: 'CUSTOM_ERROR',
+            message: 'Device disconnected.',
+          },
+        ]}
+      />,
+    );
+    expect(html).toContain('<strong>Device disconnected.</strong>');
+    expect(html).not.toContain('runner-error-body');
+    expect(html).not.toContain('<summary>details</summary>');
   });
 
   it('links blocked nodes to their cause without repeating that cause text', () => {

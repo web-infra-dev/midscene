@@ -36,7 +36,7 @@ export function ErrorDetails({
       !summary.includes(child.message) || hasErrorDetails(child, summary),
   );
   return (
-    <div>
+    <div className="runner-error-detail">
       {hasErrorMetadata(error) ? (
         <dl>
           <div>

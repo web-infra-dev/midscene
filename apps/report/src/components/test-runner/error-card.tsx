@@ -1,25 +1,32 @@
 import { CopyOutlined } from '@ant-design/icons';
 import { Drawer } from 'antd';
 import { useRef, useState } from 'react';
-import { ErrorDetails } from './error-details';
+import { ErrorDetails, hasErrorDetails } from './error-details';
 import { getIssuePresentation } from './issue-presentation';
-import { type ReportIssue, sortIssues } from './issues';
+import { type ReportIssue, sortIssues, splitIssue } from './issues';
 import { ReportValue } from './view-primitives';
 
 function ErrorCard({
   issue,
   navigableStepIds,
-  showDetails = false,
   currentStepId,
   onNavigate,
 }: {
   issue: ReportIssue;
   navigableStepIds?: ReadonlySet<string>;
-  showDetails?: boolean;
   currentStepId?: string;
   onNavigate?(): void;
 }): JSX.Element {
   const { title, message, reasons } = getIssuePresentation(issue);
+  const { reasons: _reasons, ...context } = issue.context ?? {};
+  const hasContext = Object.keys(context).length > 0;
+  const summary = `${issue.message}\n${message ?? ''}`;
+  const hasDetails = Boolean(
+    hasContext || (issue.error && hasErrorDetails(issue.error, summary)),
+  );
+  const links = [...new Set(issue.relatedStepIds)].filter(
+    (id) => id !== currentStepId && navigableStepIds?.has(id),
+  );
   const [copyState, setCopyState] = useState('Copy issue details');
   const copy = async () => {
     try {
@@ -42,35 +49,6 @@ function ErrorCard({
         {issue.label ? (
           <span className="runner-error-label">{issue.label}</span>
         ) : null}
-        {message ? <p>{message}</p> : null}
-        {reasons.map((reason) => (
-          <p key={reason}>{reason}</p>
-        ))}
-        {showDetails && issue.error ? (
-          <ErrorDetails
-            error={issue.error}
-            hideMessage
-            summaryMessage={issue.message}
-          />
-        ) : null}
-        {showDetails &&
-        issue.context &&
-        !['PARTIAL_MODEL_METRICS', 'MODEL_METRICS_UNKNOWN'].includes(
-          issue.code,
-        ) ? (
-          <ReportValue value={{ value: issue.context }} />
-        ) : null}
-        {[...new Set(issue.relatedStepIds)]
-          .filter((id) => id !== currentStepId && navigableStepIds?.has(id))
-          .map((id) => (
-            <a
-              key={id}
-              href={`#runner-step=${encodeURIComponent(id)}`}
-              onClick={onNavigate}
-            >
-              View blocking step
-            </a>
-          ))}
       </div>
       <button
         type="button"
@@ -80,6 +58,57 @@ function ErrorCard({
       >
         <CopyOutlined />
       </button>
+      {message || reasons.length || hasDetails || links.length ? (
+        <div className="runner-error-body">
+          {message ? <p>{message}</p> : null}
+          {reasons.length ? (
+            <ul className="runner-error-reasons">
+              {reasons.slice(0, 2).map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          ) : null}
+          {reasons.length > 2 ? (
+            <details className="runner-error-reasons-more">
+              <summary>
+                <span className="when-closed">
+                  Show {reasons.length - 2} more reasons
+                </span>
+                <span className="when-open">Hide additional reasons</span>
+              </summary>
+              <ul className="runner-error-reasons">
+                {reasons.slice(2).map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+          {hasDetails ? (
+            <details className="runner-error-details">
+              <summary>details</summary>
+              <div className="runner-error-details-body">
+                {issue.error ? (
+                  <ErrorDetails
+                    error={issue.error}
+                    hideMessage
+                    summaryMessage={summary}
+                  />
+                ) : null}
+                {hasContext ? <ReportValue value={{ value: context }} /> : null}
+              </div>
+            </details>
+          ) : null}
+          {links.map((id) => (
+            <a
+              key={id}
+              href={`#runner-step=${encodeURIComponent(id)}`}
+              onClick={onNavigate}
+            >
+              View blocking step
+            </a>
+          ))}
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -88,18 +117,16 @@ export function ErrorCards({
   issues,
   label,
   navigableStepIds,
-  showDetails,
   currentStepId,
 }: {
   issues: readonly ReportIssue[];
   label: string;
   navigableStepIds?: ReadonlySet<string>;
-  showDetails?: boolean;
   currentStepId?: string;
 }): JSX.Element | null {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const containerRef = useRef<HTMLElement>(null);
-  const visibleIssues = sortIssues(issues).filter(
+  const visibleIssues = sortIssues(issues.flatMap(splitIssue)).filter(
     (issue) => issue.severity !== 'info',
   );
   const [first] = visibleIssues;
@@ -109,7 +136,6 @@ export function ErrorCards({
       key={issue.id}
       issue={issue}
       navigableStepIds={navigableStepIds}
-      showDetails={showDetails}
       currentStepId={currentStepId}
       onNavigate={onNavigate}
     />

@@ -265,7 +265,6 @@ describe('report lifecycle failures', () => {
     const html = renderToStaticMarkup(
       <ErrorCards
         label="Other issues"
-        showDetails
         issues={[
           {
             id: 'cleanup',

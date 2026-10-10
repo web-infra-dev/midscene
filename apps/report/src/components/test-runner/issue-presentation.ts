@@ -14,6 +14,7 @@ const titles: Record<string, string> = {
   MODEL_METRICS_UNKNOWN: 'Model usage totals are unavailable',
   PARTIAL_EVIDENCE: 'Some execution evidence is missing from this report',
   EVIDENCE_COLLECTION_FAILED: 'Execution evidence could not be collected',
+  REPORT_SNAPSHOT_FAILED: 'Execution evidence could not be saved',
   AGENT_DETAIL_UNAVAILABLE: 'Agent execution details are unavailable',
   AGENT_REPORT_MISSING:
     'The recording cannot be shown because its Agent report is missing',
@@ -63,14 +64,18 @@ export function getIssuePresentation(issue: ReportIssue) {
       ? 'Some model usage data is missing. The reported call count, model time or token total may undercount actual usage.'
       : issue.code === 'MODEL_METRICS_UNKNOWN'
         ? 'The report could not collect reliable model usage totals. Unavailable values are shown as —.'
-        : issue.message;
-  const reasons =
-    ['PARTIAL_MODEL_METRICS', 'MODEL_METRICS_UNKNOWN'].includes(issue.code) &&
-    Array.isArray(issue.context?.reasons)
-      ? issue.context.reasons.filter(
-          (reason): reason is string => typeof reason === 'string',
-        )
-      : [];
+        : [
+              'REPORT_SNAPSHOT_FAILED',
+              'NODE_EXECUTION_ERROR',
+              'RESOURCE_CLEANUP_FAILED',
+            ].includes(issue.code)
+          ? (issue.error?.cause?.message ?? issue.message)
+          : issue.message;
+  const reasons = Array.isArray(issue.context?.reasons)
+    ? issue.context.reasons.filter(
+        (reason): reason is string => typeof reason === 'string',
+      )
+    : [];
   return {
     title,
     message: message === title ? undefined : message,

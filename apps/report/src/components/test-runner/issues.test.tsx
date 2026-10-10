@@ -183,7 +183,7 @@ describe('node and non-node error cards', () => {
     expect(html).toContain('href="#runner-step=timeout-one"');
     expect(html).toContain('is-warning');
   });
-  it('renders evidence warnings as cards and keeps supporting details in Information', () => {
+  it('renders evidence warnings as cards with collapsed technical details', () => {
     const step = {
       ...failed('step', 'aiAct', 'STEP_TIMEOUT'),
       evidenceCollection: {
@@ -214,7 +214,8 @@ describe('node and non-node error cards', () => {
       <IssueInformation issues={issues} />,
     );
     expect(information).not.toContain('Snapshot write failed.');
-    expect(information).toContain('STEP_TIMEOUT');
+    expect(information).toBe('');
+    expect(html).toContain('<summary>details</summary>');
     expect(html).not.toContain(' open=""');
   });
   it('does not treat missing evidence as a failed successful action', () => {
@@ -305,7 +306,7 @@ describe('node and non-node error cards', () => {
       error: {
         name: 'Error',
         message: '<release failed>',
-        cause: { name: 'Error', message: 'connection closed' },
+        cause: { name: 'Error', message: '<connection closed>' },
       },
     };
     attempt.retryDecision = {
@@ -317,17 +318,18 @@ describe('node and non-node error cards', () => {
     };
     const issues = collectReportIssues(dump).others;
     const html = renderToStaticMarkup(
-      <ErrorCards issues={issues} label="Other issues" showDetails />,
+      <ErrorCards issues={issues} label="Other issues" />,
     );
     expect(html).not.toContain('authored execution');
-    expect(html.match(/&lt;release failed&gt;/g)).toHaveLength(1);
+    expect(issues[0].error?.message).toBe('<release failed>');
+    expect(html.match(/&lt;connection closed&gt;/g)).toHaveLength(1);
     expect(html).toContain('View all 3 issues');
     const retry = issues.filter((issue) => issue.code === 'RETRY_STOPPED');
     expect(retry).toHaveLength(1);
     expect(
       renderToStaticMarkup(<ErrorCards issues={retry} label="Other issues" />),
     ).toContain('1 of 4 allowed attempts ran.');
-    expect(html).toContain('connection closed');
+    expect(html).not.toContain('<connection closed>');
     expect(html).not.toContain('<release failed>');
   });
   it('only links known blockers and preserves all distinct scope records', () => {
@@ -374,6 +376,52 @@ describe('node and non-node error cards', () => {
       ),
     ).toHaveLength(2);
   });
+
+  it.each([false, true])(
+    'splits cleanup failures and deduplicates the same scoped diagnostic (aggregate: %s)',
+    (aggregate) => {
+      const dump = fixture();
+      const attempt = dump.projects[0].documents[0].cases[0].attempts[0];
+      const errors = ['Session removal failed.', 'Order removal failed.'].map(
+        (message, registrationIndex) => ({
+          name: 'NodeScopeTeardownError',
+          code: 'NODE_SCOPE_TEARDOWN_ERROR',
+          message,
+          details: { value: { scopeId: attempt.attemptId, registrationIndex } },
+        }),
+      );
+      attempt.cleanup = {
+        status: 'failed',
+        capturedAt: at,
+        error: {
+          name: 'AggregateError',
+          message: 'Case cleanup failed',
+          errors,
+        },
+      };
+      dump.diagnostics = [
+        {
+          level: 'error',
+          code: 'run-infrastructure-error',
+          message: errors[0].message,
+          scopeId: aggregate ? attempt.attemptId : undefined,
+          error: aggregate ? attempt.cleanup.error : errors[0],
+        },
+      ];
+      const cleanup = collectReportIssues(dump).others.filter(
+        (issue) => issue.severity === 'error',
+      );
+      expect(cleanup).toHaveLength(2);
+      expect(cleanup.map((issue) => issue.message)).toEqual(
+        errors.map((error) => error.message),
+      );
+      expect(new Set(cleanup.map((issue) => issue.id)).size).toBe(2);
+      expect(cleanup[0].context?.aggregateError).toMatchObject({
+        name: 'AggregateError',
+        message: 'Case cleanup failed',
+      });
+    },
+  );
 
   it('keeps early retry stops on the blocking node and ignores normal retry decisions', () => {
     const dump = fixture();

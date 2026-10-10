@@ -26,6 +26,28 @@ const rank = { error: 0, warning: 1, info: 2 };
 export const sortIssues = (issues: readonly ReportIssue[]) =>
   [...issues].sort((a, b) => rank[a.severity] - rank[b.severity]);
 
+/** Aggregate children are independent failures; a cause is part of one failure. */
+export function splitIssue(issue: ReportIssue): ReportIssue[] {
+  if (
+    issue.severity === 'info' ||
+    issue.error?.name !== 'AggregateError' ||
+    !issue.error.errors?.length
+  )
+    return [issue];
+  return issue.error.errors.flatMap((error, index) =>
+    splitIssue({
+      ...issue,
+      id: `${issue.id}:${index}`,
+      message: error.message,
+      error,
+      context: {
+        ...issue.context,
+        aggregateError: { ...issue.error, errors: undefined },
+      },
+    }),
+  );
+}
+
 export function getStepIssues(
   step: TestRunReportStep,
   blockedStepCount = 0,
@@ -86,7 +108,7 @@ export function getStepIssues(
         ...issue.context,
         capturedAt: step.evidenceCollection.capturedAt,
       };
-  return issues;
+  return issues.flatMap(splitIssue);
 }
 
 type IssueInput = Pick<TestRunReportDump, 'projects'> &
@@ -111,6 +133,7 @@ export function collectReportIssues(dump: IssueInput) {
   const coveredOperations = new Set<string>();
   const pending = new Map<string, ReportIssue>();
   const scopeOwners = new Map<string, Partial<ReportIssue>>();
+  const addIssue = (issue: ReportIssue) => others.push(...splitIssue(issue));
   const addSteps = (steps: readonly TestRunReportStep[]) => {
     const blockedCounts = new Map<string, number>();
     for (const step of steps)
@@ -129,7 +152,7 @@ export function collectReportIssues(dump: IssueInput) {
     error: TestRunReportError,
     owner: Partial<ReportIssue>,
   ) => {
-    others.push({
+    addIssue({
       id,
       severity: 'error',
       code: error.code ?? error.name,
@@ -157,7 +180,7 @@ export function collectReportIssues(dump: IssueInput) {
       if (cleanup.operationId) coveredOperations.add(cleanup.operationId);
       for (const ref of cleanup.blockingOperations ?? [])
         coveredOperations.add(ref.operationId);
-      others.push({
+      addIssue({
         id: `cleanup:${owner.scopeId}`,
         severity: cleanup.status === 'failed' ? 'error' : 'warning',
         code:
@@ -287,6 +310,15 @@ export function collectReportIssues(dump: IssueInput) {
     if (!coveredOperations.has(operationId)) others.push(issue);
 
   for (const [index, diagnostic] of (dump.diagnostics ?? []).entries()) {
+    const details = diagnostic.error?.details?.value;
+    const scopeId =
+      diagnostic.scopeId ??
+      (details &&
+      typeof details === 'object' &&
+      'scopeId' in details &&
+      typeof details.scopeId === 'string'
+        ? details.scopeId
+        : undefined);
     const issue: ReportIssue = {
       id: `diagnostic:${index}`,
       severity:
@@ -296,12 +328,11 @@ export function collectReportIssues(dump: IssueInput) {
       code: diagnostic.code,
       message: diagnostic.message,
       error: diagnostic.error,
-      ...scopeOwners.get(diagnostic.scopeId ?? ''),
-      scopeId: diagnostic.scopeId,
-      label:
-        scopeOwners.get(diagnostic.scopeId ?? '')?.label ?? 'Report collection',
+      ...scopeOwners.get(scopeId ?? ''),
+      scopeId,
+      label: scopeOwners.get(scopeId ?? '')?.label ?? 'Report collection',
       context: {
-        scopeId: diagnostic.scopeId,
+        scopeId,
         executionId: diagnostic.executionId,
         sourcePaths: diagnostic.sourcePaths,
       },
@@ -336,17 +367,19 @@ export function collectReportIssues(dump: IssueInput) {
         continue;
       }
       stepIssues.push({ ...issue, label: undefined });
-    } else if (
-      !others.some(
-        (item) =>
-          diagnostic.scopeId &&
-          item.scopeId === diagnostic.scopeId &&
-          item.error &&
-          diagnostic.error &&
-          JSON.stringify(item.error) === JSON.stringify(diagnostic.error),
-      )
-    ) {
-      others.push(issue);
+    } else {
+      for (const candidate of splitIssue(issue))
+        if (
+          !others.some(
+            (item) =>
+              scopeId &&
+              item.scopeId === scopeId &&
+              item.error &&
+              candidate.error &&
+              JSON.stringify(item.error) === JSON.stringify(candidate.error),
+          )
+        )
+          others.push(candidate);
     }
   }
   const collection = dump.metrics?.collection;

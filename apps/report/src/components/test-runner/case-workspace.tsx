@@ -151,7 +151,6 @@ export function CaseWorkspace({
           issues={otherIssues}
           label="Other issues"
           navigableStepIds={navigableStepIds}
-          showDetails
         />
       </CaseWorkspaceHeader>
 
