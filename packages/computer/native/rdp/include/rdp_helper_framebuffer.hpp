@@ -11,6 +11,8 @@ namespace midscene::rdp {
 struct MidsceneRdpContext {
   rdpContext context;
   FreeRdpSessionTransport* owner = nullptr;
+  pcRdpgfxStartFrame original_graphics_start_frame = nullptr;
+  pcRdpgfxEndFrame original_graphics_end_frame = nullptr;
 };
 
 // Compute the next initial-screenshot wakeup without consulting wall time.

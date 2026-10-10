@@ -26,9 +26,14 @@
 #include <unistd.h>
 #endif
 
+#include <freerdp/addin.h>
+#include <freerdp/client/channels.h>
+#include <freerdp/client/cmdline.h>
+#include <freerdp/client/rdpgfx.h>
 #include <freerdp/error.h>
 #include <freerdp/freerdp.h>
 #include <freerdp/gdi/gdi.h>
+#include <freerdp/gdi/gfx.h>
 #include <freerdp/input.h>
 #include <freerdp/scancode.h>
 #include <freerdp/settings.h>
@@ -43,6 +48,27 @@
 namespace midscene::rdp {
 
 namespace {
+
+// Graphics-channel paints run on FreeRDP's channel thread, outside mutex_.
+// Use the same update lock as FreeRDP's paint and resize pipeline.
+class FramebufferUpdateLock {
+ public:
+  explicit FramebufferUpdateLock(rdpUpdate* update) : update_(update) {
+    rdp_update_lock(update_);
+  }
+  ~FramebufferUpdateLock() { Unlock(); }
+  void Unlock() {
+    if (update_) {
+      rdp_update_unlock(update_);
+      update_ = nullptr;
+    }
+  }
+  FramebufferUpdateLock(const FramebufferUpdateLock&) = delete;
+  FramebufferUpdateLock& operator=(const FramebufferUpdateLock&) = delete;
+
+ private:
+  rdpUpdate* update_;
+};
 
 struct LocalAddressTcpConnectContext {
   std::string local_address;
@@ -428,8 +454,39 @@ bool HasPendingFramebufferInvalidation(rdpContext* context) {
     return false;
   }
 
-  HGDI_WND hwnd = context->gdi->primary->hdc->hwnd;
-  return hwnd->ninvalid > 0 && hwnd->invalid && !hwnd->invalid->null;
+  const auto* window = context->gdi->primary->hdc->hwnd;
+  if (window->ninvalid <= 0) return false;
+  // Some FreeRDP versions mark the aggregate bounds empty for updates ending
+  // with a one-pixel row at y=0. The detailed invalidation list still contains
+  // the pixels actually painted, so it takes precedence over those bounds.
+  if (window->cinvalid) {
+    for (int index = 0; index < window->ninvalid; ++index) {
+      const auto& area = window->cinvalid[index];
+      if (!area.null && area.w > 0 && area.h > 0) return true;
+    }
+    return false;
+  }
+  return window->invalid && !window->invalid->null;
+}
+
+std::vector<RECTANGLE_16> CopyInvalidatedRectangles(rdpContext* context) {
+  const auto* gdi = context->gdi;
+  const auto* window = gdi->primary->hdc->hwnd;
+  std::vector<RECTANGLE_16> rectangles;
+  const auto* invalid = window->cinvalid ? window->cinvalid : window->invalid;
+  const int count = window->cinvalid ? window->ninvalid : 1;
+  for (int index = 0; index < count; ++index) {
+    const auto& area = invalid[index];
+    const auto left = std::clamp<int64_t>(area.x, 0, gdi->width);
+    const auto top = std::clamp<int64_t>(area.y, 0, gdi->height);
+    const auto right = std::clamp<int64_t>(static_cast<int64_t>(area.x) + area.w, 0, gdi->width);
+    const auto bottom = std::clamp<int64_t>(static_cast<int64_t>(area.y) + area.h, 0, gdi->height);
+    if (!area.null && right > left && bottom > top) {
+      rectangles.push_back({static_cast<UINT16>(left), static_cast<UINT16>(top),
+                            static_cast<UINT16>(right), static_cast<UINT16>(bottom)});
+    }
+  }
+  return rectangles;
 }
 
 bool HasInformativeFramebuffer(rdpContext* context) {
@@ -490,7 +547,7 @@ bool HasInformativeFramebuffer(rdpContext* context) {
   return true;
 }
 
-// Called under the transport mutex so paints and resizes cannot race the copy.
+// Called under the transport mutex and FreeRDP update lock, including GFX paints.
 RawFrame CopyFramebuffer(const rdpGdi& gdi) {
   if (!gdi.primary_buffer || gdi.width <= 0 || gdi.height <= 0 ||
       gdi.stride < static_cast<size_t>(gdi.width) * 4) {
@@ -514,10 +571,17 @@ BOOL MidsceneEndPaint(rdpContext* context) {
   if (typed_context->owner) {
     const bool framebuffer_invalidated =
         HasPendingFramebufferInvalidation(context);
+    const auto rectangles = framebuffer_invalidated &&
+                                    typed_context->owner->HasPendingFramebufferRefresh()
+                                ? CopyInvalidatedRectangles(context)
+                                : std::vector<RECTANGLE_16>{};
     ok = typed_context->owner->CallOriginalEndPaint(context);
     const bool already_painted = typed_context->owner->HasFramePainted();
     if (ok && framebuffer_invalidated) {
-      typed_context->owner->MarkFramebufferUpdated();
+      if (!typed_context->owner->MarkFramebufferUpdated(
+              rectangles, Size{context->gdi->width, context->gdi->height})) {
+        return FALSE;
+      }
       if (already_painted) {
         typed_context->owner->MarkFramePainted();
       } else if (HasInformativeFramebuffer(context)) {
@@ -526,6 +590,29 @@ BOOL MidsceneEndPaint(rdpContext* context) {
     }
   }
   return ok;
+}
+
+UINT MidsceneGraphicsStartFrame(RdpgfxClientContext* graphics,
+                                const RDPGFX_START_FRAME_PDU* frame) {
+  auto* gdi = static_cast<rdpGdi*>(graphics->custom);
+  auto* context = reinterpret_cast<MidsceneRdpContext*>(gdi->context);
+  const UINT status = context->original_graphics_start_frame(graphics, frame);
+  if (status == CHANNEL_RC_OK) {
+    context->owner->MarkGraphicsFrameStarted();
+  }
+  return status;
+}
+
+UINT MidsceneGraphicsEndFrame(RdpgfxClientContext* graphics,
+                              const RDPGFX_END_FRAME_PDU* frame) {
+  auto* gdi = static_cast<rdpGdi*>(graphics->custom);
+  auto* context = reinterpret_cast<MidsceneRdpContext*>(gdi->context);
+  const UINT status = context->original_graphics_end_frame(graphics, frame);
+  if (status == CHANNEL_RC_OK) {
+    // FreeRDP's EndFrame presents decoded surfaces to the primary buffer.
+    context->owner->MarkGraphicsFrameCompleted();
+  }
+  return status;
 }
 
 std::string ToLower(std::string_view value) {
@@ -633,11 +720,42 @@ DWORD VerifyChangedCertificateEx(freerdp* instance,
   return 2;
 }
 
+BOOL SubscribeGraphicsChannels(rdpContext* context) {
+  return PubSub_SubscribeChannelConnected(
+             context->pubSub,
+             [](void* ctx, const ChannelConnectedEventArgs* event) {
+               if (std::strcmp(event->name, RDPGFX_DVC_CHANNEL_NAME) != 0) {
+                 return;
+               }
+               auto* context = static_cast<rdpContext*>(ctx);
+               if (!gdi_graphics_pipeline_init(
+                       context->gdi,
+                       static_cast<RdpgfxClientContext*>(event->pInterface))) {
+                 setChannelError(context, ERROR_INTERNAL_ERROR,
+                                 "Failed to initialize RDP graphics pipeline");
+               } else {
+                 auto* typed_context = reinterpret_cast<MidsceneRdpContext*>(context);
+                 typed_context->owner->HookGraphicsFrames(
+                     static_cast<RdpgfxClientContext*>(event->pInterface));
+               }
+             }) >= 0 &&
+         PubSub_SubscribeChannelDisconnected(
+             context->pubSub,
+             [](void* ctx, const ChannelDisconnectedEventArgs* event) {
+               if (std::strcmp(event->name, RDPGFX_DVC_CHANNEL_NAME) == 0) {
+                 auto* context = static_cast<rdpContext*>(ctx);
+                 gdi_graphics_pipeline_uninit(
+                     context->gdi,
+                     static_cast<RdpgfxClientContext*>(event->pInterface));
+               }
+             }) >= 0;
+}
+
 BOOL ContextNew(freerdp* instance, rdpContext* context) {
   static_cast<void>(instance);
   auto* typed_context = reinterpret_cast<MidsceneRdpContext*>(context);
   typed_context->owner = nullptr;
-  return TRUE;
+  return SubscribeGraphicsChannels(context);
 }
 
 void ContextFree(freerdp* instance, rdpContext* context) {
@@ -645,15 +763,25 @@ void ContextFree(freerdp* instance, rdpContext* context) {
   static_cast<void>(context);
 }
 
-BOOL PreConnect(freerdp* instance) {
-  static_cast<void>(instance);
-  return TRUE;
+BOOL LoadChannels(freerdp* instance) {
+  // FreeRDP rebuilds channels after PreConnect and invokes this callback.
+  // Its loader also installs the channels required for network autodetection.
+  freerdp_register_addin_provider(freerdp_channels_load_static_addin_entry, 0);
+  return freerdp_client_load_addins(instance->context->channels,
+                                  instance->context->settings);
 }
 
 BOOL PostConnect(freerdp* instance) {
   if (!gdi_init(instance, PIXEL_FORMAT_BGRA32)) {
     return FALSE;
   }
+
+  instance->context->update->DesktopResize = [](rdpContext* context) -> BOOL {
+    return gdi_resize(
+        context->gdi,
+        freerdp_settings_get_uint32(context->settings, FreeRDP_DesktopWidth),
+        freerdp_settings_get_uint32(context->settings, FreeRDP_DesktopHeight));
+  };
 
   auto* typed_context =
       reinterpret_cast<MidsceneRdpContext*>(instance->context);
@@ -861,13 +989,16 @@ std::optional<char32_t> NextUtf8Codepoint(std::string_view text, size_t* offset)
 
 }  // namespace
 
-FreeRdpSessionTransport::FreeRdpSessionTransport() = default;
+FreeRdpSessionTransport::FreeRdpSessionTransport() {
+  region16_init(&refreshed_region_);
+}
 
 FreeRdpSessionTransport::~FreeRdpSessionTransport() {
   try {
     Disconnect();
   } catch (...) {
   }
+  region16_uninit(&refreshed_region_);
 }
 
 ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) {
@@ -885,7 +1016,7 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
   instance->ContextSize = sizeof(MidsceneRdpContext);
   instance->ContextNew = ContextNew;
   instance->ContextFree = ContextFree;
-  instance->PreConnect = PreConnect;
+  instance->LoadChannels = LoadChannels;
   instance->PostConnect = PostConnect;
 
   if (config.ignore_certificate) {
@@ -939,7 +1070,32 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
   configured =
       configured && freerdp_settings_set_bool(settings, FreeRDP_SoftwareGdi, TRUE);
   configured = configured &&
-               freerdp_settings_set_bool(settings, FreeRDP_SupportGraphicsPipeline, FALSE);
+               freerdp_settings_set_bool(settings, FreeRDP_SupportGraphicsPipeline, TRUE);
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_SupportDynamicChannels, TRUE);
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_FastPathOutput, TRUE);
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_FrameMarkerCommandEnabled, TRUE);
+  // Loading graphics channels must not enable unrelated desktop redirection.
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_RedirectClipboard, FALSE);
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_AudioPlayback, FALSE);
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_AudioCapture, FALSE);
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_SupportDisplayControl, FALSE);
+#ifdef WITH_GFX_H264
+  // FreeRDP defaults H.264 off. Without it, continuously changing desktops
+  // still accumulate slow bitmap updates even after the GFX channel connects.
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_GfxH264, TRUE);
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_GfxAVC444, TRUE);
+  configured = configured &&
+               freerdp_settings_set_bool(settings, FreeRDP_GfxAVC444v2, TRUE);
+#endif
   configured = configured &&
                freerdp_settings_set_bool(settings, FreeRDP_IgnoreCertificate, config.ignore_certificate);
   configured = configured &&
@@ -1029,6 +1185,8 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
     session_id_ = GenerateSessionId();
     connected_ = true;
     running_ = true;
+    refresh_supported_ = freerdp_settings_get_bool(settings, FreeRDP_RefreshRect) &&
+                         instance_->context->update->RefreshRect;
     info.session_id = session_id_;
     const char* host = freerdp_settings_get_server_name(settings);
     const UINT32 port =
@@ -1087,19 +1245,114 @@ void FreeRdpSessionTransport::Disconnect() {
 
 RawFrame FreeRdpSessionTransport::CaptureFrame() {
   const auto started = std::chrono::steady_clock::now();
+  std::optional<uint64_t> required_graphics_frame;
+  std::optional<uint64_t> required_refresh;
   for (;;) {
     std::unique_lock<std::mutex> lock(mutex_);
     if (!connected_ || !instance_ || !instance_->context ||
-        !instance_->context->gdi ||
         !session_active_.load(std::memory_order_relaxed)) {
       throw std::runtime_error(
           last_error_ ? "RDP screenshot failed: " + last_error_->message
                       : "No remote framebuffer is available");
     }
 
+    FramebufferUpdateLock update_lock(instance_->context->update);
+    if (!instance_->context->gdi) {
+      throw std::runtime_error("No remote framebuffer is available");
+    }
+
     if (frames_painted_.load(std::memory_order_relaxed) == 0) {
       throw std::runtime_error(
           "Remote framebuffer has not received its first paint yet");
+    }
+
+    if (refresh_size_changed_.exchange(false, std::memory_order_acquire)) {
+      refresh_needed_ = true;
+    }
+    if (refresh_supported_ && refresh_needed_) {
+      const auto* gdi = instance_->context->gdi;
+      if (gdi->width <= 0 || gdi->height <= 0 ||
+          gdi->width > UINT16_MAX || gdi->height > UINT16_MAX) {
+        throw std::runtime_error("Remote framebuffer dimensions are invalid for an RDP refresh");
+      }
+      {
+        std::lock_guard<std::mutex> frame_lock(frame_mutex_);
+        region16_clear(&refreshed_region_);
+        refresh_size_ = Size{gdi->width, gdi->height};
+        required_refresh = ++refresh_requested_;
+        refresh_after_graphics_frame_ =
+            graphics_frames_started_.load(std::memory_order_acquire);
+        refresh_pending_.store(true, std::memory_order_release);
+      }
+      // RefreshRect uses inclusive edges; the coverage region uses exclusive ones.
+      const RECTANGLE_16 area{0, 0, static_cast<UINT16>(gdi->width - 1),
+                             static_cast<UINT16>(gdi->height - 1)};
+      if (!instance_->context->update->RefreshRect(instance_->context, 1, &area)) {
+        refresh_pending_.store(false, std::memory_order_release);
+        throw std::runtime_error("Failed to request RDP framebuffer refresh");
+      }
+      refresh_needed_ = false;
+    } else if (!required_refresh && refresh_pending_.load(std::memory_order_acquire)) {
+      std::lock_guard<std::mutex> frame_lock(frame_mutex_);
+      required_refresh = refresh_requested_;
+    }
+    if (required_refresh && refresh_completed_.load(std::memory_order_acquire) <
+                                *required_refresh) {
+      std::unique_lock<std::mutex> frame_lock(frame_mutex_);
+      update_lock.Unlock();
+      lock.unlock();
+      const bool refreshed = frame_cv_.wait_until(
+          frame_lock, started + std::chrono::seconds(3), [this, &required_refresh] {
+            return refresh_completed_.load(std::memory_order_acquire) >= *required_refresh ||
+                   refresh_size_changed_.load(std::memory_order_acquire) ||
+                   !session_active_.load(std::memory_order_relaxed);
+          });
+      if (!refreshed) {
+        UINT32 count = 0;
+        const auto* rectangles = region16_rects(&refreshed_region_, &count);
+        uint64_t area = 0;
+        for (UINT32 index = 0; index < count; ++index) {
+          area += static_cast<uint64_t>(rectangles[index].right - rectangles[index].left) *
+                  (rectangles[index].bottom - rectangles[index].top);
+        }
+        std::string coverage;
+        for (UINT32 index = 0; index < std::min<UINT32>(count, 8); ++index) {
+          const auto& rect = rectangles[index];
+          coverage += " [" + std::to_string(rect.left) + "," + std::to_string(rect.top) +
+                      "," + std::to_string(rect.right) + "," + std::to_string(rect.bottom) + "]";
+        }
+        throw std::runtime_error(
+            "RDP screenshot timed out waiting for framebuffer refresh (covered " +
+            std::to_string(area) + "/" +
+            std::to_string(static_cast<uint64_t>(refresh_size_.width) * refresh_size_.height) +
+            " pixels, graphics frames " +
+            std::to_string(graphics_frames_completed_.load()) + "/" +
+            std::to_string(graphics_frames_started_.load()) + ", regions" + coverage + ")");
+      }
+      // Take the graphics-frame target after the refreshed pixels arrive.
+      required_graphics_frame.reset();
+      continue;
+    }
+
+    if (!required_graphics_frame) {
+      required_graphics_frame = graphics_frames_started_.load(std::memory_order_acquire);
+    }
+    if (graphics_frames_completed_.load(std::memory_order_acquire) <
+        *required_graphics_frame) {
+      std::unique_lock<std::mutex> frame_lock(frame_mutex_);
+      update_lock.Unlock();
+      lock.unlock();
+      const bool completed = frame_cv_.wait_until(
+          frame_lock, started + std::chrono::seconds(3), [this, &required_graphics_frame] {
+            return graphics_frames_completed_.load(std::memory_order_acquire) >=
+                       *required_graphics_frame ||
+                   !session_active_.load(std::memory_order_relaxed);
+          });
+      if (!completed) {
+        throw std::runtime_error("RDP screenshot timed out waiting for graphics frame completion");
+      }
+      // Keep the original target; later animation frames must not extend it.
+      continue;
     }
 
     if (!first_screenshot_pending_) {
@@ -1117,6 +1370,7 @@ RawFrame FreeRdpSessionTransport::CaptureFrame() {
 
     // Only the first screenshot settles. Release the event-loop mutex so
     // paints can continue; animations cannot extend the fixed deadline.
+    update_lock.Unlock();
     lock.unlock();
     frame_cv_.wait_until(frame_lock, wake_at);
   }
@@ -1124,7 +1378,11 @@ RawFrame FreeRdpSessionTransport::CaptureFrame() {
 
 Size FreeRdpSessionTransport::GetSize() {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (!connected_ || !instance_ || !instance_->context || !instance_->context->gdi) {
+  if (!connected_ || !instance_ || !instance_->context) {
+    return {};
+  }
+  FramebufferUpdateLock update_lock(instance_->context->update);
+  if (!instance_->context->gdi) {
     return {};
   }
 
@@ -1143,6 +1401,7 @@ void FreeRdpSessionTransport::MouseMove(uint16_t x, uint16_t y) {
 
   mouse_x_ = x;
   mouse_y_ = y;
+  refresh_needed_ = true;
 }
 
 void FreeRdpSessionTransport::MouseButton(std::string_view button,
@@ -1168,6 +1427,7 @@ void FreeRdpSessionTransport::MouseButton(std::string_view button,
                                         mouse_y_)) {
       throw std::runtime_error(LastFreeRdpErrorLocked());
     }
+    refresh_needed_ = true;
   };
 
   std::lock_guard<std::mutex> lock(mutex_);
@@ -1215,6 +1475,7 @@ void FreeRdpSessionTransport::Wheel(std::string_view direction,
     }
     mouse_x_ = *x;
     mouse_y_ = *y;
+    refresh_needed_ = true;
   }
 
   uint16_t base_flags = 0;
@@ -1248,6 +1509,7 @@ void FreeRdpSessionTransport::Wheel(std::string_view direction,
       throw std::runtime_error("Failed to send wheel input");
     }
     remaining -= chunk;
+    refresh_needed_ = true;
   }
 }
 
@@ -1280,11 +1542,13 @@ void FreeRdpSessionTransport::KeyPress(std::string_view key_name) {
     if (!freerdp_input_send_keyboard_event_ex(instance_->context->input, TRUE, FALSE, scancode)) {
       throw std::runtime_error("Unsupported keyPress value: " + std::string(key_name));
     }
+    refresh_needed_ = true;
   };
   auto key_up = [&](uint32_t scancode) {
     if (!freerdp_input_send_keyboard_event_ex(instance_->context->input, FALSE, FALSE, scancode)) {
       throw std::runtime_error("Unsupported keyPress value: " + std::string(key_name));
     }
+    refresh_needed_ = true;
   };
 
   for (uint32_t modifier : modifiers) {
@@ -1319,6 +1583,7 @@ void FreeRdpSessionTransport::TypeText(std::string_view text) {
                                                 RDP_SCANCODE_RETURN)) {
         throw std::runtime_error("Failed to send unicode keyboard input");
       }
+      refresh_needed_ = true;
       continue;
     }
 
@@ -1333,6 +1598,7 @@ void FreeRdpSessionTransport::TypeText(std::string_view text) {
                                                    static_cast<UINT16>(*codepoint))) {
       throw std::runtime_error("Failed to send unicode keyboard input");
     }
+    refresh_needed_ = true;
   }
 }
 
@@ -1365,9 +1631,20 @@ void FreeRdpSessionTransport::ResetStateLocked() {
   gdi_initialized_ = false;
   frames_painted_.store(0, std::memory_order_relaxed);
   framebuffer_updates_.store(0, std::memory_order_relaxed);
+  graphics_frames_started_.store(0, std::memory_order_relaxed);
+  graphics_frames_completed_.store(0, std::memory_order_relaxed);
+  refresh_supported_ = false;
+  refresh_needed_ = false;
   {
     std::lock_guard<std::mutex> frame_lock(frame_mutex_);
     last_frame_update_ = {};
+    refresh_pending_.store(false, std::memory_order_relaxed);
+    refresh_size_changed_.store(false, std::memory_order_relaxed);
+    refresh_completed_.store(0, std::memory_order_relaxed);
+    refresh_requested_ = 0;
+    refresh_after_graphics_frame_ = 0;
+    refresh_size_ = {};
+    region16_clear(&refreshed_region_);
   }
   first_screenshot_pending_ = true;
   original_end_paint_ = nullptr;
@@ -1388,6 +1665,15 @@ void FreeRdpSessionTransport::HookEndPaint(rdpUpdate* update) {
   update->EndPaint = &MidsceneEndPaint;
 }
 
+void FreeRdpSessionTransport::HookGraphicsFrames(RdpgfxClientContext* graphics) {
+  auto* gdi = static_cast<rdpGdi*>(graphics->custom);
+  auto* context = reinterpret_cast<MidsceneRdpContext*>(gdi->context);
+  context->original_graphics_start_frame = graphics->StartFrame;
+  context->original_graphics_end_frame = graphics->EndFrame;
+  graphics->StartFrame = &MidsceneGraphicsStartFrame;
+  graphics->EndFrame = &MidsceneGraphicsEndFrame;
+}
+
 BOOL FreeRdpSessionTransport::CallOriginalEndPaint(rdpContext* context) {
   if (original_end_paint_) {
     return original_end_paint_(context);
@@ -1403,11 +1689,64 @@ void FreeRdpSessionTransport::MarkFramePainted() {
   frame_cv_.notify_all();
 }
 
-void FreeRdpSessionTransport::MarkFramebufferUpdated() {
+bool FreeRdpSessionTransport::HasPendingFramebufferRefresh() const {
+  return refresh_pending_.load(std::memory_order_acquire);
+}
+
+BOOL FreeRdpSessionTransport::MarkFramebufferUpdated(
+    const std::vector<RECTANGLE_16>& rectangles, Size size) {
+  BOOL ok = TRUE;
   {
     std::lock_guard<std::mutex> lock(frame_mutex_);
     framebuffer_updates_.fetch_add(1, std::memory_order_relaxed);
     last_frame_update_ = std::chrono::steady_clock::now();
+    if (refresh_pending_.load(std::memory_order_relaxed)) {
+      if (size.width != refresh_size_.width || size.height != refresh_size_.height) {
+        refresh_size_changed_.store(true, std::memory_order_release);
+      } else if (graphics_frames_started_.load(std::memory_order_acquire) == 0 ||
+                 graphics_frames_started_.load(std::memory_order_acquire) >
+                     refresh_after_graphics_frame_) {
+        // A frame already decoding when RefreshRect was sent cannot be its
+        // response, even if that older frame eventually paints the whole screen.
+        for (const auto& rectangle : rectangles) {
+          if (!region16_union_rect(&refreshed_region_, &refreshed_region_, &rectangle)) {
+            ok = FALSE;
+            break;
+          }
+        }
+        UINT32 count = 0;
+        const auto* covered = region16_rects(&refreshed_region_, &count);
+        uint64_t area = 0;
+        for (UINT32 index = 0; index < count; ++index) {
+          area += static_cast<uint64_t>(covered[index].right - covered[index].left) *
+                  (covered[index].bottom - covered[index].top);
+        }
+        if (ok && area == static_cast<uint64_t>(size.width) * size.height) {
+          refresh_pending_.store(false, std::memory_order_release);
+          refresh_completed_.store(refresh_requested_, std::memory_order_release);
+        }
+      }
+    }
+  }
+  frame_cv_.notify_all();
+  return ok;
+}
+
+void FreeRdpSessionTransport::MarkGraphicsFrameStarted() {
+  std::lock_guard<std::mutex> lock(frame_mutex_);
+  graphics_frames_started_.fetch_add(1, std::memory_order_release);
+  if (refresh_pending_.load(std::memory_order_relaxed)) {
+    // Coverage must belong to one logical graphics frame; accumulating unrelated
+    // animation updates across frames can manufacture a complete old snapshot.
+    region16_clear(&refreshed_region_);
+  }
+}
+
+void FreeRdpSessionTransport::MarkGraphicsFrameCompleted() {
+  {
+    std::lock_guard<std::mutex> lock(frame_mutex_);
+    graphics_frames_completed_.store(
+        graphics_frames_started_.load(std::memory_order_acquire), std::memory_order_release);
   }
   frame_cv_.notify_all();
 }

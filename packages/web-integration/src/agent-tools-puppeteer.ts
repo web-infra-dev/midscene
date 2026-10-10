@@ -451,7 +451,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
     if (navigateToUrl) {
       page = await browser.newPage();
       if (this.viewport) {
-        await page.setViewport(this.viewport);
+        await this.resizePersistentViewport(page);
       }
       await page.goto(navigateToUrl, {
         timeout: 30000,
@@ -473,7 +473,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
         await page.bringToFront();
       }
       if (this.viewport) {
-        await page.setViewport(this.viewport);
+        await this.resizePersistentViewport(page);
       }
     }
 
@@ -492,6 +492,42 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
     });
     this.lastInitArgsSignature = nextSignature;
     return this.agent;
+  }
+
+  private async resizePersistentViewport(page: Page): Promise<void> {
+    const viewport = this.viewport;
+    if (!viewport) return;
+
+    // Emulation is scoped to the CDP connection. Resize the actual content area
+    // so the requested dimensions also survive CLI disconnect and reconnect.
+    await page.setViewport(null);
+    const client = await page.createCDPSession();
+    try {
+      const { windowId, bounds } = await client.send(
+        'Browser.getWindowForTarget',
+      );
+      // Browser snippets must remain free of Node-side coverage counters.
+      const content = (await page.evaluate(
+        '({ width: window.innerWidth, height: window.innerHeight })',
+      )) as { width: number; height: number };
+      if (bounds.width === undefined || bounds.height === undefined) {
+        throw new Error('Chrome did not return window dimensions');
+      }
+      await client.send('Browser.setWindowBounds', {
+        windowId,
+        bounds: {
+          width: bounds.width + viewport.width - content.width,
+          height: bounds.height + viewport.height - content.height,
+        },
+      });
+      await page.waitForFunction(
+        `window.innerWidth === ${JSON.stringify(viewport.width)} && window.innerHeight === ${JSON.stringify(viewport.height)}`,
+        { timeout: 10_000 },
+      );
+    } finally {
+      await client.detach();
+    }
+    await page.setViewport(viewport);
   }
 
   public async destroy(): Promise<void> {

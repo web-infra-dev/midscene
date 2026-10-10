@@ -18,6 +18,11 @@ import {
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
+import {
+  desktopKeyboardPolicy,
+  desktopPointerPolicy,
+  resolveTapHoldDuration,
+} from '../desktop-input-policy';
 import type { ComputerDeviceInputOpt, DisplayInfo } from '../device';
 import { clampPointerPointToSize } from '../pointer';
 import {
@@ -34,17 +39,9 @@ import type {
 
 const debug = getDebug('rdp:device');
 
-const SMOOTH_MOVE_STEPS_TAP = 8;
-const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
 const SMOOTH_MOVE_STEPS_DRAG = 12;
-const SMOOTH_MOVE_DELAY_TAP = 8;
-const SMOOTH_MOVE_DELAY_MOUSE_MOVE = 10;
 const SMOOTH_MOVE_DELAY_DRAG = 10;
-const MOUSE_MOVE_EFFECT_WAIT = 300;
-const CLICK_HOLD_DURATION = 50;
 const DRAG_HOLD_DURATION = 100;
-const INPUT_FOCUS_DELAY = 300;
-const INPUT_CLEAR_DELAY = 150;
 const SCROLL_STEP_DELAY = 100;
 const SCROLL_COMPLETE_DELAY = 500;
 const DEFAULT_SCROLL_DISTANCE = 480;
@@ -73,34 +70,41 @@ export class RDPDevice implements AbstractInterface {
 
   readonly inputPrimitives: ComputerInputPrimitives = {
     pointer: {
-      tap: async ({ x, y }) => {
+      tap: async ({ x, y }, opts) => {
         await this.movePointer(Math.round(x), Math.round(y), {
-          steps: SMOOTH_MOVE_STEPS_TAP,
-          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+          steps: desktopPointerPolicy.tapMoveSteps,
+          stepDelayMs: desktopPointerPolicy.tapMoveStepDelayMs,
+          // Let hover-driven UI updates settle before pressing the button.
+          settleDelayMs: desktopPointerPolicy.uiSettleMs,
         });
         await this.backend.mouseButton('left', 'down');
-        await sleep(CLICK_HOLD_DURATION);
-        await this.backend.mouseButton('left', 'up');
+        try {
+          await sleep(resolveTapHoldDuration(opts?.duration));
+        } finally {
+          await this.backend.mouseButton('left', 'up');
+        }
       },
       doubleClick: async ({ x, y }) => {
         await this.movePointer(Math.round(x), Math.round(y), {
-          steps: SMOOTH_MOVE_STEPS_TAP,
-          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+          steps: desktopPointerPolicy.tapMoveSteps,
+          stepDelayMs: desktopPointerPolicy.tapMoveStepDelayMs,
+          settleDelayMs: desktopPointerPolicy.uiSettleMs,
         });
         await this.backend.mouseButton('left', 'doubleClick');
       },
       rightClick: async ({ x, y }) => {
         await this.movePointer(Math.round(x), Math.round(y), {
-          steps: SMOOTH_MOVE_STEPS_TAP,
-          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+          steps: desktopPointerPolicy.tapMoveSteps,
+          stepDelayMs: desktopPointerPolicy.tapMoveStepDelayMs,
+          settleDelayMs: desktopPointerPolicy.uiSettleMs,
         });
         await this.backend.mouseButton('right', 'click');
       },
       hover: async ({ x, y }) => {
         await this.movePointer(Math.round(x), Math.round(y), {
-          steps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-          stepDelayMs: SMOOTH_MOVE_DELAY_MOUSE_MOVE,
-          settleDelayMs: MOUSE_MOVE_EFFECT_WAIT,
+          steps: desktopPointerPolicy.hoverMoveSteps,
+          stepDelayMs: desktopPointerPolicy.hoverMoveStepDelayMs,
+          settleDelayMs: desktopPointerPolicy.uiSettleMs,
         });
       },
       dragAndDrop: async (from, to) => {
@@ -126,11 +130,14 @@ export class RDPDevice implements AbstractInterface {
             x: target.center[0],
             y: target.center[1],
           });
-          await sleep(INPUT_FOCUS_DELAY);
-        }
-        if (opts?.replace !== false) {
-          await this.clearInput();
-          await sleep(INPUT_CLEAR_DELAY);
+          await sleep(desktopKeyboardPolicy.focusBeforeTypeMs);
+          if (opts?.focusOnly) {
+            return;
+          }
+          if (opts?.replace !== false) {
+            await this.clearInput();
+            await sleep(desktopKeyboardPolicy.afterClearMs);
+          }
         }
         if (opts?.focusOnly || !value) {
           return;
@@ -145,10 +152,10 @@ export class RDPDevice implements AbstractInterface {
             x: element.center[0],
             y: element.center[1],
           });
-          await sleep(INPUT_FOCUS_DELAY);
+          await sleep(desktopKeyboardPolicy.focusBeforeClearMs);
         }
         await this.clearInput();
-        await sleep(INPUT_CLEAR_DELAY);
+        await sleep(desktopKeyboardPolicy.afterClearMs);
       },
       keyboardPress: async (keyName, opts) => {
         this.assertConnected();
@@ -158,6 +165,7 @@ export class RDPDevice implements AbstractInterface {
             x: target.center[0],
             y: target.center[1],
           });
+          await sleep(desktopKeyboardPolicy.focusBeforeShortcutMs);
         }
         await this.backend.keyPress(keyName);
       },
@@ -166,20 +174,35 @@ export class RDPDevice implements AbstractInterface {
       scroll: async (param) => {
         this.assertConnected();
         const target = param.locate;
+        let scrollPoint: [number, number];
         if (target) {
-          await this.moveToElement(target, {
-            steps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-            stepDelayMs: SMOOTH_MOVE_DELAY_MOUSE_MOVE,
-          });
+          scrollPoint = target.center;
+        } else {
+          const size = await this.size();
+          scrollPoint = [
+            Math.round(size.width / 2),
+            Math.round(size.height / 2),
+          ];
         }
+        await this.movePointer(
+          Math.round(scrollPoint[0]),
+          Math.round(scrollPoint[1]),
+          {
+            steps: desktopPointerPolicy.hoverMoveSteps,
+            stepDelayMs: desktopPointerPolicy.hoverMoveStepDelayMs,
+            settleDelayMs: target
+              ? desktopPointerPolicy.moveSettleMs
+              : desktopPointerPolicy.uiSettleMs,
+          },
+        );
         if (param.scrollType && param.scrollType !== 'singleAction') {
           const direction = this.edgeScrollDirection(param.scrollType);
           for (let i = 0; i < EDGE_SCROLL_STEPS; i++) {
             await this.performWheel(
               direction,
               DEFAULT_SCROLL_DISTANCE,
-              target?.center[0],
-              target?.center[1],
+              scrollPoint[0],
+              scrollPoint[1],
             );
           }
           await sleep(SCROLL_COMPLETE_DELAY);
@@ -189,8 +212,8 @@ export class RDPDevice implements AbstractInterface {
           param.direction || 'down',
           param.distance ||
             this.defaultScrollDistance(param.direction || 'down'),
-          target?.center[0],
-          target?.center[1],
+          scrollPoint[0],
+          scrollPoint[1],
         );
         await sleep(SCROLL_COMPLETE_DELAY);
       },
@@ -325,20 +348,6 @@ export class RDPDevice implements AbstractInterface {
     }
   }
 
-  private async moveToElement(
-    element: LocateResultElement,
-    options?: {
-      steps?: number;
-      stepDelayMs?: number;
-      settleDelayMs?: number;
-    },
-  ): Promise<void> {
-    this.assertConnected();
-    const targetX = Math.round(element.center[0]);
-    const targetY = Math.round(element.center[1]);
-    await this.movePointer(targetX, targetY, options);
-  }
-
   private async clearInput(): Promise<void> {
     if (this.backend.clearInput) {
       await this.backend.clearInput();
@@ -418,8 +427,8 @@ export class RDPDevice implements AbstractInterface {
       Math.round(boundedFrom.x),
       Math.round(boundedFrom.y),
       {
-        steps: SMOOTH_MOVE_STEPS_TAP,
-        stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+        steps: desktopPointerPolicy.tapMoveSteps,
+        stepDelayMs: desktopPointerPolicy.tapMoveStepDelayMs,
       },
     );
     await this.backend.mouseButton('left', 'down');
