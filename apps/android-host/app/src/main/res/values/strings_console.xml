@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Console copy: the Compose screens in `ConsoleActivity.kt`, the report pane shared by
+  the History page and `ReportViewerActivity.kt`, and the artefact viewer itself.
+  `values-zh/strings_console.xml` is the Chinese counterpart; keep the two in sync.
+  App-level and runtime copy lives in `strings.xml` / `strings_runtime.xml`.
+-->
+<resources>
+
+    <!-- Console shell: navigation and page titles -->
+    <string name="run_title">Run</string>
+    <string name="scripts_title">Scripts</string>
+    <string name="history_title">History</string>
+    <string name="settings_title">Settings</string>
+    <string name="diagnostics_title">Diagnostics</string>
+
+    <!-- Run -->
+    <string name="run_idle_hint">Describe what you want your device to do</string>
+    <string name="run_busy_hint">Running · interrupt it from the floating panel</string>
+    <!-- The Run page renders these two, and the self-check script is generated from them. -->
+    <string name="run_instruction_label">INSTRUCTION</string>
+    <string name="run_instruction_placeholder">For example: Open Settings and search for Wi-Fi</string>
+    <string name="run_instruction_input">Instruction input</string>
+    <string name="run_start">Run</string>
+    <string name="run_last_succeeded">Last run succeeded</string>
+    <string name="run_last_failed">Last run reported errors</string>
+    <!-- Shown on the Run page only while something a run needs is still missing. -->
+    <string name="run_setup_title">FINISH THE SETUP</string>
+    <!-- %1$s the model keys that are still empty. -->
+    <string name="run_setup_model">Model credentials — still missing %1$s</string>
+    <string name="run_setup_open_settings">Open settings</string>
+    <string name="run_setup_runtime">The agent runtime is not installed on this device yet.</string>
+    <string name="run_setup_install">Install</string>
+    <!-- Instructions already run, offered back with a per-row popover. -->
+    <string name="run_recent_label">RECENT INSTRUCTIONS</string>
+    <string name="run_recent_hint">Tap to reuse</string>
+    <string name="run_recent_actions">Actions for this instruction</string>
+    <string name="run_recent_run_again">Run again</string>
+    <string name="run_recent_fill">Put back in the input</string>
+    <string name="run_recent_copy">Copy</string>
+    <string name="run_recent_remove">Remove from list</string>
+    <!-- %1$s time · %2$d duration · %3$d done tasks / %4$d total tasks. -->
+    <plurals name="run_summary">
+        <item quantity="one">%1$s · %2$ds · %3$d/%4$d task</item>
+        <item quantity="other">%1$s · %2$ds · %3$d/%4$d tasks</item>
+    </plurals>
+
+    <!-- Scripts -->
+    <string name="scripts_busy_hint">Running — the script is locked until it ends</string>
+    <string name="scripts_idle_hint">Edit config.yaml to run tasks in order</string>
+    <string name="scripts_editor">Script editor</string>
+    <string name="scripts_status_saved">saved</string>
+    <string name="scripts_status_self_check">self-check running</string>
+    <string name="scripts_status_template">template loaded</string>
+    <string name="scripts_self_check">Self-check</string>
+    <string name="scripts_new_template">New template</string>
+
+    <!-- History -->
+    <!-- 0 is not a plural category in English, so the empty list has its own string and
+         the plural covers 1 and n. -->
+    <string name="history_no_runs">No runs</string>
+    <plurals name="history_run_count">
+        <item quantity="one">%d run</item>
+        <item quantity="other">%d runs</item>
+    </plurals>
+    <!-- %1$s run count · %2$s run name · %3$s relative time · %4$d duration · %5$d exit code. -->
+    <string name="history_detail">%1$s · %2$s · %3$s · %4$ds · exit %5$d</string>
+    <string name="history_run_fallback_name">run</string>
+    <string name="history_just_now">just now</string>
+    <string name="history_minutes_ago">%1$d min ago</string>
+    <string name="history_hours_ago">%1$d h ago</string>
+    <string name="history_empty">No runs yet.</string>
+    <string name="history_select_run">Select a run to see its report</string>
+    <string name="history_run_succeeded">Run succeeded</string>
+    <string name="history_run_failed">Run reported errors</string>
+    <string name="history_success">Success</string>
+    <string name="history_failed">Failed</string>
+    <string name="history_report">Report</string>
+    <string name="history_log">Log</string>
+    <string name="history_run_report">Run report</string>
+    <string name="history_run_log">Run log</string>
+    <string name="history_delete_title">Delete this run?</string>
+    <string name="history_delete_body">Deletes its log, result and report.</string>
+    <string name="history_delete_run">Delete run</string>
+    <string name="history_show_list">Show run list</string>
+    <string name="history_hide_list">Hide run list</string>
+    <string name="history_no_log">No log captured.</string>
+    <string name="history_run_meta">%1$s · %2$ds · exit %3$d</string>
+    <!-- Run card summary: %1$s relative time · %2$d duration · %3$d done / %4$d total. -->
+    <plurals name="history_card_summary">
+        <item quantity="one">%1$s · %2$ds · %3$d/%4$d task</item>
+        <item quantity="other">%1$s · %2$ds · %3$d/%4$d tasks</item>
+    </plurals>
+
+    <!-- Diagnostics -->
+    <string name="diagnostics_runtime">RUNTIME</string>
+    <string name="diagnostics_device">DEVICE</string>
+    <string name="diagnostics_storage">STORAGE</string>
+    <string name="diagnostics_service_log">SERVICE LOG</string>
+    <string name="diagnostics_row_node">node</string>
+    <string name="diagnostics_row_agent_bundle">agent bundle</string>
+    <string name="diagnostics_row_yadb">yadb</string>
+    <string name="diagnostics_row_shell_channel">shell channel</string>
+    <string name="diagnostics_row_shizuku_service">shizuku user service</string>
+    <string name="diagnostics_row_overlay">overlay permission</string>
+    <string name="diagnostics_status_ready">ready</string>
+    <string name="diagnostics_status_missing">missing</string>
+    <string name="diagnostics_status_checking">checking…</string>
+    <string name="diagnostics_status_unknown">unknown</string>
+    <string name="diagnostics_locked">Locked while a run is in progress</string>
+    <string name="diagnostics_provision">Provision</string>
+    <string name="diagnostics_battery">Battery</string>
+    <string name="diagnostics_overlay">Overlay</string>
+    <string name="diagnostics_clean_now">Clean now</string>
+    <string name="diagnostics_storage_usage">Runs: %1$d · %2$d MB of %3$d MB · limit: %4$d</string>
+
+    <!-- Execution channel -->
+    <string name="channel_title">EXECUTION CHANNEL</string>
+    <string name="channel_this_device">This device (adb)</string>
+    <string name="channel_shizuku">Shizuku</string>
+    <string name="channel_open_shizuku">Open Shizuku</string>
+    <string name="channel_authorize">Authorize</string>
+    <string name="channel_reauthorize">Re-authorize</string>
+    <string name="channel_checking">Checking the channel…</string>
+    <string name="channel_unknown">Unknown</string>
+    <string name="channel_chip_paired">Paired with this device</string>
+    <string name="channel_chip_paired_serial">Paired with this device · %1$s</string>
+    <string name="channel_chip_not_paired">Not paired yet</string>
+    <string name="channel_reconnect">Reconnect</string>
+    <string name="channel_start_pairing">Start pairing</string>
+    <string name="channel_listening_hint">Already listening on a port?</string>
+    <string name="channel_address_label">Address or port</string>
+    <string name="channel_port_placeholder">5555</string>
+    <string name="channel_connect">Connect</string>
+    <string name="channel_pairing_note">Tap Start pairing first, then open the system dialog and type the six digits into the notification. Pairing is one-time.</string>
+    <string name="channel_checking_execution">Checking the execution channel…</string>
+    <string name="channel_shizuku_status">Shizuku user-service status: %1$d</string>
+    <string name="channel_bound_as_uid">User service bound as uid %1$d</string>
+    <string name="channel_shizuku_not_running">Shizuku is not running. Start it, then retry.</string>
+    <string name="channel_shizuku_unauthorized">Shizuku is running but this app is not authorized yet.</string>
+    <string name="channel_shizuku_service_failed">Shizuku is authorized but the user service did not start.</string>
+    <string name="channel_retry_binding">Retry binding</string>
+    <string name="channel_retry_connection">Retry connection</string>
+    <string name="channel_fix_diagnostics">Fix in Diagnostics</string>
+    <string name="channel_needs_notifications">Notifications are required to enter the pairing code.</string>
+
+    <!-- Settings -->
+    <string name="settings_preferences">PREFERENCES</string>
+    <string name="settings_dark_theme">Dark theme</string>
+    <string name="settings_open_after_run">Open app after a run</string>
+    <string name="settings_open_after_run_hint">Brings Midscene forward when the agent finishes</string>
+    <string name="settings_generate_report">Generate run reports</string>
+    <string name="settings_generate_report_hint">A report embeds every screenshot, so it takes space; off keeps the log and the task counts. Scripts follow their own config.yaml.</string>
+    <string name="settings_floating_progress">Floating progress</string>
+    <string name="settings_floating_progress_hint">Shows what the agent is doing and carries the stop control; hidden during screenshots</string>
+    <string name="settings_device_setup">DEVICE &amp; SETUP</string>
+    <string name="settings_run_setup_again">Setup guide</string>
+    <!-- Reset: back to a fresh install, then the guide above runs again. -->
+    <string name="settings_reset_all">Reset all data</string>
+    <string name="settings_reset_running">Resetting…</string>
+    <string name="settings_reset_locked">Stop the run first.</string>
+    <string name="settings_reset_title">Reset everything?</string>
+    <string name="settings_reset_body">Deletes the pairing, model credentials, scripts, run history and the agent runtime, then starts again at the setup guide. This cannot be undone.</string>
+    <string name="settings_reset_confirm">Reset</string>
+
+    <!-- Model credentials -->
+    <string name="model_title">MODEL CREDENTIALS</string>
+    <string name="model_storage_note">Stored in app-private storage, injected into the agent, never written to a script.</string>
+    <string name="model_style_form">Form Style</string>
+    <string name="model_style_env">.env Style</string>
+    <string name="model_env_editor">Model env editor</string>
+    <string name="model_locked">Locked during a run: the agent keeps the credentials it started with</string>
+    <string name="model_saved_toast">Credentials saved</string>
+    <string name="model_paste_env">Paste env</string>
+    <string name="model_paste">Paste</string>
+    <string name="model_hide_key">Hide API key</string>
+    <string name="model_show_key">Show API key</string>
+    <string name="model_ready">Ready: base URL, API key, model name and family are set.</string>
+    <string name="model_missing">Still missing: %1$s</string>
+    <!-- Placeholders describe what the field wants. No vendor's endpoint or model name is
+         held up as the example: every OpenAI-compatible service works, and naming one of
+         them reads as a requirement. -->
+    <string name="model_placeholder_base_url">OpenAI-compatible endpoint, usually ending in /v1</string>
+    <string name="model_placeholder_api_key">The API key your model service issued</string>
+    <string name="model_placeholder_model_name">Model name, exactly as your service lists it</string>
+    <string name="model_placeholder_model_family">Choose the family your model belongs to (sets UI localisation)</string>
+
+    <!-- Connection test: one real request to the configured endpoint. -->
+    <string name="model_test_button">Test connection</string>
+    <string name="model_test_running">Testing…</string>
+    <!-- %1$s the model's reply · %2$d how long the round trip took. -->
+    <string name="model_test_passed">Connected · the model answered “%1$s” in %2$d ms</string>
+    <string name="model_test_failed">Not connected — %1$s</string>
+    <string name="model_test_err_incomplete">fill in all four values first</string>
+    <string name="model_test_err_host">the address does not resolve (%1$s)</string>
+    <string name="model_test_err_timeout">the endpoint did not answer in time (%1$s)</string>
+    <string name="model_test_err_network">could not reach the endpoint (%1$s)</string>
+    <string name="model_test_err_auth">the API key was rejected (HTTP %1$d)</string>
+    <string name="model_test_err_not_found">no such endpoint or model name (HTTP %1$d)</string>
+    <string name="model_test_err_bad_request">the service rejected the request (HTTP %1$d)</string>
+    <string name="model_test_err_http">HTTP %1$d</string>
+    <string name="model_test_err_body">the response was not a chat completion: %1$s</string>
+    <string name="model_test_err_empty_reply">the model answered with nothing, which a vision model should not do</string>
+    <!-- %1$s the reason above · %2$s the service's own error text. -->
+    <string name="model_test_reason_detail">%1$s: %2$s</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">Welcome to Midscene</string>
+    <string name="onboarding_welcome_body">Five steps and the device runs tasks on its own.</string>
+    <string name="onboarding_control_label">CONTROL METHOD</string>
+    <string name="onboarding_adb_body">Midscene pairs with this device\'s adb over wireless debugging — nothing extra to install.</string>
+    <string name="onboarding_shizuku_body">Midscene gets shell access through Shizuku. Install and start Shizuku first.</string>
+    <string name="onboarding_step1_title_adb">Pair with this device</string>
+    <string name="onboarding_step1_title_shizuku">Let Midscene control the device</string>
+    <string name="onboarding_step1_body_adb">1. Tap the button below.\n2. Settings → Developer options → Wireless debugging → \"Pair device with pairing code\".\n3. Pull down the shade and type the six digits into the Midscene notification.</string>
+    <string name="onboarding_step1_body_shizuku">Midscene uses Shizuku to tap, type and read the screen. Shizuku has to be running, and this app needs your permission.</string>
+    <string name="onboarding_get_shizuku">Get Shizuku</string>
+    <string name="onboarding_hint_ready">Ready</string>
+    <string name="onboarding_hint_checking">Checking…</string>
+    <string name="onboarding_hint_wireless">Turn on wireless debugging; the code arrives in a notification</string>
+    <string name="onboarding_hint_not_connected">Not connected yet</string>
+    <string name="onboarding_hint_shizuku_not_running">Shizuku is not running yet</string>
+    <string name="onboarding_hint_waiting">Waiting for your permission</string>
+    <string name="onboarding_model_title">Fill in the model credentials</string>
+    <string name="onboarding_model_body">The agent runs on your own model endpoint: an OpenAI-compatible vision model. All four values are needed — the family says how to ask that model for element locations, and is picked from the list. They stay on this device and are injected into the agent process, never into a script.</string>
+    <!-- %1$s the model keys that are still empty. -->
+    <string name="onboarding_model_hint">Still missing %1$s</string>
+    <string name="onboarding_model_hint_untested">Values are in — run the connection test</string>
+    <string name="onboarding_model_hint_failed">The connection test did not pass — see above</string>
+    <string name="onboarding_step_overlay_title">Allow the progress bubble</string>
+    <string name="onboarding_step_overlay_body">A floating pill shows what the agent is doing. It hides during screenshots, so reports stay clean.</string>
+    <string name="onboarding_allow_overlay">Allow overlay</string>
+    <string name="onboarding_hint_granted">Granted</string>
+    <string name="onboarding_hint_not_granted">Not granted yet</string>
+    <string name="onboarding_step_battery_title">Keep long tasks alive</string>
+    <string name="onboarding_step_battery_body">Exempt Midscene from battery optimisation so a run survives a locked screen.</string>
+    <string name="onboarding_exempt_battery">Exempt from battery limits</string>
+    <string name="onboarding_hint_exempt">Exempt</string>
+    <string name="onboarding_hint_still_optimised">Still optimised</string>
+    <string name="onboarding_step_runtime_title">Install the agent runtime</string>
+    <string name="onboarding_step_runtime_body">Unpacks Node, the Midscene agent and the input helper onto the device.</string>
+    <string name="onboarding_reprovision">Re-provision</string>
+    <string name="onboarding_install_now">Install now</string>
+    <string name="onboarding_hint_needs_step1">Needs step 1 first</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Start using Midscene</string>
+    <string name="onboarding_skip">Skip setup</string>
+
+    <!-- About page -->
+    <string name="about_app_name">Midscene Android</string>
+    <string name="about_title">About</string>
+    <string name="about_version_line">version %1$s · build %2$d</string>
+    <string name="about_build">BUILD</string>
+    <string name="about_version">Version</string>
+    <string name="about_build_time">Built</string>
+    <string name="about_build_type">Build type</string>
+    <string name="about_build_debug">Debug</string>
+    <string name="about_build_release">Release</string>
+    <string name="about_package">Package</string>
+    <string name="about_runtime">AGENT RUNTIME</string>
+    <string name="about_runtime_state">Agent runtime</string>
+    <string name="about_runtime_installed">Installed</string>
+    <string name="about_runtime_missing">Not installed</string>
+    <string name="about_bundle">Agent bundle</string>
+    <string name="about_channel">Shell channel</string>
+    <string name="about_device">DEVICE</string>
+    <string name="about_device_model">Model</string>
+    <string name="about_android">Android</string>
+    <string name="about_android_version">%1$s (API %2$d)</string>
+    <string name="about_abi">ABI</string>
+    <string name="about_project">PROJECT</string>
+    <string name="about_homepage">Homepage</string>
+    <string name="about_copy">Copy version info</string>
+    <string name="about_copied">Version info copied</string>
+    <string name="about_unknown">unknown</string>
+
+    <!-- Report viewer: shared by the History pane and ReportViewerActivity -->
+    <string name="report_viewer_rendering">Rendering report…</string>
+    <string name="report_viewer_rendering_note">Reports embed every screenshot, so the first render is slow.</string>
+    <string name="report_viewer_file_not_found">File not found: %1$s</string>
+    <string name="report_viewer_read_error">Could not read %1$s\n%2$s</string>
+
+    <!-- Common -->
+    <string name="common_back">Back</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_refresh">Refresh</string>
+
+</resources>

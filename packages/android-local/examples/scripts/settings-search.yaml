@@ -1,0 +1,13 @@
+# Midscene YAML script: open Settings, search for something, verify the result.
+# Runs through `agent.runYaml()` — no CLI and no web/api section needed, because
+# the device and the model are already configured by the surrounding config file.
+
+tasks:
+  - name: open settings and search
+    flow:
+      - ai: open the settings app
+      - ai: tap the "Search settings" box
+      - ai: type "中文输入测试" into the focused field
+      - sleep: 1500
+      - aiAssert: the search field contains the typed text and the settings search UI is visible
+      - ai: clear the search field and go back to the settings list

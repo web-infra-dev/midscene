@@ -1,0 +1,20 @@
+{
+  "name": "android-host",
+  "private": true,
+  "version": "1.0.0",
+  "description": "On-device Android agent host: ships Node and the Midscene agent inside an APK and drives the device through a shell channel (Shizuku, or the device's own adbd).",
+  "scripts": {
+    "bundle": "node ./scripts/bundle-agent.mjs",
+    "runtime": "./scripts/fetch-node-runtime.sh",
+    "adb-runtime": "./scripts/fetch-adb-runtime.sh",
+    "icons": "python3 ./scripts/make-icons.py",
+    "assemble": "pnpm exec nx build @midscene/android-local && pnpm run runtime && pnpm run adb-runtime && pnpm run bundle && ./gradlew assembleDebug",
+    "assemble:release": "pnpm exec nx build @midscene/android-local && pnpm run runtime && pnpm run adb-runtime && pnpm run bundle && ./gradlew assembleRelease",
+    "test": "node --test scripts/check-multi-user.test.mjs",
+    "test:android": "./gradlew :app:testDebugUnitTest",
+    "install": "adb install -r app/build/outputs/apk/debug/app-debug.apk",
+    "dist:debug": "./gradlew :app:distDebug",
+    "dist:release": "./gradlew :app:distRelease",
+    "bootstrap": "./scripts/adb-bootstrap.sh"
+  }
+}
