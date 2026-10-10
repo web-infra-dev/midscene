@@ -130,7 +130,7 @@ export class IOSDevice implements AbstractInterface {
     },
     touch: {
       swipe: async (start, end, opts) => {
-        const duration = opts?.duration ?? 500;
+        const duration = opts?.duration ?? 300;
         const repeat = opts?.repeat ?? 1;
         for (let i = 0; i < repeat; i++) {
           await this.swipePoint(start, end, duration);
@@ -246,7 +246,7 @@ export class IOSDevice implements AbstractInterface {
   private async swipePoint(
     start: PointerPoint,
     end: PointerPoint,
-    duration = 500,
+    duration = 300,
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('swipe');
     await this.wdaBackend.swipe(
@@ -278,8 +278,6 @@ export class IOSDevice implements AbstractInterface {
 
   actionSpace(): DeviceAction<any>[] {
     const mobileActionContext = {
-      // Match direct swipes: short, fast gestures add wheel-picker inertia.
-      defaultSwipeDuration: 500,
       input: this.inputPrimitives,
       size: () => this.size(),
       sleep: async (timeMs: number) => {
@@ -630,7 +628,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     fromY: number,
     toX: number,
     toY: number,
-    duration = 500,
+    duration = 300,
   ): Promise<void> {
     await this.swipeCoordinates(fromX, fromY, toX, toY, duration);
   }
@@ -640,7 +638,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     fromY: number,
     toX: number,
     toY: number,
-    duration = 500,
+    duration = 300,
   ): Promise<void> {
     await this.swipePoint({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
   }
@@ -952,7 +950,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         await sleep(2000); // 300ms scroll + inertia time + page stabilization time
       } catch (error) {
         debugDevice(`Error during scroll attempt ${i + 1}: ${error}`);
-        await sleep(300);
+        throw error;
       }
     }
 

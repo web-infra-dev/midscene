@@ -139,6 +139,24 @@ describe('IOSDevice', () => {
     });
   });
 
+  describe('boundary scroll failures', () => {
+    it('rejects an invalid origin instead of reporting boundary success', async () => {
+      await device.connect();
+      await expect(
+        device.scrollUntilTop({ left: -1, top: 400 }),
+      ).rejects.toThrow('origin');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+
+    it('propagates a failed gesture instead of treating unchanged content as success', async () => {
+      await device.connect();
+      const error = new Error('WDA connection lost');
+      mockWdaClient.swipe.mockRejectedValue(error);
+      await expect(device.scrollUntilBottom()).rejects.toThrow(error);
+      expect(mockWdaClient.swipe).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('Constructor', () => {
     it('should create device with options', () => {
       expect(device).toBeDefined();
@@ -211,8 +229,8 @@ describe('IOSDevice', () => {
   });
 
   describe('Action Space', () => {
-    it.each([undefined, 300, 800])(
-      'uses a 500ms default swipe and preserves explicit %s duration',
+    it.each([undefined, 300, 500, 800])(
+      'uses a 300ms default swipe and preserves explicit %s duration',
       async (duration) => {
         const action = device
           .actionSpace()
@@ -222,15 +240,35 @@ describe('IOSDevice', () => {
           distance: 50,
           ...(duration === undefined ? {} : { duration }),
         };
+        await device.inputPrimitives.touch.swipe(
+          { x: 10, y: 100 },
+          { x: 10, y: 50 },
+          duration === undefined ? undefined : { duration },
+        );
+        expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+          10,
+          100,
+          10,
+          50,
+          duration ?? 300,
+        );
+        await device.swipe(10, 100, 10, 50, duration);
+        expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+          10,
+          100,
+          10,
+          50,
+          duration ?? 300,
+        );
         const parsed = action.paramSchema!.parse(param);
-        expect(parsed.duration).toBe(duration ?? 500);
+        expect(parsed.duration).toBe(duration ?? 300);
         await action.call(parsed, mockExecutorContext);
         expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
           expect.any(Number),
           expect.any(Number),
           expect.any(Number),
           expect.any(Number),
-          duration ?? 500,
+          duration ?? 300,
         );
         await action.call(param, mockExecutorContext);
         expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
@@ -238,7 +276,7 @@ describe('IOSDevice', () => {
           expect.any(Number),
           expect.any(Number),
           expect.any(Number),
-          duration ?? 500,
+          duration ?? 300,
         );
       },
     );
