@@ -1882,8 +1882,6 @@ reportMergingTool.clear(); // 清空列表
 
 ### Web Action Space（动作空间）
 
-Web、Android、iOS 和 HarmonyOS 的触摸式 `Swipe` 默认时长统一为 `500ms`。桌面和 RDP 的鼠标 `Swipe` 默认 `300ms`。显式指定的 `duration` 优先，实际执行仍受后端时长或速度约束。这个默认值用于 `Swipe`；`Scroll` 继续使用各平台的滚轮或 fling 行为。
-
 PuppeteerAgent、PlaywrightAgent 和 Chrome Bridge 共用一套 Action Space，Midscene Agent 在规划任务时可以使用这些操作：
 
 - `Tap` —— 左键点击元素。
@@ -2156,7 +2154,7 @@ function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 - `DoubleClick` —— 双击元素。
 - `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`、`keyboardTypeDelay` 和 `inputStrategy`。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
-- `Swipe` —— 触摸式滑动。默认时长为 `500ms`，显式指定的 `duration` 优先。
+- `Swipe` —— 触摸式滑动。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
 - `LongPress` —— 长按目标元素，可选自定义时长。
@@ -2425,7 +2423,7 @@ function getConnectedDevicesWithDetails(
 - `DoubleClick` —— 双击元素。
 - `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`、`keyboardTypeDelay` 和 `inputStrategy`。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
-- `Swipe` —— 触摸式滑动。默认时长为 `500ms`，显式指定的 `duration` 优先。
+- `Swipe` —— 触摸式滑动。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
 - `LongPress` —— 长按目标元素，可选自定义时长。
@@ -2650,7 +2648,7 @@ const agent = await agentFromWebDriverAgent({
 - `DoubleClick` —— 双击元素。
 - `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
-- `Swipe` —— 触摸式滑动。默认时长为 `500ms`，显式指定的 `duration` 优先。
+- `Swipe` —— 触摸式滑动。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
 - `LongPress` —— 长按目标元素，可选自定义时长。
@@ -2880,7 +2878,7 @@ console.log(devices); // [{ deviceId: '0123456789ABCDEF' }]
 - `KeyboardPress` —— 按下指定按键或组合键，可选先聚焦目标。
 - `CursorMove` —— 在输入框或文本区域中向左或向右移动文本光标。
 - `Scroll` —— 滚动屏幕或指定区域，支持滚动到顶、底、左、右边界。
-- `Swipe` —— 按住鼠标主键并连续移动，默认时长为 `300ms`。适用于滑块等直接手势交互，可指定起点和终点，或方向与距离；浏览屏幕外内容请使用 `Scroll`。
+- `Swipe` —— 按住鼠标主键并连续移动。适用于滑块等直接手势交互，可指定起点和终点，或方向与距离；浏览屏幕外内容请使用 `Scroll`。
 - `ListDisplays` —— 列出可用显示器。本机设备返回已连接的显示器；RDP 设备将当前远程会话作为单个显示器返回。
 
 ### Agent 工厂函数

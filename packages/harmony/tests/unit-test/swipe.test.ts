@@ -8,8 +8,10 @@ describe('resolveSwipeSpeed', () => {
     );
   });
 
-  it('uses the default 500ms duration', () => {
-    expect(resolveSwipeSpeed({ x: 100, y: 100 }, { x: 400, y: 100 })).toBe(600);
+  it('uses the default 300ms duration', () => {
+    expect(resolveSwipeSpeed({ x: 100, y: 100 }, { x: 400, y: 100 })).toBe(
+      1000,
+    );
   });
 
   it('produces a lower speed for a longer duration', () => {

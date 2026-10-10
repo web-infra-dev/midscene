@@ -789,12 +789,9 @@ export const defineActionLongPress = (
   });
 };
 
-/** Default duration in milliseconds for touch-style Swipe actions and primitives. */
-export const defaultTouchSwipeDuration = 500;
-
 function createActionSwipeParamSchema(
   inputMode: SwipeInputMode,
-  defaultDuration = inputMode === 'touch' ? defaultTouchSwipeDuration : 300,
+  defaultDuration = 300,
 ) {
   const movementSource = inputMode === 'touch' ? 'finger' : 'pointer';
 
@@ -908,7 +905,7 @@ export function normalizeSwipeParam(
   endPoint.x = Math.max(0, Math.min(endPoint.x, width));
   endPoint.y = Math.max(0, Math.min(endPoint.y, height));
 
-  const duration = param.duration ?? defaultTouchSwipeDuration;
+  const duration = param.duration ?? 300;
 
   let repeatCount = typeof param.repeat === 'number' ? param.repeat : 1;
   if (repeatCount === 0) {
@@ -928,9 +925,6 @@ export const defineActionSwipe = (config: {
   defaultDuration?: number;
 }): DeviceAction<ActionSwipeParam> => {
   const inputMode = config.inputMode ?? 'touch';
-  const defaultDuration =
-    config.defaultDuration ??
-    (inputMode === 'touch' ? defaultTouchSwipeDuration : 300);
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
@@ -949,7 +943,7 @@ export const defineActionSwipe = (config: {
     call: async (param) => {
       const { startPoint, endPoint, duration, repeatCount } =
         normalizeSwipeParam(
-          { ...param, duration: param.duration ?? defaultDuration },
+          { ...param, duration: param.duration ?? config.defaultDuration },
           await config.size(),
         );
       for (let i = 0; i < repeatCount; i++) {

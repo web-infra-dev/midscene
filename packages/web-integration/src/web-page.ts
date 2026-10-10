@@ -5,7 +5,6 @@ import {
   type BrowserInputPrimitives,
   type DeviceAction,
   type InputStrategy,
-  defaultTouchSwipeDuration,
   defineAction,
   defineActionsFromInputPrimitives,
   resolveTextInputOptions,
@@ -590,7 +589,7 @@ export function createWebInputPrimitives(
         );
       },
       swipe: async (from, to, opts) => {
-        await page.swipe(from, to, opts?.duration ?? defaultTouchSwipeDuration);
+        await page.swipe(from, to, opts?.duration);
       },
     },
     scroll: {

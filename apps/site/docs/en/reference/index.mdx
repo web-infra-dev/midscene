@@ -1922,8 +1922,6 @@ Use this section to configure Midscene's browser agents and review browser-speci
 
 ### Action space
 
-Touch-style `Swipe` defaults to `500ms` across Web, Android, iOS, and HarmonyOS. Mouse `Swipe` on desktop and RDP defaults to `300ms`. An explicit `duration` takes precedence; backend timing and speed constraints still apply. This default belongs to `Swipe`; `Scroll` retains its platform-specific wheel or fling behavior.
-
 `PuppeteerAgent`, `PlaywrightAgent`, and Chrome Bridge agents share the following action space:
 
 - `Tap` — Left-click an element.
@@ -2198,7 +2196,7 @@ Use this section to configure Midscene's Android automation and review Android-s
 - `DoubleClick` — Double-tap an element.
 - `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard`, `keyboardTypeDelay`, and `inputStrategy` parameters.
 - `Scroll` — Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
-- `Swipe` — Touch-style swipe gesture. Default duration: `500ms`; an explicit `duration` takes precedence.
+- `Swipe` — Touch-style swipe gesture.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specified key.
 - `LongPress` — Long-press a target element with optional duration.
@@ -2467,7 +2465,7 @@ Use this section to configure iOS device behavior, integrate Midscene with WebDr
 - `DoubleClick` — Double-tap an element.
 - `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard`, `keyboardTypeDelay`, and `inputStrategy` parameters.
 - `Scroll` — Scroll from an element or screen center in any direction, including scroll-to-top/bottom/left/right helpers.
-- `Swipe` — Touch-style swipe gesture. Default duration: `500ms`; an explicit `duration` takes precedence.
+- `Swipe` — Touch-style swipe gesture.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specified key.
 - `LongPress` — Long-press a target element with optional duration.
@@ -2693,7 +2691,7 @@ Use this section to configure HarmonyOS device behavior, integrate Midscene with
 - `DoubleClick` — Double-tap an element.
 - `Input` — Enter text with `replace`, `typeOnly`, or `clear` mode.
 - `Scroll` — Scroll from an element or the screen center in any direction, including scroll-to-top, bottom, left, and right helpers.
-- `Swipe` — Touch-style swipe gesture. Default duration: `500ms`; an explicit `duration` takes precedence.
+- `Swipe` — Touch-style swipe gesture.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specific key.
 - `LongPress` — Long-press a target element with an optional duration.
@@ -2925,7 +2923,7 @@ For common APIs that work across all platforms, see [Common API reference](#comm
 - `KeyboardPress` — Press a key or key combination, optionally focusing a target first.
 - `CursorMove` — Move the text cursor left or right within an input field or text area.
 - `Scroll` — Scroll the screen or a specific area, including helpers to reach the top, bottom, left, or right boundary.
-- `Swipe` — Press and continuously move the primary mouse button (default duration: `300ms`). Use a start point and endpoint, or a direction and distance, for direct gesture interactions such as sliders; use `Scroll` to browse off-screen content.
+- `Swipe` — Press and continuously move the primary mouse button. Use a start point and endpoint, or a direction and distance, for direct gesture interactions such as sliders; use `Scroll` to browse off-screen content.
 - `ListDisplays` — List available displays. A local device returns connected displays; an RDP device returns the current remote session as one display.
 
 ### Agent factory functions

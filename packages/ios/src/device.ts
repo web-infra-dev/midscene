@@ -17,7 +17,6 @@ import {
   type PointerPoint,
   type ResolvedTextInputOptions,
   createDefaultMobileActions,
-  defaultTouchSwipeDuration,
   defineAction,
   resolveTextInputOptions,
   sendTextSequentially,
@@ -131,7 +130,7 @@ export class IOSDevice implements AbstractInterface {
     },
     touch: {
       swipe: async (start, end, opts) => {
-        const duration = opts?.duration ?? defaultTouchSwipeDuration;
+        const duration = opts?.duration ?? 300;
         const repeat = opts?.repeat ?? 1;
         for (let i = 0; i < repeat; i++) {
           await this.swipePoint(start, end, duration);
@@ -247,7 +246,7 @@ export class IOSDevice implements AbstractInterface {
   private async swipePoint(
     start: PointerPoint,
     end: PointerPoint,
-    duration = defaultTouchSwipeDuration,
+    duration = 300,
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('swipe');
     await this.wdaBackend.swipe(
@@ -629,7 +628,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     fromY: number,
     toX: number,
     toY: number,
-    duration = defaultTouchSwipeDuration,
+    duration = 300,
   ): Promise<void> {
     await this.swipeCoordinates(fromX, fromY, toX, toY, duration);
   }
@@ -639,7 +638,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     fromY: number,
     toX: number,
     toY: number,
-    duration = defaultTouchSwipeDuration,
+    duration = 300,
   ): Promise<void> {
     await this.swipePoint({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
   }

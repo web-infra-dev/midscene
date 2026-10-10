@@ -24,7 +24,6 @@ import {
   type PointerPoint,
   type ResolvedTextInputOptions,
   createDefaultMobileActions,
-  defaultTouchSwipeDuration,
   defineAction,
   resolveTextInputOptions,
   sendTextSequentially,
@@ -313,7 +312,7 @@ export class AndroidDevice implements AbstractInterface {
           }
         },
         swipe: async (start, end, opts) => {
-          const duration = opts?.duration ?? defaultTouchSwipeDuration;
+          const duration = opts?.duration ?? 300;
           const repeatCount = opts?.repeat ?? 1;
           for (let index = 0; index < repeatCount; index++) {
             await this.dragPoint(start, end, duration);

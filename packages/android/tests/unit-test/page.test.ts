@@ -200,38 +200,6 @@ describe('AndroidDevice', () => {
     rs.unstubAllEnvs();
   });
 
-  it.each([undefined, 300, 800])(
-    'uses the touch default while preserving explicit Swipe duration %s',
-    async (duration) => {
-      rs.spyOn(device, 'size').mockResolvedValue({ width: 400, height: 800 });
-      const dragPoint = rs
-        .spyOn(device as any, 'dragPoint')
-        .mockResolvedValue(undefined);
-      const start = { x: 200, y: 400 };
-      const end = { x: 200, y: 100 };
-      await device.inputPrimitives.touch.swipe(
-        start,
-        end,
-        duration === undefined ? undefined : { duration },
-      );
-      expect(dragPoint).toHaveBeenLastCalledWith(start, end, duration ?? 500);
-      const action = device
-        .actionSpace()
-        .find((entry) => entry.name === 'Swipe')!;
-      const param = {
-        direction: 'up',
-        distance: 300,
-        ...(duration === undefined ? {} : { duration }),
-      };
-      const parsed = action.paramSchema!.parse(param);
-      expect(parsed.duration).toBe(duration ?? 500);
-      for (const input of [param, parsed]) {
-        await action.call(input, {} as ExecutorContext);
-        expect(dragPoint).toHaveBeenLastCalledWith(start, end, duration ?? 500);
-      }
-    },
-  );
-
   it('should throw error if deviceId is not provided', () => {
     expect(() => new AndroidDevice(undefined as any)).toThrow(
       'deviceId is required for AndroidDevice',
