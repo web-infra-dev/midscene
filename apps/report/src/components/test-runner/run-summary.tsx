@@ -1,34 +1,7 @@
-import {
-  CheckCircleFilled,
-  CloseCircleFilled,
-  ReloadOutlined,
-} from '@ant-design/icons';
 import type { TestRunReportDump } from '@midscene/core';
-import type { ReactNode } from 'react';
 import type { RunnerHealthStats } from './model';
 import { StatusBadge } from './status-badge';
-import {
-  formatDuration,
-  formatPercent,
-  formatTimestamp,
-} from './view-primitives';
-
-function RunMetric({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: ReactNode;
-  tone?: 'warning' | 'danger';
-}): JSX.Element {
-  return (
-    <div className={`runner-metric-card${tone ? ` is-${tone}` : ''}`}>
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
-  );
-}
+import { formatDuration, formatTimestamp } from './view-primitives';
 
 export function RunSummary({
   dump,
@@ -57,87 +30,61 @@ export function RunSummary({
       : status === 'warning'
         ? 'Passed after retry'
         : 'Run passed';
+  const tokenStatus =
+    dump.metrics.collection?.fields?.totalTokens ??
+    dump.metrics.collection?.status ??
+    'unknown';
+  const counts = [
+    { label: 'Projects', value: dump.projects.length },
+    { label: 'Cases', value: totalCaseCount },
+    { label: 'Passed', value: dump.summary.passed, tone: 'success' },
+    { label: 'Failed', value: dump.summary.failed, tone: 'danger' },
+    { label: 'Passed after retry', value: health.retryPassedCount },
+    { label: 'Not run', value: dump.summary.notRun },
+  ];
   return (
     <section className="runner-overview-summary" aria-label="Run outcome">
       <div className="runner-overview-outcome">
         <div className="runner-overview-title-row">
-          <h1>Test Report</h1>
-          <StatusBadge
-            label={healthLabel}
-            tone={status}
-            icon={
-              status === 'failed' ? (
-                <CloseCircleFilled />
-              ) : status === 'warning' ? (
-                <ReloadOutlined />
-              ) : (
-                <CheckCircleFilled />
-              )
-            }
-          />
+          <button
+            type="button"
+            className="runner-overview-passed"
+            onClick={onReviewOutcome}
+            aria-label={`Review case results: ${dump.summary.passed} of ${totalCaseCount} passed`}
+          >
+            <strong>
+              <b>{dump.summary.passed}</b> / {totalCaseCount}
+            </strong>
+            <span>Case passed</span>
+          </button>
+          <StatusBadge label={healthLabel} tone={status} />
         </div>
         <div className="runner-overview-run-meta">
-          <span>Created at {formatTimestamp(dump.startedAt)}</span>
           <span>
-            projects <strong>{dump.projects.length}</strong>
+            Created at <strong>{formatTimestamp(dump.startedAt)}</strong>
           </span>
           <span>
-            Case <strong>{totalCaseCount}</strong>
+            tokens
+            <strong>
+              {tokenStatus === 'unknown'
+                ? '—'
+                : dump.metrics.totalTokens.toLocaleString()}
+            </strong>
+            {tokenStatus === 'partial' ? '(partial)' : null}
+          </span>
+          <span>
+            total time <strong>{formatDuration(dump.durationMs)}</strong>
           </span>
         </div>
       </div>
-      <button
-        type="button"
-        className="runner-overview-passed"
-        onClick={onReviewOutcome}
-        aria-label="Review case results"
-      >
-        <strong>
-          <b>{dump.summary.passed}</b>/{totalCaseCount}
-        </strong>
-        <span>Case passed</span>
-      </button>
-      <div
-        className="runner-primary-metrics runner-overview-primary-metrics"
-        aria-label="Run health metrics"
-      >
-        <RunMetric
-          label="Final pass rate"
-          value={formatPercent(health.finalPassRate)}
-        />
-        <RunMetric
-          label="First-pass rate"
-          value={formatPercent(health.firstPassRate)}
-        />
-        <RunMetric
-          label="Failed cases"
-          value={dump.summary.failed}
-          tone={dump.summary.failed ? 'danger' : undefined}
-        />
-        <RunMetric
-          label="Passed after retry"
-          value={health.retryPassedCount}
-          tone={health.retryPassedCount ? 'warning' : undefined}
-        />
-        <RunMetric
-          label="Cases not run"
-          value={dump.summary.notRun}
-          tone={dump.summary.notRun ? 'warning' : undefined}
-        />
-        <RunMetric label="Run time" value={formatDuration(dump.durationMs)} />
+      <div className="runner-overview-counts" aria-label="Run health metrics">
+        {counts.map(({ label, value, tone }) => (
+          <div key={label} className={tone ? `is-${tone}` : undefined}>
+            <strong>{value}</strong>
+            <span>{label}</span>
+          </div>
+        ))}
       </div>
-      <p>
-        Case counts summarize final Case outcomes. Run status also includes
-        preparation, cleanup and host errors.
-      </p>
-      <span
-        className="runner-overview-pass-percentage"
-        aria-label="Percentage of all cases passed"
-      >
-        {totalCaseCount
-          ? formatPercent(dump.summary.passed / totalCaseCount)
-          : '—'}
-      </span>
     </section>
   );
 }

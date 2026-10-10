@@ -1,7 +1,12 @@
-import { CloseCircleFilled, SearchOutlined } from '@ant-design/icons';
+import { CloseCircleFilled } from '@ant-design/icons';
 import { Input } from 'antd';
 import { useMemo } from 'react';
-import type { RunnerBreakdownStatus, RunnerCaseView } from './model';
+import type {
+  RunnerBreakdownSort,
+  RunnerBreakdownSortDirection,
+  RunnerBreakdownStatus,
+  RunnerCaseView,
+} from './model';
 import { Select } from './select';
 
 export function CaseFilters({
@@ -10,6 +15,9 @@ export function CaseFilters({
   status,
   onQueryChange,
   onStatusChange,
+  sort,
+  sortDirection,
+  onSortChange,
   allProjectsExpanded,
   canToggleProjects,
   onToggleProjects,
@@ -19,6 +27,12 @@ export function CaseFilters({
   status: RunnerBreakdownStatus;
   onQueryChange(value: string): void;
   onStatusChange(value: RunnerBreakdownStatus): void;
+  sort: RunnerBreakdownSort;
+  sortDirection: RunnerBreakdownSortDirection;
+  onSortChange(
+    sort: RunnerBreakdownSort,
+    direction: RunnerBreakdownSortDirection,
+  ): void;
   allProjectsExpanded: boolean;
   canToggleProjects: boolean;
   onToggleProjects(): void;
@@ -42,6 +56,7 @@ export function CaseFilters({
       aria-label="Filter Project breakdown"
     >
       <Select<RunnerBreakdownStatus>
+        suffixIcon={<span className="runner-overview-select-chevron" />}
         aria-label="Filter breakdown by status"
         value={status}
         onChange={(value: RunnerBreakdownStatus) => onStatusChange(value)}
@@ -72,8 +87,38 @@ export function CaseFilters({
           },
         ]}
       />
+      <Select
+        aria-label="Sort project breakdown"
+        suffixIcon={<span className="runner-overview-select-chevron" />}
+        value={`${sort}:${sortDirection}`}
+        onChange={(value: string) => {
+          const [nextSort, direction] = value.split(':');
+          onSortChange(
+            nextSort as RunnerBreakdownSort,
+            direction as RunnerBreakdownSortDirection,
+          );
+        }}
+        options={[
+          { label: 'Attention first', value: 'result:asc' },
+          { label: 'Passed first', value: 'result:desc' },
+          { label: 'Name A–Z', value: 'name:asc' },
+          { label: 'Name Z–A', value: 'name:desc' },
+          { label: 'Most cases first', value: 'case-count:desc' },
+          { label: 'Fewest cases first', value: 'case-count:asc' },
+          { label: 'Most passed first', value: 'passed-count:desc' },
+          { label: 'Fewest passed first', value: 'passed-count:asc' },
+          { label: 'Longest first', value: 'duration:desc' },
+          { label: 'Shortest first', value: 'duration:asc' },
+        ]}
+      />
       <Input
-        prefix={<SearchOutlined />}
+        prefix={
+          <img
+            src={new URL('./assets/overview-search.svg', import.meta.url).href}
+            alt=""
+          />
+        }
+        aria-label="Search projects, cases, and details"
         suffix={
           <button
             type="button"
@@ -86,7 +131,7 @@ export function CaseFilters({
             <CloseCircleFilled />
           </button>
         }
-        placeholder="Search projects, cases, and details"
+        placeholder="Search by name"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
       />

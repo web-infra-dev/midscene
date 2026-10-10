@@ -28,6 +28,7 @@ import {
   toggleAllRunnerProjectKeys,
 } from './model';
 import { isSingleCaseReport, resolveRunnerNavigation } from './navigation';
+import { ProjectBreakdownTree } from './project-breakdown';
 import { RunSummary } from './run-summary';
 
 const at = (seconds: number): string =>
@@ -571,7 +572,7 @@ describe('Midscene Test hybrid report model', () => {
     expect(regular).not.toContain('runner-step-status is-success');
   });
 
-  it('shows a pass percentage matching the all-case fraction, including not-run cases', () => {
+  it('shows final case counts including retries and not-run cases in the compact summary', () => {
     const markup = renderToStaticMarkup(
       createElement(RunSummary, {
         dump,
@@ -580,11 +581,13 @@ describe('Midscene Test hybrid report model', () => {
         onReviewOutcome() {},
       }),
     );
+    expect(markup).toContain('Review case results: 2 of 4 passed');
     expect(markup).toContain(
-      'aria-label="Percentage of all cases passed">50%</span>',
+      '<strong>1</strong><span>Passed after retry</span>',
     );
+    expect(markup).toContain('<strong>1</strong><span>Not run</span>');
+    expect(markup).toContain('tokens<strong>—</strong>');
     expect(markup).not.toContain('runner-overview-outcome-message');
-    expect(markup).toContain('aria-label="Review case results"');
     expect(markup).toContain('>run failed</span>');
     expect(markup).not.toContain('>Run failed</span>');
     expect(markup).not.toContain('model time');
@@ -592,7 +595,7 @@ describe('Midscene Test hybrid report model', () => {
     expect(markup).not.toContain('Tokens');
   });
 
-  it('does not invent a pass percentage for an empty run', () => {
+  it('shows zero case counts without inventing token usage for an empty run', () => {
     const markup = renderToStaticMarkup(
       createElement(RunSummary, {
         dump: { ...dump, summary: { ...dump.summary, passed: 0, total: 0 } },
@@ -601,10 +604,68 @@ describe('Midscene Test hybrid report model', () => {
         onReviewOutcome() {},
       }),
     );
-    expect(markup).toContain(
-      'aria-label="Percentage of all cases passed">—</span>',
-    );
+    expect(markup).toContain('Review case results: 0 of 0 passed');
+    expect(markup).toContain('tokens<strong>—</strong>');
     expect(markup).not.toContain('NaN');
+  });
+
+  it('marks partial token totals and distinguishes a measured zero from unknown usage', () => {
+    for (const status of ['complete', 'partial'] as const) {
+      const markup = renderToStaticMarkup(
+        createElement(RunSummary, {
+          dump: {
+            ...dump,
+            metrics: {
+              ...dump.metrics,
+              collection: {
+                status,
+                expectedExecutionCount: 1,
+                capturedExecutionCount: 1,
+                reasons: [],
+              },
+            },
+          },
+          health: getRunnerHealth(flattenRunnerCases(dump)),
+          totalCaseCount: 4,
+          onReviewOutcome() {},
+        }),
+      );
+      expect(markup).toContain('tokens<strong>0</strong>');
+      expect(markup.includes('(partial)')).toBe(status === 'partial');
+    }
+  });
+
+  it('shows project status, passed / case totals and all attention outcomes together', () => {
+    const projects = filterAndSortRunnerProjectBreakdown(
+      groupRunnerProjects(dump),
+      {
+        query: '',
+        status: 'all',
+        sort: 'result',
+        direction: 'asc',
+      },
+    );
+    const markup = renderToStaticMarkup(
+      createElement(ProjectBreakdownTree, {
+        projects,
+        visualIndex: buildRunnerVisualIndex([]),
+        caseDisplayMode: 'compact',
+        expandedProjectKeys: new Set(projects.map(({ item }) => item.key)),
+        sort: 'result',
+        sortDirection: 'asc',
+        hasActiveFilters: false,
+        onSortChange() {},
+        onExpandedProjectKeysChange() {},
+        onResetFilters() {},
+        onOpenCase() {},
+      }),
+    );
+    expect(markup).toContain('Passed / Case');
+    expect(markup).toContain('Attention');
+    expect(markup).toContain('runner-project-tree-case-total');
+    expect(markup).toContain('1 failed · 1 retried · 1 not run');
+    expect(markup).toContain('>passed after retry</span>');
+    expect(markup).toContain('>not run</span>');
   });
 
   it('keeps attempt comparison in standalone reports with retries', () => {

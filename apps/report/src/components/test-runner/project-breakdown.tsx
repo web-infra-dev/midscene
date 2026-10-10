@@ -1,9 +1,4 @@
-import {
-  CaretDownFilled,
-  CaretRightFilled,
-  CaretUpFilled,
-  WarningFilled,
-} from '@ant-design/icons';
+import { WarningFilled } from '@ant-design/icons';
 import { Button, Empty, Tooltip } from 'antd';
 import { useId, useMemo, useState } from 'react';
 import { RunnerAttemptTimeline } from './attempt-timeline';
@@ -20,6 +15,7 @@ import {
   positionAttemptVisualFrames,
 } from './model';
 import {
+  CaseStatus,
   type RunnerCaseDisplayMode,
   caseStatusLabel,
   formatDuration,
@@ -53,14 +49,7 @@ function ProjectSortButton({
         onClick={() => onChange(value)}
       >
         <span>{label}</span>
-        <span className="runner-project-sort-icon" aria-hidden="true">
-          <CaretUpFilled
-            className={active && direction === 'asc' ? 'is-active' : ''}
-          />
-          <CaretDownFilled
-            className={active && direction === 'desc' ? 'is-active' : ''}
-          />
-        </span>
+        <span className="runner-project-sort-icon" aria-hidden="true" />
       </button>
     </span>
   );
@@ -125,10 +114,7 @@ function ProjectBreakdownCase({
         >
           <div className="runner-project-tree-case-main">
             <div className="runner-project-tree-case-title">
-              <span
-                className={`runner-project-tree-branch is-${item.status}`}
-                aria-hidden="true"
-              />
+              <CaseStatus status={item.status} quiet />
               <Tooltip title={item.testCase.name} mouseEnterDelay={0.25}>
                 <h3>{item.testCase.name}</h3>
               </Tooltip>
@@ -190,6 +176,14 @@ function ProjectBreakdownNode({
 }): JSX.Element {
   const childGroupId = useId();
   const { cases, item } = view;
+  const attention =
+    [
+      item.failedCount && `${item.failedCount} failed`,
+      item.retryPassedCount && `${item.retryPassedCount} retried`,
+      item.notRunCount && `${item.notRunCount} not run`,
+    ]
+      .filter(Boolean)
+      .join(' · ') || '0 retried';
 
   return (
     <li className={`runner-project-tree-node${expanded ? ' is-expanded' : ''}`}>
@@ -204,17 +198,12 @@ function ProjectBreakdownNode({
         }`}
       >
         <span className="runner-project-tree-toggle">
-          <span className="runner-project-tree-chevron">
-            {expanded ? <CaretDownFilled /> : <CaretRightFilled />}
-          </span>
+          <span
+            className={`runner-project-tree-chevron${expanded ? ' is-expanded' : ''}`}
+            aria-hidden="true"
+          />
           <span className="runner-project-tree-identity">
-            <span
-              className={`runner-project-status-dot is-${projectDisplayStatus(
-                item,
-              )}`}
-              role="img"
-              aria-label={caseStatusLabel(projectDisplayStatus(item))}
-            />
+            <CaseStatus status={projectDisplayStatus(item)} quiet />
             <Tooltip title={item.project.name} mouseEnterDelay={0.25}>
               <span className="runner-project-tree-name">
                 {item.project.name}
@@ -232,22 +221,15 @@ function ProjectBreakdownNode({
           aria-label={`${item.project.name} overview`}
         >
           <span>
-            <strong>{item.cases.length}</strong>
-          </span>
-          <span>
             <strong>{item.passedCount}</strong>
+            <span className="runner-project-tree-case-total">
+              {' '}
+              / {item.cases.length}
+            </span>
           </span>
-          <span className="runner-project-tree-result">
-            {item.failedCount ? (
-              <b className="is-failed">{item.failedCount} failed</b>
-            ) : item.retryPassedCount ? (
-              <b className="is-warning">{item.retryPassedCount} retried</b>
-            ) : item.notRunCount ? (
-              <b>{item.notRunCount} not run</b>
-            ) : (
-              <b className="is-passed">passed</b>
-            )}
-          </span>
+          <Tooltip title={attention}>
+            <span className="runner-project-tree-attention">{attention}</span>
+          </Tooltip>
           <span>
             <strong>{formatDuration(item.durationMs)}</strong>
           </span>
@@ -333,7 +315,7 @@ export function ProjectBreakdownTree({
     <>
       <div className="runner-project-tree-header">
         <ProjectSortButton
-          label="Project name"
+          label="Project"
           value="name"
           sort={sort}
           direction={sortDirection}
@@ -341,21 +323,14 @@ export function ProjectBreakdownTree({
         />
         <div className="runner-project-tree-columns">
           <ProjectSortButton
-            label="Case"
-            value="case-count"
-            sort={sort}
-            direction={sortDirection}
-            onChange={onSortChange}
-          />
-          <ProjectSortButton
-            label="Passed"
+            label="Passed / Case"
             value="passed-count"
             sort={sort}
             direction={sortDirection}
             onChange={onSortChange}
           />
           <ProjectSortButton
-            label="Result"
+            label="Attention"
             value="result"
             sort={sort}
             direction={sortDirection}

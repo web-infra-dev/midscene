@@ -1,5 +1,4 @@
 .test-runner-report {
-  --runner-issue-link: #b42318;
   .runner-error-cards {
     min-width: 0;
     margin-block: 16px;
@@ -9,7 +8,7 @@
     --issue-color: var(--runner-danger);
     --issue-bg: var(--runner-danger-soft);
     display: grid;
-    grid-template-columns: 16px minmax(0, 1fr) 32px;
+    grid-template-columns: minmax(0, 1fr) 32px;
     align-items: center;
     gap: 8px;
     padding: 16px;
@@ -55,6 +54,10 @@
     background-image: url('./assets/issue-warning.svg');
   }
   .runner-error-content {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 8px;
     min-width: 0;
     overflow-wrap: anywhere;
     strong {
@@ -65,8 +68,9 @@
   }
 
   .runner-error-body {
-    grid-column: 2 / -1;
+    grid-column: 1 / -1;
     min-width: 0;
+    padding-left: 24px;
     overflow-wrap: anywhere;
     p {
       margin: 0;
@@ -174,6 +178,7 @@
   }
 
   .runner-error-label {
+    grid-column: 2;
     display: block;
     margin-top: 4px;
     color: var(--runner-muted);
@@ -184,7 +189,7 @@
     padding: 8px 0;
     border: 0;
     background: transparent;
-    color: var(--runner-issue-link);
+    color: var(--runner-danger);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -249,10 +254,6 @@
     display: grid;
     gap: 12px;
   }
-}
-
-.test-runner-report[data-theme='dark'] {
-  --runner-issue-link: #ff938a;
 }
 
 .test-runner-report .runner-issue-information {

@@ -139,10 +139,8 @@ export function RunOverview({
       <section
         ref={breakdownRef}
         className="runner-panel runner-breakdown-panel"
+        aria-label="Projects and cases"
       >
-        <div className="runner-section-heading">
-          <h2>Projects and cases</h2>
-        </div>
         <div className="runner-breakdown-controls">
           <CaseDensitySwitch
             value={caseDisplayMode}
@@ -154,6 +152,12 @@ export function RunOverview({
             status={breakdownStatus}
             onQueryChange={setBreakdownQuery}
             onStatusChange={setBreakdownStatus}
+            sort={breakdownSort}
+            sortDirection={breakdownSortDirection}
+            onSortChange={(sort, direction) => {
+              setBreakdownSort(sort);
+              setBreakdownSortDirection(direction);
+            }}
             allProjectsExpanded={allProjectsExpanded}
             canToggleProjects={visibleProjectKeys.length > 0}
             onToggleProjects={() =>

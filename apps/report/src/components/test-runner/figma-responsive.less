@@ -10,20 +10,6 @@
       padding: 28px 24px;
     }
 
-    .runner-overview-primary-metrics {
-      height: auto;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .runner-overview-primary-metrics
-      .runner-metric-card:nth-child(3n):not(:last-child) {
-      border-right: 0;
-    }
-
-    .runner-overview-primary-metrics .runner-metric-card:nth-child(-n + 3) {
-      border-bottom: 1px solid var(--runner-border);
-    }
-
     .runner-breakdown-controls,
     .runner-case-run-bar {
       align-items: flex-start;
@@ -31,8 +17,12 @@
     }
 
     .runner-breakdown-panel .runner-breakdown-toolbar {
-      grid-template-columns: minmax(150px, 184px) minmax(240px, 1fr) 32px;
+      grid-template-columns: 184px 168px minmax(160px, 1fr) 32px;
       width: 100%;
+    }
+
+    .runner-breakdown-toolbar > .ant-input-affix-wrapper {
+      grid-column: auto;
     }
 
     .runner-project-tree-columns,
@@ -80,15 +70,14 @@
     }
 
     .runner-overview-summary {
-      grid-template-columns: minmax(0, 1fr) auto;
       gap: 20px;
     }
 
-    .runner-overview-passed {
-      align-self: start;
+    .runner-overview-title-row {
+      flex-wrap: wrap;
+      gap: 4px 8px;
     }
 
-    .runner-overview-title-row h1,
     .runner-detail-title-line h1 {
       font-size: 24px;
       line-height: 32px;
@@ -99,20 +88,47 @@
       gap: 4px 12px;
     }
 
-    .runner-overview-primary-metrics {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .runner-overview-counts {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px 8px;
     }
 
-    .runner-overview-primary-metrics .runner-metric-card {
-      margin: 20px 0;
+    .runner-overview-counts > div + div {
+      padding-left: 8px;
+    }
+
+    .runner-overview-counts > div:nth-child(3n + 1) {
+      padding-left: 0;
+      border-left: 0;
+    }
+
+    .runner-overview-counts > div {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .runner-overview-counts span {
+      white-space: normal;
     }
 
     .runner-breakdown-panel .runner-breakdown-toolbar {
-      grid-template-columns: minmax(0, 1fr) 32px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
     }
 
     .runner-breakdown-toolbar > .runner-report-select {
-      grid-column: span 2;
+      grid-column: auto;
+    }
+
+    .runner-breakdown-toolbar > .ant-input-affix-wrapper {
+      grid-column: 1 / 3;
+    }
+
+    .runner-project-expansion-toggle {
+      grid-column: 3;
+      grid-row: 2;
     }
 
     .runner-project-tree-header {
@@ -144,6 +160,14 @@
       width: 100%;
       min-height: 40px;
       gap: 8px;
+    }
+
+    .runner-project-tree-stats > span {
+      padding-left: 0;
+    }
+
+    .runner-project-tree-toggle .runner-status-pill {
+      display: inline-flex;
     }
 
     .runner-project-tree-case,
@@ -202,15 +226,6 @@
     .runner-detail-title-line h1 {
       white-space: normal;
       overflow-wrap: anywhere;
-    }
-
-    .runner-overview-primary-metrics .runner-metric-card {
-      padding-inline: 16px;
-      border: 0;
-    }
-
-    .runner-overview-primary-metrics .runner-metric-card:nth-child(odd) {
-      border-right: 1px solid var(--runner-border);
     }
 
     .runner-detail-inline-trace .runner-detail-trace-view {

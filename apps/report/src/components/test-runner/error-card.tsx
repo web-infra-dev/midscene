@@ -43,8 +43,8 @@ function ErrorCard({
       className={`runner-error-card is-${issue.severity}`}
       data-issue-code={issue.code}
     >
-      <span className="runner-error-icon" aria-hidden="true" />
       <div className="runner-error-content">
+        <span className="runner-error-icon" aria-hidden="true" />
         <strong>{title}</strong>
         {issue.label ? (
           <span className="runner-error-label">{issue.label}</span>

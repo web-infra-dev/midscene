@@ -192,6 +192,7 @@ export default function TestRunnerReport({
         <div
           className="test-runner-report"
           data-theme={isDarkMode ? 'dark' : 'light'}
+          data-page={page}
         >
           <header className="runner-header">
             <div className="runner-header-inner">
