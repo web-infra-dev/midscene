@@ -171,6 +171,37 @@ describe('Agent action readiness', () => {
     });
   }
 
+  it('stops aiAct during the post-plan screenshot before building another action batch', async () => {
+    const controller = new AbortController();
+    const started = deferred();
+    const release = deferred();
+    const { agent, call } = setup();
+    planTwoActions();
+    let captures = 0;
+    rs.mocked(commonContextParser).mockImplementation(async () => {
+      if (++captures === 2) {
+        started.resolve();
+        await release.promise;
+      }
+      return uiContext;
+    });
+    const pending = agent.aiAct('submit twice', {
+      abortSignal: controller.signal,
+    });
+    const rejected = expect(pending).rejects.toThrow('stop after planning');
+    await started.promise;
+    expect(standardPlan).toHaveBeenCalledOnce();
+    controller.abort(new Error('stop after planning'));
+    release.resolve();
+    await rejected;
+    expect(call).not.toHaveBeenCalled();
+    expect(standardPlan).toHaveBeenCalledOnce();
+    expect(captures).toBe(2);
+    expect(
+      agent.dump.executions.flatMap((execution) => execution.tasks),
+    ).toHaveLength(1);
+  });
+
   it('blocks the next aiAct substep and post-action screenshot until ready', async () => {
     const started = deferred();
     const ready = deferred();

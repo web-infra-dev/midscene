@@ -264,6 +264,8 @@ steps:
 
 `continue-on-error` 只控制 Midscene Test 是否继续执行。只要有 Step 失败，Case 的最终状态就是 `failed`。
 
+超时后继续执行，还需要等待 Runner 已跟踪的取消操作结束。恢复等待及失败处理见[超时与取消机制](./configuration#超时与取消机制)。
+
 ### 使用项目变量与环境变量
 
 Midscene Test 会在执行前递归解析 Node input：

@@ -264,6 +264,8 @@ The following fields are supported:
 
 `continue-on-error` controls only whether execution continues. If any Step fails, the Case's final status is `failed`.
 
+After a timeout, continuation also requires the Runner's tracked cancelled operations to finish. See [Timeouts and cancellation](./configuration#timeouts-and-cancellation) for the recovery wait and failure behavior.
+
 ### Use Project variables and environment variables
 
 Midscene Test recursively resolves Node input before execution:
