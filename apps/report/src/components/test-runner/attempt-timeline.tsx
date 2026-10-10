@@ -141,9 +141,7 @@ export function RunnerAttemptTimeline({
                 key={`${tick}-${index}`}
                 style={{ left: `${tickRatios[index] * 100}%` }}
               >
-                {isEmbedded
-                  ? `${Math.round(tick)}ms`
-                  : formatTimelineTime(tick)}
+                {formatTimelineTime(tick)}
               </span>
             ))}
           </div>
