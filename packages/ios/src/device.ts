@@ -663,8 +663,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      // Wait a bit to ensure keyboard is ready
-      await sleep(200);
+      // /wda/keys acknowledges event synthesis even when a modal transition
+      // has no focus owner yet; sending then can silently drop all or part of text.
+      await this.wdaBackend.waitForInputFocus();
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.

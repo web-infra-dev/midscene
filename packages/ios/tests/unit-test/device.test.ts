@@ -40,6 +40,7 @@ describe('IOSDevice', () => {
       swipe: rs.fn().mockResolvedValue(undefined),
       appSwitcher: rs.fn().mockResolvedValue(undefined),
       pinch: rs.fn().mockResolvedValue(undefined),
+      waitForInputFocus: rs.fn().mockResolvedValue('input-id'),
       typeText: rs.fn().mockResolvedValue(undefined),
       typeRawKeys: rs.fn().mockResolvedValue(undefined),
       clearActiveElement: rs.fn().mockResolvedValue(true),
@@ -597,6 +598,34 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.swipe).toHaveBeenCalledWith(100, 200, 300, 400, 500);
     });
 
+    it('does not dispatch text before the input has focus', async () => {
+      let ready = false;
+      mockWdaClient.waitForInputFocus.mockImplementation(async () => {
+        ready = true;
+      });
+      mockWdaClient.typeText.mockImplementation(async () => {
+        expect(ready).toBe(true);
+      });
+      await device.inputPrimitives.keyboard.typeText('text', {
+        replace: false,
+        autoDismissKeyboard: false,
+      });
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not type or retry when focus readiness fails', async () => {
+      const error = new Error('Input focus timeout');
+      mockWdaClient.waitForInputFocus.mockRejectedValue(error);
+      await expect(
+        device.inputPrimitives.keyboard.typeText('text', {
+          replace: false,
+          autoDismissKeyboard: false,
+        }),
+      ).rejects.toThrow(error);
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+      expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
+    });
+
     it('should type text', async () => {
       await device.connect();
 
@@ -784,6 +813,7 @@ describe('IOSDevice', () => {
       const mockBackend = {
         ...mockWdaClient,
         createSession: rs.fn().mockResolvedValue({ sessionId: 'test-session' }),
+        waitForInputFocus: rs.fn().mockResolvedValue('input-id'),
         typeText: rs.fn().mockResolvedValue(undefined),
         dismissKeyboard: rs.fn().mockResolvedValue(true),
         getWindowSize: rs.fn().mockResolvedValue({ width: 375, height: 812 }),
