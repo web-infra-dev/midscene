@@ -129,7 +129,7 @@
   }
 
   .runner-breakdown-panel {
-    margin-top: 40px;
+    margin-top: 24px;
   }
 
   .runner-breakdown-controls {
@@ -181,7 +181,7 @@
 
   .runner-breakdown-panel .runner-breakdown-toolbar {
     display: grid;
-    grid-template-columns: 184px 168px minmax(200px, 317px) 32px;
+    grid-template-columns: 184px minmax(200px, 317px) 32px;
     width: auto;
     min-height: 32px;
     margin: 0;
@@ -351,16 +351,29 @@
   }
 
   .runner-project-sort-icon {
-    width: 16px;
-    height: 16px;
+    display: grid;
+    width: 9px;
+    height: 12px;
     flex: none;
-    background: url('./assets/overview-sort.svg') no-repeat center / 16px 16px;
+    grid-template-rows: repeat(2, 6px);
+    place-items: center;
   }
 
-  .runner-project-tree-header
-    > .runner-project-tree-column
-    .runner-project-sort-icon {
-    display: none;
+  .runner-project-sort-icon .anticon {
+    display: grid;
+    width: 9px;
+    height: 6px;
+    color: var(--runner-sort-arrow-idle);
+    place-items: center;
+  }
+
+  .runner-project-sort-icon .anticon svg {
+    width: 8px;
+    height: 8px;
+  }
+
+  .runner-project-sort-icon .anticon.is-active {
+    color: var(--runner-sort-arrow-active);
   }
 
   .runner-overview-select-chevron {

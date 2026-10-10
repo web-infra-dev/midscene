@@ -152,12 +152,6 @@ export function RunOverview({
             status={breakdownStatus}
             onQueryChange={setBreakdownQuery}
             onStatusChange={setBreakdownStatus}
-            sort={breakdownSort}
-            sortDirection={breakdownSortDirection}
-            onSortChange={(sort, direction) => {
-              setBreakdownSort(sort);
-              setBreakdownSortDirection(direction);
-            }}
             allProjectsExpanded={allProjectsExpanded}
             canToggleProjects={visibleProjectKeys.length > 0}
             onToggleProjects={() =>

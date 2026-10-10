@@ -1,12 +1,7 @@
 import { CloseCircleFilled } from '@ant-design/icons';
 import { Input } from 'antd';
 import { useMemo } from 'react';
-import type {
-  RunnerBreakdownSort,
-  RunnerBreakdownSortDirection,
-  RunnerBreakdownStatus,
-  RunnerCaseView,
-} from './model';
+import type { RunnerBreakdownStatus, RunnerCaseView } from './model';
 import { Select } from './select';
 
 export function CaseFilters({
@@ -15,9 +10,6 @@ export function CaseFilters({
   status,
   onQueryChange,
   onStatusChange,
-  sort,
-  sortDirection,
-  onSortChange,
   allProjectsExpanded,
   canToggleProjects,
   onToggleProjects,
@@ -27,12 +19,6 @@ export function CaseFilters({
   status: RunnerBreakdownStatus;
   onQueryChange(value: string): void;
   onStatusChange(value: RunnerBreakdownStatus): void;
-  sort: RunnerBreakdownSort;
-  sortDirection: RunnerBreakdownSortDirection;
-  onSortChange(
-    sort: RunnerBreakdownSort,
-    direction: RunnerBreakdownSortDirection,
-  ): void;
   allProjectsExpanded: boolean;
   canToggleProjects: boolean;
   onToggleProjects(): void;
@@ -85,30 +71,6 @@ export function CaseFilters({
             label: `Not run (${statusCounts['not-run']})`,
             value: 'not-run',
           },
-        ]}
-      />
-      <Select
-        aria-label="Sort project breakdown"
-        suffixIcon={<span className="runner-overview-select-chevron" />}
-        value={`${sort}:${sortDirection}`}
-        onChange={(value: string) => {
-          const [nextSort, direction] = value.split(':');
-          onSortChange(
-            nextSort as RunnerBreakdownSort,
-            direction as RunnerBreakdownSortDirection,
-          );
-        }}
-        options={[
-          { label: 'Attention first', value: 'result:asc' },
-          { label: 'Passed first', value: 'result:desc' },
-          { label: 'Name A–Z', value: 'name:asc' },
-          { label: 'Name Z–A', value: 'name:desc' },
-          { label: 'Most cases first', value: 'case-count:desc' },
-          { label: 'Fewest cases first', value: 'case-count:asc' },
-          { label: 'Most passed first', value: 'passed-count:desc' },
-          { label: 'Fewest passed first', value: 'passed-count:asc' },
-          { label: 'Longest first', value: 'duration:desc' },
-          { label: 'Shortest first', value: 'duration:asc' },
         ]}
       />
       <Input

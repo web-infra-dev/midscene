@@ -1,4 +1,8 @@
-import { WarningFilled } from '@ant-design/icons';
+import {
+  CaretDownFilled,
+  CaretUpFilled,
+  WarningFilled,
+} from '@ant-design/icons';
 import { Button, Empty, Tooltip } from 'antd';
 import { useId, useMemo, useState } from 'react';
 import { RunnerAttemptTimeline } from './attempt-timeline';
@@ -49,7 +53,14 @@ function ProjectSortButton({
         onClick={() => onChange(value)}
       >
         <span>{label}</span>
-        <span className="runner-project-sort-icon" aria-hidden="true" />
+        <span className="runner-project-sort-icon" aria-hidden="true">
+          <CaretUpFilled
+            className={active && direction === 'asc' ? 'is-active' : ''}
+          />
+          <CaretDownFilled
+            className={active && direction === 'desc' ? 'is-active' : ''}
+          />
+        </span>
       </button>
     </span>
   );

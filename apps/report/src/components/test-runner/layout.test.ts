@@ -148,7 +148,7 @@ describe('Midscene Test report layout', () => {
   it('uses one shared Select for report filters and attempt switching', () => {
     expect(filters).toContain("import { Select } from './select'");
     expect(figmaOverviewStyles).toMatch(
-      /\.runner-breakdown-panel \.runner-breakdown-toolbar\s*\{[^}]*grid-template-columns: 184px 168px minmax\(200px, 317px\) 32px;/s,
+      /\.runner-breakdown-panel \.runner-breakdown-toolbar\s*\{[^}]*grid-template-columns: 184px minmax\(200px, 317px\) 32px;/s,
     );
     expect(header).toContain(
       "import { AttemptSelect } from './attempt-select'",
@@ -158,14 +158,21 @@ describe('Midscene Test report layout', () => {
     expect(select).toContain("popupClassName={['runner-select-dropdown'");
   });
 
-  it('sorts the Project table from its column headers and toolbar', () => {
-    expect(filters).toContain('Sort project breakdown');
+  it('sorts the Project table from its column headers', () => {
+    expect(filters).not.toContain('Sort project breakdown');
     for (const value of ['name', 'passed-count', 'result', 'duration']) {
       expect(breakdown).toContain(`value="${value}"`);
     }
     expect(breakdown).toContain('aria-pressed={active}');
     expect(figmaOverviewStyles).toContain('.runner-project-sort-button');
-    expect(figmaOverviewStyles).toContain('./assets/overview-sort.svg');
+    expect(breakdown).toContain("active && direction === 'asc'");
+    expect(breakdown).toContain("active && direction === 'desc'");
+    expect(figmaOverviewStyles).toContain(
+      'color: var(--runner-sort-arrow-idle);',
+    );
+    expect(figmaOverviewStyles).toContain(
+      'color: var(--runner-sort-arrow-active);',
+    );
     expect(figmaShellStyles).toContain(
       '--runner-sort-arrow-idle: rgb(51 51 51 / 30%);',
     );
