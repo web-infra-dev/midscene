@@ -12,8 +12,9 @@ import type {
   TestRunReportStep,
 } from '@midscene/core';
 import { Segmented } from 'antd';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 import type { RunnerStepGroup } from './case-workspace-model';
+import { ExecutionYaml } from './execution-yaml';
 import type { ReportIssues } from './issues';
 import { getStepDisplayName } from './model';
 import { StepStatus, formatDuration } from './view-primitives';
@@ -36,6 +37,7 @@ export function RunnerExecutionPanel({
   children,
   sourcePath,
   sourceYaml,
+  caseIndex = 0,
   view = 'visual',
   onViewChange,
   onSelect,
@@ -47,6 +49,7 @@ export function RunnerExecutionPanel({
   children?: ReactNode;
   sourcePath?: string;
   sourceYaml?: TestRunReportDocumentPlan['sourceYaml'];
+  caseIndex?: number;
   view?: 'visual' | 'yaml';
   onViewChange?(view: 'visual' | 'yaml'): void;
   onSelect(step: TestRunReportStep): void;
@@ -54,6 +57,19 @@ export function RunnerExecutionPanel({
   const yaml =
     typeof sourceYaml?.value === 'string' ? sourceYaml.value : undefined;
   const showYaml = view === 'yaml' && yaml !== undefined;
+  const steps = useMemo(() => groups.flatMap((group) => group.steps), [groups]);
+  const selectedButton = useRef<HTMLButtonElement>(null);
+  const executionBody = useRef<HTMLDivElement>(null);
+  const openingYamlStep = useRef(false);
+  useEffect(() => {
+    if (showYaml || !openingYamlStep.current) return;
+    openingYamlStep.current = false;
+    selectedButton.current?.focus({ preventScroll: true });
+    selectedButton.current?.scrollIntoView({ block: 'nearest' });
+    executionBody.current
+      ?.querySelector('.runner-detail-evidence-heading')
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [showYaml, selectedStepId]);
   return (
     <section className="runner-detail-step-panel" aria-label="Execution">
       <div className="runner-detail-panel-heading">
@@ -88,11 +104,25 @@ export function RunnerExecutionPanel({
           {sourceYaml?.truncatedPaths?.length ? (
             <p>Source YAML is truncated.</p>
           ) : null}
-          <pre>{yaml}</pre>
+          <ExecutionYaml
+            source={yaml!}
+            steps={steps}
+            caseIndex={caseIndex}
+            issues={issues}
+            onSelect={(step) => {
+              openingYamlStep.current = true;
+              onSelect(step);
+              onViewChange?.('visual');
+            }}
+          />
         </section>
       ) : null}
       {!showYaml ? timeline : null}
-      <div className="runner-detail-execution-body" hidden={showYaml}>
+      <div
+        className="runner-detail-execution-body"
+        hidden={showYaml}
+        ref={executionBody}
+      >
         <nav className="runner-detail-step-scroll" aria-label="Execution steps">
           {groups.map((group) => (
             <section className="runner-detail-step-group" key={group.label}>
@@ -108,6 +138,7 @@ export function RunnerExecutionPanel({
                       type="button"
                       className={isSelected ? 'is-selected' : ''}
                       key={step.id}
+                      ref={isSelected ? selectedButton : undefined}
                       aria-pressed={isSelected}
                       onClick={() => onSelect(step)}
                     >

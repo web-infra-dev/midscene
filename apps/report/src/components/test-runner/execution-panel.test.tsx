@@ -6,7 +6,7 @@ import { RunnerExecutionPanel } from './execution-panel';
 const step = (
   id: string,
   phase: TestRunReportStep['phase'] = 'steps',
-): TestRunReportStep => ({
+): Extract<TestRunReportStep, { status: 'success' | 'failed' }> => ({
   id,
   phase,
   stepIndex: 0,
@@ -92,13 +92,80 @@ describe('execution panel', () => {
       </RunnerExecutionPanel>,
     );
     expect(html).toContain('cases/search.yaml');
-    expect(html).toContain('# Original comment\ncases: $' + '{search}\n');
+    expect(html).toContain('# Original comment');
+    expect(html).toContain('${search}');
+    expect(html).toContain('runner-yaml-key');
+    expect(html).toContain('runner-yaml-comment');
     expect(html).toContain('Sensitive fields are redacted.');
     expect(html).toContain('Source YAML is truncated.');
     expect(html).not.toContain('data-testid="timeline"');
     expect(html).toContain('class="runner-detail-execution-body" hidden=""');
     expect(html).toContain('data-testid="node-details"');
     expect(html).toContain('aria-pressed="true"');
+  });
+
+  it('shows success, failure, timeout and not-run markers with separate evidence warnings', () => {
+    const steps: TestRunReportStep[] = [
+      step('aiAct'),
+      { ...step('aiAssert'), stepIndex: 1, status: 'failed' },
+      {
+        ...step('wait'),
+        stepIndex: 2,
+        status: 'failed',
+        error: { name: 'TimeoutError', message: 'Operation timed out.' },
+      },
+      {
+        id: 'check',
+        node: 'check',
+        phase: 'steps',
+        stepIndex: 3,
+        status: 'not-run',
+        continuedAfterError: false,
+        notRunReason: 'An earlier step timed out.',
+      },
+    ];
+    const html = renderToStaticMarkup(
+      <RunnerExecutionPanel
+        groups={[{ label: 'Case steps', steps }]}
+        sourceYaml={{
+          value: `cases:
+  - name: Search
+    steps:
+      - aiAct: '<script>alert("x")</script>'
+      - aiAssert: check
+      - wait: 1000
+      - check: ready
+`,
+        }}
+        issues={
+          new Map([
+            [
+              'aiAct',
+              [
+                {
+                  id: 'capture',
+                  severity: 'warning',
+                  code: 'PARTIAL_EVIDENCE',
+                  message: 'Screenshot unavailable.',
+                },
+              ],
+            ],
+          ])
+        }
+        view="yaml"
+        onSelect={() => {}}
+      />,
+    );
+    expect(html).toContain('Success: aiAct. View step details (with warnings)');
+    expect(html).toContain('Failed: aiAssert. View step details');
+    expect(html).toContain('Timeout: wait. View step details');
+    expect(html).toContain('Not run: check. View step details');
+    expect(html).toContain('runner-yaml-marker is-success');
+    expect(html).toContain('runner-yaml-marker is-failed');
+    expect(html).toContain('runner-yaml-marker is-timeout');
+    expect(html).toContain('runner-yaml-marker is-not-run');
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).not.toContain('<script>');
   });
 
   it('keeps Visual available when no YAML snapshot was captured', () => {

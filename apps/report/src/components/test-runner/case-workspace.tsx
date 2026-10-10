@@ -178,6 +178,7 @@ export function CaseWorkspace({
             onViewChange={setExecutionView}
             sourcePath={item.document.sourcePath}
             sourceYaml={item.document.plan?.sourceYaml}
+            caseIndex={item.testCase.caseIndex}
             onSelect={selectStep}
           >
             {selectedStep ? (
