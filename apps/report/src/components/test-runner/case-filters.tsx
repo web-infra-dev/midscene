@@ -1,4 +1,4 @@
-import { CloseCircleFilled } from '@ant-design/icons';
+import { CloseCircleFilled, SearchOutlined } from '@ant-design/icons';
 import { Input } from 'antd';
 import { useMemo } from 'react';
 import type { RunnerBreakdownStatus, RunnerCaseView } from './model';
@@ -74,12 +74,7 @@ export function CaseFilters({
         ]}
       />
       <Input
-        prefix={
-          <img
-            src={new URL('./assets/overview-search.svg', import.meta.url).href}
-            alt=""
-          />
-        }
+        prefix={<SearchOutlined />}
         aria-label="Search projects, cases, and details"
         suffix={
           <button
@@ -93,7 +88,7 @@ export function CaseFilters({
             <CloseCircleFilled />
           </button>
         }
-        placeholder="Search by name"
+        placeholder="Search projects, cases, and details"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
       />

@@ -148,7 +148,7 @@ describe('Midscene Test report layout', () => {
   it('uses one shared Select for report filters and attempt switching', () => {
     expect(filters).toContain("import { Select } from './select'");
     expect(figmaOverviewStyles).toMatch(
-      /\.runner-breakdown-panel \.runner-breakdown-toolbar\s*\{[^}]*grid-template-columns: 184px minmax\(200px, 317px\) 32px;/s,
+      /\.runner-breakdown-panel \.runner-breakdown-toolbar\s*\{[^}]*grid-template-columns: 184px minmax\(240px, 317px\) 32px;/s,
     );
     expect(header).toContain(
       "import { AttemptSelect } from './attempt-select'",
