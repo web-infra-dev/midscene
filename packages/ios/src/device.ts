@@ -130,7 +130,7 @@ export class IOSDevice implements AbstractInterface {
     },
     touch: {
       swipe: async (start, end, opts) => {
-        const duration = opts?.duration ?? 300;
+        const duration = opts?.duration ?? 500;
         const repeat = opts?.repeat ?? 1;
         for (let i = 0; i < repeat; i++) {
           await this.swipePoint(start, end, duration);
@@ -278,6 +278,8 @@ export class IOSDevice implements AbstractInterface {
 
   actionSpace(): DeviceAction<any>[] {
     const mobileActionContext = {
+      // Match direct swipes: short, fast gestures add wheel-picker inertia.
+      defaultSwipeDuration: 500,
       input: this.inputPrimitives,
       size: () => this.size(),
       sleep: async (timeMs: number) => {

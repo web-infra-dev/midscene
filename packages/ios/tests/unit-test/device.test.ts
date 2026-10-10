@@ -211,6 +211,38 @@ describe('IOSDevice', () => {
   });
 
   describe('Action Space', () => {
+    it.each([undefined, 300, 800])(
+      'uses a 500ms default swipe and preserves explicit %s duration',
+      async (duration) => {
+        const action = device
+          .actionSpace()
+          .find((entry) => entry.name === 'Swipe')!;
+        const param = {
+          direction: 'up',
+          distance: 50,
+          ...(duration === undefined ? {} : { duration }),
+        };
+        const parsed = action.paramSchema!.parse(param);
+        expect(parsed.duration).toBe(duration ?? 500);
+        await action.call(parsed, mockExecutorContext);
+        expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+          expect.any(Number),
+          expect.any(Number),
+          expect.any(Number),
+          expect.any(Number),
+          duration ?? 500,
+        );
+        await action.call(param, mockExecutorContext);
+        expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+          expect.any(Number),
+          expect.any(Number),
+          expect.any(Number),
+          expect.any(Number),
+          duration ?? 500,
+        );
+      },
+    );
+
     it('should provide action space with iOS-specific actions', () => {
       const actions = device.actionSpace();
       expect(Array.isArray(actions)).toBe(true);
