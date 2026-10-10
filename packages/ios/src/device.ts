@@ -952,7 +952,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         await sleep(2000); // 300ms scroll + inertia time + page stabilization time
       } catch (error) {
         debugDevice(`Error during scroll attempt ${i + 1}: ${error}`);
-        await sleep(300);
+        throw error;
       }
     }
 

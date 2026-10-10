@@ -216,8 +216,6 @@ export async function standardPlan(
     ...referenceImageMessages,
   ];
 
-  let latestFeedbackMessage: ChatCompletionMessageParam;
-
   // Build sub-goal status text to include in the message
   // In planning deep-think mode: show full sub-goals with logs
   // Otherwise: show historical execution logs
@@ -234,49 +232,44 @@ export async function standardPlan(
   const memoriesText = conversationHistory.memoriesToText();
   const memoriesSection = memoriesText ? `\n\n${memoriesText}` : '';
 
-  if (conversationHistory.pendingFeedbackMessage) {
-    latestFeedbackMessage = {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${executionProgressSection}`,
-        },
-        {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
-        },
-      ],
-    };
-
-    conversationHistory.resetPendingFeedbackMessageIfExists();
-  } else {
-    latestFeedbackMessage = {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: `This is the current screenshot.${memoriesSection}${executionProgressSection}`,
-        },
-        {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
-        },
-      ],
-    };
-  }
-  conversationHistory.append(latestFeedbackMessage);
-
-  // Compress history if it exceeds the threshold to avoid context overflow
+  const observationText = conversationHistory.pendingFeedbackMessage
+    ? `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.`
+    : 'This is the current screenshot.';
+  const latestObservation: ChatCompletionMessageParam = {
+    role: 'user',
+    content: [
+      { type: 'text', text: observationText },
+      {
+        type: 'image_url',
+        image_url: { url: imagePayload, detail: 'high' },
+      },
+    ],
+  };
+  conversationHistory.resetPendingFeedbackMessageIfExists();
+  // Persist observations without cumulative state, which would otherwise repeat
+  // increasingly large summaries in every subsequent planning request.
+  conversationHistory.append(latestObservation);
   conversationHistory.compressHistory(50, 20);
 
   const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
+  const outgoingObservation = historyLog[historyLog.length - 1];
+  assert(
+    outgoingObservation.role === 'user' &&
+      Array.isArray(outgoingObservation.content),
+    'Expected the latest planning observation to contain multipart content',
+  );
+  // Replace the outgoing message without mutating stored history, retaining the
+  // screenshot or its placeholder selected by snapshot's image limit.
+  historyLog[historyLog.length - 1] = {
+    ...outgoingObservation,
+    content: [
+      {
+        type: 'text',
+        text: `${observationText}${memoriesSection}${executionProgressSection}`,
+      },
+      ...outgoingObservation.content.slice(1),
+    ],
+  };
 
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },

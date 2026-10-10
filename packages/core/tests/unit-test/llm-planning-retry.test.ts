@@ -537,6 +537,126 @@ describe('plan XML parse retry', () => {
     expect(result.actions).toEqual([{ type: 'Tap' }]);
   });
 
+  it.each([
+    ['fast', undefined],
+    ['fast', 0],
+    ['fast', 1],
+    ['balance', 1],
+    ['deepThink', 2],
+  ] as const)(
+    'includes cumulative context only in the latest observation in %s mode with %s images',
+    async (effort, imagesIncludeCount) => {
+      const conversationHistory = new ConversationHistory();
+      conversationHistory.appendMemory('Remember the original event location');
+      conversationHistory.appendHistoricalLog('Opened the event');
+      conversationHistory.setSubGoals([
+        { index: 1, description: 'Edit the event', status: 'running' },
+      ]);
+      rs.mocked(callAI).mockResolvedValue(
+        mockAIResponse('<action-type>Tap</action-type>'),
+      );
+      const options = {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime(mockModelConfig()),
+        conversationHistory,
+        includeLocateInPlanning: false,
+        imagesIncludeCount,
+        effort,
+      } as const;
+
+      // Cross the compression threshold as well as ordinary planning rounds.
+      for (let round = 0; round < 27; round++) {
+        conversationHistory.pendingFeedbackMessage = `Feedback for round ${round}`;
+        await standardPlan('edit the event', options);
+        const messages = rs.mocked(callAI).mock.calls[round][0];
+        const latest = JSON.stringify(messages.at(-1));
+        expect(latest).toContain('Remember the original event location');
+        expect(latest).toContain(
+          effort === 'deepThink' ? 'Edit the event' : 'Opened the event',
+        );
+        expect(latest).toContain(`Feedback for round ${round}`);
+        const imageCount = messages
+          .slice(2)
+          .reduce(
+            (count, message) =>
+              count +
+              (Array.isArray(message.content)
+                ? message.content.filter((part) => part.type === 'image_url')
+                    .length
+                : 0),
+            0,
+          );
+        expect(imageCount).toBe(
+          imagesIncludeCount === undefined
+            ? conversationHistory
+                .snapshot()
+                .filter(
+                  (message) =>
+                    Array.isArray(message.content) &&
+                    message.content.some((part) => part.type === 'image_url'),
+                ).length
+            : Math.min(imagesIncludeCount, round + 1),
+        );
+        const earlier = JSON.stringify(messages.slice(0, -1));
+        expect(earlier).not.toContain('Remember the original event location');
+        expect(earlier).not.toContain('Opened the event');
+        if (round > 0) {
+          expect(earlier).toContain(`Feedback for round ${round - 1}`);
+        }
+      }
+      expect(JSON.stringify(conversationHistory.snapshot())).not.toContain(
+        'Remember the original event location',
+      );
+    },
+  );
+
+  it.each(['fast', 'balance', 'deepThink'] as const)(
+    'uses refreshed cumulative state without feedback in %s mode',
+    async (effort) => {
+      const conversationHistory = new ConversationHistory();
+      rs.mocked(callAI).mockResolvedValue(
+        mockAIResponse('<action-type>Tap</action-type>'),
+      );
+      const options = {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime(mockModelConfig()),
+        conversationHistory,
+        includeLocateInPlanning: false,
+        effort,
+      } as const;
+
+      await standardPlan('edit the event', options);
+      expect(
+        JSON.stringify(rs.mocked(callAI).mock.calls[0][0].at(-1)),
+      ).toContain('No previous actions have been executed');
+      for (const state of ['original state', 'updated state']) {
+        conversationHistory.clearMemories();
+        conversationHistory.appendMemory(state);
+        conversationHistory.appendHistoricalLog(state);
+        conversationHistory.setSubGoals([
+          { index: 1, description: state, status: 'running' },
+        ]);
+        await standardPlan('edit the event', options);
+      }
+      const messages = rs.mocked(callAI).mock.calls[2][0];
+      const latest = JSON.stringify(messages.at(-1));
+      expect(latest).toContain('This is the current screenshot.');
+      expect(latest).toContain('updated state');
+      expect(latest).not.toContain('No previous actions have been executed');
+      if (effort === 'deepThink') {
+        expect(latest).not.toContain('original state');
+      }
+      const earlier = JSON.stringify(messages.slice(0, -1));
+      expect(earlier).not.toContain('original state');
+      expect(earlier).not.toContain('No previous actions have been executed');
+      expect(JSON.stringify(conversationHistory.snapshot())).not.toContain(
+        'updated state',
+      );
+    },
+  );
+
   it('replays the complete assistant message for adapters that opt in', async () => {
     const firstResponse = `<log>Tap button</log>
 <action-type>Tap</action-type>`;

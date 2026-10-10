@@ -139,6 +139,24 @@ describe('IOSDevice', () => {
     });
   });
 
+  describe('boundary scroll failures', () => {
+    it('rejects an invalid origin instead of reporting boundary success', async () => {
+      await device.connect();
+      await expect(
+        device.scrollUntilTop({ left: -1, top: 400 }),
+      ).rejects.toThrow('origin');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+
+    it('propagates a failed gesture instead of treating unchanged content as success', async () => {
+      await device.connect();
+      const error = new Error('WDA connection lost');
+      mockWdaClient.swipe.mockRejectedValue(error);
+      await expect(device.scrollUntilBottom()).rejects.toThrow(error);
+      expect(mockWdaClient.swipe).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('Constructor', () => {
     it('should create device with options', () => {
       expect(device).toBeDefined();
