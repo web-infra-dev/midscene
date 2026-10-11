@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import type { Agent } from '@midscene/core/agent';
 import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import { load } from 'js-yaml';
 import { describe, expect, it, vi } from 'vitest';
@@ -30,9 +31,9 @@ const collected = (
   definition: { name: 'midscene case', steps },
 });
 
-const commonAgent = (
-  overrides: Partial<MidsceneUIAgent> = {},
-): MidsceneUIAgent => ({
+type TestAgent = MidsceneUIAgent & Pick<Agent, 'aiWaitFor'>;
+
+const commonAgent = (overrides: Partial<TestAgent> = {}): TestAgent => ({
   aiAct: vi.fn(async () => undefined),
   aiTap: vi.fn(async () => undefined),
   aiAssert: vi.fn(async () => undefined),
