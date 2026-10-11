@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
@@ -59,10 +60,11 @@ describe('grounding locate not-found parsing', () => {
       expect.objectContaining({ semanticRetryAttempt: 1 }),
     ]);
     const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback?.content).toContain(
-      'Missing required coordinate field "bbox"',
+      'Missing required coordinate field "bbox_2d"',
     );
-    expect(retryFeedback?.content).toContain('Expected "bbox":');
+    expect(retryFeedback?.content).toContain('Expected "bbox_2d":');
     expect(result.parseResult.element?.center).toBeDefined();
     expect(result.parseResult.errors).toEqual([]);
   });
@@ -80,7 +82,7 @@ describe('grounding locate not-found parsing', () => {
     expect(callAI).toHaveBeenCalledTimes(2);
     expect(result).not.toHaveProperty('rect');
     expect(result.parseResult.errors?.[0]).toContain(
-      'Missing required coordinate field "bbox"',
+      'Missing required coordinate field "bbox_2d"',
     );
     expect(result.parseResult.errors?.[0]).toContain(
       'target element is not found',
@@ -132,6 +134,7 @@ describe('grounding locate not-found parsing', () => {
       expect.objectContaining({ semanticRetryAttempt: 1 }),
     ]);
     const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback).toMatchObject({ role: 'user' });
     expect(retryFeedback?.content).toEqual(
       expect.stringContaining('coordinate parsing error'),
@@ -202,6 +205,7 @@ describe('grounding locate not-found parsing', () => {
 
     expect(callAI).toHaveBeenCalledTimes(2);
     const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback).toMatchObject({ role: 'user' });
     expect(retryFeedback?.content).toEqual(
       expect.stringContaining('coordinate parsing error'),
@@ -305,8 +309,9 @@ describe('grounding locate not-found parsing', () => {
 
     expect(callAI).toHaveBeenCalledTimes(2);
     const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback?.content).toContain(
-      'Missing required coordinate field "bbox"',
+      'Missing required coordinate field "bbox_2d"',
     );
     expect(result.searchAreaConfig).toBeDefined();
   });

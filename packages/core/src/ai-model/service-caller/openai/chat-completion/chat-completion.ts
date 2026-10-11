@@ -1,11 +1,13 @@
 import { getDebug } from '@midscene/shared/logger';
-import type { ChatCompletionCallInput } from '../../../model-adapter/types';
+import type { ResolveImageDetail } from '../../../model-adapter/types';
+import type { ModelRequestConfigInput } from '../../../model-adapter/types';
 import { createProxyAgentIfNeeded } from '../../proxy';
 import type { ModelCallContext, OpenAIProtocolCallResult } from '../../types';
-import { applyImageDetail, stringifyForDebug } from '../../utils';
+import { stringifyForDebug } from '../../utils';
 import { callChatCompletionNonStreaming } from './non-stream';
 import { callChatCompletionStream } from './stream';
 import type { ChatCompletionCallOptions } from './types';
+import { toChatMessages } from './utils';
 
 export const prepareChatCompletion = async ({
   messages,
@@ -15,7 +17,7 @@ export const prepareChatCompletion = async ({
   const debugCall = getDebug('ai:call');
   const { config: modelConfig, adapter } = modelRuntime;
 
-  const modelCallInput: ChatCompletionCallInput = {
+  const modelCallInput: ModelRequestConfigInput = {
     intent: modelConfig.intent,
     userConfig: {
       temperature: modelConfig.temperature,
@@ -38,16 +40,19 @@ export const prepareChatCompletion = async ({
     })}`,
   );
 
-  const requestBodyParams = {
+  const resolveImageDetail: ResolveImageDetail = ({ imageDetail }) =>
+    adapter.resolveImageDetail({
+      imageDetail,
+      intent: modelConfig.intent,
+      requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+    });
+
+  const requestBodyParams: ChatCompletionCallOptions['requestBodyParams'] = {
+    model: modelConfig.modelName,
+    messages: toChatMessages(messages, resolveImageDetail),
     ...adapterChatCompletionParams,
     ...(modelConfig.extraBody ?? {}),
   };
-
-  const imageDetail = adapter.chatCompletion.resolveImageDetail(modelCallInput);
-
-  // Some adapters request original image detail to preserve screenshot
-  // resolution for localization-sensitive tasks.
-  const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
 
   const proxyAgent = await createProxyAgentIfNeeded({
     socksProxy: modelConfig.socksProxy,
@@ -55,8 +60,11 @@ export const prepareChatCompletion = async ({
   });
 
   return {
-    messages: messagesWithImageDetail,
     requestParams: requestBodyParams,
+    extractContentAndReasoning:
+      adapter.chatCompletion.extractContentAndReasoning,
+    useReasoningAsContentFallback:
+      adapter.chatCompletion.useReasoningAsContentFallback,
     proxyAgent,
   };
 };

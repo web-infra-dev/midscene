@@ -1,6 +1,5 @@
 import { getDebug } from '@midscene/shared/logger';
 import { assert, uuid } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
 import { callCodex, prepareCodexCall } from './codex/call-codex';
 import { isCodexAppServerProvider } from './codex/codex-app-server';
@@ -8,14 +7,16 @@ import {
   isModelCallRecordingEnabled,
   recordModelCallEvent,
 } from './model-call-recorder';
-import { callOpenAI } from './openai/call-openai';
+import { type PreparedOpenAIInput, callOpenAI } from './openai/call-openai';
 import { prepareChatCompletion } from './openai/chat-completion/chat-completion';
+import { prepareResponses } from './openai/responses/responses';
 import {
   buildRequestAbortSignal,
   resolveEffectiveTimeoutMs,
   runWithAbortSignal,
   waitForRetry,
 } from './request-timeout';
+import type { ModelCallMessages } from './types';
 import type {
   AICallResult,
   CallAIOptions,
@@ -30,17 +31,25 @@ import {
   toError,
 } from './utils';
 
+const DEFAULT_MODEL_PROTOCOL = 'openai-chat';
+
 export async function callAI(
-  messages: ChatCompletionMessageParam[],
+  messages: ModelCallMessages,
   modelRuntime: ModelRuntime,
   options?: CallAIOptions,
 ): Promise<AICallResult> {
   options?.abortSignal?.throwIfAborted();
   const isStreaming = options?.stream === true;
   if (isStreaming) {
+    // Explicit streaming is currently used only by recorder code generation.
+    // Streaming can also be aggregated without onChunk, but then the caller
+    // cannot consume incremental output, which is the purpose of this option.
+    // Environment-enabled streaming supports that aggregation-only use case.
+    // Once onChunk delivers a chunk, later errors are not retried to avoid
+    // delivering duplicate content. Errors before the first chunk can retry.
     assert(
       typeof options?.onChunk === 'function',
-      'onChunk is required when stream is true',
+      'onChunk is required when stream: true is explicitly specified',
     );
   }
 
@@ -55,20 +64,25 @@ export async function callAI(
 
   const { config: modelConfig } = modelRuntime;
 
-  const prepare = async (): Promise<PreparedModelInput> =>
-    isCodexAppServerProvider(modelConfig.openaiBaseURL)
-      ? {
-          protocol: 'codex',
-          input: prepareCodexCall({ messages, modelRuntime, options }),
-        }
-      : {
-          protocol: 'chat-completion',
-          input: await prepareChatCompletion({
-            messages,
-            modelRuntime,
-            options,
-          }),
-        };
+  const prepare = async (): Promise<PreparedModelInput> => {
+    const input = { messages, modelRuntime, options };
+    if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
+      return { protocol: 'codex', input: prepareCodexCall(input) };
+    }
+    const protocol = modelConfig.protocol ?? DEFAULT_MODEL_PROTOCOL;
+
+    assert(
+      modelRuntime.adapter.supportedProtocols.includes(protocol),
+      `Model adapter "${modelConfig.modelFamily ?? 'default'}" does not support protocol "${protocol}"`,
+    );
+    if (protocol === 'openai-responses') {
+      return { protocol: 'responses', input: await prepareResponses(input) };
+    }
+    return {
+      protocol: 'chat-completion',
+      input: await prepareChatCompletion(input),
+    };
+  };
 
   const prepared = options?.abortSignal
     ? await runWithAbortSignal(options.abortSignal, prepare)
@@ -94,6 +108,8 @@ export async function callAI(
   } = result;
 
   const usage = buildUsageInfo({
+    apiProtocol: prepared.protocol,
+    stream: response.isStreamed,
     usageData: rawUsage,
     timeCost,
     totalTimeCost,
@@ -121,13 +137,10 @@ export async function callAI(
 
 type PreparedModelInput =
   | { protocol: 'codex'; input: ReturnType<typeof prepareCodexCall> }
-  | {
-      protocol: 'chat-completion';
-      input: Awaited<ReturnType<typeof prepareChatCompletion>>;
-    };
+  | PreparedOpenAIInput;
 
 type ModelCallInput = {
-  messages: ChatCompletionMessageParam[];
+  messages: ModelCallMessages;
   modelRuntime: ModelRuntime;
   options?: CallAIOptions;
   executionId: string;
@@ -200,20 +213,27 @@ async function callModelOnce(
   attempt: number,
 ): Promise<ModelCallResult> {
   const { config: modelConfig } = modelRuntime;
-  const recordEvent = isModelCallRecordingEnabled()
-    ? (event: Record<string, unknown>) => {
-        void recordModelCallEvent({
-          executionId,
-          callId: internalCallId,
-          semanticRetryAttempt: options?.semanticRetryAttempt,
-          slot: modelConfig.slot,
-          intent: modelConfig.intent,
-          modelFamily: modelConfig.modelFamily,
-          ...event,
-          attempt,
-        });
-      }
-    : undefined;
+  const recordingEnabled = isModelCallRecordingEnabled();
+  const recordEvent =
+    recordingEnabled || modelRuntime.onRequest
+      ? (event: Record<string, unknown>) => {
+          if (event.type === 'request') {
+            const request = event.request as { url?: string } | undefined;
+            modelRuntime.onRequest?.(request?.url);
+          }
+          if (!recordingEnabled) return;
+          void recordModelCallEvent({
+            executionId,
+            callId: internalCallId,
+            semanticRetryAttempt: options?.semanticRetryAttempt,
+            slot: modelConfig.slot,
+            intent: modelConfig.intent,
+            modelFamily: modelConfig.modelFamily,
+            ...event,
+            attempt,
+          });
+        }
+      : undefined;
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig.timeout);
   const { signal: requestSignal, cleanup } = buildRequestAbortSignal(
     effectiveTimeoutMs,
@@ -243,7 +263,7 @@ async function callModelOnce(
     return await runWithAbortSignal(requestSignal, () =>
       prepared.protocol === 'codex'
         ? callCodex(context, prepared.input)
-        : callOpenAI(context, prepared.input),
+        : callOpenAI(context, prepared),
     );
   } catch (error) {
     options?.abortSignal?.throwIfAborted();

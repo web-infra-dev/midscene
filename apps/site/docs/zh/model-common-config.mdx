@@ -1,4 +1,4 @@
-import { ModelConfigTab, ModelConfigTabs, PackageManagerTabs } from '@theme';
+import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 # 支持的模型与配置
 
@@ -30,38 +30,14 @@ Midscene 支持使用以下多模态模型操作界面。每份配置都需要 B
 
 环境变量配置示例，以 `doubao-seed-2.1-turbo` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" # 火山引擎地址
-MIDSCENE_MODEL_API_KEY="...."
-MIDSCENE_MODEL_NAME="doubao-seed-2-1-turbo-260628"
-MIDSCENE_MODEL_FAMILY="doubao-seed"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" # 火山引擎地址
-MIDSCENE_PLANNING_MODEL_API_KEY="...."
-MIDSCENE_PLANNING_MODEL_NAME="doubao-seed-2-1-turbo-260628"
-MIDSCENE_PLANNING_MODEL_FAMILY="doubao-seed"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" # 火山引擎地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="...."
-MIDSCENE_INSIGHT_MODEL_NAME="doubao-seed-2-1-turbo-260628"
-MIDSCENE_INSIGHT_MODEL_FAMILY="doubao-seed"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://ark.cn-beijing.volces.com/api/v3",
+    comment: "火山引擎地址",
+  }}
+  modelName="doubao-seed-2-1-turbo-260628"
+  modelFamily="doubao-seed"
+/>
 
 如果你的火山引擎账号已开通低延迟模式（Fast Tier），可以追加以下请求体参数来使用该能力。通常可将模型响应速度提升约 30% 至 50%。
 
@@ -89,38 +65,17 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 环境变量配置示例，以 `qwen3.7-plus` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen，需要替换为对应的 model family
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_PLANNING_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen，需要替换为对应的 model family
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 阿里云地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen，需要替换为对应的 model family
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    comment: "阿里云地址",
+  }}
+  modelName="qwen3.7-plus"
+  modelFamily={{
+    value: "qwen3",
+    comment: "如果你使用了其他版本的 Qwen，需要替换为对应的 model family",
+  }}
+/>
 
 ### 深度求索 deepseek 系列 {#deepseek}
 
@@ -138,38 +93,14 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 环境变量配置示例，以 `deepseek-flash` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="deepseek-flash"
-MIDSCENE_MODEL_FAMILY="deepseek"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="deepseek-flash"
-MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="deepseek-flash"
-MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.deepseek.com",
+    comment: "DeepSeek API 地址",
+  }}
+  modelName="deepseek-flash"
+  modelFamily="deepseek"
+/>
 
 ### Google Gemini 系列 {#gemini}
 
@@ -185,38 +116,14 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
 
 环境变量配置示例，以 `gemini-3.5-flash` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" # Google Gemini API 地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="gemini-3.5-flash"
-MIDSCENE_MODEL_FAMILY="gemini"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" # Google Gemini API 地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="gemini-3.5-flash"
-MIDSCENE_PLANNING_MODEL_FAMILY="gemini"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" # Google Gemini API 地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="gemini-3.5-flash"
-MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    comment: "Google Gemini API 地址",
+  }}
+  modelName="gemini-3.5-flash"
+  modelFamily="gemini"
+/>
 
 ### OpenAI GPT 系列 {#gpt}
 
@@ -231,42 +138,68 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 </div>
 
+**使用 ChatGPT 订阅（推荐）**
+
+如果你已经订阅了 ChatGPT plan，则可以通过 [SIWC（Sign in with ChatGPT）](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) 获得一个 ChatGPT 授权 token。该 token 同样可以用于在 Midscene 中调用 OpenAI 服务，就像 OpenAI 的 API Key 一样。
+
+使用方式：
+
+1. 首次获取凭据
+
+   ```bash
+   npx @midscene/cli model siwc login
+   ```
+
+   按照终端提示在浏览器中完成授权。授权时可为 Agent 自行取名，名称没有特殊要求；完成后，你可以在 ChatGPT 的使用情况页面查看已授权的 Agent。命令会打印 Access token，可将其配置为 `MIDSCENE_MODEL_API_KEY`。完整凭据保存在本地 `~/.midscene/siwc.json`，Midscene 不会收集你的凭据。
+
+   使用 access token 时的环境变量配置示例，以 `gpt-6-sol` 为例：
+
+   <ModelConfigCard
+     baseUrl="https://api.openai.com/v1"
+     apiKey="<your-access-token>"
+     modelName="gpt-6-sol"
+     modelFamily="gpt-6"
+     protocol={{
+       value: "openai-responses",
+       comment: "SIWC 要求使用 Responses API",
+     }}
+     streamMode={{
+       value: "stream",
+       comment: "SIWC 要求开启流式返回",
+     }}
+   />
+
+2. 刷新 Access token
+
+   Access token 会过期（默认有效期为 1 小时），需要主动更新凭据，使用下面的命令：
+
+   ```bash
+   npx @midscene/cli model siwc refresh
+   ```
+
+   命令会更新本地凭据并打印新的 Access token，请同步更新模型配置中的 token。
+
+注意事项：
+
+1. 请遵守 OpenAI 的地区限制和使用条款，参见 [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/)。
+2. 使用 SIWC 时会消耗你的订阅额度，具体 token 消耗和订阅额度的换算以 ChatGPT 官方为准。你可以在 Midscene 的报告中查看每步任务的 token 消耗。
+3. 通过 SIWC 调用模型时，需要使用 Responses API，并开启流式返回。
+
+**使用 API Key**
+
 环境变量配置示例，以 `gpt-6-sol` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.openai.com/v1",
+    comment: "OpenAI API 地址；或你的兼容服务地址",
+  }}
+  modelName="gpt-6-sol"
+  modelFamily="gpt-6"
+  responses
+/>
 
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
-MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-6-sol"
-MIDSCENE_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
-MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
-MIDSCENE_PLANNING_MODEL_NAME="gpt-6-sol"
-MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
-MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-sol"
-MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
-
-**Fast mode**
+**开启 Fast mode（`service_tier="fast"`）**
 
 GPT-5.6 Sol 和 GPT-6 Astra 均支持 Fast mode，可以追加 `service_tier` 请求体参数启用，以 GPT-5.6 Sol 为例：
 
@@ -286,8 +219,8 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 ```bash
 export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-5.4" # 或者使用 Codex model/list 可见的其他模型
-export MIDSCENE_MODEL_FAMILY="gpt-5"
+export MIDSCENE_MODEL_NAME="gpt-6-sol" # 或者使用 Codex model/list 可见的其他模型
+export MIDSCENE_MODEL_FAMILY="gpt-6"
 ```
 
 说明：
@@ -302,13 +235,12 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 
 :::
 
-使用 GPT-5 时，请注意以下事项：
+**使用 GPT 时，请注意以下事项：**
 
-- 使用 GPT 做 UI 定位时，目前只支持使用 `gpt-5.4` 及以后的模型。因为为了获得最佳的定位效果，需要在发送图片时指定 `"detail": "original"` 参数，这一参数仅在 `gpt-5.4` 及后续模型上可用，部分小参数的 GPT-5 变体以及前代模型不支持 `original` 参数，会导致报错。详情请参考 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
+- 使用 GPT 做 UI 定位至少需要 GPT-5.4，Midscene 不支持更早的版本。
 - 按照 OpenAI 的文档，GPT-5 在处理非拉丁字母文本、字号太小的文本时效果可能不理想，参见 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision)。
 - OpenAI 在 computer use 文档中提到，他们观察到 `1440x900` 和 `1600x900` 这两种截图尺寸上通常能获得比较好的效果，详见 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。因此，建议按照 OpenAI 的推荐对截图尺寸进行调整。在 Midscene 中，你可以通过 Agent 参数里的 `screenshotShrinkFactor` 控制截图压缩倍率。如果是浏览器自动化，还可以通过浏览器 `viewport` 指定页面的尺寸和比例。
-- 使用 Azure OpenAI 时，Azure 可能不会正确处理 `"detail": "original"`，从而造成点击坐标偏移。详见 [使用 Azure OpenAI 时点击坐标偏移](./faq#使用-azure-openai-时点击坐标偏移)。
-- 如果你使用的是更老版本的 GPT-5，建议只将其用作规划模型，并搭配其他多模态模型完成定位，参考[多模型组合示例](#multi-model-combination-example)。
+- 使用 Azure OpenAI 的 Chat Completions API 时，`"detail": "original"` 可能未被正确处理，从而造成点击坐标偏移。遇到此问题时，可以切换到 Responses API。详见 [使用 Azure OpenAI 时点击坐标偏移](./faq#使用-azure-openai-时点击坐标偏移)。
 
 ### 月之暗面 Kimi 系列 {#kimi}
 
@@ -325,38 +257,17 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 
 环境变量配置示例，以 `kimi-k3` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="kimi-k3"
-MIDSCENE_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="kimi-k3"
-MIDSCENE_PLANNING_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="kimi-k3"
-MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.moonshot.cn/v1",
+    comment: "Moonshot AI API 地址",
+  }}
+  modelName="kimi-k3"
+  modelFamily={{
+    value: "kimi3",
+    comment: "如果使用 kimi-k2.6，请改为 \"kimi\"",
+  }}
+/>
 
 
 ### 小米 MiMo 系列 {#xiaomi-mimo}
@@ -373,38 +284,14 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi
 
 环境变量配置示例，以 `mimo-v2.6-pro` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # 小米 MiMo API 地址
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="mimo-v2.6-pro"
-MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # 小米 MiMo API 地址
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="mimo-v2.6-pro"
-MIDSCENE_PLANNING_MODEL_FAMILY="xiaomi-mimo"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.xiaomimimo.com/v1" # 小米 MiMo API 地址
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="mimo-v2.6-pro"
-MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.xiaomimimo.com/v1",
+    comment: "小米 MiMo API 地址",
+  }}
+  modelName="mimo-v2.6-pro"
+  modelFamily="xiaomi-mimo"
+/>
 
 ### 智谱 GLM-V 系列 {#glm-v}
 
@@ -421,38 +308,14 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
 
 环境变量配置示例，以 `glm-5v-turbo` 为例：
 
-<ModelConfigTabs>
-  <ModelConfigTab type="default">
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # BigModel API 地址；Z.AI 使用 https://api.z.ai/api/paas/v4
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="glm-5v-turbo"
-MIDSCENE_MODEL_FAMILY="glm-v"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="planning">
-
-```bash
-MIDSCENE_PLANNING_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # BigModel API 地址；Z.AI 使用 https://api.z.ai/api/paas/v4
-MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="glm-5v-turbo"
-MIDSCENE_PLANNING_MODEL_FAMILY="glm-v"
-```
-
-  </ModelConfigTab>
-  <ModelConfigTab type="insight">
-
-```bash
-MIDSCENE_INSIGHT_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # BigModel API 地址；Z.AI 使用 https://api.z.ai/api/paas/v4
-MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="glm-5v-turbo"
-MIDSCENE_INSIGHT_MODEL_FAMILY="glm-v"
-```
-
-  </ModelConfigTab>
-</ModelConfigTabs>
+<ModelConfigCard
+  baseUrl={{
+    value: "https://open.bigmodel.cn/api/paas/v4",
+    comment: "BigModel API 地址；Z.AI 使用 https://api.z.ai/api/paas/v4",
+  }}
+  modelName="glm-5v-turbo"
+  modelFamily="glm-v"
+/>
 
 **了解更多关于 GLM-4.6V 开源模型**
 

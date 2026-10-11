@@ -8,6 +8,7 @@ import {
 } from '@midscene/shared/recorder';
 import { getModelRuntime } from '../../models';
 import { callAIWithObjectResponse } from '../../service-caller';
+import type { MessageContent } from '../../service-caller/types';
 import { compactRecorderSemanticForGeneration } from './common';
 
 export interface RecorderMetadataGenerationInput {
@@ -86,7 +87,7 @@ export async function generateRecorderSessionMetadata(
     input.events,
     input.maxScreenshots ?? 1,
   );
-  const messageContent: any[] = [
+  const messageContent: MessageContent[] = [
     {
       type: 'text',
       text: `Generate a concise title (5-7 words) and brief description (1-2 sentences) for a Studio recording of user actions.
@@ -104,8 +105,8 @@ Respond with a JSON object containing exactly "title" and "description".`,
 
   for (const screenshot of screenshots) {
     messageContent.push({
-      type: 'image_url',
-      image_url: { url: screenshot },
+      type: 'image',
+      url: screenshot,
     });
   }
 

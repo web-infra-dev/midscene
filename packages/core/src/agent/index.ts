@@ -88,6 +88,8 @@ export type {
   AgentAIContextKey,
   AgentAIContexts,
   AgentOpt,
+  ActionReadyContext,
+  WaitForActionReady,
   AiApiName,
 } from '../types';
 export type { RecordToReportOptions, RecordToReportScreenshot } from '../types';

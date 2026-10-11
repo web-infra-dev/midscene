@@ -1,16 +1,27 @@
+import {
+  MIDSCENE_MODEL_STREAM_MODE,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
-import type {
-  ModelCallContext,
-  ModelCallResult,
-  OpenAIProtocolCallOptions,
-} from '../types';
+import type { ModelCallContext, ModelCallResult } from '../types';
 import { AIResponseParseError } from '../utils';
 import {
   callChatCompletion,
   type prepareChatCompletion,
 } from './chat-completion/chat-completion';
-import { createChatClient } from './openai-client';
+import { createClient } from './openai-client';
 import { formatOpenAIAPIErrorDetails } from './openai-request-context';
+import { callResponses, type prepareResponses } from './responses/responses';
+
+export type PreparedOpenAIInput =
+  | {
+      protocol: 'chat-completion';
+      input: Awaited<ReturnType<typeof prepareChatCompletion>>;
+    }
+  | {
+      protocol: 'responses';
+      input: Awaited<ReturnType<typeof prepareResponses>>;
+    };
 
 export async function callOpenAI(
   {
@@ -21,40 +32,55 @@ export async function callOpenAI(
     requestSignal,
     effectiveTimeoutMs,
   }: ModelCallContext,
-  prepared: Awaited<ReturnType<typeof prepareChatCompletion>>,
+  prepared: PreparedOpenAIInput,
 ): Promise<ModelCallResult> {
   const { config: modelConfig } = modelRuntime;
   const { modelName } = modelConfig;
-  const { completion, openAIRequestContext } = await createChatClient({
+  const isStreaming =
+    options?.stream ??
+    globalConfigManager.getEnvConfigValue(MIDSCENE_MODEL_STREAM_MODE) ===
+      'stream';
+  const { openai, openAIRequestContext } = await createClient({
     modelConfig,
-    proxyAgent: prepared.proxyAgent,
+    proxyAgent: prepared.input.proxyAgent,
     effectiveTimeoutMs,
     executionId,
     recordEvent,
   });
-  const isStreaming = options?.stream === true;
   const debugCall = getDebug('ai:call');
   debugCall(
     `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
   );
-  const requestOptions: OpenAIProtocolCallOptions = {
+  const requestOptions = {
     requestSignal,
     openAIRequestContext,
-    onChunk: options?.onChunk,
+    onChunk: options?.onChunk ?? (() => undefined),
     recordEvent,
   };
   try {
     const startTime = Date.now();
-    const response = await callChatCompletion(
-      {
-        ...requestOptions,
-        completion,
-        modelRuntime,
-        messages: prepared.messages,
-        requestBodyParams: prepared.requestParams,
-      },
-      isStreaming,
-    );
+    const response =
+      prepared.protocol === 'responses'
+        ? await callResponses(
+            {
+              ...requestOptions,
+              responses: openai.responses,
+              requestBodyParams: prepared.input.requestParams,
+            },
+            isStreaming,
+          )
+        : await callChatCompletion(
+            {
+              ...requestOptions,
+              completion: openai.chat.completions,
+              requestBodyParams: prepared.input.requestParams,
+              extractContentAndReasoning:
+                prepared.input.extractContentAndReasoning,
+              useReasoningAsContentFallback:
+                prepared.input.useReasoningAsContentFallback,
+            },
+            isStreaming,
+          );
     const { reasoningContent, ...result } = response;
     requestSignal.throwIfAborted();
     const timeCost = Date.now() - startTime;
@@ -79,6 +105,15 @@ export async function callOpenAI(
       timeCost,
     };
   } catch (error: any) {
+    // Fetch already records non-2xx responses. Preserve successful HTTP
+    // responses too when SDK parsing or completion validation fails.
+    if (openAIRequestContext.httpResponse?.ok) {
+      recordEvent?.({
+        type: 'error',
+        ...openAIRequestContext.httpResponse,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     getDebug('ai:call', { console: true })('call AI error', error);
     if (error instanceof AIResponseParseError) {
       throw error;

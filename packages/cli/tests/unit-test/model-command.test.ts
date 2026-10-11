@@ -9,10 +9,13 @@ import {
   buildModelVerifyCurlCommands,
   runModelCommand,
 } from '../../src/model-command';
+import { runSiwcCommand } from '../../src/siwc-command';
 
 rs.mock('../../src/dotenv-loader', () => ({
   loadDotenvConfig: rs.fn(),
 }));
+
+rs.mock('../../src/siwc-command', () => ({ runSiwcCommand: rs.fn() }));
 
 rs.spyOn(globalModelConfigManager, 'getModelConfig');
 
@@ -38,6 +41,34 @@ function createIO() {
 }
 
 describe('model command', () => {
+  it('includes SIWC in model command help', async () => {
+    const io = createIO();
+    expect(await runModelCommand(['model', '--help'], {}, io)).toBe(0);
+    expect(io.stdout).toHaveBeenCalledWith(
+      expect.stringContaining('midscene model siwc <login|refresh> [options]'),
+    );
+  });
+
+  it('routes siwc options and output without loading model configuration', async () => {
+    const io = createIO();
+    const loadDotenv = rs.fn();
+    const getModelConfig = rs.fn();
+    rs.mocked(runSiwcCommand).mockResolvedValueOnce(0);
+    expect(
+      await runModelCommand(
+        ['model', 'siwc', 'login', '--no-open', '--port', '1455'],
+        { loadDotenv, getModelConfig },
+        io,
+      ),
+    ).toBe(0);
+    expect(runSiwcCommand).toHaveBeenCalledWith(
+      ['login', '--no-open', '--port', '1455'],
+      io,
+    );
+    expect(loadDotenv).not.toHaveBeenCalled();
+    expect(getModelConfig).not.toHaveBeenCalled();
+  });
+
   it('deduplicates curl commands by base URL, API key, and model name', () => {
     const commands = buildModelVerifyCurlCommands([
       {
@@ -96,7 +127,9 @@ describe('model command', () => {
       insight: createModelConfig({ intent: 'insight', slot: 'insight' }),
     };
     const getModelConfig = rs.fn((intent: TIntent) => configs[intent]);
-    const verifyModel = rs.fn().mockResolvedValue({ passed: true });
+    const verifyModel = rs
+      .fn()
+      .mockResolvedValue({ checks: [], requestCount: 0, passed: true });
 
     const exitCode = await runModelCommand(
       ['model', 'verify'],
@@ -116,7 +149,7 @@ describe('model command', () => {
       insightModelConfig: configs.insight,
     });
     expect(io.stdout).toHaveBeenCalledWith(
-      'Model verify started. This usually takes about 5 seconds.\n',
+      'Model verify started. This usually completes within 30 seconds.',
     );
     expect(io.stdout).toHaveBeenCalledWith('');
     expect(io.stdout).toHaveBeenCalledWith('✅ Model verify passed.');
@@ -152,7 +185,9 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        verifyModel: rs.fn().mockResolvedValue({ passed: true }),
+        verifyModel: rs
+          .fn()
+          .mockResolvedValue({ checks: [], requestCount: 0, passed: true }),
       },
       io,
     );
@@ -197,6 +232,8 @@ describe('model command', () => {
         loadDotenv: rs.fn(),
         getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
         verifyModel: rs.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: '[Vision check - ep-vision (insight)]: 404 Not Found',
         }),
@@ -251,6 +288,8 @@ describe('model command', () => {
         loadDotenv: rs.fn(),
         getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
         verifyModel: rs.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: 'failed',
         }),

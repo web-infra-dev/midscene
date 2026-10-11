@@ -42,6 +42,15 @@ If installation was skipped or failed, enter the project directory and run `pnpm
 
 Copy `.env.example` to `.env` and follow [Model configuration](../model-config) to set your model name, service URL, and API Key.
 
+Verify model connectivity and Midscene compatibility before running tests:
+
+```bash
+pnpm exec midscene-test model verify
+pnpm exec midscene-test model verify --help
+```
+
+The command reads `.env` from the current working directory and overrides existing shell environment variables. It does not require a browser or device. See [Model debugging and observability](../model-debugging-observability) for details.
+
 For Web, also install Chromium:
 
 ```bash

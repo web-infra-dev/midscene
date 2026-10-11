@@ -1,3 +1,4 @@
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import {
   imageInfoOfBase64,
@@ -10,7 +11,6 @@ import {
   getMidsceneRecorderEventDescription,
   stringifyMidsceneRecorderTargetBlock,
 } from '@midscene/shared/recorder';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { getModelRuntime } from '../../models';
 import { callAIWithStringResponse } from '../../service-caller';
 import {
@@ -105,7 +105,7 @@ function summarizeScreenshotAssets(
   };
 }
 
-function getPromptShape(prompt: ChatCompletionMessageParam[]) {
+function getPromptShape(prompt: ConversationMessage[]) {
   let textChars = 0;
   let imageCount = 0;
   for (const message of prompt) {
@@ -122,7 +122,7 @@ function getPromptShape(prompt: ChatCompletionMessageParam[]) {
         if (part.type === 'text' && 'text' in part) {
           textChars += String(part.text).length;
         }
-        if (part.type === 'image_url') {
+        if (part.type === 'image') {
           imageCount += 1;
         }
       }
@@ -174,7 +174,7 @@ function createModelRuntime(modelConfig: IModelConfig) {
 
 export function createRecorderMarkdownReplayPrompt(
   input: RecorderMarkdownGenerationInput,
-): ChatCompletionMessageParam[] {
+): ConversationMessage[] {
   validateEvents(input.events);
 
   const { summary: rawSummary, screenshotAssets: rawScreenshotAssets } =
@@ -191,7 +191,7 @@ export function createRecorderMarkdownReplayPrompt(
 
 async function createRecorderMarkdownReplayPromptForGeneration(
   input: RecorderMarkdownGenerationInput,
-): Promise<ChatCompletionMessageParam[]> {
+): Promise<ConversationMessage[]> {
   validateEvents(input.events);
 
   const { summary: rawSummary, screenshotAssets: rawScreenshotAssets } =
@@ -218,7 +218,7 @@ function createRecorderMarkdownReplayPromptFromContext(
   input: RecorderMarkdownGenerationInput,
   summary: ReturnType<typeof prepareRecorderGenerationContext>['summary'],
   screenshotAssets: MidsceneRecorderMarkdownScreenshotAsset[],
-): ChatCompletionMessageParam[] {
+): ConversationMessage[] {
   const screenshotIndexByEventHash = new Map(
     screenshotAssets.map((asset, index) => [
       asset.eventHashId,
@@ -309,10 +309,8 @@ Important: Return ONLY raw Markdown. Do NOT wrap the response in markdown code b
       text: `${screenshotRef} for event #${asset.eventIndex + 1}`,
     });
     content.push({
-      type: 'image_url',
-      image_url: {
-        url: asset.dataUrl,
-      },
+      type: 'image',
+      url: asset.dataUrl,
     });
   }
 

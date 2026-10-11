@@ -52,6 +52,7 @@ import {
 import type { MidsceneYamlScript } from '../yaml';
 import {
   YamlExecutionOwnershipError,
+  currentYamlSignal,
   enterYamlAction,
   enterYamlExecution,
   runInYamlExecutionContext,
@@ -95,6 +96,7 @@ import {
   defineActionRegisterFileChooserAccept,
   defineActionSleep,
 } from '../device';
+import { ActionReadiness, isActionReadinessError } from './action-readiness';
 import { validateAgentCacheInput } from './cache-config';
 import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
@@ -331,6 +333,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   destroyed = false;
 
+  private readonly actionReadiness?: ActionReadiness;
+
   modelConfigManager: ModelConfigManager;
 
   /**
@@ -485,6 +489,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       opts || {},
     );
     assertReportGenerationOptions(this.opts);
+    if (this.opts.waitForActionReady !== undefined) {
+      this.actionReadiness = new ActionReadiness(this.opts.waitForActionReady);
+    }
 
     if (
       this.opts.aiContexts !== undefined &&
@@ -600,6 +607,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       waitAfterAction: this.opts.waitAfterAction,
+      actionReadiness: this.actionReadiness,
       useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
       hooks: {
@@ -1016,6 +1024,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params
+    abortSignal?: AbortSignal,
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
@@ -1051,6 +1060,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       plans,
       planningModel,
       defaultModel,
+      { abortSignal: abortSignal ?? currentYamlSignal(this) },
     );
     return output;
   }
@@ -1504,7 +1514,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           });
           return;
         } catch (error) {
-          if (error instanceof YamlExecutionOwnershipError) throw error;
+          if (
+            error instanceof YamlExecutionOwnershipError ||
+            isActionReadinessError(error)
+          )
+            throw error;
           abortSignal?.throwIfAborted();
           cachedYamlFailed = true;
           warn(
@@ -1722,18 +1736,31 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     return this.aiAct(...args);
   }
 
-  async runYaml(yamlScriptContent: string): Promise<{
+  async runYaml(
+    yamlScriptContent: string,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<{
     result: Record<string, any>;
   }> {
     if (this.destroyed)
       throw new Error('Cannot run YAML using a destroyed Agent.');
     const script = parseYamlScript(yamlScriptContent, 'yaml');
-    const player = new ScriptPlayer(script, async () => {
-      return { agent: this, freeFn: [] };
-    });
+    const player = new ScriptPlayer(
+      script,
+      async () => {
+        return { agent: this, freeFn: [] };
+      },
+      undefined,
+      undefined,
+      options?.abortSignal,
+    );
     await player.run();
 
     if (player.status === 'error') {
+      const readinessFailure = player.taskStatusList.find((task) =>
+        isActionReadinessError(task.error),
+      );
+      if (readinessFailure) throw readinessFailure.error;
       const errors = player.taskStatusList
         .filter((task) => task.status === 'error')
         .map((task) => {

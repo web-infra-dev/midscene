@@ -54,7 +54,7 @@ Each report includes the run configuration and task results; see AndroidWorld's 
 
 Screenshot-based UI actions avoid sending large DOM trees to the model. In the reported AppControlBench run, Midscene with Doubao Seed 2.1 Turbo completed the 60-task evaluation with **$0.59 in total model cost**, achieving 58 passes. The [report](./app-control-bench-report) provides per-task costs and comparisons across models.
 
-Midscene supports multimodal models such as `Qwen3.x`, `Doubao-Seed-2.1`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. Start with one model, or combine planning and vision models for your workload. For data extraction and page understanding, you can opt in to include DOM. See [Model Strategy](./model-strategy) and [Supported models and setup](./model-common-config).
+Midscene supports multimodal models such as `Qwen3.x`, `Doubao-Seed-2.1`, `DeepSeek V4 Flash`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. By default, one model handles planning, localization, and page understanding. For complex tasks, add a dedicated Planning or Insight model as needed. For data extraction and page understanding, you can opt in to include DOM. See [Model Strategy](./model-strategy) and [Supported models and setup](./model-common-config).
 
 ### Showcases
 

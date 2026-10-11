@@ -1,5 +1,5 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { type Server, createServer } from 'node:http';
+import { type Server, createServer, request as httpRequest } from 'node:http';
 import path from 'node:path';
 import { parseDumpScript } from '@midscene/core';
 import {
@@ -338,6 +338,67 @@ async function isSoftwareKeyboardVisible(agent: IOSAgent): Promise<boolean> {
 }
 
 describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
+  it('connects through a path-prefixed WDA gateway', async () => {
+    const prefix = '/device/ios/wda';
+    const seenPaths: string[] = [];
+    const gateway = createServer((incoming, outgoing) => {
+      const incomingUrl = new URL(incoming.url || '/', 'http://127.0.0.1');
+      if (!incomingUrl.pathname.startsWith(`${prefix}/`)) {
+        outgoing.writeHead(404).end();
+        return;
+      }
+
+      const upstreamPath = `${incomingUrl.pathname.slice(prefix.length)}${incomingUrl.search}`;
+      seenPaths.push(incomingUrl.pathname);
+      const upstream = httpRequest(
+        {
+          hostname: '127.0.0.1',
+          port: 8100,
+          method: incoming.method,
+          path: upstreamPath,
+          headers: incoming.headers,
+        },
+        (response) => {
+          outgoing.writeHead(response.statusCode || 502, response.headers);
+          response.pipe(outgoing);
+        },
+      );
+      upstream.on('error', (error) => outgoing.destroy(error));
+      incoming.pipe(upstream);
+    });
+    await new Promise<void>((resolve) =>
+      gateway.listen(0, '127.0.0.1', resolve),
+    );
+    const address = gateway.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('Failed to start local WDA gateway');
+    }
+
+    let agent: IOSAgent | undefined;
+    try {
+      agent = await agentFromWebDriverAgent({
+        wdaBaseUrl: `http://127.0.0.1:${address.port}${prefix}`,
+        autoPrintReportMsg: false,
+        generateReport: false,
+      });
+      const screenshot = await agent.interface.screenshotBase64();
+      expect(screenshot).toMatch(/^data:image\/\w+;base64,/);
+      expect(seenPaths).toContain(`${prefix}/status`);
+      expect(seenPaths).toContain(`${prefix}/session`);
+      expect(
+        seenPaths.some((value) =>
+          new RegExp(`^${prefix}/session/[^/]+/screenshot$`).test(value),
+        ),
+      ).toBe(true);
+    } finally {
+      try {
+        await agent?.destroy();
+      } finally {
+        await closeServer(gateway);
+      }
+    }
+  });
+
   it('awaits auto-dismiss before a second input starts', async () => {
     const diagnosticsEnv = process.env.MIDSCENE_IOS_DIAGNOSTICS_DIR;
     if (!diagnosticsEnv) {
@@ -379,6 +440,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       evidence.fixtureUrl = fixture.url;
       agent = await agentFromWebDriverAgent({
         wdaHost: '127.0.0.1',
+        wdaPort: 8100,
         modelConfig: {
           [MIDSCENE_MODEL_NAME]: 'ios-ci-model-must-not-run',
           [MIDSCENE_MODEL_API_KEY]: 'ios-ci-unused-key',

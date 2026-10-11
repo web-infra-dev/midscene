@@ -31,6 +31,10 @@ import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
+import {
+  assertWdaConnectionOptions,
+  normalizeMjpegStreamUrl,
+} from './wda-options';
 
 // Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
@@ -148,7 +152,7 @@ export class IOSDevice implements AbstractInterface {
       },
     },
     scroll: {
-      scroll: (param) => this.performActionScroll(param),
+      scroll: (param, opts) => this.performActionScroll(param, opts),
     },
   };
 
@@ -302,7 +306,10 @@ export class IOSDevice implements AbstractInterface {
     return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
-  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+  private async performActionScroll(
+    param: ActionScrollParam,
+    opts?: { skipDefaultWait?: boolean },
+  ): Promise<void> {
     const element = param.locate;
     const startingPoint = element
       ? {
@@ -331,7 +338,7 @@ export class IOSDevice implements AbstractInterface {
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
-      await sleep(500);
+      if (!opts?.skipDefaultWait) await sleep(500);
     } else {
       throw new Error(
         `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
@@ -342,6 +349,7 @@ export class IOSDevice implements AbstractInterface {
   }
 
   constructor(options?: IOSDeviceOpt) {
+    assertWdaConnectionOptions(options);
     // deviceId will be auto-detected from WebDriverAgent connection
     this.deviceId = 'pending-connection';
     this.options = options;
@@ -353,10 +361,20 @@ export class IOSDevice implements AbstractInterface {
     this.wdaBackend = new WebDriverAgentBackend({
       port: wdaPort,
       host: wdaHost,
+      ...(options?.wdaBaseUrl !== undefined
+        ? { baseUrl: options.wdaBaseUrl }
+        : {}),
       ...(options?.sessionId ? { sessionId: options.sessionId } : {}),
     });
-    this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
-    this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
+    this.wdaManager = WDAManager.getInstance(
+      wdaPort,
+      wdaHost,
+      options?.wdaBaseUrl,
+    );
+    this.mjpegStreamUrl =
+      options?.wdaMjpegUrl !== undefined
+        ? normalizeMjpegStreamUrl(options.wdaMjpegUrl)
+        : `http://${wdaHost}:${mjpegPort}`;
 
     // Opt-in (default off), mirroring Android scrcpy: only expose the MJPEG
     // frame-source capability when explicitly enabled. When off, UI observers
@@ -647,7 +665,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   private async typeText(
     text: string,
-    options?: IOSDeviceInputOpt,
+    options?: IOSDeviceInputOpt & { skipDefaultWait?: boolean },
     focusRestorePoint?: PointerPoint,
     resolvedInputOptions: ResolvedTextInputOptions = resolveTextInputOptions(
       options,
@@ -689,7 +707,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         await this.wdaBackend.typeText(text);
       }
 
-      await sleep(300); // Give more time for text to appear
+      // Optional settling is owned by a custom action waiter when configured.
+      if (!options?.skipDefaultWait) await sleep(300);
     } catch (error) {
       debugDevice(`Failed to type text with WDA: ${error}`);
       throw error;
