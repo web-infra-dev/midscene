@@ -1,6 +1,8 @@
 import { existsSync, statSync, writeFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
+import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { version } from '../../package.json';
+import { formatCliError } from './error-format';
 import { renderNodeSpec, sortNodesForSpec } from './node-spec';
 import { loadTestProject } from './test-project';
 import {
@@ -8,6 +10,7 @@ import {
   discoverTestConfig,
   runTestProject,
 } from './test-project-runner';
+import type { TestProjectRunResult } from './types';
 
 export interface TestCliIO {
   log(message: string): void;
@@ -88,6 +91,7 @@ Usage:
   midscene-test --config <midscene.config.ts> [options]
   midscene-test nodes [directory] [--config midscene.config.ts]
   midscene-test create --help
+  midscene-test model verify    Check model connectivity and Midscene compatibility
 
 Options:
   --config <path>              Native TypeScript or JavaScript Test config
@@ -199,11 +203,107 @@ const runNodesCommand = async (
   }
 };
 
+const reportTestProjectResult = (
+  result: TestProjectRunResult,
+  io: TestCliIO,
+  infrastructureErrors: readonly unknown[] = result.errors ?? [],
+): number => {
+  const reportedErrors = new Set<Error>();
+  const reportError = (source: string, error: unknown): void => {
+    if (error instanceof Error && reportedErrors.has(error)) return;
+    io.error(`midscene-test: ${source}: ${formatCliError(error)}`);
+    // Infrastructure failures carry raw errors that can also be causes of
+    // the contextual errors already printed from the execution result.
+    const pending = [error];
+    while (pending.length > 0) {
+      const current = pending.pop();
+      if (!(current instanceof Error) || reportedErrors.has(current)) continue;
+      reportedErrors.add(current);
+      pending.push(current.cause);
+      if (current instanceof AggregateError) pending.push(...current.errors);
+    }
+  };
+  for (const failure of result.collectionErrors) {
+    reportError(`${failure.projectName}/${failure.sourcePath}`, failure.error);
+  }
+  const finalCases = new Map(
+    result.cases.map((outcome) => [outcome.caseId, outcome]),
+  );
+  for (const outcome of finalCases.values()) {
+    if (outcome.status !== 'failed' || !outcome.run) continue;
+    const run = outcome.run;
+    const source = `${run.projectName}/${run.sourcePath} / ${run.name}`;
+    for (const step of [...run.beforeEach, ...run.steps, ...run.afterEach]) {
+      if (step.error) {
+        reportError(
+          `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
+          step.error,
+        );
+      }
+    }
+    for (const error of [
+      ...(run.executionErrors ?? []),
+      ...(run.teardownErrors ?? []),
+    ]) {
+      reportError(source, error);
+    }
+  }
+  const finalDocuments = new Map(
+    result.documents.map((document) => [document.documentId, document]),
+  );
+  for (const document of finalDocuments.values()) {
+    if (document.status !== 'failed') continue;
+    const source = `${document.projectName}/${document.sourcePath}`;
+    for (const step of [...document.beforeAll, ...document.afterAll]) {
+      if (step.error) {
+        reportError(
+          `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
+          step.error,
+        );
+      }
+    }
+    for (const error of [
+      ...(document.executionErrors ?? []),
+      ...(document.teardownErrors ?? []),
+    ]) {
+      reportError(source, error);
+    }
+    for (const failure of document.hostErrors ?? []) {
+      reportError(`${source} / host ${failure.phase}`, failure.error);
+    }
+  }
+  for (const project of result.projects) {
+    if (project.lifecycle?.setupError) {
+      reportError(`${project.name} / setup`, project.lifecycle.setupError);
+    }
+    for (const error of project.lifecycle?.teardownErrors ?? []) {
+      reportError(`${project.name} / teardown`, error);
+    }
+  }
+  for (const error of infrastructureErrors) {
+    reportError('infrastructure', error);
+  }
+  io.log(
+    `midscene-test: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
+  );
+  io.log(`Results: ${result.resultDir}`);
+  io.log(`Summary: ${result.summaryPath}`);
+  if (result.reportPath) io.log(`Report: ${result.reportPath}`);
+  return result.exitCode;
+};
+
 export async function runTestCli(
   args: string[],
   io: TestCliIO = defaultCliIO,
 ): Promise<number> {
   try {
+    if (args[0] === 'model') {
+      const { runModelCommand } = await import('./model-command');
+      return runModelCommand(args, undefined, {
+        stdout: io.log,
+        stderr: io.error,
+      });
+    }
     if (args[0] === 'create') {
       const { runCreateCommand } = await import('./create-command');
       await runCreateCommand(args.slice(1), io);
@@ -222,45 +322,20 @@ export async function runTestCli(
       await runNodesCommand(options, io);
       return 0;
     }
-    const result = await runTestProject({
-      ...options,
-      onProgress: (message) => io.log(message),
-    });
-    for (const failure of result.collectionErrors) {
-      io.error(
-        `midscene-test: ${failure.projectName}/${failure.sourcePath}: ${failure.error.message}`,
-      );
+    let result: TestProjectRunResult;
+    try {
+      result = await runTestProject({
+        ...options,
+        onProgress: (message) => io.log(message),
+      });
+    } catch (error) {
+      if (!(error instanceof WorkflowExecutionFailure)) throw error;
+      reportTestProjectResult(error.result, io, error.errors);
+      return 1;
     }
-    const finalCases = new Map(
-      result.cases.map((outcome) => [outcome.caseId, outcome]),
-    );
-    for (const outcome of finalCases.values()) {
-      if (outcome.status !== 'failed' || !outcome.run) continue;
-      const run = outcome.run;
-      const source = `${run.projectName}/${run.sourcePath} / ${run.name}`;
-      for (const step of [...run.beforeEach, ...run.steps, ...run.afterEach]) {
-        if (step.error) {
-          io.error(
-            `midscene-test: ${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}: ${step.error.message}`,
-          );
-        }
-      }
-      for (const error of [
-        ...(run.executionErrors ?? []),
-        ...(run.teardownErrors ?? []),
-      ]) {
-        io.error(`midscene-test: ${source}: ${error.message}`);
-      }
-    }
-    io.log(
-      `midscene-test: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
-    );
-    io.log(`Results: ${result.resultDir}`);
-    io.log(`Summary: ${result.summaryPath}`);
-    if (result.reportPath) io.log(`Report: ${result.reportPath}`);
-    return result.exitCode;
+    return reportTestProjectResult(result, io);
   } catch (error) {
-    io.error(error instanceof Error ? error.message : String(error));
+    io.error(formatCliError(error));
     return 1;
   }
 }

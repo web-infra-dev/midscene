@@ -54,7 +54,7 @@ await agent.aiAssert('邮箱输入框下方显示了错误提示');
 
 基于截图的 UI 操作无需向模型发送庞大的 DOM 树。在上述 AppControlBench 评测中，Midscene 搭配 Doubao Seed 2.1 Turbo 完成了 60 个任务的评测，**模型调用总费用为 0.59 美元**，其中 58 个任务通过。[评测报告](./app-control-bench-report)提供了逐任务费用与不同模型的对比。
 
-Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等多模态模型，也包括可自托管的开源选项。你可以先使用单模型，再按场景组合规划模型与视觉模型。在数据提取与页面理解场景中，仍可按需选择携带 DOM。详见[模型策略](./model-strategy)和[支持的模型与配置](./model-common-config)。
+Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等多模态模型，也包括可自托管的开源选项。默认使用一个模型完成规划、定位与界面理解，复杂任务可按需增加专用的 Planning 或 Insight 模型。在数据提取与页面理解场景中，仍可按需选择携带 DOM。详见[模型策略](./model-strategy)和[支持的模型与配置](./model-common-config)。
 
 ### 案例展示
 

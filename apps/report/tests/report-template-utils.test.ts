@@ -83,7 +83,47 @@ describe('report template utils', () => {
         validateCoreReportTemplateModules(coreDistDir, {
           reportTemplatePath,
         }),
-      ).toThrow('3 MiB size limit');
+      ).toThrow('expected generated size');
+    } finally {
+      fs.rmSync(coreDistDir, { recursive: true });
+    }
+  });
+
+  it('accepts HTML at the size limit even when JSON escaping grows the modules', () => {
+    const coreDistDir = fs.mkdtempSync(
+      path.join(process.cwd(), '.midscene-report-template-escaping-'),
+    );
+    const reportTemplatePath = path.join(coreDistDir, 'report.html');
+    const escapedText = ['"', '\\', '\n', '字'].join('');
+    const availableBytes = reportTemplateMaxBytes - Buffer.byteLength(html);
+    const repeatedText = escapedText.repeat(
+      Math.floor(availableBytes / Buffer.byteLength(escapedText)),
+    );
+    const padding = 'x'.repeat(
+      availableBytes - Buffer.byteLength(repeatedText),
+    );
+    const nearLimitHtml = html.replace(
+      '</body>',
+      `${repeatedText}${padding}</body>`,
+    );
+
+    try {
+      expect(Buffer.byteLength(nearLimitHtml)).toBe(reportTemplateMaxBytes);
+      fs.writeFileSync(reportTemplatePath, nearLimitHtml);
+      const modulePaths = writeReportTemplateModules(
+        coreDistDir,
+        nearLimitHtml,
+      );
+      for (const modulePath of modulePaths) {
+        expect(fs.statSync(modulePath).size).toBeGreaterThan(
+          reportTemplateMaxBytes,
+        );
+      }
+      expect(() =>
+        validateCoreReportTemplateModules(coreDistDir, {
+          reportTemplatePath,
+        }),
+      ).not.toThrow();
     } finally {
       fs.rmSync(coreDistDir, { recursive: true });
     }

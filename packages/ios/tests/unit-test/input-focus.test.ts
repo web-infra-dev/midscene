@@ -17,7 +17,9 @@ describe('iOS input focus readiness', () => {
     request = rs.spyOn(client as any, 'makeRequest');
   });
 
-  afterEach(() => rs.restoreAllMocks());
+  afterEach(() => {
+    rs.restoreAllMocks();
+  });
 
   it.each([
     { value: { 'element-6066-11e4-a52e-4f735466cecf': 'input' } },
@@ -79,6 +81,13 @@ describe('iOS input focus readiness', () => {
     expect(request.mock.calls.length).toBeGreaterThan(0);
     for (const [method, , , options] of request.mock.calls) {
       expect(method).toBe('GET');
+      if (
+        typeof options !== 'object' ||
+        options === null ||
+        !('timeout' in options)
+      ) {
+        throw new Error('Focus requests must include a timeout');
+      }
       expect(options.timeout).toBeGreaterThan(0);
       expect(options.timeout).toBeLessThanOrEqual(3000);
     }

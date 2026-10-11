@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
+import { isActionReadinessError } from '@/agent/action-readiness';
 import type { Agent } from '@/agent/agent';
 import type {
   DeviceAction,
@@ -72,6 +73,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     }>,
     public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
     scriptPath?: string,
+    private readonly abortSignal?: AbortSignal,
   ) {
     this.scriptPath = scriptPath;
     // Collection validates syntax but defers old task/Step errors until execution.
@@ -234,6 +236,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       taskStatus,
       taskIndex,
       {
+        signal: this.abortSignal ?? currentYamlSignal(agent),
         onStepStart: (info) => {
           if (info.scope === 'case' && info.case.phase === 'steps') {
             taskStatus.currentStep = info.case.stepIndex;
@@ -290,7 +293,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       agent._prepareForTestRunner?.();
       freeFn = [...(newFreeFn || [])];
       session = enterYamlExecution(agent);
-      signal = currentYamlSignal(agent);
+      signal = this.abortSignal ?? currentYamlSignal(agent);
       signal?.throwIfAborted();
       this.actionSpace = await agent.getActionSpace();
       const originalOnTaskStartTip = agent.onTaskStartTip;
@@ -355,7 +358,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const stoppedOnFailure = state.executionResult.cases.some(
           (outcome) =>
             outcome.status === 'failed' &&
-            !this.taskStatusList[outcome.caseIndex]?.continueOnError,
+            (!this.taskStatusList[outcome.caseIndex]?.continueOnError ||
+              isActionReadinessError(legacyYamlOutcomeError(outcome))),
         );
         this.setPlayerStatus(
           stoppedOnFailure || signal?.aborted ? 'error' : 'done',

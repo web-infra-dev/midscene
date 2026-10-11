@@ -42,6 +42,15 @@ my-tests/
 
 将 `.env.example` 复制为 `.env`，按照[模型配置](../model-config)填写模型名称、服务地址和 API Key。
 
+运行测试前，检查模型连接和 Midscene 兼容性：
+
+```bash
+pnpm exec midscene-test model verify
+pnpm exec midscene-test model verify --help
+```
+
+命令会读取当前工作目录下的 `.env`，并覆盖已有的 Shell 环境变量，无需浏览器或设备。详见[模型调试与可观测性](../model-debugging-observability)。
+
 Web 项目还需要安装 Chromium：
 
 ```bash

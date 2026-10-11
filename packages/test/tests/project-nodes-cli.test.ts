@@ -150,7 +150,9 @@ describe('Project-scoped Node Specs', () => {
         error: (message) => errors.push(message),
       }),
     ).toBe(1);
-    expect(errors).toContain('Unknown Midscene project: unknown');
+    expect(errors).toEqual([
+      expect.stringContaining('Unknown Midscene project: unknown'),
+    ]);
     expect(readdirSync(root)).toEqual(['midscene.config.ts']);
   });
 

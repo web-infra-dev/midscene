@@ -1,3 +1,4 @@
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -5,7 +6,6 @@ import type {
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
@@ -14,6 +14,7 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
+import type { ModelCallMessages } from '../../service-caller/types';
 import type {
   LocateResultCodec,
   LocateResultContext,
@@ -21,7 +22,7 @@ import type {
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
 import {
   type PreparedUserPrompt,
-  preparedReferenceImagesToChatMessages,
+  preparedReferenceImagesToMessages,
 } from '../../shared/multimodal-prompt';
 import { parsePlanningActions } from './parse-planning-actions';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
@@ -35,7 +36,7 @@ const noPreviousActionsText =
 type PlanningCallResponse = Awaited<ReturnType<typeof callAI>>;
 
 type CallAndParsePlanningResponseOptions = {
-  messages: ChatCompletionMessageParam[];
+  messages: ModelCallMessages;
   modelRuntime: PlanOptions['modelRuntime'];
   abortSignal?: AbortSignal;
   includeLocateInPlanning: boolean;
@@ -113,7 +114,6 @@ async function callAndParsePlanningResponse(
         includeLocateInPlanning,
         locateResultCodec,
         locateResultContext,
-        acceptBbox2dAlias: modelRuntime.adapter.acceptBbox2dAlias,
       });
       return { response, planFromAI, actions };
     },
@@ -124,7 +124,7 @@ async function callAndParsePlanningResponse(
         `XML parse error: ${errorMessage}`,
         response.content,
         response.usage,
-        response.rawChoiceMessage,
+        response.rawAssistantOutput,
         response.reasoning_content,
       );
     },
@@ -200,10 +200,10 @@ export async function standardPlan(
 
   const actionContext = opts.actionContext ? `${opts.actionContext}\n` : '';
 
-  const referenceImageMessages = preparedReferenceImagesToChatMessages(
+  const referenceImageMessages = preparedReferenceImagesToMessages(
     userInstruction.referenceImages,
   );
-  const instruction: ChatCompletionMessageParam[] = [
+  const instruction: ConversationMessage[] = [
     {
       role: 'user',
       content: [
@@ -235,43 +235,47 @@ export async function standardPlan(
   const observationText = conversationHistory.pendingFeedbackMessage
     ? `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.`
     : 'This is the current screenshot.';
-  const latestObservation: ChatCompletionMessageParam = {
+  const latestObservation: ConversationMessage = {
     role: 'user',
     content: [
       { type: 'text', text: observationText },
       {
-        type: 'image_url',
-        image_url: { url: imagePayload, detail: 'high' },
+        type: 'image',
+        url: imagePayload,
       },
     ],
   };
   conversationHistory.resetPendingFeedbackMessageIfExists();
   // Persist observations without cumulative state, which would otherwise repeat
   // increasingly large summaries in every subsequent planning request.
-  conversationHistory.append(latestObservation);
+  conversationHistory.appendMessage(latestObservation);
   conversationHistory.compressHistory(50, 20);
 
   const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
   const outgoingObservation = historyLog[historyLog.length - 1];
   assert(
-    outgoingObservation.role === 'user' &&
-      Array.isArray(outgoingObservation.content),
+    outgoingObservation.type === 'input-message' &&
+      outgoingObservation.message.role === 'user' &&
+      Array.isArray(outgoingObservation.message.content),
     'Expected the latest planning observation to contain multipart content',
   );
   // Replace the outgoing message without mutating stored history, retaining the
   // screenshot or its placeholder selected by snapshot's image limit.
   historyLog[historyLog.length - 1] = {
     ...outgoingObservation,
-    content: [
-      {
-        type: 'text',
-        text: `${observationText}${memoriesSection}${executionProgressSection}`,
-      },
-      ...outgoingObservation.content.slice(1),
-    ],
+    message: {
+      ...outgoingObservation.message,
+      content: [
+        {
+          type: 'text',
+          text: `${observationText}${memoriesSection}${executionProgressSection}`,
+        },
+        ...outgoingObservation.message.content.slice(1),
+      ],
+    },
   };
 
-  const msgs: ChatCompletionMessageParam[] = [
+  const msgs: ModelCallMessages = [
     { role: 'system', content: systemPrompt },
     ...instruction,
     ...historyLog,
@@ -282,7 +286,7 @@ export async function standardPlan(
       content: rawResponse,
       usage,
       reasoning_content,
-      rawChoiceMessage,
+      rawAssistantOutput,
     },
     planFromAI,
     actions,
@@ -321,7 +325,7 @@ export async function standardPlan(
     ...planFromAI,
     actions,
     rawResponse,
-    rawChoiceMessage,
+    rawAssistantOutput,
     usage,
     reasoning_content,
     yamlFlow,
@@ -359,16 +363,20 @@ export async function standardPlan(
     conversationHistory.appendMemory(planFromAI.memory);
   }
 
-  // Some model providers require opaque assistant fields to be replayed
-  // verbatim in later turns. Keep this opt-in per model adapter so that an
-  // unverified provider does not receive non-standard response fields.
-  if (
-    modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
-    rawChoiceMessage
-  ) {
-    conversationHistory.append(rawChoiceMessage as ChatCompletionMessageParam);
+  const shouldReplayRawOutput =
+    (rawAssistantOutput?.type === 'responses' &&
+      modelRuntime.adapter.responses.replayRawAssistantOutput) ||
+    (rawAssistantOutput?.type === 'chat-completion' &&
+      modelRuntime.adapter.chatCompletion.replayRawAssistantMessage);
+  if (rawAssistantOutput && shouldReplayRawOutput) {
+    conversationHistory.appendModelOutput(rawAssistantOutput);
   } else {
-    conversationHistory.append({
+    if (!rawAssistantOutput) {
+      debug(
+        'Raw assistant output is unavailable; saving only response text in conversation history.',
+      );
+    }
+    conversationHistory.appendMessage({
       role: 'assistant',
       content: [
         {

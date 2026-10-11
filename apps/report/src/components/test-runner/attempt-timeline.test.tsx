@@ -63,6 +63,16 @@ const renderTimeline = ({
   );
 
 describe('attempt timeline', () => {
+  it('reserves the timeline and hides individual frames until their group is prepared', () => {
+    const html = renderTimeline();
+    expect(html).toContain('aria-busy="true"');
+    expect(html).toContain('Preparing screenshots…');
+    expect(html.match(/hidden=""/g)).toHaveLength(2);
+    expect(html).not.toContain('loading="lazy"');
+    expect(html).not.toContain('src="data:image/png;base64,first"');
+    expect(html).not.toContain('src="data:image/png;base64,second"');
+  });
+
   it('places a preview above when the remaining space below is too small', () => {
     expect(
       resolveTimelinePreviewPlacement({

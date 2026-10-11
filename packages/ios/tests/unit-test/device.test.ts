@@ -1,4 +1,5 @@
 import type { DeviceAction, ExecutorContext } from '@midscene/core';
+import * as CoreUtils from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -157,6 +158,55 @@ describe('IOSDevice', () => {
     });
   });
 
+  it('lets custom action readiness replace the extra scroll settling delay', async () => {
+    const scroll = rs
+      .spyOn(device as any, 'scrollDown')
+      .mockResolvedValue(undefined);
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Scroll')!;
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(scroll).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(500);
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {} } as ExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(500);
+    } finally {
+      scroll.mockRestore();
+      delay.mockRestore();
+    }
+  });
+
+  it('skips post-input settling while preserving keyboard preparation', async () => {
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Input')!;
+      await action.call(
+        { value: 'account', mode: 'typeOnly', autoDismissKeyboard: false },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(mockWdaClient.typeText).toHaveBeenCalledWith('account');
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(300);
+      await action.call(
+        { value: 'password', mode: 'typeOnly', autoDismissKeyboard: false },
+        mockExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(300);
+    } finally {
+      delay.mockRestore();
+    }
+  });
+
   describe('Constructor', () => {
     it('should create device with options', () => {
       expect(device).toBeDefined();
@@ -211,6 +261,36 @@ describe('IOSDevice', () => {
         host: 'custom-host',
         sessionId: 'external-session-id',
       });
+    });
+
+    it('passes the full WDA base URL to requests and readiness checks', () => {
+      new IOSDevice({
+        wdaBaseUrl: 'https://gateway.example/code/wda',
+      });
+      expect(MockedWdaClient).toHaveBeenCalledWith({
+        port: DEFAULT_WDA_PORT,
+        host: 'localhost',
+        baseUrl: 'https://gateway.example/code/wda',
+      });
+      expect(MockedWdaManager.getInstance).toHaveBeenCalledWith(
+        DEFAULT_WDA_PORT,
+        'localhost',
+        'https://gateway.example/code/wda',
+      );
+    });
+
+    it.each([
+      { wdaHost: 'localhost' },
+      { wdaPort: 8100 },
+      { wdaHost: 'localhost', wdaPort: 8100 },
+    ])('rejects a base URL combined with host or port: %j', (connection) => {
+      expect(
+        () =>
+          new IOSDevice({
+            wdaBaseUrl: 'https://gateway.example/code/wda',
+            ...connection,
+          }),
+      ).toThrow(/wdaBaseUrl cannot be used with wdaHost or wdaPort/);
     });
   });
 

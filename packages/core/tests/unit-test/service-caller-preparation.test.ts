@@ -41,11 +41,8 @@ const imageMessage = [
     role: 'user' as const,
     content: [
       {
-        type: 'image_url' as const,
-        image_url: {
-          url: 'https://example.com/shot.png',
-          detail: 'high' as const,
-        },
+        type: 'image' as const,
+        url: 'https://example.com/shot.png',
       },
       {
         type: 'text' as const,
@@ -79,6 +76,44 @@ describe('model call parameter preparation', () => {
         total_tokens: 30,
       },
     });
+  });
+
+  it.each([
+    { semanticRetryAttempt: 0, expected: 0 },
+    { semanticRetryAttempt: 1, expected: 0.2 },
+    { semanticRetryAttempt: 2, temperature: 0, expected: 0 },
+    { semanticRetryAttempt: 1, temperature: 0.7, expected: 0.7 },
+    { semanticRetryAttempt: 1, extraBody: { temperature: 0 }, expected: 0 },
+  ])(
+    'prepares retry temperature with user overrides: %j',
+    async ({ semanticRetryAttempt, expected, ...overrides }) => {
+      const runtime = getModelRuntime({ ...baseModelConfig, ...overrides });
+      await callAI(imageMessage, runtime, { semanticRetryAttempt });
+      expect(mockCreate.mock.calls[0][0].temperature).toBe(expected);
+    },
+  );
+
+  it('does not add a temperature for models that omit it on semantic retry', async () => {
+    await callAI(
+      imageMessage,
+      getModelRuntime({ ...baseModelConfig, modelFamily: 'gpt-6' }),
+      { semanticRetryAttempt: 1 },
+    );
+    expect(
+      JSON.parse(JSON.stringify(mockCreate.mock.calls[0][0])),
+    ).not.toHaveProperty('temperature');
+  });
+
+  it('reuses the prepared temperature across request retries', async () => {
+    mockCreate.mockRejectedValueOnce(new Error('temporary request failure'));
+    await callAI(
+      imageMessage,
+      getModelRuntime({ ...baseModelConfig, retryCount: 1, retryInterval: 0 }),
+      { semanticRetryAttempt: 1 },
+    );
+    expect(mockCreate.mock.calls.map(([body]) => body.temperature)).toEqual([
+      0.2, 0.2,
+    ]);
   });
 
   it.each(['chat', 'codex'])(

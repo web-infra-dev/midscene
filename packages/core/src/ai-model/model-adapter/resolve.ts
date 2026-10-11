@@ -5,6 +5,7 @@ import { resolveInsight } from './insight';
 import type { InsightAdapter } from './insight-protocol';
 import { resolveLocate } from './locate';
 import { resolveCustomPlanningDefinition, resolvePlanning } from './planning';
+import { resolveResponses } from './responses';
 import type {
   BuildCodexAppServerParams,
   ChatCompletionAdapter,
@@ -14,7 +15,12 @@ import type {
   ModelAdapter,
   ModelAdapterDefinition,
   PlanningAdapter,
+  ResolveImageDetail,
+  ResponsesAdapter,
 } from './types';
+
+const defaultImageDetail: ResolveImageDetail = ({ imageDetail }) =>
+  imageDetail ?? 'high';
 
 function resolveJsonParser(
   jsonParser: ModelAdapterDefinition['jsonParser'],
@@ -39,21 +45,25 @@ function resolveImagePreprocess(
 }
 
 export class ResolvedModelAdapter implements ModelAdapter {
+  readonly supportedProtocols: ModelAdapter['supportedProtocols'];
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
+  readonly resolveImageDetail: ResolveImageDetail;
+  readonly responses: ResponsesAdapter;
   readonly buildCodexAppServerParams: BuildCodexAppServerParams;
-  readonly acceptBbox2dAlias: boolean;
   readonly imagePreprocess: ImagePreprocessPolicy;
   readonly insight: InsightAdapter;
   readonly planning: PlanningAdapter;
   readonly locate: LocateAdapter;
 
   constructor(config: ModelAdapterDefinition, modelFamily: string) {
+    this.supportedProtocols = config.supportedProtocols ?? ['openai-chat'];
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
+    this.resolveImageDetail = config.resolveImageDetail ?? defaultImageDetail;
+    this.responses = resolveResponses(config.responses);
     this.buildCodexAppServerParams =
       config.buildCodexAppServerParams ?? buildDefaultCodexAppServerParams;
-    this.acceptBbox2dAlias = config.acceptBbox2dAlias ?? false;
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
     this.insight = resolveInsight(config.insight, {
       jsonParser: this.jsonParser,
@@ -63,14 +73,9 @@ export class ResolvedModelAdapter implements ModelAdapter {
     const resolvedCustomPlanner = customPlanner
       ? resolveCustomPlanningDefinition(customPlanner)
       : undefined;
-    this.locate = resolveLocate(
-      config.locate,
-      resolvedCustomPlanner,
-      {
-        jsonParser: this.jsonParser,
-      },
-      this.acceptBbox2dAlias,
-    );
+    this.locate = resolveLocate(config.locate, resolvedCustomPlanner, {
+      jsonParser: this.jsonParser,
+    });
     this.planning = resolvePlanning(
       config.planning,
       resolvedCustomPlanner,

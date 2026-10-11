@@ -9,6 +9,7 @@ export {
   runConnectivityTest,
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
+  type ConnectivityCheckResultItem,
 } from './connectivity/index';
 export {
   convertRecordLogIntoMarkdown,
@@ -48,7 +49,12 @@ export {
 } from './workflows/planning';
 export type { SubGoal, SubGoalStatus } from '@/types';
 
-export type { AIArgs } from './service-caller/types';
+export type {
+  ModelCallMessages,
+  ConversationEntry,
+  ConversationMessage,
+  MessageContent,
+} from './service-caller/types';
 
 export {
   getMidsceneLocationSchema,
