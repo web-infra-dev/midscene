@@ -2,6 +2,7 @@ import { Banner } from '../components/Banner';
 import { CTAButtons } from '../components/CTAButtons';
 import { FeatureSections } from '../components/FeatureSections';
 import { SectionDivider } from '../components/SectionDivider';
+import { TestExample } from '../components/TestExample';
 import { WhoIsUsing } from '../components/WhoIsUsing';
 import { useI18n } from '../i18n';
 
@@ -25,6 +26,8 @@ export function HomeLayout() {
     <div className="home-page">
       {/* Banner Section */}
       <Banner />
+
+      <TestExample />
 
       {/* Feature Sections */}
       <FeatureSections />

@@ -64,7 +64,9 @@ export type AIUsageInfo = Record<string, any> & {
   /** Request retries performed within this call; excludes semantic parse retries. */
   retry_count?: number;
   /** Actual protocol used for the model call, resolved by Midscene. */
-  api_type?: 'chat-completion' | 'responses' | 'codex';
+  api_protocol?: 'chat-completion' | 'responses' | 'codex';
+  /** Whether the model call used streaming, after resolving call options. */
+  stream?: boolean;
   model_name: string | undefined;
   model_description: string | undefined;
   /**
@@ -590,6 +592,8 @@ export interface ExecutorContext {
   task: ExecutionTask;
   element?: LocateResultElement | null;
   uiContext?: UIContext;
+  /** Custom readiness owns optional post-action settling, not input/gesture timing. */
+  skipDefaultWait?: boolean;
 }
 
 export interface ExecutionTaskApply<
@@ -645,6 +649,8 @@ export type ExecutionTask<
   > & {
     taskId: string;
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
+    /** Readiness strategy selected for this atomic action execution. */
+    actionReadiness?: 'default' | 'custom';
     /**
      * Optional feedback produced by a task for the next planning round.
      * This is execution metadata, not part of the action return value.
@@ -670,6 +676,8 @@ export type ExecutionTask<
       callActionEnd?: number;
       afterInvokeActionHookStart?: number;
       afterInvokeActionHookEnd?: number;
+      waitForActionReadyStart?: number;
+      waitForActionReadyEnd?: number;
       captureAfterCallingSnapshotStart?: number;
       captureAfterCallingSnapshotEnd?: number;
       end?: number;
@@ -987,6 +995,21 @@ export type Cache =
   | true // Will throw error at runtime - deprecated
   | CacheConfig; // Object configuration (requires explicit id)
 
+export interface ActionReadyContext {
+  /** Cancels this execution. Use it to stop polling, requests, or listeners. */
+  readonly signal?: AbortSignal;
+  /** A new identity for each executed atomic action, including cache replay. */
+  action: {
+    readonly id: string;
+    readonly name: string;
+    /** Resolved action parameters. Treat them as read-only. */
+    readonly param: unknown;
+  };
+}
+
+/** Runs after a successful atomic action. Slow callbacks warn after 5 seconds. */
+export type WaitForActionReady = (context: ActionReadyContext) => Promise<void>;
+
 export interface AgentOpt {
   // @deprecated Use `reportFileName` and `cache.id` instead.
   testId?: string;
@@ -1059,6 +1082,13 @@ export interface AgentOpt {
    * Defaults to 300ms when not provided.
    */
   waitAfterAction?: number;
+
+  /**
+   * Await application readiness after each successful atomic action, including
+   * aiAct substeps and cache replay. Replaces default action waits.
+   * After 5 seconds, logs one warning and continues waiting without a timeout.
+   */
+  waitForActionReady?: WaitForActionReady;
 
   /**
    * When set to true, Midscene will use the target device's formatted local

@@ -1,7 +1,7 @@
 {
   "name": "@midscene/cli",
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -43,6 +43,7 @@
     "@midscene/web": "workspace:*",
     "@rstest/core": "0.12.0",
     "http-server": "14.1.1",
+    "jose": "5.9.6",
     "lodash.merge": "4.6.2",
     "puppeteer": "24.6.0"
   },

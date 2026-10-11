@@ -1,6 +1,6 @@
 import { once } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdtempSync } from 'node:fs';
+import { readFile, rm } from 'node:fs/promises';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -85,7 +85,7 @@ describe('midscene-web CLI viewport e2e', () => {
     } finally {
       // Chrome may still be flushing profile files shortly after web_close
       // returns, so retry the recursive cleanup for transient ENOTEMPTY errors.
-      rmSync(persistentRoot, {
+      await rm(persistentRoot, {
         recursive: true,
         force: true,
         maxRetries: 2,
@@ -114,6 +114,7 @@ describe('midscene-web CLI viewport e2e', () => {
       const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport, {
         persistence,
       });
+      // The CLI must preserve content dimensions after its emulation session closes.
       await runToolsCLI(tools, 'midscene-web', {
         stripPrefix: 'web_',
         argv: parsedOptions.argv,

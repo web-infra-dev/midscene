@@ -9,6 +9,7 @@ export {
   runConnectivityTest,
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
+  type ConnectivityCheckResultItem,
 } from './connectivity/index';
 export {
   convertRecordLogIntoMarkdown,

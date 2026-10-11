@@ -42,6 +42,10 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import {
+  type ActionReadiness,
+  isActionReadinessError,
+} from './action-readiness';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
 import {
@@ -145,6 +149,7 @@ export class TaskExecutor {
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       waitAfterAction?: number;
+      actionReadiness?: ActionReadiness;
       useDeviceTime?: boolean;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
@@ -165,6 +170,7 @@ export class TaskExecutor {
       taskCache: opts.taskCache,
       actionSpace: this.getActionSpace(),
       waitAfterAction: opts.waitAfterAction,
+      actionReadiness: opts.actionReadiness,
     });
   }
 
@@ -389,7 +395,7 @@ export class TaskExecutor {
     plans: PlanningAction[],
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
-    options?: { uiContext?: UIContext },
+    options?: { uiContext?: UIContext; abortSignal?: AbortSignal },
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title, options);
     const runner = session.getRunner();
@@ -399,6 +405,7 @@ export class TaskExecutor {
       plans,
       executionPlanningModel,
       executionDefaultModel,
+      { abortSignal: options?.abortSignal },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -429,6 +436,7 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    abortSignal?.throwIfAborted();
     return withFileChooser(this.interface, fileChooserAccept, async () => {
       return this.runAction(
         userPrompt,
@@ -823,6 +831,8 @@ export class TaskExecutor {
           this.collectPlanningFeedback(runner.tasks.slice(taskCountBeforeRun)),
         );
       } catch (error: any) {
+        // A completed action must not be replayed because readiness failed.
+        if (isActionReadinessError(error)) throw error;
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
         const timeString = await this.getTimeString();
@@ -1058,6 +1068,7 @@ export class TaskExecutor {
       uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
+    executionOptions?.abortSignal?.throwIfAborted();
     const session = this.createExecutionSession(
       taskTitleStr(
         type,

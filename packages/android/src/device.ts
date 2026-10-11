@@ -347,7 +347,7 @@ export class AndroidDevice implements AbstractInterface {
             `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
           );
         },
-        actionScroll: (param) => this.performActionScroll(param),
+        actionScroll: (param, opts) => this.performActionScroll(param, opts),
         back: () => this.backRaw(),
         home: () => this.homeRaw(),
         recentApps: () => this.recentAppsRaw(),
@@ -508,7 +508,10 @@ export class AndroidDevice implements AbstractInterface {
     }
   }
 
-  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+  private async performActionScroll(
+    param: ActionScrollParam,
+    opts?: { skipDefaultWait?: boolean },
+  ): Promise<void> {
     const element = param.locate;
     const startingPoint = element
       ? {
@@ -537,7 +540,7 @@ export class AndroidDevice implements AbstractInterface {
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
-      await sleep(500);
+      if (!opts?.skipDefaultWait) await sleep(500);
     } else {
       throw new Error(
         `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(

@@ -1,9 +1,14 @@
-type ConfigValue = string | { value: string; comment?: string };
+type ConfigValue<T extends string = string> =
+  | T
+  | { value: T; comment?: string };
 
 export interface ModelConfigCardProps {
   baseUrl: ConfigValue;
   modelName: ConfigValue;
   modelFamily: ConfigValue;
+  apiKey?: ConfigValue;
+  protocol?: ConfigValue<'openai-chat' | 'openai-responses'>;
+  streamMode?: ConfigValue;
   responses?: boolean | { baseUrl: ConfigValue };
 }
 
@@ -17,8 +22,11 @@ function formatConfigLine(name: string, config: ConfigValue): string {
 export function buildModelConfigCode(
   config: ModelConfigCardProps,
   purpose: 'default' | 'planning' | 'insight',
-  protocol: 'openai-chat' | 'openai-responses',
+  selectedProtocol: 'openai-chat' | 'openai-responses',
 ): string {
+  const protocolConfig = config.protocol ?? selectedProtocol;
+  const protocol =
+    typeof protocolConfig === 'string' ? protocolConfig : protocolConfig.value;
   const prefix =
     purpose === 'default'
       ? 'MIDSCENE_MODEL'
@@ -29,12 +37,15 @@ export function buildModelConfigCode(
       : config.baseUrl;
 
   return [
-    ...(protocol === 'openai-responses'
-      ? [formatConfigLine(`${prefix}_PROTOCOL`, 'openai-responses')]
-      : []),
     formatConfigLine(`${prefix}_BASE_URL`, baseUrl),
-    formatConfigLine(`${prefix}_API_KEY`, '......'),
+    formatConfigLine(`${prefix}_API_KEY`, config.apiKey ?? '......'),
     formatConfigLine(`${prefix}_NAME`, config.modelName),
     formatConfigLine(`${prefix}_FAMILY`, config.modelFamily),
+    ...(protocol === 'openai-responses'
+      ? [formatConfigLine(`${prefix}_PROTOCOL`, protocolConfig)]
+      : []),
+    ...(config.streamMode
+      ? [formatConfigLine('MIDSCENE_MODEL_STREAM_MODE', config.streamMode)]
+      : []),
   ].join('\n');
 }
