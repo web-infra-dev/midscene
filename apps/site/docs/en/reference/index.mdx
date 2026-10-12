@@ -625,9 +625,18 @@ await agent.aiScroll(
 
 :::info Default scrolling on Android and iOS
 
-For a single scroll without `locate` or `distance`, Android and iOS use separate gesture settings to aim for overlapping page coverage. Android moves the finger across the central 70% of the screen in 1000ms. iOS uses the central 75% at approximately 400 screen-coordinate points per second, so larger gestures take longer. Both keep the stationary axis centered and the endpoints away from screen edges.
+For a single scroll without `locate` or `distance`, the default gestures are:
 
-These values describe the finger gesture, not an exact content displacement. Inertia, paging, and custom controls can change how far content moves. Specify `locate` for a smaller or nested scrollable region; it selects the gesture's starting point, not a measured viewport rectangle. Explicit distances and located gestures retain their existing behavior. These defaults do not change `Swipe` or boundary-scrolling actions.
+- Android: move the finger across the central 70% of the screen in 1000 ms.
+- iOS: move the finger across the central 75% at approximately 400 screen-coordinate points per second. Longer gestures take more time.
+
+Both platforms center vertical gestures horizontally and horizontal gestures vertically. Gesture endpoints stay away from screen edges.
+
+The default gestures aim to preserve content overlap between scrolls. Actual content displacement depends on inertia, paging, and the control's implementation.
+
+For a smaller or nested scrollable region, use `locate` to specify the target. It determines the gesture's starting point without providing the container's visible bounds. The default distance is still based on screen dimensions.
+
+Scrolls with an explicit `distance` or `locate` retain their existing behavior. `Swipe` and boundary-scrolling actions also retain their existing behavior.
 
 :::
 
