@@ -23,9 +23,15 @@ export function revealExecutionStep(
   if (bottom <= top) return;
 
   const bounds = button.getBoundingClientRect();
-  if (bounds.top < top) {
-    sidebar.scrollTop += bounds.top - top;
-  } else if (bounds.bottom > bottom) {
-    sidebar.scrollTop += bounds.bottom - bottom;
-  }
+  const delta =
+    bounds.top < top
+      ? bounds.top - top
+      : bounds.bottom > bottom
+        ? bounds.bottom - bottom
+        : 0;
+  const previousScroll = sidebar.scrollTop;
+  sidebar.scrollTop += delta;
+  // Near the end of a short list the sidebar may reach its scroll limit
+  // before the selection clears the main viewport. Reveal the remainder there.
+  main.scrollTop += delta - (sidebar.scrollTop - previousScroll);
 }

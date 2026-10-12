@@ -10,7 +10,8 @@ import {
 
 const DEFAULT_WIDTH = 320;
 const MIN_WIDTH = 240;
-const MIN_DETAIL_WIDTH = 360;
+// Leave room for the embedded trace sidebar, resize handle, and Player.
+const MIN_DETAIL_WIDTH = 616;
 const HANDLE_WIDTH = 8;
 
 export function executionSidebarBounds(layoutWidth: number) {

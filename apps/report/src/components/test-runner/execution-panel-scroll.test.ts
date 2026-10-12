@@ -7,15 +7,23 @@ function layout({
   scrollTop = 0,
   sidebarTop = 400,
   mainHeight = 656,
+  maxSidebarScroll = Number.POSITIVE_INFINITY,
 } = {}) {
   const error = { scrollIntoView: rs.fn() };
+  let currentScroll = scrollTop;
   const sidebar = {
-    scrollTop,
+    get scrollTop() {
+      return currentScroll;
+    },
+    set scrollTop(value: number) {
+      currentScroll = Math.min(maxSidebarScroll, Math.max(0, value));
+    },
     clientTop: 0,
     clientHeight: 624,
     getBoundingClientRect: () => ({ top: sidebarTop }),
   };
   const main = {
+    scrollTop: 0,
     clientTop: 0,
     clientHeight: mainHeight,
     getBoundingClientRect: () => ({ top: 56 }),
@@ -28,7 +36,7 @@ function layout({
     closest: () => sidebar,
     getBoundingClientRect: () => ({ top: buttonTop, bottom: buttonBottom }),
   } as unknown as HTMLElement;
-  return { body, button, sidebar, error };
+  return { body, button, sidebar, main, error };
 }
 
 describe('execution step visibility', () => {
@@ -41,6 +49,19 @@ describe('execution step visibility', () => {
     // The sidebar extends to 1024px, but the main viewport ends at 712px.
     expect(sidebar.scrollTop).toBe(252);
     expect(error.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+  });
+
+  it('reveals the remaining clipped part when the sidebar reaches its scroll limit', () => {
+    const { body, button, sidebar, main } = layout({
+      buttonTop: 842,
+      buttonBottom: 906,
+      mainHeight: 836,
+      scrollTop: 408,
+      maxSidebarScroll: 408,
+    });
+    revealExecutionStep(body, button, true);
+    expect(sidebar.scrollTop).toBe(408);
+    expect(main.scrollTop).toBe(14);
   });
 
   it('does not move a visible selection or scroll the detail area for a successful step', () => {
