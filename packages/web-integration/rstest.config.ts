@@ -34,7 +34,7 @@ export default defineConfig({
   testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
   retry: process.env.CI ? 1 : 0, // Retry failed tests once in CI to handle AI flakiness
   ...(aiTestType === 'web' && process.env.CI
-    ? { pool: { maxWorkers: 4 } }
+    ? { pool: { maxWorkers: 1 } }
     : {}),
   reporters: process.env.CI
     ? ['verbose', ['json', { outputPath: './test-results.json' }]]

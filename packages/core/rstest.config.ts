@@ -21,7 +21,7 @@ export default defineConfig({
   coverage: createCoverageConfig(__dirname),
   include: enableAiTest ? ['tests/ai/**/*.test.ts'] : basicTest,
   retry: process.env.CI ? 1 : 0,
-  ...(enableAiTest && process.env.CI ? { pool: { maxWorkers: 4 } } : {}),
+  ...(enableAiTest && process.env.CI ? { pool: { maxWorkers: 1 } } : {}),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

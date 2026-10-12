@@ -138,20 +138,22 @@ describe('continuation after a resource operation times out', () => {
     await rs.advanceTimersByTimeAsync(32_020);
     const result = await running;
     const first = result.cases[0];
+    const run = first.run;
+    if (!run) throw new Error('Missing timed-out case run');
     expect(first.attempts).toHaveLength(1);
-    expect(first.run.steps).toHaveLength(1);
-    expect(first.run.steps[0].error.code).toBe('STEP_TIMEOUT');
-    expect(first.run.executionErrors[0].code).toBe('RESOURCE_RECOVERY_TIMEOUT');
-    expect(first.run.executionErrors[0]).toMatchObject({
+    expect(run.steps).toHaveLength(1);
+    expect(run.steps[0].error?.code).toBe('STEP_TIMEOUT');
+    expect(run.executionErrors?.[0].code).toBe('RESOURCE_RECOVERY_TIMEOUT');
+    expect(run.executionErrors?.[0]).toMatchObject({
       details: {
         graceMs: 30_000,
-        blockedByStepId: `${first.run.runId}:steps:0`,
+        blockedByStepId: `${run.runId}:steps:0`,
         blockingOperations: expect.arrayContaining([
-          expect.objectContaining({ stepId: `${first.run.runId}:steps:0` }),
+          expect.objectContaining({ stepId: `${run.runId}:steps:0` }),
         ]),
       },
     });
-    expect(first.run.retryDecision).toMatchObject({
+    expect(run.retryDecision).toMatchObject({
       decision: 'stop',
       reason: 'cleanup-pending',
     });
