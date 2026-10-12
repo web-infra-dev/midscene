@@ -1319,15 +1319,12 @@ export class Page<
     to: { x: number; y: number },
     duration?: number,
   ) {
-    const LONG_PRESS_THRESHOLD = 500;
     const MIN_PRESS_THRESHOLD = 150;
     duration = duration || 100;
     if (duration < MIN_PRESS_THRESHOLD) {
       duration = MIN_PRESS_THRESHOLD;
     }
-    if (duration > LONG_PRESS_THRESHOLD) {
-      duration = LONG_PRESS_THRESHOLD;
-    }
+    // Preserve explicit slow gestures; a moving pointer is not a long press.
     debugPage(
       `mouse swipe from ${from.x}, ${from.y} to ${to.x}, ${to.y} with duration ${duration}ms`,
     );
