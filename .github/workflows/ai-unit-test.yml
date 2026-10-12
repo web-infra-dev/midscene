@@ -37,6 +37,9 @@ jobs:
         node-version: [24.13.0]
 
     env:
+      # Ark IPv4 connections can exceed Node's default 250ms address attempt timeout.
+      # Allow 2s before falling back to IPv6, which is unreachable on these runners.
+      NODE_OPTIONS: "--network-family-autoselection-attempt-timeout=2000"
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
