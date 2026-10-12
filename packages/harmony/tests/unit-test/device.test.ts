@@ -739,6 +739,19 @@ describe('HarmonyDevice', () => {
       },
     );
 
+    it.each([Number.NaN, Number.POSITIVE_INFINITY, -1, 1200])(
+      'rejects invalid horizontal origin %s for vertical scrolling',
+      async (left) => {
+        await expect(
+          device.scrollDown(100, { left, top: 1200 }),
+        ).rejects.toThrow('origin');
+        await expect(
+          device.scrollUntilBottom({ left, top: 1200 }),
+        ).rejects.toThrow('origin');
+        expect(mockHdc.fling).not.toHaveBeenCalled();
+      },
+    );
+
     it('scrollDown with startPoint should fling from point upward', async () => {
       await device.scrollDown(500, { left: 600, top: 1200 });
       // endY = max(0, 1200-500) = 700
