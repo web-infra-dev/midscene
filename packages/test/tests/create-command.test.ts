@@ -127,6 +127,52 @@ describe('create arguments', () => {
 });
 
 describe('create installation confirmation and postinstall', () => {
+  it.each(['my-tests', 'project with spaces', 'project$HOME', '.'])(
+    'shows ordered next steps and safe directory guidance for %s',
+    async (directory) => {
+      const cwd = temp();
+      const output = io();
+      await runCreateCommand(
+        [directory, '--platform', 'web', '--package-manager', 'pnpm', '--yes'],
+        output,
+        services(cwd),
+      );
+      const summary = output.log.mock.calls.at(-1)![0] as string;
+      expect(summary).toContain('Project ready!');
+      expect(summary).toContain(
+        'Writing your own tests\n\n  midscene-node-spec.web.md',
+      );
+      expect(summary).toContain(
+        'Lists the test operations and parameters available in this project.',
+      );
+      expect(summary).toContain('share it with your AI coding agent.');
+      expect(summary.match(/midscene-node-spec\.web\.md/g)).toHaveLength(1);
+      expect(summary).not.toContain('generated after installation');
+      expect(summary.indexOf('Run your first test')).toBeLessThan(
+        summary.indexOf('Writing your own tests'),
+      );
+      expect(summary).not.toContain('Install dependencies');
+      expect(summary.indexOf('Configure your model')).toBeLessThan(
+        summary.indexOf('Verify the model connection'),
+      );
+      expect(summary.indexOf('Verify the model connection')).toBeLessThan(
+        summary.indexOf('Run your first test'),
+      );
+      if (directory === 'my-tests') {
+        expect(summary).toContain('1. Open the project\n     cd my-tests');
+        expect(summary).toContain('5. Run your first test\n     pnpm test');
+      } else if (directory === '.') {
+        expect(summary).toContain('1. Configure your model');
+        expect(summary).not.toContain('cd ');
+      } else {
+        expect(summary).toContain(
+          'Open the project directory in your terminal.',
+        );
+        expect(summary).not.toContain('cd ');
+      }
+    },
+  );
+
   it.each(['npm', 'pnpm'] as const)(
     'can decline %s installation after creating files',
     async (packageManager) => {
@@ -153,16 +199,21 @@ describe('create installation confirmation and postinstall', () => {
       expect(runtime.confirmInstall).toHaveBeenCalledTimes(1);
       expect(runtime.runPackageManager).not.toHaveBeenCalled();
       expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
+      expect(output.log).toHaveBeenLastCalledWith(
+        expect.stringContaining(
+          'midscene-node-spec.web.md (generated after installation)',
+        ),
+      );
       const manifest = JSON.parse(
         readFileSync(join(cwd, 'package.json'), 'utf8'),
       );
       expect(manifest.scripts.postinstall).toBe('midscene-test nodes');
       expect(manifest.scripts.nodes).toBe(manifest.scripts.postinstall);
       expect(output.log).toHaveBeenLastCalledWith(
-        expect.stringContaining(`Next: run ${packageManager} install`),
+        expect.stringContaining(`${packageManager} install`),
       );
       expect(output.log.mock.calls.flat().join('\n')).not.toContain(
-        'Project ready:',
+        'Project ready!',
       );
     },
   );
@@ -245,7 +296,7 @@ describe('create installation confirmation and postinstall', () => {
     );
     expect(output.log).not.toHaveBeenCalledWith('Generating Node Spec...');
     expect(output.log).toHaveBeenLastCalledWith(
-      expect.stringContaining('Project ready:'),
+      expect.stringContaining('Project ready!'),
     );
   });
 
@@ -599,7 +650,7 @@ describe('create package manager selection', () => {
       );
       expect(output.log).toHaveBeenLastCalledWith(
         expect.stringContaining(
-          `Verify the model from the project directory: ${verifyModel}`,
+          `Verify the model connection\n     ${verifyModel}`,
         ),
       );
       expect(readme).toContain(chromium);
@@ -610,7 +661,7 @@ describe('create package manager selection', () => {
         `Installing dependencies with ${packageManager}...`,
       );
       expect(output.log).toHaveBeenLastCalledWith(
-        expect.stringContaining(`Install Chromium: ${chromium}`),
+        expect.stringContaining(`Install Chromium\n     ${chromium}`),
       );
       expect(output.log).toHaveBeenLastCalledWith(
         expect.stringContaining(`${packageManager} test`),

@@ -1,5 +1,5 @@
 import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, resolve } from 'node:path';
+import { basename, dirname, relative, resolve } from 'node:path';
 import { confirm, input, select } from '@inquirer/prompts';
 import { execa } from 'execa';
 import yargs from 'yargs/yargs';
@@ -191,6 +191,63 @@ function checkDestinations(root: string, filenames: string[]): void {
   }
 }
 
+function projectSummary(
+  root: string,
+  cwd: string,
+  platform: CreatePlatform,
+  packageManager: CreatePackageManager,
+  installed: boolean,
+): string {
+  const commands = packageManagerCommands[packageManager];
+  const steps: string[] = [];
+  if (root !== resolve(cwd)) {
+    const directory = relative(cwd, root) || root;
+    // Only print a copyable cd command when it needs no shell-specific escaping.
+    steps.push(
+      /^[a-zA-Z0-9_./\\-]+$/.test(directory) && !directory.startsWith('-')
+        ? `Open the project\n     cd ${directory}`
+        : 'Open the project directory in your terminal.',
+    );
+  }
+  if (!installed) {
+    steps.push(
+      `Install dependencies\n     ${packageManager} ${commands.install.join(' ')}`,
+    );
+  }
+  steps.push(
+    'Configure your model\n     Copy .env.example to .env and fill in your model settings.',
+    `Verify the model connection\n     ${commands.verifyModel}`,
+    platform === 'web'
+      ? `Install Chromium\n     ${commands.installChromium}`
+      : platform === 'computer'
+        ? 'Prepare your desktop\n     Follow README.md to set up dependencies and permissions.'
+        : 'Connect your device\n     Configure the device connection in .env; see README.md.',
+    `Run your first test\n     ${packageManager} test`,
+  );
+  return [
+    '',
+    installed
+      ? 'Project ready!'
+      : 'Project files created. Installation skipped.',
+    '',
+    `  Location   ${root}`,
+    `  Platform   ${createPlatformLabels[platform]}`,
+    '',
+    'Next steps',
+    '',
+    steps.map((step, index) => `  ${index + 1}. ${step}`).join('\n\n'),
+    '',
+    'Writing your own tests',
+    '',
+    `  midscene-node-spec.${platform}.md${installed ? '' : ' (generated after installation)'}`,
+    '  Lists the test operations and parameters available in this project.',
+    '  Refer to it when writing YAML tests, or share it with your AI coding agent.',
+    '',
+    '  More details: README.md',
+    '',
+  ].join('\n');
+}
+
 export async function runCreateCommand(
   args: string[],
   io: TestCliIO,
@@ -280,9 +337,7 @@ export async function runCreateCommand(
     }
   }
   if (!install) {
-    io.log(
-      `Project files ready: ${root}\nNext: run ${packageManager} ${commands.install.join(' ')} in the project directory. The postinstall script will generate midscene-node-spec.${platform}.md.\nThen copy .env.example to .env and configure your model.\nVerify the model from the project directory: ${commands.verifyModel}\nFollow README.md to prepare your runtime and run tests.`,
-    );
+    io.log(projectSummary(root, services.cwd, platform, packageManager, false));
     return;
   }
   io.log(`Installing dependencies with ${packageManager}...`);
@@ -312,7 +367,5 @@ export async function runCreateCommand(
       { cause: error },
     );
   }
-  io.log(
-    `Project ready: ${root}\nNode Spec: ${resolve(root, `midscene-node-spec.${platform}.md`)}\nNext: copy .env.example to .env and configure your model.\nVerify the model from the project directory: ${commands.verifyModel}${platform === 'web' ? `\nInstall Chromium: ${commands.installChromium}` : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: ${packageManager} test`,
-  );
+  io.log(projectSummary(root, services.cwd, platform, packageManager, true));
 }
