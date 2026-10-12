@@ -10,10 +10,10 @@ After configuring `.env`, run `{{VERIFY_MODEL_COMMAND}}` from the project direct
 
 Install Chromium before the first test: `{{CHROMIUM_INSTALL_COMMAND}}`.
 
-`cases/todo.yaml` visits the public React TodoMVC page. `beforeEach` resets its local storage and creates three Todos through `todo.seed`. The first case checks the seed with `todo.expectState`; the second deletes and completes Todos with AI, then checks the exact remaining state. `afterEach` records the page state through `todo.captureState`. The site must be reachable when tests run.
+`cases/todo.yaml` visits the public React TodoMVC page. `beforeEach` runs `todo.setup` to open All view, clear page storage, reload, and verify an empty list through the DOM, then creates three Todos through `todo.seed`. The first case checks the seed with `todo.expectState`; the second deletes and completes Todos with AI, then checks the exact remaining state. `afterEach` records the page state through `todo.captureState`. The site must be reachable when tests run.
 
 Run tests with `{{TEST_COMMAND}}`. Read `midscene-node-spec.web.md` for the available Nodes and their inputs.
 
 After changing Node registrations in `midscene.config.ts`, run `{{RUN_NODES_COMMAND}}` to refresh the spec. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.
 
-Reports are written to `midscene_run/report/`.
+Tests run serially and stop after the first failed case (`test.bail: 1`). Reports are saved and the browser is closed on failure. Reports are written to `midscene_run/report/`.

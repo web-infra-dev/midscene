@@ -6,6 +6,6 @@
 
 配置后，在项目目录执行 `{{VERIFY_MODEL_COMMAND}}`，检查模型连接和 Midscene 兼容性。这一步不需要浏览器或设备；若检查失败，请先参考[模型调试与可观测性](https://midscenejs.com/model-debugging-observability.html)排查，再运行测试。
 
-启动 WebDriverAgent。可设置 `WDA_HOST` 和 `WDA_PORT`，或用 `WDA_BASE_URL` 指定带路径前缀的网关地址。远程 MJPEG 流可设置 `WDA_MJPEG_URL`，直连则可设置 `WDA_MJPEG_PORT`。`cases/todo.yaml` 打开在线 React TodoMVC，添加三个任务、删除一个、完成另一个、筛选已完成任务，并校验可见任务和未完成数量。设备需要能访问该网站；重复运行前请使用全新浏览器配置或清除 TodoMVC 存储。
+启动 WebDriverAgent。可设置 `WDA_HOST` 和 `WDA_PORT`，或用 `WDA_BASE_URL` 指定带路径前缀的网关地址。远程 MJPEG 流可设置 `WDA_MJPEG_URL`，直连则可设置 `WDA_MJPEG_PORT`。`cases/todo.yaml` 打开在线 React TodoMVC，添加三个任务、删除一个、完成另一个、筛选已完成任务，并校验可见任务和未完成数量。设备需要能访问该网站；`beforeEach` 先执行 `midscene.config.ts` 中的 `todo.setup`，打开 All 视图并等待输入框加载，再由 `aiAssert` 确认列表为空（包含已完成任务）且没有遮挡弹窗。已有任务会保留；检查失败时，用例会在修改任务前停止。请切换到 All，删除全部任务（包括已完成任务），或仅清除 TodoMVC 网站的数据；关闭遮挡弹窗后重新运行。模型或连接异常应先按报告中的原因排查。AI 检查可能误判，失败时请结合报告确认页面状态。
 
-执行 `{{TEST_COMMAND}}` 运行测试。Node 列表见 `midscene-node-spec.ios.md`；修改配置中的 Node 后执行 `{{RUN_NODES_COMMAND}}` 刷新。报告位于 `midscene_run/report/`。
+执行 `{{TEST_COMMAND}}` 运行测试。Node 列表见 `midscene-node-spec.ios.md`；修改配置中的 Node 后执行 `{{RUN_NODES_COMMAND}}` 刷新。用例串行运行，首次失败即停止后续用例（`test.bail: 1`）；失败时仍会保存报告并释放连接。报告位于 `midscene_run/report/`。

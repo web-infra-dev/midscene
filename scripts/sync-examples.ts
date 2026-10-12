@@ -11,6 +11,7 @@ import {
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { packageManagerCommands } from '../packages/test/src/cli/create-package-manager';
+import { resolveExampleTarget } from '../packages/test/src/cli/example-sync-target';
 import {
   loadTemplateManifest,
   renderTemplate,
@@ -39,7 +40,7 @@ const option = (name: string) => {
 };
 const targetArg = option('--target');
 if (!targetArg) throw new Error('--target is required.');
-const target = resolve(targetArg);
+const target = resolveExampleTarget(targetArg);
 const statIfPresent = (path: string) => {
   try {
     return lstatSync(path);
@@ -48,10 +49,6 @@ const statIfPresent = (path: string) => {
     throw error;
   }
 };
-const targetStat = statIfPresent(target);
-if (targetStat && !targetStat.isDirectory()) {
-  throw new Error(`Example target is not a directory: ${target}`);
-}
 const check = args.includes('--check');
 const metadataPath = join(target, '.midscene-generation.json');
 const metadataStat = statIfPresent(metadataPath);
@@ -96,6 +93,7 @@ const dirtySources = execFileSync(
     'packages/test/src/cli/template-renderer.ts',
     'packages/test/src/cli/create-package-manager.ts',
     'scripts/sync-examples.ts',
+    'packages/test/src/cli/example-sync-target.ts',
   ],
   { cwd: root, encoding: 'utf8' },
 ).trim();

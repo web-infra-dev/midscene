@@ -66,7 +66,7 @@ my-tests/
 └── README.zh.md
 ```
 
-其他平台模板不包含 `nodes/todo.ts`，说明书文件名使用对应平台名称，例如 `midscene-node-spec.ios.md`。创建项目和生成说明书不会运行测试，因此这一步不需要模型 API Key、浏览器或设备。生成项目中的 README 会说明平台准备和示例运行方式。
+其他平台模板在 `midscene.config.ts` 中定义 `todo.setup`，不包含 `nodes/todo.ts`，说明书文件名使用对应平台名称，例如 `midscene-node-spec.ios.md`。创建项目和生成说明书不会运行测试，因此这一步不需要模型 API Key、浏览器或设备。生成项目中的 README 会说明平台准备和示例运行方式。
 
 :::info 安装恢复
 如果跳过安装或安装失败，可以进入项目目录执行 `pnpm install`。需要重新生成 Node 说明书时，执行 `pnpm run nodes`。
@@ -108,7 +108,7 @@ pnpm test
 
 五个平台的模板都使用在线 React TodoMVC，演示添加、删除和完成任务。运行测试的浏览器或设备需要能访问该网站。
 
-Web 模板在每条用例前通过 `todo.seed` 清空页面存储并添加三个任务，第一条用例校验初始状态，第二条用 AI 删除和完成任务后校验结果；每条用例后由 `todo.captureState` 记录页面状态。Android、iOS、HarmonyOS 和桌面端模板使用 AI 添加三个任务、删除一个、完成另一个、切换到已完成筛选，并校验结果。重复运行这些模板前，请使用全新浏览器配置或清除 TodoMVC 存储。
+Web 模板在每条用例前通过 `todo.setup` 打开 All 视图、清空页面存储并重新加载，使用 DOM 确认列表为空，再由 `todo.seed` 添加三个任务，第一条用例校验初始状态，第二条用 AI 删除和完成任务后校验结果；每条用例后由 `todo.captureState` 记录页面状态。Android、iOS、HarmonyOS 和桌面端模板使用 AI 添加三个任务、删除一个、完成另一个、切换到已完成筛选，并校验结果。修改任务前，这些模板先通过 `todo.setup` 打开 All 视图并等待输入框，再由 `aiAssert` 检查列表为空（包含已完成任务）且没有遮挡弹窗。已有任务会保留；检查失败时，请切换到 All 删除全部任务，或仅清除 TodoMVC 网站的数据，关闭遮挡弹窗后重新运行。模型或连接异常应先按报告中的原因排查。AI 检查可能误判，失败时请结合报告确认页面状态。所有模板均串行运行，首次用例失败即停止后续用例（`test.bail: 1`），同时正常保存报告、释放资源。
 
 运行结束后，可以在 `midscene_run/report/` 查看报告，了解各用例及步骤的执行结果。随后修改 `cases/todo.yaml` 编写自己的用例，可用操作及其参数以生成的 Node 说明书为准。
 

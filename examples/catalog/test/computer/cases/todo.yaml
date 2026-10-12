@@ -1,8 +1,16 @@
 beforeEach:
-  - aiAct: >-
-      Open a browser and navigate to https://todomvc.com/examples/react/dist/.
-      On macOS, use Safari with Cmd+Space and Cmd+L; on Windows or Linux,
-      use Chrome with the Windows key and Ctrl+L.
+  - todo.setup: {}
+  - aiAssert:
+      prompt: >-
+        The React TodoMVC page shows the "What needs to be done?" input and no
+        Todo items, including completed items. The list is unfiltered: All is
+        selected whenever the filter controls are visible. No browser,
+        permission, or other dialog covers the page.
+      message: >-
+        TodoMVC initial-state check failed. If tasks remain, select All and
+        delete every task, including completed tasks, or clear this website's
+        data. Close blocking dialogs and rerun. If the reported reason is a
+        model or connection error, fix that error first.
 
 cases:
   - name: Manage TodoMVC on the desktop

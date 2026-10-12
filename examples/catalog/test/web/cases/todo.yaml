@@ -4,8 +4,7 @@ beforeAll:
       height: 720
 
 beforeEach:
-  - gotoUrl:
-      url: https://todomvc.com/examples/react/dist/
+  - todo.setup: {}
   - todo.seed:
       items:
         - Learn JS today

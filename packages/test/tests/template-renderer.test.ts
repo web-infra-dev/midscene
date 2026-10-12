@@ -56,8 +56,13 @@ describe('template catalog', () => {
     });
     expect(files['cases/todo.yaml'].toString()).toContain('todo.seed');
     expect(files['cases/todo.yaml'].toString()).toContain('todo.expectState');
-    expect(files['cases/todo.yaml'].toString()).toContain('todomvc.com');
+    expect(files['cases/todo.yaml'].toString()).toContain('todo.setup');
+    expect(files['nodes/todo.ts'].toString()).toContain('todomvc.com');
     expect(files['nodes/todo.ts'].toString()).toContain('todo.captureState');
+    expect(files['.gitignore'].toString()).toBe(
+      'node_modules/\n.env\nmidscene_run/\n',
+    );
+    expect(files.gitignore).toBeUndefined();
     for (const filename of ['README.md', 'README.zh.md', '.env.example']) {
       expect(files[filename].toString()).toContain(
         'pnpm exec midscene-test model verify',
@@ -119,6 +124,15 @@ describe('template catalog', () => {
     );
     expect(() => renderTemplate(root, entry, {})).toThrow(
       'Template contains a symbolic link',
+    );
+  });
+
+  it('rejects files that collide after restoring .gitignore', () => {
+    const root = fixture();
+    writeFileSync(join(root, 'test/web/gitignore'), '.env\n');
+    writeFileSync(join(root, 'test/web/.gitignore'), 'node_modules/\n');
+    expect(() => renderTemplate(root, entry, {})).toThrow(
+      'Duplicate rendered template file: .gitignore',
     );
   });
 });

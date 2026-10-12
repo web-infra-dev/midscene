@@ -10,10 +10,10 @@ After configuring `.env`, run `{{VERIFY_MODEL_COMMAND}}` from the project direct
 
 Prepare the local desktop using the [desktop setup guide](https://midscenejs.com/platforms/desktop.html), including system dependencies and permissions. Set COMPUTER_DISPLAY_ID to select a display. For headless Linux, install Xvfb and enable MIDSCENE_COMPUTER_HEADLESS_LINUX.
 
-`cases/todo.yaml` opens React TodoMVC in Safari on macOS or Chrome on Windows/Linux, adds three tasks, deletes one, completes another, filters Completed, and checks the remaining title and input placeholder. The page must be reachable from the desktop. Use a fresh browser profile or clear TodoMVC storage before rerunning the case.
+`cases/todo.yaml` opens React TodoMVC in Safari on macOS or Chrome on Windows/Linux, adds three tasks, deletes one, completes another, filters Completed, and checks the remaining title and input placeholder. The page must be reachable from the desktop. `beforeEach` runs `todo.setup` from `midscene.config.ts` to open the page in All view and wait for its input, then uses `aiAssert` to require an empty list, including completed tasks, with no blocking dialogs. Existing tasks are left unchanged. If the check fails, the test stops before changing tasks. Select All and delete every task (including completed tasks), or clear only the TodoMVC website data; close blocking dialogs and rerun. For model or connection errors, resolve the reported cause first. This AI check can misjudge the page, so inspect the report when it fails.
 
 Run tests with `{{TEST_COMMAND}}`. Read `midscene-node-spec.computer.md` for the available Nodes and their inputs.
 
 After changing Node registrations in `midscene.config.ts`, run `{{RUN_NODES_COMMAND}}` to refresh the spec. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.
 
-Reports are written to `midscene_run/report/`.
+Tests run serially and stop after the first failed case (`test.bail: 1`). Reports are saved and connections are released on failure. Reports are written to `midscene_run/report/`.

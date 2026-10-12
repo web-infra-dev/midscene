@@ -120,15 +120,24 @@ export function renderTemplate(
       if (stat.isDirectory()) {
         visit(path, relativePath);
       } else if (stat.isFile()) {
+        // Package managers omit .gitignore from tarballs. Store it as a
+        // regular template file and restore the name only when rendering.
+        const outputPath = relativePath.replace(
+          /(^|\/)gitignore$/,
+          '$1.gitignore',
+        );
+        if (Object.hasOwn(files, outputPath)) {
+          throw new Error(`Duplicate rendered template file: ${outputPath}`);
+        }
         const data = readFileSync(path);
         let content: string;
         try {
           content = decoder.decode(data);
         } catch {
-          files[relativePath] = data;
+          files[outputPath] = data;
           continue;
         }
-        files[relativePath] = Buffer.from(
+        files[outputPath] = Buffer.from(
           content.replace(/\{\{([A-Z_]+)\}\}/g, (_token, key: string) => {
             if (!Object.hasOwn(variables, key)) {
               throw new Error(

@@ -4,6 +4,7 @@ import type { Page } from 'playwright';
 const NEW_TODO_SELECTOR = '.new-todo';
 const TODO_ITEM_SELECTOR = '.todo-list li';
 const TODO_LABEL_SELECTOR = 'label';
+const TODO_MVC_URL = 'https://todomvc.com/examples/react/dist/#/';
 
 const todoItemSchema = z.strictObject({
   title: z.string().trim().min(1).describe('Expected Todo title.'),
@@ -94,11 +95,37 @@ const assertExactItems = (
 export function createTodoNodes<TContext>(
   options: CreateTodoNodesOptions<TContext>,
 ): readonly NodeDefinition<any, any, TContext>[] {
+  const setupTodo = defineNode<typeof emptyInputSchema, TodoState, TContext>({
+    name: 'todo.setup',
+    title: 'Prepare an empty TodoMVC page',
+    description:
+      'Open React TodoMVC in All view, clear its storage, reload, and require an empty list before seeding.',
+    inputSchema: emptyInputSchema,
+    async execute({ context, signal }) {
+      signal.throwIfAborted();
+      const page = await options.getPage(context);
+      await page.goto(TODO_MVC_URL, { waitUntil: 'domcontentloaded' });
+      signal.throwIfAborted();
+      await page.evaluate(() => window.localStorage.clear());
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page
+        .locator(NEW_TODO_SELECTOR)
+        .waitFor({ state: 'visible', timeout: 10_000 });
+      signal.throwIfAborted();
+      const state = await readTodoState(page);
+      assertExactItems(page, [], state.items);
+      return {
+        summary: 'Reset TodoMVC to an empty list in All view.',
+        data: state,
+      };
+    },
+  });
+
   const seedTodos = defineNode<typeof seedInputSchema, TodoState, TContext>({
     name: 'todo.seed',
     title: 'Seed the Todo list',
     description:
-      'Reset TodoMVC and create an ordered list of Todos through the visible input.',
+      'Create an ordered list of Todos through the visible input after todo.setup.',
     inputSchema: seedInputSchema,
     async execute({ input, context, signal }) {
       const page = await options.getPage(context);
@@ -108,14 +135,11 @@ export function createTodoNodes<TContext>(
         !currentUrl.startsWith('https://')
       ) {
         throw new Error(
-          `todo.seed requires an HTTP(S) page, but the current URL is ${currentUrl}. Run gotoUrl first.`,
+          `todo.seed requires an HTTP(S) page, but the current URL is ${currentUrl}. Run todo.setup first.`,
         );
       }
 
       signal.throwIfAborted();
-      await page.evaluate(() => window.localStorage.clear());
-      await page.reload({ waitUntil: 'domcontentloaded' });
-
       const inputBox = page.locator(NEW_TODO_SELECTOR);
       await inputBox.waitFor({ state: 'visible', timeout: 10_000 });
       for (const title of input.items) {
@@ -187,5 +211,5 @@ export function createTodoNodes<TContext>(
     },
   });
 
-  return [seedTodos, expectTodoState, captureTodoState];
+  return [setupTodo, seedTodos, expectTodoState, captureTodoState];
 }
