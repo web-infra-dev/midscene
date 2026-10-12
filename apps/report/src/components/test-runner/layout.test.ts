@@ -9,8 +9,8 @@ const baseStyles = readFileSync(
   new URL('./index.less', import.meta.url),
   'utf8',
 );
-const figmaStyles = readFileSync(
-  new URL('./figma-layout.less', import.meta.url),
+const tokenStyles = readFileSync(
+  new URL('./tokens.less', import.meta.url),
   'utf8',
 );
 const figmaEvidenceStyles = readFileSync(
@@ -95,7 +95,7 @@ describe('Midscene Test report layout', () => {
       '--runner-success: #2d9b44;',
       '--runner-success-soft: #edf8ef;',
     ]) {
-      expect(baseStyles).toContain(token);
+      expect(tokenStyles).toContain(token);
     }
     expect(figmaDetailStyles).toMatch(
       /\.runner-single-attempt-label\s*\{[^}]*padding: 4px 12px 4px 4px;[^}]*gap: 8px;/s,
@@ -173,10 +173,10 @@ describe('Midscene Test report layout', () => {
     expect(figmaOverviewStyles).toContain(
       'color: var(--runner-sort-arrow-active);',
     );
-    expect(figmaShellStyles).toContain(
+    expect(tokenStyles).toContain(
       '--runner-sort-arrow-idle: rgb(51 51 51 / 30%);',
     );
-    expect(figmaShellStyles).toContain(
+    expect(tokenStyles).toContain(
       '--runner-sort-arrow-active: rgb(51 51 51 / 50%);',
     );
   });
@@ -216,8 +216,9 @@ describe('Midscene Test report layout', () => {
     expect(breakdown).toContain('item.project.platform ?');
   });
 
-  it('keeps the Figma overrides split by page responsibility', () => {
+  it('loads the shared palette and page layout partials from one entry point', () => {
     for (const partial of [
+      'tokens.less',
       'figma-shell.less',
       'figma-overview.less',
       'figma-detail.less',
@@ -226,7 +227,7 @@ describe('Midscene Test report layout', () => {
       'figma-responsive.less',
       'select.less',
     ]) {
-      expect(figmaStyles).toContain(`@import './${partial}'`);
+      expect(baseStyles).toContain(`@import './${partial}'`);
     }
   });
 

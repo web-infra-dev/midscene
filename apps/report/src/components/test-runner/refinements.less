@@ -15,14 +15,6 @@
     line-height: 20px;
   }
 
-  .runner-detail-debug-workbench {
-    grid-template-columns: 320px minmax(0, 1fr);
-  }
-
-  .runner-detail-step-list > button {
-    grid-template-columns: 27px minmax(0, 1fr) 52px;
-  }
-
   .runner-detail-step-tail time {
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -39,10 +31,6 @@
     padding-block: 10px;
   }
 
-  .runner-overview-summary {
-    align-items: stretch;
-  }
-
   .runner-overview-outcome {
     min-height: 0;
     padding-block: 0;
@@ -51,7 +39,6 @@
   .runner-detail-evidence-heading .runner-detail-step-description {
     flex: 1 0 100%;
     min-width: 0;
-    margin: 0;
     overflow-wrap: anywhere;
   }
 
@@ -96,23 +83,13 @@
     .runner-project-tree-case-item.is-detailed .runner-project-tree-case-issue {
       display: flex;
     }
-
-    .runner-detail-debug-workbench {
-      grid-template-columns: minmax(0, 1fr);
-    }
   }
 }
 
 @media (max-width: 620px) {
   .test-runner-report {
-    .runner-project-tree-case,
-    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-      grid-template-columns: 7px minmax(0, 1fr);
-    }
-
     .runner-project-tree-case-title {
       flex-wrap: wrap;
-      gap: 5px;
       padding-block: 6px;
     }
 
