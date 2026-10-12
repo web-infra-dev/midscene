@@ -56,6 +56,8 @@ interface StepRunResultBase<TOutputData = unknown> {
   input: unknown;
   meta: NormalizedStepMeta;
   continuedAfterError: boolean;
+  /** Time spent waiting for a cancelled operation before this Step started. */
+  waitForPreviousOperationMs?: number;
   operations?: {
     capturedAt: string;
     events: readonly TestRunReportOperationEvent[];
@@ -243,6 +245,9 @@ export interface CaseRunOutcome {
     | 'project-setup-failed'
     | 'interrupted'
     | 'bail'
+    | 'cleanup-pending'
+    | 'cleanup-failed'
+    | 'operation-pending'
     | 'fatal-error';
 }
 

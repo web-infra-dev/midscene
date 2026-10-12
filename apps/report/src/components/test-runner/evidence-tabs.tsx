@@ -51,6 +51,12 @@ function StepInformation({
               <dt>Continue on error</dt>
               <dd>{plannedStep.continueOnError ? 'yes' : 'no'}</dd>
             </div>
+            {step.waitForPreviousOperationMs ? (
+              <div>
+                <dt>Waited for previous operation</dt>
+                <dd>{formatDuration(step.waitForPreviousOperationMs)}</dd>
+              </div>
+            ) : null}
           </dl>
         </section>
       ) : null}

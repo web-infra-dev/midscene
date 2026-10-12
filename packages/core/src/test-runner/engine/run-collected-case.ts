@@ -88,7 +88,8 @@ export async function runCollectedCase<TContext = undefined>(
     for (const [stepIndex, step] of phases[phase].entries()) {
       // A Step timeout ends the Runner's wait, not the underlying operation.
       // Recovery belongs between Steps, outside the next Step's timeout budget.
-      if (stepIndex > 0) await recoverCancelledScopeResources(signal);
+      const waitForPreviousOperationMs =
+        stepIndex > 0 ? await recoverCancelledScopeResources(signal) : 0;
       const caseContext: NodeCaseContext = {
         caseId: collectedCase.caseId,
         runId,
@@ -118,6 +119,8 @@ export async function runCollectedCase<TContext = undefined>(
           onTeardown,
         },
       );
+      if (waitForPreviousOperationMs > 0)
+        result.waitForPreviousOperationMs = waitForPreviousOperationMs;
       results.push(result);
       for (const source of result.report?.sources ?? [])
         capturedSources.set(

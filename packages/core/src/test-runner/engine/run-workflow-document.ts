@@ -75,7 +75,7 @@ export async function runWorkflowDocument<TContext = undefined>(
   let documentResult: WorkflowDocumentRunResult | undefined;
   const executionErrors: unknown[] = [];
   let fatalError = false;
-  let stoppedByCase = false;
+  let documentStopReason: CaseRunOutcome['notRunReason'];
 
   try {
     runtimeStarted = true;
@@ -93,7 +93,7 @@ export async function runWorkflowDocument<TContext = undefined>(
     } else {
       for (const collectedCase of document.cases) {
         if (
-          stoppedByCase ||
+          documentStopReason ||
           fatalError ||
           signal.aborted ||
           options.shouldStop?.()
@@ -105,9 +105,9 @@ export async function runWorkflowDocument<TContext = undefined>(
               ? (options.stopReason?.() ?? 'interrupted')
               : fatalError
                 ? 'fatal-error'
-                : stoppedByCase
-                  ? 'bail'
-                  : (options.stopReason?.() ?? 'interrupted'),
+                : (documentStopReason ??
+                  options.stopReason?.() ??
+                  'interrupted'),
           );
           cases.push(outcome);
           await options.onCaseOutcome?.(outcome);
@@ -221,9 +221,16 @@ export async function runWorkflowDocument<TContext = undefined>(
           attempts,
         };
         cases.push(outcome);
-        stoppedByCase =
-          outcome.status === 'failed' &&
-          collectedCase.definition.onFailure === 'stop-document';
+        const retryStopReason = run.retryDecision?.reason;
+        documentStopReason =
+          retryStopReason === 'cleanup-pending' ||
+          retryStopReason === 'cleanup-failed' ||
+          retryStopReason === 'operation-pending'
+            ? retryStopReason
+            : outcome.status === 'failed' &&
+                collectedCase.definition.onFailure === 'stop-document'
+              ? 'bail'
+              : undefined;
         await options.onCaseOutcome?.(outcome);
       }
     }

@@ -163,7 +163,10 @@ export function createDocumentRuntime<TContext = undefined>(
     executionSignal = signal,
   ): Promise<void> => {
     for (const [stepIndex, step] of document.lifecycle[phase].entries()) {
-      if (stepIndex > 0) await recoverCancelledScopeResources(executionSignal);
+      const waitForPreviousOperationMs =
+        stepIndex > 0
+          ? await recoverCancelledScopeResources(executionSignal)
+          : 0;
       const documentContext: NodeDocumentContext = {
         documentId: document.documentId,
         documentRunId,
@@ -209,6 +212,8 @@ export function createDocumentRuntime<TContext = undefined>(
           },
         },
       );
+      if (waitForPreviousOperationMs > 0)
+        result.waitForPreviousOperationMs = waitForPreviousOperationMs;
       results.push(result);
       for (const source of result.report?.sources ?? [])
         capturedSources.set(

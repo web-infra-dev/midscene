@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { NodeRegistry, defineNode } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
@@ -39,9 +39,11 @@ const snapshot = async () => ({
   sourcePath: '/tmp/agent.html',
   dumpPath: '/tmp/agent.json',
 });
+afterEach(() => vi.useRealTimers());
 
 describe('resource admission scheduling', () => {
-  it('blocks the occupied Agent, runs independent work and permits authored cleanup', async () => {
+  it('waits for the occupied Agent before continuing the authored steps', async () => {
+    vi.useFakeTimers();
     const pending = gate();
     const first = {
       action: vi.fn(async (prompt: string) => {
@@ -62,10 +64,10 @@ describe('resource admission scheduling', () => {
       }),
       defineNode({ name: 'plain', execute: plain }),
     ]);
-    const result = await runCollectedCase(
+    const running = runCollectedCase(
       collected([
         step('pending', 10),
-        step('blocked'),
+        step('resumed'),
         { node: 'plain', input: {} as any, meta: { continueOnError: true } },
         step('independent'),
       ]),
@@ -75,20 +77,25 @@ describe('resource admission scheduling', () => {
         afterEach: [step('cleanup')],
       },
     );
+    await vi.advanceTimersByTimeAsync(110);
+    expect(first.action.mock.calls.map(([prompt]) => prompt)).toEqual([
+      'pending',
+    ]);
+    expect(plain).not.toHaveBeenCalled();
+    pending.resolve();
+    const result = await running;
     expect(result.steps.map((item) => item.status)).toEqual([
       'failed',
-      'not-run',
+      'success',
       'success',
       'success',
     ]);
-    expect(result.steps[1]).toMatchObject({
-      blockedBy: 'attempt:steps:0',
-      error: { code: 'RESOURCE_OPERATION_PENDING' },
-    });
-    expect(result.steps[1].startedAt).toBeUndefined();
-    expect(result.steps[1].durationMs).toBeUndefined();
+    expect(result.steps[1].waitForPreviousOperationMs).toBeGreaterThanOrEqual(
+      100,
+    );
     expect(first.action.mock.calls.map(([prompt]) => prompt)).toEqual([
       'pending',
+      'resumed',
       'cleanup',
     ]);
     expect(independent.action).toHaveBeenCalledTimes(1);
@@ -148,62 +155,21 @@ describe('resource admission scheduling', () => {
         },
       },
     );
-    const blocked = dump.projects[0].documents[0].cases[0].attempts[0].steps[1];
-    expect(blocked).toMatchObject({
-      status: 'not-run',
-      blockedBy: 'attempt:steps:0',
+    const resumed = dump.projects[0].documents[0].cases[0].attempts[0].steps[1];
+    expect(resumed).toMatchObject({
+      status: 'success',
+      waitForPreviousOperationMs: result.steps[1].waitForPreviousOperationMs,
     });
-    expect(blocked.agentDetailDiagnostic).toBeUndefined();
-    // Only the two actions actually attempted on the first Agent and the independent action need references.
+    // Every dispatched Agent action has its own evidence reference.
     expect(
       dump.diagnostics?.filter(
         (item) => item.code === 'agent-detail-unavailable',
       ),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
   });
 
-  it('does not assume that a cancelled operation settling has restored business state', async () => {
-    const pending = gate();
-    const agent = {
-      action: vi.fn(async (prompt: string) => {
-        if (prompt === 'pending') await pending.promise;
-      }),
-      _createReportSource: snapshot,
-    };
-    const registry = new NodeRegistry([
-      ...createMidsceneNodes({ getAgent: () => agent as any, agentClass }),
-      defineNode({
-        name: 'settle',
-        execute: async () => {
-          pending.resolve();
-          await pending.promise;
-          await Promise.resolve();
-        },
-      }),
-    ]);
-    const result = await runCollectedCase(
-      collected([
-        step('pending', 10),
-        { node: 'settle', input: {} as any, meta: { continueOnError: true } },
-        step('unrecovered'),
-      ]),
-      {
-        resolveNode: registry.require.bind(registry),
-        afterEach: [step('cleanup')],
-      },
-    );
-    expect(result.steps[2]).toMatchObject({
-      status: 'not-run',
-      error: { code: 'RESOURCE_RECOVERY_REQUIRED' },
-    });
-    expect(agent.action.mock.calls.map(([prompt]) => prompt)).toEqual([
-      'pending',
-      'cleanup',
-    ]);
-    expect(result.afterEach[0].status).toBe('success');
-  });
-
-  it('stops the phase when the blocked step does not allow continuation', async () => {
+  it('does not overlap cleanup with a timed-out Agent action', async () => {
+    vi.useFakeTimers();
     const pending = gate();
     const agent = {
       action: vi.fn(async (prompt: string) => {
@@ -215,22 +181,28 @@ describe('resource admission scheduling', () => {
     const registry = new NodeRegistry(
       createMidsceneNodes({ getAgent: () => agent as any, agentClass }),
     );
-    const blocked = step('blocked');
-    blocked.meta.continueOnError = false;
-    const result = await runCollectedCase(
-      collected([step('pending', 10), blocked, step('not-dispatched')]),
+    const timedOut = step('pending', 10);
+    timedOut.meta.continueOnError = false;
+    const running = runCollectedCase(
+      collected([timedOut, step('not-dispatched')]),
       {
         resolveNode: registry.require.bind(registry),
         afterEach: [step('cleanup')],
       },
     );
-    expect(result.steps.map((item) => item.status)).toEqual([
-      'failed',
-      'not-run',
-    ]);
+    await vi.advanceTimersByTimeAsync(1100);
+    const result = await running;
+    expect(result.steps.map((item) => item.status)).toEqual(['failed']);
     expect(agent.action.mock.calls.map(([prompt]) => prompt)).toEqual([
       'pending',
-      'cleanup',
     ]);
+    expect(result.afterEach[0]).toMatchObject({
+      status: 'not-run',
+      error: { code: 'RESOURCE_OPERATION_PENDING' },
+      blockedBy: `${result.runId}:steps:0`,
+    });
+    expect(result.cleanup?.status).toBe('pending');
+    pending.resolve();
+    await vi.advanceTimersByTimeAsync(0);
   });
 });

@@ -196,6 +196,8 @@ interface TestRunReportStepBase {
   node: string;
   title?: string;
   continuedAfterError: boolean;
+  /** Time spent waiting for a cancelled operation before this Step started. */
+  waitForPreviousOperationMs?: number;
   input?: TestRunReportValue;
   output?: {
     summary?: string;

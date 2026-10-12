@@ -203,7 +203,6 @@ export class TaskExecutor {
         abortSignal: options?.abortSignal ?? this.getAbortSignal?.(),
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
-        abortSignal: options?.abortSignal,
         referenceImages: options?.referenceImages,
         onSnapshotChange: async (runner, error) => {
           await this.hooks?.onSnapshotChange?.(runner, error);
@@ -406,7 +405,11 @@ export class TaskExecutor {
     defaultModel: ModelRuntime,
     options?: { uiContext?: UIContext; abortSignal?: AbortSignal },
   ): Promise<ExecutionResult> {
-    const session = this.createExecutionSession(title, options);
+    const abortSignal = options?.abortSignal ?? this.getAbortSignal?.();
+    const session = this.createExecutionSession(title, {
+      ...options,
+      abortSignal,
+    });
     const runner = session.getRunner();
     const executionPlanningModel = { ...planningModel, executionId: runner.id };
     const executionDefaultModel = { ...defaultModel, executionId: runner.id };
@@ -414,7 +417,7 @@ export class TaskExecutor {
       plans,
       executionPlanningModel,
       executionDefaultModel,
-      { abortSignal: options?.abortSignal },
+      { abortSignal },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -1082,7 +1085,9 @@ export class TaskExecutor {
       uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
-    executionOptions?.abortSignal?.throwIfAborted();
+    const abortSignal =
+      executionOptions?.abortSignal ?? this.getAbortSignal?.();
+    abortSignal?.throwIfAborted();
     const session = this.createExecutionSession(
       taskTitleStr(
         type,
@@ -1092,9 +1097,8 @@ export class TaskExecutor {
         ...(executionOptions?.uiContext
           ? { uiContext: executionOptions.uiContext }
           : {}),
-        abortSignal: executionOptions?.abortSignal,
         referenceImages: multimodalPrompt?.images,
-        abortSignal: executionOptions?.abortSignal,
+        abortSignal,
       },
     );
 
@@ -1106,7 +1110,7 @@ export class TaskExecutor {
       executionModelRuntime,
       opt,
       multimodalPrompt,
-      executionOptions,
+      { ...executionOptions, abortSignal },
     );
 
     const result = await session.appendAndRun(queryTask);

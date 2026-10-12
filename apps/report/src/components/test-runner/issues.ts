@@ -205,14 +205,29 @@ export function collectReportIssues(dump: IssueInput) {
     error: TestRunReportError,
     owner: Partial<ReportIssue>,
   ) => {
-    addIssue({
+    const blockedByStepId =
+      error.code === 'RESOURCE_RECOVERY_TIMEOUT'
+        ? (error.details?.value as { blockedByStepId?: string } | undefined)
+            ?.blockedByStepId
+        : undefined;
+    const issue: ReportIssue = {
       id,
       severity: 'error',
       code: error.code ?? error.name,
       message: error.message,
       error,
+      ...(blockedByStepId ? { relatedStepIds: [blockedByStepId] } : {}),
       ...owner,
-    });
+    };
+    const stepIssues = blockedByStepId ? nodes.get(blockedByStepId) : undefined;
+    if (stepIssues) {
+      if (
+        !stepIssues.some(
+          (item) => item.code === issue.code && item.message === issue.message,
+        )
+      )
+        stepIssues.push(issue);
+    } else addIssue(issue);
   };
   const addScope = (
     scope: IssueScope,
@@ -243,12 +258,12 @@ export function collectReportIssues(dump: IssueInput) {
         title:
           cleanup.status === 'failed'
             ? `${scopeName} resource cleanup failed`
-            : `${scopeName} resource cleanup is waiting for an operation to finish`,
+            : `${scopeName} resource cleanup has not finished`,
         message:
           cleanup.error?.message ??
           (cleanup.status === 'failed'
             ? 'Resource cleanup failed.'
-            : 'Cleanup is waiting for unfinished operations. Resources remain quarantined.'),
+            : 'Cleanup has not finished. Resources remain quarantined.'),
         error: cleanup.error,
         context: {
           capturedAt: cleanup.capturedAt,

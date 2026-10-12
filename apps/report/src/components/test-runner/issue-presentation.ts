@@ -5,8 +5,9 @@ const titles: Record<string, string> = {
   STEP_TIMEOUT: 'The step exceeded its time limit',
   NODE_EXECUTION_ERROR: 'The step failed',
   RESOURCE_CLEANUP_FAILED: 'Resource cleanup failed',
-  RESOURCE_CLEANUP_PENDING:
-    'Resource cleanup is waiting for an operation to finish',
+  RESOURCE_CLEANUP_PENDING: 'Resource cleanup has not finished',
+  RESOURCE_RECOVERY_TIMEOUT:
+    'A timed-out operation kept running; later steps could not start',
   OPERATION_PENDING:
     'An operation was still running when the report was captured',
   PARTIAL_MODEL_METRICS:

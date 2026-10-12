@@ -27,6 +27,9 @@ const notRunReasons: Record<string, string> = {
   'project-start-failed': 'Project setup failed before this case could start.',
   'project-preflight-failed': 'Project validation failed before execution.',
   'fatal-error': 'Execution stopped after a fatal resource error.',
+  'cleanup-pending': 'The previous case has not finished resource cleanup.',
+  'cleanup-failed': 'Resource cleanup failed in the previous case.',
+  'operation-pending': 'An operation from the previous case is still running.',
   interrupted: 'Execution was cancelled before this step could start.',
   bail: 'Execution stopped after an earlier case failed.',
 };

@@ -7,6 +7,7 @@ import {
 } from '../../../e2e/fixtures/test-report.mjs';
 import { CaseWorkspace } from './case-workspace';
 import {
+  getCaseNotRunReason,
   getCaseWorkspaceStepGroups,
   getDefaultCaseWorkspaceStep,
   getWorkspaceTimelineRange,
@@ -44,6 +45,26 @@ const lifecycle = () =>
 const noop = () => {};
 
 describe('report lifecycle failures', () => {
+  it.each([
+    ['cleanup-pending', 'The previous case has not finished resource cleanup.'],
+    ['cleanup-failed', 'Resource cleanup failed in the previous case.'],
+    [
+      'operation-pending',
+      'An operation from the previous case is still running.',
+    ],
+  ])(
+    'explains why resource problems prevented a later Case: %s',
+    (reason, message) => {
+      const item = flattenRunnerCases(
+        createTestReportFixture(source) as TestRunReportDump,
+      )[0];
+      item.document.beforeAll = [];
+      item.testCase.status = 'not-run';
+      item.testCase.notRunReason = reason;
+      expect(getCaseNotRunReason(item)).toBe(message);
+    },
+  );
+
   it.each([false, true])(
     'preserves a host failure when a teardown plan exists: %s',
     (hasPlannedStep) => {

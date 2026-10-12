@@ -107,7 +107,6 @@ type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
     error?: TaskExecutionError,
   ) => Promise<void> | void;
   onTaskEvent?: TaskRunnerEventListener;
-  abortSignal?: AbortSignal;
 };
 
 type TaskRunnerOperationOptions = {

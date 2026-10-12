@@ -335,6 +335,44 @@ describe('report issue ownership', () => {
     );
   });
 
+  it('shows a recovery timeout under the step that left the operation running', () => {
+    const dump = fixture();
+    const attempt = dump.projects[0].documents[0].cases[0].attempts[0];
+    const step = attempt.steps[0];
+    attempt.hostErrors = [
+      {
+        phase: 'execution',
+        error: {
+          name: 'WorkflowError',
+          code: 'RESOURCE_RECOVERY_TIMEOUT',
+          message:
+            'The previous operation was still running after 30 s. Later steps were not started.',
+          details: {
+            value: {
+              graceMs: 30_000,
+              blockedByStepId: step.id,
+              blockingOperations: [
+                { operationId: 'old-operation', stepId: step.id },
+              ],
+            },
+          },
+        },
+      },
+    ];
+    const issues = collectReportIssues(dump);
+    const recovery = issues.nodes
+      .get(step.id)
+      ?.find((issue) => issue.code === 'RESOURCE_RECOVERY_TIMEOUT');
+    expect(recovery?.relatedStepIds).toEqual([step.id]);
+    expect(getIssuePresentation(recovery!).title).toBe(
+      'A timed-out operation kept running; later steps could not start',
+    );
+    expect(getIssuePresentation(recovery!).message).toContain('30 s');
+    expect(
+      issues.others.some((issue) => issue.code === 'RESOURCE_RECOVERY_TIMEOUT'),
+    ).toBe(false);
+  });
+
   it('keeps unowned metrics on the overview and retains all issues in a standalone report', () => {
     const dump = fixture();
     dump.projects = [dump.projects[0]];

@@ -80,6 +80,9 @@ const buildStep = (
       notRunReason: sanitizeReportText(step.notRunReason),
       ...(step.blockedBy ? { blockedBy: step.blockedBy } : {}),
       continuedAfterError: step.continuedAfterError,
+      ...(step.waitForPreviousOperationMs
+        ? { waitForPreviousOperationMs: step.waitForPreviousOperationMs }
+        : {}),
       input: sanitizeReportValue(step.input),
       ...(step.error ? { error: sanitizeReportError(step.error) } : {}),
       ...(step.operations
@@ -239,6 +242,9 @@ const buildStep = (
     ...(prompt ? { title: sanitizeReportText(prompt, 240) } : {}),
     status: step.status,
     continuedAfterError: step.continuedAfterError,
+    ...(step.waitForPreviousOperationMs
+      ? { waitForPreviousOperationMs: step.waitForPreviousOperationMs }
+      : {}),
     startedAt: step.startedAt,
     endedAt: step.endedAt,
     durationMs: step.durationMs,
