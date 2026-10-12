@@ -64,11 +64,12 @@ const invocationOptions = (runDir: string, retry = 3) => {
 };
 
 describe('persisted retry decisions', () => {
-  it('records cleanup failure as the stop reason while still rejecting host disposal errors', async () => {
+  it('records host disposal failure and stops the owning Project without rejecting the run', async () => {
     const runDir = mkdtempSync(join(tmpdir(), 'midscene-retry-disposal-'));
     try {
       const document = collectedDocument('successful case');
       const options = invocationOptions(runDir);
+      const markProjectFatal = vi.fn();
       const { sinks } = options;
       let calls = 0;
       await expect(
@@ -96,19 +97,81 @@ describe('persisted retry decisions', () => {
             },
           },
           ...options,
+          markProjectFatal,
         }),
-      ).rejects.toThrow('close failed');
+      ).resolves.toBeUndefined();
       expect(calls).toBe(1);
+      expect(markProjectFatal).toHaveBeenCalledOnce();
+      expect(sinks.documents).toHaveLength(1);
+      expect(sinks.cases).toHaveLength(1);
       expect(sinks.documents[0]).toMatchObject({
         status: 'failed',
         executionStatus: 'success',
         cleanup: { status: 'failed' },
         retryDecision: { decision: 'stop', reason: 'cleanup-failed' },
+        hostErrors: [
+          {
+            phase: 'cleanup',
+            error: expect.objectContaining({ message: 'close failed' }),
+          },
+        ],
       });
     } finally {
       rmSync(runDir, { recursive: true, force: true });
     }
   });
+  it.each(['case', 'document'] as const)(
+    'keeps %s Node cleanup failures local to the Project and does not retry',
+    async (scope) => {
+      const runDir = mkdtempSync(join(tmpdir(), 'midscene-node-disposal-'));
+      try {
+        const document = collectedDocument('cleanup failure');
+        if (scope === 'document')
+          document.lifecycle.beforeAll = document.cases[0].definition.steps;
+        const options = invocationOptions(runDir);
+        const markProjectFatal = vi.fn();
+        let calls = 0;
+        await executeDocumentInvocation({
+          ...options,
+          markProjectFatal,
+          invocation: {
+            document,
+            retry: { scope, count: 3 },
+            reportEnabled: false,
+            bindings: {
+              resolveNode: () =>
+                defineNode({
+                  name: 'javascript',
+                  execute({ onTeardown }) {
+                    calls++;
+                    if (scope === 'case' || calls === 1)
+                      onTeardown(() => {
+                        throw new Error('resource close failed');
+                      });
+                  },
+                }),
+            },
+          },
+        });
+        expect(calls).toBe(scope === 'case' ? 1 : 2);
+        expect(markProjectFatal).toHaveBeenCalledOnce();
+        expect(options.sinks.documents).toHaveLength(1);
+        const owner =
+          scope === 'case'
+            ? options.sinks.cases[0].run!
+            : options.sinks.documents[0];
+        expect(owner).toMatchObject({
+          cleanup: { status: 'failed' },
+          retryDecision: { decision: 'stop', reason: 'cleanup-failed' },
+          teardownErrors: [
+            expect.objectContaining({ code: 'NODE_SCOPE_TEARDOWN_ERROR' }),
+          ],
+        });
+      } finally {
+        rmSync(runDir, { recursive: true, force: true });
+      }
+    },
+  );
   it('retains successful actions and stops retries when final publication fails', async () => {
     const runDir = mkdtempSync(join(tmpdir(), 'midscene-retry-publication-'));
     const publicationError = new Error('result disk unavailable');
@@ -237,6 +300,7 @@ describe('persisted retry decisions', () => {
       const document = collectedDocument('pending case');
       const options = invocationOptions(runDir);
       const { sinks } = options;
+      const markProjectFatal = vi.fn();
       let calls = 0;
       await executeDocumentInvocation({
         invocation: {
@@ -256,9 +320,11 @@ describe('persisted retry decisions', () => {
           },
         },
         ...options,
+        markProjectFatal,
       });
       expect(calls).toBe(1);
       expect(sinks.documents).toHaveLength(1);
+      expect(markProjectFatal).toHaveBeenCalledOnce();
       expect(sinks.documents[0].retryDecision).toMatchObject({
         decision: 'stop',
         reason: 'operation-pending',

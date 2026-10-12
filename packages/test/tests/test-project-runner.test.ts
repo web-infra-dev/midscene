@@ -1466,6 +1466,116 @@ cases:
     ).toHaveLength(1);
   });
 
+  it.each(['case', 'document', 'pending'] as const)(
+    'stops only the owning Project after %s resource cleanup problems',
+    async (scope) => {
+      const root = createProject();
+      const resultDir = join(root, 'results');
+      const pending = createDeferred();
+      const state = Object.assign(setRunnerState(resultDir), {
+        pending: pending.promise,
+      });
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        `
+        const state = globalThis.__testProjectRunnerState;
+        export default {
+          projects: ['alpha', 'beta'].map(name => ({
+            name, retry: 2,
+            setup: { name: 'resources', setup({ onTeardown }) {
+              onTeardown(() => state.events.push('project-cleanup:' + name));
+              return { name };
+            } },
+          })),
+          nodes: [{ name: 'check', stringInputKey: 'phase',
+            execute({ input, context, onTeardown }) {
+              state.events.push(context.name + ':' + input.phase);
+              if (context.name === 'alpha' && input.phase === 'problem') {
+                if ('${scope}' === 'pending') {
+                  onTeardown(() => { state.events.push('node-cleanup:' + context.name); });
+                  return state.pending;
+                }
+                onTeardown(() => { throw new Error('resource cleanup failed'); });
+              }
+            },
+          }],
+        };
+      `,
+      );
+      writeWorkflow(
+        root,
+        'a-first.yaml',
+        scope === 'document'
+          ? `
+beforeAll:
+  - check: problem
+cases:
+  - name: first
+    steps: [{ check: first }]
+`
+          : `
+cases:
+  - name: first
+    steps:
+      - check:
+          phase: problem
+          $: { timeout: 10 }
+  - name: second
+    steps: [{ check: second }]
+`,
+      );
+      writeWorkflow(
+        root,
+        'b-next.yaml',
+        `
+cases:
+  - name: next file
+    steps: [{ check: next-file }]
+`,
+      );
+      try {
+        const result = await runTestProject({ projectRoot: root, resultDir });
+        const [alpha, beta] = result.projects;
+        expect(result.status).toBe('failed');
+        expect(result.errors).toBeUndefined();
+        expect(alpha.status).toBe('failed');
+        expect(alpha.cases.at(-1)).toMatchObject({
+          name: 'next file',
+          status: 'not-run',
+          notRunReason: 'fatal-error',
+        });
+        expect(alpha.cases[0].attempts).toHaveLength(1);
+        const owner =
+          scope === 'document' ? alpha.documents[0] : alpha.cases[0].run!;
+        expect(owner.cleanup).toMatchObject({
+          status: scope === 'pending' ? 'pending' : 'failed',
+        });
+        expect(beta.status).toBe('success');
+        expect(beta.cases.every((item) => item.status === 'success')).toBe(
+          true,
+        );
+        expect(
+          state.events.filter((event) => event === 'alpha:problem'),
+        ).toHaveLength(1);
+        expect(state.events).not.toContain('alpha:second');
+        expect(state.events).not.toContain('alpha:next-file');
+        expect(state.events).toContain('beta:next-file');
+      } finally {
+        pending.resolve();
+        await pending.promise;
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+      expect(state.events).toEqual(
+        expect.arrayContaining([
+          'project-cleanup:alpha',
+          'project-cleanup:beta',
+        ]),
+      );
+      if (scope === 'pending')
+        expect(state.events).toContain('node-cleanup:alpha');
+    },
+  );
+
   it('contains fatal device errors within their owning Project', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');

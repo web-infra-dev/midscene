@@ -1,5 +1,4 @@
 import {
-  WorkflowError,
   WorkflowExecutionFailure,
   decideRetry,
   runDocumentAttempts,
@@ -164,14 +163,16 @@ export async function executeDocumentInvocation(
                       host.error.cause === failure)),
               ),
             );
+          // Disposal failures belong to this Project. Keep their results and
+          // apply the same resource safety checks as Node cleanup below.
+          if (cleanupOnly) return partial;
           if (documentRetry)
             partial.document.retryDecision = decideRetry({
               scope: 'document',
               retryCount: invocation.retry.count,
               attemptIndex: documentAttemptIndex,
               status: 'failed',
-              cleanupFailed: cleanupOnly,
-              infrastructureError: !cleanupOnly,
+              infrastructureError: true,
             });
           attempts.push(partial);
           sinks.documents.push(partial.document);
@@ -220,6 +221,10 @@ export async function executeDocumentInvocation(
           ('hostErrors' in owner &&
             owner.hostErrors?.some(({ phase }) => phase === 'cleanup')),
       );
+      // Files share the Project context; stop reusing it without cancelling
+      // independent Projects. Publication and execution errors still throw.
+      if (cleanupPending || cleanupFailed || operationPending)
+        options.markProjectFatal();
       const failed =
         execution.document.status === 'failed' ||
         execution.cases.some((item) => item.status !== 'success');
@@ -273,36 +278,6 @@ export async function executeDocumentInvocation(
           });
         throw new WorkflowExecutionFailure(execution, [error]);
       }
-      const cleanupErrors = [
-        ...(execution.document.teardownErrors ?? []),
-        ...(execution.document.hostErrors ?? [])
-          .filter(({ phase }) => phase === 'cleanup')
-          .map(({ error }) => error),
-        ...execution.cases.flatMap((outcome) =>
-          (outcome.attempts ?? []).flatMap(
-            (attempt) => attempt.teardownErrors ?? [],
-          ),
-        ),
-      ];
-      if (cleanupFailed)
-        throw new WorkflowExecutionFailure(
-          execution,
-          cleanupErrors.length
-            ? cleanupErrors
-            : [
-                new WorkflowError(
-                  'Cleanup failed; further attempts were stopped.',
-                  {
-                    code: 'RESOURCE_CLEANUP_FAILED',
-                    details: {
-                      cleanup: owners
-                        .map((owner) => owner.cleanup)
-                        .filter(Boolean),
-                    },
-                  },
-                ),
-              ],
-        );
       return decision.decision === 'retry' ? 'failed' : undefined;
     },
   );
