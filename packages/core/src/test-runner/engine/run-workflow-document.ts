@@ -1,3 +1,4 @@
+import { isResourceRecoveryError } from '../errors';
 import type { CollectedCase, CollectedWorkflowDocument } from '../parser/types';
 import { buildTestRunReportPlan } from '../reporting/test-plan';
 import { createDocumentRuntime } from './document-runtime';
@@ -144,7 +145,9 @@ export async function runWorkflowDocument<TContext = undefined>(
                 cleanupFailed:
                   result.cleanup?.status === 'failed' ||
                   !!result.teardownErrors?.length,
-                infrastructureError: !!result.executionErrors?.length,
+                infrastructureError: result.executionErrors?.some(
+                  (error) => !isResourceRecoveryError(error),
+                ),
                 fatalError: attemptFatalError,
                 interrupted: signal.aborted,
                 shouldStop: options.shouldStop?.(),
@@ -165,7 +168,10 @@ export async function runWorkflowDocument<TContext = undefined>(
             return attemptFailure.result;
           });
           attempts.push(run);
-          if (attemptFailure) {
+          if (
+            attemptFailure &&
+            !attemptFailure.errors.every(isResourceRecoveryError)
+          ) {
             run.retryDecision = decideRetry({
               scope: 'case',
               retryCount: retry,
@@ -200,7 +206,9 @@ export async function runWorkflowDocument<TContext = undefined>(
             cleanupFailed:
               run.cleanup?.status === 'failed' || !!run.teardownErrors?.length,
             operationPending: !!run.pendingOperations?.length,
-            fatalError,
+            fatalError:
+              fatalError ||
+              !!run.executionErrors?.some(isResourceRecoveryError),
             interrupted: signal.aborted,
             shouldStop: options.shouldStop?.(),
           });
@@ -225,7 +233,8 @@ export async function runWorkflowDocument<TContext = undefined>(
         documentStopReason =
           retryStopReason === 'cleanup-pending' ||
           retryStopReason === 'cleanup-failed' ||
-          retryStopReason === 'operation-pending'
+          retryStopReason === 'operation-pending' ||
+          retryStopReason === 'fatal-error'
             ? retryStopReason
             : outcome.status === 'failed' &&
                 collectedCase.definition.onFailure === 'stop-document'
@@ -268,7 +277,15 @@ export async function runWorkflowDocument<TContext = undefined>(
     cases.push(
       ...document.cases
         .filter((item) => !completed.has(item.caseId))
-        .map((item) => asNotRun(item, projectName, 'interrupted')),
+        .map((item) =>
+          asNotRun(
+            item,
+            projectName,
+            executionErrors.every(isResourceRecoveryError)
+              ? 'operation-pending'
+              : 'interrupted',
+          ),
+        ),
     );
     documentResult.status = 'failed';
     documentResult.executionErrors = executionErrors

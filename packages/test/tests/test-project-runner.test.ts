@@ -1466,7 +1466,13 @@ cases:
     ).toHaveLength(1);
   });
 
-  it.each(['case', 'document', 'pending'] as const)(
+  it.each([
+    'case',
+    'document',
+    'pending',
+    'recovery',
+    'document-recovery',
+  ] as const)(
     'stops only the owning Project after %s resource cleanup problems',
     async (scope) => {
       const root = createProject();
@@ -1480,6 +1486,7 @@ cases:
         `
         const state = globalThis.__testProjectRunnerState;
         export default {
+          test: { bail: 0, maxConcurrency: '${scope}' === 'document-recovery' ? 2 : 1 },
           projects: ['alpha', 'beta'].map(name => ({
             name, retry: 2,
             setup: { name: 'resources', setup({ onTeardown }) {
@@ -1491,7 +1498,7 @@ cases:
             execute({ input, context, onTeardown }) {
               state.events.push(context.name + ':' + input.phase);
               if (context.name === 'alpha' && input.phase === 'problem') {
-                if ('${scope}' === 'pending') {
+                if (['pending', 'recovery', 'document-recovery'].includes('${scope}')) {
                   onTeardown(() => { state.events.push('node-cleanup:' + context.name); });
                   return state.pending;
                 }
@@ -1505,10 +1512,13 @@ cases:
       writeWorkflow(
         root,
         'a-first.yaml',
-        scope === 'document'
+        scope === 'document' || scope === 'document-recovery'
           ? `
 beforeAll:
-  - check: problem
+  - check:
+      phase: problem
+      $: { timeout: 10, continue-on-error: true }
+  - check: after-setup
 cases:
   - name: first
     steps: [{ check: first }]
@@ -1519,7 +1529,8 @@ cases:
     steps:
       - check:
           phase: problem
-          $: { timeout: 10 }
+          $: { timeout: 10, continue-on-error: ${scope === 'recovery'} }
+      - check: after-problem
   - name: second
     steps: [{ check: second }]
 `,
@@ -1544,12 +1555,40 @@ cases:
           status: 'not-run',
           notRunReason: 'fatal-error',
         });
-        expect(alpha.cases[0].attempts).toHaveLength(1);
+        if (scope !== 'document-recovery')
+          expect(alpha.cases[0].attempts).toHaveLength(1);
         const owner =
-          scope === 'document' ? alpha.documents[0] : alpha.cases[0].run!;
+          scope === 'document' || scope === 'document-recovery'
+            ? alpha.documents[0]
+            : alpha.cases[0].run!;
         expect(owner.cleanup).toMatchObject({
-          status: scope === 'pending' ? 'pending' : 'failed',
+          status: ['pending', 'recovery', 'document-recovery'].includes(scope)
+            ? 'pending'
+            : 'failed',
         });
+        if (scope === 'recovery' || scope === 'document-recovery') {
+          const steps =
+            scope === 'recovery'
+              ? alpha.cases[0].run!.steps
+              : alpha.documents[0].beforeAll;
+          expect(steps[0].error?.code).toBe('STEP_TIMEOUT');
+          expect(owner.executionErrors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                code: 'RESOURCE_RECOVERY_TIMEOUT',
+                details: expect.objectContaining({
+                  blockedByStepId: `${scope === 'recovery' ? alpha.cases[0].run!.runId : alpha.documents[0].documentRunId}:${scope === 'recovery' ? 'steps' : 'beforeAll'}:0`,
+                }),
+              }),
+            ]),
+          );
+          if (scope === 'recovery')
+            expect(alpha.cases[0].run!.retryDecision?.reason).toBe(
+              'cleanup-pending',
+            );
+          expect(state.events).not.toContain('alpha:after-problem');
+          expect(state.events).not.toContain('alpha:after-setup');
+        }
         expect(beta.status).toBe('success');
         expect(beta.cases.every((item) => item.status === 'success')).toBe(
           true,
@@ -1571,9 +1610,10 @@ cases:
           'project-cleanup:beta',
         ]),
       );
-      if (scope === 'pending')
+      if (['pending', 'recovery', 'document-recovery'].includes(scope))
         expect(state.events).toContain('node-cleanup:alpha');
     },
+    60_000,
   );
 
   it('contains fatal device errors within their owning Project', async () => {

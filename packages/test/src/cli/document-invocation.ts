@@ -1,6 +1,7 @@
 import {
   WorkflowExecutionFailure,
   decideRetry,
+  isResourceRecoveryError,
   runDocumentAttempts,
   runWorkflowDocument,
 } from '@midscene/core/internal/test-runner';
@@ -68,13 +69,17 @@ const caseHasFatalError = (outcome: CaseRunOutcome): boolean =>
     (attempt) =>
       [...attempt.beforeEach, ...attempt.steps, ...attempt.afterEach].some(
         (step) => step.error && isFatalDeviceError(step.error),
-      ) || (attempt.teardownErrors ?? []).some(isFatalDeviceError),
+      ) ||
+      (attempt.teardownErrors ?? []).some(isFatalDeviceError) ||
+      !!attempt.executionErrors?.some(isResourceRecoveryError),
   );
 
 const documentHasFatalError = (result: WorkflowDocumentRunResult): boolean =>
   [...result.beforeAll, ...result.afterAll].some(
     (step) => step.error && isFatalDeviceError(step.error),
-  ) || (result.teardownErrors ?? []).some(isFatalDeviceError);
+  ) ||
+  (result.teardownErrors ?? []).some(isFatalDeviceError) ||
+  !!result.executionErrors?.some(isResourceRecoveryError);
 
 /** Execute prepared document policies through the shared retry boundary. */
 export async function executeDocumentInvocation(
@@ -152,20 +157,26 @@ export async function executeDocumentInvocation(
       }).catch(async (error: unknown) => {
         if (error instanceof WorkflowExecutionFailure) {
           const partial = error.result as WorkflowDocumentExecutionResult;
-          const cleanupOnly =
+          const resourceOnly =
             error.errors.length > 0 &&
-            error.errors.every((failure) =>
-              partial.document.hostErrors?.some(
-                (host) =>
-                  host.phase === 'cleanup' &&
-                  (host.error === failure ||
-                    (host.error instanceof Error &&
-                      host.error.cause === failure)),
-              ),
+            error.errors.every(
+              (failure) =>
+                isResourceRecoveryError(failure) ||
+                partial.document.hostErrors?.some(
+                  (host) =>
+                    host.phase === 'cleanup' &&
+                    (host.error === failure ||
+                      (host.error instanceof Error &&
+                        host.error.cause === failure)),
+                ),
             );
-          // Disposal failures belong to this Project. Keep their results and
-          // apply the same resource safety checks as Node cleanup below.
-          if (cleanupOnly) return partial;
+          // Recovery and disposal failures stop this Project, not independent
+          // Projects. Publication and other infrastructure failures still throw.
+          if (resourceOnly) {
+            if (error.errors.some(isResourceRecoveryError))
+              options.markProjectFatal();
+            return partial;
+          }
           if (documentRetry)
             partial.document.retryDecision = decideRetry({
               scope: 'document',

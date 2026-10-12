@@ -250,3 +250,7 @@ export function isWorkflowError(error: unknown): error is WorkflowError {
     (error as WorkflowError)[workflowErrorKey] === true
   );
 }
+
+/** A cancelled operation exhausted its recovery budget within its owning scope. */
+export const isResourceRecoveryError = (error: unknown): boolean =>
+  isWorkflowError(error) && error.code === 'RESOURCE_RECOVERY_TIMEOUT';

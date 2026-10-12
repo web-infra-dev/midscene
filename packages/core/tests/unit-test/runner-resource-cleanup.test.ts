@@ -134,10 +134,10 @@ describe('continuation after a resource operation times out', () => {
     const running = runWorkflowDocument(document, {
       resolveNode: () => node,
       retry: 3,
-    }).catch((error) => error);
+    });
     await rs.advanceTimersByTimeAsync(32_020);
-    const failure = await running;
-    const first = failure.result.cases[0];
+    const result = await running;
+    const first = result.cases[0];
     expect(first.attempts).toHaveLength(1);
     expect(first.run.steps).toHaveLength(1);
     expect(first.run.steps[0].error.code).toBe('STEP_TIMEOUT');
@@ -151,18 +151,25 @@ describe('continuation after a resource operation times out', () => {
         ]),
       },
     });
-    expect(failure.result.cases[1].status).toBe('not-run');
+    expect(first.run.retryDecision).toMatchObject({
+      decision: 'stop',
+      reason: 'cleanup-pending',
+    });
+    expect(result.cases[1]).toMatchObject({
+      status: 'not-run',
+      notRunReason: 'cleanup-pending',
+    });
     expect(next).not.toHaveBeenCalled();
     expect(cleanup).not.toHaveBeenCalled();
     expect(() => assertResourceAvailable(resource, true)).toThrow(
       'cleanup is pending',
     );
-    const snapshot = JSON.stringify(failure.result);
+    const snapshot = JSON.stringify(result);
     action.resolve();
     await rs.advanceTimersByTimeAsync(0);
     expect(cleanup).toHaveBeenCalledOnce();
     expect(() => assertResourceAvailable(resource, true)).not.toThrow();
-    expect(JSON.stringify(failure.result)).toBe(snapshot);
+    expect(JSON.stringify(result)).toBe(snapshot);
   });
 
   test('interrupts recovery promptly without releasing the resource', async () => {
