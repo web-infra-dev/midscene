@@ -707,6 +707,38 @@ describe('HarmonyDevice', () => {
       await device.connect();
     });
 
+    it.each([
+      ['scrollDown', 600, 25],
+      ['scrollDown', 600, 50],
+      ['scrollUp', 600, 2375],
+      ['scrollUp', 600, 2350],
+      ['scrollRight', 25, 1200],
+      ['scrollLeft', 1175, 1200],
+      ['scrollUntilBottom', 600, 25],
+      ['scrollUntilTop', 600, 2375],
+      ['scrollUntilLeft', 1175, 1200],
+      ['scrollUntilRight', 25, 1200],
+    ] as const)(
+      'rejects %s from (%s, %s) without reversing or sending an empty fling',
+      async (method, left, top) => {
+        const action = method.startsWith('scrollUntil')
+          ? (
+              device[method] as (point: {
+                left: number;
+                top: number;
+              }) => Promise<void>
+            ).call(device, { left, top })
+          : (
+              device[method] as (
+                distance: number,
+                point: { left: number; top: number },
+              ) => Promise<void>
+            ).call(device, 100, { left, top });
+        await expect(action).rejects.toThrow('No space');
+        expect(mockHdc.fling).not.toHaveBeenCalled();
+      },
+    );
+
     it('scrollDown with startPoint should fling from point upward', async () => {
       await device.scrollDown(500, { left: 600, top: 1200 });
       // endY = max(0, 1200-500) = 700

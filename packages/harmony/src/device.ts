@@ -538,6 +538,25 @@ export class HarmonyDevice implements AbstractInterface {
     await hdc.fling(startX, startY, endX, endY, speed ?? defaultFastSwipeSpeed);
   }
 
+  private assertScrollDirection(
+    start: { x: number; y: number },
+    end: { x: number; y: number },
+    direction: 'up' | 'down' | 'left' | 'right',
+  ): void {
+    // Keep the located origin. A safe-edge clamp must not turn a requested
+    // scroll into a reverse fling (or a stationary gesture).
+    const travel = {
+      down: start.y - end.y,
+      up: end.y - start.y,
+      left: end.x - start.x,
+      right: start.x - end.x,
+    }[direction];
+    assert(
+      Number.isFinite(travel) && travel > 0,
+      `No space to scroll ${direction} from the located point; choose a point farther from the screen edge`,
+    );
+  }
+
   private async scrollInDirection(
     direction: 'up' | 'down' | 'left' | 'right',
     distance?: number,
@@ -568,6 +587,7 @@ export class HarmonyDevice implements AbstractInterface {
       } as const;
 
       const end = endPoints[direction];
+      this.assertScrollDirection({ x: sx, y: sy }, end, direction);
       await hdc.fling(sx, sy, end.x, end.y, defaultFastSwipeSpeed);
       return;
     }
@@ -617,6 +637,7 @@ export class HarmonyDevice implements AbstractInterface {
       } as const;
 
       const target = flingTargets[direction];
+      this.assertScrollDirection({ x: sx, y: sy }, target, direction);
       await repeat(defaultScrollUntilTimes, () =>
         hdc.fling(sx, sy, target.x, target.y, defaultFastSwipeSpeed),
       );
