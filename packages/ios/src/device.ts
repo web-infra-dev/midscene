@@ -742,8 +742,37 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.wdaBackend.pressKey(key);
   }
 
+  // Keep default browsing gestures inside the screen and leave overlapping
+  // content between observations. Content displacement remains OS/control dependent.
+  private async scrollDefault(
+    direction: 'up' | 'down' | 'left' | 'right',
+  ): Promise<void> {
+    const { width, height } = await this.size();
+    const horizontal = direction === 'left' || direction === 'right';
+    const forward = direction === 'down' || direction === 'right';
+    const extent = horizontal ? width : height;
+    const start = Math.round(extent * (forward ? 0.875 : 1 - 0.875));
+    const end = Math.round(extent * (forward ? 1 - 0.875 : 0.875));
+    const from = { x: Math.round(width / 2), y: Math.round(height / 2) };
+    const to = { ...from };
+    if (horizontal) {
+      from.x = start;
+      to.x = end;
+    } else {
+      from.y = start;
+      to.y = end;
+    }
+    // A fixed duration changes release velocity with screen size/orientation.
+    // 400 points/second limits inertia for Scroll; Swipe keeps its fast default.
+    const duration = Math.max(1, Math.round(Math.abs(end - start) / 0.4));
+    await this.swipePoint(from, to, duration);
+  }
+
   // Scroll methods
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('up');
+    }
     const { width, height } = await this.size();
     const start = startPoint
       ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
@@ -759,6 +788,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('down');
+    }
     const { width, height } = await this.size();
     const start = startPoint
       ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
@@ -774,6 +806,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('left');
+    }
     const { width, height } = await this.size();
     // scrollLeft: bring left content into view (swipe finger right)
     const start = startPoint
@@ -790,6 +825,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('right');
+    }
     const { width, height } = await this.size();
     // scrollRight: bring right content into view (swipe finger left)
     const start = startPoint

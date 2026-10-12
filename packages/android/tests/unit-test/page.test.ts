@@ -2564,12 +2564,12 @@ Stdout:
       });
 
       it.each([
-        ['scrollDown', 'input swipe 540 1440 540 0 1000'],
-        ['scrollUp', 'input swipe 540 480 540 1920 1000'],
-        ['scrollRight', 'input swipe 810 960 0 960 1000'],
-        ['scrollLeft', 'input swipe 270 960 1080 960 1000'],
+        ['scrollDown', 'input swipe 540 1632 540 288 1000'],
+        ['scrollUp', 'input swipe 540 288 540 1632 1000'],
+        ['scrollRight', 'input swipe 918 960 162 960 1000'],
+        ['scrollLeft', 'input swipe 162 960 918 960 1000'],
       ] as const)(
-        '%s defaults to three quarters of the screen with the other axis centered',
+        '%s keeps the default gesture within the central seventy percent of the screen',
         async (method, command) => {
           await device[method]();
 
@@ -2598,10 +2598,10 @@ Stdout:
       );
 
       it.each([
-        ['scrollDown', 'input swipe 960 810 960 0 1000'],
-        ['scrollUp', 'input swipe 960 270 960 1080 1000'],
-        ['scrollRight', 'input swipe 1440 540 0 540 1000'],
-        ['scrollLeft', 'input swipe 480 540 1920 540 1000'],
+        ['scrollDown', 'input swipe 960 918 960 162 1000'],
+        ['scrollUp', 'input swipe 960 162 960 918 1000'],
+        ['scrollRight', 'input swipe 1632 540 288 540 1000'],
+        ['scrollLeft', 'input swipe 288 540 1632 540 1000'],
       ] as const)(
         '%s uses the current landscape dimensions for the default gesture',
         async (method, command) => {

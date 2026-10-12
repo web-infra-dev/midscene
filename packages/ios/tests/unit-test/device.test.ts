@@ -93,6 +93,45 @@ describe('IOSDevice', () => {
     }
   });
 
+  describe('default scroll coverage', () => {
+    it.each([
+      ['scrollDown', 375, 812, [188, 711, 188, 102, 1523]],
+      ['scrollUp', 375, 812, [188, 102, 188, 711, 1523]],
+      ['scrollRight', 375, 812, [328, 406, 47, 406, 703]],
+      ['scrollLeft', 375, 812, [47, 406, 328, 406, 703]],
+      ['scrollDown', 812, 375, [406, 328, 406, 47, 703]],
+      ['scrollUp', 812, 375, [406, 47, 406, 328, 703]],
+      ['scrollRight', 812, 375, [711, 188, 102, 188, 1523]],
+      ['scrollLeft', 812, 375, [102, 188, 711, 188, 1523]],
+    ] as const)(
+      '%s uses bounded endpoints and distance-based timing on %ix%i',
+      async (method, width, height, expected) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({ width, height });
+        await device[method]();
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(...expected);
+      },
+    );
+
+    it('preserves explicit distances and located starting points', async () => {
+      await device.scrollDown(100);
+      expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+        188,
+        406,
+        188,
+        306,
+        500,
+      );
+      await device.scrollDown(undefined, { left: 80, top: 300 });
+      expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+        80,
+        300,
+        80,
+        29,
+        500,
+      );
+    });
+  });
+
   it('lets custom action readiness replace the extra scroll settling delay', async () => {
     const scroll = rs
       .spyOn(device as any, 'scrollDown')
