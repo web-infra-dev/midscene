@@ -1,0 +1,105 @@
+name: Ark network diagnostics
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ark-network-diagnostics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  network:
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up the same Node.js version as AI tests
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Inspect DNS, routing, and proxy configuration
+        shell: bash
+        run: |
+          echo '::group::Runtime'
+          node --version
+          curl --version
+          echo '::endgroup::'
+          echo '::group::DNS and routes'
+          cat /etc/resolv.conf
+          getent ahosts ark.cn-beijing.volces.com || true
+          ip route || true
+          ip -6 route || true
+          echo '::endgroup::'
+          echo '::group::Proxy configuration presence (values omitted)'
+          for key in HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY http_proxy https_proxy all_proxy no_proxy MIDSCENE_MODEL_HTTP_PROXY MIDSCENE_MODEL_SOCKS_PROXY NODE_USE_ENV_PROXY NODE_OPTIONS; do
+            if [ -n "${!key:-}" ]; then
+              echo "$key=set"
+            else
+              echo "$key=unset"
+            fi
+          done
+          echo '::endgroup::'
+
+      - name: Probe IPv4 and IPv6 with curl
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          # No Authorization header: any HTTP response proves TCP/TLS connectivity.
+          # Compare inherited proxy settings with a direct connection.
+          for family in -4 -6; do
+            for mode in inherited direct; do
+              args=()
+              if [ "$mode" = direct ]; then
+                args+=(--noproxy '*')
+              fi
+              echo "::group::curl $family $mode"
+              status=0
+              curl "$family" "${args[@]}" --silent --show-error \
+                --connect-timeout 10 --max-time 20 --output /dev/null \
+                --write-out 'HTTP=%{http_code} remote_ip=%{remote_ip} DNS=%{time_namelookup}s TCP=%{time_connect}s TLS=%{time_appconnect}s total=%{time_total}s\n' \
+                https://ark.cn-beijing.volces.com/api/v3/models || status=$?
+              echo "curl exit code: $status"
+              echo '::endgroup::'
+            done
+          done
+
+      - name: Probe DNS and HTTPS with Node.js
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import dns from 'node:dns/promises';
+          const host = 'ark.cn-beijing.volces.com';
+          try {
+            console.log('dns.lookup:', await dns.lookup(host, { all: true }));
+          } catch (error) {
+            console.dir(error, { depth: null });
+          }
+          const startedAt = Date.now();
+          try {
+            const response = await fetch(`https://${host}/api/v3/models`, {
+              signal: AbortSignal.timeout(15000),
+            });
+            console.log({ status: response.status, elapsedMs: Date.now() - startedAt });
+            await response.body?.cancel();
+          } catch (error) {
+            console.log({ elapsedMs: Date.now() - startedAt });
+            console.dir(error, { depth: null });
+          }
+          NODE
+
+      - name: Explain diagnostic results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+          ## Ark network diagnostics
+
+          See the DNS, curl, and Node.js steps for resolved addresses, connection timings, and nested errors.
+          These probes do not use an API Key or invoke a model.
+          Any HTTP response (including 401/403/404) confirms that the probe reached an HTTP server; it does not validate model access.
+          A successful diagnostic job means the probes completed, not that every connection succeeded.
+          This job uses the same runner labels and Node.js version as the AI tests, but may run on a different machine.
+          SUMMARY
