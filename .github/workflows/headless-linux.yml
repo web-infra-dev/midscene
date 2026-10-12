@@ -9,6 +9,7 @@ on:
       - 'packages/computer/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - '.github/actions/ai-ci/**'
       - 'scripts/report-template-utils.mjs'
       - 'nx.json'
       - 'package.json'
@@ -132,7 +133,9 @@ jobs:
         echo "DISPLAY=${DISPLAY:-(not set)}"
 
     - name: Run AI todo test with Xvfb
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
       timeout-minutes: 25
       id: test-ai
       continue-on-error: true
@@ -192,7 +195,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Chrome extension test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
       timeout-minutes: 40
       id: test-ext
       continue-on-error: true
@@ -250,7 +255,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Bridge mode start/stop test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
       timeout-minutes: 40
       id: test-bridge
       continue-on-error: true
@@ -316,7 +323,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Playground E2E test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/${{ matrix.test.file }}
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/${{ matrix.test.file }}
       timeout-minutes: 40
       id: test-playground
       continue-on-error: true
@@ -374,7 +383,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Recorder mode tests
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-recorder.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-recorder.test.ts
       timeout-minutes: 40
       id: test-recorder
       continue-on-error: true
@@ -432,7 +443,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Settings and cross-mode tests
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-settings.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-settings.test.ts
       timeout-minutes: 30
       id: test-settings
       continue-on-error: true
