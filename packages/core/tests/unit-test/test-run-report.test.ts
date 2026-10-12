@@ -53,7 +53,7 @@ const writeAgentReport = (
   executionIds: string[],
   mode: 'inline' | 'directory' = 'inline',
   withUsage = false,
-): void => {
+): ReportActionDump => {
   mkdirSync(join(filePath, '..'), { recursive: true });
   const dump = new ReportActionDump({
     sdkVersion: getVersion(),
@@ -87,6 +87,7 @@ const writeAgentReport = (
     'data-screenshot-mode': mode,
   });
   writeFileSync(filePath, `<html>${script}</html>`);
+  return dump;
 };
 
 afterEach(() => {
@@ -96,6 +97,108 @@ afterEach(() => {
 });
 
 describe('TestRunReportAssembler', () => {
+  it('merges incremental snapshots once per Agent and scope while preserving coverage', async () => {
+    const root = temporaryDirectory();
+    const sourcePath = join(root, 'agent.html');
+    const first = join(root, 'first.json');
+    const second = join(root, 'second.json');
+    const otherScope = join(root, 'other.json');
+    writeFileSync(
+      first,
+      writeAgentReport(sourcePath, ['first'], 'inline', true).serialize(),
+    );
+    writeFileSync(
+      second,
+      writeAgentReport(sourcePath, ['second'], 'inline', true).serialize(),
+    );
+    writeFileSync(
+      otherScope,
+      writeAgentReport(sourcePath, ['other'], 'inline', true).serialize(),
+    );
+    let index!: TestRunReportSourceIndex;
+    const reportPath = await new TestRunReportAssembler().assembleAsync({
+      outputDir: join(root, 'out'),
+      reportFileName: 'incremental',
+      sources: [
+        { scopeId: 'case', sourcePath, dumpPath: first },
+        {
+          scopeId: 'case',
+          sourcePath,
+          dumpPath: second,
+          collection: {
+            status: 'partial',
+            capturedAt: '2026-10-08T00:00:00.000Z',
+          },
+        },
+        { scopeId: 'other-case', sourcePath, dumpPath: otherScope },
+      ],
+      buildRunnerDump(value) {
+        index = value;
+        return runnerDump(value);
+      },
+    });
+    expect(index.sources).toHaveLength(2);
+    expect(index.sources[0].executionIds).toEqual(['first', 'second']);
+    expect(index.sources[1].executionIds).toEqual(['other']);
+    expect(index.sources[0].collection?.status).toBe('partial');
+    expect(index.metrics.modelCallCount).toBe(3);
+    expect(index.metrics.totalTokens).toBe(21);
+    expect(index.metrics.collection?.status).toBe('complete');
+    expect(
+      readFileSync(reportPath, 'utf8').match(
+        /data-report-id="runner-report-1"/g,
+      ),
+    ).toHaveLength(1);
+  });
+  it.each([false, true])(
+    'retains valid sources and diagnoses unreadable or malformed sources, async=%s',
+    async (asyncMode) => {
+      const root = temporaryDirectory();
+      const sourcePath = join(root, 'good.html');
+      writeAgentReport(sourcePath, ['good-execution'], 'inline', true);
+      const malformed = join(root, 'malformed.json');
+      writeFileSync(malformed, '{broken');
+      let index!: TestRunReportSourceIndex;
+      const options = {
+        outputDir: join(root, 'output'),
+        reportFileName: 'partial',
+        sources: [
+          { scopeId: 'good', sourcePath },
+          {
+            scopeId: 'missing',
+            sourcePath: join(root, 'missing.html'),
+            dumpPath: join(root, 'missing.json'),
+          },
+          {
+            scopeId: 'malformed',
+            sourcePath: join(root, 'broken.html'),
+            dumpPath: malformed,
+          },
+        ],
+        buildRunnerDump(value: TestRunReportSourceIndex) {
+          index = value;
+          return { ...runnerDump(value), diagnostics: value.diagnostics };
+        },
+      };
+      const assembler = new TestRunReportAssembler();
+      const reportPath = asyncMode
+        ? await assembler.assembleAsync(options)
+        : assembler.assemble(options);
+      expect(index.sources.map((source) => source.executionIds)).toEqual([
+        ['good-execution'],
+      ]);
+      expect(index.metrics.modelCallCount).toBe(1);
+      expect(index.metrics.totalTokens).toBe(7);
+      expect(index.metrics.collection?.status).toBe('partial');
+      expect(index.diagnostics?.map((item) => item.scopeId)).toEqual([
+        'missing',
+        'malformed',
+      ]);
+      const html = readFileSync(reportPath, 'utf8');
+      expect(html).toContain('good-execution');
+      expect(html).toContain('agent-source-unavailable');
+    },
+  );
   it('builds a custom-only standalone report', () => {
     const outputDir = temporaryDirectory();
     const reportPath = new TestRunReportAssembler().assemble({
@@ -197,7 +300,7 @@ describe('TestRunReportAssembler', () => {
         return runnerDump(index);
       },
     });
-    expect(receivedIndex?.metrics).toEqual({
+    expect(receivedIndex?.metrics).toMatchObject({
       modelCallCount: 3,
       modelTimeMs: 30,
       promptTokens: 15,

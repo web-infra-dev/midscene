@@ -8,9 +8,9 @@ target:
 tasks:
   - name: batch health and compact project tree
     flow:
-      - aiAssert: The overview shows 2 of 2 cases passed, a 100% final pass rate, a 50% first-pass rate, one case passed after retry, and an 8 second Run time. Compact is selected. The Web regression project is collapsed.
+      - aiAssert: The overview shows 2 of 2 cases passed, one case passed after retry, and an 8 second total time. Compact is selected. The Web regression project is collapsed.
       - aiTap: the 8 second duration cell at the right of the Web regression project row
-      - aiAssert: Checkout with retry and Verify cart summary appear as compact indented child rows under Web regression. Each case name has an aligned status dot, with no duplicate metric columns or separate Inspect buttons in these rows.
+      - aiAssert: Checkout with retry and Verify cart summary appear as compact indented child rows under Web regression. Each case name has a passed status badge, with no duplicate metric columns or separate Inspect buttons in these rows.
       - aiTap: the status filter showing All statuses
       - aiTap: the Needs attention option
       - aiAssert: Only Checkout with retry remains under Web regression; Verify cart summary is filtered out.
@@ -20,9 +20,9 @@ tasks:
       - aiAssert: Both cases are visible. Detailed rows show their source file, attempt count and duration. Checkout with retry has a numbered screenshot timeline below its details, while Verify cart summary has no screenshot evidence.
       - aiHover: a screenshot thumbnail in the Checkout with retry timeline
       - aiAssert: An enlarged screenshot preview is visible near the hovered thumbnail.
-      - aiHover: the Projects and cases heading on the left, outside the screenshot timeline and its floating preview
+      - aiHover: the Compact view control at the top left, outside the screenshot timeline and its floating preview
       - aiTap: the Compact view button
-      - aiAssert: Compact is selected. Case rows show their names and status dots without screenshot timelines.
+      - aiAssert: Compact is selected. Case rows show their names and passed status badges without screenshot timelines.
       - aiTap: the Collapse all projects icon button to the right of Search projects, cases, and details
       - aiAssert: Web regression is collapsed and its child case rows are hidden.
       - aiTap: the Expand all projects icon button to the right of Search projects, cases, and details
@@ -51,7 +51,7 @@ tasks:
             history.back();
           });
         name: browserBackFromCase
-      - aiAssert: The overview shows the Projects and cases heading and the Compact and Detailed view controls.
+      - aiAssert: The overview shows the Web regression project and the Compact and Detailed view controls.
       - javascript: |
           new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -81,7 +81,9 @@ tasks:
           if (!(evidence instanceof HTMLElement)) throw new Error('Missing order.create evidence panel');
           evidence.scrollIntoView({ block: 'start' });
         name: revealOrderCreateEvidence
-      - aiAssert: The order.create evidence panel shows NODE_EXECUTION_ERROR and Inventory was not ready. Input & output is selected, and its Input row shows sku demo-item with a redacted apiKey value.
+      - aiAssert: The order.create evidence panel shows a Step failed card with Inventory was not ready. Its details are collapsed. Information is selected, and Input shows sku demo-item with a redacted apiKey value.
+      - aiTap: the collapsed details control inside the Step failed error card
+      - aiAssert: The expanded error card details show NODE_EXECUTION_ERROR.
       - javascript: |
           const main = document.querySelector('.runner-main');
           if (!(main instanceof HTMLElement)) throw new Error('Missing report scroll container');
@@ -91,7 +93,7 @@ tasks:
       - aiAssert: The dropdown shows Attempt 1 as Failed and Attempt 2 as Passed.
       - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option
       - sleep: 500
-      - aiAssert: Attempt 2 is selected. The screenshot timeline appears above the horizontal execution groups, aiAct is selected, and Record contains the recorded Agent task list and replay player.
+      - aiAssert: Attempt 2 is selected. The screenshot timeline appears above the workspace. Execution steps are listed on the left, aiAct is selected, and Record contains the recorded Agent task list and screenshot viewer on the right.
       - aiHover: a screenshot thumbnail in the timeline at the top of Execution
       - aiAssert: A screenshot preview is displayed and aiAct is the selected execution step.
       - aiHover: the Checkout with retry case title at the top left, outside the Execution timeline and its floating preview
@@ -104,8 +106,8 @@ tasks:
       - aiTap: the Attempts dropdown showing Attempt 1 above Execution
       - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option
       - sleep: 500
-      - aiAssert: Attempt 2 and aiAct are selected, with Record, Input & output, and Events tabs, and an embedded Agent report.
-      - aiTap: the Input & output tab
-      - aiAssert: Input and Output appear as two stacked rows in one bordered panel. The execution groups remain visible above it.
+      - aiAssert: Attempt 2 and aiAct are selected, with Record, Information, and Events tabs, and an embedded Agent report.
+      - aiTap: the Information tab
+      - aiAssert: Input and Output appear as two stacked rows in one bordered panel. The execution step list remains visible on the left.
       - aiTap: the Record tab
-      - aiAssert: The recorded Agent task list and screenshot replay are visible within the Case workspace below Execution.
+      - aiAssert: The recorded Agent task list and screenshot viewer are visible on the right of the Case workspace.

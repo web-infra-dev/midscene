@@ -170,6 +170,7 @@ describe('Midscene Test report manifest', () => {
       details: { authorization: 'Bearer secret' },
     });
     expect(sanitizeReportError(error)).toEqual({
+      format: 'midscene-error',
       name: 'Error',
       message: 'failed',
       code: 'FAILED',

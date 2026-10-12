@@ -129,6 +129,7 @@ export class TaskExecutor {
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
   private readonly hooks?: TaskExecutorHooks;
+  private readonly getAbortSignal?: () => AbortSignal | undefined;
 
   replanningCycleLimit?: number;
 
@@ -152,6 +153,8 @@ export class TaskExecutor {
       actionReadiness?: ActionReadiness;
       useDeviceTime?: boolean;
       hooks?: TaskExecutorHooks;
+      getAbortSignal?: () => AbortSignal | undefined;
+      operationResource?: object;
       actionSpace: DeviceAction[];
     },
   ) {
@@ -163,6 +166,7 @@ export class TaskExecutor {
     this.waitAfterAction = opts.waitAfterAction;
     this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
+    this.getAbortSignal = opts.getAbortSignal;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
@@ -171,6 +175,7 @@ export class TaskExecutor {
       actionSpace: this.getActionSpace(),
       waitAfterAction: opts.waitAfterAction,
       actionReadiness: opts.actionReadiness,
+      operationResource: opts.operationResource,
     });
   }
 
@@ -190,14 +195,14 @@ export class TaskExecutor {
   ) {
     return new ExecutionSession(
       title,
-      () =>
+      (signal) =>
         options?.uiContext
           ? Promise.resolve(options.uiContext)
-          : Promise.resolve(this.service.contextRetrieverFn()),
+          : Promise.resolve(this.service.contextRetrieverFn(signal)),
       {
+        abortSignal: options?.abortSignal ?? this.getAbortSignal?.(),
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
-        abortSignal: options?.abortSignal,
         referenceImages: options?.referenceImages,
         onSnapshotChange: async (runner, error) => {
           await this.hooks?.onSnapshotChange?.(runner, error);
@@ -371,6 +376,7 @@ export class TaskExecutor {
   }
 
   async sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
+    abortSignal ??= this.getAbortSignal?.();
     const session = this.createExecutionSession('Sleep', { abortSignal });
     const action = defineActionSleep(abortSignal);
     await session.appendAndRun({
@@ -399,7 +405,11 @@ export class TaskExecutor {
     defaultModel: ModelRuntime,
     options?: { uiContext?: UIContext; abortSignal?: AbortSignal },
   ): Promise<ExecutionResult> {
-    const session = this.createExecutionSession(title, options);
+    const abortSignal = options?.abortSignal ?? this.getAbortSignal?.();
+    const session = this.createExecutionSession(title, {
+      ...options,
+      abortSignal,
+    });
     const runner = session.getRunner();
     const executionPlanningModel = { ...planningModel, executionId: runner.id };
     const executionDefaultModel = { ...defaultModel, executionId: runner.id };
@@ -407,7 +417,7 @@ export class TaskExecutor {
       plans,
       executionPlanningModel,
       executionDefaultModel,
-      { abortSignal: options?.abortSignal },
+      { abortSignal },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -509,6 +519,7 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    abortSignal ??= this.getAbortSignal?.();
     const conversationHistory = new ConversationHistory();
     const promptDisplay =
       reportOptions?.prompt || userPromptToString(userPrompt);
@@ -1003,7 +1014,10 @@ export class TaskExecutor {
             extraPageDescription,
             multimodalPrompt,
             uiContext,
-            executionOptions,
+            {
+              ...executionOptions,
+              abortSignal: executionOptions?.abortSignal ?? taskContext.signal,
+            },
           );
         } catch (error) {
           if (error instanceof ServiceError) {
@@ -1071,7 +1085,9 @@ export class TaskExecutor {
       uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
-    executionOptions?.abortSignal?.throwIfAborted();
+    const abortSignal =
+      executionOptions?.abortSignal ?? this.getAbortSignal?.();
+    abortSignal?.throwIfAborted();
     const session = this.createExecutionSession(
       taskTitleStr(
         type,
@@ -1082,7 +1098,7 @@ export class TaskExecutor {
           ? { uiContext: executionOptions.uiContext }
           : {}),
         referenceImages: multimodalPrompt?.images,
-        abortSignal: executionOptions?.abortSignal,
+        abortSignal,
       },
     );
 
@@ -1094,7 +1110,7 @@ export class TaskExecutor {
       executionModelRuntime,
       opt,
       multimodalPrompt,
-      executionOptions,
+      { ...executionOptions, abortSignal },
     );
 
     const result = await session.appendAndRun(queryTask);
@@ -1119,12 +1135,13 @@ export class TaskExecutor {
     opt: PlanningActionParamWaitFor,
     modelRuntime: ModelRuntime,
   ): Promise<ExecutionResult<void>> {
+    const abortSignal = this.getAbortSignal?.();
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
     const description = `waitFor: ${textPrompt}`;
     const session = this.createExecutionSession(
       taskTitleStr('WaitFor', description),
-      { referenceImages: multimodalPrompt?.images },
+      { referenceImages: multimodalPrompt?.images, abortSignal },
     );
     const runner = session.getRunner();
     const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
@@ -1157,12 +1174,14 @@ export class TaskExecutor {
     while (lastCheckStart - overallStartTime <= timeoutMs) {
       const currentCheckStart = Date.now();
       lastCheckStart = currentCheckStart;
+      abortSignal?.throwIfAborted();
       const queryTask = await this.createTypeQueryTask(
         'WaitFor',
         textPrompt,
         executionModelRuntime,
         serviceExtractOpt,
         multimodalPrompt,
+        { abortSignal },
       );
 
       const result = (await session.appendAndRun(queryTask)) as
@@ -1192,6 +1211,7 @@ export class TaskExecutor {
           [{ type: 'Sleep', param: { timeMs: timeRemaining }, thought }],
           modelRuntime,
           modelRuntime,
+          { abortSignal },
         );
         if (sleepTasks[0]) {
           await session.appendAndRun(sleepTasks[0]);

@@ -126,7 +126,7 @@ Execution project starts
 
 `setup` belongs to the execution project and runs once before its YAML files execute. `beforeAll` and `afterAll` belong to an individual YAML file, running before and after that file's cases. They are not global hooks for the entire project. `beforeEach` and `afterEach` surround each attempt of each case.
 
-If a case fails and retries remain, the framework finishes that attempt's `afterEach` and Node cleanup before repeating `beforeEach → steps → afterEach → Node cleanup`. Retries do not rerun project `setup` or file `beforeAll`. See [Handling failures](./use#handling-failures) for skip and cleanup rules. If `setup` fails, the project's YAML files do not execute, but the framework still attempts cleanup callbacks already registered in setup.
+If a case fails, retries remain, Node cleanup has completed, and no operations remain running, the framework repeats `beforeEach → steps → afterEach → Node cleanup`. Unfinished operations or pending or failed cleanup stop retries early. Retries do not rerun project `setup` or file `beforeAll`. See [Handling failures](./use#handling-failures) for skip and cleanup rules. If `setup` fails, the project's YAML files do not execute, but the framework still attempts cleanup callbacks already registered in setup.
 
 The scope of `onTeardown()` depends on where it is registered:
 
@@ -418,7 +418,7 @@ Both projects call `playwrightSetup` separately, creating their own browser, pag
 
 The framework does not automatically divide cases between projects. If two projects match the same YAML file, each project runs that file once. This is useful for validating the same cases on different platforms or environments. To distribute cases for concurrent execution, use non-overlapping `files` or `tags` selection rules.
 
-A project occupies a concurrency slot from initialization through cleanup. Once a slot is released, the scheduler starts the next pending project. Scheduling currently uses asynchronous execution within the same Node.js process, without creating a separate process per project. Project implementations must still isolate module globals, external accounts, and test data.
+A project occupies a concurrency slot from initialization until its cleanup result is returned. Once a slot is released, the scheduler starts the next pending project. If cleanup exceeds its waiting window, the result can be `pending`; this does not mean the underlying resources have been released. They remain quarantined; see [Timeouts and cancellation](#timeouts-and-cancellation). Scheduling currently uses asynchronous execution within the same Node.js process, without creating a separate process per project. Project implementations must still isolate module globals, external accounts, and test data.
 
 ### Generate a Node Spec for each Project
 
@@ -439,6 +439,10 @@ A step timeout aborts that step's `signal`. When running tests through the CLI, 
 Nodes receive cancellation notifications through `AbortSignal`. Asynchronous operations inside a Node do not stop automatically when the signal is aborted. Custom Nodes need to pass `signal` to APIs that support cancellation or explicitly check its state. See [Asynchronous operations, errors, and cancellation](./extend#asynchronous-operations-errors-and-cancellation) for usage.
 
 After a run is interrupted, the framework still attempts to run `afterEach`, `afterAll`, and cleanup functions registered with `onTeardown()`. When executing Nodes in `afterEach` and `afterAll`, if the run's `signal` has already been aborted, the framework uses a new signal that has not been aborted so cleanup operations can continue. Step timeout settings still apply to these cleanup steps.
+
+A new `signal` does not bypass resource admission checks. If an earlier operation on the same Agent is still running, a cleanup Node cannot overlap it; that action is marked not run. For example, a click in `afterEach` cannot start on an Agent whose previous click timed out but has not stopped. Cleanup Nodes should handle partially completed setup.
+
+After lifecycle hooks finish, resource cleanup first waits for running operations to stop, for up to 1 second by default. Once operations stop, the framework waits for registered cleanup callbacks, for up to 10 seconds for the entire callback phase by default. These limits bound the wait for results; they do not forcibly terminate operations or callbacks, or replace Step timeouts in `afterEach` and `afterAll`. If a limit is exceeded, the framework records `cleanup pending` and returns a snapshot. Resources remain quarantined and are disposed of only after underlying operations stop. See [Handling failures](./use#handling-failures) for retry and scheduling rules when operations remain unfinished or cleanup has problems.
 
 Cleanup functions registered with `onTeardown()` do not receive a new `signal`. Avoid reusing the original step's `signal` in these functions: a timeout or run interruption may have already aborted it, causing cleanup requests to fail immediately.
 

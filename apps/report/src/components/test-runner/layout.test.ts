@@ -69,16 +69,6 @@ const appSource = readFileSync(
 );
 
 describe('Midscene Test report layout', () => {
-  it('keeps lifecycle hover rows square inside the rounded list', () => {
-    expect(baseStyles).toMatch(
-      /\.runner-lifecycle-errors\s*\{[^}]*overflow: hidden;/,
-    );
-    expect(baseStyles).not.toMatch(
-      /\.runner-lifecycle-issue\s*\{\s*summary\s*\{[^}]*border-radius:/,
-    );
-    expect(styles).not.toContain('.runner-project-tree-overview::before');
-  });
-
   it('keeps the brand in the logo without repeating it in the report title', () => {
     expect(source).toContain('<Logo />');
     expect(source).toContain('<strong>Test Report</strong>');
@@ -169,18 +159,14 @@ describe('Midscene Test report layout', () => {
   });
 
   it('sorts the Project table from its column headers', () => {
-    expect(filters).not.toContain('Sort Project breakdown');
-    for (const value of [
-      'name',
-      'case-count',
-      'passed-count',
-      'result',
-      'duration',
-    ]) {
+    expect(filters).not.toContain('Sort project breakdown');
+    for (const value of ['name', 'passed-count', 'result', 'duration']) {
       expect(breakdown).toContain(`value="${value}"`);
     }
     expect(breakdown).toContain('aria-pressed={active}');
     expect(figmaOverviewStyles).toContain('.runner-project-sort-button');
+    expect(breakdown).toContain("active && direction === 'asc'");
+    expect(breakdown).toContain("active && direction === 'desc'");
     expect(figmaOverviewStyles).toContain(
       'color: var(--runner-sort-arrow-idle);',
     );
@@ -197,7 +183,7 @@ describe('Midscene Test report layout', () => {
 
   it('keeps all six summary metrics separated on wide layouts', () => {
     expect(figmaOverviewStyles).toMatch(
-      /\.runner-metric-card:nth-child\(3n\):not\(:last-child\)\s*\{[^}]*border-right: 1px solid var\(--runner-border\);/s,
+      /\.runner-overview-counts > div \+ div\s*\{[^}]*border-left: 1px solid var\(--runner-border\);/s,
     );
   });
 
@@ -305,11 +291,17 @@ describe('Midscene Test report layout', () => {
     expect(timeline).toContain('item.stepId === selectedStepId');
   });
 
+  it('draws keyboard focus inside step cards so scrolling cannot clip the ring', () => {
+    expect(figmaDetailStyles).toMatch(
+      /\.runner-detail-step-list > button:focus-visible\s*\{[^}]*outline: 2px solid var\(--runner-primary\);[^}]*outline-offset: -2px;/s,
+    );
+  });
+
   it('keeps the interactive timeline visible inside Execution', () => {
     expect(workspace).toContain('<RunnerAttemptTimeline');
-    expect(workspace).toContain('<RunnerTimelinePlaybackControl');
+    expect(workspace).not.toContain('RunnerTimelinePlaybackControl');
     expect(executionPanel).toMatch(
-      /className="runner-detail-panel-heading"[\s\S]*?\{timeline\}[\s\S]*?className="runner-detail-step-scroll"/,
+      /className="runner-detail-panel-heading"[\s\S]*?\{!showYaml \? timeline : null\}[\s\S]*?className="runner-detail-step-scroll"/,
     );
     expect(inspector).not.toContain('timeline?: ReactNode');
   });

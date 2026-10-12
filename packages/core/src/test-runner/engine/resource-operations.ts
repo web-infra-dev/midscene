@@ -1,19 +1,49 @@
+import { getDebug } from '@midscene/shared/logger';
+import { uuid } from '@midscene/shared/utils';
+import type {
+  TestRunReportCleanup,
+  TestRunReportOperationEvent,
+  TestRunReportOperationReference,
+} from '../../test-run-report';
 import { WorkflowError } from '../errors';
+import { sanitizeReportError } from '../reporting/sanitize';
+
+interface OperationIdentity {
+  scopeId: string;
+  stepId?: string;
+  node?: string;
+}
+interface ResourceOperation {
+  signal: AbortSignal;
+  operationId: string;
+  identity?: OperationIdentity;
+  settled?: boolean;
+  blockers?: Set<ResourceOperation>;
+}
+type OperationListener = (event: Readonly<TestRunReportOperationEvent>) => void;
 
 interface CleanupOwner {
   resources: Set<object>;
   signal?: AbortSignal;
+  blockers: Set<ResourceOperation>;
 }
 
 interface ResourceScope {
   operations: Map<object, number>;
   resources?: Set<object>;
+  cleanupOwner?: CleanupOwner;
 }
 
 interface ResourceHandle {
-  operations: Map<Promise<unknown>, AbortSignal>;
+  operations: Map<Promise<unknown>, ResourceOperation>;
   retiring: Set<CleanupOwner>;
   cleanup?: Promise<unknown>;
+  cleanupState?: {
+    operationId?: string;
+    status: 'pending' | 'completed' | 'failed';
+    blockers: Set<ResourceOperation>;
+    error?: unknown;
+  };
 }
 
 interface ResourceState {
@@ -21,22 +51,31 @@ interface ResourceState {
   scopes: WeakMap<AbortSignal, ResourceScope>;
   parents: WeakMap<AbortSignal, AbortSignal>;
   cleanupOwners: WeakMap<AbortSignal, CleanupOwner>;
+  identities: WeakMap<AbortSignal, OperationIdentity>;
+  listeners: WeakMap<AbortSignal, Set<OperationListener>>;
 }
 
 // CJS and ESM hosts must agree about ownership of the same Agent instance.
-const stateKey = Symbol.for('@midscene/core/resource-operations/v3');
+const admissionErrorKey = Symbol.for('@midscene/core/resource-admission-error');
+const stateKey = Symbol.for('@midscene/core/resource-operations/v4');
 const host = globalThis as typeof globalThis & { [stateKey]?: ResourceState };
 host[stateKey] ??= {
   resources: new WeakMap(),
   scopes: new WeakMap(),
   parents: new WeakMap(),
   cleanupOwners: new WeakMap(),
+  identities: new WeakMap(),
+  listeners: new WeakMap(),
 };
-const { resources, scopes, parents, cleanupOwners } = host[stateKey];
+const { resources, scopes, parents, cleanupOwners, identities, listeners } =
+  host[stateKey];
 const resourceHandle = (resource: object): ResourceHandle => {
   let handle = resources.get(resource);
   if (!handle) {
-    handle = { operations: new Map(), retiring: new Set() };
+    handle = {
+      operations: new Map(),
+      retiring: new Set(),
+    };
     resources.set(resource, handle);
   }
   return handle;
@@ -47,8 +86,62 @@ export const getResourceCleanupCompletion = (
   owner: object,
 ): Promise<unknown> | undefined => resources.get(owner)?.cleanup;
 
+function blockingReferences(
+  blockers: Iterable<ResourceOperation>,
+): TestRunReportOperationReference[] {
+  const references = new Map<string, TestRunReportOperationReference>();
+  const visited = new Set<ResourceOperation>();
+  const visit = (record: ResourceOperation) => {
+    if (visited.has(record)) return;
+    visited.add(record);
+    if (!record.settled)
+      references.set(record.operationId, {
+        operationId: record.operationId,
+        ...record.identity,
+      });
+    for (const blocker of record.blockers ?? []) visit(blocker);
+  };
+  for (const blocker of blockers) visit(blocker);
+  return [...references.values()];
+}
+
+/** Read a copy at the publication boundary; never expose the live cleanup state. */
+export function getResourceCleanupSnapshot(
+  owner: object,
+): TestRunReportCleanup {
+  const state = resources.get(owner)?.cleanupState;
+  return freezeEvent({
+    capturedAt: new Date().toISOString(),
+    status: state?.status ?? 'not-required',
+    ...(state?.operationId ? { operationId: state.operationId } : {}),
+    ...(state?.status === 'pending'
+      ? { blockingOperations: blockingReferences(state.blockers) }
+      : {}),
+    ...(state?.error === undefined
+      ? {}
+      : { error: sanitizeReportError(state.error) }),
+  });
+}
+
 export const RESOURCE_CLEANUP_GRACE_MS = 1000;
 export const RESOURCE_RECOVERY_GRACE_MS = 30_000;
+const RESOURCE_TEARDOWN_GRACE_MS = 10_000;
+
+export function getPendingScopeOperations(
+  signal: AbortSignal,
+): TestRunReportOperationReference[] {
+  return freezeEvent(
+    blockingReferences(
+      [...(scopes.get(signal)?.operations.keys() ?? [])].flatMap((resource) => [
+        ...(resources.get(resource)?.operations.values() ?? []),
+      ]),
+    ),
+  );
+}
+
+/** Snapshotting must not wait for a timed-out operation to release its resource. */
+export const hasPendingResourceOperation = (resource: object): boolean =>
+  (resources.get(resource)?.operations.size ?? 0) > 0;
 
 /** Resource ancestry is independent of cancellation: cleanup can outlive abort. */
 export function linkResourceSignal(signal: AbortSignal, parent?: AbortSignal) {
@@ -102,15 +195,14 @@ export function assertResourceAvailable(
       { code: 'RESOURCE_CLEANUP_PENDING' },
     );
   const pending = resources.get(resource)?.operations;
-  if (exclusive && pending?.size && !isOwnerCleanup)
+  if (exclusive && pending?.size)
     throw new WorkflowError(
       'The same Agent instance cannot execute overlapping Runner operations.',
       { code: 'RESOURCE_OPERATION_PENDING' },
     );
   if (
     pending &&
-    !isOwnerCleanup &&
-    [...pending.values()].some((signal) => signal.aborted)
+    [...pending.values()].some((operation) => operation.signal.aborted)
   )
     throw new WorkflowError(
       'Cannot reuse an Agent while an aborted YAML action or Runner operation is still running.',
@@ -119,19 +211,202 @@ export function assertResourceAvailable(
   return isOwnerCleanup;
 }
 
+/** Capture subscribers at registration: late settlement stays with its original run. */
+export function observeResourceOperations(
+  signal: AbortSignal,
+  listener: OperationListener,
+) {
+  const subscribers = listeners.get(signal) ?? new Set<OperationListener>();
+  listeners.set(signal, subscribers);
+  subscribers.add(listener);
+  return () => {
+    subscribers.delete(listener);
+    if (!subscribers.size) listeners.delete(signal);
+  };
+}
+
+export function setResourceOperationIdentity(
+  signal: AbortSignal,
+  identity: OperationIdentity,
+) {
+  identities.set(signal, Object.freeze({ ...identity }));
+}
+
+function freezeEvent<T>(value: T): T {
+  if (typeof value === 'object' && value !== null && !Object.isFrozen(value)) {
+    for (const child of Object.values(value)) freezeEvent(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+export function recordOperation(
+  operation: Promise<unknown>,
+  signal: AbortSignal,
+  operationKind: TestRunReportOperationEvent['operationKind'],
+) {
+  const owners = [...ownerSignals(signal)];
+  const identity = owners.map((owner) => identities.get(owner)).find(Boolean);
+  const record: ResourceOperation = { signal, operationId: uuid(), identity };
+  const subscribers = new Set(
+    owners.flatMap((owner) => [...(listeners.get(owner) ?? [])]),
+  );
+  let settled = false;
+  const emit = (
+    event: Omit<
+      TestRunReportOperationEvent,
+      'operationId' | 'operationKind' | 'at'
+    >,
+  ) => {
+    const frozen = freezeEvent({
+      ...identity,
+      operationId: record.operationId,
+      operationKind,
+      at: new Date().toISOString(),
+      ...event,
+    });
+    for (const subscriber of subscribers) {
+      try {
+        subscriber(frozen);
+      } catch (error) {
+        getDebug('runner:operations', { console: true })(
+          `Operation observer failed: ${String(error)}`,
+        );
+      }
+    }
+  };
+  const abort = () =>
+    emit({
+      kind: 'cancel-requested',
+      error: sanitizeReportError(signal.reason),
+    });
+  emit({ kind: 'started' });
+  if (signal.aborted) abort();
+  else signal.addEventListener('abort', abort, { once: true });
+  const finish = (
+    status: 'success' | 'failed' | 'not-run',
+    error?: unknown,
+  ) => {
+    settled = true;
+    record.settled = true;
+    signal.removeEventListener('abort', abort);
+    emit({
+      kind: 'settled',
+      status,
+      ...(status !== 'success' ? { error: sanitizeReportError(error) } : {}),
+    });
+  };
+  void operation.then(
+    () => finish('success'),
+    (error) =>
+      finish(isResourceAdmissionError(error) ? 'not-run' : 'failed', error),
+  );
+  return {
+    record,
+    runnerReturned(status: 'success' | 'failed' | 'not-run') {
+      emit({ kind: 'runner-returned', status, pending: !settled });
+    },
+    cleanupDeferred(blockers: Iterable<ResourceOperation>) {
+      emit({
+        kind: 'cleanup-deferred',
+        blockingOperations: blockingReferences(blockers),
+      });
+    },
+  };
+}
+
+/** A scheduling decision, distinct from an action that ran and failed. */
+export class ResourceAdmissionError extends WorkflowError {
+  readonly blockedBy?: string;
+  readonly [admissionErrorKey] = true;
+  constructor(code: string, blockers: readonly ResourceOperation[]) {
+    super(
+      'The Agent is occupied by an unfinished operation or pending cleanup; this action was not started.',
+      {
+        code,
+        details: {
+          blockingOperations: blockers.map(({ operationId, identity }) => ({
+            operationId,
+            ...identity,
+          })),
+        },
+      },
+    );
+    this.blockedBy = blockers.find(
+      (blocker) => blocker.identity?.stepId,
+    )?.identity?.stepId;
+  }
+}
+
+export function isResourceAdmissionError(
+  error: unknown,
+): error is ResourceAdmissionError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as ResourceAdmissionError)[admissionErrorKey] === true
+  );
+}
+
+export function admitResourceOperation(
+  resource: object,
+  signal: AbortSignal,
+  exclusive = true,
+): boolean {
+  let isCleanupOwner: boolean;
+  try {
+    isCleanupOwner = assertResourceAvailable(resource, exclusive, signal);
+  } catch (error) {
+    if (
+      error instanceof WorkflowError &&
+      ['RESOURCE_OPERATION_PENDING', 'RESOURCE_CLEANUP_PENDING'].includes(
+        error.code,
+      )
+    )
+      throw new ResourceAdmissionError(error.code, [
+        ...(resources.get(resource)?.operations.values() ?? []),
+        ...[...(resources.get(resource)?.retiring ?? [])].flatMap((owner) => [
+          ...owner.blockers,
+        ]),
+      ]);
+    throw error;
+  }
+  return isCleanupOwner;
+}
+
 const retainForCleanup = (owner: CleanupOwner, resource: object) => {
   owner.resources.add(resource);
-  resourceHandle(resource).retiring.add(owner);
+  const handle = resourceHandle(resource);
+  for (const operation of handle.operations.values())
+    owner.blockers.add(operation);
+  handle.retiring.add(owner);
 };
+
+/** Acquisition establishes cleanup ownership even if action admission is rejected. */
+export function retainResourceForScope(resource: object, signal: AbortSignal) {
+  let retained = false;
+  for (const ownerSignal of ownerSignals(signal)) {
+    const scope = scopes.get(ownerSignal);
+    if (!retained && scope?.resources) {
+      scope.resources.add(resource);
+      retained = true;
+    }
+    if (scope?.cleanupOwner) retainForCleanup(scope.cleanupOwner, resource);
+  }
+}
 
 /** Track actual completion, not the Runner timeout race. */
 export function trackResourceOperation<T>(
   resource: object,
   operation: Promise<T>,
   signal: AbortSignal,
+  kind: TestRunReportOperationEvent['operationKind'] = 'resource',
+  existingObservation?: ReturnType<typeof recordOperation>,
 ): Promise<T> {
+  const observation =
+    existingObservation ?? recordOperation(operation, signal, kind);
   const active = resourceHandle(resource).operations;
-  active.set(operation, signal);
+  active.set(operation, observation.record);
   const ownerScopes: Array<[AbortSignal, ResourceScope]> = [];
   let retainedByScope = false;
   for (const ownerSignal of ownerSignals(signal)) {
@@ -148,7 +423,10 @@ export function trackResourceOperation<T>(
       retainedByScope = true;
     }
     const cleanupOwner = cleanupOwners.get(ownerSignal);
-    if (cleanupOwner) retainForCleanup(cleanupOwner, resource);
+    if (cleanupOwner) {
+      cleanupOwner.blockers.add(observation.record);
+      retainForCleanup(cleanupOwner, resource);
+    }
   }
   const finish = () => {
     active.delete(operation);
@@ -173,51 +451,68 @@ export async function waitForResourceIdle(resource: object): Promise<void> {
 export async function recoverCancelledScopeResources(
   signal: AbortSignal,
   graceMs = RESOURCE_RECOVERY_GRACE_MS,
-): Promise<void> {
+): Promise<number> {
   signal.throwIfAborted();
+  const startedAt = Date.now();
   const pendingOperations = () => {
     const pending: Array<{
       operation: Promise<unknown>;
       signal: AbortSignal;
       resource: object;
+      record: ResourceOperation;
     }> = [];
     for (const resource of scopes.get(signal)?.operations.keys() ?? []) {
-      for (const [operation, ownerSignal] of resources.get(resource)
-        ?.operations ?? []) {
+      for (const [operation, tracked] of resources.get(resource)?.operations ??
+        []) {
+        const ownerSignal = tracked.signal;
         if (
           ownerSignal.aborted &&
           [...ownerSignals(ownerSignal)].includes(signal)
         )
-          pending.push({ operation, signal: ownerSignal, resource });
+          pending.push({
+            operation,
+            signal: ownerSignal,
+            resource,
+            record: tracked,
+          });
       }
     }
     return pending;
   };
   let pending = pendingOperations();
-  if (!pending.length) return;
+  if (!pending.length) return 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let onAbort!: () => void;
   const stopped = new Promise<never>((_resolve, reject) => {
     onAbort = () => reject(signal.reason);
     signal.addEventListener('abort', onAbort, { once: true });
-    timer = setTimeout(
-      () =>
-        reject(
-          new WorkflowError(
-            `Cancelled operations did not finish within ${graceMs}ms; execution cannot continue safely.`,
-            {
-              code: 'RESOURCE_RECOVERY_TIMEOUT',
-              details: {
-                graceMs,
-                resourceCount: new Set(pending.map(({ resource }) => resource))
-                  .size,
-              },
-              cause: pending[0]?.signal.reason,
+    timer = setTimeout(() => {
+      const blockingOperations = blockingReferences(
+        pending.map(({ record }) => record),
+      );
+      const blockedByStepId = blockingOperations.every(
+        ({ stepId }) => stepId === blockingOperations[0]?.stepId,
+      )
+        ? blockingOperations[0]?.stepId
+        : undefined;
+      reject(
+        new WorkflowError(
+          `The previous operation was still running after ${graceMs / 1000} s. Later steps were not started.`,
+          {
+            code: 'RESOURCE_RECOVERY_TIMEOUT',
+            details: {
+              graceMs,
+              waitedMs: Date.now() - startedAt,
+              resourceCount: new Set(pending.map(({ resource }) => resource))
+                .size,
+              blockingOperations,
+              blockedByStepId,
             },
-          ),
+            cause: pending[0]?.signal.reason,
+          },
         ),
-      graceMs,
-    );
+      );
+    }, graceMs);
   });
   try {
     while (pending.length) {
@@ -228,6 +523,7 @@ export async function recoverCancelledScopeResources(
       signal.throwIfAborted();
       pending = pendingOperations();
     }
+    return Date.now() - startedAt;
   } finally {
     clearTimeout(timer);
     signal.removeEventListener('abort', onAbort);
@@ -235,12 +531,23 @@ export async function recoverCancelledScopeResources(
 }
 
 export class ResourceCleanupDeferredError extends WorkflowError {
-  constructor(graceMs: number, resourceCount: number) {
+  constructor(
+    graceMs: number,
+    resourceCount: number,
+    blockers: readonly ResourceOperation[] = [],
+  ) {
     super(
-      'Resource cleanup was deferred because an operation did not stop after cancellation. The resource remains quarantined and cleanup will run when that operation settles.',
+      `Resource cleanup did not finish within ${graceMs}ms. Resources remain quarantined until cleanup settles.`,
       {
         code: 'RESOURCE_CLEANUP_DEFERRED',
-        details: { graceMs, resourceCount },
+        details: {
+          graceMs,
+          resourceCount,
+          blockingOperations: blockers.map(({ operationId, identity }) => ({
+            operationId,
+            ...identity,
+          })),
+        },
       },
     );
   }
@@ -255,7 +562,7 @@ interface CleanupOptions {
   onDeferredError(error: unknown): void;
 }
 
-/** Bound draining, but keep ownership until the actual cleanup has finished. */
+/** Bound waiting, but keep ownership until the actual cleanup has finished. */
 async function runResourceCleanup<T>(
   resources: readonly object[],
   cleanup: () => Promise<T>,
@@ -267,24 +574,32 @@ async function runResourceCleanup<T>(
 ): Promise<T> {
   const owner: CleanupOwner = {
     resources: new Set(),
+    blockers: new Set(),
     signal: beforeCleanup?.signal,
   };
   for (const resource of resources) retainForCleanup(owner, resource);
   if (owner.signal) cleanupOwners.set(owner.signal, owner);
+  const ownerScope = options.signal ? scopes.get(options.signal) : undefined;
+  if (ownerScope) ownerScope.cleanupOwner = owner;
 
   let defer!: () => void;
   const deferred = new Promise<{ deferred: true }>((resolve) => {
     defer = () => resolve({ deferred: true });
   });
-  const graceMs = options.graceMs ?? RESOURCE_CLEANUP_GRACE_MS;
+  let graceMs = options.graceMs ?? RESOURCE_CLEANUP_GRACE_MS;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const drain = async () => {
-    const pending = [...owner.resources].filter(
-      (resource) => resourceHandle(resource).operations.size,
-    );
-    if (!pending.length) return;
-    const timer = setTimeout(defer, graceMs);
+    timer = setTimeout(defer, graceMs);
     try {
-      await Promise.all(pending.map(waitForResourceIdle));
+      // An acquisition may finish late and add another shared resource to its
+      // owner. Keep draining that resource before calling any disposer.
+      while (true) {
+        const pending = [...owner.resources].filter(
+          (resource) => resourceHandle(resource).operations.size,
+        );
+        if (!pending.length) return;
+        await Promise.all(pending.map(waitForResourceIdle));
+      }
     } finally {
       clearTimeout(timer);
     }
@@ -292,32 +607,57 @@ async function runResourceCleanup<T>(
   const completion = (async () => {
     try {
       if (beforeCleanup) {
-        // Authored lifecycle cleanup must be allowed to stop or reset a
-        // resource whose timed-out operation is still settling. Its signal is
-        // registered as the retiring owner's cleanup signal, so unrelated
-        // scopes remain quarantined while this hook runs.
+        // Hooks may use idle resources owned by this cleanup. Busy resources
+        // still reject overlapping actions, including cleanup actions.
         await beforeCleanup.run(beforeCleanup.signal);
       }
       // Lifecycle hooks can themselves time out with an action still running.
       // Drain both the original work and any operation started by the hook
       // before disposing the resource.
       await drain();
+      graceMs = options.graceMs ?? RESOURCE_TEARDOWN_GRACE_MS;
+      timer = setTimeout(defer, graceMs);
       return await cleanup();
     } finally {
+      clearTimeout(timer);
       if (owner.signal) cleanupOwners.delete(owner.signal);
+      if (ownerScope?.cleanupOwner === owner)
+        ownerScope.cleanupOwner = undefined;
       for (const resource of owner.resources) {
         const owners = resourceHandle(resource).retiring;
         owners.delete(owner);
       }
     }
   })();
+  const cleanupObservation = options.signal
+    ? recordOperation(completion, options.signal, 'cleanup')
+    : undefined;
   const ownerKey = options.owner ?? beforeCleanup?.signal ?? resources[0];
-  if (ownerKey) resourceHandle(ownerKey).cleanup = completion;
+  const cleanupState: NonNullable<ResourceHandle['cleanupState']> = {
+    status: 'pending',
+    operationId: cleanupObservation?.record.operationId,
+    blockers: owner.blockers,
+  };
+  if (cleanupObservation) cleanupObservation.record.blockers = owner.blockers;
+  if (ownerKey) {
+    resourceHandle(ownerKey).cleanup = completion;
+    resourceHandle(ownerKey).cleanupState = cleanupState;
+  }
+  void completion.then(
+    () => {
+      cleanupState.status = 'completed';
+    },
+    (error) => {
+      cleanupState.status = 'failed';
+      cleanupState.error = error;
+    },
+  );
   const outcome = await Promise.race([
     completion.then((value) => ({ value })),
     deferred,
   ]);
   if ('deferred' in outcome) {
+    cleanupObservation?.cleanupDeferred(owner.blockers);
     void completion.catch((error) => {
       try {
         options.onDeferredError(error);
@@ -325,8 +665,17 @@ async function runResourceCleanup<T>(
         // The returned completion still carries the original cleanup failure.
       }
     });
-    if (options.signal) trackResourceOperation({}, completion, options.signal);
-    throw new ResourceCleanupDeferredError(graceMs, owner.resources.size);
+    if (options.signal)
+      trackResourceOperation(
+        {},
+        completion,
+        options.signal,
+        'cleanup',
+        cleanupObservation,
+      );
+    throw new ResourceCleanupDeferredError(graceMs, owner.resources.size, [
+      ...owner.blockers,
+    ]);
   }
   return outcome.value;
 }

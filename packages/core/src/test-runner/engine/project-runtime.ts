@@ -7,7 +7,10 @@ import {
 import {
   ResourceCleanupDeferredError,
   cleanupScopeResources,
+  getPendingScopeOperations,
+  getResourceCleanupSnapshot,
   linkResourceSignal,
+  setResourceOperationIdentity,
 } from './resource-operations';
 import type {
   ProjectRuntime,
@@ -22,6 +25,9 @@ export const createProjectRuntime = <TProjectContext = unknown>(
   const controller = new AbortController();
   const parentSignal = options.signal;
   linkResourceSignal(controller.signal, parentSignal);
+  setResourceOperationIdentity(controller.signal, {
+    scopeId: options.project.projectId,
+  });
   const abortFromParent = () => controller.abort(parentSignal?.reason);
   if (parentSignal?.aborted) abortFromParent();
   else parentSignal?.addEventListener('abort', abortFromParent, { once: true });
@@ -44,10 +50,17 @@ export const createProjectRuntime = <TProjectContext = unknown>(
     teardownErrors: readonly ProjectTeardownError[] = [],
   ): ProjectRuntimeResult<TProjectContext> => {
     const endedAt = new Date();
+    const cleanup = getResourceCleanupSnapshot(controller.signal);
+    const pendingOperations = getPendingScopeOperations(controller.signal);
     return {
       projectName: options.project.name,
       status:
-        requestedStatus === 'failed' || setupError || teardownErrors.length > 0
+        requestedStatus === 'failed' ||
+        setupError ||
+        teardownErrors.length > 0 ||
+        cleanup.status === 'pending' ||
+        cleanup.status === 'failed' ||
+        pendingOperations.length > 0
           ? 'failed'
           : 'success',
       ...(setupError ? { setupError } : {}),
@@ -57,6 +70,8 @@ export const createProjectRuntime = <TProjectContext = unknown>(
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),
       durationMs: Math.max(0, endedAt.getTime() - startedAt.getTime()),
+      cleanup,
+      ...(pendingOperations.length ? { pendingOperations } : {}),
     };
   };
 
@@ -157,10 +172,10 @@ export const createProjectRuntime = <TProjectContext = unknown>(
               );
             }
           }
-          if (deferredCleanup && teardownErrors.length > priorErrors)
+          if (teardownErrors.length > priorErrors)
             throw new AggregateError(
               teardownErrors.slice(priorErrors),
-              'Deferred Project cleanup failed',
+              'Project cleanup failed',
             );
         };
         try {
@@ -173,12 +188,13 @@ export const createProjectRuntime = <TProjectContext = unknown>(
             });
         } catch (error) {
           deferredCleanup = error instanceof ResourceCleanupDeferredError;
-          teardownErrors.push(
-            new ProjectTeardownError(error, {
-              projectName: options.project.name,
-              registrationIndex: -1,
-            }),
-          );
+          if (!deferredCleanup && !teardownErrors.length)
+            teardownErrors.push(
+              new ProjectTeardownError(error, {
+                projectName: options.project.name,
+                registrationIndex: -1,
+              }),
+            );
         }
         parentSignal?.removeEventListener('abort', abortFromParent);
         finishedResult = createResult(requestedStatus, teardownErrors);

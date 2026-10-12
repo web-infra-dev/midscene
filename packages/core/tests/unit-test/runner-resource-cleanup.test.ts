@@ -8,8 +8,10 @@ import {
   createResourceScope,
   defineNode,
   getResourceCleanupCompletion,
+  getResourceCleanupSnapshot,
   linkResourceSignal,
   recoverCancelledScopeResources,
+  retainResourceForScope,
   runWorkflowDocument,
   trackResourceOperation,
 } from '@/test-runner';
@@ -92,6 +94,7 @@ describe('continuation after a resource operation times out', () => {
       expect(results[0].error?.code).toBe('STEP_TIMEOUT');
       expect(results[0].durationMs).toBe(20);
       expect(results[1].durationMs).toBe(0);
+      expect(results[1].waitForPreviousOperationMs).toBeGreaterThanOrEqual(100);
       expect(events).toEqual(['old finished', 'next started']);
     },
   );
@@ -131,26 +134,44 @@ describe('continuation after a resource operation times out', () => {
     const running = runWorkflowDocument(document, {
       resolveNode: () => node,
       retry: 3,
-    }).catch((error) => error);
+    });
     await rs.advanceTimersByTimeAsync(32_020);
-    const failure = await running;
-    const first = failure.result.cases[0];
+    const result = await running;
+    const first = result.cases[0];
+    const run = first.run;
+    if (!run) throw new Error('Missing timed-out case run');
     expect(first.attempts).toHaveLength(1);
-    expect(first.run.steps).toHaveLength(1);
-    expect(first.run.steps[0].error.code).toBe('STEP_TIMEOUT');
-    expect(first.run.executionErrors[0].code).toBe('RESOURCE_RECOVERY_TIMEOUT');
-    expect(failure.result.cases[1].status).toBe('not-run');
+    expect(run.steps).toHaveLength(1);
+    expect(run.steps[0].error?.code).toBe('STEP_TIMEOUT');
+    expect(run.executionErrors?.[0].code).toBe('RESOURCE_RECOVERY_TIMEOUT');
+    expect(run.executionErrors?.[0]).toMatchObject({
+      details: {
+        graceMs: 30_000,
+        blockedByStepId: `${run.runId}:steps:0`,
+        blockingOperations: expect.arrayContaining([
+          expect.objectContaining({ stepId: `${run.runId}:steps:0` }),
+        ]),
+      },
+    });
+    expect(run.retryDecision).toMatchObject({
+      decision: 'stop',
+      reason: 'cleanup-pending',
+    });
+    expect(result.cases[1]).toMatchObject({
+      status: 'not-run',
+      notRunReason: 'cleanup-pending',
+    });
     expect(next).not.toHaveBeenCalled();
     expect(cleanup).not.toHaveBeenCalled();
     expect(() => assertResourceAvailable(resource, true)).toThrow(
       'cleanup is pending',
     );
-    const snapshot = JSON.stringify(failure.result);
+    const snapshot = JSON.stringify(result);
     action.resolve();
     await rs.advanceTimersByTimeAsync(0);
     expect(cleanup).toHaveBeenCalledOnce();
     expect(() => assertResourceAvailable(resource, true)).not.toThrow();
-    expect(JSON.stringify(failure.result)).toBe(snapshot);
+    expect(JSON.stringify(result)).toBe(snapshot);
   });
 
   test('interrupts recovery promptly without releasing the resource', async () => {
@@ -208,6 +229,34 @@ describe('continuation after a resource operation times out', () => {
 });
 
 describe('resource-aware cancellation cleanup', () => {
+  test('waits for a shared resource discovered by a late acquisition before disposal', async () => {
+    const acquisition = deferred();
+    const action = deferred();
+    const resource = {};
+    const active = new AbortController();
+    trackResourceOperation(resource, action.promise, active.signal);
+    const scope = createResourceScope();
+    const acquiring = trackResourceOperation(
+      {},
+      acquisition.promise.then(() => {
+        retainResourceForScope(resource, scope.signal);
+      }),
+      scope.signal,
+      'acquisition',
+    );
+    const cleanup = rs.fn();
+    const completion = cleanupScopeResources(scope.signal, cleanup, {
+      onDeferredError() {},
+    });
+    acquisition.resolve();
+    await acquiring;
+    await Promise.resolve();
+    expect(cleanup).not.toHaveBeenCalled();
+    action.resolve();
+    await completion;
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    scope.dispose();
+  });
   test('concurrent finish calls share one document and Project cleanup', async () => {
     const gate = deferred();
     const cleanup = rs.fn(() => gate.promise);
@@ -302,7 +351,7 @@ describe('resource-aware cancellation cleanup', () => {
     },
   );
 
-  test('only the cleanup hook can use its retiring resource', async () => {
+  test('cleanup hooks can use their retiring resource only after it is idle', async () => {
     const action = deferred();
     const resource = {};
     const resourceScope = createResourceScope();
@@ -317,7 +366,7 @@ describe('resource-aware cancellation cleanup', () => {
         linkResourceSignal(stepSignal, cleanupSignal);
         expect(() =>
           assertResourceAvailable(resource, true, stepSignal),
-        ).not.toThrow();
+        ).toThrow('cannot execute overlapping');
         expect(() => assertResourceAvailable(resource, true, scope)).toThrow(
           'cleanup is pending',
         );
@@ -326,6 +375,9 @@ describe('resource-aware cancellation cleanup', () => {
         );
         action.resolve();
         await action.promise;
+        expect(() =>
+          assertResourceAvailable(resource, true, stepSignal),
+        ).not.toThrow();
         // Agent.destroy() can nest inside scope cleanup without releasing the
         // surrounding owner's protection.
         await cleanupResources([resource], async () => {}, {
@@ -339,6 +391,49 @@ describe('resource-aware cancellation cleanup', () => {
     await cleanup;
     resourceScope.dispose();
   });
+
+  test.each([false, true])(
+    'bounds a stalled disposer and observes its late failure: %s',
+    async (failsLate) => {
+      rs.useFakeTimers();
+      const resource = {};
+      const scope = createResourceScope();
+      await trackResourceOperation(resource, Promise.resolve(), scope.signal);
+      const destruction = deferred();
+      const reportFailure = rs.fn();
+      const cleanup = cleanupScopeResources(
+        scope.signal,
+        () => destruction.promise,
+        { onDeferredError: reportFailure },
+      ).catch((error) => error);
+      await rs.advanceTimersByTimeAsync(10_000);
+      const error = await cleanup;
+      expect(error).toBeInstanceOf(ResourceCleanupDeferredError);
+      expect(error.details.graceMs).toBe(10_000);
+      const snapshot = getResourceCleanupSnapshot(scope.signal);
+      expect(snapshot.status).toBe('pending');
+      expect(() => assertResourceAvailable(resource, true)).toThrow(
+        'cleanup is pending',
+      );
+      const completion = getResourceCleanupCompletion(scope.signal)!;
+      if (failsLate) {
+        const failure = new Error('late disposer failure');
+        destruction.reject(failure);
+        await expect(completion).rejects.toBe(failure);
+        expect(reportFailure).toHaveBeenCalledWith(failure);
+      } else {
+        destruction.resolve();
+        await completion;
+        expect(reportFailure).not.toHaveBeenCalled();
+      }
+      expect(getResourceCleanupSnapshot(scope.signal).status).toBe(
+        failsLate ? 'failed' : 'completed',
+      );
+      expect(snapshot.status).toBe('pending');
+      expect(() => assertResourceAvailable(resource, true)).not.toThrow();
+      scope.dispose();
+    },
+  );
 
   test('completed child scopes do not quarantine their old resources during parent cleanup', async () => {
     const parent = createResourceScope();
@@ -402,9 +497,8 @@ describe('resource-aware cancellation cleanup', () => {
       const result = await execution;
       const owner =
         phase === 'afterEach' ? result.cases[0].run! : result.document;
-      const error = owner.teardownErrors?.[0]
-        .cause as ResourceCleanupDeferredError;
-      expect(error).toBeInstanceOf(ResourceCleanupDeferredError);
+      expect(owner.cleanup?.status).toBe('pending');
+      expect(owner.teardownErrors).toBeUndefined();
       expect(calls).toEqual(['hook:start']);
       expect(() => assertResourceAvailable(resource, true)).toThrow(
         'cleanup is pending',
@@ -524,23 +618,24 @@ describe('resource-aware cancellation cleanup', () => {
       });
       await rs.advanceTimersByTimeAsync(2100);
       const result = await execution;
-      expect(result.cases[0].run?.teardownErrors?.[0].cause).toBeInstanceOf(
-        ResourceCleanupDeferredError,
-      );
-      expect(result.document.teardownErrors?.[0].cause).toBeInstanceOf(
-        ResourceCleanupDeferredError,
-      );
+      expect(result.cases[0].run?.cleanup?.status).toBe('pending');
+      expect(result.document.cleanup?.status).toBe('pending');
+      expect(result.cases[0].run?.teardownErrors).toBeUndefined();
+      expect(result.document.teardownErrors).toBeUndefined();
       const finish = runtime.finish('failed');
       await rs.advanceTimersByTimeAsync(1100);
       const projectResult = await finish;
-      expect(projectResult.teardownErrors?.[0].cause).toBeInstanceOf(
-        ResourceCleanupDeferredError,
-      );
-      expect(calls).toEqual(['document']);
+      expect(projectResult.cleanup?.status).toBe('pending');
+      expect(projectResult.teardownErrors).toBeUndefined();
+      expect(result.document.afterAll[0]).toMatchObject({
+        status: 'failed',
+        error: { code: 'RESOURCE_OPERATION_PENDING' },
+      });
+      expect(calls).toEqual([]);
       const snapshot = JSON.stringify(result);
       action.resolve();
       await getResourceCleanupCompletion(runtime.signal);
-      expect(calls).toEqual(['document', 'case', 'project']);
+      expect(calls).toEqual(['case', 'project']);
       expect(JSON.stringify(result)).toBe(snapshot);
     },
   );
