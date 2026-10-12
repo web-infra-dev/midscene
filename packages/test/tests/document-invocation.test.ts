@@ -28,7 +28,9 @@ const collectedDocument = (name: string): CollectedWorkflowDocument => ({
       sourcePath: 'cases/example.yaml',
       definition: {
         name,
-        steps: [{ node: 'javascript', input: {}, meta: {} }],
+        steps: [
+          { node: 'javascript', input: {}, meta: { continueOnError: false } },
+        ],
       },
     },
   ],

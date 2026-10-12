@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { NodeRegistry, defineNode } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 import { createMidsceneNodes } from '../src/midscene';
+import type { CollectedCase } from '../src/parser/types';
 import { buildTestRunReportDump } from '../src/report/test-run-report';
 
 const gate = () => {
@@ -16,15 +18,17 @@ const step = (prompt: string, timeoutMs?: number) => ({
   input: { prompt },
   meta: { continueOnError: true, timeoutMs },
 });
+const actionInputSchema = z.strictObject({ prompt: z.string() });
 const agentClass = {
   getTestRunnerNodeDefinitions: () => [
     {
       name: 'aiAct',
+      inputSchema: actionInputSchema,
       execute: (agent: any, input: any) => agent.action(input.prompt),
     },
   ],
 };
-const collected = (steps: ReturnType<typeof step>[]) => ({
+const collected = (steps: CollectedCase['definition']['steps']) => ({
   caseId: 'case',
   projectId: 'project',
   sourcePath: 'case.yaml',
@@ -51,7 +55,7 @@ describe('resource admission scheduling', () => {
     const registry = new NodeRegistry([
       ...createMidsceneNodes({
         getAgent: (ctx) =>
-          ctx.input.prompt === 'independent'
+          actionInputSchema.parse(ctx.input).prompt === 'independent'
             ? (independent as any)
             : (first as any),
         agentClass,

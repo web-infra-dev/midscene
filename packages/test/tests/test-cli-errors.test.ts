@@ -61,7 +61,7 @@ const failure = (message: string): WorkflowError => {
 const failedStep = (
   phase: StepRunResult['phase'],
   error: WorkflowError,
-): StepRunResult => ({
+): StepRunResult & { status: 'failed' } => ({
   ...timing,
   phase,
   stepIndex: 0,
@@ -232,15 +232,17 @@ describe('Test CLI failure diagnostics', () => {
       passedAfterRetry: 1,
     };
     const recovered = failedCase();
-    recovered.steps = [
-      failedStep('steps', failure('recovered attempt failure')),
-    ];
+    const recoveredStep = failedStep(
+      'steps',
+      failure('recovered attempt failure'),
+    );
+    recovered.steps = [recoveredStep];
     const successful: CaseRunResult = {
       ...recovered,
       status: 'success',
       steps: [
         {
-          ...recovered.steps[0],
+          ...recoveredStep,
           status: 'success',
           error: undefined,
           input: { marker: 'unrelated input payload' },

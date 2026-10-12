@@ -26,7 +26,9 @@ const gate = () => {
   });
   return { promise, resolve };
 };
-afterEach(() => rs.useRealTimers());
+afterEach(() => {
+  rs.useRealTimers();
+});
 
 describe('structured execution diagnostics', () => {
   test('redacts labeled credentials in nested messages and bounds fatal-error traversal', () => {

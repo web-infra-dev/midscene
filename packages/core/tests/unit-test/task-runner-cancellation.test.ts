@@ -122,8 +122,9 @@ describe('task cancellation boundaries', () => {
 
   it('forwards implicit execution signals to actions, hooks, waits and model requests', async () => {
     const controller = new AbortController();
-    const action = rs.fn(async (_param, ctx: ExecutorContext) => {
-      expect(ctx.signal).toBe(controller.signal);
+    const action = rs.fn(async (_param, ctx?: ExecutorContext) => {
+      expect(ctx).toBeDefined();
+      expect(ctx?.signal).toBe(controller.signal);
     });
     const before = rs.fn();
     const after = rs.fn();

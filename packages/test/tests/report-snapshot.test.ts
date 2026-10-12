@@ -1,6 +1,10 @@
+import {
+  createDocumentRuntime,
+  runCollectedCase,
+} from '@midscene/core/internal/test-runner';
 import { describe, expect, it, vi } from 'vitest';
-import { NodeRegistry, createDocumentRuntime } from '../src';
-import { runCollectedCase } from '../src/engine/run-collected-case';
+import { z } from 'zod/v4';
+import { NodeRegistry } from '../src';
 import { createMidsceneNodes } from '../src/midscene';
 import type {
   CollectedCase,
@@ -25,6 +29,7 @@ const agentClass = {
   getTestRunnerNodeDefinitions: () => [
     {
       name: 'action',
+      inputSchema: z.strictObject({ prompt: z.string() }),
       execute: (agent: any, input: any) => agent.action(input.prompt),
     },
   ],

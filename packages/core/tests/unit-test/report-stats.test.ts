@@ -106,7 +106,7 @@ describe('collectReportSummary', () => {
             time_cost: 10,
           }),
         }),
-        createTask({ status: 'running', timing: { callAiStart: 1 } }),
+        createTask({ status: 'running', timing: { start: 0, callAiStart: 1 } }),
       ]),
     );
     expect(partial).toMatchObject({

@@ -316,6 +316,7 @@ describe('merging Midscene Test reports', () => {
     const attributes = {
       testId: 'test',
       testTitle: 'test',
+      testDescription: '',
       testStatus: 'passed' as const,
       testDuration: 0,
     };
@@ -364,6 +365,7 @@ describe('merging Midscene Test reports', () => {
     const attributes = {
       testId: 'test',
       testTitle: 'test',
+      testDescription: '',
       testStatus: 'passed' as const,
       testDuration: 0,
     };

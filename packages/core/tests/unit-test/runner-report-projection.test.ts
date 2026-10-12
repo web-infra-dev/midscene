@@ -196,6 +196,7 @@ describe('entry-independent report projection', () => {
             onTeardown(() => {
               throw new Error('close failed');
             });
+            return undefined;
           },
         },
         onDocumentResult() {

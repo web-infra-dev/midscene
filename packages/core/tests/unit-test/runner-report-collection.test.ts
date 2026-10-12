@@ -5,7 +5,9 @@ import {
 } from '@/test-runner';
 import { afterEach, describe, expect, rs, test } from '@rstest/core';
 
-afterEach(() => rs.useRealTimers());
+afterEach(() => {
+  rs.useRealTimers();
+});
 
 describe('bounded report collection', () => {
   test('marks HTML captures partial and detaches their metadata from the provider', async () => {
