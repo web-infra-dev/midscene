@@ -2991,6 +2991,16 @@ Stdout:
         rs.spyOn(console, 'warn').mockImplementation(() => {});
       });
 
+      it.each([Number.NaN, Number.POSITIVE_INFINITY, -1, 100000])(
+        'rejects invalid horizontal origin %s before a vertical drag',
+        async (left) => {
+          await expect(
+            device.scrollDown(100, { left, top: 100 }),
+          ).rejects.toThrow('origin');
+          expect((device as any).dragPoint).not.toHaveBeenCalled();
+        },
+      );
+
       it('does not send a stationary drag when the origin is at the top edge', async () => {
         await expect(
           device.scrollDown(100, { left: 200, top: 0 }),
@@ -3013,7 +3023,7 @@ Stdout:
           { x: 100, y: 200 },
           0,
           -scrollDistance,
-          0,
+          1080,
           1920, // height from mocked size()
         );
       });
@@ -3033,7 +3043,7 @@ Stdout:
           { x: 100, y: 200 },
           0,
           scrollDistance,
-          0,
+          1080,
           1920, // height from mocked size()
         );
       });
@@ -3054,7 +3064,7 @@ Stdout:
           scrollDistance,
           0,
           1080, // width from mocked size()
-          0,
+          1920,
         );
       });
 
@@ -3074,7 +3084,7 @@ Stdout:
           -scrollDistance,
           0,
           1080, // width from mocked size()
-          0,
+          1920,
         );
       });
 
@@ -3161,7 +3171,7 @@ Stdout:
           { x: 100, y: 200 },
           0,
           -1920, // negative screen height for scrollDown
-          0,
+          1080,
           1920,
         );
       });
