@@ -29,6 +29,19 @@ should point here instead of duplicating rules.
   project instead of defaulting to full monorepo validation.
 - AI tests require some environment variables like `MIDSCENE_MODEL_BASE_URL` to be set.
 
+## AI CI Workflows
+
+- Run CI test commands that call real models through
+  `./.github/actions/ai-ci`. Keep the Node connection policy centralized in
+  that action instead of duplicating it in workflows. Use `shell: pwsh` for
+  Windows commands and `shell: bash` for Linux/macOS commands.
+- When a third-party action launches model tests (such as the Android emulator
+  runner), run the AI CI action first without a command and explicitly pass its
+  `node-options` output to the third-party action's `NODE_OPTIONS` environment
+  variable.
+- When adding or updating path filters for AI workflows, include
+  `.github/actions/ai-ci/**` so changes to the shared action trigger those tests.
+
 ## Change Rules That Actually Matter
 
 - Add or update tests when behavior changes. Start with the nearest unit test
