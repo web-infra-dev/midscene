@@ -343,7 +343,7 @@ importers:
         specifier: 0.0.1
         version: 0.0.1(@rsbuild/core@1.6.15)
       tsx:
-        specifier: 4.19.2
+        specifier: ^4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.8.3
@@ -704,7 +704,7 @@ importers:
         specifier: ^16.4.5
         version: 16.4.5
       tsx:
-        specifier: 4.19.2
+        specifier: ^4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.8.3
@@ -909,7 +909,7 @@ importers:
         specifier: ^16.4.5
         version: 16.4.7
       tsx:
-        specifier: 4.19.2
+        specifier: ^4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.8.3
@@ -1166,7 +1166,7 @@ importers:
         specifier: ^16.4.5
         version: 16.4.5
       tsx:
-        specifier: 4.19.2
+        specifier: ^4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.8.3
@@ -1420,7 +1420,7 @@ importers:
         specifier: 0.2.15
         version: 0.2.15
       tsx:
-        specifier: 4.19.2
+        specifier: ^4.19.2
         version: 4.19.2
       yargs:
         specifier: 17.7.3
@@ -1551,7 +1551,7 @@ importers:
         specifier: ~5.0.10
         version: 5.0.10
       tsx:
-        specifier: 4.19.2
+        specifier: ^4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.8.3
@@ -1645,7 +1645,7 @@ importers:
         specifier: 24.6.0
         version: 24.6.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
       tsx:
-        specifier: 4.19.2
+        specifier: ^4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.8.3

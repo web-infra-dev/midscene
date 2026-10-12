@@ -31,7 +31,7 @@
     "less": "^4.2.0",
     "puppeteer": "24.6.0",
     "rsbuild-plugin-workspace-dev": "0.0.1",
-    "tsx": "4.19.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.3"
   }
 }

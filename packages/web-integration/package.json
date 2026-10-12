@@ -146,7 +146,7 @@
     "js-yaml": "4.1.0",
     "playwright": "^1.45.0",
     "puppeteer": "24.6.0",
-    "tsx": "4.19.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.3"
   },
   "peerDependencies": {
