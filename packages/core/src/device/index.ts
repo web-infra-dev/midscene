@@ -692,13 +692,23 @@ export const actionScrollParamSchema = z.object({
 
 export const defineActionScroll = (
   scroll: ScrollInputPrimitives['scroll'],
+  inputMode?: SwipeInputMode,
 ): DeviceAction<ActionScrollParam> => {
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
       'Scroll a page or scrollable region to reveal off-screen content. Use Scroll when the goal is to browse content outside the current viewport. For direct gesture interactions, such as adjusting a slider or wheel picker, switching between paged cards or images, following an on-screen swipe gesture to continue or dismiss, or swiping an item to delete it, use Swipe instead if available in the current Action Space. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
     interfaceAlias: 'aiScroll',
-    paramSchema: actionScrollParamSchema,
+    paramSchema:
+      inputMode === 'touch'
+        ? actionScrollParamSchema.extend({
+            locate: getMidsceneLocationSchema()
+              .optional()
+              .describe(
+                'The safe touch origin within the scrollable region. Its center is where the finger presses down, not just a description of the containing panel. Before scrolling a parent form with an expanded date/time wheel picker, collapse the picker using its visible toggle. Blank padding beside a picker can still capture the gesture and change its value. Otherwise choose a small non-interactive area in the intended scroll container, outside the entire hit area of sliders, maps, carousels and nested scroll regions. Do not target a whole panel whose center overlaps these controls. Scroll only when the desired content is off-screen; use visible controls directly.',
+              ),
+          })
+        : actionScrollParamSchema,
     sample: {
       direction: 'down',
       scrollType: 'singleAction',
@@ -790,7 +800,10 @@ export const defineActionLongPress = (
   });
 };
 
-function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
+function createActionSwipeParamSchema(
+  inputMode: SwipeInputMode,
+  defaultDuration = 300,
+) {
   const movementSource = inputMode === 'touch' ? 'finger' : 'pointer';
 
   return z.object({
@@ -819,8 +832,12 @@ function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
       ),
     duration: z
       .number()
-      .default(300)
-      .describe('Duration of the swipe gesture in milliseconds'),
+      .default(defaultDuration)
+      .describe(
+        inputMode === 'touch'
+          ? 'Duration of the finger movement in milliseconds. Together with distance, this controls gesture speed and momentum. Keep the default for a quick swipe or flick; explicitly choose a longer duration (e.g. 500ms) with a short distance when fine control is needed, such as selecting a nearby value in a wheel picker. Adjust distance and duration based on the observed result; do not repeat an overshooting gesture unchanged.'
+          : 'Duration of the swipe gesture in milliseconds',
+      ),
     repeat: z
       .number()
       .optional()
@@ -920,26 +937,30 @@ export const defineActionSwipe = (config: {
   swipe: SwipeInputPrimitive;
   size(): Promise<Size>;
   inputMode?: SwipeInputMode;
+  defaultDuration?: number;
 }): DeviceAction<ActionSwipeParam> => {
   const inputMode = config.inputMode ?? 'touch';
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
       inputMode === 'touch'
-        ? 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
+        ? 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. For precise wheel-picker adjustments, use Swipe and choose an explicit duration to control momentum. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
         : 'Perform a primary-mouse-button gesture that continuously presses and moves the pointer across the desktop UI. Use it to adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it. For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".',
     interfaceAlias: 'aiSwipe',
     paramSchema:
-      inputMode === 'touch'
+      inputMode === 'touch' && config.defaultDuration === undefined
         ? ActionSwipeParamSchema
-        : createActionSwipeParamSchema(inputMode),
+        : createActionSwipeParamSchema(inputMode, config.defaultDuration),
     sample: {
       start: { prompt: 'center of the notification' },
       end: { prompt: 'upper edge of the screen' },
     },
     call: async (param) => {
       const { startPoint, endPoint, duration, repeatCount } =
-        normalizeSwipeParam(param, await config.size());
+        normalizeSwipeParam(
+          { ...param, duration: param.duration ?? config.defaultDuration },
+          await config.size(),
+        );
       for (let i = 0; i < repeatCount; i++) {
         await config.swipe(startPoint, endPoint, { duration });
       }
@@ -1128,6 +1149,8 @@ export function normalizePinchParam(
 }
 
 export interface MobileInputActionContext {
+  /** Default Swipe duration; explicit action durations take precedence. */
+  defaultSwipeDuration?: number;
   input: MobileInputPrimitives;
   size(): Promise<Size>;
   sleep?(timeMs: number): Promise<void>;
@@ -1150,6 +1173,8 @@ export interface SystemInputActionOptions {
 }
 
 export interface InputPrimitiveActionOptions {
+  /** Default Swipe duration; explicit action durations take precedence. */
+  defaultSwipeDuration?: number;
   size?: () => Promise<Size>;
   sleep?: (timeMs: number) => Promise<void>;
   includeSwipe?: boolean;
@@ -1207,12 +1232,18 @@ export function defineActionsFromInputPrimitives(
   }
 
   if (scroll) {
-    actions.push(defineActionScroll(scroll.scroll));
+    actions.push(defineActionScroll(scroll.scroll, touch ? 'touch' : 'mouse'));
   }
 
   const swipeConfig = resolveSwipeInputPrimitive({ pointer, touch });
   if (swipeConfig && options.size && options.includeSwipe !== false) {
-    actions.push(defineActionSwipe({ ...swipeConfig, size: options.size }));
+    actions.push(
+      defineActionSwipe({
+        ...swipeConfig,
+        size: options.size,
+        defaultDuration: options.defaultSwipeDuration,
+      }),
+    );
   }
 
   if (touch?.pinch && options.size && options.includePinch !== false) {
@@ -1251,6 +1282,7 @@ export function createDefaultMobileActions(
 ): DeviceAction<any>[] {
   return defineActionsFromInputPrimitives(context.input, {
     size: context.size,
+    defaultSwipeDuration: context.defaultSwipeDuration,
     sleep: context.sleep,
     systemActions: context.systemActions,
   });

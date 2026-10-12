@@ -557,7 +557,7 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     expect(action.description).toContain('endpoint swipe — provide "end"');
     expect(actionSpaceDescription).toMatchInlineSnapshot(`
       "- type: Swipe
-        description: 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
+        description: 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. For precise wheel-picker adjustments, use Swipe and choose an explicit duration to control momentum. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
         param:
           start:
             type: '{ prompt: string /* description of the target element */ }'
@@ -578,7 +578,7 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
           duration:
             type: number
             optional: true
-            description: Duration of the swipe gesture in milliseconds
+            description: Duration of the finger movement in milliseconds. Together with distance, this controls gesture speed and momentum. Keep the default for a quick swipe or flick; explicitly choose a longer duration (e.g. 500ms) with a short distance when fine control is needed, such as selecting a nearby value in a wheel picker. Adjust distance and duration based on the observed result; do not repeat an overshooting gesture unchanged.
             default: 300
           repeat:
             type: number

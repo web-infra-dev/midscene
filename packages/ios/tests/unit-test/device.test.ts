@@ -41,6 +41,7 @@ describe('IOSDevice', () => {
       swipe: rs.fn().mockResolvedValue(undefined),
       appSwitcher: rs.fn().mockResolvedValue(undefined),
       pinch: rs.fn().mockResolvedValue(undefined),
+      waitForInputFocus: rs.fn().mockResolvedValue('input-id'),
       typeText: rs.fn().mockResolvedValue(undefined),
       typeRawKeys: rs.fn().mockResolvedValue(undefined),
       clearActiveElement: rs.fn().mockResolvedValue(true),
@@ -93,6 +94,70 @@ describe('IOSDevice', () => {
     }
   });
 
+  describe('scroll gesture bounds', () => {
+    it.each([
+      ['down', 319, 773, 319, 1],
+      ['up', 100, 100, 100, 811],
+      ['left', 100, 400, 374, 400],
+      ['right', 300, 400, 1, 400],
+    ] as const)(
+      'keeps an oversized %s scroll on screen without moving its touch origin',
+      async (direction, x, y, endX, endY) => {
+        await device.connect();
+        const scroll = device
+          .actionSpace()
+          .find((action) => action.name === 'Scroll')!;
+        await scroll.call(
+          { direction, distance: 1000, locate: { center: [x, y] } },
+          mockExecutorContext,
+        );
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(x, y, endX, endY, 500);
+      },
+    );
+  });
+
+  describe('scroll origin validation', () => {
+    it('preserves a short scroll and its chosen origin', async () => {
+      await device.connect();
+      await device.scrollDown(100, { left: 319, top: 773 });
+      expect(mockWdaClient.swipe).toHaveBeenCalledWith(319, 773, 319, 673, 500);
+    });
+
+    it('rejects an off-screen origin instead of redirecting the gesture', async () => {
+      await device.connect();
+      await expect(
+        device.scrollDown(100, { left: -1, top: 400 }),
+      ).rejects.toThrow('origin');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+
+    it('does not reverse direction at the screen edge', async () => {
+      await device.connect();
+      await expect(
+        device.scrollDown(100, { left: 100, top: 0 }),
+      ).rejects.toThrow('No room');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('boundary scroll failures', () => {
+    it('rejects an invalid origin instead of reporting boundary success', async () => {
+      await device.connect();
+      await expect(
+        device.scrollUntilTop({ left: -1, top: 400 }),
+      ).rejects.toThrow('origin');
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
+    });
+
+    it('propagates a failed gesture instead of treating unchanged content as success', async () => {
+      await device.connect();
+      const error = new Error('WDA connection lost');
+      mockWdaClient.swipe.mockRejectedValue(error);
+      await expect(device.scrollUntilBottom()).rejects.toThrow(error);
+      expect(mockWdaClient.swipe).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('lets custom action readiness replace the extra scroll settling delay', async () => {
     const scroll = rs
       .spyOn(device as any, 'scrollDown')
@@ -130,7 +195,7 @@ describe('IOSDevice', () => {
         { task: {}, skipDefaultWait: true } as ExecutorContext,
       );
       expect(mockWdaClient.typeText).toHaveBeenCalledWith('account');
-      expect(delay).toHaveBeenCalledWith(200);
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
       expect(delay).not.toHaveBeenCalledWith(300);
       await action.call(
         { value: 'password', mode: 'typeOnly', autoDismissKeyboard: false },
@@ -244,6 +309,58 @@ describe('IOSDevice', () => {
   });
 
   describe('Action Space', () => {
+    it.each([undefined, 300, 500, 800])(
+      'uses a 300ms default swipe and preserves explicit %s duration',
+      async (duration) => {
+        const action = device
+          .actionSpace()
+          .find((entry) => entry.name === 'Swipe')!;
+        const param = {
+          direction: 'up',
+          distance: 50,
+          ...(duration === undefined ? {} : { duration }),
+        };
+        await device.inputPrimitives.touch.swipe(
+          { x: 10, y: 100 },
+          { x: 10, y: 50 },
+          duration === undefined ? undefined : { duration },
+        );
+        expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+          10,
+          100,
+          10,
+          50,
+          duration ?? 300,
+        );
+        await device.swipe(10, 100, 10, 50, duration);
+        expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+          10,
+          100,
+          10,
+          50,
+          duration ?? 300,
+        );
+        const parsed = action.paramSchema!.parse(param);
+        expect(parsed.duration).toBe(duration ?? 300);
+        await action.call(parsed, mockExecutorContext);
+        expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+          expect.any(Number),
+          expect.any(Number),
+          expect.any(Number),
+          expect.any(Number),
+          duration ?? 300,
+        );
+        await action.call(param, mockExecutorContext);
+        expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+          expect.any(Number),
+          expect.any(Number),
+          expect.any(Number),
+          expect.any(Number),
+          duration ?? 300,
+        );
+      },
+    );
+
     it('should provide action space with iOS-specific actions', () => {
       const actions = device.actionSpace();
       expect(Array.isArray(actions)).toBe(true);
@@ -631,6 +748,34 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.swipe).toHaveBeenCalledWith(100, 200, 300, 400, 500);
     });
 
+    it('does not dispatch text before the input has focus', async () => {
+      let ready = false;
+      mockWdaClient.waitForInputFocus.mockImplementation(async () => {
+        ready = true;
+      });
+      mockWdaClient.typeText.mockImplementation(async () => {
+        expect(ready).toBe(true);
+      });
+      await device.inputPrimitives.keyboard.typeText('text', {
+        replace: false,
+        autoDismissKeyboard: false,
+      });
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not type or retry when focus readiness fails', async () => {
+      const error = new Error('Input focus timeout');
+      mockWdaClient.waitForInputFocus.mockRejectedValue(error);
+      await expect(
+        device.inputPrimitives.keyboard.typeText('text', {
+          replace: false,
+          autoDismissKeyboard: false,
+        }),
+      ).rejects.toThrow(error);
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+      expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
+    });
+
     it('should type text', async () => {
       await device.connect();
 
@@ -818,6 +963,7 @@ describe('IOSDevice', () => {
       const mockBackend = {
         ...mockWdaClient,
         createSession: rs.fn().mockResolvedValue({ sessionId: 'test-session' }),
+        waitForInputFocus: rs.fn().mockResolvedValue('input-id'),
         typeText: rs.fn().mockResolvedValue(undefined),
         dismissKeyboard: rs.fn().mockResolvedValue(true),
         getWindowSize: rs.fn().mockResolvedValue({ width: 375, height: 812 }),
