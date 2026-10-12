@@ -12,27 +12,61 @@
 
 ### 1. 生成项目文件并安装依赖
 
-准备 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` 和 pnpm，然后创建 Web 测试项目：
+准备 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` 和 pnpm。需要交互式引导时，运行：
+
+```bash
+pnpm dlx @midscene/test create
+```
+
+命令会依次提示选择项目目录、平台、包管理器，以及是否安装依赖。也可以直接传入参数，例如使用 pnpm 创建 Web 测试项目：
 
 ```bash
 pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
 cd my-tests
 ```
 
-按提示安装依赖。命令会生成平台配置、示例用例和 Node 说明书，主要文件如下：
+可用参数如下：
+
+| 参数 | 说明 |
+| --- | --- |
+| `[directory]` | 项目目录，可以是相对于当前目录的路径或绝对路径。使用 `.` 表示当前目录。省略时会提示输入，已有文件不会被覆盖。 |
+| `--platform <value>` | 平台：`web`（Playwright）、`android`、`ios`、`harmony`（HarmonyOS）或 `computer`（桌面端）。省略时会提示选择。 |
+| `--package-manager <value>` | 包管理器：`npm` 或 `pnpm`。省略时，交互式终端会提示选择；非交互式环境会检测调用命令的包管理器，无法识别时使用 `npm`。 |
+| `--yes`、`-y` | 跳过交互并安装依赖。必须同时提供目录和 `--platform`；与 `--skip-install` 同用时只生成文件。 |
+| `--skip-install` | 只生成文件，不安装依赖，也不生成 Node 说明书。之后执行安装命令即可生成说明书。 |
+| `--help`、`-h` | 查看命令帮助和示例。 |
+
+每个平台目前提供一个起步模板，通过 `--platform` 选择，均使用原生 `cases/steps` Test 文件。在 CI 等非交互式环境中，必须提供目录和 `--platform`；未设置 `--skip-install` 时会安装依赖。
+
+常用示例：
+
+```bash
+# 创建 iOS 项目并安装依赖，全程不询问
+pnpm dlx @midscene/test create my-ios-tests --platform ios --package-manager pnpm --yes
+
+# 只生成 Web 项目文件
+pnpm dlx @midscene/test create my-web-tests --platform web --package-manager pnpm --skip-install
+
+# 查看完整参数
+pnpm dlx @midscene/test create --help
+```
+
+按提示安装依赖。命令会生成平台配置和示例用例，安装依赖后还会生成 Node 说明书。Web 项目的主要文件如下：
 
 ```text
 my-tests/
-├── cases/example.yaml          # 示例用例
+├── cases/todo.yaml             # TodoMVC 用例
+├── nodes/todo.ts               # Web 自定义 Node：初始化、校验和状态记录
 ├── midscene.config.ts          # 平台配置与 Node 注册
-├── midscene-node-spec.web.md  # 安装后自动生成的 Node 说明书
+├── midscene-node-spec.web.md    # 安装后自动生成的 Node 说明书
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
-└── README.md
+├── README.md
+└── README.zh.md
 ```
 
-创建项目和生成说明书不会运行测试，因此这一步不需要模型 API Key、浏览器或设备。完整参数可通过 `pnpm dlx @midscene/test create --help` 查看。
+其他平台模板不包含 `nodes/todo.ts`，说明书文件名使用对应平台名称，例如 `midscene-node-spec.ios.md`。创建项目和生成说明书不会运行测试，因此这一步不需要模型 API Key、浏览器或设备。生成项目中的 README 会说明平台准备和示例运行方式。
 
 :::info 安装恢复
 如果跳过安装或安装失败，可以进入项目目录执行 `pnpm install`。需要重新生成 Node 说明书时，执行 `pnpm run nodes`。
@@ -62,7 +96,7 @@ pnpm exec playwright install chromium
 | 平台 | 参数值 | 运行前准备 | 环境配置指南 |
 | --- | --- | --- | --- |
 | Android | `android` | 连接设备，可用 `ANDROID_DEVICE_ID` 选择设备。 | [配置指南](../platforms/android) |
-| iOS | `ios` | 启动 WebDriverAgent，配置 `WDA_HOST` 和 `WDA_PORT`。 | [配置指南](../platforms/ios) |
+| iOS | `ios` | 启动 WebDriverAgent。直连时配置 `WDA_HOST` 和 `WDA_PORT`，通过网关时配置 `WDA_BASE_URL`；远程视频流使用 `WDA_MJPEG_URL`，直连则可使用 `WDA_MJPEG_PORT`。 | [配置指南](../platforms/ios) |
 | HarmonyOS | `harmony` | 用 `hdc list targets` 检查连接，可用 `HARMONY_DEVICE_ID` 选择设备；PATH 中没有 HDC 时设置 `HDC_HOME`。 | [配置指南](../platforms/harmonyos) |
 | 桌面端 | `computer` | 安装依赖并授予权限，可用 `COMPUTER_DISPLAY_ID` 选择显示器。无界面 Linux 还需安装 Xvfb 并启用 `MIDSCENE_COMPUTER_HEADLESS_LINUX`。 | [配置指南](../platforms/desktop) |
 
@@ -72,9 +106,11 @@ pnpm exec playwright install chromium
 pnpm test
 ```
 
-Web 示例打开 `example.com` 并检查页面标题。桌面端示例通过 `aiAsk` 查看当前屏幕；移动端示例先执行 `home`，再执行 `aiAsk`。
+五个平台的模板都使用在线 React TodoMVC，演示添加、删除和完成任务。运行测试的浏览器或设备需要能访问该网站。
 
-运行结束后，可以查看用例运行报告，了解各用例及步骤的执行结果。随后可以修改 `cases/example.yaml`，编写自己的用例。
+Web 模板在每条用例前通过 `todo.seed` 清空页面存储并添加三个任务，第一条用例校验初始状态，第二条用 AI 删除和完成任务后校验结果；每条用例后由 `todo.captureState` 记录页面状态。Android、iOS、HarmonyOS 和桌面端模板使用 AI 添加三个任务、删除一个、完成另一个、切换到已完成筛选，并校验结果。重复运行这些模板前，请使用全新浏览器配置或清除 TodoMVC 存储。
+
+运行结束后，可以在 `midscene_run/report/` 查看报告，了解各用例及步骤的执行结果。随后修改 `cases/todo.yaml` 编写自己的用例，可用操作及其参数以生成的 Node 说明书为准。
 
 ## 了解可用的测试操作
 
