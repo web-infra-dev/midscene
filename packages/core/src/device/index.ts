@@ -1160,6 +1160,8 @@ export interface SystemInputActionOptions {
 }
 
 export interface InputPrimitiveActionOptions {
+  /** Scroll transport semantics. Defaults to wheel; mobile factories select touch. */
+  scrollInputMode?: SwipeInputMode;
   size?: () => Promise<Size>;
   sleep?: (timeMs: number) => Promise<void>;
   includeSwipe?: boolean;
@@ -1217,7 +1219,7 @@ export function defineActionsFromInputPrimitives(
   }
 
   if (scroll) {
-    actions.push(defineActionScroll(scroll.scroll, touch ? 'touch' : 'mouse'));
+    actions.push(defineActionScroll(scroll.scroll, options.scrollInputMode));
   }
 
   const swipeConfig = resolveSwipeInputPrimitive({ pointer, touch });
@@ -1260,6 +1262,7 @@ export function createDefaultMobileActions(
   context: MobileInputActionContext,
 ): DeviceAction<any>[] {
   return defineActionsFromInputPrimitives(context.input, {
+    scrollInputMode: 'touch',
     size: context.size,
     sleep: context.sleep,
     systemActions: context.systemActions,
