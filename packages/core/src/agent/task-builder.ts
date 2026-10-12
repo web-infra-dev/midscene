@@ -294,23 +294,6 @@ export class TaskBuilder {
           }
         })();
 
-        // Locator centers have already been mapped to logical coordinates.
-        // Relative Swipe distances use the same screenshot space as those
-        // centers; map only the dispatched copy, preserving plan/report data.
-        if (
-          action.name === 'Swipe' &&
-          action.paramSchema &&
-          parsedParam?.distance !== undefined
-        ) {
-          if (
-            !Number.isFinite(shrunkShotToLogicalRatio) ||
-            shrunkShotToLogicalRatio <= 0
-          ) {
-            throw new Error('Invalid screenshot-to-logical ratio for Swipe');
-          }
-          parsedParam.distance /= shrunkShotToLogicalRatio;
-        }
-
         const useDefaultWait = !this.actionReadiness;
         taskContext.task.actionReadiness = useDefaultWait
           ? 'default'

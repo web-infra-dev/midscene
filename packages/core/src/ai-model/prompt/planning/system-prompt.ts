@@ -274,6 +274,8 @@ ${
 
 ### Interpreting Scroll and Swipe Directions
 
+- For a relative Swipe, express distance in pixels of the current screenshot. The runtime converts this model-planned distance to device logical units. This rule applies to Swipe distance, not Scroll distance.
+
 Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
 
 In the current Action Space, \`direction\` has the following meanings:

@@ -1,7 +1,15 @@
+import { callAIWithStringResponse } from '@/ai-model/service-caller';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
-import { buildCustomPlanningMessages } from '@/ai-model/workflows/planning/custom-planning';
+import {
+  buildCustomPlanningMessages,
+  runCustomPlanning,
+} from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
-import { describe, expect, it } from '@rstest/core';
+import { ActionSwipeParamSchema } from '@/device';
+import { describe, expect, it, rs } from '@rstest/core';
+rs.mock('@/ai-model/service-caller', () => ({
+  callAIWithStringResponse: rs.fn(),
+}));
 
 function createPlanOptions(
   conversationHistory = new ConversationHistory(),
@@ -81,4 +89,40 @@ describe('custom planning messages', () => {
       }),
     });
   });
+});
+
+it('normalizes relative Swipe distances returned by a custom planner', async () => {
+  rs.mocked(callAIWithStringResponse).mockResolvedValue({
+    content: 'swipe',
+    usage: undefined,
+  } as any);
+  const options = createPlanOptions();
+  options.context.shrunkShotToLogicalRatio = 3;
+  options.modelRuntime.adapter = { imagePreprocess: {}, responses: {} } as any;
+  options.actionSpace = [
+    {
+      name: 'Swipe',
+      description: 'Swipe',
+      paramSchema: ActionSwipeParamSchema,
+      call: rs.fn(),
+    },
+  ];
+  const rawParam = { direction: 'up', distance: 90 };
+  const result = await runCustomPlanning(
+    { text: 'swipe', referenceImages: [] },
+    options,
+    {
+      messages: {
+        systemPromptPlacement: 'system-message',
+        buildSystemPrompt: () => 'swipe',
+        historyImageLimit: 1,
+      },
+      parseResponse: () => ({}),
+      transformActions: () => [{ type: 'Swipe', param: rawParam }],
+      shouldContinuePlanning: () => false,
+      buildResponseLog: () => 'swipe',
+    } as any,
+  );
+  expect(result.actions[0].param.distance).toBe(30);
+  expect(rawParam.distance).toBe(90);
 });
