@@ -20,11 +20,20 @@ rs.mock('@/web-page', () => ({
 }));
 
 const createMockPage = () => {
-  const mouse = { move: rs.fn(), down: rs.fn(), up: rs.fn() };
+  const mouse = {
+    move: rs.fn(),
+    down: rs.fn(),
+    up: rs.fn().mockResolvedValue(undefined),
+  };
   const underlyingPage = {
     url: () => 'http://example.com',
     mouse,
-    keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+    keyboard: {
+      down: rs.fn(),
+      up: rs.fn().mockResolvedValue(undefined),
+      press: rs.fn(),
+      type: rs.fn(),
+    },
     evaluate: rs.fn(),
   } as any;
   return { underlyingPage, mouse };
@@ -34,6 +43,20 @@ describe('Page.swipe duration', () => {
   afterEach(() => {
     rs.restoreAllMocks();
   });
+
+  it.each(['puppeteer', 'playwright'] as const)(
+    'releases the pointer after a failed %s swipe',
+    async (backend) => {
+      const { underlyingPage, mouse } = createMockPage();
+      const error = new Error('movement failed');
+      mouse.move.mockResolvedValueOnce(undefined).mockRejectedValueOnce(error);
+      const page = new Page(underlyingPage, backend);
+      await expect(
+        page.swipe({ x: 1, y: 2 }, { x: 10, y: 20 }, 1000),
+      ).rejects.toThrow(error);
+      expect(mouse.up).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it.each(
     (['puppeteer', 'playwright'] as const).flatMap((backend) =>

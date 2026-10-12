@@ -1329,36 +1329,26 @@ export class Page<
       `mouse swipe from ${from.x}, ${from.y} to ${to.x}, ${to.y} with duration ${duration}ms`,
     );
 
-    if (this.interfaceType === 'puppeteer') {
-      const page = this.underlyingPage as PuppeteerPage;
-      await page.mouse.move(from.x, from.y);
-      await page.mouse.down({ button: 'left' });
-
+    const page = this.underlyingPage as PuppeteerPage | PlaywrightPage;
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down({ button: 'left' });
+    let completed = false;
+    try {
       const steps = 30;
-      const delay = duration / steps;
       for (let i = 1; i <= steps; i++) {
         const x = from.x + (to.x - from.x) * (i / steps);
         const y = from.y + (to.y - from.y) * (i / steps);
         await page.mouse.move(x, y);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await sleep(duration / steps);
       }
-
-      await page.mouse.up({ button: 'left' });
-    } else if (this.interfaceType === 'playwright') {
-      const page = this.underlyingPage as PlaywrightPage;
-      await page.mouse.move(from.x, from.y);
-      await page.mouse.down();
-
-      const steps = 30;
-      const delay = duration / steps;
-      for (let i = 1; i <= steps; i++) {
-        const x = from.x + (to.x - from.x) * (i / steps);
-        const y = from.y + (to.y - from.y) * (i / steps);
-        await page.mouse.move(x, y);
-        await page.waitForTimeout(delay);
+      completed = true;
+    } finally {
+      if (completed) {
+        await page.mouse.up({ button: 'left' });
+      } else {
+        // Release best-effort without replacing the original movement error.
+        await page.mouse.up({ button: 'left' }).catch(() => {});
       }
-
-      await page.mouse.up({ button: 'left' });
     }
   }
   async longPress(x: number, y: number, duration?: number) {
