@@ -36,13 +36,16 @@ async function activeInput(request: InputRequest): Promise<string | undefined> {
   }
 }
 
-async function namedInputs(
+async function identifiedInputs(
   request: InputRequest,
   name: string,
+  type: string,
 ): Promise<string[]> {
   const response = await request('POST', '/elements', {
-    using: 'accessibility id',
-    value: name,
+    using: 'predicate string',
+    // WDA name falls back to label when the accessibility identifier is empty.
+    // Excluding that case proves name is an identifier on both snapshots.
+    value: `name == ${JSON.stringify(name)} AND name != label AND type == ${JSON.stringify(type)}`,
   });
   if (!Array.isArray(response.value))
     throw new Error('Invalid WDA input search response');
@@ -70,44 +73,67 @@ export async function clearInputWithFocus(
   const path = `/element/${originalId}`;
   const rawName = (await request('GET', `${path}/attribute/name`)).value;
   const name = typeof rawName === 'string' ? rawName : '';
+  const type = (await request('GET', `${path}/attribute/type`)).value;
+  const isTextInput =
+    typeof type === 'string' &&
+    [
+      'XCUIElementTypeTextField',
+      'XCUIElementTypeSecureTextField',
+      'XCUIElementTypeTextView',
+      'XCUIElementTypeSearchField',
+    ].includes(type);
   const named =
-    typeof name === 'string' && name ? await namedInputs(request, name) : [];
+    name && isTextInput ? await identifiedInputs(request, name, type) : [];
   const canReacquire = named.length === 1 && named[0] === originalId;
-  let clearError: unknown;
-  try {
-    await request('POST', `${path}/clear`);
-  } catch (error) {
-    if (!isProtocolError(error, 'stale element reference')) throw error;
-    // A blur callback can invalidate WDA's cache after the field was cleared.
-    clearError = error;
-  }
-
   let targetId = originalId;
-  if ((await activeInput(request)) !== originalId) {
+  // One retry is allowed for an ambiguous placeholder value after a stale clear.
+  // A successful clear response proves the operation completed without guessing
+  // whether accessibility value represents text or placeholder text.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let clearError: unknown;
     try {
-      await request('POST', `${path}/click`);
+      await request('POST', `/element/${targetId}/clear`);
     } catch (error) {
-      if (!isProtocolError(error, 'stale element reference') || !canReacquire)
-        throw error;
-      const matches = await namedInputs(request, name);
-      if (matches.length !== 1)
-        throw new Error(
-          'Cannot uniquely identify input after clearing the field',
-        );
-      targetId = matches[0];
-      await request('POST', `/element/${targetId}/click`);
+      if (!isProtocolError(error, 'stale element reference')) throw error;
+      clearError = error;
     }
-    if ((await activeInput(request)) !== targetId)
-      throw new Error('Failed to restore input focus after clearing the field');
-  }
-  if (clearError) {
+    if ((await activeInput(request)) !== targetId) {
+      try {
+        await request('POST', `/element/${targetId}/click`);
+      } catch (error) {
+        if (!isProtocolError(error, 'stale element reference') || !canReacquire)
+          throw error;
+        const matches = await identifiedInputs(request, name, String(type));
+        if (matches.length !== 1)
+          throw new Error(
+            'Cannot uniquely identify input after clearing the field',
+          );
+        targetId = matches[0];
+        await request('POST', `/element/${targetId}/click`);
+      }
+      if ((await activeInput(request)) !== targetId)
+        throw new Error(
+          'Failed to restore input focus after clearing the field',
+        );
+    }
+    if (!clearError) return true;
     const value = (await request('GET', `/element/${targetId}/attribute/value`))
       .value;
-    if (value !== '')
-      throw new Error(
-        'Cannot verify that input was cleared; refusing to append text',
-        { cause: clearError },
-      );
+    if (value === '' || value === null) return true;
+    const placeholder = (
+      await request('GET', `/element/${targetId}/attribute/placeholderValue`)
+    ).value;
+    if (
+      attempt === 0 &&
+      typeof placeholder === 'string' &&
+      placeholder.length > 0 &&
+      value === placeholder
+    )
+      continue;
+    throw new Error(
+      'Cannot verify that input was cleared; refusing to append text',
+      { cause: clearError },
+    );
   }
-  return true;
+  throw new Error('Input clear retry exhausted');
 }

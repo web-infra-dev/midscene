@@ -11,13 +11,17 @@ function fixture(
     stale?: boolean;
     clearError?: Error;
     clickError?: Error;
-    remainingText?: string;
+    remainingText?: string | null;
+    inputType?: string;
+    placeholder?: string;
+    clearFailsOnce?: boolean;
     initialMatches?: string[];
     finalMatches?: string[];
     recoverFocus?: boolean;
   } = {},
 ) {
   let cleared = false;
+  let clearCount = 0;
   let active: string | undefined = 'original';
   const request = rs.fn<InputRequest>(async (method, path) => {
     if (path === '/element/active') {
@@ -25,8 +29,14 @@ function fixture(
       return { value: { ELEMENT: active } };
     }
     if (path.endsWith('/attribute/name')) return { value: 'message-input' };
+    if (path.endsWith('/attribute/type'))
+      return { value: options.inputType ?? 'XCUIElementTypeTextView' };
+    if (path.endsWith('/attribute/placeholderValue'))
+      return { value: options.placeholder ?? null };
     if (path.endsWith('/attribute/value'))
-      return { value: options.remainingText ?? '' };
+      return {
+        value: options.remainingText === undefined ? '' : options.remainingText,
+      };
     if (path === '/elements')
       return {
         value: (cleared
@@ -37,7 +47,9 @@ function fixture(
     if (path.endsWith('/clear')) {
       cleared = true;
       if (options.blur) active = undefined;
-      if (options.clearError) throw options.clearError;
+      clearCount++;
+      if (options.clearError && (!options.clearFailsOnce || clearCount === 1))
+        throw options.clearError;
       return { value: null };
     }
     if (path.endsWith('/click')) {
@@ -78,6 +90,70 @@ describe('clearInputWithFocus', () => {
       'GET',
       '/element/replacement/attribute/value',
     );
+  });
+  it('accepts WDA null for an empty field after stale clear', async () => {
+    expect(
+      await clearInputWithFocus(
+        fixture({
+          blur: true,
+          stale: true,
+          clearError: protocolError('stale element reference'),
+          remainingText: null,
+        }),
+      ),
+    ).toBe(true);
+  });
+  it('uses an identifier and input type predicate instead of label matching', async () => {
+    const request = fixture({ blur: true, stale: true });
+    await clearInputWithFocus(request);
+    expect(request).toHaveBeenCalledWith('POST', '/elements', {
+      using: 'predicate string',
+      value:
+        'name == "message-input" AND name != label AND type == "XCUIElementTypeTextView"',
+    });
+  });
+  it('does not reacquire a non-input element', async () => {
+    const request = fixture({
+      blur: true,
+      stale: true,
+      inputType: 'XCUIElementTypeButton',
+    });
+    await expect(clearInputWithFocus(request)).rejects.toThrow(
+      'stale element reference',
+    );
+    expect(
+      request.mock.calls.some(
+        ([, path]) => path === '/element/replacement/click',
+      ),
+    ).toBe(false);
+  });
+  it('retries clear once rather than trusting text equal to the placeholder', async () => {
+    const request = fixture({
+      blur: true,
+      stale: true,
+      clearError: protocolError('stale element reference'),
+      clearFailsOnce: true,
+      remainingText: 'Message',
+      placeholder: 'Message',
+    });
+    expect(await clearInputWithFocus(request)).toBe(true);
+    expect(
+      request.mock.calls.filter(([, path]) => path.endsWith('/clear')),
+    ).toHaveLength(2);
+  });
+  it('bounds retries when placeholder content remains ambiguous', async () => {
+    const request = fixture({
+      blur: true,
+      clearError: protocolError('stale element reference'),
+      remainingText: 'Message',
+      placeholder: 'Message',
+    });
+    await expect(clearInputWithFocus(request)).rejects.toThrow(
+      'refusing to append text',
+    );
+    expect(
+      request.mock.calls.filter(([, path]) => path.endsWith('/clear')),
+    ).toHaveLength(2);
   });
   it('rejects an unverified clear instead of appending to old text', async () => {
     const request = fixture({
