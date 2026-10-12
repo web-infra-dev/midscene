@@ -6,6 +6,7 @@ import type {
 import { Segmented } from 'antd';
 import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 import type { RunnerStepGroup } from './case-workspace-model';
+import { revealExecutionStep } from './execution-panel-scroll';
 import { ExecutionYaml } from './execution-yaml';
 import type { ReportIssues } from './issues';
 import { getStepDisplayName } from './model';
@@ -47,6 +48,30 @@ export function RunnerExecutionPanel({
   const executionBody = useRef<HTMLDivElement>(null);
   const sidebar = useExecutionSidebar(executionBody);
   const openingYamlStep = useRef(false);
+  const selectedStepFailed = steps.some(
+    (step) => step.id === selectedStepId && step.status === 'failed',
+  );
+  useEffect(() => {
+    if (showYaml || !selectedStepId) return;
+    let revealFrame: number | undefined;
+    // Case navigation restores the main scroll position over two frames.
+    // Reveal the selection after that restoration, including on initial entry.
+    const frame = window.requestAnimationFrame(() => {
+      revealFrame = window.requestAnimationFrame(() => {
+        if (executionBody.current && selectedButton.current) {
+          revealExecutionStep(
+            executionBody.current,
+            selectedButton.current,
+            selectedStepFailed,
+          );
+        }
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (revealFrame !== undefined) window.cancelAnimationFrame(revealFrame);
+    };
+  }, [showYaml, selectedStepId, selectedStepFailed]);
   useEffect(() => {
     if (showYaml || !openingYamlStep.current) return;
     openingYamlStep.current = false;
