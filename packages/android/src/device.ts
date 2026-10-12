@@ -1291,6 +1291,20 @@ ${Object.keys(size)
     maxWidth: number,
     maxHeight: number,
   ): { x: number; y: number } {
+    if (
+      ![start.x, start.y, deltaX, deltaY, maxWidth, maxHeight].every(
+        Number.isFinite,
+      ) ||
+      start.x < 0 ||
+      start.x > maxWidth ||
+      start.y < 0 ||
+      start.y > maxHeight
+    ) {
+      throw new Error(
+        'Scroll origin and distance must be finite and inside the viewport',
+      );
+    }
+
     // Minimum scroll distance to ensure gesture is recognized by Android
     const minScrollDistance = 50;
 
@@ -1802,7 +1816,7 @@ ${Object.keys(size)
     distance?: number,
     startPoint?: Point,
   ): Promise<void> {
-    const { height } = await this.size();
+    const { width, height } = await this.size();
     const scrollDistance = Math.round(distance || height);
     const hasExplicitDistance = distance !== undefined;
 
@@ -1815,7 +1829,7 @@ ${Object.keys(size)
         start,
         0,
         scrollDistance,
-        0,
+        width,
         height,
       );
       if (hasExplicitDistance) {
@@ -1846,7 +1860,7 @@ ${Object.keys(size)
     distance?: number,
     startPoint?: Point,
   ): Promise<void> {
-    const { height } = await this.size();
+    const { width, height } = await this.size();
     const scrollDistance = Math.round(distance || height);
     const hasExplicitDistance = distance !== undefined;
 
@@ -1859,7 +1873,7 @@ ${Object.keys(size)
         start,
         0,
         -scrollDistance,
-        0,
+        width,
         height,
       );
       if (hasExplicitDistance) {
@@ -1890,7 +1904,7 @@ ${Object.keys(size)
     distance?: number,
     startPoint?: Point,
   ): Promise<void> {
-    const { width } = await this.size();
+    const { width, height } = await this.size();
     const scrollDistance = Math.round(distance || width);
     const hasExplicitDistance = distance !== undefined;
 
@@ -1904,7 +1918,7 @@ ${Object.keys(size)
         scrollDistance,
         0,
         width,
-        0,
+        height,
       );
       if (hasExplicitDistance) {
         this.warnScrollDistanceClamped(
@@ -1934,7 +1948,7 @@ ${Object.keys(size)
     distance?: number,
     startPoint?: Point,
   ): Promise<void> {
-    const { width } = await this.size();
+    const { width, height } = await this.size();
     const scrollDistance = Math.round(distance || width);
     const hasExplicitDistance = distance !== undefined;
 
@@ -1948,7 +1962,7 @@ ${Object.keys(size)
         -scrollDistance,
         0,
         width,
-        0,
+        height,
       );
       if (hasExplicitDistance) {
         this.warnScrollDistanceClamped(
