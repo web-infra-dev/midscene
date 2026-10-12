@@ -1,6 +1,7 @@
 .test-runner-report {
   .runner-detail-evidence-panel {
-    display: block;
+    display: flex;
+    flex-direction: column;
     min-width: 0;
     min-height: 0;
     padding: 8px;
@@ -8,6 +9,7 @@
     border-radius: 16px;
     background: var(--runner-surface-muted);
     box-shadow: none;
+    container: runner-evidence / inline-size;
   }
 
   .runner-detail-evidence-heading {
@@ -45,6 +47,7 @@
   }
 
   .runner-detail-inspector {
+    flex: 1;
     margin-top: 24px;
     border: 0;
     background: transparent;
@@ -52,6 +55,10 @@
 
   .runner-detail-tabs-row {
     position: relative;
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
   }
 
   .runner-detail-evidence-panel > .runner-error-cards,
@@ -97,6 +104,8 @@
   }
 
   .runner-detail-inspector-content {
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     padding: 24px 0 0;
   }
@@ -142,6 +151,7 @@
 
   .runner-detail-io-grid {
     display: block;
+    flex: 1;
     padding: 0 20px;
     overflow: hidden;
     border: 1px solid var(--runner-border);
@@ -179,9 +189,10 @@
     min-width: 0;
     min-height: 0;
     padding: 0;
-    color: #000;
+    color: var(--runner-text);
     background: transparent;
-    font-family: Menlo, Monaco, Consolas, monospace;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 14px;
     line-height: 22px;
   }
@@ -195,6 +206,130 @@
     font: inherit;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+  }
+
+  .runner-step-configuration {
+    display: grid;
+    margin: 0;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 22px;
+
+    > div {
+      display: grid;
+      grid-template-columns: minmax(0, 128px) minmax(0, 1fr);
+      align-items: baseline;
+      gap: 16px;
+    }
+
+    dt {
+      color: var(--runner-muted);
+    }
+
+    dd {
+      margin: 0;
+      color: var(--runner-text);
+    }
+  }
+
+  .runner-detail-io-grid .runner-capture-boundary {
+    min-width: 0;
+    margin: 0;
+    font-size: 14px;
+    line-height: 22px;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-runtime-events,
+  .runner-events-empty {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+    background: var(--runner-surface);
+  }
+
+  .runner-runtime-events {
+    overflow-x: auto;
+
+    table {
+      width: 100%;
+      min-width: 640px;
+      border-spacing: 0;
+      font-size: 14px;
+      line-height: 22px;
+      text-align: left;
+    }
+
+    th,
+    td {
+      padding: 12px 16px;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--runner-muted);
+      border-bottom: 1px solid var(--runner-border);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    tbody tr + tr td {
+      border-top: 1px solid var(--runner-border);
+    }
+
+    time,
+    code {
+      font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    time {
+      color: var(--runner-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    small {
+      display: block;
+      margin-top: 4px;
+      color: var(--runner-muted);
+      font-size: 12px;
+      line-height: 20px;
+    }
+  }
+
+  .runner-runtime-event-kind {
+    font-weight: 500;
+  }
+
+  .runner-runtime-event-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .runner-events-empty {
+    display: flex;
+    min-height: 200px;
+    padding: 24px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--runner-muted);
+    text-align: center;
+
+    > .anticon {
+      font-size: 24px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 22px;
+    }
   }
 
   .runner-detail-io-grid p {
@@ -295,5 +430,12 @@
       justify-items: start;
       row-gap: 8px;
     }
+  }
+}
+
+@container runner-evidence (max-width: 560px) {
+  .test-runner-report .runner-detail-io-grid > section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
   }
 }

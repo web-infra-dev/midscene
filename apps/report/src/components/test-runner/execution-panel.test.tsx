@@ -67,8 +67,11 @@ describe('execution panel', () => {
       html.indexOf('runner-detail-execution-body'),
     );
     expect(html).toMatch(
-      /<nav[^>]*aria-label="Execution steps"[\s\S]*<\/nav><section data-testid="node-details"/,
+      /<nav[^>]*aria-label="Execution steps"[\s\S]*<\/nav><div[^>]*role="separator"[^>]*><\/div><section data-testid="node-details"/,
     );
+    expect(html).toContain('aria-label="Resize execution steps"');
+    expect(html).toContain('aria-valuenow="320"');
+    expect(html).toContain('aria-orientation="vertical"');
     expect(html).not.toContain('is-playing');
     expect(html).not.toContain('timeline-control');
     expect(html).not.toContain('runner-detail-step-type');

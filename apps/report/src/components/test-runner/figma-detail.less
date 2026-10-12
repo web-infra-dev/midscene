@@ -149,26 +149,6 @@
     box-shadow: none;
   }
 
-  .runner-detail-log-view {
-    border-color: var(--runner-border);
-    background: var(--runner-surface);
-  }
-
-  .runner-detail-log-view p {
-    color: var(--runner-text);
-    border-color: var(--runner-border);
-    background: color-mix(
-      in srgb,
-      var(--runner-surface-muted) 38%,
-      var(--runner-surface)
-    );
-  }
-
-  .runner-detail-log-view time,
-  .runner-detail-log-view b {
-    color: var(--runner-muted);
-  }
-
   .runner-case-step-summary {
     display: flex;
     margin: 0 0 0 auto;
@@ -257,10 +237,34 @@
 
   .runner-detail-execution-body {
     display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-columns: var(--runner-step-sidebar-width, 320px) 8px minmax(
+        0,
+        1fr
+      );
+    min-height: 440px;
     padding: 8px;
-    align-items: start;
-    gap: 8px;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .runner-execution-resize-handle {
+    position: relative;
+    cursor: col-resize;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .runner-execution-resize-handle::before {
+    position: absolute;
+    inset: 8px 3px;
+    border-radius: 2px;
+    background: var(--runner-border);
+    content: '';
+  }
+
+  .runner-execution-resize-handle:hover::before,
+  .runner-execution-resize-handle:focus-visible::before {
+    background: var(--runner-primary);
   }
 
   .runner-detail-execution-body[hidden] {

@@ -9,6 +9,7 @@ import type { RunnerStepGroup } from './case-workspace-model';
 import { ExecutionYaml } from './execution-yaml';
 import type { ReportIssues } from './issues';
 import { getStepDisplayName } from './model';
+import { useExecutionSidebar } from './use-execution-sidebar';
 import { StepStatus, formatDuration } from './view-primitives';
 
 export function RunnerExecutionPanel({
@@ -44,6 +45,7 @@ export function RunnerExecutionPanel({
   const steps = useMemo(() => groups.flatMap((group) => group.steps), [groups]);
   const selectedButton = useRef<HTMLButtonElement>(null);
   const executionBody = useRef<HTMLDivElement>(null);
+  const sidebar = useExecutionSidebar(executionBody);
   const openingYamlStep = useRef(false);
   useEffect(() => {
     if (showYaml || !openingYamlStep.current) return;
@@ -105,6 +107,7 @@ export function RunnerExecutionPanel({
         className="runner-detail-execution-body"
         hidden={showYaml}
         ref={executionBody}
+        style={sidebar.style}
       >
         <nav className="runner-detail-step-scroll" aria-label="Execution steps">
           {groups.map((group) => (
@@ -164,6 +167,10 @@ export function RunnerExecutionPanel({
             </section>
           ))}
         </nav>
+        <div
+          className="runner-execution-resize-handle"
+          {...sidebar.handleProps}
+        />
         {children}
       </div>
     </section>

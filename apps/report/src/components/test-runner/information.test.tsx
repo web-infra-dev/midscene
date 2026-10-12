@@ -338,6 +338,81 @@ describe('one home for errors and supporting information', () => {
     expect(html).not.toContain('Debugger Tool');
   });
 
+  it('keeps operation ordering, exact timestamps and pending failures in the event table', () => {
+    const html = renderToStaticMarkup(
+      <EvidenceTabs
+        step={{
+          ...step,
+          operations: {
+            capturedAt: step.endedAt,
+            events: [
+              {
+                operationId: 'op',
+                operationKind: 'resource',
+                kind: 'cancel-requested',
+                at: step.startedAt,
+              },
+              {
+                operationId: 'op',
+                operationKind: 'resource',
+                kind: 'runner-returned',
+                at: step.endedAt,
+                status: 'failed',
+                pending: true,
+              },
+            ],
+          },
+        }}
+        tab="logs"
+        onChange={() => {}}
+      />,
+    );
+    expect(html).toContain('<table aria-label="Operation events">');
+    expect(html).toContain('<th scope="col">Time</th>');
+    expect(html).toContain(`dateTime="${step.startedAt}"`);
+    expect(html).toContain('title="op">resource</code>');
+    expect(html.indexOf('cancel-requested')).toBeLessThan(
+      html.indexOf('runner-returned'),
+    );
+    expect(html).toContain('Still running when Runner returned');
+    expect(html).toContain('>pending</span>');
+    expect(html).toContain('>failed</span>');
+  });
+
+  it('retains start and completion facts when no operation snapshot exists', () => {
+    const html = renderToStaticMarkup(
+      <EvidenceTabs step={step} tab="logs" onChange={() => {}} />,
+    );
+    expect(html).toContain('Step started: aiAssert');
+    expect(html).toContain('Step ended in 1.00 s');
+    expect(html).toContain(`dateTime="${step.endedAt}"`);
+    expect(html).toContain('>failed</span>');
+  });
+
+  it('shows the same empty state for uncaptured events and steps that did not run', () => {
+    const emptySteps: TestRunReportStep[] = [
+      { ...step, operations: { capturedAt: step.endedAt, events: [] } },
+      {
+        id: 'not-run',
+        node: 'aiAssert',
+        phase: 'steps',
+        stepIndex: 0,
+        status: 'not-run',
+        continuedAfterError: false,
+        notRunReason: 'Blocked by failure.',
+      },
+    ];
+    for (const empty of emptySteps) {
+      const html = renderToStaticMarkup(
+        <EvidenceTabs step={empty} tab="logs" onChange={() => {}} />,
+      );
+      expect(html).toContain('runner-events-empty');
+      expect(html).toContain('No operation events were recorded.');
+      expect(html).not.toContain('<table');
+      expect(html).not.toContain('Step started');
+    }
+  });
+
   it('shows plan configuration on the node without duplicating identical input', () => {
     const html = renderToStaticMarkup(
       <EvidenceTabs

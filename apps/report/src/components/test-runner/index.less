@@ -1345,44 +1345,6 @@
     margin-top: 8px;
   }
 
-  .runner-detail-log-view {
-    overflow: hidden;
-    border: 1px solid var(--runner-code-border);
-    border-radius: 8px;
-    background: var(--runner-code-bg);
-  }
-
-  .runner-detail-log-view p {
-    display: grid;
-    margin: 0;
-    color: var(--runner-code-text);
-    border-bottom: 1px solid var(--runner-code-border);
-    font:
-      14px/1.5 ui-monospace,
-      SFMono-Regular,
-      Menlo,
-      Monaco,
-      Consolas,
-      monospace;
-  }
-
-  .runner-detail-log-view p:last-child {
-    border-bottom: 0;
-  }
-
-  .runner-detail-log-view time {
-    color: var(--runner-code-subtle);
-  }
-
-  .runner-detail-log-view b {
-    color: var(--runner-code-accent);
-  }
-
-  .runner-detail-log-view .is-error,
-  .runner-detail-log-view .is-error b {
-    color: var(--runner-danger);
-  }
-
   .runner-detail-trace-view {
     height: 720px;
     min-height: 0;
@@ -1694,10 +1656,6 @@
 
     .runner-detail-inspector-tabs {
       overflow-x: auto;
-    }
-
-    .runner-detail-log-view p {
-      grid-template-columns: minmax(0, 1fr);
     }
   }
 }
