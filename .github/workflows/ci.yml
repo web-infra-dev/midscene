@@ -206,6 +206,9 @@ jobs:
     - name: Run tests with coverage
       run: pnpm run test:coverage
 
+    - name: Test generated Midscene Test projects with the built CLI
+      run: pnpm --filter @midscene/test exec vitest --run --config vitest.e2e.config.ts tests/e2e/create-cli.test.ts
+
     # Run the Chrome/YAML batch after full-workspace coverage so it does not compete
     # with the other Nx projects for runner resources.
     - name: Run CLI shared-browser YAML e2e

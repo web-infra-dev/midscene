@@ -27,6 +27,18 @@ import {
 } from '../../src/cli/create-template';
 
 const execFileAsync = promisify(execFile);
+// Fail if a built entry selects tsx's CommonJS API. Its async loader path is
+// broken in tsx 4.23.15 on Node 22.19; exercise the real ESM API instead.
+const rejectTsxCjsApi = `
+  const Module = require('node:module');
+  const originalLoad = Module._load;
+  Module._load = function (specifier, ...args) {
+    if (specifier === 'tsx/esm/api') {
+      throw new Error('The config loader must use the tsx ESM entry');
+    }
+    return originalLoad.call(this, specifier, ...args);
+  };
+`;
 const packageRoot = resolve(__dirname, '../..');
 const temporaryDirectories: string[] = [];
 const temp = () => {
@@ -122,28 +134,33 @@ const isolateWebDependency = (root: string) => {
 };
 
 describe('generated project integration', () => {
-  it.each([
-    {
-      format: 'ESM',
-      entry: join(packageRoot, 'dist/es/cli/index.mjs'),
-      loadEntry: (entry: string) =>
-        `const { loadTestProject } = await import(${JSON.stringify(pathToFileURL(entry).href)});`,
-    },
-    {
-      format: 'CommonJS',
-      entry: join(packageRoot, 'dist/lib/cli/index.js'),
-      loadEntry: (entry: string) =>
-        `const { loadTestProject } = require(${JSON.stringify(entry)});`,
-    },
-  ])(
-    'loads a native ESM config from the built $format config entry',
-    async ({ entry, loadEntry }) => {
+  it.each(
+    [
+      {
+        format: 'ESM',
+        entry: join(packageRoot, 'dist/es/cli/index.mjs'),
+        loadEntry: (entry: string) =>
+          `const { loadTestProject } = await import(${JSON.stringify(pathToFileURL(entry).href)});`,
+      },
+      {
+        format: 'CommonJS',
+        entry: join(packageRoot, 'dist/lib/cli/index.js'),
+        loadEntry: (entry: string) =>
+          `const { loadTestProject } = require(${JSON.stringify(entry)});`,
+      },
+    ].flatMap((entry) =>
+      ['mjs', 'ts'].map((extension) => ({ ...entry, extension })),
+    ),
+  )(
+    'loads a .$extension config from the built $format config entry using native ESM imports',
+    async ({ entry, loadEntry, extension }) => {
       const cwd = temp();
-      const configPath = join(cwd, 'config.mjs');
+      writeFileSync(join(cwd, 'package.json'), '{"type":"module"}');
+      const configPath = join(cwd, `config.${extension}`);
       writeFileSync(
         configPath,
         `
-          const configUrl = import.meta.url;
+          const configUrl${extension === 'ts' ? ': string' : ''} = import.meta.url;
           await Promise.resolve();
           export default {
             nodes: [],
@@ -156,13 +173,14 @@ describe('generated project integration', () => {
         '--input-type=commonjs',
         '-e',
         `
+          ${rejectTsxCjsApi}
           (async () => {
             const assert = require('node:assert/strict');
             ${loadEntry(entry)}
             const project = await loadTestProject(${JSON.stringify(configPath)});
             const configUrl = new URL(project.projects[0].variables.configUrl);
             assert.equal(configUrl.protocol, 'file:');
-            assert.equal(configUrl.pathname.endsWith('/config.mjs'), true);
+            assert.equal(configUrl.pathname.endsWith('/config.${extension}'), true);
           })().catch((error) => {
             console.error(error);
             process.exitCode = 1;
@@ -171,6 +189,29 @@ describe('generated project integration', () => {
       ]);
     },
   );
+
+  it('generates Node Specs through the built CLI using the tsx ESM entry', async () => {
+    const cwd = temp();
+    const guard = join(cwd, 'guard.cjs');
+    writeFileSync(guard, rejectTsxCjsApi);
+    writeFileSync(
+      join(cwd, 'midscene.config.ts'),
+      `
+        const name: string = 'inspect';
+        export default {
+          nodes: [{ name, description: 'Inspect without execution.', execute() { throw new Error('Node execution is forbidden'); } }],
+        };
+      `,
+    );
+    await execFileAsync(
+      process.execPath,
+      ['--require', guard, join(packageRoot, 'bin/midscene-test'), 'nodes'],
+      { cwd, env: { ...process.env, NODE_PATH: '' } },
+    );
+    expect(readFileSync(join(cwd, 'midscene-node-spec.md'), 'utf8')).toContain(
+      '## `inspect`',
+    );
+  });
 
   it.each(createPackageManagers)(
     'generates and refreshes the spec on a manual %s install after skipping installation',
