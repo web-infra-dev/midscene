@@ -2552,6 +2552,72 @@ Stdout:
       });
     });
 
+    describe('untargeted scroll gesture coordinates', () => {
+      beforeEach(() => {
+        rs.spyOn(device as any, 'adjustCoordinates').mockImplementation(
+          async (...args: unknown[]) => {
+            const [x, y] = args as [number, number];
+            return { x, y };
+          },
+        );
+        rs.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+
+      it.each([
+        ['scrollDown', 'input swipe 540 1440 540 0 1000'],
+        ['scrollUp', 'input swipe 540 480 540 1920 1000'],
+        ['scrollRight', 'input swipe 810 960 0 960 1000'],
+        ['scrollLeft', 'input swipe 270 960 1080 960 1000'],
+      ] as const)(
+        '%s defaults to three quarters of the screen with the other axis centered',
+        async (method, command) => {
+          await device[method]();
+
+          expect(mockAdb.shell).toHaveBeenCalledWith(command);
+          expect(console.warn).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['scrollDown', 100, 'input swipe 540 1440 540 1340 1000'],
+        ['scrollUp', 100, 'input swipe 540 480 540 580 1000'],
+        ['scrollRight', 100, 'input swipe 810 960 710 960 1000'],
+        ['scrollLeft', 100, 'input swipe 270 960 370 960 1000'],
+        ['scrollDown', 600, 'input swipe 540 1440 540 840 1000'],
+        ['scrollUp', 600, 'input swipe 540 480 540 1080 1000'],
+        ['scrollRight', 600, 'input swipe 810 960 210 960 1000'],
+        ['scrollLeft', 600, 'input swipe 270 960 870 960 1000'],
+      ] as const)(
+        '%s preserves an explicit %ipx distance without clamping',
+        async (method, distance, command) => {
+          await device[method](distance);
+
+          expect(mockAdb.shell).toHaveBeenCalledWith(command);
+          expect(console.warn).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['scrollDown', 'input swipe 960 810 960 0 1000'],
+        ['scrollUp', 'input swipe 960 270 960 1080 1000'],
+        ['scrollRight', 'input swipe 1440 540 0 540 1000'],
+        ['scrollLeft', 'input swipe 480 540 1920 540 1000'],
+      ] as const)(
+        '%s uses the current landscape dimensions for the default gesture',
+        async (method, command) => {
+          rs.spyOn(device, 'size').mockResolvedValue({
+            width: 1920,
+            height: 1080,
+          });
+
+          await device[method]();
+
+          expect(mockAdb.shell).toHaveBeenCalledWith(command);
+          expect(console.warn).not.toHaveBeenCalled();
+        },
+      );
+    });
+
     it('scrollUp should call scroll with negative Y delta', async () => {
       const wheelSpy = rs
         .spyOn(device as any, 'scrollRaw')
