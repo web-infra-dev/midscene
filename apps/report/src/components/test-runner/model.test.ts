@@ -636,8 +636,20 @@ describe('Midscene Test hybrid report model', () => {
   });
 
   it('shows project status, passed / case totals and all attention outcomes together', () => {
+    const report = structuredClone(dump);
+    const healthyProject = structuredClone(report.projects[0]);
+    healthyProject.projectId = 'healthy';
+    healthyProject.name = 'Healthy';
+    healthyProject.status = 'success';
+    healthyProject.lifecycle = undefined;
+    healthyProject.documents[0].status = 'success';
+    healthyProject.documents[0].cases = healthyProject.documents[0].cases.slice(
+      0,
+      1,
+    );
+    report.projects.push(healthyProject);
     const projects = filterAndSortRunnerProjectBreakdown(
-      groupRunnerProjects(dump),
+      groupRunnerProjects(report),
       {
         query: '',
         status: 'all',
@@ -666,6 +678,8 @@ describe('Midscene Test hybrid report model', () => {
     expect(markup).toContain('1 failed · 1 retried · 1 not run');
     expect(markup).toContain('>passed after retry</span>');
     expect(markup).toContain('>not run</span>');
+    expect(markup).toContain('class="runner-project-tree-attention">-</span>');
+    expect(markup).not.toContain('0 retried');
   });
 
   it('keeps attempt comparison in standalone reports with retries', () => {

@@ -204,7 +204,7 @@ function ProjectBreakdownNode({
         `${issues.length} project ${issues.length === 1 ? 'issue' : 'issues'}`,
     ]
       .filter(Boolean)
-      .join(' · ') || '0 retried';
+      .join(' · ') || '-';
 
   return (
     <li className={`runner-project-tree-node${expanded ? ' is-expanded' : ''}`}>
