@@ -11,6 +11,7 @@ import {
   ResourceCleanupDeferredError,
   cleanupScopeResources,
   createResourceScope,
+  recoverCancelledScopeResources,
 } from './resource-operations';
 import { reportPathsFromTeardown } from './scope-teardown';
 import type {
@@ -76,6 +77,9 @@ export async function runCollectedCase<TContext = undefined>(
     signal = scopeSignal,
   ): Promise<void> => {
     for (const [stepIndex, step] of phases[phase].entries()) {
+      // A Step timeout ends the Runner's wait, not the underlying operation.
+      // Recovery belongs between Steps, outside the next Step's timeout budget.
+      if (stepIndex > 0) await recoverCancelledScopeResources(signal);
       const caseContext: NodeCaseContext = {
         caseId: collectedCase.caseId,
         runId,

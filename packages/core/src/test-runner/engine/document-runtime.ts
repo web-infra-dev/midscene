@@ -15,6 +15,7 @@ import {
   ResourceCleanupDeferredError,
   cleanupScopeResources,
   createResourceScope,
+  recoverCancelledScopeResources,
 } from './resource-operations';
 import { reportPathsFromTeardown } from './scope-teardown';
 import type {
@@ -114,6 +115,7 @@ export function createDocumentRuntime<TContext = undefined>(
     executionSignal = signal,
   ): Promise<void> => {
     for (const [stepIndex, step] of document.lifecycle[phase].entries()) {
+      if (stepIndex > 0) await recoverCancelledScopeResources(executionSignal);
       const documentContext: NodeDocumentContext = {
         documentId: document.documentId,
         documentRunId,

@@ -94,6 +94,7 @@ export interface ExecutionReferenceImage {
 
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
+  abortSignal?: AbortSignal;
   referenceImages?: readonly ExecutionReferenceImage[];
   /**
    * Coarse "the execution snapshot changed" signal. Fires on any state change
@@ -124,6 +125,7 @@ export class TaskRunner {
   onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
 
   private readonly uiContextBuilder: () => Promise<UIContext>;
+  private readonly abortSignal?: AbortSignal;
 
   private readonly onSnapshotChange?:
     | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
@@ -149,6 +151,7 @@ export class TaskRunner {
     );
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
+    this.abortSignal = options?.abortSignal;
     this.onSnapshotChange = options?.onSnapshotChange;
     this.onTaskEvent = options?.onTaskEvent;
     this.executionLogTime = Date.now();
@@ -343,6 +346,7 @@ export class TaskRunner {
         start: Date.now(),
       };
       try {
+        this.abortSignal?.throwIfAborted();
         task.status = 'running';
         await this.emitSnapshotChange();
         await this.emitTaskEvent('start', task);
@@ -353,6 +357,7 @@ export class TaskRunner {
         } catch (e) {
           console.error('error in onTaskStart', e);
         }
+        this.abortSignal?.throwIfAborted();
         assert(
           ['Insight', 'Action Space', 'Planning'].indexOf(task.type) >= 0,
           `unsupported task type: ${task.type}`,
@@ -368,6 +373,7 @@ export class TaskRunner {
         setTimingFieldOnce(task.timing, 'getUiContextStart');
         const uiContext = await this.getUiContext({ forceRefresh });
         setTimingFieldOnce(task.timing, 'getUiContextEnd');
+        this.abortSignal?.throwIfAborted();
 
         task.uiContext = uiContext;
         const executorContext: ExecutorContext = {
@@ -410,6 +416,7 @@ export class TaskRunner {
           returnValue = await task.executor(executorContext);
         }
 
+        this.abortSignal?.throwIfAborted();
         const isLastTask = taskIndex === this.tasks.length - 1;
 
         if (isLastTask) {
@@ -418,6 +425,9 @@ export class TaskRunner {
           this.attachRecorderItem(task, screenshot, 'after-calling');
           setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotEnd');
         }
+        // Cancellation may arrive during the report screenshot, after planning
+        // has returned but before the next batch of actions is built.
+        this.abortSignal?.throwIfAborted();
 
         Object.assign(task, returnValue);
         task.status = 'finished';

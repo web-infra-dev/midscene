@@ -48,6 +48,7 @@ export const getResourceCleanupCompletion = (
 ): Promise<unknown> | undefined => resources.get(owner)?.cleanup;
 
 export const RESOURCE_CLEANUP_GRACE_MS = 1000;
+export const RESOURCE_RECOVERY_GRACE_MS = 30_000;
 
 /** Resource ancestry is independent of cancellation: cleanup can outlive abort. */
 export function linkResourceSignal(signal: AbortSignal, parent?: AbortSignal) {
@@ -166,6 +167,71 @@ export function trackResourceOperation<T>(
 export async function waitForResourceIdle(resource: object): Promise<void> {
   while (resources.get(resource)?.operations?.size)
     await Promise.allSettled([...resources.get(resource)!.operations.keys()]);
+}
+
+/** Wait for this scope's cancelled work before scheduling its next Step. */
+export async function recoverCancelledScopeResources(
+  signal: AbortSignal,
+  graceMs = RESOURCE_RECOVERY_GRACE_MS,
+): Promise<void> {
+  signal.throwIfAborted();
+  const pendingOperations = () => {
+    const pending: Array<{
+      operation: Promise<unknown>;
+      signal: AbortSignal;
+      resource: object;
+    }> = [];
+    for (const resource of scopes.get(signal)?.operations.keys() ?? []) {
+      for (const [operation, ownerSignal] of resources.get(resource)
+        ?.operations ?? []) {
+        if (
+          ownerSignal.aborted &&
+          [...ownerSignals(ownerSignal)].includes(signal)
+        )
+          pending.push({ operation, signal: ownerSignal, resource });
+      }
+    }
+    return pending;
+  };
+  let pending = pendingOperations();
+  if (!pending.length) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let onAbort!: () => void;
+  const stopped = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+    timer = setTimeout(
+      () =>
+        reject(
+          new WorkflowError(
+            `Cancelled operations did not finish within ${graceMs}ms; execution cannot continue safely.`,
+            {
+              code: 'RESOURCE_RECOVERY_TIMEOUT',
+              details: {
+                graceMs,
+                resourceCount: new Set(pending.map(({ resource }) => resource))
+                  .size,
+              },
+              cause: pending[0]?.signal.reason,
+            },
+          ),
+        ),
+      graceMs,
+    );
+  });
+  try {
+    while (pending.length) {
+      await Promise.race([
+        Promise.allSettled(pending.map(({ operation }) => operation)),
+        stopped,
+      ]);
+      signal.throwIfAborted();
+      pending = pendingOperations();
+    }
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener('abort', onAbort);
+  }
 }
 
 export class ResourceCleanupDeferredError extends WorkflowError {

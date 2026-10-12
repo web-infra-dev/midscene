@@ -178,6 +178,7 @@ export class TaskExecutor {
     title: string,
     options?: {
       tasks?: ExecutionTaskApply[];
+      abortSignal?: AbortSignal;
       uiContext?: UIContext;
       referenceImages?: readonly ExecutionReferenceImage[];
       onSnapshotChange?: (
@@ -196,6 +197,7 @@ export class TaskExecutor {
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
+        abortSignal: options?.abortSignal,
         referenceImages: options?.referenceImages,
         onSnapshotChange: async (runner, error) => {
           await this.hooks?.onSnapshotChange?.(runner, error);
@@ -369,7 +371,7 @@ export class TaskExecutor {
   }
 
   async sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
-    const session = this.createExecutionSession('Sleep');
+    const session = this.createExecutionSession('Sleep', { abortSignal });
     const action = defineActionSleep(abortSignal);
     await session.appendAndRun({
       type: 'Action Space',
@@ -522,6 +524,7 @@ export class TaskExecutor {
     const session = this.createExecutionSession(
       taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
       {
+        abortSignal,
         referenceImages: userPromptToMultimodalPrompt(userPrompt)?.images,
         onTaskEvent: async (event) => {
           await activeActionReporter?.(event);
@@ -1079,6 +1082,7 @@ export class TaskExecutor {
           ? { uiContext: executionOptions.uiContext }
           : {}),
         referenceImages: multimodalPrompt?.images,
+        abortSignal: executionOptions?.abortSignal,
       },
     );
 

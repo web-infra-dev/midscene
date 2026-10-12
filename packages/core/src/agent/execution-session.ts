@@ -12,6 +12,7 @@ import type {
 
 type ExecutionSessionOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
+  abortSignal?: AbortSignal;
   referenceImages?: readonly ExecutionReferenceImage[];
   onSnapshotChange?: (
     runner: TaskRunner,

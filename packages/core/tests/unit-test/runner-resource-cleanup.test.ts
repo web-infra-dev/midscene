@@ -9,6 +9,7 @@ import {
   defineNode,
   getResourceCleanupCompletion,
   linkResourceSignal,
+  recoverCancelledScopeResources,
   runWorkflowDocument,
   trackResourceOperation,
 } from '@/test-runner';
@@ -32,6 +33,178 @@ const deferred = <T = void>() => {
 };
 afterEach(() => {
   rs.useRealTimers();
+});
+
+describe('continuation after a resource operation times out', () => {
+  test.each(['steps', 'beforeAll'] as const)(
+    'waits for the actual cancelled operation before continuing %s',
+    async (phase) => {
+      rs.useFakeTimers();
+      const resource = {};
+      const action = deferred();
+      const cancelled = deferred();
+      const events: string[] = [];
+      const document = collectLegacyYamlDocument({
+        tasks: [
+          {
+            name: 'recover',
+            flow: [{ javascript: 'first()' }, { javascript: 'next()' }],
+          },
+        ],
+      });
+      const steps = document.cases[0].definition.steps;
+      steps[0].meta = { timeoutMs: 20, continueOnError: true };
+      // Recovery has its own budget, so the next Step keeps its full 5ms timeout.
+      steps[1].meta = { timeoutMs: 5, continueOnError: false };
+      if (phase === 'beforeAll') {
+        document.lifecycle.beforeAll = steps;
+        document.cases = [];
+      }
+      let calls = 0;
+      const node = defineNode({
+        name: 'javascript',
+        async execute(ctx) {
+          assertResourceAvailable(resource, true, ctx.signal);
+          if (++calls === 1) {
+            ctx.signal.addEventListener('abort', () => cancelled.resolve(), {
+              once: true,
+            });
+            await trackResourceOperation(resource, action.promise, ctx.signal);
+            events.push('old finished');
+            ctx.signal.throwIfAborted();
+          } else events.push('next started');
+        },
+      });
+      const executing = runWorkflowDocument(document, {
+        resolveNode: () => node,
+      });
+      await rs.advanceTimersByTimeAsync(20);
+      await cancelled.promise;
+      await rs.advanceTimersByTimeAsync(100);
+      expect(events).toEqual([]);
+      action.resolve();
+      const result = await executing;
+      const results =
+        phase === 'steps'
+          ? result.cases[0].run!.steps
+          : result.document.beforeAll;
+      expect(results.map((step) => step.status)).toEqual(['failed', 'success']);
+      expect(results[0].error?.code).toBe('STEP_TIMEOUT');
+      expect(results[0].durationMs).toBe(20);
+      expect(results[1].durationMs).toBe(0);
+      expect(events).toEqual(['old finished', 'next started']);
+    },
+  );
+
+  test('bounds recovery and preserves the original timeout and resource quarantine', async () => {
+    rs.useFakeTimers();
+    const resource = {};
+    const action = deferred();
+    const document = collectLegacyYamlDocument({
+      tasks: [
+        {
+          name: 'hung resource',
+          flow: [{ javascript: 'first()' }, { javascript: 'next()' }],
+        },
+        { name: 'later case', flow: [{ javascript: 'later()' }] },
+      ],
+    });
+    const collected = document.cases[0];
+    collected.definition.steps[0].meta = {
+      timeoutMs: 20,
+      continueOnError: true,
+    };
+    const next = rs.fn();
+    const cleanup = rs.fn(async () => {});
+    let calls = 0;
+    const node = defineNode({
+      name: 'javascript',
+      async execute(ctx) {
+        if (++calls > 1) {
+          next();
+          return;
+        }
+        ctx.onTeardown(cleanup);
+        await trackResourceOperation(resource, action.promise, ctx.signal);
+      },
+    });
+    const running = runWorkflowDocument(document, {
+      resolveNode: () => node,
+      retry: 3,
+    }).catch((error) => error);
+    await rs.advanceTimersByTimeAsync(32_020);
+    const failure = await running;
+    const first = failure.result.cases[0];
+    expect(first.attempts).toHaveLength(1);
+    expect(first.run.steps).toHaveLength(1);
+    expect(first.run.steps[0].error.code).toBe('STEP_TIMEOUT');
+    expect(first.run.executionErrors[0].code).toBe('RESOURCE_RECOVERY_TIMEOUT');
+    expect(failure.result.cases[1].status).toBe('not-run');
+    expect(next).not.toHaveBeenCalled();
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(() => assertResourceAvailable(resource, true)).toThrow(
+      'cleanup is pending',
+    );
+    const snapshot = JSON.stringify(failure.result);
+    action.resolve();
+    await rs.advanceTimersByTimeAsync(0);
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(() => assertResourceAvailable(resource, true)).not.toThrow();
+    expect(JSON.stringify(failure.result)).toBe(snapshot);
+  });
+
+  test('interrupts recovery promptly without releasing the resource', async () => {
+    rs.useFakeTimers();
+    const controller = new AbortController();
+    const scope = createResourceScope(controller.signal);
+    const step = new AbortController();
+    linkResourceSignal(step.signal, scope.signal);
+    const resource = {};
+    const action = deferred();
+    trackResourceOperation(resource, action.promise, step.signal);
+    step.abort(new Error('step timeout'));
+    const pending = recoverCancelledScopeResources(scope.signal);
+    const stop = new Error('run interrupted');
+    const rejected = expect(pending).rejects.toBe(stop);
+    controller.abort(stop);
+    await rejected;
+    expect(rs.getTimerCount()).toBe(0);
+    expect(() => assertResourceAvailable(resource, true)).toThrow(
+      'overlapping',
+    );
+    action.resolve();
+    await action.promise;
+    scope.dispose();
+  });
+
+  test('waits only for cancelled work owned by the current scope', async () => {
+    rs.useFakeTimers();
+    const resource = {};
+    const first = createResourceScope();
+    const second = createResourceScope();
+    const old = deferred();
+    const own = deferred();
+    const oldSignal = new AbortController();
+    const ownSignal = new AbortController();
+    linkResourceSignal(oldSignal.signal, first.signal);
+    linkResourceSignal(ownSignal.signal, second.signal);
+    trackResourceOperation(resource, old.promise, oldSignal.signal);
+    trackResourceOperation(resource, own.promise, ownSignal.signal);
+    oldSignal.abort();
+    ownSignal.abort();
+    const recovered = recoverCancelledScopeResources(second.signal, 10);
+    own.resolve();
+    await recovered;
+    expect(rs.getTimerCount()).toBe(0);
+    // A different Case still owns the Agent; its mutual exclusion stays intact.
+    expect(() => assertResourceAvailable(resource, true)).toThrow(
+      'overlapping',
+    );
+    old.resolve();
+    await old.promise;
+    first.dispose();
+    second.dispose();
+  });
 });
 
 describe('resource-aware cancellation cleanup', () => {

@@ -49,6 +49,68 @@ const testAgentClass = {
 };
 
 describe('createMidsceneNodes', () => {
+  it('continues with the same Agent only after a timed out call has actually finished', async () => {
+    vi.useFakeTimers();
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const events: string[] = [];
+    const aiAct = vi.fn(
+      async (_prompt: unknown, options?: { abortSignal?: AbortSignal }) => {
+        await pending;
+        events.push('old finished');
+        options?.abortSignal?.throwIfAborted();
+        return undefined;
+      },
+    );
+    const aiAssert = vi.fn(async () => {
+      events.push('next started');
+      return undefined;
+    });
+    const agent = commonAgent({ aiAct, aiAssert });
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => agent,
+        agentClass: testAgentClass,
+      }),
+    );
+    const running = runCollectedCase(
+      collected([
+        {
+          node: 'aiAct',
+          input: { prompt: 'slow action' },
+          meta: { timeoutMs: 20, continueOnError: true },
+        },
+        {
+          node: 'aiAssert',
+          input: { prompt: 'next assertion' },
+          meta: { timeoutMs: 5, continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+    try {
+      await vi.advanceTimersByTimeAsync(120);
+      expect(aiAssert).not.toHaveBeenCalled();
+      release();
+      const result = await running;
+      expect(result.steps.map((step) => step.status)).toEqual([
+        'failed',
+        'success',
+      ]);
+      expect(result.steps[0].error?.code).toBe('STEP_TIMEOUT');
+      expect(result.steps[0].durationMs).toBe(20);
+      expect(events).toEqual(['old finished', 'next started']);
+      expect(result.teardownErrors).toBeUndefined();
+    } finally {
+      release();
+      await vi.advanceTimersByTimeAsync(1000);
+      await running;
+      vi.useRealTimers();
+    }
+  });
+
   it('runs setAIContext from YAML with text, empty text, and omitted context', async () => {
     const setAIContext = vi.fn();
     const agent = { ...commonAgent(), setAIContext };
