@@ -2,12 +2,67 @@ import type {
   TestRunReportCleanup,
   TestRunReportDocument,
   TestRunReportDump,
+  TestRunReportError,
+  TestRunReportHostError,
   TestRunReportMetrics,
   TestRunReportOperationReference,
   TestRunReportStep,
 } from '../../test-run-report';
 import type { ReportFileAttributes } from '../../types';
 import { sumTestRunReportMetrics } from './metrics';
+
+function remapError(
+  error: TestRunReportError,
+  id: (value: string) => string,
+): TestRunReportError {
+  const remapReferences = (value: unknown): unknown => {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      return value;
+    const result = { ...value } as Record<string, unknown>;
+    for (const key of [
+      'blockedByStepId',
+      'stepId',
+      'scopeId',
+      'caseId',
+      'runId',
+      'documentId',
+      'documentRunId',
+    ])
+      if (typeof result[key] === 'string') result[key] = id(result[key]);
+    return result;
+  };
+  let details = error.details;
+  // Only framework-owned details contain report links. Do not rewrite matching
+  // property names in custom errors or arbitrary nested business data.
+  if (
+    details &&
+    [
+      'RESOURCE_RECOVERY_TIMEOUT',
+      'RESOURCE_CLEANUP_DEFERRED',
+      'NODE_SCOPE_TEARDOWN_ERROR',
+      'REPORT_SNAPSHOT_FAILED',
+      'CASE_EXECUTION_FAILED',
+      'WORKFLOW_DOCUMENT_EXECUTION_FAILED',
+    ].includes(error.code ?? '')
+  ) {
+    const value = remapReferences(details.value);
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const mapped = value as Record<string, unknown>;
+      for (const key of ['blockingOperations', 'diagnostics'])
+        if (Array.isArray(mapped[key]))
+          mapped[key] = mapped[key].map(remapReferences);
+    }
+    details = { ...details, value };
+  }
+  return {
+    ...error,
+    ...(details ? { details } : {}),
+    ...(error.cause ? { cause: remapError(error.cause, id) } : {}),
+    ...(error.errors
+      ? { errors: error.errors.map((item) => remapError(item, id)) }
+      : {}),
+  };
+}
 
 export interface MergeTestRunReportSource {
   reportId: string;
@@ -198,6 +253,30 @@ export function mergeTestRunReportDumps(
       );
     const dump = retainHostFailure(source) ?? agentReportAsTestRun(source);
     const id = (value: string) => `${source.reportId}:${value}`;
+    const error = (value: TestRunReportError) => remapError(value, id);
+    const scopeErrors = <
+      T extends {
+        setupError?: TestRunReportError;
+        teardownErrors?: TestRunReportError[];
+        hostErrors?: TestRunReportHostError[];
+      },
+    >(
+      value: T,
+    ): T => ({
+      ...value,
+      ...(value.setupError ? { setupError: error(value.setupError) } : {}),
+      ...(value.teardownErrors
+        ? { teardownErrors: value.teardownErrors.map(error) }
+        : {}),
+      ...(value.hostErrors
+        ? {
+            hostErrors: value.hostErrors.map((host) => ({
+              ...host,
+              error: error(host.error),
+            })),
+          }
+        : {}),
+    });
     const reference = (
       value: TestRunReportOperationReference,
     ): TestRunReportOperationReference => ({
@@ -209,6 +288,7 @@ export function mergeTestRunReportDumps(
       value
         ? {
             ...value,
+            ...(value.error ? { error: error(value.error) } : {}),
             ...(value.blockingOperations
               ? { blockingOperations: value.blockingOperations.map(reference) }
               : {}),
@@ -220,12 +300,24 @@ export function mergeTestRunReportDumps(
       const result: TestRunReportStep = {
         ...value,
         id: id(value.id),
+        ...(value.error ? { error: error(value.error) } : {}),
+        ...(value.evidenceCollection
+          ? {
+              evidenceCollection: {
+                ...value.evidenceCollection,
+                ...(value.evidenceCollection.errors
+                  ? { errors: value.evidenceCollection.errors.map(error) }
+                  : {}),
+              },
+            }
+          : {}),
         ...(value.operations
           ? {
               operations: {
                 ...value.operations,
                 events: value.operations.events.map((event) => ({
                   ...event,
+                  ...(event.error ? { error: error(event.error) } : {}),
                   ...(event.stepId ? { stepId: id(event.stepId) } : {}),
                   ...(event.scopeId ? { scopeId: id(event.scopeId) } : {}),
                   ...(event.blockingOperations
@@ -256,7 +348,7 @@ export function mergeTestRunReportDumps(
     >(
       value: T,
     ): T => ({
-      ...value,
+      ...scopeErrors(value),
       ...(value.cleanup ? { cleanup: cleanup(value.cleanup) } : {}),
       ...(value.pendingOperations
         ? { pendingOperations: value.pendingOperations.map(reference) }
@@ -279,10 +371,14 @@ export function mergeTestRunReportDumps(
       projects: dump.projects.map((project) => ({
         ...project,
         projectId: id(project.projectId),
+        collectionErrors: project.collectionErrors.map((item) => ({
+          ...item,
+          error: error(item.error),
+        })),
         ...(project.lifecycle
           ? {
               lifecycle: {
-                ...project.lifecycle,
+                ...scopeErrors(project.lifecycle),
                 ...(project.lifecycle.cleanup
                   ? { cleanup: cleanup(project.lifecycle.cleanup) }
                   : {}),
@@ -304,7 +400,7 @@ export function mergeTestRunReportDumps(
             ...testCase,
             caseId: id(testCase.caseId),
             attempts: testCase.attempts.map((attempt) => ({
-              ...attempt,
+              ...scopeErrors(attempt),
               attemptId: id(attempt.attemptId),
               ...(attempt.cleanup ? { cleanup: cleanup(attempt.cleanup) } : {}),
               ...(attempt.pendingOperations
@@ -322,6 +418,7 @@ export function mergeTestRunReportDumps(
       })),
       diagnostics: dump.diagnostics?.map((diagnostic) => ({
         ...diagnostic,
+        ...(diagnostic.error ? { error: error(diagnostic.error) } : {}),
         ...(diagnostic.scopeId ? { scopeId: id(diagnostic.scopeId) } : {}),
         ...(diagnostic.stepId ? { stepId: id(diagnostic.stepId) } : {}),
       })),

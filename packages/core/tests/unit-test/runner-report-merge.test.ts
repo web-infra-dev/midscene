@@ -9,7 +9,11 @@ import {
 } from '@/dump/html-utils';
 import { ReportMergingTool } from '@/report';
 import { mergeReportFiles } from '@/report-cli';
-import type { TestRunReportDump, TestRunReportStep } from '@/test-run-report';
+import type {
+  TestRunReportDump,
+  TestRunReportError,
+  TestRunReportStep,
+} from '@/test-run-report';
 import { mergeTestRunReportDumps } from '@/test-runner/reporting/merge-report';
 import { sumTestRunReportMetrics } from '@/test-runner/reporting/metrics';
 import { type AIUsageInfo, ExecutionDump, ReportActionDump } from '@/types';
@@ -131,6 +135,178 @@ function runnerDump(reportId: string): TestRunReportDump {
     ],
   };
 }
+
+test('namespaces framework error links across merged scopes without rewriting business data', () => {
+  const recovery: TestRunReportError = {
+    name: 'WorkflowError',
+    code: 'RESOURCE_RECOVERY_TIMEOUT',
+    message: 'Recovery timed out',
+    details: {
+      value: {
+        blockedByStepId: 'step-0',
+        blockingOperations: [
+          { operationId: 'operation', stepId: 'step-0', scopeId: 'attempt-0' },
+        ],
+        payload: { stepId: 'business-step' },
+      },
+      truncatedPaths: ['$.payload'],
+    },
+    cause: {
+      name: 'StepTimeoutError',
+      code: 'STEP_TIMEOUT',
+      message: 'Original timeout',
+    },
+  };
+  const aggregate: TestRunReportError = {
+    name: 'AggregateError',
+    message: 'Cleanup failed',
+    cause: recovery,
+    errors: [
+      {
+        name: 'NodeScopeTeardownError',
+        code: 'NODE_SCOPE_TEARDOWN_ERROR',
+        message: 'Node cleanup failed',
+        details: { value: { scopeId: 'attempt-0' } },
+      },
+    ],
+  };
+  const sources = ['alpha', 'beta'].map((reportId) => {
+    const dump = runnerDump(reportId);
+    const project = dump.projects[0];
+    const document = project.documents[0];
+    const attempt = document.cases[0].attempts[0];
+    attempt.hostErrors = [{ phase: 'execution', error: recovery }];
+    attempt.teardownErrors = [aggregate];
+    attempt.cleanup = { status: 'pending', capturedAt: time, error: aggregate };
+    attempt.steps[0].error = recovery;
+    attempt.steps[0].evidenceCollection = {
+      status: 'partial',
+      errors: [aggregate],
+    };
+    attempt.steps[0].operations = {
+      capturedAt: time,
+      events: [
+        {
+          operationId: 'operation',
+          operationKind: 'node',
+          kind: 'settled',
+          at: time,
+          error: recovery,
+        },
+      ],
+    };
+    document.hostErrors = [{ phase: 'execution', error: recovery }];
+    document.attempts![0].hostErrors = document.hostErrors;
+    project.lifecycle = {
+      status: 'failed',
+      startedAt: time,
+      endedAt: time,
+      durationMs: 0,
+      teardownErrors: [aggregate],
+      cleanup: attempt.cleanup,
+    };
+    project.collectionErrors = [{ sourcePath: 'case.yaml', error: recovery }];
+    dump.diagnostics = [
+      {
+        level: 'error',
+        code: 'run-infrastructure-error',
+        message: 'Recovery timed out',
+        error: recovery,
+      },
+    ];
+    return {
+      reportId,
+      sourcePath: `${reportId}.html`,
+      dump,
+      attributes: {
+        testId: reportId,
+        testTitle: reportId,
+        testDescription: '',
+        testStatus: 'passed' as const,
+        testDuration: 0,
+      },
+    };
+  });
+  const before = JSON.stringify(sources);
+  const merged = mergeTestRunReportDumps(
+    sources,
+    sources[0].dump.metrics,
+    'merged',
+  );
+  merged.projects.forEach((project, index) => {
+    const prefix = sources[index].reportId;
+    const document = project.documents[0];
+    const attempt = document.cases[0].attempts[0];
+    const errors = [
+      attempt.hostErrors![0].error,
+      attempt.steps[0].error!,
+      attempt.steps[0].operations!.events[0].error!,
+      document.hostErrors![0].error,
+      document.attempts![0].hostErrors![0].error,
+      project.collectionErrors[0].error,
+      merged.diagnostics![index].error!,
+      attempt.teardownErrors![0].cause!,
+      attempt.cleanup!.error!.cause!,
+      attempt.steps[0].evidenceCollection!.errors![0].cause!,
+      project.lifecycle!.teardownErrors![0].cause!,
+      project.lifecycle!.cleanup!.error!.cause!,
+    ];
+    for (const error of errors) {
+      expect(error.details).toEqual({
+        value: {
+          blockedByStepId: `${prefix}:step-0`,
+          blockingOperations: [
+            {
+              operationId: 'operation',
+              stepId: `${prefix}:step-0`,
+              scopeId: `${prefix}:attempt-0`,
+            },
+          ],
+          payload: { stepId: 'business-step' },
+        },
+        truncatedPaths: ['$.payload'],
+      });
+      expect(error.cause?.code).toBe('STEP_TIMEOUT');
+      expect(
+        attempt.steps.some(
+          (step) =>
+            step.id ===
+            (error.details!.value as { blockedByStepId: string })
+              .blockedByStepId,
+        ),
+      ).toBe(true);
+    }
+    expect(attempt.teardownErrors![0].errors![0].details?.value).toEqual({
+      scopeId: `${prefix}:attempt-0`,
+    });
+  });
+  expect(JSON.stringify(sources)).toBe(before);
+  const custom = runnerDump('custom');
+  custom.projects[0].documents[0].hostErrors = [
+    {
+      phase: 'execution',
+      error: {
+        name: 'CustomError',
+        code: 'BUSINESS_ERROR',
+        message: 'Custom payload',
+        details: {
+          value: {
+            blockedByStepId: 'business-step',
+            scopeId: 'business-scope',
+          },
+        },
+      },
+    },
+  ];
+  const customMerged = mergeTestRunReportDumps(
+    [{ ...sources[0], dump: custom }],
+    custom.metrics,
+    'custom-merge',
+  );
+  expect(customMerged.projects[0].documents[0].hostErrors).toEqual(
+    custom.projects[0].documents[0].hostErrors,
+  );
+});
 
 test('preserves journal references and remaps blocked-step and event links on merge', () => {
   const dump = runnerDump('source');
