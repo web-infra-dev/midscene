@@ -508,6 +508,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Interpreting Scroll and Swipe Directions
 
+- For a relative Swipe, express distance in pixels of the current screenshot. The runtime converts this model-planned distance to device logical units. This rule applies to Swipe distance, not Scroll distance.
+
 Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
 
 In the current Action Space, \`direction\` has the following meanings:
@@ -910,6 +912,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Interpreting Scroll and Swipe Directions
 
+- For a relative Swipe, express distance in pixels of the current screenshot. The runtime converts this model-planned distance to device logical units. This rule applies to Swipe distance, not Scroll distance.
+
 Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
 
 In the current Action Space, \`direction\` has the following meanings:
@@ -1290,6 +1294,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Interpreting Scroll and Swipe Directions
 
+- For a relative Swipe, express distance in pixels of the current screenshot. The runtime converts this model-planned distance to device logical units. This rule applies to Swipe distance, not Scroll distance.
+
 Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
 
 In the current Action Space, \`direction\` has the following meanings:
@@ -1653,6 +1659,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
 ### Interpreting Scroll and Swipe Directions
+
+- For a relative Swipe, express distance in pixels of the current screenshot. The runtime converts this model-planned distance to device logical units. This rule applies to Swipe distance, not Scroll distance.
 
 Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
 
@@ -2123,6 +2131,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Interpreting Scroll and Swipe Directions
 
+- For a relative Swipe, express distance in pixels of the current screenshot. The runtime converts this model-planned distance to device logical units. This rule applies to Swipe distance, not Scroll distance.
+
 Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
 
 In the current Action Space, \`direction\` has the following meanings:
@@ -2559,6 +2569,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Interpreting Scroll and Swipe Directions
 
+- For a relative Swipe, express distance in pixels of the current screenshot. The runtime converts this model-planned distance to device logical units. This rule applies to Swipe distance, not Scroll distance.
+
 Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
 
 In the current Action Space, \`direction\` has the following meanings:
@@ -2960,6 +2972,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
 ### Interpreting Scroll and Swipe Directions
+
+- For a relative Swipe, express distance in pixels of the current screenshot. The runtime converts this model-planned distance to device logical units. This rule applies to Swipe distance, not Scroll distance.
 
 Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
 
