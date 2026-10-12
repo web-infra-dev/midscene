@@ -163,9 +163,12 @@ describe('Playwright gotoUrl Node', () => {
         collected([step('clearCookies', {})]),
         options,
       );
-      expect(overlapping.steps[0].error?.message).toContain(
-        'cannot execute overlapping',
-      );
+      expect(overlapping.steps[0]).toMatchObject({
+        status: 'not-run',
+        error: { code: 'RESOURCE_CLEANUP_PENDING' },
+        notRunReason: expect.stringContaining('pending cleanup'),
+      });
+      expect(overlapping.steps[0].startedAt).toBeUndefined();
       expect(browserContext.clearCookies).toHaveBeenCalledOnce();
     } finally {
       finishCleanup();
