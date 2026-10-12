@@ -250,7 +250,7 @@ export class IOSDevice implements AbstractInterface {
   private async swipePoint(
     start: PointerPoint,
     end: PointerPoint,
-    duration = 500,
+    duration = 300,
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('swipe');
     await this.wdaBackend.swipe(
@@ -646,7 +646,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     fromY: number,
     toX: number,
     toY: number,
-    duration = 500,
+    duration = 300,
   ): Promise<void> {
     await this.swipeCoordinates(fromX, fromY, toX, toY, duration);
   }
@@ -656,7 +656,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     fromY: number,
     toX: number,
     toY: number,
-    duration = 500,
+    duration = 300,
   ): Promise<void> {
     await this.swipePoint({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
   }
