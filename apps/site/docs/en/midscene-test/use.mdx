@@ -438,20 +438,6 @@ With external screenshot storage, the report is a directory containing `index.ht
 
 Set `output.reportDir` in `midscene.config.ts` to change the report directory.
 
-### Markdown results
-
-Each completed run also writes `.midscene/test-results/<runId>/result.md` beside `summary.json`.
-The CLI prints its path as `Markdown:`, and the Node SDK returns `markdownPath`.
-The file includes totals, execution errors, and one title-and-status line per case.
-Case titles link to the HTML report for details and existing screenshots.
-Cases are grouped by source file, with an indented status icon and title on each line. Zero filtered and infrastructure-error counts are omitted.
-Failed runs also produce this file. A run terminated before finalization cannot produce a complete summary.
-
-Links are relative to `result.md`. Keep the result and report directory layout when uploading artifacts.
-For GitHub Actions, append the file to `$GITHUB_STEP_SUMMARY`.
-Host the report assets and resolve relative report links against the hosted Markdown directory.
-The framework does not deploy reports or assume a GitHub Pages URL.
-
 ### Link to a report Step
 
 Use the `runner-step` URL hash parameter to open a report at a specific Step. In addition to a concrete Step ID, reports accept portable selectors that do not depend on generated run IDs:
