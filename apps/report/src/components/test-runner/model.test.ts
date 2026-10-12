@@ -8,7 +8,10 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlaywrightTasks } from '../../types';
 import { CaseWorkspace, getWorkspaceStepSummary } from './case-workspace';
-import { CaseWorkspaceHeader } from './case-workspace-header';
+import {
+  CaseExecutionToolbar,
+  CaseWorkspaceHeader,
+} from './case-workspace-header';
 import { ErrorCards } from './error-card';
 import { collectReportIssues } from './issues';
 import {
@@ -694,7 +697,7 @@ describe('Midscene Test hybrid report model', () => {
       onSelectAttempt() {},
     };
     const markup = renderToStaticMarkup(
-      createElement(CaseWorkspaceHeader, props),
+      createElement(CaseExecutionToolbar, { ...props, viewSwitch: null }),
     );
     expect(markup).not.toContain('runner-back-button');
     expect(markup).toContain('Attempt 2');
@@ -705,13 +708,39 @@ describe('Midscene Test hybrid report model', () => {
     expect(markup).toContain('role="combobox"');
     expect(markup).toContain('<dt>Total steps</dt><dd>12</dd>');
     const firstAttemptMarkup = renderToStaticMarkup(
-      createElement(CaseWorkspaceHeader, {
+      createElement(CaseExecutionToolbar, {
+        viewSwitch: null,
         ...props,
         selectedAttempt: item.testCase.attempts[0],
       }),
     );
     expect(firstAttemptMarkup).toContain('Attempt 1');
     expect(firstAttemptMarkup).toContain('is-failed');
+  });
+
+  it('keeps retries reachable in Execution when the selected attempt has no steps', () => {
+    const item = structuredClone(flattenRunnerCases(dump)[1]);
+    item.document.beforeAll = [];
+    item.document.afterAll = [];
+    for (const attempt of item.testCase.attempts) {
+      attempt.beforeEach = [];
+      attempt.steps = [];
+      attempt.afterEach = [];
+    }
+    const markup = renderToStaticMarkup(
+      createElement(CaseWorkspace, {
+        item,
+        reports: [],
+        visualIndex: buildRunnerVisualIndex([]),
+        renderAgentReport: () => null,
+        onBack() {},
+        backLabel: 'Overview',
+      }),
+    );
+    expect(markup).toMatch(
+      /aria-label="Execution"[\s\S]*runner-detail-panel-heading[\s\S]*aria-label="Execution view"[\s\S]*aria-label="Attempts"[\s\S]*<dt>Total steps<\/dt><dd>0<\/dd>/,
+    );
+    expect(markup).toContain('Attempt 2');
   });
 
   it('keeps timeout failures separate in the detail step summary', () => {

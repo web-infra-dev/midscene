@@ -71,6 +71,30 @@ describe('execution panel', () => {
     );
     expect(html).not.toContain('is-playing');
     expect(html).not.toContain('timeline-control');
+    expect(html).not.toContain('runner-detail-step-type');
+  });
+
+  it('keeps case controls in the execution header in both views', () => {
+    for (const view of ['visual', 'yaml'] as const) {
+      const html = renderToStaticMarkup(
+        <RunnerExecutionPanel
+          groups={[]}
+          view={view}
+          sourceYaml={{ value: 'cases: []' }}
+          renderToolbar={(viewSwitch) => (
+            <>
+              {viewSwitch}
+              <button type="button">Attempt 2</button>
+              <span>12 total steps</span>
+            </>
+          )}
+          onSelect={() => {}}
+        />,
+      );
+      expect(html).toMatch(
+        /runner-detail-panel-heading[\s\S]*Execution view[\s\S]*Attempt 2[\s\S]*12 total steps[\s\S]*<\/div>/,
+      );
+    }
   });
 
   it('shows the captured YAML with author comments, placeholders and redaction notes', () => {

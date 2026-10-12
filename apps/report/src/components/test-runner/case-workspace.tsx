@@ -3,7 +3,10 @@ import type { TestRunReportDump } from '@midscene/core';
 import { type ReactNode, useState } from 'react';
 import type { PlaywrightTasks } from '../../types';
 import { RunnerAttemptTimeline } from './attempt-timeline';
-import { CaseWorkspaceHeader } from './case-workspace-header';
+import {
+  CaseExecutionToolbar,
+  CaseWorkspaceHeader,
+} from './case-workspace-header';
 import {
   getCaseNotRunReason,
   getCaseWorkspaceDocument,
@@ -150,13 +153,8 @@ export function CaseWorkspace({
       <CaseWorkspaceHeader
         item={item}
         standaloneRun={standaloneRun}
-        selectedAttempt={selectedAttempt}
-        selectedDocumentAttemptIndex={selectedDocumentAttemptIndex}
         backLabel={backLabel}
         onBack={onBack}
-        onSelectAttempt={selectAttempt}
-        onSelectDocumentAttempt={selectDocumentAttempt}
-        stepSummary={stepSummary}
       >
         <ErrorCards
           issues={otherIssues}
@@ -165,9 +163,22 @@ export function CaseWorkspace({
         />
       </CaseWorkspaceHeader>
 
-      {workspaceSteps.length > 0 ? (
+      {workspaceSteps.length > 0 ||
+      item.testCase.attempts.length > 1 ||
+      (item.document.attempts?.length ?? 0) > 1 ? (
         <div className="runner-detail-debug-workbench">
           <RunnerExecutionPanel
+            renderToolbar={(viewSwitch) => (
+              <CaseExecutionToolbar
+                item={item}
+                selectedAttempt={selectedAttempt}
+                selectedDocumentAttemptIndex={selectedDocumentAttemptIndex}
+                onSelectAttempt={selectAttempt}
+                onSelectDocumentAttempt={selectDocumentAttempt}
+                stepSummary={stepSummary}
+                viewSwitch={viewSwitch}
+              />
+            )}
             groups={stepGroups}
             issues={reportIssues.nodes}
             selectedStepId={selectedStep?.id}
@@ -211,7 +222,9 @@ export function CaseWorkspace({
             ) : (
               <div className="runner-select-step-hint">
                 <BugOutlined />
-                Select a Step to inspect its evidence and runtime data.
+                {workspaceSteps.length
+                  ? 'Select a Step to inspect its evidence and runtime data.'
+                  : 'No steps were recorded in this Attempt.'}
               </div>
             )}
           </RunnerExecutionPanel>

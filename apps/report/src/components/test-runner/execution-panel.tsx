@@ -1,12 +1,4 @@
-import {
-  CloseCircleOutlined,
-  DatabaseOutlined,
-  EyeOutlined,
-  SettingOutlined,
-  ThunderboltOutlined,
-  UnorderedListOutlined,
-  WarningFilled,
-} from '@ant-design/icons';
+import { WarningFilled } from '@ant-design/icons';
 import type {
   TestRunReportDocumentPlan,
   TestRunReportStep,
@@ -19,17 +11,8 @@ import type { ReportIssues } from './issues';
 import { getStepDisplayName } from './model';
 import { StepStatus, formatDuration } from './view-primitives';
 
-function RunnerStepTypeIcon({
-  step,
-}: { step: TestRunReportStep }): JSX.Element {
-  if (step.status === 'failed') return <CloseCircleOutlined />;
-  if (step.agentDetails?.length) return <ThunderboltOutlined />;
-  if (step.node.toLocaleLowerCase().includes('assert')) return <EyeOutlined />;
-  if (step.phase !== 'steps') return <SettingOutlined />;
-  return <DatabaseOutlined />;
-}
-
 export function RunnerExecutionPanel({
+  renderToolbar,
   groups,
   issues,
   selectedStepId,
@@ -42,6 +25,7 @@ export function RunnerExecutionPanel({
   onViewChange,
   onSelect,
 }: {
+  renderToolbar?(viewSwitch: ReactNode): ReactNode;
   groups: readonly RunnerStepGroup[];
   issues?: ReportIssues['nodes'];
   selectedStepId?: string;
@@ -70,30 +54,29 @@ export function RunnerExecutionPanel({
       ?.querySelector('.runner-detail-evidence-heading')
       ?.scrollIntoView({ block: 'nearest' });
   }, [showYaml, selectedStepId]);
+  const viewSwitch = (
+    <Segmented
+      aria-label="Execution view"
+      value={showYaml ? 'yaml' : 'visual'}
+      options={[
+        { label: 'Visual', value: 'visual' },
+        {
+          label: 'YAML',
+          value: 'yaml',
+          disabled: yaml === undefined,
+          title:
+            yaml === undefined
+              ? 'Source YAML is unavailable for this document.'
+              : undefined,
+        },
+      ]}
+      onChange={(value) => onViewChange?.(value as 'visual' | 'yaml')}
+    />
+  );
   return (
     <section className="runner-detail-step-panel" aria-label="Execution">
       <div className="runner-detail-panel-heading">
-        <span>
-          <UnorderedListOutlined />
-          <strong>Execution</strong>
-        </span>
-        <Segmented
-          aria-label="Execution view"
-          value={showYaml ? 'yaml' : 'visual'}
-          options={[
-            { label: 'Visual', value: 'visual' },
-            {
-              label: 'YAML',
-              value: 'yaml',
-              disabled: yaml === undefined,
-              title:
-                yaml === undefined
-                  ? 'Source YAML is unavailable for this document.'
-                  : undefined,
-            },
-          ]}
-          onChange={(value) => onViewChange?.(value as 'visual' | 'yaml')}
-        />
+        {renderToolbar ? renderToolbar(viewSwitch) : viewSwitch}
       </div>
       {showYaml ? (
         <section className="runner-execution-yaml" aria-label="Source YAML">
@@ -142,23 +125,6 @@ export function RunnerExecutionPanel({
                       aria-pressed={isSelected}
                       onClick={() => onSelect(step)}
                     >
-                      <span
-                        className={`runner-detail-step-type ${
-                          step.status === 'failed'
-                            ? 'is-error'
-                            : step.agentDetails?.length
-                              ? 'is-agent'
-                              : step.phase !== 'steps'
-                                ? 'is-hook'
-                                : step.node
-                                      .toLocaleLowerCase()
-                                      .includes('assert')
-                                  ? 'is-assert'
-                                  : 'is-data'
-                        }`}
-                      >
-                        <RunnerStepTypeIcon step={step} />
-                      </span>
                       <span className="runner-detail-step-copy">
                         <strong>
                           {step.node}

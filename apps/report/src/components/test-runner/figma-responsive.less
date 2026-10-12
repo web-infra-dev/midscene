@@ -10,8 +10,7 @@
       padding: 28px 24px;
     }
 
-    .runner-breakdown-controls,
-    .runner-case-run-bar {
+    .runner-breakdown-controls {
       align-items: flex-start;
       flex-direction: column;
     }
@@ -196,12 +195,13 @@
 
     .runner-case-step-summary {
       width: 100%;
+      margin-left: 0;
       overflow-x: auto;
     }
 
     .runner-case-step-summary > div {
       flex: 1;
-      min-width: 0;
+      min-width: max-content;
       padding: 0 10px;
     }
 

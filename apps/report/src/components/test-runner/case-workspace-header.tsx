@@ -9,40 +9,17 @@ import { CaseStatus, formatDuration } from './view-primitives';
 
 export function CaseWorkspaceHeader({
   item,
-  selectedAttempt,
-  selectedDocumentAttemptIndex,
   backLabel,
   onBack,
-  onSelectAttempt,
-  onSelectDocumentAttempt,
   standaloneRun,
-  stepSummary,
   children,
 }: {
   item: RunnerCaseView;
-  selectedAttempt?: TestRunReportAttempt;
-  selectedDocumentAttemptIndex?: number;
   backLabel: string;
   onBack(): void;
-  onSelectAttempt(attempt: TestRunReportAttempt): void;
-  onSelectDocumentAttempt?(attemptIndex: number): void;
   standaloneRun?: TestRunReportDump;
   children?: ReactNode;
-  stepSummary?: {
-    total: number;
-    passed: number;
-    failed: number;
-    timeout: number;
-    notRun?: number;
-  };
 }): JSX.Element {
-  const visibleStepSummary = stepSummary ?? {
-    total: 0,
-    passed: 0,
-    failed: 0,
-    timeout: 0,
-  };
-
   return (
     <section className="runner-detail-case-header">
       {!standaloneRun && (
@@ -91,7 +68,45 @@ export function CaseWorkspaceHeader({
       </div>
       {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
       {children}
-      <div className="runner-case-run-bar">
+    </section>
+  );
+}
+
+export function CaseExecutionToolbar({
+  item,
+  selectedAttempt,
+  selectedDocumentAttemptIndex,
+  onSelectAttempt,
+  onSelectDocumentAttempt,
+  stepSummary,
+  viewSwitch,
+}: {
+  viewSwitch: ReactNode;
+  item: RunnerCaseView;
+  selectedAttempt?: TestRunReportAttempt;
+  selectedDocumentAttemptIndex?: number;
+  onSelectAttempt(attempt: TestRunReportAttempt): void;
+  onSelectDocumentAttempt?(attemptIndex: number): void;
+  stepSummary?: {
+    total: number;
+    passed: number;
+    failed: number;
+    timeout: number;
+    notRun?: number;
+  };
+}): JSX.Element {
+  const visibleStepSummary = stepSummary ?? {
+    total: 0,
+    passed: 0,
+    failed: 0,
+    timeout: 0,
+  };
+
+  return (
+    <div className="runner-case-run-bar">
+      <div className="runner-execution-controls">
+        {viewSwitch}
+
         <AttemptSelect
           item={item}
           selectedAttempt={selectedAttempt}
@@ -99,29 +114,29 @@ export function CaseWorkspaceHeader({
           onSelectAttempt={onSelectAttempt}
           onSelectDocumentAttempt={onSelectDocumentAttempt}
         />
-        <dl className="runner-case-step-summary">
-          <div>
-            <dt>Total steps</dt>
-            <dd>{visibleStepSummary.total}</dd>
-          </div>
-          <div className="is-passed">
-            <dt>Success</dt>
-            <dd>{visibleStepSummary.passed}</dd>
-          </div>
-          <div className="is-failed">
-            <dt>Failed</dt>
-            <dd>{visibleStepSummary.failed}</dd>
-          </div>
-          <div className="is-timeout">
-            <dt>Timeout</dt>
-            <dd>{visibleStepSummary.timeout}</dd>
-          </div>
-          <div>
-            <dt>Not run</dt>
-            <dd>{visibleStepSummary.notRun ?? 0}</dd>
-          </div>
-        </dl>
       </div>
-    </section>
+      <dl className="runner-case-step-summary">
+        <div>
+          <dt>Total steps</dt>
+          <dd>{visibleStepSummary.total}</dd>
+        </div>
+        <div className="is-passed">
+          <dt>Success</dt>
+          <dd>{visibleStepSummary.passed}</dd>
+        </div>
+        <div className="is-failed">
+          <dt>Failed</dt>
+          <dd>{visibleStepSummary.failed}</dd>
+        </div>
+        <div className="is-timeout">
+          <dt>Timeout</dt>
+          <dd>{visibleStepSummary.timeout}</dd>
+        </div>
+        <div>
+          <dt>Not run</dt>
+          <dd>{visibleStepSummary.notRun ?? 0}</dd>
+        </div>
+      </dl>
+    </div>
   );
 }

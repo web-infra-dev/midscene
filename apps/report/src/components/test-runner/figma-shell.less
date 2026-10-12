@@ -32,7 +32,7 @@
 
   .runner-header {
     display: block;
-    min-height: 64px;
+    min-height: 56px;
     padding: 0;
     border: 0;
     background: var(--runner-bg);
@@ -41,8 +41,8 @@
   .runner-header-inner {
     display: grid;
     grid-template-columns: minmax(230px, 1fr) auto;
-    width: min(1424px, 100%);
-    min-height: 64px;
+    width: 100%;
+    min-height: 56px;
     align-items: center;
     margin-inline: auto;
     padding: 0 40px;
@@ -123,9 +123,9 @@
     position: relative;
     z-index: 1;
     isolation: isolate;
-    width: min(1424px, 100%);
+    width: 100%;
     margin-inline: auto;
-    padding: 40px;
+    padding: 40px 32px;
   }
 
   .runner-theme-toggle svg {

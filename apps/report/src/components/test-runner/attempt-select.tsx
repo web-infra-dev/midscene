@@ -60,6 +60,7 @@ export function AttemptSelect({
       <div className="runner-attempt-select-shell">
         <Select<number>
           aria-label="File attempts"
+          suffixIcon={<span className="runner-overview-select-chevron" />}
           popupMatchSelectWidth
           optionLabelProp="label"
           value={selectedDocumentAttemptIndex}
@@ -84,6 +85,7 @@ export function AttemptSelect({
       <div className="runner-attempt-select-shell">
         <Select<string>
           aria-label="Attempts"
+          suffixIcon={<span className="runner-overview-select-chevron" />}
           popupMatchSelectWidth
           optionLabelProp="label"
           value={selectedAttempt?.attemptId}

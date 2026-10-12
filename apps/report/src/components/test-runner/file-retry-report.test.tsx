@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CaseWorkspace } from './case-workspace';
-import { CaseWorkspaceHeader } from './case-workspace-header';
+import { CaseExecutionToolbar } from './case-workspace-header';
 import {
   getCaseWorkspaceDocument,
   getCaseWorkspaceDocumentAttemptIndex,
@@ -255,11 +255,10 @@ describe('whole-file retry report projection and viewer', () => {
       expect(html).toContain(`${failure} failed`);
 
       const retryHeader = renderToStaticMarkup(
-        <CaseWorkspaceHeader
+        <CaseExecutionToolbar
+          viewSwitch={null}
           item={item}
           selectedDocumentAttemptIndex={1}
-          backLabel="Overview"
-          onBack={() => {}}
           onSelectAttempt={() => {}}
           onSelectDocumentAttempt={() => {}}
         />,
