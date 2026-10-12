@@ -442,6 +442,7 @@ midscene_run/report/midscene-e2e-<runId>.html
 
 每次运行结束后，框架还会在 `summary.json` 旁生成 `.midscene/test-results/<runId>/result.md`。
 CLI 通过 `Markdown:` 打印路径，Node SDK 通过 `markdownPath` 返回路径。
+用例按文件分组，每行缩进显示状态图标和标题，不折叠。过滤数量和基础设施错误数量为零时不显示。
 文件包含统计、执行错误和用例列表，每个用例只占一行，显示标题与状态。
 点击用例标题可在 HTML 报告中查看详情和已有截图。
 失败的运行也会生成该文件；在结束处理之前被强制终止的运行无法生成完整摘要。

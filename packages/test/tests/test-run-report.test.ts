@@ -223,12 +223,45 @@ describe('result.md', () => {
     const markdown = renderTestResultMarkdown(dump, {
       reportHref: '../../../report/index.html',
     });
-    expect(markdown).toContain('1 total · 0 passed · 1 failed');
-    expect(markdown).toMatch(/^- \[submit\]\(<[^\n]+>\) — failed$/m);
+    expect(markdown).toContain('❌ **1 failed** · 0 passed · 0 not run');
+    expect(markdown).toMatch(/^ {2}- ❌ \[submit\]\(<[^\n]+>\)$/m);
     expect(markdown).toContain('runner-step=');
-    expect(markdown).not.toMatch(/<img| {2}- |Reason:|Attempts:|missing/);
+    expect(markdown).not.toMatch(/<img|Reason:|Attempts:|missing/);
     expect(markdown).not.toContain('secret-key');
     expect(markdown).not.toContain('secret-token');
+  });
+
+  it('groups cases by source file without collapsing passed cases', () => {
+    const dump = buildTestRunReportDump(result([step()]), index);
+    dump.durationMs = 200900;
+    const document = dump.projects[0].documents[0];
+    document.sourcePath = 'cases/chat-core.yaml';
+    const original = document.cases[0];
+    document.cases = [
+      { ...original, name: 'passed', status: 'success' },
+      { ...original, name: 'failed', status: 'failed' },
+      { ...original, name: 'pending', status: 'not-run', attempts: [] },
+    ];
+    dump.projects[0].documents.push({
+      ...document,
+      sourcePath: 'cases/apps.yaml',
+      cases: [{ ...original, name: 'app' }],
+    });
+    const markdown = renderTestResultMarkdown(dump);
+    expect(markdown).toContain(
+      '- cases/chat-core\n  - ✅ passed\n  - ❌ failed\n  - ⏭️ pending',
+    );
+    expect(markdown).toContain('- cases/apps\n  - ✅ app');
+    expect(markdown).toContain('3m 21s');
+    expect(markdown).not.toContain('<details>');
+  });
+
+  it('omits zero counters when all cases pass', () => {
+    const markdown = renderTestResultMarkdown(
+      buildTestRunReportDump(result([step()]), index),
+    );
+    expect(markdown).toContain('✅ **1/1 passed**');
+    expect(markdown).not.toMatch(/Infrastructure|Filtered|### Cases|<details>/);
   });
 
   it('writes result.md without an HTML report and records collection failures', async () => {

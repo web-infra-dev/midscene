@@ -23,7 +23,12 @@ const text = (value: string): string =>
     .replaceAll('\\', '&#92;')
     .replace(/[\r\n]+/g, ' ');
 
-const duration = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
+const duration = (ms: number): string => {
+  const seconds = Math.round(ms / 1000);
+  return seconds < 60
+    ? `${seconds}s`
+    : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+};
 const href = (from: string, target: string): string =>
   relative(dirname(from), target).split(sep).map(encodeURIComponent).join('/');
 
@@ -38,20 +43,31 @@ export function renderTestResultMarkdown(
   options: TestResultMarkdownOptions = {},
 ): string {
   const { summary } = dump;
+  const outcome =
+    dump.status === 'success'
+      ? `✅ **${summary.passed}/${summary.total} passed**`
+      : `❌ **${summary.failed} failed** · ${summary.passed} passed · ${summary.notRun} not run`;
   const lines = [
-    `## Midscene Test · ${dump.status === 'success' ? 'passed' : 'failed'}`,
+    '## Midscene Test',
     '',
-    `**Cases:** ${summary.total} total · ${summary.passed} passed · ${summary.failed} failed · ${summary.notRun} not run`,
+    `${outcome} · ${duration(dump.durationMs)}`,
     '',
-    `**Duration:** ${duration(dump.durationMs)} · **Filtered:** ${summary.filtered}`,
-    '',
-    `**Infrastructure:** ${summary.collectionErrors} collection errors · ${summary.documentFailures} document failures · ${summary.projectFailures} project failures`,
-    '',
-    ...(options.reportHref
-      ? [`[Open the Midscene Test report](<${options.reportHref}>)`, '']
-      : []),
   ];
-  const rows: { failed: boolean; row: string }[] = [];
+  if (summary.filtered) lines.push(`**Filtered:** ${summary.filtered}`, '');
+  const infrastructure = [
+    summary.collectionErrors
+      ? `${summary.collectionErrors} collection errors`
+      : '',
+    summary.documentFailures
+      ? `${summary.documentFailures} document failures`
+      : '',
+    summary.projectFailures
+      ? `${summary.projectFailures} project failures`
+      : '',
+  ].filter(Boolean);
+  if (infrastructure.length)
+    lines.push(`**Infrastructure:** ${infrastructure.join(' · ')}`, '');
+  const groups: { name: string; rows: string[] }[] = [];
   const errors: string[] = [];
   const recordSteps = (label: string, steps: readonly TestRunReportStep[]) => {
     for (const step of steps) {
@@ -71,6 +87,14 @@ export function renderTestResultMarkdown(
         `${project.name} / ${error.sourcePath}: ${error.error.message}`,
       );
     for (const document of project.documents) {
+      const name = document.sourcePath
+        .replace(/\\/g, '/')
+        .replace(/\.(?:yaml|yml)$/, '');
+      const group = {
+        name: dump.projects.length > 1 ? `${project.name} / ${name}` : name,
+        rows: [] as string[],
+      };
+      groups.push(group);
       recordSteps(`${project.name} / ${document.sourcePath}`, [
         ...document.beforeAll,
         ...document.afterAll,
@@ -103,10 +127,9 @@ export function renderTestResultMarkdown(
         const name = target
           ? `[${text(testCase.name)}](<${target}>)`
           : text(testCase.name);
-        rows.push({
-          failed: testCase.status !== 'success',
-          row: `- ${name} — ${testCase.status}`,
-        });
+        group.rows.push(
+          `  - ${testCase.status === 'success' ? '✅' : testCase.status === 'not-run' ? '⏭️' : '❌'} ${name}`,
+        );
       }
     }
   }
@@ -120,11 +143,16 @@ export function renderTestResultMarkdown(
       ...errors.map((error) => `- ${text(error)}`),
       '',
     );
-  lines.push('### Cases', '');
-  lines.push(...rows.filter((row) => row.failed).map((row) => row.row));
-  const passed = rows.filter((row) => !row.failed);
-  if (passed.length) lines.push(...passed.map((row) => row.row));
-  if (!rows.length) lines.push('', 'No cases were reported.');
+  for (const group of groups) {
+    if (group.rows.length) lines.push(`- ${text(group.name)}`, ...group.rows);
+  }
+  if (!groups.some((group) => group.rows.length))
+    lines.push('No cases were reported.');
+  if (options.reportHref)
+    lines.push(
+      '',
+      `[Open the Midscene Test report ↗](<${options.reportHref}>)`,
+    );
   return `${lines.join('\n')}\n`;
 }
 
