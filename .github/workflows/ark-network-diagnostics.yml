@@ -29,8 +29,8 @@ jobs:
           echo '::group::DNS and routes'
           cat /etc/resolv.conf
           getent ahosts ark.cn-beijing.volces.com || true
-          ip route || true
-          ip -6 route || true
+          cat /proc/net/route
+          cat /proc/net/ipv6_route
           echo '::endgroup::'
           echo '::group::Proxy configuration presence (values omitted)'
           for key in HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY http_proxy https_proxy all_proxy no_proxy MIDSCENE_MODEL_HTTP_PROXY MIDSCENE_MODEL_SOCKS_PROXY NODE_USE_ENV_PROXY NODE_OPTIONS; do
@@ -65,15 +65,56 @@ jobs:
             done
           done
 
-      - name: Probe DNS and HTTPS with Node.js
+      - name: Compare curl IPv4 connection timeouts
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          node --input-type=module <<'NODE'
-          import dns from 'node:dns/promises';
+          # curl's connect timeout includes DNS and TLS; inspect TCP/TLS timings
+          # before interpreting a timeout as a TCP connection failure.
+          for round in 1 2 3; do
+            for timeout in 0.25 2 10; do
+              echo "::group::curl IPv4 round=$round connect-timeout=$timeout"
+              status=0
+              curl -4 --noproxy '*' --silent --show-error \
+                --connect-timeout "$timeout" --max-time 15 --output /dev/null \
+                --write-out 'HTTP=%{http_code} remote_ip=%{remote_ip} DNS=%{time_namelookup}s TCP=%{time_connect}s TLS=%{time_appconnect}s total=%{time_total}s\n' \
+                https://ark.cn-beijing.volces.com/api/v3/models || status=$?
+              echo "curl exit code: $status"
+              echo '::endgroup::'
+            done
+          done
+
+      - name: Compare Node.js address selection and connection timeouts
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          # Each probe starts a fresh process, avoiding connection pool reuse.
+          # Repeat interleaved modes to reduce the effect of temporary network changes.
+          for round in 1 2 3; do
+            for mode in default attempt-2000 ipv4-first-no-autoselection; do
+              echo "::group::Node round=$round mode=$mode"
+              PROBE_MODE="$mode" NODE_DEBUG=net node --input-type=module <<'NODE'
+          import dns from 'node:dns';
+          import net from 'node:net';
           const host = 'ark.cn-beijing.volces.com';
+          const mode = process.env.PROBE_MODE;
+          if (mode === 'attempt-2000') {
+            net.setDefaultAutoSelectFamilyAttemptTimeout(2000);
+          }
+          if (mode === 'ipv4-first-no-autoselection') {
+            dns.setDefaultResultOrder('ipv4first');
+            net.setDefaultAutoSelectFamily(false);
+          }
+          console.log({
+            mode,
+            node: process.version,
+            undici: process.versions.undici,
+            autoSelectFamily: net.getDefaultAutoSelectFamily(),
+            attemptTimeoutMs: net.getDefaultAutoSelectFamilyAttemptTimeout(),
+            dnsOrder: dns.getDefaultResultOrder(),
+          });
           try {
-            console.log('dns.lookup:', await dns.lookup(host, { all: true }));
+            console.log('dns.lookup:', await dns.promises.lookup(host, { all: true }));
           } catch (error) {
             console.dir(error, { depth: null });
           }
@@ -89,6 +130,9 @@ jobs:
             console.dir(error, { depth: null });
           }
           NODE
+              echo '::endgroup::'
+            done
+          done
 
       - name: Explain diagnostic results
         if: ${{ !cancelled() }}
@@ -97,6 +141,9 @@ jobs:
           cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
           ## Ark network diagnostics
 
+          Node.js compares default settings, a 2000ms address attempt timeout, and IPv4-first lookup with automatic address selection disabled.
+          Each mode runs three times in fresh processes. NODE_DEBUG=net shows actual addresses and connection attempts.
+          curl compares 250ms, 2s, and 10s connection timeouts, which include DNS and TLS as well as TCP.
           See the DNS, curl, and Node.js steps for resolved addresses, connection timings, and nested errors.
           These probes do not use an API Key or invoke a model.
           Any HTTP response (including 401/403/404) confirms that the probe reached an HTTP server; it does not validate model access.
