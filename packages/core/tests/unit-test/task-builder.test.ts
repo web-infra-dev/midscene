@@ -1,7 +1,11 @@
 import { TaskBuilder, locatePlanForLocate } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
-import { AbstractInterface, defineActionSleep } from '@/device';
+import {
+  AbstractInterface,
+  ActionSwipeParamSchema,
+  defineActionSleep,
+} from '@/device';
 import type Service from '@/service';
 import type { DeviceAction, PlanningAction } from '@/types';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
@@ -54,6 +58,154 @@ describe('TaskBuilder', () => {
   afterEach(() => {
     rs.useRealTimers();
   });
+
+  it.each([0.5, 1, 1.5, 2, 3])(
+    'converts relative Swipe distance at dispatch with screenshot ratio %s',
+    async (ratio) => {
+      const call = rs.fn();
+      const action: DeviceAction = {
+        name: 'Swipe',
+        description: 'swipe',
+        paramSchema: ActionSwipeParamSchema,
+        delayBeforeRunner: 0,
+        delayAfterRunner: 0,
+        call,
+      };
+      const device = new MockInterface([action]);
+      const builder = new TaskBuilder({
+        interfaceInstance: device,
+        service: {} as Service,
+        actionSpace: [action],
+      });
+      const param = {
+        start: { center: [120, 240], description: 'start' },
+        direction: 'up',
+        distance: 90,
+        duration: 500,
+      };
+      const { tasks } = await builder.build(
+        [{ type: 'Swipe', thought: '', param }],
+        mockModelRuntime,
+        mockModelRuntime,
+      );
+      const task = tasks.find((task) => task.type === 'Action Space')!;
+      await task.executor({
+        task: { timing: {} },
+        uiContext: { shrunkShotToLogicalRatio: ratio },
+      } as any);
+      expect(call.mock.calls[0][0]).toEqual({
+        ...param,
+        start: {
+          ...param.start,
+          center: [Math.round(120 / ratio), Math.round(240 / ratio)],
+        },
+        distance: 90 / ratio,
+      });
+      expect(param.distance).toBe(90);
+      expect(param.start.center).toEqual([120, 240]);
+    },
+  );
+
+  it.each([
+    {
+      name: 'Swipe',
+      param: { start: { center: [120, 240] }, end: { center: [60, 120] } },
+      expected: {
+        start: { center: [40, 80] },
+        end: { center: [20, 40] },
+        duration: 300,
+      },
+    },
+    {
+      name: 'Swipe',
+      param: { direction: 'down', distance: 90 },
+      expected: { direction: 'down', distance: 30, duration: 300 },
+    },
+    {
+      name: 'CustomMovement',
+      param: { direction: 'down', distance: 90 },
+      expected: { direction: 'down', distance: 90, duration: 300 },
+    },
+  ])(
+    'preserves endpoint/default-start/custom action semantics: %j',
+    async ({ name, param, expected }) => {
+      const call = rs.fn();
+      const action: DeviceAction = {
+        name,
+        description: 'movement',
+        paramSchema: ActionSwipeParamSchema,
+        delayBeforeRunner: 0,
+        delayAfterRunner: 0,
+        call,
+      };
+      const builder = new TaskBuilder({
+        interfaceInstance: new MockInterface([action]),
+        service: {} as Service,
+        actionSpace: [action],
+      });
+      const original = structuredClone(param);
+      const { tasks } = await builder.build(
+        [{ type: name, thought: '', param }],
+        mockModelRuntime,
+        mockModelRuntime,
+      );
+      const task = tasks.find((task) => task.type === 'Action Space')!;
+      const context = {
+        task: { timing: {} },
+        uiContext: { shrunkShotToLogicalRatio: 3 },
+      } as any;
+      await task.executor(context);
+      await task.executor(context);
+      expect(call.mock.calls.map(([value]) => value)).toEqual([
+        expected,
+        expected,
+      ]);
+      expect(param).toEqual(original);
+      // Direct device actions already take logical coordinates and do not pass
+      // through the task builder's screenshot conversion.
+      await action.call(param as any, context);
+      expect(call.mock.calls[2][0]).toEqual(original);
+    },
+  );
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects an invalid Swipe scale %s before dispatch',
+    async (ratio) => {
+      const call = rs.fn();
+      const action: DeviceAction = {
+        name: 'Swipe',
+        description: 'swipe',
+        paramSchema: ActionSwipeParamSchema,
+        delayBeforeRunner: 0,
+        delayAfterRunner: 0,
+        call,
+      };
+      const builder = new TaskBuilder({
+        interfaceInstance: new MockInterface([action]),
+        service: {} as Service,
+        actionSpace: [action],
+      });
+      const { tasks } = await builder.build(
+        [
+          {
+            type: 'Swipe',
+            thought: '',
+            param: { direction: 'up', distance: 90 },
+          },
+        ],
+        mockModelRuntime,
+        mockModelRuntime,
+      );
+      const task = tasks.find((task) => task.type === 'Action Space')!;
+      await expect(
+        task.executor({
+          task: { timing: {} },
+          uiContext: { shrunkShotToLogicalRatio: ratio },
+        } as any),
+      ).rejects.toThrow('Invalid screenshot-to-logical ratio');
+      expect(call).not.toHaveBeenCalled();
+    },
+  );
 
   it('normalizes the deprecated locate deepThink alias before task reporting', () => {
     const plan = locatePlanForLocate({
