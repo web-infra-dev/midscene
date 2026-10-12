@@ -391,6 +391,7 @@ describe('plan XML parse retry', () => {
         includeLocateInPlanning: false,
         effort: 'fast',
       });
+      assert(result.actions);
       expect(result.actions[0].param.distance).toBe(90 / ratio);
       expect(result.rawResponse).toBe(rawResponse);
       expect(result.yamlFlow).toEqual([
