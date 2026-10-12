@@ -25,23 +25,6 @@
     font-weight: 600;
   }
 
-  .runner-single-run-diagnostics {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .runner-single-run-diagnostics summary {
-    width: fit-content;
-    padding: 8px 0;
-    color: var(--runner-muted);
-    font-size: 14px;
-    cursor: pointer;
-  }
-
-  .runner-single-run-diagnostics .ant-alert + .ant-alert {
-    margin-top: 8px;
-  }
-
   .runner-case-workspace {
     width: min(1484px, 100%);
   }
@@ -161,36 +144,6 @@
     border-bottom: 1px solid var(--runner-border);
   }
 
-  .runner-detail-failure-summary {
-    margin: 12px 14px 0;
-    padding: 10px 11px;
-    color: var(--runner-danger);
-    border-color: color-mix(
-      in srgb,
-      var(--runner-danger) 18%,
-      var(--runner-border)
-    );
-    background: color-mix(
-      in srgb,
-      var(--runner-danger) 5%,
-      var(--runner-surface)
-    );
-  }
-
-  .runner-detail-failure-summary small {
-    color: color-mix(in srgb, var(--runner-danger) 66%, var(--runner-text));
-    font-size: 14px;
-  }
-
-  .runner-detail-failure-summary button {
-    border-color: color-mix(
-      in srgb,
-      var(--runner-danger) 20%,
-      var(--runner-border)
-    );
-    background: transparent;
-  }
-
   .runner-detail-screenshot-stage {
     display: flex;
     min-height: 0;
@@ -288,10 +241,6 @@
   .runner-detail-log-view p {
     padding: 10px 11px;
     font-size: 14px;
-  }
-
-  .runner-detail-raw-context {
-    border-top: 1px solid var(--runner-border);
   }
 }
 

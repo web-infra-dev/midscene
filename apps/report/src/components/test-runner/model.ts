@@ -339,6 +339,17 @@ export const groupRunnerProjects = (
     };
   });
 
+export const isStepTimeout = (step: TestRunReportStep): boolean =>
+  step.status === 'failed' &&
+  Boolean(
+    step.error &&
+      /timeout|timed out/i.test(
+        [step.error.code, step.error.name, step.error.message]
+          .filter(Boolean)
+          .join(' '),
+      ),
+  );
+
 export const getStepDisplayName = (step: TestRunReportStep): string =>
   step.title?.trim() || step.output?.summary?.trim() || step.node;
 
@@ -733,10 +744,12 @@ export const getDefaultVisualFrameForStep = (
   );
 
 export const positionAttemptVisualFrames = (
-  attempt: TestRunReportAttempt,
+  attempt: Pick<TestRunReportAttempt, 'startedAt' | 'endedAt' | 'durationMs'>,
   frames: readonly RunnerVisualFrame[],
+  steps: readonly TestRunReportStep[] = 'steps' in attempt
+    ? flattenAttemptSteps(attempt as TestRunReportAttempt)
+    : [],
 ): RunnerPositionedVisualFrame[] => {
-  const steps = flattenAttemptSteps(attempt);
   const attemptStartedAt = timestamp(attempt.startedAt);
   const attemptEndedAt = timestamp(attempt.endedAt);
   const measuredDurationMs =

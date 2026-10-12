@@ -45,11 +45,13 @@ export interface TestExecutionProjectRunResult {
   filteredCaseCount: number;
   lifecycle?: ProjectRuntimeResult;
   cases: readonly TestProjectCaseRunResult[];
+  plans?: readonly import('@midscene/core').TestRunReportDocumentPlan[];
   documents: readonly WorkflowDocumentRunResult[];
   collectionErrors: readonly TestProjectCollectionError[];
 }
 
 export interface TestProjectRunResult {
+  operationLog?: { path: string; snapshotAt: string };
   schemaVersion: 3;
   runId: string;
   startedAt: string;

@@ -54,6 +54,7 @@ describe('execution facts survive infrastructure failures', () => {
     expect(failure.result).toMatchObject({
       status: 'failed',
       steps: [{ status: 'success', output: { data: 42 } }],
+      executionStatus: 'success',
       executionErrors: [{ message: 'callback failed' }],
       teardownErrors: [{ message: expect.stringContaining('cleanup failed') }],
     });

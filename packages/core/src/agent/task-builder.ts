@@ -4,7 +4,7 @@ import {
   findActionInActionSpaceOrThrow,
   validateRequiredLocateFields,
 } from '@/common';
-import type { AbstractInterface } from '@/device';
+import { type AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
 import type {
@@ -23,7 +23,6 @@ import type {
   ServiceDump,
 } from '@/types';
 import { ServiceError } from '@/types';
-import { sleep } from '@/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ActionReadiness } from './action-readiness';
@@ -97,6 +96,7 @@ interface TaskBuilderDeps {
   actionSpace: DeviceAction[];
   waitAfterAction?: number;
   actionReadiness?: ActionReadiness;
+  operationResource?: object;
 }
 
 interface BuildOptions {
@@ -125,6 +125,7 @@ export class TaskBuilder {
 
   private readonly waitAfterAction?: number;
   private readonly actionReadiness?: ActionReadiness;
+  private readonly operationResource: object;
 
   constructor({
     interfaceInstance,
@@ -133,6 +134,7 @@ export class TaskBuilder {
     actionSpace,
     waitAfterAction,
     actionReadiness,
+    operationResource,
   }: TaskBuilderDeps) {
     this.interface = interfaceInstance;
     this.service = service;
@@ -140,6 +142,7 @@ export class TaskBuilder {
     this.actionSpace = actionSpace;
     this.waitAfterAction = waitAfterAction;
     this.actionReadiness = actionReadiness;
+    this.operationResource = operationResource ?? interfaceInstance;
   }
 
   public async build(
@@ -178,6 +181,7 @@ export class TaskBuilder {
       this.handleActionPlan(plan, context);
 
     for (const plan of plans) {
+      context.abortSignal?.throwIfAborted();
       const handler = planHandlers.get(plan.type) ?? defaultHandler;
       await handler(plan);
     }
@@ -260,6 +264,7 @@ export class TaskBuilder {
       param: plan.param,
       planningFeedbackMaxLength: action.planningFeedbackMaxLength,
       executor: async (taskContext) => {
+        const abortSignal = context.abortSignal ?? taskContext.signal;
         const timing = taskContext.task.timing;
 
         debug(
@@ -298,19 +303,29 @@ export class TaskBuilder {
         taskContext.task.actionReadiness = useDefaultWait
           ? 'default'
           : 'custom';
-        context.abortSignal?.throwIfAborted();
+        abortSignal?.throwIfAborted();
 
         setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
         const delayBeforeRunner = useDefaultWait
           ? (action.delayBeforeRunner ?? 200)
           : 0;
         try {
-          await Promise.all([
-            this.interface.beforeInvokeAction?.(action.name, param),
+          const preparation = await Promise.allSettled([
+            this.interface.beforeInvokeAction?.(
+              action.name,
+              param,
+              abortSignal,
+            ),
             delayBeforeRunner > 0
-              ? sleep(delayBeforeRunner)
+              ? defineActionSleep(abortSignal).call({
+                  timeMs: delayBeforeRunner,
+                })
               : Promise.resolve(),
           ]);
+          const rejected = preparation.find(
+            (item) => item.status === 'rejected',
+          );
+          if (rejected?.status === 'rejected') throw rejected.reason;
         } catch (originalError: any) {
           throw new Error(
             `error in running beforeInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
@@ -320,19 +335,19 @@ export class TaskBuilder {
           setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
         }
 
-        context.abortSignal?.throwIfAborted();
+        abortSignal?.throwIfAborted();
         setTimingFieldOnce(timing, 'callActionStart');
         debug('calling action', action.name);
         const actionResult = await action.call.call(
           this.interface,
           parsedParam,
           useDefaultWait
-            ? taskContext
-            : { ...taskContext, skipDefaultWait: true },
+            ? { ...taskContext, signal: abortSignal }
+            : { ...taskContext, signal: abortSignal, skipDefaultWait: true },
         );
         setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
-        context.abortSignal?.throwIfAborted();
+        abortSignal?.throwIfAborted();
 
         setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
         setTimingFieldOnce(timing, 'waitForActionReadyStart');
@@ -340,8 +355,15 @@ export class TaskBuilder {
           if (useDefaultWait) {
             const delayAfterRunner =
               action.delayAfterRunner ?? this.waitAfterAction ?? 300;
-            if (delayAfterRunner > 0) await sleep(delayAfterRunner);
-            await this.interface.defaultActionWait?.(action.name, parsedParam);
+            if (delayAfterRunner > 0)
+              await defineActionSleep(abortSignal).call({
+                timeMs: delayAfterRunner,
+              });
+            await this.interface.defaultActionWait?.(
+              action.name,
+              parsedParam,
+              abortSignal,
+            );
           } else {
             await this.actionReadiness!.wait(
               {
@@ -349,15 +371,20 @@ export class TaskBuilder {
                 name: action.name,
                 param: parsedParam,
               },
-              context.abortSignal,
+              abortSignal,
+              this.operationResource,
             );
           }
         } finally {
           setTimingFieldOnce(timing, 'waitForActionReadyEnd');
         }
-        context.abortSignal?.throwIfAborted();
+        abortSignal?.throwIfAborted();
         try {
-          await this.interface.afterInvokeAction?.(action.name, parsedParam);
+          await this.interface.afterInvokeAction?.(
+            action.name,
+            parsedParam,
+            abortSignal,
+          );
         } catch (originalError: any) {
           throw new Error(
             `error in running afterInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
@@ -379,7 +406,7 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, defaultModel, deepLocate, abortSignal } = context;
+    const { cacheable, defaultModel, deepLocate } = context;
 
     let locateParam = normalizeLocateParam(detailedLocateParam);
 
@@ -403,6 +430,8 @@ export class TaskBuilder {
       param: locateParam,
       thought: plan.thought,
       executor: async (taskContext) => {
+        const abortSignal = context.abortSignal ?? taskContext.signal;
+        abortSignal?.throwIfAborted();
         const { task } = taskContext;
         let { uiContext } = taskContext;
         const paramWithLocatedPixelResult = ifLocateParamHasLocatedPixelResult(
@@ -419,7 +448,8 @@ export class TaskBuilder {
         );
 
         if (!uiContext) {
-          uiContext = await this.service.contextRetrieverFn();
+          uiContext = await this.service.contextRetrieverFn(abortSignal);
+          abortSignal?.throwIfAborted();
         }
 
         assert(uiContext, 'uiContext is required for Service task');
