@@ -1,0 +1,42 @@
+name: AI CI
+description: Run model tests with a shared Node connection policy
+
+inputs:
+  command:
+    description: Trusted workflow command; omit when preparing env for a third-party action
+    required: false
+    default: ''
+  shell:
+    description: Shell for the command (bash or pwsh)
+    required: false
+    default: bash
+  working-directory:
+    description: Working directory for the command
+    required: false
+    default: '.'
+
+outputs:
+  node-options:
+    description: NODE_OPTIONS for third-party actions that run model tests
+    value: ${{ steps.network.outputs.node-options }}
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare AI CI
+      id: network
+      shell: bash
+      env:
+        # Ark IPv4 connections can exceed Node's default 250ms address attempt.
+        AI_CI_NODE_OPTIONS: ${{ env.NODE_OPTIONS }} --network-family-autoselection-attempt-timeout=2000
+      run: |
+        # GITHUB_ENV cannot set NODE_OPTIONS; pass it through a step env/output.
+        printf '%s\n' "node-options=$AI_CI_NODE_OPTIONS" >> "$GITHUB_OUTPUT"
+
+    - name: Run AI CI command
+      if: inputs.command != ''
+      shell: ${{ inputs.shell }}
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        NODE_OPTIONS: ${{ steps.network.outputs.node-options }}
+      run: ${{ inputs.command }}

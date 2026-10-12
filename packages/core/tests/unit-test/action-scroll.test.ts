@@ -1,5 +1,9 @@
 import { parseActionParam } from '@/ai-model';
-import { actionScrollParamSchema, defineActionScroll } from '@/device';
+import {
+  actionScrollParamSchema,
+  defineActionScroll,
+  defineActionsFromInputPrimitives,
+} from '@/device';
 import { describe, expect, it } from '@rstest/core';
 
 describe('Scroll Action Parameter Validation', () => {
@@ -57,5 +61,18 @@ describe('touch Scroll targeting contract', () => {
       direction: 'down',
       distance: 100,
     });
+  });
+});
+
+describe('Scroll transport selection', () => {
+  it('keeps wheel scrolling semantics when a browser also exposes touch primitives', () => {
+    const input = {
+      touch: { swipe: async () => {} },
+      scroll: { scroll: async () => {} },
+    };
+    const wheel = defineActionsFromInputPrimitives(input, {
+      includeSwipe: false,
+    }).find((action) => action.name === 'Scroll');
+    expect(wheel?.paramSchema).toBe(actionScrollParamSchema);
   });
 });

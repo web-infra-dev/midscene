@@ -800,10 +800,7 @@ export const defineActionLongPress = (
   });
 };
 
-function createActionSwipeParamSchema(
-  inputMode: SwipeInputMode,
-  defaultDuration = 300,
-) {
+function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
   const movementSource = inputMode === 'touch' ? 'finger' : 'pointer';
 
   return z.object({
@@ -832,7 +829,7 @@ function createActionSwipeParamSchema(
       ),
     duration: z
       .number()
-      .default(defaultDuration)
+      .default(300)
       .describe(
         inputMode === 'touch'
           ? 'Duration of the finger movement in milliseconds. Together with distance, this controls gesture speed and momentum. Keep the default for a quick swipe or flick; explicitly choose a longer duration (e.g. 500ms) with a short distance when fine control is needed, such as selecting a nearby value in a wheel picker. Adjust distance and duration based on the observed result; do not repeat an overshooting gesture unchanged.'
@@ -937,7 +934,6 @@ export const defineActionSwipe = (config: {
   swipe: SwipeInputPrimitive;
   size(): Promise<Size>;
   inputMode?: SwipeInputMode;
-  defaultDuration?: number;
 }): DeviceAction<ActionSwipeParam> => {
   const inputMode = config.inputMode ?? 'touch';
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
@@ -948,19 +944,16 @@ export const defineActionSwipe = (config: {
         : 'Perform a primary-mouse-button gesture that continuously presses and moves the pointer across the desktop UI. Use it to adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it. For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".',
     interfaceAlias: 'aiSwipe',
     paramSchema:
-      inputMode === 'touch' && config.defaultDuration === undefined
+      inputMode === 'touch'
         ? ActionSwipeParamSchema
-        : createActionSwipeParamSchema(inputMode, config.defaultDuration),
+        : createActionSwipeParamSchema(inputMode),
     sample: {
       start: { prompt: 'center of the notification' },
       end: { prompt: 'upper edge of the screen' },
     },
     call: async (param) => {
       const { startPoint, endPoint, duration, repeatCount } =
-        normalizeSwipeParam(
-          { ...param, duration: param.duration ?? config.defaultDuration },
-          await config.size(),
-        );
+        normalizeSwipeParam(param, await config.size());
       for (let i = 0; i < repeatCount; i++) {
         await config.swipe(startPoint, endPoint, { duration });
       }
@@ -1149,8 +1142,6 @@ export function normalizePinchParam(
 }
 
 export interface MobileInputActionContext {
-  /** Default Swipe duration; explicit action durations take precedence. */
-  defaultSwipeDuration?: number;
   input: MobileInputPrimitives;
   size(): Promise<Size>;
   sleep?(timeMs: number): Promise<void>;
@@ -1173,8 +1164,8 @@ export interface SystemInputActionOptions {
 }
 
 export interface InputPrimitiveActionOptions {
-  /** Default Swipe duration; explicit action durations take precedence. */
-  defaultSwipeDuration?: number;
+  /** Scroll transport semantics. Defaults to wheel; mobile factories select touch. */
+  scrollInputMode?: SwipeInputMode;
   size?: () => Promise<Size>;
   sleep?: (timeMs: number) => Promise<void>;
   includeSwipe?: boolean;
@@ -1232,7 +1223,7 @@ export function defineActionsFromInputPrimitives(
   }
 
   if (scroll) {
-    actions.push(defineActionScroll(scroll.scroll, touch ? 'touch' : 'mouse'));
+    actions.push(defineActionScroll(scroll.scroll, options.scrollInputMode));
   }
 
   const swipeConfig = resolveSwipeInputPrimitive({ pointer, touch });
@@ -1241,7 +1232,6 @@ export function defineActionsFromInputPrimitives(
       defineActionSwipe({
         ...swipeConfig,
         size: options.size,
-        defaultDuration: options.defaultSwipeDuration,
       }),
     );
   }
@@ -1281,8 +1271,8 @@ export function createDefaultMobileActions(
   context: MobileInputActionContext,
 ): DeviceAction<any>[] {
   return defineActionsFromInputPrimitives(context.input, {
+    scrollInputMode: 'touch',
     size: context.size,
-    defaultSwipeDuration: context.defaultSwipeDuration,
     sleep: context.sleep,
     systemActions: context.systemActions,
   });
