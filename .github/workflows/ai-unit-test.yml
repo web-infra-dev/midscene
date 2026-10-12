@@ -78,7 +78,7 @@ jobs:
       # passed here.
       uses: ./.github/actions/ai-ci
       with:
-        command: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --parallel=1 --outputStyle=stream --verbose -- --coverage
+        command: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage
       id: test-ai
       continue-on-error: true
 
