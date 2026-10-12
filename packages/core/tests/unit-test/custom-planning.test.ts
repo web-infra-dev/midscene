@@ -123,6 +123,6 @@ it('normalizes relative Swipe distances returned by a custom planner', async () 
       buildResponseLog: () => 'swipe',
     } as any,
   );
-  expect(result.actions[0].param.distance).toBe(30);
+  expect(result.actions?.[0].param.distance).toBe(30);
   expect(rawParam.distance).toBe(90);
 });
