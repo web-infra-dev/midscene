@@ -79,6 +79,7 @@ export interface IReportGenerator {
   enableSourceSnapshots?(): void;
   createSourceSnapshot?(
     scopeId: string,
+    executionIds?: readonly string[],
   ): Promise<WorkflowReportSource | undefined>;
 
   /**
@@ -331,23 +332,32 @@ ${generateAgentReportComment(agentDump)}`;
     this.screenshotStore.enableFileCopies();
   }
 
-  private async serializeSourceDump() {
+  private async serializeSourceDump(
+    frozenDump?: ReportActionDump,
+    screenshots?: ReturnType<ExecutionDump['collectScreenshots']>,
+  ) {
     this.enableSourceSnapshots();
+    const executions = frozenDump?.executions ?? [
+      ...this.executionsByKey.values(),
+    ];
     const references = new Map<string, ImageUrlRef>();
-    for (const execution of this.executionsByKey.values()) {
-      for (const screenshot of execution.collectScreenshots())
-        await this.screenshotStore.persist(screenshot);
+    for (const screenshot of screenshots ??
+      executions.flatMap((execution) => execution.collectScreenshots()))
+      await this.screenshotStore.persist(screenshot);
+    for (const execution of executions) {
       for (const [url, ref] of await this.persistReferenceImages(execution))
         references.set(url, ref);
     }
-    const dump = new ReportActionDump({
-      ...(this.lastReportMeta ?? {
-        sdkVersion: '',
-        groupName: 'YAML execution',
-        modelBriefs: [],
-      }),
-      executions: [...this.executionsByKey.values()],
-    });
+    const dump =
+      frozenDump ??
+      new ReportActionDump({
+        ...(this.lastReportMeta ?? {
+          sdkVersion: '',
+          groupName: 'YAML execution',
+          modelBriefs: [],
+        }),
+        executions,
+      });
     const images = new Map<
       string,
       ReturnType<typeof normalizeStoredImageRef> & {}
@@ -369,16 +379,43 @@ ${generateAgentReportComment(agentDump)}`;
     return { serialized, images };
   }
 
-  async createSourceSnapshot(scopeId: string): Promise<WorkflowReportSource> {
+  async createSourceSnapshot(
+    scopeId: string,
+    executionIds?: readonly string[],
+  ): Promise<WorkflowReportSource & { dumpPath: string }> {
     // Scope IDs originate in the kernel; never allow a filename to escape the report directory.
     if (!scopeId || basename(scopeId) !== scopeId)
       throw new Error('Invalid report scope ID');
-    await this.flush();
-    const { serialized } = await this.serializeSourceDump();
-    const dumpPath = `${this.reportPath}.${scopeId}.json`;
+    // Freeze before the first await. HTML writes and the live action can still
+    // be pending; neither is a prerequisite for publishing this cutoff.
+    const capturedAt = new Date().toISOString();
+    const selectedIds = executionIds ? new Set(executionIds) : undefined;
+    const executions = [...this.executionsByKey.values()].filter(
+      (execution) =>
+        !selectedIds || (execution.id && selectedIds.has(execution.id)),
+    );
+    const screenshots = executions.flatMap((execution) =>
+      execution.collectScreenshots(),
+    );
+    const frozen = ReportActionDump.fromSerializedString(
+      new ReportActionDump({
+        ...(this.lastReportMeta ?? {
+          sdkVersion: '',
+          groupName: 'YAML execution',
+          modelBriefs: [],
+        }),
+        executions,
+      }).serialize(),
+    );
+    const { serialized } = await this.serializeSourceDump(frozen, screenshots);
+    const dumpPath = `${this.reportPath}.${scopeId}.${uuid()}.json`;
     mkdirSync(dirname(dumpPath), { recursive: true });
     await writeFileAsync(dumpPath, serialized, { flag: 'wx' });
-    return { sourcePath: this.reportPath, dumpPath };
+    return {
+      sourcePath: this.reportPath,
+      dumpPath,
+      collection: { status: 'complete', capturedAt },
+    };
   }
 
   private printReportPath(): void {

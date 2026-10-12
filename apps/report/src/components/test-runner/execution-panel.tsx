@@ -5,10 +5,17 @@ import {
   SettingOutlined,
   ThunderboltOutlined,
   UnorderedListOutlined,
+  WarningFilled,
 } from '@ant-design/icons';
-import type { TestRunReportStep } from '@midscene/core';
-import type { ReactNode } from 'react';
+import type {
+  TestRunReportDocumentPlan,
+  TestRunReportStep,
+} from '@midscene/core';
+import { Segmented } from 'antd';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 import type { RunnerStepGroup } from './case-workspace-model';
+import { ExecutionYaml } from './execution-yaml';
+import type { ReportIssues } from './issues';
 import { getStepDisplayName } from './model';
 import { StepStatus, formatDuration } from './view-primitives';
 
@@ -24,92 +31,175 @@ function RunnerStepTypeIcon({
 
 export function RunnerExecutionPanel({
   groups,
+  issues,
   selectedStepId,
-  playingStepId,
   timeline,
-  timelineControl,
+  children,
+  sourcePath,
+  sourceYaml,
+  caseIndex = 0,
+  view = 'visual',
+  onViewChange,
   onSelect,
 }: {
   groups: readonly RunnerStepGroup[];
+  issues?: ReportIssues['nodes'];
   selectedStepId?: string;
-  playingStepId?: string;
   timeline?: ReactNode;
-  timelineControl?: ReactNode;
+  children?: ReactNode;
+  sourcePath?: string;
+  sourceYaml?: TestRunReportDocumentPlan['sourceYaml'];
+  caseIndex?: number;
+  view?: 'visual' | 'yaml';
+  onViewChange?(view: 'visual' | 'yaml'): void;
   onSelect(step: TestRunReportStep): void;
 }): JSX.Element {
+  const yaml =
+    typeof sourceYaml?.value === 'string' ? sourceYaml.value : undefined;
+  const showYaml = view === 'yaml' && yaml !== undefined;
+  const steps = useMemo(() => groups.flatMap((group) => group.steps), [groups]);
+  const selectedButton = useRef<HTMLButtonElement>(null);
+  const executionBody = useRef<HTMLDivElement>(null);
+  const openingYamlStep = useRef(false);
+  useEffect(() => {
+    if (showYaml || !openingYamlStep.current) return;
+    openingYamlStep.current = false;
+    selectedButton.current?.focus({ preventScroll: true });
+    selectedButton.current?.scrollIntoView({ block: 'nearest' });
+    executionBody.current
+      ?.querySelector('.runner-detail-evidence-heading')
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [showYaml, selectedStepId]);
   return (
-    <aside className="runner-detail-step-panel" aria-label="Execution steps">
+    <section className="runner-detail-step-panel" aria-label="Execution">
       <div className="runner-detail-panel-heading">
         <span>
           <UnorderedListOutlined />
           <strong>Execution</strong>
         </span>
+        <Segmented
+          aria-label="Execution view"
+          value={showYaml ? 'yaml' : 'visual'}
+          options={[
+            { label: 'Visual', value: 'visual' },
+            {
+              label: 'YAML',
+              value: 'yaml',
+              disabled: yaml === undefined,
+              title:
+                yaml === undefined
+                  ? 'Source YAML is unavailable for this document.'
+                  : undefined,
+            },
+          ]}
+          onChange={(value) => onViewChange?.(value as 'visual' | 'yaml')}
+        />
       </div>
-      {timeline}
-      <div className="runner-detail-step-scroll">
-        {groups.map((group) => (
-          <section className="runner-detail-step-group" key={group.label}>
-            <h3>
-              <span>{group.label}</span>
-              {group.label === 'Case steps' ? timelineControl : null}
-            </h3>
-            <div className="runner-detail-step-list">
-              {group.steps.map((step) => {
-                const isSelected = selectedStepId === step.id;
-                const isPlaying = playingStepId === step.id;
+      {showYaml ? (
+        <section className="runner-execution-yaml" aria-label="Source YAML">
+          <strong>{sourcePath}</strong>
+          {sourceYaml?.redactedPaths?.length ? (
+            <p>Sensitive fields are redacted.</p>
+          ) : null}
+          {sourceYaml?.truncatedPaths?.length ? (
+            <p>Source YAML is truncated.</p>
+          ) : null}
+          <ExecutionYaml
+            source={yaml!}
+            steps={steps}
+            caseIndex={caseIndex}
+            issues={issues}
+            onSelect={(step) => {
+              openingYamlStep.current = true;
+              onSelect(step);
+              onViewChange?.('visual');
+            }}
+          />
+        </section>
+      ) : null}
+      {!showYaml ? timeline : null}
+      <div
+        className="runner-detail-execution-body"
+        hidden={showYaml}
+        ref={executionBody}
+      >
+        <nav className="runner-detail-step-scroll" aria-label="Execution steps">
+          {groups.map((group) => (
+            <section className="runner-detail-step-group" key={group.label}>
+              <h3>
+                <span>{group.label}</span>
+              </h3>
+              <div className="runner-detail-step-list">
+                {group.steps.map((step) => {
+                  const isSelected = selectedStepId === step.id;
 
-                return (
-                  <button
-                    type="button"
-                    className={`${isSelected ? 'is-selected' : ''} ${
-                      isPlaying ? 'is-playing' : ''
-                    }`.trim()}
-                    key={step.id}
-                    aria-current={isPlaying ? 'step' : undefined}
-                    aria-pressed={isSelected}
-                    onClick={() => onSelect(step)}
-                  >
-                    <span
-                      className={`runner-detail-step-type ${
-                        step.status === 'failed'
-                          ? 'is-error'
-                          : step.agentDetails?.length
-                            ? 'is-agent'
-                            : step.phase !== 'steps'
-                              ? 'is-hook'
-                              : step.node.toLocaleLowerCase().includes('assert')
-                                ? 'is-assert'
-                                : 'is-data'
-                      }`}
+                  return (
+                    <button
+                      type="button"
+                      className={isSelected ? 'is-selected' : ''}
+                      key={step.id}
+                      ref={isSelected ? selectedButton : undefined}
+                      aria-pressed={isSelected}
+                      onClick={() => onSelect(step)}
                     >
-                      <RunnerStepTypeIcon step={step} />
-                    </span>
-                    <span className="runner-detail-step-copy">
-                      <strong>
-                        {step.node}
-                        {step.agentDetails?.length ? (
-                          <span
-                            className="runner-detail-recording-icon"
-                            role="img"
-                            aria-label="Has recording"
-                          />
-                        ) : null}
-                      </strong>
-                      <small title={getStepDisplayName(step)}>
-                        {getStepDisplayName(step)}
-                      </small>
-                    </span>
-                    <span className="runner-detail-step-tail">
-                      <StepStatus status={step.status} />
-                      <time>{formatDuration(step.durationMs)}</time>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                      <span
+                        className={`runner-detail-step-type ${
+                          step.status === 'failed'
+                            ? 'is-error'
+                            : step.agentDetails?.length
+                              ? 'is-agent'
+                              : step.phase !== 'steps'
+                                ? 'is-hook'
+                                : step.node
+                                      .toLocaleLowerCase()
+                                      .includes('assert')
+                                  ? 'is-assert'
+                                  : 'is-data'
+                        }`}
+                      >
+                        <RunnerStepTypeIcon step={step} />
+                      </span>
+                      <span className="runner-detail-step-copy">
+                        <strong>
+                          {step.node}
+                          {issues
+                            ?.get(step.id)
+                            ?.some((issue) => issue.severity === 'warning') ? (
+                            <WarningFilled
+                              className="runner-step-warning"
+                              aria-label="Step warning"
+                              title="Step warning"
+                            />
+                          ) : null}
+                          {step.agentDetails?.length ? (
+                            <span
+                              className="runner-detail-recording-icon"
+                              role="img"
+                              aria-label="Has recording"
+                            />
+                          ) : null}
+                        </strong>
+                        <small title={getStepDisplayName(step)}>
+                          {getStepDisplayName(step)}
+                        </small>
+                      </span>
+                      <span className="runner-detail-step-tail">
+                        <StepStatus status={step.status} />
+                        <time>
+                          {step.status === 'not-run'
+                            ? 'Not run'
+                            : formatDuration(step.durationMs)}
+                        </time>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </nav>
+        {children}
       </div>
-    </aside>
+    </section>
   );
 }

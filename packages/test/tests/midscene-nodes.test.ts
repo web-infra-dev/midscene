@@ -964,7 +964,7 @@ describe('createMidsceneNodes', () => {
     expect(listeners.size).toBe(0);
   });
 
-  it('rejects overlapping Midscene Test scopes that share one Agent instance', async () => {
+  it('marks overlapping Midscene Test scopes as not started when they share one Agent instance', async () => {
     let resolveEntered!: () => void;
     const entered = new Promise<void>((resolve) => {
       resolveEntered = resolve;
@@ -1009,12 +1009,10 @@ describe('createMidsceneNodes', () => {
 
     expect(firstResult.status).toBe('success');
     expect(secondResult.steps[0]).toMatchObject({
-      status: 'failed',
-      error: {
-        message: expect.stringContaining(
-          'same Agent instance cannot execute overlapping',
-        ),
-      },
+      status: 'not-run',
+      blockedBy: 'scope-first:steps:0',
+      error: { code: 'RESOURCE_OPERATION_PENDING' },
     });
+    expect(secondResult.steps[0].startedAt).toBeUndefined();
   });
 });

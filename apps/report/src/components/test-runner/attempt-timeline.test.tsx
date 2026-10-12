@@ -54,11 +54,9 @@ const renderTimeline = ({
       selectedStepId="step-1"
       previewFrameKey={previewFrameKey}
       lockedFrameKey={lockedFrameKey}
-      isPlaying={false}
       variant="detail"
       onPreview={() => {}}
       onSelectFrame={() => {}}
-      onTogglePlay={() => {}}
     />,
   );
 
@@ -69,6 +67,7 @@ describe('attempt timeline', () => {
     expect(html).toContain('Preparing screenshots…');
     expect(html.match(/hidden=""/g)).toHaveLength(2);
     expect(html).not.toContain('loading="lazy"');
+    expect(html).not.toContain('timeline-control');
     expect(html).not.toContain('src="data:image/png;base64,first"');
     expect(html).not.toContain('src="data:image/png;base64,second"');
   });
@@ -133,7 +132,45 @@ describe('attempt timeline', () => {
 
     expect(html).toContain('runner-detail-timeline-card is-overview');
     expect(html).toContain('runner-detail-timeline-preview-callout');
-    expect(html).toContain('aria-label="First frame at 100ms"');
+    expect(html).toContain('aria-label="First frame at 100 ms"');
     expect(html).not.toContain('runner-detail-timeline-toolbar');
   });
+
+  it.each(['detail', 'overview', 'standalone'] as const)(
+    'formats axis ticks and frame previews consistently in the %s timeline',
+    (variant) => {
+      for (const [durationMs, offsetMs, tickLabel, previewLabel] of [
+        [1000, 600, '250 ms', '600 ms'],
+        [8000, 6000, '2 s', '6 s'],
+        [240_000, 164_223, '1m 0s', '2m 44s'],
+      ] as const) {
+        const html = renderToStaticMarkup(
+          <RunnerAttemptTimeline
+            attempt={{
+              ...attempt,
+              durationMs,
+              endedAt: new Date(
+                Date.parse(attempt.startedAt) + durationMs,
+              ).toISOString(),
+            }}
+            frames={[
+              frames[0],
+              {
+                ...frames[1],
+                offsetMs,
+                offsetPercent: (offsetMs / durationMs) * 100,
+              },
+            ]}
+            previewFrameKey="frame-2"
+            variant={variant}
+            onPreview={() => {}}
+            onSelectFrame={() => {}}
+          />,
+        );
+        expect(html).toContain(`>${tickLabel}</span>`);
+        expect(html).toContain(`<small>${previewLabel}</small>`);
+        expect(html).toContain(`aria-label="Second frame at ${previewLabel}"`);
+      }
+    },
+  );
 });

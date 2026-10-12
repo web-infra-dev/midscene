@@ -11,8 +11,12 @@ import {
   ResourceCleanupDeferredError,
   cleanupScopeResources,
   createResourceScope,
+  getPendingScopeOperations,
+  getResourceCleanupSnapshot,
   recoverCancelledScopeResources,
+  setResourceOperationIdentity,
 } from './resource-operations';
+import { phaseResult } from './result-metadata';
 import { reportPathsFromTeardown } from './scope-teardown';
 import type {
   CaseNodePhase,
@@ -41,9 +45,14 @@ export async function runCollectedCase<TContext = undefined>(
   const scopeSignal = resourceScope.signal;
   const runId = options.createRunId?.() ?? randomUUID();
   const startedAt = new Date();
+  setResourceOperationIdentity(scopeSignal, { scopeId: runId });
   const beforeEach: StepRunResult[] = [];
   const steps: StepRunResult[] = [];
   const afterEach: StepRunResult[] = [];
+  const capturedSources = new Map<
+    string,
+    import('./types').WorkflowReportSource
+  >();
   const teardownStack: Array<{
     registrationIndex: number;
     node: string;
@@ -79,7 +88,8 @@ export async function runCollectedCase<TContext = undefined>(
     for (const [stepIndex, step] of phases[phase].entries()) {
       // A Step timeout ends the Runner's wait, not the underlying operation.
       // Recovery belongs between Steps, outside the next Step's timeout budget.
-      if (stepIndex > 0) await recoverCancelledScopeResources(signal);
+      const waitForPreviousOperationMs =
+        stepIndex > 0 ? await recoverCancelledScopeResources(signal) : 0;
       const caseContext: NodeCaseContext = {
         caseId: collectedCase.caseId,
         runId,
@@ -109,16 +119,23 @@ export async function runCollectedCase<TContext = undefined>(
           onTeardown,
         },
       );
+      if (waitForPreviousOperationMs > 0)
+        result.waitForPreviousOperationMs = waitForPreviousOperationMs;
       results.push(result);
+      for (const source of result.report?.sources ?? [])
+        capturedSources.set(
+          `${source.sourcePath}\u0000${source.dumpPath ?? ''}`,
+          source,
+        );
       await options.onStepResult?.(stepInfo, result);
-      if (result.status === 'failed' && !result.continuedAfterError) break;
+      if (result.status !== 'success' && !result.continuedAfterError) break;
     }
   };
 
   const executionErrors: unknown[] = [];
   try {
     await runPhase('beforeEach', beforeEach);
-    if (!beforeEach.some((step) => step.status === 'failed')) {
+    if (!beforeEach.some((step) => step.status !== 'success')) {
       await runPhase('steps', steps);
     }
   } catch (error) {
@@ -154,13 +171,13 @@ export async function runCollectedCase<TContext = undefined>(
         );
       }
     }
-    if (deferredCleanup) {
+    {
       const errors = [
         ...cleanupExecutionErrors,
         ...teardownErrors.slice(priorTeardownErrors),
       ];
       if (errors.length)
-        throw new AggregateError(errors, 'Deferred Case cleanup failed');
+        throw new AggregateError(errors, 'Case cleanup failed');
     }
   };
   try {
@@ -183,16 +200,28 @@ export async function runCollectedCase<TContext = undefined>(
   } catch (error) {
     deferredCleanup = error instanceof ResourceCleanupDeferredError;
     if (!deferredCleanup) acceptingTeardowns = false;
-    teardownErrors.push(
-      new NodeScopeTeardownError(error, {
-        scope: 'case',
-        scopeId: runId,
-        node: 'resource-drain',
-        registrationIndex: -1,
-      }),
-    );
+    if (
+      !deferredCleanup &&
+      !teardownErrors.length &&
+      !cleanupExecutionErrors.length
+    )
+      teardownErrors.push(
+        new NodeScopeTeardownError(error, {
+          scope: 'case',
+          scopeId: runId,
+          node: 'resource-drain',
+          registrationIndex: -1,
+        }),
+      );
   }
   const endedAt = new Date();
+  const cleanupSnapshot = getResourceCleanupSnapshot(scopeSignal);
+  const pendingOperations = getPendingScopeOperations(scopeSignal);
+  const phaseResults = {
+    beforeEach: phaseResult(phases.beforeEach.length, beforeEach),
+    steps: phaseResult(phases.steps.length, steps),
+    afterEach: phaseResult(phases.afterEach.length, afterEach),
+  };
   const result: CaseRunResult = {
     caseId: collectedCase.caseId,
     runId,
@@ -203,15 +232,28 @@ export async function runCollectedCase<TContext = undefined>(
     caseIndex: collectedCase.caseIndex,
     status:
       executionErrors.length > 0 ||
-      beforeEach.some((step) => step.status === 'failed') ||
-      steps.some((step) => step.status === 'failed') ||
-      afterEach.some((step) => step.status === 'failed') ||
+      beforeEach.some((step) => step.status !== 'success') ||
+      steps.some((step) => step.status !== 'success') ||
+      afterEach.some((step) => step.status !== 'success') ||
+      cleanupSnapshot.status === 'pending' ||
+      cleanupSnapshot.status === 'failed' ||
+      pendingOperations.length > 0 ||
       teardownErrors.length > 0
         ? 'failed'
         : 'success',
     beforeEach: [...beforeEach],
     steps: [...steps],
     afterEach: [...afterEach],
+    executionStatus: Object.values(phaseResults).some(
+      (phase) => phase.status === 'failed',
+    )
+      ? 'failed'
+      : Object.values(phaseResults).some((phase) => phase.status === 'not-run')
+        ? 'not-run'
+        : 'success',
+    phases: phaseResults,
+    cleanup: cleanupSnapshot,
+    ...(pendingOperations.length ? { pendingOperations } : {}),
     ...(executionErrors.length
       ? { executionErrors: executionErrors.map(asExecutionError) }
       : {}),
@@ -219,7 +261,9 @@ export async function runCollectedCase<TContext = undefined>(
       ? { teardownErrors: [...teardownErrors] }
       : {}),
     ...(reportPaths.size > 0 ? { reportPaths: [...reportPaths] } : {}),
-    ...(reportSources.length ? { reportSources: [...reportSources] } : {}),
+    ...(capturedSources.size || reportSources.length
+      ? { reportSources: [...capturedSources.values(), ...reportSources] }
+      : {}),
     ...(options.reportScopeId ? { reportScopeId: options.reportScopeId } : {}),
     startedAt: startedAt.toISOString(),
     endedAt: endedAt.toISOString(),

@@ -7,8 +7,10 @@ import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlaywrightTasks } from '../../types';
-import { getWorkspaceStepSummary } from './case-workspace';
+import { CaseWorkspace, getWorkspaceStepSummary } from './case-workspace';
 import { CaseWorkspaceHeader } from './case-workspace-header';
+import { ErrorCards } from './error-card';
+import { collectReportIssues } from './issues';
 import {
   buildRunnerStepIndex,
   buildRunnerVisualIndex,
@@ -26,6 +28,7 @@ import {
   toggleAllRunnerProjectKeys,
 } from './model';
 import { isSingleCaseReport, resolveRunnerNavigation } from './navigation';
+import { ProjectBreakdownTree } from './project-breakdown';
 import { RunSummary } from './run-summary';
 
 const at = (seconds: number): string =>
@@ -33,8 +36,8 @@ const at = (seconds: number): string =>
 
 const step = (
   id: string,
-  status: TestRunReportStep['status'] = 'success',
-  extra: Partial<TestRunReportStep> = {},
+  status: Exclude<TestRunReportStep['status'], 'not-run'> = 'success',
+  extra: Partial<Exclude<TestRunReportStep, { status: 'not-run' }>> = {},
 ): TestRunReportStep => ({
   id,
   phase: 'steps',
@@ -530,8 +533,18 @@ describe('Midscene Test hybrid report model', () => {
         message: 'Trace unavailable',
       },
     ];
+    const issues = collectReportIssues(run);
     const standalone = renderToStaticMarkup(
-      createElement(CaseWorkspaceHeader, { ...props, standaloneRun: run }),
+      createElement(CaseWorkspace, {
+        item,
+        standaloneRun: run,
+        issues,
+        reports: [],
+        visualIndex: buildRunnerVisualIndex([]),
+        renderAgentReport: () => null,
+        onBack() {},
+        backLabel: 'Overview',
+      }),
     );
     expect(standalone).not.toContain('runner-back-button');
     expect(standalone).not.toContain('Copy case link');
@@ -539,9 +552,14 @@ describe('Midscene Test hybrid report model', () => {
     expect(standalone).toContain('run time');
     expect(standalone).toContain('model calls');
     expect(standalone).toContain('tokens');
-    expect(standalone).toContain('Run failed');
+    expect(standalone).not.toContain('Run diagnostics');
     expect(standalone).toContain('Browser cleanup failed');
-    expect(standalone).toContain('Trace unavailable');
+    expect(standalone).toContain('View all 3 issues');
+    expect(issues.others).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: 'Trace unavailable' }),
+      ]),
+    );
     const regular = renderToStaticMarkup(
       createElement(CaseWorkspaceHeader, props),
     );
@@ -554,7 +572,7 @@ describe('Midscene Test hybrid report model', () => {
     expect(regular).not.toContain('runner-step-status is-success');
   });
 
-  it('shows a pass percentage matching the all-case fraction, including not-run cases', () => {
+  it('shows final case counts including retries and not-run cases in the compact summary', () => {
     const markup = renderToStaticMarkup(
       createElement(RunSummary, {
         dump,
@@ -563,11 +581,13 @@ describe('Midscene Test hybrid report model', () => {
         onReviewOutcome() {},
       }),
     );
+    expect(markup).toContain('Review case results: 2 of 4 passed');
     expect(markup).toContain(
-      'aria-label="Percentage of all cases passed">50%</span>',
+      '<strong>1</strong><span>Passed after retry</span>',
     );
+    expect(markup).toContain('<strong>1</strong><span>Not run</span>');
+    expect(markup).toContain('tokens<strong>—</strong>');
     expect(markup).not.toContain('runner-overview-outcome-message');
-    expect(markup).toContain('aria-label="Review case results"');
     expect(markup).toContain('>run failed</span>');
     expect(markup).not.toContain('>Run failed</span>');
     expect(markup).not.toContain('model time');
@@ -575,7 +595,7 @@ describe('Midscene Test hybrid report model', () => {
     expect(markup).not.toContain('Tokens');
   });
 
-  it('does not invent a pass percentage for an empty run', () => {
+  it('shows zero case counts without inventing token usage for an empty run', () => {
     const markup = renderToStaticMarkup(
       createElement(RunSummary, {
         dump: { ...dump, summary: { ...dump.summary, passed: 0, total: 0 } },
@@ -584,10 +604,82 @@ describe('Midscene Test hybrid report model', () => {
         onReviewOutcome() {},
       }),
     );
-    expect(markup).toContain(
-      'aria-label="Percentage of all cases passed">—</span>',
-    );
+    expect(markup).toContain('Review case results: 0 of 0 passed');
+    expect(markup).toContain('tokens<strong>—</strong>');
     expect(markup).not.toContain('NaN');
+  });
+
+  it('marks partial token totals and distinguishes a measured zero from unknown usage', () => {
+    for (const status of ['complete', 'partial'] as const) {
+      const markup = renderToStaticMarkup(
+        createElement(RunSummary, {
+          dump: {
+            ...dump,
+            metrics: {
+              ...dump.metrics,
+              collection: {
+                status,
+                expectedExecutionCount: 1,
+                capturedExecutionCount: 1,
+                reasons: [],
+              },
+            },
+          },
+          health: getRunnerHealth(flattenRunnerCases(dump)),
+          totalCaseCount: 4,
+          onReviewOutcome() {},
+        }),
+      );
+      expect(markup).toContain('tokens<strong>0</strong>');
+      expect(markup.includes('(partial)')).toBe(status === 'partial');
+    }
+  });
+
+  it('shows project status, passed / case totals and all attention outcomes together', () => {
+    const report = structuredClone(dump);
+    const healthyProject = structuredClone(report.projects[0]);
+    healthyProject.projectId = 'healthy';
+    healthyProject.name = 'Healthy';
+    healthyProject.status = 'success';
+    healthyProject.lifecycle = undefined;
+    healthyProject.documents[0].status = 'success';
+    healthyProject.documents[0].cases = healthyProject.documents[0].cases.slice(
+      0,
+      1,
+    );
+    report.projects.push(healthyProject);
+    const projects = filterAndSortRunnerProjectBreakdown(
+      groupRunnerProjects(report),
+      {
+        query: '',
+        status: 'all',
+        sort: 'result',
+        direction: 'asc',
+      },
+    );
+    const markup = renderToStaticMarkup(
+      createElement(ProjectBreakdownTree, {
+        projects,
+        visualIndex: buildRunnerVisualIndex([]),
+        caseDisplayMode: 'compact',
+        expandedProjectKeys: new Set(projects.map(({ item }) => item.key)),
+        sort: 'result',
+        sortDirection: 'asc',
+        hasActiveFilters: false,
+        onSortChange() {},
+        onExpandedProjectKeysChange() {},
+        onResetFilters() {},
+        onOpenCase() {},
+      }),
+    );
+    expect(markup).toContain('Passed / Case');
+    expect(markup).toContain('Attention');
+    expect(markup).toContain('runner-project-tree-case-total');
+    expect(markup).toContain('1 failed · 1 retried · 1 not run');
+    expect(markup).toContain('>passed after retry</span>');
+    expect(markup).toContain('>not run</span>');
+    expect(markup).toContain('class="runner-project-tree-attention">-</span>');
+    expect(markup).not.toContain('0 retried');
   });
 
   it('keeps attempt comparison in standalone reports with retries', () => {
@@ -637,7 +729,7 @@ describe('Midscene Test hybrid report model', () => {
           },
         }),
       ]),
-    ).toEqual({ total: 3, passed: 1, failed: 1, timeout: 1 });
+    ).toEqual({ total: 3, passed: 1, failed: 1, timeout: 1, notRun: 0 });
   });
 
   it('preserves step deep links when choosing the initial page', () => {
@@ -788,7 +880,12 @@ describe('Midscene Test hybrid report model', () => {
       page: 'case',
       selectedCaseKey: 'web:document:passed',
       deepLinkedStepId: undefined,
-      unmatchedStepSelector: 'last-error',
+      navigationIssue: {
+        id: 'navigation',
+        severity: 'warning',
+        code: 'STEP_NOT_FOUND',
+        message: 'No Step matches runner-step=last-error.',
+      },
     });
   });
 
@@ -819,9 +916,42 @@ describe('Midscene Test hybrid report model', () => {
       page: 'case',
       selectedCaseKey: 'web:document:passed',
       deepLinkedStepId: undefined,
-      unmatchedStepSelector: 'last-error',
+      navigationIssue: {
+        severity: 'warning',
+        code: 'STEP_NOT_FOUND',
+      },
     });
   });
+
+  it.each(['last-error', 'missing-step-id'])(
+    'shows a warning for an unresolved Step link (%s)',
+    (reference) => {
+      const cases = flattenRunnerCases(dump);
+      const projects = groupRunnerProjects(dump, cases);
+      const stepIndex = buildRunnerStepIndex(dump, cases);
+      const navigation = resolveRunnerNavigation(
+        `#runner-page=case&runner-project=web&runner-case=web%3Adocument%3Apassed&runner-step=${reference}`,
+        cases,
+        projects,
+        stepIndex,
+      );
+      expect(navigation).toMatchObject({
+        page: 'case',
+        selectedCaseKey: 'web:document:passed',
+        deepLinkedStepId: undefined,
+        navigationIssue: { severity: 'warning', code: 'STEP_NOT_FOUND' },
+      });
+      const html = renderToStaticMarkup(
+        createElement(ErrorCards, {
+          label: 'Navigation issue',
+          issues: [navigation.navigationIssue!],
+        }),
+      );
+      expect(html).toContain('is-warning');
+      expect(html).toContain('The requested step could not be found');
+      expect(html).toContain(`No Step matches runner-step=${reference}.`);
+    },
+  );
 
   it('includes document lifecycle Steps in portable links', () => {
     const lifecycleDump = structuredClone(dump);

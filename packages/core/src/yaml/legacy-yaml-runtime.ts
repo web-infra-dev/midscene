@@ -14,7 +14,7 @@ import {
   type NodeDefinition,
   type RunWorkflowDocumentOptions,
   type WorkflowDocumentExecutionResult,
-  assertResourceAvailable,
+  admitResourceOperation,
   defineNode,
   runWorkflowDocument,
   trackResourceOperation,
@@ -123,7 +123,7 @@ const createLegacyYamlNodeResolver = (
       execute: (ctx) =>
         runInYamlExecutionContext(async () => {
           ctx.signal.throwIfAborted();
-          assertResourceAvailable(options.agent, false, ctx.signal);
+          admitResourceOperation(options.agent, ctx.signal, false);
           assert(ctx.scope === 'case', 'YAML task requires a Case scope');
           const taskIndex = ctx.case.caseIndex;
           const flowItemIndex = ctx.case.stepIndex;
@@ -288,7 +288,7 @@ export const legacyYamlOutcomeError = (outcome: CaseRunOutcome): Error => {
     ...(outcome.run?.beforeEach ?? []),
     ...(outcome.run?.steps ?? []),
     ...(outcome.run?.afterEach ?? []),
-  ].find((step) => step.status === 'failed');
+  ].find((step) => step.status !== 'success');
   const error = failedStep?.error;
   return error?.code === 'NODE_EXECUTION_ERROR' && error.cause instanceof Error
     ? error.cause

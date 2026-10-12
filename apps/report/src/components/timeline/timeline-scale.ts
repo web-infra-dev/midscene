@@ -13,12 +13,17 @@ export interface TimelineScale {
 }
 
 export const formatTimelineTime = (timeMs: number): string => {
-  if (Math.abs(timeMs) < 1000) {
-    return `${Math.round(timeMs)}ms`;
+  const sign = timeMs < 0 ? '-' : '';
+  const milliseconds = Math.round(Math.abs(timeMs));
+  if (milliseconds < 2_000) {
+    return `${milliseconds ? sign : ''}${milliseconds} ms`;
   }
 
-  const seconds = timeMs / 1000;
-  return seconds % 1 === 0 ? `${seconds}s` : `${seconds.toFixed(1)}s`;
+  const seconds = Math.round(milliseconds / 100) / 10;
+  if (seconds < 60) return `${sign}${seconds} s`;
+
+  const totalSeconds = Math.round(milliseconds / 1_000);
+  return `${sign}${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`;
 };
 
 export const pickNiceStep = (roughStepMs: number): number => {
@@ -31,8 +36,7 @@ export const pickNiceStep = (roughStepMs: number): number => {
   const factor =
     NICE_STEP_FACTORS.find((candidate) => candidate >= normalized) ?? 10;
 
-  // Timeline labels are rendered at integer millisecond precision, so sub-ms
-  // ticks would collapse into duplicate labels such as "0ms".
+  // Sub-ms ticks would collapse into duplicate labels such as "0 ms".
   return Math.max(1, factor * magnitude);
 };
 

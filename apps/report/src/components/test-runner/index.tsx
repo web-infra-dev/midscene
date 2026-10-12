@@ -1,7 +1,7 @@
 import './index.less';
 import type { TestRunReportDump } from '@midscene/core';
 import { globalThemeConfig, useGlobalPreference } from '@midscene/visualizer';
-import { Alert, App as AntdApp, ConfigProvider, theme } from 'antd';
+import { App as AntdApp, ConfigProvider, theme } from 'antd';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ThemeDarkIcon from '../../icons/theme-dark.svg?react';
@@ -13,6 +13,8 @@ import {
 } from '../../utils/test-run-report';
 import { Logo } from '../logo';
 import { CaseWorkspace } from './case-workspace';
+import { ErrorCards } from './error-card';
+import { collectReportIssues } from './issues';
 import {
   type RunnerCaseView,
   buildRunnerStepIndex,
@@ -46,6 +48,7 @@ export default function TestRunnerReport({
 }: TestRunnerReportProps): JSX.Element {
   const { darkModeEnabled: isDarkMode, setDarkModeEnabled: setIsDarkMode } =
     useGlobalPreference();
+  const issues = useMemo(() => collectReportIssues(dump), [dump]);
   const cases = useMemo(() => flattenRunnerCases(dump), [dump]);
   const health = useMemo(() => getRunnerHealth(cases), [cases]);
   const projects = useMemo(
@@ -73,7 +76,7 @@ export default function TestRunnerReport({
     scrollTop: number;
     caseKey?: string;
   }>({ scrollTop: 0 });
-  const { page, selectedCaseKey, deepLinkedStepId, unmatchedStepSelector } =
+  const { page, selectedCaseKey, deepLinkedStepId, navigationIssue } =
     navigation;
   const selectedCase = cases.find((item) => item.key === selectedCaseKey);
   const midsceneVersion = useMemo(() => {
@@ -189,6 +192,7 @@ export default function TestRunnerReport({
         <div
           className="test-runner-report"
           data-theme={isDarkMode ? 'dark' : 'light'}
+          data-page={page}
         >
           <header className="runner-header">
             <div className="runner-header-inner">
@@ -223,19 +227,15 @@ export default function TestRunnerReport({
             tabIndex={-1}
             aria-label="Test report content"
           >
-            {unmatchedStepSelector ? (
-              <Alert
-                className="runner-step-selector-alert"
-                type="info"
-                showIcon
-                message={`No Step matches runner-step=${unmatchedStepSelector}.`}
-              />
+            {navigationIssue ? (
+              <ErrorCards label="Navigation issue" issues={[navigationIssue]} />
             ) : null}
             {page === 'case' && selectedCase ? (
               <CaseWorkspace
                 key={selectedCase.key}
                 backLabel="Overview"
                 item={selectedCase}
+                issues={issues}
                 standaloneRun={isSingleCaseReport(projects) ? dump : undefined}
                 visualIndex={visualIndex}
                 reports={reports}
@@ -247,6 +247,7 @@ export default function TestRunnerReport({
               <RunOverview
                 visualIndex={visualIndex}
                 dump={dump}
+                issues={issues}
                 cases={cases}
                 health={health}
                 projects={projects}

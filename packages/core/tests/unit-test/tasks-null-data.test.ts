@@ -268,11 +268,12 @@ describe('TaskExecutor - Null Data Handling', () => {
         '',
         undefined,
         expectEmptyUIContext(),
-        undefined,
+        { abortSignal: undefined },
       );
     });
 
     it('should handle valid data for WaitFor operation', async () => {
+      const taskSignal = new AbortController().signal;
       const mockInsight = {
         contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
         extract: rs.fn(async () => ({
@@ -311,6 +312,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
+        signal: taskSignal,
       } as any);
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
@@ -323,7 +325,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         '',
         undefined,
         expectEmptyUIContext(),
-        undefined,
+        { abortSignal: taskSignal },
       );
       expect(result.output).toBe(true);
       expect(result.thought).toBe('Condition is met');
@@ -639,6 +641,8 @@ describe('TaskExecutor - Null Data Handling', () => {
     });
 
     it('should extract Number type query result from the structured Number field', async () => {
+      const explicitSignal = new AbortController().signal;
+      const taskSignal = new AbortController().signal;
       const mockInsight = {
         contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
         extract: rs.fn(async () => ({
@@ -672,11 +676,14 @@ describe('TaskExecutor - Null Data Handling', () => {
         'Extract the price',
         getModelRuntime(mockModelConfig),
         {},
+        undefined,
+        { abortSignal: explicitSignal },
       );
 
       const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
+        signal: taskSignal,
       } as any);
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
@@ -689,7 +696,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         '',
         undefined,
         expectEmptyUIContext(),
-        undefined,
+        { abortSignal: explicitSignal },
       );
       expect(result.output).toBe(42);
       expect(result.thought).toBe('Extracted the numeric value successfully');
@@ -788,7 +795,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         '',
         undefined,
         expectEmptyUIContext(),
-        undefined,
+        { abortSignal: undefined },
       );
       expect(result.output).toBeNull();
     });
@@ -844,7 +851,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         '',
         undefined,
         expectEmptyUIContext(),
-        undefined,
+        { abortSignal: undefined },
       );
       expect(result.output).toBe(true);
     });

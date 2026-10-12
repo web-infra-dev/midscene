@@ -2,6 +2,7 @@ import {
   ExecutionDump,
   GroupedActionDump,
   type TestRunReportDump,
+  type TestRunReportStep,
 } from '@midscene/core';
 import { describe, expect, it, rs } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -33,7 +34,8 @@ const item = flattenRunnerCases(
   createTestReportFixture(source) as TestRunReportDump,
 )[0];
 const step = item.finalAttempt!.steps.find(
-  (step) => step.agentDetails?.length,
+  (step): step is Exclude<TestRunReportStep, { status: 'not-run' }> =>
+    step.status !== 'not-run' && Boolean(step.agentDetails?.length),
 )!;
 const report: PlaywrightTasks = {
   reportId: 'agent-report',
@@ -60,7 +62,7 @@ describe('case evidence inspection', () => {
   const render = (
     tab: RunnerInspectorTab,
     reports = [report],
-    selectedStep = step,
+    selectedStep: TestRunReportStep = step,
     activeFrame?: RunnerVisualFrame,
   ) => {
     const renderAgentReport = rs.fn((reports: PlaywrightTasks[]) => (
@@ -87,6 +89,37 @@ describe('case evidence inspection', () => {
     return { html, renderAgentReport };
   };
 
+  it.each([
+    ['success', undefined, 'success'],
+    ['failed', { name: 'Error', message: 'Assertion failed' }, 'failed'],
+    ['failed', { name: 'TimeoutError', message: 'Timed out' }, 'timeout'],
+    ['not-run', undefined, 'not run'],
+  ] as const)(
+    'labels step status independently of Case pass: %s',
+    (status, error, label) => {
+      const { html } = render(
+        'io',
+        [],
+        status === 'not-run'
+          ? {
+              ...step,
+              status,
+              startedAt: undefined,
+              endedAt: undefined,
+              durationMs: undefined,
+              notRunReason: 'Previous step failed.',
+            }
+          : { ...step, status, error },
+      );
+      const heading = html.slice(
+        html.indexOf('runner-detail-evidence-title'),
+        html.indexOf('</header>'),
+      );
+      expect(heading).toContain(`<span>${label}</span>`);
+      expect(heading).not.toContain('<span>passed</span>');
+    },
+  );
+
   it('embeds only the selected step executions inside the case page', () => {
     const { html, renderAgentReport } = render('record');
     expect(renderAgentReport).toHaveBeenCalledTimes(1);
@@ -98,6 +131,33 @@ describe('case evidence inspection', () => {
     expect(html).not.toContain('Open AI trace in new tab');
     expect(html).not.toContain('target="_blank"');
     expect(html).not.toContain('role="dialog"');
+  });
+
+  it('distinguishes Runner return from actual operation settlement at the snapshot boundary', () => {
+    const { html } = render('logs', [report], {
+      ...step,
+      operations: {
+        capturedAt: '2026-10-08T11:00:00.000Z',
+        events: [
+          {
+            operationId: 'operation',
+            operationKind: 'node',
+            kind: 'runner-returned',
+            at: '2026-10-08T10:59:59.000Z',
+            pending: true,
+            status: 'failed',
+          },
+        ],
+      },
+    });
+    expect(html).not.toContain('Operation lifecycle');
+    expect(html).toContain('still running when Runner returned');
+    const { html: information } = render('io', [report], {
+      ...step,
+      operations: { capturedAt: '2026-10-08T11:00:00.000Z', events: [] },
+    });
+    expect(information).toContain('this snapshot does not update');
+    expect(information).toContain('2026-10-08T11:00:00.000Z');
   });
 
   it('does not mount the player when inspecting data or events', () => {
@@ -117,7 +177,29 @@ describe('case evidence inspection', () => {
     expect(html).toContain('The referenced Agent report group is missing.');
   });
 
-  it('hides Record and falls back to Input & output when the step has no recording or screenshot', () => {
+  it('shows partial collection as a warning card and keeps capture details in Information', () => {
+    const { html, renderAgentReport } = render('io', [report], {
+      ...step,
+      evidenceCollection: {
+        status: 'partial',
+        capturedAt: '2026-10-08T00:00:00.000Z',
+        errors: [{ name: 'Error', message: 'Snapshot write failed.' }],
+      },
+    });
+    expect(renderAgentReport).not.toHaveBeenCalled();
+    expect(html).toContain('Node issues');
+    expect(html.match(/Snapshot write failed\./g)).toHaveLength(1);
+    expect(html).toContain('2026-10-08T00:00:00.000Z');
+    expect(html).toContain('runner-error-card is-warning');
+    expect(html.indexOf('</header>')).toBeLessThan(
+      html.indexOf('aria-label="Node issues"'),
+    );
+    expect(html.indexOf('aria-label="Node issues"')).toBeLessThan(
+      html.indexOf('role="tablist"'),
+    );
+  });
+
+  it('hides Record and falls back to Information when the step has no recording or screenshot', () => {
     const { html, renderAgentReport } = render('record', [], {
       ...step,
       node: 'custom.verify',
@@ -126,7 +208,7 @@ describe('case evidence inspection', () => {
     expect(renderAgentReport).not.toHaveBeenCalled();
     expect(html).not.toContain('>Record</button>');
     expect(html).toMatch(
-      /aria-selected="true" class="is-selected">Input &amp; output<\/button>/,
+      /aria-selected="true" class="is-selected">Information<\/button>/,
     );
     expect(html).toContain('<h4>Input</h4>');
     expect(html).not.toContain('Open AI trace in new tab');
@@ -180,8 +262,8 @@ describe('case evidence inspection', () => {
     expect(html).toContain(
       '<p class="runner-detail-step-description">[parallel-watch] Case B passed on retry Attempt 2.</p>',
     );
-    expect(html).toContain('aria-label="Copy error details"');
-    expect(html).toContain('title="Copy error details"');
+    expect(html).toContain('aria-label="Copy issue details"');
+    expect(html).toContain('title="Copy issue details"');
     expect(html).not.toContain('>Copy error</button>');
   });
 });

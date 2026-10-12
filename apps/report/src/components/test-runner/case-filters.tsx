@@ -42,6 +42,7 @@ export function CaseFilters({
       aria-label="Filter Project breakdown"
     >
       <Select<RunnerBreakdownStatus>
+        suffixIcon={<span className="runner-overview-select-chevron" />}
         aria-label="Filter breakdown by status"
         value={status}
         onChange={(value: RunnerBreakdownStatus) => onStatusChange(value)}
@@ -74,6 +75,7 @@ export function CaseFilters({
       />
       <Input
         prefix={<SearchOutlined />}
+        aria-label="Search projects, cases, and details"
         suffix={
           <button
             type="button"
