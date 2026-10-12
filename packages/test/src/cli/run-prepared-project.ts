@@ -1,4 +1,6 @@
 import { setMaxListeners } from 'node:events';
+import { dirname, join } from 'node:path';
+import type { TestRunReportSourceIndex } from '@midscene/core';
 import {
   WorkflowExecutionFailure,
   WorkflowPublicationError,
@@ -15,6 +17,7 @@ import {
 } from '@midscene/core/report';
 import { getDebug } from '@midscene/shared/logger';
 import { createProjectRuntime } from '../engine/project-runtime';
+import { writeTestResultMarkdown } from '../report/result-markdown';
 import {
   buildTestRunReportDump,
   collectTestRunReportSources,
@@ -502,6 +505,7 @@ export async function runPreparedTestProject(
       : {}),
   };
   let completedResult = result;
+  let reportIndex: TestRunReportSourceIndex | undefined;
   const publish = async (
     operation: 'write-result' | 'write-report',
     path: string,
@@ -543,6 +547,7 @@ export async function runPreparedTestProject(
         overwrite: false,
         sources: collectTestRunReportSources(completedResult),
         buildRunnerDump: (index) => {
+          reportIndex = index;
           const dump = buildTestRunReportDump(completedResult, index);
           const warn = getDebug('test-runner:report-assembler', {
             console: true,
@@ -562,6 +567,17 @@ export async function runPreparedTestProject(
     await publish(publication.operation, publication.path, async () => {
       await publication.publish(completedResult);
     });
+  await publish(
+    'write-result',
+    join(dirname(summaryPath), 'result.md'),
+    async () => {
+      const markdownPath = await writeTestResultMarkdown(
+        completedResult,
+        reportIndex,
+      );
+      completedResult = { ...completedResult, markdownPath };
+    },
+  );
   await writeSummary();
   if (hasInfrastructureError)
     throw new WorkflowExecutionFailure(completedResult, infrastructureErrors);

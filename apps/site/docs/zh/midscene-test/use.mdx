@@ -438,6 +438,19 @@ midscene_run/report/midscene-e2e-<runId>.html
 
 通过 `midscene.config.ts` 中的 `output.reportDir` 可以修改报告目录。
 
+### Markdown 结果
+
+每次运行结束后，框架还会在 `summary.json` 旁生成 `.midscene/test-results/<runId>/result.md`。
+CLI 通过 `Markdown:` 打印路径，Node SDK 通过 `markdownPath` 返回路径。
+文件包含统计、执行错误和用例列表，每个用例只占一行，显示标题与状态。
+点击用例标题可在 HTML 报告中查看详情和已有截图。
+失败的运行也会生成该文件；在结束处理之前被强制终止的运行无法生成完整摘要。
+
+链接相对于 `result.md`。上传产物时，应保留结果与报告的目录关系。
+在 GitHub Actions 中，可将文件追加到 `$GITHUB_STEP_SUMMARY`。
+托管报告资源后，将相对报告链接转换为基于 Markdown 所在托管目录的 URL。
+框架不负责部署报告，也不预设 GitHub Pages 地址。
+
 ### 链接到报告中的 Step
 
 使用 URL Hash 参数 `runner-step`，可以直接打开报告中的指定 Step。除了具体的 Step ID，报告还支持不依赖运行 ID 的通用选择器：

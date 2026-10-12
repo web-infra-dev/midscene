@@ -1,11 +1,16 @@
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { TestRunReportSourceIndex } from '@midscene/core';
 import { describe, expect, it } from 'vitest';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
 import {
   buildTestRunReportDump,
+  renderTestResultMarkdown,
   sanitizeReportError,
   sanitizeReportValue,
+  writeTestResultMarkdown,
 } from '../src/report';
 
 const step = (executionId = 'execution-1'): StepRunResult => ({
@@ -200,5 +205,78 @@ describe('Midscene Test report manifest', () => {
       scopeId: 'attempt-1',
       executionId: 'missing',
     });
+  });
+});
+
+describe('result.md', () => {
+  it('renders one title and status per case without expanded details', () => {
+    const failed = {
+      ...step(),
+      status: 'failed' as const,
+      error: new Error('missing | <button> [x]'),
+    };
+    const run = result([failed]);
+    run.status = 'failed';
+    run.summary = { ...run.summary, passed: 0, failed: 1 };
+    run.projects[0].cases[0].status = 'failed';
+    const dump = buildTestRunReportDump(run, index);
+    const markdown = renderTestResultMarkdown(dump, {
+      reportHref: '../../../report/index.html',
+    });
+    expect(markdown).toContain('1 total · 0 passed · 1 failed');
+    expect(markdown).toMatch(/^- \[submit\]\(<[^\n]+>\) — failed$/m);
+    expect(markdown).toContain('runner-step=');
+    expect(markdown).not.toMatch(/<img| {2}- |Reason:|Attempts:|missing/);
+    expect(markdown).not.toContain('secret-key');
+    expect(markdown).not.toContain('secret-token');
+  });
+
+  it('writes result.md without an HTML report and records collection failures', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'midscene-result-md-'));
+    try {
+      const run = result([]);
+      run.summaryPath = join(root, 'summary.json');
+      run.status = 'failed';
+      run.projects[0].cases = [];
+      run.projects[0].collectionErrors = [
+        {
+          projectId: 'project-1',
+          projectName: 'web',
+          sourcePath: 'broken.yaml',
+          error: new Error('Invalid document'),
+        },
+      ];
+      run.summary = {
+        ...run.summary,
+        total: 0,
+        passed: 0,
+        collectionErrors: 1,
+      };
+      const output = await writeTestResultMarkdown(run);
+      expect(output).toBe(join(root, 'result.md'));
+      const markdown = await readFile(output, 'utf8');
+      expect(markdown).toContain('Invalid document');
+      expect(markdown).toContain('No cases were reported.');
+      expect(markdown).not.toContain('Open the Midscene');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('links the HTML report relative to result.md and overwrites on rewrite', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'midscene-result-md-'));
+    try {
+      const run = result([step()]);
+      run.summaryPath = join(root, 'summary.json');
+      run.reportPath = join(root, 'report space', 'index.html');
+      const output = await writeTestResultMarkdown(run, index);
+      await writeTestResultMarkdown(run, index);
+      const markdown = await readFile(output, 'utf8');
+      expect(markdown).toContain('report%20space/index.html');
+      expect(markdown).not.toContain('<img');
+      expect(markdown.match(/## Midscene Test/g)).toHaveLength(1);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
