@@ -8,6 +8,7 @@ on:
       - 'packages/computer/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - '.github/actions/ai-ci/**'
       - 'scripts/report-template-utils.mjs'
       - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
@@ -143,36 +144,42 @@ jobs:
       - name: Run computer unit tests
         id: unit-tests
         continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          pnpm exec nx test @midscene/computer --skip-nx-cache 2>&1 |
-            tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/unit-tests.log"
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: bash
+          command: |
+            set -o pipefail
+            pnpm exec nx test @midscene/computer --skip-nx-cache 2>&1 |
+              tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/unit-tests.log"
 
       - name: Run live macOS desktop smoke test
         id: live-smoke
         continue-on-error: true
         timeout-minutes: 10
-        shell: bash
         env:
           AI_TEST_TYPE: computer
           MIDSCENE_MACOS_DESKTOP_SMOKE: '1'
-        run: |
-          set -o pipefail
-          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/macos-desktop-smoke.test.ts --retry=0 2>&1 |
-            tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/live-smoke.log"
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: bash
+          command: |
+            set -o pipefail
+            pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/macos-desktop-smoke.test.ts --retry=0 2>&1 |
+              tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/live-smoke.log"
 
       - name: Run macOS TodoMVC AI test
         id: todo-mvc
         continue-on-error: true
         timeout-minutes: 25
-        shell: bash
         env:
           AI_TEST_TYPE: computer
-        run: |
-          set -o pipefail
-          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
-            tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/todo-mvc.log"
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: bash
+          command: |
+            set -o pipefail
+            pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
+              tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/todo-mvc.log"
 
       - name: Collect step outcomes
         if: always()

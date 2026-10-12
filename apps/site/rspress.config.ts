@@ -594,6 +594,23 @@ export default defineConfig(async () => {
       }),
       pluginClientRedirects({
         redirects: [
+          ...['', '/zh'].flatMap((locale) => [
+            {
+              from: `^${locale}/reference\\.html/?$`,
+              to: `${locale}/reference/`,
+            },
+            ...[
+              ['reporting', 'consume-report-file'],
+              ['cli', 'yaml-script-runner'],
+              [
+                'blog-programming-practice-using-structured-api',
+                'basics#javascript-orchestration',
+              ],
+            ].map(([previous, current]) => ({
+              from: `^${locale}/${previous}(?:\\.html)?/?$`,
+              to: `${locale}/${current}`,
+            })),
+          ]),
           ...['', '/zh'].flatMap((locale) =>
             [
               ['test-runner-overview', 'overview'],
@@ -711,10 +728,6 @@ export default defineConfig(async () => {
           {
             from: '^/choose-a-model(?:\\.html)?/?$',
             to: '/model-common-config',
-          },
-          {
-            from: '^/reference\\.html/?$',
-            to: '/reference/',
           },
           {
             from: '^/api-reference(?:\\.html)?/?$',
