@@ -1228,12 +1228,7 @@ export function defineActionsFromInputPrimitives(
 
   const swipeConfig = resolveSwipeInputPrimitive({ pointer, touch });
   if (swipeConfig && options.size && options.includeSwipe !== false) {
-    actions.push(
-      defineActionSwipe({
-        ...swipeConfig,
-        size: options.size,
-      }),
-    );
+    actions.push(defineActionSwipe({ ...swipeConfig, size: options.size }));
   }
 
   if (touch?.pinch && options.size && options.includePinch !== false) {
