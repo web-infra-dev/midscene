@@ -2673,6 +2673,17 @@ Stdout:
     });
 
     describe('calculateScrollEndPoint', () => {
+      it.each([
+        [{ x: 0, y: 200 }, -100, 0],
+        [{ x: 1080, y: 200 }, 100, 0],
+        [{ x: 200, y: 0 }, 0, -100],
+        [{ x: 200, y: 1920 }, 0, 100],
+      ])('rejects a scroll with no space from %j', (start, dx, dy) => {
+        expect(() =>
+          (device as any).calculateScrollEndPoint(start, dx, dy, 1080, 1920),
+        ).toThrow('No space');
+      });
+
       it('should calculate end point for horizontal scroll within bounds', () => {
         const start = { x: 100, y: 200 };
         const deltaX = 50;
@@ -2875,40 +2886,19 @@ Stdout:
         expect(result).toEqual({ x: 500, y: 600 });
       });
 
-      it('should handle edge case when start point is at boundary', () => {
-        const start = { x: 0, y: 0 };
-        const deltaX = -50; // Trying to scroll left from left edge
-        const deltaY = -50; // Trying to scroll up from top edge
-        const maxWidth = 1080;
-        const maxHeight = 1920;
-
-        const result = (device as any).calculateScrollEndPoint(
-          start,
-          deltaX,
-          deltaY,
-          maxWidth,
-          maxHeight,
-        );
-
-        expect(result).toEqual({ x: 0, y: 0 }); // Should stay at boundary
-      });
-
-      it('should handle edge case when start point is at max boundary', () => {
-        const start = { x: 1080, y: 1920 };
-        const deltaX = 50; // Trying to scroll right from right edge
-        const deltaY = 50; // Trying to scroll down from bottom edge
-        const maxWidth = 1080;
-        const maxHeight = 1920;
-
-        const result = (device as any).calculateScrollEndPoint(
-          start,
-          deltaX,
-          deltaY,
-          maxWidth,
-          maxHeight,
-        );
-
-        expect(result).toEqual({ x: 1080, y: 1920 }); // Should stay at boundary
+      it.each([
+        [{ x: 0, y: 0 }, -50],
+        [{ x: 1080, y: 1920 }, 50],
+      ])('rejects a diagonal scroll out of corner %j', (start, delta) => {
+        expect(() =>
+          (device as any).calculateScrollEndPoint(
+            start,
+            delta,
+            delta,
+            1080,
+            1920,
+          ),
+        ).toThrow('No space');
       });
     });
 
@@ -2916,6 +2906,13 @@ Stdout:
       beforeEach(() => {
         rs.spyOn(device as any, 'dragPoint').mockResolvedValue(undefined);
         rs.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+
+      it('does not send a stationary drag when the origin is at the top edge', async () => {
+        await expect(
+          device.scrollDown(100, { left: 200, top: 0 }),
+        ).rejects.toThrow('No space');
+        expect((device as any).dragPoint).not.toHaveBeenCalled();
       });
 
       it('scrollDown with startPoint should use calculateScrollEndPoint', async () => {

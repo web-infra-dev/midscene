@@ -1336,6 +1336,15 @@ ${Object.keys(size)
           : Math.max(0, start.y - actualScrollDistanceY), // Scroll up, cap at 0
     );
 
+    if (
+      (deltaX !== 0 && (endX - start.x) * deltaX <= 0) ||
+      (deltaY !== 0 && (endY - start.y) * deltaY <= 0)
+    ) {
+      throw new Error(
+        'No space to scroll from the located point; choose a point farther from the screen edge',
+      );
+    }
+
     return { x: endX, y: endY };
   }
 
