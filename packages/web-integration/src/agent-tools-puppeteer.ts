@@ -24,6 +24,7 @@ import {
   adaptWebAgentInitArgs,
   webAgentInitArgShape,
 } from './agent-init-args';
+import { setPersistentPuppeteerViewport } from './common/persistent-puppeteer-viewport';
 import {
   type ViewportSize,
   defaultPuppeteerWindowViewportSize,
@@ -451,7 +452,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
     if (navigateToUrl) {
       page = await browser.newPage();
       if (this.viewport) {
-        await page.setViewport(this.viewport);
+        await setPersistentPuppeteerViewport(page, this.viewport);
       }
       await page.goto(navigateToUrl, {
         timeout: 30000,
@@ -473,7 +474,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
         await page.bringToFront();
       }
       if (this.viewport) {
-        await page.setViewport(this.viewport);
+        await setPersistentPuppeteerViewport(page, this.viewport);
       }
     }
 
