@@ -32,6 +32,56 @@ const validResult = () => ({
 });
 
 describe('test executor result validation', () => {
+  it.each(['error', 'continuedAfterError'])(
+    'rejects successful step with %s',
+    (field) => {
+      const timing = {
+        startedAt: '2026-09-17T00:00:00Z',
+        endedAt: '2026-09-17T00:00:01Z',
+        durationMs: 1000,
+      };
+      const step = {
+        phase: 'steps',
+        stepIndex: 0,
+        node: 'test',
+        input: {},
+        meta: { continueOnError: true },
+        status: 'success',
+        continuedAfterError: false,
+        ...timing,
+        [field]:
+          field === 'error'
+            ? { name: 'Error', code: 'ASSERT', message: 'failed' }
+            : true,
+      };
+      const attempt = {
+        caseId: task.caseId,
+        runId: 'attempt-1',
+        projectName: task.projectName,
+        attemptIndex: 0,
+        name: task.caseName,
+        sourcePath: task.sourcePath,
+        caseIndex: 0,
+        status: 'success',
+        beforeEach: [],
+        steps: [step],
+        afterEach: [],
+        ...timing,
+      };
+      expect(() =>
+        assertTestCaseTaskRunResult(task, {
+          case: {
+            ...validResult().case,
+            status: 'success',
+            notRunReason: undefined,
+            run: attempt,
+            attempts: [attempt],
+          },
+        }),
+      ).toThrow('invalid transport data');
+    },
+  );
+
   it('rejects successful attempts containing failed steps, even when execution continued', () => {
     const timing = {
       startedAt: '2026-09-17T00:00:00Z',

@@ -44,7 +44,7 @@ it('copies immutable snapshots with screenshots without requiring an HTML entry'
   ).toBeUndefined();
 });
 
-it.each(['directory', 'entry'])(
+it.each(['directory', 'entry', 'named-entry'])(
   'materializes a %s report with its screenshots and task-scoped references',
   (kind) => {
     const root = mkdtempSync(join(tmpdir(), 'executor-reports-'));
@@ -52,13 +52,18 @@ it.each(['directory', 'entry'])(
     const source = join(root, 'source');
     mkdirSync(join(source, 'screenshots'), { recursive: true });
     writeFileSync(join(source, 'index.html'), '<html>report</html>');
+    writeFileSync(join(source, 'test-run.html'), '<html>report</html>');
     writeFileSync(join(source, 'screenshots', 'image.png'), 'image bytes');
     const reports = createExecutorReports(join(root, 'output'));
     const reference = reports.materialize(
-      kind === 'directory' ? source : join(source, 'index.html'),
+      kind === 'directory'
+        ? source
+        : join(source, kind === 'named-entry' ? 'test-run.html' : 'index.html'),
     );
     const entry = reports.resolve(reference);
-    expect(entry).toMatch(/index\.html$/);
+    expect(entry).toMatch(
+      kind === 'named-entry' ? /report\.html$/ : /index\.html$/,
+    );
     expect(readFileSync(entry, 'utf8')).toBe('<html>report</html>');
     expect(
       readFileSync(join(dirname(entry), 'screenshots', 'image.png'), 'utf8'),

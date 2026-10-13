@@ -60,6 +60,14 @@ export function createExecutorReports(outputDir: string) {
           dereference: true,
         },
       );
+      if (!isDirectoryReport) {
+        const screenshots = join(dirname(entry), 'screenshots');
+        if (existsSync(screenshots))
+          cpSync(screenshots, join(destination, 'screenshots'), {
+            recursive: true,
+            dereference: true,
+          });
+      }
       paths.set(reference, reportPath);
       return reference;
     },

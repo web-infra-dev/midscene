@@ -258,6 +258,20 @@ const stepSchema = z.strictObject({
     })
     .optional(),
 });
+const validatedStepSchema = stepSchema.superRefine((step, context) => {
+  if (step.status === 'success' && (step.error || step.continuedAfterError)) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Successful steps cannot contain failure evidence.',
+    });
+  }
+  if (step.continuedAfterError && !step.meta.continueOnError) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Continuation requires continueOnError.',
+    });
+  }
+});
 const attemptSchema = z.strictObject({
   caseId: z.string().min(1),
   runId: z.string().min(1),
@@ -267,9 +281,9 @@ const attemptSchema = z.strictObject({
   sourcePath: z.string().min(1),
   caseIndex: z.number().int().nonnegative(),
   status: z.enum(['success', 'failed']),
-  beforeEach: z.array(stepSchema),
-  steps: z.array(stepSchema),
-  afterEach: z.array(stepSchema),
+  beforeEach: z.array(validatedStepSchema),
+  steps: z.array(validatedStepSchema),
+  afterEach: z.array(validatedStepSchema),
   executionErrors: z.array(errorSchema).optional(),
   teardownErrors: z.array(errorSchema).optional(),
   reportRefs: z.array(z.string().min(1)).optional(),
@@ -310,8 +324,8 @@ const resultSchema = z.strictObject({
       startedAt: timestampSchema,
       endedAt: timestampSchema,
       durationMs: z.number().nonnegative().finite(),
-      beforeAll: z.array(stepSchema),
-      afterAll: z.array(stepSchema),
+      beforeAll: z.array(validatedStepSchema),
+      afterAll: z.array(validatedStepSchema),
       executionErrors: z.array(errorSchema).optional(),
       teardownErrors: z.array(errorSchema).optional(),
       reportRefs: z.array(z.string().min(1)).optional(),
