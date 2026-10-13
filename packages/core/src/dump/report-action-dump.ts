@@ -246,14 +246,14 @@ export class ExecutionDump implements IExecutionDump {
 
     for (const task of this.tasks) {
       // Collect uiContext.screenshot if present
-      if (task.uiContext?.screenshot instanceof ScreenshotItem) {
+      if (ScreenshotItem.isScreenshotItem(task.uiContext?.screenshot)) {
         screenshots.push(task.uiContext.screenshot);
       }
 
       // Collect recorder screenshots
       if (task.recorder) {
         for (const record of task.recorder) {
-          if (record.screenshot instanceof ScreenshotItem) {
+          if (ScreenshotItem.isScreenshotItem(record.screenshot)) {
             screenshots.push(record.screenshot);
           }
         }
@@ -326,7 +326,7 @@ export class ReportActionDump implements IReportActionDump {
    */
   serializeWithInlineScreenshots(indents?: number): string {
     const processValue = (obj: unknown): unknown => {
-      if (obj instanceof ScreenshotItem) {
+      if (ScreenshotItem.isScreenshotItem(obj)) {
         return { base64: obj.base64, capturedAt: obj.capturedAt };
       }
       if (Array.isArray(obj)) {
