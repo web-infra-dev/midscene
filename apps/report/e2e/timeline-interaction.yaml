@@ -5,7 +5,7 @@ tasks:
   - name: legacy YAML opens the Test report timeline
     flow:
       - sleep: 2000
-      - aiAssert: The Midscene Test Report overview is visible with a web project in the Projects and cases section
+      - aiAssert: The Midscene Test Report overview is visible with a web project and Compact and Detailed view controls
       - aiTap: the expand chevron to the left of the web project
       - aiAssert: The login to sauce demo and verify inventory page cases are visible under the web project
       - aiTap: the login to sauce demo case row under the web project
@@ -21,4 +21,4 @@ tasks:
           if (!(evidence instanceof HTMLElement)) throw new Error('Missing aiAct evidence panel');
           evidence.scrollIntoView({ block: 'start' });
         name: revealSelectedStepEvidence
-      - aiAssert: The visible aiAct evidence panel shows Record, Input & output, and Events tabs, with Record selected and the embedded Agent report visible
+      - aiAssert: The visible aiAct evidence panel shows Record, Information, and Events tabs, with Record selected and the recorded Agent task list and screenshot viewer visible
