@@ -30,6 +30,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
+  # Cross-region model connections can exceed Node's 250ms family-selection window.
+  NODE_OPTIONS: --network-family-autoselection-attempt-timeout=3000
   MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
   MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
   MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}

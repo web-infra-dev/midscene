@@ -9,6 +9,7 @@ on:
       - 'packages/webdriver/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - 'scripts/mobile-scroll-regression.mjs'
       - 'scripts/report-template-utils.mjs'
       - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
@@ -141,7 +142,7 @@ jobs:
           pnpm exec nx test @midscene/ios --skip-nx-cache 2>&1 |
             tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/unit-tests.log"
 
-      - name: Run iOS Simulator smoke, IOSAppSwitcher AI E2E, and TodoMVC tests
+      - name: Run iOS default scroll, smoke, IOSAppSwitcher AI E2E, and TodoMVC tests
         id: simulator-tests
         continue-on-error: true
         timeout-minutes: 50

@@ -8,6 +8,7 @@ on:
       - 'packages/android/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - 'scripts/mobile-scroll-regression.mjs'
       - 'scripts/report-template-utils.mjs'
       - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
@@ -37,6 +38,8 @@ jobs:
     env:
       CI: '1'
       FORCE_COLOR: '0'
+      # Cross-region model connections can exceed Node's 250ms family-selection window.
+      NODE_OPTIONS: --network-family-autoselection-attempt-timeout=3000
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
@@ -140,7 +143,7 @@ jobs:
           pnpm exec nx test @midscene/android --skip-nx-cache 2>&1 |
             tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/unit-tests.log"
 
-      - name: Run Android Emulator smoke and TodoMVC tests
+      - name: Run Android default scroll, smoke, and TodoMVC tests
         id: emulator-tests
         continue-on-error: true
         timeout-minutes: 35

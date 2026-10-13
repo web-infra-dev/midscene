@@ -273,6 +273,29 @@ If you need to run E2E tests for adb:
 cd packages/web-integration && pnpm run test:ai -- adb
 ```
 
+### Run native default-scroll regression tests
+
+The Android Emulator and iOS Simulator workflows run a model-free scroll regression before their existing smoke and AI tests. Native lists and pagers measure content offsets while the built SDK executes the `Scroll` action. Each platform runs 28 cases covering both orientations, all four directions, and top/bottom boundaries.
+
+Build the target package first (`pnpm exec nx build @midscene/android` or `pnpm exec nx build @midscene/ios`). Then run from the repository root:
+
+```sh
+# Requires a booted Android emulator, adb, an Android SDK, and a JDK.
+# The fixture build downloads checksum-pinned AndroidX dependencies.
+ANDROID_HOME=/path/to/android-sdk MIDSCENE_ANDROID_SERIAL=emulator-5554 \
+  node scripts/mobile-scroll-regression.mjs android
+
+# Requires a booted iOS simulator and WDA serving that simulator.
+MIDSCENE_IOS_SIMULATOR_UDID=<simulator-udid> MIDSCENE_IOS_WDA_PORT=8100 \
+  node scripts/mobile-scroll-regression.mjs ios
+```
+
+The runner installs the disposable `dev.midscene.scrollprobe` fixture. Android runs replace any previous installation of that fixture and temporarily set the emulator resolution and density. The runner restores the original resolution, density, or orientation when it finishes.
+
+Vertical content must move between 60% and 95% of the visible list height, preserving overlap. A horizontal gesture must move exactly one native page within a 3% measurement tolerance. Boundary gestures must settle within one coordinate unit of the original boundary. These checks validate this fixture's behavior, not identical displacement in every application.
+
+Before/after screenshots, native offset traces, the source commit, and assertion results are written under `midscene_run/<platform>-scroll/scroll`. CI uses the platform diagnostics directory and uploads these files with the existing diagnostics artifact. A failed assertion fails the simulator workflow even if the later smoke or AI tests pass.
+
 ---
 
 ## Linting
