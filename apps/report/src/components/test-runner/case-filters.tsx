@@ -1,13 +1,22 @@
 import { CloseCircleFilled, SearchOutlined } from '@ant-design/icons';
 import { Input } from 'antd';
 import { useMemo } from 'react';
-import type { RunnerBreakdownStatus, RunnerCaseView } from './model';
+import {
+  type RunnerBreakdownSort,
+  type RunnerBreakdownSortDirection,
+  type RunnerBreakdownStatus,
+  type RunnerCaseView,
+  defaultRunnerBreakdownSortDirection,
+} from './model';
 import { Select } from './select';
 
 export function CaseFilters({
   cases,
   query,
   status,
+  sort,
+  sortDirection,
+  onSortChange,
   onQueryChange,
   onStatusChange,
   allProjectsExpanded,
@@ -17,6 +26,9 @@ export function CaseFilters({
   cases: readonly RunnerCaseView[];
   query: string;
   status: RunnerBreakdownStatus;
+  sort: RunnerBreakdownSort;
+  sortDirection: RunnerBreakdownSortDirection;
+  onSortChange(value: RunnerBreakdownSort): void;
   onQueryChange(value: string): void;
   onStatusChange(value: RunnerBreakdownStatus): void;
   allProjectsExpanded: boolean;
@@ -35,6 +47,15 @@ export function CaseFilters({
     }),
     [cases],
   );
+
+  const sortLabel =
+    sort === 'definition'
+      ? 'Definition order'
+      : sort === 'result'
+        ? sortDirection === 'asc'
+          ? 'Attention first'
+          : 'Attention last'
+        : `${{ name: 'Project name', 'case-count': 'Case count', 'passed-rate': 'Passed rate', duration: 'Duration' }[sort]} ${sortDirection === 'asc' ? '↑' : '↓'}`;
 
   return (
     <div
@@ -72,6 +93,30 @@ export function CaseFilters({
             value: 'not-run',
           },
         ]}
+      />
+      <Select<string>
+        className="runner-breakdown-sort"
+        aria-label="Sort projects and cases"
+        suffixIcon={<span className="runner-overview-select-chevron" />}
+        value={
+          sortDirection === defaultRunnerBreakdownSortDirection(sort)
+            ? sort
+            : `${sort}-${sortDirection}`
+        }
+        labelRender={() => sortLabel}
+        title={
+          sort === 'definition'
+            ? 'Project configuration order, YAML file path, then Case definition order'
+            : undefined
+        }
+        options={[
+          { value: 'result', label: 'Attention first' },
+          { value: 'definition', label: 'Definition order' },
+          { value: 'name', label: 'Project name' },
+          { value: 'passed-rate', label: 'Passed rate' },
+          { value: 'duration', label: 'Duration' },
+        ]}
+        onSelect={(value) => onSortChange(value as RunnerBreakdownSort)}
       />
       <Input
         prefix={<SearchOutlined />}

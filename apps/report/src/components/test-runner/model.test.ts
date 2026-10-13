@@ -298,6 +298,113 @@ describe('Midscene Test hybrid report model', () => {
     ]);
   });
 
+  it('keeps configuration, file path and Case definition order through filtering', () => {
+    const [project] = groupRunnerProjects(dump);
+    const makeCase = (path: string, index: number, name: string) => ({
+      ...project.cases[0],
+      key: `${path}:${index}`,
+      document: { ...project.cases[0].document, sourcePath: path },
+      testCase: { ...project.cases[0].testCase, name, caseIndex: index },
+    });
+    const originalCases = [
+      makeCase('cases/z.yaml', 0, 'A'),
+      makeCase('cases/a.yaml', 10, 'B'),
+      makeCase('cases\\a.yaml', 2, 'C'),
+    ];
+    const projects = [
+      {
+        ...project,
+        key: 'z-project',
+        project: { ...project.project, name: 'Z' },
+        cases: originalCases,
+      },
+      {
+        ...project,
+        key: 'a-project',
+        project: { ...project.project, name: 'A' },
+      },
+    ];
+    const sorted = filterAndSortRunnerProjectBreakdown(projects, {
+      query: '',
+      status: 'all',
+      sort: 'definition',
+      direction: 'asc',
+    });
+    expect(sorted.map(({ item }) => item.key)).toEqual([
+      'z-project',
+      'a-project',
+    ]);
+    expect(sorted[0].cases.map((item) => item.testCase.name)).toEqual([
+      'C',
+      'B',
+      'A',
+    ]);
+    expect(projects[0].cases).toEqual(originalCases);
+    expect(projects[0].cases.map((item) => item.testCase.name)).toEqual([
+      'A',
+      'B',
+      'C',
+    ]);
+    const filtered = filterAndSortRunnerProjectBreakdown(projects, {
+      query: 'cases/a',
+      status: 'passed',
+      sort: 'definition',
+      direction: 'asc',
+    });
+    expect(filtered[0].cases.map((item) => item.testCase.name)).toEqual(['B']);
+    expect(
+      filterAndSortRunnerProjectBreakdown(projects, {
+        query: '',
+        status: 'all',
+        sort: 'result',
+        direction: 'asc',
+      })[0].cases.map((item) => item.status),
+    ).toEqual(['failed', 'retry-passed', 'not-run', 'passed']);
+  });
+
+  it('sorts by passed rate instead of passed count, independent of filters', () => {
+    const [base] = groupRunnerProjects(dump);
+    const makeProject = (name: string, passedCount: number, total: number) => ({
+      ...base,
+      key: name,
+      project: { ...base.project, projectId: name, name },
+      passedCount,
+      cases: Array.from(
+        { length: total },
+        (_, index) => base.cases[index < passedCount ? 0 : 2],
+      ),
+    });
+    const projects = [
+      makeProject('Three of ten', 3, 10),
+      makeProject('Two of two', 2, 2),
+      makeProject('No Cases', 0, 0),
+    ];
+    const sortedNames = (
+      direction: 'asc' | 'desc',
+      status: 'all' | 'passed' = 'all',
+    ) =>
+      filterAndSortRunnerProjectBreakdown(projects, {
+        query: '',
+        status,
+        sort: 'passed-rate',
+        direction,
+      }).map(({ item }) => item.project.name);
+    expect(sortedNames('desc')).toEqual([
+      'Two of two',
+      'Three of ten',
+      'No Cases',
+    ]);
+    expect(sortedNames('asc')).toEqual([
+      'Three of ten',
+      'Two of two',
+      'No Cases',
+    ]);
+    expect(sortedNames('desc', 'passed')).toEqual([
+      'Two of two',
+      'Three of ten',
+    ]);
+  });
+
   it('sorts Project rows from each table column in both directions', () => {
     const [project] = groupRunnerProjects(dump);
     const healthyProject = {
@@ -318,7 +425,7 @@ describe('Midscene Test hybrid report model', () => {
     };
     const projects = [project, healthyProject];
     const sortNames = (
-      sort: 'name' | 'case-count' | 'passed-count' | 'result' | 'duration',
+      sort: 'name' | 'case-count' | 'passed-rate' | 'result' | 'duration',
       direction: 'asc' | 'desc',
     ) =>
       filterAndSortRunnerProjectBreakdown(projects, {
@@ -330,7 +437,7 @@ describe('Midscene Test hybrid report model', () => {
 
     expect(sortNames('name', 'asc')).toEqual(['Alpha', 'Web']);
     expect(sortNames('case-count', 'desc')).toEqual(['Web', 'Alpha']);
-    expect(sortNames('passed-count', 'desc')).toEqual(['Alpha', 'Web']);
+    expect(sortNames('passed-rate', 'desc')).toEqual(['Alpha', 'Web']);
     expect(sortNames('result', 'asc')).toEqual(['Web', 'Alpha']);
     expect(sortNames('duration', 'desc')).toEqual(['Alpha', 'Web']);
   });

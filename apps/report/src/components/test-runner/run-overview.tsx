@@ -150,6 +150,14 @@ export function RunOverview({
             cases={cases}
             query={breakdownQuery}
             status={breakdownStatus}
+            sort={breakdownSort}
+            sortDirection={breakdownSortDirection}
+            onSortChange={(sort) => {
+              setBreakdownSort(sort);
+              setBreakdownSortDirection(
+                defaultRunnerBreakdownSortDirection(sort),
+              );
+            }}
             onQueryChange={setBreakdownQuery}
             onStatusChange={setBreakdownStatus}
             allProjectsExpanded={allProjectsExpanded}

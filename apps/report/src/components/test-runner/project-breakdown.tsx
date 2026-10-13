@@ -56,6 +56,11 @@ function ProjectSortButton({
             : ''
         }`}
         aria-pressed={active}
+        title={
+          value === 'passed-rate'
+            ? 'Sort by passed rate (passed Cases / total Cases)'
+            : undefined
+        }
         onClick={() => onChange(value)}
       >
         <span>{label}</span>
@@ -355,7 +360,7 @@ export function ProjectBreakdownTree({
         <div className="runner-project-tree-columns">
           <ProjectSortButton
             label="Passed / Case"
-            value="passed-count"
+            value="passed-rate"
             sort={sort}
             direction={sortDirection}
             onChange={onSortChange}

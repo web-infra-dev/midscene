@@ -27,6 +27,27 @@ tasks:
       - aiAssert: Web regression is collapsed and its child case rows are hidden.
       - aiTap: the Expand all projects icon button to the right of Search projects, cases, and details
       - aiAssert: Web regression is expanded and both case rows are visible.
+      - aiTap: the sorting dropdown showing Attention first between the status filter and search
+      - aiTap: the Project name option
+      - aiAssert: The sorting dropdown shows Project name with an ascending arrow and the Project column is the active ascending sort.
+      - aiTap: the sorting dropdown showing Project name
+      - aiTap: the Passed rate option
+      - aiAssert: The sorting dropdown shows Passed rate with a descending arrow and the Passed / Case column is the active descending sort.
+      - aiTap: the sorting dropdown showing Passed rate
+      - aiTap: the Attention first option
+      - aiTap: the sorting dropdown showing Attention first between the status filter and search
+      - aiTap: the Definition order option
+      - aiAssert: The sorting dropdown shows Definition order and none of the table column sort arrows is active. Both case rows remain visible.
+      - aiTap: the Duration column header
+      - aiAssert: Duration has an active sort direction and the sorting dropdown shows Duration with a direction arrow.
+      - aiTap: the sorting dropdown showing Duration
+      - aiTap: the Attention first option
+      - aiAssert: The sorting dropdown shows Attention first and the Attention column is the active ascending sort.
+      - aiTap: the Attention column header
+      - aiAssert: The sorting dropdown shows Attention last and the Attention column is the active descending sort.
+      - aiTap: the sorting dropdown showing Attention last
+      - aiTap: the Attention first option
+      - aiAssert: The sorting dropdown shows Attention first and the Attention column is ascending again.
 
   - name: direct case navigation and browser history
     flow:

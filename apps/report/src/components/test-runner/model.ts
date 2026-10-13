@@ -75,9 +75,10 @@ export interface RunnerProjectView {
 export type RunnerBreakdownStatus = 'all' | 'attention' | RunnerCaseStatus;
 
 export type RunnerBreakdownSort =
+  | 'definition'
   | 'name'
   | 'case-count'
-  | 'passed-count'
+  | 'passed-rate'
   | 'result'
   | 'duration';
 
@@ -86,7 +87,9 @@ export type RunnerBreakdownSortDirection = 'asc' | 'desc';
 export const defaultRunnerBreakdownSortDirection = (
   sort: RunnerBreakdownSort,
 ): RunnerBreakdownSortDirection =>
-  sort === 'name' || sort === 'result' ? 'asc' : 'desc';
+  sort === 'definition' || sort === 'name' || sort === 'result'
+    ? 'asc'
+    : 'desc';
 
 export interface RunnerProjectBreakdownView {
   item: RunnerProjectView;
@@ -472,6 +475,16 @@ const breakdownCaseSorter = (
   direction: RunnerBreakdownSortDirection,
 ): ((a: RunnerCaseView, b: RunnerCaseView) => number) => {
   const directionMultiplier = direction === 'asc' ? 1 : -1;
+  if (sort === 'definition') {
+    return (a, b) => {
+      const pathA = a.document.sourcePath.replace(/\\/g, '/');
+      const pathB = b.document.sourcePath.replace(/\\/g, '/');
+      return (
+        (pathA < pathB ? -1 : pathA > pathB ? 1 : 0) ||
+        a.testCase.caseIndex - b.testCase.caseIndex
+      );
+    };
+  }
   if (sort === 'duration') {
     return (a, b) => directionMultiplier * (a.durationMs - b.durationMs);
   }
@@ -549,6 +562,7 @@ export const filterAndSortRunnerProjectBreakdown = (
     })
     .map(({ item, cases }) => ({ item, cases }));
 
+  if (options.sort === 'definition') return result;
   const directionMultiplier = options.direction === 'asc' ? 1 : -1;
   return result.sort((a, b) => {
     let comparison: number;
@@ -556,8 +570,16 @@ export const filterAndSortRunnerProjectBreakdown = (
       comparison = a.item.project.name.localeCompare(b.item.project.name);
     } else if (options.sort === 'case-count') {
       comparison = a.item.cases.length - b.item.cases.length;
-    } else if (options.sort === 'passed-count') {
-      comparison = a.item.passedCount - b.item.passedCount;
+    } else if (options.sort === 'passed-rate') {
+      const totalA = a.item.cases.length;
+      const totalB = b.item.cases.length;
+      // A Project with no Cases has no pass rate and stays last in either direction.
+      if (!totalA || !totalB) {
+        if (totalA !== totalB) return totalA ? -1 : 1;
+        comparison = 0;
+      } else {
+        comparison = a.item.passedCount / totalA - b.item.passedCount / totalB;
+      }
     } else if (options.sort === 'duration') {
       comparison = (a.item.durationMs ?? 0) - (b.item.durationMs ?? 0);
     } else {

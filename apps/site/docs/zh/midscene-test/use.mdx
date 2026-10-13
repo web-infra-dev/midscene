@@ -468,7 +468,7 @@ pnpm exec midscene-test --result-dir ./test-results
 
 每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
 
-**Test Report** 概览按 Project 展示 Case。可以用状态筛选和搜索缩小范围，点击列标题对 Project 排序，并在 **Compact** 简洁列表和包含元数据、截图时间线的 **Detailed** 列表之间切换。展开 Project 后，点击 Case 即可查看执行过程。只有一个 Case 的报告会直接进入该 Case。
+**Test Report** 概览按 Project 展示 Case。可以用状态筛选和搜索缩小范围，点击列标题对 Project 排序，并在 **Compact** 简洁列表和包含元数据、截图时间线的 **Detailed** 列表之间切换。状态筛选和搜索框之间的排序下拉默认选择 **Attention first**（优先关注）。选择 **Definition order**（用例定义顺序）后，会按 Project 配置顺序、YAML 文件路径、文件内 Case 定义顺序展示，方便与 CI 摘要对照。下拉框还支持 **Project name**（项目名称）、**Passed rate**（通过率）和 **Duration**（耗时），以及 **Attention first**（优先关注）。通过率按通过 Case 数除以总 Case 数计算，重试后通过计入分子，未执行 Case 计入分母；没有 Case 的 Project 无通过率，排在最后。点击表头排序会同步更新下拉显示；选择用例定义顺序会清除表头的活动排序状态。展开 Project 后，点击 Case 即可查看执行过程。只有一个 Case 的报告会直接进入该 Case。
 
 Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝试时的 **Attempts** 下拉框，以及 Step 状态统计。报告保存了源 YAML 快照时，才可使用 YAML 视图。Visual 视图在截图时间线下方展示统一的 Step 列表和选中 Step 的详情，列表中的生命周期分组使用分割线区分。在宽屏下，拖动分栏线可调整 Step 列表宽度，聚焦后也可使用方向键调整，双击可恢复默认宽度。打开包含失败 Step 的 Case 时，会选中该 Step，并将对应行和错误滚动到可见位置。
 
