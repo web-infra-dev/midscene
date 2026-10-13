@@ -127,6 +127,32 @@ describe('create arguments', () => {
 });
 
 describe('create installation confirmation and postinstall', () => {
+  it.skipIf(process.platform === 'win32').each([false, true])(
+    'avoids unescaped backslashes in POSIX directory guidance (skip install: %s)',
+    async (skipInstall) => {
+      const cwd = temp();
+      const directory = 'project\\tests';
+      const output = io();
+      await runCreateCommand(
+        [
+          directory,
+          '--platform',
+          'web',
+          '--package-manager',
+          'pnpm',
+          '--yes',
+          ...(skipInstall ? ['--skip-install'] : []),
+        ],
+        output,
+        services(cwd),
+      );
+      expect(existsSync(join(cwd, directory, 'package.json'))).toBe(true);
+      const summary = output.log.mock.calls.at(-1)![0] as string;
+      expect(summary).toContain('Open the project directory in your terminal.');
+      expect(summary).not.toContain('cd ');
+    },
+  );
+
   it.each(['my-tests', 'project with spaces', 'project$HOME', '.'])(
     'shows ordered next steps and safe directory guidance for %s',
     async (directory) => {

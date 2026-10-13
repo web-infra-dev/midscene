@@ -204,7 +204,9 @@ function projectSummary(
     const directory = relative(cwd, root) || root;
     // Only print a copyable cd command when it needs no shell-specific escaping.
     steps.push(
-      /^[a-zA-Z0-9_./\\-]+$/.test(directory) && !directory.startsWith('-')
+      /^[a-zA-Z0-9_./\\-]+$/.test(directory) &&
+        !directory.startsWith('-') &&
+        (process.platform === 'win32' || !directory.includes('\\'))
         ? `Open the project\n     cd ${directory}`
         : 'Open the project directory in your terminal.',
     );
