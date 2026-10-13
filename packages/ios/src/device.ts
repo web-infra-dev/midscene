@@ -763,8 +763,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       to.y = end;
     }
     // A fixed duration changes release velocity with screen size/orientation.
-    // 400 points/second limits inertia for Scroll; Swipe keeps its fast default.
-    const duration = Math.max(1, Math.round(Math.abs(end - start) / 0.4));
+    // Cap velocity at 400 points/second and keep short gestures at least 1s:
+    // faster short gestures can intermittently fling beyond the viewport.
+    // Swipe keeps its fast default.
+    const duration = Math.max(1000, Math.round(Math.abs(end - start) / 0.4));
     await this.swipePoint(from, to, duration);
   }
 

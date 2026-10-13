@@ -628,7 +628,7 @@ await agent.aiScroll(
 For a single scroll without `locate` or `distance`, the default gestures are:
 
 - Android: move the finger across the central 70% of the screen in 1000 ms.
-- iOS: move the finger across the central 75% at approximately 400 screen-coordinate points per second. Longer gestures take more time.
+- iOS: move the finger across the central 75% at no more than 400 screen-coordinate points per second, taking at least 1000 ms. Longer gestures take more time.
 
 Both platforms center vertical gestures horizontally and horizontal gestures vertically. Gesture endpoints stay away from screen edges.
 

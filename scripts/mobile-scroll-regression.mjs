@@ -268,17 +268,27 @@ try {
             orientation === 'landscape',
             `Wrong SDK orientation: ${name}`,
           );
-          assert.equal(
-            size.width,
-            before.width,
-            'Fixture and SDK coordinate widths differ',
-          );
-          if (platform === 'ios')
+          if (platform === 'ios') {
+            assert.equal(
+              size.width,
+              before.width,
+              'Fixture and SDK widths differ',
+            );
             assert.equal(
               size.height,
               before.height,
-              'Fixture and SDK coordinate heights differ',
+              'Fixture and SDK heights differ',
             );
+          } else {
+            // Native Android telemetry uses physical pixels; SDK size uses logical
+            // coordinates and converts them back to physical pixels for ADB input.
+            const screen = await device.getScreenSize();
+            assert.equal(
+              Number((screen.override || screen.physical).split('x')[0]),
+              before.width,
+              'Fixture and Android display widths differ',
+            );
+          }
           screenshot(`${name}-before`);
           let after;
           try {

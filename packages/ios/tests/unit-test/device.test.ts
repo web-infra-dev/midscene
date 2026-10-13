@@ -97,14 +97,14 @@ describe('IOSDevice', () => {
     it.each([
       ['scrollDown', 375, 812, [188, 711, 188, 102, 1523]],
       ['scrollUp', 375, 812, [188, 102, 188, 711, 1523]],
-      ['scrollRight', 375, 812, [328, 406, 47, 406, 703]],
-      ['scrollLeft', 375, 812, [47, 406, 328, 406, 703]],
-      ['scrollDown', 812, 375, [406, 328, 406, 47, 703]],
-      ['scrollUp', 812, 375, [406, 47, 406, 328, 703]],
+      ['scrollRight', 375, 812, [328, 406, 47, 406, 1000]],
+      ['scrollLeft', 375, 812, [47, 406, 328, 406, 1000]],
+      ['scrollDown', 812, 375, [406, 328, 406, 47, 1000]],
+      ['scrollUp', 812, 375, [406, 47, 406, 328, 1000]],
       ['scrollRight', 812, 375, [711, 188, 102, 188, 1523]],
       ['scrollLeft', 812, 375, [102, 188, 711, 188, 1523]],
     ] as const)(
-      '%s uses bounded endpoints and distance-based timing on %ix%i',
+      '%s uses bounded endpoints and at least one second of distance-based timing on %ix%i',
       async (method, width, height, expected) => {
         mockWdaClient.getWindowSize.mockResolvedValue({ width, height });
         await device[method]();
