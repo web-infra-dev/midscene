@@ -538,7 +538,7 @@ process.exit(result.status ?? 1);
           },
         },
       );
-      expect(result.stdout).toContain('Project ready:');
+      expect(result.stdout).toContain('Project ready!');
       expect(
         readFileSync(join(root, 'midscene-node-spec.web.md'), 'utf8'),
       ).toContain('## `gotoUrl`');
