@@ -5,6 +5,7 @@ import type { TestRunReportSourceIndex } from '@midscene/core';
 import { describe, expect, it } from 'vitest';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
+import { WorkflowError } from '../src/errors';
 import {
   buildTestRunReportDump,
   renderTestResultMarkdown,
@@ -13,7 +14,9 @@ import {
   writeTestResultMarkdown,
 } from '../src/report';
 
-const step = (executionId = 'execution-1'): StepRunResult => ({
+const step = (
+  executionId = 'execution-1',
+): Extract<StepRunResult, { status: 'success' | 'failed' }> => ({
   phase: 'steps',
   stepIndex: 0,
   node: 'aiAct',
@@ -214,7 +217,7 @@ describe('result.md', () => {
     const failed = {
       ...step(),
       status: 'failed' as const,
-      error: new Error('missing | <button> [x]'),
+      error: new WorkflowError('missing | <button> [x]'),
     };
     const run = result([failed]);
     run.status = 'failed';
@@ -285,7 +288,7 @@ describe('result.md', () => {
           projectId: 'project-1',
           projectName: 'web',
           sourcePath: 'broken.yaml',
-          error: new Error('Invalid document'),
+          error: new WorkflowError('Invalid document'),
         },
       ];
       run.summary = {
