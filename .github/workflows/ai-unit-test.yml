@@ -1,111 +1,96 @@
-name: AI unit test
+name: PR 3225 model transport diagnosis
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**/*.md'
-      - 'apps/site/**'
-      - '.changeset/**'
-      - 'docs/**'
-  pull_request:
-    paths-ignore:
-      - '**/*.md'
-      - 'apps/site/**'
-      - '.changeset/**'
-      - 'docs/**'
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to checkout'
-        required: false
-        default: 'main'
-        type: string
-
 permissions:
   contents: read
-
-concurrency:
-  group: ai-unit-test-${{ github.event.pull_request.number || inputs.branch || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
-  main:
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
-    strategy:
-      matrix:
-        node-version: [24.13.0]
-
+  hosted-linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
     env:
-      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
-      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
-      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
-      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
-      # DEBUG: midscene:* # Disabled to prevent log overflow
-      CI: 1
-
+      MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
-
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
-
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
-
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
-
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
-
-    - name: Setup Puppeteer browser
-      uses: ./.github/actions/setup-puppeteer-browser
-
-    - name: Build AI unit test projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
-    
-    - name: Run tests with coverage
-      # Worker caps live in the core/web-integration/cli rstest.config.ts files:
-      # rstest rejects bare --minWorkers/--maxWorkers, so they must not be
-      # passed here.
-      run: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage
-      id: test-ai
-      continue-on-error: true
-
-    - name: Upload test-ai output
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: test-ai-output
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
-        if-no-files-found: ignore
-
-    - name: Upload AI coverage reports
-      id: upload-ai-coverage
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-coverage
-        path: coverage-ai
-        if-no-files-found: ignore
-
-    - name: Write AI coverage summary
-      if: always()
-      env:
-        COVERAGE_DIR: coverage-ai
-        COVERAGE_TITLE: AI Test Coverage
-        COVERAGE_ARTIFACT_NAME: ai-coverage
-        COVERAGE_ARTIFACT_URL: ${{ steps.upload-ai-coverage.outputs.artifact-url }}
-      run: node scripts/github-coverage-summary.js
-
-    - name: Check if script failed
-      if: steps.test-ai.outcome == 'failure'
-      run: exit 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.13.0'
+      - name: Compare unauthenticated transport requests
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/network-probe.mjs" <<'NODE'
+          import net from 'node:net';
+          import dns from 'node:dns/promises';
+          const target = new URL(process.env.MODEL_BASE_URL);
+          target.pathname = target.pathname.replace(/\/$/, '') + '/models';
+          console.log('node',process.version,'host',target.hostname,'attemptTimeout',net.getDefaultAutoSelectFamilyAttemptTimeout());
+          console.log('dns',await dns.lookup(target.hostname,{all:true}));
+          for(const mode of ['default','longer-attempt','single-family']) {
+           if(mode==='longer-attempt')net.setDefaultAutoSelectFamilyAttemptTimeout(3000);
+           if(mode==='single-family')net.setDefaultAutoSelectFamily(false);
+           for(let trial=1;trial<=3;trial++) {
+            const start=Date.now();
+            try { const r=await fetch(target,{signal:AbortSignal.timeout(15000)}); console.log(JSON.stringify({mode,trial,status:r.status,ms:Date.now()-start}));await r.body?.cancel(); }
+            catch(e){ console.log(JSON.stringify({mode,trial,ms:Date.now()-start,error:e.message,cause:e.cause?.code,attempts:e.cause?.errors?.map(x=>({code:x.code,address:x.address,port:x.port}))})); }
+           }
+          }
+          NODE
+          node "$RUNNER_TEMP/network-probe.mjs"
+  configured-linux:
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    timeout-minutes: 10
+    env:
+      MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.13.0'
+      - name: Compare unauthenticated transport requests
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/network-probe.mjs" <<'NODE'
+          import net from 'node:net';
+          import dns from 'node:dns/promises';
+          const target = new URL(process.env.MODEL_BASE_URL);
+          target.pathname = target.pathname.replace(/\/$/, '') + '/models';
+          console.log('node',process.version,'host',target.hostname,'attemptTimeout',net.getDefaultAutoSelectFamilyAttemptTimeout());
+          console.log('dns',await dns.lookup(target.hostname,{all:true}));
+          for(const mode of ['default','longer-attempt','single-family']) {
+           if(mode==='longer-attempt')net.setDefaultAutoSelectFamilyAttemptTimeout(3000);
+           if(mode==='single-family')net.setDefaultAutoSelectFamily(false);
+           for(let trial=1;trial<=3;trial++) {
+            const start=Date.now();
+            try { const r=await fetch(target,{signal:AbortSignal.timeout(15000)}); console.log(JSON.stringify({mode,trial,status:r.status,ms:Date.now()-start}));await r.body?.cancel(); }
+            catch(e){ console.log(JSON.stringify({mode,trial,ms:Date.now()-start,error:e.message,cause:e.cause?.code,attempts:e.cause?.errors?.map(x=>({code:x.code,address:x.address,port:x.port}))})); }
+           }
+          }
+          NODE
+          node "$RUNNER_TEMP/network-probe.mjs"
+  configured-mac:
+    runs-on: ${{ fromJSON(vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"') }}
+    timeout-minutes: 10
+    env:
+      MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.13.0'
+      - name: Compare unauthenticated transport requests
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/network-probe.mjs" <<'NODE'
+          import net from 'node:net';
+          import dns from 'node:dns/promises';
+          const target = new URL(process.env.MODEL_BASE_URL);
+          target.pathname = target.pathname.replace(/\/$/, '') + '/models';
+          console.log('node',process.version,'host',target.hostname,'attemptTimeout',net.getDefaultAutoSelectFamilyAttemptTimeout());
+          console.log('dns',await dns.lookup(target.hostname,{all:true}));
+          for(const mode of ['default','longer-attempt','single-family']) {
+           if(mode==='longer-attempt')net.setDefaultAutoSelectFamilyAttemptTimeout(3000);
+           if(mode==='single-family')net.setDefaultAutoSelectFamily(false);
+           for(let trial=1;trial<=3;trial++) {
+            const start=Date.now();
+            try { const r=await fetch(target,{signal:AbortSignal.timeout(15000)}); console.log(JSON.stringify({mode,trial,status:r.status,ms:Date.now()-start}));await r.body?.cancel(); }
+            catch(e){ console.log(JSON.stringify({mode,trial,ms:Date.now()-start,error:e.message,cause:e.cause?.code,attempts:e.cause?.errors?.map(x=>({code:x.code,address:x.address,port:x.port}))})); }
+           }
+          }
+          NODE
+          node "$RUNNER_TEMP/network-probe.mjs"
