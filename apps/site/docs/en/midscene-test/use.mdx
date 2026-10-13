@@ -417,21 +417,14 @@ pnpm exec midscene-test
 
 Generated projects use `files.include` to select `.yaml` and `.yml` files under `cases/`. Without a `files` configuration, Midscene Test recursively searches the test directory for YAML files, ignoring `node_modules` and `.git`.
 
-Use the repeatable `--file` option to run one or more files or directories. Paths are resolved from the test project root:
+Pass a specific directory or test case file as an argument to run only that target:
 
 ```bash
 # Run all test cases in a specific directory
-pnpm exec midscene-test --file ./cases/smoke
+pnpm exec midscene-test ./cases/smoke
 
 # Run one test case file
-pnpm exec midscene-test --file ./cases/order.yaml
-```
-
-You can also select Cases by ID or tags. Repeated options are combined: IDs are matched exactly, included tags use OR matching, and excluded tags always remove a Case. Use explicit Case IDs for persisted CI or scheduler selections; generated IDs change when a Case moves within its file.
-
-```bash
-pnpm exec midscene-test --case-id checkout-001 --case-id checkout-002
-pnpm exec midscene-test --tag smoke --exclude-tag destructive
+pnpm exec midscene-test ./cases/order.yaml
 ```
 
 ### Filter execution targets and configuration files
