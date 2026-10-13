@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const reportTemplateMagicString = 'REPLACE_ME_WITH_REPORT_HTML';
-export const reportTemplateMaxBytes = 3 * 1024 * 1024;
+export const reportTemplateMaxBytes = 3 * 1024 * 1024 + 32 * 1024;
 
 export const reportTemplateModulePaths = {
   cjs: 'lib/report-html-template.js',
@@ -25,7 +25,7 @@ const defaultReportTemplatePath = path.join(
 function validateReportTemplateSize(size, label) {
   if (size > reportTemplateMaxBytes) {
     throw new Error(
-      `${label} exceeds the 3 MiB size limit (${size} bytes). This may indicate recursive Report template bundling.`,
+      `${label} exceeds the 3 MiB + 32 KiB size limit (${size} bytes). This may indicate recursive Report template bundling.`,
     );
   }
 }
@@ -128,7 +128,7 @@ export function validateCoreReportTemplateModules(
       throw new Error(`Core report template module not found at ${filePath}.`);
     }
 
-    // JSON escaping grows the JS module; the 3 MiB limit applies to HTML.
+    // JSON escaping grows the JS module; the size limit applies to HTML.
     // Bound reads by the expected serialized module size instead.
     const expectedBytes = Buffer.byteLength(expectedModules[format], 'utf8');
     const moduleBytes = fs.statSync(filePath).size;

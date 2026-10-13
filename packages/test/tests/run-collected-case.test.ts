@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import { RESOURCE_CLEANUP_GRACE_MS } from '@midscene/core/internal/test-runner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type CollectedCase,
@@ -246,7 +247,7 @@ describe('runCollectedCase', () => {
     ]);
   });
 
-  it('settles a non-cooperative running step on parent cancellation and runs cleanup', async () => {
+  it('runs afterEach on cancellation but defers teardown until the running node settles', async () => {
     vi.useFakeTimers();
     const calls: string[] = [];
     const controller = new AbortController();
@@ -256,6 +257,7 @@ describe('runCollectedCase', () => {
     );
     const cancellationReason = new Error('workflow interrupted');
     const started = createDeferred();
+    const nodeExecution = createDeferred();
     const registry = new NodeRegistry([
       defineNode({
         name: 'blocking',
@@ -265,7 +267,7 @@ describe('runCollectedCase', () => {
             calls.push('teardown');
           });
           started.resolve();
-          return new Promise<void>(() => {});
+          return nodeExecution.promise;
         },
       }),
       defineNode({
@@ -286,29 +288,36 @@ describe('runCollectedCase', () => {
     );
     await started.promise;
 
-    let result: Awaited<typeof execution> | undefined;
-    const settled = execution.then((value) => {
-      result = value;
-      return true;
-    });
-    controller.abort(cancellationReason);
-    const observed = Promise.race([
-      settled,
-      new Promise<false>((resolve) => setTimeout(() => resolve(false), 50)),
-    ]);
-    await vi.advanceTimersByTimeAsync(50);
+    try {
+      controller.abort(cancellationReason);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls).toEqual(['step', 'afterEach']);
 
-    expect(await observed).toBe(true);
-    expect(result?.steps[0].error).toMatchObject({
-      code: 'NODE_EXECUTION_ERROR',
-      cause: cancellationReason,
-    });
-    expect(calls).toEqual(['step', 'afterEach', 'teardown']);
-    expect(vi.getTimerCount()).toBe(0);
-    expect(removeAbortListener).toHaveBeenCalledWith(
-      'abort',
-      expect.any(Function),
-    );
+      await vi.advanceTimersByTimeAsync(RESOURCE_CLEANUP_GRACE_MS);
+      const result = await execution;
+      expect(result.steps[0].error).toMatchObject({
+        code: 'NODE_EXECUTION_ERROR',
+        cause: cancellationReason,
+      });
+      expect(result.cleanup?.status).toBe('pending');
+      expect(result.teardownErrors).toBeUndefined();
+      expect(calls).toEqual(['step', 'afterEach']);
+      expect(vi.getTimerCount()).toBe(0);
+      expect(removeAbortListener).toHaveBeenCalledWith(
+        'abort',
+        expect.any(Function),
+      );
+
+      const snapshot = JSON.stringify(result);
+      nodeExecution.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls).toEqual(['step', 'afterEach', 'teardown']);
+      expect(JSON.stringify(result)).toBe(snapshot);
+    } finally {
+      nodeExecution.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      await execution;
+    }
   });
 
   it('preserves a null parent cancellation reason', async () => {

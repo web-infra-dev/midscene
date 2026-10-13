@@ -470,7 +470,10 @@ export interface PlaywrightParserOpt extends BaseAgentParserOpt {}
 action
 */
 export interface ExecutionTaskProgressOptions {
-  onTaskStart?: (task: ExecutionTask) => Promise<void> | void;
+  onTaskStart?: (
+    task: ExecutionTask,
+    signal?: AbortSignal,
+  ) => Promise<void> | void;
 }
 
 /**
@@ -589,6 +592,8 @@ export interface RecordToReportOptions {
 export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
 
 export interface ExecutorContext {
+  /** Cancellation of this execution; adapters may forward it to cancellable I/O. */
+  signal?: AbortSignal;
   task: ExecutionTask;
   element?: LocateResultElement | null;
   uiContext?: UIContext;

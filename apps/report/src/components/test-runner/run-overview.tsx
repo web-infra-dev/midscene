@@ -1,5 +1,4 @@
 import type { TestRunReportDump } from '@midscene/core';
-import { Alert } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { CaseDensitySwitch } from './case-density-switch';
 import { CaseFilters } from './case-filters';
@@ -19,11 +18,13 @@ import { ProjectBreakdownTree } from './project-breakdown';
 import { RunSummary } from './run-summary';
 import type { RunnerCaseDisplayMode } from './view-primitives';
 
-import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
+import { ErrorCards } from './error-card';
+import { type ReportIssues, collectReportIssues, getRunIssues } from './issues';
 
 export function RunOverview({
   visualIndex,
   dump,
+  issues,
   cases,
   health,
   projects,
@@ -35,6 +36,7 @@ export function RunOverview({
 }: {
   visualIndex: RunnerVisualIndex;
   dump: TestRunReportDump;
+  issues?: ReportIssues;
   cases: RunnerCaseView[];
   health: RunnerHealthStats;
   projects: RunnerProjectView[];
@@ -44,6 +46,8 @@ export function RunOverview({
   onExpandedProjectKeysChange(keys: Set<string>): void;
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
+  const reportIssues = issues ?? collectReportIssues(dump);
+  const navigableStepIds = new Set(reportIssues.nodes.keys());
   const breakdownRef = useRef<HTMLElement>(null);
   const [breakdownQuery, setBreakdownQuery] = useState('');
   const [breakdownStatus, setBreakdownStatus] =
@@ -127,18 +131,16 @@ export function RunOverview({
         onReviewOutcome={focusOutcomeCases}
       />
 
-      <LifecycleErrors
-        issues={dump.projects.flatMap((project) =>
-          getProjectLifecycleIssues(project),
-        )}
+      <ErrorCards
+        issues={getRunIssues(reportIssues)}
+        label="Run issues"
+        navigableStepIds={navigableStepIds}
       />
       <section
         ref={breakdownRef}
         className="runner-panel runner-breakdown-panel"
+        aria-label="Projects and cases"
       >
-        <div className="runner-section-heading">
-          <h2>Projects and cases</h2>
-        </div>
         <div className="runner-breakdown-controls">
           <CaseDensitySwitch
             value={caseDisplayMode}
@@ -163,6 +165,7 @@ export function RunOverview({
           />
         </div>
         <ProjectBreakdownTree
+          issues={reportIssues}
           visualIndex={visualIndex}
           projects={breakdownProjects}
           caseDisplayMode={caseDisplayMode}
@@ -176,25 +179,6 @@ export function RunOverview({
           onOpenCase={onOpenCase}
         />
       </section>
-
-      {dump.diagnostics?.length ? (
-        <section className="runner-panel runner-diagnostics">
-          <div className="runner-section-heading">
-            <div>
-              <div className="runner-eyebrow">Report assembly</div>
-              <h2>Diagnostics</h2>
-            </div>
-          </div>
-          {dump.diagnostics.map((diagnostic, index) => (
-            <Alert
-              key={`${diagnostic.code}-${diagnostic.scopeId ?? index}`}
-              type={diagnostic.level === 'error' ? 'error' : 'warning'}
-              showIcon
-              message={diagnostic.message}
-            />
-          ))}
-        </section>
-      ) : null}
     </div>
   );
 }

@@ -37,8 +37,6 @@ jobs:
         node-version: [24.13.0]
 
     env:
-      # Cross-region model connections can exceed Node's 250ms family-selection window.
-      NODE_OPTIONS: --network-family-autoselection-attempt-timeout=3000
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
@@ -78,7 +76,9 @@ jobs:
       # Worker caps live in the core/web-integration/cli rstest.config.ts files:
       # rstest rejects bare --minWorkers/--maxWorkers, so they must not be
       # passed here.
-      run: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage
+      uses: ./.github/actions/ai-ci
+      with:
+        command: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage
       id: test-ai
       continue-on-error: true
 

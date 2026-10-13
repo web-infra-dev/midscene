@@ -23,7 +23,7 @@ const normalizedSecretKeys = [
 const normalizedKey = (key: string): string =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-const isSecretKey = (key: string): boolean => {
+export const isReportSecretKey = (key: string): boolean => {
   const normalized = normalizedKey(key);
   return normalizedSecretKeys.some((secret) => normalized.includes(secret));
 };
@@ -143,7 +143,7 @@ export function sanitizeReportValue(value: unknown): TestRunReportValue {
     for (const key of keys.slice(0, MAX_OBJECT_KEYS)) {
       const childPath = objectPath(path, key);
       if (!consume(childPath, key)) break;
-      if (isSecretKey(key)) {
+      if (isReportSecretKey(key)) {
         output[key] = '[REDACTED]';
         redactedPaths.add(childPath);
       } else {
@@ -177,32 +177,129 @@ export function sanitizeReportValue(value: unknown): TestRunReportValue {
 }
 
 export function sanitizeReportError(error: unknown): TestRunReportError {
-  if (
-    error instanceof Error ||
-    (typeof error === 'object' &&
-      error !== null &&
-      typeof (error as { message?: unknown }).message === 'string')
-  ) {
-    const workflowLike = error as {
-      name?: string;
-      message: string;
+  const messageText = (value: string) =>
+    sanitizeReportText(
+      value
+        .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+        .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')
+        .replace(
+          /(["']?\b(?:password|passwd|secret|token|authorization|cookie|api[_-]?key)\b["']?\s*[:=]\s*)(?:\[REDACTED\]|"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi,
+          '$1[REDACTED]',
+        ),
+    );
+  const ancestors = new WeakSet<object>();
+  let remainingBytes = MAX_SERIALIZED_BYTES - 1024;
+  let nodes = 0;
+  const shortened = (): TestRunReportError => ({
+    format: 'midscene-error',
+    name: 'Error',
+    message: '[Truncated: error cause chain]',
+    truncated: true,
+  });
+  const visit = (current: unknown, depth: number): TestRunReportError => {
+    if (depth >= MAX_DEPTH || nodes++ >= 25 || remainingBytes < 4096)
+      return shortened();
+    if (typeof current !== 'object' || current === null)
+      return {
+        format: 'midscene-error',
+        name: 'Error',
+        message: messageText(String(current)),
+      };
+    if (ancestors.has(current)) return shortened();
+    ancestors.add(current);
+    const source = current as {
+      format?: unknown;
+      truncated?: unknown;
+      name?: unknown;
+      message?: unknown;
       code?: unknown;
       details?: unknown;
+      cause?: unknown;
+      errors?: unknown;
     };
-    return {
-      name: sanitizeReportText(workflowLike.name || 'Error', 200),
-      message: sanitizeReportText(workflowLike.message || String(error)),
-      ...(typeof workflowLike.code === 'string'
-        ? { code: sanitizeReportText(workflowLike.code, 200) }
+    const result: TestRunReportError = {
+      format: 'midscene-error',
+      ...(source.truncated === true ? { truncated: true } : {}),
+      name:
+        typeof source.name === 'string'
+          ? sanitizeReportText(source.name, 200)
+          : 'Error',
+      message: messageText(
+        typeof source.message === 'string' ? source.message : String(current),
+      ),
+      ...(typeof source.code === 'string'
+        ? { code: sanitizeReportText(source.code, 200) }
         : {}),
-      ...(workflowLike.details === undefined
-        ? {}
-        : { details: sanitizeReportValue(workflowLike.details) }),
     };
-  }
-
+    remainingBytes -= stringByteLength(JSON.stringify(result)) + 128;
+    if (source.details !== undefined) {
+      // Current encoded errors may cross JSON/worker boundaries more than
+      // once. An explicit format marker keeps detail values from nesting.
+      const encodedDetails =
+        source.format === 'midscene-error' &&
+        typeof source.details === 'object' &&
+        source.details !== null &&
+        'value' in source.details
+          ? (source.details as TestRunReportValue)
+          : undefined;
+      const details = sanitizeReportValue(
+        encodedDetails ? encodedDetails.value : source.details,
+      );
+      for (const field of ['redactedPaths', 'truncatedPaths'] as const) {
+        const paths = encodedDetails?.[field];
+        if (Array.isArray(paths))
+          details[field] = [
+            ...new Set([
+              ...(details[field] ?? []),
+              ...paths
+                .filter((path): path is string => typeof path === 'string')
+                .slice(0, 50)
+                .map((path) => sanitizeReportText(path)),
+            ]),
+          ];
+      }
+      const bytes = stringByteLength(JSON.stringify(details));
+      if (bytes < remainingBytes - 4096) {
+        result.details = details;
+        remainingBytes -= bytes;
+      } else {
+        result.details = {
+          value: '[Truncated: error details size limit]',
+          truncatedPaths: ['$'],
+        };
+        result.truncated = true;
+      }
+    }
+    if (source.cause !== undefined)
+      result.cause = visit(source.cause, depth + 1);
+    if (Array.isArray(source.errors)) {
+      result.errors = [];
+      for (const item of source.errors.slice(0, 10)) {
+        if (nodes >= 25 || remainingBytes < 4096) {
+          result.truncated = true;
+          break;
+        }
+        result.errors.push(visit(item, depth + 1));
+      }
+      if (result.errors.length < source.errors.length) result.truncated = true;
+    }
+    ancestors.delete(current);
+    return result;
+  };
+  const result = visit(error, 0);
+  if (stringByteLength(JSON.stringify(result)) <= MAX_SERIALIZED_BYTES)
+    return result;
   return {
-    name: 'Error',
-    message: sanitizeReportText(String(error)),
+    format: 'midscene-error',
+    name: result.name,
+    message: result.message,
+    ...(result.code ? { code: result.code } : {}),
+    truncated: true,
+    cause: {
+      format: 'midscene-error',
+      name: 'Error',
+      message: '[Truncated: serialized error exceeded 64 KiB]',
+      truncated: true,
+    },
   };
 }
