@@ -148,3 +148,9 @@ core 定向测试在仓库根目录执行：
 ```sh
 pnpm exec nx test @midscene/core -- tests/unit-test/grounding-locate-not-found.test.ts tests/unit-test/task-runner/index.test.ts
 ```
+
+## 题库浏览与人工 Review
+
+执行 `pnpm browse:cases`，打开终端打印的本地地址，即可直接浏览全部 200 题，无需模型配置或运行结果。支持平台与主考点筛选、搜索、GT 显隐、图片缩放、Review 状态与备注。记录保存在当前浏览器，可导出 JSON 备份；不会修改原始题库。服务仅监听本机，端口为 4318。
+
+也可运行 `node scripts/browse-cases.mjs`，直接打开生成的 `output/case-browser/index.html`；须保留它与 `_data` 的相对位置。
