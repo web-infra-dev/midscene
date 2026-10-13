@@ -6,48 +6,36 @@ target:
   # Keep screenshot coordinates consistent on Retina and CI machines.
   deviceScaleFactor: 1
 tasks:
-  - name: batch health and compact project tree
+  - name: batch health and Project File Case hierarchy
     flow:
-      - aiAssert: The overview shows 2 of 2 cases passed, one case passed after retry, and an 8 second total time. Compact is selected. The Web regression project is collapsed.
-      - aiTap: the 8 second duration cell at the right of the Web regression project row
-      - aiAssert: Checkout with retry and Verify cart summary appear as compact indented child rows under Web regression. Each case name has a passed status badge, with no duplicate metric columns or separate Inspect buttons in these rows.
-      - aiTap: the status filter showing All statuses
-      - aiTap: the Needs attention option
-      - aiAssert: Only Checkout with retry remains under Web regression; Verify cart summary is filtered out.
-      - aiTap: the status filter showing Needs attention
-      - aiTap: the All statuses option
+      - aiAssert: The overview shows 2 of 2 cases passed, one Retried case, one File and an 8 second total time. Compact is selected. Web regression has its own table and checkout.yaml is expanded, showing Checkout with retry and Verify cart summary.
+      - aiTap: the Retried status checkbox near All, Failed and Passed
+      - aiAssert: Only Checkout with retry remains under checkout.yaml. The file still shows 2 of 2 passed without an extra percentage.
+      - aiTap: the checked Retried status checkbox
+      - aiAssert: All is checked again and both cases are visible under checkout.yaml.
+      - aiTap: the Passed status checkbox
+      - aiAssert: Verify cart summary is visible and Checkout with retry is filtered out.
+      - aiTap: the Retried status checkbox
+      - aiAssert: Passed and Retried are checked together, All is unchecked, and both cases are visible.
+      - aiTap: the All status checkbox
+      - aiTap: the Duration column header in the Web regression table
+      - aiAssert: Duration has an active descending sort arrow. There is no sorting dropdown.
+      - aiTap: the File column header
+      - aiAssert: File has an ascending arrow after switching from Duration. Checkout with retry still appears before Verify cart summary within its file.
       - aiTap: the Detailed view button
-      - aiAssert: Both cases are visible. Detailed rows show their source file, attempt count and duration. Checkout with retry has a numbered screenshot timeline below its details, while Verify cart summary has no screenshot evidence.
+      - aiAssert: Both cases are visible with their status and duration. A screenshot timeline appears below Checkout with retry, while Verify cart summary has no screenshot evidence. checkout.yaml is shown as their parent file, not repeated in each Case row.
       - aiHover: a screenshot thumbnail in the Checkout with retry timeline
       - aiAssert: An enlarged screenshot preview is visible near the hovered thumbnail.
       - aiHover: the Compact view control at the top left, outside the screenshot timeline and its floating preview
       - aiTap: the Compact view button
-      - aiAssert: Compact is selected. Case rows show their names and passed status badges without screenshot timelines.
-      - aiTap: the Collapse all projects icon button to the right of Search projects, cases, and details
-      - aiAssert: Web regression is collapsed and its child case rows are hidden.
-      - aiTap: the Expand all projects icon button to the right of Search projects, cases, and details
-      - aiAssert: Web regression is expanded and both case rows are visible.
-      - aiTap: the sorting dropdown showing Attention first between the status filter and search
-      - aiTap: the Project name option
-      - aiAssert: The sorting dropdown shows Project name with an ascending arrow and the Project column is the active ascending sort.
-      - aiTap: the sorting dropdown showing Project name
-      - aiTap: the Passed rate option
-      - aiAssert: The sorting dropdown shows Passed rate with a descending arrow and the Passed / Case column is the active descending sort.
-      - aiTap: the sorting dropdown showing Passed rate
-      - aiTap: the Attention first option
-      - aiTap: the sorting dropdown showing Attention first between the status filter and search
-      - aiTap: the Definition order option
-      - aiAssert: The sorting dropdown shows Definition order and none of the table column sort arrows is active. Both case rows remain visible.
-      - aiTap: the Duration column header
-      - aiAssert: Duration has an active sort direction and the sorting dropdown shows Duration with a direction arrow.
-      - aiTap: the sorting dropdown showing Duration
-      - aiTap: the Attention first option
-      - aiAssert: The sorting dropdown shows Attention first and the Attention column is the active ascending sort.
-      - aiTap: the Attention column header
-      - aiAssert: The sorting dropdown shows Attention last and the Attention column is the active descending sort.
-      - aiTap: the sorting dropdown showing Attention last
-      - aiTap: the Attention first option
-      - aiAssert: The sorting dropdown shows Attention first and the Attention column is ascending again.
+      - aiAssert: Compact is selected. Both case rows are visible without screenshot timelines.
+      - aiTap: the Collapse file checkout.yaml button
+      - aiAssert: checkout.yaml remains visible with its aggregate statistics, but its child Case rows are hidden.
+      - aiTap: the Expand file checkout.yaml button
+      - aiTap: the Collapse project Web regression button
+      - aiAssert: The Web regression heading remains visible, but its file table is hidden.
+      - aiTap: the Expand project Web regression button
+      - aiAssert: checkout.yaml and its two Case rows are visible again.
 
   - name: direct case navigation and browser history
     flow:

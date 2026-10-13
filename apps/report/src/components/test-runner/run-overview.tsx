@@ -1,25 +1,25 @@
 import type { TestRunReportDump } from '@midscene/core';
-import { useMemo, useRef, useState } from 'react';
+import { type Dispatch, type SetStateAction, useMemo, useRef } from 'react';
 import { CaseDensitySwitch } from './case-density-switch';
 import { CaseFilters } from './case-filters';
-import {
-  type RunnerBreakdownSort,
-  type RunnerBreakdownSortDirection,
-  type RunnerBreakdownStatus,
-  type RunnerCaseView,
-  type RunnerHealthStats,
-  type RunnerProjectView,
-  type RunnerVisualIndex,
-  defaultRunnerBreakdownSortDirection,
-  filterAndSortRunnerProjectBreakdown,
-  toggleAllRunnerProjectKeys,
+import { ErrorCards } from './error-card';
+import { type ReportIssues, collectReportIssues, getRunIssues } from './issues';
+import type {
+  RunnerCaseView,
+  RunnerHealthStats,
+  RunnerVisualIndex,
 } from './model';
+import {
+  type OverviewProject,
+  type OverviewState,
+  changeOverviewSort,
+  filterOverviewProjects,
+  getOverviewStatusCounts,
+  toggleOverviewStatus,
+} from './overview-model';
 import { ProjectBreakdownTree } from './project-breakdown';
 import { RunSummary } from './run-summary';
 import type { RunnerCaseDisplayMode } from './view-primitives';
-
-import { ErrorCards } from './error-card';
-import { type ReportIssues, collectReportIssues, getRunIssues } from './issues';
 
 export function RunOverview({
   visualIndex,
@@ -30,8 +30,8 @@ export function RunOverview({
   projects,
   caseDisplayMode,
   onCaseDisplayModeChange,
-  expandedProjectKeys,
-  onExpandedProjectKeysChange,
+  state,
+  onStateChange,
   onOpenCase,
 }: {
   visualIndex: RunnerVisualIndex;
@@ -39,107 +39,98 @@ export function RunOverview({
   issues?: ReportIssues;
   cases: RunnerCaseView[];
   health: RunnerHealthStats;
-  projects: RunnerProjectView[];
+  projects: OverviewProject[];
   caseDisplayMode: RunnerCaseDisplayMode;
   onCaseDisplayModeChange(mode: RunnerCaseDisplayMode): void;
-  expandedProjectKeys: Set<string>;
-  onExpandedProjectKeysChange(keys: Set<string>): void;
+  state: OverviewState;
+  onStateChange: Dispatch<SetStateAction<OverviewState>>;
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const reportIssues = issues ?? collectReportIssues(dump);
-  const navigableStepIds = new Set(reportIssues.nodes.keys());
   const breakdownRef = useRef<HTMLElement>(null);
-  const [breakdownQuery, setBreakdownQuery] = useState('');
-  const [breakdownStatus, setBreakdownStatus] =
-    useState<RunnerBreakdownStatus>('all');
-  const [breakdownSort, setBreakdownSort] =
-    useState<RunnerBreakdownSort>('result');
-  const [breakdownSortDirection, setBreakdownSortDirection] =
-    useState<RunnerBreakdownSortDirection>('asc');
   const breakdownProjects = useMemo(
-    () =>
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: breakdownQuery,
-        status: breakdownStatus,
-        sort: breakdownSort,
-        direction: breakdownSortDirection,
-      }),
-    [
-      breakdownQuery,
-      breakdownSort,
-      breakdownSortDirection,
-      breakdownStatus,
-      projects,
-    ],
+    () => filterOverviewProjects(projects, state),
+    [projects, state],
   );
-  const resetBreakdownFilters = () => {
-    setBreakdownQuery('');
-    setBreakdownStatus('all');
-    setBreakdownSort('result');
-    setBreakdownSortDirection('asc');
-  };
-  const changeBreakdownSort = (nextSort: RunnerBreakdownSort) => {
-    if (nextSort === breakdownSort) {
-      setBreakdownSortDirection((direction) =>
-        direction === 'asc' ? 'desc' : 'asc',
-      );
-      return;
-    }
-    setBreakdownSort(nextSort);
-    setBreakdownSortDirection(defaultRunnerBreakdownSortDirection(nextSort));
-  };
-  const visibleProjectKeys = breakdownProjects.map(({ item }) => item.key);
-  const allProjectsExpanded =
-    visibleProjectKeys.length > 0 &&
-    visibleProjectKeys.every((key) => expandedProjectKeys.has(key));
-  const hasActiveBreakdownFilters =
-    Boolean(breakdownQuery.trim()) || breakdownStatus !== 'all';
-  const successfulWithRetries =
-    dump.summary.failed === 0 &&
-    dump.summary.notRun === 0 &&
-    health.retryPassedCount > 0;
+  const statusCounts = useMemo(
+    () => getOverviewStatusCounts(projects, state.query),
+    [projects, state.query],
+  );
+  const resetFilters = () =>
+    onStateChange((current) => ({ ...current, query: '', statuses: [] }));
+  const hasActiveFilters = Boolean(state.query.trim() || state.statuses.length);
   const totalCaseCount = Math.max(dump.summary.total, cases.length);
+  const toggle = (
+    key: string,
+    field: 'expandedProjectKeys' | 'expandedFileKeys',
+  ) =>
+    onStateChange((current) => {
+      const next = new Set(current[field]);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return { ...current, [field]: next };
+    });
   const focusOutcomeCases = () => {
-    const nextStatus: RunnerBreakdownStatus =
-      dump.summary.failed > 0
-        ? 'failed'
-        : successfulWithRetries
-          ? 'retry-passed'
-          : 'all';
-    const relevantProjects = projects.filter((item) => {
-      if (nextStatus === 'failed') return item.failedCount > 0;
-      if (nextStatus === 'retry-passed') return item.retryPassedCount > 0;
-      return true;
-    });
-    setBreakdownStatus(nextStatus);
-    setBreakdownSort('result');
-    setBreakdownSortDirection('asc');
-    onExpandedProjectKeysChange(
-      new Set(relevantProjects.map((item) => item.key)),
+    const failed =
+      dump.status === 'failed' ||
+      projects.some(
+        (project) =>
+          project.hasScopeError ||
+          project.files.some((file) => file.hasScopeError),
+      );
+    onStateChange((current) => ({
+      ...current,
+      query: '',
+      statuses: failed
+        ? ['failed']
+        : health.retryPassedCount
+          ? ['retry-passed']
+          : [],
+      expandedProjectKeys: new Set(projects.map((project) => project.key)),
+      expandedFileKeys: new Set([
+        ...current.expandedFileKeys,
+        ...projects.flatMap((project) =>
+          project.files
+            .filter((file) =>
+              failed
+                ? file.status === 'failed' ||
+                  file.hasScopeError ||
+                  (project.hasScopeError && file.notRunCount > 0)
+                : file.retryPassedCount > 0,
+            )
+            .map((file) => file.key),
+        ),
+      ]),
+    }));
+    window.requestAnimationFrame(() =>
+      breakdownRef.current?.scrollIntoView({ block: 'start' }),
     );
-    window.requestAnimationFrame(() => {
-      breakdownRef.current?.scrollIntoView({ block: 'start' });
-    });
   };
-
+  const files = projects.flatMap((project) => project.files);
+  const fileErrorCount = files.filter((file) => file.hasScopeError).length;
+  const projectErrorCount = projects.filter(
+    (project) => project.hasScopeError,
+  ).length;
   return (
     <div className="runner-page runner-overview">
       <RunSummary
         dump={dump}
         health={health}
         totalCaseCount={totalCaseCount}
+        totalFileCount={
+          files.filter((file) => file.sourceKind !== 'agent').length
+        }
         onReviewOutcome={focusOutcomeCases}
       />
-
       <ErrorCards
         issues={getRunIssues(reportIssues)}
         label="Run issues"
-        navigableStepIds={navigableStepIds}
+        navigableStepIds={new Set(reportIssues.nodes.keys())}
       />
       <section
         ref={breakdownRef}
         className="runner-panel runner-breakdown-panel"
-        aria-label="Projects and cases"
+        aria-label="Projects, files and cases"
       >
         <div className="runner-breakdown-controls">
           <CaseDensitySwitch
@@ -147,43 +138,50 @@ export function RunOverview({
             onChange={onCaseDisplayModeChange}
           />
           <CaseFilters
-            cases={cases}
-            query={breakdownQuery}
-            status={breakdownStatus}
-            sort={breakdownSort}
-            sortDirection={breakdownSortDirection}
-            onSortChange={(sort) => {
-              setBreakdownSort(sort);
-              setBreakdownSortDirection(
-                defaultRunnerBreakdownSortDirection(sort),
-              );
-            }}
-            onQueryChange={setBreakdownQuery}
-            onStatusChange={setBreakdownStatus}
-            allProjectsExpanded={allProjectsExpanded}
-            canToggleProjects={visibleProjectKeys.length > 0}
-            onToggleProjects={() =>
-              onExpandedProjectKeysChange(
-                toggleAllRunnerProjectKeys(
-                  visibleProjectKeys,
-                  expandedProjectKeys,
-                ),
-              )
+            query={state.query}
+            statuses={state.statuses}
+            counts={statusCounts}
+            onQueryChange={(query) =>
+              onStateChange((current) => ({ ...current, query }))
             }
+            onStatusToggle={(status) =>
+              onStateChange((current) => ({
+                ...current,
+                statuses: toggleOverviewStatus(current.statuses, status),
+              }))
+            }
+            onClear={resetFilters}
           />
         </div>
+        {fileErrorCount || projectErrorCount ? (
+          <div className="runner-overview-result-count" aria-live="polite">
+            {[
+              fileErrorCount &&
+                `${fileErrorCount} file ${fileErrorCount === 1 ? 'error' : 'errors'}`,
+              projectErrorCount &&
+                `${projectErrorCount} project ${projectErrorCount === 1 ? 'error' : 'errors'}`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </div>
+        ) : null}
         <ProjectBreakdownTree
-          issues={reportIssues}
-          visualIndex={visualIndex}
           projects={breakdownProjects}
+          visualIndex={visualIndex}
           caseDisplayMode={caseDisplayMode}
-          expandedProjectKeys={expandedProjectKeys}
-          sort={breakdownSort}
-          sortDirection={breakdownSortDirection}
-          onSortChange={changeBreakdownSort}
-          onExpandedProjectKeysChange={onExpandedProjectKeysChange}
-          hasActiveFilters={hasActiveBreakdownFilters}
-          onResetFilters={resetBreakdownFilters}
+          expandedProjectKeys={state.expandedProjectKeys}
+          expandedFileKeys={state.expandedFileKeys}
+          projectSorts={state.projectSorts}
+          query={state.query}
+          onSortChange={(projectKey, sort) =>
+            onStateChange((current) =>
+              changeOverviewSort(current, projectKey, sort),
+            )
+          }
+          onToggleProject={(key) => toggle(key, 'expandedProjectKeys')}
+          onToggleFile={(key) => toggle(key, 'expandedFileKeys')}
+          hasActiveFilters={hasActiveFilters}
+          onResetFilters={resetFilters}
           onOpenCase={onOpenCase}
         />
       </section>

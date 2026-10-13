@@ -7,11 +7,16 @@ export function RunSummary({
   dump,
   health,
   totalCaseCount,
+  totalFileCount = dump.projects.reduce(
+    (sum, project) => sum + project.documents.length,
+    0,
+  ),
   onReviewOutcome,
 }: {
   dump: TestRunReportDump;
   health: RunnerHealthStats;
   totalCaseCount: number;
+  totalFileCount?: number;
   onReviewOutcome(): void;
 }): JSX.Element {
   const successfulWithRetries =
@@ -35,11 +40,10 @@ export function RunSummary({
     dump.metrics.collection?.status ??
     'unknown';
   const counts = [
-    { label: 'Projects', value: dump.projects.length },
     { label: 'Cases', value: totalCaseCount },
     { label: 'Passed', value: dump.summary.passed, tone: 'success' },
     { label: 'Failed', value: dump.summary.failed, tone: 'danger' },
-    { label: 'Passed after retry', value: health.retryPassedCount },
+    { label: 'Retried', value: health.retryPassedCount },
     { label: 'Not run', value: dump.summary.notRun },
   ];
   return (
@@ -74,6 +78,12 @@ export function RunSummary({
           </span>
           <span>
             total time <strong>{formatDuration(dump.durationMs)}</strong>
+          </span>
+          <span className="runner-overview-source-count">
+            <strong>{dump.projects.length}</strong> Projects
+          </span>
+          <span className="runner-overview-source-count">
+            <strong>{totalFileCount}</strong> Files
           </span>
         </div>
       </div>

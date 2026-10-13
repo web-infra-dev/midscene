@@ -20,15 +20,14 @@ import {
   buildRunnerStepIndex,
   buildRunnerVisualIndex,
   flattenRunnerCases,
-  getDefaultExpandedProjectKeys,
   getRunnerHealth,
-  groupRunnerProjects,
 } from './model';
 import {
   type RunnerNavigationState,
   isSingleCaseReport,
   resolveRunnerNavigation,
 } from './navigation';
+import { buildOverviewProjects, createOverviewState } from './overview-model';
 import { RunOverview } from './run-overview';
 import { getSelectTheme } from './select';
 import type { RunnerCaseDisplayMode } from './view-primitives';
@@ -52,8 +51,8 @@ export default function TestRunnerReport({
   const cases = useMemo(() => flattenRunnerCases(dump), [dump]);
   const health = useMemo(() => getRunnerHealth(cases), [cases]);
   const projects = useMemo(
-    () => groupRunnerProjects(dump, cases),
-    [cases, dump],
+    () => buildOverviewProjects(dump, cases, issues),
+    [cases, dump, issues],
   );
   const stepIndex = useMemo(
     () => buildRunnerStepIndex(dump, cases),
@@ -62,11 +61,8 @@ export default function TestRunnerReport({
   const visualIndex = useMemo(() => buildRunnerVisualIndex(reports), [reports]);
   const [caseDisplayMode, setCaseDisplayMode] =
     useState<RunnerCaseDisplayMode>('compact');
-  const [expandedProjectKeys, setExpandedProjectKeys] = useState<Set<string>>(
-    () =>
-      getDefaultExpandedProjectKeys(
-        projects.map((item) => ({ item, cases: item.cases })),
-      ),
+  const [overviewState, setOverviewState] = useState(() =>
+    createOverviewState(projects),
   );
   const [navigation, setNavigation] = useState<RunnerNavigationState>(() =>
     resolveRunnerNavigation(window.location.hash, cases, projects, stepIndex),
@@ -133,9 +129,10 @@ export default function TestRunnerReport({
               main.querySelectorAll<HTMLElement>('[data-case-key]'),
             ).find((row) => row.dataset.caseKey === focusCaseKey)
           : undefined;
-        const focusTarget = caseRow?.querySelector(
-          '.runner-project-tree-case',
-        ) as HTMLElement | null | undefined;
+        const focusTarget = caseRow?.querySelector('.runner-case-open') as
+          | HTMLElement
+          | null
+          | undefined;
         (focusTarget ?? main).focus({ preventScroll: true });
       });
     });
@@ -253,8 +250,8 @@ export default function TestRunnerReport({
                 projects={projects}
                 caseDisplayMode={caseDisplayMode}
                 onCaseDisplayModeChange={setCaseDisplayMode}
-                expandedProjectKeys={expandedProjectKeys}
-                onExpandedProjectKeysChange={setExpandedProjectKeys}
+                state={overviewState}
+                onStateChange={setOverviewState}
                 onOpenCase={openCase}
               />
             )}

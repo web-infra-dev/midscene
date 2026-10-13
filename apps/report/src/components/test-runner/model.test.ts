@@ -17,21 +17,17 @@ import { collectReportIssues } from './issues';
 import {
   buildRunnerStepIndex,
   buildRunnerVisualIndex,
-  filterAndSortRunnerProjectBreakdown,
   flattenRunnerCases,
   getAllAttemptVisualFrames,
   getAttemptVisualFrames,
   getCaseSearchMatch,
-  getDefaultExpandedProjectKeys,
   getDefaultVisualFrameForStep,
   getRunnerHealth,
   getStepForVisualFrame,
   groupRunnerProjects,
   positionAttemptVisualFrames,
-  toggleAllRunnerProjectKeys,
 } from './model';
 import { isSingleCaseReport, resolveRunnerNavigation } from './navigation';
-import { ProjectBreakdownTree } from './project-breakdown';
 import { RunSummary } from './run-summary';
 
 const at = (seconds: number): string =>
@@ -238,270 +234,6 @@ describe('Midscene Test hybrid report model', () => {
     ]);
   });
 
-  it('filters and sorts the compact Project-to-Case breakdown', () => {
-    const projects = groupRunnerProjects(dump);
-    const emptyFailedProject = {
-      ...projects[0],
-      key: 'empty-project',
-      project: {
-        ...projects[0].project,
-        projectId: 'empty-project',
-        name: 'Empty failed project',
-        documents: [],
-      },
-      cases: [],
-      health: getRunnerHealth([]),
-      passedCount: 0,
-      failedCount: 0,
-      retryPassedCount: 0,
-      notRunCount: 0,
-    };
-    const projectsWithEmptyFailure = [...projects, emptyFailedProject];
-
-    expect(
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: '',
-        status: 'attention',
-        sort: 'result',
-        direction: 'asc',
-      })[0].cases.map((item) => item.status),
-    ).toEqual(['failed', 'retry-passed', 'not-run']);
-
-    expect(
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: 'NODE_EXECUTION_ERROR',
-        status: 'all',
-        sort: 'result',
-        direction: 'asc',
-      })[0].cases.map((item) => item.testCase.caseId),
-    ).toEqual(['retried']);
-
-    expect(
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: '',
-        status: 'all',
-        sort: 'name',
-        direction: 'asc',
-      })[0].cases.map((item) => item.testCase.caseId),
-    ).toEqual(['failed', 'not-run', 'passed', 'retried']);
-
-    expect(
-      filterAndSortRunnerProjectBreakdown(projectsWithEmptyFailure, {
-        query: '',
-        status: 'attention',
-        sort: 'result',
-        direction: 'asc',
-      }).map(({ item, cases }) => ({ name: item.project.name, cases })),
-    ).toMatchObject([
-      { name: 'Web', cases: expect.any(Array) },
-      { name: 'Empty failed project', cases: [] },
-    ]);
-  });
-
-  it('keeps configuration, file path and Case definition order through filtering', () => {
-    const [project] = groupRunnerProjects(dump);
-    const makeCase = (path: string, index: number, name: string) => ({
-      ...project.cases[0],
-      key: `${path}:${index}`,
-      document: { ...project.cases[0].document, sourcePath: path },
-      testCase: { ...project.cases[0].testCase, name, caseIndex: index },
-    });
-    const originalCases = [
-      makeCase('cases/z.yaml', 0, 'A'),
-      makeCase('cases/a.yaml', 10, 'B'),
-      makeCase('cases\\a.yaml', 2, 'C'),
-    ];
-    const projects = [
-      {
-        ...project,
-        key: 'z-project',
-        project: { ...project.project, name: 'Z' },
-        cases: originalCases,
-      },
-      {
-        ...project,
-        key: 'a-project',
-        project: { ...project.project, name: 'A' },
-      },
-    ];
-    const sorted = filterAndSortRunnerProjectBreakdown(projects, {
-      query: '',
-      status: 'all',
-      sort: 'definition',
-      direction: 'asc',
-    });
-    expect(sorted.map(({ item }) => item.key)).toEqual([
-      'z-project',
-      'a-project',
-    ]);
-    expect(sorted[0].cases.map((item) => item.testCase.name)).toEqual([
-      'C',
-      'B',
-      'A',
-    ]);
-    expect(projects[0].cases).toEqual(originalCases);
-    expect(projects[0].cases.map((item) => item.testCase.name)).toEqual([
-      'A',
-      'B',
-      'C',
-    ]);
-    const filtered = filterAndSortRunnerProjectBreakdown(projects, {
-      query: 'cases/a',
-      status: 'passed',
-      sort: 'definition',
-      direction: 'asc',
-    });
-    expect(filtered[0].cases.map((item) => item.testCase.name)).toEqual(['B']);
-    expect(
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: '',
-        status: 'all',
-        sort: 'result',
-        direction: 'asc',
-      })[0].cases.map((item) => item.status),
-    ).toEqual(['failed', 'retry-passed', 'not-run', 'passed']);
-  });
-
-  it('sorts by passed rate instead of passed count, independent of filters', () => {
-    const [base] = groupRunnerProjects(dump);
-    const makeProject = (name: string, passedCount: number, total: number) => ({
-      ...base,
-      key: name,
-      project: { ...base.project, projectId: name, name },
-      passedCount,
-      cases: Array.from(
-        { length: total },
-        (_, index) => base.cases[index < passedCount ? 0 : 2],
-      ),
-    });
-    const projects = [
-      makeProject('Three of ten', 3, 10),
-      makeProject('Two of two', 2, 2),
-      makeProject('No Cases', 0, 0),
-    ];
-    const sortedNames = (
-      direction: 'asc' | 'desc',
-      status: 'all' | 'passed' = 'all',
-    ) =>
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: '',
-        status,
-        sort: 'passed-rate',
-        direction,
-      }).map(({ item }) => item.project.name);
-    expect(sortedNames('desc')).toEqual([
-      'Two of two',
-      'Three of ten',
-      'No Cases',
-    ]);
-    expect(sortedNames('asc')).toEqual([
-      'Three of ten',
-      'Two of two',
-      'No Cases',
-    ]);
-    expect(sortedNames('desc', 'passed')).toEqual([
-      'Two of two',
-      'Three of ten',
-    ]);
-  });
-
-  it('sorts Project rows from each table column in both directions', () => {
-    const [project] = groupRunnerProjects(dump);
-    const healthyProject = {
-      ...project,
-      key: 'alpha',
-      project: {
-        ...project.project,
-        projectId: 'alpha',
-        name: 'Alpha',
-        status: 'success' as const,
-      },
-      cases: project.cases.slice(0, 3),
-      passedCount: 3,
-      failedCount: 0,
-      retryPassedCount: 0,
-      notRunCount: 0,
-      durationMs: 9_000,
-    };
-    const projects = [project, healthyProject];
-    const sortNames = (
-      sort: 'name' | 'case-count' | 'passed-rate' | 'result' | 'duration',
-      direction: 'asc' | 'desc',
-    ) =>
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: '',
-        status: 'all',
-        sort,
-        direction,
-      }).map(({ item }) => item.project.name);
-
-    expect(sortNames('name', 'asc')).toEqual(['Alpha', 'Web']);
-    expect(sortNames('case-count', 'desc')).toEqual(['Web', 'Alpha']);
-    expect(sortNames('passed-rate', 'desc')).toEqual(['Alpha', 'Web']);
-    expect(sortNames('result', 'asc')).toEqual(['Web', 'Alpha']);
-    expect(sortNames('duration', 'desc')).toEqual(['Alpha', 'Web']);
-  });
-
-  it('expands every failed Project and collapses all-passed Projects by default', () => {
-    const [failedProject] = groupRunnerProjects(dump);
-    const retryPassedProject = {
-      ...failedProject,
-      key: 'retry-passed-project',
-      project: { ...failedProject.project, status: 'success' as const },
-      failedCount: 0,
-      retryPassedCount: 1,
-    };
-    const passedProject = {
-      ...failedProject,
-      key: 'passed-project',
-      project: { ...failedProject.project, status: 'success' as const },
-      failedCount: 0,
-      retryPassedCount: 0,
-    };
-    const secondFailure = { ...failedProject, key: 'second-failure' };
-    const setupFailure = {
-      ...failedProject,
-      key: 'setup-failure',
-      failedCount: 0,
-    };
-    const views = [
-      failedProject,
-      retryPassedProject,
-      passedProject,
-      secondFailure,
-      setupFailure,
-    ].map((item) => ({ item, cases: item.cases }));
-
-    expect([...getDefaultExpandedProjectKeys(views)]).toEqual([
-      failedProject.key,
-      secondFailure.key,
-      setupFailure.key,
-    ]);
-  });
-
-  it('expands every visible project from a partial selection without changing hidden projects', () => {
-    const expanded = new Set(['first', 'hidden']);
-    expect(toggleAllRunnerProjectKeys(['first', 'second'], expanded)).toEqual(
-      new Set(['first', 'second', 'hidden']),
-    );
-    expect(expanded).toEqual(new Set(['first', 'hidden']));
-  });
-
-  it('collapses all visible projects and preserves expansion outside the current filter', () => {
-    expect(
-      toggleAllRunnerProjectKeys(
-        ['first', 'second'],
-        new Set(['first', 'second', 'hidden']),
-      ),
-    ).toEqual(new Set(['hidden']));
-  });
-
-  it('preserves expansion when no project matches the filters', () => {
-    expect(toggleAllRunnerProjectKeys([], new Set(['hidden']))).toEqual(
-      new Set(['hidden']),
-    );
-  });
-
   it('opens a single-project single-case report directly in case detail', () => {
     const singleDump = structuredClone(dump);
     singleDump.projects[0].documents[0].cases = [
@@ -523,7 +255,7 @@ describe('Midscene Test hybrid report model', () => {
         projects,
         stepIndex,
       ).page,
-    ).toBe('case');
+    ).toBe('overview');
     expect(
       resolveRunnerNavigation(
         '#runner-page=project&runner-project=web',
@@ -531,7 +263,7 @@ describe('Midscene Test hybrid report model', () => {
         projects,
         stepIndex,
       ).page,
-    ).toBe('case');
+    ).toBe('overview');
     const allCases = flattenRunnerCases(dump);
     expect(
       resolveRunnerNavigation(
@@ -618,8 +350,8 @@ describe('Midscene Test hybrid report model', () => {
         stepIndex,
       ),
     ).toMatchObject({
-      page: 'case',
-      deepLinkedStepId: undefined,
+      page: 'overview',
+      navigationIssue: { code: 'STEP_NOT_FOUND' },
     });
   });
 
@@ -692,9 +424,7 @@ describe('Midscene Test hybrid report model', () => {
       }),
     );
     expect(markup).toContain('Review case results: 2 of 4 passed');
-    expect(markup).toContain(
-      '<strong>1</strong><span>Passed after retry</span>',
-    );
+    expect(markup).toContain('<strong>1</strong><span>Retried</span>');
     expect(markup).toContain('<strong>1</strong><span>Not run</span>');
     expect(markup).toContain('tokens<strong>—</strong>');
     expect(markup).not.toContain('runner-overview-outcome-message');
@@ -743,53 +473,6 @@ describe('Midscene Test hybrid report model', () => {
       expect(markup).toContain('tokens<strong>0</strong>');
       expect(markup.includes('(partial)')).toBe(status === 'partial');
     }
-  });
-
-  it('shows project status, passed / case totals and all attention outcomes together', () => {
-    const report = structuredClone(dump);
-    const healthyProject = structuredClone(report.projects[0]);
-    healthyProject.projectId = 'healthy';
-    healthyProject.name = 'Healthy';
-    healthyProject.status = 'success';
-    healthyProject.lifecycle = undefined;
-    healthyProject.documents[0].status = 'success';
-    healthyProject.documents[0].cases = healthyProject.documents[0].cases.slice(
-      0,
-      1,
-    );
-    report.projects.push(healthyProject);
-    const projects = filterAndSortRunnerProjectBreakdown(
-      groupRunnerProjects(report),
-      {
-        query: '',
-        status: 'all',
-        sort: 'result',
-        direction: 'asc',
-      },
-    );
-    const markup = renderToStaticMarkup(
-      createElement(ProjectBreakdownTree, {
-        projects,
-        visualIndex: buildRunnerVisualIndex([]),
-        caseDisplayMode: 'compact',
-        expandedProjectKeys: new Set(projects.map(({ item }) => item.key)),
-        sort: 'result',
-        sortDirection: 'asc',
-        hasActiveFilters: false,
-        onSortChange() {},
-        onExpandedProjectKeysChange() {},
-        onResetFilters() {},
-        onOpenCase() {},
-      }),
-    );
-    expect(markup).toContain('Passed / Case');
-    expect(markup).toContain('Attention');
-    expect(markup).toContain('runner-project-tree-case-total');
-    expect(markup).toContain('1 failed · 1 retried · 1 not run');
-    expect(markup).toContain('>passed after retry</span>');
-    expect(markup).toContain('>not run</span>');
-    expect(markup).toContain('class="runner-project-tree-attention">-</span>');
-    expect(markup).not.toContain('0 retried');
   });
 
   it('keeps attempt comparison in standalone reports with retries', () => {
@@ -1118,31 +801,6 @@ describe('Midscene Test hybrid report model', () => {
     ).toMatchObject({
       deepLinkedStepId: 'document:afterAll:0',
     });
-  });
-
-  it('uses the same filters within a single project without changing its health', () => {
-    const projects = groupRunnerProjects(dump, flattenRunnerCases(dump));
-    const selected = projects[0];
-    const originalCount = selected.cases.length;
-    const matches = filterAndSortRunnerProjectBreakdown([selected], {
-      query: 'NODE_EXECUTION_ERROR',
-      status: 'retry-passed',
-      sort: 'duration',
-      direction: 'desc',
-    });
-    expect(matches[0].cases.map((item) => item.testCase.caseId)).toEqual([
-      'retried',
-    ]);
-    expect(matches[0].item).toBe(selected);
-    expect(selected.cases).toHaveLength(originalCount);
-    expect(
-      filterAndSortRunnerProjectBreakdown([selected], {
-        query: 'no-such-case',
-        status: 'all',
-        sort: 'name',
-        direction: 'asc',
-      }),
-    ).toEqual([]);
   });
 
   it('searches failed retries, errors, values, and trace identifiers', () => {

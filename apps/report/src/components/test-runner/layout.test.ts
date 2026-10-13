@@ -119,20 +119,16 @@ describe('Midscene Test report layout', () => {
 
   it('keeps case rows clickable without a separate Inspect affordance', () => {
     expect(breakdown).not.toContain('runner-project-tree-case-cta');
-    expect(breakdown).toContain('className="runner-project-tree-case-open"');
+    expect(breakdown).toContain('className="runner-case-open"');
     expect(breakdown).toContain('onClick={() => onOpen(item, failure?.id)}');
   });
 
-  it('draws one separator between Projects and their expanded rows', () => {
-    expect(baseStyles).toMatch(
-      /\.runner-project-tree-node \+ \.runner-project-tree-node\s*\{[^}]*border-top: 1px solid var\(--runner-border\);/s,
-    );
-    expect(figmaOverviewStyles).toMatch(
-      /\.runner-project-tree-case-item:last-child \.runner-project-tree-case\s*\{[^}]*border-bottom: 0;/s,
-    );
-    expect(figmaOverviewStyles).toMatch(
-      /\.runner-project-tree-node\.is-expanded \.runner-project-tree-children\s*\{[^}]*border-top: 1px solid var\(--runner-border\);/s,
-    );
+  it('keeps File and Case metrics aligned in semantic tables', () => {
+    expect(breakdown).toContain('<colgroup>');
+    expect(breakdown).toContain('scope="col"');
+    expect(breakdown).toContain('scope="row"');
+    expect(figmaOverviewStyles).toContain('table-layout: fixed;');
+    expect(figmaOverviewStyles).toContain('min-width: 760px;');
   });
 
   it('shares the interactive attempt timeline between overview and detail', () => {
@@ -145,43 +141,23 @@ describe('Midscene Test report layout', () => {
     expect(workspace).toContain('variant="detail"');
   });
 
-  it('uses one shared Select for report filters and attempt switching', () => {
-    expect(filters).toContain("import { Select } from './select'");
-    expect(figmaOverviewStyles).toMatch(
-      /\.runner-breakdown-panel \.runner-breakdown-toolbar\s*\{[^}]*grid-template-columns: 184px 160px minmax\(200px, 317px\) 32px;/s,
-    );
+  it('uses checkboxes for filters and preserves shared attempt Selects', () => {
+    expect(filters).toContain('<Checkbox');
+    expect(filters).not.toContain('<Select');
     expect(header).toContain(
       "import { AttemptSelect } from './attempt-select'",
     );
     expect(attemptSelect).toContain("import { Select } from './select'");
-    expect(select).toContain("className={['runner-report-select'");
-    expect(select).toContain("popupClassName={['runner-select-dropdown'");
   });
 
-  it('sorts the Project table from its column headers', () => {
-    expect(filters).not.toContain('Sort project breakdown');
-    for (const value of ['name', 'passed-rate', 'result', 'duration']) {
-      expect(breakdown).toContain(`value="${value}"`);
-    }
-    expect(breakdown).toContain('aria-pressed={active}');
-    expect(figmaOverviewStyles).toContain('.runner-project-sort-button');
-    expect(breakdown).toContain("active && direction === 'asc'");
-    expect(breakdown).toContain("active && direction === 'desc'");
-    expect(figmaOverviewStyles).toContain(
-      'color: var(--runner-sort-arrow-idle);',
-    );
-    expect(figmaOverviewStyles).toContain(
-      'color: var(--runner-sort-arrow-active);',
-    );
-    expect(tokenStyles).toContain(
-      '--runner-sort-arrow-idle: rgb(51 51 51 / 30%);',
-    );
-    expect(tokenStyles).toContain(
-      '--runner-sort-arrow-active: rgb(51 51 51 / 50%);',
-    );
+  it('sorts File and Case siblings through table column headers', () => {
+    for (const label of ['File', 'Passed / Case', 'Attention', 'Duration'])
+      expect(breakdown).toContain(label);
+    expect(breakdown).toContain('aria-sort=');
+    expect(breakdown).not.toContain('label="Project"');
   });
 
-  it('keeps all six summary metrics separated on wide layouts', () => {
+  it('keeps summary metrics separated on wide layouts', () => {
     expect(figmaOverviewStyles).toMatch(
       /\.runner-overview-counts > div \+ div\s*\{[^}]*border-left: 1px solid var\(--runner-border\);/s,
     );
@@ -201,19 +177,8 @@ describe('Midscene Test report layout', () => {
     );
   });
 
-  it('uses separate expand and collapse icons for the Project list toggle', () => {
-    expect(filters).toContain("allProjectsExpanded ? ' is-collapse' : ''");
-    expect(figmaOverviewStyles).toMatch(
-      /\.runner-project-expansion-icon\s*\{[^}]*project-expansion\.svg/s,
-    );
-    expect(figmaOverviewStyles).toMatch(
-      /&\.is-collapse\s*\{[^}]*project-collapse\.svg/s,
-    );
-  });
-
   it('renders platform metadata only when the report provides it', () => {
     expect(header).toContain('item.project.platform ?');
-    expect(breakdown).toContain('item.project.platform ?');
   });
 
   it('loads the shared palette and page layout partials from one entry point', () => {

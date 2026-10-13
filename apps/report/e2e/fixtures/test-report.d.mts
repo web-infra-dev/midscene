@@ -18,3 +18,7 @@ export function generateTestReportFixtures(
   sourcePath: string,
   outputDir: string,
 ): string[];
+
+export function createOverviewReportFixture(
+  index: TestRunReportSourceIndex,
+): TestRunReportDump;

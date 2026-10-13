@@ -2,7 +2,7 @@
 
 [English](./README.md)
 
-Report 包含两条查看路径：按 Project/Case 展示的 **Test Report**，以及可独立打开或嵌入 Case 的 **Record** 标签页的 Agent 查看器。修改共享样式时，需要覆盖这两条路径。
+Report 包含两条查看路径：按 Project/File/Case 展示的 **Test Report**，以及可独立打开或嵌入 Case 的 **Record** 标签页的 Agent 查看器。修改共享样式时，需要覆盖这两条路径。
 
 ## 运行检查
 
@@ -28,6 +28,7 @@ pnpm --filter @midscene/report e2e
 cd apps/report
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-report.yaml
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-lifecycle.yaml
+pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-overview.yaml
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-late-failure.yaml
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/timeline-interaction.yaml
 ```
@@ -37,15 +38,16 @@ pnpm exec node ../../packages/cli/bin/midscene ./e2e/timeline-interaction.yaml
 
 ## 覆盖范围
 
-| 场景                                                                                      | 测试报告                               | 主要检查                                                                                                                               |
-| ----------------------------------------------------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `midscene-test-report.yaml`                                                               | `demo-midscene-test.html`              | Project 筛选、Compact/Detailed 列表、重试、Execution 表头、统一 Step 列表、Record/Information/Events、分栏上限和重置、浅色/深色 Events |
-| `midscene-test-lifecycle.yaml`                                                            | `demo-midscene-test-lifecycle.html`    | 初始化失败、受阻 Case、清理错误和问题抽屉                                                                                              |
-| `midscene-test-late-failure.yaml`                                                         | `demo-midscene-test-late-failure.html` | 打开失败 Case 后，无需手动滚动即可看到列表末尾选中的 Step 及其错误                                                                     |
-| `timeline-interaction.yaml`                                                               | `demo.html`                            | 旧 YAML 打开 Test Report，选择时间线截图后显示所属 Step 的 Record                                                                      |
-| `report-single.yaml`、`sidebar-navigation.yaml`、`detail-panel.yaml`、`theme-toggle.yaml` | `demo-agent.html`                      | 独立 Agent 的任务列表、耗时、回放、详情、Markdown 和主题                                                                               |
-| `report-mobile.yaml`、`player-only.yaml`                                                  | `demo-agent.html`                      | 窄屏 Steps/Player 切换、信息抽屉和仅播放器模式                                                                                         |
-| `report-merged.yaml`                                                                      | `demo-merged.html`                     | 合并 Agent 报告的 Case 选择和状态筛选                                                                                                  |
+| 场景                                                                                      | 测试报告                               | 主要检查                                                                                                                                        |
+| ----------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `midscene-test-report.yaml`                                                               | `demo-midscene-test.html`              | File 层级与复选框筛选、Compact/Detailed 列表、重试、Execution 表头、统一 Step 列表、Record/Information/Events、分栏上限和重置、浅色/深色 Events |
+| `midscene-test-lifecycle.yaml`                                                            | `demo-midscene-test-lifecycle.html`    | 初始化失败、受阻 Case、清理错误和问题抽屉                                                                                                       |
+| `midscene-test-overview.yaml`                                                             | `demo-midscene-test-overview.html`     | 多 Project 分表、File 错误与受影响 Case、空文件、复选框多选、各 Project 独立排序、与 Markdown 一致的文件顺序、未知值及返回详情后状态保留        |
+| `midscene-test-late-failure.yaml`                                                         | `demo-midscene-test-late-failure.html` | 打开失败 Case 后，无需手动滚动即可看到列表末尾选中的 Step 及其错误                                                                              |
+| `timeline-interaction.yaml`                                                               | `demo.html`                            | 旧 YAML 打开 Test Report，选择时间线截图后显示所属 Step 的 Record                                                                               |
+| `report-single.yaml`、`sidebar-navigation.yaml`、`detail-panel.yaml`、`theme-toggle.yaml` | `demo-agent.html`                      | 独立 Agent 的任务列表、耗时、回放、详情、Markdown 和主题                                                                                        |
+| `report-mobile.yaml`、`player-only.yaml`                                                  | `demo-agent.html`                      | 窄屏 Steps/Player 切换、信息抽屉和仅播放器模式                                                                                                  |
+| `report-merged.yaml`                                                                      | `demo-merged.html`                     | 合并 Agent 报告的 Case 选择和状态筛选                                                                                                           |
 
 使用当前可见标签 **Test Report**、**Information** 和 **Events**。Attempts 与 Visual/YAML 位于 Execution 表头；Case 清理错误仍在 Execution 上方，Step 错误则在详情标签页上方。
 Events 使用 **Run step**、**Started**、**Finished** 等易读文案；原始 Operation/Event 名称保留在悬浮提示中，不作为单元格正文展示。

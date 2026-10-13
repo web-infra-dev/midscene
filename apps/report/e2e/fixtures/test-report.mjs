@@ -264,6 +264,7 @@ export function generateTestReportFixtures(Assembler, sourcePath, outputDir) {
     ['demo-midscene-test', createTestReportFixture],
     ['demo-midscene-test-lifecycle', createLifecycleReportFixture],
     ['demo-midscene-test-late-failure', createLateFailureReportFixture],
+    ['demo-midscene-test-overview', createOverviewReportFixture],
   ].map(([reportFileName, buildRunnerDump]) =>
     new Assembler().assemble({
       outputDir,
@@ -273,4 +274,98 @@ export function generateTestReportFixtures(Assembler, sourcePath, outputDir) {
       buildRunnerDump,
     }),
   );
+}
+
+/** File hierarchy and scope errors with a real embedded recording. */
+export function createOverviewReportFixture(index) {
+  const dump = createTestReportFixture(index);
+  dump.runId = 'report-e2e-file-overview';
+  dump.status = 'failed';
+  const project = dump.projects[0];
+  const original = project.documents[0];
+  const blocked = createLifecycleReportFixture(index).projects[0].documents[1];
+  const second = {
+    documentId: 'smoke-document',
+    sourcePath: 'smoke/checkout.yaml',
+    status: 'success',
+    ...timing(6, 7),
+    beforeAll: [],
+    afterAll: [],
+    cases: [
+      {
+        ...original.cases[1],
+        caseId: 'smoke-case',
+        caseIndex: 0,
+        name: 'Smoke checkout',
+        attempts: [
+          attempt('smoke-attempt', 0, 6, 7, [
+            step('smoke:steps:0', 'cart.verify', 6, 7),
+          ]),
+        ],
+      },
+    ],
+  };
+  const empty = {
+    documentId: 'empty-document',
+    sourcePath: 'empty.yaml',
+    status: 'success',
+    ...timing(7, 7),
+    beforeAll: [],
+    afterAll: [],
+    cases: [],
+  };
+  project.documents.push(second, blocked, empty);
+  project.status = 'failed';
+  project.collectionErrors = [
+    {
+      sourcePath: 'broken.yaml',
+      error: error('YAML collection failed: invalid cases mapping.'),
+    },
+  ];
+  project.plans = [blocked, original, second, empty].map((document) => ({
+    documentId: document.documentId,
+    sourcePath: document.sourcePath,
+    retry: { scope: 'case', count: 0 },
+    beforeAll: [],
+    afterAll: [],
+    cases: [],
+  }));
+  dump.summary = {
+    ...dump.summary,
+    total: 4,
+    passed: 3,
+    notRun: 1,
+    collectionErrors: 1,
+    documentFailures: 1,
+  };
+  const other = {
+    projectId: 'mobile-demo',
+    name: 'Mobile regression',
+    status: 'success',
+    retry: 0,
+    lifecycle: { status: 'success', ...timing(0, 1) },
+    collectionErrors: [],
+    documents: [
+      {
+        ...second,
+        documentId: 'mobile-document',
+        cases: [
+          {
+            ...second.cases[0],
+            caseId: 'mobile-smoke',
+            name: 'Mobile checkout',
+            attempts: [
+              attempt('mobile-attempt', 0, 0, 1, [
+                step('mobile:steps:0', 'cart.verify', 0, 1),
+              ]),
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  dump.projects.push(other);
+  dump.summary.total += 1;
+  dump.summary.passed += 1;
+  return dump;
 }
