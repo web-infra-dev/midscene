@@ -1,3 +1,12 @@
+import type {
+  TestRunReportCleanup,
+  TestRunReportError,
+  TestRunReportOperationEvent,
+  TestRunReportOperationReference,
+  TestRunReportPhaseResult,
+  TestRunReportRetryDecision,
+  TestRunReportStepPhase,
+} from '@midscene/core';
 import { z } from 'zod/v4';
 import type { Awaitable } from '../engine/types';
 import { isSafeResultPathSegment } from '../result-path-segment';
@@ -31,7 +40,12 @@ export interface TestExecutorErrorDto {
   readonly details?: TestExecutorJsonValue;
 }
 
-export interface TestExecutorStepResultDto {
+interface TestExecutorStepResultBaseDto {
+  readonly operations?: {
+    capturedAt: string;
+    events: readonly TestRunReportOperationEvent[];
+  };
+  readonly waitForPreviousOperationMs?: number;
   readonly phase:
     | 'beforeAll'
     | 'beforeEach'
@@ -45,11 +59,7 @@ export interface TestExecutorStepResultDto {
     readonly timeoutMs?: number;
     readonly continueOnError: boolean;
   };
-  readonly status: 'success' | 'failed';
   readonly continuedAfterError: boolean;
-  readonly startedAt: string;
-  readonly endedAt: string;
-  readonly durationMs: number;
   readonly output?: {
     readonly summary?: string;
     readonly data?: TestExecutorJsonValue;
@@ -63,7 +73,34 @@ export interface TestExecutorStepResultDto {
   };
 }
 
+export type TestExecutorStepResultDto = TestExecutorStepResultBaseDto &
+  (
+    | {
+        readonly status: 'success' | 'failed';
+        readonly startedAt: string;
+        readonly endedAt: string;
+        readonly durationMs: number;
+        readonly notRunReason?: never;
+        readonly blockedBy?: never;
+      }
+    | {
+        readonly status: 'not-run';
+        readonly notRunReason: string;
+        readonly blockedBy?: string;
+        readonly startedAt?: never;
+        readonly endedAt?: never;
+        readonly durationMs?: never;
+      }
+  );
+
 export interface TestExecutorCaseAttemptDto {
+  readonly executionStatus?: 'success' | 'failed' | 'not-run';
+  readonly phases?: Partial<
+    Record<TestRunReportStepPhase, TestRunReportPhaseResult>
+  >;
+  readonly cleanup?: TestRunReportCleanup;
+  readonly pendingOperations?: TestRunReportOperationReference[];
+  readonly retryDecision?: TestRunReportRetryDecision;
   readonly caseId: string;
   readonly runId: string;
   readonly projectName: string;
@@ -101,10 +138,21 @@ export interface TestExecutorCaseOutcomeDto {
     | 'interrupted'
     | 'bail'
     | 'fatal-error'
+    | 'cleanup-pending'
+    | 'cleanup-failed'
+    | 'operation-pending'
     | 'executor-failed';
 }
 
 export interface TestExecutorDocumentResultDto {
+  readonly executionStatus?: 'success' | 'failed' | 'not-run';
+  readonly phases?: Partial<
+    Record<TestRunReportStepPhase, TestRunReportPhaseResult>
+  >;
+  readonly cleanup?: TestRunReportCleanup;
+  readonly pendingOperations?: TestRunReportOperationReference[];
+  readonly retryDecision?: TestRunReportRetryDecision;
+  readonly attemptIndex?: number;
   readonly documentId: string;
   readonly documentRunId: string;
   readonly projectId: string;
@@ -123,6 +171,8 @@ export interface TestExecutorDocumentResultDto {
 }
 
 export interface TestExecutorLifecycleResultDto {
+  readonly cleanup?: TestRunReportCleanup;
+  readonly pendingOperations?: TestRunReportOperationReference[];
   readonly projectName: string;
   readonly status: 'success' | 'failed';
   readonly setupError?: TestExecutorErrorDto;
@@ -167,7 +217,9 @@ export type TestExecutorFailureKind =
   | 'report'
   | 'unknown';
 
+const executorErrorBrand = Symbol.for('@midscene/test/executor-error');
 export class TestExecutorError extends Error {
+  readonly [executorErrorBrand] = true;
   readonly kind: TestExecutorFailureKind;
   readonly retryable: boolean;
 
@@ -184,6 +236,19 @@ export class TestExecutorError extends Error {
     this.kind = options.kind ?? 'unknown';
     this.retryable = options.retryable ?? false;
   }
+}
+
+export function isTestExecutorError(
+  error: unknown,
+): error is TestExecutorError {
+  return (
+    error instanceof Error &&
+    (error instanceof TestExecutorError ||
+      Object.getOwnPropertyDescriptor(
+        error,
+        Symbol.for('@midscene/test/executor-error'),
+      )?.value === true)
+  );
 }
 
 /** Runs one isolated Midscene case locally or through an external service. */
@@ -226,7 +291,110 @@ const errorSchema = z.strictObject({
   code: z.string().min(1),
   details: jsonValueSchema.optional(),
 });
-const stepSchema = z.strictObject({
+const operationReferenceSchema = z.strictObject({
+  operationId: z.string().min(1),
+  scopeId: z.string().optional(),
+  stepId: z.string().optional(),
+  node: z.string().optional(),
+});
+const reportErrorSchema: z.ZodType<TestRunReportError> = z.lazy(() =>
+  z.strictObject({
+    name: z.string(),
+    message: z.string(),
+    code: z.string().optional(),
+    details: z
+      .strictObject({
+        value: jsonValueSchema,
+        truncatedPaths: z.array(z.string()).optional(),
+        redactedPaths: z.array(z.string()).optional(),
+      })
+      .optional(),
+    format: z.literal('midscene-error').optional(),
+    cause: reportErrorSchema.optional(),
+    errors: z.array(reportErrorSchema).optional(),
+    truncated: z.boolean().optional(),
+  }),
+);
+const cleanupSchema = z.strictObject({
+  status: z.enum(['not-required', 'completed', 'pending', 'failed']),
+  capturedAt: timestampSchema,
+  operationId: z.string().optional(),
+  blockingOperations: z.array(operationReferenceSchema).optional(),
+  error: reportErrorSchema.optional(),
+});
+const phaseSchema = z.strictObject({
+  status: z.enum(['success', 'failed', 'not-run', 'not-required']),
+  plannedStepCount: z.number().int().nonnegative(),
+  executedStepCount: z.number().int().nonnegative(),
+});
+const diagnosticsSchema = {
+  executionStatus: z.enum(['success', 'failed', 'not-run']).optional(),
+  phases: z
+    .strictObject({
+      beforeAll: phaseSchema.optional(),
+      beforeEach: phaseSchema.optional(),
+      steps: phaseSchema.optional(),
+      afterEach: phaseSchema.optional(),
+      afterAll: phaseSchema.optional(),
+    })
+    .optional(),
+  cleanup: cleanupSchema.optional(),
+  pendingOperations: z.array(operationReferenceSchema).optional(),
+  retryDecision: z
+    .strictObject({
+      scope: z.enum(['case', 'document']),
+      retryCount: z.number().int().nonnegative(),
+      attemptIndex: z.number().int().nonnegative(),
+      decision: z.enum(['retry', 'stop']),
+      reason: z.enum([
+        'passed',
+        'attempt-failed',
+        'budget-exhausted',
+        'cleanup-pending',
+        'cleanup-failed',
+        'operation-pending',
+        'fatal-error',
+        'interrupted',
+        'bail',
+        'infrastructure-error',
+      ]),
+    })
+    .optional(),
+};
+const stepBaseSchema = z.strictObject({
+  waitForPreviousOperationMs: z.number().nonnegative().finite().optional(),
+  operations: z
+    .strictObject({
+      capturedAt: timestampSchema,
+      events: z.array(
+        z.strictObject({
+          operationId: z.string().min(1),
+          operationKind: z.enum([
+            'node',
+            'resource',
+            'acquisition',
+            'cleanup',
+            'readiness',
+          ]),
+          kind: z.enum([
+            'started',
+            'cancel-requested',
+            'settled',
+            'runner-returned',
+            'cleanup-deferred',
+          ]),
+          at: timestampSchema,
+          stepId: z.string().optional(),
+          scopeId: z.string().optional(),
+          node: z.string().optional(),
+          status: z.enum(['success', 'failed', 'not-run']).optional(),
+          pending: z.boolean().optional(),
+          error: reportErrorSchema.optional(),
+          blockingOperations: z.array(operationReferenceSchema).optional(),
+        }),
+      ),
+    })
+    .optional(),
   phase: z.enum(['beforeAll', 'beforeEach', 'steps', 'afterEach', 'afterAll']),
   stepIndex: z.number().int().nonnegative(),
   node: z.string().min(1),
@@ -235,11 +403,7 @@ const stepSchema = z.strictObject({
     timeoutMs: z.number().positive().finite().optional(),
     continueOnError: z.boolean(),
   }),
-  status: z.enum(['success', 'failed']),
   continuedAfterError: z.boolean(),
-  startedAt: timestampSchema,
-  endedAt: timestampSchema,
-  durationMs: z.number().nonnegative().finite(),
   output: z
     .strictObject({
       summary: z.string().optional(),
@@ -258,7 +422,21 @@ const stepSchema = z.strictObject({
     })
     .optional(),
 });
+const stepSchema = z.discriminatedUnion('status', [
+  stepBaseSchema.extend({
+    status: z.enum(['success', 'failed']),
+    startedAt: timestampSchema,
+    endedAt: timestampSchema,
+    durationMs: z.number().nonnegative().finite(),
+  }),
+  stepBaseSchema.extend({
+    status: z.literal('not-run'),
+    notRunReason: z.string().min(1),
+    blockedBy: z.string().optional(),
+  }),
+]);
 const attemptSchema = z.strictObject({
+  ...diagnosticsSchema,
   caseId: z.string().min(1),
   runId: z.string().min(1),
   projectName: z.string().min(1),
@@ -285,6 +463,9 @@ const notRunReasonSchema = z.enum([
   'bail',
   'fatal-error',
   'executor-failed',
+  'cleanup-pending',
+  'cleanup-failed',
+  'operation-pending',
 ]);
 const resultSchema = z.strictObject({
   case: z.strictObject({
@@ -301,6 +482,8 @@ const resultSchema = z.strictObject({
   }),
   document: z
     .strictObject({
+      ...diagnosticsSchema,
+      attemptIndex: z.number().int().nonnegative().optional(),
       documentId: z.string().min(1),
       documentRunId: z.string().min(1),
       projectId: z.string().min(1),
@@ -319,6 +502,8 @@ const resultSchema = z.strictObject({
     .optional(),
   lifecycle: z
     .strictObject({
+      cleanup: cleanupSchema.optional(),
+      pendingOperations: z.array(operationReferenceSchema).optional(),
       projectName: z.string().min(1),
       status: z.enum(['success', 'failed']),
       setupError: errorSchema.optional(),
@@ -347,7 +532,10 @@ const resultSchema = z.strictObject({
 
 const attemptMatchesTask = (
   task: TestCaseTask,
-  attempt: TestExecutorCaseAttemptDto,
+  attempt: Pick<
+    TestExecutorCaseAttemptDto,
+    'caseId' | 'projectName' | 'name' | 'sourcePath' | 'caseIndex' | 'runId'
+  >,
 ): boolean =>
   attempt.caseId === task.caseId &&
   attempt.projectName === task.projectName &&
@@ -391,7 +579,7 @@ export function assertTestCaseTaskRunResult(
       attempt.status === 'success' &&
       (attempt.steps.length === 0 ||
         (attempt.executionErrors?.length ?? 0) > 0 ||
-        steps.some((step) => step.status === 'failed') ||
+        steps.some((step) => step.status !== 'success') ||
         (attempt.teardownErrors?.length ?? 0) > 0)
     ) {
       throw new TypeError(
@@ -453,7 +641,7 @@ export function assertTestCaseTaskRunResult(
     document?.status === 'success' &&
     ((document.executionErrors?.length ?? 0) > 0 ||
       [...document.beforeAll, ...document.afterAll].some(
-        (step) => step.status === 'failed',
+        (step) => step.status !== 'success',
       ) ||
       (document.teardownErrors?.length ?? 0) > 0)
   ) {

@@ -1,6 +1,6 @@
 import type {
-  TestRunReportDocumentPlan,
   TestRunReportCaseExecution,
+  TestRunReportDocumentPlan,
   TestRunReportSummary,
 } from '../../test-run-report';
 import type {

@@ -37,11 +37,12 @@ import {
   type TestExecutor,
   type TestExecutorCaseAttemptDto,
   type TestExecutorDocumentResultDto,
-  TestExecutorError,
+  type TestExecutorError,
   type TestExecutorErrorDto,
   type TestExecutorLifecycleResultDto,
   type TestExecutorStepResultDto,
   assertTestCaseTaskRunResult,
+  isTestExecutorError,
   localTestExecutor,
 } from './test-executor';
 import type {
@@ -210,6 +211,19 @@ const reviveLifecycle = (
   };
 };
 
+const mapError = (error: WorkflowError) => ({
+  name: error.name,
+  message: error.message,
+  code: error.code,
+  ...(error.details === undefined ? {} : { details: error.details }),
+});
+
+const mapStep = (step: StepRunResult) => ({
+  ...step,
+  ...(step.error ? { error: mapError(step.error) } : {}),
+  ...(step.report ? { report: { traces: step.report.traces } } : {}),
+});
+
 const toTransportResult = (
   result: {
     case: CaseRunOutcome & { documentId: string };
@@ -236,6 +250,15 @@ const toTransportResult = (
     const reportRefs = transportReports(attempt);
     return {
       ...transportAttempt,
+      beforeEach: attempt.beforeEach.map(mapStep),
+      steps: attempt.steps.map(mapStep),
+      afterEach: attempt.afterEach.map(mapStep),
+      ...(attempt.executionErrors
+        ? { executionErrors: attempt.executionErrors.map(mapError) }
+        : {}),
+      ...(attempt.teardownErrors
+        ? { teardownErrors: attempt.teardownErrors.map(mapError) }
+        : {}),
       ...(reportRefs.length ? { reportRefs } : {}),
     };
   };
@@ -248,11 +271,20 @@ const toTransportResult = (
           reportPaths,
           reportSources,
           reportScopeId,
+          plan: _plan,
           ...transportDocument
         } = result.document;
         const reportRefs = transportReports(result.document);
         return {
           ...transportDocument,
+          beforeAll: result.document.beforeAll.map(mapStep),
+          afterAll: result.document.afterAll.map(mapStep),
+          ...(result.document.executionErrors
+            ? { executionErrors: result.document.executionErrors.map(mapError) }
+            : {}),
+          ...(result.document.teardownErrors
+            ? { teardownErrors: result.document.teardownErrors.map(mapError) }
+            : {}),
           ...(reportRefs.length ? { reportRefs } : {}),
         };
       })()
@@ -265,7 +297,22 @@ const toTransportResult = (
         ...(attempts ? { attempts } : {}),
       },
       ...(document ? { document } : {}),
-      ...(result.lifecycle ? { lifecycle: result.lifecycle } : {}),
+      ...(result.lifecycle
+        ? {
+            lifecycle: {
+              ...result.lifecycle,
+              ...(result.lifecycle.setupError
+                ? { setupError: mapError(result.lifecycle.setupError) }
+                : {}),
+              ...(result.lifecycle.teardownErrors
+                ? {
+                    teardownErrors:
+                      result.lifecycle.teardownErrors.map(mapError),
+                  }
+                : {}),
+            },
+          }
+        : {}),
     }),
   ) as TestCaseTaskRunResult;
 };
@@ -480,7 +527,7 @@ const runCaseTask = async <TProjectContext>(
       executorFailure = undefined;
       break;
     } catch (error) {
-      if (!(error instanceof TestExecutorError)) throw error;
+      if (!isTestExecutorError(error)) throw error;
       executorFailure = error;
       if (
         !error.retryable ||

@@ -25,13 +25,20 @@ it('copies immutable snapshots with screenshots without requiring an HTML entry'
   writeFileSync(dumpPath, '{"executions":[]}');
   writeFileSync(join(source, 'screenshots', 'image.png'), 'image bytes');
   const reports = createExecutorReports(join(root, 'output'));
+  const collection = {
+    status: 'partial' as const,
+    capturedAt: '2026-10-13T00:00:00Z',
+    reason: 'pending operation',
+  };
   const reference = reports.materializeSource({
     sourcePath: join(source, 'index.html'),
     dumpPath,
+    collection,
   });
   const snapshot = reports.resolveSource(reference)!;
   expect(snapshot.sourcePath).toBe(reports.resolve(reference));
   expect(snapshot.dumpPath).not.toBe(dumpPath);
+  expect(snapshot.collection).toEqual(collection);
   expect(readFileSync(snapshot.dumpPath, 'utf8')).toBe('{"executions":[]}');
   expect(
     readFileSync(
@@ -42,6 +49,23 @@ it('copies immutable snapshots with screenshots without requiring an HTML entry'
   expect(
     createExecutorReports(join(root, 'other')).resolveSource(reference),
   ).toBeUndefined();
+});
+
+it('keeps HTML-backed source collection metadata without treating it as a snapshot dump', () => {
+  const root = mkdtempSync(join(tmpdir(), 'executor-html-source-'));
+  roots.push(root);
+  const sourcePath = join(root, 'report.html');
+  writeFileSync(sourcePath, '<html>report</html>');
+  const collection = {
+    status: 'complete' as const,
+    capturedAt: '2026-10-13T00:00:00Z',
+  };
+  const reports = createExecutorReports(join(root, 'output'));
+  const reference = reports.materializeSource({ sourcePath, collection });
+  const snapshot = reports.resolveSource(reference)!;
+  expect(snapshot.collection).toEqual(collection);
+  expect(snapshot.dumpPath).toBeUndefined();
+  expect(readFileSync(snapshot.sourcePath, 'utf8')).toBe('<html>report</html>');
 });
 
 it.each(['directory', 'entry'])(

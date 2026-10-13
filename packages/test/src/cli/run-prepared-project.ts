@@ -24,9 +24,9 @@ import type {
   PreparedExecutionProject,
   PreparedTestRunPlan,
 } from './execution-plan';
+import { asNotRun, buildProjectResult, latestById } from './execution-result';
 import { createOperationJournal } from './operation-journal';
 import { writeTestProjectRunResult, writeTestRunPlan } from './result-store';
-import { asNotRun, buildProjectResult, latestById } from './execution-result';
 import type {
   TestExecutionProjectRunResult,
   TestProjectCaseRunResult,

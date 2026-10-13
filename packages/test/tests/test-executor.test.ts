@@ -32,6 +32,63 @@ const validResult = () => ({
 });
 
 describe('test executor result validation', () => {
+  it.each(['failed', 'success'])(
+    'preserves unexecuted Steps in a %s attempt without inventing timing',
+    (status) => {
+      const attempt = {
+        caseId: task.caseId,
+        runId: 'attempt-1',
+        projectName: task.projectName,
+        attemptIndex: 0,
+        name: task.caseName,
+        sourcePath: task.sourcePath,
+        caseIndex: 0,
+        status,
+        beforeEach: [],
+        afterEach: [],
+        startedAt: '2026-10-13T00:00:00Z',
+        endedAt: '2026-10-13T00:00:01Z',
+        durationMs: 1000,
+        steps: [
+          {
+            phase: 'steps',
+            stepIndex: 0,
+            node: 'action',
+            input: {},
+            meta: { continueOnError: false },
+            status: 'not-run',
+            continuedAfterError: false,
+            notRunReason: 'cleanup-pending',
+            blockedBy: 'operation-1',
+          },
+        ],
+      };
+      const validate = () =>
+        assertTestCaseTaskRunResult(task, {
+          case: {
+            ...validResult().case,
+            status,
+            notRunReason: undefined,
+            run: attempt,
+            attempts: [attempt],
+          },
+        });
+      if (status === 'failed') expect(validate).not.toThrow();
+      else expect(validate).toThrow('inconsistent successful attempt');
+    },
+  );
+
+  it.each(['cleanup-pending', 'cleanup-failed', 'operation-pending'])(
+    'preserves the engine stop reason %s',
+    (notRunReason) => {
+      expect(() =>
+        assertTestCaseTaskRunResult(task, {
+          case: { ...validResult().case, notRunReason },
+        }),
+      ).not.toThrow();
+    },
+  );
+
   it('rejects successful attempts containing failed steps, even when execution continued', () => {
     const timing = {
       startedAt: '2026-09-17T00:00:00Z',
