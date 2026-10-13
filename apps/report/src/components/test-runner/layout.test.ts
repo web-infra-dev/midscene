@@ -302,7 +302,7 @@ describe('Midscene Test report layout', () => {
     expect(workspace).toContain('<RunnerAttemptTimeline');
     expect(workspace).not.toContain('RunnerTimelinePlaybackControl');
     expect(executionPanel).toMatch(
-      /className="runner-detail-panel-heading"[\s\S]*?\{!showYaml \? timeline : null\}[\s\S]*?className="runner-detail-step-scroll"/,
+      /className="runner-detail-panel-heading"[\s\S]*?className="runner-detail-timeline-view" hidden=\{showYaml\}[\s\S]*?\{timeline\}[\s\S]*?className="runner-detail-step-scroll"/,
     );
     expect(inspector).not.toContain('timeline?: ReactNode');
   });

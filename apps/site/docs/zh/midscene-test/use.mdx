@@ -472,6 +472,8 @@ pnpm exec midscene-test --result-dir ./test-results
 
 Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝试时的 **Attempts** 下拉框，以及 Step 状态统计。报告保存了源 YAML 快照时，才可使用 YAML 视图。Visual 视图在截图时间线下方展示统一的 Step 列表和选中 Step 的详情，列表中的生命周期分组使用分割线区分。在宽屏下，拖动分栏线可调整 Step 列表宽度，聚焦后也可使用方向键调整，双击可恢复默认宽度。打开包含失败 Step 的 Case 时，会选中该 Step，并将对应行和错误滚动到可见位置。
 
+普通 **Visual / YAML** 切换会保留截图时间线的状态，不会重新定位选中 Step。点击 YAML 中的 Step 名称或状态标记时，会切回 Visual、聚焦对应 Step 并显示详情，即使点击的是已经选中的 Step。
+
 选中 Step 后，可以查看 **Information** 和 **Events**；有录屏或截图证据时，还会显示 **Record**：
 
 - **Record** 展示关联的 Agent 执行过程或截图。悬停时间线缩略图可以预览，点击后会选中截图所属的 Step。
