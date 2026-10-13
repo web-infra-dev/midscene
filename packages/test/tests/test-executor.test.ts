@@ -32,6 +32,49 @@ const validResult = () => ({
 });
 
 describe('test executor result validation', () => {
+  it.each([
+    { cleanup: { status: 'pending', capturedAt: '2026-10-13T00:00:00Z' } },
+    { cleanup: { status: 'failed', capturedAt: '2026-10-13T00:00:00Z' } },
+    { pendingOperations: [{ operationId: 'still-running' }] },
+  ])('rejects successful lifecycle with unfinished work: %j', (diagnostics) => {
+    expect(() =>
+      assertTestCaseTaskRunResult(task, {
+        ...validResult(),
+        lifecycle: {
+          projectName: task.projectName,
+          status: 'success',
+          startedAt: '2026-10-13T00:00:00Z',
+          endedAt: '2026-10-13T00:00:01Z',
+          durationMs: 1000,
+          ...diagnostics,
+        },
+      }),
+    ).toThrow('inconsistent successful lifecycle');
+  });
+
+  it('retains deferred cleanup diagnostics in a failed lifecycle', () => {
+    const result = {
+      ...validResult(),
+      lifecycle: {
+        projectName: task.projectName,
+        status: 'failed',
+        startedAt: '2026-10-13T00:00:00Z',
+        endedAt: '2026-10-13T00:00:01Z',
+        durationMs: 1000,
+        cleanup: {
+          status: 'pending',
+          capturedAt: '2026-10-13T00:00:01Z',
+          blockingOperations: [{ operationId: 'cleanup-1' }],
+        },
+        pendingOperations: [{ operationId: 'cleanup-1' }],
+      },
+    };
+    expect(() => assertTestCaseTaskRunResult(task, result)).not.toThrow();
+    expect(result.lifecycle.pendingOperations).toEqual([
+      { operationId: 'cleanup-1' },
+    ]);
+  });
+
   it.each(['error', 'continuedAfterError'])(
     'rejects successful step with %s',
     (field) => {

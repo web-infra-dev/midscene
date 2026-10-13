@@ -41,6 +41,22 @@ describe('workflow document collection', () => {
     execute() {},
   });
 
+  it('captures author YAML before variable resolution and file changes', () => {
+    const content =
+      '# Keep author comment\ncases:\n  - name: source\n    steps:\n      - test.record: $' +
+      '{keyword}\n';
+    const source = createDocument(content);
+    const document = collectWorkflowDocument(source, {
+      resolveNode: () => node,
+      variables: { keyword: 'resolved' },
+    });
+    writeFileSync(source.absolutePath, 'changed after collection');
+    expect(document.sourceYaml?.value).toBe(content);
+    expect(document.cases[0].definition.steps[0].input).toEqual({
+      prompt: 'resolved',
+    });
+  });
+
   it('rejects compatibility-only Case controls in native documents', () => {
     const source = createDocument(`
 cases:

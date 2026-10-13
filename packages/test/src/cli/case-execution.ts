@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
   WorkflowExecutionFailure,
   runWorkflowDocument,
+  sanitizeReportError,
 } from '@midscene/core/internal/test-runner';
 import type { WorkflowReportSource } from '@midscene/core/internal/test-runner';
 import type {
@@ -130,6 +131,7 @@ const reviveError = (error: TestExecutorErrorDto): WorkflowError => {
   const revived = new WorkflowError(error.message, {
     code: error.code,
     details: error.details,
+    cause: error.cause,
   });
   revived.name = error.name;
   return revived;
@@ -144,7 +146,14 @@ const reviveStep = (step: TestExecutorStepResultDto): StepRunResult => {
     ...(output ? { output: { ...output } } : {}),
     ...(error ? { error: reviveError(error) } : {}),
     ...(report
-      ? { report: { traces: report.traces.map((trace) => ({ ...trace })) } }
+      ? {
+          report: {
+            traces: report.traces.map((trace) => ({ ...trace })),
+            ...(report.collectionErrors
+              ? { collectionErrors: report.collectionErrors.map(reviveError) }
+              : {}),
+          },
+        }
       : {}),
   };
 };
@@ -182,10 +191,14 @@ const reviveDocument = (
     reportRefs,
     beforeAll,
     afterAll,
+    hostErrors,
     ...base
   } = document;
   return {
     ...base,
+    ...(hostErrors
+      ? { hostErrors: hostErrors.map((error) => ({ ...error })) }
+      : {}),
     beforeAll: beforeAll.map(reviveStep),
     afterAll: afterAll.map(reviveStep),
     ...(executionErrors
@@ -230,12 +243,22 @@ const toTransportResult = (
       )
       .map(materializeReport),
   ];
+  // Scope-level reportRefs already own these snapshots. Never send worker paths
+  // through individual Step records, but retain metrics and collection failures.
+  const mapStep = (step: StepRunResult) => {
+    if (!step.report) return step;
+    const { sources: _sources, ...report } = step.report;
+    return { ...step, report };
+  };
   const mapAttempt = (attempt: CaseRunResult) => {
     const { reportPaths, reportSources, reportScopeId, ...transportAttempt } =
       attempt;
     const reportRefs = transportReports(attempt);
     return {
       ...transportAttempt,
+      beforeEach: attempt.beforeEach.map(mapStep),
+      steps: attempt.steps.map(mapStep),
+      afterEach: attempt.afterEach.map(mapStep),
       ...(reportRefs.length ? { reportRefs } : {}),
     };
   };
@@ -253,6 +276,18 @@ const toTransportResult = (
         const reportRefs = transportReports(result.document);
         return {
           ...transportDocument,
+          ...(result.document.hostErrors
+            ? {
+                hostErrors: result.document.hostErrors.map(
+                  ({ phase, error }) => ({
+                    phase,
+                    error: sanitizeReportError(error),
+                  }),
+                ),
+              }
+            : {}),
+          beforeAll: result.document.beforeAll.map(mapStep),
+          afterAll: result.document.afterAll.map(mapStep),
           ...(reportRefs.length ? { reportRefs } : {}),
         };
       })()

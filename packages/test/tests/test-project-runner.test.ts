@@ -3,6 +3,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -74,6 +75,122 @@ afterEach(() => {
 });
 
 describe('test project main-process runner', () => {
+  it('publishes a fixed snapshot and keeps appending the original node late outcome to its journal', async () => {
+    const root = createProject();
+    const pending = createDeferred();
+    const state = Object.assign(setRunnerState(join(root, 'results')), {
+      pending: pending.promise,
+    });
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      export default {
+        projects: [{ name: 'late' }],
+        nodes: [{ name: 'pending', execute() { return globalThis.__testProjectRunnerState.pending; } }],
+      };
+    `,
+    );
+    writeWorkflow(
+      root,
+      'case.yaml',
+      'cases:\n  - name: late outcome\n    steps:\n      - pending:\n          $:\n            timeout: 10\n',
+    );
+    const result = await runTestProject({
+      projectRoot: root,
+      resultDir: state.resultDir,
+    });
+    expect(result.collectionErrors).toEqual([]);
+    expect(result.cases).toHaveLength(1);
+    expect(result.cases[0].run?.steps[0].node).toBe('pending');
+    expect(result.status).toBe('failed');
+    const summaryBefore = readFileSync(result.summaryPath, 'utf8');
+    const summary = JSON.parse(summaryBefore);
+    expect(summary.operationLog.path).toBe('operations.jsonl');
+    const journalPath = result.operationLog!.path;
+    const before = readFileSync(journalPath, 'utf8');
+    const events = before
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    const returned = events.find((event) => event.kind === 'runner-returned');
+    expect(returned).toMatchObject({ pending: true, node: 'pending' });
+    pending.resolve();
+    await pending.promise;
+    await Promise.resolve();
+    await Promise.resolve();
+    const after = readFileSync(journalPath, 'utf8');
+    expect(after.startsWith(before)).toBe(true);
+    expect(
+      after
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line)),
+    ).toContainEqual(
+      expect.objectContaining({
+        kind: 'settled',
+        operationId: returned.operationId,
+        stepId: returned.stepId,
+        status: 'success',
+      }),
+    );
+    expect(readFileSync(result.summaryPath, 'utf8')).toBe(summaryBefore);
+  });
+  it('persists the full safe plan before setup, including filtered cases and unresolved variables', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = Object.assign(setRunnerState(resultDir), {
+      planAtSetup: undefined as any,
+    });
+    const runtimeValue = 'runtime-secret-value';
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      import { readdirSync, readFileSync } from 'node:fs';
+      import { join } from 'node:path';
+      const state = globalThis.__testProjectRunnerState;
+      export default {
+        projects: [{ name: 'maps', tags: { include: ['smoke'] }, variables: { credential: '${runtimeValue}' }, setup: {
+          name: 'check-plan', setup() {
+            const run = readdirSync(state.resultDir)[0];
+            state.planAtSetup = JSON.parse(readFileSync(join(state.resultDir, run, 'plan.json'), 'utf8'));
+            throw new Error('setup stopped');
+          },
+        } }],
+        nodes: [{ name: 'body', stringInputKey: 'prompt', execute() { throw new Error('must not start'); } }],
+      };
+    `,
+    );
+    writeWorkflow(
+      root,
+      'map.yaml',
+      `cases:
+  - name: selected map
+    tags: [smoke]
+    steps: [{ body: "Use \${credential}" }]
+  - name: filtered map
+    tags: [slow]
+    steps: [{ body: hidden preview }]
+`,
+    );
+    const result = await runTestProject({ projectRoot: root, resultDir });
+    const plans = state.planAtSetup.projects[0].documents;
+    expect(plans[0].sourceYaml.value).toBe(
+      readFileSync(join(root, 'map.yaml'), 'utf8'),
+    );
+    expect(plans[0].cases.map((item: any) => item.selected)).toEqual([
+      true,
+      false,
+    ]);
+    expect(plans[0].cases[0].steps[0]).toMatchObject({
+      inputMode: 'template',
+      input: { value: { prompt: 'Use ${credential}' } },
+    });
+    expect(JSON.stringify(state.planAtSetup)).not.toContain(runtimeValue);
+    expect(result.summary).toMatchObject({ total: 1, notRun: 1, filtered: 1 });
+    expect(result.projects[0].plans).toEqual(plans);
+    expect(readdirSync(join(resultDir, result.runId))).toContain('plan.json');
+  });
+
   it('formats run ids with a local timestamp and UUID prefix', () => {
     expect(
       createTestRunId(
@@ -228,6 +345,13 @@ describe('test project main-process runner', () => {
       ],
     });
     const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(result.markdownPath).toBe(
+      join(dirname(result.summaryPath), 'result.md'),
+    );
+    expect(summary.markdown).toBe('result.md');
+    expect(readFileSync(result.markdownPath!, 'utf8')).toContain(
+      '## Midscene Test',
+    );
     expect(summary.projects[0]).toMatchObject({
       projectId: 'project-0',
       collectionErrors: [
@@ -1370,6 +1494,156 @@ cases:
     ).toHaveLength(1);
   });
 
+  it.each([
+    'case',
+    'document',
+    'pending',
+    'recovery',
+    'document-recovery',
+  ] as const)(
+    'stops only the owning Project after %s resource cleanup problems',
+    async (scope) => {
+      const root = createProject();
+      const resultDir = join(root, 'results');
+      const pending = createDeferred();
+      const state = Object.assign(setRunnerState(resultDir), {
+        pending: pending.promise,
+      });
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        `
+        const state = globalThis.__testProjectRunnerState;
+        export default {
+          test: { bail: 0, maxConcurrency: '${scope}' === 'document-recovery' ? 2 : 1 },
+          projects: ['alpha', 'beta'].map(name => ({
+            name, retry: 2,
+            setup: { name: 'resources', setup({ onTeardown }) {
+              onTeardown(() => state.events.push('project-cleanup:' + name));
+              return { name };
+            } },
+          })),
+          nodes: [{ name: 'check', stringInputKey: 'phase',
+            execute({ input, context, onTeardown }) {
+              state.events.push(context.name + ':' + input.phase);
+              if (context.name === 'alpha' && input.phase === 'problem') {
+                if (['pending', 'recovery', 'document-recovery'].includes('${scope}')) {
+                  onTeardown(() => { state.events.push('node-cleanup:' + context.name); });
+                  return state.pending;
+                }
+                onTeardown(() => { throw new Error('resource cleanup failed'); });
+              }
+            },
+          }],
+        };
+      `,
+      );
+      writeWorkflow(
+        root,
+        'a-first.yaml',
+        scope === 'document' || scope === 'document-recovery'
+          ? `
+beforeAll:
+  - check:
+      phase: problem
+      $: { timeout: 10, continue-on-error: true }
+  - check: after-setup
+cases:
+  - name: first
+    steps: [{ check: first }]
+`
+          : `
+cases:
+  - name: first
+    steps:
+      - check:
+          phase: problem
+          $: { timeout: 10, continue-on-error: ${scope === 'recovery'} }
+      - check: after-problem
+  - name: second
+    steps: [{ check: second }]
+`,
+      );
+      writeWorkflow(
+        root,
+        'b-next.yaml',
+        `
+cases:
+  - name: next file
+    steps: [{ check: next-file }]
+`,
+      );
+      try {
+        const result = await runTestProject({ projectRoot: root, resultDir });
+        const [alpha, beta] = result.projects;
+        expect(result.status).toBe('failed');
+        expect(result.errors).toBeUndefined();
+        expect(alpha.status).toBe('failed');
+        expect(alpha.cases.at(-1)).toMatchObject({
+          name: 'next file',
+          status: 'not-run',
+          notRunReason: 'fatal-error',
+        });
+        if (scope !== 'document-recovery')
+          expect(alpha.cases[0].attempts).toHaveLength(1);
+        const owner =
+          scope === 'document' || scope === 'document-recovery'
+            ? alpha.documents[0]
+            : alpha.cases[0].run!;
+        expect(owner.cleanup).toMatchObject({
+          status: ['pending', 'recovery', 'document-recovery'].includes(scope)
+            ? 'pending'
+            : 'failed',
+        });
+        if (scope === 'recovery' || scope === 'document-recovery') {
+          const steps =
+            scope === 'recovery'
+              ? alpha.cases[0].run!.steps
+              : alpha.documents[0].beforeAll;
+          expect(steps[0].error?.code).toBe('STEP_TIMEOUT');
+          expect(owner.executionErrors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                code: 'RESOURCE_RECOVERY_TIMEOUT',
+                details: expect.objectContaining({
+                  blockedByStepId: `${scope === 'recovery' ? alpha.cases[0].run!.runId : alpha.documents[0].documentRunId}:${scope === 'recovery' ? 'steps' : 'beforeAll'}:0`,
+                }),
+              }),
+            ]),
+          );
+          if (scope === 'recovery')
+            expect(alpha.cases[0].run!.retryDecision?.reason).toBe(
+              'cleanup-pending',
+            );
+          expect(state.events).not.toContain('alpha:after-problem');
+          expect(state.events).not.toContain('alpha:after-setup');
+        }
+        expect(beta.status).toBe('success');
+        expect(beta.cases.every((item) => item.status === 'success')).toBe(
+          true,
+        );
+        expect(
+          state.events.filter((event) => event === 'alpha:problem'),
+        ).toHaveLength(1);
+        expect(state.events).not.toContain('alpha:second');
+        expect(state.events).not.toContain('alpha:next-file');
+        expect(state.events).toContain('beta:next-file');
+      } finally {
+        pending.resolve();
+        await pending.promise;
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+      expect(state.events).toEqual(
+        expect.arrayContaining([
+          'project-cleanup:alpha',
+          'project-cleanup:beta',
+        ]),
+      );
+      if (['pending', 'recovery', 'document-recovery'].includes(scope))
+        expect(state.events).toContain('node-cleanup:alpha');
+    },
+    60_000,
+  );
+
   it('contains fatal device errors within their owning Project', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
@@ -1957,8 +2231,9 @@ cases:
           name: 'snapshot',
           execute(ctx) {
             const id = ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
-            ctx.report.addTrace({ type: 'midscene-execution', executionId: id });
-            ctx.onTeardown(() => {
+            ctx.report.addTrace({ type: 'midscene-execution', executionId: id,
+              metrics: { modelCallCount: 1, modelTimeMs: 12, promptTokens: 3, cachedInputTokens: 0, completionTokens: 4, totalTokens: 7 } });
+            ctx.report.onSnapshot(() => {
               const directory = join(state.resultDir, 'sources', id);
               mkdirSync(directory, { recursive: true });
               const dumpPath = join(directory, 'snapshot.json');
@@ -1966,7 +2241,7 @@ cases:
                 sdkVersion: '1.14.0', groupName: 'snapshot', modelBriefs: [],
                 executions: [{ id, logTime: 1, name: 'snapshot-' + ctx.scope, tasks: [] }],
               }));
-              return { reportSources: [{ sourcePath: join(directory, 'index.html'), dumpPath }] };
+              return { sourcePath: join(directory, 'index.html'), dumpPath };
             });
           },
         }],
@@ -1992,6 +2267,9 @@ cases:
     const document = dump.projects[0].documents[0];
     expect(document.beforeAll[0].agentDetails).toHaveLength(1);
     expect(document.cases[0].attempts[0].steps[0].agentDetails).toHaveLength(1);
+    expect(
+      result.cases[0].run?.steps[0].report?.traces[0].metrics?.totalTokens,
+    ).toBe(7);
     expect(dump.diagnostics ?? []).toEqual([]);
   });
 

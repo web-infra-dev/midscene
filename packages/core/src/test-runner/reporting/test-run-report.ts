@@ -3,9 +3,13 @@ import type {
   TestRunReportAgentDetail,
   TestRunReportAttempt,
   TestRunReportCase,
+  TestRunReportCasePlan,
   TestRunReportDiagnostic,
   TestRunReportDocument,
+  TestRunReportDocumentPlan,
   TestRunReportDump,
+  TestRunReportMetrics,
+  TestRunReportPlannedStep,
   TestRunReportProject,
   TestRunReportSource,
   TestRunReportSourceIndex,
@@ -16,6 +20,7 @@ import type {
   StepRunResult,
   WorkflowDocumentRunResult,
 } from '../engine/types';
+import { sumTestRunReportMetrics } from './metrics';
 import {
   sanitizeReportError,
   sanitizeReportText,
@@ -34,6 +39,11 @@ interface ManifestBuildContext {
   sourcesByScope: Map<string, IndexedTestRunReportSource[]>;
   detailsByScopeAndExecution: Map<string, TestRunReportAgentDetail>;
   tracedScopeByExecution: Map<string, string>;
+  expectedExecutions: Set<string>;
+  capturedExecutions: Set<string>;
+  executionMetrics: Map<string, TestRunReportMetrics>;
+  missingMetrics: Set<string>;
+  tracedScopes: Set<string>;
 }
 
 const scopedExecutionKey = (scopeId: string, executionId: string): string =>
@@ -56,10 +66,49 @@ const buildStep = (
   scopeId: string,
   context: ManifestBuildContext,
   executionId: string,
+  plan?: TestRunReportPlannedStep,
 ): TestRunReportStep => {
+  const stepId = `${executionId}:${step.phase}:${step.stepIndex}`;
+  if (step.status === 'not-run')
+    return {
+      id: stepId,
+      ...(plan ? { planStepId: plan.id, title: plan.title } : {}),
+      phase: step.phase,
+      stepIndex: step.stepIndex,
+      node: step.node,
+      status: 'not-run',
+      notRunReason: sanitizeReportText(step.notRunReason),
+      ...(step.blockedBy ? { blockedBy: step.blockedBy } : {}),
+      continuedAfterError: step.continuedAfterError,
+      ...(step.waitForPreviousOperationMs
+        ? { waitForPreviousOperationMs: step.waitForPreviousOperationMs }
+        : {}),
+      input: sanitizeReportValue(step.input),
+      ...(step.error ? { error: sanitizeReportError(step.error) } : {}),
+      ...(step.operations
+        ? {
+            operations: {
+              ...step.operations,
+              events: [...step.operations.events],
+            },
+          }
+        : {}),
+    };
   const details: TestRunReportAgentDetail[] = [];
   const unresolvedExecutionIds: string[] = [];
+  const usage: TestRunReportMetrics[] = [];
+  const missingUsage: string[] = [];
   for (const trace of step.report?.traces ?? []) {
+    context.tracedScopes.add(scopeId);
+    const metrics =
+      context.executionMetrics.get(trace.executionId) ?? trace.metrics;
+    if (metrics) {
+      context.executionMetrics.set(trace.executionId, metrics);
+      usage.push(metrics);
+    }
+    context.expectedExecutions.add(
+      scopedExecutionKey(scopeId, trace.executionId),
+    );
     const previousScope = context.tracedScopeByExecution.get(trace.executionId);
     if (previousScope && previousScope !== scopeId) {
       throw new Error(
@@ -70,8 +119,19 @@ const buildStep = (
     const detail = context.detailsByScopeAndExecution.get(
       scopedExecutionKey(scopeId, trace.executionId),
     );
-    if (detail) details.push(detail);
-    else unresolvedExecutionIds.push(trace.executionId);
+    if (detail) {
+      details.push(detail);
+      context.capturedExecutions.add(
+        scopedExecutionKey(scopeId, trace.executionId),
+      );
+    } else {
+      unresolvedExecutionIds.push(trace.executionId);
+      if (!metrics) {
+        const reason = `Model usage is unavailable for execution ${trace.executionId}.`;
+        missingUsage.push(reason);
+        context.missingMetrics.add(reason);
+      }
+    }
   }
 
   let agentDetailDiagnostic: string | undefined;
@@ -85,6 +145,7 @@ const buildStep = (
         message: `Agent detail could not be resolved for execution ${executionId} in test scope ${scopeId}.`,
         scopeId,
         executionId,
+        stepId,
         ...(sources.length > 0
           ? { sourcePaths: sources.map((source) => source.sourcePath) }
           : {}),
@@ -98,6 +159,7 @@ const buildStep = (
       code: 'agent-detail-unavailable',
       message: `No stable Agent execution reference was captured for ${step.node} in test scope ${scopeId}.`,
       scopeId,
+      stepId,
       ...(reportSourcesForScope(context, scopeId).length > 0
         ? {
             sourcePaths: reportSourcesForScope(context, scopeId).map(
@@ -106,6 +168,57 @@ const buildStep = (
           }
         : {}),
     });
+  }
+
+  const collectionErrors =
+    step.report?.collectionErrors?.map(sanitizeReportError) ?? [];
+  for (const error of collectionErrors) {
+    addDiagnostic(context, {
+      level: 'warning',
+      code: 'agent-source-unavailable',
+      scopeId,
+      stepId,
+      error,
+      message: `Report collection for ${step.node}: ${error.message}`,
+    });
+  }
+  const snapshots =
+    step.report?.sources?.flatMap((source) =>
+      source.collection ? [source.collection] : [],
+    ) ?? [];
+  const evidenceCollection =
+    snapshots.length ||
+    collectionErrors.length ||
+    details.length ||
+    unresolvedExecutionIds.length
+      ? {
+          status: (collectionErrors.length ||
+          unresolvedExecutionIds.length ||
+          snapshots.some((snapshot) => snapshot.status === 'partial')
+            ? details.length
+              ? 'partial'
+              : 'unknown'
+            : 'complete') as 'complete' | 'partial' | 'unknown',
+          ...(snapshots.length
+            ? {
+                capturedAt: snapshots
+                  .map((snapshot) => snapshot.capturedAt)
+                  .sort()
+                  .at(-1),
+              }
+            : {}),
+          ...(collectionErrors.length ? { errors: collectionErrors } : {}),
+        }
+      : undefined;
+  // A missing link does not invalidate usage already captured independently.
+  if (
+    !step.report?.traces.length &&
+    collectionErrors.length &&
+    !details.length
+  ) {
+    const reason = `Model usage could not be collected for step ${stepId}.`;
+    missingUsage.push(reason);
+    context.missingMetrics.add(reason);
   }
 
   const input = step.input as Record<string, unknown> | undefined;
@@ -121,16 +234,28 @@ const buildStep = (
         ? candidateTitle.prompt
         : undefined;
   return {
-    id: `${executionId}:${step.phase}:${step.stepIndex}`,
+    id: stepId,
+    ...(plan ? { planStepId: plan.id } : {}),
     phase: step.phase,
     stepIndex: step.stepIndex,
     node: step.node,
     ...(prompt ? { title: sanitizeReportText(prompt, 240) } : {}),
     status: step.status,
     continuedAfterError: step.continuedAfterError,
+    ...(step.waitForPreviousOperationMs
+      ? { waitForPreviousOperationMs: step.waitForPreviousOperationMs }
+      : {}),
     startedAt: step.startedAt,
     endedAt: step.endedAt,
     durationMs: step.durationMs,
+    ...(step.operations
+      ? {
+          operations: {
+            ...step.operations,
+            events: [...step.operations.events],
+          },
+        }
+      : {}),
     input: sanitizeReportValue(step.input),
     ...(step.output
       ? {
@@ -147,6 +272,17 @@ const buildStep = (
     ...(step.error ? { error: sanitizeReportError(step.error) } : {}),
     ...(details.length > 0 ? { agentDetails: details } : {}),
     ...(agentDetailDiagnostic ? { agentDetailDiagnostic } : {}),
+    ...(usage.length || missingUsage.length
+      ? { metrics: sumTestRunReportMetrics(usage, missingUsage) }
+      : {}),
+    ...(evidenceCollection
+      ? {
+          evidenceCollection: {
+            ...evidenceCollection,
+            ...(missingUsage.length ? { modelUsageUnavailable: true } : {}),
+          },
+        }
+      : {}),
   };
 };
 
@@ -156,23 +292,51 @@ const attemptReportScope = (attempt: CaseRunResult): string =>
 const buildAttempt = (
   attempt: CaseRunResult,
   context: ManifestBuildContext,
+  plan?: TestRunReportCasePlan,
 ): TestRunReportAttempt => {
   const scopeId = attemptReportScope(attempt);
   return {
     attemptId: attempt.runId,
     attemptIndex: attempt.attemptIndex,
     status: attempt.status,
+    ...(attempt.executionStatus
+      ? { executionStatus: attempt.executionStatus }
+      : {}),
+    ...(attempt.phases ? { phases: attempt.phases } : {}),
+    ...(attempt.cleanup ? { cleanup: attempt.cleanup } : {}),
+    ...(attempt.pendingOperations
+      ? { pendingOperations: attempt.pendingOperations }
+      : {}),
+    ...(attempt.retryDecision ? { retryDecision: attempt.retryDecision } : {}),
     startedAt: attempt.startedAt,
     endedAt: attempt.endedAt,
     durationMs: attempt.durationMs,
     beforeEach: attempt.beforeEach.map((step) =>
-      buildStep(step, scopeId, context, attempt.runId),
+      buildStep(
+        step,
+        scopeId,
+        context,
+        attempt.runId,
+        plan?.beforeEach[step.stepIndex],
+      ),
     ),
     steps: attempt.steps.map((step) =>
-      buildStep(step, scopeId, context, attempt.runId),
+      buildStep(
+        step,
+        scopeId,
+        context,
+        attempt.runId,
+        plan?.steps[step.stepIndex],
+      ),
     ),
     afterEach: attempt.afterEach.map((step) =>
-      buildStep(step, scopeId, context, attempt.runId),
+      buildStep(
+        step,
+        scopeId,
+        context,
+        attempt.runId,
+        plan?.afterEach[step.stepIndex],
+      ),
     ),
     ...(attempt.executionErrors?.length
       ? {
@@ -198,14 +362,16 @@ const buildAttempt = (
 const buildCase = (
   outcome: RunReportCaseInput,
   context: ManifestBuildContext,
+  plan?: TestRunReportCasePlan,
 ): TestRunReportCase => ({
+  ...(plan ? { plan } : {}),
   caseId: outcome.caseId,
   name: outcome.name,
   caseIndex: outcome.caseIndex,
   status: outcome.status,
   ...(outcome.notRunReason ? { notRunReason: outcome.notRunReason } : {}),
   attempts: (outcome.attempts ?? (outcome.run ? [outcome.run] : [])).map(
-    (attempt) => buildAttempt(attempt, context),
+    (attempt) => buildAttempt(attempt, context, plan),
   ),
   ...(outcome.execution
     ? {
@@ -266,7 +432,9 @@ const buildDocument = (
   document: WorkflowDocumentRunResult | undefined,
   cases: readonly RunReportCaseInput[],
   context: ManifestBuildContext,
+  plan?: TestRunReportDocumentPlan,
 ): TestRunReportDocument => {
+  plan ??= document?.plan;
   const sourcePath =
     document?.sourcePath ?? cases[0]?.sourcePath ?? '<unknown>';
   const status =
@@ -275,6 +443,7 @@ const buildDocument = (
   const scopeId = document ? documentReportScope(document) : undefined;
   return {
     documentId,
+    ...(plan ? { plan } : {}),
     ...(document
       ? {
           logicalDocumentId: document.documentId,
@@ -286,6 +455,17 @@ const buildDocument = (
       : {}),
     sourcePath,
     status,
+    ...(document?.executionStatus
+      ? { executionStatus: document.executionStatus }
+      : {}),
+    ...(document?.phases ? { phases: document.phases } : {}),
+    ...(document?.cleanup ? { cleanup: document.cleanup } : {}),
+    ...(document?.pendingOperations
+      ? { pendingOperations: document.pendingOperations }
+      : {}),
+    ...(document?.retryDecision
+      ? { retryDecision: document.retryDecision }
+      : {}),
     ...(document
       ? {
           startedAt: document.startedAt,
@@ -294,11 +474,29 @@ const buildDocument = (
         }
       : {}),
     beforeAll: (document?.beforeAll ?? []).map((step) =>
-      buildStep(step, scopeId!, context, document!.documentRunId),
+      buildStep(
+        step,
+        scopeId!,
+        context,
+        document!.documentRunId,
+        plan?.beforeAll[step.stepIndex],
+      ),
     ),
-    cases: cases.map((outcome) => buildCase(outcome, context)),
+    cases: cases.map((outcome) =>
+      buildCase(
+        outcome,
+        context,
+        plan?.cases.find((item) => item.caseId === outcome.caseId),
+      ),
+    ),
     afterAll: (document?.afterAll ?? []).map((step) =>
-      buildStep(step, scopeId!, context, document!.documentRunId),
+      buildStep(
+        step,
+        scopeId!,
+        context,
+        document!.documentRunId,
+        plan?.afterAll[step.stepIndex],
+      ),
     ),
     ...(document?.hostErrors?.length || document?.executionErrors?.length
       ? {
@@ -397,6 +595,7 @@ const buildProject = (
       last,
       [...outcomes.values()],
       context,
+      project.plans?.find((plan) => plan.documentId === last.documentId),
     );
     if (group.length > 1) {
       result.startedAt = first.startedAt;
@@ -410,6 +609,9 @@ const buildProject = (
           document,
           [],
           context,
+          project.plans?.find(
+            (plan) => plan.documentId === document.documentId,
+          ),
         );
         return attempt;
       });
@@ -427,12 +629,14 @@ const buildProject = (
           undefined,
           project.cases.filter((outcome) => outcome.documentId === documentId),
           context,
+          project.plans?.find((plan) => plan.documentId === documentId),
         ),
       );
     }
   }
 
   return {
+    ...(project.plans ? { plans: project.plans } : {}),
     projectId: project.projectId,
     name: project.name,
     ...(project.platform?.trim() ? { platform: project.platform.trim() } : {}),
@@ -445,6 +649,12 @@ const buildProject = (
             startedAt: project.lifecycle.startedAt,
             endedAt: project.lifecycle.endedAt,
             durationMs: project.lifecycle.durationMs,
+            ...(project.lifecycle.cleanup
+              ? { cleanup: project.lifecycle.cleanup }
+              : {}),
+            ...(project.lifecycle.pendingOperations
+              ? { pendingOperations: project.lifecycle.pendingOperations }
+              : {}),
             ...(project.lifecycle.setupError
               ? {
                   setupError: sanitizeReportError(project.lifecycle.setupError),
@@ -525,16 +735,25 @@ export function buildTestRunReportDump(
     }
   }
   const context: ManifestBuildContext = {
-    diagnostics: [],
+    diagnostics: (index.diagnostics ?? []).map((diagnostic) => ({
+      ...diagnostic,
+      message: sanitizeReportText(diagnostic.message),
+    })),
     sourcesByScope,
     detailsByScopeAndExecution,
     tracedScopeByExecution: new Map(),
+    expectedExecutions: new Set(),
+    capturedExecutions: new Set(),
+    executionMetrics: new Map(Object.entries(index.executionMetrics ?? {})),
+    missingMetrics: new Set(),
+    tracedScopes: new Set(),
   };
   for (const error of result.errors ?? []) {
     addDiagnostic(context, {
       level: 'error',
       code: 'run-infrastructure-error',
       message: sanitizeReportError(error).message,
+      error: sanitizeReportError(error),
     });
   }
   for (const source of index.sources) {
@@ -552,16 +771,48 @@ export function buildTestRunReportDump(
   const projects = result.projects.map((project) =>
     buildProject(project, context),
   );
+  for (const diagnostic of index.diagnostics ?? [])
+    if (
+      diagnostic.code === 'agent-source-unavailable' &&
+      (!diagnostic.scopeId || !context.tracedScopes.has(diagnostic.scopeId))
+    )
+      context.missingMetrics.add(diagnostic.message);
+  const metrics = sumTestRunReportMetrics(
+    [
+      ...(index.sources.length ||
+      (!index.executionMetrics &&
+        (index.metrics.modelCallCount || index.metrics.collection))
+        ? [index.capturedMetrics ?? index.metrics]
+        : []),
+      ...[...context.executionMetrics.entries()]
+        .filter(([id]) => !index.executionMetrics?.[id])
+        .map(([, value]) => value),
+    ],
+    [...context.missingMetrics],
+  );
   return {
     schemaVersion: 1,
     kind: 'test-runner',
     runId: result.runId,
+    ...(result.operationLog
+      ? { operationLogs: [{ ...result.operationLog }] }
+      : {}),
     status: result.status,
     startedAt: result.startedAt,
     endedAt: result.endedAt,
     durationMs: result.durationMs,
     summary: { ...result.summary },
-    metrics: index.metrics,
+    metrics: {
+      ...metrics,
+      collection: {
+        ...metrics.collection!,
+        expectedExecutionCount: context.expectedExecutions.size,
+        capturedExecutionCount: context.capturedExecutions.size,
+      },
+    },
+    ...(index.executionMetrics || context.executionMetrics.size
+      ? { executionMetrics: Object.fromEntries(context.executionMetrics) }
+      : {}),
     projects,
     ...(context.diagnostics.length > 0
       ? { diagnostics: context.diagnostics }

@@ -76,3 +76,21 @@ it.each(['directory', 'entry', 'named-entry'])(
     ).toThrow('unknown report reference');
   },
 );
+
+it('preserves partial collection diagnostics for HTML-only sources', () => {
+  const root = mkdtempSync(join(tmpdir(), 'executor-partial-'));
+  roots.push(root);
+  const path = join(root, 'source.html');
+  writeFileSync(path, '<html>partial report</html>');
+  const collection = {
+    status: 'partial' as const,
+    capturedAt: '2026-10-13T00:00:00Z',
+    reason: 'live HTML without immutable snapshot',
+  };
+  const reports = createExecutorReports(join(root, 'output'));
+  const reference = reports.materializeSource({ sourcePath: path, collection });
+  expect(reports.resolveSource(reference)).toEqual({
+    sourcePath: reports.resolve(reference),
+    collection,
+  });
+});

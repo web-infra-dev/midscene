@@ -42,6 +42,15 @@ If installation was skipped or failed, enter the project directory and run `pnpm
 
 Copy `.env.example` to `.env` and follow [Model configuration](../model-config) to set your model name, service URL, and API Key.
 
+Verify model connectivity and Midscene compatibility before running tests:
+
+```bash
+pnpm exec midscene-test model verify
+pnpm exec midscene-test model verify --help
+```
+
+The command reads `.env` from the current working directory and overrides existing shell environment variables. It does not require a browser or device. See [Model debugging and observability](../model-debugging-observability) for details.
+
 For Web, also install Chromium:
 
 ```bash
@@ -251,9 +260,11 @@ steps:
 The following fields are supported:
 
 - `timeout`: Step timeout in milliseconds.
-- `continue-on-error`: when set to `true`, Midscene Test continues with subsequent Steps in the current phase even if this Step fails. The default is `false`.
+- `continue-on-error`: when set to `true`, allows subsequent Steps in the current phase to run after this Step fails. The default is `false`. Unfinished operations or resource cleanup problems still stop execution.
 
 `continue-on-error` controls only whether execution continues. If any Step fails, the Case's final status is `failed`.
+
+A timeout does not mean the underlying operation has stopped. Before continuing with subsequent Steps in the same phase, the framework waits for cancelled operations to finish, for up to 30 seconds by default. If they remain unfinished, later Steps do not start. This wait is recorded separately and does not consume the next Step's timeout budget. Once the operation finishes, the Agent can be used again, but the case must still verify or reset page and business state. See [Timeouts and cancellation](./configuration#timeouts-and-cancellation).
 
 ### Use Project variables and environment variables
 
@@ -341,7 +352,7 @@ beforeAll
 afterAll
 ```
 
-When retries are configured, a failed case reruns `beforeEach → steps → afterEach` within the retry limit before execution continues to subsequent cases. A retry does not rerun `beforeAll`; `afterAll` still runs once at the end of the file.
+When retries are configured, a failed case reruns `beforeEach → steps → afterEach` within the retry limit after cleanup completes and no operations remain running, before execution continues to subsequent cases. A retry does not rerun `beforeAll`; `afterAll` still runs once at the end of the file. The retry count is an upper limit: unfinished operations, pending cleanup, or failed cleanup stop retries early.
 
 ### Handling failures
 
@@ -353,6 +364,8 @@ When retries are configured, a failed case reruns `beforeEach → steps → afte
 By default, a failed step stops the remaining steps in that phase. Set [`continue-on-error`](#configure-timeouts-and-error-handling) to continue with later steps in the same phase; this does not turn a failure into a success. Cleanup Nodes should handle partially completed setup.
 
 A failed Case does not prevent the next Case from running by default. Use `test.bail` to stop scheduling new work after a failed-case threshold. Put file-wide prerequisites in `beforeAll`; if they fail, the file's Cases do not run. Keep dependent business steps in a single Case rather than relying on another Case's success.
+
+Resource problems are an exception to these continuation rules: unfinished operations or pending or failed cleanup callbacks stop retries and subsequent Cases in the same file. The CLI also stops scheduling subsequent files in that Project because they share its `context`; independent Projects can continue. An ordinary `afterEach` Step failure remains a case failure and can be retried if operations have finished and registered cleanup has completed. Run infrastructure errors, such as result publication failures, cancel the entire run.
 
 Project setup manages browser and Agent resources; see [Create and clean up shared resources with setup](./configuration#create-and-clean-up-shared-resources-with-setup). For resources created inside a Node, see [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup).
 
@@ -425,6 +438,8 @@ The CLI exits with code `1` when a test case fails, a document cannot be parsed,
 ## View test results
 
 After each run, the CLI prints the results and a `Report:` path. Open the HTML report to inspect Projects, Cases, retry attempts, screenshots, Step input/output, errors, and associated Agent traces.
+
+The report preserves the test plan captured before execution, executed and unexecuted Steps, reasons Steps did not run, and reasons retries stopped. Time spent waiting for an earlier operation is recorded separately from Step execution time. The report is a snapshot at publication: `cleanup pending` means cleanup was unfinished at that point and resources remain quarantined. Cleanup that completes later does not update the published HTML.
 
 Reports are saved to:
 

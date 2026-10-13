@@ -1,5 +1,7 @@
 import {
   WorkflowExecutionFailure,
+  decideRetry,
+  isResourceRecoveryError,
   runDocumentAttempts,
   runWorkflowDocument,
 } from '@midscene/core/internal/test-runner';
@@ -44,13 +46,17 @@ const caseHasFatalError = (outcome: CaseRunOutcome): boolean =>
     (attempt) =>
       [...attempt.beforeEach, ...attempt.steps, ...attempt.afterEach].some(
         (step) => step.error && isFatalDeviceError(step.error),
-      ) || (attempt.teardownErrors ?? []).some(isFatalDeviceError),
+      ) ||
+      (attempt.teardownErrors ?? []).some(isFatalDeviceError) ||
+      !!attempt.executionErrors?.some(isResourceRecoveryError),
   );
 
 const documentHasFatalError = (result: WorkflowDocumentRunResult): boolean =>
   [...result.beforeAll, ...result.afterAll].some(
     (step) => step.error && isFatalDeviceError(step.error),
-  ) || (result.teardownErrors ?? []).some(isFatalDeviceError);
+  ) ||
+  (result.teardownErrors ?? []).some(isFatalDeviceError) ||
+  !!result.executionErrors?.some(isResourceRecoveryError);
 
 /** Execute prepared document policies through the shared retry boundary. */
 export async function executeDocumentInvocation(
@@ -73,6 +79,7 @@ export async function executeDocumentInvocation(
           `    file attempt ${documentAttemptIndex + 1}/${invocation.retry.count + 1}: ${document.sourcePath}`,
         );
       const execution = await runWorkflowDocument(document, {
+        plan: invocation.plan,
         documentAttemptIndex: documentRetry ? documentAttemptIndex : undefined,
         ...invocation.bindings,
         project,
@@ -133,6 +140,34 @@ export async function executeDocumentInvocation(
       }).catch(async (error: unknown) => {
         if (error instanceof WorkflowExecutionFailure) {
           const partial = error.result as WorkflowDocumentExecutionResult;
+          const resourceOnly =
+            error.errors.length > 0 &&
+            error.errors.every(
+              (failure) =>
+                isResourceRecoveryError(failure) ||
+                partial.document.hostErrors?.some(
+                  (host) =>
+                    host.phase === 'cleanup' &&
+                    (host.error === failure ||
+                      (host.error instanceof Error &&
+                        host.error.cause === failure)),
+                ),
+            );
+          // Recovery and disposal failures stop this Project, not independent
+          // Projects. Publication and other infrastructure failures still throw.
+          if (resourceOnly) {
+            if (error.errors.some(isResourceRecoveryError))
+              options.markProjectFatal();
+            return partial;
+          }
+          if (documentRetry)
+            partial.document.retryDecision = decideRetry({
+              scope: 'document',
+              retryCount: invocation.retry.count,
+              attemptIndex: documentAttemptIndex,
+              status: 'failed',
+              infrastructureError: true,
+            });
           attempts.push(partial);
           sinks.documents.push(partial.document);
           sinks.cases.push(
@@ -143,6 +178,14 @@ export async function executeDocumentInvocation(
             })),
           );
           try {
+            for (const outcome of partial.cases)
+              for (const attempt of outcome.attempts ?? [])
+                await writeCaseAttemptResult(
+                  options.runDir,
+                  project.projectId,
+                  document.documentId,
+                  attempt,
+                );
             await writeWorkflowDocumentResult(options.runDir, partial.document);
           } catch (publicationError) {
             throw new WorkflowExecutionFailure(partial, [
@@ -154,6 +197,44 @@ export async function executeDocumentInvocation(
         throw error;
       });
 
+      if (documentHasFatalError(execution.document)) options.markProjectFatal();
+      const owners = [
+        execution.document,
+        ...execution.cases.flatMap((outcome) => outcome.attempts ?? []),
+      ];
+      const cleanupPending = owners.some(
+        (owner) => owner.cleanup?.status === 'pending',
+      );
+      const operationPending = owners.some(
+        (owner) => !!owner.pendingOperations?.length,
+      );
+      const cleanupFailed = owners.some(
+        (owner) =>
+          owner.cleanup?.status === 'failed' ||
+          !!owner.teardownErrors?.length ||
+          ('hostErrors' in owner &&
+            owner.hostErrors?.some(({ phase }) => phase === 'cleanup')),
+      );
+      // Files share the Project context; stop reusing it without cancelling
+      // independent Projects. Publication and execution errors still throw.
+      if (cleanupPending || cleanupFailed || operationPending)
+        options.markProjectFatal();
+      const failed =
+        execution.document.status === 'failed' ||
+        execution.cases.some((item) => item.status !== 'success');
+      const decision = decideRetry({
+        scope: 'document',
+        retryCount: invocation.retry.count,
+        attemptIndex: documentAttemptIndex,
+        status: failed ? 'failed' : 'success',
+        cleanupPending,
+        cleanupFailed,
+        operationPending,
+        fatalError: options.isProjectFatal(),
+        interrupted: options.signal.aborted || options.rootSignal.aborted,
+        shouldStop: options.shouldBail(),
+      });
+      if (documentRetry) execution.document.retryDecision = decision;
       attempts.push(execution);
       sinks.cases.push(
         ...execution.cases.map((outcome) => ({
@@ -163,22 +244,35 @@ export async function executeDocumentInvocation(
         })),
       );
       sinks.documents.push(execution.document);
-      await writeWorkflowDocumentResult(options.runDir, execution.document);
-      if (documentHasFatalError(execution.document)) options.markProjectFatal();
-      const cleanupErrors = [
-        ...(execution.document.teardownErrors ?? []),
-        ...execution.cases.flatMap((outcome) =>
-          (outcome.attempts ?? []).flatMap(
-            (attempt) => attempt.teardownErrors ?? [],
-          ),
-        ),
-      ];
-      if (cleanupErrors.length)
-        throw new WorkflowExecutionFailure(execution, cleanupErrors);
-      const failed =
-        execution.document.status === 'failed' ||
-        execution.cases.some((item) => item.status !== 'success');
-      return failed ? 'failed' : 'success';
+      // Per-attempt callbacks publish incremental facts; seal the final retry
+      // decision after callback-driven interruption/bail has been observed.
+      try {
+        for (const outcome of execution.cases)
+          for (const attempt of outcome.attempts ?? [])
+            await writeCaseAttemptResult(
+              options.runDir,
+              project.projectId,
+              document.documentId,
+              attempt,
+            );
+        await writeWorkflowDocumentResult(options.runDir, execution.document);
+      } catch (error) {
+        execution.document.status = 'failed';
+        execution.document.hostErrors = [
+          ...(execution.document.hostErrors ?? []),
+          { phase: 'publication', error },
+        ];
+        if (documentRetry)
+          execution.document.retryDecision = decideRetry({
+            scope: 'document',
+            retryCount: invocation.retry.count,
+            attemptIndex: documentAttemptIndex,
+            status: 'failed',
+            infrastructureError: true,
+          });
+        throw new WorkflowExecutionFailure(execution, [error]);
+      }
+      return decision.decision === 'retry' ? 'failed' : undefined;
     },
   );
 

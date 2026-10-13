@@ -23,6 +23,7 @@ export async function callResponsesStream({
     .withResponse();
   let accumulated = '';
   let finalResponse: Response | undefined;
+  const completedItems = new Map<number, Response['output'][number]>();
   let sequence = 0;
   for await (const event of stream) {
     requestSignal.throwIfAborted();
@@ -35,6 +36,9 @@ export async function callResponsesStream({
       event.type === 'response.incomplete'
     ) {
       parseResponse(event.response);
+    }
+    if (event.type === 'response.output_item.done') {
+      completedItems.set(event.output_index, event.item);
     }
     if (event.type === 'response.completed') {
       finalResponse = event.response;
@@ -58,7 +62,19 @@ export async function callResponsesStream({
   }
   requestSignal.throwIfAborted();
   assert(finalResponse, 'Responses stream ended without a completed response');
-  const result = parseResponse(finalResponse);
+  // Some ChatGPT plan responses omit output from the completion event even
+  // after delivering complete items. Preserve those items, including reasoning
+  // and replay metadata, without treating an interrupted stream as complete.
+  const result = parseResponse(
+    finalResponse.output?.length
+      ? finalResponse
+      : {
+          ...finalResponse,
+          output: [...completedItems.entries()]
+            .sort(([left], [right]) => left - right)
+            .map(([, item]) => item),
+        },
+  );
   if (!hasUsableText(result.content)) {
     throw new AIResponseParseError(
       'empty content from AI model',

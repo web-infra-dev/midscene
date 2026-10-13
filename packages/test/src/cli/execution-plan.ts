@@ -25,6 +25,7 @@ export interface TestProjectRunOptions {
 
 /** Private, syntax-independent contract between preparation and execution. */
 export interface PreparedDocumentInvocation {
+  plan?: import('@midscene/core').TestRunReportDocumentPlan;
   document: CollectedWorkflowDocument;
   retry: { scope: 'case' | 'document'; count: number };
   defaultTimeoutMs?: number;
@@ -65,6 +66,7 @@ export interface PreparedExecutionProject {
   fileSelection: TestFileSelection;
   sources: readonly WorkflowDocumentSource[];
   documents: readonly CollectedWorkflowDocument[];
+  plans?: readonly import('@midscene/core').TestRunReportDocumentPlan[];
   invocations: readonly PreparedDocumentInvocation[];
   collectionErrors: readonly TestProjectCollectionError[];
   selectedCaseCount: number;

@@ -1,6 +1,17 @@
 import { z } from 'zod/v4';
 import type { Awaitable } from '../engine/types';
 import { isSafeResultPathSegment } from '../result-path-segment';
+import {
+  type ExecutorReportError,
+  type ExecutorRuntimeResult,
+  cleanupSchema,
+  documentPlanSchema,
+  metricsSchema,
+  operationsSchema,
+  pendingOperationsSchema,
+  reportErrorSchema,
+  runtimeResultFields,
+} from './executor-runtime-schema';
 
 export interface TestCaseTask {
   readonly taskId: string;
@@ -29,9 +40,11 @@ export interface TestExecutorErrorDto {
   readonly message: string;
   readonly code: string;
   readonly details?: TestExecutorJsonValue;
+  readonly format?: 'midscene-error';
+  readonly cause?: ExecutorReportError;
 }
 
-export interface TestExecutorStepResultDto {
+interface TestExecutorStepResultBase {
   readonly phase:
     | 'beforeAll'
     | 'beforeEach'
@@ -45,11 +58,9 @@ export interface TestExecutorStepResultDto {
     readonly timeoutMs?: number;
     readonly continueOnError: boolean;
   };
-  readonly status: 'success' | 'failed';
   readonly continuedAfterError: boolean;
-  readonly startedAt: string;
-  readonly endedAt: string;
-  readonly durationMs: number;
+  readonly waitForPreviousOperationMs?: number;
+  readonly operations?: z.infer<typeof operationsSchema>;
   readonly output?: {
     readonly summary?: string;
     readonly data?: TestExecutorJsonValue;
@@ -59,11 +70,27 @@ export interface TestExecutorStepResultDto {
     readonly traces: readonly {
       readonly type: 'midscene-execution';
       readonly executionId: string;
+      readonly metrics?: z.infer<typeof metricsSchema>;
     }[];
+    readonly collectionErrors?: readonly TestExecutorErrorDto[];
   };
 }
+export type TestExecutorStepResultDto = TestExecutorStepResultBase &
+  (
+    | {
+        readonly status: 'success' | 'failed';
+        readonly startedAt: string;
+        readonly endedAt: string;
+        readonly durationMs: number;
+      }
+    | {
+        readonly status: 'not-run';
+        readonly notRunReason: string;
+        readonly blockedBy?: string;
+      }
+  );
 
-export interface TestExecutorCaseAttemptDto {
+export interface TestExecutorCaseAttemptDto extends ExecutorRuntimeResult {
   readonly caseId: string;
   readonly runId: string;
   readonly projectName: string;
@@ -101,10 +128,25 @@ export interface TestExecutorCaseOutcomeDto {
     | 'interrupted'
     | 'bail'
     | 'fatal-error'
+    | 'cleanup-pending'
+    | 'cleanup-failed'
+    | 'operation-pending'
     | 'executor-failed';
 }
 
-export interface TestExecutorDocumentResultDto {
+export interface TestExecutorDocumentResultDto extends ExecutorRuntimeResult {
+  readonly plan?: z.infer<typeof documentPlanSchema>;
+  readonly attemptIndex?: number;
+  readonly hostErrors?: readonly {
+    phase:
+      | 'setup'
+      | 'execution'
+      | 'cleanup'
+      | 'report'
+      | 'publication'
+      | 'observer';
+    error: ExecutorReportError;
+  }[];
   readonly documentId: string;
   readonly documentRunId: string;
   readonly projectId: string;
@@ -123,6 +165,8 @@ export interface TestExecutorDocumentResultDto {
 }
 
 export interface TestExecutorLifecycleResultDto {
+  readonly cleanup?: z.infer<typeof cleanupSchema>;
+  readonly pendingOperations?: z.infer<typeof pendingOperationsSchema>;
   readonly projectName: string;
   readonly status: 'success' | 'failed';
   readonly setupError?: TestExecutorErrorDto;
@@ -221,12 +265,14 @@ const timestampSchema = z
     message: 'Expected an ISO-compatible timestamp.',
   });
 const errorSchema = z.strictObject({
+  format: z.literal('midscene-error').optional(),
+  cause: reportErrorSchema.optional(),
   name: z.string().min(1),
   message: z.string(),
   code: z.string().min(1),
   details: jsonValueSchema.optional(),
 });
-const stepSchema = z.strictObject({
+const stepBaseSchema = z.strictObject({
   phase: z.enum(['beforeAll', 'beforeEach', 'steps', 'afterEach', 'afterAll']),
   stepIndex: z.number().int().nonnegative(),
   node: z.string().min(1),
@@ -235,11 +281,9 @@ const stepSchema = z.strictObject({
     timeoutMs: z.number().positive().finite().optional(),
     continueOnError: z.boolean(),
   }),
-  status: z.enum(['success', 'failed']),
   continuedAfterError: z.boolean(),
-  startedAt: timestampSchema,
-  endedAt: timestampSchema,
-  durationMs: z.number().nonnegative().finite(),
+  waitForPreviousOperationMs: z.number().nonnegative().finite().optional(),
+  operations: operationsSchema.optional(),
   output: z
     .strictObject({
       summary: z.string().optional(),
@@ -253,11 +297,26 @@ const stepSchema = z.strictObject({
         z.strictObject({
           type: z.literal('midscene-execution'),
           executionId: z.string().min(1),
+          metrics: metricsSchema.optional(),
         }),
       ),
+      collectionErrors: z.array(errorSchema).optional(),
     })
     .optional(),
 });
+const stepSchema = z.discriminatedUnion('status', [
+  stepBaseSchema.extend({
+    status: z.enum(['success', 'failed']),
+    startedAt: timestampSchema,
+    endedAt: timestampSchema,
+    durationMs: z.number().nonnegative().finite(),
+  }),
+  stepBaseSchema.extend({
+    status: z.literal('not-run'),
+    notRunReason: z.string().min(1),
+    blockedBy: z.string().optional(),
+  }),
+]);
 const validatedStepSchema = stepSchema.superRefine((step, context) => {
   if (step.status === 'success' && (step.error || step.continuedAfterError)) {
     context.addIssue({
@@ -273,6 +332,7 @@ const validatedStepSchema = stepSchema.superRefine((step, context) => {
   }
 });
 const attemptSchema = z.strictObject({
+  ...runtimeResultFields,
   caseId: z.string().min(1),
   runId: z.string().min(1),
   projectName: z.string().min(1),
@@ -299,6 +359,9 @@ const notRunReasonSchema = z.enum([
   'bail',
   'fatal-error',
   'executor-failed',
+  'cleanup-pending',
+  'cleanup-failed',
+  'operation-pending',
 ]);
 const resultSchema = z.strictObject({
   case: z.strictObject({
@@ -315,6 +378,24 @@ const resultSchema = z.strictObject({
   }),
   document: z
     .strictObject({
+      ...runtimeResultFields,
+      plan: documentPlanSchema.optional(),
+      attemptIndex: z.number().int().nonnegative().optional(),
+      hostErrors: z
+        .array(
+          z.strictObject({
+            phase: z.enum([
+              'setup',
+              'execution',
+              'cleanup',
+              'report',
+              'publication',
+              'observer',
+            ]),
+            error: reportErrorSchema,
+          }),
+        )
+        .optional(),
       documentId: z.string().min(1),
       documentRunId: z.string().min(1),
       projectId: z.string().min(1),
@@ -333,6 +414,8 @@ const resultSchema = z.strictObject({
     .optional(),
   lifecycle: z
     .strictObject({
+      cleanup: cleanupSchema.optional(),
+      pendingOperations: pendingOperationsSchema.optional(),
       projectName: z.string().min(1),
       status: z.enum(['success', 'failed']),
       setupError: errorSchema.optional(),
@@ -370,6 +453,17 @@ const attemptMatchesTask = (
   attempt.caseIndex === task.caseIndex &&
   isSafeResultPathSegment(attempt.runId);
 
+const hasUnfinishedWork = (result: {
+  executionStatus?: string;
+  cleanup?: { status: string };
+  pendingOperations?: readonly unknown[];
+}): boolean =>
+  (result.executionStatus !== undefined &&
+    result.executionStatus !== 'success') ||
+  (result.cleanup !== undefined &&
+    !['completed', 'not-required'].includes(result.cleanup.status)) ||
+  (result.pendingOperations?.length ?? 0) > 0;
+
 /** Validate the complete, JSON-safe DTO returned across an Executor boundary. */
 export function assertTestCaseTaskRunResult(
   task: TestCaseTask,
@@ -405,7 +499,8 @@ export function assertTestCaseTaskRunResult(
       attempt.status === 'success' &&
       (attempt.steps.length === 0 ||
         (attempt.executionErrors?.length ?? 0) > 0 ||
-        steps.some((step) => step.status === 'failed') ||
+        steps.some((step) => step.status !== 'success') ||
+        hasUnfinishedWork(attempt) ||
         (attempt.teardownErrors?.length ?? 0) > 0)
     ) {
       throw new TypeError(
@@ -465,9 +560,11 @@ export function assertTestCaseTaskRunResult(
   const document = parsed.data.document;
   if (
     document?.status === 'success' &&
-    ((document.executionErrors?.length ?? 0) > 0 ||
+    (hasUnfinishedWork(document) ||
+      (document.hostErrors?.length ?? 0) > 0 ||
+      (document.executionErrors?.length ?? 0) > 0 ||
       [...document.beforeAll, ...document.afterAll].some(
-        (step) => step.status === 'failed',
+        (step) => step.status !== 'success',
       ) ||
       (document.teardownErrors?.length ?? 0) > 0)
   ) {
@@ -478,7 +575,9 @@ export function assertTestCaseTaskRunResult(
   const lifecycle = parsed.data.lifecycle;
   if (
     lifecycle?.status === 'success' &&
-    (lifecycle.setupError || (lifecycle.teardownErrors?.length ?? 0) > 0)
+    (hasUnfinishedWork(lifecycle) ||
+      lifecycle.setupError ||
+      (lifecycle.teardownErrors?.length ?? 0) > 0)
   ) {
     throw new TypeError(
       `Executor returned an inconsistent successful lifecycle for ${task.caseId}.`,

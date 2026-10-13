@@ -430,6 +430,9 @@ importers:
       fflate:
         specifier: 0.8.2
         version: 0.8.2
+      js-yaml:
+        specifier: 4.1.0
+        version: 4.1.0
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -458,6 +461,9 @@ importers:
       '@rstest/core':
         specifier: 0.12.0
         version: 0.12.0(core-js@3.47.0)(jsdom@29.0.2)
+      '@types/js-yaml':
+        specifier: 4.0.9
+        version: 4.0.9
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -812,6 +818,9 @@ importers:
       http-server:
         specifier: 14.1.1
         version: 14.1.1
+      jose:
+        specifier: 5.9.6
+        version: 5.9.6
       lodash.merge:
         specifier: 4.6.2
         version: 4.6.2
@@ -1392,6 +1401,9 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      chalk:
+        specifier: 4.1.2
+        version: 4.1.2
       dotenv:
         specifier: ^16.4.5
         version: 16.4.7

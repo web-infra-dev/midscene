@@ -1,0 +1,40 @@
+.home-example .home-feature__header {
+  display: block;
+}
+
+.home-example .home-feature__heading-block h2 {
+  white-space: normal;
+}
+
+.home-example__codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.home-example__code {
+  min-width: 0;
+}
+
+.home-example__code h3 {
+  margin: 0 0 16px;
+  color: var(--rp-c-text-1);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.home-example__code .rp-codeblock {
+  margin: 0;
+}
+
+.home-example__code pre {
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+@media (max-width: 900px) {
+  .home-example__codes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

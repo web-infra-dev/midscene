@@ -8,6 +8,7 @@ on:
       - 'packages/computer/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - '.github/actions/ai-ci/**'
       - 'scripts/report-template-utils.mjs'
       - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
@@ -293,69 +294,77 @@ jobs:
       - name: Run computer unit tests
         id: unit-tests
         continue-on-error: true
-        shell: pwsh
-        run: |
-          $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'unit-tests.log'
-          pnpm exec nx test @midscene/computer --skip-nx-cache 2>&1 |
-            Tee-Object -FilePath $logPath
-          $testExitCode = $LASTEXITCODE
-          if ($testExitCode -ne 0) {
-            throw "Computer unit tests failed with exit code $testExitCode."
-          }
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: pwsh
+          command: |
+            $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'unit-tests.log'
+            pnpm exec nx test @midscene/computer --skip-nx-cache 2>&1 |
+              Tee-Object -FilePath $logPath
+            $testExitCode = $LASTEXITCODE
+            if ($testExitCode -ne 0) {
+              throw "Computer unit tests failed with exit code $testExitCode."
+            }
 
       - name: Run live Windows desktop smoke test
         id: live-smoke
         continue-on-error: true
         timeout-minutes: 10
-        shell: pwsh
         env:
           AI_TEST_TYPE: computer
           MIDSCENE_WINDOWS_DESKTOP_SMOKE: '1'
           MIDSCENE_WINDOWS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
           MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
-        run: |
-          $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'live-smoke.log'
-          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/windows-desktop-smoke.test.ts --retry=0 2>&1 |
-            Tee-Object -FilePath $logPath
-          $testExitCode = $LASTEXITCODE
-          if ($testExitCode -ne 0) {
-            throw "Windows desktop smoke failed with exit code $testExitCode."
-          }
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: pwsh
+          command: |
+            $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'live-smoke.log'
+            pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/windows-desktop-smoke.test.ts --retry=0 2>&1 |
+              Tee-Object -FilePath $logPath
+            $testExitCode = $LASTEXITCODE
+            if ($testExitCode -ne 0) {
+              throw "Windows desktop smoke failed with exit code $testExitCode."
+            }
 
       - name: Run Windows Swipe AI E2E
         id: swipe-ai
         continue-on-error: true
         timeout-minutes: 10
-        shell: pwsh
         env:
           AI_TEST_TYPE: computer
           MIDSCENE_WINDOWS_DESKTOP_SWIPE: '1'
           MIDSCENE_WINDOWS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
           MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
-        run: |
-          $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'swipe-ai.log'
-          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/windows-desktop-swipe.test.ts --retry=1 2>&1 |
-            Tee-Object -FilePath $logPath
-          $testExitCode = $LASTEXITCODE
-          if ($testExitCode -ne 0) {
-            throw "Windows Swipe AI E2E failed with exit code $testExitCode."
-          }
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: pwsh
+          command: |
+            $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'swipe-ai.log'
+            pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/windows-desktop-swipe.test.ts --retry=1 2>&1 |
+              Tee-Object -FilePath $logPath
+            $testExitCode = $LASTEXITCODE
+            if ($testExitCode -ne 0) {
+              throw "Windows Swipe AI E2E failed with exit code $testExitCode."
+            }
 
       - name: Run Windows TodoMVC AI test
         id: todo-mvc
         continue-on-error: true
         timeout-minutes: 25
-        shell: pwsh
         env:
           AI_TEST_TYPE: computer
-        run: |
-          $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'todo-mvc.log'
-          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
-            Tee-Object -FilePath $logPath
-          $testExitCode = $LASTEXITCODE
-          if ($testExitCode -ne 0) {
-            throw "Windows TodoMVC test failed with exit code $testExitCode."
-          }
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: pwsh
+          command: |
+            $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'todo-mvc.log'
+            pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
+              Tee-Object -FilePath $logPath
+            $testExitCode = $LASTEXITCODE
+            if ($testExitCode -ne 0) {
+              throw "Windows TodoMVC test failed with exit code $testExitCode."
+            }
 
       - name: Collect step outcomes
         if: always()

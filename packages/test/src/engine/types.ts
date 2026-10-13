@@ -24,10 +24,7 @@ import type {
 } from '../parser/types';
 
 // Type-only native facade; execution facts and ownership controls stay in core.
-export type StepRunResult<TData = unknown> = Omit<
-  Core.StepRunResult<TData>,
-  'meta'
-> & { meta: NormalizedStepMeta };
+export type StepRunResult<TData = unknown> = Core.StepRunResult<TData>;
 export type CaseRunResult = Omit<
   Core.CaseRunResult,
   'beforeEach' | 'steps' | 'afterEach' | 'reportSources' | 'reportScopeId'

@@ -1,0 +1,36 @@
+.home-feature--toolkit .home-feature__header {
+  display: block;
+  min-height: 0;
+}
+
+.home-feature-grid.home-toolkit-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.home-feature--toolkit .home-feature-card {
+  height: auto;
+  min-height: 284px;
+}
+
+.home-feature--toolkit .home-feature-card__theme {
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.home-feature--toolkit .home-feature-card__content p {
+  display: block;
+  overflow: visible;
+}
+
+.home-toolkit-visual {
+  width: 100%;
+  padding: 16px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .home-feature-grid.home-toolkit-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,8 +1,10 @@
-import { ArrowLeftOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import type { TestRunReportAttempt, TestRunReportDump } from '@midscene/core';
+import type { ReactNode } from 'react';
 import { AttemptSelect } from './attempt-select';
 import type { RunnerCaseView } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
+import { StatusBadge } from './status-badge';
 import { CaseStatus, formatDuration } from './view-primitives';
 
 export function CaseWorkspaceHeader({
@@ -15,6 +17,7 @@ export function CaseWorkspaceHeader({
   onSelectDocumentAttempt,
   standaloneRun,
   stepSummary,
+  children,
 }: {
   item: RunnerCaseView;
   selectedAttempt?: TestRunReportAttempt;
@@ -24,11 +27,13 @@ export function CaseWorkspaceHeader({
   onSelectAttempt(attempt: TestRunReportAttempt): void;
   onSelectDocumentAttempt?(attemptIndex: number): void;
   standaloneRun?: TestRunReportDump;
+  children?: ReactNode;
   stepSummary?: {
     total: number;
     passed: number;
     failed: number;
     timeout: number;
+    notRun?: number;
   };
 }): JSX.Element {
   const visibleStepSummary = stepSummary ?? {
@@ -51,6 +56,9 @@ export function CaseWorkspaceHeader({
           <div className="runner-detail-title-line">
             <h1>{item.testCase.name}</h1>
             <CaseStatus status={item.status} quiet />
+            {standaloneRun?.status === 'failed' && item.status !== 'failed' ? (
+              <StatusBadge label="Run failed" tone="failed" />
+            ) : null}
           </div>
           <div className="runner-case-meta">
             <span>{item.project.name}</span>
@@ -71,7 +79,12 @@ export function CaseWorkspaceHeader({
               </strong>
             </span>
             <span>
-              total <strong>{formatDuration(item.durationMs)}</strong>
+              Case time{' '}
+              <strong>
+                {formatDuration(
+                  item.testCase.attempts.length ? item.durationMs : undefined,
+                )}
+              </strong>
             </span>
           </div>
         </div>
@@ -127,6 +140,7 @@ export function CaseWorkspaceHeader({
         </section>
       ) : null}
       {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
+      {children}
       <div className="runner-case-run-bar">
         <AttemptSelect
           item={item}
@@ -141,25 +155,23 @@ export function CaseWorkspaceHeader({
             <dd>{visibleStepSummary.total}</dd>
           </div>
           <div className="is-passed">
-            <dt>Passed</dt>
+            <dt>Success</dt>
             <dd>{visibleStepSummary.passed}</dd>
           </div>
           <div className="is-failed">
-            <dt>failed</dt>
+            <dt>Failed</dt>
             <dd>{visibleStepSummary.failed}</dd>
           </div>
           <div className="is-timeout">
             <dt>Timeout</dt>
             <dd>{visibleStepSummary.timeout}</dd>
           </div>
+          <div>
+            <dt>Not run</dt>
+            <dd>{visibleStepSummary.notRun ?? 0}</dd>
+          </div>
         </dl>
       </div>
-      {!item.testCase.attempts.length ? (
-        <div className="runner-not-run-message">
-          <ClockCircleOutlined />
-          {item.testCase.notRunReason || 'This case was not executed.'}
-        </div>
-      ) : null}
     </section>
   );
 }

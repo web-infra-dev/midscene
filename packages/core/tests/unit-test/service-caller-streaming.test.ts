@@ -3,13 +3,18 @@ import { callAI } from '@/ai-model/service-caller';
 import type { CodeGenerationChunk } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import OpenAI from 'openai' with { rstest: 'importActual' };
 
 const mockCreate = rs.fn();
-rs.mock('openai', () => ({
-  default: rs.fn().mockImplementation(() => ({
-    chat: { completions: { create: mockCreate } },
-  })),
-}));
+rs.mock('openai', () => {
+  return {
+    default: rs.fn().mockImplementation((options) => {
+      const client = new OpenAI(options);
+      client.chat.completions.create = mockCreate;
+      return client;
+    }),
+  };
+});
 
 const modelConfig: IModelConfig = {
   modelName: 'gpt-5.4',
@@ -24,10 +29,16 @@ const messages = [{ role: 'user' as const, content: 'Hello' }];
 const usage = { prompt_tokens: 10, completion_tokens: 2, total_tokens: 12 };
 
 const contentChunk = {
-  choices: [{ delta: { content: 'Hello' }, finish_reason: null }],
+  choices: [
+    {
+      index: 0,
+      delta: { role: 'assistant', content: 'Hello' },
+      finish_reason: null,
+    },
+  ],
 };
 const finishChunk = {
-  choices: [{ delta: {}, finish_reason: 'stop' }],
+  choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
 };
 
 describe('service-caller streaming usage', () => {
@@ -38,12 +49,15 @@ describe('service-caller streaming usage', () => {
   it('reads usage after finish_reason and completes only after the stream ends', async () => {
     const events: string[] = [];
     mockCreate.mockResolvedValue(
-      (async function* () {
-        yield contentChunk;
-        yield finishChunk;
-        yield { choices: [], usage };
-        events.push('stream-end');
-      })(),
+      Object.assign(
+        (async function* () {
+          yield contentChunk;
+          yield finishChunk;
+          yield { choices: [], usage };
+          events.push('stream-end');
+        })(),
+        { controller: new AbortController() },
+      ),
     );
     const runtime = getModelRuntime({
       ...modelConfig,
@@ -70,7 +84,7 @@ describe('service-caller streaming usage', () => {
     expect(result.usage).toMatchObject(usage);
     expect(onUsage).toHaveBeenCalledWith(result.usage);
     expect(result.usage).toMatchObject({
-      api_type: 'chat-completion',
+      api_protocol: 'chat-completion',
       slot: 'default',
       model_description: 'test',
     });
@@ -90,11 +104,15 @@ describe('service-caller streaming usage', () => {
     const now = rs.spyOn(Date, 'now').mockReturnValue(1000);
     try {
       mockCreate.mockResolvedValue(
-        (async function* () {
-          yield contentChunk;
-          yield { choices: [], usage };
-          now.mockReturnValue(2000);
-        })(),
+        Object.assign(
+          (async function* () {
+            yield contentChunk;
+            yield finishChunk;
+            yield { choices: [], usage };
+            now.mockReturnValue(2000);
+          })(),
+          { controller: new AbortController() },
+        ),
       );
       const result = await callAI(messages, getModelRuntime(modelConfig), {
         stream: true,
@@ -112,15 +130,24 @@ describe('service-caller streaming usage', () => {
     'does not estimate missing usage (finish_reason present: %s)',
     async (withFinish) => {
       mockCreate.mockResolvedValue(
-        (async function* () {
-          yield contentChunk;
-          if (withFinish) yield finishChunk;
-        })(),
+        Object.assign(
+          (async function* () {
+            yield contentChunk;
+            if (withFinish) yield finishChunk;
+          })(),
+          { controller: new AbortController() },
+        ),
       );
       const runtime = getModelRuntime(modelConfig);
       const onUsage = rs.fn();
       runtime.onUsage = onUsage;
       const onChunk = rs.fn();
+      if (!withFinish) {
+        await expect(
+          callAI(messages, runtime, { stream: true, onChunk }),
+        ).rejects.toThrow('missing finish_reason');
+        return;
+      }
       const result = await callAI(messages, runtime, { stream: true, onChunk });
       expect(mockCreate.mock.calls[0][0].stream_options).toEqual({
         include_usage: true,
@@ -138,10 +165,14 @@ describe('service-caller streaming usage', () => {
 
   it('propagates a completion callback error without reporting usage', async () => {
     mockCreate.mockResolvedValue(
-      (async function* () {
-        yield contentChunk;
-        yield { choices: [], usage };
-      })(),
+      Object.assign(
+        (async function* () {
+          yield contentChunk;
+          yield finishChunk;
+          yield { choices: [], usage };
+        })(),
+        { controller: new AbortController() },
+      ),
     );
     const runtime = getModelRuntime(modelConfig);
     const onUsage = rs.fn();
@@ -159,11 +190,14 @@ describe('service-caller streaming usage', () => {
 
   it('propagates a stream error after finish_reason without sending completion', async () => {
     mockCreate.mockResolvedValue(
-      (async function* () {
-        yield contentChunk;
-        yield finishChunk;
-        throw new Error('stream interrupted');
-      })(),
+      Object.assign(
+        (async function* () {
+          yield contentChunk;
+          yield finishChunk;
+          throw new Error('stream interrupted');
+        })(),
+        { controller: new AbortController() },
+      ),
     );
     const runtime = getModelRuntime(modelConfig);
     const onUsage = rs.fn();
@@ -193,9 +227,13 @@ describe('streaming retry boundaries', () => {
 
   it('retries failures before delivering a chunk', async () => {
     mockCreate.mockRejectedValueOnce(httpError()).mockResolvedValueOnce(
-      (async function* () {
-        yield contentChunk;
-      })(),
+      Object.assign(
+        (async function* () {
+          yield contentChunk;
+          yield finishChunk;
+        })(),
+        { controller: new AbortController() },
+      ),
     );
     const onChunk = rs.fn();
     const response = await callAI(messages, runtime(), {
@@ -208,10 +246,13 @@ describe('streaming retry boundaries', () => {
 
   it('does not retry a stream failure after delivering content', async () => {
     mockCreate.mockResolvedValueOnce(
-      (async function* () {
-        yield contentChunk;
-        throw httpError();
-      })(),
+      Object.assign(
+        (async function* () {
+          yield contentChunk;
+          throw httpError();
+        })(),
+        { controller: new AbortController() },
+      ),
     );
     await expect(
       callAI(messages, runtime(), { stream: true, onChunk: rs.fn() }),
@@ -221,9 +262,13 @@ describe('streaming retry boundaries', () => {
 
   it('does not retry callback failures with retryable status codes', async () => {
     mockCreate.mockResolvedValueOnce(
-      (async function* () {
-        yield contentChunk;
-      })(),
+      Object.assign(
+        (async function* () {
+          yield contentChunk;
+          yield finishChunk;
+        })(),
+        { controller: new AbortController() },
+      ),
     );
     await expect(
       callAI(messages, runtime(), {
@@ -240,14 +285,17 @@ describe('streaming retry boundaries', () => {
     let signal: AbortSignal | undefined;
     mockCreate.mockImplementation((_body, options) => {
       signal = options.signal;
-      return (async function* () {
-        yield contentChunk;
-        await new Promise((_resolve, reject) =>
-          signal!.addEventListener('abort', () => reject(signal!.reason), {
-            once: true,
-          }),
-        );
-      })();
+      return Object.assign(
+        (async function* () {
+          yield contentChunk;
+          await new Promise((_resolve, reject) =>
+            signal!.addEventListener('abort', () => reject(signal!.reason), {
+              once: true,
+            }),
+          );
+        })(),
+        { controller: new AbortController() },
+      );
     });
     await expect(
       callAI(messages, runtime(), { stream: true, onChunk: rs.fn() }),

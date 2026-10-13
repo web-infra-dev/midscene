@@ -138,6 +138,55 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 </div>
 
+**使用 ChatGPT 订阅（推荐）**
+
+如果你已经订阅了 ChatGPT plan，则可以通过 [SIWC（Sign in with ChatGPT）](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) 获得一个 ChatGPT 授权 token。该 token 同样可以用于在 Midscene 中调用 OpenAI 服务，就像 OpenAI 的 API Key 一样。
+
+使用方式：
+
+1. 首次获取凭据
+
+   ```bash
+   npx @midscene/cli model siwc login
+   ```
+
+   按照终端提示在浏览器中完成授权。授权时可为 Agent 自行取名，名称没有特殊要求；完成后，你可以在 ChatGPT 的使用情况页面查看已授权的 Agent。命令会打印 Access token，可将其配置为 `MIDSCENE_MODEL_API_KEY`。完整凭据保存在本地 `~/.midscene/siwc.json`，Midscene 不会收集你的凭据。
+
+   使用 access token 时的环境变量配置示例，以 `gpt-6-sol` 为例：
+
+   <ModelConfigCard
+     baseUrl="https://api.openai.com/v1"
+     apiKey="<your-access-token>"
+     modelName="gpt-6-sol"
+     modelFamily="gpt-6"
+     protocol={{
+       value: "openai-responses",
+       comment: "SIWC 要求使用 Responses API",
+     }}
+     streamMode={{
+       value: "stream",
+       comment: "SIWC 要求开启流式返回",
+     }}
+   />
+
+2. 刷新 Access token
+
+   Access token 会过期（默认有效期为 1 小时），需要主动更新凭据，使用下面的命令：
+
+   ```bash
+   npx @midscene/cli model siwc refresh
+   ```
+
+   命令会更新本地凭据并打印新的 Access token，请同步更新模型配置中的 token。
+
+注意事项：
+
+1. 请遵守 OpenAI 的地区限制和使用条款，参见 [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/)。
+2. 使用 SIWC 时会消耗你的订阅额度，具体 token 消耗和订阅额度的换算以 ChatGPT 官方为准。你可以在 Midscene 的报告中查看每步任务的 token 消耗。
+3. 通过 SIWC 调用模型时，需要使用 Responses API，并开启流式返回。
+
+**使用 API Key**
+
 环境变量配置示例，以 `gpt-6-sol` 为例：
 
 <ModelConfigCard
@@ -150,7 +199,7 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
   responses
 />
 
-**Fast mode**
+**开启 Fast mode（`service_tier="fast"`）**
 
 GPT-5.6 Sol 和 GPT-6 Astra 均支持 Fast mode，可以追加 `service_tier` 请求体参数启用，以 GPT-5.6 Sol 为例：
 
@@ -170,8 +219,8 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 ```bash
 export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-5.4" # 或者使用 Codex model/list 可见的其他模型
-export MIDSCENE_MODEL_FAMILY="gpt-5"
+export MIDSCENE_MODEL_NAME="gpt-6-sol" # 或者使用 Codex model/list 可见的其他模型
+export MIDSCENE_MODEL_FAMILY="gpt-6"
 ```
 
 说明：
@@ -186,13 +235,12 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 
 :::
 
-使用 GPT-5 时，请注意以下事项：
+**使用 GPT 时，请注意以下事项：**
 
-- 使用 GPT 做 UI 定位时，目前只支持使用 `gpt-5.4` 及以后的模型。因为为了获得最佳的定位效果，需要在发送图片时指定 `"detail": "original"` 参数，这一参数仅在 `gpt-5.4` 及后续模型上可用，部分小参数的 GPT-5 变体以及前代模型不支持 `original` 参数，会导致报错。详情请参考 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
+- 使用 GPT 做 UI 定位至少需要 GPT-5.4，Midscene 不支持更早的版本。
 - 按照 OpenAI 的文档，GPT-5 在处理非拉丁字母文本、字号太小的文本时效果可能不理想，参见 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision)。
 - OpenAI 在 computer use 文档中提到，他们观察到 `1440x900` 和 `1600x900` 这两种截图尺寸上通常能获得比较好的效果，详见 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。因此，建议按照 OpenAI 的推荐对截图尺寸进行调整。在 Midscene 中，你可以通过 Agent 参数里的 `screenshotShrinkFactor` 控制截图压缩倍率。如果是浏览器自动化，还可以通过浏览器 `viewport` 指定页面的尺寸和比例。
 - 使用 Azure OpenAI 的 Chat Completions API 时，`"detail": "original"` 可能未被正确处理，从而造成点击坐标偏移。遇到此问题时，可以切换到 Responses API。详见 [使用 Azure OpenAI 时点击坐标偏移](./faq#使用-azure-openai-时点击坐标偏移)。
-- 如果你使用的是更老版本的 GPT-5，建议只将其用作规划模型，并搭配其他多模态模型完成定位，参考[多模型组合示例](#multi-model-combination-example)。
 
 ### 月之暗面 Kimi 系列 {#kimi}
 

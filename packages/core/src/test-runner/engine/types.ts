@@ -1,3 +1,11 @@
+import type {
+  TestRunReportCleanup,
+  TestRunReportOperationEvent,
+  TestRunReportOperationReference,
+  TestRunReportPhaseResult,
+  TestRunReportRetryDecision,
+  TestRunReportStepPhase,
+} from '../../test-run-report';
 import type { WorkflowError } from '../errors';
 import type {
   NodeDefinition,
@@ -19,10 +27,13 @@ import type {
 
 export type Awaitable<T> = T | Promise<T>;
 
-/** Immutable Agent dump plus its public report entry. Images are relative to dumpPath. */
+/** Native captures include an immutable dumpPath. External providers without
+ * snapshot support may expose a partial HTML source instead.
+ */
 export interface WorkflowReportSource {
   sourcePath: string;
-  dumpPath: string;
+  dumpPath?: string;
+  collection?: import('../../test-run-report').TestRunReportSnapshotCollection;
 }
 
 export interface NodeScopeTeardownResult {
@@ -38,21 +49,48 @@ export type CaseNodePhase = 'beforeEach' | 'steps' | 'afterEach';
 export type DocumentNodePhase = 'beforeAll' | 'afterAll';
 export type NodeExecutionPhase = CaseNodePhase | DocumentNodePhase;
 
-export interface StepRunResult<TOutputData = unknown> {
+interface StepRunResultBase<TOutputData = unknown> {
   phase: NodeExecutionPhase;
   stepIndex: number;
   node: string;
   input: unknown;
   meta: NormalizedStepMeta;
-  status: 'success' | 'failed';
   continuedAfterError: boolean;
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
+  /** Time spent waiting for a cancelled operation before this Step started. */
+  waitForPreviousOperationMs?: number;
+  operations?: {
+    capturedAt: string;
+    events: readonly TestRunReportOperationEvent[];
+  };
   output?: NodeResult<TOutputData>;
   error?: WorkflowError;
-  report?: { traces: readonly NodeReportTrace[] };
+  report?: {
+    traces: readonly NodeReportTrace[];
+    sources?: readonly WorkflowReportSource[];
+    collectionErrors?: readonly WorkflowError[];
+  };
 }
+
+export type StepRunResult<TOutputData = unknown> =
+  StepRunResultBase<TOutputData> &
+    (
+      | {
+          status: 'success' | 'failed';
+          startedAt: string;
+          endedAt: string;
+          durationMs: number;
+          notRunReason?: never;
+          blockedBy?: never;
+        }
+      | {
+          status: 'not-run';
+          notRunReason: string;
+          blockedBy?: string;
+          startedAt?: never;
+          endedAt?: never;
+          durationMs?: never;
+        }
+    );
 
 export interface CaseRunResult {
   caseId: string;
@@ -63,6 +101,11 @@ export interface CaseRunResult {
   sourcePath: string;
   caseIndex: number;
   status: 'success' | 'failed';
+  executionStatus?: 'success' | 'failed' | 'not-run';
+  phases?: Partial<Record<TestRunReportStepPhase, TestRunReportPhaseResult>>;
+  cleanup?: TestRunReportCleanup;
+  pendingOperations?: TestRunReportOperationReference[];
+  retryDecision?: TestRunReportRetryDecision;
   beforeEach: StepRunResult[];
   steps: StepRunResult[];
   afterEach: StepRunResult[];
@@ -79,6 +122,7 @@ export interface CaseRunResult {
 }
 
 export interface WorkflowDocumentRunResult {
+  plan?: import('../../test-run-report').TestRunReportDocumentPlan;
   documentId: string;
   documentRunId: string;
   /** Whole-document attempt, distinct from Case attemptIndex. */
@@ -87,6 +131,11 @@ export interface WorkflowDocumentRunResult {
   projectName: string;
   sourcePath: string;
   status: 'success' | 'failed';
+  executionStatus?: 'success' | 'failed' | 'not-run';
+  phases?: Partial<Record<TestRunReportStepPhase, TestRunReportPhaseResult>>;
+  cleanup?: TestRunReportCleanup;
+  pendingOperations?: TestRunReportOperationReference[];
+  retryDecision?: TestRunReportRetryDecision;
   startedAt: string;
   endedAt: string;
   durationMs: number;
@@ -197,6 +246,9 @@ export interface CaseRunOutcome {
     | 'interrupted'
     | 'bail'
     | 'executor-failed'
+    | 'cleanup-pending'
+    | 'cleanup-failed'
+    | 'operation-pending'
     | 'fatal-error';
 }
 
@@ -206,6 +258,7 @@ export interface WorkflowDocumentExecutionResult {
 }
 
 export interface RunWorkflowDocumentOptions<TContext = undefined> {
+  plan?: import('../../test-run-report').TestRunReportDocumentPlan;
   documentSetup?: DocumentSetupDefinition<TContext>;
   documentAttemptIndex?: number;
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
@@ -233,6 +286,7 @@ export interface RunWorkflowDocumentOptions<TContext = undefined> {
 }
 
 export interface CreateDocumentRuntimeOptions<TContext = undefined> {
+  plan?: import('../../test-run-report').TestRunReportDocumentPlan;
   documentSetup?: DocumentSetupDefinition<TContext>;
   documentAttemptIndex?: number;
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
@@ -265,6 +319,8 @@ export interface ProjectRuntimeResult<TProjectContext = unknown> {
   status: 'success' | 'failed';
   setupError?: WorkflowError;
   teardownErrors?: readonly WorkflowError[];
+  cleanup?: TestRunReportCleanup;
+  pendingOperations?: TestRunReportOperationReference[];
   startedAt: string;
   endedAt: string;
   durationMs: number;

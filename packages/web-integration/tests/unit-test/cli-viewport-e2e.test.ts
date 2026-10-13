@@ -167,6 +167,7 @@ describe('midscene-web CLI viewport e2e', () => {
         clientWidth: width,
         clientHeight: height,
       });
+      expect(destroySpy).toHaveBeenCalledTimes(1);
     } finally {
       destroySpy.mockRestore();
     }

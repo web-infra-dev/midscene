@@ -44,6 +44,53 @@ describe('ReportGenerator — append-only model', () => {
     }
   });
 
+  it('freezes repeated snapshots before I/O without waiting for the HTML queue', async () => {
+    const generator = new ReportGenerator({
+      reportPath: join(tmpDir, 'snapshot.html'),
+      screenshotMode: 'inline',
+      autoPrint: false,
+    });
+    let unblock!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      unblock = resolve;
+    });
+    (generator as unknown as { writeQueue: Promise<void> }).writeQueue = gate;
+    const screenshot = ScreenshotItem.create(fakeBase64(64), Date.now());
+    const execution = createExecution([screenshot]);
+    execution.name = 'before cutoff';
+    generator.onExecutionUpdate(execution, defaultReportMeta);
+    const snapshotPromise = generator.createSourceSnapshot('scope');
+    execution.name = 'after cutoff';
+    const first = await snapshotPromise;
+    expect(
+      ReportActionDump.fromSerializedString(
+        readFileSync(first.dumpPath, 'utf8'),
+      ).executions[0].name,
+    ).toBe('before cutoff');
+    expect(first.collection?.capturedAt).toBeDefined();
+    expect(
+      existsSync(join(tmpDir, 'screenshots', `${screenshot.id}.png`)),
+    ).toBe(true);
+    const second = await generator.createSourceSnapshot('scope');
+    expect(second.dumpPath).not.toBe(first.dumpPath);
+    expect(
+      ReportActionDump.fromSerializedString(
+        readFileSync(second.dumpPath, 'utf8'),
+      ).executions[0].name,
+    ).toBe('after cutoff');
+    expect(readFileSync(first.dumpPath, 'utf8')).not.toContain('after cutoff');
+    const nextExecution = createExecution([], 'other execution', 'other');
+    generator.onExecutionUpdate(nextExecution, defaultReportMeta);
+    const increment = await generator.createSourceSnapshot('scope', ['other']);
+    expect(
+      ReportActionDump.fromSerializedString(
+        readFileSync(increment.dumpPath, 'utf8'),
+      ).executions.map((item) => item.id),
+    ).toEqual(['other']);
+    unblock();
+    await generator.flush();
+  });
+
   // Writer contract for the self-describing screenshot mode. The merger reads
   // this attribute back to decide directory vs inline, so the generated value
   // must match for both modes (see report.ts readDeclaredScreenshotMode).

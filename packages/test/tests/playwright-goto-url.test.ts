@@ -53,7 +53,7 @@ describe('Playwright gotoUrl Node', () => {
   });
 
   it.each(['timeout', 'cancel'] as const)(
-    'allows afterEach cleanup when navigation is still pending after %s',
+    'blocks afterEach cleanup while navigation is still pending after %s',
     async (mode) => {
       const { page, pageMock, browserContext } = createPage();
       let finishNavigation!: () => void;
@@ -106,15 +106,39 @@ describe('Playwright gotoUrl Node', () => {
             ? { code: 'STEP_TIMEOUT' }
             : { message: expect.stringContaining('Cancelled navigation') },
         );
-        expect(result.afterEach[0].status).toBe('success');
-        expect(browserContext.clearCookies).toHaveBeenCalledOnce();
+        expect(result.afterEach[0]).toMatchObject({
+          status: 'not-run',
+          error: { code: 'RESOURCE_OPERATION_PENDING' },
+          blockedBy: `${result.runId}:steps:0`,
+        });
+        expect(result.afterEach[0].startedAt).toBeUndefined();
+        expect(result.cleanup?.status).toBe('pending');
+        expect(browserContext.clearCookies).not.toHaveBeenCalled();
+
+        const overlapping = await runCollectedCase(
+          collected([step('clearCookies', {})]),
+          { resolveNode: registry.require.bind(registry) },
+        );
+        expect(overlapping.steps[0]).toMatchObject({
+          status: 'not-run',
+          error: { code: 'RESOURCE_CLEANUP_PENDING' },
+        });
+        expect(browserContext.clearCookies).not.toHaveBeenCalled();
       } finally {
         finishNavigation();
+        await new Promise<void>((resolve) => setImmediate(resolve));
       }
+      expect(pageMock.title).not.toHaveBeenCalled();
+      const next = await runCollectedCase(
+        collected([step('clearCookies', {})]),
+        { resolveNode: registry.require.bind(registry) },
+      );
+      expect(next.status).toBe('success');
+      expect(browserContext.clearCookies).toHaveBeenCalledOnce();
     },
   );
 
-  it('keeps the cleanup lock when an aborted navigation settles late', async () => {
+  it('keeps the cleanup lock after an aborted navigation has settled', async () => {
     const { page, pageMock, browserContext } = createPage();
     let finishNavigation!: () => void;
     pageMock.goto.mockImplementationOnce(async () => {
@@ -152,25 +176,39 @@ describe('Playwright gotoUrl Node', () => {
           meta: { continueOnError: false, timeoutMs: 10 },
         },
       ]),
-      { ...options, afterEach: [step('clearCookies', {})] },
+      {
+        ...options,
+        afterEach: [step('clearCookies', {})],
+        onStepResult: async ({ case: caseContext }) => {
+          if (caseContext?.phase !== 'steps') return;
+          finishNavigation();
+          // Let the canceled navigation settle before afterEach uses its Agent.
+          await new Promise<void>((resolve) => setImmediate(resolve));
+        },
+      },
     );
     await started;
     try {
-      finishNavigation();
-      await new Promise<void>((resolve) => setImmediate(resolve));
       expect(pageMock.title).not.toHaveBeenCalled();
       const overlapping = await runCollectedCase(
         collected([step('clearCookies', {})]),
         options,
       );
-      expect(overlapping.steps[0].error?.message).toContain(
-        'cannot execute overlapping',
-      );
+      expect(overlapping.steps[0]).toMatchObject({
+        status: 'not-run',
+        error: { code: 'RESOURCE_CLEANUP_PENDING' },
+        notRunReason: expect.stringContaining('pending cleanup'),
+      });
+      expect(overlapping.steps[0].startedAt).toBeUndefined();
       expect(browserContext.clearCookies).toHaveBeenCalledOnce();
     } finally {
       finishCleanup();
       await run;
     }
+    const result = await run;
+    expect(result.steps[0].error).toMatchObject({ code: 'STEP_TIMEOUT' });
+    expect(result.afterEach[0].status).toBe('success');
+    expect(result.cleanup?.status).toBe('completed');
     const next = await runCollectedCase(
       collected([step('clearCookies', {})]),
       options,

@@ -12,6 +12,14 @@ export function createExecutorReports(outputDir: string) {
     // Native Agent scopes own immutable snapshots, even when no HTML was emitted.
     // Register only trusted local sources; the transport still carries opaque IDs.
     materializeSource(source: WorkflowReportSource): string {
+      if (!source.dumpPath) {
+        const reference = this.materialize(source.sourcePath);
+        sources.set(reference, {
+          sourcePath: this.resolve(reference),
+          collection: source.collection,
+        });
+        return reference;
+      }
       const dump = realpathSync(source.dumpPath);
       const reference = randomUUID();
       const destination = join(outputDir, 'reports', reference);
@@ -25,7 +33,11 @@ export function createExecutorReports(outputDir: string) {
           dereference: true,
         });
       const sourcePath = join(destination, 'index.html');
-      sources.set(reference, { sourcePath, dumpPath });
+      sources.set(reference, {
+        sourcePath,
+        dumpPath,
+        collection: source.collection,
+      });
       paths.set(reference, sourcePath);
       return reference;
     },

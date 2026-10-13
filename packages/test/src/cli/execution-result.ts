@@ -1,3 +1,4 @@
+import type { TestRunReportDocumentPlan } from '@midscene/core';
 import type {
   StepExecutionInfo,
   StepRunResult,
@@ -22,6 +23,7 @@ export interface ProjectResultInput {
   readonly collectionErrors: readonly TestProjectCollectionError[];
   readonly selectedCaseCount: number;
   readonly filteredCaseCount: number;
+  readonly plans?: readonly TestRunReportDocumentPlan[];
 }
 
 export const asNotRun = (
@@ -51,6 +53,8 @@ export const formatStepResult = (
   result: StepRunResult,
   indent = '',
 ): string => {
+  if (result.status === 'not-run')
+    return `${indent}– ${formatStep(info)} (not run: ${result.notRunReason})`;
   const symbol = result.status === 'success' ? '✓' : '✗';
   const error = result.error ? ` — ${result.error.message}` : '';
   const continuation = result.continuedAfterError ? '; continuing' : '';
@@ -93,6 +97,7 @@ export const buildProjectResult = (
     filteredCaseCount: prepared.filteredCaseCount,
     ...(lifecycle ? { lifecycle } : {}),
     cases,
+    plans: prepared.plans,
     documents,
     collectionErrors: prepared.collectionErrors,
   };

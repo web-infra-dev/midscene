@@ -1,14 +1,13 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
+import OpenAI from 'openai' with { rstest: 'importActual' };
 
 const mockCreate = rs.fn();
-const mockOpenAIConstructor = rs.fn().mockImplementation(() => ({
-  chat: {
-    completions: {
-      create: mockCreate,
-    },
-  },
-}));
+const mockOpenAIConstructor = rs.fn().mockImplementation((options) => {
+  const client = new OpenAI(options);
+  client.chat.completions.create = mockCreate;
+  return client;
+});
 
 rs.mock('openai', () => ({
   default: mockOpenAIConstructor,
@@ -38,6 +37,39 @@ describe('service-caller OpenAI error handling', () => {
     rs.unmock('@/ai-model/service-caller/model-call-recorder');
     rs.resetModules();
   });
+
+  it.each([false, true])(
+    'observes sent requests without enabling recording (failure: %s)',
+    async (fails) => {
+      rs.resetModules();
+      const record = rs.fn();
+      rs.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
+        isModelCallRecordingEnabled: () => false,
+        recordModelCallEvent: record,
+      }));
+      const { callAI } = await import('@/ai-model/service-caller');
+      const { getModelRuntime } = await import('@/ai-model/models');
+      globalThis.fetch = rs.fn().mockResolvedValue(new Response('{}'));
+      mockCreate.mockImplementation(async () => {
+        await mockOpenAIConstructor.mock.calls
+          .at(-1)?.[0]
+          .fetch('https://example.com/v1/chat/completions');
+        if (fails) throw new Error('Connection failed');
+        return { choices: [{ message: { content: 'hello' } }] };
+      });
+      const runtime = getModelRuntime(baseConfig());
+      runtime.onRequest = rs.fn();
+      const result = callAI([{ role: 'user', content: 'hello' }], runtime, {
+        stream: false,
+      });
+      if (fails) await expect(result).rejects.toThrow('Connection failed');
+      else await expect(result).resolves.toMatchObject({ content: 'hello' });
+      expect(runtime.onRequest).toHaveBeenCalledExactlyOnceWith(
+        'https://example.com/v1/chat/completions',
+      );
+      expect(record).not.toHaveBeenCalled();
+    },
+  );
 
   it('records non-2xx raw response body without changing the response', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
@@ -471,13 +503,26 @@ describe('service-caller OpenAI error handling', () => {
           method: 'POST',
           body: JSON.stringify({ model: 'gpt-4o' }),
         });
-      return (async function* () {
-        yield { choices: [{ delta: { content: 'hel' } }] };
-        yield {
-          choices: [{ delta: { content: 'lo' }, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-        };
-      })();
+      return Object.assign(
+        (async function* () {
+          yield {
+            choices: [
+              {
+                index: 0,
+                delta: { role: 'assistant', content: 'hel' },
+                finish_reason: null,
+              },
+            ],
+          };
+          yield {
+            choices: [
+              { index: 0, delta: { content: 'lo' }, finish_reason: 'stop' },
+            ],
+            usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+          };
+        })(),
+        { controller: new AbortController() },
+      );
     });
 
     await callAI(

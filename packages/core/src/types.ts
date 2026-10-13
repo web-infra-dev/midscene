@@ -64,7 +64,9 @@ export type AIUsageInfo = Record<string, any> & {
   /** Request retries performed within this call; excludes semantic parse retries. */
   retry_count?: number;
   /** Actual protocol used for the model call, resolved by Midscene. */
-  api_type?: 'chat-completion' | 'responses' | 'codex';
+  api_protocol?: 'chat-completion' | 'responses' | 'codex';
+  /** Whether the model call used streaming, after resolving call options. */
+  stream?: boolean;
   model_name: string | undefined;
   model_description: string | undefined;
   /**
@@ -468,7 +470,10 @@ export interface PlaywrightParserOpt extends BaseAgentParserOpt {}
 action
 */
 export interface ExecutionTaskProgressOptions {
-  onTaskStart?: (task: ExecutionTask) => Promise<void> | void;
+  onTaskStart?: (
+    task: ExecutionTask,
+    signal?: AbortSignal,
+  ) => Promise<void> | void;
 }
 
 /**
@@ -587,6 +592,8 @@ export interface RecordToReportOptions {
 export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
 
 export interface ExecutorContext {
+  /** Cancellation of this execution; adapters may forward it to cancellable I/O. */
+  signal?: AbortSignal;
   task: ExecutionTask;
   element?: LocateResultElement | null;
   uiContext?: UIContext;

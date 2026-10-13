@@ -94,6 +94,7 @@ export interface ExecutionReferenceImage {
 
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
+  abortSignal?: AbortSignal;
   referenceImages?: readonly ExecutionReferenceImage[];
   /**
    * Coarse "the execution snapshot changed" signal. Fires on any state change
@@ -123,7 +124,10 @@ export class TaskRunner {
 
   onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
 
-  private readonly uiContextBuilder: () => Promise<UIContext>;
+  private readonly uiContextBuilder: (
+    signal?: AbortSignal,
+  ) => Promise<UIContext>;
+  private readonly abortSignal?: AbortSignal;
 
   private readonly onSnapshotChange?:
     | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
@@ -137,7 +141,7 @@ export class TaskRunner {
 
   constructor(
     name: string,
-    uiContextBuilder: () => Promise<UIContext>,
+    uiContextBuilder: (signal?: AbortSignal) => Promise<UIContext>,
     options?: TaskRunnerInitOptions,
   ) {
     this.id = uuid();
@@ -149,6 +153,7 @@ export class TaskRunner {
     );
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
+    this.abortSignal = options?.abortSignal;
     this.onSnapshotChange = options?.onSnapshotChange;
     this.onTaskEvent = options?.onTaskEvent;
     this.executionLogTime = Date.now();
@@ -186,6 +191,7 @@ export class TaskRunner {
   private async getUiContext(options?: { forceRefresh?: boolean }): Promise<
     UIContext | undefined
   > {
+    this.abortSignal?.throwIfAborted();
     const now = Date.now();
     const shouldReuse =
       !options?.forceRefresh &&
@@ -200,7 +206,8 @@ export class TaskRunner {
     }
 
     try {
-      const uiContext = await this.uiContextBuilder();
+      const uiContext = await this.uiContextBuilder(this.abortSignal);
+      this.abortSignal?.throwIfAborted();
       if (uiContext) {
         this.lastUiContext = {
           context: uiContext,
@@ -277,6 +284,7 @@ export class TaskRunner {
     task: ExecutionTaskApply[] | ExecutionTaskApply,
     options?: TaskRunnerOperationOptions,
   ): Promise<void> {
+    this.abortSignal?.throwIfAborted();
     this.normalizeStatusFromError(
       options,
       `task runner is in error state, cannot append task\nerror=${this.latestErrorTask()?.errorMessage}\n${this.latestErrorTask()?.errorStack}`,
@@ -339,20 +347,23 @@ export class TaskRunner {
         task.status === 'pending',
         `task status should be pending, but got: ${task.status}`,
       );
-      task.timing = {
-        start: Date.now(),
-      };
+      let taskStarted = false;
       try {
+        this.abortSignal?.throwIfAborted();
+        taskStarted = true;
+        task.timing = { start: Date.now() };
         task.status = 'running';
         await this.emitSnapshotChange();
         await this.emitTaskEvent('start', task);
+        this.abortSignal?.throwIfAborted();
         try {
           if (this.onTaskStart) {
-            await this.onTaskStart(task);
+            await this.onTaskStart(task, this.abortSignal);
           }
         } catch (e) {
           console.error('error in onTaskStart', e);
         }
+        this.abortSignal?.throwIfAborted();
         assert(
           ['Insight', 'Action Space', 'Planning'].indexOf(task.type) >= 0,
           `unsupported task type: ${task.type}`,
@@ -368,12 +379,14 @@ export class TaskRunner {
         setTimingFieldOnce(task.timing, 'getUiContextStart');
         const uiContext = await this.getUiContext({ forceRefresh });
         setTimingFieldOnce(task.timing, 'getUiContextEnd');
+        this.abortSignal?.throwIfAborted();
 
         task.uiContext = uiContext;
         const executorContext: ExecutorContext = {
           task,
           element: previousFindOutput?.element,
           uiContext,
+          signal: this.abortSignal,
         };
 
         if (task.type === 'Insight') {
@@ -410,14 +423,19 @@ export class TaskRunner {
           returnValue = await task.executor(executorContext);
         }
 
+        this.abortSignal?.throwIfAborted();
         const isLastTask = taskIndex === this.tasks.length - 1;
 
         if (isLastTask) {
           setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotStart');
           const screenshot = await this.captureScreenshot();
+          this.abortSignal?.throwIfAborted();
           this.attachRecorderItem(task, screenshot, 'after-calling');
           setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotEnd');
         }
+        // Cancellation may arrive during the report screenshot, after planning
+        // has returned but before the next batch of actions is built.
+        this.abortSignal?.throwIfAborted();
 
         Object.assign(task, returnValue);
         task.status = 'finished';
@@ -433,11 +451,13 @@ export class TaskRunner {
         task.errorMessage = serializedError.message;
         task.errorStack = serializedError.stack;
 
-        task.status = 'failed';
-        task.timing.end = Date.now();
-        task.timing.cost = task.timing.end - task.timing.start;
+        task.status = taskStarted ? 'failed' : 'cancelled';
+        if (taskStarted && task.timing) {
+          task.timing.end = Date.now();
+          task.timing.cost = task.timing.end - task.timing.start;
+        }
         await this.emitSnapshotChange();
-        await this.emitTaskEvent('error', task);
+        await this.emitTaskEvent(taskStarted ? 'error' : 'cancel', task);
         break;
       }
     }
@@ -459,10 +479,14 @@ export class TaskRunner {
     if (!successfullyCompleted) {
       this.status = 'error';
       const errorTask = this.latestErrorTask();
-      const error = errorTask?.error ?? {
-        name: 'Error',
-        message: 'Task execution failed',
-      };
+      const error =
+        errorTask?.error ??
+        (this.abortSignal?.aborted
+          ? serializeError(this.abortSignal.reason)
+          : {
+              name: 'Error',
+              message: 'Task execution failed',
+            });
       finalizeError = new TaskExecutionError(
         error,
         serializeErrorTask(errorTask),

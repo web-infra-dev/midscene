@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { sep } from 'node:path';
 import { classifyWorkflowDocumentFormat } from '@midscene/core/internal/test-runner';
-import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import type { JsonValue } from '../cli/test-project';
 import { WorkflowParseError } from '../errors';
 import type { NodeDefinition } from '../node/types';
@@ -11,6 +10,7 @@ import {
   createDocumentInvocationId,
 } from './identifiers';
 import { normalizeSteps } from './normalize';
+import { parseWorkflowSource } from './source';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
@@ -76,11 +76,9 @@ export function collectWorkflowDocument(
   source: WorkflowDocumentSource,
   options: CollectWorkflowDocumentOptions,
 ): CollectedWorkflowDocument {
-  let parsed: unknown;
+  let snapshot: ReturnType<typeof parseWorkflowSource>;
   try {
-    parsed = loadYaml(readFileSync(source.absolutePath, 'utf8'), {
-      schema: JSON_SCHEMA,
-    });
+    snapshot = parseWorkflowSource(readFileSync(source.absolutePath, 'utf8'));
   } catch (error) {
     throw new WorkflowParseError(
       `Failed to parse workflow document "${source.sourcePath}".`,
@@ -88,6 +86,7 @@ export function collectWorkflowDocument(
       error,
     );
   }
+  const { parsed, sourceYaml } = snapshot;
 
   if (!isMapping(parsed)) {
     throw new WorkflowParseError('Workflow document must be a mapping.');
@@ -115,6 +114,7 @@ export function collectWorkflowDocument(
     caseIndex?: number,
   ) => ({
     ...step,
+    templateInput: step.input,
     input: resolveWorkflowVariables(step.input, {
       variables: options.variables,
       env: options.env ?? process.env,
@@ -264,6 +264,7 @@ export function collectWorkflowDocument(
     documentId: createWorkflowDocumentId(source.projectId, sourcePath),
     projectId: source.projectId,
     sourcePath,
+    sourceYaml,
     lifecycle,
     cases,
   } satisfies CollectedWorkflowDocument;

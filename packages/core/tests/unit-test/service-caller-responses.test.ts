@@ -220,7 +220,7 @@ describe('Responses protocol', () => {
         request_id: 'req-test',
         slot: 'default',
         retry_count: 0,
-        api_type: 'responses',
+        api_protocol: 'responses',
       },
     });
     expect(onUsage).toHaveBeenCalledExactlyOnceWith(result.usage);
@@ -266,6 +266,84 @@ describe('Responses protocol', () => {
     });
     expect(result.usage?.request_id).toBe('req-stream');
     expect(runtime.onUsage).toHaveBeenCalledExactlyOnceWith(result.usage);
+  });
+
+  it.each([[], null, undefined])(
+    'recovers finalized items when completion output is %j',
+    async (output) => {
+      const items = response().output;
+      fetchMock.mockResolvedValue(
+        sseResponse([
+          delta,
+          {
+            type: 'response.output_item.done',
+            output_index: 1,
+            item: items[1],
+          },
+          {
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: items[0],
+          },
+          { ...completed, response: { ...response(), output } },
+        ]),
+      );
+      const onChunk = rs.fn();
+      const result = await callAI(messages, getModelRuntime(config), {
+        stream: true,
+        onChunk,
+      });
+      expect(result.content).toBe('hello');
+      expect(result.reasoning_content).toBe('thinking');
+      expect(result.rawAssistantOutput).toEqual({
+        type: 'responses',
+        rawValue: items,
+      });
+      expect(result.usage).toMatchObject({
+        total_tokens: 15,
+        request_id: 'req-stream',
+      });
+      expect(onChunk.mock.calls.at(-1)?.[0]).toMatchObject({
+        isComplete: true,
+        accumulated: 'hello',
+      });
+    },
+  );
+
+  it('prefers populated completion output over streamed items', async () => {
+    fetchMock.mockResolvedValue(
+      sseResponse([
+        {
+          type: 'response.output_item.done',
+          output_index: 0,
+          item: response('earlier').output[1],
+        },
+        completed,
+      ]),
+    );
+    const result = await callAI(messages, getModelRuntime(config), {
+      stream: true,
+      onChunk: rs.fn(),
+    });
+    expect(result.rawAssistantOutput).toEqual({
+      type: 'responses',
+      rawValue: response().output,
+    });
+  });
+
+  it('does not recover unfinished items from text deltas', async () => {
+    fetchMock.mockResolvedValue(
+      sseResponse([
+        delta,
+        { ...completed, response: { ...response(), output: [] } },
+      ]),
+    );
+    await expect(
+      callAI(messages, getModelRuntime(config), {
+        stream: true,
+        onChunk: rs.fn(),
+      }),
+    ).rejects.toThrow('empty content from AI model');
   });
 
   it.each([false, true])(
@@ -363,7 +441,17 @@ describe('Responses protocol', () => {
   ])(
     'does not replay delivered output or mark an interrupted stream complete: %j',
     async (...events) => {
-      fetchMock.mockResolvedValue(sseResponse([delta, ...events]));
+      fetchMock.mockResolvedValue(
+        sseResponse([
+          delta,
+          {
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: response().output[1],
+          },
+          ...events,
+        ]),
+      );
       const onChunk = rs.fn();
       const runtime = getModelRuntime({ ...config, retryCount: 1 });
       runtime.onUsage = rs.fn();
