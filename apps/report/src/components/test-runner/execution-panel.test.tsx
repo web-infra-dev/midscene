@@ -19,6 +19,35 @@ const step = (
 });
 
 describe('execution panel', () => {
+  it('retains the full step name in a hover hint independently of recording indicators', () => {
+    const name = 'demo.applyProjectOutcomeWithALongCustomNodeName';
+    const html = renderToStaticMarkup(
+      <RunnerExecutionPanel
+        groups={[
+          {
+            label: 'Case steps',
+            steps: [
+              {
+                ...step(name),
+                agentDetails: [
+                  { reportId: 'report', executionId: 'execution' },
+                ],
+              },
+            ],
+          },
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    expect(html).toContain(
+      `class="runner-detail-step-name" title="${name}">${name}</span>`,
+    );
+    expect(html).toMatch(
+      /runner-detail-step-name[^>]*>[^<]+<\/span><span class="runner-detail-recording-icon"/,
+    );
+    expect(html).toContain('aria-label="Has recording"');
+  });
+
   it('marks evidence warnings without changing the successful node status', () => {
     const html = renderToStaticMarkup(
       <RunnerExecutionPanel

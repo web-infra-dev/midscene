@@ -155,7 +155,12 @@ export function RunnerExecutionPanel({
                     >
                       <span className="runner-detail-step-copy">
                         <strong>
-                          {step.node}
+                          <span
+                            className="runner-detail-step-name"
+                            title={step.node}
+                          >
+                            {step.node}
+                          </span>
                           {issues
                             ?.get(step.id)
                             ?.some((issue) => issue.severity === 'warning') ? (
