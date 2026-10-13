@@ -225,8 +225,14 @@ describe('result.md', () => {
       reportHref: '../../../report/index.html',
     });
     expect(markdown).toContain('❌ **1 failed** · 0 passed · 0 not run');
-    expect(markdown).toMatch(/^ {2}- ❌ \[submit\]\(<[^\n]+>\)$/m);
-    expect(markdown).toContain('runner-step=');
+    expect(markdown).toMatch(/^ {2}- ❌ submit$/m);
+    expect(markdown).not.toContain('runner-step=');
+    expect(markdown.match(/\]\(</g)).toHaveLength(1);
+    expect(
+      markdown.endsWith(
+        '[Open the Midscene Test report ↗](<../../../report/index.html>)\n',
+      ),
+    ).toBe(true);
     expect(markdown).not.toMatch(/<img|Reason:|Attempts:|missing/);
     expect(markdown).not.toContain('secret-key');
     expect(markdown).not.toContain('secret-token');
@@ -248,7 +254,9 @@ describe('result.md', () => {
       sourcePath: 'cases/apps.yaml',
       cases: [{ ...original, name: 'app' }],
     });
-    const markdown = renderTestResultMarkdown(dump);
+    const markdown = renderTestResultMarkdown(dump, {
+      reportHref: '../../../report/index.html',
+    });
     expect(markdown).toContain(
       '- cases/chat-core\n  - ✅ passed\n  - ❌ failed\n  - ⏭️ pending',
     );

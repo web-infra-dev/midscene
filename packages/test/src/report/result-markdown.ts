@@ -106,29 +106,8 @@ export function renderTestResultMarkdown(
           `${document.sourcePath} / ${failure.phase}: ${failure.error.message}`,
         );
       for (const testCase of document.cases) {
-        const attempt = testCase.attempts.at(-1);
-        const steps = attempt
-          ? [...attempt.beforeEach, ...attempt.steps, ...attempt.afterEach]
-          : [];
-        const failedSteps = steps.filter((step) => step.status === 'failed');
-        const step =
-          failedSteps.at(-1) ??
-          [...steps].reverse().find((item) => item.agentDetails?.length) ??
-          steps.at(-1);
-        const route = new URLSearchParams({
-          'runner-page': 'case',
-          'runner-project': project.projectId,
-          'runner-case': testCase.caseId,
-          ...(step ? { 'runner-step': step.id } : {}),
-        });
-        const target = options.reportHref
-          ? `${options.reportHref}#${route}`
-          : undefined;
-        const name = target
-          ? `[${text(testCase.name)}](<${target}>)`
-          : text(testCase.name);
         group.rows.push(
-          `  - ${testCase.status === 'success' ? '✅' : testCase.status === 'not-run' ? '⏭️' : '❌'} ${name}`,
+          `  - ${testCase.status === 'success' ? '✅' : testCase.status === 'not-run' ? '⏭️' : '❌'} ${text(testCase.name)}`,
         );
       }
     }
