@@ -48,6 +48,7 @@ pnpm exec node ../../packages/cli/bin/midscene ./e2e/timeline-interaction.yaml
 | `report-merged.yaml`                                                                      | `demo-merged.html`                     | 合并 Agent 报告的 Case 选择和状态筛选                                                                                                  |
 
 使用当前可见标签 **Test Report**、**Information** 和 **Events**。Attempts 与 Visual/YAML 位于 Execution 表头；Case 清理错误仍在 Execution 上方，Step 错误则在详情标签页上方。
+Events 使用 **Run step**、**Started**、**Finished** 等易读文案；原始 Operation/Event 名称保留在悬浮提示中，不作为单元格正文展示。
 
 保留 `aiAssert`、`aiTap` 和 `aiHover` 的界面断言与导航覆盖。`javascript` 仅用于历史导航、分栏键盘事件等确定性的 DOM 行为。进入失败 Case 的回归场景不能手动滚动到失败步骤，否则会掩盖自动定位失效的问题。
 

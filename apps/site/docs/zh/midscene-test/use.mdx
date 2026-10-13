@@ -478,6 +478,28 @@ Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝�
 - **Information** 按对齐的行展示 Input、Output 和 Stable IDs。有对应数据时，还会展示配置、Planned input 和 Capture boundary。
 - **Events** 以表格展示 Time、Operation、Event 和 Status。缺少详细操作事件时，会根据已知时间展示 Step 的开始和结束；没有事件的 Step 会显示空状态。
 
+**Operation** 列说明正在执行什么。悬停 Operation 或 Event 文案，可以查看原始日志名称及解释；Operation 提示还保留了 Operation ID，方便对照日志。
+
+| Operation 文案 | 原始名称 | 含义 |
+| --- | --- | --- |
+| Run step | `node` | 执行整个 Step，包含其内部的 Agent 操作；内置和自定义 Node 都有这一层。 |
+| Get Agent | `acquisition` | 获取本次 Step 使用的 Agent，可能复用已有实例。 |
+| Run Agent operation | `resource` | 通过 Agent 执行操作，例如点击、断言或记录截图。 |
+| Wait for app readiness | `readiness` | 动作完成后，等待配置的就绪回调。 |
+| Clean up resources | `cleanup` | 清理执行过程中使用的资源。 |
+
+这些操作不是互不重叠、依次执行的阶段。**Run step** 包含其内部操作，因此不能把内部操作耗时再加到 Step 总耗时上。例如，Runner 的 `wait` 和不经过 Agent 适配层的自定义 Node 只有 **Run step** 事件；`aiAct`、`aiAssert` 通常在 **Run step** 内先获取 Agent，再执行 Agent 操作。规划、定位及具体页面动作请查看 **Record**。
+
+| Event 文案 | 原始名称 | 含义 |
+| --- | --- | --- |
+| Started | `started` | 操作开始。 |
+| Finished | `settled` | 操作已结束，成功或失败看 Status。 |
+| Result returned | `runner-returned` | Runner 已返回 Step 结果，底层操作可能仍未结束。 |
+| Cancellation requested | `cancel-requested` | 已请求取消，但操作可能仍在运行。 |
+| Cleanup postponed | `cleanup-deferred` | 尚未结束的操作仍在使用资源，清理被推迟。 |
+
+**Execution still running** 和 **pending** 徽标表示 Runner 返回结果时，操作尚未结束，可能出现在超时或取消场景。这不代表报告记录截止时间之后的实时状态。Status 为 **—** 表示这条事件没有结果状态，不代表失败。
+
 Step 错误显示在这些标签页上方。展开 **details** 可查看技术信息；存在多个问题时，可通过 **View all … issues** 查看。Case 和生命周期清理错误仍显示在 Execution 上方。页头的主题按钮可以切换浅色和深色主题。
 
 报告保留执行前的测试计划，以及实际执行和未执行的步骤、未执行原因、重试停止原因。等待旧操作退出的时间与步骤执行时间分开记录。报告是生成时的快照：`cleanup pending` 表示当时清理尚未完成，资源仍保持隔离；之后完成的清理不会回写已生成的 HTML。

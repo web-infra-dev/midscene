@@ -478,6 +478,28 @@ The selected Step has **Information** and **Events** tabs, plus **Record** when 
 - **Information** presents Input, Output, and Stable IDs as aligned rows. Configuration, planned input, and the capture boundary appear when available.
 - **Events** shows Time, Operation, Event, and Status in a table. If detailed operation events are unavailable, Step start and end times are shown when known. Steps with no events show an empty state.
 
+The **Operation** column describes what is running. Hover over an operation or event label to see its original log name and an explanation. Operation hints also include the Operation ID for matching log entries.
+
+| Operation label | Original name | Meaning |
+| --- | --- | --- |
+| Run step | `node` | The entire Step, including any Agent operations. Applies to both built-in and custom Nodes. |
+| Get Agent | `acquisition` | Get the Agent used by this Step; an existing Agent may be reused. |
+| Run Agent operation | `resource` | Run an operation through the Agent, such as clicking, asserting, or recording a screenshot. |
+| Wait for app readiness | `readiness` | Wait for the configured readiness callback after an action. |
+| Clean up resources | `cleanup` | Run cleanup for resources used during execution. |
+
+These operations are not consecutive, non-overlapping stages. **Run step** includes its internal operations, so do not add their durations to the Step's total duration. For example, Runner's `wait` and custom Nodes that do not use the Agent adapter only have **Run step** events. An `aiAct` or `aiAssert` Step typically gets an Agent, then runs an Agent operation inside **Run step**. Planning, locating, and individual UI actions are shown in **Record**.
+
+| Event label | Original name | Meaning |
+| --- | --- | --- |
+| Started | `started` | The operation has started. |
+| Finished | `settled` | The operation has ended; check Status for its outcome. |
+| Result returned | `runner-returned` | The Runner has returned the Step result. The underlying operation may still be running. |
+| Cancellation requested | `cancel-requested` | Cancellation was requested; the operation may still be running. |
+| Cleanup postponed | `cleanup-deferred` | Cleanup was postponed while unfinished operations still use the resources. |
+
+**Execution still running** and a **pending** badge mean the operation had not ended when the Runner returned its result. This can happen on timeout or cancellation and does not describe its state after the report's capture boundary. A Status of **—** means the event has no outcome, not that it failed.
+
 Step errors appear above these tabs. Expand **details** for technical information or use **View all … issues** when several issues exist. Case and lifecycle cleanup errors remain above Execution. The header's theme button switches between light and dark themes.
 
 The report preserves the test plan captured before execution, executed and unexecuted Steps, reasons Steps did not run, and reasons retries stopped. Time spent waiting for an earlier operation is recorded separately from Step execution time. The report is a snapshot at publication: `cleanup pending` means cleanup was unfinished at that point and resources remain quarantined. Cleanup that completes later does not update the published HTML.

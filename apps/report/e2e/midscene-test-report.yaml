@@ -106,7 +106,7 @@ tasks:
       - aiTap: the Information tab
       - aiAssert: Input, Output, and Stable IDs appear as aligned rows in one bordered panel. The execution steps share one left pane, with Document setup, Before each, Case steps, and After each separated by dividers. Step rows have no leading type icons or individual white bordered cards.
       - aiTap: the Events tab
-      - aiAssert: Events is selected. Runtime events appear in a table with Time, Operation, Event, and Status columns. The started and settled events are visible, with a success status for settlement. The execution step list remains visible on the left.
+      - aiAssert: Events is selected. Runtime events appear in a table with Time, Operation, Event, and Status columns. The operation is labeled Run step. Started and Finished events are visible, with a success status for Finished. The execution step list remains visible on the left.
       - aiTap: the Record tab
       - aiAssert: The recorded Agent task list and screenshot viewer are visible on the right of the Case workspace.
 
@@ -139,6 +139,6 @@ tasks:
     flow:
       - aiTap: the Events tab in the selected aiAct details
       - aiTap: the theme toggle button in the top right header
-      - aiAssert: The Test Report is in dark theme. The Execution steps and Events table use dark surfaces with readable text, and the settled event has a green success badge.
+      - aiAssert: The Test Report is in dark theme. The Execution steps and Events table use dark surfaces with readable text, and the Finished event has a green success badge.
       - aiTap: the theme toggle button in the top right header
       - aiAssert: The Test Report is back in light theme. The same aiAct step and Events tab remain selected, and the event table is readable.

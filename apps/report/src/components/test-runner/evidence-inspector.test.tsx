@@ -151,7 +151,8 @@ describe('case evidence inspection', () => {
       },
     });
     expect(html).not.toContain('Operation lifecycle');
-    expect(html).toContain('Still running when Runner returned');
+    expect(html).toContain('Execution still running');
+    expect(html).toContain('>Result returned</span>');
     const { html: information } = render('io', [report], {
       ...step,
       operations: { capturedAt: '2026-10-08T11:00:00.000Z', events: [] },

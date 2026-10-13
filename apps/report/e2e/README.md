@@ -56,6 +56,8 @@ variables there, or load the root `.env` explicitly with Node's
 | `report-merged.yaml`                                                                      | `demo-merged.html`                     | Merged Agent case selection and status filtering                                                                                                                 |
 
 Use the current visible labels **Test Report**, **Information**, and **Events**.
+Events uses readable labels such as **Run step**, **Started**, and **Finished**;
+raw operation/event names are retained in hover hints, not as visible cell text.
 Attempts sits next to Visual/YAML inside Execution; Case cleanup issues remain
 above Execution, while Step errors appear above the detail tabs.
 

@@ -14,6 +14,60 @@ import { ReportValue, formatDuration } from './view-primitives';
 
 export type RunnerInspectorTab = 'record' | 'io' | 'logs';
 
+const operationCopy: Record<
+  TestRunReportOperationEvent['operationKind'],
+  { label: string; description: string }
+> = {
+  node: {
+    label: 'Run step',
+    description: 'Runs the entire step, including any Agent operations.',
+  },
+  acquisition: {
+    label: 'Get Agent',
+    description:
+      'Gets the Agent used by this step. An existing Agent may be reused.',
+  },
+  resource: {
+    label: 'Run Agent operation',
+    description:
+      'Runs an operation through the Agent, such as clicking, checking a condition, or recording a screenshot.',
+  },
+  readiness: {
+    label: 'Wait for app readiness',
+    description: 'Waits for the configured readiness callback after an action.',
+  },
+  cleanup: {
+    label: 'Clean up resources',
+    description: 'Runs cleanup for resources used during execution.',
+  },
+};
+
+const eventCopy: Record<
+  TestRunReportOperationEvent['kind'],
+  { label: string; description: string }
+> = {
+  started: { label: 'Started', description: 'The operation has started.' },
+  settled: {
+    label: 'Finished',
+    description: 'The operation has ended. See Status for its outcome.',
+  },
+  'runner-returned': {
+    label: 'Result returned',
+    description:
+      'The Runner has returned the step result. The underlying operation may still be running.',
+  },
+  'cancel-requested': {
+    label: 'Cancellation requested',
+    description:
+      'Cancellation was requested. The operation may still be running.',
+  },
+  'cleanup-deferred': {
+    label: 'Cleanup postponed',
+    description:
+      'Cleanup was postponed while unfinished operations still use the resources.',
+  },
+};
+
 function StepInformation({
   step,
   plannedStep,
@@ -155,13 +209,20 @@ function RuntimeEvents({ step }: { step: TestRunReportStep }): JSX.Element {
                 </time>
               </td>
               <td>
-                <code title={event.operationId}>{event.operationKind}</code>
+                <span
+                  title={`${event.operationKind}: ${operationCopy[event.operationKind].description}\nOperation ID: ${event.operationId}`}
+                >
+                  {operationCopy[event.operationKind].label}
+                </span>
               </td>
               <td>
-                <span className="runner-runtime-event-kind">{event.kind}</span>
-                {event.pending ? (
-                  <small>Still running when Runner returned</small>
-                ) : null}
+                <span
+                  className="runner-runtime-event-kind"
+                  title={`${event.kind}: ${eventCopy[event.kind].description}`}
+                >
+                  {eventCopy[event.kind].label}
+                </span>
+                {event.pending ? <small>Execution still running</small> : null}
                 {!step.operations ? (
                   <small>
                     {event.kind === 'started'
