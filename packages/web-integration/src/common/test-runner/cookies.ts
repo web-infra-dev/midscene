@@ -263,10 +263,16 @@ export const resolveCookieInput = async <TAgent>(
       break;
     }
     case 'storage-state': {
-      const path = options.resolveStorageStatePath
-        ? await options.resolveStorageStatePath(reference.name, ctx)
-        : resolve(process.cwd(), reference.name);
-      source = parseCookieJson(await readFile(path, 'utf8'));
+      try {
+        const path = options.resolveStorageStatePath
+          ? await options.resolveStorageStatePath(reference.name, ctx)
+          : resolve(process.cwd(), reference.name);
+        source = parseCookieJson(await readFile(path, 'utf8'));
+      } catch {
+        throw new Error(
+          `Failed to read cookie storage state ${reference.name}; the original error was redacted because it may contain cookie values.`,
+        );
+      }
       break;
     }
   }
