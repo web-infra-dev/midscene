@@ -475,7 +475,7 @@ Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝�
 选中 Step 后，可以查看 **Information** 和 **Events**；有录屏或截图证据时，还会显示 **Record**：
 
 - **Record** 展示关联的 Agent 执行过程或截图。悬停时间线缩略图可以预览，点击后会选中截图所属的 Step。
-- **Information** 按对齐的行展示 Input、Output 和 Stable IDs。有对应数据时，还会展示配置、Planned input 和 Capture boundary。
+- **Information** 按对齐的行展示 Input、Output 和 Stable IDs。有对应数据时，还会展示配置、Planned input 和 **Information captured at**（信息采集时间）。采集时间按浏览器本地时区显示，包含毫秒和 UTC 偏移，不一定是 Step 的结束时间。悬停可查看原始 UTC 时间，以及前往 **Events** 查看后续完成或取消情况的说明。
 - **Events** 以表格展示 Time、Operation、Event 和 Status。缺少详细操作事件时，会根据已知时间展示 Step 的开始和结束；没有事件的 Step 会显示空状态。
 
 **Operation** 列说明正在执行什么。悬停 Operation 或 Event 文案，可以查看原始日志名称及解释；Operation 提示还保留了 Operation ID，方便对照日志。

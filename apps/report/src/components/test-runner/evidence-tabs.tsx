@@ -6,6 +6,7 @@ import type {
 } from '@midscene/core';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
+import { CaptureTime } from './capture-time';
 import { IssueInformation } from './issue-information';
 import type { ReportIssue } from './issues';
 import { getStepDisplayName } from './model';
@@ -144,10 +145,9 @@ function StepInformation({
       </section>
       {step.operations ? (
         <section>
-          <h4>Capture boundary</h4>
+          <h4>Information captured at</h4>
           <p className="runner-capture-boundary">
-            {step.operations.capturedAt}. Late outcomes are recorded in the
-            operation event log; this snapshot does not update.
+            <CaptureTime value={step.operations.capturedAt} />
           </p>
         </section>
       ) : null}
