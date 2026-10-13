@@ -32,6 +32,7 @@ it('copies immutable snapshots with screenshots without requiring an HTML entry'
   const snapshot = reports.resolveSource(reference)!;
   expect(snapshot.sourcePath).toBe(reports.resolve(reference));
   expect(snapshot.dumpPath).not.toBe(dumpPath);
+  if (!snapshot.dumpPath) throw new Error('Expected a materialized snapshot');
   expect(readFileSync(snapshot.dumpPath, 'utf8')).toBe('{"executions":[]}');
   expect(
     readFileSync(
