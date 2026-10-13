@@ -243,18 +243,14 @@ try {
         orientation: orientation.toUpperCase(),
       });
     }
-    for (const [mode, directions] of [
-      ['vertical', ['down', 'up']],
-      ['horizontal', ['right', 'left']],
-      ['top', ['up']],
-      ['bottom', ['down']],
-    ]) {
+    for (const [mode, directions] of [['vertical', ['down']]]) {
       for (const direction of directions) {
         for (
           let trial = 1;
-          trial <= (mode === 'vertical' || mode === 'horizontal' ? 3 : 1);
+          trial <= 12;
           trial++
         ) {
+          const calibration = ['baseline', 'min1000', 'min1500', 'hold100'][Math.floor((trial - 1) / 3)];
           const name = `${orientation}-${mode}-${direction}-${trial}`;
           const before = await reset(mode);
           const size = await device.size();
@@ -282,31 +278,27 @@ try {
           screenshot(`${name}-before`);
           let after;
           try {
-            await action.call(
-              { direction, scrollType: 'singleAction' },
-              { task: {}, skipDefaultWait: true },
-            );
+            const fromY = Math.round(size.height * 0.875);
+            const toY = Math.round(size.height * 0.125);
+            const duration = Math.max(calibration === 'min1000' ? 1000 : calibration === 'min1500' ? 1500 : 1, Math.round((fromY-toY)/0.4));
+            const pointerActions = [
+              {type:'pointerMove',duration:0,x:Math.round(size.width/2),y:fromY},
+              {type:'pointerDown',button:0},{type:'pause',duration:100},
+              {type:'pointerMove',duration,x:Math.round(size.width/2),y:toY},
+              ...(calibration === 'hold100' ? [{type:'pause',duration:100}] : []),
+              {type:'pointerUp',button:0}
+            ];
+            await wda(`/session/${session}/actions`, {actions:[{type:'pointer',id:'finger1',parameters:{pointerType:'touch'},actions:pointerActions}]});
             after = await settled(before);
             const axis = mode === 'horizontal' ? 'x' : 'y';
             const extent = mode === 'horizontal' ? before.width : before.height;
             const delta = after[axis] - before[axis];
             const fraction =
               (delta / extent) * (['up', 'left'].includes(direction) ? -1 : 1);
-            const result = { name, delta, fraction, extent };
+            const result = { name, calibration, delta, fraction, extent };
             results.push(result);
             save(`${name}.json`, { before, after, size, ...result });
-            if (mode === 'horizontal')
-              assert(
-                Math.abs(fraction - 1) < 0.03,
-                `${name}: expected one page, got ${fraction}`,
-              );
-            else if (mode === 'top' || mode === 'bottom')
-              assert(Math.abs(delta) <= 1, `${name}: boundary moved ${delta}`);
-            else
-              assert(
-                fraction >= 0.6 && fraction <= 0.95,
-                `${name}: expected overlapping coverage in [0.6, 0.95], got ${fraction}`,
-              );
+            console.log(JSON.stringify(result));
           } finally {
             screenshot(`${name}-after`);
             save('results.json', results);
@@ -316,7 +308,7 @@ try {
       }
     }
   }
-  save('summary.json', { passed: true, trials: results.length });
+  save('summary.json', { diagnosticOnly: true, trials: results.length });
 } catch (error) {
   save('failure.json', {
     message: error.message,

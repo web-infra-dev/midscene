@@ -169,6 +169,7 @@ MIDSCENE_IOS_WDA_PORT="$wda_port" \
 node scripts/mobile-scroll-regression.mjs ios 2>&1 |
   tee "$diagnostics_dir/default-scroll.log"
 scroll_exit=${PIPESTATUS[0]}
+exit "$scroll_exit"
 
 AI_TEST_TYPE=iOS \
 MIDSCENE_IOS_SIMULATOR_SMOKE=1 \

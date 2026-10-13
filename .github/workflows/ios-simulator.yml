@@ -1,4 +1,4 @@
-name: iOS Simulator
+name: iOS scroll calibration (no AI acceptance)
 
 on:
   pull_request:
