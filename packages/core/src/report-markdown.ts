@@ -452,7 +452,7 @@ function screenshotAttachment(
 ): { markdown: string; attachment: MarkdownAttachment } {
   const markdownLabel = options?.label || `task-${taskIndex + 1}`;
 
-  if (screenshot instanceof ScreenshotItem) {
+  if (ScreenshotItem.isScreenshotItem(screenshot)) {
     const ext = screenshot.extension;
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${screenshot.id}.${ext}`;
     return {

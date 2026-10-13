@@ -20,6 +20,7 @@ export type StepValue = string | Record<string, unknown>;
 export type StepInput = Record<string, unknown>;
 
 export interface CaseInput {
+  id?: string;
   name?: string;
   tags?: readonly string[];
   steps: readonly StepInput[];
@@ -34,6 +35,7 @@ export interface WorkflowDocumentDefinition {
 }
 
 export interface CaseDefinition<TStep = StepInput> {
+  id?: string;
   name: string;
   tags?: readonly string[];
   steps: readonly TStep[];

@@ -14,6 +14,7 @@ import {
   selectProjects,
 } from './project-preparation';
 import { loadTestProject } from './test-project';
+import { validateRunSelection } from './test-selection';
 
 const padDatePart = (value: number): string => String(value).padStart(2, '0');
 
@@ -70,6 +71,7 @@ export async function prepareTestRun(
   const startedAt = new Date();
   const runId = createTestRunId(startedAt);
   const input = resolveRunInput(options);
+  const selection = validateRunSelection(options);
   const configPath = options.configPath
     ? resolve(input.configSearchRoot, options.configPath)
     : discoverTestConfig(input.configSearchRoot);
@@ -100,9 +102,32 @@ export async function prepareTestRun(
         input.projectRoot,
         runDir,
         definition.test.testTimeout,
-        input.singleFile ? { files: [input.singleFile] } : undefined,
+        {
+          selection,
+          ...(input.singleFile ? { files: [input.singleFile] } : {}),
+        },
       ),
     );
+  if (selection.caseIds?.length) {
+    const availableCaseIds = new Set(
+      projects.flatMap((project) => project.availableCaseIds ?? []),
+    );
+    const unknown = selection.caseIds.find((id) => !availableCaseIds.has(id));
+    if (unknown) throw new Error(`Unknown Midscene case id: ${unknown}`);
+  }
+  if (
+    (selection.paths?.length ||
+      selection.caseIds?.length ||
+      selection.tags?.include?.length ||
+      selection.tags?.exclude?.length) &&
+    projects.every(
+      (project) =>
+        project.selectedCaseCount === 0 &&
+        project.collectionErrors.length === 0,
+    )
+  ) {
+    throw new Error('No Midscene cases matched the requested selection.');
+  }
   const hasFormatMismatch = projects.some((project) =>
     project.collectionErrors.some(
       ({ error }) => error instanceof NativeWorkflowFormatError,
