@@ -38,11 +38,12 @@ import {
   type TestExecutor,
   type TestExecutorCaseAttemptDto,
   type TestExecutorDocumentResultDto,
-  TestExecutorError,
+  type TestExecutorError,
   type TestExecutorErrorDto,
   type TestExecutorLifecycleResultDto,
   type TestExecutorStepResultDto,
   assertTestCaseTaskRunResult,
+  isTestExecutorError,
   localTestExecutor,
 } from './test-executor';
 import type {
@@ -515,7 +516,7 @@ const runCaseTask = async <TProjectContext>(
       executorFailure = undefined;
       break;
     } catch (error) {
-      if (!(error instanceof TestExecutorError)) throw error;
+      if (!isTestExecutorError(error)) throw error;
       executorFailure = error;
       if (
         !error.retryable ||
