@@ -76,12 +76,7 @@ tasks:
     flow:
       - aiTap: the Checkout with retry case row
       - aiAssert: The Checkout with retry case detail opens at the failed Step on Attempt 1, with order.create selected in the Execution panel.
-      - javascript: |
-          const evidence = document.querySelector('.runner-detail-evidence-panel');
-          if (!(evidence instanceof HTMLElement)) throw new Error('Missing order.create evidence panel');
-          evidence.scrollIntoView({ block: 'start' });
-        name: revealOrderCreateEvidence
-      - aiAssert: The order.create evidence panel shows a Step failed card with Inventory was not ready. Its details are collapsed. Information is selected, and Input shows sku demo-item with a redacted apiKey value.
+      - aiAssert: The selected order.create step and its Step failed card are visible without manual scrolling. The card shows Inventory was not ready with collapsed details. Information is selected, and Input shows sku demo-item with a redacted apiKey value.
       - aiTap: the collapsed details control inside the Step failed error card
       - aiAssert: The expanded error card details show NODE_EXECUTION_ERROR.
       - javascript: |
@@ -89,7 +84,8 @@ tasks:
           if (!(main instanceof HTMLElement)) throw new Error('Missing report scroll container');
           main.scrollTo({ top: 0 });
         name: restoreAttemptSelector
-      - aiTap: the Attempts dropdown showing Attempt 1 above Execution
+      - aiAssert: The Execution header groups the Visual and YAML switch with the Attempts dropdown on the left, and the Total steps, Success, Failed, Timeout, and Not run counts on the right.
+      - aiTap: the Attempts dropdown showing Attempt 1 beside Visual and YAML in the Execution header
       - aiAssert: The dropdown shows Attempt 1 as Failed and Attempt 2 as Passed.
       - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option
       - sleep: 500
@@ -103,11 +99,46 @@ tasks:
     flow:
       - aiTap: the Checkout with retry case row under Web regression
       - aiAssert: The case opens at the failed Step on Attempt 1, with order.create selected.
-      - aiTap: the Attempts dropdown showing Attempt 1 above Execution
+      - aiTap: the Attempts dropdown showing Attempt 1 beside Visual and YAML in the Execution header
       - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option
       - sleep: 500
       - aiAssert: Attempt 2 and aiAct are selected, with Record, Information, and Events tabs, and an embedded Agent report.
       - aiTap: the Information tab
-      - aiAssert: Input and Output appear as two stacked rows in one bordered panel. The execution step list remains visible on the left.
+      - aiAssert: Input, Output, and Stable IDs appear as aligned rows in one bordered panel. The execution steps share one left pane, with Document setup, Before each, Case steps, and After each separated by dividers. Step rows have no leading type icons or individual white bordered cards.
+      - aiTap: the Events tab
+      - aiAssert: Events is selected. Runtime events appear in a table with Time, Operation, Event, and Status columns. The started and settled events are visible, with a success status for settlement. The execution step list remains visible on the left.
       - aiTap: the Record tab
       - aiAssert: The recorded Agent task list and screenshot viewer are visible on the right of the Case workspace.
+
+  - name: execution divider preserves the recording at maximum sidebar width
+    flow:
+      # Keyboard sizing tests the divider's bounds deterministically; keep the
+      # resulting player visibility check on AI.
+      - javascript: |
+          (() => {
+            const divider = document.querySelector('[aria-label="Resize execution steps"]');
+            if (!(divider instanceof HTMLElement)) throw new Error('Missing execution divider');
+            divider.focus();
+            divider.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+          })();
+        name: maximizeExecutionSidebar
+      - aiAssert: The Case steps pane is wider, while the recorded Agent task list and screenshot viewer both remain visible on its right. The selected aiAct step remains selected.
+      - javascript: |
+          (() => {
+            const divider = document.querySelector('[aria-label="Resize execution steps"]');
+            if (!(divider instanceof HTMLElement)) throw new Error('Missing execution divider');
+            const value = Number(divider.getAttribute('aria-valuenow'));
+            const maximum = Number(divider.getAttribute('aria-valuemax'));
+            if (!Number.isFinite(maximum) || value !== maximum) throw new Error('Divider did not reach its maximum');
+            divider.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+          })();
+        name: resetExecutionSidebar
+      - aiAssert: The execution divider has returned to its default position. The selected aiAct step, recorded Agent task list, and screenshot viewer remain visible.
+
+  - name: runner events remain readable in both themes
+    flow:
+      - aiTap: the Events tab in the selected aiAct details
+      - aiTap: the theme toggle button in the top right header
+      - aiAssert: The Test Report is in dark theme. The Execution steps and Events table use dark surfaces with readable text, and the settled event has a green success badge.
+      - aiTap: the theme toggle button in the top right header
+      - aiAssert: The Test Report is back in light theme. The same aiAct step and Events tab remain selected, and the event table is readable.

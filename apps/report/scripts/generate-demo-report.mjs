@@ -3,6 +3,9 @@
  * - demo.html: canonical Test report produced by the legacy YAML command
  * - demo-agent.html: Agent report fixture extracted from the same run
  * - demo-merged.html: merged Agent report with both passed and failed cases
+ * - demo-midscene-test.html: Test Report hierarchy, retries, and embedded recording
+ * - demo-midscene-test-lifecycle.html: setup, blocked Case, and cleanup failures
+ * - demo-midscene-test-late-failure.html: automatic reveal of a late failed Step
  *
  * Usage: node scripts/generate-demo-report.mjs
  */

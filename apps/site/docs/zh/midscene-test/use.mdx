@@ -468,6 +468,18 @@ pnpm exec midscene-test --result-dir ./test-results
 
 每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
 
+**Test Report** 概览按 Project 展示 Case。可以用状态筛选和搜索缩小范围，点击列标题对 Project 排序，并在 **Compact** 简洁列表和包含元数据、截图时间线的 **Detailed** 列表之间切换。展开 Project 后，点击 Case 即可查看执行过程。只有一个 Case 的报告会直接进入该 Case。
+
+Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝试时的 **Attempts** 下拉框，以及 Step 状态统计。报告保存了源 YAML 快照时，才可使用 YAML 视图。Visual 视图在截图时间线下方展示统一的 Step 列表和选中 Step 的详情，列表中的生命周期分组使用分割线区分。在宽屏下，拖动分栏线可调整 Step 列表宽度，聚焦后也可使用方向键调整，双击可恢复默认宽度。打开包含失败 Step 的 Case 时，会选中该 Step，并将对应行和错误滚动到可见位置。
+
+选中 Step 后，可以查看 **Information** 和 **Events**；有录屏或截图证据时，还会显示 **Record**：
+
+- **Record** 展示关联的 Agent 执行过程或截图。悬停时间线缩略图可以预览，点击后会选中截图所属的 Step。
+- **Information** 按对齐的行展示 Input、Output 和 Stable IDs。有对应数据时，还会展示配置、Planned input 和 Capture boundary。
+- **Events** 以表格展示 Time、Operation、Event 和 Status。缺少详细操作事件时，会根据已知时间展示 Step 的开始和结束；没有事件的 Step 会显示空状态。
+
+Step 错误显示在这些标签页上方。展开 **details** 可查看技术信息；存在多个问题时，可通过 **View all … issues** 查看。Case 和生命周期清理错误仍显示在 Execution 上方。页头的主题按钮可以切换浅色和深色主题。
+
 报告保留执行前的测试计划，以及实际执行和未执行的步骤、未执行原因、重试停止原因。等待旧操作退出的时间与步骤执行时间分开记录。报告是生成时的快照：`cleanup pending` 表示当时清理尚未完成，资源仍保持隔离；之后完成的清理不会回写已生成的 HTML。
 
 报告默认保存在：

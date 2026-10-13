@@ -11,11 +11,6 @@ tasks:
       - aiAssert: The overview reports a failed run and shows Project browser disposal failed. Web regression is expanded and includes the failed Verify cart summary case and the not-run Blocked by document setup case.
       - aiTap: the Blocked by document setup case row
       - aiAssert: The not-run case has no Attempt selector. Its Execution panel shows the failed fixture.connect step under Document setup, and the evidence panel shows Database connection refused.
-      - javascript: |
-          const inspector = document.querySelector('.runner-detail-inspector');
-          if (!(inspector instanceof HTMLElement)) throw new Error('Missing fixture.connect evidence inspector');
-          inspector.scrollIntoView({ block: 'start' });
-        name: revealFixtureConnectInput
       - aiAssert: The visible Information panel for fixture.connect shows Input with host fixture-database.
       - javascript: |
           const main = document.querySelector('.runner-main');

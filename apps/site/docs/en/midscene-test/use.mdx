@@ -468,6 +468,18 @@ The CLI exits with code `1` when a test case fails, a document cannot be parsed,
 
 After each run, the CLI prints the results and a `Report:` path. Open the HTML report to inspect Projects, Cases, retry attempts, screenshots, Step input/output, errors, and associated Agent traces.
 
+The **Test Report** overview groups Cases by Project. Use the status filter and search to narrow the list, click a column header to sort Projects, and switch between **Compact** rows and **Detailed** rows with metadata and screenshot timelines. Expand a Project and click a Case to open its execution. A report with only one Case opens that Case directly.
+
+In a Case, the **Execution** header groups **Visual / YAML**, the **Attempts** dropdown (when multiple attempts exist), and Step status counts. YAML view is available when the report includes a source YAML snapshot. Visual view places the screenshot timeline above a shared Step list and the selected Step's details. Lifecycle groups are separated by dividers in the list. On wide screens, drag the divider to resize the Step list, use arrow keys after focusing it, or double-click to reset it. Opening a Case with a failed Step selects that Step and brings its row and error into view.
+
+The selected Step has **Information** and **Events** tabs, plus **Record** when recording or screenshot evidence is available:
+
+- **Record** shows the associated Agent execution or a captured screenshot. Hover over timeline thumbnails to preview them; click one to select its owning Step.
+- **Information** presents Input, Output, and Stable IDs as aligned rows. Configuration, planned input, and the capture boundary appear when available.
+- **Events** shows Time, Operation, Event, and Status in a table. If detailed operation events are unavailable, Step start and end times are shown when known. Steps with no events show an empty state.
+
+Step errors appear above these tabs. Expand **details** for technical information or use **View all … issues** when several issues exist. Case and lifecycle cleanup errors remain above Execution. The header's theme button switches between light and dark themes.
+
 The report preserves the test plan captured before execution, executed and unexecuted Steps, reasons Steps did not run, and reasons retries stopped. Time spent waiting for an earlier operation is recorded separately from Step execution time. The report is a snapshot at publication: `cleanup pending` means cleanup was unfinished at that point and resources remain quarantined. Cleanup that completes later does not update the published HTML.
 
 Reports are saved to:

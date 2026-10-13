@@ -292,7 +292,7 @@ describe('Midscene Test report layout', () => {
     expect(timeline).toContain('item.stepId === selectedStepId');
   });
 
-  it('draws keyboard focus inside step cards so scrolling cannot clip the ring', () => {
+  it('draws keyboard focus inside step rows so scrolling cannot clip the ring', () => {
     expect(figmaDetailStyles).toMatch(
       /\.runner-detail-step-list > button:focus-visible\s*\{[^}]*outline: 2px solid var\(--runner-primary\);[^}]*outline-offset: -2px;/s,
     );

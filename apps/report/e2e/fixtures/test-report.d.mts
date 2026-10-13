@@ -10,6 +10,9 @@ export function createTestReportFixture(
 export function createLifecycleReportFixture(
   index: TestRunReportSourceIndex,
 ): TestRunReportDump;
+export function createLateFailureReportFixture(
+  index: TestRunReportSourceIndex,
+): TestRunReportDump;
 export function generateTestReportFixtures(
   Assembler: typeof TestRunReportAssembler,
   sourcePath: string,

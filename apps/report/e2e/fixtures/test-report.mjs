@@ -213,10 +213,57 @@ export function createLifecycleReportFixture(index) {
   return dump;
 }
 
+export function createLateFailureReportFixture(index) {
+  const dump = createTestReportFixture(index);
+  dump.runId = 'report-e2e-late-failure';
+  dump.status = 'failed';
+  dump.summary = { ...dump.summary, passed: 1, failed: 1 };
+  const project = dump.projects[0];
+  project.status = 'failed';
+  const document = project.documents[0];
+  document.status = 'failed';
+  const testCase = document.cases[0];
+  testCase.name = 'Failure after many steps';
+  testCase.status = 'failed';
+  // Put the failure below the initial viewport and retain a cleanup group
+  // after it, reproducing selection at the end of a scrollable step list.
+  testCase.attempts = [
+    attempt(
+      'late-attempt',
+      0,
+      2,
+      6,
+      [
+        ...Array.from({ length: 18 }, (_, stepIndex) =>
+          step(`late-attempt:steps:${stepIndex}`, 'cart.prepare', 2, 2, {
+            stepIndex,
+            title: `Prepare item ${stepIndex + 1}`,
+          }),
+        ),
+        step('late-attempt:steps:18', 'order.submit', 3, 5, {
+          stepIndex: 18,
+          status: 'failed',
+          error: error('Order submission failed after preparation.'),
+        }),
+      ],
+      {
+        status: 'failed',
+        afterEach: [
+          step('late-attempt:afterEach:0', 'order.cleanup', 5, 6, {
+            phase: 'afterEach',
+          }),
+        ],
+      },
+    ),
+  ];
+  return dump;
+}
+
 export function generateTestReportFixtures(Assembler, sourcePath, outputDir) {
   return [
     ['demo-midscene-test', createTestReportFixture],
     ['demo-midscene-test-lifecycle', createLifecycleReportFixture],
+    ['demo-midscene-test-late-failure', createLateFailureReportFixture],
   ].map(([reportFileName, buildRunnerDump]) =>
     new Assembler().assemble({
       outputDir,
