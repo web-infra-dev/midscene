@@ -211,7 +211,10 @@ export type TestExecutorFailureKind =
   | 'report'
   | 'unknown';
 
+const executorErrorKey = Symbol.for('@midscene/test/executor-error');
+
 export class TestExecutorError extends Error {
+  readonly [executorErrorKey] = true;
   readonly kind: TestExecutorFailureKind;
   readonly retryable: boolean;
 
@@ -228,6 +231,20 @@ export class TestExecutorError extends Error {
     this.kind = options.kind ?? 'unknown';
     this.retryable = options.retryable ?? false;
   }
+}
+
+/** Config and CLI bundles can contain different copies of this constructor. */
+export function isTestExecutorError(
+  value: unknown,
+): value is TestExecutorError {
+  return (
+    value instanceof Error &&
+    Reflect.get(value, executorErrorKey) === true &&
+    ['provision', 'transport', 'cleanup', 'report', 'unknown'].includes(
+      Reflect.get(value, 'kind'),
+    ) &&
+    typeof Reflect.get(value, 'retryable') === 'boolean'
+  );
 }
 
 /** Runs one isolated Midscene case locally or through an external service. */

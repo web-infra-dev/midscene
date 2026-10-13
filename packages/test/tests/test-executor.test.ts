@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   type TestCaseTask,
+  TestExecutorError,
   assertTestCaseTaskRunResult,
+  isTestExecutorError,
 } from '../src/cli/test-executor';
 
 const task: TestCaseTask = {
@@ -32,6 +34,32 @@ const validResult = () => ({
 });
 
 describe('test executor result validation', () => {
+  it('recognizes executor errors from another module copy without accepting lookalikes', async () => {
+    vi.resetModules();
+    const other = await import('../src/cli/test-executor');
+    const error = new other.TestExecutorError('capacity', {
+      kind: 'provision',
+      retryable: true,
+    });
+    expect(error).not.toBeInstanceOf(TestExecutorError);
+    expect(isTestExecutorError(error)).toBe(true);
+    expect(
+      isTestExecutorError(
+        Object.assign(new Error('fake'), {
+          name: 'TestExecutorError',
+          kind: 'transport',
+          retryable: true,
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isTestExecutorError({
+        name: 'TestExecutorError',
+        kind: 'transport',
+        retryable: true,
+      }),
+    ).toBe(false);
+  });
   it.each([
     { cleanup: { status: 'pending', capturedAt: '2026-10-13T00:00:00Z' } },
     { cleanup: { status: 'failed', capturedAt: '2026-10-13T00:00:00Z' } },
