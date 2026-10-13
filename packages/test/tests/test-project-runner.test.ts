@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
   createTestRunId,
+  discoverSelectedTestFiles,
   discoverTestConfig,
   discoverTestFiles,
   runTestProject,
@@ -283,6 +284,25 @@ describe('test project main-process runner', () => {
         exclude: ['**/*.draft.yml'],
       }).map((file) => file.slice(root.length + 1)),
     ).toEqual(['flows/a.yaml', 'flows/nested/b.yml']);
+  });
+
+  it('discovers selected files from files and directories without escaping the project', () => {
+    const root = createProject();
+    writeWorkflow(root, 'selected/a.yaml', 'cases: []');
+    writeWorkflow(root, 'selected/nested/b.yml', 'cases: []');
+    writeWorkflow(root, 'other/c.yaml', 'cases: []');
+
+    expect(
+      discoverSelectedTestFiles(root, ['selected', 'selected/a.yaml']).map(
+        (file) => file.slice(root.length + 1),
+      ),
+    ).toEqual(['selected/a.yaml', 'selected/nested/b.yml']);
+    expect(() => discoverSelectedTestFiles(root, ['../outside'])).toThrow(
+      'outside the project',
+    );
+    expect(() => discoverSelectedTestFiles(root, ['missing'])).toThrow(
+      'does not exist',
+    );
   });
 
   it('reports an empty final file selection as a preflight failure', async () => {
@@ -2273,6 +2293,59 @@ afterAll:
     });
   });
 
+  it('selects cases by directory, tag, and stable case id', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `export default {
+        nodes: [{
+          name: 'record',
+          stringInputKey: 'value',
+          execute({ input }) {
+            globalThis.__testProjectRunnerState.events.push(input.value);
+          },
+        }],
+      };`,
+    );
+    writeWorkflow(
+      root,
+      'selected/cases.yaml',
+      `
+cases:
+  - id: smoke-selected
+    name: selected
+    tags: [smoke]
+    steps: [{ record: selected }]
+  - name: excluded
+    tags: [smoke, destructive]
+    steps: [{ record: excluded }]
+`,
+    );
+    writeWorkflow(
+      root,
+      'other.yaml',
+      'cases: [{ name: other, tags: [smoke], steps: [{ record: other }] }]',
+    );
+    const caseId = 'smoke-selected';
+
+    const result = await runTestProject({
+      projectRoot: root,
+      resultDir,
+      paths: ['selected'],
+      caseIds: [caseId],
+      tags: { include: ['smoke'], exclude: ['destructive'] },
+    });
+
+    expect(result.summary).toMatchObject({ total: 1, passed: 1, filtered: 1 });
+    expect(result.cases[0].caseId).toBe(caseId);
+    expect(state.events).toEqual(['selected']);
+    await expect(
+      runTestProject({ projectRoot: root, caseIds: ['unknown'] }),
+    ).rejects.toThrow('Unknown Midscene case id: unknown');
+  });
+
   it('rejects scheduling options that are not supported as CLI overrides', () => {
     for (const option of [
       '--parallel',
@@ -2332,6 +2405,30 @@ afterAll:
     expect(() =>
       parseTestCliArgs(['nodes', '--project', 'ios', '--project', 'android']),
     ).toThrow('nodes accepts only one --project name');
+    expect(
+      parseTestCliArgs(
+        [
+          'project',
+          '--file',
+          'cases/im',
+          '--case-id',
+          'case-1',
+          '--tag',
+          'smoke',
+          '--exclude-tag',
+          'destructive',
+        ],
+        '/workspace',
+      ),
+    ).toMatchObject({
+      projectRoot: '/workspace/project',
+      paths: ['cases/im'],
+      caseIds: ['case-1'],
+      tags: { include: ['smoke'], exclude: ['destructive'] },
+    });
+    expect(() => parseTestCliArgs(['nodes', '--file', 'cases/im'])).toThrow(
+      'nodes does not support',
+    );
   });
 
   it('documents only the native Test command surface', async () => {

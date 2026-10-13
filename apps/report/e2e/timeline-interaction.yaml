@@ -21,4 +21,4 @@ tasks:
           if (!(evidence instanceof HTMLElement)) throw new Error('Missing aiAct evidence panel');
           evidence.scrollIntoView({ block: 'start' });
         name: revealSelectedStepEvidence
-      - aiAssert: The visible aiAct evidence panel shows Record, Input & output, and Events tabs, with Record selected and the embedded Agent report visible
+      - aiAssert: The visible aiAct evidence panel shows Record, Information, and Events tabs, with Record selected and the embedded Agent report visible
