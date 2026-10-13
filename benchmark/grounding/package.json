@@ -9,9 +9,10 @@
     "build": "rsbuild build --config dashboard/rsbuild.report.config.ts",
     "build:report-template": "rsbuild build --config dashboard/rsbuild.report.config.ts",
     "validate:data": "tsx scripts/validate-dataset.ts",
-    "test": "tsx --test tests/*.test.ts evaluation/report-page/*.test.ts",
+    "test": "tsx --test tests/*.test.ts tests/*.test.mjs evaluation/report-page/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "report": "tsx scripts/generate-report.ts"
+    "report": "tsx scripts/generate-report.ts",
+    "browse:cases": "node scripts/browse-cases.mjs --serve"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",

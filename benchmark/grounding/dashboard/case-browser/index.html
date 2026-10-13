@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Grounding · 题库浏览</title>
+    <style>
+      :root {
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          'PingFang SC',
+          sans-serif;
+        color: #20332c;
+        background: #f4f6f3;
+        font-size: 13px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button,
+      select,
+      input,
+      textarea {
+        border: 1px solid #cbd5ce;
+        border-radius: 7px;
+        background: white;
+        padding: 6px 8px;
+        color: inherit;
+      }
+      button {
+        color: #20332c;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #edf4ef;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      header {
+        padding: 9px 16px;
+        background: #183e30;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0;
+      }
+      header p {
+        margin: 0;
+        color: #c7d9cd;
+      }
+      header > div {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      header p {
+        font-size: 12px;
+      }
+      #notice:empty {
+        display: none;
+      }
+      .eyebrow {
+        display: none;
+        font-size: 11px;
+        letter-spacing: 2px;
+        color: #a9c7b4;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 8px 16px;
+        border-bottom: 1px solid #dae1da;
+        background: white;
+      }
+      .toolbar input {
+        flex: 1;
+        min-width: 180px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        min-height: 0;
+        flex: 1;
+      }
+      nav {
+        overflow: auto;
+        border-right: 1px solid #dae1da;
+        padding: 8px;
+      }
+      .case {
+        display: block;
+        width: 100%;
+        text-align: left;
+        margin-bottom: 4px;
+        border-color: transparent;
+        background: transparent;
+        padding: 8px;
+      }
+      .case.active {
+        background: #e0ece3;
+        border-color: #94b69e;
+      }
+      .case small {
+        display: block;
+        margin-top: 6px;
+        color: #667970;
+      }
+      .case span {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 12px;
+      }
+      article {
+        overflow: auto;
+        padding: 12px 16px;
+      }
+      .heading {
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .case-heading {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .badge {
+        display: inline-block;
+        background: #e7eee8;
+        color: #365a44;
+        padding: 3px 6px;
+        border-radius: 5px;
+        margin: 0;
+        font-size: 12px;
+      }
+      .prompt-label {
+        display: inline;
+        font-size: 12px;
+        color: #607266;
+        margin-right: 6px;
+      }
+      .query {
+        font-size: 16px;
+        line-height: 1.55;
+        margin: 10px 0 4px;
+      }
+      .translation {
+        color: #607266;
+        margin-bottom: 10px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 250px;
+        gap: 12px;
+      }
+      .panel {
+        background: white;
+        border: 1px solid #dae1da;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+      .panel h3 {
+        font-size: 13px;
+        color: #536c5e;
+        margin: 0 0 10px;
+      }
+      .panel p {
+        line-height: 1.65;
+        margin: 8px 0;
+        overflow-wrap: anywhere;
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .viewport {
+        overflow: auto;
+        max-height: 70vh;
+        background: #e5eae5;
+        border-radius: 7px;
+        min-height: 150px;
+      }
+      .image-wrap {
+        position: relative;
+        line-height: 0;
+        width: 100%;
+      }
+      .image-wrap img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .gt {
+        position: absolute;
+        border: 3px solid #f04452;
+        background: #f044521c;
+        pointer-events: none;
+        box-shadow: 0 0 0 1px white;
+      }
+      .gt:before {
+        content: 'GT';
+        position: absolute;
+        top: -19px;
+        left: -3px;
+        font: 11px sans-serif;
+        background: #f04452;
+        color: white;
+        padding: 2px 4px;
+      }
+      .muted {
+        color: #697c70;
+        font-size: 12px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 80px;
+        resize: vertical;
+        margin-top: 10px;
+      }
+      aside select {
+        width: 100%;
+      }
+      a {
+        color: #176b4b;
+      }
+      details {
+        font-size: 12px;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-height: 300px;
+        overflow: auto;
+      }
+      .empty {
+        padding: 60px;
+        text-align: center;
+        color: #687b6f;
+      }
+      #notice {
+        font-size: 12px;
+        color: #f7dca1;
+      }
+      #position {
+        white-space: nowrap;
+        color: #607266;
+      }
+      .nav-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        aside {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+      }
+      @media (max-width: 700px) {
+        body {
+          height: auto;
+        }
+        header,
+        header > div {
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        main {
+          grid-template-columns: 1fr;
+          height: auto;
+        }
+        nav {
+          display: flex;
+          gap: 6px;
+          max-height: 76px;
+          border-bottom: 1px solid #dae1da;
+        }
+        nav > p,
+        header > div:first-child > p {
+          display: none;
+        }
+        nav .case {
+          flex: 0 0 190px;
+          margin: 0;
+        }
+        header h1 {
+          font-size: 14px;
+        }
+        header #progress {
+          display: none;
+        }
+        header {
+          padding: 10px;
+        }
+        article {
+          padding: 14px;
+        }
+        aside {
+          display: block;
+        }
+        .heading {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <div class="eyebrow">MIDSCENE / GROUNDING</div>
+        <h1>题库浏览与 Review</h1>
+        <p>200 题 · Web 100 / Mobile 100</p>
+      </div>
+      <div>
+        <button id="export">导出 Review</button>
+        <p id="progress"></p>
+        <p id="notice" role="status"></p>
+      </div>
+    </header>
+    <div class="toolbar">
+      <select id="platform" aria-label="平台">
+        <option value="">全部平台</option>
+        <option value="web">Web</option>
+        <option value="mobile">Mobile</option></select
+      ><select id="factor" aria-label="主考点">
+        <option value="">全部主考点</option></select
+      ><select id="status-filter" aria-label="Review 状态">
+        <option value="">全部 Review 状态</option>
+        <option value="pending">未 Review</option>
+        <option value="pass">通过</option>
+        <option value="question">有疑问</option>
+        <option value="replace">建议替换</option></select
+      ><input
+        id="search"
+        type="search"
+        placeholder="搜索题号、指令、来源…"
+        aria-label="搜索题目"
+      />
+    </div>
+    <main>
+      <nav id="list" aria-label="题目列表"></nav>
+      <article id="detail"></article>
+    </main>
+    <script id="case-data" type="application/json">
+      __CASE_DATA__
+    </script>
+    <script>
+      const rows = JSON.parse(document.getElementById('case-data').textContent);
+      const $ = (id) => document.getElementById(id);
+      const labels = {
+        pending: '未 Review',
+        pass: '通过',
+        question: '有疑问',
+        replace: '建议替换',
+      };
+      const factorNames = {
+        element: '直接元素定位',
+        unfamiliar: '不常见图标',
+        small: '小目标',
+        color: '颜色识别',
+        functional: '功能意图',
+        reasoning: '推理',
+        fine: '控件内部精确位置',
+        relative: '相对位置',
+        disambiguation: '重复元素消歧',
+        refusal: '目标不存在',
+      };
+      const storageKey = 'midscene-grounding-review-primary-20261008';
+      const state = {
+        selected:
+          decodeURIComponent(location.hash.slice(1)) || rows[0].case_name,
+        reviews: {},
+        zoom: 1,
+        showGt: true,
+      };
+      try {
+        state.reviews = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      } catch {
+        $('notice').textContent = '无法读取本地记录，请及时导出 Review。';
+      }
+      const escapeHtml = (value) =>
+        String(value ?? '').replace(
+          /[&<>"']/g,
+          (char) =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;',
+            })[char],
+        );
+      const review = (row) =>
+        state.reviews[row.case_name] || { status: 'pending', note: '' };
+      const filtered = () =>
+        rows.filter(
+          (row) =>
+            (!$('platform').value || row.platform === $('platform').value) &&
+            (!$('factor').value || row.primary_factor === $('factor').value) &&
+            (!$('status-filter').value ||
+              review(row).status === $('status-filter').value) &&
+            `${row.case_name} ${row.query} ${row.query_zh || ''} ${row.source_name}`
+              .toLowerCase()
+              .includes($('search').value.toLowerCase().trim()),
+        );
+      for (const factor of [
+        ...new Set(rows.map((row) => row.primary_factor)),
+      ]) {
+        const sample = rows.find((row) => row.primary_factor === factor);
+        const option = document.createElement('option');
+        option.value = factor;
+        option.dataset.label = factorNames[factor] || sample.primary_factor_label;
+        $('factor').append(option);
+      }
+      function updateFactorCounts() {
+        const platform = $('platform').value;
+        for (const option of $('factor').options) {
+          if (!option.value) {
+            continue;
+          }
+          const count = rows.filter(
+            (row) =>
+              (!platform || row.platform === platform) &&
+              row.primary_factor === option.value,
+          ).length;
+          option.textContent = `${option.dataset.label} (${count})`;
+        }
+      }
+      function saveReview() {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(state.reviews));
+          $('notice').textContent = '已保存到当前浏览器';
+        } catch {
+          $('notice').textContent = '本地保存失败，请导出 Review 以免丢失。';
+        }
+      }
+      function renderList(items) {
+        $('progress').textContent =
+          `已 Review ${rows.filter((row) => review(row).status !== 'pending').length} / ${rows.length}`;
+        $('list').innerHTML =
+          `<p class="muted">${items.length} 道题 · 可用 ← → 切换</p>` +
+          items
+            .map(
+              (row) =>
+                `<button class="case ${row.case_name === state.selected ? 'active' : ''}" data-id="${escapeHtml(row.case_name)}"><span>${escapeHtml(row.case_name)}</span><small>${escapeHtml(row.primary_factor_label)} · ${labels[review(row).status]}</small></button>`,
+            )
+            .join('');
+        $('list')
+          .querySelectorAll('[data-id]')
+          .forEach(
+            (button) => (button.onclick = () => selectCase(button.dataset.id)),
+          );
+      }
+      function selectCase(id) {
+        state.selected = id;
+        state.zoom = 1;
+        history.replaceState(null, '', `#${encodeURIComponent(id)}`);
+        render();
+      }
+      function move(direction) {
+        const items = filtered();
+        const next =
+          items[
+            items.findIndex((row) => row.case_name === state.selected) +
+              direction
+          ];
+        if (next) {
+          selectCase(next.case_name);
+        }
+      }
+      function updateImage() {
+        $('image-wrap').style.width = `${state.zoom * 100}%`;
+        if ($('gt')) {
+          $('gt').hidden = !state.showGt;
+        }
+      }
+      function render() {
+        updateFactorCounts();
+        const items = filtered();
+        if (!items.some((row) => row.case_name === state.selected)) {
+          state.selected = items[0]?.case_name;
+        }
+        renderList(items);
+        const row = items.find((item) => item.case_name === state.selected);
+        if (!row) {
+          $('detail').innerHTML =
+            '<div class="empty">没有匹配的题目，请调整筛选条件。</div>';
+          return;
+        }
+        history.replaceState(null, '', `#${encodeURIComponent(row.case_name)}`);
+        const index = items.indexOf(row);
+        const box = row.bbox_xyxy;
+        const link = (url, label) =>
+          /^https?:\/\//.test(url || '')
+            ? `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${label}</a>`
+            : '';
+        $('detail').innerHTML =
+          `<div class="heading"><div class="case-heading"><h2>${escapeHtml(row.case_name)}</h2><span class="badge">${escapeHtml(row.platform.toUpperCase())}</span><span class="badge">${escapeHtml(row.primary_factor_label)}</span><span class="badge">${box ? '点定位' : '无目标 · 应明确拒答'}</span></div><div class="nav-buttons"><span id="position">${index + 1} / ${items.length}</span><button id="prev" ${index === 0 ? 'disabled' : ''}>← 上一题</button><button id="next" ${index === items.length - 1 ? 'disabled' : ''}>下一题 →</button></div></div><p class="query"><span class="prompt-label">Prompt（主提示词）：</span>${escapeHtml(row.query)}</p><div class="translation"><span class="prompt-label">中文标注（来源数据）：</span>${escapeHtml(row.query_zh || row.raw_record?.instruction_zh || '暂无中文标注')}</div><div class="layout"><section><div class="panel"><div class="controls"><label><input type="checkbox" id="show-gt" ${state.showGt ? 'checked' : ''}> 显示 GT 框</label><button id="zoom-out">−</button><button id="zoom-in">＋</button><button id="fit">适应宽度</button><a href="${escapeHtml(row.image)}" target="_blank">打开原图 ↗</a><span class="muted">${row.width} × ${row.height}</span></div><div class="viewport"><div class="image-wrap" id="image-wrap"><img id="shot" src="${escapeHtml(row.image)}" alt="${escapeHtml(row.case_name)} 原始截图">${box ? `<div class="gt" id="gt" style="left:${(box[0] / row.width) * 100}%;top:${(box[1] / row.height) * 100}%;width:${((box[2] - box[0]) / row.width) * 100}%;height:${((box[3] - box[1]) / row.height) * 100}%"></div>` : ''}</div></div><p id="image-error" role="alert"></p><p class="muted">${box ? `GT [x1, y1, x2, y2]：${box.map((v) => Number(v.toFixed(2))).join(', ')}` : '本题无 GT 框：请检查是否确实不存在满足全部条件的目标。'}</p></div></section><aside><div class="panel"><h3>你的 Review</h3><select id="review-status" aria-label="当前题目 Review 状态">${Object.entries(
+            labels,
+          )
+            .map(
+              ([key, label]) =>
+                `<option value="${key}" ${review(row).status === key ? 'selected' : ''}>${label}</option>`,
+            )
+            .join(
+              '',
+            )}</select><textarea id="note" placeholder="记录指令歧义、GT 问题或替换理由…" aria-label="Review 备注">${escapeHtml(review(row).note)}</textarea><p class="muted">检查：指令明确 / 目标唯一 / GT 准确 / 考点匹配。记录保存在当前浏览器，可导出备份。</p></div><div class="panel"><h3>选题与分类</h3><p>${escapeHtml(row.primary_factor_reason || row.selection_reason)}</p><p class="muted">次要因子：${escapeHtml((row.secondary_factors || row.challenge_tags || []).join(' · '))}</p></div><div class="panel"><h3>来源</h3><p>${escapeHtml(row.source_name)}</p><p class="muted">${escapeHtml(row.source_id)}</p><p>${link(row.source_url, '数据集 ↗')} ${link(row.annotation_url, '原始标注 ↗')}</p><details><summary>查看完整来源记录</summary><pre>${escapeHtml(JSON.stringify(row, null, 2))}</pre></details></div></aside></div>`;
+        $('prev').onclick = () => move(-1);
+        $('next').onclick = () => move(1);
+        $('show-gt').onchange = (event) => {
+          state.showGt = event.target.checked;
+          updateImage();
+        };
+        $('zoom-in').onclick = () => {
+          state.zoom = Math.min(4, state.zoom + 0.5);
+          updateImage();
+        };
+        $('zoom-out').onclick = () => {
+          state.zoom = Math.max(0.5, state.zoom - 0.5);
+          updateImage();
+        };
+        $('fit').onclick = () => {
+          state.zoom = 1;
+          updateImage();
+        };
+        $('shot').onerror = () => {
+          $('image-error').textContent =
+            '图片加载失败，请确认页面与 _data 目录的位置关系未改变。';
+        };
+        $('review-status').onchange = () => {
+          state.reviews[row.case_name] = {
+            ...review(row),
+            status: $('review-status').value,
+            updatedAt: new Date().toISOString(),
+          };
+          saveReview();
+          render();
+        };
+        $('note').oninput = () => {
+          state.reviews[row.case_name] = {
+            ...review(row),
+            note: $('note').value,
+            updatedAt: new Date().toISOString(),
+          };
+          saveReview();
+        };
+        updateImage();
+      }
+      for (const id of ['platform', 'factor', 'status-filter', 'search']) {
+        $(id).addEventListener('input', () => {
+          state.zoom = 1;
+          render();
+        });
+      }
+      document.addEventListener('keydown', (event) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) {
+          return;
+        }
+        if (event.key === 'ArrowLeft') {
+          move(-1);
+        }
+        if (event.key === 'ArrowRight') {
+          move(1);
+        }
+      });
+      $('export').onclick = () => {
+        const blob = new Blob(
+          [
+            JSON.stringify(
+              {
+                dataset: 'Web primary v3 + Mobile primary v1 (2026-10-08)',
+                exportedAt: new Date().toISOString(),
+                reviews: rows.map((row) => ({
+                  case_name: row.case_name,
+                  ...review(row),
+                })),
+              },
+              null,
+              2,
+            ),
+          ],
+          { type: 'application/json' },
+        );
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'grounding-case-review.json';
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      };
+      render();
+    </script>
+  </body>
+</html>
