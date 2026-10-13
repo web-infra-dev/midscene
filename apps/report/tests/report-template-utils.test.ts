@@ -47,7 +47,7 @@ describe('report template utils', () => {
       validateReportHtml(
         html.replace('</body>', `${'x'.repeat(reportTemplateMaxBytes)}</body>`),
       ),
-    ).toThrow('3 MiB size limit');
+    ).toThrow('3 MiB + 32 KiB size limit');
   });
 
   it('writes and validates the fixed template module files', () => {

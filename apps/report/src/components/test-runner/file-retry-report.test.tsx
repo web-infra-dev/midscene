@@ -15,6 +15,7 @@ import {
   getCaseWorkspaceDocumentAttemptIndex,
   getCaseWorkspaceStepGroups,
 } from './case-workspace-model';
+import { collectReportIssues } from './issues';
 import {
   buildRunnerVisualIndex,
   flattenRunnerCases,
@@ -157,6 +158,43 @@ describe('whole-file retry report projection and viewer', () => {
     expect(
       getCaseWorkspaceStepGroups(item, undefined, 1)[0].steps[0].status,
     ).toBe('failed');
+  });
+
+  it('shows only non-node issues from the selected file attempt', () => {
+    const dump = buildTestRunReportDump(retryInput('beforeAll'), index);
+    const [item] = flattenRunnerCases(dump);
+    item.document.attempts![0].hostErrors = [
+      {
+        phase: 'publication',
+        error: { name: 'Error', message: 'first file publication failed' },
+      },
+    ];
+    item.document.attempts![1].hostErrors = [
+      {
+        phase: 'observer',
+        error: { name: 'Error', message: 'second file observer failed' },
+      },
+    ];
+    const issues = collectReportIssues(dump);
+    const render = (initialStepId?: string) =>
+      renderToStaticMarkup(
+        <CaseWorkspace
+          item={item}
+          issues={issues}
+          initialStepId={initialStepId}
+          reports={[]}
+          visualIndex={buildRunnerVisualIndex([])}
+          renderAgentReport={() => null}
+          onBack={() => {}}
+          backLabel="Overview"
+        />,
+      );
+    const final = render();
+    expect(final).toContain('second file observer failed');
+    expect(final).not.toContain('first file publication failed');
+    const first = render(item.document.attempts![0].beforeAll[0].id);
+    expect(first).toContain('first file publication failed');
+    expect(first).not.toContain('second file observer failed');
   });
 
   it.each(['beforeAll', 'steps', 'afterAll'] as const)(

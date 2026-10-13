@@ -10,3 +10,4 @@ export * from './scope-teardown';
 export * from './execution-failure';
 export * from './resource-operations';
 export * from './scheduler';
+export * from './result-metadata';

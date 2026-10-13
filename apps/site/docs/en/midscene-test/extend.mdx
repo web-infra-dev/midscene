@@ -111,7 +111,7 @@ $.timeoutMs; // 30000
 $.continueOnError; // true
 ```
 
-`inputSchema` only needs to declare `name` and `email`; `$` is not included in `input`. The framework enforces the timeout and continuation policy. `continue-on-error` allows later steps in the current phase to run after a failure, but the failed step still makes the case fail.
+`inputSchema` only needs to declare `name` and `email`; `$` is not included in `input`. The framework enforces the timeout and continuation policy. `continue-on-error` allows later steps in the current phase to run after a failure, subject to [resource safety checks](./use#handling-failures), but the failed step still makes the case fail.
 
 ### Available execution fields
 
@@ -297,6 +297,8 @@ Cleanup has these lifetimes:
 - Cleanup registered by Nodes in `beforeAll` or `afterAll` runs after the current file's `afterAll`.
 
 Within each scope, cleanup functions run in reverse registration order, or LIFO (last in, first out). Nodes can use them to release resources they created or finalize reports. Registering cleanup does not automatically create a new Agent or reset caches; those behaviors depend on the project implementation.
+
+If a Node times out but has not stopped, registered resource cleanup is deferred to avoid disposing of resources still in use. If a cleanup callback throws, remaining callbacks are still attempted; if a callback does not finish, subsequent callbacks wait for it. The framework bounds the wait for cleanup results and returns a `pending` snapshot if the limit is exceeded. Resources remain quarantined rather than being treated as cleaned up. See [Timeouts and cancellation](./configuration#timeouts-and-cancellation) for the waiting limits.
 
 When a test run is interrupted, the framework still attempts to run `afterEach`, `afterAll`, and cleanup functions registered with `onTeardown()`. See [Timeouts and cancellation](./configuration#timeouts-and-cancellation) for details.
 

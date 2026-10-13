@@ -1,3 +1,5 @@
+import type { TestRunReportValue } from '../../test-run-report';
+
 export type DurationInput = number;
 
 export interface StepMetaInput {
@@ -40,6 +42,8 @@ export interface CaseDefinition<TStep = StepInput> {
 export interface NormalizedStep {
   node: string;
   input: Record<string, unknown>;
+  /** Author input before variable resolution, retained only for the safe plan snapshot. */
+  templateInput?: Record<string, unknown>;
   meta: NormalizedStepMeta;
 }
 
@@ -69,6 +73,8 @@ export interface CollectedWorkflowDocument {
   documentId: string;
   projectId: string;
   sourcePath: string;
+  /** Redacted source snapshot, captured before resolving variables. */
+  sourceYaml?: TestRunReportValue;
   lifecycle: CollectedDocumentLifecycle;
   cases: readonly CollectedCase[];
 }

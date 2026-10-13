@@ -91,7 +91,9 @@ jobs:
     # Cache behavior uses explicit fixture configuration in the standard suite.
     # MIDSCENE_CACHE does not override those options, so a second full run is redundant.
     - name: Run e2e tests
-      run: pnpm run e2e
+      uses: ./.github/actions/ai-ci
+      with:
+        command: pnpm run e2e
       id: e2e-tests
       continue-on-error: true
 
@@ -104,7 +106,9 @@ jobs:
         if-no-files-found: ignore
 
     - name: Run e2e tests report
-      run: pnpm run e2e:report
+      uses: ./.github/actions/ai-ci
+      with:
+        command: pnpm run e2e:report
       id: e2e-tests-report
       continue-on-error: true
 
@@ -149,7 +153,9 @@ jobs:
       uses: ./.github/actions/setup-puppeteer-browser
 
     - name: Run apps/report e2e tests
-      run: cd apps/report && pnpm run e2e
+      uses: ./.github/actions/ai-ci
+      with:
+        command: cd apps/report && pnpm run e2e
       id: e2e-tests-app-report
 
     - name: Upload apps/report e2e report

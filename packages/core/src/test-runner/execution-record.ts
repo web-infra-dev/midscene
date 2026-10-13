@@ -4,6 +4,7 @@ import type {
   WorkflowReportSource,
 } from './engine/types';
 import type { CollectedWorkflowDocument } from './parser/types';
+import { buildTestRunReportPlan } from './reporting/test-plan';
 
 /**
  * One complete document invocation, including work outside the pure kernel.
@@ -59,6 +60,7 @@ export function executionRecordToResult(
     record.projectName ?? execution?.projectName ?? record.platform;
   return {
     document: {
+      plan: execution?.plan ?? buildTestRunReportPlan(record.document),
       documentId: record.document.documentId,
       documentRunId: record.runId,
       attemptIndex: record.attemptIndex,

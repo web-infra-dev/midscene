@@ -39,6 +39,42 @@ describe('legacy HTTP redirects', () => {
     }
   });
 
+  it('covers both languages and URL variants for the latest reported pages', () => {
+    for (const locale of ['', '/zh']) {
+      expect(
+        rules.find(({ from }) => from === `${locale}/reference.html`),
+      ).toEqual({
+        from: `${locale}/reference.html`,
+        to: `${locale}/reference/`,
+        status: '301',
+      });
+      for (const [previous, current] of [
+        ['reporting', 'consume-report-file'],
+        ['cli', 'yaml-script-runner'],
+        ['computer-introduction', 'platforms/desktop'],
+        ['android-introduction', 'platforms/android'],
+        ['ios-api-reference', 'reference/#ios'],
+        [
+          'blog-programming-practice-using-structured-api',
+          'basics#javascript-orchestration',
+        ],
+        [
+          'use-javascript-to-optimize-ai-automation-code',
+          'basics#javascript-orchestration',
+        ],
+      ]) {
+        for (const suffix of ['', '.html', '/']) {
+          const from = `${locale}/${previous}${suffix}`;
+          expect(rules.find((rule) => rule.from === from)).toEqual({
+            from,
+            to: `${locale}/${current}`,
+            status: '301',
+          });
+        }
+      }
+    }
+  });
+
   it('uses unique sources and existing targets, including fragment anchors', () => {
     expect(new Set(rules.map(({ from }) => from)).size).toBe(rules.length);
     for (const { from, to, status } of rules) {

@@ -1,7 +1,6 @@
 import { dirname, isAbsolute, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { require as tsxRequire } from 'tsx/cjs/api';
-import { tsImport } from 'tsx/esm/api';
 import { NodeRegistry } from '../engine/registry';
 import type { NodeDefinition } from '../node/types';
 
@@ -574,13 +573,17 @@ export async function loadTestProject<TContext = undefined>(
   const extension = assertSupportedConfig(absolutePath);
   let loaded: unknown;
   try {
-    loaded =
-      extension === '.mjs'
-        ? await import(pathToFileURL(absolutePath).href)
-        : await tsImport(pathToFileURL(absolutePath).href, {
-            parentURL: pathToFileURL(`${dirname(absolutePath)}${sep}`).href,
-            tsconfig: false,
-          });
+    if (extension === '.mjs') {
+      loaded = await import(pathToFileURL(absolutePath).href);
+    } else {
+      // Select tsx's ESM entry even when this loader is built as CommonJS.
+      // Its CommonJS entry can resolve the async loader relative to the wrong directory.
+      const { tsImport } = await import('tsx/esm/api');
+      loaded = await tsImport(pathToFileURL(absolutePath).href, {
+        parentURL: pathToFileURL(`${dirname(absolutePath)}${sep}`).href,
+        tsconfig: false,
+      });
+    }
   } catch (error) {
     try {
       if (extension === '.mjs' || !canRetryWithCjsLoader(error)) throw error;

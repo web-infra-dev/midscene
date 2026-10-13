@@ -47,6 +47,7 @@ import {
   type MergeTestRunReportSource,
   mergeTestRunReportDumps,
 } from './test-runner/reporting/merge-report';
+import { collectTestRunReportMetrics } from './test-runner/reporting/metrics';
 import {
   type ExecutionDump,
   type IExecutionDump,
@@ -491,22 +492,30 @@ export class ReportMergingTool {
       }
 
       if (hasRunnerDump) {
-        const summary = collectReportSummary({
-          executions: dedupeExecutionsKeepLatest(
-            agentReports.flatMap((report) => report.executions),
+        const executions = dedupeExecutionsKeepLatest(
+          agentReports.flatMap((report) => report.executions),
+        );
+        const metrics = collectTestRunReportMetrics({ executions });
+        const executionMetrics = Object.fromEntries(
+          executions.flatMap((execution) =>
+            execution.id
+              ? [
+                  [
+                    execution.id,
+                    collectTestRunReportMetrics({ executions: [execution] }),
+                  ],
+                ]
+              : [],
           ),
-        });
+        );
         appendFileSync(
           outputFilePath,
           runnerDumpScript(
             mergeTestRunReportDumps(
               runnerSources,
-              {
-                modelCallCount: summary.timing.modelCallCount,
-                modelTimeMs: summary.timing.modelCallTimeMs,
-                ...summary.tokens,
-              },
+              metrics,
               uuid(),
+              executionMetrics,
             ),
           ),
         );
@@ -620,41 +629,86 @@ const uniqueTestRunReportSources = (
 
 const prepareTestRunReportSources = (
   sources: readonly TestRunReportSource[],
-  loadedDumps?: ReadonlyMap<string, string>,
+  loadedDumps?: ReadonlyMap<string, string | Error>,
 ): {
   sources: PreparedTestRunReportSource[];
   metrics: TestRunReportMetrics;
+  capturedMetrics: TestRunReportMetrics;
+  executionMetrics: Record<string, TestRunReportMetrics>;
+  diagnostics: import('./test-run-report').TestRunReportDiagnostic[];
 } => {
   const prepared: PreparedTestRunReportSource[] = [];
+  const diagnostics: import('./test-run-report').TestRunReportDiagnostic[] = [];
   const ownerByScopedExecution = new Map<string, string>();
   const preparedByPath = new Map<string, PreparedTestRunReportSource>();
 
   for (const [sourceIndex, source] of uniqueTestRunReportSources(
     sources,
   ).entries()) {
+    let baseDump: ReportActionDump;
+    let executions: IExecutionDump[];
+    try {
+      if (source.dumpPath) {
+        const contents =
+          loadedDumps?.get(source.dumpPath) ??
+          readFileSync(source.dumpPath, 'utf8');
+        if (contents instanceof Error) throw contents;
+        baseDump = ReportActionDump.fromSerializedString(contents);
+        executions = baseDump.executions;
+      } else {
+        if (!existsSync(source.sourcePath))
+          throw new Error(`Agent report does not exist: ${source.sourcePath}`);
+        const sourceVersion = peekReportSdkVersion(source.sourcePath);
+        const currentVersion = getVersion();
+        if (
+          sourceVersion &&
+          currentVersion &&
+          sourceVersion !== currentVersion &&
+          !warnedMismatchedVersions.has(sourceVersion)
+        ) {
+          warnedMismatchedVersions.add(sourceVersion);
+          logMsg(
+            `[@midscene/core] TestRunReportAssembler version mismatch: source report was written by @midscene/core@${sourceVersion} but the assembler is @midscene/core@${currentVersion}. Align the workspace package versions before generating the Midscene Test report.`,
+          );
+        }
+        ({ baseDump, executions } = collectDedupedExecutions(
+          source.sourcePath,
+        ));
+      }
+    } catch (error) {
+      diagnostics.push({
+        level: 'warning',
+        code: 'agent-source-unavailable',
+        scopeId: source.scopeId,
+        sourcePaths: [source.sourcePath],
+        message: `Agent source could not be collected: ${String(error)}`,
+      });
+      continue;
+    }
     // A borrowed Agent can serve several sequential test scopes. Reuse its
     // report group and metrics while indexing each scope's execution links.
     const sourceKey = source.sourcePath;
     const shared = preparedByPath.get(sourceKey);
     if (shared) {
       if (source.dumpPath) {
-        const snapshot = ReportActionDump.fromSerializedString(
-          loadedDumps?.get(source.dumpPath) ??
-            readFileSync(source.dumpPath, 'utf8'),
-        );
         shared.dump.executions = dedupeExecutionsKeepLatest([
           ...shared.dump.executions,
-          ...snapshot.executions,
+          ...baseDump.executions,
         ]);
-        shared.executionIds.splice(
-          0,
-          shared.executionIds.length,
-          ...shared.dump.executions.flatMap((execution) =>
+      }
+      const scoped = prepared.find(
+        (item) =>
+          item.reportId === shared.reportId && item.scopeId === source.scopeId,
+      );
+      const executionIds = [
+        ...new Set([
+          ...(scoped?.executionIds ?? []),
+          ...executions.flatMap((execution) =>
             execution.id ? [execution.id] : [],
           ),
-        );
-      }
-      for (const executionId of shared.executionIds) {
+        ]),
+      ];
+      for (const executionId of executionIds) {
         const key = `${source.scopeId}\u0000${executionId}`;
         const owner = ownerByScopedExecution.get(key);
         if (owner && owner !== shared.reportId)
@@ -663,39 +717,22 @@ const prepareTestRunReportSources = (
           );
         ownerByScopedExecution.set(key, shared.reportId);
       }
-      prepared.push({ ...shared, scopeId: source.scopeId });
+      if (scoped) {
+        scoped.executionIds = executionIds;
+        const partial = [scoped.collection, source.collection].find(
+          (collection) => collection?.status === 'partial',
+        );
+        scoped.collection = partial ?? source.collection ?? scoped.collection;
+      } else
+        prepared.push({
+          ...shared,
+          scopeId: source.scopeId,
+          executionIds,
+          collection: source.collection,
+        });
       continue;
     }
-    if (!source.dumpPath && !existsSync(source.sourcePath)) {
-      throw new Error(`Agent report does not exist: ${source.sourcePath}`);
-    }
-
-    const sourceVersion = source.dumpPath
-      ? undefined
-      : peekReportSdkVersion(source.sourcePath);
-    const currentVersion = getVersion();
-    if (
-      sourceVersion &&
-      currentVersion &&
-      sourceVersion !== currentVersion &&
-      !warnedMismatchedVersions.has(sourceVersion)
-    ) {
-      warnedMismatchedVersions.add(sourceVersion);
-      logMsg(
-        `[@midscene/core] TestRunReportAssembler version mismatch: source report was written by @midscene/core@${sourceVersion} but the assembler is @midscene/core@${currentVersion}. Align the workspace package versions before generating the Midscene Test report.`,
-      );
-    }
-
     const reportId = `runner-report-${sourceIndex + 1}`;
-    const snapshot = source.dumpPath
-      ? ReportActionDump.fromSerializedString(
-          loadedDumps?.get(source.dumpPath) ??
-            readFileSync(source.dumpPath, 'utf8'),
-        )
-      : undefined;
-    const { baseDump, executions } = snapshot
-      ? { baseDump: snapshot, executions: snapshot.executions }
-      : collectDedupedExecutions(source.sourcePath);
     const executionIds: string[] = [];
     for (const execution of executions) {
       if (!execution.id) continue;
@@ -723,6 +760,7 @@ const prepareTestRunReportSources = (
       scopeId: source.scopeId,
       sourcePath: source.sourcePath,
       executionIds,
+      collection: source.collection,
       dump,
       directoryMode:
         !!source.dumpPath || isDirectoryModeReport(source.sourcePath),
@@ -734,17 +772,57 @@ const prepareTestRunReportSources = (
 
   // A legacy invocation can preserve a snapshot of an Agent also used by
   // native scopes. Count stable executions once across both paths.
-  const summary = collectReportSummary({
-    executions: dedupeExecutionsKeepLatest(
-      [...preparedByPath.values()].flatMap((source) => source.dump.executions),
+  const executions = dedupeExecutionsKeepLatest(
+    [...preparedByPath.values()].flatMap((source) => source.dump.executions),
+  );
+  const metrics = collectTestRunReportMetrics({ executions });
+  const executionMetrics = Object.fromEntries(
+    executions.flatMap((execution) =>
+      execution.id
+        ? [
+            [
+              execution.id,
+              collectTestRunReportMetrics({ executions: [execution] }),
+            ],
+          ]
+        : [],
     ),
-  });
+  );
   return {
     sources: prepared,
+    diagnostics,
+    capturedMetrics: metrics,
+    executionMetrics,
     metrics: {
-      modelCallCount: summary.timing.modelCallCount,
-      modelTimeMs: summary.timing.modelCallTimeMs,
-      ...summary.tokens,
+      ...metrics,
+      collection: {
+        ...metrics.collection!,
+        fields: Object.fromEntries(
+          Object.entries(metrics.collection!.fields!).map(([field, status]) => [
+            field,
+            diagnostics.length
+              ? prepared.length === 0
+                ? 'unknown'
+                : status === 'complete'
+                  ? 'partial'
+                  : status
+              : status,
+          ]),
+        ) as NonNullable<
+          NonNullable<TestRunReportMetrics['collection']>['fields']
+        >,
+        status: diagnostics.length
+          ? prepared.length
+            ? 'partial'
+            : 'unknown'
+          : metrics.collection!.status,
+        expectedExecutionCount: 0,
+        capturedExecutionCount: 0,
+        reasons: [
+          ...metrics.collection!.reasons,
+          ...diagnostics.map((diagnostic) => diagnostic.message),
+        ],
+      },
     },
   };
 };
@@ -762,20 +840,31 @@ export class TestRunReportAssembler {
     options: AssembleTestRunReportOptions,
   ): Promise<string> {
     validateTestRunReportFileName(options.reportFileName);
-    const loaded = new Map<string, string>();
+    const loaded = new Map<string, string | Error>();
     await Promise.all(
       options.sources.map(async (source) => {
-        if (source.dumpPath)
-          loaded.set(
-            source.dumpPath,
-            await fsAsync.readFile(source.dumpPath, 'utf8'),
-          );
+        if (source.dumpPath) {
+          try {
+            loaded.set(
+              source.dumpPath,
+              await fsAsync.readFile(source.dumpPath, 'utf8'),
+            );
+          } catch (error) {
+            loaded.set(
+              source.dumpPath,
+              error instanceof Error ? error : new Error(String(error)),
+            );
+          }
+        }
       }),
     );
     const prepared = prepareTestRunReportSources(options.sources, loaded);
     const dump = options.buildRunnerDump({
       sources: prepared.sources,
       metrics: prepared.metrics,
+      capturedMetrics: prepared.capturedMetrics,
+      executionMetrics: prepared.executionMetrics,
+      diagnostics: prepared.diagnostics,
     });
     if (dump.kind !== 'test-runner' || dump.schemaVersion !== 1)
       throw new Error('Invalid Runner report dump');
@@ -902,14 +991,18 @@ export class TestRunReportAssembler {
     const prepared = prepareTestRunReportSources(options.sources);
     const index: TestRunReportSourceIndex = {
       sources: prepared.sources.map(
-        ({ reportId, scopeId, sourcePath, executionIds }) => ({
+        ({ reportId, scopeId, sourcePath, executionIds, collection }) => ({
           reportId,
           scopeId,
           sourcePath,
           executionIds,
+          collection,
         }),
       ),
       metrics: prepared.metrics,
+      capturedMetrics: prepared.capturedMetrics,
+      executionMetrics: prepared.executionMetrics,
+      diagnostics: prepared.diagnostics,
     };
     const runnerDump = options.buildRunnerDump(index);
     if (runnerDump.schemaVersion !== 1 || runnerDump.kind !== 'test-runner') {
