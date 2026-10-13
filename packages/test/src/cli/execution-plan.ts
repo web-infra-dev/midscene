@@ -7,7 +7,6 @@ import type {
   LoadedExecutionProject,
   LoadedTestProject,
   TestFileSelection,
-  TestTagSelection,
 } from './test-project';
 import type { TestProjectCollectionError, TestProjectRunResult } from './types';
 
@@ -17,9 +16,6 @@ export interface TestProjectRunOptions {
   configPath?: string;
   resultDir?: string;
   projectNames?: readonly string[];
-  paths?: readonly string[];
-  caseIds?: readonly string[];
-  tags?: TestTagSelection;
   onProgress?(message: string): void;
 }
 
@@ -40,7 +36,6 @@ export interface PreparedDocumentInvocation {
 }
 
 export interface ProjectPreparationOptions {
-  selection?: Pick<TestProjectRunOptions, 'paths' | 'caseIds' | 'tags'>;
   files?: readonly string[];
   prerequisiteFile?: string;
   documentConcurrency?: number;
@@ -58,7 +53,6 @@ export interface ProjectPreparationOptions {
 }
 
 export interface PreparedExecutionProject {
-  availableCaseIds?: readonly string[];
   project: LoadedExecutionProject;
   platform?: string;
   documentConcurrency: number;
