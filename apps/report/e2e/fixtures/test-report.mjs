@@ -259,45 +259,11 @@ export function createLateFailureReportFixture(index) {
   return dump;
 }
 
-export function createViewSwitchReportFixture(index) {
-  const dump = createTestReportFixture(index);
-  dump.runId = 'report-e2e-view-switch';
-  const document = dump.projects[0].documents[0];
-  const testCase = document.cases[0];
-  testCase.name = 'View switching';
-  testCase.attempts = [testCase.attempts[1]];
-  testCase.attempts[0].attemptIndex = 0;
-  document.plan = {
-    documentId: document.documentId,
-    sourcePath: document.sourcePath,
-    retry: { scope: 'case', count: 0 },
-    beforeAll: [],
-    cases: [],
-    afterAll: [],
-    sourceYaml: {
-      value: `beforeAll:
-  - fixture.prepare: {}
-beforeEach:
-  - browser.open: {}
-cases:
-  - name: View switching
-    steps:
-      - aiAct:
-          prompt: Inspect the recorded Agent flow
-afterEach:
-  - order.cleanup: {}
-`,
-    },
-  };
-  return dump;
-}
-
 export function generateTestReportFixtures(Assembler, sourcePath, outputDir) {
   return [
     ['demo-midscene-test', createTestReportFixture],
     ['demo-midscene-test-lifecycle', createLifecycleReportFixture],
     ['demo-midscene-test-late-failure', createLateFailureReportFixture],
-    ['demo-midscene-test-view-switch', createViewSwitchReportFixture],
   ].map(([reportFileName, buildRunnerDump]) =>
     new Assembler().assemble({
       outputDir,

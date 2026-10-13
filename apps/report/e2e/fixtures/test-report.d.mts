@@ -13,9 +13,6 @@ export function createLifecycleReportFixture(
 export function createLateFailureReportFixture(
   index: TestRunReportSourceIndex,
 ): TestRunReportDump;
-export function createViewSwitchReportFixture(
-  index: TestRunReportSourceIndex,
-): TestRunReportDump;
 export function generateTestReportFixtures(
   Assembler: typeof TestRunReportAssembler,
   sourcePath: string,

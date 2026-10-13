@@ -34,7 +34,6 @@ cd apps/report
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-report.yaml
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-lifecycle.yaml
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-late-failure.yaml
-pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-view-switch.yaml
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/timeline-interaction.yaml
 ```
 
@@ -51,7 +50,6 @@ variables there, or load the root `.env` explicitly with Node's
 | `midscene-test-report.yaml`                                                               | `demo-midscene-test.html`              | Project filters, Compact/Detailed rows, retries, Execution header controls, shared Step pane, Record/Information/Events, divider limits/reset, light/dark Events |
 | `midscene-test-lifecycle.yaml`                                                            | `demo-midscene-test-lifecycle.html`    | Setup failures, blocked Cases, cleanup issues and issue drawer                                                                                                   |
 | `midscene-test-late-failure.yaml`                                                         | `demo-midscene-test-late-failure.html` | Opening a failed Case reveals both the selected late Step and its error without manual scrolling                                                                 |
-| `midscene-test-view-switch.yaml` | `demo-midscene-test-view-switch.html` | Short-viewport view switching preserves scroll positions and timeline/canvas instances; clicking the same or a different YAML Step still reveals and focuses its details |
 | `timeline-interaction.yaml`                                                               | `demo.html`                            | Legacy YAML opens Test Report; timeline selection opens the owning Step's Record tab                                                                             |
 | `report-single.yaml`, `sidebar-navigation.yaml`, `detail-panel.yaml`, `theme-toggle.yaml` | `demo-agent.html`                      | Standalone Agent task list, timing, replay, details, Markdown and themes                                                                                         |
 | `report-mobile.yaml`, `player-only.yaml`                                                  | `demo-agent.html`                      | Narrow-screen Steps/Player navigation, information drawer and player-only mode                                                                                   |

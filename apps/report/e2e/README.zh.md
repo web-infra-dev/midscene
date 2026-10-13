@@ -29,7 +29,6 @@ cd apps/report
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-report.yaml
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-lifecycle.yaml
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-late-failure.yaml
-pnpm exec node ../../packages/cli/bin/midscene ./e2e/midscene-test-view-switch.yaml
 pnpm exec node ../../packages/cli/bin/midscene ./e2e/timeline-interaction.yaml
 ```
 
@@ -43,7 +42,6 @@ pnpm exec node ../../packages/cli/bin/midscene ./e2e/timeline-interaction.yaml
 | `midscene-test-report.yaml`                                                               | `demo-midscene-test.html`              | Project 筛选、Compact/Detailed 列表、重试、Execution 表头、统一 Step 列表、Record/Information/Events、分栏上限和重置、浅色/深色 Events |
 | `midscene-test-lifecycle.yaml`                                                            | `demo-midscene-test-lifecycle.html`    | 初始化失败、受阻 Case、清理错误和问题抽屉                                                                                              |
 | `midscene-test-late-failure.yaml`                                                         | `demo-midscene-test-late-failure.html` | 打开失败 Case 后，无需手动滚动即可看到列表末尾选中的 Step 及其错误                                                                     |
-| `midscene-test-view-switch.yaml` | `demo-midscene-test-view-switch.html` | 短窗口下切换视图保持滚动位置及时间线和画布实例；点击相同或不同 YAML Step 仍会显示并聚焦其详情 |
 | `timeline-interaction.yaml`                                                               | `demo.html`                            | 旧 YAML 打开 Test Report，选择时间线截图后显示所属 Step 的 Record                                                                      |
 | `report-single.yaml`、`sidebar-navigation.yaml`、`detail-panel.yaml`、`theme-toggle.yaml` | `demo-agent.html`                      | 独立 Agent 的任务列表、耗时、回放、详情、Markdown 和主题                                                                               |
 | `report-mobile.yaml`、`player-only.yaml`                                                  | `demo-agent.html`                      | 窄屏 Steps/Player 切换、信息抽屉和仅播放器模式                                                                                         |

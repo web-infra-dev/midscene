@@ -27,18 +27,13 @@ export function useTimelineImages(
   });
 
   useEffect(() => {
+    setPrepared({
+      items,
+      images: emptyImages,
+      failures: emptyFailures,
+      initialReady: false,
+    });
     if (!visible || !width || !items.length) return;
-    // Keep prepared canvases mounted when the view is temporarily hidden.
-    setPrepared((current) =>
-      current.items === items
-        ? current
-        : {
-            items,
-            images: emptyImages,
-            failures: emptyFailures,
-            initialReady: false,
-          },
-    );
     const controller = new AbortController();
     const { signal } = controller;
     const groups = selectTimelineImageGroups(

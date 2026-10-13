@@ -6,7 +6,6 @@
  * - demo-midscene-test.html: Test Report hierarchy, retries, and embedded recording
  * - demo-midscene-test-lifecycle.html: setup, blocked Case, and cleanup failures
  * - demo-midscene-test-late-failure.html: automatic reveal of a late failed Step
- * - demo-midscene-test-view-switch.html: view switching and YAML Step navigation
  *
  * Usage: node scripts/generate-demo-report.mjs
  */

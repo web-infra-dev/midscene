@@ -48,41 +48,22 @@ export function RunnerExecutionPanel({
   const executionBody = useRef<HTMLDivElement>(null);
   const sidebar = useExecutionSidebar(executionBody);
   const openingYamlStep = useRef(false);
-  const revealedSelection = useRef<{ id: string; failed: boolean }>();
   const selectedStepFailed = steps.some(
     (step) => step.id === selectedStepId && step.status === 'failed',
   );
   useEffect(() => {
     if (showYaml || !selectedStepId) return;
-    const previous = revealedSelection.current;
-    if (
-      !openingYamlStep.current &&
-      previous?.id === selectedStepId &&
-      previous.failed === selectedStepFailed
-    )
-      return;
     let revealFrame: number | undefined;
     // Case navigation restores the main scroll position over two frames.
     // Reveal the selection after that restoration, including on initial entry.
     const frame = window.requestAnimationFrame(() => {
       revealFrame = window.requestAnimationFrame(() => {
         if (executionBody.current && selectedButton.current) {
-          if (openingYamlStep.current) {
-            openingYamlStep.current = false;
-            selectedButton.current.focus({ preventScroll: true });
-            executionBody.current
-              .querySelector('.runner-detail-evidence-heading')
-              ?.scrollIntoView({ block: 'nearest' });
-          }
           revealExecutionStep(
             executionBody.current,
             selectedButton.current,
             selectedStepFailed,
           );
-          revealedSelection.current = {
-            id: selectedStepId,
-            failed: selectedStepFailed,
-          };
         }
       });
     });
@@ -91,6 +72,15 @@ export function RunnerExecutionPanel({
       if (revealFrame !== undefined) window.cancelAnimationFrame(revealFrame);
     };
   }, [showYaml, selectedStepId, selectedStepFailed]);
+  useEffect(() => {
+    if (showYaml || !openingYamlStep.current) return;
+    openingYamlStep.current = false;
+    selectedButton.current?.focus({ preventScroll: true });
+    selectedButton.current?.scrollIntoView({ block: 'nearest' });
+    executionBody.current
+      ?.querySelector('.runner-detail-evidence-heading')
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [showYaml, selectedStepId]);
   const viewSwitch = (
     <Segmented
       aria-label="Execution view"
@@ -137,11 +127,7 @@ export function RunnerExecutionPanel({
           />
         </section>
       ) : null}
-      {timeline ? (
-        <div className="runner-detail-timeline-view" hidden={showYaml}>
-          {timeline}
-        </div>
-      ) : null}
+      {!showYaml ? timeline : null}
       <div
         className="runner-detail-execution-body"
         hidden={showYaml}
