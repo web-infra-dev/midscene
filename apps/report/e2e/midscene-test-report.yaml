@@ -115,25 +115,40 @@ tasks:
       # Keyboard sizing tests the divider's bounds deterministically; keep the
       # resulting player visibility check on AI.
       - javascript: |
-          (() => {
+          (async () => {
             const divider = document.querySelector('[aria-label="Resize execution steps"]');
             if (!(divider instanceof HTMLElement)) throw new Error('Missing execution divider');
+            const initial = Number(divider.getAttribute('aria-valuenow'));
+            divider.dataset.initialWidth = String(initial);
             divider.focus();
             divider.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
-          })();
-        name: maximizeExecutionSidebar
-      - aiAssert: The Case steps pane is wider, while the recorded Agent task list and screenshot viewer both remain visible on its right. The selected aiAct step remains selected.
-      - javascript: |
-          (() => {
-            const divider = document.querySelector('[aria-label="Resize execution steps"]');
-            if (!(divider instanceof HTMLElement)) throw new Error('Missing execution divider');
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             const value = Number(divider.getAttribute('aria-valuenow'));
             const maximum = Number(divider.getAttribute('aria-valuemax'));
-            if (!Number.isFinite(maximum) || value !== maximum) throw new Error('Divider did not reach its maximum');
+            const pane = document.querySelector('.runner-detail-step-scroll');
+            if (!(pane instanceof HTMLElement)) throw new Error('Missing execution steps pane');
+            if (!Number.isFinite(maximum) || Math.abs(value - maximum) > 0.5 || value <= initial) {
+              throw new Error('Execution sidebar did not grow to its maximum');
+            }
+            if (Math.abs(pane.getBoundingClientRect().width - maximum) > 1) {
+              throw new Error('Execution steps pane does not match the maximum width');
+            }
+          })();
+        name: maximizeExecutionSidebar
+      - aiAssert: The aiAct step is selected in the left execution steps pane. To its right, the Record tab is selected, and both the recorded Agent task list and screenshot viewer are visible side by side.
+      - javascript: |
+          (async () => {
+            const divider = document.querySelector('[aria-label="Resize execution steps"]');
+            if (!(divider instanceof HTMLElement)) throw new Error('Missing execution divider');
             divider.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const value = Number(divider.getAttribute('aria-valuenow'));
+            const initial = Number(divider.dataset.initialWidth);
+            if (!Number.isFinite(initial) || value !== initial) throw new Error('Divider did not reset to its initial width');
+            delete divider.dataset.initialWidth;
           })();
         name: resetExecutionSidebar
-      - aiAssert: The execution divider has returned to its default position. The selected aiAct step, recorded Agent task list, and screenshot viewer remain visible.
+      - aiAssert: The aiAct step remains selected in the left execution steps pane. To its right, both the recorded Agent task list and screenshot viewer remain visible side by side in the Record tab.
 
   - name: runner events remain readable in both themes
     flow:

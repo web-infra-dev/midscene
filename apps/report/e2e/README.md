@@ -58,6 +58,10 @@ variables there, or load the root `.env` explicitly with Node's
 Use the current visible labels **Test Report**, **Information**, and **Events**.
 Events uses readable labels such as **Run step**, **Started**, and **Finished**;
 raw operation/event names are retained in hover hints, not as visible cell text.
+Divider tests verify width changes, bounds, and reset values with DOM checks;
+AI assertions verify that the selected Step, recorded task list, and screenshot
+viewer remain visible. Avoid asking a single screenshot to prove a relative
+change such as "wider than before".
 Attempts sits next to Visual/YAML inside Execution; Case cleanup issues remain
 above Execution, while Step errors appear above the detail tabs.
 
