@@ -163,3 +163,9 @@ It makes no external model calls. Core tests, from the repository root:
 ```sh
 pnpm exec nx test @midscene/core -- tests/unit-test/grounding-locate-not-found.test.ts tests/unit-test/task-runner/index.test.ts
 ```
+
+## Case browser and manual review
+
+Run `pnpm browse:cases` and open the printed local URL to browse all 200 cases without model configuration or evaluation results. Filter by platform and primary factor, search, toggle GT overlays, zoom screenshots, and save review statuses and notes in the current browser. Export reviews as JSON for backup. The original dataset is unchanged. The server listens only on localhost, port 4318.
+
+Alternatively, run `node scripts/browse-cases.mjs` and open `output/case-browser/index.html` directly, preserving its relative location to `_data`.
