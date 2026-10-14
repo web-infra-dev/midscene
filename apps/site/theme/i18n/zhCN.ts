@@ -4,7 +4,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Banner - Title
   heroTitle: '像人一样看懂界面\n用自然语言完成 E2E 测试',
   heroSubtitle:
-    'Midscene.js 帮助开发者将 AI 引入 E2E 测试，提供基于视觉的 GUI Agent 与可扩展的测试框架，覆盖 Web、移动端和桌面应用。',
+    '将 AI 视觉引入 E2E 测试，配套全新设计的测试框架，支持 Web、移动端和桌面应用。',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -94,7 +94,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Testing toolkit
   debuggingTitle: '测试工具链',
   debuggingHeading: '完整的 AI Native 测试工具链',
-  toolkitFrameworkTitle: 'AI Native 测试框架',
+  toolkitFrameworkTitle: 'AI Native E2E 测试框架',
   toolkitFrameworkDesc:
     '用 YAML 与自然语言写用例，用 TypeScript 扩展业务节点，组合 AI 操作与业务逻辑。',
   toolkitYaml: '描述用例与预期',

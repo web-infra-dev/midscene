@@ -1,19 +1,21 @@
 import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
-# Supported Models and Setup
+# Use a model API key
 
-Use this guide to choose a supported model, complete the initial setup, and verify model connectivity.
+Connect Midscene using an API key from a model provider. This guide covers choosing a model, configuring it, and verifying the connection. If you already have a ChatGPT subscription, you can also follow [Use a ChatGPT subscription](./chatgpt-subscription).
 
 The model configuration shown on this page consists of environment variables. Provide it according to how you use Midscene:
 
 - In Playground, paste the configuration text from this page directly into the settings page.
 - With the SDK or CLI, load the configuration as described in [Set environment variables](#set-environment-variables).
 
-To understand the model roles, see [Model strategy](./model-strategy). For complete parameter definitions, see [Model configuration reference](./model-config).
+For complete parameter definitions, see [Model configuration reference](./model-config).
 
 ## Supported models
 
-Midscene supports the following multimodal models for operating user interfaces. Each configuration requires a Base URL, API key, model name, and `MIDSCENE_MODEL_FAMILY`. The model family (`MIDSCENE_MODEL_FAMILY`) determines how Midscene adapts to the selected model.
+Midscene supports these multimodal models for operating user interfaces: [Doubao Seed](#doubao-seed-model), [Qwen](#qwen), [DeepSeek](#deepseek), [Google Gemini](#gemini), [OpenAI GPT](#gpt), [Moonshot Kimi](#kimi), [Xiaomi MiMo](#xiaomi-mimo), and [Zhipu GLM-V](#glm-v), as well as the other compatible models [AutoGLM](#auto-glm) and [UI-TARS](#ui-tars) described below.
+
+Each configuration requires a Base URL, API key, model name, and `MIDSCENE_MODEL_FAMILY`. The model family (`MIDSCENE_MODEL_FAMILY`) determines how Midscene adapts to the selected model.
 
 ### Doubao Seed Series {#doubao-seed-model}
 
@@ -21,14 +23,14 @@ Midscene supports the following multimodal models for operating user interfaces.
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
-| --- | --- | --- | --- |
-| 2.x series | `Doubao-Seed-2.1-turbo`, `Doubao-Seed-2.0-Lite` | `doubao-seed` | `Doubao-Seed-2.1-turbo` has the fastest localization speed and strong localization quality in our current private evaluation set. Recommended. |
-| 1.x series | `Doubao-Seed-1.6-Vision`, `Doubao-Seed-1.8` | `doubao-seed` | The 1.x series is an older generation of Doubao models and is no longer competitive overall. We recommend using the 2.x series instead. For compatibility with existing configurations, `MIDSCENE_MODEL_FAMILY="doubao-vision"` remains supported. New configurations should use `doubao-seed`. |
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **2.x series**<br />`doubao-seed-2-1-pro-260915` `doubao-seed-2-1-turbo-260628` | `doubao-seed` | `doubao-seed-2-1-turbo-260628` offers fast localization and strong localization quality. Recommended. |
+| **1.x series**<br />`Doubao-Seed-1.6-Vision` `Doubao-Seed-1.8` | `doubao-seed` | The 1.x series is an older generation of Doubao models and is no longer competitive overall. We recommend using the 2.x series instead. For compatibility with existing configurations, `MIDSCENE_MODEL_FAMILY="doubao-vision"` remains supported. New configurations should use `doubao-seed`. |
 
 </div>
 
-Environment variable configuration example, using `doubao-seed-2.1-turbo`:
+Environment variable configuration example, using `doubao-seed-2-1-turbo-260628`:
 
 <ModelConfigCard
   baseUrl={{
@@ -55,11 +57,11 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
-| --- | --- | --- | --- |
-| Qwen3.x series | `qwen3.7-plus`, `qwen3.5-plus`, `qwen3.6-plus` | `qwen3` | Based on localization evaluation results, the recommended order is Qwen3.7 > Qwen3.5 > Qwen3.6. The previous `qwen3.5` and `qwen3.6` families remain compatible. |
-| Qwen3-VL series | `qwen3-vl-plus` | `qwen3-vl` | As an older model generation, it is not recommended. Use the Qwen3.x series instead. |
-| Qwen2.5-VL series | `qwen-vl-max-latest` | `qwen2.5-vl` | As an older model generation, it is not recommended. Use the Qwen3.x series instead. |
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **Qwen3.x series**<br />`qwen3.7-plus` `qwen3.5-plus` `qwen3.6-plus` | `qwen3` | Based on localization evaluation results, the recommended order is Qwen3.7 > Qwen3.5 > Qwen3.6. The previous `qwen3.5` and `qwen3.6` families remain compatible. |
+| **Qwen3-VL series**<br />`qwen3-vl-plus` | `qwen3-vl` | As an older model generation, it is not recommended. Use the Qwen3.x series instead. |
+| **Qwen2.5-VL series**<br />`qwen-vl-max-latest` | `qwen2.5-vl` | As an older model generation, it is not recommended. Use the Qwen3.x series instead. |
 
 </div>
 
@@ -85,9 +87,9 @@ Midscene supports DeepSeek starting from v1.12.0.
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
-| --- | --- | --- | --- |
-| DeepSeek V4 series | `deepseek-flash` (V4.1 Flash), `deepseek-v4-flash-vision-exp` (V4 Flash Vision) | `deepseek` | DeepSeek-V4-Pro does not support visual input and cannot be used with Midscene. |
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **DeepSeek V4 series**<br />`deepseek-flash` (V4.1 Flash) `deepseek-v4-flash-vision-exp` (V4 Flash Vision) | `deepseek` | DeepSeek-V4-Pro does not support visual input and cannot be used with Midscene. |
 
 </div>
 
@@ -108,9 +110,9 @@ Environment variable configuration example, using `deepseek-flash`:
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
-| --- | --- | --- | --- |
-| Gemini 3.x series | `gemini-3.5-flash`, `gemini-3-flash-preview` | `gemini` | `gemini-3.5-flash` currently performs best for localization in our private evaluation set. |
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **Gemini 3.x series**<br />`gemini-3.5-flash` `gemini-3-flash-preview` | `gemini` | `gemini-3.5-flash` currently performs best for localization in our private evaluation set. |
 
 </div>
 
@@ -127,63 +129,22 @@ Environment variable configuration example, using `gemini-3.5-flash`:
 
 ### OpenAI GPT Series {#gpt}
 
+:::info
+
+To connect using your ChatGPT subscription, see [Use a ChatGPT subscription](./chatgpt-subscription).
+
+:::
+
 - Common model provider: [OpenAI](https://openai.com/)
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
-| --- | --- | --- | --- |
-| GPT-6 series | `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna` | `gpt-6` | GPT-6 Sol delivers excellent visual localization accuracy at just one-fifth the price of GPT-6 Astra. GPT-6 Luna is very inexpensive while also offering good visual localization capabilities. |
-| GPT-5 series | `gpt-5.4`, `gpt-5.5`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | `gpt-5` | Models before GPT-5.4 do not support visual localization and can only be used as Planning or Insight models. In practical localization tests, GPT-5.5 and GPT-5.6 perform noticeably better than GPT-5.4; we recommend using GPT-5.5 or GPT-5.6 first. |
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **GPT-6 series**<br />`gpt-6-astra` `gpt-6-sol` `gpt-6-luna` | `gpt-6` | GPT-6 Sol delivers excellent visual localization accuracy at just one-fifth the price of GPT-6 Astra. GPT-6 Luna is very inexpensive while also offering good visual localization capabilities. |
+| **GPT-5 series**<br />`gpt-5.4` `gpt-5.5` `gpt-5.6-sol` `gpt-5.6-terra` `gpt-5.6-luna` | `gpt-5` | Models before GPT-5.4 do not support visual localization and can only be used as Planning or Insight models. In practical localization tests, GPT-5.5 and GPT-5.6 perform noticeably better than GPT-5.4; we recommend using GPT-5.5 or GPT-5.6 first. |
 
 </div>
-
-**Use your ChatGPT subscription (recommended)**
-
-If you have a ChatGPT plan subscription, you can obtain a ChatGPT authorization token through [SIWC (Sign in with ChatGPT)](https://developers.openai.com/siwc/token-sharing-open-source/sign-in). You can use this token to call OpenAI services in Midscene, just like an OpenAI API Key.
-
-Usage:
-
-1. Obtain credentials for the first time
-
-   ```bash
-   npx @midscene/cli model siwc login
-   ```
-
-   Follow the terminal instructions to authorize in your browser. You can choose any name for your Agent during authorization. Once authorized, the Agent will appear on your ChatGPT usage page. The command prints an access token, which you can set as `MIDSCENE_MODEL_API_KEY`. Full credentials are saved locally to `~/.midscene/siwc.json`. Midscene does not collect your credentials.
-
-   Environment variable configuration for using an access token, with `gpt-6-sol` as an example:
-
-   <ModelConfigCard
-     baseUrl="https://api.openai.com/v1"
-     apiKey="<your-access-token>"
-     modelName="gpt-6-sol"
-     modelFamily="gpt-6"
-     protocol={{
-       value: "openai-responses",
-       comment: "SIWC requires the Responses API",
-     }}
-     streamMode={{
-       value: "stream",
-       comment: "SIWC requires streaming",
-     }}
-   />
-
-2. Refresh the access token
-
-   Access tokens expire after 1 hour by default. Refresh your credentials manually with:
-
-   ```bash
-   npx @midscene/cli model siwc refresh
-   ```
-
-   The command updates your local credentials and prints a new access token. Update the token in your model configuration as well.
-
-Notes:
-
-1. Please comply with OpenAI's regional restrictions and terms of use. See the [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/).
-2. SIWC consumes your subscription usage. ChatGPT determines how token consumption translates into subscription usage. You can view token consumption for each task step in Midscene reports.
-3. To call models through SIWC, use the Responses API with streaming enabled.
 
 **Use an API Key**
 
@@ -213,27 +174,7 @@ According to OpenAI, Fast mode can deliver up to 2–2.5× the speed at twice th
 
 <span id="use-codex-app-server-oauth-no-api-key" />
 
-**Use Codex App Server (OAuth, no API Key)**
-
-If you already signed in with Codex CLI (`codex login`) and want Midscene to use that OAuth session directly, set:
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-6-sol" # or another model shown by Codex model/list
-export MIDSCENE_MODEL_FAMILY="gpt-6"
-```
-
-Notes:
-
-- `MIDSCENE_MODEL_API_KEY` is not required in this mode.
-- Midscene will call `codex app-server` through stdio.
-- Make sure `codex` is available in your PATH and verify auth with `codex login status`.
-
-:::warning Known limitation
-
-Compared with calling an OpenAI-compatible API directly, we have observed that this route may take longer and consume more tokens. We are still investigating the cause.
-
-:::
+To reuse a Codex CLI session, see [Use Codex App Server](./chatgpt-subscription#use-codex-app-server-oauth-no-api-key).
 
 **When using GPT, note the following:**
 
@@ -248,10 +189,10 @@ Compared with calling an OpenAI-compatible API directly, we have observed that t
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
-| --- | --- | --- | --- |
-| K3 series | `kimi-k3` | `kimi3` | According to the Kimi documentation, K3 always has reasoning enabled and cannot be disabled. Its reasoning effort defaults to `max`. |
-| K2.x series | `kimi-k2.5`, `kimi-k2.6` | `kimi` | — |
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **K3 series**<br />`kimi-k3` | `kimi3` | According to the Kimi documentation, K3 always has reasoning enabled and cannot be disabled. Its reasoning effort defaults to `max`. |
+| **K2.x series**<br />`kimi-k2.5` `kimi-k2.6` | `kimi` | — |
 
 </div>
 
@@ -275,9 +216,9 @@ Environment variable configuration example, using `kimi-k3`:
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
-| --- | --- | --- | --- |
-| V2.x series | `mimo-v2.6-pro`, `mimo-v2.6-flash`, `mimo-v2.6-pro-ultraspeed`, `mimo-v2.5` | `xiaomi-mimo` | All 2.6 models support multimodal input; for 2.5, only the Omni series supports multimodal input. |
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **V2.x series**<br />`mimo-v2.6-pro` `mimo-v2.6-flash` `mimo-v2.6-pro-ultraspeed` `mimo-v2.5` | `xiaomi-mimo` | All 2.6 models support multimodal input; for 2.5, only the Omni series supports multimodal input. |
 
 </div>
 
@@ -298,10 +239,10 @@ Environment variable configuration example, using `mimo-v2.6-pro`:
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
-| --- | --- | --- | --- |
-| GLM-5V series | `glm-5v-turbo` | `glm-v` | — |
-| GLM-4.6 series | `glm-4.6v` | `glm-v` | `glm-4.6v` is open-source. |
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **GLM-5V series**<br />`glm-5v-turbo` | `glm-v` | — |
+| **GLM-4.6 series**<br />`glm-4.6v` | `glm-v` | `glm-4.6v` is open-source. |
 
 </div>
 

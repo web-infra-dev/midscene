@@ -119,14 +119,14 @@ JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 
 ## 如何使用 Azure OpenAI Service？
 
-使用 Azure OpenAI Service 时，请先按照[支持的模型与配置](./model-common-config)选择模型，并填写常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
+使用 Azure OpenAI Service 时，请先按照[使用模型 API Key](./model-common-config)选择模型，并填写常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # 或 https://<your-resource>.openai.azure.com/openai/v1
 MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY` 等配置，仍应按照[支持的模型与配置](./model-common-config)中的对应模型说明填写。Azure 只是鉴权方式不同的模型供应商，并非一种特殊模型。
+`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY` 等配置，仍应按照[使用模型 API Key](./model-common-config)中的对应模型说明填写。Azure 只是鉴权方式不同的模型供应商，并非一种特殊模型。
 
 这会走普通 OpenAI-compatible 路径，使用 `Authorization: Bearer ...` 请求头。根据 `MIDSCENE_MODEL_PROTOCOL` 的配置，请求发送到 `/openai/v1/chat/completions`（默认）或 `/openai/v1/responses`；请确认 Azure 上所选模型和端点支持对应协议。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions` 或 `/responses`。大多数 `/openai/v1` 端点不需要 `api-version`。
 
@@ -242,7 +242,7 @@ Midscene 的元素定位能力依赖于 AI 模型的视觉理解能力，所以�
 
 通常来说新版本、参数大的模型会比老版本、参数小的模型表现更好。比如 Qwen3-VL 会好于 Qwen2.5-VL，它的 plus 版本会好于 flash 版本。
 
-当前的模型建议请参考[支持的模型与配置](./model-common-config)。
+当前的模型建议请参考[使用模型 API Key](./model-common-config)。
 
 ### 3. 检查 Model Family 配置
 
