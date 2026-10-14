@@ -190,7 +190,7 @@ export default defineConfig(async () => {
             link: '/model-common-config',
           },
           {
-            text: 'Use a ChatGPT subscription',
+            text: 'Use a ChatGPT subscription (Beta)',
             link: '/chatgpt-subscription',
           },
           {
@@ -236,7 +236,7 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Test Framework (Beta)',
+            sectionHeaderText: 'E2E Test Framework (Beta)',
           },
           {
             text: 'Midscene Test overview',
@@ -374,7 +374,7 @@ export default defineConfig(async () => {
             link: '/zh/model-common-config',
           },
           {
-            text: '使用 ChatGPT 订阅',
+            text: '使用 ChatGPT 订阅（Beta）',
             link: '/zh/chatgpt-subscription',
           },
           {
@@ -420,7 +420,7 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
-            sectionHeaderText: '测试框架 (Beta)',
+            sectionHeaderText: 'E2E 测试框架 (Beta)',
           },
           {
             text: 'Midscene Test 概览',
