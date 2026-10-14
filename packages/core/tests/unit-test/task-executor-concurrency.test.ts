@@ -19,6 +19,7 @@ rs.mock('@midscene/shared/img', () => ({
 }));
 
 import { TaskExecutor } from '@/agent/tasks';
+import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
@@ -226,6 +227,72 @@ describe('TaskExecutor concurrency isolation', () => {
       validBase64Image,
     ]);
   });
+
+  it.each(['balance', 'deepThink'] as const)(
+    'passes aiAct reference images to independent locating with %s effort',
+    async (effort) => {
+      const tap = {
+        name: 'Tap',
+        description: 'tap target',
+        paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+        delayBeforeRunner: 0,
+        delayAfterRunner: 0,
+        call: rs.fn(),
+      };
+      const locate = rs.fn().mockResolvedValue({
+        element: {
+          center: [50, 50],
+          rect: { left: 40, top: 40, width: 20, height: 20 },
+          description: 'target icon',
+        },
+      });
+      mockService.locate = locate;
+      rs.mocked(mockInterface.actionSpace).mockReturnValue([tap]);
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        replanningCycleLimit: 1,
+        actionSpace: [tap],
+      });
+      rs.mocked(standardPlan).mockResolvedValue({
+        actions: [
+          { type: 'Tap', param: { locate: { prompt: 'target icon' } } },
+        ],
+        yamlFlow: [],
+        shouldContinuePlanning: false,
+        log: '',
+        rawResponse: '',
+      });
+      const images = [{ name: 'target', url: 'https://example.com/icon.png' }];
+
+      await executor.action(
+        {
+          prompt: 'Click the matching icon',
+          images,
+          convertHttpImage2Base64: true,
+        },
+        effort === 'deepThink' ? defaultModel() : planningModel(),
+        defaultModel(),
+        undefined,
+        undefined,
+        undefined,
+        effort,
+      );
+
+      expect(locate).toHaveBeenCalledTimes(1);
+      expect(locate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: {
+            prompt: 'target icon',
+            images,
+            convertHttpImage2Base64: true,
+          },
+        }),
+        expect.any(Object),
+        expect.any(Object),
+        undefined,
+      );
+      expect(tap.call).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('prepares aiAct reference images once across replanning cycles', async () => {
     rs.mocked(standardPlan)

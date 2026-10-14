@@ -314,6 +314,7 @@ export class TaskExecutor {
     defaultModel: ModelRuntime,
     options?: {
       cacheable?: boolean;
+      multimodalPrompt?: TMultimodalPrompt;
       deepLocate?: boolean;
       abortSignal?: AbortSignal;
     },
@@ -806,6 +807,7 @@ export class TaskExecutor {
           defaultModel,
           {
             cacheable,
+            multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
             deepLocate,
             abortSignal,
           },
