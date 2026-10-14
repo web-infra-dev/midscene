@@ -17,3 +17,11 @@ For a 500ms requirement, compare verified same-clock input and old/new pixel bou
 The encoder uses lossless PNG filter NONE to avoid adaptive filter-search latency; `--png-filter adaptive` is available for a controlled baseline. `--trace` writes per-frame source/request/ready/encoded/emitted nanosecond values and byte counts to stderr, keyed by frameId. Redirect this bounded-duration diagnostic stream separately from NDJSON stdout. The ±1µs timestamp allowance covers numeric conversion only: it does not bound frame sampling gaps, scheduling, copy duration, clock synchronization uncertainty or physical presentation. Source review and same-guest clock checks are still required.
 
 `benchmark-encoder.c` includes the actual encoder for local, inference-free measurements. Compile it with the same generated protocol source, includes and libraries as `build.sh`. Its arguments are `BGRA_FILE WIDTH HEIGHT STRIDE ADAPTIVE_FILTER OUTPUT_PNG`; it emits 100 elapsed-nanoseconds/PNG-bytes CSV rows after five warmups. Decode the PNG and compare all RGB pixels to the input. This benchmark does not measure guest frame cadence. Trace may contain an initial and completed entry for one frameId; merge them, retaining the completed emittedNs when present.
+
+The trace also records `bufferReceivedNs` (buffer description callback entry),
+`bufferAllocatedNs` (SHM mapping and wl_buffer creation complete), `bufferDoneNs`
+(protocol buffer_done callback entry), and `copySubmitNs` (immediately before
+marshalling copy). These are guest CLOCK_MONOTONIC times, not server receipt
+or presentation timestamps. A copy-submit-to-source interval still includes
+transport, server scheduling and rendering; it must not be labelled pure vblank
+wait. Phase order is checked, and phase records share the same immutable frameId.

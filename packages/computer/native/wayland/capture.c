@@ -24,7 +24,7 @@ static struct wl_buffer *buffer;
 static void *pixels;
 static size_t pixel_bytes;
 static uint32_t width, height, stride, format, flags;
-static uint64_t requested, sequence;
+static uint64_t requested, sequence, buffer_received, buffer_allocated, buffer_done, copy_submit;
 static int verify_monotonic, finished, output_index, output_seen;
 static int region[4], has_region;
 static int output_width, output_height, output_scale=1, output_transform;
@@ -46,7 +46,7 @@ static void base64(const unsigned char *p,size_t n) {
     putchar(c[(v>>18)&63]);putchar(c[(v>>12)&63]);putchar(i+1<n?c[(v>>6)&63]:'=');putchar(i+2<n?c[v&63]:'='); }
 }
 static void on_buffer(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t fmt,uint32_t w,uint32_t h,uint32_t st) {
-  (void)data;(void)f;
+  (void)data;(void)f;buffer_received=mono();
   if(fmt!=WL_SHM_FORMAT_XRGB8888 && fmt!=WL_SHM_FORMAT_ARGB8888) fail("unsupported pixel format");
   if(!w || !h || w>16384 || h>16384 || st<w*4 || (uint64_t)st*h>256*1024*1024) fail("invalid image dimensions");
   format=fmt;width=w;height=h;stride=st;pixel_bytes=(size_t)st*h;
@@ -54,7 +54,7 @@ static void on_buffer(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t fmt
   if(fd<0 || ftruncate(fd,(off_t)pixel_bytes)) fail("shared memory allocation");
   pixels=mmap(NULL,pixel_bytes,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);if(pixels==MAP_FAILED)fail("mmap");
   struct wl_shm_pool *pool=wl_shm_create_pool(shm,fd,(int32_t)pixel_bytes);
-  buffer=wl_shm_pool_create_buffer(pool,0,(int32_t)w,(int32_t)h,(int32_t)st,fmt);wl_shm_pool_destroy(pool);close(fd);
+  buffer=wl_shm_pool_create_buffer(pool,0,(int32_t)w,(int32_t)h,(int32_t)st,fmt);wl_shm_pool_destroy(pool);close(fd);buffer_allocated=mono();
 }
 static void on_flags(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t v) { (void)data;(void)f;flags=v; }
 static struct bytes encode_png(void) {
@@ -82,11 +82,14 @@ static void on_ready(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t hi,u
   if(output_transform || output_scale<1 || output_width<1 || output_height<1)fail("unsupported output geometry");
   if(has_region && ((int64_t)region[0]+region[2]>output_width/output_scale || (int64_t)region[1]+region[3]>output_height/output_scale || width!=(uint32_t)region[2]*output_scale || height!=(uint32_t)region[3]*output_scale))fail("region clipped or scale changed");
   if(!has_region && (width!=(uint32_t)output_width || height!=(uint32_t)output_height))fail("output geometry changed");
+  if(!(requested<=buffer_received && buffer_received<=buffer_allocated && buffer_allocated<=buffer_done && buffer_done<=copy_submit && copy_submit<=received))fail("invalid capture phase order");
+  if(verify_monotonic && copy_submit>stamp)fail("source timestamp preceded copy submission");
   struct bytes b=encode_png();
   uint64_t encoded=mono();
   ++sequence;
   // Persist source identity before emitting a frame, including when the consumer stops immediately.
   if(trace) {
+    fprintf(stderr,"{\"frameId\":\"%ld-%llu\",\"bufferReceivedNs\":\"%llu\",\"bufferAllocatedNs\":\"%llu\",\"bufferDoneNs\":\"%llu\",\"copySubmitNs\":\"%llu\"}\n",(long)getpid(),(unsigned long long)sequence,(unsigned long long)buffer_received,(unsigned long long)buffer_allocated,(unsigned long long)buffer_done,(unsigned long long)copy_submit);
     fprintf(stderr,"{\"frameId\":\"%ld-%llu\",\"sourceNs\":\"%llu\",\"requestedNs\":\"%llu\",\"readyNs\":\"%llu\",\"encodedNs\":\"%llu\",\"pngBytes\":%zu,\"adaptiveFilter\":%s}\n",(long)getpid(),(unsigned long long)sequence,(unsigned long long)stamp,(unsigned long long)requested,(unsigned long long)received,(unsigned long long)encoded,b.size,adaptive_filter?"true":"false");
     if(fflush(stderr) || ferror(stderr))fail("trace output closed");
   }
@@ -103,9 +106,9 @@ static void on_ready(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t hi,u
 static void on_failed(void *d,struct zwlr_screencopy_frame_v1 *f){(void)d;(void)f;fail("compositor could not copy frame");}
 static void on_damage(void *d,struct zwlr_screencopy_frame_v1 *f,uint32_t x,uint32_t y,uint32_t w,uint32_t h){(void)d;(void)f;(void)x;(void)y;(void)w;(void)h;}
 static void on_dmabuf(void *d,struct zwlr_screencopy_frame_v1 *f,uint32_t fmt,uint32_t w,uint32_t h){(void)d;(void)f;(void)fmt;(void)w;(void)h;}
-static void on_done(void *d,struct zwlr_screencopy_frame_v1 *f){(void)d;if(!buffer)fail("no supported shared memory buffer");zwlr_screencopy_frame_v1_copy(f,buffer);}
+static void on_done(void *d,struct zwlr_screencopy_frame_v1 *f){(void)d;buffer_done=mono();if(!buffer)fail("no supported shared memory buffer");copy_submit=mono();zwlr_screencopy_frame_v1_copy(f,buffer);}
 static const struct zwlr_screencopy_frame_v1_listener listener={on_buffer,on_flags,on_ready,on_failed,on_damage,on_dmabuf,on_done};
-static void request_frame(void){flags=0;requested=mono();frame=has_region?zwlr_screencopy_manager_v1_capture_output_region(manager,0,output,region[0],region[1],region[2],region[3]):zwlr_screencopy_manager_v1_capture_output(manager,0,output);zwlr_screencopy_frame_v1_add_listener(frame,&listener,NULL);}
+static void request_frame(void){flags=0;buffer_received=buffer_allocated=buffer_done=copy_submit=0;requested=mono();frame=has_region?zwlr_screencopy_manager_v1_capture_output_region(manager,0,output,region[0],region[1],region[2],region[3]):zwlr_screencopy_manager_v1_capture_output(manager,0,output);zwlr_screencopy_frame_v1_add_listener(frame,&listener,NULL);}
 static void geometry(void*d,struct wl_output*o,int32_t x,int32_t y,int32_t w,int32_t h,int32_t sp,const char*m,const char*model,int32_t tr){(void)d;(void)o;(void)x;(void)y;(void)w;(void)h;(void)sp;(void)m;(void)model;output_transform=tr;}
 static void mode(void*d,struct wl_output*o,uint32_t f,int32_t w,int32_t h,int32_t r){(void)d;(void)o;(void)r;if(f & WL_OUTPUT_MODE_CURRENT){output_width=w;output_height=h;}}
 static void output_done(void*d,struct wl_output*o){(void)d;(void)o;}
