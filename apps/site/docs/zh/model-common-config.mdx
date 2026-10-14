@@ -2,20 +2,20 @@ import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 # 使用模型 API Key
 
-本文介绍如何使用模型服务商提供的 API Key 接入 Midscene，包括选择模型、完成配置和验证连接。
-
-使用模型 API Key 和[使用 ChatGPT 订阅](./chatgpt-subscription)是两种接入方式，任选一种即可。已有 ChatGPT 订阅的用户可以选择后者。
+本文介绍如何使用模型服务商提供的 API Key 接入 Midscene，包括选择模型、完成配置和验证连接。如果你已有 ChatGPT 订阅，也可以参考[使用 ChatGPT 订阅](./chatgpt-subscription)文档中的描述操作。
 
 本页列出的模型配置，本质上都是环境变量。你可以根据使用方式提供这些配置：
 
 - 使用 Playground 时，在设置页面直接粘贴本页的配置文本。
 - 使用 SDK 或命令行工具时，按照[设置环境变量](#设置环境变量)中的说明加载配置。
 
-如需了解模型职责，请阅读[模型策略](./model-strategy)。如需查询完整参数，请阅读[模型配置参考](./model-config)。
+如需查询完整参数，请阅读[模型配置参考](./model-config)。
 
 ## 支持的模型
 
-Midscene 支持使用以下多模态模型操作界面。每份配置都需要 Base URL、API Key、模型名称和 `MIDSCENE_MODEL_FAMILY`。模型系列（`MIDSCENE_MODEL_FAMILY`）决定了 Midscene 如何适配所选模型。
+Midscene 支持使用这些多模态模型操作界面：[豆包 Seed](#doubao-seed-model)、[千问 Qwen](#qwen)、[DeepSeek](#deepseek)、[Google Gemini](#gemini)、[OpenAI GPT](#gpt)、[月之暗面 Kimi](#kimi)、[小米 MiMo](#xiaomi-mimo)、[智谱 GLM-V](#glm-v)，以及下文介绍的其他兼容模型 [AutoGLM](#auto-glm) 和 [UI-TARS](#ui-tars)。
+
+每份配置都需要 Base URL、API Key、模型名称和 `MIDSCENE_MODEL_FAMILY`。模型系列（`MIDSCENE_MODEL_FAMILY`）决定了 Midscene 如何适配所选模型。
 
 ### 豆包 Seed 系列 {#doubao-seed-model}
 
@@ -23,10 +23,10 @@ Midscene 支持使用以下多模态模型操作界面。每份配置都需要 B
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| 2.x 系列 | `Doubao-Seed-2.1-turbo`、`Doubao-Seed-2.0-Lite` | `doubao-seed` | `Doubao-Seed-2.1-turbo` 目前私有测评集中定位速度最快，且定位效果也很好，推荐使用。 |
-| 1.x 系列 | `Doubao-Seed-1.6-Vision`、`Doubao-Seed-1.8` | `doubao-seed` | 1.x 系列为豆包的旧版本模型，综合表现已不具竞争力，建议优先使用 2.x 系列。为兼容已有配置，仍支持 `MIDSCENE_MODEL_FAMILY="doubao-vision"`；新配置建议使用 `doubao-seed`。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **2.x 系列**<br />`Doubao-Seed-2.1-turbo` `Doubao-Seed-2.0-Lite` | `doubao-seed` | `Doubao-Seed-2.1-turbo` 目前私有测评集中定位速度最快，且定位效果也很好，推荐使用。 |
+| **1.x 系列**<br />`Doubao-Seed-1.6-Vision` `Doubao-Seed-1.8` | `doubao-seed` | 1.x 系列为豆包的旧版本模型，综合表现已不具竞争力，建议优先使用 2.x 系列。为兼容已有配置，仍支持 `MIDSCENE_MODEL_FAMILY="doubao-vision"`；新配置建议使用 `doubao-seed`。 |
 
 </div>
 
@@ -57,11 +57,11 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| Qwen3.x 系列 | `qwen3.7-plus`、`qwen3.5-plus`、`qwen3.6-plus` | `qwen3` | 从定位测评的结果看，推荐顺序为 Qwen3.7 > Qwen3.5 > Qwen3.6。`qwen3.5`、`qwen3.6` 作为旧 family 仍然兼容。 |
-| Qwen3-VL 系列 | `qwen3-vl-plus` | `qwen3-vl` | 作为旧版本模型，不推荐使用。建议优先使用 Qwen3.x 系列。 |
-| Qwen2.5-VL 系列 | `qwen-vl-max-latest` | `qwen2.5-vl` | 作为旧版本模型，不推荐使用。建议优先使用 Qwen3.x 系列。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **Qwen3.x 系列**<br />`qwen3.7-plus` `qwen3.5-plus` `qwen3.6-plus` | `qwen3` | 从定位测评的结果看，推荐顺序为 Qwen3.7 > Qwen3.5 > Qwen3.6。`qwen3.5`、`qwen3.6` 作为旧 family 仍然兼容。 |
+| **Qwen3-VL 系列**<br />`qwen3-vl-plus` | `qwen3-vl` | 作为旧版本模型，不推荐使用。建议优先使用 Qwen3.x 系列。 |
+| **Qwen2.5-VL 系列**<br />`qwen-vl-max-latest` | `qwen2.5-vl` | 作为旧版本模型，不推荐使用。建议优先使用 Qwen3.x 系列。 |
 
 </div>
 
@@ -79,7 +79,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
   }}
 />
 
-### 深度求索 deepseek 系列 {#deepseek}
+### 深度求索 DeepSeek 系列 {#deepseek}
 
 Midscene 从 v1.12.0 开始支持 DeepSeek。
 
@@ -87,9 +87,9 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| DeepSeek V4 系列 | `deepseek-flash`（V4.1 Flash）、`deepseek-v4-flash-vision-exp`（V4 Flash Vision） | `deepseek` | DeepSeek-V4-Pro 不支持视觉输入，不能用于 Midscene。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **DeepSeek V4 系列**<br />`deepseek-flash`（V4.1 Flash） `deepseek-v4-flash-vision-exp`（V4 Flash Vision） | `deepseek` | DeepSeek-V4-Pro 不支持视觉输入，不能用于 Midscene。 |
 
 </div>
 
@@ -110,9 +110,9 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| Gemini 3.x 系列 | `gemini-3.5-flash`、`gemini-3-flash-preview` | `gemini` | `gemini-3.5-flash` 是目前我们私有测评集中定位表现最好的模型。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **Gemini 3.x 系列**<br />`gemini-3.5-flash` `gemini-3-flash-preview` | `gemini` | `gemini-3.5-flash` 是目前我们私有测评集中定位表现最好的模型。 |
 
 </div>
 
@@ -133,10 +133,10 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| GPT-6 系列 | `gpt-6-astra`、`gpt-6-sol`、`gpt-6-luna` | `gpt-6` | GPT-6 Sol 定位准确度出色，且价格仅为 GPT-6 Astra 的五分之一；GPT-6 Luna 价格非常便宜，同时具备良好的视觉定位能力。 |
-| GPT-5 系列 | `gpt-5.4`、`gpt-5.5`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-5.6-luna` | `gpt-5` | GPT-5.4 之前的模型不支持视觉定位，仅可用作 Planning 模型或 Insight 模型。在实际定位测试中，GPT-5.5 和 GPT-5.6 的定位效果明显优于 GPT-5.4，建议优先使用 GPT-5.5 或 GPT-5.6。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **GPT-6 系列**<br />`gpt-6-astra` `gpt-6-sol` `gpt-6-luna` | `gpt-6` | GPT-6 Sol 定位准确度出色，且价格仅为 GPT-6 Astra 的五分之一；GPT-6 Luna 价格非常便宜，同时具备良好的视觉定位能力。 |
+| **GPT-5 系列**<br />`gpt-5.4` `gpt-5.5` `gpt-5.6-sol` `gpt-5.6-terra` `gpt-5.6-luna` | `gpt-5` | GPT-5.4 之前的模型不支持视觉定位，仅可用作 Planning 模型或 Insight 模型。在实际定位测试中，GPT-5.5 和 GPT-5.6 的定位效果明显优于 GPT-5.4，建议优先使用 GPT-5.5 或 GPT-5.6。 |
 
 </div>
 
@@ -185,10 +185,10 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| K3 系列 | `kimi-k3` | `kimi3` | 根据 Kimi 的文档，K3 始终开启思考模式，无法关闭，且推理强度默认为 `max` |
-| K2.x 系列 | `kimi-k2.5`、`kimi-k2.6` | `kimi` | — |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **K3 系列**<br />`kimi-k3` | `kimi3` | 根据 Kimi 的文档，K3 始终开启思考模式，无法关闭，且推理强度默认为 `max` |
+| **K2.x 系列**<br />`kimi-k2.5` `kimi-k2.6` | `kimi` | — |
 
 </div>
 
@@ -213,9 +213,9 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| V2.x 系列 | `mimo-v2.6-pro`、`mimo-v2.6-flash`、`mimo-v2.6-pro-ultraspeed`、`mimo-v2.5` | `xiaomi-mimo` | 2.6 全系列支持多模态；2.5 仅 Omni 系列支持多模态输入。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **V2.x 系列**<br />`mimo-v2.6-pro` `mimo-v2.6-flash` `mimo-v2.6-pro-ultraspeed` `mimo-v2.5` | `xiaomi-mimo` | 2.6 全系列支持多模态；2.5 仅 Omni 系列支持多模态输入。 |
 
 </div>
 
@@ -236,10 +236,10 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| GLM-5V 系列 | `glm-5v-turbo` | `glm-v` | — |
-| GLM-4.6 系列 | `glm-4.6v` | `glm-v` | `glm-4.6v` 是开源模型。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **GLM-5V 系列**<br />`glm-5v-turbo` | `glm-v` | — |
+| **GLM-4.6 系列**<br />`glm-4.6v` | `glm-v` | `glm-4.6v` 是开源模型。 |
 
 </div>
 
