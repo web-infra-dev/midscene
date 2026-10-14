@@ -859,7 +859,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   /** @internal Start an independent Playground report without reconnecting the device. */
   async _startNewReport(): Promise<void> {
-    await this._finalizeReport();
+    try {
+      await this._finalizeReport();
+    } catch (error) {
+      // A rejected write queue belongs to the preceding report. Its failure
+      // must stay visible without preventing a fresh generator from starting.
+      warn(
+        `Failed to finalize previous report; starting a new report: ${String(error)}`,
+      );
+    }
     assert(!this.destroyed, 'Cannot start a report using a destroyed Agent.');
 
     this.resetDump();
