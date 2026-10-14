@@ -1,0 +1,66 @@
+{
+  "name": "@midscene/android-local",
+  "version": "1.12.6",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/android-local"
+  },
+  "description": "Device-local Android agent runtime for Midscene: transport-agnostic local device control (rish / Shizuku / OEM privileged)",
+  "keywords": [
+    "Android local automation",
+    "Shizuku",
+    "rish",
+    "Android on-device agent",
+    "Midscene Android"
+  ],
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "files": ["bin", "dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./package.json": "./package.json",
+    "./config": {
+      "types": "./dist/types/config/schema.d.ts",
+      "import": "./dist/es/config/schema.mjs",
+      "require": "./dist/lib/config/schema.js"
+    }
+  },
+  "scripts": {
+    "dev": "npm run build:watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "rstest",
+    "test:u": "rstest -u",
+    "test:ai": "AI_TEST_TYPE=android-local rstest",
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=android-local rstest"
+  },
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "js-yaml": "4.1.0",
+    "zod": "^3.25.1"
+  },
+  "dependenciesMeta": {
+    "@midscene/core": { "injected": true },
+    "@midscene/shared": { "injected": true }
+  },
+  "devDependencies": {
+    "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.5",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "^18.0.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.8.3"
+  },
+  "license": "MIT",
+  "bin": {
+    "midscene-local": "./bin/midscene-local"
+  }
+}

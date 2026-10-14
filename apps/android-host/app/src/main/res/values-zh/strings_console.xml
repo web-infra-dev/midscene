@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  控制台文案：`ConsoleActivity.kt` 的各个 Compose 页面、History 页与
+  `ReportViewerActivity.kt` 共用的报告面板，以及产物查看器本身。
+  `values/strings_console.xml` 是英文版本，两者需保持同步。
+  应用级与运行层文案在 `strings.xml` / `strings_runtime.xml`。
+-->
+<resources>
+
+    <!-- 控制台外壳：导航与页面标题 -->
+    <string name="run_title">运行</string>
+    <string name="scripts_title">脚本</string>
+    <string name="history_title">历史</string>
+    <string name="settings_title">设置</string>
+    <string name="diagnostics_title">诊断</string>
+
+    <!-- 运行 -->
+    <string name="run_idle_hint">描述你想让设备做什么</string>
+    <string name="run_busy_hint">运行中 · 在悬浮面板上可随时中断</string>
+    <!-- Run 页显示这两条，自检脚本也由它们生成。 -->
+    <string name="run_instruction_label">指令</string>
+    <string name="run_instruction_placeholder">例如：打开设置并搜索 Wi-Fi</string>
+    <string name="run_instruction_input">指令输入框</string>
+    <string name="run_start">运行</string>
+    <string name="run_last_succeeded">上次运行成功</string>
+    <string name="run_last_failed">上次运行发现错误</string>
+    <!-- 只在运行还缺东西时出现在运行页。 -->
+    <string name="run_setup_title">还没配置完</string>
+    <!-- %1$s 还空着的模型配置项。 -->
+    <string name="run_setup_model">模型配置还缺 %1$s</string>
+    <string name="run_setup_open_settings">去设置</string>
+    <string name="run_setup_runtime">这台设备还没安装 Agent 运行环境。</string>
+    <string name="run_setup_install">安装</string>
+    <!-- 已运行过的指令，每行带一个 popover。 -->
+    <string name="run_recent_label">最近执行过的指令</string>
+    <string name="run_recent_hint">点一下填回输入框</string>
+    <string name="run_recent_actions">这条指令的操作</string>
+    <string name="run_recent_run_again">再执行一次</string>
+    <string name="run_recent_fill">填回输入框</string>
+    <string name="run_recent_copy">复制</string>
+    <string name="run_recent_remove">从列表移除</string>
+    <!-- %1$s 时间 · %2$d 耗时 · %3$d 已完成任务 / %4$d 任务总数。 -->
+    <plurals name="run_summary">
+        <item quantity="other">%1$s · %2$ds · %3$d/%4$d 个任务</item>
+    </plurals>
+
+    <!-- 脚本 -->
+    <string name="scripts_busy_hint">运行中，脚本在结束前不可编辑</string>
+    <string name="scripts_idle_hint">编辑 config.yaml 依次执行任务</string>
+    <string name="scripts_editor">脚本编辑器</string>
+    <string name="scripts_status_saved">已保存</string>
+    <string name="scripts_status_self_check">自检运行中</string>
+    <string name="scripts_status_template">已载入模板</string>
+    <string name="scripts_self_check">自检</string>
+    <string name="scripts_new_template">新建模板</string>
+
+    <!-- 历史 -->
+    <!-- 中文只有 other 一个复数类别：空列表单独用一条字符串，复数只写 other。 -->
+    <string name="history_no_runs">暂无运行记录</string>
+    <plurals name="history_run_count">
+        <item quantity="other">%d 条运行记录</item>
+    </plurals>
+    <!-- %1$s 运行条数 · %2$s 运行名称 · %3$s 相对时间 · %4$d 耗时 · %5$d 退出码。 -->
+    <string name="history_detail">%1$s · %2$s · %3$s · %4$ds · 退出 %5$d</string>
+    <string name="history_run_fallback_name">运行</string>
+    <string name="history_just_now">刚刚</string>
+    <string name="history_minutes_ago">%1$d 分钟前</string>
+    <string name="history_hours_ago">%1$d 小时前</string>
+    <string name="history_empty">还没有运行记录。</string>
+    <string name="history_select_run">选择一条运行记录查看报告</string>
+    <string name="history_run_succeeded">运行成功</string>
+    <string name="history_run_failed">运行中发现错误</string>
+    <string name="history_success">成功</string>
+    <string name="history_failed">失败</string>
+    <string name="history_report">报告</string>
+    <string name="history_log">日志</string>
+    <string name="history_run_report">运行报告</string>
+    <string name="history_run_log">运行日志</string>
+    <string name="history_delete_title">删除这条运行记录？</string>
+    <string name="history_delete_body">会删除该运行的日志、结果和报告。</string>
+    <string name="history_delete_run">删除运行记录</string>
+    <string name="history_show_list">显示运行列表</string>
+    <string name="history_hide_list">收起运行列表</string>
+    <string name="history_no_log">没有捕获到日志。</string>
+    <string name="history_run_meta">%1$s · %2$ds · 退出码 %3$d</string>
+    <!-- 运行卡片摘要：%1$s 相对时间 · %2$d 耗时 · %3$d 已完成 / %4$d 总数。 -->
+    <plurals name="history_card_summary">
+        <item quantity="other">%1$s · %2$ds · %3$d/%4$d 个任务</item>
+    </plurals>
+
+    <!-- 诊断 -->
+    <string name="diagnostics_runtime">运行环境</string>
+    <string name="diagnostics_device">设备</string>
+    <string name="diagnostics_storage">存储</string>
+    <string name="diagnostics_service_log">服务日志</string>
+    <string name="diagnostics_row_node">node</string>
+    <string name="diagnostics_row_agent_bundle">Agent 包</string>
+    <string name="diagnostics_row_yadb">yadb</string>
+    <string name="diagnostics_row_shell_channel">shell 通道</string>
+    <string name="diagnostics_row_shizuku_service">Shizuku 用户服务</string>
+    <string name="diagnostics_row_overlay">悬浮窗权限</string>
+    <string name="diagnostics_status_ready">正常</string>
+    <string name="diagnostics_status_missing">缺失</string>
+    <string name="diagnostics_status_checking">检查中…</string>
+    <string name="diagnostics_status_unknown">未知</string>
+    <string name="diagnostics_locked">运行进行中，已锁定</string>
+    <string name="diagnostics_provision">初始化</string>
+    <string name="diagnostics_battery">电池</string>
+    <string name="diagnostics_overlay">悬浮窗</string>
+    <string name="diagnostics_clean_now">立即清理</string>
+    <string name="diagnostics_storage_usage">运行记录：%1$d 条 · 已用 %2$d MB / %3$d MB · 上限 %4$d 条</string>
+
+    <!-- 执行通道 -->
+    <string name="channel_title">执行通道</string>
+    <string name="channel_this_device">本机 adb</string>
+    <string name="channel_shizuku">Shizuku</string>
+    <string name="channel_open_shizuku">打开 Shizuku</string>
+    <string name="channel_authorize">授权</string>
+    <string name="channel_reauthorize">重新授权</string>
+    <string name="channel_checking">正在检查通道…</string>
+    <string name="channel_unknown">未知</string>
+    <string name="channel_chip_paired">已与本机配对</string>
+    <string name="channel_chip_paired_serial">已与本机配对 · %1$s</string>
+    <string name="channel_chip_not_paired">尚未配对</string>
+    <string name="channel_reconnect">重新连接</string>
+    <string name="channel_start_pairing">开始配对</string>
+    <string name="channel_listening_hint">已经在监听某个端口？</string>
+    <string name="channel_address_label">地址或端口</string>
+    <string name="channel_port_placeholder">5555</string>
+    <string name="channel_connect">连接</string>
+    <string name="channel_pairing_note">先点开始配对，再打开系统配对弹窗，把六位数字填进通知。配对只需一次。</string>
+    <string name="channel_checking_execution">正在检查执行通道…</string>
+    <string name="channel_shizuku_status">Shizuku 用户服务状态：%1$d</string>
+    <string name="channel_bound_as_uid">用户服务已绑定，uid %1$d</string>
+    <string name="channel_shizuku_not_running">Shizuku 未运行。请先启动，然后重试。</string>
+    <string name="channel_shizuku_unauthorized">Shizuku 正在运行，但本应用尚未获得授权。</string>
+    <string name="channel_shizuku_service_failed">Shizuku 已授权，但用户服务未启动。</string>
+    <string name="channel_retry_binding">重试绑定</string>
+    <string name="channel_retry_connection">重试连接</string>
+    <string name="channel_fix_diagnostics">前往诊断修复</string>
+    <string name="channel_needs_notifications">需要通知权限才能输入配对码。</string>
+
+    <!-- 设置 -->
+    <string name="settings_preferences">偏好设置</string>
+    <string name="settings_dark_theme">深色主题</string>
+    <string name="settings_open_after_run">运行结束后返回应用</string>
+    <string name="settings_open_after_run_hint">Agent 执行完成后把 Midscene 切到前台</string>
+    <string name="settings_generate_report">生成测试报告</string>
+    <string name="settings_generate_report_hint">报告内嵌每一步的截图，比较占空间；关闭后仍保留日志和任务统计。脚本任务以 config.yaml 为准。</string>
+    <string name="settings_floating_progress">悬浮进度</string>
+    <string name="settings_floating_progress_hint">显示 Agent 正在做什么，中断运行也在这里；截图时隐藏</string>
+    <string name="settings_device_setup">设备与初始化</string>
+    <string name="settings_run_setup_again">初始设置</string>
+    <!-- 重置：回到全新安装状态，再走上面的初始设置。 -->
+    <string name="settings_reset_all">重置全部数据</string>
+    <string name="settings_reset_running">正在重置…</string>
+    <string name="settings_reset_locked">请先停止当前运行。</string>
+    <string name="settings_reset_title">重置全部数据？</string>
+    <string name="settings_reset_body">会删除配对、模型凭据、脚本、运行记录与报告、Agent 运行时，然后回到初始设置。此操作无法撤销。</string>
+    <string name="settings_reset_confirm">重置</string>
+
+    <!-- 模型凭据 -->
+    <string name="model_title">模型凭据</string>
+    <string name="model_storage_note">保存在应用私有目录，只注入 Agent，不写入脚本。</string>
+    <string name="model_style_form">表单模式</string>
+    <string name="model_style_env">.env 模式</string>
+    <string name="model_env_editor">模型 env 编辑器</string>
+    <string name="model_locked">运行中已锁定：Agent 仍在用启动时的凭据</string>
+    <string name="model_saved_toast">凭据已保存</string>
+    <string name="model_paste_env">粘贴 .env</string>
+    <string name="model_paste">粘贴</string>
+    <string name="model_hide_key">隐藏 API Key</string>
+    <string name="model_show_key">显示 API Key</string>
+    <string name="model_ready">已就绪：Base URL、API Key、模型名、模型家族均已配置。</string>
+    <string name="model_missing">还缺少：%1$s</string>
+    <!-- 占位文案只说明这一项要填什么，不拿某一家服务商当范例：任何 OpenAI 兼容服务都能用，
+         只举一家的地址或模型名，读起来像是必须用那一家。 -->
+    <string name="model_placeholder_base_url">OpenAI 兼容的接口地址，一般以 /v1 结尾</string>
+    <string name="model_placeholder_api_key">模型服务提供给你的 API Key</string>
+    <string name="model_placeholder_model_name">模型名称，按服务商文档原样填写</string>
+    <string name="model_placeholder_model_family">选择所用模型所属的家族（决定界面定位方式）</string>
+
+    <!-- 连接测试：真的朝配置的接口发一次请求。 -->
+    <string name="model_test_button">测试连接</string>
+    <string name="model_test_running">测试中…</string>
+    <!-- %1$s 模型回复 · %2$d 往返耗时。 -->
+    <string name="model_test_passed">连接正常 · 模型回复「%1$s」，耗时 %2$d ms</string>
+    <string name="model_test_failed">连接失败 —— %1$s</string>
+    <string name="model_test_err_incomplete">请先把四项配置填完</string>
+    <string name="model_test_err_host">这个地址解析不了（%1$s）</string>
+    <string name="model_test_err_timeout">接口没有在超时前响应（%1$s）</string>
+    <string name="model_test_err_network">连不上这个地址（%1$s）</string>
+    <string name="model_test_err_auth">API Key 被拒绝（HTTP %1$d）</string>
+    <string name="model_test_err_not_found">接口地址或模型名不存在（HTTP %1$d）</string>
+    <string name="model_test_err_bad_request">服务拒绝了这次请求（HTTP %1$d）</string>
+    <string name="model_test_err_http">HTTP %1$d</string>
+    <string name="model_test_err_body">返回的内容不是 chat completion：%1$s</string>
+    <string name="model_test_err_empty_reply">模型什么也没返回，视觉模型不该如此</string>
+    <!-- %1$s 上面的原因 · %2$s 服务返回的原文。 -->
+    <string name="model_test_reason_detail">%1$s：%2$s</string>
+
+    <!-- 首次使用引导 -->
+    <string name="onboarding_welcome">欢迎使用 Midscene</string>
+    <string name="onboarding_welcome_body">五步设置，设备即可自己执行任务。</string>
+    <string name="onboarding_control_label">控制方式</string>
+    <string name="onboarding_adb_body">Midscene 通过无线调试与本机自带的 adb 配对。无需额外安装组件，也不需要系统授予权限。</string>
+    <string name="onboarding_shizuku_body">Midscene 通过 Shizuku 获取 shell 权限，请先安装并启动 Shizuku。</string>
+    <string name="onboarding_step1_title_adb">与设备配对</string>
+    <string name="onboarding_step1_title_shizuku">让 Midscene 控制设备</string>
+    <string name="onboarding_step1_body_adb">1. 点下方按钮。\n2. 设置 → 开发者选项 → 无线调试 → 「使用配对码配对设备」。\n3. 下拉通知栏，把六位数字填进 Midscene 通知。</string>
+    <string name="onboarding_step1_body_shizuku">Midscene 借助 Shizuku 完成点击、输入和读取屏幕。Shizuku 需要保持运行，且本应用需要你的授权。</string>
+    <string name="onboarding_get_shizuku">获取 Shizuku</string>
+    <string name="onboarding_hint_ready">就绪</string>
+    <string name="onboarding_hint_checking">检查中…</string>
+    <string name="onboarding_hint_wireless">需开启无线调试，配对码发到通知</string>
+    <string name="onboarding_hint_not_connected">尚未连接</string>
+    <string name="onboarding_hint_shizuku_not_running">Shizuku 尚未运行</string>
+    <string name="onboarding_hint_waiting">等待你的授权</string>
+    <string name="onboarding_model_title">填写模型配置</string>
+    <string name="onboarding_model_body">Agent 跑在你自己的模型服务上：需要一个 OpenAI 兼容的视觉模型，四项都填好设备才算真的能用；模型家族决定它按哪种方式做界面定位，从列表里选。配置只保存在本机，运行时注入 Agent 进程，不会写进脚本。</string>
+    <!-- %1$s 还空着的模型配置项。 -->
+    <string name="onboarding_model_hint">还缺 %1$s</string>
+    <string name="onboarding_model_hint_untested">四项已填好，点「测试连接」验证一下</string>
+    <string name="onboarding_model_hint_failed">连接测试没通过，原因见上方</string>
+    <string name="onboarding_step_overlay_title">允许显示进度悬浮窗</string>
+    <string name="onboarding_step_overlay_body">悬浮胶囊显示 Agent 正在做什么，截图时自动隐藏，不会进报告。</string>
+    <string name="onboarding_allow_overlay">允许悬浮窗</string>
+    <string name="onboarding_hint_granted">已授权</string>
+    <string name="onboarding_hint_not_granted">尚未授权</string>
+    <string name="onboarding_step_battery_title">让长任务持续运行</string>
+    <string name="onboarding_step_battery_body">把 Midscene 加入电池优化白名单，息屏或后台时运行也能继续。</string>
+    <string name="onboarding_exempt_battery">忽略电池限制</string>
+    <string name="onboarding_hint_exempt">已豁免</string>
+    <string name="onboarding_hint_still_optimised">仍受电池优化限制</string>
+    <string name="onboarding_step_runtime_title">安装 Agent 运行环境</string>
+    <string name="onboarding_step_runtime_body">把 Node、Midscene Agent 和输入辅助程序解压到设备上。</string>
+    <string name="onboarding_reprovision">重新初始化</string>
+    <string name="onboarding_install_now">立即安装</string>
+    <string name="onboarding_hint_needs_step1">需先完成第 1 步</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_start">开始使用 Midscene</string>
+    <string name="onboarding_skip">跳过设置</string>
+
+    <!-- 产物查看器：History 面板与 ReportViewerActivity 共用 -->
+    <string name="report_viewer_rendering">正在渲染报告…</string>
+    <string name="report_viewer_rendering_note">报告内嵌所有截图，首次渲染较慢。</string>
+    <string name="report_viewer_file_not_found">找不到文件：%1$s</string>
+    <string name="report_viewer_read_error">无法读取 %1$s\n%2$s</string>
+
+    <!-- 通用 -->
+    <string name="common_back">返回</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_save">保存</string>
+    <string name="common_delete">删除</string>
+    <string name="common_refresh">刷新</string>
+
+    <!-- 关于页 -->
+    <string name="about_app_name">Midscene Android</string>
+    <string name="about_title">关于</string>
+    <string name="about_version_line">版本 %1$s · build %2$d</string>
+    <string name="about_build">构建信息</string>
+    <string name="about_version">版本</string>
+    <string name="about_build_time">构建时间</string>
+    <string name="about_build_type">构建类型</string>
+    <string name="about_build_debug">调试构建</string>
+    <string name="about_build_release">正式构建</string>
+    <string name="about_package">包名</string>
+    <string name="about_runtime">运行环境</string>
+    <string name="about_runtime_state">Agent 运行环境</string>
+    <string name="about_runtime_installed">已安装</string>
+    <string name="about_runtime_missing">未安装</string>
+    <string name="about_bundle">Agent 包</string>
+    <string name="about_channel">执行通道</string>
+    <string name="about_device">设备</string>
+    <string name="about_device_model">型号</string>
+    <string name="about_android">Android</string>
+    <string name="about_android_version">%1$s（API %2$d）</string>
+    <string name="about_abi">ABI</string>
+    <string name="about_project">项目</string>
+    <string name="about_homepage">项目主页</string>
+    <string name="about_copy">复制版本信息</string>
+    <string name="about_copied">版本信息已复制</string>
+    <string name="about_unknown">未知</string>
+
+</resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark counterparts of the window-theme palette (see values/colors.xml). -->
+<resources>
+    <color name="app_bg">#282828</color>
+    <color name="surface">#2B2B2B</color>
+
+    <color name="border_subtle">#2E2E2E</color>
+    <color name="border_strong">#3A3A3A</color>
+
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#D0D0D1</color>
+
+    <color name="brand">#1979FF</color>
+    <color name="brand_container">#1B2C44</color>
+    <color name="on_brand">#FFFFFF</color>
+
+    <color name="status_error">#E13E37</color>
+</resources>

@@ -5,6 +5,9 @@
   },
   "files": {
     "ignore": [
+      "apps/android-host/app/build/**",
+      "apps/android-host/build/**",
+      "apps/android-host/.gradle/**",
       "static/**",
       "node_modules/**",
       "**/midscene_run",

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Midscene brand blue, matching the studio palette. -->
+    <color name="ic_launcher_background">#1979FF</color>
+</resources>

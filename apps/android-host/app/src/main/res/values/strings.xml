@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  App-level strings: the launcher label, the manifest labels, and everything the
+  runtime layer (service, notifications, pairing, progress overlay) says.
+  The console screens keep their own strings in `strings_console.xml`.
+  `values-zh/strings.xml` is the Chinese counterpart; keep the two in sync.
+-->
+<resources>
+    <string name="app_name">Midscene</string>
+    <!-- Shown by ReportViewerActivity (report or log of one run). -->
+    <string name="report_viewer_label">Run artefact</string>
+</resources>
