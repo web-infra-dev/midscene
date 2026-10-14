@@ -5,6 +5,22 @@ import { describe, expect, it, rs } from '@rstest/core';
 const mockExecutorContext = { task: {} } as ExecutorContext;
 
 describe('defineActionsFromInputPrimitives', () => {
+  it('should expose middle click when the pointer primitive is configured', () => {
+    const middleClick = vi.fn();
+
+    const actions = defineActionsFromInputPrimitives({
+      pointer: {
+        tap: vi.fn(),
+        middleClick,
+      },
+    });
+
+    const middleClickAction = actions.find(
+      (action) => action.name === 'MiddleClick',
+    );
+
+    expect(middleClickAction).toBeDefined();
+    expect(middleClickAction?.interfaceAlias).toBe('aiMiddleClick');
   it('uses desktop guidance for a pointer swipe', async () => {
     const pointerSwipe = rs.fn();
     const actions = defineActionsFromInputPrimitives(
