@@ -1155,7 +1155,7 @@ await observation.dispose();
 - Midscene 会均匀抽取并分析最多 50 个源帧，同时最多向模型发送 8 张证据图。检测到局部变化时，会发送最多 6 张放大的变化区域网格，以及首帧和最终状态的全屏图；否则会均匀抽取最多 8 张全屏图。观察证据会显示在报告时间线中，并带有 `Observed` 标签。
 - iOS 的观察帧来自 MJPEG 流，分辨率和质量较低。最后一张截图仍使用完整质量。
 
-进行计时时，可使用 `captureMode: 'source'` 配合支持推送的设备帧源。该模式逐帧保留已送达图像，达到 `maxFrames` 后把溢出计入 `droppedFrames`，不回退到普通截图采样，`intervalMs` 不生效。源图像不会转换为 JPEG 或缩放。Computer 接受显式的 `observationFrameSource` 工厂；可选 Linux Wayland 采集器及其时钟验证要求见 `packages/computer/native/wayland/README.zh.md`。
+进行计时时，可使用 `captureMode: 'source'` 配合支持推送的设备帧源。该模式逐帧保留已送达图像，达到 `maxFrames` 后把溢出计入 `droppedFrames`，不回退到普通截图采样。若发生丢帧，所有观察 AI 方法均在调用模型前抛出错误；仍可导出不完整证据供审阅。`intervalMs` 不生效。源图像不会转换为 JPEG 或缩放。Computer 接受显式的 `observationFrameSource` 工厂；可选 Linux Wayland 采集器及其时钟验证要求见 `packages/computer/native/wayland/README.zh.md`。
 
 用 `observer.recordEvent({name, timing})` 记录独立测量的输入时间范围，用 `await observation.exportRecord()` 导出全部保留帧及事件。时间包含 `clockId`、`kind`、`startMs`、`endMs`；`capturedAt` 仍为墙上时钟的展示或接收时间。不要跨时钟域比较，也不要将 AI 选出的证据图当作完整计时记录。`dispose()` 前需复制导出的图像文件。对阈值应计算保守上下界，跨越阈值时保留无法判定；合成器帧时间不能证明显示器物理呈现时间。
 

@@ -110,6 +110,13 @@ export class UIObservationImpl implements UIObservation {
 
   private ensureFixedWindowOptions(options?: { domIncluded?: unknown }): void {
     assert(
+      !(
+        this.record.captureMode === 'source' &&
+        (this.record.droppedFrames ?? 0) > 0
+      ),
+      'Cannot run AI insights on an incomplete source observation: frames were dropped after maxFrames. Export the record for review or repeat with a larger maxFrames.',
+    );
+    assert(
       options?.domIncluded === undefined,
       'UIObservation does not support domIncluded because it only evaluates recorded screenshots',
     );

@@ -531,6 +531,45 @@ describe('UIObserver', () => {
 });
 
 describe('source cadence observation', () => {
+  it('blocks every AI insight when the target appears only after the frame cap', async () => {
+    const fake = makeFakeSource();
+    let emit: ((frame: DeviceFrameRef) => void) | undefined;
+    fake.source.subscribe = (listener) => {
+      emit = listener;
+      return () => {};
+    };
+    fake.setLatest('old-baseline', 1000);
+    const { deps } = makeDeps(fake);
+    const insight = deps.createInsight();
+    deps.createInsight = () => insight;
+    const observer = new UIObserverImpl(deps, {
+      captureMode: 'source',
+      maxFrames: 2,
+      watchdogMs: 0,
+    });
+    await observer.start();
+    emit!({ ref: 'still-old', capturedAt: 1010, frameId: '2' });
+    emit!({ ref: 'target-visible', capturedAt: 1020, frameId: '3' });
+    const observation = await observer.stop();
+    for (const method of [
+      'aiQuery',
+      'aiBoolean',
+      'aiNumber',
+      'aiString',
+      'aiAsk',
+      'aiAssert',
+    ] as const) {
+      await expect(
+        observation[method]('Is the target visible at the end?'),
+      ).rejects.toThrow('incomplete source observation');
+      expect(insight[method]).not.toHaveBeenCalled();
+    }
+    const record = await observation.exportRecord();
+    expect(record.frames).toHaveLength(2);
+    expect(record.frames.at(-1)?.frameId).toBe('2');
+    expect(record.droppedFrames).toBe(1);
+    await observation.dispose();
+  });
   it('retains pushed frames without 200ms sampling and preserves events through export', async () => {
     const fake = makeFakeSource();
     let emit: ((frame: DeviceFrameRef) => void) | undefined;
