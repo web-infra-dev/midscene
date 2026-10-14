@@ -16,7 +16,6 @@ should point here instead of duplicating rules.
 
 ## Default Workflow
 
-- NEVER force push anything unless you are explicitly told to do so.
 - Use `pnpm` only. The workspace requires Node
   `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm
   `>=9.3.0`.
