@@ -1,6 +1,10 @@
 import { getDebug } from '@midscene/shared/logger';
 import { WebDriverClient } from '@midscene/webdriver';
-import { clearInputWithFocus } from './input-focus';
+import {
+  type InputRequest,
+  clearInputWithFocus,
+  waitForInputFocus,
+} from './input-focus';
 import {
   type KeyboardAccessoryButton,
   type WebDriverElementRect,
@@ -298,11 +302,23 @@ export class IOSWebDriverClient extends WebDriverClient {
    * @throws if clearing or restoring the input cannot be verified
    */
   async clearActiveElement(): Promise<boolean> {
-    this.ensureSession();
-    return clearInputWithFocus((method, path, data) =>
-      this.makeRequest(method, `/session/${this.sessionId}${path}`, data),
-    );
+    return clearInputWithFocus(this.requestInput);
   }
+
+  /** Wait for keyboard focus before attempting to clear or type text. */
+  async waitForInputFocus(): Promise<void> {
+    await waitForInputFocus(this.requestInput);
+  }
+
+  private requestInput: InputRequest = (method, path, data, options) => {
+    this.ensureSession();
+    return this.makeRequest(
+      method,
+      `/session/${this.sessionId}${path}`,
+      data,
+      options,
+    );
+  };
 
   private normalizeKeyName(key: string): string {
     // Convert to proper case for mapping (first letter uppercase, rest lowercase)

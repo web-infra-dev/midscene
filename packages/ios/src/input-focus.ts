@@ -5,6 +5,7 @@ export type InputRequest = (
   method: 'GET' | 'POST',
   path: string,
   data?: Record<string, unknown>,
+  options?: { timeout: number },
 ) => Promise<{ value: unknown }>;
 
 const elementKey = 'element-6066-11e4-a52e-4f735466cecf';
@@ -26,14 +27,42 @@ function isProtocolError(error: unknown, code: string): boolean {
   );
 }
 
-async function activeInput(request: InputRequest): Promise<string | undefined> {
+async function activeInput(
+  request: InputRequest,
+  timeout?: number,
+): Promise<string | undefined> {
   try {
-    const { value } = await request('GET', '/element/active');
+    const { value } = await request(
+      'GET',
+      '/element/active',
+      undefined,
+      timeout === undefined ? undefined : { timeout },
+    );
     return value === null ? undefined : elementId(value);
   } catch (error) {
     if (isProtocolError(error, 'no such element')) return undefined;
     throw error;
   }
+}
+
+/** Wait for a focus owner before clearing or synthesizing text events. */
+export async function waitForInputFocus(request: InputRequest): Promise<void> {
+  const deadline = Date.now() + 3000;
+  while (Date.now() < deadline) {
+    const target = await activeInput(
+      request,
+      Math.max(1, deadline - Date.now()),
+    );
+    if (Date.now() >= deadline) break;
+    if (target) return;
+    const remaining = deadline - Date.now();
+    if (remaining > 0) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.min(50, remaining)),
+      );
+    }
+  }
+  throw new Error('Timed out waiting for iOS input focus after 3000ms');
 }
 
 async function identifiedInputs(
