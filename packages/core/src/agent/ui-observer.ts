@@ -1,10 +1,13 @@
+import { performance } from 'node:perf_hooks';
 import {
   type UIObservationRecordMetadata,
   UIObservationRecordWriter,
   cloneUIObservationRecord,
 } from '@midscene/shared/agent-tools/observation-record';
+import { observationTimingSchema } from '@midscene/shared/agent-tools/observation-timing';
 import type {
   BaseUIObserverOptions,
+  UIObservationEvent,
   UIObservationFrame,
   UIObservationRecord,
 } from '@midscene/shared/agent-tools/types';
@@ -58,6 +61,8 @@ export interface UIObservation
   readonly startedAt: number;
   /** Timestamp when screen sampling ended. */
   readonly endedAt: number;
+  /** Detached, file-backed frame times and explicit input-event evidence. */
+  exportRecord(): Promise<UIObservationRecord>;
   /** Release image files owned by this observation. Failed cleanup is retryable. */
   dispose(): Promise<void>;
 }
@@ -66,6 +71,8 @@ export interface UIObservation
 export interface UIObserver {
   /** Number of frames currently buffered while recording. */
   readonly bufferedFrameCount: number;
+  /** Add an externally measured event; never infers clock alignment or trigger semantics. */
+  recordEvent(event: UIObservationEvent): void;
   /** Stop recording and return its fixed observation window. */
   stop(): Promise<UIObservation>;
   /** Stop recording if needed and release its image files. */
@@ -164,7 +171,7 @@ export class UIObservationImpl implements UIObservation {
     return this.insight.aiAssert(assertion, message, options);
   }
 
-  /** @internal Used only by the CLI observation artifact adapter. */
+  /** Export all retained frames and timing metadata, independently of AI evidence selection. */
   async exportRecord(): Promise<UIObservationRecord> {
     this.ensureUsable();
     return cloneUIObservationRecord(this.record);
@@ -195,6 +202,25 @@ function isImageDataUrl(value: unknown): value is string {
  */
 export class UIObserverImpl implements UIObserver {
   private frames: BufferedFrame[] = [];
+  private readonly events: UIObservationEvent[] = [];
+  private readonly captureMode: 'sampled' | 'source';
+  private unsubscribe?: () => void;
+  private droppedFrames = 0;
+  private readonly clockId =
+    `node-monotonic:${process.pid}:${performance.timeOrigin}`;
+
+  recordEvent(event: UIObservationEvent): void {
+    assert(
+      !this.stopped && !this.disposed,
+      'cannot add events to a stopped observation',
+    );
+    assert(event.name.trim().length > 0, 'observation event name is required');
+    this.events.push({
+      name: event.name,
+      timing: observationTimingSchema.parse(event.timing),
+    });
+  }
+
   private source: DeviceFrameSource | null = null;
   private usingFallback = false;
   private stopped = false;
@@ -218,13 +244,15 @@ export class UIObserverImpl implements UIObserver {
     private readonly deps: UIObserverDeps,
     opt?: UIObserverOption,
   ) {
+    this.captureMode = opt?.captureMode ?? 'sampled';
     this.intervalMs = Math.max(
       MIN_INTERVAL_MS,
       opt?.intervalMs ?? DEFAULT_INTERVAL_MS,
     );
     this.maxFrames = Math.max(2, opt?.maxFrames ?? DEFAULT_MAX_FRAMES);
     this.watchdogMs = opt?.watchdogMs ?? DEFAULT_WATCHDOG_MS;
-    this.screenshotShrinkFactor = deps.screenshotShrinkFactor ?? 1;
+    this.screenshotShrinkFactor =
+      this.captureMode === 'source' ? 1 : (deps.screenshotShrinkFactor ?? 1);
     this.writer =
       deps.observationRecordWriter ?? new UIObservationRecordWriter();
   }
@@ -234,22 +262,29 @@ export class UIObserverImpl implements UIObserver {
   }
 
   async start(): Promise<void> {
-    assert(!this.loopPromise && !this.stopped, 'observer has already started');
+    assert(!this.startedAt && !this.stopped, 'observer has already started');
     this.startedAt = Date.now();
     try {
       this.source = (await this.deps.openFrameSource()) ?? null;
     } catch (error) {
+      if (this.captureMode === 'source') throw error;
       debug(`frame source unavailable, using screenshot fallback: ${error}`);
       this.source = null;
+    }
+    if (this.captureMode === 'source' && !this.source?.subscribe) {
+      await this.source?.stop();
+      throw new Error(
+        'Source observation requires a push frame source; screenshot fallback cannot provide native timing',
+      );
     }
     this.usingFallback = !this.source;
     if (this.usingFallback) {
       debug('no continuous frame source; sampling via plain screenshots');
     } else {
-      const waitStart = Date.now();
+      const waitStart = performance.now();
       while (
         !this.source!.latest() &&
-        Date.now() - waitStart < FIRST_FRAME_TIMEOUT_MS
+        performance.now() - waitStart < FIRST_FRAME_TIMEOUT_MS
       ) {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
@@ -259,8 +294,21 @@ export class UIObserverImpl implements UIObserver {
         );
       }
     }
-    await this.captureOnce();
-    this.loopPromise = this.runLoop();
+    if (this.captureMode === 'source') {
+      const baseline = this.source!.latest();
+      if (!baseline) {
+        await this.source!.stop();
+        throw new Error('Native observation baseline timed out');
+      }
+      this.pushFrame(baseline);
+      this.unsubscribe = this.source!.subscribe!((frame) => {
+        if (!this.stopped && this.frames.at(-1)?.ref !== frame.ref)
+          this.pushFrame(frame);
+      });
+    } else {
+      await this.captureOnce();
+      this.loopPromise = this.runLoop();
+    }
 
     if (this.watchdogMs > 0) {
       this.watchdogTimer = setTimeout(() => {
@@ -287,6 +335,8 @@ export class UIObserverImpl implements UIObserver {
 
   private async finalizeStop(): Promise<UIObservationImpl> {
     this.stopped = true;
+    this.unsubscribe?.();
+    this.unsubscribe = undefined;
     if (this.watchdogTimer) {
       clearTimeout(this.watchdogTimer);
       this.watchdogTimer = null;
@@ -294,6 +344,7 @@ export class UIObserverImpl implements UIObserver {
     await this.loopPromise;
 
     try {
+      if (this.captureMode === 'source') this.source!.latest(); // Surface stream failures.
       if (this.frames.length > 0) {
         this.persistPromise = this.persistUnstoredFrames().catch((error) => {
           debug(`frame persistence failed, will retry during export: ${error}`);
@@ -315,6 +366,8 @@ export class UIObserverImpl implements UIObserver {
           this.writer.resolveFramePath(lastFrame.persisted),
           lastFrame.persisted.mimeType,
           lastFrame.capturedAt,
+          lastFrame.timing,
+          lastFrame.frameId,
         );
         debug('representative screenshot aligned with last sampled frame');
       }
@@ -356,7 +409,12 @@ export class UIObserverImpl implements UIObserver {
 
     const sampledFrames = this.frames.map((frame) => {
       assert(frame.persisted, 'observation frame was not persisted');
-      return { ...frame.persisted, capturedAt: frame.capturedAt };
+      return {
+        ...frame.persisted,
+        capturedAt: frame.capturedAt,
+        ...(frame.frameId ? { frameId: frame.frameId } : {}),
+        ...(frame.timing ? { timing: { ...frame.timing } } : {}),
+      };
     });
 
     if (!this.representativeFrame) {
@@ -374,7 +432,10 @@ export class UIObserverImpl implements UIObserver {
       );
     }
 
-    const frames = [...sampledFrames, this.representativeFrame];
+    const frames =
+      this.captureMode === 'source'
+        ? sampledFrames
+        : [...sampledFrames, this.representativeFrame];
     if (frames.length > MAX_FRAMES_PER_RECORD) {
       warnObserver(
         `WARNING: exporting ${frames.length} frames (soft limit ${MAX_FRAMES_PER_RECORD}). Insight analyzes a bounded sample and sends at most eight evidence images, but a larger recording still increases capture storage; consider increasing intervalMs or decreasing maxFrames.`,
@@ -384,6 +445,16 @@ export class UIObserverImpl implements UIObserver {
       `exporting ${frames.length} file-backed observation frames (${this.persistedByRef.size} decoded source refs)`,
     );
     const metadata: UIObservationRecordMetadata = {
+      ...(this.events.length
+        ? {
+            events: this.events.map((event) => ({
+              ...event,
+              timing: { ...event.timing },
+            })),
+          }
+        : {}),
+      captureMode: this.captureMode,
+      droppedFrames: this.droppedFrames,
       startedAt: this.startedAt,
       endedAt,
       shotSize: { ...this.representative!.shotSize },
@@ -444,9 +515,11 @@ export class UIObserverImpl implements UIObserver {
       );
       const preparedDataUrls = await Promise.all(
         decoded.map((dataUrl) =>
-          prepareScreenshotForPersistence(dataUrl, {
-            shrinkFactor: this.screenshotShrinkFactor,
-          }),
+          this.captureMode === 'source'
+            ? dataUrl
+            : prepareScreenshotForPersistence(dataUrl, {
+                shrinkFactor: this.screenshotShrinkFactor,
+              }),
         ),
       );
       for (let index = 0; index < batch.length; index++) {
@@ -455,6 +528,8 @@ export class UIObserverImpl implements UIObserver {
           this.writer.persistFrame(
             preparedDataUrls[index],
             batch[index].capturedAt,
+            batch[index].timing,
+            batch[index].frameId,
           ),
         );
       }
@@ -481,8 +556,11 @@ export class UIObserverImpl implements UIObserver {
           const persisted = this.writer.persistFrame(
             preparedDataUrl,
             frame.capturedAt,
+            frame.timing,
+            frame.frameId,
           );
           this.pushFrame({
+            ...frame,
             ref: persisted.path,
             capturedAt: frame.capturedAt,
             persisted,
@@ -492,17 +570,28 @@ export class UIObserverImpl implements UIObserver {
         }
         return;
       }
+      const startMs = performance.now();
+      const rawScreenshot = await this.deps.captureRawScreenshot();
+      const endMs = performance.now();
+      const capturedAt = Date.now();
       const preparedDataUrl = await prepareScreenshotForPersistence(
-        await this.deps.captureRawScreenshot(),
+        rawScreenshot,
         { shrinkFactor: this.screenshotShrinkFactor },
       );
-      const persisted = this.writer.persistFrame(preparedDataUrl, Date.now());
+      const persisted = this.writer.persistFrame(preparedDataUrl, capturedAt, {
+        clockId: this.clockId,
+        startMs,
+        endMs,
+        kind: 'capture-interval',
+      });
       this.pushFrame({
         ref: persisted.path,
         capturedAt: persisted.capturedAt,
+        timing: persisted.timing,
         persisted,
       });
     } catch (error) {
+      if (this.captureMode === 'source') throw error;
       debug(`frame capture failed, skipping tick: ${error}`);
     }
   }
@@ -518,9 +607,18 @@ export class UIObserverImpl implements UIObserver {
   }
 
   private pushFrame(frame: DeviceFrameRef | BufferedFrame): void {
-    this.frames.push(frame);
+    if (this.captureMode === 'source' && this.frames.length >= this.maxFrames) {
+      this.droppedFrames++;
+      return;
+    }
+    this.frames.push({
+      ...frame,
+      ...(frame.timing ? { timing: { ...frame.timing } } : {}),
+    });
     if (this.frames.length > this.maxFrames) {
+      const before = this.frames.length;
       this.frames = this.thinBuffer(this.frames);
+      this.droppedFrames += before - this.frames.length;
       this.writer.pruneFrames(
         this.frames.flatMap((retainedFrame) =>
           retainedFrame.persisted ? [retainedFrame.persisted] : [],
@@ -603,11 +701,22 @@ export function uiContextFromObservationRecord(
     'UI observation record screenshot ratio must be positive',
   );
   const screenshotSequence = record.frames.map((frame) =>
-    ScreenshotItem.fromFile(frame.path, frame.mimeType, frame.capturedAt),
+    ScreenshotItem.fromFile(
+      frame.path,
+      frame.mimeType,
+      frame.capturedAt,
+      frame.timing,
+      frame.frameId,
+    ),
   );
   return {
     screenshot: screenshotSequence[screenshotSequence.length - 1],
     screenshotSequence,
+    observationTiming: {
+      frames: record.frames.map((frame) => frame.timing),
+      events: record.events ?? [],
+      droppedFrames: record.droppedFrames ?? 0,
+    },
     shotSize: { ...record.shotSize },
     shrunkShotToLogicalRatio: record.shrunkShotToLogicalRatio,
   };

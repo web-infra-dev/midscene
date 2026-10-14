@@ -1,3 +1,5 @@
+export { ObservationFrameSource } from './observation-frame-source';
+export type { ObservationFrameProcessOptions } from './observation-frame-source';
 export { ComputerDevice } from './device';
 export type { ComputerDeviceOpt, DisplayInfo } from './device';
 

@@ -1256,15 +1256,25 @@ export function recordAndReleaseScreenshotSequence(
     const recorderItems: ExecutionRecorderItem[] = [];
     for (let i = 0; i < reportFrames.length; i++) {
       const { screenshot, sourceFrameIndex } = reportFrames[i];
+      const measured = screenshot.timing;
+      const captureSummary =
+        i === 0 && uiContext?.observationTiming
+          ? `; dropped frames: ${uiContext.observationTiming.droppedFrames}; events: ${JSON.stringify(uiContext.observationTiming.events)}`
+          : '';
+      const timingCaption =
+        captureSummary +
+        (measured
+          ? `; ${measured.kind} [${measured.startMs}, ${measured.endMs}] ms @ ${measured.clockId}`
+          : '; device time unavailable');
       recorderItems.push({
         type: 'screenshot',
         ts: screenshot.capturedAt,
         screenshot,
         description: evidence?.frames.length
           ? i === 0
-            ? `Observed full-screen baseline — source frame 1/${frames.length}`
-            : `Observed candidate change regions — source frame ${sourceFrameIndex + 1}/${frames.length}`
-          : `Observed frame ${sourceFrameIndex + 1}/${frames.length}`,
+            ? `Observed full-screen baseline — source frame 1/${frames.length}${timingCaption}`
+            : `Observed candidate change regions — source frame ${sourceFrameIndex + 1}/${frames.length}${timingCaption}`
+          : `Observed frame ${sourceFrameIndex + 1}/${frames.length}${timingCaption}`,
         timing: 'observed-frame',
       });
     }
@@ -1279,6 +1289,7 @@ export function recordAndReleaseScreenshotSequence(
   if (uiContext?.screenshotSequence) {
     uiContext.screenshotSequence = undefined;
   }
+  if (uiContext?.observationTiming) uiContext.observationTiming = undefined;
   if (uiContext?.screenshotSequenceEvidence) {
     uiContext.screenshotSequenceEvidence = undefined;
   }

@@ -529,3 +529,74 @@ describe('UIObserver', () => {
     expect(onStopped).toHaveBeenCalledOnce();
   });
 });
+
+describe('source cadence observation', () => {
+  it('retains pushed frames without 200ms sampling and preserves events through export', async () => {
+    const fake = makeFakeSource();
+    let emit: ((frame: DeviceFrameRef) => void) | undefined;
+    const unsubscribe = rs.fn();
+    fake.source.subscribe = (listener) => {
+      emit = listener;
+      return unsubscribe;
+    };
+    fake.setLatest('baseline', 1000);
+    const { deps } = makeDeps(fake);
+    const observer = new UIObserverImpl(deps, {
+      captureMode: 'source',
+      maxFrames: 3,
+      watchdogMs: 0,
+    });
+    await observer.start();
+    const timing = {
+      clockId: 'guest:boot',
+      startMs: 470,
+      endMs: 470,
+      kind: 'compositor-frame' as const,
+    };
+    emit!({ ref: 'second', capturedAt: 640, timing, frameId: 'frame-2' });
+    emit!({
+      ref: 'third',
+      capturedAt: 650,
+      timing: { ...timing, startMs: 480, endMs: 480 },
+      frameId: 'frame-3',
+    });
+    emit!({
+      ref: 'fourth',
+      capturedAt: 660,
+      timing: { ...timing, startMs: 490, endMs: 490 },
+      frameId: 'frame-4',
+    });
+    observer.recordEvent({
+      name: 'keydown',
+      timing: { ...timing, startMs: 0, endMs: 0, kind: 'input-event' },
+    });
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
+    expect(record.frames).toHaveLength(3);
+    expect(record.frames[1]).toMatchObject({
+      capturedAt: 640,
+      timing,
+      frameId: 'frame-2',
+    });
+    expect(readFileSync(record.frames[1].path).toString('base64')).toBe(
+      testPngDataUrl.split(',')[1],
+    );
+    expect(record.droppedFrames).toBe(1);
+    expect(record.events?.[0].name).toBe('keydown');
+    record.frames[1].timing!.startMs = 999;
+    expect((await observation.exportRecord()).frames[1].timing!.startMs).toBe(
+      470,
+    );
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(() => observer.recordEvent({ name: 'late', timing })).toThrow(
+      'stopped',
+    );
+    await observer.dispose();
+  });
+  it('refuses silent screenshot fallback when native source is required', async () => {
+    const { deps, screenshot } = makeDeps(null);
+    const observer = new UIObserverImpl(deps, { captureMode: 'source' });
+    await expect(observer.start()).rejects.toThrow('push frame source');
+    expect(screenshot).not.toHaveBeenCalled();
+  });
+});

@@ -1131,6 +1131,7 @@ The flow is simple: start recording, perform the page actions, and call `stop()`
 
 ```typescript
 function startObserving(options?: {
+  captureMode?: 'sampled' | 'source'; // default: sampled
   intervalMs?: number; // sampling interval; default 1,000 ms, minimum 200 ms
   maxFrames?: number; // maximum number of retained frames; default 30
   watchdogMs?: number; // maximum recording time; default 300,000 ms; 0 disables the limit
@@ -1167,6 +1168,10 @@ Sampling and resource usage:
 - Data URL frames are written to files during sampling. `UIObserver` does not keep every image in memory. Other frame handles are decoded and saved in small batches when recording stops. Midscene reads the images when a query or assertion runs.
 - Midscene analyzes at most 50 evenly sampled source frames and sends the model at most eight evidence images. When it detects localized changes, it sends up to six enlarged change-region grids plus full-screen baseline and final-state images; otherwise it evenly samples up to eight full frames. Observed evidence appears in the report timeline with an `Observed` label.
 - On iOS, observed frames come from the lower-quality MJPEG stream. The final screenshot still uses full quality.
+
+For measurements, opt into `captureMode: 'source'` with a push-capable device frame source. This mode records every delivered frame until `maxFrames`, counts overflow in `droppedFrames`, and rejects screenshot fallback. `intervalMs` does not apply. Source images are persisted without JPEG conversion or resizing. Computer accepts an explicit `observationFrameSource` factory; an optional Linux Wayland helper and its clock-verification requirements are documented in `packages/computer/native/wayland/README.md`.
+
+Use `observer.recordEvent({name, timing})` for independently measured input bounds and `await observation.exportRecord()` for all retained frames and event metadata. Timing includes `clockId`, `kind`, `startMs`, and `endMs`; `capturedAt` remains a wall-clock display/receipt time. Never compare different clock domains or use AI evidence selection as a complete timing record. Copy exported image files before `dispose()`. For a threshold, use conservative lower/upper bounds and leave crossing intervals inconclusive; compositor frame timestamps do not prove physical display presentation.
 
 #### `aiWaitFor()` {#agentaiwaitfor}
 

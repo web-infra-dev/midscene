@@ -1,8 +1,12 @@
+import { observationTimingSchema } from '@midscene/shared/agent-tools/observation-timing';
+import type { UIObservationTiming } from '@midscene/shared/agent-tools/types';
 /** Serialized reference to a captured screenshot stored by a report. */
 export interface ScreenshotRef {
   type: 'midscene_screenshot_ref';
   id: string;
   capturedAt: number;
+  timing?: UIObservationTiming;
+  frameId?: string;
   mimeType: 'image/png' | 'image/jpeg';
   storage: 'inline' | 'file';
   path?: string;
@@ -64,6 +68,9 @@ export function normalizeScreenshotRef(value: unknown): ScreenshotRef | null {
     record.type === 'midscene_screenshot_ref' &&
     hasValidImageId(record) &&
     typeof record.capturedAt === 'number' &&
+    (record.timing === undefined ||
+      observationTimingSchema.safeParse(record.timing).success) &&
+    (record.frameId === undefined || typeof record.frameId === 'string') &&
     (record.mimeType === 'image/png' || record.mimeType === 'image/jpeg') &&
     hasValidStorage(record)
   ) {

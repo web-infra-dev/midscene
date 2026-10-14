@@ -12,6 +12,8 @@ export interface RestoredScreenshotReference {
   readonly base64: string;
   readonly capturedAt?: number;
   readonly sourceRef: ScreenshotRef;
+  readonly timing?: ScreenshotRef['timing'];
+  readonly frameId?: string;
 }
 
 /** Create a resolver that fails loudly when an inline report asset is absent. */
@@ -67,6 +69,12 @@ export function restoreImageReferences(
             enumerable: true,
           },
           capturedAt: { value: refLike.capturedAt, enumerable: true },
+          ...(refLike.timing
+            ? { timing: { value: { ...refLike.timing }, enumerable: true } }
+            : {}),
+          ...(refLike.frameId
+            ? { frameId: { value: refLike.frameId, enumerable: true } }
+            : {}),
           sourceRef: { value: { ...refLike }, enumerable: true },
         },
       );
