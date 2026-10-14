@@ -40,6 +40,7 @@ let session;
 let previousOrientation;
 let previousSize;
 let previousDensity;
+let androidLauncher;
 const wdaUrl = `http://127.0.0.1:${process.env.MIDSCENE_IOS_WDA_PORT ?? 8100}`;
 const udid = process.env.MIDSCENE_IOS_SIMULATOR_UDID;
 const adb = (...args) => run('adb', ['-s', serial, ...args]);
@@ -98,12 +99,17 @@ async function reset(mode) {
       'mode',
       mode,
     );
+    // Resizing a fresh CI emulator can leave Pixel Launcher unresponsive.
+    // It is outside the fixture under test; stop it after bringing our app
+    // forward so its ANR dialog cannot intercept the measured gesture.
+    adb('shell', 'am', 'force-stop', androidLauncher);
   }
   return poll(() => {
     const value = metrics();
     const offset = mode === 'horizontal' ? value.x : value.y;
     return (
       value.mode === mode &&
+      (platform !== 'android' || value.focused === true) &&
       value.samples.at(-1).t > 0.5 &&
       Math.abs(offset - value.initial) < 0.5 &&
       value
@@ -166,6 +172,21 @@ try {
       serial.startsWith('emulator-'),
       'The fixture runner requires an emulator',
     );
+    const homeActivity = adb(
+      'shell',
+      'cmd',
+      'package',
+      'resolve-activity',
+      '--brief',
+      '-a',
+      'android.intent.action.MAIN',
+      '-c',
+      'android.intent.category.HOME',
+    )
+      .split('\n')
+      .at(-1);
+    assert(homeActivity?.includes('/'), 'Cannot resolve the emulator launcher');
+    androidLauncher = homeActivity.split('/')[0];
     previousDensity =
       adb('shell', 'wm', 'density').match(/Override density: (\d+)/)?.[1] ??
       'reset';

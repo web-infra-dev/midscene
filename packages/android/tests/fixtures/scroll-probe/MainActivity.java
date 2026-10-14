@@ -121,7 +121,7 @@ public class MainActivity extends Activity {
             samples.put(new JSONObject()
                     .put("t", (System.currentTimeMillis() - startedAt) / 1000.0)
                     .put("x", x).put("y", y));
-            JSONObject data = new JSONObject().put("mode", mode)
+            JSONObject data = new JSONObject().put("mode", mode).put("focused", hasWindowFocus())
                     .put("width", width).put("height", height).put("initial", initial)
                     .put("x", x).put("y", y).put("samples", samples);
             try (FileOutputStream file = openFileOutput("metrics.json", 0)) {
