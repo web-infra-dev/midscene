@@ -27,6 +27,7 @@ static uint32_t width, height, stride, format, flags;
 static uint64_t requested, sequence;
 static int verify_monotonic, finished, output_index, output_seen;
 static int region[4], has_region;
+static int output_width, output_height, output_scale=1, output_transform;
 static int adaptive_filter, trace;
 static char boot[80], clock_id[160];
 static void fail(const char *s) { fprintf(stderr, "wayland-capture: %s\n", s); exit(1); }
@@ -78,6 +79,9 @@ static void on_ready(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t hi,u
   // Opt-in alignment assertion, backed by compositor-specific source review.
   // Never remap a foreign clock or replace source time with encoding/arrival time.
   if(verify_monotonic && (stamp<requested || stamp>received))fail("source timestamp outside CLOCK_MONOTONIC capture bounds");
+  if(output_transform || output_scale<1 || output_width<1 || output_height<1)fail("unsupported output geometry");
+  if(has_region && ((int64_t)region[0]+region[2]>output_width/output_scale || (int64_t)region[1]+region[3]>output_height/output_scale || width!=(uint32_t)region[2]*output_scale || height!=(uint32_t)region[3]*output_scale))fail("region clipped or scale changed");
+  if(!has_region && (width!=(uint32_t)output_width || height!=(uint32_t)output_height))fail("output geometry changed");
   struct bytes b=encode_png();
   uint64_t encoded=mono();
   ++sequence;
@@ -87,7 +91,7 @@ static void on_ready(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t hi,u
     if(fflush(stderr) || ferror(stderr))fail("trace output closed");
   }
   printf("{\"version\":1,\"frameId\":\"%ld-%llu\",\"width\":%u,\"height\":%u,\"timing\":{\"clockId\":\"%s\",\"kind\":\"compositor-frame\",\"startMs\":%.6f,\"endMs\":%.6f},\"captureStartNs\":\"%llu\",\"readyNs\":\"%llu\",\"pngEncodedNs\":\"%llu\",\"pngBase64\":\"",(long)getpid(),(unsigned long long)sequence,width,height,clock_id,stamp/1e6-0.001,stamp/1e6+0.001,(unsigned long long)requested,(unsigned long long)received,(unsigned long long)encoded);
-  base64(b.data,b.size);printf("\"}\n");if(fflush(stdout) || ferror(stdout))fail("frame output closed");
+  base64(b.data,b.size);printf("\",\"geometry\":{\"scope\":\"%s\",\"outputIndex\":%d,\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,\"scale\":%d,\"outputWidth\":%d,\"outputHeight\":%d,\"transform\":%d}}\n",has_region?"region":"output",output_index,has_region?region[0]:0,has_region?region[1]:0,has_region?region[2]:output_width/output_scale,has_region?region[3]:output_height/output_scale,output_scale,output_width,output_height,output_transform);if(fflush(stdout) || ferror(stdout))fail("frame output closed");
   if(trace) {
     fprintf(stderr,"{\"frameId\":\"%ld-%llu\",\"sourceNs\":\"%llu\",\"requestedNs\":\"%llu\",\"readyNs\":\"%llu\",\"encodedNs\":\"%llu\",\"emittedNs\":\"%llu\",\"pngBytes\":%zu,\"adaptiveFilter\":%s}\n",(long)getpid(),(unsigned long long)sequence,(unsigned long long)stamp,(unsigned long long)requested,(unsigned long long)received,(unsigned long long)encoded,(unsigned long long)mono(),b.size,adaptive_filter?"true":"false");
     if(fflush(stderr) || ferror(stderr))fail("trace output closed");
@@ -102,12 +106,14 @@ static void on_dmabuf(void *d,struct zwlr_screencopy_frame_v1 *f,uint32_t fmt,ui
 static void on_done(void *d,struct zwlr_screencopy_frame_v1 *f){(void)d;if(!buffer)fail("no supported shared memory buffer");zwlr_screencopy_frame_v1_copy(f,buffer);}
 static const struct zwlr_screencopy_frame_v1_listener listener={on_buffer,on_flags,on_ready,on_failed,on_damage,on_dmabuf,on_done};
 static void request_frame(void){flags=0;requested=mono();frame=has_region?zwlr_screencopy_manager_v1_capture_output_region(manager,0,output,region[0],region[1],region[2],region[3]):zwlr_screencopy_manager_v1_capture_output(manager,0,output);zwlr_screencopy_frame_v1_add_listener(frame,&listener,NULL);}
-static void geometry(void*d,struct wl_output*o,int32_t x,int32_t y,int32_t w,int32_t h,int32_t sp,const char*m,const char*model,int32_t tr){(void)d;(void)o;(void)x;(void)y;(void)w;(void)h;(void)sp;(void)m;(void)model;(void)tr;}
-static void mode(void*d,struct wl_output*o,uint32_t f,int32_t w,int32_t h,int32_t r){(void)d;(void)o;(void)f;(void)w;(void)h;(void)r;}
-static const struct wl_output_listener output_listener={.geometry=geometry,.mode=mode};
+static void geometry(void*d,struct wl_output*o,int32_t x,int32_t y,int32_t w,int32_t h,int32_t sp,const char*m,const char*model,int32_t tr){(void)d;(void)o;(void)x;(void)y;(void)w;(void)h;(void)sp;(void)m;(void)model;output_transform=tr;}
+static void mode(void*d,struct wl_output*o,uint32_t f,int32_t w,int32_t h,int32_t r){(void)d;(void)o;(void)r;if(f & WL_OUTPUT_MODE_CURRENT){output_width=w;output_height=h;}}
+static void output_done(void*d,struct wl_output*o){(void)d;(void)o;}
+static void scale(void*d,struct wl_output*o,int32_t s){(void)d;(void)o;output_scale=s;}
+static const struct wl_output_listener output_listener={.geometry=geometry,.mode=mode,.done=output_done,.scale=scale};
 static void global(void*d,struct wl_registry*r,uint32_t name,const char*iface,uint32_t version){(void)d;
   if(!strcmp(iface,"wl_shm"))shm=wl_registry_bind(r,name,&wl_shm_interface,1);
-  else if(!strcmp(iface,"wl_output") && output_seen++==output_index){output=wl_registry_bind(r,name,&wl_output_interface,1);wl_output_add_listener(output,&output_listener,NULL);}
+  else if(!strcmp(iface,"wl_output") && output_seen++==output_index){output=wl_registry_bind(r,name,&wl_output_interface,version>=2?2:1);wl_output_add_listener(output,&output_listener,NULL);}
   else if(!strcmp(iface,"zwlr_screencopy_manager_v1") && version>=3)manager=wl_registry_bind(r,name,&zwlr_screencopy_manager_v1_interface,3);
 }
 static void removed(void*d,struct wl_registry*r,uint32_t n){(void)d;(void)r;(void)n;}
@@ -122,5 +128,6 @@ int main(int argc,char**argv){
   if(verify_monotonic)snprintf(clock_id,sizeof clock_id,"linux-monotonic:%s",boot);
   else snprintf(clock_id,sizeof clock_id,"wayland-screencopy:%s:%ld",boot,(long)getpid());
   display=wl_display_connect(NULL);if(!display)fail("Wayland display unavailable");struct wl_registry*r=wl_display_get_registry(display);static const struct wl_registry_listener reg={global,removed};wl_registry_add_listener(r,&reg,NULL);if(wl_display_roundtrip(display)<0 || !shm || !output || !manager)fail("wlr-screencopy v3, wl_shm and selected output required");
+  if(wl_display_roundtrip(display)<0)fail("output metadata unavailable");
   request_frame();while(wl_display_dispatch(display)>=0){}fail("Wayland stream disconnected");return 1;
 }

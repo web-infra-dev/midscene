@@ -11,7 +11,7 @@ export interface ObservationFrameProcessOptions {
 }
 
 /** Opt-in native NDJSON transport. Source times survive buffering and PNG decoding. */
-export class ObservationFrameSource implements DeviceFrameSource {
+class NativeFrameTransport implements DeviceFrameSource {
   private current: DeviceFrameRef | null = null;
   private listeners = new Set<(frame: DeviceFrameRef) => void>();
   private pending = Buffer.alloc(0);
@@ -25,6 +25,7 @@ export class ObservationFrameSource implements DeviceFrameSource {
   constructor(
     private readonly child: ChildProcessWithoutNullStreams,
     maxFrameBytes = 32 * 1024 * 1024,
+    private readonly regionGeometry?: RegionGeometry,
   ) {
     if (!Number.isInteger(maxFrameBytes) || maxFrameBytes < 1)
       throw new Error('Invalid frame byte limit');
@@ -41,17 +42,6 @@ export class ObservationFrameSource implements DeviceFrameSource {
     });
     // Do not expose arbitrary process stderr (which may contain host details) in reports.
     child.stderr.resume();
-  }
-
-  static start(
-    options: ObservationFrameProcessOptions,
-  ): ObservationFrameSource {
-    return new ObservationFrameSource(
-      spawn(options.command, options.args ?? [], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      }),
-      options.maxFrameBytes,
-    );
   }
 
   private fail(error: unknown): void {
@@ -82,6 +72,35 @@ export class ObservationFrameSource implements DeviceFrameSource {
           this.ids.has(wire.frameId)
         )
           throw new Error('Invalid or duplicate native frame identity');
+        if (this.regionGeometry) {
+          const geometry = wire.geometry;
+          if (
+            !geometry ||
+            geometry.scope !== 'region' ||
+            Object.entries(this.regionGeometry).some(
+              ([key, value]) => geometry[key] !== value,
+            )
+          )
+            throw new Error('Native region geometry changed or is missing');
+          if (
+            wire.width !==
+              this.regionGeometry.width * this.regionGeometry.scale ||
+            wire.height !==
+              this.regionGeometry.height * this.regionGeometry.scale
+          )
+            throw new Error('Region pixel scale mismatch');
+          const match = /^(\d+)-(\d+)$/.exec(wire.frameId);
+          if (
+            !match ||
+            Number(match[2]) !== this.ids.size + 1 ||
+            (this.ids.size && !this.ids.has(`${match[1]}-1`))
+          )
+            throw new Error('Native region frame sequence gap');
+        } else if (wire.geometry?.scope === 'region') {
+          throw new Error(
+            'Region frames cannot be used as Agent full-screen screenshots',
+          );
+        }
         const timing = observationTimingSchema.parse(wire.timing);
         if (this.clockId && timing.clockId !== this.clockId)
           throw new Error('Native frame clock domain changed');
@@ -150,5 +169,113 @@ export class ObservationFrameSource implements DeviceFrameSource {
     // Frame handles already issued remain decodable after stopping the process.
     this.pending = Buffer.alloc(0);
     this.ids.clear();
+  }
+}
+
+/** Full-screen Agent frame source; cropped native measurements are rejected. */
+export class ObservationFrameSource extends NativeFrameTransport {
+  // biome-ignore lint/complexity/noUselessConstructor: Hide the internal region transport argument from Agent callers.
+  constructor(child: ChildProcessWithoutNullStreams, maxFrameBytes?: number) {
+    super(child, maxFrameBytes);
+  }
+  static start(
+    options: ObservationFrameProcessOptions,
+  ): ObservationFrameSource {
+    return new ObservationFrameSource(
+      spawn(options.command, options.args ?? [], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }),
+      options.maxFrameBytes,
+    );
+  }
+}
+
+/** Output-local logical coordinates; outputWidth/Height are physical pixels.
+ * Initial implementation deliberately rejects rotated/fractionally-scaled outputs. */
+export interface RegionGeometry {
+  outputIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  scale: number;
+  outputWidth: number;
+  outputHeight: number;
+  transform: 0;
+}
+export interface RegionMeasurementFrame {
+  frameId: string;
+  timing: NonNullable<DeviceFrameRef['timing']>;
+  geometry: Readonly<RegionGeometry>;
+  png: Buffer;
+}
+/** Independent bounded evidence channel. Intentionally NOT a DeviceFrameSource.
+ * No screenshots are substituted into Agent actions; no inference is performed.
+ * Any overflow, missing frame, clock/geometry change or premature EOF rejects evidence.
+ */
+export class RegionObservation {
+  private readonly source: NativeFrameTransport;
+  private readonly captured: RegionMeasurementFrame[] = [];
+  private overflow = false;
+  private constructor(
+    options: ObservationFrameProcessOptions & {
+      geometry: RegionGeometry;
+      maxFrames: number;
+    },
+  ) {
+    const geometry = Object.freeze({ ...options.geometry });
+    if (
+      Object.values(geometry).some((v) => !Number.isSafeInteger(v) || v < 0) ||
+      !geometry.width ||
+      !geometry.height ||
+      !geometry.scale ||
+      geometry.transform !== 0 ||
+      (geometry.x + geometry.width) * geometry.scale > geometry.outputWidth ||
+      (geometry.y + geometry.height) * geometry.scale > geometry.outputHeight ||
+      !Number.isSafeInteger(options.maxFrames) ||
+      options.maxFrames < 1
+    )
+      throw new Error('Invalid region geometry or frame capacity');
+    this.source = new NativeFrameTransport(
+      spawn(options.command, options.args ?? [], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }),
+      options.maxFrameBytes,
+      geometry,
+    );
+    this.source.subscribe((frame) => {
+      if (this.captured.length >= options.maxFrames) {
+        this.overflow = true;
+        void this.source.stop();
+        return;
+      }
+      this.captured.push({
+        frameId: frame.frameId!,
+        timing: { ...frame.timing! },
+        geometry,
+        png: Buffer.from(frame.ref as Buffer),
+      });
+    });
+  }
+  static start(
+    options: ObservationFrameProcessOptions & {
+      geometry: RegionGeometry;
+      maxFrames: number;
+    },
+  ): RegionObservation {
+    return new RegionObservation(options);
+  }
+  frames(): RegionMeasurementFrame[] {
+    if (this.overflow)
+      throw new Error('Region observation overflow; reject timing judgment');
+    this.source.latest(); // propagate transport failures even after stopping
+    return this.captured.map((frame) => ({
+      ...frame,
+      timing: { ...frame.timing },
+      png: Buffer.from(frame.png),
+    }));
+  }
+  async stop(): Promise<void> {
+    await this.source.stop();
   }
 }

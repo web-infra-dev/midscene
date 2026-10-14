@@ -96,3 +96,129 @@ it('closes inherited pipes when a wrapper exits before its producer', async () =
     child.kill('SIGKILL');
   }
 });
+
+const geometry = {
+  outputIndex: 0,
+  x: 3,
+  y: 0,
+  width: 2,
+  height: 2,
+  scale: 1,
+  outputWidth: 10,
+  outputHeight: 10,
+  transform: 0 as const,
+};
+const regionWire = (id = '12-1', overrides = {}) => ({
+  ...JSON.parse(wire(id)),
+  geometry: { scope: 'region', ...geometry },
+  ...overrides,
+});
+const pause = () => new Promise((r) => setTimeout(r, 20));
+it('rejects region pixels at the Agent full-screen source boundary', () => {
+  const { child, source: s } = source();
+  child.stdout.write(`${JSON.stringify(regionWire())}\n`);
+  expect(() => s.latest()).toThrow('full-screen');
+});
+it('region channel preserves atomic geometry, pixels, identity and source time after stop', async () => {
+  const { RegionObservation } = await import('@/observation-frame-source');
+  const record = regionWire();
+  const s = RegionObservation.start({
+    command: process.execPath,
+    args: [
+      '-e',
+      `process.stdout.write(${JSON.stringify(`${JSON.stringify(record)}\n`)});setInterval(()=>{},1000)`,
+    ],
+    geometry,
+    maxFrames: 2,
+  });
+  try {
+    for (let i = 0; i < 100 && !s.frames().length; i++) await pause();
+    const frame = s.frames()[0];
+    expect(frame.frameId).toBe('12-1');
+    expect(frame.geometry).toEqual(geometry);
+    expect(frame.timing.startMs).toBe(440);
+    expect(frame.png.toString('base64')).toBe(pngBase64);
+    frame.png.fill(0);
+    frame.timing.startMs = 0;
+    await s.stop();
+    expect(s.frames()[0].png.toString('base64')).toBe(pngBase64);
+    expect(s.frames()[0].timing.startMs).toBe(440);
+    expect('latest' in s).toBe(false);
+    expect('decode' in s).toBe(false);
+  } finally {
+    await s.stop();
+  }
+});
+it('region channel rejects missing frames, changed geometry/clock, overflow and EOF', async () => {
+  const { RegionObservation } = await import('@/observation-frame-source');
+  const cases = [
+    {
+      records: [regionWire('12-1'), regionWire('12-3')],
+      maxFrames: 3,
+      message: 'sequence gap',
+    },
+    {
+      records: [
+        regionWire('12-1', {
+          geometry: { ...geometry, scope: 'region', x: 4 },
+        }),
+      ],
+      maxFrames: 3,
+      message: 'geometry',
+    },
+    {
+      records: [
+        regionWire('12-1'),
+        regionWire('12-2', {
+          timing: {
+            clockId: 'other',
+            startMs: 440,
+            endMs: 440,
+            kind: 'compositor-frame',
+          },
+        }),
+      ],
+      maxFrames: 3,
+      message: 'clock domain',
+    },
+    {
+      records: [regionWire('12-1'), regionWire('12-2')],
+      maxFrames: 1,
+      message: 'overflow',
+    },
+    {
+      records: [regionWire()],
+      maxFrames: 3,
+      message: 'coverage ended',
+      eof: true,
+    },
+  ];
+  for (const c of cases) {
+    const s = RegionObservation.start({
+      command: process.execPath,
+      args: [
+        '-e',
+        `process.stdout.write(${JSON.stringify(`${c.records.map((r) => JSON.stringify(r)).join('\n')}\n`)});${c.eof ? '' : 'setInterval(()=>{},1000)'}`,
+      ],
+      geometry,
+      maxFrames: c.maxFrames,
+    });
+    try {
+      let error: unknown;
+      for (let i = 0; i < 100; i++) {
+        await pause();
+        try {
+          s.frames();
+        } catch (e) {
+          error = e;
+          break;
+        }
+      }
+      expect(String(error)).toContain(c.message);
+      await s.stop();
+      expect(() => s.frames()).toThrow(c.message);
+    } finally {
+      await s.stop();
+    }
+  }
+});
