@@ -26,6 +26,29 @@ const createConfig = (
 };
 
 describe('test project config', () => {
+  it.each(['0', '-1', '1.5', 'Infinity', '"2"', 'null', 'true'])(
+    'rejects invalid file concurrency %s',
+    async (value) => {
+      const { path } = createConfig(
+        `export default { projects: [{ name: 'web', fileConcurrency: ${value} }] };`,
+      );
+      await expect(loadTestProject(path)).rejects.toThrow(
+        'projects[0].fileConcurrency must be a positive integer',
+      );
+    },
+  );
+
+  it('keeps file concurrency local to each project', async () => {
+    const { path } = createConfig(
+      `export default { projects: [{ name: 'android', fileConcurrency: 3 }, { name: 'ios', fileConcurrency: 1 }, { name: 'default' }] };`,
+    );
+    const loaded = await loadTestProject(path);
+    expect(loaded.projects.map((project) => project.fileConcurrency)).toEqual([
+      3,
+      1,
+      undefined,
+    ]);
+  });
   it.each([
     ['output: { report: { enabled: false } }', 'output.report'],
     ['output: { report: { fileName: "custom" } }', 'output.report'],
@@ -39,10 +62,6 @@ describe('test project config', () => {
     [
       'projects: [{ name: "native", retryScope: "document" }]',
       'projects[0].retryScope',
-    ],
-    [
-      'projects: [{ name: "native", fileConcurrency: 2 }]',
-      'projects[0].fileConcurrency',
     ],
     [
       'projects: [{ name: "native", setupFile: "setup.yaml" }]',

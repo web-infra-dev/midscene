@@ -73,6 +73,97 @@ afterEach(() => {
 });
 
 describe('test project main-process runner', () => {
+  it('bounds file concurrency per project and cleans file resources after failure', async () => {
+    const root = createProject();
+    const gate = createDeferred();
+    const state = Object.assign(setRunnerState(join(root, 'results')), {
+      gate: gate.promise,
+      activeFiles: {} as Record<string, number>,
+      peakFiles: {} as Record<string, number>,
+      steps: {} as Record<string, number>,
+      cleaned: [] as string[],
+    });
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      const state = globalThis.__testProjectRunnerState;
+      const setup = { name: 'project', setup({ project, onTeardown }) {
+        state.events.push('setup:' + project.name);
+        onTeardown(() => state.events.push('teardown:' + project.name));
+        return { name: project.name };
+      }};
+      export default {
+        test: { maxConcurrency: 2 },
+        projects: [
+          { name: 'android', setup, fileConcurrency: 2 },
+          { name: 'ios', setup, fileConcurrency: 1 },
+        ],
+        nodes: [
+          { name: 'acquire', execute({ context, document, onTeardown }) {
+            const name = context.name;
+            const key = name + ':' + document.sourcePath;
+            state.activeFiles[name] = (state.activeFiles[name] || 0) + 1;
+            state.peakFiles[name] = Math.max(state.peakFiles[name] || 0, state.activeFiles[name]);
+            state.steps[key] = 0;
+            onTeardown(() => { state.activeFiles[name]--; state.cleaned.push(key); });
+          }},
+          { name: 'work', async execute({ context, case: currentCase, input }) {
+            const key = context.name + ':' + currentCase.sourcePath;
+            await state.gate;
+            if (++state.steps[key] !== input.sequence) throw new Error('case order changed');
+            if (context.name === 'android' && currentCase.sourcePath === 'b.yaml' && input.sequence === 2)
+              throw new Error('intentional failure');
+          }},
+        ],
+      };
+    `,
+    );
+    for (const file of ['a.yaml', 'b.yaml', 'c.yaml']) {
+      writeWorkflow(
+        root,
+        file,
+        `
+beforeAll:
+  - acquire: {}
+cases:
+  - name: first
+    steps:
+      - work: { sequence: 1 }
+  - name: second
+    steps:
+      - work: { sequence: 2 }
+`,
+      );
+    }
+    const running = runTestProject({
+      projectRoot: root,
+      resultDir: state.resultDir,
+    });
+    try {
+      await expect
+        .poll(() => state.activeFiles, { timeout: 2000 })
+        .toEqual({ android: 2, ios: 1 });
+    } finally {
+      gate.resolve();
+      await running;
+    }
+    const result = await running;
+    expect(state.peakFiles).toEqual({ android: 2, ios: 1 });
+    expect(state.activeFiles).toEqual({ android: 0, ios: 0 });
+    expect(new Set(state.cleaned).size).toBe(6);
+    expect(Object.values(state.steps)).toEqual([2, 2, 2, 2, 2, 2]);
+    expect(
+      state.events.filter((event) => event.startsWith('setup:')),
+    ).toHaveLength(2);
+    expect(
+      state.events.filter((event) => event.startsWith('teardown:')),
+    ).toHaveLength(2);
+    expect(
+      result.projects
+        .flatMap((project) => project.cases)
+        .filter((item) => item.status === 'failed'),
+    ).toHaveLength(1);
+  });
   it('publishes a fixed snapshot and keeps appending the original node late outcome to its journal', async () => {
     const root = createProject();
     const pending = createDeferred();
@@ -459,7 +550,7 @@ describe('test project main-process runner', () => {
     expect(existsSync(join(reportDir, 'disabled-report.html'))).toBe(false);
   });
 
-  it('does not admit compatibility setupFile/fileConcurrency in a native Project', async () => {
+  it('does not admit compatibility setupFile in a native Project', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
     const state = setRunnerState(resultDir);
