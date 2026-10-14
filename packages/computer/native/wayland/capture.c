@@ -27,6 +27,7 @@ static uint32_t width, height, stride, format, flags;
 static uint64_t requested, sequence;
 static int verify_monotonic, finished, output_index, output_seen;
 static int region[4], has_region;
+static int adaptive_filter, trace;
 static char boot[80], clock_id[160];
 static void fail(const char *s) { fprintf(stderr, "wayland-capture: %s\n", s); exit(1); }
 static uint64_t mono(void) { struct timespec t; if(clock_gettime(CLOCK_MONOTONIC,&t)) fail("clock_gettime"); return (uint64_t)t.tv_sec*1000000000+t.tv_nsec; }
@@ -55,6 +56,21 @@ static void on_buffer(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t fmt
   buffer=wl_shm_pool_create_buffer(pool,0,(int32_t)w,(int32_t)h,(int32_t)st,fmt);wl_shm_pool_destroy(pool);close(fd);
 }
 static void on_flags(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t v) { (void)data;(void)f;flags=v; }
+static struct bytes encode_png(void) {
+  struct bytes b={0};png_structp p=png_create_write_struct(PNG_LIBPNG_VER_STRING,NULL,NULL,NULL);if(!p)fail("png allocation");
+  png_infop info=png_create_info_struct(p);if(!info)fail("png info");
+  if(setjmp(png_jmpbuf(p)))fail("PNG encoding failed");
+  png_set_write_fn(p,&b,png_write,png_flush);png_set_compression_level(p,1);
+  // Adaptive filter search dominates full-screen encoding and delays the next capture.
+  // NONE remains lossless; adaptive is retained only for controlled A/B measurements.
+  if(!adaptive_filter)png_set_filter(p,PNG_FILTER_TYPE_BASE,PNG_FILTER_NONE);
+  png_set_IHDR(p,info,width,height,8,PNG_COLOR_TYPE_RGB,PNG_INTERLACE_NONE,PNG_COMPRESSION_TYPE_DEFAULT,PNG_FILTER_TYPE_DEFAULT);png_write_info(p,info);
+  unsigned char *row=malloc((size_t)width*3);if(!row)fail("row allocation");
+  for(uint32_t y=0;y<height;y++) { uint32_t sy=(flags & ZWLR_SCREENCOPY_FRAME_V1_FLAGS_Y_INVERT)?height-1-y:y; unsigned char *src=(unsigned char*)pixels+(size_t)sy*stride;
+    for(uint32_t x=0;x<width;x++){row[x*3]=src[x*4+2];row[x*3+1]=src[x*4+1];row[x*3+2]=src[x*4];} png_write_row(p,row); }
+  free(row);png_write_end(p,NULL);png_destroy_write_struct(&p,&info);
+  return b;
+}
 static void on_ready(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t hi,uint32_t lo,uint32_t ns) {
   (void)data;
   uint64_t received=mono(),stamp=(((uint64_t)hi<<32)|lo)*1000000000+ns;
@@ -62,17 +78,21 @@ static void on_ready(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t hi,u
   // Opt-in alignment assertion, backed by compositor-specific source review.
   // Never remap a foreign clock or replace source time with encoding/arrival time.
   if(verify_monotonic && (stamp<requested || stamp>received))fail("source timestamp outside CLOCK_MONOTONIC capture bounds");
-  struct bytes b={0};png_structp p=png_create_write_struct(PNG_LIBPNG_VER_STRING,NULL,NULL,NULL);if(!p)fail("png allocation");
-  png_infop info=png_create_info_struct(p);if(!info)fail("png info");
-  if(setjmp(png_jmpbuf(p)))fail("PNG encoding failed");
-  png_set_write_fn(p,&b,png_write,png_flush);png_set_compression_level(p,1);
-  png_set_IHDR(p,info,width,height,8,PNG_COLOR_TYPE_RGB,PNG_INTERLACE_NONE,PNG_COMPRESSION_TYPE_DEFAULT,PNG_FILTER_TYPE_DEFAULT);png_write_info(p,info);
-  unsigned char *row=malloc((size_t)width*3);if(!row)fail("row allocation");
-  for(uint32_t y=0;y<height;y++) { uint32_t sy=(flags & ZWLR_SCREENCOPY_FRAME_V1_FLAGS_Y_INVERT)?height-1-y:y; unsigned char *src=(unsigned char*)pixels+(size_t)sy*stride;
-    for(uint32_t x=0;x<width;x++){row[x*3]=src[x*4+2];row[x*3+1]=src[x*4+1];row[x*3+2]=src[x*4];} png_write_row(p,row); }
-  free(row);png_write_end(p,NULL);png_destroy_write_struct(&p,&info);
-  printf("{\"version\":1,\"frameId\":\"%ld-%llu\",\"width\":%u,\"height\":%u,\"timing\":{\"clockId\":\"%s\",\"kind\":\"compositor-frame\",\"startMs\":%.6f,\"endMs\":%.6f},\"captureStartNs\":\"%llu\",\"readyNs\":\"%llu\",\"pngEncodedNs\":\"%llu\",\"pngBase64\":\"",(long)getpid(),(unsigned long long)++sequence,width,height,clock_id,stamp/1e6-0.001,stamp/1e6+0.001,(unsigned long long)requested,(unsigned long long)received,(unsigned long long)mono());
-  base64(b.data,b.size);printf("\"}\n");if(fflush(stdout) || ferror(stdout))fail("frame output closed");free(b.data);
+  struct bytes b=encode_png();
+  uint64_t encoded=mono();
+  ++sequence;
+  // Persist source identity before emitting a frame, including when the consumer stops immediately.
+  if(trace) {
+    fprintf(stderr,"{\"frameId\":\"%ld-%llu\",\"sourceNs\":\"%llu\",\"requestedNs\":\"%llu\",\"readyNs\":\"%llu\",\"encodedNs\":\"%llu\",\"pngBytes\":%zu,\"adaptiveFilter\":%s}\n",(long)getpid(),(unsigned long long)sequence,(unsigned long long)stamp,(unsigned long long)requested,(unsigned long long)received,(unsigned long long)encoded,b.size,adaptive_filter?"true":"false");
+    if(fflush(stderr) || ferror(stderr))fail("trace output closed");
+  }
+  printf("{\"version\":1,\"frameId\":\"%ld-%llu\",\"width\":%u,\"height\":%u,\"timing\":{\"clockId\":\"%s\",\"kind\":\"compositor-frame\",\"startMs\":%.6f,\"endMs\":%.6f},\"captureStartNs\":\"%llu\",\"readyNs\":\"%llu\",\"pngEncodedNs\":\"%llu\",\"pngBase64\":\"",(long)getpid(),(unsigned long long)sequence,width,height,clock_id,stamp/1e6-0.001,stamp/1e6+0.001,(unsigned long long)requested,(unsigned long long)received,(unsigned long long)encoded);
+  base64(b.data,b.size);printf("\"}\n");if(fflush(stdout) || ferror(stdout))fail("frame output closed");
+  if(trace) {
+    fprintf(stderr,"{\"frameId\":\"%ld-%llu\",\"sourceNs\":\"%llu\",\"requestedNs\":\"%llu\",\"readyNs\":\"%llu\",\"encodedNs\":\"%llu\",\"emittedNs\":\"%llu\",\"pngBytes\":%zu,\"adaptiveFilter\":%s}\n",(long)getpid(),(unsigned long long)sequence,(unsigned long long)stamp,(unsigned long long)requested,(unsigned long long)received,(unsigned long long)encoded,(unsigned long long)mono(),b.size,adaptive_filter?"true":"false");
+    if(fflush(stderr) || ferror(stderr))fail("trace output closed");
+  }
+  free(b.data);
   zwlr_screencopy_frame_v1_destroy(f);frame=NULL;wl_buffer_destroy(buffer);buffer=NULL;munmap(pixels,pixel_bytes);pixels=NULL;
   if(!finished)request_frame();
 }
@@ -93,9 +113,11 @@ static void global(void*d,struct wl_registry*r,uint32_t name,const char*iface,ui
 static void removed(void*d,struct wl_registry*r,uint32_t n){(void)d;(void)r;(void)n;}
 int main(int argc,char**argv){
   for(int i=1;i<argc;i++){if(!strcmp(argv[i],"--verify-monotonic"))verify_monotonic=1;
+    else if(!strcmp(argv[i],"--trace"))trace=1;
+    else if(!strcmp(argv[i],"--png-filter") && i+1<argc){const char *v=argv[++i];if(!strcmp(v,"adaptive"))adaptive_filter=1;else if(!strcmp(v,"none"))adaptive_filter=0;else fail("invalid PNG filter");}
     else if(!strcmp(argv[i],"--output-index") && i+1<argc)output_index=atoi(argv[++i]);
     else if(!strcmp(argv[i],"--region") && i+1<argc){if(sscanf(argv[++i],"%d,%d,%d,%d",&region[0],&region[1],&region[2],&region[3])!=4 || region[0]<0 || region[1]<0 || region[2]<=0 || region[3]<=0)fail("invalid region");has_region=1;}
-    else fail("usage: capture [--verify-monotonic] [--output-index N] [--region x,y,w,h]");}
+    else fail("usage: capture [--verify-monotonic] [--output-index N] [--region x,y,w,h] [--png-filter none|adaptive] [--trace]");}
   FILE *b=fopen("/proc/sys/kernel/random/boot_id","r");if(!b || !fgets(boot,sizeof boot,b))fail("boot clock identity unavailable");fclose(b);boot[strcspn(boot,"\r\n")]=0;
   if(verify_monotonic)snprintf(clock_id,sizeof clock_id,"linux-monotonic:%s",boot);
   else snprintf(clock_id,sizeof clock_id,"wayland-screencopy:%s:%ld",boot,(long)getpid());
