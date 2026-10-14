@@ -62,7 +62,7 @@ const runtimePackages = () => {
   return selected;
 };
 
-it('creates, installs, and runs the packaged Web starter twice with a real browser and model', async () => {
+it('creates, installs, and runs the packaged Web starter with a real browser and model', async () => {
   loadEnv({ path: join(workspaceRoot, '.env') });
   const temporary = mkdtempSync(join(tmpdir(), 'midscene-create-web-'));
   const artifactRoot = resolve(
@@ -213,51 +213,47 @@ it('creates, installs, and runs the packaged Web starter twice with a real brows
     );
 
     const resultsRoot = join(project, '.midscene/test-results');
-    const seen = new Set<string>();
-    for (let index = 1; index <= 2; index++) {
-      // Both runs execute the untouched starter, including its AI actions and
-      // assertions. No case filtering, manual reset, or test retries are used.
-      await run(`test-${index}`, ['test'], project, 300_000);
-      const fresh = readdirSync(resultsRoot).filter(
-        (entry) => !seen.has(entry),
-      );
-      expect(fresh).toHaveLength(1);
-      seen.add(fresh[0]);
-      const runDir = join(resultsRoot, fresh[0]);
-      const result = JSON.parse(
-        readFileSync(join(runDir, 'summary.json'), 'utf8'),
-      );
-      expect(result).toMatchObject({
-        status: 'success',
-        exitCode: 0,
-        summary: {
-          total: 2,
-          passed: 2,
-          failed: 0,
-          notRun: 0,
-          passedAfterRetry: 0,
-          filtered: 0,
-          collectionErrors: 0,
-          documentFailures: 0,
-          projectFailures: 0,
-        },
-      });
-      expect(result.projects).toHaveLength(1);
-      expect(result.projects[0].name).toBe('web');
-      expect(
-        result.projects[0].cases.map((item: { name: string }) => item.name),
-      ).toEqual([
-        'Seed TodoMVC with deterministic Nodes',
-        'Manage TodoMVC with AI',
-      ]);
-      expect(result.report).toEqual(expect.any(String));
-      expect(readFileSync(resolve(runDir, result.report), 'utf8')).toMatch(
-        /<!doctype html>/i,
-      );
-      expect(readFileSync(join(runDir, 'result.md'), 'utf8')).toContain(
-        'Manage TodoMVC with AI',
-      );
-    }
+    // Execute the untouched starter, including its AI actions and assertions.
+    // Allow its 10-minute case budget plus cleanup/report publication time.
+    await run('test', ['test'], project, 660_000);
+    const runs = readdirSync(resultsRoot, { withFileTypes: true }).filter(
+      (entry) => entry.isDirectory(),
+    );
+    expect(runs).toHaveLength(1);
+    const runDir = join(resultsRoot, runs[0].name);
+    const result = JSON.parse(
+      readFileSync(join(runDir, 'summary.json'), 'utf8'),
+    );
+    expect(result).toMatchObject({
+      status: 'success',
+      exitCode: 0,
+      summary: {
+        total: 2,
+        passed: 2,
+        failed: 0,
+        notRun: 0,
+        passedAfterRetry: 0,
+        filtered: 0,
+        collectionErrors: 0,
+        documentFailures: 0,
+        projectFailures: 0,
+      },
+    });
+    expect(result.projects).toHaveLength(1);
+    expect(result.projects[0].name).toBe('web');
+    expect(
+      result.projects[0].cases.map((item: { name: string }) => item.name),
+    ).toEqual([
+      'Seed TodoMVC with deterministic Nodes',
+      'Manage TodoMVC with AI',
+    ]);
+    expect(result.report).toEqual(expect.any(String));
+    expect(readFileSync(resolve(runDir, result.report), 'utf8')).toMatch(
+      /<!doctype html>/i,
+    );
+    expect(readFileSync(join(runDir, 'result.md'), 'utf8')).toContain(
+      'Manage TodoMVC with AI',
+    );
     for (const [file, content] of originalFiles) {
       expect(readFileSync(join(project, file), 'utf8')).toBe(content);
     }

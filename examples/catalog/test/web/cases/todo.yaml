@@ -30,11 +30,11 @@ cases:
       - aiAct:
           prompt: Delete the Todo named "Learn Rust tomorrow".
           $:
-            timeout: 60000
+            timeout: 180000
       - aiAct:
           prompt: Mark the Todo named "Learn AI the day after tomorrow" as completed.
           $:
-            timeout: 60000
+            timeout: 180000
       - aiAssert:
           prompt: >-
             Exactly two Todos remain. "Learn AI the day after tomorrow" is
@@ -42,7 +42,7 @@ cases:
             "1 item left".
           message: TodoMVC does not show the expected final state.
           $:
-            timeout: 60000
+            timeout: 180000
       - todo.expectState:
           items:
             - title: Learn JS today

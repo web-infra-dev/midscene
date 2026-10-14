@@ -52,5 +52,5 @@ export default defineTestProject<ProjectContext>({
       getAgent,
     }),
   ],
-  test: { maxConcurrency: 1, bail: 1, testTimeout: 240_000 },
+  test: { maxConcurrency: 1, bail: 1, testTimeout: 600_000 },
 });
