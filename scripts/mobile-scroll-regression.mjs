@@ -78,14 +78,15 @@ async function poll(check, label, timeout = 15_000) {
 }
 async function reset(mode) {
   if (platform === 'ios') {
-    // A terminated fixture has no previous process writing stale measurements.
-    try {
-      run('xcrun', ['simctl', 'terminate', udid, bundle]);
-    } catch {
-      /* not running */
-    }
+    // Let WDA own the lifecycle so its cached XCUIApplication follows the
+    // restarted process. Restarting via simctl can leave WDA reporting an
+    // already-running fixture as terminated when the next gesture begins.
+    await wda(`/session/${session}/wda/apps/terminate`, { bundleId: bundle });
     rmSync(path.join(container, 'Documents/metrics.json'), { force: true });
-    run('xcrun', ['simctl', 'launch', udid, bundle, mode]);
+    await wda(`/session/${session}/wda/apps/launch`, {
+      bundleId: bundle,
+      arguments: [mode],
+    });
   } else {
     adb('shell', 'am', 'force-stop', bundle);
     adb('shell', 'run-as', bundle, 'rm', '-f', 'files/metrics.json');
