@@ -309,6 +309,17 @@ export default defineConfig(async () => {
             link: '/caching',
           },
           {
+            sectionHeaderText: 'Guides',
+          },
+          {
+            text: 'Midscene vs Playwright',
+            link: '/midscene-vs-playwright',
+          },
+          {
+            text: 'Natural-language web testing',
+            link: '/midscene-yaml-natural-language-web-testing',
+          },
+          {
             sectionHeaderText: 'Resources',
           },
           {
@@ -491,6 +502,17 @@ export default defineConfig(async () => {
           {
             text: '缓存 AI 规划与 DOM 定位',
             link: '/zh/caching',
+          },
+          {
+            sectionHeaderText: '指南',
+          },
+          {
+            text: 'Midscene 与 Playwright',
+            link: '/zh/midscene-vs-playwright',
+          },
+          {
+            text: '用自然语言测网页',
+            link: '/zh/midscene-yaml-natural-language-web-testing',
           },
           {
             sectionHeaderText: '资源',

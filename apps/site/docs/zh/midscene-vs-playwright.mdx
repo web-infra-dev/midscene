@@ -1,0 +1,201 @@
+---
+title: Midscene.js 与 Playwright：何时给 E2E 加上视觉层
+description: Midscene.js 是加在 Playwright 上的视觉层，不是替代品。稳定路径继续用 locator；选择器易碎或需要看截图断言时，再用自然语言操作。
+---
+
+# Midscene.js 与 Playwright：何时给 E2E 加上视觉层
+
+Playwright 负责确定性的浏览器自动化和测试运行：locator、自动等待、多浏览器项目和 trace。Midscene.js 是开源的视觉驱动 GUI Agent，接在 Playwright（以及其他驱动）之上。你用自然语言描述操作和可见结果，Midscene 根据截图定位，选择器只留在仍然划算的步骤上。
+
+已经在用 Playwright 的团队通常会碰到两类缺口。改版、`<canvas>` 绘制、只有图标的按钮，会让选择器失效。只看 DOM 的断言也覆盖不了颜色、高亮和布局。这篇是选型页：哪些步骤继续用纯 Playwright，哪些步骤在现有 Playwright `page` 上加 Midscene 视觉层。接入步骤写在[集成到 Playwright](./integrate-with-playwright)。想先用 YAML 写自然语言用例，看[用自然语言测网页](./midscene-yaml-natural-language-web-testing)。
+
+## 先看结论
+
+- Midscene 与 Playwright 集成。它不替换浏览器驱动、测试运行器或 locator。
+- UI 操作和元素定位默认走截图上的纯视觉，这些步骤不必先写选择器。
+- DOM 契约稳定、要跑多浏览器矩阵、或不该调用模型的路径，继续用 Playwright locator。
+- Midscene.js 使用 [MIT 许可](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。文档中没有 Midscene 订阅云。模型 API 费用另计，API Key 由你自己配置。
+- 在 Playwright 上使用 Midscene 时推荐 Chromium，因为部分 Web 能力依赖 CDP。需要 Firefox 和 WebKit 时，仍由 Playwright 覆盖。
+
+## 两边各负责什么
+
+### Playwright
+
+[Playwright](https://playwright.dev/docs/locators) 用 locator 驱动浏览器，包括 `getByRole`、`getByText`、`getByLabel`、`getByTestId`，并在元素可操作前[自动等待](https://playwright.dev/docs/actionability)。运行器覆盖 Chromium、Firefox 和 WebKit，以及 trace、codegen、UI Mode、分片和并行项目。Playwright 由 Microsoft 以 [Apache License 2.0](https://github.com/microsoft/playwright) 发布。
+
+用户可见行为已经能用稳定的可访问名称、文本、标签或 test id 表达时，用这套能力。[Playwright 的 locator 实践](https://playwright.dev/docs/best-practices)是这些控件的默认写法。
+
+### Midscene
+
+Midscene.js 是 GUI Agent 和测试工具集，仓库为 [web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)。LICENSE 的版权主体是 Bytedance, Inc. and its affiliates。在 Web 上，`@midscene/web/playwright` 提供 `PlaywrightAgent` 和 `PlaywrightAiFixture`，作用在 Playwright 的 `page` 上。
+
+同一套 Agent API 描述要做什么、用户应该看到什么：
+
+- `aiAct` 根据最新截图规划一个目标。
+- `aiTap`、`aiInput` 以及其他即时操作定位一个目标并执行一次动作。
+- `aiAssert` 检查一个可见条件。
+- `aiQuery`、`aiBoolean`、`aiNumber`、`aiString` 读取界面。
+- `aiWaitFor` 等到所描述的条件成立。
+
+报告是 HTML，包含截图、元素位置、模型决策和断言结果。Android、iOS、HarmonyOS 和桌面端也有同一风格的 Agent，见[平台概览](./platforms/)。那些平台不在本页对比范围内。
+
+## 决策表：纯 Playwright，还是加上 Midscene
+
+按步骤选型。一套测试里可以同时存在两种写法。
+
+| 情况 | 建议 |
+| --- | --- |
+| 控件有稳定的 role、文本、标签或 test id | **留在 Playwright。** 用 locator。 |
+| 断言关心颜色、高亮、布局，或 `<canvas>` 上的像素 | **加上** `aiAssert` 做这项检查。 |
+| 目标是纯图标、自定义控件、`<canvas>`，或在跨域 iframe 里 | **加上**视觉定位。截图定位不需要 DOM 选择器。 |
+| 同一脚本必须跑在 Firefox 和 WebKit 上 | 该矩阵**留在 Playwright**。Midscene 步骤放在 Chromium 上跑。 |
+| 全量套件每次提交都跑，模型预算紧 | **混合。** 主体留在 locator。视觉步骤只放在一小部分冒烟路径。 |
+| 编写者描述屏幕，不写选择器 | **混合。** 从[自然语言 YAML](./midscene-yaml-natural-language-web-testing)或 [Playground](./quick-start)开始。DOM 契约可靠的地方仍用 locator。 |
+| 正在排查失败 | **混合。** locator 步骤看 Playwright trace，视觉步骤看 Midscene HTML 报告。 |
+
+## 怎么接到现有 Playwright 项目
+
+两种接入方式共用同一套 Agent API。完整说明在[集成到 Playwright](./integrate-with-playwright)。下面只标出视觉调用放在哪里。
+
+### 脚本里使用 PlaywrightAgent
+
+安装 `@midscene/web`、`playwright` 和 `@playwright/test`，然后包住你已经启动的 `page`：
+
+```typescript
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PlaywrightAgent(page);
+await agent.aiAct('在搜索框输入 "Headphones"，按下回车');
+await agent.aiAssert('左侧有分类筛选');
+
+await browser.close();
+```
+
+可运行脚本、模型配置和报告路径都在集成文档里。对应示例仓库是 [playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)。
+
+### Playwright Test fixture
+
+已有 `@playwright/test` 项目时，安装 `@midscene/web`，配置报告器 `@midscene/web/playwright-reporter`，并用 `PlaywrightAiFixture` 扩展 `test`。用例里可以同时拿到 `page` 和 `aiAct`、`aiTap`、`aiAssert`、`aiQuery` 等 fixture。示例仓库是 [playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)。
+
+把测试超时调大。视觉步骤要等模型返回，Playwright 的默认超时经常不够。集成文档里的起点是 `timeout: 90 * 1000`。
+
+### 混合：一个用例里同时用 locator 和视觉
+
+DOM 契约稳定的步骤留在 locator。选择器易碎的步骤，或 DOM 断言看不到的检查，交给视觉。`PlaywrightAiFixture` 同时提供 `page` 和 Agent 方法：
+
+```typescript
+import { expect } from '@playwright/test';
+import { test } from './fixture';
+
+test('cart badge', async ({ page, aiTap, aiAssert }) => {
+  await page.goto('https://your-shop.example');
+
+  await page.getByRole('button', { name: 'Add to cart' }).click();
+  await expect(page.getByTestId('cart-count')).toHaveText('1');
+
+  await aiAssert('购物车角标可见，并且显示 1');
+  await aiTap('结果工具栏上那个只有图标的筛选按钮');
+});
+```
+
+`./fixture` 是集成文档里扩展后的 `test`。把网址和可访问名称换成你的应用。`getByRole` 和 `getByTestId` 对应 [Playwright 的推荐写法](https://playwright.dev/docs/best-practices)。`aiAssert` 检查可见角标。`aiTap` 用来替代你原本要维护的易碎选择器。
+
+[基本概念](./basics#javascript-orchestration)把 Midscene 自己的两种编排和 locator 分开：
+
+1. 操作目标有多步，或界面会变时，默认用 `aiAct`。Agent 会根据最新截图重新规划。
+2. 流程稳定、希望路径写死时，用 JavaScript 编排（在你自己的循环里调用 `aiQuery`、`aiBoolean`、`aiTap`）。
+3. DOM 契约可靠、这一步不该调用模型时，用 Playwright locator。
+
+## 视觉模型、费用和边界
+
+Midscene 根据截图定位 UI 目标。这是[纯视觉方案](./model-strategy)：操作不依赖 DOM 标注或选择器。数据提取和页面理解可以在需要时通过 `domIncluded` 附带简化 DOM，例如读取截图里看不到的图片 URL。只做文本的任意 LLM 不够用。模型需要能稳定完成 GUI 操作的视觉理解能力。
+
+模型由你自己配置。[介绍](./introduction)里列出的系列包括 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`、`gemini-3.5-flash` 和 `UI-TARS`，其中也有可以自托管的开源模型。环境变量里的精确 `MIDSCENE_MODEL_NAME` 和 family 以[使用模型 API Key](./model-common-config)为准，不写在本页。
+
+每个视觉步骤都会把截图发给模型。它比一次 locator 点击慢，并且消耗 token。locator 步骤不会。把 `aiAct` 用在需要按当前界面重新规划的流程上。量大、稳定的回归留在 Playwright。
+
+本站公布的金额来自 [AppControlBench 报告](./app-control-bench-report)。那是 iOS 模拟器评测（Bluesky 和 Element），不是 Playwright 的 Web 套件。该次运行中，Midscene 1.12.0 搭配 Doubao Seed 2.1 Turbo，60 项任务通过 58 项，**模型 API 总费用为 0.59 美元**（测试日期 2026-08-25 至 2026-08-27）。这个数字是该次评测的结果，不是你的 CI 账单。逐任务费用和计价假设见报告。
+
+## 浏览器引擎和 CDP
+
+部分 Midscene Web 能力使用 Chrome DevTools Protocol：浏览器级事件、触摸手势，以及特定交互的 CDP 回退。Playwright 指南里的[浏览器支持说明](./integrate-with-playwright#浏览器支持说明)写的是同一条约束。推荐 Chromium。Firefox 和 WebKit 上，基础的 Playwright 原生操作可能可以运行；依赖 CDP 的 Midscene 能力可能会报错。
+
+验收标准是「这条流程要在 Chromium、Firefox 和 WebKit 上都通过」时，该项目留在 Playwright locator。视觉冒烟放在 Chromium 上。
+
+也可以用 `chromium.connectOverCDP(...)` 把同一个 Agent 接到远程 Chromium。[连接远程 Playwright 浏览器](./integrate-with-playwright#连接远程-playwright-浏览器并接入-midscene-agent)给出了写法。BrowserBase、Browserless、带调试端口的本地 Chrome，以及 Docker 里的浏览器，都是 CDP WebSocket 的来源示例。它们是连接目标，不是 Midscene 托管的浏览器云。示例仓库是 [remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)。
+
+## YAML 和 Midscene Test
+
+`@midscene/test`（Beta）是声明式一层：YAML 的 `cases` / `steps` 写测试意图，TypeScript Node 写数据准备和其他确定性工作。Web 脚手架仍然通过 Playwright 安装 Chromium。新的 YAML 用例用 Midscene Test。旧的 `tasks` / `flow` 格式用 `midscene` 命令运行，处于维护模式。
+
+本页不展开脚手架。上手文章是[用自然语言测网页](./midscene-yaml-natural-language-web-testing)。参考文档：[Midscene Test 概览](./midscene-test/overview)和[创建和使用测试项目](./midscene-test/use)。
+
+## 常见问题
+
+### Midscene 能替代 Playwright 吗？
+
+不能。`PlaywrightAgent` 和 `PlaywrightAiFixture` 跑在 Playwright 的 `page` 上。Playwright 仍然是浏览器驱动、测试运行器和 locator。Midscene 为适合截图定位的步骤补上自然语言操作。
+
+### 什么时候继续用纯 Playwright？
+
+locator 已经能表达用户可见行为时；套件必须覆盖 Firefox 和 WebKit 时；路径又多又要在每次提交时跑时；以及你希望继续用 codegen、trace 和 UI Mode、且这一步不调用模型时。优先使用 `getByRole`、`getByText`、`getByLabel` 和 `getByTestId`。
+
+### 什么时候加上 Midscene 的视觉层？
+
+选择器会因为改版、纯图标按钮、自定义控件、`<canvas>` 或跨域 iframe 而失效时；断言关心用户看见的结果时；或者流程应该用 `aiAct` 跟着界面变化重新规划时。加在这些步骤上即可，不必把其余套件一并改掉。
+
+### Midscene 怎么定位元素？
+
+默认读取截图并返回位置。UI 操作不需要选择器，也不需要无障碍标注。在网页上，数据提取类方法可以传入 `domIncluded`，附带简化 DOM。模型必须是适合 GUI 任务的多模态模型。见[模型策略](./model-strategy)。
+
+### 开源吗？要付 Midscene 的云费用吗？
+
+Midscene.js 是 MIT。Playwright 是 Apache-2.0。这些文档没有描述包含模型用量的 Midscene 订阅。你配置模型 API Key，或者自托管支持的视觉模型。token 费用由该服务商收取。本站公布的套件级金额只有上面的 AppControlBench 示例，而且那是 iOS 评测，不是 Web CI 账单。
+
+### 必须用 Chromium 吗？
+
+推荐 Chromium。Playwright 本身仍然可以跑 Firefox 和 WebKit。挂上 Midscene Agent 之后，这些引擎上的基础 Playwright 原生操作可能可以运行，但依赖 CDP 的 Midscene 能力可能会报错。不要把三个引擎当成 Midscene Web 能力上的等价物。
+
+### aiAct、JavaScript 编排和 locator 怎么选？
+
+操作目标需要适应当前屏幕时，默认用 `aiAct`。分支顺序稳定、希望写明路径时，用 JavaScript 编排。DOM 契约可靠、并且这一步要快、要确定时，用 Playwright locator。三种写法可以出现在同一个用例里。
+
+### YAML 放在哪里？
+
+YAML 是 Midscene Test 的用例格式：`cases` 和 `steps`，外加可选的 TypeScript Node。它适合用自然语言描述网页测试并放进 CI 的人。它仍是 Beta。旧的 `tasks` / `flow` YAML 继续用 `midscene` 运行，处于维护模式。第一条用例看[YAML 上手文章](./midscene-yaml-natural-language-web-testing)，不要把这篇选型文扩成教程。
+
+## 延伸阅读
+
+Midscene：
+
+- [介绍](./introduction)
+- [基本概念](./basics)
+- [集成到 Playwright](./integrate-with-playwright)
+- [API 参考](./reference/)
+- [模型策略](./model-strategy)和[模型配置](./model-common-config)
+- [Midscene Test 概览](./midscene-test/overview)和[使用说明](./midscene-test/use)
+- [案例展示](./showcases)
+- [GitHub：web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+
+Playwright：
+
+- [Locators](https://playwright.dev/docs/locators)
+- [Best practices](https://playwright.dev/docs/best-practices)
+- [Actionability 与自动等待](https://playwright.dev/docs/actionability)
+
+外部作品集页面也把 Midscene 列为面向 Web 和设备的自然语言 UI 自动化：[lifeos.vip/about](https://lifeos.vip/about)。项目本身和 MIT 许可仍在 [web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)。
+
+其他站点也写过自己的对比，包括 [aicoolies](https://aicoolies.com/comparisons/midscene-js-vs-playwright) 和 [actfont](https://actfont.top/en/blog/web-infra-dev-midscene-en)。那是第三方文章，不是 Midscene 的评测、价格或维护指标。
+
+:::info 下一步
+已经在用 Playwright：给一条易变流程包上 `PlaywrightAgent` 或 `PlaywrightAiFixture`，跑一次 `aiAct` 或 `aiAssert`，然后打开 HTML 报告。从[集成到 Playwright](./integrate-with-playwright)开始。
+
+稳定控件，以及 Firefox 或 WebKit 矩阵，仍然适合 locator。改这些步骤之前，先看 [Playwright 的推荐写法](https://playwright.dev/docs/best-practices)。
+
+用例想写成 YAML 而不是 spec 文件：看[用自然语言测网页](./midscene-yaml-natural-language-web-testing)。
+:::

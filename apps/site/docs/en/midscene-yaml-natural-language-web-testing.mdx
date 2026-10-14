@@ -1,0 +1,219 @@
+---
+title: "Test web pages in natural language: a Midscene YAML intro (no selectors first)"
+description: "Describe web actions and visible checks in natural language. Try them in the Chrome extension Playground, then save repeatable cases as Midscene Test YAML on top of Playwright."
+---
+
+import { ChromeExtensionButton } from '@theme';
+
+# Test web pages in natural language: a Midscene YAML intro (no selectors first)
+
+You can test a web page before you write a selector. Midscene takes natural-language actions and visible assertions: the Chrome extension is the Playground for trying one instruction, and Midscene Test YAML (`@midscene/test`, Beta) is how that case becomes a file you can run again. The Web path still drives the browser with Playwright. This page is the onboarding how-to. The decision of which steps should stay on Playwright locators is in [Midscene vs Playwright](./midscene-vs-playwright).
+
+## Answer in 30 seconds
+
+- Natural language plus screenshot localization. A CSS, XPath, or role locator is not the entry requirement.
+- The Playground is the Chrome extension. With no project, try `aiAct`, `aiQuery`, and `aiAssert` on the current page.
+- New YAML cases use Midscene Test `cases` / `steps`, run with `midscene-test`.
+- Legacy `tasks` / `flow` YAML is in maintenance mode and still runs with the `midscene` command. New projects do not start there.
+- The software is MIT. These docs do not describe a Midscene subscription cloud. You pay for the model API you configure, plus your own browser. The boundary with pure Playwright is [Midscene vs Playwright](./midscene-vs-playwright).
+
+## Two ways to start
+
+Use the Playground when you only need to know whether one prompt hits the right control. Use Midscene Test when the case should live in a repo, be edited by someone else, or run in CI. If you already have a large Playwright suite and want natural language on a few steps, do not rebuild it from this scaffold. Go to [Integrate with Playwright](./integrate-with-playwright), and use the [decision page](./midscene-vs-playwright) to choose which steps stay on locators.
+
+### Path A: Playground (no project yet)
+
+The Chrome extension is Midscene's Playground for the web. The click-by-click guide is [Quick start](./quick-start). The order is:
+
+1. Prepare a multimodal model that can localize UI. Chinese docs often show a Doubao example; English docs often show Qwen. Families and the exact environment variables are whatever [Use a model API key](./model-common-config) says today. There is no single required model.
+2. Install the **Midscene.js** extension from the Chrome Web Store:
+
+   <ChromeExtensionButton linkLabel="Install the Midscene extension from the Chrome Web Store" />
+
+   Store page: [Chrome Web Store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
+
+   If you cannot reach the store, download a package from [GitHub Releases](https://github.com/web-infra-dev/midscene/releases) and install it manually. Manual installs do not auto-update.
+
+3. Open Midscene from the Chrome extensions list. When the sidebar appears, click the settings icon, paste the model configuration, and save it.
+4. Open any web page and enter an instruction that matches that page. For `aiAct`: `Click the login button`. For `aiAssert`: `A navigation bar appears at the top of the page`.
+5. After the instruction holds on the real page, move the same sentence to an Agent API or to Midscene Test YAML. The script path is [Integrate with Playwright](./integrate-with-playwright). The YAML path is below and in [Create and use test projects](./midscene-test/use).
+
+Android, iOS, HarmonyOS, and desktop each have their own Playground. They are listed at the end of [Quick start](./quick-start), not in this web how-to.
+
+### Path B: Midscene Test YAML (a project you can rerun)
+
+Commands and generated files follow [Create and use test projects](./midscene-test/use). The Web scaffold installs Chromium through Playwright.
+
+1. Use Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm.
+2. Create a Web project:
+
+```bash
+pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
+cd my-tests
+```
+
+3. Install dependencies when prompted. A Web project includes `cases/todo.yaml`, `nodes/todo.ts`, `midscene.config.ts`, `.env.example`, and, after install, the Node Spec `midscene-node-spec.web.md`. Creating the project does not run tests, so this step does not need an API Key or a browser.
+4. Copy `.env.example` to `.env` and fill in the model name, service URL, and API Key from [Model configuration](./model-config).
+5. Check model connectivity and compatibility:
+
+```bash
+pnpm exec midscene-test model verify
+```
+
+6. Install Chromium:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+7. Run the scaffold example:
+
+```bash
+pnpm test
+```
+
+The current starters on all five platforms use the public React TodoMVC page to add, delete, and complete tasks. They do not open `example.com` and assert the title. The page has to be reachable from the browser this run uses.
+
+8. Open the HTML report the CLI prints. The default directory is `midscene_run/report/`. Then edit `cases/todo.yaml`, or add your own file using the shape in the next section. Day to day you can also run `pnpm exec midscene-test`. Which Nodes exist in a given project is the Spec from `pnpm exec midscene-test nodes`. Do not copy Node names from another repo.
+
+### Which path to use
+
+| What you need now | Path |
+| --- | --- |
+| Try one prompt on a real page | Path A, the Playground |
+| A case in Git, shared with other people, or running in CI | Path B, Midscene Test YAML |
+| An existing Playwright suite, plus natural language on a few steps | [Integrate with Playwright](./integrate-with-playwright), after the [decision page](./midscene-vs-playwright) |
+
+## What the first YAML file looks like
+
+This is the store-search shape from the docs. Replace the URL and the product name. It is not the generated `cases/todo.yaml`. The scaffold file is the TodoMVC example; this is the case you write for your own app.
+
+```yaml filename=cases/search.yaml
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: Search for a product
+    steps:
+      - aiAct: Enter "mug" in the search box and click the Search button
+      - aiAssert: The search results include mugs
+```
+
+- `beforeEach` runs before each case. Here `gotoUrl` opens the page.
+- `cases` holds at least one case. Each case has `name` and `steps`.
+- `steps` run in source order. Each step calls one Node.
+- String shorthand: text after `gotoUrl` is the `url`, and text after `aiAct` or `aiAssert` is the `prompt`. The project's Node Spec says whether shorthand is supported.
+
+Four Nodes cover the first cases:
+
+| Node | What it does |
+| --- | --- |
+| `aiAct` | Operates the interface from natural language, including multiple actions. |
+| `aiAssert` | Checks a visible result. The step fails when the condition is false. |
+| `aiTap` | Clicks the one element you describe. |
+| `gotoUrl` | Opens a URL. This Node is part of the Web platform. |
+
+Finishing an action does not mean the case passed. Put the expected result in its own `aiAssert` step. Each assertion has to stand alone: a Node does not inherit the previous instruction. Do not write "the icon from the previous step". Name the target and the state, for example "The favorite star on the product details page is active". The rule and the counter-example are in [Test case design conventions](./midscene-test/use#test-case-design-conventions).
+
+Platform engineers can wrap deterministic work, such as placing an order or clearing data, in a TypeScript Node and call it from YAML. That API is [Develop custom Nodes](./midscene-test/extend). This page does not walk through it.
+
+## From the Playground to code or YAML
+
+The extension shares its core with `@midscene/web`. A sentence that worked in the Playground becomes an Agent call:
+
+```typescript
+await agent.aiAct('Click the login button');
+await agent.aiAssert('A navigation bar appears at the top of the page');
+```
+
+That is only the call shape. Creating the Agent and launching the browser is [Integrate with Playwright](./integrate-with-playwright). When to keep a goal in `aiAct` and when to split it into `aiTap` is [The Basics](./basics). In YAML, put the same sentence under `steps`, as in the previous section.
+
+## Legacy YAML and Midscene Test
+
+| | Legacy YAML | Midscene Test |
+| --- | --- | --- |
+| Package | `@midscene/cli` | `@midscene/test` (Beta) |
+| Command | `midscene` | `midscene-test` |
+| Top-level fields | `tasks` / `flow` | `cases` / `steps` |
+| Status | Maintenance: compatibility and necessary fixes, no new syntax | New projects and new cases |
+
+Beta means the protocol and APIs are still moving. Write cases against the current docs and against the Node Spec generated in the project.
+
+One repository may keep both formats in separate directories. One file and one command invocation cannot mix them. `midscene-test` does not execute `tasks` / `flow` files. Field mapping is in [Migrate to Midscene Test](./migrate-to-midscene-test). The legacy manual is still at [YAML script runner](./yaml-script-runner) and [Workflow in YAML format](./automate-with-scripts-in-yaml). Those pages describe the maintained path, not the entry point for a new project.
+
+## Models, reports, and limits
+
+Vision localization needs a multimodal model suited to GUI work, not an arbitrary text LLM. Configuration is [Model strategy](./model-strategy) and [Use a model API key](./model-common-config).
+
+After a run, open the HTML file under `midscene_run/report/`. It includes screenshots, element locations, model decisions, and each step's inputs, outputs, duration, and status. When an assertion fails, read the report before rewriting the prompt.
+
+A vision step calls a model, so it is slower than a locator and it spends tokens. Start with smoke and other high-value paths. Moving an entire suite onto `aiAct` still spends tokens on every run.
+
+The Web scaffold installs Chromium. A Firefox / WebKit matrix, model budget, and CDP limits are on [Midscene vs Playwright](./midscene-vs-playwright).
+
+Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE). The docs do not describe a Midscene-operated subscription cloud. You pay the model API you configure. One published dollar figure on this site is [AppControlBench](./app-control-bench-report): 60 tasks on the iOS Simulator, Midscene 1.12.0 with Doubao Seed 2.1 Turbo, 58 passes, **$0.59 total model API cost**. That is that evaluation, not a quote for your web CI bill.
+
+## How this page differs from Midscene vs Playwright
+
+| Page | What you leave with |
+| --- | --- |
+| This page | How to try the first natural-language instruction, and how to write the first YAML file, using the documented commands |
+| [Midscene vs Playwright](./midscene-vs-playwright) | Whether Midscene replaces Playwright, when to keep locators, and the cost, CDP, and Chromium limits |
+
+The conclusion here is not "replace Playwright with YAML". A Web project still installs and drives Chromium through Playwright. The natural-language layer sits on that. You can start without selectors. Whether a stable DOM contract should move back to a locator is the decision page's question.
+
+## FAQ
+
+### Can I test a web page in natural language without writing selectors first?
+
+Yes. Midscene localizes from the screenshot by default. In YAML, `aiAct` describes the action and `aiAssert` describes the visible result. A selector is not a prerequisite. Steps whose DOM contract is already stable can still use a Playwright locator. That choice is on the decision page.
+
+### What is Midscene YAML, and how do I write the first case?
+
+The current path is `@midscene/test` (Beta): `cases` / `steps`, plus optional TypeScript Nodes. The scaffold generates `cases/todo.yaml`. A case you write yourself is usually `gotoUrl`, then `aiAct`, then `aiAssert`. The shape is the search example above.
+
+### How is the Playground different from a YAML project?
+
+The Chrome extension is the Web Playground: no project, try a natural-language instruction in place. A YAML project is Midscene Test: repeatable, able to run in CI, and reported. Both share the core that `@midscene/web` uses.
+
+### How does this relate to Playwright? Do I need to learn locators first?
+
+The Web scaffold installs the browser with `pnpm exec playwright install chromium`. Natural language and YAML sit on that driver. They do not discard Playwright. You can start without a selector. When a locator is the better step, see [Midscene vs Playwright](./midscene-vs-playwright).
+
+### How do I get the first run working?
+
+Both paths are the documented ones. No project: install the extension, paste the model configuration, and type one instruction on a real page. See [Quick start](./quick-start). A rerunnable project: `pnpm dlx @midscene/test create`, a `.env` file, `midscene-test model verify`, `playwright install chromium`, then `pnpm test`. The flags are the ones listed on [Create and use test projects](./midscene-test/use).
+
+### Can I still use legacy `tasks` / `flow` YAML?
+
+Yes, in maintenance mode. Existing files keep using `midscene`. New projects use `midscene-test` and `cases` / `steps`. The two formats may live in separate directories. They cannot share a file or a single command. Migration is [Migrate to Midscene Test](./migrate-to-midscene-test).
+
+### Is it open source? Do I pay Midscene for a cloud plan?
+
+Midscene.js is MIT. The docs do not describe a Midscene-operated subscription cloud. Cost is the model API you configure, and your own browser. It is not a plan that includes unlimited model calls. The AppControlBench figure of $0.59 is the model cost of one iOS evaluation, not a price for a web project.
+
+### Who is this for, and who should go elsewhere?
+
+It fits QA and frontend authors who do not want to start with selectors, people writing declarative natural-language smoke cases, and anyone trying a prompt in the Playground first. It is the wrong primary answer for a deterministic Firefox / WebKit matrix, for replacing a whole suite on a zero model budget, and for "which tool wins against Playwright". Those questions belong on the [decision page](./midscene-vs-playwright), or on pure Playwright.
+
+## Further reading
+
+- [Quick start](./quick-start) (Playground)
+- [Midscene Test overview](./midscene-test/overview)
+- [Create and use test projects](./midscene-test/use)
+- [Migrate to Midscene Test](./migrate-to-midscene-test)
+- [Integrate with Playwright](./integrate-with-playwright)
+- [The Basics](./basics)
+- [Introduction](./introduction)
+- [Midscene vs Playwright](./midscene-vs-playwright)
+- [GitHub: web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+
+An external portfolio page also lists Midscene: [lifeos.vip/about](https://lifeos.vip/about). The project and the license stay in the GitHub repository.
+
+:::info Next step
+Open [Quick start](./quick-start), install the extension, and run one `aiAct` or `aiAssert` on a real page.
+
+Then create the Web project: `pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm`, finish model verify and `playwright install chromium`, run `pnpm test`, and edit the YAML. The detailed steps are in [Create and use test projects](./midscene-test/use).
+
+To decide whether a step should stay on a locator, read [Midscene vs Playwright](./midscene-vs-playwright).
+:::

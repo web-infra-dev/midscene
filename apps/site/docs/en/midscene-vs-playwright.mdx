@@ -1,0 +1,203 @@
+---
+title: "Midscene.js vs Playwright: when to add a vision layer to E2E"
+description: "Midscene.js is a vision layer on Playwright, not a replacement. Keep locators for stable paths, and add screenshot actions when selectors or visual checks break."
+---
+
+# Midscene.js vs Playwright: when to add a vision layer to E2E
+
+Playwright is the deterministic browser automation and test runner: locators, auto-waiting, multi-browser projects, and traces. Midscene.js is an open-source, vision-driven GUI Agent that sits on Playwright (and on other drivers). You describe actions and visible expectations in natural language, Midscene locates them from screenshots, and you keep selectors where they still pay off.
+
+Teams already on Playwright run into two gaps. Selectors break when the UI is redesigned, drawn on `<canvas>`, or exposed only as an icon. DOM assertions also miss checks that are about color, highlight, or layout. This page is the decision guide for those gaps: when to stay on pure Playwright, and when to add Midscene's vision layer on the Playwright `page` you already have. Step-by-step integration stays in [Integrate with Playwright](./integrate-with-playwright). A YAML-first onboarding path is in [Test web pages in natural language](./midscene-yaml-natural-language-web-testing).
+
+## Answer in one glance
+
+- Midscene integrates with Playwright. It does not replace the browser driver, the test runner, or locators.
+- UI actions and localization use pure vision from screenshots. You do not have to attach a selector for those steps.
+- Keep Playwright locators for stable DOM contracts, multi-browser matrices, and paths that should not call a model.
+- Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE). There is no Midscene subscription cloud in these docs. Model API cost is separate, and you bring the API Key.
+- Chromium is the recommended engine for Midscene on Playwright, because some web features depend on CDP. Firefox and WebKit remain Playwright's job when you need that matrix.
+
+## What each tool is responsible for
+
+### Playwright
+
+[Playwright](https://playwright.dev/docs/locators) drives browsers with resilient locators (`getByRole`, `getByText`, `getByLabel`, `getByTestId`), [auto-waiting](https://playwright.dev/docs/actionability) until an element is actionable, and web-first assertions. The runner covers Chromium, Firefox, and WebKit, plus traces, codegen, UI Mode, sharding, and parallel projects. Playwright is published by Microsoft under the [Apache License 2.0](https://github.com/microsoft/playwright).
+
+Use that stack when the user-visible behavior already has a stable accessible name, text, label, or test id. [Playwright's locator guidance](https://playwright.dev/docs/best-practices) is the right default for those controls.
+
+### Midscene
+
+Midscene.js is a GUI Agent and testing kit in [web-infra-dev/midscene](https://github.com/web-infra-dev/midscene). The license copyright is Bytedance, Inc. and its affiliates. On the web, `@midscene/web/playwright` exposes `PlaywrightAgent` and `PlaywrightAiFixture` against a Playwright `page`.
+
+The same Agent APIs describe what to do and what the user should see:
+
+- `aiAct` plans a goal from the latest screenshot.
+- `aiTap`, `aiInput`, and the other instant actions locate one target and perform one action.
+- `aiAssert` checks a visible condition.
+- `aiQuery`, `aiBoolean`, `aiNumber`, and `aiString` read the interface.
+- `aiWaitFor` waits until a described condition is true.
+
+Reports are HTML files with screenshots, element locations, the model's decisions, and assertion results. The same Agent style also exists for Android, iOS, HarmonyOS, and desktop; those platforms are documented under [Platform overview](./platforms/) and are outside this comparison.
+
+## Decision table: pure Playwright or add Midscene
+
+Pick by the job. A suite can use both.
+
+| Situation | Recommendation |
+| --- | --- |
+| The control has a stable role, text, label, or test id | **Stay.** Use a Playwright locator. |
+| The assertion is about color, highlight, layout, or pixels on `<canvas>` | **Add** `aiAssert` for that check. |
+| The target is icon-only, a custom control, `<canvas>`, or inside a cross-origin iframe | **Add** vision for that step. Screenshot localization does not need a DOM selector. |
+| The same script must run on Firefox and WebKit | **Stay** on Playwright for that matrix. Run Midscene steps on Chromium. |
+| The full suite runs on every commit and the model budget is tight | **Hybrid.** Leave the bulk on locators. Put vision on a small smoke set. |
+| The author describes the screen and does not write selectors | **Hybrid.** Start with [natural-language YAML](./midscene-yaml-natural-language-web-testing) or the [Playground](./quick-start). Keep locators where the DOM contract is reliable. |
+| You are debugging a failure | **Hybrid.** Use Playwright traces for locator steps and the Midscene HTML report for vision steps. |
+
+## How Midscene plugs into an existing Playwright project
+
+Two documented integration modes share the same Agent APIs. Both are specified in [Integrate with Playwright](./integrate-with-playwright); the shapes below only show where the vision call sits.
+
+### Script with PlaywrightAgent
+
+Install `@midscene/web`, `playwright`, and `@playwright/test`, then wrap the `page` you already launch:
+
+```typescript
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PlaywrightAgent(page);
+await agent.aiAct(
+  'type "Headphones" in search box, hit Enter',
+);
+await agent.aiAssert('There is a category filter on the left');
+
+await browser.close();
+```
+
+The runnable script, model setup, and report path are in the integration guide. The matching sample repo is [playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo).
+
+### Playwright Test fixture
+
+In an existing `@playwright/test` project, add `@midscene/web`, register the reporter `@midscene/web/playwright-reporter`, and extend `test` with `PlaywrightAiFixture`. Tests then receive `aiAct`, `aiTap`, `aiAssert`, `aiQuery`, and the rest as fixtures, next to `page`. The sample repo is [playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo).
+
+Raise the test timeout. A vision step waits on a model call, so the default Playwright timeout is often too short. The integration guide sets `timeout: 90 * 1000` as a starting point.
+
+### Hybrid: locators and vision in one test
+
+Stable DOM contracts stay on locators. Vision covers the step that breaks, or the check a DOM assertion cannot see. `PlaywrightAiFixture` exposes both `page` and the Agent methods:
+
+```typescript
+import { expect } from '@playwright/test';
+import { test } from './fixture';
+
+test('cart badge', async ({ page, aiTap, aiAssert }) => {
+  await page.goto('https://your-shop.example');
+
+  await page.getByRole('button', { name: 'Add to cart' }).click();
+  await expect(page.getByTestId('cart-count')).toHaveText('1');
+
+  await aiAssert('The cart badge is visible and shows 1');
+  await aiTap('the icon-only filter button on the results toolbar');
+});
+```
+
+`./fixture` is the extended `test` from the integration guide. Replace the URL and accessible names with your app. `getByRole` and `getByTestId` follow [Playwright's best practices](https://playwright.dev/docs/best-practices). `aiAssert` checks the visible badge. `aiTap` is the step you would otherwise maintain as a brittle selector.
+
+[The Basics](./basics#javascript-orchestration) separates two Midscene orchestration styles, which sit beside locators:
+
+1. Prefer `aiAct` when the goal has several steps or the UI changes. The Agent replans from the latest screenshot.
+2. Use JavaScript orchestration (`aiQuery`, `aiBoolean`, `aiTap` in your own loop) when the flow is stable and you want an explicit path.
+3. Use a Playwright locator when the DOM contract is reliable and the step should not call a model.
+
+## Vision model, cost, and limits
+
+Midscene locates UI targets from the screenshot. That is the [pure-vision approach](./model-strategy): actions do not require DOM annotations or selectors. Insight and extraction calls can opt in to simplified DOM with `domIncluded` when the value is not visible, such as an image URL. Arbitrary text-only LLMs are not sufficient. The model needs visual understanding that is stable for GUI operations.
+
+You configure the model yourself. Families that the introduction lists include `Qwen3.x`, `Doubao-Seed-2.1`, `DeepSeek V4 Flash`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source models you can self-host. Exact `MIDSCENE_MODEL_NAME` and family values belong in [Use a model API key](./model-common-config), not in this comparison.
+
+Each vision step sends a screenshot to that model. The step is slower than a locator click, and it spends tokens. A locator step does not. Put `aiAct` on flows that benefit from replanning. Leave high-volume, stable regression on Playwright.
+
+The published cost figure on this site is the [AppControlBench report](./app-control-bench-report), an iOS Simulator evaluation (Bluesky and Element), not a Playwright web suite. In that run, Midscene 1.12.0 with Doubao Seed 2.1 Turbo passed 58 of 60 tasks at **$0.59 total model API cost** (test dates 2026-08-25 to 2026-08-27). That number is the published evaluation. It is not a quote for your CI bill. Per-task costs and the pricing assumptions are in the report.
+
+## Browser engines and CDP
+
+Some Midscene web features use the Chrome DevTools Protocol: browser-level events, touch gestures, and CDP fallbacks for specific interactions. [Browser support](./integrate-with-playwright#browser-support) in the Playwright guide states the constraint directly. Chromium is the recommended engine. Firefox and WebKit may work for basic Playwright-native operations. Midscene features that depend on CDP may report errors on those engines.
+
+If the acceptance criterion is "this flow passes on Chromium, Firefox, and WebKit," keep that project on Playwright locators. Run the vision smoke on Chromium.
+
+You can also attach the same Agent to a remote Chromium by calling `chromium.connectOverCDP(...)`. [Connect to a remote Playwright browser](./integrate-with-playwright#connect-midscene-agent-to-a-remote-playwright-browser) shows the pattern. BrowserBase, Browserless, a local Chrome with a debugging port, and a Dockerized browser are examples of where the CDP WebSocket can come from. They are connection targets, not a Midscene-hosted browser cloud. The sample repo is [remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo).
+
+## YAML and Midscene Test
+
+`@midscene/test` (Beta) is the declarative layer: YAML `cases` / `steps` for test intent, and TypeScript Nodes for data setup and other deterministic work. The Web scaffold still installs Chromium through Playwright. New YAML belongs in Midscene Test. The older `tasks` / `flow` format, run with the `midscene` command, is in maintenance mode.
+
+This page does not walk through that scaffold. The how-to is [Test web pages in natural language](./midscene-yaml-natural-language-web-testing). Reference docs: [Midscene Test overview](./midscene-test/overview) and [Create and use test projects](./midscene-test/use).
+
+## FAQ
+
+### Does Midscene replace Playwright?
+
+No. `PlaywrightAgent` and `PlaywrightAiFixture` run on a Playwright `page`. Playwright remains the browser driver, the test runner, and the locator stack. Midscene adds screenshot localization and natural-language actions for steps that benefit from them.
+
+### When should I stay on pure Playwright?
+
+Stay when locators already express the user-visible behavior, when the suite must cover Firefox and WebKit, when the path is large and runs on every commit, and when you want codegen, traces, and UI Mode without a model call. Prefer `getByRole`, `getByText`, `getByLabel`, and `getByTestId`.
+
+### When should I add Midscene's vision layer?
+
+Add it when selectors break on redesigns, icon-only buttons, custom controls, `<canvas>`, or cross-origin iframes; when the assertion is about what the user sees; or when the flow should replan with `aiAct` after the UI changes. Adopt it on those steps. You do not have to convert the rest of the suite.
+
+### How does Midscene find elements?
+
+By default it reads the screenshot and returns a location. UI actions do not require a selector or an accessibility annotation. On web pages, insight and extraction methods can also include simplified DOM when you pass `domIncluded`. The model must be a multimodal model suited to GUI tasks. See [Model strategy](./model-strategy).
+
+### What about cost and licensing?
+
+Midscene.js is MIT. Playwright is Apache-2.0. These docs do not describe a Midscene subscription that includes model usage. You configure a model API Key, or you self-host a supported vision model. Token cost is whatever that provider charges. The only suite-level dollar figure published here is the AppControlBench example above, and it is an iOS evaluation, not a web CI invoice.
+
+### Is Midscene Chromium-only?
+
+Chromium is recommended. Playwright itself still runs Firefox and WebKit. Basic Playwright-native operations may work on those engines with a Midscene Agent attached, but CDP-dependent Midscene features may error. Do not treat the three engines as equivalent for Midscene web features.
+
+### How do I choose aiAct, JavaScript orchestration, and locators?
+
+Use `aiAct` as the default for operation goals that should adapt to the current screen. Use JavaScript orchestration when the branch order is stable and you want it written down. Use Playwright locators when the DOM contract is reliable and you need the step to stay fast and deterministic. The three can share one test.
+
+### Where does YAML fit?
+
+YAML is the Midscene Test case format: `cases` and `steps`, plus optional TypeScript Nodes. It is the on-ramp for people who want to describe a web test in natural language and check it in CI. It is still Beta. The older `tasks` / `flow` YAML files keep running under `midscene`, in maintenance mode. Write the first case with the [YAML how-to](./midscene-yaml-natural-language-web-testing), not by expanding this page.
+
+## Further reading
+
+Midscene:
+
+- [Introduction](./introduction)
+- [The Basics](./basics)
+- [Integrate with Playwright](./integrate-with-playwright)
+- [API reference](./reference/)
+- [Model strategy](./model-strategy) and [model configuration](./model-common-config)
+- [Midscene Test overview](./midscene-test/overview) and [use](./midscene-test/use)
+- [Showcases](./showcases)
+- [GitHub: web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+
+Playwright:
+
+- [Locators](https://playwright.dev/docs/locators)
+- [Best practices](https://playwright.dev/docs/best-practices)
+- [Actionability and auto-waiting](https://playwright.dev/docs/actionability)
+
+An external portfolio page also lists Midscene as natural-language UI automation for web and devices: [lifeos.vip/about](https://lifeos.vip/about). The project and its MIT license remain [web-infra-dev/midscene](https://github.com/web-infra-dev/midscene).
+
+Other sites have published their own comparisons, including [aicoolies](https://aicoolies.com/comparisons/midscene-js-vs-playwright) and [actfont](https://actfont.top/en/blog/web-infra-dev-midscene-en). Those are third-party write-ups. They are not Midscene benchmarks, prices, or maintenance metrics.
+
+:::info Next step
+Already on Playwright: wrap one volatile flow with `PlaywrightAgent` or `PlaywrightAiFixture`, run a single `aiAct` or `aiAssert`, and open the HTML report. Start at [Integrate with Playwright](./integrate-with-playwright).
+
+The locator path is still the right one for stable controls and for Firefox or WebKit. Read [Playwright best practices](https://playwright.dev/docs/best-practices) before converting those steps.
+
+Writing the case in YAML instead of a spec file: follow [natural-language web testing](./midscene-yaml-natural-language-web-testing).
+:::

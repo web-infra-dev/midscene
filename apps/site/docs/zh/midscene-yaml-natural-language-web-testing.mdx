@@ -1,0 +1,219 @@
+---
+title: 用自然语言测网页：Midscene YAML 入门（不用先写选择器）
+description: 用自然语言描述网页操作和可见断言。先在 Chrome 扩展 Playground 里试指令，再用 Midscene Test 的 YAML 写成可重复用例。底层仍由 Playwright 驱动浏览器。
+---
+
+import { ChromeExtensionButton } from '@theme';
+
+# 用自然语言测网页：Midscene YAML 入门（不用先写选择器）
+
+可以先不写选择器来测网页。Midscene 让你用自然语言描述操作和可见断言：Chrome 扩展当作 Playground，当场试指令；再用 Midscene Test 的 YAML（`@midscene/test`，Beta）把用例落成可重复运行的文件。Web 路径底层仍用 Playwright 驱动浏览器。这篇只讲怎么入门。要决定哪些步骤留在 Playwright locator、哪些加上视觉层，看[Midscene 与 Playwright](./midscene-vs-playwright)。
+
+## 30 秒答案
+
+- 自然语言加上截图定位。入门不必先写 CSS、XPath 或 role locator。
+- Playground 就是 Chrome 扩展：不用建项目，在当前网页上试 `aiAct`、`aiQuery` 和 `aiAssert`。
+- 新的 YAML 用例用 Midscene Test 的 `cases` / `steps`，命令是 `midscene-test`。
+- 旧的 `tasks` / `flow` YAML 处于维护模式，继续用 `midscene` 命令。新项目不要走那条格式。
+- 软件是 MIT。文档里没有 Midscene 订阅云。费用是你配置的模型 API，外加你自己的浏览器。选型边界见[Midscene 与 Playwright](./midscene-vs-playwright)。
+
+## 两条上手路径
+
+只想确认一句指令能不能点中目标，走 Playground。要把用例放进仓库、给别人维护、或放进 CI，走 Midscene Test。已经有一大套 Playwright spec、只想在其中几步加自然语言，不要从这篇脚手架重写：去[集成到 Playwright](./integrate-with-playwright)，并用[选型页](./midscene-vs-playwright)决定哪些步骤该留在 locator。
+
+### 路径 A：Playground（先不建项目）
+
+Chrome 扩展就是 Midscene 面向 Web 的 Playground。完整点击路径在[快速开始](./quick-start)。顺序如下。
+
+1. 准备一个具备 UI 定位能力的多模态模型。中文文档的配置示例常用豆包，英文文档常用 Qwen。系列和精确环境变量以[使用模型 API Key](./model-common-config)当日页面为准，没有「唯一推荐」。
+2. 从 Chrome Web Store 安装 **Midscene.js** 扩展：
+
+   <ChromeExtensionButton linkLabel="从 Chrome Web Store 安装 Midscene Chrome Extension" />
+
+   商店页：[Chrome Web Store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
+
+   无法访问商店时，从 [GitHub Releases](https://github.com/web-infra-dev/midscene/releases) 下载安装包手动安装。手动安装不会自动更新。
+
+3. 在 Chrome 扩展列表中打开 Midscene。右侧出现侧边栏后，点击设置图标，把模型配置粘贴进去并保存。
+4. 打开任意网页，输入和当前页面匹配的自然语言指令。例如 `aiAct`：`点击登录按钮`。或 `aiAssert`：`页面顶部显示导航栏`。
+5. 指令在真实页面上成立之后，把同一句迁到 Agent API 或 Midscene Test YAML。脚本接法见[集成到 Playwright](./integrate-with-playwright)，YAML 接法见下文和[创建和使用测试项目](./midscene-test/use)。
+
+Android、iOS、HarmonyOS 和桌面端各有自己的 Playground，不在本页展开。入口在[快速开始](./quick-start)文末。
+
+### 路径 B：Midscene Test YAML（可重复的项目）
+
+命令和产物以[创建和使用测试项目](./midscene-test/use)为准。Web 脚手架使用 Playwright 安装 Chromium。
+
+1. 准备 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` 和 pnpm。
+2. 创建 Web 项目：
+
+```bash
+pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
+cd my-tests
+```
+
+3. 按提示安装依赖。Web 项目的主要文件包括 `cases/todo.yaml`、`nodes/todo.ts`、`midscene.config.ts`、`.env.example`，以及安装后生成的 Node 说明书 `midscene-node-spec.web.md`。创建项目本身不跑测试，这一步不需要 API Key 或浏览器。
+4. 把 `.env.example` 复制为 `.env`，按[模型配置](./model-config)填写模型名称、服务地址和 API Key。
+5. 检查模型连通性和兼容性：
+
+```bash
+pnpm exec midscene-test model verify
+```
+
+6. 安装 Chromium：
+
+```bash
+pnpm exec playwright install chromium
+```
+
+7. 运行脚手架示例：
+
+```bash
+pnpm test
+```
+
+当前五个平台的脚手架示例都使用公开的 React TodoMVC 页面，演示添加、删除和完成待办，不是打开 `example.com` 再检查标题。页面需要从这次测试使用的浏览器访问到。
+
+8. 看 CLI 打印的 HTML 报告，默认在 `midscene_run/report/`。然后改 `cases/todo.yaml`，或按下一节另写一个 YAML 文件。日常运行也可以用 `pnpm exec midscene-test`。某个项目里能调用哪些 Node，以 `pnpm exec midscene-test nodes` 生成的说明书为准，不要从别的仓库抄节点名。
+
+### 什么时候走哪条
+
+| 你现在要做的事 | 走哪条 |
+| --- | --- |
+| 在真实页面上试一句 prompt | 路径 A，Playground |
+| 用例要进 Git、给人维护、或进 CI | 路径 B，Midscene Test YAML |
+| 已有 Playwright 套件，只想给少数步骤加自然语言 | [集成到 Playwright](./integrate-with-playwright)，并先看[选型页](./midscene-vs-playwright) |
+
+## 第一条 YAML 长什么样
+
+下面是文档中的商城搜索形状。把网址和商品名换成你的业务。它不是脚手架生成的 `cases/todo.yaml`；生成文件是 TodoMVC 示例，这个文件是你要照着写的用例。
+
+```yaml filename=cases/search.yaml
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: 搜索商品
+    steps:
+      - aiAct: 在搜索框输入“马克杯”，点击搜索按钮
+      - aiAssert: 搜索结果中包含马克杯
+```
+
+- `beforeEach`：每个用例前执行的步骤。这里用 `gotoUrl` 打开页面。
+- `cases`：至少一个用例。每个用例有 `name` 和 `steps`。
+- `steps`：按书写顺序执行。每个步骤只调用一个 Node。
+- 字符串简写：`gotoUrl` 后面的文本是 `url`，`aiAct` 和 `aiAssert` 后面的文本是 `prompt`。是否支持简写，看当前项目的 Node 说明书。
+
+入门最常用的四个 Node：
+
+| Node | 做什么 |
+| --- | --- |
+| `aiAct` | 按自然语言操作界面，可以包含多步。 |
+| `aiAssert` | 检查一个可见结果。条件不成立时，这一步失败。 |
+| `aiTap` | 点击你描述的那一个元素。 |
+| `gotoUrl` | 打开一个 URL。这是 Web 平台的 Node。 |
+
+操作做完不等于用例通过。用 `aiAssert` 把期望结果单独写成一步。断言必须自包含：每个 Node 不会继承上一步的指令上下文。不要写「上一步的图标」。写成目标自己的名字和状态，例如「商品详情页上的收藏星标已点亮」。约定和正反例在[用例设计约定](./midscene-test/use#用例设计约定)。
+
+平台同学可以用 TypeScript 把下单、清数据这类确定性工作封装成自定义 Node，再在 YAML 里调用。写法在[编写自定义 Node](./midscene-test/extend)。本页不展开。
+
+## 从 Playground 落到代码或 YAML
+
+扩展和 `@midscene/web` 共用核心能力。在 Playground 里试通的句子，可以原样变成 Agent 调用：
+
+```typescript
+await agent.aiAct('点击登录按钮');
+await agent.aiAssert('页面顶部显示导航栏');
+```
+
+这只是调用形状。创建 Agent、启动浏览器的完整脚本在[集成到 Playwright](./integrate-with-playwright)。什么时候用 `aiAct`、什么时候把步骤拆成 `aiTap`，见[基本概念](./basics)。落到 YAML 时，把同一句放进 `steps`，像上一节那样。
+
+## 旧 YAML 和 Midscene Test
+
+| | 旧版 YAML | Midscene Test |
+| --- | --- | --- |
+| 包 | `@midscene/cli` | `@midscene/test`（Beta） |
+| 命令 | `midscene` | `midscene-test` |
+| 顶层字段 | `tasks` / `flow` | `cases` / `steps` |
+| 状态 | 维护模式：兼容和必要修复，不再加新语法 | 新项目和新用例走这里 |
+
+Beta 的意思是：协议和 API 还在演进，写用例时以当前版本文档和项目里生成的 Node 说明书为准。
+
+同一个仓库可以把两种文件放在不同目录。同一个文件、同一次命令不能混用两种格式。`midscene-test` 不会自动执行 `tasks` / `flow` 文件。字段怎么迁，看[迁移到 Midscene Test](./migrate-to-midscene-test)。旧格式的说明仍在[YAML 脚本运行器](./yaml-script-runner)和[YAML 格式的工作流](./automate-with-scripts-in-yaml)，那两页是维护中的路径，不是新项目的入口。
+
+## 模型、报告和边界
+
+视觉定位需要适合 GUI 的多模态模型，不是任意文本 LLM。配置见[模型策略](./model-strategy)和[使用模型 API Key](./model-common-config)。
+
+跑完后打开 `midscene_run/report/` 里的 HTML。报告里有截图、元素位置、模型决策，以及每个步骤的输入、输出、耗时和状态。断言失败时先看报告，再改 prompt。
+
+视觉步骤会调用模型，所以比 locator 慢，并且消耗 token。先把冒烟和高价值路径放进来。把整库都换成 `aiAct`，每次运行仍然会消耗 token。
+
+Web 脚手架安装的是 Chromium。Firefox / WebKit 全矩阵、模型预算和 CDP 限制，写在[Midscene 与 Playwright](./midscene-vs-playwright)，不在这里展开。
+
+Midscene.js 是 [MIT 许可](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。文档没有 Midscene 自营订阅云。你支付的是所配置模型的 API 费用。本站公布的一个金额是 [AppControlBench](./app-control-bench-report)：iOS 模拟器上的 60 项任务，Midscene 1.12.0 搭配 Doubao Seed 2.1 Turbo，通过 58 项，模型 API 总费用 0.59 美元。那是该次评测，不是你的 Web CI 账单。
+
+## 和「Midscene 与 Playwright」怎么分工
+
+| 页面 | 你从中带走什么 |
+| --- | --- |
+| 本页 | 第一条自然语言指令怎么试，第一条 YAML 怎么写，命令以官网为准 |
+| [Midscene 与 Playwright](./midscene-vs-playwright) | Midscene 是否替换 Playwright，何时留 locator，费用、CDP 和 Chromium |
+
+本页的结论不是「用 YAML 换掉 Playwright」。Web 项目仍然用 Playwright 安装并驱动 Chromium。自然语言层加在这上面。入门可以不写选择器；稳定 DOM 契约要不要改回 locator，由选型页回答。
+
+## 常见问题
+
+### 能不能用自然语言测网页，并且先不写选择器？
+
+可以。Midscene 默认根据截图做视觉定位。在 YAML 里用 `aiAct` 描述操作，用 `aiAssert` 描述可见结果。选择器不是入门前提。DOM 契约已经稳定的步骤，仍可以改用 Playwright locator，见选型页。
+
+### Midscene YAML 是什么？第一条怎么写？
+
+新路径是 `@midscene/test`（Beta）的 `cases` / `steps`，加上可选的 TypeScript Node。脚手架会生成 `cases/todo.yaml`。你自己的用例通常是 `gotoUrl`，然后 `aiAct`，然后 `aiAssert`。形状见上面的搜索示例。
+
+### Playground 和 YAML 项目有什么区别？
+
+Chrome 扩展是 Web Playground：没有项目，当场试自然语言指令。YAML 项目是可重复、可进 CI、会出报告的 Midscene Test。两边共用与 `@midscene/web` 相同的核心能力。
+
+### 和 Playwright 是什么关系？要不要先学 locator？
+
+Web 脚手架通过 `pnpm exec playwright install chromium` 安装浏览器。自然语言和 YAML 在这个驱动之上，不是把 Playwright 丢掉。入门可以不写 selector。什么时候值得改回 locator，看[Midscene 与 Playwright](./midscene-vs-playwright)。
+
+### 第一次怎么跑通？
+
+两条都是文档里的路径。零项目：装扩展、贴上模型配置、在真实页面输入一句指令，见[快速开始](./quick-start)。要可重复运行：`pnpm dlx @midscene/test create`，配置 `.env`，`midscene-test model verify`，`playwright install chromium`，再 `pnpm test`。参数以[创建和使用测试项目](./midscene-test/use)列出的为准。
+
+### 旧的 `tasks` / `flow` YAML 还能用吗？
+
+能，但是维护模式。现有文件继续用 `midscene`。新项目使用 `midscene-test` 和 `cases` / `steps`。两种格式可以分目录共存，不能写进同一个文件或同一次命令。迁移见[迁移到 Midscene Test](./migrate-to-midscene-test)。
+
+### 开源吗？要付 Midscene 的云费用吗？
+
+Midscene.js 是 MIT。文档没有 Midscene 自营订阅云。成本是你配置的模型 API，以及你自己的浏览器。不要把它理解成含无限模型调用的套餐。AppControlBench 的 0.59 美元是一次 iOS 评测的模型费用，不是 Web 项目报价。
+
+### 适合谁，不适合谁？
+
+适合还不想先写选择器的 QA 和前端，适合要用声明式自然语言做冒烟的人，也适合先在 Playground 里试 prompt 的人。不适合拿本页当主答案的情况：Firefox / WebKit 全矩阵上的确定性回归、零模型预算下替换整库，以及「Midscene 和 Playwright 谁赢」。那些问题去[选型页](./midscene-vs-playwright)，或继续用纯 Playwright。
+
+## 延伸阅读
+
+- [快速开始](./quick-start)（Playground）
+- [Midscene Test 概览](./midscene-test/overview)
+- [创建和使用测试项目](./midscene-test/use)
+- [迁移到 Midscene Test](./migrate-to-midscene-test)
+- [集成到 Playwright](./integrate-with-playwright)
+- [基本概念](./basics)
+- [介绍](./introduction)
+- [Midscene 与 Playwright](./midscene-vs-playwright)
+- [GitHub：web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+
+外部作品集页面也列出了 Midscene：[lifeos.vip/about](https://lifeos.vip/about)。项目和许可仍在 GitHub 仓库。
+
+:::info 下一步
+先打开[快速开始](./quick-start)，装上扩展，在真实页面跑通一条 `aiAct` 或 `aiAssert`。
+
+然后创建 Web 项目：`pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm`，完成 model verify 和 `playwright install chromium`，运行 `pnpm test`，再改 YAML。步骤细节在[创建和使用测试项目](./midscene-test/use)。
+
+要判断某一步该不该留在 locator：看[Midscene 与 Playwright](./midscene-vs-playwright)。
+:::
