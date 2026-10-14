@@ -1,4 +1,4 @@
-import type { ChildProcessWithoutNullStreams } from 'node:child_process';
+import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { ObservationFrameSource } from '@/observation-frame-source';
@@ -16,6 +16,7 @@ const wire = (frameId = '1', startMs = 440, clockId = 'guest:boot') =>
   })}\n`;
 function source() {
   const child = Object.assign(new EventEmitter(), {
+    stdin: new PassThrough(),
     stdout: new PassThrough(),
     stderr: new PassThrough(),
     kill: rs.fn(),
@@ -45,6 +46,9 @@ describe('native observation transport', () => {
       `data:image/png;base64,${pngBase64}`,
     ]);
     expect(child.kill).toHaveBeenCalledTimes(1);
+    expect(child.stdin.destroyed).toBe(true);
+    expect(child.stdout.destroyed).toBe(true);
+    expect(child.stderr.destroyed).toBe(true);
   });
   it('rejects duplicate identities, reversed times, foreign clocks and unexpected EOF', () => {
     for (const bad of [wire('1'), wire('2', 400), wire('2', 450, 'host')]) {
@@ -62,4 +66,33 @@ describe('native observation transport', () => {
     child.stdout.write(wire().replace('"width":2', '"width":3'));
     expect(() => s.latest()).toThrow('dimensions');
   });
+});
+
+it('closes inherited pipes when a wrapper exits before its producer', async () => {
+  const producer = `const frame=${JSON.stringify(JSON.parse(wire()))};let n=0;setInterval(()=>{frame.frameId=String(++n);process.stdout.write(JSON.stringify(frame)+'\\n')},20);setTimeout(()=>process.exit(),2000)`;
+  const wrapper = `require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(producer)}],{stdio:'inherit'})`;
+  const child = spawn(process.execPath, ['-e', wrapper]);
+  const s = new ObservationFrameSource(child);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error('Producer baseline timeout')),
+        3000,
+      );
+      s.subscribe(() => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+    const closed = new Promise<void>((resolve) =>
+      child.once('close', () => resolve()),
+    );
+    const before = performance.now();
+    await s.stop();
+    await closed;
+    expect(performance.now() - before).toBeLessThan(750);
+  } finally {
+    await s.stop();
+    child.kill('SIGKILL');
+  }
 });

@@ -57,6 +57,11 @@ export class ObservationFrameSource implements DeviceFrameSource {
   private fail(error: unknown): void {
     this.failure ??= error instanceof Error ? error : new Error(String(error));
     this.child.kill();
+    // Wrappers may exit while descendants still hold these pipes. Closing the
+    // owned endpoints prevents orphan producers from retaining the event loop.
+    this.child.stdin.destroy();
+    this.child.stdout.destroy();
+    this.child.stderr.destroy();
   }
 
   private receive(chunk: Buffer): void {
@@ -137,6 +142,11 @@ export class ObservationFrameSource implements DeviceFrameSource {
     this.stopped = true;
     this.listeners.clear();
     this.child.kill();
+    // Wrappers may exit while descendants still hold these pipes. Closing the
+    // owned endpoints prevents orphan producers from retaining the event loop.
+    this.child.stdin.destroy();
+    this.child.stdout.destroy();
+    this.child.stderr.destroy();
     // Frame handles already issued remain decodable after stopping the process.
     this.pending = Buffer.alloc(0);
     this.ids.clear();
