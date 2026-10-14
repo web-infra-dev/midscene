@@ -898,7 +898,7 @@ export class TaskExecutor {
       ++replanCount;
 
       if (replanCount > replanningCycleLimit) {
-        const errorMsg = `Task stopped: the planning cycle limit (${replanningCycleLimit}) has been reached. This limit prevents the model from getting stuck in an endless planning loop. If your task requires more planning cycles, increase replanningCycleLimit or set the environment variable MIDSCENE_REPLANNING_CYCLE_LIMIT to a higher value.`;
+        const errorMsg = `Task stopped: the planning cycle limit (${replanningCycleLimit}) has been reached. This limit prevents the model from getting stuck in an endless planning loop. If your task requires more planning cycles, increase replanningCycleLimit or set the environment variable MIDSCENE_REPLANNING_CYCLE_LIMIT to a higher value. See https://midscenejs.com/zh/reference/#common for details.`;
         return appendFailedPlan(errorMsg, planIndex);
       }
 
