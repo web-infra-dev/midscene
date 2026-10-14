@@ -186,8 +186,12 @@ export default defineConfig(async () => {
             link: '/quick-start',
           },
           {
-            text: 'Supported models & setup',
+            text: 'Use a model API key',
             link: '/model-common-config',
+          },
+          {
+            text: 'Use a ChatGPT subscription',
+            link: '/chatgpt-subscription',
           },
           {
             text: 'Control any platform with Skills',
@@ -366,8 +370,12 @@ export default defineConfig(async () => {
             link: '/zh/quick-start',
           },
           {
-            text: '支持的模型与配置',
+            text: '使用模型 API Key',
             link: '/zh/model-common-config',
+          },
+          {
+            text: '使用 ChatGPT 订阅',
+            link: '/zh/chatgpt-subscription',
           },
           {
             text: '使用 Skills 控制任意平台',
