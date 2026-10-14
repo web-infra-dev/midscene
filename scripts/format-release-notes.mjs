@@ -107,7 +107,10 @@ const parseChangeLine = (line) => {
 };
 
 const parseReleaseNotes = (markdown) => {
-  const normalizedMarkdown = markdown.replaceAll('\r', '').trim();
+  const normalizedMarkdown = markdown
+    .replaceAll('\r', '')
+    .replace(/^<!-- Release notes generated[^\n]*-->\n?/gm, '')
+    .trim();
   const preamble = [];
   const sections = [];
   const fullChangelog = [];

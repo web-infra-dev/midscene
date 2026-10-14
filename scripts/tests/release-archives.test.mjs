@@ -14,6 +14,7 @@ import {
 
 const roots = [];
 const rawNotes = [
+  '<!-- Release notes generated using configuration in .github/release.yml at abc123 -->',
   "## What's Changed",
   '* fix(core): show {limit} <value> by @example in https://github.com/web-infra-dev/midscene/pull/2',
   '* feat(core): use `Array<T>` by @example in https://github.com/web-infra-dev/midscene/pull/1',
@@ -136,6 +137,7 @@ describe('release archives and site changelogs', () => {
       expect(page).not.toContain('English details');
       expect(page).toContain('&#123;limit&#125; &lt;value&gt;');
       expect(page).toContain('`Array<T>`');
+      expect(page).not.toContain('Release notes generated');
       const archive = fs.readFileSync(
         path.join(
           root,
@@ -146,6 +148,7 @@ describe('release archives and site changelogs', () => {
       );
       expect(githubBody).toContain(archive);
       expect(archive).toContain('{limit} <value>');
+      expect(archive).not.toContain('Release notes generated');
       expect(archive).toContain(
         language === 'en' ? '#### Features' : '#### 新特性',
       );
