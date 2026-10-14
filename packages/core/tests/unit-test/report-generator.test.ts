@@ -5,7 +5,7 @@ import {
   rmSync,
   statSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import {
   parseDumpScript,
   parseImageScripts,
@@ -120,6 +120,30 @@ describe('ReportGenerator — append-only model', () => {
   });
 
   describe('inline mode — append-only strategy', () => {
+    it('keeps persisted JSON separate when report filenames share suffixes', async () => {
+      const reports: Array<{ path: string; json: string }> = [];
+      for (const name of ['same.html', 'same.html.html']) {
+        const generator = new ReportGenerator({
+          reportPath: join(tmpDir, name),
+          screenshotMode: 'inline',
+          persistExecutionDump: true,
+          autoPrint: false,
+        });
+        generator.onExecutionUpdate(
+          createExecution([], name),
+          defaultReportMeta,
+        );
+        await generator.finalize();
+        const path = join(tmpDir, '.execution-dumps', name, '1.execution.json');
+        const json = readFileSync(path, 'utf8');
+        expect(JSON.parse(json).executions[0].name).toBe(name);
+        reports.push({ path, json });
+      }
+      for (const report of reports) {
+        expect(readFileSync(report.path, 'utf8')).toBe(report.json);
+      }
+    });
+
     it('preserves exact screenshot pixels in the HTML report', async () => {
       const reportPath = join(tmpDir, 'pixel-integrity.html');
       const generator = new ReportGenerator({
@@ -414,7 +438,8 @@ describe('ReportGenerator — append-only model', () => {
       generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
-      const jsonFiles = readdirSync(tmpDir)
+      const dumpDir = join(tmpDir, '.execution-dumps', basename(reportPath));
+      const jsonFiles = readdirSync(dumpDir)
         .filter((name) => /^\d+\.execution\.json$/.test(name))
         .sort();
       expect(jsonFiles).toEqual(['1.execution.json']);
@@ -423,7 +448,7 @@ describe('ReportGenerator — append-only model', () => {
       ).toBe(true);
 
       const firstDump = JSON.parse(
-        readFileSync(join(tmpDir, '1.execution.json'), 'utf-8'),
+        readFileSync(join(dumpDir, '1.execution.json'), 'utf-8'),
       );
       expect(firstDump.groupName).toBe('test-group');
       expect(firstDump.executions).toHaveLength(1);
@@ -469,7 +494,9 @@ describe('ReportGenerator — append-only model', () => {
       );
       await secondGenerator.finalize();
 
-      const jsonFiles = readdirSync(tmpDir)
+      const jsonFiles = readdirSync(
+        join(tmpDir, '.execution-dumps', basename(reportPath)),
+      )
         .filter((name) => /^\d+\.execution\.json$/.test(name))
         .sort();
       expect(jsonFiles).toEqual(['1.execution.json', '2.execution.json']);
@@ -491,7 +518,12 @@ describe('ReportGenerator — append-only model', () => {
       await generator.flush();
 
       const dumpContent = readFileSync(
-        join(tmpDir, '1.execution.json'),
+        join(
+          tmpDir,
+          '.execution-dumps',
+          basename(reportPath),
+          '1.execution.json',
+        ),
         'utf-8',
       );
       expect(dumpContent).toContain('\n  "groupName": "test-group"');
@@ -649,7 +681,9 @@ describe('ReportGenerator — append-only model', () => {
       const dumpScripts = extractGroupedDumpScripts(html);
       expect(dumpScripts).toHaveLength(2);
 
-      const jsonFiles = readdirSync(tmpDir)
+      const jsonFiles = readdirSync(
+        join(tmpDir, '.execution-dumps', basename(reportPath)),
+      )
         .filter((name) => /^\d+\.execution\.json$/.test(name))
         .sort();
       expect(jsonFiles).toEqual(['1.execution.json', '2.execution.json']);

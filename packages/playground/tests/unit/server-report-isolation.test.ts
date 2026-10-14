@@ -289,17 +289,30 @@ describe('PlaygroundServer independent persisted reports', () => {
     });
     expect(aiAct).toHaveBeenCalledOnce();
 
-    // The first finalization call completes the preceding report at setup;
-    // the second publishes the new run at the end of /execute.
-    const finalize = agent._finalizeReport.bind(agent);
-    rs.spyOn(agent, '_finalizeReport')
-      .mockImplementationOnce(finalize)
-      .mockRejectedValueOnce(new Error('report finalization failed'));
+    // Inject below Agent._finalizeReport so its real cached failure is tested.
+    aiAct.mockImplementationOnce(async () => {
+      await agent.recordToReport('failed finalization', {
+        screenshotBase64: 'AQ==',
+      });
+      rs.spyOn(
+        (agent as any).reportGenerator,
+        'finalize',
+      ).mockRejectedValueOnce(new Error('report finalization failed'));
+      return 'done';
+    });
     const finalizationFailure = await execute('finalization-failure');
     expect(finalizationFailure).toMatchObject({
       error: 'report finalization failed',
       report: null,
     });
     expect(await downloadedReport(first.report!)).toBe(firstHtml);
+    for (let run = 0; run < 2; run++) {
+      const recovered = await execute(`recovered-${run}`);
+      expect(recovered.error).toBeNull();
+      const html = await downloadedReport(recovered.report!);
+      expect(JSON.parse(parseDumpScript(html)).executions).toHaveLength(1);
+      expect(html).not.toContain('failed finalization');
+      expect(await downloadedReport(first.report!)).toBe(firstHtml);
+    }
   });
 });
