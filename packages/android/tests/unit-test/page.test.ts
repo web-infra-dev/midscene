@@ -2868,22 +2868,16 @@ Stdout:
         expect(result).toEqual({ x: 400, y: 450 });
       });
 
-      it('should not modify coordinates when delta is zero', () => {
-        const start = { x: 500, y: 600 };
-        const deltaX = 0;
-        const deltaY = 0;
-        const maxWidth = 1080;
-        const maxHeight = 1920;
-
-        const result = (device as any).calculateScrollEndPoint(
-          start,
-          deltaX,
-          deltaY,
-          maxWidth,
-          maxHeight,
-        );
-
-        expect(result).toEqual({ x: 500, y: 600 });
+      it('rejects a stationary endpoint when both deltas are zero', () => {
+        expect(() =>
+          (device as any).calculateScrollEndPoint(
+            { x: 500, y: 600 },
+            0,
+            0,
+            1080,
+            1920,
+          ),
+        ).toThrow('Scroll distance is too small');
       });
 
       it.each([
@@ -2924,6 +2918,34 @@ Stdout:
         ).rejects.toThrow('No space');
         expect((device as any).dragPoint).not.toHaveBeenCalled();
       });
+
+      it.each(['scrollUp', 'scrollDown', 'scrollLeft', 'scrollRight'] as const)(
+        'rejects a positive distance that rounds to zero in %s',
+        async (method) => {
+          for (const distance of [0.1, 0.49]) {
+            await expect(
+              device[method](distance, { left: 200, top: 200 }),
+            ).rejects.toThrow('Scroll distance is too small');
+          }
+          expect((device as any).dragPoint).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['scrollUp', 200, 201],
+        ['scrollDown', 200, 199],
+        ['scrollLeft', 201, 200],
+        ['scrollRight', 199, 200],
+      ] as const)(
+        'preserves the smallest rounded movement in %s',
+        async (method, x, y) => {
+          await device[method](0.5, { left: 200, top: 200 });
+          expect((device as any).dragPoint).toHaveBeenCalledWith(
+            { x: 200, y: 200 },
+            { x, y },
+          );
+        },
+      );
 
       it('scrollDown with startPoint should use calculateScrollEndPoint', async () => {
         const startPoint = { left: 100, top: 200 };

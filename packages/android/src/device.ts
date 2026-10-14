@@ -1305,6 +1305,10 @@ ${Object.keys(size)
       );
     }
 
+    if (deltaX === 0 && deltaY === 0) {
+      throw new Error('Scroll distance is too small to move after rounding');
+    }
+
     // Minimum scroll distance to ensure gesture is recognized by Android
     const minScrollDistance = 50;
 
