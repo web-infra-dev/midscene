@@ -95,14 +95,14 @@ describe('IOSDevice', () => {
 
   describe('default scroll coverage', () => {
     it.each([
-      ['scrollDown', 375, 812, [188, 711, 188, 102, 1523]],
-      ['scrollUp', 375, 812, [188, 102, 188, 711, 1523]],
-      ['scrollRight', 375, 812, [328, 406, 47, 406, 1000]],
-      ['scrollLeft', 375, 812, [47, 406, 328, 406, 1000]],
-      ['scrollDown', 812, 375, [406, 328, 406, 47, 1000]],
-      ['scrollUp', 812, 375, [406, 47, 406, 328, 1000]],
-      ['scrollRight', 812, 375, [711, 188, 102, 188, 1523]],
-      ['scrollLeft', 812, 375, [102, 188, 711, 188, 1523]],
+      ['scrollDown', 375, 812, [188, 690, 188, 122, 1420]],
+      ['scrollUp', 375, 812, [188, 122, 188, 690, 1420]],
+      ['scrollRight', 375, 812, [319, 406, 56, 406, 1000]],
+      ['scrollLeft', 375, 812, [56, 406, 319, 406, 1000]],
+      ['scrollDown', 812, 375, [406, 319, 406, 56, 1000]],
+      ['scrollUp', 812, 375, [406, 56, 406, 319, 1000]],
+      ['scrollRight', 812, 375, [690, 188, 122, 188, 1420]],
+      ['scrollLeft', 812, 375, [122, 188, 690, 188, 1420]],
     ] as const)(
       '%s uses bounded endpoints and at least one second of distance-based timing on %ix%i',
       async (method, width, height, expected) => {

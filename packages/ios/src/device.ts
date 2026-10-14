@@ -751,8 +751,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     const horizontal = direction === 'left' || direction === 'right';
     const forward = direction === 'down' || direction === 'right';
     const extent = horizontal ? width : height;
-    const start = Math.round(extent * (forward ? 0.875 : 1 - 0.875));
-    const end = Math.round(extent * (forward ? 1 - 0.875 : 0.875));
+    const start = Math.round(extent * (forward ? 0.85 : 1 - 0.85));
+    const end = Math.round(extent * (forward ? 1 - 0.85 : 0.85));
     const from = { x: Math.round(width / 2), y: Math.round(height / 2) };
     const to = { ...from };
     if (horizontal) {

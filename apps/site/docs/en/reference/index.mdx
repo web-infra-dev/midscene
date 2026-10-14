@@ -587,7 +587,7 @@ function aiScroll(
 - Parameters:
 
   **Recommended usage:**
-  - `locate: string | object | undefined` — A natural language description of the scroll target, or [prompting with images](#prompting-with-images). When omitted, Midscene scrolls at the current pointer position.
+  - `locate: string | object | undefined` — A natural language description of the scroll target, or [prompting with images](#prompting-with-images). When omitted, mobile platforms use the default gesture described below; Web and desktop platforms scroll at the current pointer position.
   - `opt: object` — Configuration:
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` — Scroll behavior. Default: `'singleAction'`.
     - `direction?: 'down' | 'up' | 'right' | 'left'` — Direction of the off-screen content to reveal, rather than the movement of currently visible content. Used only when `scrollType` is `'singleAction'`. For example, `'down'` reveals content below the current viewport. Default: `'down'`.
@@ -623,22 +623,29 @@ await agent.aiScroll(
 );
 ```
 
-:::info Default scrolling on Android and iOS
+##### Mobile scrolling
 
-For a single scroll without `locate` or `distance`, the default gestures are:
+Android, iOS, and HarmonyOS use the same default gesture: move through the middle of the screen across its central 70%, taking about one second.
 
-- Android: move the finger across the central 70% of the screen in 1000 ms.
-- iOS: move the finger across the central 75% at no more than 400 screen-coordinate points per second, taking at least 1000 ms. Longer gestures take more time.
+The default aims to keep some content from the previous screen visible so you can continue reading. Finger travel is not the same as content displacement: lists may keep moving after release, and paged controls may snap to another page.
 
-Both platforms center vertical gestures horizontally and horizontal gestures vertically. Gesture endpoints stay away from screen edges.
+| Scenario | Usage and limits |
+| --- | --- |
+| Neither `locate` nor `distance` | Use the default gesture above. |
+| Only `distance` | Move the finger by the requested distance. Android and HarmonyOS start on the side opposite finger travel; iOS starts at the screen center. |
+| Only `locate` | Start at the target center. The default distance is still based on the screen, without detecting or adapting to container bounds. |
+| Both `locate` and `distance` | Move the requested distance from the target center. For a smaller region, choose a distance that fits it. |
+| Scroll to an edge | Use a type such as `scrollToTop`. Android and HarmonyOS perform 10 gestures. iOS compares screenshots and stops when the view is nearly unchanged or the attempt limit is reached. Long lists may not reach the edge. |
 
-The default gestures aim to preserve content overlap between scrolls. Actual content displacement depends on inertia, paging, and the control's implementation.
+When a requested distance exceeds the available screen space, Android and HarmonyOS shorten the gesture; Android also logs a warning. iOS passes the coordinates to the system. None of these platforms automatically confines the gesture to the target container.
 
-For a smaller or nested scrollable region, use `locate` to specify the target. It determines the gesture's starting point without providing the container's visible bounds. The default distance is still based on screen dimensions.
+For example, scroll a short distance inside a dialog list:
 
-Scrolls with an explicit `distance` or `locate` retain their existing behavior. `Swipe` and boundary-scrolling actions also retain their existing behavior.
+```typescript
+await agent.aiScroll('The list inside the dialog', { direction: 'down', distance: 100 });
+```
 
-:::
+For a quick gesture or specific endpoints, use `Swipe`. `Swipe` follows coordinates or a direction and accepts a `duration`; `Scroll` is intended for browsing content.
 
 :::note Signature update
 
