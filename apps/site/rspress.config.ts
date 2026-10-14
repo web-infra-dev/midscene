@@ -49,8 +49,9 @@ export default defineConfig(async () => {
   });
   return {
     root: path.join(__dirname, 'docs'),
-    title: 'Midscene - Vision-Driven UI Automation',
-    description: 'AI-powered, vision-driven UI automation for every platform.',
+    title: 'Midscene.js - AI UI Automation and E2E Testing',
+    description:
+      'Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.',
     icon: FAVICON_LINK_URL,
     logo: {
       light: '/images/brand/midscene_with_text_light.png',
@@ -533,16 +534,16 @@ export default defineConfig(async () => {
       {
         lang: 'en',
         label: 'English',
-        title: 'Midscene.js - (AI UI Automation, AI Testing)',
+        title: 'Midscene.js - AI UI Automation and E2E Testing',
         description:
-          'Midscene.js - (AI driven UI automation framework, Computer Use, Browser Use, Android Use)',
+          'Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.',
       },
       {
         lang: 'zh',
         label: '简体中文',
-        title: 'Midscene.js - (AI UI 自动化，AI 测试)',
+        title: 'Midscene.js - AI UI 自动化与 E2E 测试',
         description:
-          'Midscene.js - (AI 驱动的 UI 自动化框架，Computer Use, Browser Use, Android Use)',
+          '将 AI 视觉引入 E2E 测试，配套全新设计的测试框架，支持 Web、移动端和桌面应用。',
       },
     ],
     builderConfig: {
