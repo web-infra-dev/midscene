@@ -301,8 +301,7 @@ export class UIObserverImpl implements UIObserver {
       }
       this.pushFrame(baseline);
       this.unsubscribe = this.source!.subscribe!((frame) => {
-        if (!this.stopped && this.frames.at(-1)?.ref !== frame.ref)
-          this.pushFrame(frame);
+        if (!this.stopped) this.pushFrame(frame);
       });
     } else {
       await this.captureOnce();

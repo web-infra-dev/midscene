@@ -555,7 +555,7 @@ describe('source cadence observation', () => {
     };
     emit!({ ref: 'second', capturedAt: 640, timing, frameId: 'frame-2' });
     emit!({
-      ref: 'third',
+      ref: 'second',
       capturedAt: 650,
       timing: { ...timing, startMs: 480, endMs: 480 },
       frameId: 'frame-3',
@@ -581,6 +581,10 @@ describe('source cadence observation', () => {
     expect(readFileSync(record.frames[1].path).toString('base64')).toBe(
       testPngDataUrl.split(',')[1],
     );
+    expect(record.frames[2]).toMatchObject({
+      frameId: 'frame-3',
+      timing: { startMs: 480 },
+    });
     expect(record.droppedFrames).toBe(1);
     expect(record.events?.[0].name).toBe('keydown');
     record.frames[1].timing!.startMs = 999;
