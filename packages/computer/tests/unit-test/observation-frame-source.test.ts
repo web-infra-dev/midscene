@@ -222,3 +222,28 @@ it('region channel rejects missing frames, changed geometry/clock, overflow and 
     }
   }
 });
+
+it('rejects incomplete runtime geometry and byte bounds before spawning a process', async () => {
+  const { RegionObservation } = await import('@/observation-frame-source');
+  for (const key of Object.keys(geometry)) {
+    const incomplete = { ...geometry };
+    delete (incomplete as Record<string, number>)[key];
+    expect(() =>
+      RegionObservation.start({
+        command: '/must-not-start',
+        geometry: incomplete,
+        maxFrames: 1,
+      }),
+    ).toThrow('Invalid region geometry');
+  }
+  for (const maxFrameBytes of [0, -1, 1.5, Number.NaN]) {
+    expect(() =>
+      RegionObservation.start({
+        command: '/must-not-start',
+        geometry,
+        maxFrames: 1,
+        maxFrameBytes,
+      }),
+    ).toThrow('Invalid frame byte limit');
+  }
+});

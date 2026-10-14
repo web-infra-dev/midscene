@@ -225,7 +225,21 @@ export class RegionObservation {
   ) {
     const geometry = Object.freeze({ ...options.geometry });
     if (
-      Object.values(geometry).some((v) => !Number.isSafeInteger(v) || v < 0) ||
+      (
+        [
+          'outputIndex',
+          'x',
+          'y',
+          'width',
+          'height',
+          'scale',
+          'outputWidth',
+          'outputHeight',
+          'transform',
+        ] as const
+      ).some(
+        (key) => !Number.isSafeInteger(geometry[key]) || geometry[key] < 0,
+      ) ||
       !geometry.width ||
       !geometry.height ||
       !geometry.scale ||
@@ -236,6 +250,12 @@ export class RegionObservation {
       options.maxFrames < 1
     )
       throw new Error('Invalid region geometry or frame capacity');
+    if (
+      options.maxFrameBytes !== undefined &&
+      (!Number.isSafeInteger(options.maxFrameBytes) ||
+        options.maxFrameBytes < 1)
+    )
+      throw new Error('Invalid frame byte limit');
     this.source = new NativeFrameTransport(
       spawn(options.command, options.args ?? [], {
         stdio: ['pipe', 'pipe', 'pipe'],
