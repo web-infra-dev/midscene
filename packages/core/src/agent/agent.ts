@@ -206,7 +206,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   reportFile?: string | null;
 
   reportFileName?: string;
-  private readonly yamlReportScopeId = uuid();
+  private yamlReportScopeId = uuid();
   private readonly yamlExecutionRecords: WorkflowExecutionRecord[] = [];
 
   /** @internal Runner snapshots retain immutable data and shared image files. */
@@ -403,6 +403,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   private activeFileChooserAllowedDir?: string;
 
   private reportGenerator: IReportGenerator;
+  private reportFinalization?: Promise<string | undefined>;
 
   // @deprecated use .interface instead
   get page() {
@@ -643,14 +644,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       // fully removed from the public API.
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
 
-    this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
-      generateReport: this.opts.generateReport,
-      persistExecutionDump: this.opts.persistExecutionDump,
-      outputFormat: this.opts.outputFormat,
-      autoPrintReportMsg: this.opts.autoPrintReportMsg,
-      reuseExistingReport:
-        this.opts.reportAttributes?.['data-group-id'] === this.reportFileName,
-    });
+    this.reportGenerator = this.createReportGenerator(
+      this.opts.reportAttributes?.['data-group-id'] === this.reportFileName,
+    );
 
     Object.defineProperty(this, observationArtifactAdapterSymbol, {
       value: {
@@ -849,6 +845,42 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         this.opts.aiActionContext = context;
       }
     }
+  }
+
+  private createReportGenerator(reuseExistingReport = false): IReportGenerator {
+    return ReportGenerator.create(this.reportFileName!, {
+      generateReport: this.opts.generateReport,
+      persistExecutionDump: this.opts.persistExecutionDump,
+      outputFormat: this.opts.outputFormat,
+      autoPrintReportMsg: this.opts.autoPrintReportMsg,
+      reuseExistingReport,
+    });
+  }
+
+  /** @internal Start an independent Playground report without reconnecting the device. */
+  async _startNewReport(): Promise<void> {
+    await this._finalizeReport();
+    assert(!this.destroyed, 'Cannot start a report using a destroyed Agent.');
+
+    this.resetDump();
+    this.lastExecutionDump = undefined;
+    this.reportFile = undefined;
+    this.yamlReportScopeId = uuid();
+    this.yamlExecutionRecords.length = 0;
+    this.reportFileName = getReportFileName(
+      this.opts.testId || this.interface.interfaceType || 'web',
+    );
+    this.reportGenerator = this.createReportGenerator();
+    this.reportFinalization = undefined;
+  }
+
+  /** @internal Publish a completed report once; destroy must not rewrite old links. */
+  _finalizeReport(): Promise<string | undefined> {
+    this.reportFinalization ??= this.reportGenerator.finalize().then((path) => {
+      this.reportFile = path;
+      return path;
+    });
+    return this.reportFinalization;
   }
 
   resetDump() {
@@ -1891,8 +1923,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     // Wait for all queued write operations to complete
     await this.reportGenerator.flush();
 
-    const finalPath = await this.reportGenerator.finalize();
-    this.reportFile = finalPath;
+    await this._finalizeReport();
 
     this.resetDump(); // reset dump to release memory
 

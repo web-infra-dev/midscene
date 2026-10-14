@@ -3507,8 +3507,11 @@ class PlaygroundServer {
       };
 
       const startTime = Date.now();
+      let reportStarted = false;
       try {
-        agent.resetDump?.();
+        await agent._startNewReport();
+        reportStarted = true;
+        abortController?.signal.throwIfAborted();
         await this._activeConnection.executionHooks?.beforeExecute?.();
 
         // Get action space to check for dynamic actions
@@ -3548,7 +3551,7 @@ class PlaygroundServer {
         // blocks Electron's main event loop, including IPC and scrcpy. The
         // cancel response reads the incrementally persisted report instead.
         response.dump = null;
-      } else {
+      } else if (reportStarted) {
         try {
           // Snapshot updates await incremental report persistence before the
           // action resolves. Register that existing artifact instead of
@@ -3556,7 +3559,7 @@ class PlaygroundServer {
           // HTML report. Large Android runs otherwise starve Electron's main
           // event loop long enough for the scrcpy Socket.IO heartbeat to fail.
           const reportStartedAt = Date.now();
-          const reportFile = agent.reportFile;
+          const reportFile = await agent._finalizeReport();
           response.report = await this.registerReportFile(reportFile);
           response.dump = null;
           agent.resetDump();
@@ -3576,6 +3579,7 @@ class PlaygroundServer {
             requestId,
             errorMessage,
           );
+          response.error ??= errorMessage;
         }
       }
 
