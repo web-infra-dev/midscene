@@ -3,15 +3,15 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from '@rstest/core';
 import {
   buildReleaseNotification,
   formatReleaseNotes,
-} from '../../../scripts/format-release-notes.mjs';
+} from '../format-release-notes.mjs';
 
 const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../..',
+  '../..',
 );
 const temporaryDirectories = [];
 const supportsReleaseShell =
@@ -44,7 +44,7 @@ const loadWorkflowRunScript = async (stepName, nextStepName) => {
 
 const loadReleaseNotesScript = () =>
   loadWorkflowRunScript(
-    'Generate ordered Release notes',
+    'Verify archived Release notes',
     'Upload Release Assets',
   );
 
@@ -196,66 +196,36 @@ afterEach(async () => {
 describe.skipIf(!supportsReleaseShell)(
   'GitHub Release notes generation',
   () => {
-    it('executes generated notes formatting and notification metadata creation', async () => {
+    it('accepts the archived body and notification metadata', async () => {
       const script = await loadReleaseNotesScript();
       const harness = await createNotificationHarness();
-      const generatedNotes = [
-        "## What's Changed",
-        '* feat(core)!: replace legacy API by @example in https://github.com/web-infra-dev/midscene/pull/3',
-        '* fix(core): preserve notes by @example in https://github.com/web-infra-dev/midscene/pull/2',
-        '## New Contributors',
-        '* @example made their first contribution in https://github.com/web-infra-dev/midscene/pull/2',
-        '**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.2.2...v1.2.3',
-      ].join('\n');
-
+      await fs.writeFile(
+        path.join(harness.root, 'release-notes.md'),
+        '# English\n\nHighlights\n\n# 中文\n\n亮点',
+      );
+      await writeNotificationMetadata(
+        harness.releaseNotesMetadataPath,
+        defaultGeneratedNotes,
+      );
       execFileSync('bash', ['-e', '-o', 'pipefail', '-c', script], {
         cwd: repositoryRoot,
-        env: {
-          ...harness.env,
-          MOCK_GENERATED_NOTES_BODY: generatedNotes,
-        },
+        env: harness.env,
         stdio: 'pipe',
-      });
-
-      const releaseNotes = await fs.readFile(
-        path.join(harness.root, 'release-notes.md'),
-        'utf8',
-      );
-      expect(releaseNotes).toContain('## Breaking Changes 🍭');
-      expect(releaseNotes).toContain('## New Contributors');
-      expect(releaseNotes).toContain('@example made their first contribution');
-
-      const metadata = JSON.parse(
-        await fs.readFile(harness.releaseNotesMetadataPath, 'utf8'),
-      );
-      expect(metadata.groups.map((group) => group.key)).toEqual([
-        'breaking',
-        'fix',
-      ]);
-      expect(metadata.markdown).toContain('**Breaking Changes 🍭**');
-
-      const request = JSON.parse(
-        (await fs.readFile(harness.githubRequestLog, 'utf8')).trim(),
-      );
-      expect(request).toEqual({
-        tag_name: 'v1.2.3',
-        target_commitish: 'main',
       });
     });
 
-    it('fails when GitHub returns an empty generated body', async () => {
+    it('fails when the archived body is missing', async () => {
       const script = await loadReleaseNotesScript();
       const harness = await createNotificationHarness();
-
+      await writeNotificationMetadata(
+        harness.releaseNotesMetadataPath,
+        defaultGeneratedNotes,
+      );
       const result = spawnSync('bash', ['-e', '-o', 'pipefail', '-c', script], {
         cwd: repositoryRoot,
         encoding: 'utf8',
-        env: {
-          ...harness.env,
-          MOCK_GENERATED_NOTES_BODY: '',
-        },
+        env: harness.env,
       });
-
       expect(result.status).not.toBe(0);
     });
 
