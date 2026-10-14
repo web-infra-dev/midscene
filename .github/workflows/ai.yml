@@ -86,7 +86,27 @@ jobs:
         key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
 
     - name: Build web e2e projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/web,@midscene/cli"
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/web,@midscene/cli,@midscene/test"
+
+    - name: Create, install, and run the Web starter
+      id: e2e-created-web
+      continue-on-error: true
+      timeout-minutes: 20
+      uses: ./.github/actions/ai-ci
+      env:
+        MIDSCENE_CREATE_E2E_ARTIFACT_DIR: ${{ runner.temp }}/midscene-create-web-artifacts
+      with:
+        shell: bash
+        command: pnpm --filter @midscene/test run e2e:create:web
+
+    - name: Upload generated Web starter reports and logs
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: e2e-created-web
+        path: ${{ runner.temp }}/midscene-create-web-artifacts
+        include-hidden-files: true
+        if-no-files-found: ignore
 
     # Cache behavior uses explicit fixture configuration in the standard suite.
     # MIDSCENE_CACHE does not override those options, so a second full run is redundant.
@@ -121,9 +141,10 @@ jobs:
         if-no-files-found: ignore
 
     - name: Check if tests failed
-      if: steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
+      if: steps.e2e-created-web.outcome == 'failure' || steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
       run: |
         echo "::error::The following e2e tests failed:"
+        if [ "${{ steps.e2e-created-web.outcome }}" == "failure" ]; then echo "  - create Web starter"; fi
         if [ "${{ steps.e2e-tests.outcome }}" == "failure" ]; then echo "  - e2e (basic)"; fi
         if [ "${{ steps.e2e-tests-report.outcome }}" == "failure" ]; then echo "  - e2e:report"; fi
         exit 1
