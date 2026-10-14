@@ -6,6 +6,7 @@ import { FeatureCard } from './FeatureCard';
 import { PlatformTable } from './PlatformTable';
 import { SectionDivider } from './SectionDivider';
 import { TestFramework } from './TestFramework';
+import { TestProject } from './TestProject';
 import { TestingToolkit } from './TestingToolkit';
 import { TiltCard } from './TiltCard';
 
@@ -182,6 +183,10 @@ export function FeatureSections() {
       <SectionDivider className="home-feature__divider" />
 
       <TestFramework />
+
+      <SectionDivider className="home-feature__divider" />
+
+      <TestProject />
 
       <SectionDivider className="home-feature__divider" />
 

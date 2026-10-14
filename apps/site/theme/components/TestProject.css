@@ -1,0 +1,118 @@
+.home-project__header .home-feature__heading-block h2 {
+  white-space: normal;
+}
+
+.home-project__lead {
+  max-width: 720px;
+  margin: 16px 0 0;
+  color: var(--framework-muted);
+  font-size: 16px;
+  line-height: 26px;
+}
+
+.home-project__flow {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  list-style: none;
+}
+
+.home-project__card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+}
+
+.home-project__card-head {
+  display: flex;
+  min-height: 72px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-project__role {
+  color: var(--framework-strong);
+  font-family: "Chivo Mono", var(--rp-font-family-mono, monospace);
+  font-size: 12px;
+  line-height: 20px;
+  text-transform: uppercase;
+}
+
+.home-project__card-head p {
+  margin: 0;
+  color: var(--framework-muted);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.home-project__card-code {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--framework-border);
+  border-radius: 8px;
+  background: var(--rp-code-block-bg);
+}
+
+.home-project__card-code .rp-codeblock {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.home-project__card-code pre {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.home-project__card-code pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.home-project__connector {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 88px 8px 0;
+  color: var(--framework-muted);
+}
+
+.home-project .home-project__link {
+  margin: 0;
+  align-self: flex-start;
+}
+
+@media (max-width: 1000px) {
+  .home-project__flow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .home-project__card-head {
+    min-height: 0;
+  }
+
+  .home-project__connector {
+    flex-direction: row;
+    padding: 0;
+  }
+
+  .home-project__connector svg {
+    transform: rotate(90deg);
+  }
+}

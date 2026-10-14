@@ -17,10 +17,23 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   completion: '完成率',
 
   // Natural-language test example
-  exampleYamlTitle: '@midscene/test + yaml 格式的用例',
   exampleSetupOmitted: '省略模型配置、page 初始化与资源清理',
   exampleEyebrow: '编写测试',
   exampleHeading: '用自然语言描述步骤与预期',
+  exampleDesc:
+    '同一个用例的三种写法：由 @midscene/test 运行的 YAML，或在 Playwright Test、Vitest 中调用 Midscene 的 AI 方法。',
+  exampleStylesLabel: '用例写法',
+  exampleYamlTab: 'YAML · @midscene/test',
+  exampleYamlDesc:
+    '用例只包含步骤与预期。浏览器和 Agent 由 midscene.config.ts 创建，模型在 .env 中配置。',
+  exampleYamlLink: 'Midscene Test 使用指南',
+  examplePlaywrightDesc:
+    '用 PlaywrightAiFixture() 扩展 test，即可在已有的 Playwright 用例中通过测试参数调用 AI 方法。',
+  examplePlaywrightLink: '集成到 Playwright',
+  exampleFixtureNote: 'fixture.ts 中已用 PlaywrightAiFixture() 扩展 test',
+  exampleVitestDesc:
+    '为页面创建 PlaywrightAgent，在任意 JavaScript 测试框架中调用它的方法。',
+  exampleVitestLink: 'Agent API 参考',
   exampleCase: '筛选 100 美元以下的耳机',
   exampleAct: '搜索耳机，然后将结果筛选为价格低于 100 美元',
   exampleWait: '筛选后的搜索结果已显示',
@@ -66,30 +79,36 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelCostMetric: '60 项任务的模型调用总费用',
 
   // Test framework
-  frameworkHeading: '用 YAML 组织用例\n用 TypeScript 扩展',
-  frameworkYamlTitle: '用自然语言组织测试用例',
-  frameworkYamlDesc:
-    '在 YAML 中组合界面操作、断言与业务节点，专注描述测试流程。',
-  frameworkNodeTitle: '把业务能力封装为可复用节点',
+  frameworkHeading: 'AI 步骤与确定性 Node\n写在同一个 YAML 里',
+  frameworkDesc:
+    '由界面决定路径的部分交给自然语言，要求结果精确的部分交给代码。两者都是同一个用例中的步骤。',
+  frameworkLegendLabel: '步骤类型',
+  frameworkAiTitle: 'AI 步骤',
+  frameworkAiDesc: 'aiAct 和 aiAssert 读取界面截图，按自然语言指令操作和断言。',
+  frameworkNodeTitle: '确定性 Node',
   frameworkNodeDesc:
-    '用 TypeScript 实现数据准备、接口调用与清理，供不同用例复用。',
-  frameworkSpecTitle: '自动生成 Node 说明书',
-  frameworkSpecDesc:
-    '将已注册节点与参数定义导出为 Markdown，让开发者和 AI Agent 了解项目能力，共同编写与维护用例。',
-  frameworkSpecOmitted: '其余 Schema 字段与节点说明省略。',
-  frameworkSpecNote:
-    '运行 pnpm exec midscene-test nodes 自动生成。这里展示 user.create 的说明片段，与 TypeScript 节点定义对应。',
+    '用 TypeScript 实现测试数据、接口校验与清理，每次执行的行为一致。',
   frameworkLink: '了解 Midscene Test',
-  frameworkYamlTab: 'YAML 用例',
-  frameworkNodeTab: 'TypeScript 扩展节点',
-  frameworkCase: '搜索新建用户',
-  frameworkAct: '搜索用户名 Alice',
-  frameworkAssert: '搜索结果中显示用户 Alice',
-  frameworkNodeDescription: '创建测试用户，并在用例结束后清理',
-  frameworkYamlNote:
-    '示例：准备用户数据，再通过界面搜索并验证。需先配置模型与 Web 运行环境，并替换示例网址。',
-  frameworkNodeNote:
-    'user.create 对应 YAML 中的同名步骤；userService 是你实现的业务接口，负责创建和删除测试用户。',
+  frameworkCaseName: '已支付订单支持全额退款',
+  frameworkCaseAct: '申请全额退款并提交',
+  frameworkCaseAssert: '页面显示退款申请已提交',
+
+  // Test project
+  projectEyebrow: '测试工程',
+  projectHeading: 'Node、用例，以及连接两者的 Spec',
+  projectDesc:
+    '工程师维护 Node，测试工程师和 AI Agent 编写用例，自动生成的 Node Spec 告诉双方有哪些步骤可用。',
+  projectNodesRole: '工程师',
+  projectNodesDesc: '用 TypeScript 定义 Node，Zod Schema 校验 YAML 输入。',
+  projectSpecRole: '由 midscene-test nodes 生成',
+  projectSpecDesc: '列出所有已注册的 Node 及其输入 Schema。',
+  projectCasesRole: '测试工程师 · AI Agent',
+  projectCasesDesc: '根据 Spec 中的 Node 组合用例，无需阅读 TypeScript 代码。',
+  projectLink: '开发自定义 Node',
+  projectNodeDescription: '创建测试订单',
+  projectCaseName: '全额退款',
+  projectCaseAct: '为订单申请全额退款',
+  projectCaseAssert: '退款申请已提交',
 
   // Testing toolkit
   debuggingTitle: '测试工具链',
