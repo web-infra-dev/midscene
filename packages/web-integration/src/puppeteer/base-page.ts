@@ -42,7 +42,10 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
-import { selectAllInputScript } from '../common/input-scripts';
+import {
+  type EditableSelectStatus,
+  buildEditableSelectStatusScript,
+} from '../common/input-scripts';
 import {
   type KeyInput,
   type MouseButton,
@@ -1123,31 +1126,55 @@ export class Page<
     }
   }
 
+  private async selectEditableContent(
+    element: ElementInfo | undefined,
+    action: 'clearInput' | 'selectAllInput',
+  ): Promise<void> {
+    const center = element?.center;
+    const point =
+      center && Number.isFinite(center[0]) && Number.isFinite(center[1])
+        ? { x: center[0], y: center[1] }
+        : null;
+    const status = await this.evaluate<EditableSelectStatus>(
+      buildEditableSelectStatusScript(point),
+    );
+    const selected = status?.selected === true;
+    const editableFocused = status?.editableFocused === true;
+    if (selected) {
+      return;
+    }
+    // CDP selectAll is only safe once focus is confirmed to be the editable
+    // field. Otherwise the same command selects the page.
+    if (editableFocused) {
+      await this.selectAllByCdp();
+      return;
+    }
+    const verb =
+      action === 'clearInput' ? 'clear the input' : 'select input text';
+    throw new Error(
+      `Unable to ${verb} because no editable input, textarea, or contenteditable element is focused or under the click point.`,
+    );
+  }
+
   async selectAllInput(element?: ElementInfo): Promise<void> {
     if (!element) {
       throw new Error('Bulk replace input requires a target element');
     }
     await this.mouse.click(element.center[0], element.center[1]);
-    const selected = await this.evaluate<boolean>(selectAllInputScript);
-    if (!selected) {
-      await this.selectAllByCdp();
-    }
+    await this.selectEditableContent(element, 'selectAllInput');
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {
-    const backspace = async () => {
+    debugPage('clearInput begin');
+    try {
+      if (element) {
+        await this.mouse.click(element.center[0], element.center[1]);
+      }
+      await this.selectEditableContent(element, 'clearInput');
       await sleep(100);
       await this.keyboard.press([{ key: 'Backspace' }]);
-    };
-
-    debugPage('clearInput begin');
-
-    element && (await this.mouse.click(element.center[0], element.center[1]));
-    try {
-      await this.selectAllByCdp();
-      await backspace();
     } catch (error) {
-      debugPage('clearInput cdp selectAll failed', error);
+      debugPage('clearInput failed', error);
       throw error;
     } finally {
       debugPage('clearInput end');
