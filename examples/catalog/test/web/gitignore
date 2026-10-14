@@ -1,3 +1,4 @@
 node_modules/
 .env
 midscene_run/
+.midscene/test-results/

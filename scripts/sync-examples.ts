@@ -161,6 +161,7 @@ function safeFile(path: string): string {
 const generatedEntries = new Set([
   'node_modules',
   'midscene_run',
+  '.midscene',
   '.env',
   'pnpm-lock.yaml',
   'package-lock.json',

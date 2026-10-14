@@ -60,7 +60,7 @@ describe('template catalog', () => {
     expect(files['nodes/todo.ts'].toString()).toContain('todomvc.com');
     expect(files['nodes/todo.ts'].toString()).toContain('todo.captureState');
     expect(files['.gitignore'].toString()).toBe(
-      'node_modules/\n.env\nmidscene_run/\n',
+      'node_modules/\n.env\nmidscene_run/\n.midscene/test-results/\n',
     );
     expect(files.gitignore).toBeUndefined();
     for (const filename of ['README.md', 'README.zh.md', '.env.example']) {
