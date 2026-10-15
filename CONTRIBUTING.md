@@ -373,8 +373,14 @@ Repository maintainers can publish a new version of all packages to npm.
 
 Here are the steps to publish (we generally use CI for releases and avoid publishing npm packages locally):
 
-1. [Run the release action](https://github.com/web-infra-dev/midscene/actions/workflows/release.yml).
-2. [Generate the release notes](https://github.com/web-infra-dev/midscene/releases).
+1. Prepare bilingual highlights for the target version in [.github/release-notes](./.github/release-notes/README.md).
+   The `major` and `minor` inputs require both English and Chinese highlights;
+   patch highlights are optional but must be supplied as a pair.
+2. [Run the release action](https://github.com/web-infra-dev/midscene/actions/workflows/release.yml).
+   Stable releases generate bilingual version archives and update the website's
+   changelogs before committing the version bump and pushing its tag. Historical
+   changelog content outside the generated regions is preserved.
+3. The workflow publishes those same notes to [GitHub Releases](https://github.com/web-infra-dev/midscene/releases).
 
 Stable releases also attempt to submit the packaged Chrome extension to the Chrome Web Store from CI. Configure these repository secrets before running a stable release:
 

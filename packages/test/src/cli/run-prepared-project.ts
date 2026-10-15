@@ -1,8 +1,11 @@
 import { setMaxListeners } from 'node:events';
+import { dirname, join } from 'node:path';
+import type { TestRunReportSourceIndex } from '@midscene/core';
 import {
   WorkflowExecutionFailure,
   WorkflowPublicationError,
   asExecutionError,
+  observeResourceOperations,
   runConcurrentJobs,
 } from '@midscene/core/internal/test-runner';
 import type {
@@ -15,6 +18,7 @@ import {
 } from '@midscene/core/report';
 import { getDebug } from '@midscene/shared/logger';
 import { createProjectRuntime } from '../engine/project-runtime';
+import { writeTestResultMarkdown } from '../report/result-markdown';
 import {
   buildTestRunReportDump,
   collectTestRunReportSources,
@@ -25,7 +29,8 @@ import type {
   PreparedExecutionProject,
   PreparedTestRunPlan,
 } from './execution-plan';
-import { writeTestProjectRunResult } from './result-store';
+import { createOperationJournal } from './operation-journal';
+import { writeTestProjectRunResult, writeTestRunPlan } from './result-store';
 import type {
   TestExecutionProjectRunResult,
   TestProjectCaseRunResult,
@@ -149,6 +154,8 @@ export async function runPreparedTestProject(
     definition.test.maxConcurrency,
     preparedProjects.length,
   );
+  await writeTestRunPlan(runDir, preparedProjects);
+  const journal = createOperationJournal(runDir);
   const rootController = new AbortController();
   setMaxListeners(
     Math.max(10, effectiveConcurrency + 1),
@@ -183,6 +190,21 @@ export async function runPreparedTestProject(
       throw error;
     }
   };
+  const stopObservingOperations = observeResourceOperations(
+    rootController.signal,
+    (event) => {
+      try {
+        journal.append(event);
+      } catch (error) {
+        recordInfrastructureError(
+          new WorkflowPublicationError('write-result', journal.path, error),
+        );
+        getDebug('test-runner:operations', { console: true })(
+          `Could not persist operation event: ${String(error)}`,
+        );
+      }
+    },
+  );
   type PreparedProject = (typeof preparedProjects)[number];
   const announceProject = (prepared: PreparedProject, projectIndex: number) => {
     const { project } = prepared;
@@ -221,6 +243,7 @@ export async function runPreparedTestProject(
       filteredCaseCount: prepared.filteredCaseCount,
       ...(lifecycle ? { lifecycle } : {}),
       cases,
+      plans: prepared.plans,
       documents,
       collectionErrors: prepared.collectionErrors,
     };
@@ -445,6 +468,7 @@ export async function runPreparedTestProject(
   } catch (error) {
     recordInfrastructureError(error);
   } finally {
+    stopObservingOperations();
     process.off('SIGINT', sigint);
     process.off('SIGTERM', sigterm);
   }
@@ -481,6 +505,7 @@ export async function runPreparedTestProject(
   const endedAt = new Date();
   const result: TestProjectRunResult = {
     schemaVersion: 3,
+    operationLog: { path: journal.path, snapshotAt: endedAt.toISOString() },
     runId,
     startedAt: startedAt.toISOString(),
     endedAt: endedAt.toISOString(),
@@ -502,6 +527,7 @@ export async function runPreparedTestProject(
       : {}),
   };
   let completedResult = result;
+  let reportIndex: TestRunReportSourceIndex | undefined;
   const publish = async (
     operation: 'write-result' | 'write-report',
     path: string,
@@ -543,6 +569,7 @@ export async function runPreparedTestProject(
         overwrite: false,
         sources: collectTestRunReportSources(completedResult),
         buildRunnerDump: (index) => {
+          reportIndex = index;
           const dump = buildTestRunReportDump(completedResult, index);
           const warn = getDebug('test-runner:report-assembler', {
             console: true,
@@ -562,6 +589,17 @@ export async function runPreparedTestProject(
     await publish(publication.operation, publication.path, async () => {
       await publication.publish(completedResult);
     });
+  await publish(
+    'write-result',
+    join(dirname(summaryPath), 'result.md'),
+    async () => {
+      const markdownPath = await writeTestResultMarkdown(
+        completedResult,
+        reportIndex,
+      );
+      completedResult = { ...completedResult, markdownPath };
+    },
+  );
   await writeSummary();
   if (hasInfrastructureError)
     throw new WorkflowExecutionFailure(completedResult, infrastructureErrors);

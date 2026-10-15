@@ -1,15 +1,35 @@
 import type { TestRunReportStep } from '@midscene/core';
 import { GroupedActionDump } from '@midscene/core';
-import { Alert } from 'antd';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import type { PlaywrightTasks } from '../../types';
+import type { ReportIssue } from './issues';
+
+export function getAgentReportIssues(
+  step: TestRunReportStep,
+  reports: readonly PlaywrightTasks[],
+): ReportIssue[] {
+  const missing = step.agentDetails?.filter(
+    (detail) => !reports.some((report) => report.reportId === detail.reportId),
+  );
+  return missing?.length
+    ? [
+        {
+          id: `${step.id}:missing-group`,
+          severity: 'warning',
+          code: 'AGENT_REPORT_MISSING',
+          message: 'The referenced Agent report group is missing.',
+          context: { references: missing },
+        },
+      ]
+    : [];
+}
 
 const buildAgentReports = (
   step: TestRunReportStep | undefined,
   reports: readonly PlaywrightTasks[],
 ): PlaywrightTasks[] => {
-  if (!step?.agentDetails?.length) return [];
+  if (!step?.agentDetails?.length || step.status === 'not-run') return [];
   const idsByReport = new Map<string, Set<string>>();
   for (const detail of step.agentDetails) {
     const ids = idsByReport.get(detail.reportId) ?? new Set<string>();
@@ -70,19 +90,12 @@ export function RunnerAgentTraceContent({
 
   return (
     <div className="runner-agent-trace-content">
-      {step.agentDetailDiagnostic ? (
-        <Alert type="warning" showIcon message={step.agentDetailDiagnostic} />
-      ) : null}
       {agentReports.length ? (
         <div className="runner-detail-trace-view">
           {renderAgentReport(agentReports)}
         </div>
       ) : (
-        <Alert
-          type="error"
-          showIcon
-          message="The referenced Agent report group is missing."
-        />
+        <p>Recording unavailable.</p>
       )}
     </div>
   );

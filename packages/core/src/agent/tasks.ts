@@ -129,6 +129,7 @@ export class TaskExecutor {
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
   private readonly hooks?: TaskExecutorHooks;
+  private readonly getAbortSignal?: () => AbortSignal | undefined;
 
   replanningCycleLimit?: number;
 
@@ -152,6 +153,8 @@ export class TaskExecutor {
       actionReadiness?: ActionReadiness;
       useDeviceTime?: boolean;
       hooks?: TaskExecutorHooks;
+      getAbortSignal?: () => AbortSignal | undefined;
+      operationResource?: object;
       actionSpace: DeviceAction[];
     },
   ) {
@@ -163,6 +166,7 @@ export class TaskExecutor {
     this.waitAfterAction = opts.waitAfterAction;
     this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
+    this.getAbortSignal = opts.getAbortSignal;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
@@ -171,6 +175,7 @@ export class TaskExecutor {
       actionSpace: this.getActionSpace(),
       waitAfterAction: opts.waitAfterAction,
       actionReadiness: opts.actionReadiness,
+      operationResource: opts.operationResource,
     });
   }
 
@@ -178,6 +183,7 @@ export class TaskExecutor {
     title: string,
     options?: {
       tasks?: ExecutionTaskApply[];
+      abortSignal?: AbortSignal;
       uiContext?: UIContext;
       referenceImages?: readonly ExecutionReferenceImage[];
       onSnapshotChange?: (
@@ -189,11 +195,12 @@ export class TaskExecutor {
   ) {
     return new ExecutionSession(
       title,
-      () =>
+      (signal) =>
         options?.uiContext
           ? Promise.resolve(options.uiContext)
-          : Promise.resolve(this.service.contextRetrieverFn()),
+          : Promise.resolve(this.service.contextRetrieverFn(signal)),
       {
+        abortSignal: options?.abortSignal ?? this.getAbortSignal?.(),
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
         referenceImages: options?.referenceImages,
@@ -307,6 +314,7 @@ export class TaskExecutor {
     defaultModel: ModelRuntime,
     options?: {
       cacheable?: boolean;
+      multimodalPrompt?: TMultimodalPrompt;
       deepLocate?: boolean;
       abortSignal?: AbortSignal;
     },
@@ -369,7 +377,8 @@ export class TaskExecutor {
   }
 
   async sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
-    const session = this.createExecutionSession('Sleep');
+    abortSignal ??= this.getAbortSignal?.();
+    const session = this.createExecutionSession('Sleep', { abortSignal });
     const action = defineActionSleep(abortSignal);
     await session.appendAndRun({
       type: 'Action Space',
@@ -397,7 +406,11 @@ export class TaskExecutor {
     defaultModel: ModelRuntime,
     options?: { uiContext?: UIContext; abortSignal?: AbortSignal },
   ): Promise<ExecutionResult> {
-    const session = this.createExecutionSession(title, options);
+    const abortSignal = options?.abortSignal ?? this.getAbortSignal?.();
+    const session = this.createExecutionSession(title, {
+      ...options,
+      abortSignal,
+    });
     const runner = session.getRunner();
     const executionPlanningModel = { ...planningModel, executionId: runner.id };
     const executionDefaultModel = { ...defaultModel, executionId: runner.id };
@@ -405,7 +418,7 @@ export class TaskExecutor {
       plans,
       executionPlanningModel,
       executionDefaultModel,
-      { abortSignal: options?.abortSignal },
+      { abortSignal },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -507,6 +520,7 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    abortSignal ??= this.getAbortSignal?.();
     const conversationHistory = new ConversationHistory();
     const promptDisplay =
       reportOptions?.prompt || userPromptToString(userPrompt);
@@ -522,6 +536,7 @@ export class TaskExecutor {
     const session = this.createExecutionSession(
       taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
       {
+        abortSignal,
         referenceImages: userPromptToMultimodalPrompt(userPrompt)?.images,
         onTaskEvent: async (event) => {
           await activeActionReporter?.(event);
@@ -792,6 +807,7 @@ export class TaskExecutor {
           defaultModel,
           {
             cacheable,
+            multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
             deepLocate,
             abortSignal,
           },
@@ -884,7 +900,7 @@ export class TaskExecutor {
       ++replanCount;
 
       if (replanCount > replanningCycleLimit) {
-        const errorMsg = `Replanned ${replanningCycleLimit} times, exceeding the limit. Please configure a larger value for replanningCycleLimit (or use MIDSCENE_REPLANNING_CYCLE_LIMIT) to handle more complex tasks.`;
+        const errorMsg = `Task stopped: the planning cycle limit (${replanningCycleLimit}) has been reached. This limit prevents the model from getting stuck in an endless planning loop. If your task requires more planning cycles, increase replanningCycleLimit or set the environment variable MIDSCENE_REPLANNING_CYCLE_LIMIT to a higher value. See https://midscenejs.com/zh/reference/#common for details.`;
         return appendFailedPlan(errorMsg, planIndex);
       }
 
@@ -1000,7 +1016,10 @@ export class TaskExecutor {
             extraPageDescription,
             multimodalPrompt,
             uiContext,
-            executionOptions,
+            {
+              ...executionOptions,
+              abortSignal: executionOptions?.abortSignal ?? taskContext.signal,
+            },
           );
         } catch (error) {
           if (error instanceof ServiceError) {
@@ -1068,7 +1087,9 @@ export class TaskExecutor {
       uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
-    executionOptions?.abortSignal?.throwIfAborted();
+    const abortSignal =
+      executionOptions?.abortSignal ?? this.getAbortSignal?.();
+    abortSignal?.throwIfAborted();
     const session = this.createExecutionSession(
       taskTitleStr(
         type,
@@ -1079,6 +1100,7 @@ export class TaskExecutor {
           ? { uiContext: executionOptions.uiContext }
           : {}),
         referenceImages: multimodalPrompt?.images,
+        abortSignal,
       },
     );
 
@@ -1090,7 +1112,7 @@ export class TaskExecutor {
       executionModelRuntime,
       opt,
       multimodalPrompt,
-      executionOptions,
+      { ...executionOptions, abortSignal },
     );
 
     const result = await session.appendAndRun(queryTask);
@@ -1115,12 +1137,13 @@ export class TaskExecutor {
     opt: PlanningActionParamWaitFor,
     modelRuntime: ModelRuntime,
   ): Promise<ExecutionResult<void>> {
+    const abortSignal = this.getAbortSignal?.();
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
     const description = `waitFor: ${textPrompt}`;
     const session = this.createExecutionSession(
       taskTitleStr('WaitFor', description),
-      { referenceImages: multimodalPrompt?.images },
+      { referenceImages: multimodalPrompt?.images, abortSignal },
     );
     const runner = session.getRunner();
     const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
@@ -1153,12 +1176,14 @@ export class TaskExecutor {
     while (lastCheckStart - overallStartTime <= timeoutMs) {
       const currentCheckStart = Date.now();
       lastCheckStart = currentCheckStart;
+      abortSignal?.throwIfAborted();
       const queryTask = await this.createTypeQueryTask(
         'WaitFor',
         textPrompt,
         executionModelRuntime,
         serviceExtractOpt,
         multimodalPrompt,
+        { abortSignal },
       );
 
       const result = (await session.appendAndRun(queryTask)) as
@@ -1188,6 +1213,7 @@ export class TaskExecutor {
           [{ type: 'Sleep', param: { timeMs: timeRemaining }, thought }],
           modelRuntime,
           modelRuntime,
+          { abortSignal },
         );
         if (sleepTasks[0]) {
           await session.appendAndRun(sleepTasks[0]);

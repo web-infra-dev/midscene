@@ -229,11 +229,23 @@ export abstract class AbstractInterface {
   abstract destroy?(): Promise<void>;
 
   abstract describe?(): string;
-  abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
-  abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
+  abstract beforeInvokeAction?(
+    actionName: string,
+    param: any,
+    signal?: AbortSignal,
+  ): Promise<void>;
+  abstract afterInvokeAction?(
+    actionName: string,
+    param: any,
+    signal?: AbortSignal,
+  ): Promise<void>;
 
   /** Platform readiness heuristics, skipped when a custom action waiter takes over. */
-  async defaultActionWait?(_actionName: string, _param: any): Promise<void> {}
+  async defaultActionWait?(
+    _actionName: string,
+    _param: any,
+    _signal?: AbortSignal,
+  ): Promise<void> {}
 
   // for web only
   registerFileChooserListener?(
@@ -1280,20 +1292,21 @@ export const defineActionSleep = (
     sample: {
       timeMs: 2000,
     },
-    call: async (param) => {
+    call: async (param, context) => {
+      const signal = abortSignal ?? context?.signal;
       const duration = param?.timeMs ?? 1000;
       getDebug('device:common-action')(`Sleeping for ${duration}ms`);
-      abortSignal?.throwIfAborted();
+      signal?.throwIfAborted();
       await new Promise<void>((resolve, reject) => {
         const abort = () => {
           clearTimeout(timer);
-          reject(abortSignal?.reason);
+          reject(signal?.reason);
         };
         const timer = setTimeout(() => {
-          abortSignal?.removeEventListener('abort', abort);
+          signal?.removeEventListener('abort', abort);
           resolve();
         }, duration);
-        abortSignal?.addEventListener('abort', abort, { once: true });
+        signal?.addEventListener('abort', abort, { once: true });
       });
     },
   });

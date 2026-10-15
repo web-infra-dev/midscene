@@ -12,27 +12,61 @@
 
 ### 1. 生成项目文件并安装依赖
 
-准备 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` 和 pnpm，然后创建 Web 测试项目：
+准备 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` 和 pnpm。需要交互式引导时，运行：
+
+```bash
+pnpm dlx @midscene/test create
+```
+
+命令会依次提示选择项目目录、平台、包管理器，以及是否安装依赖。也可以直接传入参数，例如使用 pnpm 创建 Web 测试项目：
 
 ```bash
 pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
 cd my-tests
 ```
 
-按提示安装依赖。命令会生成平台配置、示例用例和 Node 说明书，主要文件如下：
+可用参数如下：
+
+| 参数 | 说明 |
+| --- | --- |
+| `[directory]` | 项目目录，可以是相对于当前目录的路径或绝对路径。使用 `.` 表示当前目录。省略时会提示输入，已有文件不会被覆盖。 |
+| `--platform <value>` | 平台：`web`（Playwright）、`android`、`ios`、`harmony`（HarmonyOS）或 `computer`（桌面端）。省略时会提示选择。 |
+| `--package-manager <value>` | 包管理器：`npm` 或 `pnpm`。省略时，交互式终端会提示选择；非交互式环境会检测调用命令的包管理器，无法识别时使用 `npm`。 |
+| `--yes`、`-y` | 跳过交互并安装依赖。必须同时提供目录和 `--platform`；与 `--skip-install` 同用时只生成文件。 |
+| `--skip-install` | 只生成文件，不安装依赖，也不生成 Node 说明书。之后执行安装命令即可生成说明书。 |
+| `--help`、`-h` | 查看命令帮助和示例。 |
+
+每个平台目前提供一个起步模板，通过 `--platform` 选择，均使用原生 `cases/steps` Test 文件。在 CI 等非交互式环境中，必须提供目录和 `--platform`；未设置 `--skip-install` 时会安装依赖。
+
+常用示例：
+
+```bash
+# 创建 iOS 项目并安装依赖，全程不询问
+pnpm dlx @midscene/test create my-ios-tests --platform ios --package-manager pnpm --yes
+
+# 只生成 Web 项目文件
+pnpm dlx @midscene/test create my-web-tests --platform web --package-manager pnpm --skip-install
+
+# 查看完整参数
+pnpm dlx @midscene/test create --help
+```
+
+按提示安装依赖。命令会生成平台配置和示例用例，安装依赖后还会生成 Node 说明书。Web 项目的主要文件如下：
 
 ```text
 my-tests/
-├── cases/example.yaml          # 示例用例
+├── cases/todo.yaml             # TodoMVC 用例
+├── nodes/todo.ts               # Web 自定义 Node：初始化、校验和状态记录
 ├── midscene.config.ts          # 平台配置与 Node 注册
-├── midscene-node-spec.web.md  # 安装后自动生成的 Node 说明书
+├── midscene-node-spec.web.md    # 安装后自动生成的 Node 说明书
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
-└── README.md
+├── README.md
+└── README.zh.md
 ```
 
-创建项目和生成说明书不会运行测试，因此这一步不需要模型 API Key、浏览器或设备。完整参数可通过 `pnpm dlx @midscene/test create --help` 查看。
+其他平台模板在 `midscene.config.ts` 中定义 `todo.setup`，不包含 `nodes/todo.ts`，说明书文件名使用对应平台名称，例如 `midscene-node-spec.ios.md`。创建项目和生成说明书不会运行测试，因此这一步不需要模型 API Key、浏览器或设备。生成项目中的 README 会说明平台准备和示例运行方式。
 
 :::info 安装恢复
 如果跳过安装或安装失败，可以进入项目目录执行 `pnpm install`。需要重新生成 Node 说明书时，执行 `pnpm run nodes`。
@@ -62,7 +96,7 @@ pnpm exec playwright install chromium
 | 平台 | 参数值 | 运行前准备 | 环境配置指南 |
 | --- | --- | --- | --- |
 | Android | `android` | 连接设备，可用 `ANDROID_DEVICE_ID` 选择设备。 | [配置指南](../platforms/android) |
-| iOS | `ios` | 启动 WebDriverAgent，配置 `WDA_HOST` 和 `WDA_PORT`。 | [配置指南](../platforms/ios) |
+| iOS | `ios` | 启动 WebDriverAgent。直连时配置 `WDA_HOST` 和 `WDA_PORT`，通过网关时配置 `WDA_BASE_URL`；远程视频流使用 `WDA_MJPEG_URL`，直连则可使用 `WDA_MJPEG_PORT`。 | [配置指南](../platforms/ios) |
 | HarmonyOS | `harmony` | 用 `hdc list targets` 检查连接，可用 `HARMONY_DEVICE_ID` 选择设备；PATH 中没有 HDC 时设置 `HDC_HOME`。 | [配置指南](../platforms/harmonyos) |
 | 桌面端 | `computer` | 安装依赖并授予权限，可用 `COMPUTER_DISPLAY_ID` 选择显示器。无界面 Linux 还需安装 Xvfb 并启用 `MIDSCENE_COMPUTER_HEADLESS_LINUX`。 | [配置指南](../platforms/desktop) |
 
@@ -72,9 +106,11 @@ pnpm exec playwright install chromium
 pnpm test
 ```
 
-Web 示例打开 `example.com` 并检查页面标题。桌面端示例通过 `aiAsk` 查看当前屏幕；移动端示例先执行 `home`，再执行 `aiAsk`。
+五个平台的模板都使用在线 React TodoMVC，演示添加、删除和完成任务。运行测试的浏览器或设备需要能访问该网站。
 
-运行结束后，可以查看用例运行报告，了解各用例及步骤的执行结果。随后可以修改 `cases/example.yaml`，编写自己的用例。
+Web 模板在每条用例前通过 `todo.setup` 打开 All 视图、清空页面存储并重新加载，使用 DOM 确认列表为空，再由 `todo.seed` 添加三个任务，第一条用例校验初始状态，第二条用 AI 删除和完成任务后校验结果；每条用例后由 `todo.captureState` 记录页面状态。Android、iOS、HarmonyOS 和桌面端模板使用 AI 添加三个任务、删除一个、完成另一个、切换到已完成筛选，并校验结果。修改任务前，这些模板先通过 `todo.setup` 打开 All 视图并等待输入框，再由 `aiAssert` 检查列表为空（包含已完成任务）且没有遮挡弹窗。已有任务会保留；检查失败时，请切换到 All 删除全部任务，或仅清除 TodoMVC 网站的数据，关闭遮挡弹窗后重新运行。模型或连接异常应先按报告中的原因排查。AI 检查可能误判，失败时请结合报告确认页面状态。所有模板均串行运行，首次用例失败即停止后续用例（`test.bail: 1`），同时正常保存报告、释放资源。
+
+运行结束后，可以在 `midscene_run/report/` 查看报告，了解各用例及步骤的执行结果。随后修改 `cases/todo.yaml` 编写自己的用例，可用操作及其参数以生成的 Node 说明书为准。
 
 ## 了解可用的测试操作
 
@@ -260,9 +296,11 @@ steps:
 支持以下两个字段：
 
 - `timeout`：Step 的超时时间，单位为毫秒。
-- `continue-on-error`：设为 `true` 后，即使 Step 失败，Midscene Test 也会继续执行当前阶段的后续 Step。默认值为 `false`。
+- `continue-on-error`：设为 `true` 后，Step 失败时允许继续执行当前阶段的后续 Step。默认值为 `false`。操作未退出或资源清理异常时，仍会停止执行。
 
 `continue-on-error` 只控制 Midscene Test 是否继续执行。只要有 Step 失败，Case 的最终状态就是 `failed`。
+
+超时不代表底层操作已经退出。继续同阶段的后续 Step 前，框架会等待已取消的操作结束，默认最多 30 秒；仍未结束就停止后续步骤。等待单独计时，不占下一步的超时预算。操作结束后可以继续使用 Agent，但页面和业务状态仍需由用例确认或重置，见[超时与取消机制](./configuration#超时与取消机制)。
 
 ### 使用项目变量与环境变量
 
@@ -350,7 +388,7 @@ beforeAll
 afterAll
 ```
 
-配置重试后，失败的用例会在重试次数范围内重新执行 `beforeEach → steps → afterEach`，再继续后续用例。重试不会重新执行 `beforeAll`，`afterAll` 仍在文件结束时运行一次。
+配置重试后，失败的用例会在本次清理完成、没有操作仍在运行时，在重试次数范围内重新执行 `beforeEach → steps → afterEach`，再继续后续用例。重试不会重新执行 `beforeAll`，`afterAll` 仍在文件结束时运行一次。重试次数是上限：操作未退出、清理等待或清理失败都会提前停止重试。
 
 ### 失败时如何执行
 
@@ -362,6 +400,8 @@ afterAll
 默认情况下，一个阶段中的步骤失败后，该阶段的剩余步骤不再执行。需要继续执行同阶段的后续步骤时，可设置 [`continue-on-error`](#设置超时和错误处理)；这不会把失败结果改为成功。清理 Node 应能处理准备步骤只完成了一部分的情况。
 
 默认情况下，一个 Case 失败后仍会继续执行下一个 Case。需要提前停止调度时，通过 `test.bail` 设置失败用例数阈值。文件级前置条件放在 `beforeAll`，失败后该文件的 Case 不再执行；有依赖关系的业务步骤放在同一个 Case 中，不要依赖另一条 Case 成功。
+
+资源异常是上述继续规则的例外：操作未退出或注册的清理函数等待、失败时，不再重试，也不执行同文件后续 Case。CLI 还会停止调度该项目的后续文件，因为它们共享 `context`；独立项目可以继续执行。普通 `afterEach` Step 失败仍按用例失败处理，只要操作已退出且注册的清理完成，就可以重试。报告写入等运行基础设施错误会取消整次运行。
 
 项目 setup 管理浏览器和 Agent 等资源，详见[使用 setup 创建和清理共享资源](./configuration#使用-setup-创建和清理共享资源)。Node 内部创建的资源，见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
 
@@ -427,6 +467,8 @@ pnpm exec midscene-test --result-dir ./test-results
 ## 查看测试结果
 
 每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
+
+报告保留执行前的测试计划，以及实际执行和未执行的步骤、未执行原因、重试停止原因。等待旧操作退出的时间与步骤执行时间分开记录。报告是生成时的快照：`cleanup pending` 表示当时清理尚未完成，资源仍保持隔离；之后完成的清理不会回写已生成的 HTML。
 
 报告默认保存在：
 

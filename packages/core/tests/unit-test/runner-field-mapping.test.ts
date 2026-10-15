@@ -6,8 +6,9 @@ import {
   defineNode,
   normalizeStep,
   runWorkflowDocument,
+  trackResourceOperation,
 } from '@/test-runner';
-import { describe, expect, test } from '@rstest/core';
+import { afterEach, describe, expect, rs, test } from '@rstest/core';
 
 const step = (node: string, resultName?: string): NormalizedStep => ({
   node,
@@ -41,8 +42,88 @@ const addCase = (
     },
   ];
 };
+afterEach(() => {
+  rs.useRealTimers();
+});
 
 describe('shared workflow field semantics', () => {
+  test.each([
+    'cleanup-failed',
+    'cleanup-pending',
+    'operation-pending',
+  ] as const)(
+    'stops retries and later Cases after %s while still running document teardown',
+    async (reason) => {
+      rs.useFakeTimers();
+      const input = document();
+      addCase(input, 'unsafe', [step('unsafe')]);
+      addCase(input, 'later', [step('later')]);
+      input.lifecycle.afterAll = [step('document-cleanup')];
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const calls: string[] = [];
+      const execution = runWorkflowDocument(input, {
+        retry: 2,
+        defaultTimeoutMs: 10,
+        resolveNode: (name) =>
+          defineNode({
+            name,
+            execute(ctx) {
+              calls.push(name);
+              if (name !== 'unsafe') return;
+              if (reason === 'operation-pending')
+                return trackResourceOperation({}, pending, ctx.signal);
+              ctx.onTeardown(() => {
+                if (reason === 'cleanup-failed')
+                  throw new Error('resource disposal failed');
+                return pending;
+              });
+            },
+          }),
+      });
+      await rs.advanceTimersByTimeAsync(11_100);
+      const result = await execution;
+      expect(result.cases[0].attempts).toHaveLength(1);
+      expect(result.cases[0].run?.retryDecision?.reason).toBe(reason);
+      expect(result.cases[1]).toMatchObject({
+        status: 'not-run',
+        notRunReason: reason,
+      });
+      expect(calls).toEqual(['unsafe', 'document-cleanup']);
+      expect(result.document.afterAll[0].status).toBe('success');
+      release();
+      await rs.advanceTimersByTimeAsync(0);
+    },
+  );
+
+  test('ordinary afterEach node failures still allow retries and later Cases', async () => {
+    const input = document();
+    addCase(input, 'first', [step('body')]);
+    addCase(input, 'later', [step('body')]);
+    input.lifecycle.afterEach = [step('afterEach')];
+    const result = await runWorkflowDocument(input, {
+      retry: 1,
+      resolveNode: (name) =>
+        defineNode({
+          name,
+          execute(ctx) {
+            if (
+              name === 'afterEach' &&
+              ctx.scope === 'case' &&
+              ctx.case.name === 'first'
+            )
+              throw new Error('assertion in afterEach failed');
+          },
+        }),
+    });
+    expect(result.cases[0].attempts).toHaveLength(2);
+    expect(result.cases[0].run?.cleanup?.status).toBe('completed');
+    expect(result.cases[0].run?.retryDecision?.reason).toBe('budget-exhausted');
+    expect(result.cases[1].status).toBe('success');
+  });
+
   test('stops only the document after a stop-document Case and still runs cleanup', async () => {
     const input = document();
     addCase(input, 'allowed', [step('fail'), step('skipped')]);

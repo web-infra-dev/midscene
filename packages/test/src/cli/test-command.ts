@@ -288,6 +288,7 @@ const reportTestProjectResult = (
   );
   io.log(`Results: ${result.resultDir}`);
   io.log(`Summary: ${result.summaryPath}`);
+  if (result.markdownPath) io.log(`Markdown: ${result.markdownPath}`);
   if (result.reportPath) io.log(`Report: ${result.reportPath}`);
   return result.exitCode;
 };

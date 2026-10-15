@@ -119,14 +119,14 @@ JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 
 ## How do I use Azure OpenAI Service?
 
-When using Azure OpenAI Service, first choose the model and fill in the regular configuration from [Supported models and setup](./model-common-config). Azure only requires changing the model service URL and API Key to the Azure form:
+When using Azure OpenAI Service, first choose the model and fill in the regular configuration from [Use a model API key](./model-common-config). Azure only requires changing the model service URL and API Key to the Azure form:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # Or https://<your-resource>.openai.azure.com/openai/v1
 MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Supported models and setup](./model-common-config). Azure is only a model provider with different authentication, not a special model.
+In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Use a model API key](./model-common-config). Azure is only a model provider with different authentication, not a special model.
 
 This uses the normal OpenAI-compatible path with `Authorization: Bearer ...`. Depending on `MIDSCENE_MODEL_PROTOCOL`, requests go to `/openai/v1/chat/completions` (the default) or `/openai/v1/responses`. Confirm that your Azure model and endpoint support the selected protocol. Do not append `/chat/completions` or `/responses` to `MIDSCENE_MODEL_BASE_URL`. For most `/openai/v1` endpoints you do not need `api-version`.
 
@@ -242,7 +242,7 @@ Midscene's element positioning capability relies on the AI model's visual unders
 
 Generally, newer versions and models with larger parameters perform better than older versions and smaller models. For example, Qwen3-VL performs better than Qwen2.5-VL, and its plus version performs better than the flash version.
 
-For current model recommendations, see [Supported models and setup](./model-common-config).
+For current model recommendations, see [Use a model API key](./model-common-config).
 
 ### 3. Check Model Family Configuration
 

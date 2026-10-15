@@ -6,6 +6,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   symlinkSync,
   unlinkSync,
@@ -15,6 +16,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
+import { executablePath } from 'puppeteer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type CreateServices,
@@ -71,6 +73,7 @@ afterEach(() => {
 
 // Exercise real generated configs and the built CLI using local dependencies.
 // No registry, browser, device, or model is needed to describe a new project.
+// The separate reset check below uses an offline page in a real browser.
 const linkDependencies = (root: string) => {
   const modules = join(root, 'node_modules');
   mkdirSync(join(modules, '@midscene'), { recursive: true });
@@ -134,6 +137,277 @@ const isolateWebDependency = (root: string) => {
 };
 
 describe('generated project integration', () => {
+  it('resets existing and filtered Todos before each Web case without a model', async () => {
+    const root = temp();
+    for (const [filename, content] of Object.entries(
+      createProjectFiles('web-reset', 'web', 'pnpm'),
+    )) {
+      const path = join(root, filename);
+      mkdirSync(resolve(path, '..'), { recursive: true });
+      writeFileSync(path, content);
+    }
+    linkDependencies(root);
+    // This offline fixture makes persisted and filtered state observable. It
+    // is test-only; generated projects continue to use the public React app.
+    writeFileSync(
+      join(root, 'fixture.html'),
+      `<!doctype html>
+      <input class="new-todo"><ul class="todo-list"></ul>
+      <script>
+        const items = JSON.parse(localStorage.getItem('fixtureTodos') || '[]');
+        function render() {
+          const list = document.querySelector('.todo-list');
+          list.replaceChildren();
+          for (const todo of items) {
+            if (location.hash === '#/completed' && !todo.completed) continue;
+            const item = document.createElement('li');
+            if (todo.completed) item.className = 'completed';
+            const label = document.createElement('label');
+            label.textContent = todo.title;
+            item.append(label);
+            list.append(item);
+          }
+        }
+        document.querySelector('.new-todo').addEventListener('keydown', event => {
+          if (event.key !== 'Enter') return;
+          items.push({ title: event.target.value, completed: false });
+          localStorage.setItem('fixtureTodos', JSON.stringify(items));
+          event.target.value = '';
+          render();
+        });
+        addEventListener('hashchange', render);
+        render();
+      </script>`,
+    );
+    await execFileAsync(
+      process.execPath,
+      [
+        '--input-type=module',
+        '-e',
+        `
+      import assert from 'node:assert/strict';
+      import { readFileSync } from 'node:fs';
+      import { resolve } from 'node:path';
+      import { chromium } from 'playwright';
+      import { loadTestProject } from '@midscene/test/config';
+      const browser = await chromium.launch({ headless: true, executablePath: ${JSON.stringify(executablePath())} });
+      try {
+        const page = await browser.newPage();
+        const html = readFileSync('fixture.html', 'utf8');
+        await page.route('https://todomvc.com/**', route => route.fulfill({ contentType: 'text/html', body: html }));
+        await page.goto('https://todomvc.com/examples/react/dist/#/');
+        await page.evaluate(() => {
+          localStorage.setItem('fixtureTodos', JSON.stringify([
+            { title: 'Old active task', completed: false },
+            { title: 'Old completed task', completed: true },
+          ]));
+          location.hash = '#/completed';
+        });
+        await page.reload();
+        assert.equal(await page.locator('.todo-list li').count(), 1);
+        const project = await loadTestProject(resolve('midscene.config.ts'));
+        const execute = (name, input = {}) => project.resolveNode(name).execute({
+          input, context: { page }, signal: new AbortController().signal,
+        });
+        for (let round = 0; round < 2; round += 1) {
+          const reset = await execute('todo.setup');
+          assert.deepEqual(reset.data.items, []);
+          assert.equal(page.url(), 'https://todomvc.com/examples/react/dist/#/');
+          assert.equal(await page.locator('.todo-list li').count(), 0);
+          assert.equal(await page.evaluate(() => localStorage.getItem('fixtureTodos')), null);
+          const items = ['Fresh task ' + round, 'Another task ' + round];
+          await execute('todo.seed', { items });
+          await execute('todo.expectState', { items: items.map(title => ({ title, completed: false })) });
+          await page.evaluate(() => { location.hash = '#/completed'; });
+          await page.reload();
+        }
+      } finally {
+        await browser.close();
+      }
+    `,
+      ],
+      { cwd: root, env: { ...process.env, NODE_PATH: '' } },
+    );
+  });
+
+  it.each([
+    ...createPlatforms
+      .filter((platform) => platform !== 'web')
+      .map((platform) => ({ platform, state: 'dirty' })),
+    { platform: 'android', state: 'clean' },
+    { platform: 'android', state: 'model-error' },
+  ] as const)(
+    'checks initial state and preserves cleanup for $platform ($state)',
+    async ({ platform, state }) => {
+      const root = temp();
+      for (const [filename, content] of Object.entries(
+        createProjectFiles('initial-state', platform, 'pnpm'),
+      )) {
+        const path = join(root, filename);
+        mkdirSync(resolve(path, '..'), { recursive: true });
+        writeFileSync(path, content);
+      }
+      linkDependencies(root);
+      const casePath = join(root, 'cases/todo.yaml');
+      writeFileSync(
+        casePath,
+        `${readFileSync(casePath, 'utf8')}\n  - name: Later case\n    steps:\n      - test.body: {}\n`,
+      );
+      writeFileSync(
+        join(root, 'fixture.config.ts'),
+        `
+      import { appendFileSync } from 'node:fs';
+      import base from './midscene.config';
+      const log = value => appendFileSync('executed.log', value + '\\n');
+      const agent = {
+        async launch(url) {
+          if (url !== 'https://todomvc.com/examples/react/dist/#/') throw new Error('Unexpected URL: ' + url);
+          log('open');
+        },
+        async aiWaitFor() { log('ready'); },
+        async aiAct(prompt) {
+          log(prompt.startsWith('Open a browser') ? 'open' : 'body');
+        },
+        async aiAssert(prompt, message) {
+          if (!prompt.includes('The list is unfiltered')) { log('body-assert'); return { pass: true }; }
+          log('initial-state');
+          if (${JSON.stringify(state)} === 'model-error') throw new Error('model backend unavailable');
+          return ${JSON.stringify(state)} === 'dirty' ? { pass: false, message } : { pass: true };
+        },
+        async flushReport() { log('report'); },
+        async destroy() { log('destroy'); },
+      };
+      export default {
+        ...base,
+        nodes: [...base.nodes, { name: 'test.body', execute() { log('later-body'); } }],
+        projects: base.projects.map(project => ({
+          ...project,
+          setup: { name: 'fixture', setup({ onTeardown }) {
+            onTeardown(() => agent.destroy());
+            return { agent };
+          } },
+        })),
+      };
+    `,
+      );
+      let exitCode = 0;
+      let result: { stdout: string; stderr: string };
+      try {
+        result = await execFileAsync(
+          process.execPath,
+          [
+            join(packageRoot, 'bin/midscene-test'),
+            '--config',
+            'fixture.config.ts',
+          ],
+          { cwd: root, env: { ...process.env, NODE_PATH: '' } },
+        );
+      } catch (error) {
+        const failure = error as Error & {
+          code: number;
+          stdout: string;
+          stderr: string;
+        };
+        exitCode = failure.code;
+        result = failure;
+      }
+      expect(exitCode, result.stderr).toBe(state === 'clean' ? 0 : 1);
+      if (state !== 'clean') {
+        expect(result.stdout).toContain(
+          '0/2 cases passed, 1 failed, 1 not run',
+        );
+        expect(result.stderr).toContain(
+          state === 'dirty'
+            ? 'delete every task, including completed tasks'
+            : 'model backend unavailable',
+        );
+      }
+      if (state === 'model-error')
+        expect(result.stderr).not.toContain('clear this website');
+      const log = readFileSync(join(root, 'executed.log'), 'utf8')
+        .trim()
+        .split('\n');
+      expect(log.slice(0, 3)).toEqual(['open', 'ready', 'initial-state']);
+      expect(log).toContain('report');
+      expect(log.at(-1)).toBe('destroy');
+      if (state === 'clean') expect(log).toContain('later-body');
+      else expect(log.some((line) => line.includes('body'))).toBe(false);
+      expect(
+        readdirSync(join(root, 'midscene_run/report')).some((name) =>
+          name.endsWith('.html'),
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it('creates all starters from a real pnpm tarball with working ignore rules', async () => {
+    const root = temp();
+    await execFileAsync('pnpm', ['pack', '--pack-destination', root], {
+      cwd: packageRoot,
+    });
+    const archives = readdirSync(root).filter((name) => name.endsWith('.tgz'));
+    expect(archives).toHaveLength(1);
+    await execFileAsync('tar', ['-xzf', join(root, archives[0]), '-C', root]);
+    const packedRoot = join(root, 'package');
+    expect(existsSync(resolve(packedRoot, '../../examples/catalog'))).toBe(
+      false,
+    );
+    // Only dependencies are borrowed from the checkout. The CLI and every
+    // template must come from the extracted publication artifact.
+    symlinkSync(
+      join(packageRoot, 'node_modules'),
+      join(packedRoot, 'node_modules'),
+      'junction',
+    );
+    for (const platform of createPlatforms) {
+      const project = join(root, platform);
+      expect(
+        existsSync(
+          join(packedRoot, 'dist/templates/test', platform, 'gitignore'),
+        ),
+      ).toBe(true);
+      await execFileAsync(
+        process.execPath,
+        [
+          join(packedRoot, 'bin/midscene-test'),
+          'create',
+          project,
+          '--platform',
+          platform,
+          '--package-manager',
+          'pnpm',
+          '--skip-install',
+        ],
+        { cwd: root, env: { ...process.env, NODE_PATH: '' } },
+      );
+      expect(readFileSync(join(project, '.gitignore'), 'utf8')).toBe(
+        'node_modules/\n.env\nmidscene_run/\n.midscene/test-results/\n',
+      );
+      expect(existsSync(join(project, 'gitignore'))).toBe(false);
+      expect(existsSync(join(project, '.env.example'))).toBe(true);
+      expect(existsSync(join(project, 'package.json'))).toBe(true);
+      await execFileAsync('git', ['init', '--quiet'], { cwd: project });
+      const ignored = await execFileAsync(
+        'git',
+        [
+          'check-ignore',
+          '--no-index',
+          '.env',
+          'node_modules/dependency/index.js',
+          'midscene_run/report/run.html',
+          '.midscene/test-results/run/summary.json',
+        ],
+        { cwd: project },
+      );
+      expect(ignored.stdout.trim().split('\n')).toEqual([
+        '.env',
+        'node_modules/dependency/index.js',
+        'midscene_run/report/run.html',
+        '.midscene/test-results/run/summary.json',
+      ]);
+    }
+  });
+
   it.each(
     [
       {
@@ -344,6 +618,7 @@ describe('generated project integration', () => {
         'utf8',
       );
       expect(markdown).toContain('## `aiAssert`');
+      expect(markdown).toContain('## `todo.setup`');
       expect(markdown).toContain(
         platform === 'web'
           ? '## `gotoUrl`'
@@ -385,13 +660,13 @@ describe('generated project integration', () => {
         import { loadTestProject } from '@midscene/test/config';
         import { resolve } from 'node:path';
         const project = await loadTestProject(resolve('midscene.config.ts'));
-        const document = collectWorkflowDocument({ projectId: 'example', sourcePath: 'cases/example.yaml', absolutePath: resolve('cases/example.yaml') }, { resolveNode: name => project.resolveNode(name) });
+        const document = collectWorkflowDocument({ projectId: 'example', sourcePath: 'cases/todo.yaml', absolutePath: resolve('cases/todo.yaml') }, { resolveNode: name => project.resolveNode(name) });
         console.log(String(document.cases.length));
       `,
         ],
         { cwd },
       );
-      expect(collected.stdout.trim()).toBe('1');
+      expect(collected.stdout.trim()).toBe(platform === 'web' ? '2' : '1');
       expect(existsSync(join(cwd, 'midscene_run'))).toBe(false);
       await execFileAsync(process.execPath, [
         join(packageRoot, 'node_modules/typescript/bin/tsc'),
@@ -399,6 +674,18 @@ describe('generated project integration', () => {
         cwd,
       ]);
       if (platform === 'web') {
+        for (const node of [
+          'todo.setup',
+          'todo.seed',
+          'todo.expectState',
+          'todo.captureState',
+        ]) {
+          expect(markdown).toContain(`## \`${node}\``);
+        }
+        expect(existsSync(join(cwd, 'public/todo.html'))).toBe(false);
+        expect(readFileSync(join(cwd, 'nodes/todo.ts'), 'utf8')).toContain(
+          'todomvc.com',
+        );
         const files = await execFileAsync(process.execPath, [
           join(packageRoot, 'node_modules/typescript/bin/tsc'),
           '-p',
@@ -538,7 +825,7 @@ process.exit(result.status ?? 1);
           },
         },
       );
-      expect(result.stdout).toContain('Project ready:');
+      expect(result.stdout).toContain('Project ready!');
       expect(
         readFileSync(join(root, 'midscene-node-spec.web.md'), 'utf8'),
       ).toContain('## `gotoUrl`');
@@ -568,7 +855,7 @@ process.exit(result.status ?? 1);
       const readme = readFileSync(join(root, 'README.md'), 'utf8');
       expect(readme).toContain(`${packageManager} test`);
       expect(readme).toContain(`${packageManager} run nodes`);
-      expect(existsSync(join(root, 'README.zh.md'))).toBe(false);
+      expect(existsSync(join(root, 'README.zh.md'))).toBe(true);
     },
   );
 });

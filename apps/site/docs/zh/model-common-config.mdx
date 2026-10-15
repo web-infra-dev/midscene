@@ -1,19 +1,21 @@
 import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
-# 支持的模型与配置
+# 使用模型 API Key
 
-本文帮助你选择 Midscene 支持的模型、完成首次配置，并验证模型连接。
+本文介绍如何使用模型服务商提供的 API Key 接入 Midscene，包括选择模型、完成配置和验证连接。如果你已有 ChatGPT 订阅，也可以参考[使用 ChatGPT 订阅](./chatgpt-subscription)文档中的描述操作。
 
 本页列出的模型配置，本质上都是环境变量。你可以根据使用方式提供这些配置：
 
 - 使用 Playground 时，在设置页面直接粘贴本页的配置文本。
 - 使用 SDK 或命令行工具时，按照[设置环境变量](#设置环境变量)中的说明加载配置。
 
-如需了解模型职责，请阅读[模型策略](./model-strategy)。如需查询完整参数，请阅读[模型配置参考](./model-config)。
+如需查询完整参数，请阅读[模型配置参考](./model-config)。
 
 ## 支持的模型
 
-Midscene 支持使用以下多模态模型操作界面。每份配置都需要 Base URL、API Key、模型名称和 `MIDSCENE_MODEL_FAMILY`。模型系列（`MIDSCENE_MODEL_FAMILY`）决定了 Midscene 如何适配所选模型。
+Midscene 支持使用这些多模态模型操作界面：[豆包 Seed](#doubao-seed-model)、[千问 Qwen](#qwen)、[DeepSeek](#deepseek)、[Google Gemini](#gemini)、[OpenAI GPT](#gpt)、[月之暗面 Kimi](#kimi)、[小米 MiMo](#xiaomi-mimo)、[智谱 GLM-V](#glm-v)，以及下文介绍的其他兼容模型 [AutoGLM](#auto-glm) 和 [UI-TARS](#ui-tars)。
+
+每份配置都需要 Base URL、API Key、模型名称和 `MIDSCENE_MODEL_FAMILY`。模型系列（`MIDSCENE_MODEL_FAMILY`）决定了 Midscene 如何适配所选模型。
 
 ### 豆包 Seed 系列 {#doubao-seed-model}
 
@@ -21,14 +23,14 @@ Midscene 支持使用以下多模态模型操作界面。每份配置都需要 B
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| 2.x 系列 | `Doubao-Seed-2.1-turbo`、`Doubao-Seed-2.0-Lite` | `doubao-seed` | `Doubao-Seed-2.1-turbo` 目前私有测评集中定位速度最快，且定位效果也很好，推荐使用。 |
-| 1.x 系列 | `Doubao-Seed-1.6-Vision`、`Doubao-Seed-1.8` | `doubao-seed` | 1.x 系列为豆包的旧版本模型，综合表现已不具竞争力，建议优先使用 2.x 系列。为兼容已有配置，仍支持 `MIDSCENE_MODEL_FAMILY="doubao-vision"`；新配置建议使用 `doubao-seed`。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **2.x 系列**<br />`doubao-seed-2-1-pro-260915` `doubao-seed-2-1-turbo-260628` | `doubao-seed` | `doubao-seed-2-1-turbo-260628` 定位速度快，且效果也很好，推荐使用。 |
+| **1.x 系列**<br />`Doubao-Seed-1.6-Vision` `Doubao-Seed-1.8` | `doubao-seed` | 1.x 系列为豆包的旧版本模型，综合表现已不具竞争力，建议优先使用 2.x 系列。为兼容已有配置，仍支持 `MIDSCENE_MODEL_FAMILY="doubao-vision"`；新配置建议使用 `doubao-seed`。 |
 
 </div>
 
-环境变量配置示例，以 `doubao-seed-2.1-turbo` 为例：
+环境变量配置示例，以 `doubao-seed-2-1-turbo-260628` 为例：
 
 <ModelConfigCard
   baseUrl={{
@@ -55,11 +57,11 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| Qwen3.x 系列 | `qwen3.7-plus`、`qwen3.5-plus`、`qwen3.6-plus` | `qwen3` | 从定位测评的结果看，推荐顺序为 Qwen3.7 > Qwen3.5 > Qwen3.6。`qwen3.5`、`qwen3.6` 作为旧 family 仍然兼容。 |
-| Qwen3-VL 系列 | `qwen3-vl-plus` | `qwen3-vl` | 作为旧版本模型，不推荐使用。建议优先使用 Qwen3.x 系列。 |
-| Qwen2.5-VL 系列 | `qwen-vl-max-latest` | `qwen2.5-vl` | 作为旧版本模型，不推荐使用。建议优先使用 Qwen3.x 系列。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **Qwen3.x 系列**<br />`qwen3.7-plus` `qwen3.5-plus` `qwen3.6-plus` | `qwen3` | 从定位测评的结果看，推荐顺序为 Qwen3.7 > Qwen3.5 > Qwen3.6。`qwen3.5`、`qwen3.6` 作为旧 family 仍然兼容。 |
+| **Qwen3-VL 系列**<br />`qwen3-vl-plus` | `qwen3-vl` | 作为旧版本模型，不推荐使用。建议优先使用 Qwen3.x 系列。 |
+| **Qwen2.5-VL 系列**<br />`qwen-vl-max-latest` | `qwen2.5-vl` | 作为旧版本模型，不推荐使用。建议优先使用 Qwen3.x 系列。 |
 
 </div>
 
@@ -77,7 +79,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
   }}
 />
 
-### 深度求索 deepseek 系列 {#deepseek}
+### 深度求索 DeepSeek 系列 {#deepseek}
 
 Midscene 从 v1.12.0 开始支持 DeepSeek。
 
@@ -85,9 +87,9 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| DeepSeek V4 系列 | `deepseek-flash`（V4.1 Flash）、`deepseek-v4-flash-vision-exp`（V4 Flash Vision） | `deepseek` | DeepSeek-V4-Pro 不支持视觉输入，不能用于 Midscene。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **DeepSeek V4 系列**<br />`deepseek-flash`（V4.1 Flash） `deepseek-v4-flash-vision-exp`（V4 Flash Vision） | `deepseek` | DeepSeek-V4-Pro 不支持视觉输入，不能用于 Midscene。 |
 
 </div>
 
@@ -108,9 +110,9 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| Gemini 3.x 系列 | `gemini-3.5-flash`、`gemini-3-flash-preview` | `gemini` | `gemini-3.5-flash` 是目前我们私有测评集中定位表现最好的模型。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **Gemini 3.x 系列**<br />`gemini-3.5-flash` `gemini-3-flash-preview` | `gemini` | `gemini-3.5-flash` 是目前我们私有测评集中定位表现最好的模型。 |
 
 </div>
 
@@ -127,63 +129,22 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 ### OpenAI GPT 系列 {#gpt}
 
+:::info
+
+如果想使用 ChatGPT 订阅接入，请参考[使用 ChatGPT 订阅](./chatgpt-subscription)。
+
+:::
+
 - 常用模型供应商：[OpenAI](https://openai.com/)
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| GPT-6 系列 | `gpt-6-astra`、`gpt-6-sol`、`gpt-6-luna` | `gpt-6` | GPT-6 Sol 定位准确度出色，且价格仅为 GPT-6 Astra 的五分之一；GPT-6 Luna 价格非常便宜，同时具备良好的视觉定位能力。 |
-| GPT-5 系列 | `gpt-5.4`、`gpt-5.5`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-5.6-luna` | `gpt-5` | GPT-5.4 之前的模型不支持视觉定位，仅可用作 Planning 模型或 Insight 模型。在实际定位测试中，GPT-5.5 和 GPT-5.6 的定位效果明显优于 GPT-5.4，建议优先使用 GPT-5.5 或 GPT-5.6。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **GPT-6 系列**<br />`gpt-6-astra` `gpt-6-sol` `gpt-6-luna` | `gpt-6` | GPT-6 Sol 定位准确度出色，且价格仅为 GPT-6 Astra 的五分之一；GPT-6 Luna 价格非常便宜，同时具备良好的视觉定位能力。 |
+| **GPT-5 系列**<br />`gpt-5.4` `gpt-5.5` `gpt-5.6-sol` `gpt-5.6-terra` `gpt-5.6-luna` | `gpt-5` | GPT-5.4 之前的模型不支持视觉定位，仅可用作 Planning 模型或 Insight 模型。在实际定位测试中，GPT-5.5 和 GPT-5.6 的定位效果明显优于 GPT-5.4，建议优先使用 GPT-5.5 或 GPT-5.6。 |
 
 </div>
-
-**使用 ChatGPT 订阅（推荐）**
-
-如果你已经订阅了 ChatGPT plan，则可以通过 [SIWC（Sign in with ChatGPT）](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) 获得一个 ChatGPT 授权 token。该 token 同样可以用于在 Midscene 中调用 OpenAI 服务，就像 OpenAI 的 API Key 一样。
-
-使用方式：
-
-1. 首次获取凭据
-
-   ```bash
-   npx @midscene/cli model siwc login
-   ```
-
-   按照终端提示在浏览器中完成授权。授权时可为 Agent 自行取名，名称没有特殊要求；完成后，你可以在 ChatGPT 的使用情况页面查看已授权的 Agent。命令会打印 Access token，可将其配置为 `MIDSCENE_MODEL_API_KEY`。完整凭据保存在本地 `~/.midscene/siwc.json`，Midscene 不会收集你的凭据。
-
-   使用 access token 时的环境变量配置示例，以 `gpt-6-sol` 为例：
-
-   <ModelConfigCard
-     baseUrl="https://api.openai.com/v1"
-     apiKey="<your-access-token>"
-     modelName="gpt-6-sol"
-     modelFamily="gpt-6"
-     protocol={{
-       value: "openai-responses",
-       comment: "SIWC 要求使用 Responses API",
-     }}
-     streamMode={{
-       value: "stream",
-       comment: "SIWC 要求开启流式返回",
-     }}
-   />
-
-2. 刷新 Access token
-
-   Access token 会过期（默认有效期为 1 小时），需要主动更新凭据，使用下面的命令：
-
-   ```bash
-   npx @midscene/cli model siwc refresh
-   ```
-
-   命令会更新本地凭据并打印新的 Access token，请同步更新模型配置中的 token。
-
-注意事项：
-
-1. 请遵守 OpenAI 的地区限制和使用条款，参见 [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/)。
-2. 使用 SIWC 时会消耗你的订阅额度，具体 token 消耗和订阅额度的换算以 ChatGPT 官方为准。你可以在 Midscene 的报告中查看每步任务的 token 消耗。
-3. 通过 SIWC 调用模型时，需要使用 Responses API，并开启流式返回。
 
 **使用 API Key**
 
@@ -213,27 +174,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 <span id="use-codex-app-server-oauth-no-api-key" />
 
-**使用 Codex App Server（OAuth，无需 API Key）**
-
-如果你已经通过 Codex CLI 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-6-sol" # 或者使用 Codex model/list 可见的其他模型
-export MIDSCENE_MODEL_FAMILY="gpt-6"
-```
-
-说明：
-
-- 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
-- Midscene 会通过 stdio 调用 `codex app-server`。
-- 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
-
-:::warning 已知限制
-
-相比于直接调用 OpenAI 兼容 API，我们观察到这种方式可能耗时更长、token 消耗更多，具体原因还在排查中。
-
-:::
+如需复用 Codex CLI 登录，请参考[使用 Codex App Server](./chatgpt-subscription#use-codex-app-server-oauth-no-api-key)。
 
 **使用 GPT 时，请注意以下事项：**
 
@@ -248,10 +189,10 @@ export MIDSCENE_MODEL_FAMILY="gpt-6"
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| K3 系列 | `kimi-k3` | `kimi3` | 根据 Kimi 的文档，K3 始终开启思考模式，无法关闭，且推理强度默认为 `max` |
-| K2.x 系列 | `kimi-k2.5`、`kimi-k2.6` | `kimi` | — |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **K3 系列**<br />`kimi-k3` | `kimi3` | 根据 Kimi 的文档，K3 始终开启思考模式，无法关闭，且推理强度默认为 `max` |
+| **K2.x 系列**<br />`kimi-k2.5` `kimi-k2.6` | `kimi` | — |
 
 </div>
 
@@ -276,9 +217,9 @@ export MIDSCENE_MODEL_FAMILY="gpt-6"
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| V2.x 系列 | `mimo-v2.6-pro`、`mimo-v2.6-flash`、`mimo-v2.6-pro-ultraspeed`、`mimo-v2.5` | `xiaomi-mimo` | 2.6 全系列支持多模态；2.5 仅 Omni 系列支持多模态输入。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **V2.x 系列**<br />`mimo-v2.6-pro` `mimo-v2.6-flash` `mimo-v2.6-pro-ultraspeed` `mimo-v2.5` | `xiaomi-mimo` | 2.6 全系列支持多模态；2.5 仅 Omni 系列支持多模态输入。 |
 
 </div>
 
@@ -299,10 +240,10 @@ export MIDSCENE_MODEL_FAMILY="gpt-6"
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
-| --- | --- | --- | --- |
-| GLM-5V 系列 | `glm-5v-turbo` | `glm-v` | — |
-| GLM-4.6 系列 | `glm-4.6v` | `glm-v` | `glm-4.6v` 是开源模型。 |
+| 模型<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- |
+| **GLM-5V 系列**<br />`glm-5v-turbo` | `glm-v` | — |
+| **GLM-4.6 系列**<br />`glm-4.6v` | `glm-v` | `glm-4.6v` 是开源模型。 |
 
 </div>
 
