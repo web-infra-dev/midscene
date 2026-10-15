@@ -11,7 +11,8 @@ import {
   type RunnerRoute,
   runnerHashForRoute,
 } from '../../utils/test-run-report';
-import { Logo } from '../logo';
+import reportLogoDark from './assets/test-report-logo-dark.png';
+import reportLogoLight from './assets/test-report-logo-light.png';
 import { CaseNavigation } from './case-navigation';
 import { CaseWorkspace } from './case-workspace';
 import { ErrorCards } from './error-card';
@@ -196,10 +197,19 @@ export default function TestRunnerReport({
           <header className="runner-header">
             <div className="runner-header-inner">
               <div className="runner-header-title">
-                <Logo />
-                <div>
-                  <strong>Test Report</strong>
-                </div>
+                <a
+                  href="https://midscenejs.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <img
+                    className="runner-report-logo"
+                    src={isDarkMode ? reportLogoDark : reportLogoLight}
+                    alt="Midscene.js Test Report"
+                    width={412}
+                    height={61}
+                  />
+                </a>
               </div>
               <div className="runner-header-actions">
                 {midsceneVersion ? (

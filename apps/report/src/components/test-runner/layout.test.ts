@@ -69,9 +69,12 @@ const appSource = readFileSync(
 );
 
 describe('Midscene Test report layout', () => {
-  it('keeps the brand in the logo without repeating it in the report title', () => {
-    expect(source).toContain('<Logo />');
-    expect(source).toContain('<strong>Test Report</strong>');
+  it('uses themed brand artwork without repeating its report title', () => {
+    expect(source).toContain('alt="Midscene.js Test Report"');
+    expect(source).toContain(
+      'src={isDarkMode ? reportLogoDark : reportLogoLight}',
+    );
+    expect(source).not.toContain('<strong>Test Report</strong>');
     expect(source).toContain('className="runner-header-inner"');
     expect(source).toContain('Midscene {midsceneVersion}');
     expect(source).toContain('report.get().sdkVersion.trim()');

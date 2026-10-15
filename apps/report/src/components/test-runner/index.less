@@ -66,23 +66,16 @@
     min-width: 0;
   }
 
-  .runner-header-title > div {
-    display: flex;
+  .runner-header-title a {
+    display: block;
     min-width: 0;
-    flex-direction: column;
   }
 
-  .runner-header-title strong {
-    line-height: 1.3;
-  }
-
-  .runner-header-title span {
-    overflow: hidden;
-    color: var(--runner-subtle);
-    font-size: 14px;
-    line-height: 1.4;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .runner-report-logo {
+    display: block;
+    width: 206px;
+    max-width: 100%;
+    height: auto;
   }
 
   .runner-header-actions {
@@ -689,10 +682,6 @@
 
 @media (max-width: 860px) {
   .test-runner-report {
-    .runner-header-title span {
-      display: none;
-    }
-
     .runner-detail-heading-row h1 {
       white-space: normal;
     }
@@ -701,7 +690,6 @@
 
 @media (max-width: 620px) {
   .test-runner-report {
-    .runner-header-title > div:not(.logo),
     .runner-header-actions {
       display: none;
     }
