@@ -513,7 +513,7 @@ These operations are not consecutive, non-overlapping stages. **Run step** inclu
 
 **Execution still running** and a **pending** badge mean the operation had not ended when the Runner returned its result. This can happen on timeout or cancellation and does not describe its state after the report's capture boundary. A Status of `-` means the event has no outcome, not that it failed.
 
-Step errors appear above these tabs. Expand **details** for technical information or use **View all … issues** when several issues exist. Case and lifecycle cleanup errors remain above Execution. The header's theme button switches between light and dark themes.
+Step errors appear above these tabs. Expand **details** to view technical information, including the original error stack and stacks in the cause chain. Stacks are hidden while details are collapsed and are included when copying issue details. Sensitive values are redacted; diagnostics exceeding the report size or cause-depth limits are marked as truncated. Use **View all … issues** when several issues exist. Case and lifecycle cleanup errors remain above Execution. The header's theme button switches between light and dark themes.
 
 The report preserves the test plan captured before execution, executed and unexecuted Steps, reasons Steps did not run, and reasons retries stopped. Time spent waiting for an earlier operation is recorded separately from Step execution time. The report is a snapshot at publication: `cleanup pending` means cleanup was unfinished at that point and resources remain quarantined. Cleanup that completes later does not update the published HTML.
 

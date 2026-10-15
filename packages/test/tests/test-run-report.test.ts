@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestRunReportSourceIndex } from '@midscene/core';
+import { NodeExecutionError } from '@midscene/core/internal/test-runner';
 import { describe, expect, it } from 'vitest';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
@@ -167,7 +168,7 @@ describe('Midscene Test report manifest', () => {
     );
   });
 
-  it('serializes errors without stack traces', () => {
+  it('preserves the original error stack while redacting diagnostic details', () => {
     const error = Object.assign(new Error('failed'), {
       code: 'FAILED',
       details: { authorization: 'Bearer secret' },
@@ -176,12 +177,30 @@ describe('Midscene Test report manifest', () => {
       format: 'midscene-error',
       name: 'Error',
       message: 'failed',
+      stack: error.stack,
       code: 'FAILED',
       details: {
         value: { authorization: '[REDACTED]' },
         redactedPaths: ['$.authorization'],
       },
     });
+  });
+
+  it('keeps Node and original runtime stacks in the final report after a JSON round trip', () => {
+    const cause = new TypeError('Cannot read properties of null');
+    const error = new NodeExecutionError('custom.read', cause);
+    const action = {
+      ...step(),
+      status: 'failed' as const,
+      node: 'custom.read',
+      error,
+    };
+    const encoded = JSON.parse(JSON.stringify(result([action])));
+    const manifest = buildTestRunReportDump(encoded, index);
+    const reported =
+      manifest.projects[0].documents[0].cases[0].attempts[0].steps[0].error;
+    expect(reported?.stack).toBe(error.stack);
+    expect(reported?.cause?.stack).toBe(cause.stack);
   });
 
   it('maps a Step trace to exactly one Agent report and keeps safe values', () => {

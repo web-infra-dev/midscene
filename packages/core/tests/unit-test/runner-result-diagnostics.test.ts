@@ -31,6 +31,53 @@ afterEach(() => {
 });
 
 describe('structured execution diagnostics', () => {
+  test('keeps runtime TypeError stacks through Node wrapping and JSON transport', async () => {
+    const result = await runWorkflowDocument(document(), {
+      resolveNode: () =>
+        defineNode({
+          name: 'javascript',
+          execute() {
+            const value = JSON.parse('null') as { id: string };
+            return { data: value.id };
+          },
+        }),
+    });
+    const error = result.cases[0].run.steps[0].error as NodeExecutionError;
+    expect(error.cause).toBeInstanceOf(TypeError);
+    const original = error.cause as TypeError;
+    const value = JSON.parse(JSON.stringify(error));
+    expect(value.stack).toBe(error.stack);
+    expect(value.cause.name).toBe('TypeError');
+    expect(value.cause.stack).toBe(original.stack);
+    expect(value.cause.stack).toContain('runner-result-diagnostics.test.ts');
+    expect(sanitizeReportError(value)).toEqual(value);
+  });
+
+  test('keeps long stacks and aggregate error branches without the message length limit', () => {
+    const leaf = new Error('failure');
+    leaf.stack = `Error: failure\n${'    at userFunction (user-config.ts:42:5)\n'.repeat(200)}`;
+    const error = new AggregateError([leaf], 'aggregate', { cause: leaf });
+    const value = sanitizeReportError(error);
+    expect(value.stack).toBe(error.stack);
+    expect(value.cause?.stack).toBe(leaf.stack);
+    expect(value.errors?.[0].stack).toBe(leaf.stack);
+    expect(sanitizeReportError(JSON.parse(JSON.stringify(value)))).toEqual(
+      value,
+    );
+  });
+
+  test('bounds exceptional stack sizes with an explicit truncation marker', () => {
+    const error = new Error('failure');
+    error.stack = `Error: failure\n${'    at 调用 (user-config.ts:42:5)\n'.repeat(10_000)}`;
+    const value = sanitizeReportError(error);
+    expect(value.truncated).toBe(true);
+    expect(value.stack).toContain('user-config.ts:42:5');
+    expect(value.stack).toContain('truncated: stack trace size limit');
+    expect(
+      new TextEncoder().encode(JSON.stringify(value)).byteLength,
+    ).toBeLessThanOrEqual(64 * 1024);
+  });
+
   test('redacts labeled credentials in nested messages and bounds fatal-error traversal', () => {
     const leaf = new Error(
       'password="private value", Authorization: Bearer private-bearer, https://user:private-password@example.test',

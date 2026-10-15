@@ -10,6 +10,7 @@ export function hasErrorDetails(
 ): boolean {
   return Boolean(
     hasErrorMetadata(error) ||
+      error.stack ||
       error.details ||
       error.truncated ||
       [error.cause, ...(error.errors ?? [])].some(
@@ -52,10 +53,16 @@ export function ErrorDetails({
         </dl>
       ) : null}
       {!hideMessage ? <p>{error.message}</p> : null}
-      {error.details ? <ReportValue value={error.details} /> : null}
-      {error.truncated ? (
-        <p>Error details or cause chain were truncated.</p>
+      {error.stack ? (
+        <section>
+          <h5>Stack trace</h5>
+          <div className="runner-json-block">
+            <pre>{error.stack}</pre>
+          </div>
+        </section>
       ) : null}
+      {error.details ? <ReportValue value={error.details} /> : null}
+      {error.truncated ? <p>Error diagnostics were truncated.</p> : null}
       {error.cause &&
       (!summary.includes(error.cause.message) ||
         hasErrorDetails(error.cause, summary)) ? (
