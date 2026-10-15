@@ -17,6 +17,7 @@ import {
   type PointerPoint,
   createDefaultMobileActions,
   defineAction,
+  resolveDefaultMobileScroll,
   resolveTextInputOptions,
   sendTextSequentially,
   shouldInputSequentially,
@@ -510,8 +511,17 @@ export class HarmonyDevice implements AbstractInterface {
     const { width, height } = await this.size();
     const n = scrollQuadrantDivisions;
 
-    const startX = Math.round(deltaX < 0 ? (n - 1) * (width / n) : width / n);
-    const startY = Math.round(deltaY < 0 ? (n - 1) * (height / n) : height / n);
+    // end = start - delta: start opposite the direction of finger travel.
+    const axisStart = (delta: number, extent: number) =>
+      Math.round(
+        delta === 0
+          ? extent / 2
+          : delta < 0
+            ? extent / n
+            : ((n - 1) * extent) / n,
+      );
+    const startX = axisStart(deltaX, width);
+    const startY = axisStart(deltaY, height);
 
     const maxPositiveDeltaX = startX;
     const maxNegativeDeltaX = width - startX;
@@ -545,6 +555,21 @@ export class HarmonyDevice implements AbstractInterface {
   ): Promise<void> {
     const { width, height } = await this.size();
     const isVertical = direction === 'up' || direction === 'down';
+    if (distance === undefined && !startPoint) {
+      const { from, to } = resolveDefaultMobileScroll(direction, {
+        width,
+        height,
+      });
+      const hdc = await this.getHdc();
+      await hdc.fling(
+        from.x,
+        from.y,
+        to.x,
+        to.y,
+        resolveSwipeSpeed(from, to, 1000),
+      );
+      return;
+    }
     const scrollDistance = Math.round(
       distance ?? (isVertical ? height : width),
     );
