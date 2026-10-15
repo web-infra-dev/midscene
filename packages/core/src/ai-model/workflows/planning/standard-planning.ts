@@ -26,6 +26,7 @@ import {
 } from '../../shared/multimodal-prompt';
 import { parsePlanningActions } from './parse-planning-actions';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
+import { normalizePlanningSwipeDistances } from './swipe-distance';
 import type { PlanOptions } from './types';
 
 const debug = getDebug('planning');
@@ -301,6 +302,8 @@ export async function standardPlan(
     includeThought,
     includeLog,
   });
+
+  normalizePlanningSwipeDistances(actions, context.shrunkShotToLogicalRatio);
 
   // YAML is derived from validated actions outside the model-response retry scope.
   // dumpActionParam omits runtime-only locatedPixelResult fields.

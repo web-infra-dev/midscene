@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { TaskBuilder } from '@/agent/task-builder';
 import type {
   ParsedPlanningLocateParameter,
   StandardPlanningProtocol,
@@ -16,6 +17,7 @@ import {
   buildYamlFlowFromPlans,
   getMidsceneLocationSchema,
 } from '@/common';
+import { ActionSwipeParamSchema } from '@/device';
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -363,6 +365,72 @@ describe('plan XML parse retry', () => {
     expect(callAI).toHaveBeenCalledTimes(2);
     expect(buildYamlFlowFromPlans).not.toHaveBeenCalled();
   });
+
+  it.each([0.5, 1, 1.5, 2, 3])(
+    'normalizes only planned Swipe distances and exports replayable logical YAML at ratio %s',
+    async (ratio) => {
+      const rawResponse = `<action-type>Swipe</action-type>
+<action-param-json>{"direction":"up","distance":90,"duration":500}</action-param-json>`;
+      rs.mocked(callAI).mockResolvedValue(mockAIResponse(rawResponse));
+      const call = rs.fn();
+      const action: DeviceAction = {
+        name: 'Swipe',
+        interfaceAlias: 'aiSwipe',
+        description: 'Swipe',
+        paramSchema: ActionSwipeParamSchema,
+        delayBeforeRunner: 0,
+        delayAfterRunner: 0,
+        call,
+      };
+      const runtime = getModelRuntime(mockModelConfig());
+      const result = await standardPlan('swipe up', {
+        context: { ...mockContext(), shrunkShotToLogicalRatio: ratio },
+        actionSpace: [action],
+        modelRuntime: runtime,
+        conversationHistory: new ConversationHistory(),
+        includeLocateInPlanning: false,
+        effort: 'fast',
+      });
+      assert(result.actions);
+      expect(result.actions[0].param.distance).toBe(90 / ratio);
+      expect(result.rawResponse).toBe(rawResponse);
+      expect(result.yamlFlow).toEqual([
+        { aiSwipe: '', direction: 'up', distance: 90 / ratio, duration: 500 },
+      ]);
+      expect(latestSystemPrompt()).toContain(
+        'pixels of the current screenshot',
+      );
+      const builder = new TaskBuilder({
+        interfaceInstance: {} as any,
+        service: {} as any,
+        actionSpace: [action],
+      });
+      // Replayed YAML carries logical units even when the next screenshot has
+      // another scale. Explicit API parameters use the same execution path.
+      const { aiSwipe: _alias, ...replayParam } = result.yamlFlow![0] as any;
+      for (const param of [
+        result.actions[0].param,
+        replayParam,
+        { direction: 'up', distance: 30 },
+      ]) {
+        const { tasks } = await builder.build(
+          [{ type: 'Swipe', param }],
+          runtime,
+          runtime,
+        );
+        const task = tasks.find((task) => task.type === 'Action Space')!;
+        await task.executor({
+          task: { timing: {} },
+          uiContext: { shrunkShotToLogicalRatio: 2 },
+        } as any);
+      }
+      expect(call.mock.calls.map(([param]) => param.distance)).toEqual([
+        90 / ratio,
+        90 / ratio,
+        30,
+      ]);
+    },
+  );
 
   it('keeps model parameters unchanged in actions and YAML', async () => {
     const transform = rs.fn((value: string) => value.length);
