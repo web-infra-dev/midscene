@@ -1,5 +1,9 @@
 import { parseActionParam } from '@/ai-model';
-import { actionScrollParamSchema } from '@/device';
+import {
+  actionScrollParamSchema,
+  defineActionScroll,
+  defineActionsFromInputPrimitives,
+} from '@/device';
 import { describe, expect, it } from '@rstest/core';
 
 describe('Scroll Action Parameter Validation', () => {
@@ -42,5 +46,33 @@ describe('Scroll Action Parameter Validation', () => {
       distance: null,
       scrollType: 'singleAction',
     });
+  });
+});
+
+describe('touch Scroll targeting contract', () => {
+  it('keeps wheel scrolling compatible and makes touch origins explicit', () => {
+    const wheel = defineActionScroll(async () => {});
+    const touch = defineActionScroll(async () => {}, 'touch');
+    expect(wheel.paramSchema).toBe(actionScrollParamSchema);
+    const schema = touch.paramSchema as typeof actionScrollParamSchema;
+    expect(schema.shape.locate.description).toContain('safe touch origin');
+    expect(schema.shape.locate.description).toContain('collapse the picker');
+    expect(schema.parse({ direction: 'down', distance: 100 })).toMatchObject({
+      direction: 'down',
+      distance: 100,
+    });
+  });
+});
+
+describe('Scroll transport selection', () => {
+  it('keeps wheel scrolling semantics when a browser also exposes touch primitives', () => {
+    const input = {
+      touch: { swipe: async () => {} },
+      scroll: { scroll: async () => {} },
+    };
+    const wheel = defineActionsFromInputPrimitives(input, {
+      includeSwipe: false,
+    }).find((action) => action.name === 'Scroll');
+    expect(wheel?.paramSchema).toBe(actionScrollParamSchema);
   });
 });
