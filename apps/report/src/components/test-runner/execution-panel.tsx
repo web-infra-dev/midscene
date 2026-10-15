@@ -105,103 +105,111 @@ export function RunnerExecutionPanel({
       <div className="runner-detail-panel-heading">
         {renderToolbar ? renderToolbar(viewSwitch) : viewSwitch}
       </div>
-      {showYaml ? (
-        <section className="runner-execution-yaml" aria-label="Source YAML">
-          <strong>{sourcePath}</strong>
-          {sourceYaml?.redactedPaths?.length ? (
-            <p>Sensitive fields are redacted.</p>
-          ) : null}
-          {sourceYaml?.truncatedPaths?.length ? (
-            <p>Source YAML is truncated.</p>
-          ) : null}
-          <ExecutionYaml
-            source={yaml!}
-            steps={steps}
-            caseIndex={caseIndex}
-            issues={issues}
-            onSelect={(step) => {
-              openingYamlStep.current = true;
-              onSelect(step);
-              onViewChange?.('visual');
-            }}
-          />
-        </section>
-      ) : null}
-      {!showYaml ? timeline : null}
-      <div
-        className="runner-detail-execution-body"
-        hidden={showYaml}
-        ref={executionBody}
-        style={sidebar.style}
-      >
-        <nav className="runner-detail-step-scroll" aria-label="Execution steps">
-          {groups.map((group) => (
-            <section className="runner-detail-step-group" key={group.label}>
-              <h3>
-                <span>{group.label}</span>
-              </h3>
-              <div className="runner-detail-step-list">
-                {group.steps.map((step) => {
-                  const isSelected = selectedStepId === step.id;
+      <div className="runner-execution-content">
+        {showYaml ? (
+          <section className="runner-execution-yaml" aria-label="Source YAML">
+            <strong>{sourcePath}</strong>
+            {sourceYaml?.redactedPaths?.length ? (
+              <p>Sensitive fields are redacted.</p>
+            ) : null}
+            {sourceYaml?.truncatedPaths?.length ? (
+              <p>Source YAML is truncated.</p>
+            ) : null}
+            <ExecutionYaml
+              source={yaml!}
+              steps={steps}
+              caseIndex={caseIndex}
+              issues={issues}
+              onSelect={(step) => {
+                openingYamlStep.current = true;
+                onSelect(step);
+                onViewChange?.('visual');
+              }}
+            />
+          </section>
+        ) : null}
+        <div className="runner-execution-visual" hidden={showYaml}>
+          {timeline}
+          <div
+            className="runner-detail-execution-body"
+            ref={executionBody}
+            style={sidebar.style}
+          >
+            <nav
+              className="runner-detail-step-scroll"
+              aria-label="Execution steps"
+            >
+              {groups.map((group) => (
+                <section className="runner-detail-step-group" key={group.label}>
+                  <h3>
+                    <span>{group.label}</span>
+                  </h3>
+                  <div className="runner-detail-step-list">
+                    {group.steps.map((step) => {
+                      const isSelected = selectedStepId === step.id;
 
-                  return (
-                    <button
-                      type="button"
-                      className={isSelected ? 'is-selected' : ''}
-                      key={step.id}
-                      ref={isSelected ? selectedButton : undefined}
-                      aria-pressed={isSelected}
-                      onClick={() => onSelect(step)}
-                    >
-                      <span className="runner-detail-step-copy">
-                        <strong>
-                          <span
-                            className="runner-detail-step-name"
-                            title={step.node}
-                          >
-                            {step.node}
+                      return (
+                        <button
+                          type="button"
+                          className={isSelected ? 'is-selected' : ''}
+                          key={step.id}
+                          ref={isSelected ? selectedButton : undefined}
+                          aria-pressed={isSelected}
+                          onClick={() => onSelect(step)}
+                        >
+                          <span className="runner-detail-step-copy">
+                            <strong>
+                              <span
+                                className="runner-detail-step-name"
+                                title={step.node}
+                              >
+                                {step.node}
+                              </span>
+                              {issues
+                                ?.get(step.id)
+                                ?.some(
+                                  (issue) => issue.severity === 'warning',
+                                ) ? (
+                                <WarningFilled
+                                  className="runner-step-warning"
+                                  aria-label="Step warning"
+                                  title="Step warning"
+                                />
+                              ) : null}
+                              {step.agentDetails?.length ? (
+                                <span
+                                  className="runner-detail-recording-icon"
+                                  role="img"
+                                  aria-label="Has recording"
+                                />
+                              ) : null}
+                            </strong>
+                            <small title={getStepDisplayName(step)}>
+                              {getStepDisplayName(step)}
+                            </small>
                           </span>
-                          {issues
-                            ?.get(step.id)
-                            ?.some((issue) => issue.severity === 'warning') ? (
-                            <WarningFilled
-                              className="runner-step-warning"
-                              aria-label="Step warning"
-                              title="Step warning"
-                            />
-                          ) : null}
-                          {step.agentDetails?.length ? (
-                            <span
-                              className="runner-detail-recording-icon"
-                              role="img"
-                              aria-label="Has recording"
-                            />
-                          ) : null}
-                        </strong>
-                        <small title={getStepDisplayName(step)}>
-                          {getStepDisplayName(step)}
-                        </small>
-                      </span>
-                      <span className="runner-detail-step-tail">
-                        <StepStatus status={step.status} />
-                        <time>
-                          {step.status === 'not-run'
-                            ? 'Not run'
-                            : formatDuration(step.durationMs)}
-                        </time>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
-        </nav>
-        <div
-          className="runner-execution-resize-handle"
-          {...sidebar.handleProps}
-        />
-        {children}
+                          <span className="runner-detail-step-tail">
+                            <StepStatus status={step.status} />
+                            <time>
+                              {step.status === 'not-run'
+                                ? 'Not run'
+                                : formatDuration(step.durationMs)}
+                            </time>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </nav>
+            <div
+              className="runner-execution-resize-handle"
+              {...sidebar.handleProps}
+            />
+            {children}
+          </div>
+        </div>
       </div>
     </section>
   );

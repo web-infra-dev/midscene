@@ -235,6 +235,23 @@
     border-bottom: 1px solid var(--runner-border);
   }
 
+  .runner-execution-content {
+    position: relative;
+    min-width: 0;
+  }
+
+  .runner-execution-visual {
+    display: flow-root;
+  }
+
+  // The Visual layout defines the shared height without measuring either view.
+  // Keep its layout while hiding it from sight, focus, and pointer interaction.
+  .runner-execution-visual[hidden] {
+    display: flow-root;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .runner-detail-execution-body {
     display: grid;
     grid-template-columns: var(--runner-step-sidebar-width, 320px) 8px minmax(
@@ -258,25 +275,35 @@
     position: absolute;
     inset: 8px 3px;
     border-radius: 2px;
-    background: var(--runner-border);
+    background: transparent;
+    transition: background-color 120ms ease;
     content: '';
   }
 
   .runner-execution-resize-handle:hover::before,
-  .runner-execution-resize-handle:focus-visible::before {
+  .runner-execution-resize-handle:focus-visible::before,
+  .runner-execution-resize-handle:active::before {
     background: var(--runner-primary);
   }
 
-  .runner-detail-execution-body[hidden] {
-    display: none;
-  }
-
   .runner-execution-yaml {
-    min-height: 500px;
-    max-height: 75vh;
-    flex: 1;
-    padding: 16px 20px;
-    overflow: auto;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    padding: 8px;
+    flex-direction: column;
+
+    > strong,
+    > p {
+      margin-inline: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    > strong {
+      margin-top: 12px;
+    }
 
     p {
       color: var(--runner-muted);
@@ -284,7 +311,10 @@
     }
 
     pre {
-      margin: 16px 0 0;
+      flex: 1;
+      min-height: 0;
+      margin: 12px 0 0;
+      overflow: auto;
       font-size: 13px;
       line-height: 1.6;
       tab-size: 2;
@@ -406,7 +436,7 @@
     }
   }
 
-  .runner-detail-step-panel > .runner-detail-timeline-card.is-detail {
+  .runner-execution-visual > .runner-detail-timeline-card.is-detail {
     --runner-timeline-frame-half-width: 63px;
     height: 120px;
     min-height: 120px;
@@ -414,7 +444,7 @@
     overflow: visible;
     border: 0;
     border-radius: 16px;
-    background: var(--runner-surface-muted);
+    background: var(--runner-code-bg);
     box-shadow: none;
   }
 
@@ -430,7 +460,7 @@
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-axis {
     height: 28px;
     border-radius: 16px 16px 0 0;
-    background: var(--runner-surface-muted);
+    background: var(--runner-code-bg);
   }
 
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-axis span {
@@ -493,7 +523,7 @@
     flex-direction: column;
     gap: 0;
     border-radius: 16px;
-    background: var(--runner-surface-muted);
+    background: var(--runner-code-bg);
     overscroll-behavior-y: contain;
   }
 

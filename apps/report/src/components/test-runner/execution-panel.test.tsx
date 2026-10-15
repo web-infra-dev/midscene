@@ -154,8 +154,9 @@ describe('execution panel', () => {
     expect(html).toContain('runner-yaml-comment');
     expect(html).toContain('Sensitive fields are redacted.');
     expect(html).toContain('Source YAML is truncated.');
-    expect(html).not.toContain('data-testid="timeline"');
-    expect(html).toContain('class="runner-detail-execution-body" hidden=""');
+    expect(html).toMatch(
+      /class="runner-execution-visual" hidden=""[\s\S]*data-testid="timeline"[\s\S]*runner-detail-execution-body/,
+    );
     expect(html).toContain('data-testid="node-details"');
     expect(html).toContain('aria-pressed="true"');
   });

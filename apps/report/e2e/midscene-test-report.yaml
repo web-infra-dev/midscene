@@ -113,11 +113,11 @@ tasks:
       - sleep: 500
       - aiAssert: Attempt 2 and aiAct are selected, with Record, Information, and Events tabs, and an embedded Agent report.
       - aiTap: the Information tab
-      - aiAssert: Input, Output, and Stable IDs appear as aligned rows in one bordered panel. The execution steps share one left pane, with Document setup, Before each, Case steps, and After each separated by dividers. Step rows have no leading type icons or individual white bordered cards.
+      - aiAssert: Input, Output, and Stable IDs appear as aligned rows in one white bordered panel extending to the bottom of the detail area. The timeline, execution steps pane, and outer detail area share the same pale background. Document setup, Before each, Case steps, and After each are separated by dividers. Step rows have no leading type icons or individual white bordered cards.
       - aiTap: the Events tab
-      - aiAssert: Events is selected. Runtime events appear in a table with Time, Operation, Event, and Status columns. The operation is labeled Run step. Started and Finished events are visible, with a success status for Finished. The execution step list remains visible on the left.
+      - aiAssert: Events is selected. Runtime events appear in a white panel extending to the bottom of the detail area, with Time, Operation, Event, and Status columns. The operation is labeled Run step. Started and Finished events are visible, with a success status for Finished. The execution step list remains visible on the left.
       - aiTap: the Record tab
-      - aiAssert: The recorded Agent task list and screenshot viewer are visible on the right of the Case workspace.
+      - aiAssert: The recorded Agent task list and screenshot viewer are visible on the right of the Case workspace. Both panes and the narrow resize strip between them have the same white background, with no pale gray band around the divider.
 
   - name: execution divider preserves the recording at maximum sidebar width
     flow:

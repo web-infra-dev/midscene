@@ -7,7 +7,7 @@
     padding: 8px;
     border: 0;
     border-radius: 16px;
-    background: var(--runner-surface-muted);
+    background: var(--runner-code-bg);
     box-shadow: none;
     container: runner-evidence / inline-size;
   }
@@ -116,6 +116,7 @@
 
   .runner-detail-record-view {
     display: grid;
+    flex: 1;
     gap: 12px;
   }
 
@@ -151,7 +152,7 @@
 
   .runner-detail-io-grid {
     display: block;
-    flex: 0 0 auto;
+    flex: 1 0 auto;
     padding: 0 20px;
     overflow: hidden;
     border: 1px solid var(--runner-border);
@@ -242,7 +243,7 @@
 
   .runner-runtime-events,
   .runner-events-empty {
-    flex: 0 0 auto;
+    flex: 1 0 auto;
     min-width: 0;
     border: 1px solid var(--runner-border);
     border-radius: 16px;
@@ -338,13 +339,23 @@
   }
 
   .runner-detail-inline-trace {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     overflow: hidden;
     border: 1px solid var(--runner-border);
     border-radius: 16px;
+    background: var(--runner-surface);
   }
 
   .runner-detail-inline-trace .runner-detail-trace-view {
+    flex: 1;
+    min-height: 840px;
     height: 840px;
+  }
+
+  .runner-detail-inline-trace .main-layout {
+    background: var(--runner-surface);
   }
 
   .runner-detail-inline-trace .page-side {
@@ -359,7 +370,7 @@
     position: relative;
     display: block;
     width: 8px;
-    background: transparent;
+    background: var(--runner-surface);
     outline: none;
   }
 
@@ -389,10 +400,12 @@
     height: 100%;
     margin: 0;
     border-radius: 0;
+    background: var(--runner-surface);
   }
 
   .runner-detail-inline-trace .main-right .main-content {
     border-radius: 0;
+    background: var(--runner-surface);
   }
 
   .runner-detail-inline-trace .report-overview {
