@@ -21,7 +21,12 @@ import {
 } from 'node:path';
 import { z } from 'zod';
 import { getMidsceneRunSubDir } from '../common';
-import type { UIObservationFrame, UIObservationRecord } from './types';
+import { observationTimingSchema } from './observation-timing';
+import type {
+  UIObservationFrame,
+  UIObservationRecord,
+  UIObservationTiming,
+} from './types';
 
 const observationRecordSchema = z
   .object({
@@ -29,6 +34,15 @@ const observationRecordSchema = z
     version: z.literal(1),
     startedAt: z.number().finite().nonnegative(),
     endedAt: z.number().finite().nonnegative(),
+    events: z
+      .array(
+        z
+          .object({ name: z.string().min(1), timing: observationTimingSchema })
+          .strict(),
+      )
+      .optional(),
+    captureMode: z.enum(['sampled', 'source']).optional(),
+    droppedFrames: z.number().int().nonnegative().optional(),
     frames: z
       .array(
         z
@@ -36,6 +50,8 @@ const observationRecordSchema = z
             path: z.string().min(1),
             mimeType: z.enum(['image/png', 'image/jpeg']),
             capturedAt: z.number().finite().nonnegative(),
+            timing: observationTimingSchema.optional(),
+            frameId: z.string().min(1).optional(),
           })
           .strict(),
       )
@@ -80,7 +96,18 @@ export function cloneUIObservationRecord(
 ): UIObservationRecord {
   return {
     ...record,
-    frames: record.frames.map((frame) => ({ ...frame })),
+    frames: record.frames.map((frame) => ({
+      ...frame,
+      ...(frame.timing ? { timing: { ...frame.timing } } : {}),
+    })),
+    ...(record.events
+      ? {
+          events: record.events.map((event) => ({
+            ...event,
+            timing: { ...event.timing },
+          })),
+        }
+      : {}),
     shotSize: { ...record.shotSize },
   };
 }
@@ -135,6 +162,9 @@ export function readUIObservationRecord(filePath: string): UIObservationRecord {
 }
 
 export interface UIObservationRecordMetadata {
+  events?: UIObservationRecord['events'];
+  captureMode?: UIObservationRecord['captureMode'];
+  droppedFrames?: number;
   startedAt: number;
   endedAt: number;
   shotSize: UIObservationRecord['shotSize'];
@@ -165,7 +195,12 @@ export class UIObservationRecordWriter {
       .slice(2, 10)}`;
   }
 
-  persistFrame(dataUrl: string, capturedAt: number): UIObservationFrame {
+  persistFrame(
+    dataUrl: string,
+    capturedAt: number,
+    timing?: UIObservationTiming,
+    frameId?: string,
+  ): UIObservationFrame {
     if (this.disposed) {
       throw new Error('UI observation record writer has been disposed');
     }
@@ -193,6 +228,8 @@ export class UIObservationRecordWriter {
       path: `${basename(this.framesDirectory)}/${fileName}`,
       mimeType,
       capturedAt,
+      ...(timing ? { timing: observationTimingSchema.parse(timing) } : {}),
+      ...(frameId ? { frameId } : {}),
     };
   }
 

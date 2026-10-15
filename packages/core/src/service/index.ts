@@ -24,6 +24,7 @@ import type {
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
   Rect,
+  ScreenshotSequenceEvidence,
   ServiceExtractOption,
   ServiceExtractParam,
   ServiceExtractResult,
@@ -336,6 +337,7 @@ export default class Service {
     context?: UIContext,
     executionOptions?: {
       abortSignal?: AbortSignal;
+      onObservationEvidence?: (evidence: ScreenshotSequenceEvidence) => void;
     },
   ): Promise<ServiceExtractResult<T>> {
     assert(context, 'context is required for extract');
@@ -363,6 +365,7 @@ export default class Service {
         modelRuntime,
         pageDescription,
         abortSignal: executionOptions?.abortSignal,
+        onObservationEvidence: executionOptions?.onObservationEvidence,
       });
       parseResult = result.parseResult;
       rawResponse = result.rawResponse;

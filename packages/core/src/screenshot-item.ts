@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import type { UIObservationTiming } from '@midscene/shared/agent-tools/types';
 import { uuid } from '@midscene/shared/utils';
 import { extractImageByIdSync } from './dump/html-utils';
 import {
@@ -46,6 +47,8 @@ export class ScreenshotItem {
     base64: string | null,
     capturedAt: number,
     format: 'png' | 'jpeg',
+    readonly timing?: UIObservationTiming,
+    readonly frameId?: string,
   ) {
     this._id = id;
     this._base64 = base64;
@@ -54,8 +57,20 @@ export class ScreenshotItem {
   }
 
   /** Create a new ScreenshotItem from base64 data */
-  static create(base64: string, capturedAt: number): ScreenshotItem {
-    return new ScreenshotItem(uuid(), base64, capturedAt, detectFormat(base64));
+  static create(
+    base64: string,
+    capturedAt: number,
+    timing?: UIObservationTiming,
+    frameId?: string,
+  ): ScreenshotItem {
+    return new ScreenshotItem(
+      uuid(),
+      base64,
+      capturedAt,
+      detectFormat(base64),
+      timing ? { ...timing } : undefined,
+      frameId,
+    );
   }
 
   /** Create a lazily loaded ScreenshotItem backed by an image file. */
@@ -63,12 +78,16 @@ export class ScreenshotItem {
     filePath: string,
     mimeType: 'image/png' | 'image/jpeg',
     capturedAt: number,
+    timing?: UIObservationTiming,
+    frameId?: string,
   ): ScreenshotItem {
     const item = new ScreenshotItem(
       uuid(),
       null,
       capturedAt,
       mimeType === 'image/jpeg' ? 'jpeg' : 'png',
+      timing ? { ...timing } : undefined,
+      frameId,
     );
     item._persistedPath = filePath;
     return item;
@@ -197,6 +216,8 @@ export class ScreenshotItem {
         type: 'midscene_screenshot_ref',
         id: this._id,
         capturedAt: this._capturedAt,
+        ...(this.timing ? { timing: { ...this.timing } } : {}),
+        ...(this.frameId ? { frameId: this.frameId } : {}),
         mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
         storage: 'inline',
       }
@@ -216,6 +237,8 @@ export class ScreenshotItem {
       type: 'midscene_screenshot_ref',
       id: this._id,
       capturedAt: this._capturedAt,
+      ...(this.timing ? { timing: { ...this.timing } } : {}),
+      ...(this.frameId ? { frameId: this.frameId } : {}),
       mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
       storage,
     };

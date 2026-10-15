@@ -153,6 +153,7 @@ export class Insight implements InsightAPI {
       domIncluded: options?.domIncluded ?? defaultQueryOptions.domIncluded,
       screenshotIncluded:
         options?.screenshotIncluded ?? defaultQueryOptions.screenshotIncluded,
+      observationRegion: options?.observationRegion,
       ...(contextOptions.context !== undefined
         ? { context: contextOptions.context }
         : {}),

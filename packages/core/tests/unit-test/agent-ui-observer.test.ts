@@ -187,8 +187,13 @@ describe('Agent.startObserving', () => {
       undefined,
       {
         keepRawResponse: true,
+        observationRegion: { left: 10, top: 10, width: 30, height: 20 },
       },
     );
+
+    expect((createTypeQueryExecution.mock.calls[0] as any[])[3]).toMatchObject({
+      observationRegion: { left: 10, top: 10, width: 30, height: 20 },
+    });
 
     const executionOptions = (
       createTypeQueryExecution.mock.calls[0] as any[]
