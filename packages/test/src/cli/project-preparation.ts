@@ -1,5 +1,5 @@
-import { readdirSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
+import { existsSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { CollectedWorkflowDocument } from '@midscene/core/internal/test-runner';
 import { buildTestRunReportPlan } from '@midscene/core/internal/test-runner';
 import { globSync } from 'tinyglobby';
@@ -71,8 +71,7 @@ export const discoverTestFiles = (
   return discoverResolvedTestFiles(projectRoot, normalized);
 };
 
-export const discoverTestConfig = (projectRoot: string): string | undefined => {
-  const root = resolve(projectRoot);
+const findConfigInDirectory = (root: string): string | undefined => {
   const candidates = readdirSync(root)
     .filter((name) => name.startsWith(CONFIG_PREFIX))
     .sort();
@@ -101,6 +100,26 @@ export const discoverTestConfig = (projectRoot: string): string | undefined => {
     );
   }
   return supported[0] ? join(root, supported[0]) : undefined;
+};
+
+export const discoverTestConfig = (projectRoot: string): string | undefined => {
+  const root = resolve(projectRoot);
+  if (!existsSync(root) || !statSync(root).isDirectory()) {
+    throw new Error(
+      `Test project directory does not exist or is not a directory: ${root}`,
+    );
+  }
+  let current = root;
+  while (true) {
+    const config = findConfigInDirectory(current);
+    if (config) return config;
+    const hasPackageJson = existsSync(join(current, 'package.json'));
+    const hasGitDir = existsSync(join(current, '.git'));
+    if (hasPackageJson || hasGitDir) return undefined;
+    const parent = dirname(current);
+    if (parent === current) return undefined;
+    current = parent;
+  }
 };
 
 const asCollectionError = (
