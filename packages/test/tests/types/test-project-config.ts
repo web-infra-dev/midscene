@@ -37,6 +37,7 @@ import {
   type TestProjectDefinition,
   type TestProjectRunOptions,
   type TestProjectRunResult,
+  defineFileSetup,
   defineProjectSetup,
   defineTestProject,
   loadTestProject,
@@ -167,6 +168,50 @@ const project: TestProjectDefinition<ProjectContext> =
 
 void project;
 void loadTestProject<ProjectContext>();
+
+interface FileContext {
+  token: string;
+}
+const fileSetup = defineFileSetup<FileContext, ProjectContext>({
+  name: 'file',
+  setup({ projectContext, file, env, signal, onTeardown }) {
+    projectContext?.baseURL satisfies string | undefined;
+    file.sourcePath satisfies string;
+    file.documentRunId satisfies string;
+    env.TEST_TOKEN satisfies string | undefined;
+    signal.throwIfAborted();
+    onTeardown(async () => {});
+    return { token: 'independent' };
+  },
+});
+defineTestProject<FileContext, ProjectContext>({
+  setup: defineProjectSetup<ProjectContext>({
+    name: 'shared',
+    setup: () => ({ baseURL: 'https://example.com' }),
+  }),
+  fileSetup,
+  nodes: [
+    {
+      name: 'file.read',
+      execute({ context }) {
+        context.token satisfies string;
+        // @ts-expect-error File Nodes receive only the context returned by fileSetup.
+        context.baseURL;
+      },
+    },
+  ],
+  test: {
+    maxConcurrentFiles: 3,
+    setupTimeout: 120_000,
+    teardownTimeout: 30_000,
+  },
+});
+defineFileSetup<FileContext, ProjectContext>({
+  name: 'invalid',
+  // @ts-expect-error File setup must return the configured FileContext.
+  setup: () => ({ baseURL: 'https://example.com' }),
+});
+void loadTestProject<FileContext, ProjectContext>();
 
 const webSetup = defineProjectSetup<ProjectContext>({
   name: 'web',

@@ -251,7 +251,7 @@ export default defineTestProject({
 | --- | --- | --- |
 | `files` | `projects[].files.include` | `midscene` 保留旧顺序和重复调用；原生选择固定去重、排序，没有 `files.order` 开关。 |
 | `setup` | 旧链路前置文件；原生 setup / `beforeAll` | 旧宿主先执行 setup 文件；原生在 setup 创建资源，用生命周期 Step 表达文件前置条件，没有 `setupFile` 参数。 |
-| `concurrent` | 旧链路文件调度；原生 `test.maxConcurrency` | `midscene` 保留文件并发；原生并发单位是持有独立资源的项目，不是同一项目内的文件。 |
+| `concurrent` | 旧链路文件调度；原生 `test.maxConcurrentFiles` + `fileSetup` | `midscene` 保留原有语义；原生 Test 显式开启文件调度，为每份文件准备独立资源。 |
 | `retry` | 旧链路整文件重试；原生 `projects[].retry` | 原生只重试失败 Case；确需整文件重放时继续使用 `midscene`，没有 `retryScope` 开关。 |
 | `continueOnError: false` | `test.bail: 1` | 失败达到阈值后停止调度新的文件或 Case。已经开始的并发任务仍会完成清理。 |
 | `continueOnError: true` | `test.bail: 0` | 不因失败阈值触发全局停止；`midscene` 另行保留旧 task continuation，原生 Case 默认继续。 |
@@ -262,7 +262,7 @@ export default defineTestProject({
 | `dotenvOverride`、`dotenvDebug` | 项目的环境变量加载方式 | 原生读取 `process.env`；依赖 `.env` 文件时，在配置文件或启动脚本中显式加载，并在那里设置优先级和调试行为。 |
 | `web`、`android`、`ios`、`harmony`、`computer`、`interface` | 项目的 `setup`、`variables` 和平台注册 Node | 设备连接和 Agent 创建移入 setup；可序列化的环境差异放入 `variables`。 |
 
-这个原生示例只迁移了文件选择和 Case 重试，不保留旧前置文件、并发文件的调度方式。原生并发应拆成独立项目，并设置 `test.maxConcurrency`。旧链路所需的文件并发和 document setup 留在 `midscene` 入口之后，不成为公开 Test 配置。
+这个原生示例只迁移了文件选择和 Case 重试，不保留旧前置文件的调度方式。需要原生文件并发时，设置 `test.maxConcurrentFiles`，并将文件资源移入 `fileSetup`，详见[文件并发](./midscene-test/configuration#使用-maxconcurrentfiles-开启文件并发)。不填写新设置时，`test.maxConcurrency` 仍按 Project 调度，两者不能混用。旧 `concurrent` / `--concurrent` 和前置文件行为继续由 `midscene` 入口保留。
 
 `midscene` 保留旧输出命名规则：显式 flow `name`、未命名提取结果的数字键，以及重复名称的覆盖规则均保留。
 

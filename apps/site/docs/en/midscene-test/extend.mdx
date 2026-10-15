@@ -133,7 +133,9 @@ Each Node execution is a separate invocation; the framework does not automatical
 
 ### Create the shared context
 
-Midscene Test provides a project-level context mechanism. Nodes in the same execution project can access runtime resources and pass test data through a shared `context` object. The project's `setup` creates and returns this object, and the framework passes it to each Node's `execute()`.
+With [file concurrency](./configuration#file-concurrency-with-maxconcurrentfiles), `fileSetup` returns a separate context for each file. Nodes and Case retries within that file share it; keep mutable values such as order IDs in the file context. The following example uses the existing Project context without `fileSetup`.
+
+Without `fileSetup`, Midscene Test provides a project-level context mechanism. Nodes in the same execution project can access runtime resources and pass test data through a shared `context` object. The project's `setup` creates and returns this object, and the framework passes it to each Node's `execute()`.
 
 For the order refund workflow above, setup can provide a browser page, an application URL, and an order service. A Node adds the order ID after creating an order. The following `setup.ts` shows how to create this shared object: `ProjectContext` describes its type, and `setup` creates and returns the actual object.
 

@@ -20,6 +20,7 @@ Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。�
 | 字段 | 用途 |
 | --- | --- |
 | `setup` | 为隐式的默认执行项目创建共享资源。 |
+| `fileSetup` | 开启文件调度后，为隐式默认执行项目中的每份文件创建独立资源。 |
 | `nodes` | 注册所有执行项目共享的 Node。 |
 | `projects` | 声明具名执行项目，分别配置 setup 和用例选择规则。使用此字段时，将 setup 放在各项目中，不再配置顶层 setup。 |
 | `test` | 设置并发数、失败阈值和默认步骤超时。 |
@@ -96,7 +97,7 @@ export default defineTestProject<ProjectContext>({
 
 ### 使用 setup 创建和清理共享资源
 
-每个执行项目在执行 YAML 文件前运行一次 `setup`。`setup` 返回的 `context` 由该项目的所有 Node 共享。上面的示例将浏览器和页面保存在 `context` 中，Node 再通过 `getAgent` 回调获取所需资源。
+每个执行项目在执行 YAML 文件前运行一次 `setup`。未配置 `fileSetup` 时，`setup` 返回的 `context` 由该项目的所有 Node 共享。上面的示例将浏览器和页面保存在 `context` 中，Node 再通过 `getAgent` 回调获取所需资源。
 
 共享资源不会在每个用例开始时自动重建。需要重置页面、Cookie 或业务状态时，可以通过 YAML 的[生命周期钩子](./use#定义执行生命周期)调用相应 Node。自定义 Node 如何读写共享数据，见[跨 Node 共享上下文](./extend#跨-node-共享上下文)。
 
@@ -108,12 +109,13 @@ export default defineTestProject<ProjectContext>({
 
 ### 项目、文件与用例的生命周期
 
-通过 CLI 或 `runTestProject()` 运行测试时，每个执行项目都有独立的生命周期。下面展示一个包含两个 YAML 文件的项目在正常执行时的顺序；未声明的 YAML 钩子会跳过：
+通过 CLI 或 `runTestProject()` 运行测试时，每个执行项目都有独立的生命周期。下面展示一个包含两个 YAML 文件的项目在顺序执行时的正常流程；未声明的 YAML 钩子会跳过：
 
 ```text
 执行项目开始
 ├─ setup → 返回项目共享的 context
 ├─ 文件 A
+│  ├─ fileSetup（配置时执行）→ 返回文件 context
 │  ├─ beforeAll
 │  ├─ 用例 1：beforeEach → steps → afterEach → 本次执行的 Node 清理
 │  ├─ 用例 2：beforeEach → steps → afterEach → 本次执行的 Node 清理
@@ -133,6 +135,7 @@ export default defineTestProject<ProjectContext>({
 | 注册位置 | 清理时机 |
 | --- | --- |
 | 项目 `setup` | 项目结束时，所有已执行文件的清理之后 |
+| `fileSetup` | 当前文件的 `afterAll` 与文件范围 Node 清理之后 |
 | `beforeAll`、`afterAll` 中的 Node | 当前文件的 `afterAll` 之后 |
 | `beforeEach`、`steps`、`afterEach` 中的 Node | 本次用例执行的 `afterEach` 之后，每次重试独立清理 |
 
@@ -140,7 +143,7 @@ export default defineTestProject<ProjectContext>({
 
 ### context 的共享范围
 
-`setup` 返回的 `context` 在当前执行项目内复用。所有 YAML 文件、生命周期钩子、用例和重试中的 Node 都接收同一个对象，框架不会在文件切换、用例切换或重试时复制、清空或重新创建它。
+未配置 `fileSetup` 时，`setup` 返回的 `context` 在当前执行项目内复用。配置后改为使用 `fileSetup` 返回的 context，仅在当前文件及其用例重试中复用。所有 YAML 文件、生命周期钩子、用例和重试中的 Node 都接收同一个对象，框架不会在文件切换、用例切换或重试时复制、清空或重新创建它。
 
 例如，某个 Node 将订单 ID 写入 `context.orderId` 后，后续 Node 都能读到这个值，包括下一条用例中的 Node。用例独有的数据需要在准备步骤中重置，或在清理时移除；重试也不会自动恢复 `context` 的初始状态。浏览器页面、登录状态等资源是否重置，同样取决于项目实现。
 
@@ -318,7 +321,7 @@ steps:
 
 脚手架生成的配置默认选择 `cases/**/*.{yaml,yml}`。未配置 `files` 时，Midscene Test 会在测试目录下按 `**/*.{yaml,yml}` 递归查找用例文件。
 
-选中的文件会去重并按路径排序。重试只重新执行失败 Case 的 `beforeEach → steps → afterEach`，不重跑项目 setup 或文件钩子。同一项目内文件顺序执行；需要并发时，使用持有独立资源的多个项目。
+选中的文件会去重并按路径排序。重试只重新执行失败 Case 的 `beforeEach → steps → afterEach`，不重跑项目 setup 或文件钩子。未启用文件调度时，同一项目内文件顺序执行；需要文件并发时，设置 `test.maxConcurrentFiles`，并通过 `fileSetup` 准备独立资源。
 
 原生 Test 始终生成统一总报告。报告路径会在运行结束后由 CLI 输出，查看方式见[查看测试结果](./use#查看测试结果)。
 
@@ -386,6 +389,75 @@ export default defineTestProject<ProjectContext>({
 
 ### 并发与资源隔离
 
+### 使用 maxConcurrentFiles 开启文件并发
+
+显式设置 `test.maxConcurrentFiles` 后，调度单位变为测试文件，限制所有 Project 合计同时推进的文件数量。各 Project 可以设置更小的 `maxConcurrentFiles`；不填时沿用全局值，填写更大值时仍受全局上限限制。上限只接受正整数。每份文件内的用例和步骤仍顺序执行，调度采用同一 Node.js 进程内的异步并发。
+
+| 配置 | 含义 |
+| --- | --- |
+| `test.maxConcurrentFiles` | 全局文件上限，准备、等待设备、重试和清理均占用名额 |
+| `projects[].maxConcurrentFiles` | 当前 Project 的文件上限，同时受全局上限限制 |
+| `projects[].fileSetup` | 为每份文件返回完整、独立的运行环境；Project 有效上限大于 1 时必填，即使只选中一个文件 |
+| `test.setupTimeout` | 每次 Project setup、fileSetup 的准备时限，包含等待设备；默认 120000 ms |
+| `test.teardownTimeout` | 每个清理范围的等待时限，包含清理钩子、等待操作退出和清理函数；默认 30000 ms |
+
+例如全局上限为 3，Web 和 Android 各为 2，可以同时推进两份 Web 和一份 Android，或者一份 Web 和两份 Android。Project 不预留名额；满足条件的 Project 轮流领取文件，等待设备的文件也占名额。首份文件占一个名额执行 Project setup，其他文件等待时不额外占名额；setup 完成后，有空余名额即可开始同 Project 的其他文件。最后一份文件会等到 Project 清理返回才归还名额；取消或 bail 后，已经初始化但暂无在途文件的 Project 也在全局上限内安排清理。
+
+用 `setup` 准备共享资源，用 `fileSetup` 准备文件资源。下面的 Web 示例只创建一个共享 Browser，每份文件分别创建 BrowserContext、Page 和 Agent：
+
+```ts filename=midscene.config.ts
+import { defineFileSetup, defineProjectSetup, defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright/agent';
+import { chromium, type Browser } from 'playwright';
+
+type SharedContext = { browser: Browser };
+type FileContext = { agent: PlaywrightAgent };
+
+const setup = defineProjectSetup<SharedContext>({
+  name: 'browser',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+    return { browser };
+  },
+});
+const fileSetup = defineFileSetup<FileContext, SharedContext>({
+  name: 'page',
+  async setup({ projectContext, signal, onTeardown }) {
+    if (!projectContext) throw new Error('Browser setup did not complete');
+    const session = await projectContext.browser.newContext();
+    onTeardown(() => session.close());
+    signal.throwIfAborted();
+    const page = await session.newPage();
+    const agent = new PlaywrightAgent(page);
+    onTeardown(() => agent.destroy());
+    return { agent };
+  },
+});
+
+export default defineTestProject<FileContext, SharedContext>({
+  test: { maxConcurrentFiles: 3 },
+  projects: [{ name: 'web', setup, fileSetup, maxConcurrentFiles: 2,
+    files: { include: ['cases/web/**/*.yaml'] } }],
+  nodes: createMidsceneNodes<FileContext>({
+    agentClass: PlaywrightAgent, getAgent: ({ context }) => context.agent,
+  }),
+});
+```
+
+`fileSetup` 接收 `projectContext`、`project`、`file`（包含 sourcePath 和执行 ID）、`env`、`signal` 和 `onTeardown()`。返回值就是当前文件所有 Node 接收的完整 context，不会和 Project context 合并，也不会自动复制；需要的共享字段应显式传入。只有一组配置时，可以省略 `projects`，把 `setup` 和 `fileSetup` 放在顶层。
+
+每份文件依次执行 `fileSetup → beforeAll → 用例 → afterAll → 文件清理`。Project setup 只执行一次；fileSetup 和文件钩子每份文件执行一次。Case 重试沿用原文件环境，只重复 `beforeEach → steps → afterEach → 本次尝试清理`。文件清理按注册逆序执行，一个函数抛错后仍尝试后续函数；全部文件清理后才清理 Project。
+
+Android、iOS 等平台应在每份文件内创建独立 Device/Agent，并通过团队的设备分配服务独占借用一台物理设备，按正确的逆序登记 Agent 销毁与设备归还。框架不负责创建设备池、重置业务状态或隔离外部账号。只有一台手机或一个桌面时，将 Project 上限保留为 1；仅创建不同 Agent 对象不能隔离物理设备。
+
+fileSetup 失败时，跳过该文件钩子和用例，尝试已登记的清理。单文件设备故障可以让其他独立文件继续执行；Project setup 失败或已确认共享 Browser 断开时停止该 Project。如果准备或清理超时后仍有操作未结束，本次运行停止开始新的文件，并报告待释放资源。超时不代表释放：迟到的资源获取和清理会继续被跟踪，父级资源等待它们实际完成。自定义 Node 已确认共享资源故障时，可以抛出 `@midscene/test` 的 `WorkflowError`，并设置 `code: 'PROJECT_RESOURCE_ERROR'`；仅有页面或会话关闭的通用报错不足以确认共享 Browser 故障。取消或 bail 时，各清理范围共用一个基于 `teardownTimeout` 的收尾时限。bail 等当前尝试结束后跳过后续用例和重试；取消则请求正在执行的操作退出。
+
+### 与旧 Project 并发的兼容规则
+
+未设置 `test.maxConcurrentFiles` 时，下述旧行为保持不变。`maxConcurrency` 与 `maxConcurrentFiles` 不能同时填写，即使都为 1。Project 文件上限、`fileSetup` 和新增准备/清理超时均要求显式填写 `test.maxConcurrentFiles`。Project 有效上限为 1 时，可以暂时省略 `fileSetup`、沿用 setup 的共享环境，但文件可能在不同 Project 间交错执行。建议先以 `maxConcurrentFiles: 1` 迁移，再逐步提高。
+
 并发调度的单位是执行项目，`test.maxConcurrency` 设置同时运行的项目数量上限，默认值为 `1`。单个项目内的 YAML 文件、用例和步骤顺序执行。只有一个执行项目时，增大此值也不会让该项目内的用例并发。
 
 需要让不同用例同时执行时，可以按目录或标签将用例分配到多个项目，并为每个项目创建独立资源。下面沿用前面 Playwright 示例中的 setup 和 Node 定义，替换其 `defineTestProject()` 配置，让下单与账号用例并发运行：
@@ -437,7 +509,7 @@ Node 通过 `AbortSignal` 接收取消通知，内部的异步操作不会因此
 
 新的 `signal` 不会绕过资源占用检查。同一个 Agent 的旧操作尚未退出时，清理 Node 也不能与它重叠执行；对应操作会标记为未执行。例如，点击操作超时后仍在运行，`afterEach` 中使用同一 Agent 的点击不能同时开始。清理 Node 应能处理准备步骤只完成一部分的情况。
 
-生命周期钩子结束后，资源清理默认先等待运行中的操作退出，最多等待 1 秒；操作退出后，再等待注册的清理回调执行，整个回调阶段默认最多等待 10 秒。这些是等待结果的期限，不会强制终止底层操作或清理函数，也不替代 `afterEach`、`afterAll` 中 Step 自身的超时。超过期限时，框架记录 `cleanup pending` 并返回快照，资源继续保持隔离；底层操作退出后才执行资源释放。操作未退出或清理异常时的重试和调度规则见[失败时如何执行](./use#失败时如何执行)。
+旧 Project 调度模式下，生命周期钩子结束后，资源清理默认先等待运行中的操作退出，最多等待 1 秒；操作退出后，再等待注册的清理回调执行，整个回调阶段默认最多等待 10 秒。这些是等待结果的期限，不会强制终止底层操作或清理函数，也不替代 `afterEach`、`afterAll` 中 Step 自身的超时。超过期限时，框架记录 `cleanup pending` 并返回快照，资源继续保持隔离；底层操作退出后才执行资源释放。操作未退出或清理异常时的重试和调度规则见[失败时如何执行](./use#失败时如何执行)。
 
 通过 `onTeardown()` 注册的清理函数不会收到新的 `signal`。不要在这些函数中复用原步骤的 `signal`：它可能已因超时或运行中断而被取消，导致清理请求立即失败。
 
