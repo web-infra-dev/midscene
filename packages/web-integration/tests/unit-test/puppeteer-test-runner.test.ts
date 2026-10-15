@@ -186,6 +186,93 @@ describe('Puppeteer test runner entry', () => {
     });
   });
 
+  describe('legacy context cookie APIs', () => {
+    const cookies = [
+      { name: 'session', domain: 'other.example', path: '/' },
+      { name: 'session', domain: 'other.example', path: '/admin' },
+      { name: 'theme', domain: 'other.example', path: '/' },
+      { name: 'session', domain: 'current.example', path: '/' },
+      {
+        name: 'partitioned',
+        domain: 'other.example',
+        path: '/',
+        partitionKey: {
+          topLevelSite: 'https://current.example',
+          hasCrossSiteAncestor: true,
+        },
+      },
+    ];
+
+    const setup = () => {
+      const session = {
+        send: rs.fn().mockResolvedValue({ cookies }),
+        detach: rs.fn().mockResolvedValue(undefined),
+      };
+      const execute = (filters = {}) =>
+        node('clearCookies').execute(
+          {
+            interface: {
+              underlyingPage: {
+                browserContext: () => ({}),
+                target: () => ({ createCDPSession: async () => session }),
+              },
+            },
+          },
+          filters,
+          { signal: new AbortController().signal },
+        );
+      return { session, execute };
+    };
+
+    it('clears cookies from every origin and preserves partition identity', async () => {
+      const { session, execute } = setup();
+      await execute();
+      expect(session.send).toHaveBeenCalledWith('Network.getAllCookies');
+      for (const cookie of cookies) {
+        expect(session.send).toHaveBeenCalledWith(
+          'Network.deleteCookies',
+          cookie,
+        );
+      }
+      expect(session.send).toHaveBeenCalledTimes(cookies.length + 1);
+      expect(session.detach).toHaveBeenCalledTimes(1);
+    });
+
+    it('requires every supplied filter to match', async () => {
+      const { session, execute } = setup();
+      await execute({
+        name: 'session',
+        domain: 'other.example',
+        path: '/admin',
+      });
+      expect(session.send).toHaveBeenCalledTimes(2);
+      expect(session.send).toHaveBeenCalledWith(
+        'Network.deleteCookies',
+        cookies[1],
+      );
+    });
+
+    it('does not delete when no cookies match', async () => {
+      const { session, execute } = setup();
+      await execute({ name: 'missing' });
+      expect(session.send).toHaveBeenCalledTimes(1);
+      expect(session.detach).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['Network.getAllCookies', 'Network.deleteCookies'])(
+      'detaches and propagates failures from %s',
+      async (command) => {
+        const { session, execute } = setup();
+        session.send.mockImplementation(async (method) => {
+          if (method === command) throw new Error('CDP failed');
+          return { cookies };
+        });
+        await expect(execute()).rejects.toThrow('CDP failed');
+        expect(session.detach).toHaveBeenCalledTimes(1);
+      },
+    );
+  });
+
   it('sets and returns the effective viewport size', async () => {
     const setViewport = rs.fn().mockResolvedValue(undefined);
     const page = {

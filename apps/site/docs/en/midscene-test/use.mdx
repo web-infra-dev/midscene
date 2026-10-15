@@ -12,27 +12,61 @@ Here, “legacy YAML” specifically means `tasks/flow` cases and YAML batch con
 
 ### 1. Generate the project and install dependencies
 
-Prepare Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm, then create a Web test project:
+Prepare Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm. For guided creation, run:
+
+```bash
+pnpm dlx @midscene/test create
+```
+
+The command prompts for a project directory, platform, package manager, and whether to install dependencies. You can also specify these options directly. For example, create a Web test project with pnpm:
 
 ```bash
 pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
 cd my-tests
 ```
 
-Follow the prompt to install dependencies. The command generates platform configuration, an example case, and a Node Spec. The main files are:
+The available arguments are:
+
+| Argument | Description |
+| --- | --- |
+| `[directory]` | Project directory, relative to the current directory or an absolute path. Use `.` for the current directory. If omitted, the command prompts for it. Existing files are not overwritten. |
+| `--platform <value>` | Platform: `web` (Playwright), `android`, `ios`, `harmony` (HarmonyOS), or `computer` (desktop). If omitted, the command prompts for it. |
+| `--package-manager <value>` | Package manager: `npm` or `pnpm`. If omitted, the command prompts in an interactive terminal; otherwise, it detects the invoking package manager and falls back to `npm`. |
+| `--yes`, `-y` | Disable prompts and install dependencies. You must supply the directory and `--platform`. Combine with `--skip-install` to generate files only. |
+| `--skip-install` | Generate files without installing dependencies or generating a Node Spec. Run the install command later to generate the Spec. |
+| `--help`, `-h` | Show command help and examples. |
+
+Each platform currently has one starter, selected with `--platform`. All starters use native `cases/steps` Test files. In a non-interactive environment such as CI, you must supply the directory and `--platform`; dependencies are installed unless `--skip-install` is set.
+
+Common examples:
+
+```bash
+# Create an iOS project and install dependencies without prompts
+pnpm dlx @midscene/test create my-ios-tests --platform ios --package-manager pnpm --yes
+
+# Generate Web project files only
+pnpm dlx @midscene/test create my-web-tests --platform web --package-manager pnpm --skip-install
+
+# Show all arguments
+pnpm dlx @midscene/test create --help
+```
+
+Follow the prompt to install dependencies. The command generates platform configuration and example cases; installation also generates the Node Spec. A Web project contains these main files:
 
 ```text
 my-tests/
-├── cases/example.yaml          # Example case
+├── cases/todo.yaml             # TodoMVC cases
+├── nodes/todo.ts               # Web custom Nodes for setup, checks, and capture
 ├── midscene.config.ts          # Platform configuration and Node registration
-├── midscene-node-spec.web.md  # Node Spec generated after installation
+├── midscene-node-spec.web.md    # Node Spec generated after installation
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
-└── README.md
+├── README.md
+└── README.zh.md
 ```
 
-Creation and spec generation do not run tests, so this step does not require a model API Key, browser, or device. For all arguments, run `pnpm dlx @midscene/test create --help`.
+The other platform starters define `todo.setup` in `midscene.config.ts` and do not include `nodes/todo.ts`, and their Spec filenames use the selected platform name, such as `midscene-node-spec.ios.md`. Creation and spec generation do not run tests, so this step does not require a model API Key, browser, or device. The generated README explains platform setup and how to run the example.
 
 :::info Installation recovery
 If installation was skipped or failed, enter the project directory and run `pnpm install`. To regenerate the Node Spec, run `pnpm run nodes`.
@@ -62,7 +96,7 @@ For other platforms, change `--platform` when creating the project and complete 
 | Platform | Argument value | Runtime prerequisites | Environment setup guide |
 | --- | --- | --- | --- |
 | Android | `android` | Connect a device. Optionally select it with `ANDROID_DEVICE_ID`. | [Setup guide](../platforms/android) |
-| iOS | `ios` | Start WebDriverAgent and configure `WDA_HOST` and `WDA_PORT`. | [Setup guide](../platforms/ios) |
+| iOS | `ios` | Start WebDriverAgent. Use `WDA_HOST` and `WDA_PORT` for direct access, or `WDA_BASE_URL` for a gateway. Set `WDA_MJPEG_URL` for a remote video stream, or `WDA_MJPEG_PORT` for a direct connection. | [Setup guide](../platforms/ios) |
 | HarmonyOS | `harmony` | Check the connection with `hdc list targets`. Optionally set `HARMONY_DEVICE_ID`; set `HDC_HOME` if HDC is not on PATH. | [Setup guide](../platforms/harmonyos) |
 | Desktop | `computer` | Install dependencies and grant permissions. Optionally set `COMPUTER_DISPLAY_ID`. Headless Linux also requires Xvfb and `MIDSCENE_COMPUTER_HEADLESS_LINUX`. | [Setup guide](../platforms/desktop) |
 
@@ -72,9 +106,11 @@ For other platforms, change `--platform` when creating the project and complete 
 pnpm test
 ```
 
-The Web example opens `example.com` and checks the page heading. The desktop example inspects the current screen with `aiAsk`; mobile examples use `home` followed by `aiAsk`.
+All five starters use the public React TodoMVC page to demonstrate adding, deleting, and completing tasks. The page must be reachable from the browser or device used for the test.
 
-After the run finishes, view the test run report to inspect the results of each case and step. Then edit `cases/example.yaml` to write your own cases.
+Before each case, the Web starter runs `todo.setup` to open All view, clear page storage, reload, and verify an empty list through the DOM. `todo.seed` then creates three tasks. The first case checks the initial state; the second uses AI to delete and complete tasks, then checks the result. `todo.captureState` records the page state after each case. The Android, iOS, HarmonyOS, and desktop starters use AI to create three tasks, delete one, complete another, switch to the Completed filter, and check the result. Before changing tasks, those starters run `todo.setup` to open All view and wait for the input, then use `aiAssert` to check that the list is empty, including completed tasks, and no dialog covers the page. Existing tasks are left unchanged. If the check fails, select All and delete every task, or clear only TodoMVC website data; close blocking dialogs and rerun. For model or connection errors, resolve the reported cause first. The AI check can misjudge the page; inspect the report when it fails. All starters run serially and stop after the first failed case (`test.bail: 1`), while saving reports and releasing resources.
+
+After the run finishes, view the report in `midscene_run/report/` to inspect each case and step. Then edit `cases/todo.yaml` to write your own cases, using the generated Node Spec for available operations and their inputs.
 
 ## Understand available test operations
 

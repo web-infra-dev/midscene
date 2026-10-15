@@ -2,7 +2,7 @@ export const EN_US = {
   // Banner - Title
   heroTitle: 'See interfaces like a human\nE2E testing in natural language',
   heroSubtitle:
-    'Midscene.js helps developers bring AI to E2E testing with a vision-based GUI Agent and an extensible testing framework for web, mobile, and desktop apps.',
+    'Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -95,7 +95,7 @@ export const EN_US = {
   // Testing toolkit
   debuggingTitle: 'TESTING TOOLKIT',
   debuggingHeading: 'A complete toolkit for AI-native testing',
-  toolkitFrameworkTitle: 'An AI-native testing framework',
+  toolkitFrameworkTitle: 'An AI-native E2E testing framework',
   toolkitFrameworkDesc:
     'Write tests in YAML and natural language. Extend them with TypeScript Nodes to combine AI actions with business logic.',
   toolkitYaml: 'Test flows & expectations',

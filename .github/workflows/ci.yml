@@ -203,6 +203,9 @@ jobs:
     - name: Type check tests
       run: pnpm run type-check:tests
 
+    - name: Test repository scripts
+      run: pnpm run test:scripts
+
     - name: Run tests with coverage
       run: pnpm run test:coverage
 

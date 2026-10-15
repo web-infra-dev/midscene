@@ -1,7 +1,7 @@
 <p align="center">
   <img alt="Midscene.js" width="180" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4"><br />
   <strong>See interfaces like a human. E2E testing in natural language.</strong><br />
-  A vision-based GUI Agent and an extensible testing framework for web, mobile, and desktop apps.
+  Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 
 ## Write a test in natural language
 
-Midscene.js helps developers bring AI to E2E testing. Describe UI steps and expected results in natural language, then use the visual GUI Agent to carry them out and verify what users see. Organize tests with Midscene Test, or integrate the Agent APIs into your existing testing framework.
+Midscene.js brings AI vision to E2E testing. Describe UI steps and expected results in natural language, then use the visual GUI Agent to carry them out and verify what users see. Organize tests with Midscene Test, or integrate the Agent APIs into your existing testing framework.
 
 ### YAML test cases with Midscene Test
 

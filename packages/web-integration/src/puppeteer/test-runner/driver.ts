@@ -39,13 +39,41 @@ const createPuppeteerDriver = (
     },
     clearCookies: async (filters) => {
       const browserContext = page.browserContext();
-      const cookies = (await browserContext.cookies()).filter(
-        (cookie) =>
-          (filters.name === undefined || cookie.name === filters.name) &&
-          (filters.domain === undefined || cookie.domain === filters.domain) &&
-          (filters.path === undefined || cookie.path === filters.path),
-      );
-      if (cookies.length > 0) await browserContext.deleteCookie(...cookies);
+      const matches = (cookie: {
+        name: string;
+        domain: string;
+        path: string;
+      }) =>
+        (filters.name === undefined || cookie.name === filters.name) &&
+        (filters.domain === undefined || cookie.domain === filters.domain) &&
+        (filters.path === undefined || cookie.path === filters.path);
+      if (
+        typeof browserContext.cookies === 'function' &&
+        typeof browserContext.deleteCookie === 'function'
+      ) {
+        const cookies = (await browserContext.cookies()).filter(matches);
+        if (cookies.length > 0) await browserContext.deleteCookie(...cookies);
+        return;
+      }
+
+      // Puppeteer <23.10 lacks context cookie APIs. A page-target CDP session
+      // reads all cookies in that context, including origins not open in a tab.
+      const session = await page.target().createCDPSession();
+      try {
+        const { cookies } = await session.send('Network.getAllCookies');
+        for (const cookie of cookies.filter(matches)) {
+          await session.send('Network.deleteCookies', {
+            name: cookie.name,
+            domain: cookie.domain,
+            path: cookie.path,
+            ...(cookie.partitionKey
+              ? { partitionKey: cookie.partitionKey }
+              : {}),
+          });
+        }
+      } finally {
+        await session.detach();
+      }
     },
     setViewportSize: async (size) => {
       await page.setViewport(size);
