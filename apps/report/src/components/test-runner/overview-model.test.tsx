@@ -17,10 +17,12 @@ import {
   getOverviewCaseSummary,
   getOverviewProjectSort,
   getOverviewProjectStatus,
+  getOverviewProjectSummary,
   getOverviewStatusCounts,
   getSelectedOverviewProject,
   groupOverviewProjects,
   selectOverviewProject,
+  toggleOverviewFiles,
   toggleOverviewStatus,
 } from './overview-model';
 import { ProjectBreakdownTree } from './project-breakdown';
@@ -787,6 +789,64 @@ describe('Project → File → Case overview', () => {
 });
 
 describe('overview project navigation', () => {
+  it('includes every nonzero outcome without counting retried Cases twice', () => {
+    const base = projectsFor(fixture())[0];
+    const mixed = {
+      ...base,
+      cases: Array.from({ length: 6 }, () => base.cases[0]),
+      passedCount: 3,
+      retryPassedCount: 1,
+      failedCount: 2,
+      notRunCount: 1,
+    };
+    expect(getOverviewProjectSummary(mixed)).toBe(
+      '6 cases · 2 passed · 1 retried · 2 failed · 1 not run',
+    );
+    const html = renderToStaticMarkup(
+      <ProjectNavigation
+        projects={[mixed, { ...mixed, key: 'another-project' }]}
+        collapsedGroups={new Set()}
+        onSelect={() => {}}
+        onToggleGroup={() => {}}
+      />,
+    );
+    expect(
+      html.match(
+        /title="6 cases · 2 passed · 1 retried · 2 failed · 1 not run"/g,
+      ),
+    ).toHaveLength(2);
+    expect(html).toContain(`aria-describedby="project-summary-${mixed.key}"`);
+    expect(html).toContain('id="project-summary-another-project"');
+  });
+
+  it('omits zero outcomes and keeps Case totals for empty or wholly not-run Projects', () => {
+    const base = projectsFor(fixture())[0];
+    const empty = {
+      ...base,
+      cases: [],
+      passedCount: 0,
+      retryPassedCount: 0,
+      failedCount: 0,
+      notRunCount: 0,
+    };
+    expect(getOverviewProjectSummary(empty)).toBe('0 cases');
+    expect(
+      getOverviewProjectSummary({
+        ...empty,
+        cases: base.cases,
+        notRunCount: base.cases.length,
+      }),
+    ).toBe(`${base.cases.length} cases · ${base.cases.length} not run`);
+    expect(
+      getOverviewProjectSummary({
+        ...empty,
+        cases: base.cases,
+        passedCount: base.cases.length,
+        retryPassedCount: base.cases.length,
+      }),
+    ).toBe(`${base.cases.length} cases · ${base.cases.length} retried`);
+  });
+
   it('groups failed, retried, passed and not-run projects in that order without losing their identities', () => {
     const base = projectsFor(fixture())[0];
     const project = (key: string, changes = {}) => ({
@@ -857,15 +917,15 @@ describe('overview project navigation', () => {
       ['Passed after retry', 1],
       ['Passed', 2],
     ]) {
-      expect(html).toContain(`<span>${label} (${count})</span>`);
+      expect(html).toContain(`<span>${label}</span><span>${count}</span>`);
       expect(html).toContain(`Collapse ${label} projects (${count})`);
     }
-    expect(html.indexOf('Failed (1)')).toBeLessThan(
-      html.indexOf('Passed after retry (1)'),
+    expect(html.indexOf('Collapse Failed projects (1)')).toBeLessThan(
+      html.indexOf('Collapse Passed after retry projects (1)'),
     );
-    expect(html.indexOf('Passed after retry (1)')).toBeLessThan(
-      html.indexOf('Passed (2)'),
-    );
+    expect(
+      html.indexOf('Collapse Passed after retry projects (1)'),
+    ).toBeLessThan(html.indexOf('Collapse Passed projects (2)'));
   });
 
   it('keeps a project with only file errors in the Failed navigation group', () => {
@@ -895,5 +955,30 @@ describe('overview project navigation', () => {
     expect(next.statuses).toEqual([]);
     expect(next.projectSorts).toBe(initial.projectSorts);
     expect(next.expandedFileKeys).toBe(initial.expandedFileKeys);
+  });
+});
+
+describe('visible File expansion', () => {
+  it('collapses all visible Files while preserving hidden Files and other Projects', () => {
+    const initial = new Set(['web:a', 'web:b', 'web:hidden', 'mobile:a']);
+    expect(toggleOverviewFiles(initial, ['web:a', 'web:b'])).toEqual(
+      new Set(['web:hidden', 'mobile:a']),
+    );
+    expect(initial.size).toBe(4);
+  });
+
+  it('expands all visible Files when the visible set is partially expanded', () => {
+    const initial = new Set(['web:a', 'mobile:a']);
+    expect(toggleOverviewFiles(initial, ['web:a', 'web:b'])).toEqual(
+      new Set(['web:a', 'web:b', 'mobile:a']),
+    );
+  });
+
+  it('preserves expansion for an empty result and supports expanding a fully collapsed set', () => {
+    const initial = new Set(['mobile:a']);
+    expect(toggleOverviewFiles(initial, [])).toEqual(initial);
+    expect(toggleOverviewFiles(initial, ['web:a', 'web:b'])).toEqual(
+      new Set(['mobile:a', 'web:a', 'web:b']),
+    );
   });
 });

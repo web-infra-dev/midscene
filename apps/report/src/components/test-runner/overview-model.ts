@@ -82,6 +82,21 @@ export function getOverviewProjectStatus(
         : 'passed';
 }
 
+export function getOverviewProjectSummary(item: OverviewProject): string {
+  const results = [
+    [item.passedCount - item.retryPassedCount, 'passed'],
+    [item.retryPassedCount, 'retried'],
+    [item.failedCount, 'failed'],
+    [item.notRunCount, 'not run'],
+  ] as const;
+  return [
+    `${item.cases.length} cases`,
+    ...results
+      .filter(([count]) => count > 0)
+      .map(([count, label]) => `${count} ${label}`),
+  ].join(' · ');
+}
+
 export function groupOverviewProjects(projects: readonly OverviewProject[]) {
   return (
     [
@@ -103,6 +118,20 @@ export function selectOverviewProject(
   key: string,
 ): OverviewState {
   return { ...state, selectedProjectKey: key, statuses: [] };
+}
+
+/** Toggle only visible Files, preserving expansion in other Projects and filters. */
+export function toggleOverviewFiles(
+  expanded: ReadonlySet<string>,
+  visibleKeys: readonly string[],
+): Set<string> {
+  const next = new Set(expanded);
+  const collapse = visibleKeys.every((key) => expanded.has(key));
+  for (const key of visibleKeys) {
+    if (collapse) next.delete(key);
+    else next.add(key);
+  }
+  return next;
 }
 
 export function getSelectedOverviewProject(

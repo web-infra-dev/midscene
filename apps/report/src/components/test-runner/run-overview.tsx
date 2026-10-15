@@ -18,6 +18,7 @@ import {
   getOverviewStatusCounts,
   getSelectedOverviewProject,
   selectOverviewProject,
+  toggleOverviewFiles,
   toggleOverviewStatus,
 } from './overview-model';
 import { ProjectBreakdownTree } from './project-breakdown';
@@ -76,6 +77,15 @@ export function RunOverview({
       ),
     [selectedProject, state.query],
   );
+  const visibleFileKeys = breakdownProjects.flatMap(({ files }) =>
+    files.map(({ item }) => item.key),
+  );
+  const allFilesExpanded =
+    visibleFileKeys.length > 0 &&
+    visibleFileKeys.every((key) => state.expandedFileKeys.has(key));
+  const expansionLabel = allFilesExpanded
+    ? 'Collapse all files'
+    : 'Expand all files';
   const resetFilters = () =>
     onStateChange((current) => ({ ...current, query: '', statuses: [] }));
   const hasActiveFilters = Boolean(state.query.trim() || state.statuses.length);
@@ -208,16 +218,43 @@ export function RunOverview({
               projectSorts={state.projectSorts}
               query={state.query}
               headerControls={
-                <CaseStatusFilters
-                  statuses={state.statuses}
-                  counts={statusCounts}
-                  onStatusToggle={(status) =>
-                    onStateChange((current) => ({
-                      ...current,
-                      statuses: toggleOverviewStatus(current.statuses, status),
-                    }))
-                  }
-                />
+                <div className="runner-project-header-controls">
+                  <CaseStatusFilters
+                    statuses={state.statuses}
+                    counts={statusCounts}
+                    onStatusToggle={(status) =>
+                      onStateChange((current) => ({
+                        ...current,
+                        statuses: toggleOverviewStatus(
+                          current.statuses,
+                          status,
+                        ),
+                      }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="runner-files-toggle"
+                    aria-label={expansionLabel}
+                    title={expansionLabel}
+                    aria-pressed={allFilesExpanded}
+                    disabled={!visibleFileKeys.length}
+                    onClick={() =>
+                      onStateChange((current) => ({
+                        ...current,
+                        expandedFileKeys: toggleOverviewFiles(
+                          current.expandedFileKeys,
+                          visibleFileKeys,
+                        ),
+                      }))
+                    }
+                  >
+                    <span
+                      className={`runner-files-icon${allFilesExpanded ? ' is-collapse' : ''}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
               }
               onSortChange={(projectKey, sort) =>
                 onStateChange((current) =>

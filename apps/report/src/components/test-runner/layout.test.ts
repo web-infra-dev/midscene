@@ -156,12 +156,6 @@ describe('Midscene Test report layout', () => {
     expect(breakdown).not.toContain('label="Project"');
   });
 
-  it('keeps summary metrics separated on wide layouts', () => {
-    expect(figmaOverviewStyles).toMatch(
-      /\.runner-overview-counts > div \+ div::before\s*\{[^}]*overview-meta-divider\.svg/s,
-    );
-  });
-
   it('anchors the header decoration to the full report viewport', () => {
     expect(figmaShellStyles).toContain('.runner-main::before');
     expect(figmaShellStyles).not.toContain('.runner-page::before');

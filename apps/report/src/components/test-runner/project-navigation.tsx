@@ -6,6 +6,7 @@ import retriedIcon from './assets/overview-project-retried.svg';
 import type { RunnerCaseStatus } from './model';
 import {
   type OverviewProject,
+  getOverviewProjectSummary,
   groupOverviewProjects,
   projectDisplayName,
 } from './overview-model';
@@ -56,8 +57,9 @@ export function ProjectNavigation({
               onClick={() => onToggleGroup(group.status)}
               aria-label={`${expanded ? 'Collapse' : 'Expand'} ${group.label} projects (${group.projects.length})`}
             >
-              <span>
-                {group.label} ({group.projects.length})
+              <span className="runner-project-group-label">
+                <span>{group.label}</span>
+                <span>{group.projects.length}</span>
               </span>
               <img
                 src={groupChevron}
@@ -71,6 +73,7 @@ export function ProjectNavigation({
               <div className="runner-project-nav-items">
                 {group.projects.map((item) => {
                   const name = projectDisplayName(item);
+                  const summary = getOverviewProjectSummary(item);
                   return (
                     <button
                       type="button"
@@ -80,17 +83,16 @@ export function ProjectNavigation({
                         selectedKey === item.key ? 'true' : undefined
                       }
                       aria-label={`Select project ${name}`}
+                      aria-describedby={`project-summary-${item.key}`}
                       onClick={() => onSelect(item.key)}
                     >
                       <span className="runner-project-nav-copy">
                         <strong title={name}>{name}</strong>
-                        <small>
-                          {item.cases.length} cases ·{' '}
-                          {item.failedCount
-                            ? `${item.failedCount} failed`
-                            : item.notRunCount
-                              ? `${item.notRunCount} not run`
-                              : `${item.passedCount} passed`}
+                        <small
+                          id={`project-summary-${item.key}`}
+                          title={summary}
+                        >
+                          {summary}
                         </small>
                       </span>
                       {icon ? (

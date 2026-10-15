@@ -423,8 +423,12 @@ describe('Midscene Test hybrid report model', () => {
       }),
     );
     expect(markup).toContain('Review case results: 2 of 4 passed');
-    expect(markup).toContain('<strong>1</strong><span>Retried</span>');
-    expect(markup).toContain('<strong>1</strong><span>Not run</span>');
+    expect(markup).toContain('<span>Passed</span><strong>1</strong>');
+    expect(markup).toContain('<span>Retried</span><strong>1</strong>');
+    expect(markup).toContain('<span>Not run</span><strong>1</strong>');
+    expect(markup).toContain(
+      'aria-label="1 Passed without retry, 1 Failed, 1 Passed after retry, 1 Not run"',
+    );
     expect(markup).toContain('tokens<strong>—</strong>');
     expect(markup).not.toContain('runner-overview-outcome-message');
     expect(markup).toContain('>run failed</span>');
@@ -437,7 +441,16 @@ describe('Midscene Test hybrid report model', () => {
   it('shows zero case counts without inventing token usage for an empty run', () => {
     const markup = renderToStaticMarkup(
       createElement(RunSummary, {
-        dump: { ...dump, summary: { ...dump.summary, passed: 0, total: 0 } },
+        dump: {
+          ...dump,
+          summary: {
+            ...dump.summary,
+            total: 0,
+            passed: 0,
+            failed: 0,
+            notRun: 0,
+          },
+        },
         health: getRunnerHealth([]),
         totalCaseCount: 0,
         onReviewOutcome() {},
@@ -445,7 +458,37 @@ describe('Midscene Test hybrid report model', () => {
     );
     expect(markup).toContain('Review case results: 0 of 0 passed');
     expect(markup).toContain('tokens<strong>—</strong>');
+    expect(markup).toContain(
+      'aria-label="0 Passed without retry, 0 Failed, 0 Passed after retry, 0 Not run"',
+    );
+    expect(markup).not.toContain('flex-grow:');
     expect(markup).not.toContain('NaN');
+  });
+
+  it('keeps retry-passed cases in the total while rendering each case only once in the distribution', () => {
+    const markup = renderToStaticMarkup(
+      createElement(RunSummary, {
+        dump: {
+          ...dump,
+          status: 'success',
+          summary: {
+            ...dump.summary,
+            total: 2,
+            passed: 2,
+            failed: 0,
+            notRun: 0,
+          },
+        },
+        health: { ...getRunnerHealth([]), retryPassedCount: 2 },
+        totalCaseCount: 2,
+        onReviewOutcome() {},
+      }),
+    );
+    expect(markup).toContain('Review case results: 2 of 2 passed');
+    expect(markup).toContain('<span>Passed</span><strong>0</strong>');
+    expect(markup).toContain('<span>Retried</span><strong>2</strong>');
+    expect(markup.match(/flex-grow:/g)).toHaveLength(1);
+    expect(markup).toContain('title="Passed after retry"');
   });
 
   it('marks partial token totals and distinguishes a measured zero from unknown usage', () => {

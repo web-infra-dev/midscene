@@ -73,35 +73,9 @@
       line-height: 32px;
     }
 
-    .runner-overview-run-meta {
+    .runner-run-meta {
       padding-right: 0;
       gap: 4px 12px;
-    }
-
-    .runner-overview-counts {
-      display: grid;
-      width: 100%;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px 8px;
-    }
-
-    .runner-overview-counts > div + div {
-      padding-left: 8px;
-    }
-
-    .runner-overview-counts > div:nth-child(3n + 1) {
-      padding-left: 0;
-      border-left: 0;
-    }
-
-    .runner-overview-counts > div {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .runner-overview-counts span {
-      white-space: normal;
     }
 
     .runner-case-meta {
@@ -137,14 +111,14 @@
       gap: 8px;
     }
 
-    .runner-overview-run-meta > span + span,
+    .runner-run-meta > span + span,
     .runner-case-meta > span + span {
       margin-left: 0;
       padding-left: 0;
       border: 0;
     }
 
-    .runner-overview-run-meta > span + span::before,
+    .runner-run-meta > span + span::before,
     .runner-case-meta > span + span::before {
       display: none;
     }

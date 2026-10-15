@@ -468,7 +468,9 @@ pnpm exec midscene-test --result-dir ./test-results
 
 每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
 
-**Test Report** 总览展示 **Project → File → Case** 三层结构，左侧导航按 Failed、Passed after retry、Passed、Not run 的顺序分组展示项目，选择 Project 后在右侧查看其 File/Case 表格。每个分组名称后显示匹配的项目数，Projects 标题不重复展示总数。展开 File 可以查看其 Case；有失败、文件级错误或重试后通过 Case 的 File 默认展开。空文件和收集失败的文件仍然可见，错误显示在所属 File 下方。Project 初始化、清理错误显示在项目标题下。**Compact** 展示 Case 名称、结果、重试信息和耗时；进入失败 Case 查看错误详情。**Detailed** 在相同 Case 集合下增加截图时间线和简短的报错或未执行原因；重试后恢复的错误会标明来自此前尝试。点击摘要可查看错误详情，点击截图可进入对应 Step。
+顶部摘要展示通过的 Case 总数，其中包含重试后通过的 Case。状态条和图例分别展示 **Passed**（未重试即通过）、**Failed**、**Retried**（重试后通过）和 **Not run**，每个 Case 只计入一个区段。运行信息、Project 数和 File 数展示在摘要旁。
+
+**Test Report** 总览展示 **Project → File → Case** 三层结构，左侧导航按 Failed、Passed after retry、Passed、Not run 的顺序分组展示项目，选择 Project 后在右侧查看其 File/Case 表格。每个分组名称后显示匹配的项目数，Projects 标题不重复展示总数。每个 Project 展示 Case 总数及所有非零结果数，分别统计 Passed、Retried、Failed 和 Not run。项目名称和摘要过长时显示省略号，悬浮可查看完整内容。状态筛选右侧的按钮可以统一展开或收起当前 Project 中可见的 File，被筛选隐藏的 File 和其他 Project 的展开状态保持不变。展开 File 可以查看其 Case；有失败、文件级错误或重试后通过 Case 的 File 默认展开。空文件和收集失败的文件仍然可见，错误显示在所属 File 下方。Project 初始化、清理错误显示在项目标题下。**Compact** 展示 Case 名称、结果、重试信息和耗时；进入失败 Case 查看错误详情。**Detailed** 在相同 Case 集合下增加截图时间线和简短的报错或未执行原因；重试后恢复的错误会标明来自此前尝试。点击摘要可查看错误详情，点击截图可进入对应 Step。
 
 搜索框查找整个报告中的 Project、File、Case 和错误详情，左侧导航只保留有匹配内容的 Project。选中项目标题旁的 **All / Failed / Passed / Retried** 复选框只筛选该 Project。没有匹配内容时，空态中的 **Clear filters** 可清空搜索并恢复 All：
 

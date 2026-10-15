@@ -7,7 +7,7 @@ target:
 tasks:
   - name: grouped project navigation keeps file errors distinct from failed cases
     flow:
-      - aiAssert: The summary shows 2 Projects, 6 Files, 5 Cases, 4 Passed, 0 Failed, 1 Retried and 1 Not run. Web regression is selected under Failed in the left project navigation, and Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
+      - aiAssert: The summary shows 4 of 5 cases passed, with a result bar and legend showing 3 passed without retry, 0 failed, 1 retried and 1 not run. The run information shows 2 Projects and 6 Files. Web regression is selected under Failed in the left project navigation; its summary includes passed, retried and not-run Case counts without hiding any of these outcomes. Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
       - javascript: |
           (() => {
             const table = document.querySelector('.runner-file-table');
@@ -16,14 +16,29 @@ tasks:
             if (columns.length !== 4 || Math.abs(width - table.getBoundingClientRect().width) > 1) throw new Error('File table contains an unexpected layout column');
             const duration = table.querySelector('.runner-file-duration').getBoundingClientRect();
             if (Math.abs(duration.x - columns[3].x) > 1) throw new Error('Duration values are not aligned with their header');
+            for (const item of document.querySelectorAll('.runner-project-nav-item')) {
+              const bounds = item.getBoundingClientRect();
+              const parent = item.parentElement.getBoundingClientRect();
+              const summary = item.querySelector('small');
+              if (bounds.right > parent.right + 1) throw new Error('Long project summary expanded its navigation row');
+              if (summary.title !== summary.textContent.trim()) throw new Error('Project summary tooltip lost the complete outcome counts');
+              if (getComputedStyle(summary).textOverflow !== 'ellipsis') throw new Error('Long project summaries must use an ellipsis');
+            }
           })();
         name: verifyFourColumnAlignment
       - aiTap: the Failed checkbox beside the Web regression heading
-      - aiAssert: Failed is selected, and blocked.yaml and broken.yaml remain visible because they have file errors. Blocked by document setup is visible as Not run. Mobile regression remains available in the left navigation. The top summary still shows five Cases and four Passed.
+      - aiAssert: Failed is selected, and blocked.yaml and broken.yaml remain visible because they have file errors. Blocked by document setup is visible as Not run. Mobile regression remains available in the left navigation. The top summary still shows 4 of 5 cases passed.
       - aiTap: the All checkbox beside the Web regression heading
       - aiTap: the Expand file empty.yaml button
       - aiAssert: empty.yaml shows No cases were collected for this file. It has no Case child rows and its Passed / Case cell is a dash.
       - aiTap: the Collapse file empty.yaml button
+
+  - name: expand and collapse all files beside the status filters
+    flow:
+      - aiTap: the Expand all files button to the right of the status checkboxes
+      - aiAssert: All files in Web regression are expanded. Checkout with retry and Smoke checkout are visible, and empty.yaml shows No cases were collected for this file. The toolbar button now offers Collapse all files.
+      - aiTap: the Collapse all files button beside the status filters
+      - aiAssert: Web regression still shows its file rows, while their Case rows are hidden. The toolbar button now offers Expand all files.
 
   - name: Project selection preserves independent sorting and Markdown file order
     flow:
@@ -83,4 +98,4 @@ tasks:
         locate: the search input for projects, files and cases
       - aiAssert: The focused search field has one blue border without an extra outline around it. The project navigation shows No matching projects, and the main empty state shows No matching projects with a Clear filters button.
       - aiTap: the Clear filters button in the main empty state
-      - aiAssert: The search field is empty and its hint mentions projects, files and cases. The sidebar heading is Projects without a total count. Failed (1) appears before Passed (1) in the navigation. Web regression is selected again, All is checked, and the table has Files, Passed / Case, Attention and Duration headers. Its Duration sort remains descending.
+      - aiAssert: The search field is empty and its hint mentions projects, files and cases. The sidebar heading is Projects without a total count. Failed 1 appears before Passed 1 in the navigation. Web regression is selected again, All is checked, and the table has Files, Passed / Case, Attention and Duration headers. Its Duration sort remains descending.
