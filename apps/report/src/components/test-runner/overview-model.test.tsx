@@ -800,7 +800,7 @@ describe('overview project navigation', () => {
       notRunCount: 1,
     };
     expect(getOverviewProjectSummary(mixed)).toBe(
-      '6 cases · 2 passed · 1 retried · 2 failed · 1 not run',
+      '6 cases · 2 passed · 1 passed after retry · 2 failed · 1 not run',
     );
     const html = renderToStaticMarkup(
       <ProjectNavigation
@@ -812,7 +812,7 @@ describe('overview project navigation', () => {
     );
     expect(
       html.match(
-        /title="6 cases · 2 passed · 1 retried · 2 failed · 1 not run"/g,
+        /title="6 cases · 2 passed · 1 passed after retry · 2 failed · 1 not run"/g,
       ),
     ).toHaveLength(2);
     expect(html).toContain(`aria-describedby="project-summary-${mixed.key}"`);
@@ -844,7 +844,9 @@ describe('overview project navigation', () => {
         passedCount: base.cases.length,
         retryPassedCount: base.cases.length,
       }),
-    ).toBe(`${base.cases.length} cases · ${base.cases.length} retried`);
+    ).toBe(
+      `${base.cases.length} cases · ${base.cases.length} passed after retry`,
+    );
   });
 
   it('groups failed, retried, passed and not-run projects in that order without losing their identities', () => {

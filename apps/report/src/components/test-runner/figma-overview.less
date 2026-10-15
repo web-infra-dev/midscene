@@ -37,14 +37,12 @@
 .test-runner-report[data-page='overview'] {
   &[data-theme='light'] {
     --runner-bg: #f3f3f3;
-    --runner-project-selected: rgba(0, 0, 0, 0.05);
     --runner-project-group-bg: #f6f7f8;
     --runner-overview-title-text: rgba(0, 0, 0, 0.9);
     --runner-overview-row-text: #000;
     --runner-overview-metric-text: #101828;
   }
   &[data-theme='dark'] {
-    --runner-project-selected: rgba(255, 255, 255, 0.08);
     --runner-project-group-bg: var(--runner-code-bg);
     --runner-overview-title-text: var(--runner-text);
     --runner-overview-row-text: var(--runner-text);
@@ -165,7 +163,7 @@
   .runner-results {
     --runner-result-color: #969eb2;
     display: flex;
-    width: 352px;
+    width: 424px;
     min-width: 0;
     flex-direction: column;
     gap: 6px;
@@ -401,12 +399,10 @@
     text-align: left;
     cursor: pointer;
   }
-  .runner-project-nav-item.is-selected {
-    background: var(--runner-project-selected);
-  }
-  .runner-project-nav-item:not(.is-selected):hover,
+  .runner-project-nav-item.is-selected,
+  .runner-project-nav-item:hover,
   .runner-project-group-toggle:hover {
-    background: var(--runner-hover);
+    background: var(--runner-list-active-bg);
   }
   .runner-project-nav-item:focus-visible,
   .runner-project-group-toggle:focus-visible {
@@ -918,6 +914,10 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
+  .runner-file-table thead th:last-child,
+  .runner-file-table .runner-file-duration {
+    text-align: right;
+  }
   .runner-file-case-row th {
     padding-block: 0;
     padding-left: 44px;
@@ -965,11 +965,6 @@
   }
   .runner-case-issue-summary.is-muted {
     color: var(--runner-muted);
-  }
-  .runner-case-issue-summary > .anticon {
-    margin-top: 3px;
-    flex: none;
-    font-size: 14px;
   }
   .runner-case-issue-summary > span:last-child {
     min-width: 0;
@@ -1093,6 +1088,8 @@
       flex: 1 1 280px;
     }
     .runner-counts {
+      flex-wrap: wrap;
+      justify-content: flex-start;
       gap: 8px;
     }
     .runner-run-meta {

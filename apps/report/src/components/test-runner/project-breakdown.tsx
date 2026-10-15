@@ -1,8 +1,4 @@
-import {
-  CaretDownFilled,
-  CaretUpFilled,
-  ExclamationCircleOutlined,
-} from '@ant-design/icons';
+import { CaretDownFilled, CaretUpFilled } from '@ant-design/icons';
 import { type ReactNode, useId, useMemo, useState } from 'react';
 import { RunnerAttemptTimeline } from './attempt-timeline';
 import { ErrorCards } from './error-card';
@@ -174,7 +170,6 @@ function CaseRows({
                 className={`runner-case-issue-summary is-${summary.tone}`}
                 onClick={() => onOpen(item, summary.stepId)}
               >
-                <ExclamationCircleOutlined aria-hidden="true" />
                 <span>
                   <strong>{summary.label}</strong>
                   <span title={summary.message}>{summary.message}</span>

@@ -85,7 +85,7 @@ export function getOverviewProjectStatus(
 export function getOverviewProjectSummary(item: OverviewProject): string {
   const results = [
     [item.passedCount - item.retryPassedCount, 'passed'],
-    [item.retryPassedCount, 'retried'],
+    [item.retryPassedCount, 'passed after retry'],
     [item.failedCount, 'failed'],
     [item.notRunCount, 'not run'],
   ] as const;

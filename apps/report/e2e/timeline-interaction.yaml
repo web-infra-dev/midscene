@@ -5,10 +5,10 @@ tasks:
   - name: legacy YAML opens the Test report timeline
     flow:
       - sleep: 2000
-      - aiAssert: The header shows Test Report next to the Midscene logo. The overview is visible with a web project in the Projects and cases section.
-      - aiTap: the expand chevron to the left of the web project
-      - aiAssert: The login to sauce demo and verify inventory page cases are visible under the web project
-      - aiTap: the login to sauce demo case row under the web project
+      - aiAssert: The header shows Test Report next to the Midscene logo. The overview has web selected in the Projects navigation on the left, and its Files table on the right shows the collapsed generate-report.yaml File.
+      - aiTap: the expand chevron for the generate-report.yaml File row in the web project's table
+      - aiAssert: The login to sauce demo and verify inventory page Cases are visible beneath the expanded generate-report.yaml File.
+      - aiTap: the login to sauce demo Case row beneath generate-report.yaml
       - aiAssert: The login to sauce demo case detail is open with an Overview back link, an Execution panel, and a Visual timeline containing captured screenshots
 
   - name: click timeline screenshot to inspect evidence

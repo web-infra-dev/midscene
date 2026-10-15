@@ -24,6 +24,7 @@ export function CaseWorkspaceHeader({
 }): JSX.Element {
   return (
     <section className="runner-detail-case-header">
+      {caseNavigation}
       {!standaloneRun && (
         <button type="button" className="runner-back-button" onClick={onBack}>
           <ArrowLeftOutlined />
@@ -67,7 +68,6 @@ export function CaseWorkspaceHeader({
             </span>
           </div>
         </div>
-        {caseNavigation}
       </div>
       {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
       {children}

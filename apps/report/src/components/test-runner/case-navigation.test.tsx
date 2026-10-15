@@ -97,7 +97,8 @@ describe('case navigation', () => {
           onOpenCase={() => {}}
         />,
       );
-    expect(render(projects)).toContain('View all cases');
+    expect(render(projects)).toContain('aria-label="View all cases"');
+    expect(render(projects)).toContain('aria-expanded="false"');
     expect(render([])).toBe('');
     expect(render([{ ...projects[0], cases: [projects[0].cases[0]] }])).toBe(
       '',

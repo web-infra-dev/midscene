@@ -533,8 +533,8 @@
   }
 
   .runner-detail-step-group + .runner-detail-step-group {
-    margin-top: 16px;
-    padding-top: 16px;
+    margin-top: 8px;
+    padding-top: 8px;
     border-top: 1px solid var(--runner-border);
   }
 
@@ -574,7 +574,7 @@
     z-index: 2;
     display: flex;
     flex: none;
-    margin: 0 0 8px;
+    margin: 0;
     padding: 5px 12px;
     align-items: center;
     justify-content: space-between;
@@ -599,9 +599,9 @@
     width: 100%;
     min-height: 64px;
     margin: 0 0 8px;
-    padding: 7px 11px;
+    padding: 8px 12px;
     gap: 8px;
-    border: 1px solid transparent;
+    border: 0;
     border-radius: 12px;
     background: transparent;
     isolation: isolate;
@@ -612,14 +612,18 @@
     z-index: 1;
   }
 
+  .runner-detail-step-list > button:last-child {
+    margin-bottom: 0;
+  }
+
   .runner-detail-step-list > button:focus-visible {
     outline: 2px solid var(--runner-primary);
     outline-offset: -2px;
   }
 
-  .runner-detail-step-list > button.is-selected {
-    border-color: #157af8;
-    background: var(--runner-primary-soft);
+  .runner-detail-step-list > button.is-selected,
+  .runner-detail-step-list > button:hover {
+    background: var(--runner-list-active-bg);
     box-shadow: none;
   }
 

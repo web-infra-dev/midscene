@@ -1,28 +1,74 @@
 .test-runner-report {
   .runner-case-browse {
-    flex: none;
-    align-self: flex-start;
-    min-height: 32px;
-    padding: 4px 12px;
+    position: fixed;
+    z-index: 1010;
+    top: 95.5px;
+    left: 0;
+    display: grid;
+    width: 28.5625px;
+    height: 28px;
+    padding: 0;
+    place-items: center;
     color: var(--runner-text);
     border: 1px solid var(--runner-border);
-    border-radius: 8px;
+    border-radius: 0 10px 10px 0;
     background: var(--runner-surface);
-    font-size: 12px;
-    line-height: 22px;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.05);
     cursor: pointer;
     &:hover {
       background: var(--runner-control-bg);
     }
   }
   .runner-case-drawer {
-    --case-current-bg: #f7f7f7;
+    --runner-case-directory-width: 400px;
+    // rc-drawer focuses this viewport-wide wrapper before the current Case.
+    outline: none;
+    .ant-drawer-content-wrapper {
+      max-width: 100%;
+      overflow: hidden;
+      border-radius: 0 10px 10px 0;
+      box-shadow: 10px 0 20px rgba(0, 0, 0, 0.05);
+    }
+    .ant-drawer-content {
+      overflow: hidden;
+      border: 1px solid var(--runner-border-strong);
+      border-radius: 0 10px 10px 0;
+      background: var(--runner-code-bg);
+    }
     .ant-drawer-header {
       min-height: 56px;
+      padding: 12px 18px;
       border-bottom: 0;
     }
     .ant-drawer-body {
-      padding: 0 8px 8px;
+      padding: 0 6px 8px;
+      background: var(--runner-code-bg);
+      scrollbar-width: thin;
+      scrollbar-color: var(--runner-scroll-thumb) var(--runner-code-bg);
+
+      &:hover {
+        scrollbar-color: var(--runner-scroll-thumb-hover) var(--runner-code-bg);
+      }
+
+      &::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      &::-webkit-scrollbar-track,
+      &::-webkit-scrollbar-corner {
+        background: var(--runner-code-bg);
+      }
+
+      &::-webkit-scrollbar-thumb {
+        border: 2px solid var(--runner-code-bg);
+        border-radius: 999px;
+        background: var(--runner-scroll-thumb);
+        background-clip: padding-box;
+      }
+
+      &::-webkit-scrollbar-thumb:hover {
+        background-color: var(--runner-scroll-thumb-hover);
+      }
     }
     .ant-drawer-title {
       font-weight: 500;
@@ -33,7 +79,7 @@
   }
   .runner-case-list h3 {
     margin: 0 0 8px;
-    padding: 16px 16px 0;
+    padding: 8px 12px 0;
     overflow: hidden;
     color: var(--runner-muted);
     font-size: 14px;
@@ -46,11 +92,10 @@
     display: flex;
     width: 100%;
     min-width: 0;
-    min-height: 74px;
+    min-height: 62px;
     margin-bottom: 8px;
-    padding: 16px;
+    padding: 8px 12px;
     align-items: center;
-    gap: 16px;
     color: var(--runner-text);
     border: 0;
     border-radius: 12px;
@@ -60,14 +105,10 @@
     cursor: pointer;
     &:hover,
     &[aria-current] {
-      background: var(--case-current-bg);
+      background: var(--runner-list-active-bg);
     }
     &:focus-visible {
       outline-offset: -2px;
-    }
-    > img {
-      flex: none;
-      opacity: 0.01;
     }
   }
   .runner-case-list-copy {
@@ -88,10 +129,11 @@
       white-space: nowrap;
     }
     strong {
+      min-width: 0;
       font-family: 'Report Roboto', 'Report Inter', sans-serif;
       font-size: 14px;
       font-weight: 400;
-      line-height: 18px;
+      line-height: 22px;
     }
     small {
       color: var(--runner-muted);
@@ -106,10 +148,20 @@
     border-radius: 4px;
     line-height: 12px;
   }
-  &[data-theme='dark'] .runner-case-drawer {
-    --case-current-bg: var(--runner-hover);
-  }
-  &[data-theme='dark'] .runner-case-drawer .ant-drawer-close img {
+  &[data-theme='dark'] .runner-case-drawer .ant-drawer-close img,
+  &[data-theme='dark'] .runner-case-browse img {
     filter: invert(1);
+  }
+}
+
+@media (max-width: 980px) {
+  .test-runner-report .runner-case-workspace:has(.runner-case-browse) {
+    padding-left: 40px;
+  }
+}
+
+@media (max-width: 600px) {
+  .test-runner-report .runner-case-drawer {
+    --runner-case-directory-width: 100%;
   }
 }

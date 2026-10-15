@@ -1,7 +1,7 @@
 import { Drawer } from 'antd';
 import { type Ref, useRef, useState } from 'react';
 import closeIcon from './assets/case-navigation-close.svg';
-import moreIcon from './assets/case-navigation-more.svg';
+import menuIcon from './assets/case-navigation-menu.svg';
 import { type RunnerCaseView, getCaseFailure } from './model';
 import {
   type OverviewProject,
@@ -56,7 +56,6 @@ export function CaseNavigationList({
                       {fileDisplayName(file)}
                     </small>
                   </span>
-                  <img src={moreIcon} width={16} height={16} alt="" />
                 </button>
               )),
             )}
@@ -80,18 +79,22 @@ export function CaseNavigation(props: CaseNavigationProps) {
         ref={triggerRef}
         type="button"
         className="runner-case-browse"
+        aria-label="View all cases"
+        title="View all cases"
         aria-haspopup="dialog"
         aria-expanded={open}
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen((value) => !value)}
       >
-        View all cases
+        <img src={menuIcon} width={16} height={16} alt="" />
       </button>
       <Drawer
         title="All cases"
         aria-label="All cases"
-        width={480}
+        placement="left"
+        width="var(--runner-case-directory-width)"
+        mask={false}
         rootClassName="runner-issue-drawer runner-case-drawer"
-        rootStyle={{ position: 'fixed' }}
+        rootStyle={{ position: 'fixed', inset: '134px 9px 56px 0' }}
         getContainer={() =>
           triggerRef.current?.closest<HTMLElement>('.test-runner-report') ??
           document.body
@@ -99,7 +102,9 @@ export function CaseNavigation(props: CaseNavigationProps) {
         open={open}
         onClose={() => setOpen(false)}
         afterOpenChange={(visible) => {
-          if (visible) currentRef.current?.scrollIntoView({ block: 'nearest' });
+          if (!visible) return;
+          currentRef.current?.focus({ preventScroll: true });
+          currentRef.current?.scrollIntoView({ block: 'nearest' });
         }}
         closeIcon={<img src={closeIcon} width={16} height={16} alt="" />}
       >

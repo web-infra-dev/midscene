@@ -169,7 +169,7 @@ describe('Midscene Test report layout', () => {
       /\.runner-header-inner\s*\{[^}]*width: 100%;[^}]*margin-inline: auto;[^}]*padding: 0 40px;/s,
     );
     expect(figmaShellStyles).toMatch(
-      /\.runner-page,[\s\S]*?\.runner-case-workspace\s*\{[^}]*width: 100%;[^}]*margin-inline: auto;[^}]*padding: 40px 32px;/s,
+      /\.runner-page,[\s\S]*?\.runner-case-workspace\s*\{[^}]*width: 100%;[^}]*margin-inline: auto;[^}]*padding: 40px;/s,
     );
   });
 

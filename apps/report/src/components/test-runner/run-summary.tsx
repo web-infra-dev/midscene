@@ -48,7 +48,7 @@ export function RunSummary({
     },
     { label: 'Failed', value: dump.summary.failed, tone: 'danger' },
     {
-      label: 'Retried',
+      label: 'Passed after retry',
       value: health.retryPassedCount,
       description: 'Passed after retry',
       tone: 'warning',

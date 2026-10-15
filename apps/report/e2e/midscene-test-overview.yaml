@@ -7,7 +7,7 @@ target:
 tasks:
   - name: grouped project navigation keeps file errors distinct from failed cases
     flow:
-      - aiAssert: The summary shows 4 of 5 cases passed, with a result bar and legend showing 3 passed without retry, 0 failed, 1 retried and 1 not run. The run information shows 2 Projects and 6 Files. Web regression is selected under Failed in the left project navigation; its summary includes passed, retried and not-run Case counts without hiding any of these outcomes. Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
+      - aiAssert: The summary shows 4 of 5 cases passed, with a result bar and legend showing 3 passed without retry, 0 failed, 1 passed after retry and 1 not run. The run information shows 2 Projects and 6 Files. Web regression is selected under Failed in the left project navigation; its summary includes passed, passed after retry and not-run Case counts without hiding any of these outcomes. Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
       - javascript: |
           (() => {
             const table = document.querySelector('.runner-file-table');
@@ -16,6 +16,9 @@ tasks:
             if (columns.length !== 4 || Math.abs(width - table.getBoundingClientRect().width) > 1) throw new Error('File table contains an unexpected layout column');
             const duration = table.querySelector('.runner-file-duration').getBoundingClientRect();
             if (Math.abs(duration.x - columns[3].x) > 1) throw new Error('Duration values are not aligned with their header');
+            for (const cell of table.querySelectorAll('thead th:last-child, .runner-file-duration')) {
+              if (getComputedStyle(cell).textAlign !== 'right') throw new Error('Duration headers and values must align to the right');
+            }
             for (const item of document.querySelectorAll('.runner-project-nav-item')) {
               const bounds = item.getBoundingClientRect();
               const parent = item.parentElement.getBoundingClientRect();
@@ -89,14 +92,55 @@ tasks:
       - aiTap: the Duration column header in the Web regression table
       - aiTap: the Smoke checkout Case row in Web regression
       - aiAssert: The Smoke checkout Case detail shows an Overview back link and an Execution panel.
-      - aiTap: the View all cases button in the Case header
-      - aiAssert: The All cases drawer lists Web regression and Mobile regression. Smoke checkout is highlighted as the current Case. Checkout with retry and Blocked by document setup are also listed even though the Overview was filtered to passed checkout Cases. Each Case shows its result and source file.
-      - aiTap: the Close button at the top right of the All cases drawer
+      - aiTap: the floating menu button labeled View all cases on the left edge of the report
+      - aiAssert: The All cases directory opens on the left below the floating menu button, without dimming the report. It lists Web regression and Mobile regression. Smoke checkout is highlighted as the current Case. Checkout with retry and Blocked by document setup are also listed even though the Overview was filtered to passed checkout Cases. Each Case shows its result and source file.
+      - javascript: |
+          const directory = document.querySelector('.runner-case-drawer');
+          const panel = directory?.querySelector('.ant-drawer-content-wrapper');
+          const content = directory?.querySelector('.ant-drawer-content');
+          const body = directory?.querySelector('.ant-drawer-body');
+          const trigger = document.querySelector('.runner-case-browse');
+          const steps = document.querySelector('.runner-detail-step-scroll');
+          if (![panel, content, body, trigger, steps].every(node => node instanceof HTMLElement)) throw new Error('Missing Case directory layout elements');
+          const panelBounds = panel.getBoundingClientRect();
+          const triggerBounds = trigger.getBoundingClientRect();
+          if (Math.abs(panelBounds.left) > 1 || Math.abs(triggerBounds.left) > 1) throw new Error('The Case directory and menu button must touch the left viewport edge');
+          if (panelBounds.top < triggerBounds.bottom || panelBounds.right > innerWidth) throw new Error('The directory overlaps its menu button or overflows the viewport');
+          if (panelBounds.right < steps.getBoundingClientRect().right + 8) throw new Error('The default directory width does not cover the underlying Step scrollbar');
+          const panelStyle = getComputedStyle(panel);
+          if (parseFloat(panelStyle.borderTopRightRadius) <= 0 || panelStyle.overflow !== 'hidden') throw new Error('The directory wrapper must clip its rounded corner');
+          const background = getComputedStyle(content).backgroundColor;
+          if (getComputedStyle(body).backgroundColor !== background || getComputedStyle(body, '::-webkit-scrollbar-track').backgroundColor !== background) throw new Error('The directory scrollbar track does not match its container');
+          const aligned = [directory.querySelector('.ant-drawer-title'), directory.querySelector('.runner-case-list h3'), directory.querySelector('.runner-case-list strong'), directory.querySelector('.runner-case-list small')];
+          if (!aligned.every(node => node instanceof HTMLElement)) throw new Error('Missing directory title, Project, Case or File label');
+          const left = aligned[0].getBoundingClientRect().left;
+          if (aligned.some(node => Math.abs(node.getBoundingClientRect().left - left) > 1)) throw new Error('Directory titles and labels are not left-aligned');
+        name: verifyCaseDirectoryLayout
+      - javascript: |
+          const drawer = document.querySelector('.runner-case-drawer');
+          const current = drawer?.querySelector('.runner-case-list [aria-current="page"]');
+          if (!(drawer instanceof HTMLElement) || !(current instanceof HTMLButtonElement)) throw new Error('Missing Case directory or current Case');
+          if (document.activeElement !== current) throw new Error('Opening the directory did not focus the current Case');
+          if (getComputedStyle(drawer).outlineStyle !== 'none') throw new Error('The directory wrapper has a full-page focus outline');
+        name: verifyCaseDirectoryFocus
+      - aiKeyboardPress: Tab
+      - javascript: |
+          const drawer = document.querySelector('.runner-case-drawer');
+          const focused = document.activeElement;
+          if (!(focused instanceof HTMLButtonElement) || !drawer?.contains(focused) || focused.getAttribute('aria-current') === 'page') throw new Error('Tab did not advance to another directory control');
+        name: verifyCaseDirectoryKeyboardNavigation
+      - aiKeyboardPress: Escape
+      - aiAssert: The directory is closed and Smoke checkout is still displayed.
+      - javascript: |
+          if (document.activeElement !== document.querySelector('.runner-case-browse')) throw new Error('Closing the directory did not return focus to its menu button');
+        name: verifyCaseDirectoryFocusReturn
+      - aiTap: the floating menu button on the left edge of the report
+      - aiTap: the floating menu button labeled View all cases again to close the directory
       - aiAssert: The drawer is closed and Smoke checkout is still displayed.
-      - aiTap: the View all cases button
+      - aiTap: the floating menu button on the left edge of the report
       - aiTap: Mobile checkout in the Mobile regression section of the All cases drawer
-      - aiAssert: The drawer has closed and the Mobile checkout detail shows Mobile regression and cart.verify. The View all cases button is still available.
-      - aiTap: the View all cases button
+      - aiAssert: The drawer has closed and the Mobile checkout detail shows Mobile regression and cart.verify. The floating menu button is still available on the left edge.
+      - aiTap: the floating menu button on the left edge of the report
       - aiTap: Checkout with retry in the Web regression section of the All cases drawer
       - aiAssert: Checkout with retry is displayed at the failed order.create Step in Attempt 1, showing Inventory was not ready. The drawer is closed.
       - aiTap: the Overview back link

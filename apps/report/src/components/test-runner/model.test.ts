@@ -424,7 +424,9 @@ describe('Midscene Test hybrid report model', () => {
     );
     expect(markup).toContain('Review case results: 2 of 4 passed');
     expect(markup).toContain('<span>Passed</span><strong>1</strong>');
-    expect(markup).toContain('<span>Retried</span><strong>1</strong>');
+    expect(markup).toContain(
+      '<span>Passed after retry</span><strong>1</strong>',
+    );
     expect(markup).toContain('<span>Not run</span><strong>1</strong>');
     expect(markup).toContain(
       'aria-label="1 Passed without retry, 1 Failed, 1 Passed after retry, 1 Not run"',
@@ -486,7 +488,9 @@ describe('Midscene Test hybrid report model', () => {
     );
     expect(markup).toContain('Review case results: 2 of 2 passed');
     expect(markup).toContain('<span>Passed</span><strong>0</strong>');
-    expect(markup).toContain('<span>Retried</span><strong>2</strong>');
+    expect(markup).toContain(
+      '<span>Passed after retry</span><strong>2</strong>',
+    );
     expect(markup.match(/flex-grow:/g)).toHaveLength(1);
     expect(markup).toContain('title="Passed after retry"');
   });
