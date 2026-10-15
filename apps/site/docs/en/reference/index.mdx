@@ -629,17 +629,17 @@ Android, iOS, and HarmonyOS use the same default gesture: move through the middl
 
 The default aims to keep some content from the previous screen visible so you can continue reading. Finger travel is not the same as content displacement: lists may keep moving after release, and paged controls may snap to another page.
 
-| Scenario | Usage and limits |
+| Scenario | Usage |
 | --- | --- |
 | Neither `locate` nor `distance` | Use the default gesture above. |
-| Only `distance` | Move the finger by the requested distance. Android and HarmonyOS start on the side opposite finger travel; iOS starts at the screen center. |
-| Only `locate` | Start at the target center. The default distance is still based on the screen, without detecting or adapting to container bounds. |
-| Both `locate` and `distance` | Move the requested distance from the target center. For a smaller region, choose a distance that fits it. |
-| Scroll to an edge | Use a type such as `scrollToTop`. Android and HarmonyOS perform 10 gestures. iOS compares screenshots and stops when the view is nearly unchanged or the attempt limit is reached. Long lists may not reach the edge. |
+| Only `distance` | Perform a scroll gesture of the specified distance. |
+| Only `locate` | Scroll at the specified location. The default distance is based on the screen size. |
+| Both `locate` and `distance` | Perform a scroll gesture of the specified distance at the specified location. |
+| Scroll to an edge | Use a type such as `scrollToTop`. Long lists may require multiple calls to reach the edge. |
 
-When a requested distance exceeds the available screen space, Android and HarmonyOS shorten the gesture; Android also logs a warning. iOS passes the coordinates to the system. None of these platforms automatically confines the gesture to the target container.
+Choose a `distance` within the available screen space. An excessive distance may cause the gesture to fail.
 
-For example, scroll a short distance inside a dialog list:
+For a dialog or a smaller list, specify both `locate` and a suitable `distance`. For example:
 
 ```typescript
 await agent.aiScroll('The list inside the dialog', { direction: 'down', distance: 100 });
