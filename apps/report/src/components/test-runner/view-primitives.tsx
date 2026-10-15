@@ -20,9 +20,6 @@ export const formatDuration = (durationMs: number | undefined): string => {
   )}s`;
 };
 
-export const formatPercent = (value: number): string =>
-  `${Math.round(value * 1000) / 10}%`;
-
 export const formatTimestamp = (value: string): string => {
   const parts = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',

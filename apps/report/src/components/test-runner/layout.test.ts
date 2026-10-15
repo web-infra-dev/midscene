@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from '@rstest/core';
 
-const styles = readFileSync(
-  new URL('./refinements.less', import.meta.url),
+const statusStyles = readFileSync(
+  new URL('./status-badge.less', import.meta.url),
   'utf8',
 );
 const baseStyles = readFileSync(
@@ -81,7 +81,7 @@ describe('Midscene Test report layout', () => {
   });
 
   it('uses the shared status tag spacing', () => {
-    expect(styles).toMatch(
+    expect(statusStyles).toMatch(
       /\.runner-status-badge\.runner-status-pill\s*\{[^}]*min-height: 24px;[^}]*padding: 4px 8px;[^}]*border-radius: 8px;/s,
     );
   });
@@ -97,9 +97,6 @@ describe('Midscene Test report layout', () => {
     ]) {
       expect(tokenStyles).toContain(token);
     }
-    expect(figmaDetailStyles).toMatch(
-      /\.runner-single-attempt-label\s*\{[^}]*padding: 4px 12px 4px 4px;[^}]*gap: 8px;/s,
-    );
     expect(attemptSelect).toContain('optionLabelProp="label"');
     expect(attemptSelect).toContain('popupMatchSelectWidth');
     expect(figmaDetailStyles).not.toContain(
@@ -115,10 +112,12 @@ describe('Midscene Test report layout', () => {
       /\.runner-attempt-option-status\.is-failed\s*\{[^}]*color: var\(--runner-danger, #e53f39\);[^}]*background: var\(--runner-danger-soft, #feece9\);/s,
     );
     expect(select).toContain("closest('.test-runner-report')");
+    expect(selectStyles).toMatch(
+      /\.runner-select-chevron\s*\{[^}]*width: 15px;[^}]*height: 15px;[^}]*mask: url\('\.\/assets\/overview-chevron-down.svg'\)/s,
+    );
   });
 
-  it('keeps case rows clickable without a separate Inspect affordance', () => {
-    expect(breakdown).not.toContain('runner-project-tree-case-cta');
+  it('opens a Case at its failed Step from the row', () => {
     expect(breakdown).toContain('className="runner-case-open"');
     expect(breakdown).toContain('onClick={() => onOpen(item, failure?.id)}');
   });
@@ -151,7 +150,7 @@ describe('Midscene Test report layout', () => {
   });
 
   it('sorts File and Case siblings through table column headers', () => {
-    for (const label of ['File', 'Passed / Case', 'Attention', 'Duration'])
+    for (const label of ['Files', 'Passed / Case', 'Attention', 'Duration'])
       expect(breakdown).toContain(label);
     expect(breakdown).toContain('aria-sort=');
     expect(breakdown).not.toContain('label="Project"');
@@ -159,7 +158,7 @@ describe('Midscene Test report layout', () => {
 
   it('keeps summary metrics separated on wide layouts', () => {
     expect(figmaOverviewStyles).toMatch(
-      /\.runner-overview-counts > div \+ div\s*\{[^}]*border-left: 1px solid var\(--runner-border\);/s,
+      /\.runner-overview-counts > div \+ div::before\s*\{[^}]*overview-meta-divider\.svg/s,
     );
   });
 
@@ -184,6 +183,7 @@ describe('Midscene Test report layout', () => {
   it('loads the shared palette and page layout partials from one entry point', () => {
     for (const partial of [
       'tokens.less',
+      'status-badge.less',
       'figma-shell.less',
       'figma-overview.less',
       'figma-detail.less',
@@ -196,9 +196,7 @@ describe('Midscene Test report layout', () => {
     }
   });
 
-  it('removes the intermediate project page while keeping expansion and case navigation', () => {
-    expect(breakdown).not.toContain('runner-project-tree-overview');
-    expect(source).not.toContain('ProjectWorkspace');
+  it('keeps file expansion and the Case back link to Overview', () => {
     expect(breakdown).toContain('aria-expanded={expanded}');
     expect(source).toContain('backLabel="Overview"');
   });

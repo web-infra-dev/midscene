@@ -8,7 +8,7 @@ target:
 tasks:
   - name: batch health and Project File Case hierarchy
     flow:
-      - aiAssert: The overview shows 2 of 2 cases passed, one Retried case, one File and an 8 second total time. Compact is selected. Web regression has its own table and checkout.yaml is expanded, showing Checkout with retry and Verify cart summary.
+      - aiAssert: The overview shows 2 of 2 cases passed, one Retried case, one File and an 8 second total time. Compact is selected. Web regression is selected in the project navigation and its table has checkout.yaml expanded, showing Checkout with retry and Verify cart summary.
       - aiTap: the Retried status checkbox near All, Failed and Passed
       - aiAssert: Only Checkout with retry remains under checkout.yaml. The file still shows 2 of 2 passed without an extra percentage.
       - aiTap: the checked Retried status checkbox
@@ -20,22 +20,39 @@ tasks:
       - aiTap: the All status checkbox
       - aiTap: the Duration column header in the Web regression table
       - aiAssert: Duration has an active descending sort arrow. There is no sorting dropdown.
-      - aiTap: the File column header
-      - aiAssert: File has an ascending arrow after switching from Duration. Checkout with retry still appears before Verify cart summary within its file.
+      - aiTap: the Files column header
+      - aiAssert: Files has an ascending arrow after switching from Duration. Checkout with retry still appears before Verify cart summary within its file.
       - aiTap: the Detailed view button
-      - aiAssert: Both cases are visible with their status and duration. A screenshot timeline appears below Checkout with retry, while Verify cart summary has no screenshot evidence. checkout.yaml is shown as their parent file, not repeated in each Case row.
+      - aiAssert: Both cases are visible with their status and duration. Checkout with retry shows a short Earlier attempt summary with Inventory was not ready and a screenshot timeline. Verify cart summary has no screenshot evidence. The timeline stays inside its Case row without covering another row. checkout.yaml is shown as their parent file, not repeated in each Case row.
+      - javascript: |
+          (() => {
+            const rows = [...document.querySelectorAll('.runner-file-table tr')];
+            for (const [index, row] of rows.entries()) {
+              if (!row.classList.contains('runner-case-evidence-row')) continue;
+              const preview = row.querySelector('.runner-detail-timeline-card');
+              if (!preview) continue;
+              const bottom = preview.getBoundingClientRect().bottom;
+              if (bottom > row.getBoundingClientRect().bottom + 1) throw new Error('Screenshots overflow their Case row');
+              const next = rows[index + 1];
+              if (next && bottom > next.getBoundingClientRect().top + 1) throw new Error('Screenshots overlap the next row');
+            }
+          })();
+        name: verifyTimelineContainment
+      - aiTap: the Earlier attempt error summary below Checkout with retry
+      - aiAssert: The Case detail opens at the failed order.create Step from Attempt 1, showing Inventory was not ready.
+      - aiTap: the Overview back link
       - aiHover: a screenshot thumbnail in the Checkout with retry timeline
       - aiAssert: An enlarged screenshot preview is visible near the hovered thumbnail.
       - aiHover: the Compact view control at the top left, outside the screenshot timeline and its floating preview
       - aiTap: the Compact view button
-      - aiAssert: Compact is selected. Both case rows are visible without screenshot timelines.
+      - aiAssert: Compact is selected. Both case rows are visible without screenshot timelines or error summaries.
       - aiTap: the Collapse file checkout.yaml button
       - aiAssert: checkout.yaml remains visible with its aggregate statistics, but its child Case rows are hidden.
       - aiTap: the Expand file checkout.yaml button
-      - aiTap: the Collapse project Web regression button
-      - aiAssert: The Web regression heading remains visible, but its file table is hidden.
-      - aiTap: the Expand project Web regression button
-      - aiAssert: checkout.yaml and its two Case rows are visible again.
+      - aiTap: the Collapse Passed after retry projects button in the left navigation
+      - aiAssert: The Web regression navigation item is hidden, but its selected project heading and file table remain visible on the right.
+      - aiTap: the Expand Passed after retry projects button in the left navigation
+      - aiAssert: The Web regression navigation item is visible again, and checkout.yaml still shows its two Case rows on the right.
 
   - name: direct case navigation and browser history
     flow:
@@ -93,7 +110,7 @@ tasks:
           if (!(main instanceof HTMLElement)) throw new Error('Missing report scroll container');
           main.scrollTo({ top: 0 });
         name: restoreAttemptSelector
-      - aiAssert: The Execution header groups the Visual and YAML switch with the Attempts dropdown on the left, and the Total steps, Success, Failed, Timeout, and Not run counts on the right.
+      - aiAssert: The Execution header groups the Visual and YAML switch with the Attempts dropdown on the left, and the Total steps, Success, Failed, Timeout, and Not run counts on the right. A downward chevron is visible at the right edge of the Attempts dropdown.
       - aiTap: the Attempts dropdown showing Attempt 1 beside Visual and YAML in the Execution header
       - aiAssert: The dropdown shows Attempt 1 as Failed and Attempt 2 as Passed.
       - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option

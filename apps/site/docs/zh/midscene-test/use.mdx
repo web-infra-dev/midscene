@@ -468,16 +468,16 @@ pnpm exec midscene-test --result-dir ./test-results
 
 每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
 
-**Test Report** 总览展示 **Project → File → Case** 三层结构，每个 Project 使用独立表格。展开 File 可以查看其 Case；有失败、文件级错误或重试后通过 Case 的 File 默认展开。空文件和收集失败的文件仍然可见，错误显示在所属 File 下方。Project 初始化、清理错误显示在项目标题下。**Compact** 展示 Case 名称、结果、重试信息和耗时；进入失败 Case 查看错误详情。**Detailed** 在相同 Case 集合下增加截图时间线。
+**Test Report** 总览展示 **Project → File → Case** 三层结构，左侧导航按 Failed、Passed after retry、Passed、Not run 的顺序分组展示项目，选择 Project 后在右侧查看其 File/Case 表格。每个分组名称后显示匹配的项目数，Projects 标题不重复展示总数。展开 File 可以查看其 Case；有失败、文件级错误或重试后通过 Case 的 File 默认展开。空文件和收集失败的文件仍然可见，错误显示在所属 File 下方。Project 初始化、清理错误显示在项目标题下。**Compact** 展示 Case 名称、结果、重试信息和耗时；进入失败 Case 查看错误详情。**Detailed** 在相同 Case 集合下增加截图时间线和简短的报错或未执行原因；重试后恢复的错误会标明来自此前尝试。点击摘要可查看错误详情，点击截图可进入对应 Step。
 
-通过 **All / Failed / Retried / Passed** 复选框和搜索缩小范围：
+搜索框查找整个报告中的 Project、File、Case 和错误详情，左侧导航只保留有匹配内容的 Project。选中项目标题旁的 **All / Failed / Passed / Retried** 复选框只筛选该 Project。没有匹配内容时，空态中的 **Clear filters** 可清空搜索并恢复 All：
 
 - **All** 包含 Not run Case 和没有 Case 的文件。选择具体状态会取消 All；多个具体状态按 OR 匹配，取消最后一个具体状态会恢复 All。
 - **Failed** 包含失败 Case 和文件、项目级错误。受影响的 Not run Case 作为上下文保留，但不计入失败数。
 - **Retried** 表示 Case 在此前的 Case 尝试失败后最终通过。文件整体重试不代表其中所有 Case 都属于 Retried。筛选中的 **Passed** 仅包含此前没有失败 Case 尝试的通过用例，顶部 Passed 汇总包含这两类。
-- 复选框计数以 Case 为单位，搜索时按搜索范围统计；文件和项目级错误单独计数。筛选不会改变顶部运行汇总或 File 的完整执行 **Passed / Case** 计数。File 只显示通过数 / 总数，不额外显示百分比和逐文件匹配提示；Case 总数未知或为零时显示 **—**。
+- 复选框的悬浮提示和无障碍标签以 Case 为单位显示计数，范围是选中 Project 的搜索结果；文件和项目级错误不计作 Case 失败。筛选不会改变顶部运行汇总或 File 的完整执行 **Passed / Case** 计数。File 只显示通过数 / 总数，不额外显示百分比和逐文件匹配提示；Case 总数未知或为零时显示 **—**。
 
-点击 Project 表格的 **File**、**Passed / Case**、**Attention** 或 **Duration** 列头，可单独排序该 Project；**Passed / Case** 按通过率排序。Project 保持报告顺序，File 只在所属 Project 内排序，Case 只在所属 File 内排序。**File** 默认采用报告中的文档顺序，与 Markdown 结果一致；再次点击则反向排列。仅存在于计划中的文件和收集错误接在已报告文档之后，保持各自原有顺序。按 File 排序时，文件内 Case 保持 `caseIndex` 顺序。其他列可切换方向，未知值始终置后。File Duration 使用记录的文件耗时，Case Duration 汇总其全部尝试的记录耗时。**Clear filters** 保留各 Project 的排序。进入 Case 再返回 Overview 时，搜索、状态筛选、各 Project 的排序和 File、Project 展开状态均保留。只有一个 Case 的报告仍在首次打开时直接进入详情，其 Overview 链接可以返回层级总览。
+点击 Project 表格的 **Files**、**Passed / Case**、**Attention** 或 **Duration** 列头，可单独排序该 Project；**Passed / Case** 按通过率排序。Project 按最终结果分组，同组内保持报告顺序；File 只在所属 Project 内排序，Case 只在所属 File 内排序。**Files** 默认采用报告中的文档顺序，与 Markdown 结果一致；再次点击则反向排列。仅存在于计划中的文件和收集错误接在已报告文档之后，保持各自原有顺序。按 **Files** 排序时，文件内 Case 保持 `caseIndex` 顺序。其他列可切换方向，未知值始终置后。File Duration 使用记录的文件耗时，Case Duration 汇总其全部尝试的记录耗时。切换 Project 会恢复 **All**，并保留搜索和各 Project 的排序；**Clear filters** 也保留排序。进入 Case 再返回 Overview 时，选中的 Project、搜索、状态筛选、各 Project 的排序、File 展开状态和导航分组的折叠状态均保留。只有一个 Case 的报告仍在首次打开时直接进入详情，其 Overview 链接可以返回层级总览。
 
 旧 **tasks / flow** YAML 新生成的报告使用同一页面：每个 task 对应一个 Case，flow 条目对应 Step。内联输入显示为 **Inline YAML**。宿主初始化、清理错误归属于 File，不虚构 YAML 中的钩子。旧 CLI 批量执行和整文件重试报告仍保留来源身份，此页面不会把独立报告推断合并成同一个逻辑 Project，也不会推断 Case 重试历史。只有 Agent dump 的来源标注为 **Source report / Agent report**，不声称还原出 YAML 文件或 task、flow 导航。仅在存在真实原文快照时提供 YAML 视图。历史 HTML 报告需重新生成才能使用新布局。
 
@@ -509,7 +509,7 @@ Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝�
 | Cancellation requested | `cancel-requested` | 已请求取消，但操作可能仍在运行。 |
 | Cleanup postponed | `cleanup-deferred` | 尚未结束的操作仍在使用资源，清理被推迟。 |
 
-**Execution still running** 和 **pending** 徽标表示 Runner 返回结果时，操作尚未结束，可能出现在超时或取消场景。这不代表报告记录截止时间之后的实时状态。Status 为 **—** 表示这条事件没有结果状态，不代表失败。
+**Execution still running** 和 **pending** 徽标表示 Runner 返回结果时，操作尚未结束，可能出现在超时或取消场景。这不代表报告记录截止时间之后的实时状态。Status 为 `-` 表示这条事件没有结果状态，不代表失败。
 
 Step 错误显示在这些标签页上方。展开 **details** 可查看技术信息；存在多个问题时，可通过 **View all … issues** 查看。Case 和生命周期清理错误仍显示在 Execution 上方。页头的主题按钮可以切换浅色和深色主题。
 

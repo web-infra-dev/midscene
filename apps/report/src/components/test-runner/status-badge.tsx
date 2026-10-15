@@ -16,7 +16,7 @@ export function StatusBadge({
   return createElement(
     'span',
     {
-      className: `runner-status-pill runner-status-badge is-${tone}${quiet ? ' is-quiet' : ''}${className ? ` ${className}` : ''}`,
+      className: `runner-status-pill runner-status-badge is-${tone}${className ? ` ${className}` : ''}`,
     },
     quiet ? null : icon,
     createElement('span', null, label.toLowerCase()),

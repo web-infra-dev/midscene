@@ -14,11 +14,17 @@ import {
   createOverviewState,
   fileDisplayName,
   filterOverviewProjects,
+  getOverviewCaseSummary,
   getOverviewProjectSort,
+  getOverviewProjectStatus,
   getOverviewStatusCounts,
+  getSelectedOverviewProject,
+  groupOverviewProjects,
+  selectOverviewProject,
   toggleOverviewStatus,
 } from './overview-model';
 import { ProjectBreakdownTree } from './project-breakdown';
+import { ProjectNavigation } from './project-navigation';
 
 const source = {
   sources: [
@@ -54,6 +60,81 @@ const plan = (
   beforeAll: [],
   afterAll: [],
   cases: [],
+});
+
+describe('Detailed Case summaries', () => {
+  it('shows the primary failure reason and the owning Step', () => {
+    const dump = fixture();
+    const testCase = dump.projects[0].documents[0].cases[0];
+    testCase.status = 'failed';
+    const attempt = testCase.attempts.at(-1)!;
+    attempt.status = 'failed';
+    attempt.steps[0].status = 'failed';
+    attempt.steps[0].error = {
+      name: 'Error',
+      code: 'NODE_EXECUTION_ERROR',
+      message: 'Node execution failed',
+      cause: {
+        name: 'AssertionError',
+        message: 'Expected cart count 1, received 0',
+      },
+    };
+    const summary = getOverviewCaseSummary(flattenRunnerCases(dump)[0]);
+    expect(summary).toMatchObject({
+      message: 'Expected cart count 1, received 0',
+      tone: 'danger',
+      stepId: attempt.steps[0].id,
+    });
+    expect(summary?.label).toContain(attempt.steps[0].node);
+  });
+
+  it('identifies recovered errors as an earlier attempt rather than a current failure', () => {
+    const item = flattenRunnerCases(fixture())[0];
+    expect(getOverviewCaseSummary(item)).toMatchObject({
+      label: 'Earlier attempt · order.create',
+      message: 'Inventory was not ready.',
+      tone: 'warning',
+      stepId: 'attempt-1:steps:0',
+    });
+  });
+
+  it('shows a final cleanup error instead of a recovered Step failure', () => {
+    const dump = fixture();
+    const testCase = dump.projects[0].documents[0].cases[0];
+    testCase.status = 'failed';
+    const attempt = testCase.attempts.at(-1)!;
+    attempt.status = 'failed';
+    attempt.hostErrors = [
+      {
+        phase: 'cleanup',
+        error: { name: 'Error', message: 'Browser disposal failed' },
+      },
+    ];
+    expect(getOverviewCaseSummary(flattenRunnerCases(dump)[0])).toMatchObject({
+      label: 'Case failed',
+      message: 'Browser disposal failed',
+      tone: 'danger',
+      stepId: undefined,
+    });
+  });
+
+  it('includes a not-run reason without inventing a failure for passing Cases', () => {
+    const item = flattenRunnerCases(fixture())[1];
+    expect(getOverviewCaseSummary(item)).toBeUndefined();
+    expect(
+      getOverviewCaseSummary({
+        ...item,
+        status: 'not-run',
+        testCase: {
+          ...item.testCase,
+          notRunReason: 'Blocked by document setup',
+        },
+      }),
+    ).toMatchObject({
+      message: 'Blocked by document setup',
+      tone: 'muted',
+    });
+  });
 });
 const extraFile = (
   documentId: string,
@@ -341,10 +422,7 @@ describe('Project → File → Case overview', () => {
       query: 'parse',
     });
     expect(result).toHaveLength(1);
-    expect(result[0].files[0]).toMatchObject({
-      cases: [],
-      matchedCaseCount: 0,
-    });
+    expect(result[0].files[0].cases).toEqual([]);
     expect(result[0].files[0].item.totalCaseCount).toBeUndefined();
     expect(getOverviewStatusCounts(projects, 'parse').all).toBe(0);
   });
@@ -361,14 +439,17 @@ describe('Project → File → Case overview', () => {
     ];
     document.cases[0].status = 'not-run';
     document.cases[0].attempts = [];
-    const result = filterOverviewProjects(projectsFor(dump), {
+    const projects = projectsFor(dump);
+    const result = filterOverviewProjects(projects, {
       ...options,
       statuses: ['failed'],
     });
     expect(result[0].files[0].cases.map((item) => item.status)).toEqual([
       'not-run',
     ]);
-    expect(result[0].files[0].matchedCaseCount).toBe(0);
+    const counts = getOverviewStatusCounts(projects, '');
+    expect(counts.failed).toBe(0);
+    expect(counts.all).toBe(counts.passed + counts['retry-passed'] + 1);
   });
 
   it('implements mutually exclusive All and OR status filters without an empty state', () => {
@@ -621,12 +702,10 @@ describe('Project → File → Case overview', () => {
           projects={filterOverviewProjects(projects, state)}
           visualIndex={buildRunnerVisualIndex([])}
           caseDisplayMode={displayMode}
-          expandedProjectKeys={state.expandedProjectKeys}
           expandedFileKeys={state.expandedFileKeys}
           projectSorts={state.projectSorts}
           query=""
           onSortChange={() => {}}
-          onToggleProject={() => {}}
           onToggleFile={() => {}}
           hasActiveFilters={false}
           onResetFilters={() => {}}
@@ -637,7 +716,7 @@ describe('Project → File → Case overview', () => {
       expect(html).toContain('<table');
       expect(html).toContain('<colgroup>');
       expect(html).toContain('aria-sort="ascending"');
-      expect(html).toContain('Sort by File');
+      expect(html).toContain('Sort by Files');
       expect(html).toContain('Passed / Case');
       expect(html).toContain('Bad YAML');
       expect(html).not.toContain('0 / 0');
@@ -672,14 +751,12 @@ describe('Project → File → Case overview', () => {
         projects={filterOverviewProjects(projects, state)}
         visualIndex={buildRunnerVisualIndex([])}
         caseDisplayMode="compact"
-        expandedProjectKeys={state.expandedProjectKeys}
         expandedFileKeys={state.expandedFileKeys}
         projectSorts={
           new Map([[projects[0].key, { sort: 'result', direction: 'asc' }]])
         }
         query=""
         onSortChange={() => {}}
-        onToggleProject={() => {}}
         onToggleFile={() => {}}
         hasActiveFilters
         onResetFilters={() => {}}
@@ -706,5 +783,117 @@ describe('Project → File → Case overview', () => {
           (icon) => icon.includes('caret-up') && icon.includes('caret-down'),
         ),
     ).toBe(true);
+  });
+});
+
+describe('overview project navigation', () => {
+  it('groups failed, retried, passed and not-run projects in that order without losing their identities', () => {
+    const base = projectsFor(fixture())[0];
+    const project = (key: string, changes = {}) => ({
+      ...base,
+      key,
+      failedCount: 0,
+      retryPassedCount: 0,
+      notRunCount: 0,
+      hasScopeError: false,
+      ...changes,
+    });
+    const projects = [
+      project('passed'),
+      project('retried', { retryPassedCount: 1 }),
+      project('failed', { hasScopeError: true }),
+      project('not-run', { notRunCount: 1 }),
+    ];
+    expect(
+      groupOverviewProjects(projects).map((group) => [
+        group.status,
+        group.projects.map((item) => item.key),
+      ]),
+    ).toEqual([
+      ['failed', ['failed']],
+      ['retry-passed', ['retried']],
+      ['passed', ['passed']],
+      ['not-run', ['not-run']],
+    ]);
+    expect(getSelectedOverviewProject(projects)?.key).toBe('failed');
+    expect(
+      getSelectedOverviewProject(
+        projects.filter((item) => item.key !== 'failed'),
+      )?.key,
+    ).toBe('retried');
+    expect(getSelectedOverviewProject(projects, 'passed')?.key).toBe('passed');
+    expect(getSelectedOverviewProject(projects, 'missing')?.key).toBe('failed');
+    expect(getSelectedOverviewProject([])).toBeUndefined();
+  });
+
+  it('shows matching Project counts beside each navigation group instead of the module title', () => {
+    const base = projectsFor(fixture())[0];
+    const project = (key: string, changes = {}) => ({
+      ...base,
+      key,
+      failedCount: 0,
+      retryPassedCount: 0,
+      notRunCount: 0,
+      hasScopeError: false,
+      ...changes,
+    });
+    const html = renderToStaticMarkup(
+      <ProjectNavigation
+        projects={[
+          project('passed-1'),
+          project('retried', { retryPassedCount: 1 }),
+          project('failed', { hasScopeError: true }),
+          project('passed-2'),
+        ]}
+        selectedKey="failed"
+        collapsedGroups={new Set()}
+        onSelect={() => {}}
+        onToggleGroup={() => {}}
+      />,
+    );
+    expect(html).toContain('<h2>Projects</h2>');
+    for (const [label, count] of [
+      ['Failed', 1],
+      ['Passed after retry', 1],
+      ['Passed', 2],
+    ]) {
+      expect(html).toContain(`<span>${label} (${count})</span>`);
+      expect(html).toContain(`Collapse ${label} projects (${count})`);
+    }
+    expect(html.indexOf('Failed (1)')).toBeLessThan(
+      html.indexOf('Passed after retry (1)'),
+    );
+    expect(html.indexOf('Passed after retry (1)')).toBeLessThan(
+      html.indexOf('Passed (2)'),
+    );
+  });
+
+  it('keeps a project with only file errors in the Failed navigation group', () => {
+    const base = projectsFor(fixture())[0];
+    const project = {
+      ...base,
+      failedCount: 0,
+      notRunCount: 0,
+      retryPassedCount: 0,
+      files: base.files.map((file) => ({ ...file, hasScopeError: true })),
+    };
+    expect(getOverviewProjectStatus(project)).toBe('failed');
+  });
+
+  it('changes the selected project without carrying a different project’s status filter or resetting sorts', () => {
+    const projects = projectsFor(fixture());
+    const initial = changeOverviewSort(
+      createOverviewState(projects),
+      projects[0].key,
+      'duration',
+    );
+    const next = selectOverviewProject(
+      { ...initial, statuses: ['failed'] },
+      'another-project',
+    );
+    expect(next.selectedProjectKey).toBe('another-project');
+    expect(next.statuses).toEqual([]);
+    expect(next.projectSorts).toBe(initial.projectSorts);
+    expect(next.expandedFileKeys).toBe(initial.expandedFileKeys);
   });
 });

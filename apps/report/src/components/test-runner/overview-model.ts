@@ -1,13 +1,16 @@
 import type { TestRunReportDocument, TestRunReportDump } from '@midscene/core';
+import { getIssuePresentation } from './issue-presentation';
 import {
   type ReportIssue,
   type ReportIssues,
   collectReportIssues,
+  getStepIssues,
 } from './issues';
 import {
   type RunnerCaseStatus,
   type RunnerCaseView,
   type RunnerProjectView,
+  flattenAttemptSteps,
   getCaseSearchMatch,
   groupRunnerProjects,
 } from './model';
@@ -47,7 +50,6 @@ export interface OverviewProject extends RunnerProjectView {
 export interface FileBreakdown {
   item: RunnerFileView;
   cases: RunnerCaseView[];
-  matchedCaseCount: number;
 }
 export interface ProjectBreakdown {
   item: OverviewProject;
@@ -61,7 +63,96 @@ export interface OverviewFilters {
 }
 export interface OverviewState extends OverviewFilters {
   expandedFileKeys: Set<string>;
-  expandedProjectKeys: Set<string>;
+  selectedProjectKey?: string;
+  collapsedProjectGroups: ReadonlySet<RunnerCaseStatus>;
+}
+
+export function getOverviewProjectStatus(
+  item: OverviewProject,
+): RunnerCaseStatus {
+  return item.project.status === 'failed' ||
+    item.hasScopeError ||
+    item.files.some((file) => file.hasScopeError) ||
+    item.failedCount
+    ? 'failed'
+    : item.notRunCount
+      ? 'not-run'
+      : item.retryPassedCount
+        ? 'retry-passed'
+        : 'passed';
+}
+
+export function groupOverviewProjects(projects: readonly OverviewProject[]) {
+  return (
+    [
+      ['failed', 'Failed'],
+      ['retry-passed', 'Passed after retry'],
+      ['passed', 'Passed'],
+      ['not-run', 'Not run'],
+    ] as const
+  ).flatMap(([status, label]) => {
+    const items = projects.filter(
+      (item) => getOverviewProjectStatus(item) === status,
+    );
+    return items.length ? [{ status, label, projects: items }] : [];
+  });
+}
+
+export function selectOverviewProject(
+  state: OverviewState,
+  key: string,
+): OverviewState {
+  return { ...state, selectedProjectKey: key, statuses: [] };
+}
+
+export function getSelectedOverviewProject(
+  projects: readonly OverviewProject[],
+  key?: string,
+) {
+  return (
+    projects.find((item) => item.key === key) ??
+    groupOverviewProjects(projects)[0]?.projects[0]
+  );
+}
+
+export function getOverviewCaseSummary(item: RunnerCaseView) {
+  if (item.status === 'passed') return undefined;
+  if (item.status === 'not-run')
+    return {
+      label: 'Case not run',
+      message:
+        item.testCase.notRunReason ||
+        'Open the case to inspect why it did not run.',
+      tone: 'muted',
+      stepId: undefined,
+    };
+  const recovered = item.status === 'retry-passed';
+  const attempt = recovered
+    ? [...item.testCase.attempts]
+        .reverse()
+        .find((value) => value.status === 'failed')
+    : item.finalAttempt;
+  const step =
+    attempt &&
+    flattenAttemptSteps(attempt).find((value) => value.status === 'failed');
+  const issue =
+    step && getStepIssues(step).find((value) => value.severity === 'error');
+  const presentation = issue && getIssuePresentation(issue);
+  const scopeError =
+    attempt?.hostErrors?.[0]?.error ??
+    attempt?.cleanup?.error ??
+    attempt?.teardownErrors?.[0];
+  const error = issue?.error ?? scopeError;
+  return {
+    label: `${recovered ? 'Earlier attempt' : (presentation?.title ?? 'Case failed')}${issue && step ? ` · ${step.node}` : ''}`,
+    message:
+      presentation?.message ??
+      error?.cause?.message ??
+      error?.message ??
+      'Open the case to inspect execution details.',
+    tone: recovered ? 'warning' : 'danger',
+    stepId: issue ? step?.id : undefined,
+  };
 }
 
 const counts = (cases: readonly RunnerCaseView[]) => ({
@@ -274,7 +365,8 @@ export function createOverviewState(
     query: '',
     statuses: [],
     projectSorts: new Map(),
-    expandedProjectKeys: new Set(projects.map((item) => item.key)),
+    selectedProjectKey: getSelectedOverviewProject(projects)?.key,
+    collapsedProjectGroups: new Set(),
     expandedFileKeys: new Set(
       projects.flatMap((item) =>
         item.files
@@ -359,9 +451,6 @@ export function filterOverviewProjects(
             scopeErrorMatches ||
             Boolean(getCaseSearchMatch(testCase, query))),
       );
-      const matchedCaseCount = cases.filter((testCase) =>
-        matchesStatus(testCase, options.statuses),
-      ).length;
       if (
         !cases.length &&
         !scopeErrorMatches &&
@@ -385,7 +474,7 @@ export function filterOverviewProjects(
           );
         return comparison || a.testCase.caseIndex - b.testCase.caseIndex;
       });
-      return [{ item: file, cases, matchedCaseCount }];
+      return [{ item: file, cases }];
     });
     files.sort((a, b) => {
       let comparison = 0;

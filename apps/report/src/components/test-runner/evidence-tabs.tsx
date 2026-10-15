@@ -250,7 +250,7 @@ function RuntimeEvents({ step }: { step: TestRunReportStep }): JSX.Element {
                     <StatusBadge label="Pending" tone="warning" quiet />
                   ) : null}
                   {!event.status && !event.pending ? (
-                    <span className="runner-muted">—</span>
+                    <span className="runner-muted">-</span>
                   ) : null}
                 </div>
               </td>

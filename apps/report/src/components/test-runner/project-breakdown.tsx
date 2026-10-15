@@ -1,6 +1,9 @@
-import { CaretDownFilled, CaretUpFilled } from '@ant-design/icons';
-import { Button, Empty } from 'antd';
-import { useId, useMemo, useState } from 'react';
+import {
+  CaretDownFilled,
+  CaretUpFilled,
+  ExclamationCircleOutlined,
+} from '@ant-design/icons';
+import { type ReactNode, useId, useMemo, useState } from 'react';
 import { RunnerAttemptTimeline } from './attempt-timeline';
 import { ErrorCards } from './error-card';
 import {
@@ -11,6 +14,7 @@ import {
   getCaseSearchMatch,
   positionAttemptVisualFrames,
 } from './model';
+import { OverviewEmptyState } from './overview-empty-state';
 import {
   type FileBreakdown,
   type OverviewSort,
@@ -18,7 +22,9 @@ import {
   type ProjectBreakdown,
   fileAttention,
   fileDisplayName,
+  getOverviewCaseSummary,
   getOverviewProjectSort,
+  getOverviewProjectStatus,
   projectDisplayName,
 } from './overview-model';
 import {
@@ -91,6 +97,7 @@ function CaseRows({
 }) {
   const [previewFrameKey, setPreviewFrameKey] = useState<string>();
   const failure = getCaseFailure(item.testCase);
+  const summary = getOverviewCaseSummary(item);
   const frames = useMemo(
     () =>
       item.finalAttempt
@@ -161,6 +168,19 @@ function CaseRows({
       {displayMode === 'detailed' ? (
         <tr className="runner-case-evidence-row">
           <td colSpan={4}>
+            {summary ? (
+              <button
+                type="button"
+                className={`runner-case-issue-summary is-${summary.tone}`}
+                onClick={() => onOpen(item, summary.stepId)}
+              >
+                <ExclamationCircleOutlined aria-hidden="true" />
+                <span>
+                  <strong>{summary.label}</strong>
+                  <span title={summary.message}>{summary.message}</span>
+                </span>
+              </button>
+            ) : null}
             <div className="runner-case-evidence-preview">
               <RunnerAttemptTimeline
                 attempt={item.finalAttempt}
@@ -311,12 +331,11 @@ export function ProjectBreakdownTree({
   projects,
   visualIndex,
   caseDisplayMode,
-  expandedProjectKeys,
   expandedFileKeys,
   projectSorts,
   query,
+  headerControls,
   onSortChange,
-  onToggleProject,
   onToggleFile,
   hasActiveFilters,
   onResetFilters,
@@ -325,12 +344,11 @@ export function ProjectBreakdownTree({
   projects: ProjectBreakdown[];
   visualIndex: RunnerVisualIndex;
   caseDisplayMode: RunnerCaseDisplayMode;
-  expandedProjectKeys: ReadonlySet<string>;
   expandedFileKeys: ReadonlySet<string>;
   projectSorts: ReadonlyMap<string, OverviewSorting>;
   query: string;
+  headerControls?: ReactNode;
   onSortChange(projectKey: string, value: OverviewSort): void;
-  onToggleProject(key: string): void;
   onToggleFile(key: string): void;
   hasActiveFilters: boolean;
   onResetFilters(): void;
@@ -339,17 +357,19 @@ export function ProjectBreakdownTree({
   if (!projects.length)
     return (
       <div className="runner-empty-results">
-        <Empty
+        <OverviewEmptyState
+          title={
+            hasActiveFilters
+              ? 'No matching projects'
+              : 'No projects in this report'
+          }
           description={
             hasActiveFilters
-              ? 'No projects, files or cases match these filters'
-              : 'No projects were collected for this run'
+              ? 'Try a different project, file or case name.'
+              : 'This run did not collect any projects.'
           }
-        >
-          {hasActiveFilters ? (
-            <Button onClick={onResetFilters}>Clear filters</Button>
-          ) : null}
-        </Empty>
+          onReset={hasActiveFilters ? onResetFilters : undefined}
+        />
       </div>
     );
   return (
@@ -357,17 +377,7 @@ export function ProjectBreakdownTree({
       {projects.map(({ item, files }) => {
         const sorting = getOverviewProjectSort({ projectSorts }, item.key);
         const name = projectDisplayName(item);
-        const expanded = expandedProjectKeys.has(item.key);
-        const status =
-          item.project.status === 'failed' ||
-          item.hasScopeError ||
-          item.failedCount
-            ? 'failed'
-            : item.notRunCount
-              ? 'not-run'
-              : item.retryPassedCount
-                ? 'retry-passed'
-                : 'passed';
+        const status = getOverviewProjectStatus(item);
         return (
           <section
             className="runner-project-section"
@@ -375,30 +385,21 @@ export function ProjectBreakdownTree({
             aria-label={`Project ${name}`}
           >
             <header className="runner-project-heading">
-              <button
-                type="button"
-                onClick={() => onToggleProject(item.key)}
-                aria-expanded={expanded}
-                aria-label={`${expanded ? 'Collapse' : 'Expand'} project ${name}`}
-              >
-                <span
-                  className={`runner-project-chevron${expanded ? ' is-expanded' : ''}`}
-                  aria-hidden="true"
-                />
+              <div className="runner-project-title">
                 <h2 title={name}>{name}</h2>
                 <CaseStatus status={status} quiet />
-              </button>
-              <span className="runner-project-summary">
-                {item.project.projectId.endsWith('legacy-yaml')
-                  ? `Legacy YAML${item.project.platform ? ` · ${item.project.platform}` : ''} · `
-                  : ''}
+                {item.project.projectId.endsWith('legacy-yaml') ? (
+                  <small>
+                    Legacy YAML
+                    {item.project.platform ? ` · ${item.project.platform}` : ''}
+                  </small>
+                ) : null}
                 {item.files.length > 0 &&
-                item.files.every((file) => file.sourceKind === 'agent')
-                  ? 'Agent report · '
-                  : ''}
-                {item.cases.length} cases · {item.passedCount} passed
-                {item.failedCount ? ` · ${item.failedCount} failed` : ''}
-              </span>
+                item.files.every((file) => file.sourceKind === 'agent') ? (
+                  <small>Agent report</small>
+                ) : null}
+              </div>
+              {headerControls}
             </header>
             {item.issues.length ? (
               <ErrorCards
@@ -406,70 +407,73 @@ export function ProjectBreakdownTree({
                 label={`Project ${name} issues`}
               />
             ) : null}
-            {expanded ? (
-              <section
-                className="runner-file-table-scroll"
-                aria-label={`Files in ${name}`}
-                // biome-ignore lint/a11y/noNoninteractiveTabindex: The scroll region must support horizontal keyboard scrolling.
-                tabIndex={0}
+            <section
+              className="runner-file-table-scroll"
+              aria-label={`Files in ${name}`}
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: The scroll region must support horizontal keyboard scrolling.
+              tabIndex={0}
+            >
+              <table
+                className="runner-file-table"
+                aria-label={`${name} files and cases`}
               >
-                <table
-                  className="runner-file-table"
-                  aria-label={`${name} files and cases`}
-                >
-                  <colgroup>
-                    <col className="runner-file-name-col" />
-                    <col className="runner-file-rate-col" />
-                    <col className="runner-file-attention-col" />
-                    <col className="runner-file-time-col" />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      {(
-                        [
-                          ['File', 'file'],
-                          ['Passed / Case', 'passed-rate'],
-                          ['Attention', 'result'],
-                          ['Duration', 'duration'],
-                        ] as const
-                      ).map(([label, value]) => (
-                        <SortHeading
-                          key={value}
-                          label={label}
-                          value={value}
-                          sort={sorting.sort}
-                          direction={sorting.direction}
-                          onChange={(value) => onSortChange(item.key, value)}
-                        />
-                      ))}
-                    </tr>
-                  </thead>
-                  {files.length ? (
-                    files.map((file) => (
-                      <FileRows
-                        key={file.item.key}
-                        view={file}
-                        expanded={expandedFileKeys.has(file.item.key)}
-                        onToggle={() => onToggleFile(file.item.key)}
-                        displayMode={caseDisplayMode}
-                        visualIndex={visualIndex}
-                        query={query}
-                        filtered={hasActiveFilters}
-                        onOpen={onOpenCase}
+                <colgroup>
+                  <col className="runner-file-name-col" />
+                  <col className="runner-file-rate-col" />
+                  <col className="runner-file-attention-col" />
+                  <col className="runner-file-time-col" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    {(
+                      [
+                        ['Files', 'file'],
+                        ['Passed / Case', 'passed-rate'],
+                        ['Attention', 'result'],
+                        ['Duration', 'duration'],
+                      ] as const
+                    ).map(([label, value]) => (
+                      <SortHeading
+                        key={value}
+                        label={label}
+                        value={value}
+                        sort={sorting.sort}
+                        direction={sorting.direction}
+                        onChange={(value) => onSortChange(item.key, value)}
                       />
-                    ))
-                  ) : (
-                    <tbody>
-                      <tr>
-                        <td colSpan={4} className="runner-file-empty">
-                          No files were collected for this project.
-                        </td>
-                      </tr>
-                    </tbody>
-                  )}
-                </table>
-              </section>
-            ) : null}
+                    ))}
+                  </tr>
+                </thead>
+                {files.map((file) => (
+                  <FileRows
+                    key={file.item.key}
+                    view={file}
+                    expanded={expandedFileKeys.has(file.item.key)}
+                    onToggle={() => onToggleFile(file.item.key)}
+                    displayMode={caseDisplayMode}
+                    visualIndex={visualIndex}
+                    query={query}
+                    filtered={hasActiveFilters}
+                    onOpen={onOpenCase}
+                  />
+                ))}
+              </table>
+              {!files.length ? (
+                <OverviewEmptyState
+                  title={
+                    hasActiveFilters
+                      ? 'No matching cases'
+                      : 'No files in this project'
+                  }
+                  description={
+                    hasActiveFilters
+                      ? 'Try another status or search term.'
+                      : 'This project did not collect any files.'
+                  }
+                  onReset={hasActiveFilters ? onResetFilters : undefined}
+                />
+              ) : null}
+            </section>
           </section>
         );
       })}

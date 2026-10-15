@@ -360,7 +360,6 @@ describe('report lifecycle failures', () => {
     expect(html).not.toContain('authored execution');
     expect(html).not.toContain('Test plan');
     expect(html).not.toContain('aria-label="Attempts"');
-    expect(html).not.toContain('runner-single-attempt-label');
     expect(html).not.toContain('Attempt 1');
     expect(html).toContain('aria-label="Execution visual timeline"');
   });

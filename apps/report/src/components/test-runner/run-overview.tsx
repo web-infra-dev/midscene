@@ -1,7 +1,7 @@
 import type { TestRunReportDump } from '@midscene/core';
 import { type Dispatch, type SetStateAction, useMemo, useRef } from 'react';
 import { CaseDensitySwitch } from './case-density-switch';
-import { CaseFilters } from './case-filters';
+import { CaseSearch, CaseStatusFilters } from './case-filters';
 import { ErrorCards } from './error-card';
 import { type ReportIssues, collectReportIssues, getRunIssues } from './issues';
 import type {
@@ -14,10 +14,14 @@ import {
   type OverviewState,
   changeOverviewSort,
   filterOverviewProjects,
+  getOverviewProjectStatus,
   getOverviewStatusCounts,
+  getSelectedOverviewProject,
+  selectOverviewProject,
   toggleOverviewStatus,
 } from './overview-model';
 import { ProjectBreakdownTree } from './project-breakdown';
+import { ProjectNavigation } from './project-navigation';
 import { RunSummary } from './run-summary';
 import type { RunnerCaseDisplayMode } from './view-primitives';
 
@@ -48,27 +52,40 @@ export function RunOverview({
 }): JSX.Element {
   const reportIssues = issues ?? collectReportIssues(dump);
   const breakdownRef = useRef<HTMLElement>(null);
-  const breakdownProjects = useMemo(
-    () => filterOverviewProjects(projects, state),
+  const navigationProjects = useMemo(
+    () =>
+      filterOverviewProjects(projects, { ...state, statuses: [] }).map(
+        (view) => view.item,
+      ),
     [projects, state],
   );
+  const selectedProject = getSelectedOverviewProject(
+    navigationProjects,
+    state.selectedProjectKey,
+  );
+  const breakdownProjects = useMemo(() => {
+    if (!selectedProject) return [];
+    const filtered = filterOverviewProjects([selectedProject], state);
+    return filtered.length ? filtered : [{ item: selectedProject, files: [] }];
+  }, [selectedProject, state]);
   const statusCounts = useMemo(
-    () => getOverviewStatusCounts(projects, state.query),
-    [projects, state.query],
+    () =>
+      getOverviewStatusCounts(
+        selectedProject ? [selectedProject] : [],
+        state.query,
+      ),
+    [selectedProject, state.query],
   );
   const resetFilters = () =>
     onStateChange((current) => ({ ...current, query: '', statuses: [] }));
   const hasActiveFilters = Boolean(state.query.trim() || state.statuses.length);
   const totalCaseCount = Math.max(dump.summary.total, cases.length);
-  const toggle = (
-    key: string,
-    field: 'expandedProjectKeys' | 'expandedFileKeys',
-  ) =>
+  const toggleFile = (key: string) =>
     onStateChange((current) => {
-      const next = new Set(current[field]);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return { ...current, [field]: next };
+      const expandedFileKeys = new Set(current.expandedFileKeys);
+      if (expandedFileKeys.has(key)) expandedFileKeys.delete(key);
+      else expandedFileKeys.add(key);
+      return { ...current, expandedFileKeys };
     });
   const focusOutcomeCases = () => {
     const failed =
@@ -86,7 +103,13 @@ export function RunOverview({
         : health.retryPassedCount
           ? ['retry-passed']
           : [],
-      expandedProjectKeys: new Set(projects.map((project) => project.key)),
+      selectedProjectKey:
+        projects.find((project) =>
+          failed
+            ? getOverviewProjectStatus(project) === 'failed'
+            : project.retryPassedCount > 0,
+        )?.key ?? current.selectedProjectKey,
+      collapsedProjectGroups: new Set(),
       expandedFileKeys: new Set([
         ...current.expandedFileKeys,
         ...projects.flatMap((project) =>
@@ -129,7 +152,7 @@ export function RunOverview({
       />
       <section
         ref={breakdownRef}
-        className="runner-panel runner-breakdown-panel"
+        className="runner-breakdown-panel"
         aria-label="Projects, files and cases"
       >
         <div className="runner-breakdown-controls">
@@ -137,24 +160,15 @@ export function RunOverview({
             value={caseDisplayMode}
             onChange={onCaseDisplayModeChange}
           />
-          <CaseFilters
+          <CaseSearch
             query={state.query}
-            statuses={state.statuses}
-            counts={statusCounts}
             onQueryChange={(query) =>
               onStateChange((current) => ({ ...current, query }))
             }
-            onStatusToggle={(status) =>
-              onStateChange((current) => ({
-                ...current,
-                statuses: toggleOverviewStatus(current.statuses, status),
-              }))
-            }
-            onClear={resetFilters}
           />
         </div>
         {fileErrorCount || projectErrorCount ? (
-          <div className="runner-overview-result-count" aria-live="polite">
+          <div className="runner-sr-only" aria-live="polite">
             {[
               fileErrorCount &&
                 `${fileErrorCount} file ${fileErrorCount === 1 ? 'error' : 'errors'}`,
@@ -165,25 +179,58 @@ export function RunOverview({
               .join(' · ')}
           </div>
         ) : null}
-        <ProjectBreakdownTree
-          projects={breakdownProjects}
-          visualIndex={visualIndex}
-          caseDisplayMode={caseDisplayMode}
-          expandedProjectKeys={state.expandedProjectKeys}
-          expandedFileKeys={state.expandedFileKeys}
-          projectSorts={state.projectSorts}
-          query={state.query}
-          onSortChange={(projectKey, sort) =>
-            onStateChange((current) =>
-              changeOverviewSort(current, projectKey, sort),
-            )
-          }
-          onToggleProject={(key) => toggle(key, 'expandedProjectKeys')}
-          onToggleFile={(key) => toggle(key, 'expandedFileKeys')}
-          hasActiveFilters={hasActiveFilters}
-          onResetFilters={resetFilters}
-          onOpenCase={onOpenCase}
-        />
+        <div className="runner-overview-workspace">
+          <ProjectNavigation
+            projects={navigationProjects}
+            selectedKey={selectedProject?.key}
+            collapsedGroups={state.collapsedProjectGroups}
+            onSelect={(key) =>
+              onStateChange((current) => selectOverviewProject(current, key))
+            }
+            onToggleGroup={(status) =>
+              onStateChange((current) => {
+                const collapsedProjectGroups = new Set(
+                  current.collapsedProjectGroups,
+                );
+                if (collapsedProjectGroups.has(status))
+                  collapsedProjectGroups.delete(status);
+                else collapsedProjectGroups.add(status);
+                return { ...current, collapsedProjectGroups };
+              })
+            }
+          />
+          <div className="runner-overview-project">
+            <ProjectBreakdownTree
+              projects={breakdownProjects}
+              visualIndex={visualIndex}
+              caseDisplayMode={caseDisplayMode}
+              expandedFileKeys={state.expandedFileKeys}
+              projectSorts={state.projectSorts}
+              query={state.query}
+              headerControls={
+                <CaseStatusFilters
+                  statuses={state.statuses}
+                  counts={statusCounts}
+                  onStatusToggle={(status) =>
+                    onStateChange((current) => ({
+                      ...current,
+                      statuses: toggleOverviewStatus(current.statuses, status),
+                    }))
+                  }
+                />
+              }
+              onSortChange={(projectKey, sort) =>
+                onStateChange((current) =>
+                  changeOverviewSort(current, projectKey, sort),
+                )
+              }
+              onToggleFile={toggleFile}
+              hasActiveFilters={hasActiveFilters}
+              onResetFilters={resetFilters}
+              onOpenCase={onOpenCase}
+            />
+          </div>
+        </div>
       </section>
     </div>
   );

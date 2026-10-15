@@ -5,54 +5,67 @@ target:
   viewportHeight: 1600
   deviceScaleFactor: 1
 tasks:
-  - name: file errors and affected cases remain distinct from failed cases
+  - name: grouped project navigation keeps file errors distinct from failed cases
     flow:
-      - aiAssert: The summary shows 2 Projects, 6 Files, 5 Cases, 4 Passed, 0 Failed, 1 Retried and 1 Not run. Web regression and Mobile regression have separate tables. Web regression includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
-      - aiTap: the Failed checkbox in the status filter
-      - aiAssert: Failed has a count of zero, but blocked.yaml and broken.yaml remain visible because they have file errors. Blocked by document setup is visible as Not run. Mobile regression is filtered out. The top summary still shows five Cases and four Passed.
-      - aiTap: the All checkbox in the status filter
+      - aiAssert: The summary shows 2 Projects, 6 Files, 5 Cases, 4 Passed, 0 Failed, 1 Retried and 1 Not run. Web regression is selected under Failed in the left project navigation, and Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
+      - javascript: |
+          (() => {
+            const table = document.querySelector('.runner-file-table');
+            const columns = [...table.tHead.rows[0].cells].map(cell => cell.getBoundingClientRect());
+            const width = columns.reduce((sum, cell) => sum + cell.width, 0);
+            if (columns.length !== 4 || Math.abs(width - table.getBoundingClientRect().width) > 1) throw new Error('File table contains an unexpected layout column');
+            const duration = table.querySelector('.runner-file-duration').getBoundingClientRect();
+            if (Math.abs(duration.x - columns[3].x) > 1) throw new Error('Duration values are not aligned with their header');
+          })();
+        name: verifyFourColumnAlignment
+      - aiTap: the Failed checkbox beside the Web regression heading
+      - aiAssert: Failed is selected, and blocked.yaml and broken.yaml remain visible because they have file errors. Blocked by document setup is visible as Not run. Mobile regression remains available in the left navigation. The top summary still shows five Cases and four Passed.
+      - aiTap: the All checkbox beside the Web regression heading
       - aiTap: the Expand file empty.yaml button
       - aiAssert: empty.yaml shows No cases were collected for this file. It has no Case child rows and its Passed / Case cell is a dash.
       - aiTap: the Collapse file empty.yaml button
 
-  - name: Project sorting is independent and File follows Markdown report order
+  - name: Project selection preserves independent sorting and Markdown file order
     flow:
       - aiTap: the Duration column header in the Web regression table
       - javascript: |
           (() => {
-            const tables = [...document.querySelectorAll('.runner-file-table')];
-            if (tables[0].querySelector('[aria-sort="descending"]')?.textContent.trim() !== 'Duration') throw new Error('Web duration was not sorted descending');
-            if (tables[1].querySelector('[aria-sort="ascending"]')?.textContent.trim() !== 'File') throw new Error('Mobile sort changed with Web');
-            const names = [...document.querySelectorAll('.runner-project-heading h2')].map(node => node.textContent);
-            if (names.join('|') !== 'Web regression|Mobile regression') throw new Error('Sorting changed project order');
-            const files = [...tables[0].querySelectorAll('.runner-file-path')].map(node => node.textContent);
+            const table = document.querySelector('.runner-file-table');
+            if (table.querySelector('[aria-sort="descending"]')?.textContent.trim() !== 'Duration') throw new Error('Web duration was not sorted descending');
+            const files = [...table.querySelectorAll('.runner-file-path')].map(node => node.textContent);
             if (files.at(-1) !== 'broken.yaml') throw new Error('Unknown duration did not stay last');
           })();
-        name: verifyProjectSortAndUnknownDuration
+        name: verifyWebSortAndUnknownDuration
+      - aiTap: the Select project Mobile regression button in the left navigation
+      - aiAssert: Mobile regression is selected and only its table is displayed on the right. Its Files column is ascending, and All is selected.
+      - aiTap: the Select project Web regression button in the left navigation
+      - aiAssert: Web regression is selected again and its Duration column is still descending.
       - aiTap: the Duration column header in the Web regression table
-      - aiAssert: Duration is ascending in Web regression, while Mobile regression still shows File ascending. empty.yaml with 0 ms precedes files with positive durations.
-      - aiTap: the File column header in the Web regression table
+      - aiAssert: Duration is ascending. empty.yaml with 0 ms precedes files with positive durations.
+      - aiTap: the Files column header in the Web regression table
       - javascript: |
           (() => {
-            const tables = [...document.querySelectorAll('.runner-file-table')];
-            const files = [...tables[0].querySelectorAll('.runner-file-path')].map(node => node.textContent);
+            const table = document.querySelector('.runner-file-table');
+            const files = [...table.querySelectorAll('.runner-file-path')].map(node => node.textContent);
             if (files.join('|') !== 'checkout.yaml|smoke/checkout.yaml|blocked.yaml|empty.yaml|broken.yaml') throw new Error('Markdown document order was not restored');
-            if (tables[0].querySelector('[aria-sort="ascending"]')?.textContent.trim() !== 'File') throw new Error('File should sort ascending');
-            if (tables[1].querySelector('[aria-sort="ascending"]')?.textContent.trim() !== 'File') throw new Error('Mobile sort changed with Web');
+            if (table.querySelector('[aria-sort="ascending"]')?.textContent.trim() !== 'Files') throw new Error('Files should sort ascending');
           })();
         name: verifyMarkdownFileOrder
-      - aiTap: the File column header in the Web regression table
+      - aiTap: the Files column header in the Web regression table
       - javascript: |
           (() => {
-            const tables = [...document.querySelectorAll('.runner-file-table')];
-            const files = [...tables[0].querySelectorAll('.runner-file-path')].map(node => node.textContent);
-            if (files.join('|') !== 'broken.yaml|empty.yaml|blocked.yaml|smoke/checkout.yaml|checkout.yaml') throw new Error('File descending did not reverse report order');
-            if (tables[0].querySelector('[aria-sort="descending"]')?.textContent.trim() !== 'File') throw new Error('Web File should sort descending');
-            if (tables[1].querySelector('[aria-sort="ascending"]')?.textContent.trim() !== 'File') throw new Error('Mobile sort changed with Web');
+            const table = document.querySelector('.runner-file-table');
+            const files = [...table.querySelectorAll('.runner-file-path')].map(node => node.textContent);
+            if (files.join('|') !== 'broken.yaml|empty.yaml|blocked.yaml|smoke/checkout.yaml|checkout.yaml') throw new Error('Files descending did not reverse report order');
+            if (table.querySelector('[aria-sort="descending"]')?.textContent.trim() !== 'Files') throw new Error('Web Files should sort descending');
           })();
-        name: verifyIndependentReverseFileOrder
+        name: verifyReverseFileOrder
+      - aiTap: the Select project Mobile regression button
+      - aiAssert: Mobile regression still uses Files ascending. The sort applied to Web regression has not changed it.
+      - aiTap: the Select project Web regression button
+      - aiAssert: Web regression still uses Files descending.
 
-  - name: returning from details preserves filters sort and file expansion
+  - name: returning from details preserves project filters sort and file expansion
     flow:
       - aiTap: the Passed status checkbox
       - aiInput: checkout
@@ -62,4 +75,12 @@ tasks:
       - aiTap: the Smoke checkout Case row in Web regression
       - aiAssert: The Smoke checkout Case detail shows an Overview back link and an Execution panel.
       - aiTap: the Overview back link
-      - aiAssert: Passed is still checked, the search input still contains checkout, Web regression Duration is still sorted descending, and smoke/checkout.yaml is still expanded showing Smoke checkout. Checkout with retry is filtered out, while the checkout.yaml parent file still shows 2 of 2 passed without an extra percentage or per-file matching note.
+      - aiAssert: Web regression is still selected in the project navigation. Passed is still checked, the search input still contains checkout, Duration is still sorted descending, and smoke/checkout.yaml is still expanded showing Smoke checkout. Checkout with retry is filtered out, while the checkout.yaml parent file still shows 2 of 2 passed without an extra percentage or per-file matching note.
+
+  - name: empty search can be cleared without losing the selected Project
+    flow:
+      - aiInput: no-report-content-matches-this-query
+        locate: the search input for projects, files and cases
+      - aiAssert: The focused search field has one blue border without an extra outline around it. The project navigation shows No matching projects, and the main empty state shows No matching projects with a Clear filters button.
+      - aiTap: the Clear filters button in the main empty state
+      - aiAssert: The search field is empty and its hint mentions projects, files and cases. The sidebar heading is Projects without a total count. Failed (1) appears before Passed (1) in the navigation. Web regression is selected again, All is checked, and the table has Files, Passed / Case, Attention and Duration headers. Its Duration sort remains descending.

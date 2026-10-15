@@ -114,82 +114,6 @@
     margin: 0 auto;
   }
 
-  .runner-overview-outcome {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-  }
-
-  .runner-overview-run-meta {
-    min-width: 0;
-    gap: 3px;
-  }
-
-  .runner-overview-run-meta span:last-child {
-    overflow: hidden;
-    max-width: 170px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .runner-panel {
-    border: 1px solid var(--runner-border);
-    background: var(--runner-surface);
-    box-shadow: 0 1px 2px rgba(31, 35, 41, 0.025);
-  }
-
-  .runner-panel {
-    margin-top: 18px;
-    padding: 22px;
-    border-radius: 14px;
-  }
-
-  .runner-breakdown-panel {
-    scroll-margin-top: 18px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .runner-breakdown-view-switch {
-    align-items: center;
-    color: var(--runner-muted);
-    font-size: 14px;
-    white-space: nowrap;
-  }
-
-  .runner-status-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 8px;
-    gap: 5px;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .runner-status-pill.is-success {
-    color: var(--runner-success);
-    background: var(--runner-success-soft);
-  }
-
-  .runner-status-pill.is-warning {
-    color: var(--runner-warning);
-    background: var(--runner-warning-soft);
-  }
-
-  .runner-status-pill.is-failed {
-    color: var(--runner-danger);
-    background: var(--runner-danger-soft);
-  }
-
-  .runner-status-pill.is-neutral {
-    color: var(--runner-muted);
-    background: var(--runner-surface-muted);
-  }
-
   .runner-case-meta {
     overflow: hidden;
     white-space: nowrap;
@@ -223,12 +147,6 @@
 
   .runner-search-clear.is-hidden {
     visibility: hidden;
-  }
-
-  .runner-empty-results {
-    display: grid;
-    min-height: 400px;
-    place-items: center;
   }
 
   .runner-back-button {
@@ -769,21 +687,10 @@
   }
 }
 
-.test-runner-report[data-theme='dark'] {
-  .runner-panel {
-    box-shadow: none;
-  }
-}
-
 @media (max-width: 860px) {
   .test-runner-report {
     .runner-header-title span {
       display: none;
-    }
-
-    .runner-overview-outcome {
-      padding-right: 2px;
-      padding-left: 2px;
     }
 
     .runner-detail-heading-row h1 {
@@ -797,10 +704,6 @@
     .runner-header-title > div:not(.logo),
     .runner-header-actions {
       display: none;
-    }
-
-    .runner-overview-outcome {
-      padding-top: 4px;
     }
 
     .runner-case-meta {
@@ -844,7 +747,7 @@
 }
 
 // Component structure, followed by the current page layouts.
-@import './overview.less';
+@import './status-badge.less';
 @import './detail.less';
 @import './refinements.less';
 @import './figma-shell.less';

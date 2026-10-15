@@ -1,0 +1,42 @@
+.test-runner-report {
+  .runner-status-badge.runner-status-pill {
+    display: inline-flex;
+    width: auto;
+    height: auto;
+    min-height: 24px;
+    align-items: center;
+    padding: 4px 8px;
+    gap: 5px;
+    border: 0;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .runner-status-pill.is-success {
+    color: var(--runner-success);
+    background: var(--runner-success-soft);
+  }
+
+  .runner-status-pill.is-warning {
+    color: var(--runner-warning);
+    background: var(--runner-warning-soft);
+  }
+
+  .runner-status-pill.is-failed {
+    color: var(--runner-danger);
+    background: var(--runner-danger-soft);
+  }
+
+  .runner-status-pill.is-neutral {
+    color: var(--runner-muted);
+    background: var(--runner-surface-muted);
+  }
+
+  .runner-status-badge.runner-status-pill > span {
+    display: inline;
+  }
+}

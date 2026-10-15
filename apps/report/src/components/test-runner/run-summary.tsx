@@ -43,7 +43,7 @@ export function RunSummary({
     { label: 'Cases', value: totalCaseCount },
     { label: 'Passed', value: dump.summary.passed, tone: 'success' },
     { label: 'Failed', value: dump.summary.failed, tone: 'danger' },
-    { label: 'Retried', value: health.retryPassedCount },
+    { label: 'Retried', value: health.retryPassedCount, tone: 'warning' },
     { label: 'Not run', value: dump.summary.notRun },
   ];
   return (
@@ -80,10 +80,10 @@ export function RunSummary({
             total time <strong>{formatDuration(dump.durationMs)}</strong>
           </span>
           <span className="runner-overview-source-count">
-            <strong>{dump.projects.length}</strong> Projects
+            Projects <strong>{dump.projects.length}</strong>
           </span>
           <span className="runner-overview-source-count">
-            <strong>{totalFileCount}</strong> Files
+            Files <strong>{totalFileCount}</strong>
           </span>
         </div>
       </div>

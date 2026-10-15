@@ -383,6 +383,7 @@ describe('one home for errors and supporting information', () => {
     expect(html).toContain('Execution still running');
     expect(html).toContain('>pending</span>');
     expect(html).toContain('>failed</span>');
+    expect(html).toContain('<span class="runner-muted">-</span>');
   });
 
   it('explains every operation and event while preserving raw names in hover hints', () => {

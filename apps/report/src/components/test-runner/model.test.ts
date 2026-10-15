@@ -408,7 +408,6 @@ describe('Midscene Test hybrid report model', () => {
     expect(regular).toContain('runner-back-button');
     expect(regular).not.toContain('Copy case link');
     expect(regular).not.toContain('Run information');
-    expect(regular).not.toContain('runner-single-attempt-label');
     expect(regular).not.toContain('Attempt 1');
     expect(regular).not.toContain('aria-label="Attempts"');
     expect(regular).not.toContain('runner-step-status is-success');
@@ -496,6 +495,7 @@ describe('Midscene Test hybrid report model', () => {
     expect(markup).not.toContain('· failed');
     expect(markup).toContain('aria-label="Attempts"');
     expect(markup).toContain('role="combobox"');
+    expect(markup).toContain('runner-select-chevron');
     expect(markup).toContain('<dt>Total steps</dt><dd>12</dd>');
     const firstAttemptMarkup = renderToStaticMarkup(
       createElement(CaseExecutionToolbar, {
