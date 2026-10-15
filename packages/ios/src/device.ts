@@ -18,6 +18,7 @@ import {
   type ResolvedTextInputOptions,
   createDefaultMobileActions,
   defineAction,
+  resolveDefaultMobileScroll,
   resolveTextInputOptions,
   sendTextSequentially,
   shouldInputSequentially,
@@ -747,26 +748,18 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   private async scrollDefault(
     direction: 'up' | 'down' | 'left' | 'right',
   ): Promise<void> {
-    const { width, height } = await this.size();
-    const horizontal = direction === 'left' || direction === 'right';
-    const forward = direction === 'down' || direction === 'right';
-    const extent = horizontal ? width : height;
-    const start = Math.round(extent * (forward ? 0.85 : 1 - 0.85));
-    const end = Math.round(extent * (forward ? 1 - 0.85 : 0.85));
-    const from = { x: Math.round(width / 2), y: Math.round(height / 2) };
-    const to = { ...from };
-    if (horizontal) {
-      from.x = start;
-      to.x = end;
-    } else {
-      from.y = start;
-      to.y = end;
-    }
+    const { from, to } = resolveDefaultMobileScroll(
+      direction,
+      await this.size(),
+    );
     // A fixed duration changes release velocity with screen size/orientation.
     // Cap velocity at 400 points/second and keep short gestures at least 1s:
     // faster short gestures can intermittently fling beyond the viewport.
     // Swipe keeps its fast default.
-    const duration = Math.max(1000, Math.round(Math.abs(end - start) / 0.4));
+    const duration = Math.max(
+      1000,
+      Math.round(Math.hypot(to.x - from.x, to.y - from.y) / 0.4),
+    );
     await this.swipePoint(from, to, duration);
   }
 

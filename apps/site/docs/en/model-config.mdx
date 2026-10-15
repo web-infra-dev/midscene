@@ -1,6 +1,6 @@
 # Model Configuration Reference
 
-Use this page to look up every Midscene model setting. For supported model names, model families, and copyable setup examples, see [Supported models and setup](./model-common-config). For model roles and combination guidance, see [Model strategy](./model-strategy). For connection issues, logs, tracing, and call recording, see [Model debugging and observability](./model-debugging-observability).
+Use this page to look up every Midscene model setting. For supported model names, model families, and copyable setup examples, see [Use a model API key](./model-common-config). For model roles and combination guidance, see [Model strategy](./model-strategy). For connection issues, logs, tracing, and call recording, see [Model debugging and observability](./model-debugging-observability).
 
 ## Required settings
 
@@ -9,7 +9,7 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_MODEL_API_KEY` | Model API key for OpenAI-compatible HTTP providers, e.g., `"sk-abcd..."`. Not required when `MIDSCENE_MODEL_BASE_URL="codex://app-server"`; see [Use Codex App Server](./model-common-config#use-codex-app-server-oauth-no-api-key) |
+| `MIDSCENE_MODEL_API_KEY` | Model API key for OpenAI-compatible HTTP providers, e.g., `"sk-abcd..."`. Not required when `MIDSCENE_MODEL_BASE_URL="codex://app-server"`; see [Use Codex App Server](./chatgpt-subscription#use-codex-app-server-oauth-no-api-key) |
 | `MIDSCENE_MODEL_BASE_URL` | API endpoint URL, usually ending with a version (e.g., `/v1`); do not append `/chat/completions` or `/responses` here since the underlying sdk will add it automatically |
 | `MIDSCENE_MODEL_NAME` | Model name |
 | `MIDSCENE_MODEL_FAMILY` | Model family, determine the way of dealing with the coordinates |

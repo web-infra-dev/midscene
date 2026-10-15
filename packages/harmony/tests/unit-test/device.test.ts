@@ -812,16 +812,20 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 600, 50, 2000);
     });
 
-    it('scrollUntilTop without startPoint should use scroll', async () => {
-      await device.scrollUntilTop();
-      // Should call fling 10 times via scroll
-      expect(mockHdc.fling).toHaveBeenCalledTimes(10);
-    });
-
-    it('scrollUntilBottom without startPoint should use scroll', async () => {
-      await device.scrollUntilBottom();
-      expect(mockHdc.fling).toHaveBeenCalledTimes(10);
-    });
+    it.each([
+      ['scrollUntilTop', [600, 600, 600, 2350, 2000]],
+      ['scrollUntilBottom', [600, 1800, 600, 50, 2000]],
+      ['scrollUntilLeft', [300, 1200, 1150, 1200, 2000]],
+      ['scrollUntilRight', [900, 1200, 50, 1200, 2000]],
+    ] as const)(
+      '%s repeats the corrected boundary gesture',
+      async (method, expected) => {
+        await device[method]();
+        expect(mockHdc.fling).toHaveBeenCalledTimes(10);
+        for (const call of mockHdc.fling.mock.calls)
+          expect(call).toEqual(expected);
+      },
+    );
 
     it('scrollUntilLeft with startPoint should fling multiple times', async () => {
       await device.scrollUntilLeft({ left: 600, top: 1200 });

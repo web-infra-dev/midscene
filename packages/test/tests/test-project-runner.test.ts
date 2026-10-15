@@ -324,6 +324,13 @@ describe('test project main-process runner', () => {
       ],
     });
     const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(result.markdownPath).toBe(
+      join(dirname(result.summaryPath), 'result.md'),
+    );
+    expect(summary.markdown).toBe('result.md');
+    expect(readFileSync(result.markdownPath!, 'utf8')).toContain(
+      '## Midscene Test',
+    );
     expect(summary.projects[0]).toMatchObject({
       projectId: 'project-0',
       collectionErrors: [

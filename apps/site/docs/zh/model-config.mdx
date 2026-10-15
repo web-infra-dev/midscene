@@ -1,6 +1,6 @@
 # 模型配置参考
 
-本页汇总 Midscene 的全部模型配置。如需查看支持的模型名称、模型 family 和可复制的配置示例，请参考[支持的模型与配置](./model-common-config)。如需了解模型职责和组合方式，请参考[模型策略](./model-strategy)。如需排查连接问题、查看日志、采集 Trace 或记录调用，请参考[模型调试与可观测性](./model-debugging-observability)。
+本页汇总 Midscene 的全部模型配置。如需查看支持的模型名称、模型 family 和可复制的配置示例，请参考[使用模型 API Key](./model-common-config)。如需了解模型职责和组合方式，请参考[模型策略](./model-strategy)。如需排查连接问题、查看日志、采集 Trace 或记录调用，请参考[模型调试与可观测性](./model-debugging-observability)。
 
 ## 必选配置
 
@@ -8,7 +8,7 @@
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_MODEL_API_KEY` | OpenAI 兼容 HTTP 服务需要的模型 API Key，如 "sk-abcd..."。当 `MIDSCENE_MODEL_BASE_URL="codex://app-server"` 时不需要，具体设置请参考[使用 Codex App Server](./model-common-config#use-codex-app-server-oauth-no-api-key) |
+| `MIDSCENE_MODEL_API_KEY` | OpenAI 兼容 HTTP 服务需要的模型 API Key，如 "sk-abcd..."。当 `MIDSCENE_MODEL_BASE_URL="codex://app-server"` 时不需要，具体设置请参考[使用 Codex App Server](./chatgpt-subscription#use-codex-app-server-oauth-no-api-key) |
 | `MIDSCENE_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分，底层 SDK 会自动添加 |
 | `MIDSCENE_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_MODEL_FAMILY` | 模型系列，用于确定坐标处理方式 |

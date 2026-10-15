@@ -1,7 +1,10 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import {
+  type TMultimodalPrompt,
   findActionInActionSpaceOrThrow,
+  userPromptToMultimodalPrompt,
+  userPromptToString,
   validateRequiredLocateFields,
 } from '@/common';
 import { type AbstractInterface, defineActionSleep } from '@/device';
@@ -101,6 +104,7 @@ interface TaskBuilderDeps {
 
 interface BuildOptions {
   cacheable?: boolean;
+  multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
 }
@@ -110,6 +114,7 @@ interface PlanBuildContext {
   planningModel: ModelRuntime;
   defaultModel: ModelRuntime;
   cacheable?: boolean;
+  multimodalPrompt?: TMultimodalPrompt;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
 }
@@ -159,6 +164,7 @@ export class TaskBuilder {
       planningModel,
       defaultModel,
       cacheable,
+      multimodalPrompt: options?.multimodalPrompt,
       deepLocate: options?.deepLocate,
       abortSignal: options?.abortSignal,
     };
@@ -409,6 +415,22 @@ export class TaskBuilder {
     const { cacheable, defaultModel, deepLocate } = context;
 
     let locateParam = normalizeLocateParam(detailedLocateParam);
+
+    // Planning produces text locators; carry the user's reference images into
+    // independent grounding calls while preserving explicit locator images.
+    if (
+      context.multimodalPrompt?.images?.length &&
+      locateParam.prompt &&
+      !userPromptToMultimodalPrompt(locateParam.prompt)?.images?.length
+    ) {
+      locateParam = {
+        ...locateParam,
+        prompt: {
+          ...context.multimodalPrompt,
+          prompt: userPromptToString(locateParam.prompt),
+        },
+      };
+    }
 
     if (cacheable !== undefined) {
       locateParam = {

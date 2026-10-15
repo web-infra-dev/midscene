@@ -17,6 +17,7 @@ import {
   type PointerPoint,
   createDefaultMobileActions,
   defineAction,
+  resolveDefaultMobileScroll,
   resolveTextInputOptions,
   sendTextSequentially,
   shouldInputSequentially,
@@ -555,20 +556,10 @@ export class HarmonyDevice implements AbstractInterface {
     const { width, height } = await this.size();
     const isVertical = direction === 'up' || direction === 'down';
     if (distance === undefined && !startPoint) {
-      // Match Android and iOS geometry; fling speed is expressed in px/s.
-      const extent = isVertical ? height : width;
-      const forward = direction === 'down' || direction === 'right';
-      const start = Math.round(extent * (forward ? 0.85 : 1 - 0.85));
-      const end = Math.round(extent * (forward ? 1 - 0.85 : 0.85));
-      const from = { x: Math.round(width / 2), y: Math.round(height / 2) };
-      const to = { ...from };
-      if (isVertical) {
-        from.y = start;
-        to.y = end;
-      } else {
-        from.x = start;
-        to.x = end;
-      }
+      const { from, to } = resolveDefaultMobileScroll(direction, {
+        width,
+        height,
+      });
       const hdc = await this.getHdc();
       await hdc.fling(
         from.x,

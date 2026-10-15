@@ -66,6 +66,7 @@ class Controller: UIViewController {
     let obj: [String: Any] = [
       "mode": mode, "width": view.bounds.width, "height": view.bounds.height, "initial": initial,
       "x": x, "y": y, "samples": samples,
+      "maxY": max(0, scroll.contentSize.height - scroll.bounds.height),
     ]
     do {
       let data = try JSONSerialization.data(withJSONObject: obj)

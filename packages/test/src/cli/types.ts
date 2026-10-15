@@ -61,6 +61,8 @@ export interface TestProjectRunResult {
   exitCode: 0 | 1;
   resultDir: string;
   summaryPath: string;
+  /** Absolute path to the generated per-run result.md. */
+  markdownPath?: string;
   reportDir: string;
   /** Absolute path to the unified Midscene Test HTML report. */
   reportPath?: string;

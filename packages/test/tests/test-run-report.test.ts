@@ -1,14 +1,22 @@
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { TestRunReportSourceIndex } from '@midscene/core';
 import { describe, expect, it } from 'vitest';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type { StepRunResult } from '../src/engine/types';
+import { WorkflowError } from '../src/errors';
 import {
   buildTestRunReportDump,
+  renderTestResultMarkdown,
   sanitizeReportError,
   sanitizeReportValue,
+  writeTestResultMarkdown,
 } from '../src/report';
 
-const step = (executionId = 'execution-1'): StepRunResult => ({
+const step = (
+  executionId = 'execution-1',
+): Extract<StepRunResult, { status: 'success' | 'failed' }> => ({
   phase: 'steps',
   stepIndex: 0,
   node: 'aiAct',
@@ -201,5 +209,119 @@ describe('Midscene Test report manifest', () => {
       scopeId: 'attempt-1',
       executionId: 'missing',
     });
+  });
+});
+
+describe('result.md', () => {
+  it('renders one title and status per case without expanded details', () => {
+    const failed = {
+      ...step(),
+      status: 'failed' as const,
+      error: new WorkflowError('missing | <button> [x]'),
+    };
+    const run = result([failed]);
+    run.status = 'failed';
+    run.summary = { ...run.summary, passed: 0, failed: 1 };
+    run.projects[0].cases[0].status = 'failed';
+    const dump = buildTestRunReportDump(run, index);
+    const markdown = renderTestResultMarkdown(dump, {
+      reportHref: '../../../report/index.html',
+    });
+    expect(markdown).toContain('❌ **1 failed** · 0 passed · 0 not run');
+    expect(markdown).toMatch(/^ {2}- ❌ submit$/m);
+    expect(markdown).not.toContain('runner-step=');
+    expect(markdown.match(/\]\(</g)).toHaveLength(1);
+    expect(
+      markdown.endsWith(
+        '[Open the Midscene Test report ↗](<../../../report/index.html>)\n',
+      ),
+    ).toBe(true);
+    expect(markdown).not.toMatch(/<img|Reason:|Attempts:|missing/);
+    expect(markdown).not.toContain('secret-key');
+    expect(markdown).not.toContain('secret-token');
+  });
+
+  it('groups cases by source file without collapsing passed cases', () => {
+    const dump = buildTestRunReportDump(result([step()]), index);
+    dump.durationMs = 200900;
+    const document = dump.projects[0].documents[0];
+    document.sourcePath = 'cases/chat-core.yaml';
+    const original = document.cases[0];
+    document.cases = [
+      { ...original, name: 'passed', status: 'success' },
+      { ...original, name: 'failed', status: 'failed' },
+      { ...original, name: 'pending', status: 'not-run', attempts: [] },
+    ];
+    dump.projects[0].documents.push({
+      ...document,
+      sourcePath: 'cases/apps.yaml',
+      cases: [{ ...original, name: 'app' }],
+    });
+    const markdown = renderTestResultMarkdown(dump, {
+      reportHref: '../../../report/index.html',
+    });
+    expect(markdown).toContain(
+      '- cases/chat-core\n  - ✅ passed\n  - ❌ failed\n  - ⏭️ pending',
+    );
+    expect(markdown).toContain('- cases/apps\n  - ✅ app');
+    expect(markdown).toContain('3m 21s');
+    expect(markdown).not.toContain('<details>');
+  });
+
+  it('omits zero counters when all cases pass', () => {
+    const markdown = renderTestResultMarkdown(
+      buildTestRunReportDump(result([step()]), index),
+    );
+    expect(markdown).toContain('✅ **1/1 passed**');
+    expect(markdown).not.toMatch(/Infrastructure|Filtered|### Cases|<details>/);
+  });
+
+  it('writes result.md without an HTML report and records collection failures', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'midscene-result-md-'));
+    try {
+      const run = result([]);
+      run.summaryPath = join(root, 'summary.json');
+      run.status = 'failed';
+      run.projects[0].cases = [];
+      run.projects[0].collectionErrors = [
+        {
+          projectId: 'project-1',
+          projectName: 'web',
+          sourcePath: 'broken.yaml',
+          error: new WorkflowError('Invalid document'),
+        },
+      ];
+      run.summary = {
+        ...run.summary,
+        total: 0,
+        passed: 0,
+        collectionErrors: 1,
+      };
+      const output = await writeTestResultMarkdown(run);
+      expect(output).toBe(join(root, 'result.md'));
+      const markdown = await readFile(output, 'utf8');
+      expect(markdown).toContain('Invalid document');
+      expect(markdown).toContain('No cases were reported.');
+      expect(markdown).not.toContain('Open the Midscene');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('links the HTML report relative to result.md and overwrites on rewrite', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'midscene-result-md-'));
+    try {
+      const run = result([step()]);
+      run.summaryPath = join(root, 'summary.json');
+      run.reportPath = join(root, 'report space', 'index.html');
+      const output = await writeTestResultMarkdown(run, index);
+      await writeTestResultMarkdown(run, index);
+      const markdown = await readFile(output, 'utf8');
+      expect(markdown).toContain('report%20space/index.html');
+      expect(markdown).not.toContain('<img');
+      expect(markdown.match(/## Midscene Test/g)).toHaveLength(1);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

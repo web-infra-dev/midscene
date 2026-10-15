@@ -265,11 +265,13 @@ try {
         orientation: orientation.toUpperCase(),
       });
     }
-    for (const [mode, directions] of [
+    for (const [mode, directions, scrollType = 'singleAction'] of [
       ['vertical', ['down', 'up']],
       ['horizontal', ['right', 'left']],
       ['top', ['up']],
       ['bottom', ['down']],
+      ['toTop', ['up'], 'scrollToTop'],
+      ['toBottom', ['down'], 'scrollToBottom'],
     ]) {
       for (const direction of directions) {
         for (
@@ -315,7 +317,7 @@ try {
           let after;
           try {
             await action.call(
-              { direction, scrollType: 'singleAction' },
+              { direction, scrollType },
               { task: {}, skipDefaultWait: true },
             );
             after = await settled(before);
@@ -327,7 +329,21 @@ try {
             const result = { name, delta, fraction, extent };
             results.push(result);
             save(`${name}.json`, { before, after, size, ...result });
-            if (mode === 'horizontal')
+            if (scrollType !== 'singleAction') {
+              const target = scrollType === 'scrollToTop' ? 0 : after.maxY;
+              assert(
+                Number.isFinite(target),
+                `${name}: missing native boundary`,
+              );
+              assert(
+                before.y > 0 && before.y < before.maxY,
+                `${name}: must start inside the list`,
+              );
+              assert(
+                Math.abs(after.y - target) <= 1,
+                `${name}: expected boundary ${target}, got ${after.y}`,
+              );
+            } else if (mode === 'horizontal')
               assert(
                 Math.abs(fraction - 1) < 0.03,
                 `${name}: expected one page, got ${fraction}`,

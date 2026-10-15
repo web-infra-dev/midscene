@@ -2579,6 +2579,23 @@ Stdout:
       );
 
       it.each([
+        ['scrollUntilTop', 'input swipe 540 480 540 1920 100'],
+        ['scrollUntilBottom', 'input swipe 540 1440 540 0 100'],
+        ['scrollUntilLeft', 'input swipe 270 960 1080 960 100'],
+        ['scrollUntilRight', 'input swipe 810 960 0 960 100'],
+      ] as const)(
+        '%s repeats the corrected boundary gesture',
+        async (method, command) => {
+          await device[method]();
+          const swipes = mockAdb.shell.mock.calls.filter(([value]) =>
+            String(value).startsWith('input swipe'),
+          );
+          expect(swipes).toHaveLength(10);
+          for (const [value] of swipes) expect(value).toBe(command);
+        },
+      );
+
+      it.each([
         ['scrollDown', 100, 'input swipe 540 1440 540 1340 1000'],
         ['scrollUp', 100, 'input swipe 540 480 540 580 1000'],
         ['scrollRight', 100, 'input swipe 810 960 710 960 1000'],

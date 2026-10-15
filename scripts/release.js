@@ -38,12 +38,28 @@ const actionPublishCanary =
 
 async function main() {
   try {
+    const { readHighlights, prepareReleaseNotes } = await import(
+      './release-notes.mjs'
+    );
+    const root = path.resolve(__dirname, '..');
+    // Check the requested release type before version-bump-prompt edits files.
+    if (['major', 'minor'].includes(args.version)) {
+      readHighlights(
+        root,
+        semver.inc(currentVersion, args.version),
+        args.version,
+      );
+    }
     step('\nSelect bumpVersion...');
     const selectVersion = await bumpVersion();
     if (selectVersion) {
       step(
         `\nbumpVersion ${selectVersion.oldVersion} => ${selectVersion.newVersion}...`,
       );
+    }
+
+    if (!semver.prerelease(selectVersion.newVersion)) {
+      readHighlights(root, selectVersion.newVersion, args.version);
     }
 
     step('\nBump extension version...');
@@ -70,6 +86,40 @@ async function main() {
     } else {
       step('\nRunning tests...');
       await test();
+
+      if (!semver.prerelease(selectVersion.newVersion)) {
+        step('\nArchiving bilingual release notes...');
+        const { stdout: targetCommit } = await run(
+          'git',
+          ['rev-parse', 'HEAD'],
+          { stdio: 'pipe' },
+        );
+        const { stdout: tags } = await run(
+          'git',
+          ['tag', '--merged', 'HEAD', '--list', 'v*'],
+          { stdio: 'pipe' },
+        );
+        const previousTag = tags
+          .split('\n')
+          .filter(
+            (tag) =>
+              semver.valid(tag) &&
+              !semver.prerelease(tag) &&
+              semver.lt(tag, selectVersion.newVersion),
+          )
+          .sort(semver.rcompare)[0];
+        await prepareReleaseNotes({
+          root,
+          version: selectVersion.newVersion,
+          releaseType: args.version,
+          repository: process.env.GITHUB_REPOSITORY,
+          token: process.env.GITHUB_TOKEN,
+          targetCommit: targetCommit.trim(),
+          previousTag,
+          outputDirectory:
+            process.env.RUNNER_TEMP || path.join(root, '.release/notes'),
+        });
+      }
 
       step('\nLinting all packages...');
       await lint();
@@ -101,7 +151,7 @@ async function main() {
         await run('git', [
           'commit',
           '-m',
-          `release: v${selectVersion.newVersion}`,
+          `chore(workflow): release v${selectVersion.newVersion}\n\nCo-Authored-By: Riff`,
         ]);
       }
     } else {

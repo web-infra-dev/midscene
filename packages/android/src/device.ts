@@ -25,6 +25,7 @@ import {
   type ResolvedTextInputOptions,
   createDefaultMobileActions,
   defineAction,
+  resolveDefaultMobileScroll,
   resolveTextInputOptions,
   sendTextSequentially,
   shouldInputSequentially,
@@ -1790,21 +1791,10 @@ ${Object.keys(size)
   private async scrollDefault(
     direction: 'up' | 'down' | 'left' | 'right',
   ): Promise<void> {
-    const { width, height } = await this.size();
-    const horizontal = direction === 'left' || direction === 'right';
-    const forward = direction === 'down' || direction === 'right';
-    const extent = horizontal ? width : height;
-    const start = Math.round(extent * (forward ? 0.85 : 1 - 0.85));
-    const end = Math.round(extent * (forward ? 1 - 0.85 : 0.85));
-    const from = { x: Math.round(width / 2), y: Math.round(height / 2) };
-    const to = { ...from };
-    if (horizontal) {
-      from.x = start;
-      to.x = end;
-    } else {
-      from.y = start;
-      to.y = end;
-    }
+    const { from, to } = resolveDefaultMobileScroll(
+      direction,
+      await this.size(),
+    );
     const duration = defaultNormalScrollDuration;
     await this.swipePoint(from, to, duration);
   }

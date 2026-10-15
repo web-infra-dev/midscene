@@ -123,7 +123,9 @@ public class MainActivity extends Activity {
                     .put("x", x).put("y", y));
             JSONObject data = new JSONObject().put("mode", mode).put("focused", hasWindowFocus())
                     .put("width", width).put("height", height).put("initial", initial)
-                    .put("x", x).put("y", y).put("samples", samples);
+                    .put("x", x).put("y", y).put("samples", samples)
+                    .put("maxY", scroll instanceof ScrollView
+                            ? ((ScrollView) scroll).getChildAt(0).getHeight() - height : 0);
             try (FileOutputStream file = openFileOutput("metrics.json", 0)) {
                 file.write(data.toString().getBytes(StandardCharsets.UTF_8));
             }
