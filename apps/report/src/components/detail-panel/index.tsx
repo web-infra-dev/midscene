@@ -11,7 +11,6 @@ import {
 } from '@ant-design/icons';
 import type {
   ExecutionDump,
-  ExecutionTaskPlanning,
   ExecutionTaskPlanningLocate,
   IExecutionDump,
 } from '@midscene/core';
@@ -419,9 +418,7 @@ const DetailPanel = ({
               </button>
             </Tooltip>
           )}
-          <OpenInPlayground
-            context={(activeTask as ExecutionTaskPlanning)?.uiContext}
-          />
+          <OpenInPlayground context={activeTask?.uiContext} />
         </div>
       </div>
       <div className="detail-content">{content}</div>
