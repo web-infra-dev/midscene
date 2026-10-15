@@ -34,12 +34,22 @@ export function createAutoGlmPlanner(
     },
     transformActions: (parsedResponse, { options, coordinateSystem }) => {
       assert(coordinateSystem, 'Auto-GLM planning requires coordinate system');
+      const distanceToScreenshotPixels = createCoordinateDistanceToPixels(
+        options.context.shotSize,
+        coordinateSystem,
+      );
       return transformAutoGLMAction(parsedResponse.action, {
         actionSpace: options.actionSpace,
-        coordinateDistanceToPixels: createCoordinateDistanceToPixels(
-          options.context.shotSize,
-          coordinateSystem,
-        ),
+        coordinateDistanceToPixels: (delta, axis) => {
+          const ratio = options.context.shrunkShotToLogicalRatio;
+          assert(
+            Number.isFinite(ratio) && ratio > 0,
+            'Invalid screenshot-to-logical ratio for AutoGLM scroll',
+          );
+          // AutoGLM Swipe becomes Scroll, whose distance is already in device
+          // logical units. Normalize here, not in the generic Scroll executor.
+          return distanceToScreenshotPixels(delta, axis) / ratio;
+        },
       });
     },
     shouldContinuePlanning: (parsedResponse) =>
