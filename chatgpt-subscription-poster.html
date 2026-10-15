@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Midscene SDK Poster — Use ChatGPT Subscription in Visual-driven E2E Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --bg-outer: #eef0f4;
+      --bg-canvas: #ffffff;
+      --bg-subtle: #f7f8fa;
+
+      --border-outer: rgba(16, 24, 40, 0.12);
+      --border-subtle: rgba(16, 24, 40, 0.08);
+
+      --text-primary: #101828;
+      --text-secondary: #475467;
+      --text-muted: #86909c;
+
+      --accent-cobalt: #0555ff;
+
+      --font-sans: "TASA Orbiter", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: "Chivo Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg-outer);
+      font-family: var(--font-sans);
+      color: var(--text-primary);
+      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Poster Outer Frame — adapts cleanly to narrow preview tabs while keeping full height */
+    .poster-frame {
+      position: relative;
+      width: min(860px, 100%);
+      min-height: 860px;
+      background-color: var(--bg-canvas);
+      border: 1.5px solid var(--border-outer);
+      border-radius: 32px;
+      padding: 46px 48px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(16, 24, 40, 0.06);
+    }
+
+    /* Subtle engineering grid background */
+    .poster-frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(16, 24, 40, 0.032) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 24, 40, 0.032) 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: center center;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .poster-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      flex: 1;
+    }
+
+    /* 1. Top Section: Icon + Slogan + Lead */
+    .hero-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      height: 36px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--accent-cobalt);
+      background: rgba(5, 85, 255, 0.07);
+      border: 1px solid rgba(5, 85, 255, 0.18);
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+
+    .version-badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-cobalt);
+    }
+
+    .hero-title {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-title .accent-line {
+      display: block;
+      color: var(--accent-cobalt);
+      white-space: nowrap;
+    }
+
+    .hero-title .dark-line {
+      display: block;
+      color: var(--text-primary);
+      margin-top: 4px;
+      white-space: nowrap;
+    }
+
+    .hero-lead {
+      font-size: 19px;
+      line-height: 1.45;
+      color: var(--text-secondary);
+    }
+
+    .hero-lead strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* 2. Bottom Split Section: Screenshot (Left) + Code Snippet (Right) */
+    .split-showcase {
+      display: grid;
+      grid-template-columns: minmax(0, 310px) minmax(0, 1fr);
+      gap: 20px;
+      width: 100%;
+      flex: 1;
+      align-items: stretch;
+    }
+
+    /* Left: Sign-in-with-ChatGPT Screenshot (uncropped, full height) */
+    .screenshot-wrap {
+      width: 100%;
+      min-width: 0;
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      background: #fafafa;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      box-shadow: 0 8px 24px rgba(16, 24, 40, 0.04);
+    }
+
+    .screenshot-wrap img {
+      width: 100%;
+      height: auto;
+      max-height: 460px;
+      object-fit: contain;
+      display: block;
+      border-radius: 10px;
+    }
+
+    /* Right: Pure Code Snippet (Strictly single-line, no wrapping) */
+    .code-snippet {
+      width: 100%;
+      min-width: 0;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 28px 22px;
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      line-height: 1.95;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+    }
+
+    .code-snippet pre {
+      font-family: inherit;
+      margin: 0;
+      width: 100%;
+      white-space: pre;
+    }
+
+    .code-snippet .comment {
+      color: var(--text-muted);
+    }
+
+    .code-snippet .cmd {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .code-snippet .pkg {
+      color: var(--accent-cobalt);
+    }
+
+    .code-snippet .subcmd {
+      color: #0b8a5a;
+    }
+  </style>
+</head>
+<body>
+  <article class="poster-frame">
+    <div class="poster-content">
+      <!-- 1. Brand Logo & Slogan -->
+      <header class="hero-section">
+        <div class="brand-row">
+          <img
+            class="brand-logo"
+            src="midscene_with_text_light.png"
+            alt="Midscene.js"
+          />
+          <span class="version-badge">NEW IN v1.16</span>
+        </div>
+        <h1 class="hero-title">
+          <span class="accent-line">Use ChatGPT Subscription</span>
+          <span class="dark-line">in Visual-driven E2E Test</span>
+        </h1>
+        <p class="hero-lead">
+          Authorize with <strong>Sign in with ChatGPT</strong> to run visual E2E
+          tests with your existing subscription plan.
+        </p>
+      </header>
+
+      <!-- 2. Left-Right Layout: Screenshot + Code Snippet -->
+      <div class="split-showcase">
+        <div class="screenshot-wrap">
+          <img
+            src="siwc-login-screenshot.png"
+            alt="Sign in with ChatGPT to Midscene"
+          />
+        </div>
+
+        <div class="code-snippet">
+          <pre><code><span class="comment"># 1. Create a visual E2E test project</span>
+<span class="cmd">npx <span class="pkg">@midscene/test</span> <span class="subcmd">create</span></span>
+
+<span class="comment"># 2. Sign in with your ChatGPT account</span>
+<span class="cmd">npx <span class="pkg">@midscene/test</span> <span class="subcmd">model siwd login</span></span>
+
+<span class="comment"># 3. Run visual-driven E2E tests</span>
+<span class="cmd">npx <span class="pkg">@midscene/test</span> <span class="subcmd">run</span></span></code></pre>
+        </div>
+      </div>
+    </div>
+  </article>
+</body>
+</html>
