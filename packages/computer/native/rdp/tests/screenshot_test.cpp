@@ -701,7 +701,7 @@ void TestRefreshRequiresExactCoverage() {
   Expect(HasColor(capture.get(), 192), "refresh returned partially updated pixels");
 }
 
-void TestRefreshIgnoresOlderGraphicsFrames() {
+void TestRefreshAccumulatesLaterGraphicsFrames() {
   RdpScreenshotTestPeer peer;
   peer.InformativePaint();
   peer.Paint(64);
@@ -721,18 +721,22 @@ void TestRefreshIgnoresOlderGraphicsFrames() {
   peer.StartGraphics();
   peer.PaintRegion(192, {0, 0, 16, 8});
   peer.transport.MarkGraphicsFrameCompleted();
+  Expect(capture.wait_for(50ms) == std::future_status::timeout,
+         "partial coverage was accepted after excluding the older full frame");
   peer.StartGraphics();
-  peer.PaintRegion(192, {0, 8, 16, 16});
+  peer.PaintRegion(192, {0, 0, 16, 8});
   peer.transport.MarkGraphicsFrameCompleted();
   Expect(capture.wait_for(50ms) == std::future_status::timeout,
-         "partial updates from different graphics frames completed the refresh");
-
+         "overlapping coverage across frames was counted more than once");
   peer.StartGraphics();
-  peer.decoded_color = 192;
-  peer.EndGraphics();
+  peer.PaintRegion(192, {0, 8, 16, 16});
+  Expect(capture.wait_for(50ms) == std::future_status::timeout,
+         "cross-frame coverage bypassed final graphics-frame completion");
+  peer.transport.MarkGraphicsFrameCompleted();
   Expect(capture.wait_for(1s) == std::future_status::ready,
-         "a new full graphics frame did not complete the refresh");
+         "coverage split across completed frames did not release the screenshot");
   Expect(HasColor(capture.get(), 192), "refresh returned an older graphics frame");
+  Expect(peer.refresh_requests == 1, "cross-frame coverage repeated the request");
 }
 
 void TestRefreshUsesDetailedRegionsWithEmptyAggregate() {
@@ -927,7 +931,7 @@ int main() {
     TestContinuousUpdatesHaveDeadline();
     TestInputRequestsFullRefresh();
     TestRefreshRequiresExactCoverage();
-    TestRefreshIgnoresOlderGraphicsFrames();
+    TestRefreshAccumulatesLaterGraphicsFrames();
     TestRefreshUsesDetailedRegionsWithEmptyAggregate();
     TestUnsupportedRefreshUsesLiveFramebuffer();
     TestRefreshFailureAndDisconnect();

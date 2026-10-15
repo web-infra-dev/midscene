@@ -120,7 +120,9 @@ class FreeRdpSessionTransport final : public SessionTransport {
   std::atomic<uint64_t> graphics_frames_started_{0};
   std::atomic<uint64_t> graphics_frames_completed_{0};
   // Input dirties the remote snapshot. The next screenshot requests a full
-  // refresh when negotiated, then waits for exact painted-region coverage.
+  // refresh when negotiated, then waits for observed painted-region coverage
+  // across frames. This is best effort, not a RefreshRect completion receipt:
+  // the protocol cannot correlate paints with a particular request.
   // Support/needed are protected by mutex_; region/sequence/size by frame_mutex_.
   bool refresh_supported_ = false;
   bool refresh_needed_ = false;

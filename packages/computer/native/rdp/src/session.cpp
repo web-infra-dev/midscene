@@ -1706,8 +1706,9 @@ BOOL FreeRdpSessionTransport::MarkFramebufferUpdated(
       } else if (graphics_frames_started_.load(std::memory_order_acquire) == 0 ||
                  graphics_frames_started_.load(std::memory_order_acquire) >
                      refresh_after_graphics_frame_) {
-        // A frame already decoding when RefreshRect was sent cannot be its
-        // response, even if that older frame eventually paints the whole screen.
+        // Exclude frames already decoding when the request was sent. Later
+        // paints are only freshness evidence: RefreshRect has no response ID,
+        // so in-flight updates and animations can also satisfy this condition.
         for (const auto& rectangle : rectangles) {
           if (!region16_union_rect(&refreshed_region_, &refreshed_region_, &rectangle)) {
             ok = FALSE;
@@ -1735,11 +1736,8 @@ BOOL FreeRdpSessionTransport::MarkFramebufferUpdated(
 void FreeRdpSessionTransport::MarkGraphicsFrameStarted() {
   std::lock_guard<std::mutex> lock(frame_mutex_);
   graphics_frames_started_.fetch_add(1, std::memory_order_release);
-  if (refresh_pending_.load(std::memory_order_relaxed)) {
-    // Coverage must belong to one logical graphics frame; accumulating unrelated
-    // animation updates across frames can manufacture a complete old snapshot.
-    region16_clear(&refreshed_region_);
-  }
+  // A requested region may be painted across multiple graphics frames. Keep
+  // observed coverage until a new request (including resize) resets it.
 }
 
 void FreeRdpSessionTransport::MarkGraphicsFrameCompleted() {
