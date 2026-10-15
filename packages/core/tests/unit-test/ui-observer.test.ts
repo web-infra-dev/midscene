@@ -209,7 +209,7 @@ describe('UIObserver', () => {
     }
   });
 
-  it('smart thinning preserves change points and temporal endpoints', () => {
+  it('keeps default sampled recording usable after thinning', async () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
     const observer = new UIObserverImpl(
@@ -244,6 +244,9 @@ describe('UIObserver', () => {
     );
     expect(frames[0].ref).toBe('a');
     expect(frames.at(-1)!.ref).toBe('c');
+    (observer as any).source = fake.source;
+    const record = await (await observer.stop()).exportRecord();
+    expect(record.droppedFrames).toBeGreaterThan(0);
   });
 
   it('enforces maxFrames even when every frame is a change point', () => {
@@ -292,6 +295,28 @@ describe('UIObserver', () => {
     );
     expect(retainedFrames).toHaveLength(2);
     expect(readdirSync(framesDirectory)).toHaveLength(2);
+  });
+
+  it('captures at a requested 20ms interval without clamping to 200ms', async () => {
+    rs.useFakeTimers();
+    const fake = makeFakeSource();
+    fake.setLatest('before', 0);
+    const { deps } = makeDeps(fake);
+    const observer = new UIObserverImpl(
+      deps,
+      options({ intervalMs: 20, maxFrames: 20 }),
+    );
+    await observer.start();
+    fake.setLatest('highlighted', 20);
+    await rs.advanceTimersByTimeAsync(25);
+    fake.setLatest('after', 40);
+    await rs.advanceTimersByTimeAsync(25);
+    const stopping = observer.stop();
+    await rs.advanceTimersByTimeAsync(20);
+    const record = await (await stopping).exportRecord();
+    expect(record.frames.some(({ capturedAt }) => capturedAt === 20)).toBe(
+      true,
+    );
   });
 
   it('disposes the file-backed record after it is no longer needed', async () => {

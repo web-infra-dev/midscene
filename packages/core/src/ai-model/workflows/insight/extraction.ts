@@ -2,7 +2,11 @@ import type {
   ConversationSystemMessage,
   ConversationUserMessage,
 } from '@/ai-model/service-caller/types';
-import type { ServiceExtractOption, UIContext } from '@/types';
+import type {
+  ScreenshotSequenceEvidence,
+  ServiceExtractOption,
+  UIContext,
+} from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { renderAIContext } from '../../../agent/prompt-context';
 import type { TMultimodalPrompt } from '../../../common';
@@ -32,6 +36,7 @@ export async function AiExtractElementInfo<T>(options: {
   extractOption?: ServiceExtractOption;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
+  onObservationEvidence?: (evidence: ScreenshotSequenceEvidence) => void;
 }) {
   const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
     options;
@@ -55,12 +60,12 @@ export async function AiExtractElementInfo<T>(options: {
   if (extractOption?.screenshotIncluded !== false) {
     const screenshotSequence = context.screenshotSequence;
     if (screenshotSequence && screenshotSequence.length > 1) {
-      context.screenshotSequenceEvidence = undefined;
       const evidence = await buildObservationPromptEvidence(
         screenshotSequence,
         options.abortSignal,
+        extractOption?.observationRegion,
       );
-      context.screenshotSequenceEvidence = evidence.reportEvidence;
+      options.onObservationEvidence?.(evidence.reportEvidence);
       userContent.push(...evidence.content);
     } else {
       userContent.push({

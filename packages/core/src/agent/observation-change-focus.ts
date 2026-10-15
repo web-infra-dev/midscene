@@ -3,10 +3,8 @@ import type { Rect, ScreenshotSequenceEvidenceFrame } from '@/types';
 import { parseBase64 } from '@midscene/shared/img';
 import { ifInNode } from '@midscene/shared/utils';
 import type sharp from 'sharp';
-import { selectEvenlySpacedIndices } from './observation-frame-selection';
 
 const analysisMaxWidth = 768;
-const analysisFrameLimit = 50;
 const tileSize = 16;
 const minimumChangeScore = 4;
 const focusWidthRatio = 0.18;
@@ -23,14 +21,15 @@ const renderConcurrency = 2;
 
 export interface ObservationChangeFocus {
   frames: ScreenshotSequenceEvidenceFrame[];
-  rect: Rect;
-  rects: Rect[];
-  measurementRects: Rect[];
-  score: number;
-  changes: ObservationRegionChange[][];
+  regions: ObservationFocusRegion[];
 }
 
-export interface ObservationRegionChange {
+export interface ObservationFocusRegion {
+  rect: Rect;
+  measurementRect: Rect;
+}
+
+interface ObservationRegionChange {
   meanAbsoluteDifference: number;
   brightnessDelta: number;
 }
@@ -42,17 +41,10 @@ interface DecodedAnalysisFrame {
   channels: number;
 }
 
-interface ChangeCandidate {
-  x: number;
-  y: number;
+interface ChangeCandidate extends ObservationFocusRegion {
   score: number;
-  rect: Rect;
-  measurementRect: Rect;
-}
-
-interface SourceFrame {
-  screenshot: ScreenshotItem;
-  sourceIndex: number;
+  analysisRect: Rect;
+  changes: ObservationRegionChange[];
 }
 
 interface RenderedCrop {
@@ -82,12 +74,6 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-function selectAnalysisFrames(screenshots: ScreenshotItem[]): SourceFrame[] {
-  return selectEvenlySpacedIndices(screenshots.length, analysisFrameLimit).map(
-    (sourceIndex) => ({ screenshot: screenshots[sourceIndex], sourceIndex }),
-  );
-}
-
 const screenshotBuffer = (screenshot: ScreenshotItem): Buffer => {
   const { body } = parseBase64(screenshot.base64);
   return Buffer.from(body, 'base64');
@@ -95,11 +81,28 @@ const screenshotBuffer = (screenshot: ScreenshotItem): Buffer => {
 
 async function analysisFrame(
   screenshot: ScreenshotItem,
-  width: number,
+  region: Rect,
+  dimensions: { width: number; height: number },
   Sharp: typeof sharp,
 ): Promise<DecodedAnalysisFrame> {
-  const { data, info } = await Sharp(screenshotBuffer(screenshot))
-    .resize({ width, withoutEnlargement: true })
+  const source = Sharp(screenshotBuffer(screenshot));
+  const metadata = await source.metadata();
+  if (
+    metadata.width !== dimensions.width ||
+    metadata.height !== dimensions.height
+  ) {
+    throw new Error(
+      'Observation source frames must have matching original dimensions for change-region analysis',
+    );
+  }
+  // Crop before resizing: otherwise interpolation can leak pixels outside the ROI
+  // into both detection and transition measurements.
+  const { data, info } = await source
+    .extract(region)
+    .resize({
+      width: Math.min(region.width, analysisMaxWidth),
+      withoutEnlargement: true,
+    })
     .removeAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -159,36 +162,31 @@ function overlapRatio(a: Rect, b: Rect): number {
 }
 
 function measurementRect(
-  imageWidth: number,
-  imageHeight: number,
+  region: Rect,
   analysisWidth: number,
   analysisHeight: number,
-  tile: { x: number; y: number },
+  patch: Rect,
 ): Rect {
-  const startX = Math.max(0, (tile.x - 1) * tileSize);
-  const startY = Math.max(0, (tile.y - 1) * tileSize);
-  const endX = Math.min(analysisWidth, (tile.x + 2) * tileSize);
-  const endY = Math.min(analysisHeight, (tile.y + 2) * tileSize);
-  const scaleX = imageWidth / analysisWidth;
-  const scaleY = imageHeight / analysisHeight;
-  const left = Math.floor(startX * scaleX);
-  const top = Math.floor(startY * scaleY);
-  const right = Math.min(imageWidth, Math.ceil(endX * scaleX));
-  const bottom = Math.min(imageHeight, Math.ceil(endY * scaleY));
+  const scaleX = region.width / analysisWidth;
+  const scaleY = region.height / analysisHeight;
+  const left = region.left + Math.floor(patch.left * scaleX);
+  const top = region.top + Math.floor(patch.top * scaleY);
+  const right =
+    region.left +
+    Math.min(region.width, Math.ceil((patch.left + patch.width) * scaleX));
+  const bottom =
+    region.top +
+    Math.min(region.height, Math.ceil((patch.top + patch.height) * scaleY));
   return { left, top, width: right - left, height: bottom - top };
 }
 
 function focusRect(
   imageWidth: number,
   imageHeight: number,
-  analysisWidth: number,
-  analysisHeight: number,
-  tile: { x: number; y: number },
+  measured: Rect,
 ): Rect {
-  const scaleX = imageWidth / analysisWidth;
-  const scaleY = imageHeight / analysisHeight;
-  const centerX = (tile.x * tileSize + tileSize / 2) * scaleX;
-  const centerY = (tile.y * tileSize + tileSize / 2) * scaleY;
+  const centerX = measured.left + measured.width / 2;
+  const centerY = measured.top + measured.height / 2;
   const width = Math.min(
     imageWidth,
     Math.max(minimumFocusWidth, Math.round(imageWidth * focusWidthRatio)),
@@ -219,6 +217,7 @@ function strongestChangeTiles(
   imageHeight: number,
   analysisWidth: number,
   analysisHeight: number,
+  region: Rect,
 ): ChangeCandidate[] {
   const candidates: ChangeCandidate[] = [];
   for (let y = 0; y < rows; y += 1) {
@@ -237,24 +236,26 @@ function strongestChangeTiles(
       }
       score /= count;
       if (score >= minimumChangeScore) {
+        const left = Math.max(0, (x - 1) * tileSize);
+        const top = Math.max(0, (y - 1) * tileSize);
+        const analysisRect = {
+          left,
+          top,
+          width: Math.min(analysisWidth, (x + 2) * tileSize) - left,
+          height: Math.min(analysisHeight, (y + 2) * tileSize) - top,
+        };
+        const measured = measurementRect(
+          region,
+          analysisWidth,
+          analysisHeight,
+          analysisRect,
+        );
         candidates.push({
-          x,
-          y,
           score,
-          rect: focusRect(
-            imageWidth,
-            imageHeight,
-            analysisWidth,
-            analysisHeight,
-            { x, y },
-          ),
-          measurementRect: measurementRect(
-            imageWidth,
-            imageHeight,
-            analysisWidth,
-            analysisHeight,
-            { x, y },
-          ),
+          rect: focusRect(imageWidth, imageHeight, measured),
+          measurementRect: measured,
+          analysisRect,
+          changes: [{ meanAbsoluteDifference: 0, brightnessDelta: 0 }],
         });
       }
     }
@@ -283,21 +284,22 @@ function luminance(data: Buffer, offset: number): number {
 function localizedDifference(
   baseline: DecodedAnalysisFrame,
   candidate: DecodedAnalysisFrame,
-  tile: { x: number; y: number },
+  patch: Rect,
 ): ObservationRegionChange {
-  const startX = Math.max(0, (tile.x - 1) * tileSize);
-  const startY = Math.max(0, (tile.y - 1) * tileSize);
-  const endX = Math.min(baseline.width, (tile.x + 2) * tileSize);
-  const endY = Math.min(baseline.height, (tile.y + 2) * tileSize);
   let absoluteDifference = 0;
   let brightnessDelta = 0;
   let samples = 0;
-  for (let y = startY; y < endY; y++) {
-    for (let x = startX; x < endX; x++) {
+  for (let y = patch.top; y < patch.top + patch.height; y++) {
+    for (let x = patch.left; x < patch.left + patch.width; x++) {
       const offset = (y * baseline.width + x) * baseline.channels;
       const before = luminance(baseline.data, offset);
       const after = luminance(candidate.data, offset);
-      absoluteDifference += Math.abs(after - before);
+      for (let channel = 0; channel < 3; channel++) {
+        absoluteDifference +=
+          Math.abs(
+            candidate.data[offset + channel] - baseline.data[offset + channel],
+          ) / 3;
+      }
       brightnessDelta += after - before;
       samples++;
     }
@@ -309,20 +311,27 @@ function localizedDifference(
 }
 
 function selectFrameIndices(
-  changes: ObservationRegionChange[][],
-  frameCount: number,
+  scores: number[],
+  transitionScores: number[],
 ): number[] {
+  const frameCount = scores.length;
   if (frameCount <= maximumFocusFrames) {
     return Array.from({ length: frameCount }, (_, index) => index);
   }
-  const scores = Array.from({ length: frameCount }, (_, frameIndex) =>
-    Math.max(
-      ...changes.map(
-        (region) => region[frameIndex]?.meanAbsoluteDifference ?? 0,
-      ),
-    ),
-  );
   const selected = new Set([0, frameCount - 1]);
+  const transitions = Array.from(
+    { length: frameCount - 1 },
+    (_, index) => index + 1,
+  )
+    .filter((index) => transitionScores[index] >= minimumChangeScore)
+    .sort((a, b) => transitionScores[b] - transitionScores[a] || a - b);
+  for (const index of transitions) {
+    const boundary = [index - 1, index].filter(
+      (frameIndex) => !selected.has(frameIndex),
+    );
+    if (selected.size + boundary.length > maximumFocusFrames) continue;
+    for (const frameIndex of boundary) selected.add(frameIndex);
+  }
   const interior = Array.from(
     { length: frameCount - 2 },
     (_, index) => index + 1,
@@ -374,47 +383,90 @@ async function renderOutlinedCrop(
 export async function buildObservationChangeFocus(
   screenshots: ScreenshotItem[],
   abortSignal?: AbortSignal,
+  observationRegion?: Rect,
 ): Promise<ObservationChangeFocus | undefined> {
-  if (!ifInNode || screenshots.length < 2) return undefined;
-  abortSignal?.throwIfAborted();
-  const Sharp = (await import('sharp')).default;
-  const analysisFrames = selectAnalysisFrames(screenshots);
-  const metadata = await Sharp(
-    screenshotBuffer(analysisFrames[0].screenshot),
-  ).metadata();
-  if (!metadata.width || !metadata.height) return undefined;
-
-  const analysisWidth = Math.min(metadata.width, analysisMaxWidth);
-  const baseline = await analysisFrame(
-    analysisFrames[0].screenshot,
-    analysisWidth,
-    Sharp,
-  );
-  const frameScores = await mapWithConcurrency(
-    analysisFrames.slice(1),
-    analysisConcurrency,
-    async ({ screenshot }) => {
-      const frame = await analysisFrame(screenshot, analysisWidth, Sharp);
-      if (frame.width !== baseline.width || frame.height !== baseline.height) {
-        return undefined;
-      }
-      return tileDifference(baseline, frame, abortSignal);
-    },
-    abortSignal,
-  );
-  if (frameScores.some((scores) => !scores)) {
+  if (!ifInNode) {
+    if (observationRegion)
+      throw new Error('observationRegion requires Node.js image analysis');
     return undefined;
   }
+  if (screenshots.length < 2) return undefined;
+  abortSignal?.throwIfAborted();
+  const Sharp = (await import('sharp')).default;
+  const metadata = await Sharp(screenshotBuffer(screenshots[0])).metadata();
+  if (!metadata.width || !metadata.height)
+    throw new Error('Observation image dimensions are missing');
+  if (
+    observationRegion &&
+    (![
+      observationRegion.left,
+      observationRegion.top,
+      observationRegion.width,
+      observationRegion.height,
+    ].every(Number.isFinite) ||
+      observationRegion.left < 0 ||
+      observationRegion.top < 0 ||
+      observationRegion.width <= 0 ||
+      observationRegion.height <= 0 ||
+      observationRegion.left + observationRegion.width > metadata.width ||
+      observationRegion.top + observationRegion.height > metadata.height)
+  ) {
+    throw new Error(
+      'observationRegion must be a finite, positive rectangle inside the prepared screenshot',
+    );
+  }
 
+  const dimensions = { width: metadata.width, height: metadata.height };
+  const requestedRegion = observationRegion ?? {
+    left: 0,
+    top: 0,
+    ...dimensions,
+  };
+  // Fractional bounds include only whole pixels contained in the requested ROI.
+  const analysisRegion = {
+    left: Math.ceil(requestedRegion.left),
+    top: Math.ceil(requestedRegion.top),
+    width:
+      Math.floor(requestedRegion.left + requestedRegion.width) -
+      Math.ceil(requestedRegion.left),
+    height:
+      Math.floor(requestedRegion.top + requestedRegion.height) -
+      Math.ceil(requestedRegion.top),
+  };
+  if (analysisRegion.width < 1 || analysisRegion.height < 1) {
+    throw new Error(
+      'observationRegion must contain at least one whole screenshot pixel',
+    );
+  }
+  const baseline = await analysisFrame(
+    screenshots[0],
+    analysisRegion,
+    dimensions,
+    Sharp,
+  );
   const columns = Math.ceil(baseline.width / tileSize);
   const rows = Math.ceil(baseline.height / tileSize);
   const combinedScores = new Array(columns * rows).fill(0);
-  for (const scores of frameScores) {
-    if (!scores) continue;
-    for (let index = 0; index < scores.length; index++) {
-      combinedScores[index] = Math.max(combinedScores[index], scores[index]);
-    }
-  }
+  await mapWithConcurrency(
+    screenshots.slice(1),
+    analysisConcurrency,
+    async (screenshot) => {
+      const frame = await analysisFrame(
+        screenshot,
+        analysisRegion,
+        dimensions,
+        Sharp,
+      );
+      const frameScores = tileDifference(baseline, frame, abortSignal);
+      for (let index = 0; index < frameScores.length; index++) {
+        combinedScores[index] = Math.max(
+          combinedScores[index],
+          frameScores[index],
+        );
+      }
+    },
+    abortSignal,
+  );
   const strongest = strongestChangeTiles(
     combinedScores,
     columns,
@@ -423,68 +475,71 @@ export async function buildObservationChangeFocus(
     metadata.height,
     baseline.width,
     baseline.height,
+    analysisRegion,
   );
   if (!strongest.length) return undefined;
 
-  const rects = strongest.map((candidate) => candidate.rect);
-  const measurementRects = strongest.map(
-    (candidate) => candidate.measurementRect,
-  );
-  const changesByFrame = [
-    strongest.map(() => ({
-      meanAbsoluteDifference: 0,
-      brightnessDelta: 0,
-    })),
-    ...(await mapWithConcurrency(
-      analysisFrames.slice(1),
-      analysisConcurrency,
-      async ({ screenshot }) => {
-        const frame = await analysisFrame(screenshot, analysisWidth, Sharp);
-        return strongest.map((candidate) =>
-          localizedDifference(baseline, frame, candidate),
-        );
-      },
-      abortSignal,
-    )),
-  ];
-  const changes = strongest.map((_, regionIndex) =>
-    changesByFrame.map((frameChanges) => frameChanges[regionIndex]),
-  );
-  const selectedAnalysisIndices = selectFrameIndices(
-    changes,
-    analysisFrames.length,
-  );
-  const frameIndices = selectedAnalysisIndices.map(
-    (index) => analysisFrames[index].sourceIndex,
-  );
-  const outputWidth = Math.max(rects[0].width, upscaledFocusWidth);
+  const frameScores = [0];
+  const transitionScores = [0];
+  let previous = baseline;
+  // Keep only adjacent decoded frames, and rank state boundaries before
+  // repeated copies of a large change relative to the baseline.
+  for (const screenshot of screenshots.slice(1)) {
+    abortSignal?.throwIfAborted();
+    const frame = await analysisFrame(
+      screenshot,
+      analysisRegion,
+      dimensions,
+      Sharp,
+    );
+    let changeScore = 0;
+    let transitionScore = 0;
+    for (const candidate of strongest) {
+      const change = localizedDifference(
+        baseline,
+        frame,
+        candidate.analysisRect,
+      );
+      candidate.changes.push(change);
+      changeScore = Math.max(changeScore, change.meanAbsoluteDifference);
+      transitionScore = Math.max(
+        transitionScore,
+        localizedDifference(previous, frame, candidate.analysisRect)
+          .meanAbsoluteDifference,
+      );
+    }
+    frameScores.push(changeScore);
+    transitionScores.push(transitionScore);
+    previous = frame;
+  }
+  const frameIndices = selectFrameIndices(frameScores, transitionScores);
+  const outputWidth = Math.max(strongest[0].rect.width, upscaledFocusWidth);
   const frames = await mapWithConcurrency(
     frameIndices,
     renderConcurrency,
-    async (sourceFrameIndex, renderedFrameIndex) => {
-      const analysisFrameIndex = selectedAnalysisIndices[renderedFrameIndex];
+    async (sourceFrameIndex) => {
       const screenshot = screenshots[sourceFrameIndex];
       const source = Sharp(screenshotBuffer(screenshot));
-      const crops: RenderedCrop[] = [];
-      for (let index = 0; index < rects.length; index++) {
-        crops.push(
-          await renderOutlinedCrop(
+      const crops: (RenderedCrop & { change: ObservationRegionChange })[] = [];
+      for (const region of strongest) {
+        crops.push({
+          ...(await renderOutlinedCrop(
             source,
-            rects[index],
-            measurementRects[index],
+            region.rect,
+            region.measurementRect,
             outputWidth,
             Sharp,
-          ),
-        );
+          )),
+          change: region.changes[sourceFrameIndex],
+        });
       }
       const cropHeight = crops[0].height;
       const gridColumns = Math.min(focusGridColumns, crops.length);
       const gridRows = Math.ceil(crops.length / gridColumns);
       const cellHeight = cropHeight + focusLabelHeight;
-      const composites = crops.flatMap(({ buffer }, index) => {
+      const composites = crops.flatMap(({ buffer, change }, index) => {
         const left = (index % gridColumns) * outputWidth;
         const top = Math.floor(index / gridColumns) * cellHeight;
-        const change = changes[index][analysisFrameIndex];
         const brightness = `${change.brightnessDelta >= 0 ? '+' : ''}${change.brightnessDelta.toFixed(1)}`;
         const label = Buffer.from(
           `<svg width="${outputWidth}" height="${focusLabelHeight}"><rect width="100%" height="100%" fill="#111827"/><text x="16" y="24" fill="white" font-size="20" font-family="sans-serif">Region ${index + 1} · outlined peak patch vs Frame 1</text><text x="16" y="50" fill="white" font-size="20" font-family="sans-serif">brightness Δ ${brightness} · mean pixel Δ ${change.meanAbsoluteDifference.toFixed(1)}</text></svg>`,
@@ -513,16 +568,16 @@ export async function buildObservationChangeFocus(
           screenshot.frameId,
         ),
         sourceFrameIndex,
+        role: 'change-regions' as const,
       };
     },
     abortSignal,
   );
   return {
     frames,
-    rect: rects[0],
-    rects,
-    measurementRects,
-    score: strongest[0].score,
-    changes,
+    regions: strongest.map(({ rect, measurementRect }) => ({
+      rect,
+      measurementRect,
+    })),
   };
 }

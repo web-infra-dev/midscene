@@ -34,6 +34,7 @@ import type {
   PlanningAIResponse,
   PlanningAction,
   PlanningActionParamWaitFor,
+  ScreenshotSequenceEvidence,
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
@@ -995,6 +996,7 @@ export class TaskExecutor {
         }
 
         let extractResult;
+        let observationEvidence: ScreenshotSequenceEvidence | undefined;
 
         let extraPageDescription = '';
         if (opt?.domIncluded && this.interface.getElementsNodeTree) {
@@ -1016,10 +1018,21 @@ export class TaskExecutor {
             extraPageDescription,
             multimodalPrompt,
             uiContext,
-            {
-              ...executionOptions,
-              abortSignal: executionOptions?.abortSignal ?? taskContext.signal,
-            },
+            uiContext.screenshotSequence &&
+              uiContext.screenshotSequence.length > 1
+              ? {
+                  ...executionOptions,
+                  abortSignal:
+                    executionOptions?.abortSignal ?? taskContext.signal,
+                  onObservationEvidence: (evidence) => {
+                    observationEvidence = evidence;
+                  },
+                }
+              : {
+                  ...executionOptions,
+                  abortSignal:
+                    executionOptions?.abortSignal ?? taskContext.signal,
+                },
           );
         } catch (error) {
           if (error instanceof ServiceError) {
@@ -1029,7 +1042,11 @@ export class TaskExecutor {
         } finally {
           // Surface the captured screenshot sequence in the report, then release
           // it from the UIContext so its base64 is not retained twice.
-          recordAndReleaseScreenshotSequence(task, uiContext);
+          recordAndReleaseScreenshotSequence(
+            task,
+            uiContext,
+            observationEvidence,
+          );
         }
 
         const { data, thought, dump } = extractResult;
@@ -1230,32 +1247,26 @@ export class TaskExecutor {
  *
  * When a UIObservation insight runs, the observed frames live on
  * `uiContext.screenshotSequence` only as a transient model input. This attaches
- * them to the task recorder so the report renders the bounded evidence the
- * model saw, then drops the transient fields from the UIContext so their base64
- * is not retained twice for the lifetime of the dump.
+ * the explicitly supplied model evidence to the task recorder, then drops the
+ * source sequence from the UIContext. Missing evidence means no images were
+ * submitted; the report must not invent a different evidence selection.
  *
- * The last frame is the representative `uiContext.screenshot`, already shown in
- * the report, so only the earlier frames are recorded to avoid duplication.
- * Observed frames are PREPENDED to `task.recorder` (rather than appended) so
- * array order matches chronological order — they were captured before the
- * assertion's before/after screenshots.
+ * Baseline, final, and enlarged images retain their explicit roles. Evidence is
+ * ordered by source frame and prepended before the task's own screenshots.
  */
 export function recordAndReleaseScreenshotSequence(
   task: ExecutionTask,
   uiContext: UIContext | undefined,
+  evidence?: ScreenshotSequenceEvidence,
 ): void {
   const frames = uiContext?.screenshotSequence;
   if (frames && frames.length > 1) {
-    const evidence = uiContext?.screenshotSequenceEvidence;
-    const reportFrames = evidence?.frames.length
-      ? [{ screenshot: frames[0], sourceFrameIndex: 0 }, ...evidence.frames]
-      : frames.slice(0, -1).map((screenshot, sourceFrameIndex) => ({
-          screenshot,
-          sourceFrameIndex,
-        }));
+    const reportFrames = [...(evidence?.frames ?? [])].sort(
+      (a, b) => a.sourceFrameIndex - b.sourceFrameIndex,
+    );
     const recorderItems: ExecutionRecorderItem[] = [];
     for (let i = 0; i < reportFrames.length; i++) {
-      const { screenshot, sourceFrameIndex } = reportFrames[i];
+      const { screenshot, sourceFrameIndex, role } = reportFrames[i];
       const measured = screenshot.timing;
       const captureSummary =
         i === 0 && uiContext?.observationTiming
@@ -1270,11 +1281,7 @@ export function recordAndReleaseScreenshotSequence(
         type: 'screenshot',
         ts: screenshot.capturedAt,
         screenshot,
-        description: evidence?.frames.length
-          ? i === 0
-            ? `Observed full-screen baseline — source frame 1/${frames.length}${timingCaption}`
-            : `Observed candidate change regions — source frame ${sourceFrameIndex + 1}/${frames.length}${timingCaption}`
-          : `Observed frame ${sourceFrameIndex + 1}/${frames.length}${timingCaption}`,
+        description: `Observed ${role} — source frame ${sourceFrameIndex + 1}/${frames.length}${timingCaption}`,
         timing: 'observed-frame',
       });
     }
@@ -1290,7 +1297,4 @@ export function recordAndReleaseScreenshotSequence(
     uiContext.screenshotSequence = undefined;
   }
   if (uiContext?.observationTiming) uiContext.observationTiming = undefined;
-  if (uiContext?.screenshotSequenceEvidence) {
-    uiContext.screenshotSequenceEvidence = undefined;
-  }
 }

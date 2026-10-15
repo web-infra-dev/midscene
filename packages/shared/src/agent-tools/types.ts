@@ -204,9 +204,9 @@ export interface BaseUIObserver {
 export interface BaseUIObserverOptions {
   /** Source mode records pushed native frames, requires subscribe(), and never silently falls back. */
   captureMode?: 'sampled' | 'source';
-  /** Sampling interval in milliseconds. Defaults to 1000; minimum 200. Ignored in source mode. */
+  /** Sampling interval in milliseconds. Defaults to 1000; minimum 20. Ignored in source mode. Actual cadence depends on the device. */
   intervalMs?: number;
-  /** Maximum number of buffered frames. Defaults to 30; minimum 2. */
+  /** Maximum number of buffered frames. Defaults to 30; minimum 2. Source mode records overflow and blocks AI judgment; sampled mode thins its buffer. */
   maxFrames?: number;
   /** Auto-stop timeout in milliseconds. Defaults to 300000; 0 disables it. */
   watchdogMs?: number;

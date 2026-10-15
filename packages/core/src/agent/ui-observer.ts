@@ -23,13 +23,17 @@ import type {
   ServiceExtractParam,
   UIContext,
 } from '../types';
+import {
+  type BufferedObservationFrame,
+  ObservationFrameBuffer,
+} from './observation-frame-buffer';
 import { prepareScreenshotForPersistence } from './screenshot-preparation';
 
 const debug = getDebug('ui-observer');
 const warnObserver = getDebug('ui-observer', { console: true });
 
 const DEFAULT_INTERVAL_MS = 1000;
-const MIN_INTERVAL_MS = 200;
+const MIN_INTERVAL_MS = 20;
 const DEFAULT_MAX_FRAMES = 30;
 const FIRST_FRAME_TIMEOUT_MS = 3000;
 const DEFAULT_WATCHDOG_MS = 5 * 60 * 1000;
@@ -191,11 +195,6 @@ export class UIObservationImpl implements UIObservation {
   }
 }
 
-interface BufferedFrame extends DeviceFrameRef {
-  /** Present once the frame no longer needs to retain an in-memory data URL. */
-  persisted?: UIObservationFrame;
-}
-
 function isImageDataUrl(value: unknown): value is string {
   return (
     typeof value === 'string' &&
@@ -207,11 +206,13 @@ function isImageDataUrl(value: unknown): value is string {
  * Observe an explicit screen window and produce a fixed UIObservation.
  */
 export class UIObserverImpl implements UIObserver {
-  private frames: BufferedFrame[] = [];
+  private readonly frameBuffer: ObservationFrameBuffer;
+  private get frames(): BufferedObservationFrame[] {
+    return this.frameBuffer.frames;
+  }
   private readonly events: UIObservationEvent[] = [];
   private readonly captureMode: 'sampled' | 'source';
   private unsubscribe?: () => void;
-  private droppedFrames = 0;
   private readonly clockId =
     `node-monotonic:${process.pid}:${performance.timeOrigin}`;
 
@@ -241,7 +242,6 @@ export class UIObserverImpl implements UIObserver {
   private observation: UIObservationImpl | null = null;
   private startedAt = 0;
   private readonly intervalMs: number;
-  private readonly maxFrames: number;
   private readonly watchdogMs: number;
   private readonly screenshotShrinkFactor: number;
   private readonly writer: UIObservationRecordWriter;
@@ -251,11 +251,28 @@ export class UIObserverImpl implements UIObserver {
     opt?: UIObserverOption,
   ) {
     this.captureMode = opt?.captureMode ?? 'sampled';
+    for (const [name, value] of Object.entries(opt ?? {})) {
+      if (
+        value !== undefined &&
+        ['intervalMs', 'maxFrames', 'watchdogMs'].includes(name)
+      ) {
+        assert(
+          typeof value === 'number' &&
+            Number.isFinite(value) &&
+            value >= 0 &&
+            (name !== 'maxFrames' || Number.isInteger(value)),
+          `${name} must be a finite non-negative number (maxFrames must be an integer)`,
+        );
+      }
+    }
     this.intervalMs = Math.max(
       MIN_INTERVAL_MS,
       opt?.intervalMs ?? DEFAULT_INTERVAL_MS,
     );
-    this.maxFrames = Math.max(2, opt?.maxFrames ?? DEFAULT_MAX_FRAMES);
+    this.frameBuffer = new ObservationFrameBuffer(
+      this.captureMode,
+      Math.max(2, opt?.maxFrames ?? DEFAULT_MAX_FRAMES),
+    );
     this.watchdogMs = opt?.watchdogMs ?? DEFAULT_WATCHDOG_MS;
     this.screenshotShrinkFactor =
       this.captureMode === 'source' ? 1 : (deps.screenshotShrinkFactor ?? 1);
@@ -443,7 +460,7 @@ export class UIObserverImpl implements UIObserver {
         : [...sampledFrames, this.representativeFrame];
     if (frames.length > MAX_FRAMES_PER_RECORD) {
       warnObserver(
-        `WARNING: exporting ${frames.length} frames (soft limit ${MAX_FRAMES_PER_RECORD}). Insight analyzes a bounded sample and sends at most eight evidence images, but a larger recording still increases capture storage; consider increasing intervalMs or decreasing maxFrames.`,
+        `WARNING: exporting ${frames.length} frames (soft limit ${MAX_FRAMES_PER_RECORD}). Insight analyzes every retained frame and sends at most eight evidence images, but a larger recording increases capture storage and analysis work; consider increasing intervalMs or decreasing maxFrames.`,
       );
     }
     debug(
@@ -459,7 +476,7 @@ export class UIObserverImpl implements UIObserver {
           }
         : {}),
       captureMode: this.captureMode,
-      droppedFrames: this.droppedFrames,
+      droppedFrames: this.frameBuffer.droppedFrames,
       startedAt: this.startedAt,
       endedAt,
       shotSize: { ...this.representative!.shotSize },
@@ -484,7 +501,7 @@ export class UIObserverImpl implements UIObserver {
         this.writer.dispose();
         this.deps.onDisposed?.();
       }
-      this.frames = [];
+      this.frameBuffer.clear();
       this.persistedByRef.clear();
       this.observation = null;
       this.disposed = true;
@@ -606,24 +623,18 @@ export class UIObserverImpl implements UIObserver {
       const tickStart = Date.now();
       await this.captureOnce();
       while (!this.stopped && Date.now() - tickStart < this.intervalMs) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await new Promise((resolve) =>
+          setTimeout(
+            resolve,
+            Math.min(20, this.intervalMs - (Date.now() - tickStart)),
+          ),
+        );
       }
     }
   }
 
-  private pushFrame(frame: DeviceFrameRef | BufferedFrame): void {
-    if (this.captureMode === 'source' && this.frames.length >= this.maxFrames) {
-      this.droppedFrames++;
-      return;
-    }
-    this.frames.push({
-      ...frame,
-      ...(frame.timing ? { timing: { ...frame.timing } } : {}),
-    });
-    if (this.frames.length > this.maxFrames) {
-      const before = this.frames.length;
-      this.frames = this.thinBuffer(this.frames);
-      this.droppedFrames += before - this.frames.length;
+  private pushFrame(frame: DeviceFrameRef | BufferedObservationFrame): void {
+    if (this.frameBuffer.add(frame) === 'thinned') {
       this.writer.pruneFrames(
         this.frames.flatMap((retainedFrame) =>
           retainedFrame.persisted ? [retainedFrame.persisted] : [],
@@ -633,46 +644,11 @@ export class UIObserverImpl implements UIObserver {
     }
   }
 
-  private thinBuffer(frames: BufferedFrame[]): BufferedFrame[] {
-    if (frames.length <= 1) return frames;
-    const isChangePoint = new Array(frames.length).fill(false);
-    isChangePoint[0] = true;
-    for (let index = 1; index < frames.length; index++) {
-      if (frames[index].ref !== frames[index - 1].ref) {
-        isChangePoint[index] = true;
-      }
-    }
-    isChangePoint[frames.length - 1] = true;
-
-    let result: BufferedFrame[] = [];
-    let staticCounter = 0;
-    for (let index = 0; index < frames.length; index++) {
-      if (isChangePoint[index]) {
-        result.push(frames[index]);
-        staticCounter = 0;
-      } else if (staticCounter % 2 === 0) {
-        result.push(frames[index]);
-        staticCounter++;
-      } else {
-        staticCounter++;
-      }
-    }
-
-    if (result.length > this.maxFrames) {
-      const step = result.length / this.maxFrames;
-      const sampled: BufferedFrame[] = [];
-      for (let index = 0; index < this.maxFrames; index++) {
-        sampled.push(result[Math.floor(index * step)]);
-      }
-      sampled[this.maxFrames - 1] = result[result.length - 1];
-      result = sampled;
-    }
-    return result;
-  }
-
-  private dedupeRefs(frames: BufferedFrame[]): BufferedFrame[] {
+  private dedupeRefs(
+    frames: BufferedObservationFrame[],
+  ): BufferedObservationFrame[] {
     const seen = new Set<unknown>();
-    const result: BufferedFrame[] = [];
+    const result: BufferedObservationFrame[] = [];
     for (const frame of frames) {
       if (!seen.has(frame.ref)) {
         seen.add(frame.ref);

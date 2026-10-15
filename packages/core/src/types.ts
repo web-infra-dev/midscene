@@ -180,6 +180,8 @@ export interface UITreeSnapshot {
 export interface ScreenshotSequenceEvidenceFrame {
   screenshot: ScreenshotItem;
   sourceFrameIndex: number;
+  /** Purpose of this image in the model's evidence set. */
+  role: 'baseline' | 'final' | 'full-frame' | 'change-regions';
 }
 
 export interface ScreenshotSequenceEvidence {
@@ -206,9 +208,6 @@ export abstract class UIContext {
    * {@link screenshot}.
    */
   abstract screenshotSequence?: ScreenshotItem[];
-
-  /** Lazily generated, transient evidence used by the model and report. */
-  abstract screenshotSequenceEvidence?: ScreenshotSequenceEvidence;
 
   /**
    * screenshot size after shrinking
