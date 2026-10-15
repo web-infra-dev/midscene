@@ -256,6 +256,10 @@ export default defineConfig(async () => {
             link: '/midscene-test/extend',
           },
           {
+            text: 'Run in GitHub Actions',
+            link: '/midscene-test/github-actions',
+          },
+          {
             sectionHeaderText: 'YAML automation',
           },
           {
@@ -438,6 +442,10 @@ export default defineConfig(async () => {
           {
             text: '编写自定义 Node',
             link: '/zh/midscene-test/extend',
+          },
+          {
+            text: '在 GitHub Actions 中运行',
+            link: '/zh/midscene-test/github-actions',
           },
           {
             sectionHeaderText: 'YAML 自动化',
