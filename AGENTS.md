@@ -16,6 +16,7 @@ should point here instead of duplicating rules.
 
 ## Default Workflow
 
+- NEVER force push anything unless you are explicitly told to do so.
 - Use `pnpm` only. The workspace requires Node
   `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm
   `>=9.3.0`.
@@ -56,9 +57,6 @@ should point here instead of duplicating rules.
 - Do not hand-edit generated output under `dist/` or `apps/site/doc_build/`.
 - When changing shared packages or exported entry points, run a focused build
   for the affected project before finishing.
-- When changing `ComputerDevice` or `RDPDevice` input behavior, check the peer
-  adapter against `packages/computer/INPUT_CONTRACT.md` and update tests for
-  both adapters when the shared contract changes.
 
 ## Commit And PR Rules
 
