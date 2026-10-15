@@ -8,6 +8,7 @@ on:
       - 'packages/android/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - 'scripts/mobile-scroll-regression.mjs'
       - '.github/actions/ai-ci/**'
       - 'scripts/report-template-utils.mjs'
       - 'scripts/validate-core-report-template.mjs'
@@ -147,7 +148,7 @@ jobs:
         id: ai-ci
         uses: ./.github/actions/ai-ci
 
-      - name: Run Android Emulator smoke and TodoMVC tests
+      - name: Run Android default scroll, smoke, and TodoMVC tests
         id: emulator-tests
         continue-on-error: true
         timeout-minutes: 35

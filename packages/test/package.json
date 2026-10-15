@@ -1,7 +1,7 @@
 {
   "name": "@midscene/test",
   "description": "Midscene Test: an extensible YAML testing framework and Node SDK.",
-  "version": "1.15.3",
+  "version": "1.15.4",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -43,11 +43,12 @@
   },
   "files": ["dist", "bin"],
   "scripts": {
-    "build": "rslib build",
+    "build": "rslib build && node ../../scripts/copy-create-templates.mjs",
     "build:watch": "rslib build --watch --no-clean",
     "test": "vitest --run",
     "test:types": "tsc -p tests/types/tsconfig.json",
-    "e2e": "pnpm run build && vitest --run --config vitest.e2e.config.ts"
+    "e2e": "pnpm run build && vitest --run --config vitest.e2e.config.ts",
+    "e2e:create:web": "vitest --run --config vitest.create-web.config.ts"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.8.6",
