@@ -7,7 +7,7 @@ target:
 tasks:
   - name: grouped project navigation keeps file errors distinct from failed cases
     flow:
-      - aiAssert: The summary shows 4 of 5 cases passed, with a result bar and legend showing 3 passed without retry, 0 failed, 1 passed after retry and 1 not run. The run information shows 2 Projects and 6 Files. Web regression is selected under Failed in the left project navigation; its summary includes passed, passed after retry and not-run Case counts without hiding any of these outcomes. Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
+      - aiAssert: The summary shows 4 of 5 cases passed, with a result bar and legend showing 3 passed without retry, 0 failed, 1 passed after retry and 1 not run. The run information shows 2 Projects and 6 Files. Web regression is selected under Failed in the left project navigation; its Case outcome summary is shortened with an ellipsis to fit its row. Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
       - javascript: |
           (() => {
             const table = document.querySelector('.runner-file-table');
@@ -39,9 +39,22 @@ tasks:
   - name: expand and collapse all files beside the status filters
     flow:
       - aiTap: the Expand all files button to the right of the status checkboxes
-      - aiAssert: All files in Web regression are expanded. Checkout with retry and Smoke checkout are visible, and empty.yaml shows No cases were collected for this file. The toolbar button now offers Collapse all files.
+      - aiAssert: All files in Web regression are expanded. Checkout with retry and Smoke checkout are visible, and empty.yaml shows No cases were collected for this file.
+      # The toolbar uses an icon; verify its accessible action as DOM plumbing.
+      - javascript: |
+          (() => {
+            const button = document.querySelector('.runner-files-toggle');
+            if (button?.getAttribute('aria-label') !== 'Collapse all files' || button.getAttribute('aria-pressed') !== 'true') throw new Error('Expanded files must offer the Collapse all files action');
+          })();
+        name: verifyCollapseAllFilesAction
       - aiTap: the Collapse all files button beside the status filters
-      - aiAssert: Web regression still shows its file rows, while their Case rows are hidden. The toolbar button now offers Expand all files.
+      - aiAssert: Web regression still shows its file rows, while their Case rows are hidden.
+      - javascript: |
+          (() => {
+            const button = document.querySelector('.runner-files-toggle');
+            if (button?.getAttribute('aria-label') !== 'Expand all files' || button.getAttribute('aria-pressed') !== 'false') throw new Error('Collapsed files must offer the Expand all files action');
+          })();
+        name: verifyExpandAllFilesAction
 
   - name: Project selection preserves independent sorting and Markdown file order
     flow:
@@ -95,39 +108,50 @@ tasks:
       - aiTap: the floating menu button labeled View all cases on the left edge of the report
       - aiAssert: The All cases directory opens on the left below the floating menu button, without dimming the report. It lists Web regression and Mobile regression. Smoke checkout is highlighted as the current Case. Checkout with retry and Blocked by document setup are also listed even though the Overview was filtered to passed checkout Cases. Each Case shows its result and source file.
       - javascript: |
-          const directory = document.querySelector('.runner-case-drawer');
-          const panel = directory?.querySelector('.ant-drawer-content-wrapper');
-          const content = directory?.querySelector('.ant-drawer-content');
-          const body = directory?.querySelector('.ant-drawer-body');
-          const trigger = document.querySelector('.runner-case-browse');
-          const steps = document.querySelector('.runner-detail-step-scroll');
-          if (![panel, content, body, trigger, steps].every(node => node instanceof HTMLElement)) throw new Error('Missing Case directory layout elements');
-          const panelBounds = panel.getBoundingClientRect();
-          const triggerBounds = trigger.getBoundingClientRect();
-          if (Math.abs(panelBounds.left) > 1 || Math.abs(triggerBounds.left) > 1) throw new Error('The Case directory and menu button must touch the left viewport edge');
-          if (panelBounds.top < triggerBounds.bottom || panelBounds.right > innerWidth) throw new Error('The directory overlaps its menu button or overflows the viewport');
-          if (panelBounds.right < steps.getBoundingClientRect().right + 8) throw new Error('The default directory width does not cover the underlying Step scrollbar');
-          const panelStyle = getComputedStyle(panel);
-          if (parseFloat(panelStyle.borderTopRightRadius) <= 0 || panelStyle.overflow !== 'hidden') throw new Error('The directory wrapper must clip its rounded corner');
-          const background = getComputedStyle(content).backgroundColor;
-          if (getComputedStyle(body).backgroundColor !== background || getComputedStyle(body, '::-webkit-scrollbar-track').backgroundColor !== background) throw new Error('The directory scrollbar track does not match its container');
-          const aligned = [directory.querySelector('.ant-drawer-title'), directory.querySelector('.runner-case-list h3'), directory.querySelector('.runner-case-list strong'), directory.querySelector('.runner-case-list small')];
-          if (!aligned.every(node => node instanceof HTMLElement)) throw new Error('Missing directory title, Project, Case or File label');
-          const left = aligned[0].getBoundingClientRect().left;
-          if (aligned.some(node => Math.abs(node.getBoundingClientRect().left - left) > 1)) throw new Error('Directory titles and labels are not left-aligned');
+          (() => {
+            const directory = document.querySelector('.runner-case-drawer');
+            const panel = directory?.querySelector('.ant-drawer-content-wrapper');
+            const content = directory?.querySelector('.ant-drawer-content');
+            const body = directory?.querySelector('.ant-drawer-body');
+            const trigger = document.querySelector('.runner-case-browse');
+            const steps = document.querySelector('.runner-detail-step-scroll');
+            if (![panel, content, body, trigger, steps].every(node => node instanceof HTMLElement)) throw new Error('Missing Case directory layout elements');
+            const panelBounds = panel.getBoundingClientRect();
+            const triggerBounds = trigger.getBoundingClientRect();
+            if (Math.abs(panelBounds.left) > 1 || Math.abs(triggerBounds.left) > 1) throw new Error('The Case directory and menu button must touch the left viewport edge');
+            if (panelBounds.top < triggerBounds.bottom || panelBounds.right > innerWidth) throw new Error('The directory overlaps its menu button or overflows the viewport');
+            if (panelBounds.right < steps.getBoundingClientRect().right + 8) throw new Error('The default directory width does not cover the underlying Step scrollbar');
+            const panelStyle = getComputedStyle(panel);
+            if (parseFloat(panelStyle.borderTopRightRadius) <= 0 || panelStyle.overflow !== 'hidden') throw new Error('The directory wrapper must clip its rounded corner');
+            const background = getComputedStyle(content).backgroundColor;
+            if (getComputedStyle(body).backgroundColor !== background || getComputedStyle(body, '::-webkit-scrollbar-track').backgroundColor !== background) throw new Error('The directory scrollbar track does not match its container');
+            const aligned = [directory.querySelector('.ant-drawer-title'), directory.querySelector('.runner-case-list h3'), directory.querySelector('.runner-case-list strong'), directory.querySelector('.runner-case-list small')];
+            if (!aligned.every(node => node instanceof HTMLElement)) throw new Error('Missing directory title, Project, Case or File label');
+            const textLeft = node => {
+              const range = document.createRange();
+              range.selectNodeContents(node);
+              return range.getBoundingClientRect().left;
+            };
+            const left = textLeft(aligned[0]);
+            if (aligned.some(node => Math.abs(textLeft(node) - left) > 1)) throw new Error('Directory titles and labels are not left-aligned');
+          })();
         name: verifyCaseDirectoryLayout
       - javascript: |
-          const drawer = document.querySelector('.runner-case-drawer');
-          const current = drawer?.querySelector('.runner-case-list [aria-current="page"]');
-          if (!(drawer instanceof HTMLElement) || !(current instanceof HTMLButtonElement)) throw new Error('Missing Case directory or current Case');
-          if (document.activeElement !== current) throw new Error('Opening the directory did not focus the current Case');
-          if (getComputedStyle(drawer).outlineStyle !== 'none') throw new Error('The directory wrapper has a full-page focus outline');
+          (() => {
+            const drawer = document.querySelector('.runner-case-drawer');
+            const current = drawer?.querySelector('.runner-case-list [aria-current="page"]');
+            if (!(drawer instanceof HTMLElement) || !(current instanceof HTMLButtonElement)) throw new Error('Missing Case directory or current Case');
+            if (document.activeElement !== current) throw new Error('Opening the directory did not focus the current Case');
+            if (getComputedStyle(drawer).outlineStyle !== 'none') throw new Error('The directory wrapper has a full-page focus outline');
+          })();
         name: verifyCaseDirectoryFocus
       - aiKeyboardPress: Tab
       - javascript: |
-          const drawer = document.querySelector('.runner-case-drawer');
-          const focused = document.activeElement;
-          if (!(focused instanceof HTMLButtonElement) || !drawer?.contains(focused) || focused.getAttribute('aria-current') === 'page') throw new Error('Tab did not advance to another directory control');
+          (() => {
+            const drawer = document.querySelector('.runner-case-drawer');
+            const focused = document.activeElement;
+            if (!(focused instanceof HTMLButtonElement) || !drawer?.contains(focused) || focused.getAttribute('aria-current') === 'page') throw new Error('Tab did not advance to another directory control');
+          })();
         name: verifyCaseDirectoryKeyboardNavigation
       - aiKeyboardPress: Escape
       - aiAssert: The directory is closed and Smoke checkout is still displayed.

@@ -42,7 +42,8 @@ describe('structured execution diagnostics', () => {
           },
         }),
     });
-    const error = result.cases[0].run.steps[0].error as NodeExecutionError;
+    const error = result.cases[0].run?.steps[0].error as NodeExecutionError;
+    expect(error).toBeInstanceOf(NodeExecutionError);
     expect(error.cause).toBeInstanceOf(TypeError);
     const original = error.cause as TypeError;
     const value = JSON.parse(JSON.stringify(error));

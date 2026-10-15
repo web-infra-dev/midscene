@@ -115,6 +115,7 @@ tasks:
       - aiAssert: The dropdown shows Attempt 1 as Failed and Attempt 2 as Passed.
       - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option
       - sleep: 500
+      - aiHover: the Checkout with retry case title at the top left, outside the Execution timeline and its floating preview
       - aiAssert: Attempt 2 is selected. The screenshot timeline appears above the workspace. Execution steps are listed on the left, aiAct is selected, and Record contains the recorded Agent task list and screenshot viewer on the right.
       - aiHover: a screenshot thumbnail in the timeline at the top of Execution
       - aiAssert: A screenshot preview is displayed and aiAct is the selected execution step.
@@ -128,9 +129,10 @@ tasks:
       - aiTap: the Attempts dropdown showing Attempt 1 beside Visual and YAML in the Execution header
       - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option
       - sleep: 500
+      - aiHover: the Checkout with retry case title at the top left, outside the Execution timeline and its floating preview
       - aiAssert: Attempt 2 and aiAct are selected, with Record, Information, and Events tabs, and an embedded Agent report.
       - aiTap: the Information tab
-      - aiAssert: Input, Output, and Stable IDs appear as aligned rows in one white bordered panel extending to the bottom of the detail area. The timeline, execution steps pane, and outer detail area share the same pale background. Document setup, Before each, Case steps, and After each are separated by dividers. Step rows have no leading type icons or individual white bordered cards.
+      - aiAssert: Input, Output, and Stable IDs appear as aligned rows in one white bordered panel extending to the bottom of the detail area. The timeline, execution steps pane, and outer detail area share the same pale background. Document setup, Before each, Case steps, and After each are separated by dividers. Step names align at the left of their rows, and the small recording icon follows the aiAct name. Step rows share the pale background rather than individual white bordered cards.
       - aiTap: the Events tab
       - aiAssert: Events is selected. Runtime events appear in a white panel extending to the bottom of the detail area, with Time, Operation, Event, and Status columns. The operation is labeled Run step. Started and Finished events are visible, with a success status for Finished. The execution step list remains visible on the left.
       - aiTap: the Record tab
