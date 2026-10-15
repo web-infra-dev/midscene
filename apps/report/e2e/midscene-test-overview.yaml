@@ -89,6 +89,16 @@ tasks:
       - aiTap: the Duration column header in the Web regression table
       - aiTap: the Smoke checkout Case row in Web regression
       - aiAssert: The Smoke checkout Case detail shows an Overview back link and an Execution panel.
+      - aiTap: the View all cases button in the Case header
+      - aiAssert: The All cases drawer lists Web regression and Mobile regression. Smoke checkout is highlighted as the current Case. Checkout with retry and Blocked by document setup are also listed even though the Overview was filtered to passed checkout Cases. Each Case shows its result and source file.
+      - aiTap: the Close button at the top right of the All cases drawer
+      - aiAssert: The drawer is closed and Smoke checkout is still displayed.
+      - aiTap: the View all cases button
+      - aiTap: Mobile checkout in the Mobile regression section of the All cases drawer
+      - aiAssert: The drawer has closed and the Mobile checkout detail shows Mobile regression and cart.verify. The View all cases button is still available.
+      - aiTap: the View all cases button
+      - aiTap: Checkout with retry in the Web regression section of the All cases drawer
+      - aiAssert: Checkout with retry is displayed at the failed order.create Step in Attempt 1, showing Inventory was not ready. The drawer is closed.
       - aiTap: the Overview back link
       - aiAssert: Web regression is still selected in the project navigation. Passed is still checked, the search input still contains checkout, Duration is still sorted descending, and smoke/checkout.yaml is still expanded showing Smoke checkout. Checkout with retry is filtered out, while the checkout.yaml parent file still shows 2 of 2 passed without an extra percentage or per-file matching note.
 

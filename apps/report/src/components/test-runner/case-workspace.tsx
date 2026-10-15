@@ -38,6 +38,7 @@ export function CaseWorkspace({
   renderAgentReport,
   onBack,
   backLabel,
+  caseNavigation,
 }: {
   item: RunnerCaseView;
   standaloneRun?: TestRunReportDump;
@@ -48,6 +49,7 @@ export function CaseWorkspace({
   renderAgentReport(reports: PlaywrightTasks[]): ReactNode;
   onBack(): void;
   backLabel: string;
+  caseNavigation?: ReactNode;
 }): JSX.Element {
   const [executionView, setExecutionView] = useState<'visual' | 'yaml'>(
     'visual',
@@ -155,6 +157,7 @@ export function CaseWorkspace({
         standaloneRun={standaloneRun}
         backLabel={backLabel}
         onBack={onBack}
+        caseNavigation={caseNavigation}
       >
         <ErrorCards
           issues={otherIssues}

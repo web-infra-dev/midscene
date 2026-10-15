@@ -12,12 +12,14 @@ export function CaseWorkspaceHeader({
   backLabel,
   onBack,
   standaloneRun,
+  caseNavigation,
   children,
 }: {
   item: RunnerCaseView;
   backLabel: string;
   onBack(): void;
   standaloneRun?: TestRunReportDump;
+  caseNavigation?: ReactNode;
   children?: ReactNode;
 }): JSX.Element {
   return (
@@ -65,6 +67,7 @@ export function CaseWorkspaceHeader({
             </span>
           </div>
         </div>
+        {caseNavigation}
       </div>
       {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
       {children}

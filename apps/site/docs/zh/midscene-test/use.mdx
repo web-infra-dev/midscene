@@ -483,6 +483,8 @@ pnpm exec midscene-test --result-dir ./test-results
 
 旧 **tasks / flow** YAML 新生成的报告使用同一页面：每个 task 对应一个 Case，flow 条目对应 Step。内联输入显示为 **Inline YAML**。宿主初始化、清理错误归属于 File，不虚构 YAML 中的钩子。旧 CLI 批量执行和整文件重试报告仍保留来源身份，此页面不会把独立报告推断合并成同一个逻辑 Project，也不会推断 Case 重试历史。只有 Agent dump 的来源标注为 **Source report / Agent report**，不声称还原出 YAML 文件或 task、flow 导航。仅在存在真实原文快照时提供 YAML 视图。历史 HTML 报告需重新生成才能使用新布局。
 
+多 Case 报告可以通过详情页头部的 **View all cases** 打开抽屉，按 Project 查看所有 Case 的结果和来源文件，当前 Case 会高亮显示。该列表不受 Overview 筛选条件影响，点击其他 Case 可直接跳转，也支持跨 Project 切换；失败 Case 会定位到失败 Step。关闭抽屉不会切换 Case，返回 Overview 时会恢复原来的筛选、排序、展开状态和滚动位置。单 Case 报告不显示这个入口。
+
 Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝试时的 **Attempts** 下拉框，以及 Step 状态统计。报告保存了源 YAML 快照时，才可使用 YAML 视图。Visual 视图在截图时间线下方展示统一的 Step 列表和选中 Step 的详情，列表中的生命周期分组使用分割线区分。在宽屏下，拖动分栏线可调整 Step 列表宽度，聚焦后也可使用方向键调整，双击可恢复默认宽度。打开包含失败 Step 的 Case 时，会选中该 Step，并将对应行和错误滚动到可见位置。
 
 选中 Step 后，可以查看 **Information** 和 **Events**；有录屏或截图证据时，还会显示 **Record**：
@@ -513,7 +515,7 @@ Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝�
 
 **Execution still running** 和 **pending** 徽标表示 Runner 返回结果时，操作尚未结束，可能出现在超时或取消场景。这不代表报告记录截止时间之后的实时状态。Status 为 `-` 表示这条事件没有结果状态，不代表失败。
 
-Step 错误显示在这些标签页上方。展开 **details** 可查看技术信息，包括原始错误堆栈和 cause 链中的堆栈。堆栈默认折叠，复制问题详情时也会包含堆栈。敏感信息会脱敏；超出报告大小或 cause 深度限制的诊断信息会标注截断。存在多个问题时，可通过 **View all … issues** 查看。Case 和生命周期清理错误仍显示在 Execution 上方。页头的主题按钮可以切换浅色和深色主题。
+Step 错误显示在这些标签页上方。展开 **details** 可查看错误类型、错误码和失败 Node。堆栈共用一个滚动区域，先展示原始错误堆栈，再展示逐层包装的错误和框架调用堆栈。其他诊断信息及关联错误保留在下方。堆栈默认折叠，复制问题详情时也会包含堆栈。敏感信息会脱敏；超出报告大小或 cause 深度限制的诊断信息会标注截断。存在多个问题时，可通过 **View all … issues** 查看。Case 和生命周期清理错误仍显示在 Execution 上方。页头的主题按钮可以切换浅色和深色主题。
 
 报告保留执行前的测试计划，以及实际执行和未执行的步骤、未执行原因、重试停止原因。等待旧操作退出的时间与步骤执行时间分开记录。报告是生成时的快照：`cleanup pending` 表示当时清理尚未完成，资源仍保持隔离；之后完成的清理不会回写已生成的 HTML。
 

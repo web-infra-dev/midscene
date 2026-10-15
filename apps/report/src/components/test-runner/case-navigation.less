@@ -1,0 +1,115 @@
+.test-runner-report {
+  .runner-case-browse {
+    flex: none;
+    align-self: flex-start;
+    min-height: 32px;
+    padding: 4px 12px;
+    color: var(--runner-text);
+    border: 1px solid var(--runner-border);
+    border-radius: 8px;
+    background: var(--runner-surface);
+    font-size: 12px;
+    line-height: 22px;
+    cursor: pointer;
+    &:hover {
+      background: var(--runner-control-bg);
+    }
+  }
+  .runner-case-drawer {
+    --case-current-bg: #f7f7f7;
+    .ant-drawer-header {
+      min-height: 56px;
+      border-bottom: 0;
+    }
+    .ant-drawer-body {
+      padding: 0 8px 8px;
+    }
+    .ant-drawer-title {
+      font-weight: 500;
+    }
+  }
+  .runner-case-list section + section {
+    margin-top: 8px;
+  }
+  .runner-case-list h3 {
+    margin: 0 0 8px;
+    padding: 16px 16px 0;
+    overflow: hidden;
+    color: var(--runner-muted);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 22px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .runner-case-list button {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 74px;
+    margin-bottom: 8px;
+    padding: 16px;
+    align-items: center;
+    gap: 16px;
+    color: var(--runner-text);
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    &:hover,
+    &[aria-current] {
+      background: var(--case-current-bg);
+    }
+    &:focus-visible {
+      outline-offset: -2px;
+    }
+    > img {
+      flex: none;
+      opacity: 0.01;
+    }
+  }
+  .runner-case-list-copy {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    gap: 4px;
+    > span {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 8px;
+    }
+    strong,
+    small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    strong {
+      font-family: 'Report Roboto', 'Report Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 18px;
+    }
+    small {
+      color: var(--runner-muted);
+      font-size: 12px;
+      line-height: 20px;
+    }
+  }
+  .runner-case-list .runner-status-pill {
+    height: 18px;
+    min-height: 18px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    line-height: 12px;
+  }
+  &[data-theme='dark'] .runner-case-drawer {
+    --case-current-bg: var(--runner-hover);
+  }
+  &[data-theme='dark'] .runner-case-drawer .ant-drawer-close img {
+    filter: invert(1);
+  }
+}

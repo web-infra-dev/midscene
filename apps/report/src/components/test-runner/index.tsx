@@ -12,6 +12,7 @@ import {
   runnerHashForRoute,
 } from '../../utils/test-run-report';
 import { Logo } from '../logo';
+import { CaseNavigation } from './case-navigation';
 import { CaseWorkspace } from './case-workspace';
 import { ErrorCards } from './error-card';
 import { collectReportIssues } from './issues';
@@ -151,10 +152,11 @@ export default function TestRunnerReport({
     restoreView(viewState);
   };
   const openCase = (item: RunnerCaseView, stepId?: string) => {
-    overviewReturnStateRef.current = {
-      scrollTop: mainRef.current?.scrollTop ?? 0,
-      caseKey: item.key,
-    };
+    if (page === 'overview')
+      overviewReturnStateRef.current = {
+        scrollTop: mainRef.current?.scrollTop ?? 0,
+        caseKey: item.key,
+      };
     navigate({
       page: 'case',
       caseKey: item.key,
@@ -239,6 +241,13 @@ export default function TestRunnerReport({
                 initialStepId={deepLinkedStepId}
                 renderAgentReport={renderAgentReport}
                 onBack={backFromCase}
+                caseNavigation={
+                  <CaseNavigation
+                    projects={projects}
+                    currentCaseKey={selectedCase.key}
+                    onOpenCase={openCase}
+                  />
+                }
               />
             ) : (
               <RunOverview
