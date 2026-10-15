@@ -1,6 +1,34 @@
 import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
+  // Homepage chapters
+  chapterAgent: 'GUI Agent',
+  chapterFramework: 'Midscene Test',
+  agentChapterHeading: '为测试而生的 GUI Agent',
+  agentChapterDesc:
+    '看懂界面、执行测试步骤、验证用户看到的结果。通过 API 接入已有测试工程，或通过 Skills 让 AI 编程 Agent 测试你的应用。',
+  frameworkChapterHeading: '从一次界面操作，到一套测试工程',
+  frameworkChapterDesc:
+    '当测试需要数据准备、业务校验和持续运行，用 Midscene Test 将 GUI Agent 与代码步骤组织起来。',
+  exampleDesc:
+    '按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 YAML 表达，也可以接入现有 JavaScript 测试。',
+  agentIntegrationDesc:
+    '可以直接使用 GUI Agent，无需采用 Midscene Test。通过 API、Playwright、Puppeteer 或 Skills 接入你的工作流。',
+  executionEyebrow: '执行管理',
+  executionHeading: '让用例持续、成批地运行',
+  executionLifecycleTitle: '生命周期与清理',
+  executionLifecycleDesc:
+    '用 Before / After 钩子安排数据准备与资源清理，让每次执行的边界清晰。',
+  executionRetryTitle: '失败重试',
+  executionRetryDesc:
+    '配置失败用例的重试次数；清理完成且无操作仍在运行后，再开始下一次尝试。',
+  executionConcurrencyTitle: '隔离与并发',
+  executionConcurrencyDesc:
+    '用独立的 Project context 隔离运行环境，配置并发执行多个 Project。',
+  executionReportTitle: '汇总测试结果',
+  executionReportDesc:
+    '在测试报告中查看 Project、用例、步骤与重试记录，追踪失败和未执行的原因。',
+
   // Banner - Title
   heroTitle: '像人一样看懂界面\n用自然语言完成 E2E 测试',
   heroSubtitle:
@@ -20,20 +48,6 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   exampleSetupOmitted: '省略模型配置、page 初始化与资源清理',
   exampleEyebrow: '编写测试',
   exampleHeading: '用自然语言描述步骤与预期',
-  exampleDesc:
-    '同一个用例的三种写法：由 @midscene/test 运行的 YAML，或在 Playwright Test、Vitest 中调用 Midscene 的 AI 方法。',
-  exampleStylesLabel: '用例写法',
-  exampleYamlTab: 'YAML · @midscene/test',
-  exampleYamlDesc:
-    '用例只包含步骤与预期。浏览器和 Agent 由 midscene.config.ts 创建，模型在 .env 中配置。',
-  exampleYamlLink: 'Midscene Test 使用指南',
-  examplePlaywrightDesc:
-    '用 PlaywrightAiFixture() 扩展 test，即可在已有的 Playwright 用例中通过测试参数调用 AI 方法。',
-  examplePlaywrightLink: '集成到 Playwright',
-  exampleFixtureNote: 'fixture.ts 中已用 PlaywrightAiFixture() 扩展 test',
-  exampleVitestDesc:
-    '为页面创建 PlaywrightAgent，在任意 JavaScript 测试框架中调用它的方法。',
-  exampleVitestLink: 'Agent API 参考',
   exampleCase: '筛选 100 美元以下的耳机',
   exampleAct: '搜索耳机，然后将结果筛选为价格低于 100 美元',
   exampleWait: '筛选后的搜索结果已显示',
@@ -57,7 +71,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Sections - MODELS
   modelsTitle: '视觉模型与策略',
-  modelsHeading: '视觉驱动\n低成本运行测试',
+  modelsHeading: '看懂界面，验证结果',
 
   // Model Cards
   modelVisionName: '截图定位与操作',
@@ -81,14 +95,15 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Test framework
   frameworkHeading: 'AI 步骤与确定性 Node\n写在同一个 YAML 里',
   frameworkDesc:
-    '由界面决定路径的部分交给自然语言，要求结果精确的部分交给代码。两者都是同一个用例中的步骤。',
+    '在同一个 YAML 用例中组合自然语言界面操作与代码步骤：由 GUI Agent 处理界面交互，用 TypeScript Node 准备数据、校验接口和清理资源。',
   frameworkLegendLabel: '步骤类型',
   frameworkAiTitle: 'AI 步骤',
   frameworkAiDesc: 'aiAct 和 aiAssert 读取界面截图，按自然语言指令操作和断言。',
   frameworkNodeTitle: '确定性 Node',
   frameworkNodeDesc:
     '用 TypeScript 实现测试数据、接口校验与清理，每次执行的行为一致。',
-  frameworkLink: '了解 Midscene Test',
+  frameworkStartLink: '创建测试项目',
+  frameworkLink: '了解框架设计',
   frameworkCaseName: '已支付订单支持全额退款',
   frameworkCaseAct: '申请全额退款并提交',
   frameworkCaseAssert: '页面显示退款申请已提交',
@@ -111,8 +126,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   projectCaseAssert: '退款申请已提交',
 
   // Testing toolkit
-  debuggingTitle: '测试工具链',
-  debuggingHeading: '完整的 AI Native 测试工具链',
+  debuggingTitle: 'AGENT 工具链',
+  debuggingHeading: '接入、回放与调试',
   toolkitFrameworkTitle: 'AI Native E2E 测试框架',
   toolkitFrameworkDesc:
     '用 YAML 与自然语言写用例，用 TypeScript 扩展业务节点，组合 AI 操作与业务逻辑。',

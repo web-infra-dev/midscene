@@ -108,6 +108,12 @@
   line-height: 22px;
 }
 
+.home-framework__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+
 .home-framework .home-framework__link {
   margin: 0;
   align-self: flex-start;

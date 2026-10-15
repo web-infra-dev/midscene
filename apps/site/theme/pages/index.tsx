@@ -1,3 +1,4 @@
+import '../components/HomeChapter.css';
 import { Banner } from '../components/Banner';
 import { CTAButtons } from '../components/CTAButtons';
 import { FeatureSections } from '../components/FeatureSections';
@@ -25,9 +26,10 @@ export function HomeLayout() {
   return (
     <div className="home-page">
       {/* Banner Section */}
-      <Banner />
-
-      <TestExample />
+      <section id="test-intent" aria-labelledby="home-hero-title">
+        <Banner />
+        <TestExample />
+      </section>
 
       {/* Feature Sections */}
       <FeatureSections />

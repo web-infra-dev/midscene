@@ -1,4 +1,32 @@
 export const EN_US = {
+  // Homepage chapters
+  chapterAgent: 'GUI AGENT',
+  chapterFramework: 'MIDSCENE TEST',
+  agentChapterHeading: 'A GUI Agent built for testing',
+  agentChapterDesc:
+    'Understand interfaces, perform test steps, and verify what users see. Integrate with your existing test stack through APIs, or let AI coding agents test your UI through Skills.',
+  frameworkChapterHeading: 'From UI actions to a maintainable test suite',
+  frameworkChapterDesc:
+    'When tests need data setup, business checks, and repeatable execution, use Midscene Test to organize GUI Agent actions alongside code.',
+  exampleDesc:
+    'Describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.',
+  agentIntegrationDesc:
+    'Use the GUI Agent directly without adopting Midscene Test. Connect it to your workflow through APIs, Playwright, Puppeteer, or Skills.',
+  executionEyebrow: 'TEST EXECUTION',
+  executionHeading: 'Run and maintain a growing test suite',
+  executionLifecycleTitle: 'Lifecycle and cleanup',
+  executionLifecycleDesc:
+    'Use Before / After hooks to prepare data and clean up resources around each run.',
+  executionRetryTitle: 'Failure retries',
+  executionRetryDesc:
+    'Configure retry limits for failed cases. A new attempt starts after cleanup completes and no operations remain running.',
+  executionConcurrencyTitle: 'Isolation and concurrency',
+  executionConcurrencyDesc:
+    'Isolate environments with separate Project contexts and configure concurrent Project execution.',
+  executionReportTitle: 'Test results in context',
+  executionReportDesc:
+    'Inspect Projects, cases, steps, and retry attempts in the test report, including failures and reasons steps did not run.',
+
   // Banner - Title
   heroTitle: 'See interfaces like a human\nE2E testing in natural language',
   heroSubtitle:
@@ -18,20 +46,6 @@ export const EN_US = {
   exampleSetupOmitted: 'Model configuration, page setup, and cleanup omitted',
   exampleEyebrow: 'WRITE A TEST',
   exampleHeading: 'Describe steps and expectations in natural language',
-  exampleDesc:
-    'The same case in three styles: YAML run by @midscene/test, or Midscene AI methods called from Playwright Test or Vitest.',
-  exampleStylesLabel: 'Test style',
-  exampleYamlTab: 'YAML · @midscene/test',
-  exampleYamlDesc:
-    'The case contains only steps and expectations. midscene.config.ts creates the browser and Agent; .env configures the model.',
-  exampleYamlLink: 'Midscene Test guide',
-  examplePlaywrightDesc:
-    'Extend test with PlaywrightAiFixture(), then call AI methods from the test arguments of an existing Playwright suite.',
-  examplePlaywrightLink: 'Playwright integration',
-  exampleFixtureNote: 'fixture.ts extends test with PlaywrightAiFixture()',
-  exampleVitestDesc:
-    'Create a PlaywrightAgent for a page and call its methods from any JavaScript test runner.',
-  exampleVitestLink: 'Agent API reference',
   exampleCase: 'Find headphones under $100',
   exampleAct:
     'Search for headphones and filter the results to prices under $100',
@@ -57,7 +71,7 @@ export const EN_US = {
 
   // Feature Sections - MODELS
   modelsTitle: 'VISION MODELS & STRATEGY',
-  modelsHeading: 'Vision-driven\nLow-cost testing',
+  modelsHeading: 'Understand interfaces, verify outcomes',
 
   // Model Cards
   modelVisionName: 'Locate and act from screenshots',
@@ -81,7 +95,7 @@ export const EN_US = {
   // Test framework
   frameworkHeading: 'AI steps and Nodes\nin one YAML file',
   frameworkDesc:
-    'Use natural language where the interface decides the path, and code where the result must be exact. Both are steps in the same case.',
+    'Combine natural-language UI actions and code steps in one YAML case. Let the GUI Agent interact with the interface, and use TypeScript Nodes for data setup, API checks, and cleanup.',
   frameworkLegendLabel: 'Step types',
   frameworkAiTitle: 'AI steps',
   frameworkAiDesc:
@@ -89,7 +103,8 @@ export const EN_US = {
   frameworkNodeTitle: 'Deterministic Nodes',
   frameworkNodeDesc:
     'TypeScript code for test data, API checks, and cleanup. It runs the same way every time.',
-  frameworkLink: 'Explore Midscene Test',
+  frameworkStartLink: 'Create a test project',
+  frameworkLink: 'Explore the framework design',
   frameworkCaseName: 'A paid order supports a full refund',
   frameworkCaseAct: 'Apply for a full refund and submit',
   frameworkCaseAssert: 'The page shows that the refund was submitted',
@@ -114,8 +129,8 @@ export const EN_US = {
   projectCaseAssert: 'The refund is submitted',
 
   // Testing toolkit
-  debuggingTitle: 'TESTING TOOLKIT',
-  debuggingHeading: 'A complete toolkit for AI-native testing',
+  debuggingTitle: 'AGENT TOOLKIT',
+  debuggingHeading: 'Integrate, replay, and debug',
   toolkitFrameworkTitle: 'An AI-native E2E testing framework',
   toolkitFrameworkDesc:
     'Write tests in YAML and natural language. Extend them with TypeScript Nodes to combine AI actions with business logic.',

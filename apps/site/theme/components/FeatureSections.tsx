@@ -3,6 +3,7 @@ import { ArrowRight, CircleCheck, ScanSearch } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useI18n, useI18nUrl } from '../i18n';
 import { FeatureCard } from './FeatureCard';
+import { HomeChapter } from './HomeChapter';
 import { PlatformTable } from './PlatformTable';
 import { SectionDivider } from './SectionDivider';
 import { TestFramework } from './TestFramework';
@@ -110,124 +111,164 @@ export function FeatureSections() {
 
   return (
     <div className="home-features">
-      <FeatureSection
-        eyebrow={t('modelsTitle')}
-        heading={t('modelsHeading')}
-        variant="models"
+      <HomeChapter
+        id="gui-agent"
+        label={t('chapterAgent')}
+        heading={t('agentChapterHeading')}
+        description={t('agentChapterDesc')}
       >
-        <div className="home-feature-grid">
-          <FeatureCard
-            href={tUrl('/model-strategy')}
-            title={t('modelVisionName')}
-            description={t('modelVisionDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <div className="home-model-visual">
-                <ScanSearch size={72} strokeWidth={1} />
-                <span>{t('modelVisionMetric')}</span>
-              </div>
-            }
-          />
-          <FeatureCard
-            href={tUrl('/model-common-config')}
-            title={t('modelSupportedName')}
-            description={t('modelSupportedDesc')}
-            lightBackground="/images/models/supported-models-light.svg"
-            darkBackground="/images/models/supported-models-dark.svg"
-          />
-          <FeatureCard
-            href={tUrl('/app-control-bench-report')}
-            title={t('modelCostName')}
-            description={t('modelCostDesc')}
-            actionLabel={t('modelCostReport')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            visualClassName="home-feature-card__visual--cost"
-            lightContent={
-              <div className="home-model-cost">
-                <span className="home-model-cost__eyebrow">
-                  {t('modelCostExample')}
-                </span>
-                <strong>$0.59</strong>
-                <span>{t('modelCostMetric')}</span>
-              </div>
-            }
-          />
-          <FeatureCard
-            href={tUrl('/introduction')}
-            title={t('modelAssertName')}
-            description={t('modelAssertDesc')}
-            lightBackground="/images/backgrounds/gradient-light.svg"
-            darkBackground="/images/backgrounds/gradient-dark.svg"
-            lightContent={
-              <div className="home-model-visual">
-                <CircleCheck size={72} strokeWidth={1} />
-                <span>{t('modelAssertMetric')}</span>
-              </div>
-            }
-          />
-        </div>
-      </FeatureSection>
+        <FeatureSection
+          eyebrow={t('modelsTitle')}
+          heading={t('modelsHeading')}
+          variant="models"
+        >
+          <div className="home-feature-grid">
+            <FeatureCard
+              href={tUrl('/model-strategy')}
+              title={t('modelVisionName')}
+              description={t('modelVisionDesc')}
+              lightBackground="/images/backgrounds/gradient-light.svg"
+              darkBackground="/images/backgrounds/gradient-dark.svg"
+              lightContent={
+                <div className="home-model-visual">
+                  <ScanSearch size={72} strokeWidth={1} />
+                  <span>{t('modelVisionMetric')}</span>
+                </div>
+              }
+            />
+            <FeatureCard
+              href={tUrl('/model-common-config')}
+              title={t('modelSupportedName')}
+              description={t('modelSupportedDesc')}
+              lightBackground="/images/models/supported-models-light.svg"
+              darkBackground="/images/models/supported-models-dark.svg"
+            />
+            <FeatureCard
+              href={tUrl('/app-control-bench-report')}
+              title={t('modelCostName')}
+              description={t('modelCostDesc')}
+              actionLabel={t('modelCostReport')}
+              lightBackground="/images/backgrounds/gradient-light.svg"
+              darkBackground="/images/backgrounds/gradient-dark.svg"
+              visualClassName="home-feature-card__visual--cost"
+              lightContent={
+                <div className="home-model-cost">
+                  <span className="home-model-cost__eyebrow">
+                    {t('modelCostExample')}
+                  </span>
+                  <strong>$0.59</strong>
+                  <span>{t('modelCostMetric')}</span>
+                </div>
+              }
+            />
+            <FeatureCard
+              href={tUrl('/introduction')}
+              title={t('modelAssertName')}
+              description={t('modelAssertDesc')}
+              lightBackground="/images/backgrounds/gradient-light.svg"
+              darkBackground="/images/backgrounds/gradient-dark.svg"
+              lightContent={
+                <div className="home-model-visual">
+                  <CircleCheck size={72} strokeWidth={1} />
+                  <span>{t('modelAssertMetric')}</span>
+                </div>
+              }
+            />
+          </div>
+        </FeatureSection>
 
-      <SectionDivider className="home-feature__divider" />
+        <SectionDivider className="home-feature__divider" />
 
-      <FeatureSection
-        eyebrow={t('clientsTitle')}
-        heading={t('clientsHeading')}
-        variant="platforms"
+        <FeatureSection
+          eyebrow={t('benchmarksTitle')}
+          heading={t('benchmarksHeading')}
+          variant="benchmarks"
+        >
+          <div className="home-benchmark-grid">
+            <BenchmarkLinkCard
+              href={tUrl(t('featureBenchmarkLink'))}
+              score="93.1%"
+              title="AndroidWorld Benchmark"
+              details={`${t('benchmark')} 93.1% · Pass@3 97.4%`}
+            />
+            <BenchmarkLinkCard
+              href={tUrl(t('featureMobileWorldBenchmarkLink'))}
+              score="78.6%"
+              title="MobileWorld Benchmark"
+              details={`${t('benchmark')} 78.6% · 92/117`}
+            />
+            <BenchmarkLinkCard
+              href={tUrl(t('featureAppControlBenchLink'))}
+              score="96.7%"
+              title="AppControlBench Benchmark"
+              details="Pass@1 96.7% · 58 PASS"
+            />
+          </div>
+        </FeatureSection>
+
+        <SectionDivider className="home-feature__divider" />
+
+        <FeatureSection
+          eyebrow={t('clientsTitle')}
+          heading={t('clientsHeading')}
+          variant="platforms"
+        >
+          <PlatformTable />
+        </FeatureSection>
+
+        <SectionDivider className="home-feature__divider" />
+
+        <FeatureSection
+          eyebrow={t('debuggingTitle')}
+          heading={t('debuggingHeading')}
+          descriptions={[t('agentIntegrationDesc')]}
+          variant="toolkit"
+        >
+          <TestingToolkit />
+        </FeatureSection>
+      </HomeChapter>
+      <HomeChapter
+        id="midscene-test"
+        label={t('chapterFramework')}
+        heading={t('frameworkChapterHeading')}
+        description={t('frameworkChapterDesc')}
       >
-        <PlatformTable />
-      </FeatureSection>
-
-      <SectionDivider className="home-feature__divider" />
-
-      <TestFramework />
-
-      <SectionDivider className="home-feature__divider" />
-
-      <TestProject />
-
-      <SectionDivider className="home-feature__divider" />
-
-      <FeatureSection
-        eyebrow={t('debuggingTitle')}
-        heading={t('debuggingHeading')}
-        variant="toolkit"
-      >
-        <TestingToolkit />
-      </FeatureSection>
-
-      <SectionDivider className="home-feature__divider" />
-
-      <FeatureSection
-        eyebrow={t('benchmarksTitle')}
-        heading={t('benchmarksHeading')}
-        variant="benchmarks"
-      >
-        <div className="home-benchmark-grid">
-          <BenchmarkLinkCard
-            href={tUrl(t('featureBenchmarkLink'))}
-            score="93.1%"
-            title="AndroidWorld Benchmark"
-            details={`${t('benchmark')} 93.1% · Pass@3 97.4%`}
-          />
-          <BenchmarkLinkCard
-            href={tUrl(t('featureMobileWorldBenchmarkLink'))}
-            score="78.6%"
-            title="MobileWorld Benchmark"
-            details={`${t('benchmark')} 78.6% · 92/117`}
-          />
-          <BenchmarkLinkCard
-            href={tUrl(t('featureAppControlBenchLink'))}
-            score="96.7%"
-            title="AppControlBench Benchmark"
-            details="Pass@1 96.7% · 58 PASS"
-          />
-        </div>
-      </FeatureSection>
-
-      <SectionDivider className="home-feature__divider" />
+        <TestFramework />
+        <SectionDivider className="home-feature__divider" />
+        <TestProject />
+        <section className="home-feature">
+          <div className="home-feature__inner">
+            <header className="home-feature__heading-block">
+              <span className="home-feature__eyebrow">
+                {t('executionEyebrow')}
+              </span>
+              <h2>{t('executionHeading')}</h2>
+            </header>
+            <div className="home-execution-grid">
+              {(
+                [
+                  ['executionLifecycleTitle', 'executionLifecycleDesc'],
+                  ['executionRetryTitle', 'executionRetryDesc'],
+                  ['executionConcurrencyTitle', 'executionConcurrencyDesc'],
+                  ['executionReportTitle', 'executionReportDesc'],
+                ] as const
+              ).map(([title, description]) => (
+                <article key={title}>
+                  <h3>{t(title)}</h3>
+                  <p>{t(description)}</p>
+                </article>
+              ))}
+            </div>
+            <Link
+              className="home-feature__action"
+              href={tUrl('/midscene-test/use')}
+            >
+              {t('frameworkStartLink')}
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          </div>
+        </section>
+      </HomeChapter>
     </div>
   );
 }

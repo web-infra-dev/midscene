@@ -121,13 +121,22 @@ export function TestFramework() {
             ))}
           </ul>
 
-          <Link
-            className="home-feature__action home-framework__link"
-            href={tUrl('/midscene-test/overview')}
-          >
-            <span>{t('frameworkLink')}</span>
-            <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
-          </Link>
+          <div className="home-framework__actions">
+            <Link
+              className="home-feature__action home-framework__link"
+              href={tUrl('/midscene-test/use')}
+            >
+              <span>{t('frameworkStartLink')}</span>
+              <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
+            </Link>
+            <Link
+              className="home-feature__action home-framework__link"
+              href={tUrl('/midscene-test/overview')}
+            >
+              <span>{t('frameworkLink')}</span>
+              <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
+            </Link>
+          </div>
         </div>
 
         <figure
