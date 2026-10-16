@@ -153,7 +153,8 @@
   .runner-detail-io-grid {
     display: block;
     flex: 1 0 auto;
-    padding: 0 20px;
+    // Match the heading inset, accounting for the card's 1px border.
+    padding: 0 calc(12px - 1px);
     overflow: hidden;
     border: 1px solid var(--runner-border);
     border-radius: 16px;

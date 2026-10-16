@@ -752,10 +752,6 @@
     vertical-align: middle;
   }
 
-  .runner-file-table thead {
-    background: var(--runner-surface);
-  }
-
   .runner-file-table thead th {
     position: sticky;
     top: 0;
@@ -763,6 +759,11 @@
     color: var(--runner-muted);
     background: var(--runner-surface);
     border-bottom: 1px solid var(--runner-border);
+
+    &:first-child {
+      // Match the project heading inset inside the bordered table.
+      padding-left: calc(12px - 1px);
+    }
   }
 
   .runner-file-sort {
@@ -1121,7 +1122,7 @@
       min-height: 560px;
     }
     .runner-project-heading {
-      margin: 12px 8px 16px;
+      margin-bottom: 16px;
     }
   }
 }
