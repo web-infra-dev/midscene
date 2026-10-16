@@ -17,3 +17,5 @@ Run tests with `{{TEST_COMMAND}}`. Read `midscene-node-spec.web.md` for the avai
 After changing Node registrations in `midscene.config.ts`, run `{{RUN_NODES_COMMAND}}` to refresh the spec. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.
 
 Tests run serially and stop after the first failed case (`test.bail: 1`). Reports are saved and the browser is closed on failure. Reports are written to `midscene_run/report/`.
+
+`setup` starts one shared browser; `fileSetup` creates an independent browser context, page and Agent for each test file. Increase `test.maxConcurrentFiles` to run more files simultaneously. Cases inside each file remain sequential; Case retries reuse that file's environment.

@@ -29,6 +29,7 @@ import type {
   PreparedExecutionProject,
   PreparedTestRunPlan,
 } from './execution-plan';
+import { runPreparedFiles } from './file-scheduler';
 import { createOperationJournal } from './operation-journal';
 import { writeTestProjectRunResult, writeTestRunPlan } from './result-store';
 import type {
@@ -151,8 +152,10 @@ export async function runPreparedTestProject(
   );
 
   const effectiveConcurrency = Math.min(
-    definition.test.maxConcurrency,
-    preparedProjects.length,
+    definition.test.maxConcurrentFiles ?? definition.test.maxConcurrency,
+    definition.test.maxConcurrentFiles === undefined
+      ? preparedProjects.length
+      : Math.max(1, totalDocuments),
   );
   await writeTestRunPlan(runDir, preparedProjects);
   const journal = createOperationJournal(runDir);
@@ -172,6 +175,28 @@ export async function runPreparedTestProject(
   let failedCaseCount = 0;
   const bailReached = () =>
     definition.test.bail > 0 && failedCaseCount >= definition.test.bail;
+  let shutdownDeadline: number | undefined;
+  const beginShutdown = () => {
+    if (definition.test.maxConcurrentFiles !== undefined)
+      shutdownDeadline ??= Date.now() + definition.test.teardownTimeout!;
+  };
+  rootController.signal.addEventListener('abort', beginShutdown, {
+    once: true,
+  });
+  const addFailedCases = (count: number) => {
+    failedCaseCount += count;
+    if (bailReached()) beginShutdown();
+  };
+  const teardownTimeoutMs = () =>
+    Math.max(
+      0,
+      Math.min(
+        definition.test.teardownTimeout!,
+        shutdownDeadline === undefined
+          ? Number.POSITIVE_INFINITY
+          : shutdownDeadline - Date.now(),
+      ),
+    );
   let hasInfrastructureError = false;
   const infrastructureErrors: unknown[] = [];
   const recordInfrastructureError = (error: unknown) => {
@@ -338,9 +363,7 @@ export async function runPreparedTestProject(
               markProjectFatal: () => {
                 projectFatal = true;
               },
-              addFailedCases: (count) => {
-                failedCaseCount += count;
-              },
+              addFailedCases,
               onProgress: projectProgress,
               sinks: {
                 cases,
@@ -447,24 +470,55 @@ export async function runPreparedTestProject(
     new Array(preparedProjects.length);
 
   try {
-    await runConcurrentJobs(
-      preparedProjects,
-      {
-        concurrency: effectiveConcurrency,
-        shouldStop: () =>
-          hasInfrastructureError ||
-          rootController.signal.aborted ||
-          bailReached(),
-      },
-      async (prepared, index) => {
-        try {
-          projectResults[index] = await runPreparedProject(prepared, index);
-        } catch (error) {
-          recordInfrastructureError(error);
-          throw error;
-        }
-      },
-    );
+    if (definition.test.maxConcurrentFiles !== undefined) {
+      const states = await runPreparedFiles({
+        projects: preparedProjects,
+        maxConcurrentFiles: definition.test.maxConcurrentFiles,
+        setupTimeoutMs: definition.test.setupTimeout!,
+        teardownTimeoutMs,
+        signal: rootController.signal,
+        runDir,
+        preflightFailed: plan.preflightScope === 'run' && totalErrors > 0,
+        shouldBail: bailReached,
+        addFailedCases,
+        announceProject,
+        onProgress: (prepared, message) =>
+          runInfrastructureCallback(() =>
+            progress(
+              effectiveConcurrency > 1
+                ? `[${prepared.project.name}]${message}`
+                : message,
+            ),
+          ),
+        onInfrastructureError: recordInfrastructureError,
+      });
+      states.forEach((state, index) => {
+        projectResults[index] = buildProjectResult(
+          state.prepared,
+          state.cases,
+          state.documents,
+          state.lifecycle,
+        );
+      });
+    } else
+      await runConcurrentJobs(
+        preparedProjects,
+        {
+          concurrency: effectiveConcurrency,
+          shouldStop: () =>
+            hasInfrastructureError ||
+            rootController.signal.aborted ||
+            bailReached(),
+        },
+        async (prepared, index) => {
+          try {
+            projectResults[index] = await runPreparedProject(prepared, index);
+          } catch (error) {
+            recordInfrastructureError(error);
+            throw error;
+          }
+        },
+      );
   } catch (error) {
     recordInfrastructureError(error);
   } finally {

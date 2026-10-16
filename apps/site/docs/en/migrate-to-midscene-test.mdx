@@ -251,7 +251,7 @@ export default defineTestProject({
 | --- | --- | --- |
 | `files` | `projects[].files.include` | `midscene` preserves old order and repeated invocations. Native selection is sorted and deduplicated, with no `files.order` switch. |
 | `setup` | Legacy prerequisite file; native setup / `beforeAll` | The legacy host runs the old setup file first. In native Test, create resources in setup and express file prerequisites as lifecycle Steps; there is no `setupFile` option. |
-| `concurrent` | Legacy file scheduler; native `test.maxConcurrency` | `midscene` preserves file concurrency. Native concurrency is between independent Projects, not files inside one Project. |
+| `concurrent` | Legacy file scheduling; native `test.maxConcurrentFiles` + `fileSetup` | `midscene` keeps its existing semantics. In native Test, explicitly enable file scheduling and prepare independent resources for every file. |
 | `retry` | Legacy whole-file retry; native `projects[].retry` | Native retries only a failed Case. Keep legacy files on `midscene` when whole-file replay is required; there is no `retryScope` switch. |
 | `continueOnError: false` | `test.bail: 1` | Stop scheduling new files or Cases when the failure threshold is reached. Concurrent work that has already started still completes cleanup. |
 | `continueOnError: true` | `test.bail: 0` | Disable global failure-threshold stopping. `midscene` separately preserves old task continuation; native Cases continue by default. |
@@ -262,7 +262,7 @@ export default defineTestProject({
 | `dotenvOverride`, `dotenvDebug` | Project environment-loading policy | Native Test reads `process.env`. If you rely on an `.env` file, load it explicitly in the config or launch script and configure precedence and debugging there. |
 | `web`, `android`, `ios`, `harmony`, `computer`, `interface` | Project `setup`, `variables`, and registered platform Nodes | Move device connection and Agent creation into setup; keep serializable environment differences in `variables`. |
 
-This native example selects files and adopts Case retries; it does not preserve the old setup-file or concurrent-file scheduling. For parallel native execution, split files across independent Projects and use `test.maxConcurrency`. Legacy file concurrency and document setup stay behind the `midscene` entry and are not public Test configuration.
+This native example selects files and adopts Case retries; it does not preserve the old setup-file scheduling. To run native files concurrently, configure `test.maxConcurrentFiles` and move per-file resources into `fileSetup`; see [File concurrency](./midscene-test/configuration#file-concurrency-with-maxconcurrentfiles). Without the new setting, `test.maxConcurrency` retains its Project-level scheduling behavior. Do not combine the two settings. Legacy `concurrent` / `--concurrent` and setup-file behavior remain unchanged behind the `midscene` entry.
 
 The `midscene` entry preserves legacy output naming: explicit flow `name` values, numeric keys for unnamed extracted results, and the existing overwrite behavior for duplicate names.
 

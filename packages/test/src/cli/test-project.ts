@@ -5,6 +5,7 @@ import { NodeRegistry } from '../engine/registry';
 import type { NodeDefinition } from '../node/types';
 
 import type {
+  FileSetupDefinition,
   JsonValue,
   ProjectSetupDefinition,
   ResolvedExecutionProject,
@@ -12,6 +13,8 @@ import type {
   TestTagSelection,
 } from '@midscene/core/internal/test-runner';
 export type {
+  FileSetupContext,
+  FileSetupDefinition,
   JsonPrimitive,
   JsonValue,
   ProjectSetupContext,
@@ -24,21 +27,35 @@ export type {
 } from '@midscene/core/internal/test-runner';
 import type { ExecutionProjectDefinition as CoreExecutionProjectDefinition } from '@midscene/core/internal/test-runner';
 
-export type ExecutionProjectDefinition<TContext = unknown> = Omit<
-  CoreExecutionProjectDefinition<TContext>,
-  'nodes'
+export type ExecutionProjectDefinition<
+  TContext = unknown,
+  TProjectContext = TContext,
+> = Omit<
+  CoreExecutionProjectDefinition<TProjectContext>,
+  'nodes' | 'fileSetup'
 > & {
+  fileSetup?: FileSetupDefinition<TContext, TProjectContext>;
   nodes?: readonly NodeDefinition<any, any, TContext>[];
 };
 
 export interface TestOptions {
+  /** Legacy Project concurrency; cannot be combined with maxConcurrentFiles. */
   maxConcurrency?: number;
+  /** Global active files, from preparation through actual cleanup. */
+  maxConcurrentFiles?: number;
+  /** Milliseconds for each Project setup/fileSetup, including device waits. */
+  setupTimeout?: number;
+  /** Milliseconds per cleanup scope; shared deadline during abnormal shutdown. */
+  teardownTimeout?: number;
   bail?: number;
   testTimeout?: number;
 }
 
 export interface ResolvedTestOptions {
   maxConcurrency: number;
+  maxConcurrentFiles?: number;
+  setupTimeout?: number;
+  teardownTimeout?: number;
   bail: number;
   testTimeout: number;
 }
@@ -53,22 +70,32 @@ export interface ResolvedTestOutputDefinition {
 
 const projectIdFromIndex = (index: number): string => `project-${index}`;
 
-export interface TestProjectDefinition<TContext = undefined> {
-  setup?: ProjectSetupDefinition<TContext>;
-  projects?: readonly ExecutionProjectDefinition<TContext>[];
+export interface TestProjectDefinition<
+  TContext = undefined,
+  TProjectContext = TContext,
+> {
+  setup?: ProjectSetupDefinition<TProjectContext>;
+  fileSetup?: FileSetupDefinition<TContext, TProjectContext>;
+  projects?: readonly ExecutionProjectDefinition<TContext, TProjectContext>[];
   test?: TestOptions;
   output?: TestOutputDefinition;
   nodes?: readonly NodeDefinition<any, any, TContext>[];
 }
 
-export interface LoadedExecutionProject<TProjectContext = unknown>
-  extends ResolvedExecutionProject<TProjectContext> {
+export interface LoadedExecutionProject<
+  TContext = unknown,
+  TProjectContext = TContext,
+> extends ResolvedExecutionProject<TProjectContext> {
+  readonly fileSetup?: FileSetupDefinition<TContext, TProjectContext>;
   /** Effective Nodes: globals plus project-local overrides. */
   readonly nodes: NodeRegistry;
 }
 
-export interface LoadedTestProject<TContext = undefined> {
-  projects: readonly LoadedExecutionProject<TContext>[];
+export interface LoadedTestProject<
+  TContext = undefined,
+  TProjectContext = TContext,
+> {
+  projects: readonly LoadedExecutionProject<TContext, TProjectContext>[];
   hasExplicitProjects: boolean;
   test: ResolvedTestOptions;
   output: ResolvedTestOutputDefinition;
@@ -76,13 +103,20 @@ export interface LoadedTestProject<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext> | undefined;
 }
 
-export const defineTestProject = <TContext = undefined>(
-  definition: TestProjectDefinition<TContext>,
-): TestProjectDefinition<TContext> => definition;
+export const defineTestProject = <
+  TContext = undefined,
+  TProjectContext = TContext,
+>(
+  definition: TestProjectDefinition<TContext, TProjectContext>,
+): TestProjectDefinition<TContext, TProjectContext> => definition;
 
 export const defineProjectSetup = <TProjectContext>(
   definition: ProjectSetupDefinition<TProjectContext>,
 ): ProjectSetupDefinition<TProjectContext> => definition;
+
+export const defineFileSetup = <TContext, TProjectContext = unknown>(
+  definition: FileSetupDefinition<TContext, TProjectContext>,
+): FileSetupDefinition<TContext, TProjectContext> => definition;
 
 const getDefaultExport = (loaded: unknown, absolutePath: string): unknown => {
   if (typeof loaded === 'object' && loaded !== null && 'default' in loaded) {
@@ -337,12 +371,30 @@ const validateNonNegativeInteger = (
   return value as number;
 };
 
-const validateExecutionProjects = <TProjectContext>(
+const validateFileConcurrency = (
+  maxConcurrentFiles: number | undefined,
+  fileSetup: unknown,
+  label: string,
+): void => {
+  if (
+    maxConcurrentFiles !== undefined &&
+    maxConcurrentFiles > 1 &&
+    !fileSetup
+  ) {
+    throw new TypeError(
+      `Midscene config ${label}.fileSetup is required when the effective maxConcurrentFiles is greater than 1.`,
+    );
+  }
+};
+
+const validateExecutionProjects = <TContext, TProjectContext>(
   value: unknown,
   defaultSetup: unknown,
+  defaultFileSetup: unknown,
   globalNodes: NodeRegistry,
+  test: ResolvedTestOptions,
 ): {
-  projects: readonly LoadedExecutionProject<TProjectContext>[];
+  projects: readonly LoadedExecutionProject<TContext, TProjectContext>[];
   hasExplicitProjects: boolean;
 } => {
   if (value === undefined) {
@@ -350,6 +402,10 @@ const validateExecutionProjects = <TProjectContext>(
       defaultSetup,
       'setup',
     );
+    const fileSetup = validateSetup<
+      FileSetupDefinition<TContext, TProjectContext>
+    >(defaultFileSetup, 'fileSetup');
+    validateFileConcurrency(test.maxConcurrentFiles, fileSetup, 'default');
     return {
       hasExplicitProjects: false,
       projects: Object.freeze([
@@ -357,6 +413,10 @@ const validateExecutionProjects = <TProjectContext>(
           projectId: projectIdFromIndex(0),
           name: 'default',
           ...(setup ? { setup } : {}),
+          ...(fileSetup ? { fileSetup } : {}),
+          ...(test.maxConcurrentFiles === undefined
+            ? {}
+            : { maxConcurrentFiles: test.maxConcurrentFiles }),
           tags: Object.freeze({ include: [], exclude: [] }),
           retry: 0,
           variables: Object.freeze({}),
@@ -368,6 +428,11 @@ const validateExecutionProjects = <TProjectContext>(
   if (defaultSetup !== undefined) {
     throw new TypeError(
       'Midscene config setup cannot be used together with projects. Move setup to projects[].setup.',
+    );
+  }
+  if (defaultFileSetup !== undefined) {
+    throw new TypeError(
+      'Midscene config fileSetup cannot be used together with projects. Move fileSetup to projects[].fileSetup.',
     );
   }
   if (!Array.isArray(value) || value.length === 0) {
@@ -383,7 +448,17 @@ const validateExecutionProjects = <TProjectContext>(
     }
     rejectUnknownKeys(
       candidate,
-      ['name', 'setup', 'nodes', 'files', 'tags', 'retry', 'variables'],
+      [
+        'name',
+        'setup',
+        'fileSetup',
+        'maxConcurrentFiles',
+        'nodes',
+        'files',
+        'tags',
+        'retry',
+        'variables',
+      ],
       label,
     );
     if (
@@ -409,10 +484,35 @@ const validateExecutionProjects = <TProjectContext>(
       ...globalNodes.definitions().filter((node) => !localNodes.has(node.name)),
       ...localNodes.definitions(),
     ]);
+    const fileSetup = validateSetup<
+      FileSetupDefinition<TContext, TProjectContext>
+    >(candidate.fileSetup, `${label}.fileSetup`);
+    if (
+      test.maxConcurrentFiles === undefined &&
+      (fileSetup !== undefined || candidate.maxConcurrentFiles !== undefined)
+    ) {
+      throw new TypeError(
+        `Midscene config ${label}.fileSetup/maxConcurrentFiles requires test.maxConcurrentFiles.`,
+      );
+    }
+    const maxConcurrentFiles =
+      test.maxConcurrentFiles === undefined
+        ? undefined
+        : Math.min(
+            test.maxConcurrentFiles,
+            validatePositiveInteger(
+              candidate.maxConcurrentFiles,
+              test.maxConcurrentFiles,
+              `${label}.maxConcurrentFiles`,
+            ),
+          );
+    validateFileConcurrency(maxConcurrentFiles, fileSetup, label);
     return Object.freeze({
       projectId: projectIdFromIndex(index),
       name: candidate.name,
       nodes,
+      ...(fileSetup ? { fileSetup } : {}),
+      ...(maxConcurrentFiles === undefined ? {} : { maxConcurrentFiles }),
       ...(files ? { files } : {}),
       tags: validateTagSelection(candidate.tags, `${label}.tags`),
       retry: validateNonNegativeInteger(candidate.retry, 0, `${label}.retry`),
@@ -434,8 +534,42 @@ const validateTestOptions = (value: unknown): ResolvedTestOptions => {
   if (value !== undefined && !isRecord(value)) {
     throw new TypeError('Midscene config test must be an object.');
   }
-  const candidate = value ?? {};
+  const candidate = (value ?? {}) as Record<string, unknown>;
+  const fileMode = candidate.maxConcurrentFiles !== undefined;
+  if (fileMode && candidate.maxConcurrency !== undefined) {
+    throw new TypeError(
+      'Midscene config test.maxConcurrentFiles cannot be combined with test.maxConcurrency.',
+    );
+  }
+  if (
+    !fileMode &&
+    (candidate.setupTimeout !== undefined ||
+      candidate.teardownTimeout !== undefined)
+  ) {
+    throw new TypeError(
+      'Midscene config test.setupTimeout/teardownTimeout requires test.maxConcurrentFiles.',
+    );
+  }
   return Object.freeze({
+    ...(fileMode
+      ? {
+          maxConcurrentFiles: validatePositiveInteger(
+            candidate.maxConcurrentFiles,
+            1,
+            'test.maxConcurrentFiles',
+          ),
+          setupTimeout: validatePositiveInteger(
+            candidate.setupTimeout,
+            120_000,
+            'test.setupTimeout',
+          ),
+          teardownTimeout: validatePositiveInteger(
+            candidate.teardownTimeout,
+            30_000,
+            'test.teardownTimeout',
+          ),
+        }
+      : {}),
     maxConcurrency: validatePositiveInteger(
       (candidate as Record<string, unknown>).maxConcurrency,
       1,
@@ -481,9 +615,9 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
   });
 };
 
-const validateTestProjectDefinition = <TContext>(
+const validateTestProjectDefinition = <TContext, TProjectContext = TContext>(
   definition: unknown,
-): LoadedTestProject<TContext> => {
+): LoadedTestProject<TContext, TProjectContext> => {
   if (!isRecord(definition)) {
     throw new TypeError('Midscene config must default export an object.');
   }
@@ -517,20 +651,31 @@ const validateTestProjectDefinition = <TContext>(
   }
   rejectUnknownKeys(
     definition,
-    ['setup', 'projects', 'test', 'output', 'nodes'],
+    ['setup', 'fileSetup', 'projects', 'test', 'output', 'nodes'],
     'root',
   );
   const nodes = new NodeRegistry(
     definition.nodes as NodeDefinition[] | undefined,
   );
-  const resolvedProjects = validateExecutionProjects<TContext>(
+  const test = validateTestOptions(definition.test);
+  if (
+    definition.fileSetup !== undefined &&
+    test.maxConcurrentFiles === undefined
+  ) {
+    throw new TypeError(
+      'Midscene config fileSetup requires test.maxConcurrentFiles.',
+    );
+  }
+  const resolvedProjects = validateExecutionProjects<TContext, TProjectContext>(
     definition.projects,
     definition.setup,
+    definition.fileSetup,
     nodes,
+    test,
   );
   return {
     ...resolvedProjects,
-    test: validateTestOptions(definition.test),
+    test,
     output: validateOutput(definition.output),
     nodes,
     resolveNode: (name) =>
@@ -560,11 +705,12 @@ const canRetryWithCjsLoader = (error: unknown): error is Error => {
   );
 };
 
-export async function loadTestProject<TContext = undefined>(
-  configPath?: string,
-): Promise<LoadedTestProject<TContext>> {
+export async function loadTestProject<
+  TContext = undefined,
+  TProjectContext = TContext,
+>(configPath?: string): Promise<LoadedTestProject<TContext, TProjectContext>> {
   if (!configPath) {
-    return validateTestProjectDefinition<TContext>({
+    return validateTestProjectDefinition<TContext, TProjectContext>({
       nodes: [],
     });
   }
@@ -598,7 +744,7 @@ export async function loadTestProject<TContext = undefined>(
     }
   }
 
-  return validateTestProjectDefinition<TContext>(
+  return validateTestProjectDefinition<TContext, TProjectContext>(
     getDefaultExport(loaded, absolutePath),
   );
 }

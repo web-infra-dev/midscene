@@ -20,6 +20,7 @@ Create browser or device resources in `setup` and register the corresponding Age
 | Field | Purpose |
 | --- | --- |
 | `setup` | Creates shared resources for the implicit default project. |
+| `fileSetup` | Creates independent file resources for the implicit default project when file scheduling is enabled. |
 | `nodes` | Registers Nodes shared by all execution projects. |
 | `projects` | Declares named execution projects, each with its own setup and case selection. When using this field, place setup in each project instead of at the top level. |
 | `test` | Sets concurrency, the failure threshold, and the default step timeout. |
@@ -96,7 +97,7 @@ You can now [write YAML test cases](./use#write-yaml-test-cases) and [run tests]
 
 ### Create and clean up shared resources with setup
 
-Each execution project runs `setup` once before executing its YAML files. All Nodes in the project share the returned `context`. In the example above, the context holds the browser and page, and Nodes access the resources they need through the `getAgent` callback.
+Each execution project runs `setup` once before executing its YAML files. Without `fileSetup`, all Nodes in the project share the returned `context`. In the example above, the context holds the browser and page, and Nodes access the resources they need through the `getAgent` callback.
 
 Shared resources are not automatically recreated before each case. To reset pages, cookies, or business state, call the appropriate Nodes through YAML [lifecycle hooks](./use#define-the-execution-lifecycle). For reading and updating shared data in custom Nodes, see [Share context across Nodes](./extend#share-context-across-nodes).
 
@@ -108,12 +109,13 @@ The `onTeardown()` callbacks registered here run when the project finishes. Clea
 
 ### Project, file, and case lifecycle
 
-When running tests through the CLI or `runTestProject()`, each execution project has its own lifecycle. The following shows normal execution for a project with two YAML files. YAML hooks that are not declared are skipped:
+When running tests through the CLI or `runTestProject()`, each execution project has its own lifecycle. The following shows normal sequential execution for a project with two YAML files. YAML hooks that are not declared are skipped:
 
 ```text
 Execution project starts
 ├─ setup → returns the shared project context
 ├─ File A
+│  ├─ fileSetup (when configured) → returns the file context
 │  ├─ beforeAll
 │  ├─ Case 1: beforeEach → steps → afterEach → Node cleanup for this attempt
 │  ├─ Case 2: beforeEach → steps → afterEach → Node cleanup for this attempt
@@ -133,6 +135,7 @@ The scope of `onTeardown()` depends on where it is registered:
 | Registration location | Cleanup timing |
 | --- | --- |
 | Project `setup` | At project completion, after cleanup of all files that ran |
+| `fileSetup` | After the current file's `afterAll` and file-scoped Node cleanup |
 | Nodes in `beforeAll` or `afterAll` | After the current file's `afterAll` |
 | Nodes in `beforeEach`, `steps`, or `afterEach` | After the current attempt's `afterEach`, with separate cleanup for each retry |
 
@@ -140,7 +143,7 @@ Within each scope, callbacks run in reverse registration order. See [Resource li
 
 ### Context sharing scope
 
-The `context` returned by `setup` is reused throughout the current execution project. Nodes in all YAML files, lifecycle hooks, cases, and retries receive the same object. The framework does not copy, clear, or recreate it between files, cases, or retries.
+Without `fileSetup`, the `context` returned by `setup` is reused throughout the current execution project. With `fileSetup`, its returned context is reused only within that file, including retries. Nodes in all YAML files, lifecycle hooks, cases, and retries receive the same object. The framework does not copy, clear, or recreate it between files, cases, or retries.
 
 For example, after a Node writes an order ID to `context.orderId`, later Nodes can read it, including Nodes in the next case. Reset case-specific data in preparation steps or remove it during cleanup. A retry does not automatically restore the initial context. Resetting resources such as browser pages and login state also depends on the project implementation.
 
@@ -348,7 +351,7 @@ See [Run tests](./use#run-tests) for CLI project selection and configuration fil
 
 The scaffold generates a configuration that selects `cases/**/*.{yaml,yml}` by default. Without a `files` configuration, Midscene Test recursively searches for `**/*.{yaml,yml}` under the test directory.
 
-Selected files are deduplicated and sorted by path. Retries rerun only the failed Case's `beforeEach → steps → afterEach`, not project setup or file hooks. Files within one Project run sequentially; use separate Projects with independent resources for concurrent execution.
+Selected files are deduplicated and sorted by path. Retries rerun only the failed Case's `beforeEach → steps → afterEach`, not project setup or file hooks. Without file scheduling, files within one Project run sequentially. To enable file concurrency, use `test.maxConcurrentFiles` and prepare independent resources through `fileSetup`.
 
 Native Test always generates a combined report. The CLI prints its path after the run. See [View test results](./use#view-test-results) for how to open it.
 
@@ -416,6 +419,75 @@ Both Projects can use the same YAML file. During case collection, input validati
 
 ### Concurrency and isolation
 
+### File concurrency with maxConcurrentFiles
+
+Set `test.maxConcurrentFiles` explicitly to enable file scheduling. It limits the total number of active test files across all Projects. Each Project can set a lower `maxConcurrentFiles`; an omitted Project limit inherits the global limit, and a larger value is capped by it. Limits are positive integers. Cases and steps inside each file still run sequentially in the same Node.js process.
+
+| Configuration | Meaning |
+| --- | --- |
+| `test.maxConcurrentFiles` | Global limit, including preparation, device waits, retries, and cleanup |
+| `projects[].maxConcurrentFiles` | Limit for this Project, also constrained by the global limit |
+| `projects[].fileSetup` | Creates a complete, independent context for each file; required when the effective Project limit exceeds 1, even if only one file is selected |
+| `test.setupTimeout` | Maximum time for each Project setup and each fileSetup, including device waits; default 120000 ms |
+| `test.teardownTimeout` | Maximum wait per cleanup scope, including cleanup hooks, draining operations, and callbacks; default 30000 ms |
+
+For example, with a global limit of 3 and Web and Android limits of 2 each, the run can advance two Web files and one Android file, or one Web file and two Android files. Neither Project reserves capacity. Eligible Projects take turns admitting files; a file waiting for a device still occupies capacity. The first file holds one slot during Project setup; sibling files wait without taking additional slots. After setup completes, siblings can start as capacity allows. The last active file retains its slot until Project cleanup returns; cancellation or bail also schedules cleanup for initialized Projects with no active files within the global limit.
+
+Use `setup` for shared resources, and `fileSetup` for file resources. This Web example shares one Browser while creating a separate BrowserContext, Page, and Agent for every file:
+
+```ts filename=midscene.config.ts
+import { defineFileSetup, defineProjectSetup, defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright/agent';
+import { chromium, type Browser } from 'playwright';
+
+type SharedContext = { browser: Browser };
+type FileContext = { agent: PlaywrightAgent };
+
+const setup = defineProjectSetup<SharedContext>({
+  name: 'browser',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+    return { browser };
+  },
+});
+const fileSetup = defineFileSetup<FileContext, SharedContext>({
+  name: 'page',
+  async setup({ projectContext, signal, onTeardown }) {
+    if (!projectContext) throw new Error('Browser setup did not complete');
+    const session = await projectContext.browser.newContext();
+    onTeardown(() => session.close());
+    signal.throwIfAborted();
+    const page = await session.newPage();
+    const agent = new PlaywrightAgent(page);
+    onTeardown(() => agent.destroy());
+    return { agent };
+  },
+});
+
+export default defineTestProject<FileContext, SharedContext>({
+  test: { maxConcurrentFiles: 3 },
+  projects: [{ name: 'web', setup, fileSetup, maxConcurrentFiles: 2,
+    files: { include: ['cases/web/**/*.yaml'] } }],
+  nodes: createMidsceneNodes<FileContext>({
+    agentClass: PlaywrightAgent, getAgent: ({ context }) => context.agent,
+  }),
+});
+```
+
+`fileSetup` receives `projectContext`, `project`, `file` (including sourcePath and execution IDs), `env`, `signal`, and `onTeardown()`. Its return value becomes the whole Node context for that file; it is not merged with or cloned from the Project context. Pass any needed shared values explicitly. For an implicit default Project, put `setup` and `fileSetup` at the top level instead of declaring `projects`.
+
+Each file runs `fileSetup → beforeAll → Cases → afterAll → file cleanup`. Project setup runs once; fileSetup and file hooks run once per file. Case retries reuse the file context and repeat only `beforeEach → steps → afterEach → attempt cleanup`. File cleanup runs in reverse registration order, and a throwing callback does not prevent later callbacks from being attempted. Project cleanup follows all file cleanup.
+
+For Android, iOS, and other device platforms, create one Device/Agent per file and borrow an exclusive physical device through your team's allocation service. Register both Agent destruction and device release in the proper reverse order. The framework does not create a device pool, reset business state, or isolate external accounts. Keep the Project limit at 1 when files share one physical device or display; separate Agent objects alone do not isolate physical hardware.
+
+A file setup failure skips that file's hooks and Cases and attempts registered cleanup. A file-local device failure can leave other independent files running; failed Project setup or a confirmed shared Browser disconnection stops that Project. If setup or cleanup times out while operations remain unresolved, the run stops admitting new files globally and reports pending resources. Timeout does not mean release: late acquisition and cleanup remain tracked, and parent resources wait for their actual completion. Custom Nodes can signal a confirmed shared-resource failure by throwing `WorkflowError` from `@midscene/test` with `code: 'PROJECT_RESOURCE_ERROR'`; a generic page/context closure alone does not establish that the shared Browser failed. On cancellation or bail, cleanup scopes share one shutdown deadline based on `teardownTimeout`. Bail lets the current attempt finish, then skips later Cases and retries; cancellation requests active operations to stop.
+
+### Compatibility with Project concurrency
+
+Without `test.maxConcurrentFiles`, the existing behavior below is unchanged. Do not set `maxConcurrency` and `maxConcurrentFiles` together, even when both equal 1. Project file limits, `fileSetup`, and the new setup/teardown timeouts require explicit `test.maxConcurrentFiles`. At an effective Project limit of 1, omitting `fileSetup` temporarily preserves the shared setup context, but files may alternate between Projects. Migrate at `maxConcurrentFiles: 1` before increasing it.
+
 The scheduling unit is an execution project. `test.maxConcurrency` limits the number of active projects and defaults to `1`. YAML files, cases, and steps within a project run sequentially. Increasing this setting does not make cases within a single project concurrent.
 
 To run different cases concurrently, assign them to multiple projects using directories or tags, and create separate resources for each project. Reuse the setup and Node definitions from the Playwright example above and replace its `defineTestProject()` configuration with the following to run checkout and account cases concurrently:
@@ -467,7 +539,7 @@ After a run is interrupted, the framework still attempts to run `afterEach`, `af
 
 A new `signal` does not bypass resource admission checks. If an earlier operation on the same Agent is still running, a cleanup Node cannot overlap it; that action is marked not run. For example, a click in `afterEach` cannot start on an Agent whose previous click timed out but has not stopped. Cleanup Nodes should handle partially completed setup.
 
-After lifecycle hooks finish, resource cleanup first waits for running operations to stop, for up to 1 second by default. Once operations stop, the framework waits for registered cleanup callbacks, for up to 10 seconds for the entire callback phase by default. These limits bound the wait for results; they do not forcibly terminate operations or callbacks, or replace Step timeouts in `afterEach` and `afterAll`. If a limit is exceeded, the framework records `cleanup pending` and returns a snapshot. Resources remain quarantined and are disposed of only after underlying operations stop. See [Handling failures](./use#handling-failures) for retry and scheduling rules when operations remain unfinished or cleanup has problems.
+In the legacy Project scheduling mode, after lifecycle hooks finish, resource cleanup first waits for running operations to stop, for up to 1 second by default. Once operations stop, the framework waits for registered cleanup callbacks, for up to 10 seconds for the entire callback phase by default. These limits bound the wait for results; they do not forcibly terminate operations or callbacks, or replace Step timeouts in `afterEach` and `afterAll`. If a limit is exceeded, the framework records `cleanup pending` and returns a snapshot. Resources remain quarantined and are disposed of only after underlying operations stop. See [Handling failures](./use#handling-failures) for retry and scheduling rules when operations remain unfinished or cleanup has problems.
 
 Cleanup functions registered with `onTeardown()` do not receive a new `signal`. Avoid reusing the original step's `signal` in these functions: a timeout or run interruption may have already aborted it, causing cleanup requests to fail immediately.
 

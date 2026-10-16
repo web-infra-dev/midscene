@@ -133,7 +133,9 @@ Node 的每次执行都是独立调用，框架不会自动将上一次执行的
 
 ### 创建共享上下文
 
-Midscene Test 提供了项目级上下文机制。同一个执行项目中的 Node 可以通过共享的 `context` 对象访问运行资源、传递测试数据。这个对象由项目的 `setup` 创建并返回，框架在执行各 Node 时，将它传入 `execute()`。
+开启[文件并发](./configuration#使用-maxconcurrentfiles-开启文件并发)时，`fileSetup` 为每份文件返回独立 context；文件内的 Node 和用例重试共享它，订单 ID 等可变数据应保存在文件 context 中。下面的示例沿用未配置 `fileSetup` 的项目 context。
+
+未配置 `fileSetup` 时，Midscene Test 提供了项目级上下文机制。同一个执行项目中的 Node 可以通过共享的 `context` 对象访问运行资源、传递测试数据。这个对象由项目的 `setup` 创建并返回，框架在执行各 Node 时，将它传入 `execute()`。
 
 对于上面的订单退款流程，setup 可以提供浏览器页面、应用地址和订单服务，订单 ID 则在 Node 创建订单后写入。下面的 `setup.ts` 展示了这个共享对象的创建方式：`ProjectContext` 描述它的类型，`setup` 负责创建并返回实际的对象。
 

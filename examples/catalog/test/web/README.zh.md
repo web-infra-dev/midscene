@@ -11,3 +11,5 @@
 `cases/todo.yaml` 使用在线 React TodoMVC。每条用例先由 `todo.setup` 打开 All 视图、清空页面存储并重新加载，通过 DOM 确认列表为空，再由 `todo.seed` 添加三个任务；第一条用例校验初始化状态，第二条用 AI 删除和完成任务，再校验最终状态。`todo.captureState` 在每条用例后记录页面状态。运行时需要能访问 TodoMVC 网站。
 
 执行 `{{TEST_COMMAND}}` 运行测试。Node 列表见 `midscene-node-spec.web.md`；修改配置中的 Node 后执行 `{{RUN_NODES_COMMAND}}` 刷新。用例串行运行，首次失败即停止后续用例（`test.bail: 1`）；失败时仍会保存报告并关闭浏览器。报告位于 `midscene_run/report/`。
+
+`setup` 启动共用浏览器，`fileSetup` 为每份测试文件准备独立的浏览器会话、页面和 Agent。提高 `test.maxConcurrentFiles` 可以同时执行多份文件；文件内用例仍按顺序运行，用例重试沿用当前文件环境。
