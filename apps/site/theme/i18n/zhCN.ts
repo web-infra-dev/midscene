@@ -7,9 +7,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   agentChapterHeading: '为测试而生的 GUI Agent',
   agentChapterDesc:
     '看懂界面、执行测试步骤、验证用户看到的结果。通过 API 接入已有测试工程，或通过 Skills 让 AI 编程 Agent 测试你的应用。',
-  frameworkChapterHeading: '从一次界面操作，到一套测试工程',
+  frameworkChapterHeading: '全新设计的自然语言 E2E 测试框架',
   frameworkChapterDesc:
-    '当测试需要数据准备、业务校验和持续运行，用 Midscene Test 将 GUI Agent 与代码步骤组织起来。',
+    'Midscene Test 是为自然语言 E2E 测试全新设计的框架。在 YAML 中用自然语言描述操作与断言，通过 TypeScript Node 扩展测试步骤，并由框架统一管理数据准备、清理、重试与执行报告。',
   exampleDesc:
     '按用户的操作意图写步骤，按用户看到的结果写预期。同一个测试意图，可以用 YAML 表达，也可以接入现有 JavaScript 测试。',
   agentIntegrationDesc:
@@ -31,8 +31,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - Title
   heroTitle: '像人一样看懂界面\n用自然语言完成 E2E 测试',
-  heroSubtitle:
-    '将 AI 视觉引入 E2E 测试，配套全新设计的测试框架，支持 Web、移动端和桌面应用。',
+  heroSubtitle: '面向 Web、移动端和桌面应用的 GUI Agent 与 E2E 测试框架。',
+
+  openSource: '完全开源',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -58,12 +59,15 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   clientsTitle: '跨端支持',
   clientsHeading: '一套 API，覆盖不同平台',
   platformWeb: 'Web',
-  platformWebAccess: 'Playwright · Puppeteer · 桌面 Chrome',
+  platformColumnName: '平台',
+  platformColumnPackage: '包名',
+  platformColumnDescription: '说明',
+  platformWebAccess: 'Playwright · Puppeteer · 桌面\u00a0Chrome',
   platformDesktop: '桌面',
-  platformDesktopAccess: 'macOS · Windows · Linux，支持远程 RDP',
+  platformDesktopAccess: 'macOS · Windows · Linux，支持远程\u00a0RDP',
   platformAndroidAccess: '真机 / 模拟器 · ADB',
   platformIosAccess: '真机 / 模拟器 · WebDriverAgent',
-  platformHarmonyAccess: 'HarmonyOS NEXT · HDC',
+  platformHarmonyAccess: 'HarmonyOS\u00a0NEXT · HDC',
   platformCustom: '自定义界面',
   platformCustomAccess: '提供截图与操作能力，即可接入',
   platformCustomDoc: '扩展指南',
@@ -82,6 +86,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelAssertDesc:
     '用自然语言描述预期颜色、布局与状态，通过视觉断言检查界面实际呈现的效果。',
   modelAssertMetric: '颜色 · 布局 · 状态',
+  modelSupportedLink: '查看模型配置',
   modelSupportedName: '支持多种模型',
   modelSupportedDesc:
     '支持豆包、DeepSeek、Qwen、GPT、Gemini、Kimi 等模型，按效果与预算选择。',
@@ -90,12 +95,13 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '以豆包 Seed 2.1 Turbo 为例：该次 AppControlBench 评测中，60 项任务通过 58 项，模型调用总费用为 $0.59。',
   modelCostExample: '评测案例 · AppControlBench',
   modelCostReport: '查看评测报告',
-  modelCostMetric: '60 项任务的模型调用总费用',
+  modelCostMetric: '模型调用总费用',
+  modelCostTasks: '/ 60 项任务',
 
   // Test framework
   frameworkHeading: 'AI 步骤与确定性 Node\n写在同一个 YAML 里',
   frameworkDesc:
-    '在同一个 YAML 用例中组合自然语言界面操作与代码步骤：由 GUI Agent 处理界面交互，用 TypeScript Node 准备数据、校验接口和清理资源。',
+    '用 YAML 组织人和 AI 都能读写的测试用例，让自然语言意图与代码步骤以清晰、可审阅的结构共同维护。',
   frameworkLegendLabel: '步骤类型',
   frameworkAiTitle: 'AI 步骤',
   frameworkAiDesc: 'aiAct 和 aiAssert 读取界面截图，按自然语言指令操作和断言。',
@@ -110,11 +116,19 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Test project
   projectEyebrow: '测试工程',
-  projectHeading: 'Node、用例，以及连接两者的 Spec',
+  projectHeading: '定制属于自己的测试工程',
   projectDesc:
-    '工程师维护 Node，测试工程师和 AI Agent 编写用例，自动生成的 Node Spec 告诉双方有哪些步骤可用。',
-  projectNodesRole: '工程师',
-  projectNodesDesc: '用 TypeScript 定义 Node，Zod Schema 校验 YAML 输入。',
+    'Midscene Test 提供扩展机制，用 TypeScript 将业务操作定义为 Node，注册后即可在 YAML 中调用。再生成描述可用操作及输入参数的 Markdown Node Spec，让人和 AI 都能据此在用例中引用这些 Node。',
+  projectNodesRole: '定义自己的操作',
+  projectNodesDesc: '用 TypeScript 实现业务逻辑，并声明操作的输入参数。',
+  projectSpecOperation: '已注册的 Node 名称',
+  projectSpecInputs: '用途说明与输入参数',
+  projectSpecUsage: '编写用例时的参考文档',
+  projectCaseSetup: '引用自定义 Node',
+  projectCaseAction: '传入所需参数',
+  projectCaseCheck: '与 AI 操作、断言组合成用例',
+  projectOutputsDesc:
+    '生成描述测试工程能力的 Markdown 文档，再在 YAML 用例中引用已注册的 Node。',
   projectSpecRole: '由 midscene-test nodes 生成',
   projectSpecDesc: '列出所有已注册的 Node 及其输入 Schema。',
   projectCasesRole: '测试工程师 · AI Agent',

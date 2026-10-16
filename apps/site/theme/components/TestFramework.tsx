@@ -1,7 +1,5 @@
-import { Link } from '@rspress/core/theme-original';
-import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
-import { useI18n, useI18nUrl } from '../i18n';
+import { useI18n } from '../i18n';
 import './TestFramework.css';
 
 type StepKind = 'ai' | 'node';
@@ -14,9 +12,10 @@ interface YamlLine {
   kind?: StepKind;
 }
 
-export function TestFramework() {
+export function TestFramework({
+  hideHeading = false,
+}: { hideHeading?: boolean }) {
   const t = useI18n();
-  const tUrl = useI18nUrl();
   const [focus, setFocus] = useState<StepKind | null>(null);
 
   const lines: YamlLine[] = [
@@ -81,16 +80,18 @@ export function TestFramework() {
   return (
     <section
       className="home-feature home-framework"
-      aria-labelledby="home-framework-title"
+      aria-labelledby={hideHeading ? undefined : 'home-framework-title'}
     >
       <div className="home-feature__inner home-framework__layout">
         <div className="home-framework__copy">
-          <header className="home-feature__heading-block">
-            <span className="home-feature__eyebrow">
-              <span aria-hidden="true">{'//'}</span>@midscene/test
-            </span>
-            <h2 id="home-framework-title">{t('frameworkHeading')}</h2>
-          </header>
+          {!hideHeading && (
+            <header className="home-feature__heading-block">
+              <span className="home-feature__eyebrow">
+                <span aria-hidden="true">{'//'}</span>@midscene/test
+              </span>
+              <h2 id="home-framework-title">{t('frameworkHeading')}</h2>
+            </header>
+          )}
           <p className="home-framework__lead">{t('frameworkDesc')}</p>
 
           <ul
@@ -120,23 +121,6 @@ export function TestFramework() {
               </li>
             ))}
           </ul>
-
-          <div className="home-framework__actions">
-            <Link
-              className="home-feature__action home-framework__link"
-              href={tUrl('/midscene-test/use')}
-            >
-              <span>{t('frameworkStartLink')}</span>
-              <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
-            </Link>
-            <Link
-              className="home-feature__action home-framework__link"
-              href={tUrl('/midscene-test/overview')}
-            >
-              <span>{t('frameworkLink')}</span>
-              <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
-            </Link>
-          </div>
         </div>
 
         <figure

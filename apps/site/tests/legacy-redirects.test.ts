@@ -18,6 +18,10 @@ const rules = readFileSync(new URL('public/_redirects', docs), 'utf8')
 describe('legacy HTTP redirects', () => {
   it('redirects reported missing documentation URLs to their replacements', () => {
     const expected = {
+      '/': '/introduction',
+      '/index.html': '/introduction',
+      '/zh/': '/zh/introduction',
+      '/zh/index.html': '/zh/introduction',
       '/android-integration': '/platforms/android',
       '/zh/quick-experience.html': '/zh/quick-start#chrome-extension',
       '/zh/batch-yaml.html': '/zh/yaml-script-runner',

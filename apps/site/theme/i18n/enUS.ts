@@ -5,9 +5,10 @@ export const EN_US = {
   agentChapterHeading: 'A GUI Agent built for testing',
   agentChapterDesc:
     'Understand interfaces, perform test steps, and verify what users see. Integrate with your existing test stack through APIs, or let AI coding agents test your UI through Skills.',
-  frameworkChapterHeading: 'From UI actions to a maintainable test suite',
+  frameworkChapterHeading:
+    'A new E2E testing framework designed for natural language',
   frameworkChapterDesc:
-    'When tests need data setup, business checks, and repeatable execution, use Midscene Test to organize GUI Agent actions alongside code.',
+    'Midscene Test is designed from the ground up for natural-language E2E testing. Write actions and assertions in YAML, extend test steps with TypeScript Nodes, and manage setup, cleanup, retries, and execution reports within one framework.',
   exampleDesc:
     'Describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.',
   agentIntegrationDesc:
@@ -30,7 +31,9 @@ export const EN_US = {
   // Banner - Title
   heroTitle: 'See interfaces like a human\nE2E testing in natural language',
   heroSubtitle:
-    'Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.',
+    'A GUI Agent and E2E testing framework for web, mobile, and desktop apps.',
+
+  openSource: 'Fully open source',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -58,12 +61,15 @@ export const EN_US = {
   clientsTitle: 'PLATFORMS',
   clientsHeading: 'One API, across platforms',
   platformWeb: 'Web',
-  platformWebAccess: 'Playwright · Puppeteer · Desktop Chrome',
+  platformColumnName: 'Platform',
+  platformColumnPackage: 'Package',
+  platformColumnDescription: 'Description',
+  platformWebAccess: 'Playwright · Puppeteer · Desktop\u00a0Chrome',
   platformDesktop: 'Desktop',
-  platformDesktopAccess: 'macOS · Windows · Linux, with remote RDP',
+  platformDesktopAccess: 'macOS · Windows · Linux, with remote\u00a0RDP',
   platformAndroidAccess: 'Devices / emulators · ADB',
   platformIosAccess: 'Devices / simulators · WebDriverAgent',
-  platformHarmonyAccess: 'HarmonyOS NEXT · HDC',
+  platformHarmonyAccess: 'HarmonyOS\u00a0NEXT · HDC',
   platformCustom: 'Custom interfaces',
   platformCustomAccess: 'Connect through screenshots and actions',
   platformCustomDoc: 'Extension guide',
@@ -82,6 +88,7 @@ export const EN_US = {
   modelAssertDesc:
     'Describe expected colors, layouts, and states in natural language. Visual assertions check what the interface actually shows.',
   modelAssertMetric: 'Colors · Layouts · States',
+  modelSupportedLink: 'View model configuration',
   modelSupportedName: 'Multiple model options',
   modelSupportedDesc:
     'Choose from Doubao, DeepSeek, Qwen, GPT, Gemini, Kimi, and more to fit your tasks and budget.',
@@ -90,12 +97,13 @@ export const EN_US = {
     'In this AppControlBench run, Doubao Seed 2.1 Turbo passed 58 of 60 tasks at a total model API cost of $0.59.',
   modelCostExample: 'Benchmark example · AppControlBench',
   modelCostReport: 'View benchmark report',
-  modelCostMetric: 'Total model API cost for 60 tasks',
+  modelCostMetric: 'Total model API cost',
+  modelCostTasks: '/ 60 tasks',
 
   // Test framework
   frameworkHeading: 'AI steps and Nodes\nin one YAML file',
   frameworkDesc:
-    'Combine natural-language UI actions and code steps in one YAML case. Let the GUI Agent interact with the interface, and use TypeScript Nodes for data setup, API checks, and cleanup.',
+    'Organize tests in YAML so people and AI agents can read, write, and review natural-language intent alongside code steps.',
   frameworkLegendLabel: 'Step types',
   frameworkAiTitle: 'AI steps',
   frameworkAiDesc:
@@ -111,12 +119,20 @@ export const EN_US = {
 
   // Test project
   projectEyebrow: 'TEST PROJECT',
-  projectHeading: 'Nodes, cases, and the spec between them',
+  projectHeading: 'Customize your test project',
   projectDesc:
-    'Engineers maintain Nodes, QA engineers and AI Agents write cases, and the generated Node Spec tells both sides which steps exist.',
-  projectNodesRole: 'Engineers',
+    'Extend Midscene Test with TypeScript Nodes for your business operations. Register them to make them callable from YAML, then generate a Markdown Node Spec describing the available operations and their inputs. People and AI agents can use the Spec to reference these Nodes in test cases.',
+  projectNodesRole: 'Define your operations',
   projectNodesDesc:
-    'Define Nodes in TypeScript. Zod schemas validate the YAML input.',
+    'Implement business logic and declare its inputs in TypeScript.',
+  projectSpecOperation: 'Registered Node names',
+  projectSpecInputs: 'Descriptions and input parameters',
+  projectSpecUsage: 'Reference for writing test cases',
+  projectCaseSetup: 'Reference a custom Node',
+  projectCaseAction: 'Supply its input parameters',
+  projectCaseCheck: 'Combine it with AI actions and assertions',
+  projectOutputsDesc:
+    'Generate a Markdown description of the test project’s capabilities, then reference the registered Nodes in YAML cases.',
   projectSpecRole: 'Generated by midscene-test nodes',
   projectSpecDesc: 'Lists every registered Node and its input schema.',
   projectCasesRole: 'QA engineers · AI Agents',

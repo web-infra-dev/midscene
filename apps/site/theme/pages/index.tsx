@@ -1,3 +1,4 @@
+import '../components/IntroductionPage.css';
 import '../components/HomeChapter.css';
 import { Banner } from '../components/Banner';
 import { CTAButtons } from '../components/CTAButtons';
@@ -24,7 +25,7 @@ export function HomeLayout() {
   const t = useI18n();
 
   return (
-    <div className="home-page">
+    <div className="home-page home-page--standalone">
       {/* Banner Section */}
       <section id="test-intent" aria-labelledby="home-hero-title">
         <Banner />

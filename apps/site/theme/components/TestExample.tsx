@@ -3,7 +3,9 @@ import { useI18n } from '../i18n';
 import { SectionDivider } from './SectionDivider';
 import './TestExample.css';
 
-export function TestExample() {
+export function TestExample({
+  hideHeading = false,
+}: { hideHeading?: boolean }) {
   const t = useI18n();
   const name = JSON.stringify(t('exampleCase'));
   const act = JSON.stringify(t('exampleAct'));
@@ -33,19 +35,21 @@ test(${name}, async () => {
     <>
       <section
         className="home-feature home-example"
-        aria-labelledby="home-example-title"
+        aria-labelledby={hideHeading ? undefined : 'home-example-title'}
       >
         <div className="home-feature__inner">
-          <header className="home-feature__header">
-            <div className="home-feature__heading-block">
-              <span className="home-feature__eyebrow">
-                <span aria-hidden="true">{'//'}</span>
-                {t('exampleEyebrow')}
-              </span>
-              <h2 id="home-example-title">{t('exampleHeading')}</h2>
-            </div>
-            <p className="home-chapter-intro">{t('exampleDesc')}</p>
-          </header>
+          {!hideHeading && (
+            <header className="home-feature__header">
+              <div className="home-feature__heading-block">
+                <span className="home-feature__eyebrow">
+                  <span aria-hidden="true">{'//'}</span>
+                  {t('exampleEyebrow')}
+                </span>
+                <h2 id="home-example-title">{t('exampleHeading')}</h2>
+              </div>
+              <p className="home-chapter-intro">{t('exampleDesc')}</p>
+            </header>
+          )}
 
           <div className="home-example__code">
             <Tabs defaultValue="yaml">
