@@ -1,8 +1,8 @@
 # The introduction page is the canonical landing page.
-/ /introduction 301
-/index.html /introduction 301
-/zh/ /zh/introduction 301
-/zh/index.html /zh/introduction 301
+/ /introduction 302
+/index.html /introduction 302
+/zh/ /zh/introduction 302
+/zh/index.html /zh/introduction 302
 # HTTP compatibility for retired pages; Rspress client redirects run after the response.
 # Keep document destinations aligned with rspress.config.ts.
 /android-integration /platforms/android 301

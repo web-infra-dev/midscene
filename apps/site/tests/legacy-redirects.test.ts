@@ -16,12 +16,21 @@ const rules = readFileSync(new URL('public/_redirects', docs), 'utf8')
   });
 
 describe('legacy HTTP redirects', () => {
+  it('temporarily redirects landing pages to Introduction', () => {
+    for (const locale of ['', '/zh']) {
+      for (const suffix of ['/', '/index.html']) {
+        const from = `${locale}${suffix}`;
+        expect(rules.find((rule) => rule.from === from)).toEqual({
+          from,
+          to: `${locale}/introduction`,
+          status: '302',
+        });
+      }
+    }
+  });
+
   it('redirects reported missing documentation URLs to their replacements', () => {
     const expected = {
-      '/': '/introduction',
-      '/index.html': '/introduction',
-      '/zh/': '/zh/introduction',
-      '/zh/index.html': '/zh/introduction',
       '/android-integration': '/platforms/android',
       '/zh/quick-experience.html': '/zh/quick-start#chrome-extension',
       '/zh/batch-yaml.html': '/zh/yaml-script-runner',
@@ -82,7 +91,7 @@ describe('legacy HTTP redirects', () => {
   it('uses unique sources and existing targets, including fragment anchors', () => {
     expect(new Set(rules.map(({ from }) => from)).size).toBe(rules.length);
     for (const { from, to, status } of rules) {
-      expect(['200', '301']).toContain(status);
+      expect(['200', '301', '302']).toContain(status);
       expect(rules.some((rule) => rule.from === to)).toBe(false);
       const [pathname, fragment] = to.split('#');
       if (existsSync(new URL(`public${pathname}`, docs))) {
