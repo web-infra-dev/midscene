@@ -10,7 +10,7 @@
   .info-tabs {
     position: sticky;
     top: 0;
-    background: white;
+    background: var(--report-surface);
     z-index: 1;
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     display: flex;
@@ -59,18 +59,6 @@
       &:focus-visible {
         outline: 2px solid #1677ff;
         outline-offset: -4px;
-      }
-    }
-  }
-
-  .detail-side-timeline {
-    margin-left: 20px;
-
-    .timeline-content {
-      margin-top: 8px;
-
-      .description-content {
-        margin: 4px 0;
       }
     }
   }
@@ -316,12 +304,6 @@
       margin: 0;
     }
 
-    .element-button:hover {
-      // font-weight: bold;
-      color: #fff;
-      background: @main-orange;
-    }
-
     .element-detail-box {
       border: 1px solid rgba(0, 0, 0, 0.15);
       border-radius: 4px;
@@ -358,11 +340,6 @@
         padding: 0;
       }
     }
-
-    .section-button:hover {
-      color: #fff;
-      background: #01204e;
-    }
   }
 
   pre {
@@ -379,10 +356,7 @@
 // Dark mode styles
 [data-theme='dark'] {
   .detail-side {
-    background: #1f1f1f;
-
     .info-tabs {
-      background: #1f1f1f;
       border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 
       .info-tab {

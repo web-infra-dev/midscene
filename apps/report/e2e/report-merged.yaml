@@ -2,179 +2,27 @@ target:
   serve: ./dist
   url: demo-merged.html
 tasks:
-  # --- Status display ---
-  - name: status summary cards show correct counts
+  - name: merged report summarizes both test results
     flow:
-      - sleep: 3000
-      - aiAssert: There are test status summary cards showing Total, Passed, and Failed counts; Total is 2, Passed is 1, and Failed is 1
+      - aiAssert: The merged report shows 2 tests, with 1 passed and 1 failed.
 
-  # --- Failed status indicator ---
-  - name: merged report shows failed status indicator
+  - name: select another test in the merged report
     flow:
-      - aiAssert: There is a red colored number or failure indicator visible on the page, showing that some tests failed
+      - aiTap: the test Case selector above the Execution list
+      - aiAssert: The selector offers Login and verify inventory and Login with intentional failure.
+      - aiTap: Login with intentional failure in the open selector
+      - aiAssert: Login with intentional failure is selected and its execution tasks are displayed.
 
-  # --- Case selector ---
-  - name: case selector shows multiple test cases
+  - name: filter the merged Case selector by result
     flow:
+      - aiTap: the test Case selector above the Execution list
+      # Native select dispatch is browser plumbing; assert its visible effect with AI.
       - javascript: |
-          (function () {
-            const header = document.querySelector(
-              '.modern-playwright-selector .selector-header',
-            );
-            if (!(header instanceof HTMLElement)) {
-              throw new Error('Case selector header not found');
-            }
-            if (
-              !document.querySelector(
-                '.modern-playwright-selector .selector-content',
-              )
-            ) {
-              header.click();
-            }
-            return { selectorOpened: true };
-          })()
-        name: openCaseSelector
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const optionTexts = Array.from(
-              document.querySelectorAll(
-                '.modern-playwright-selector .selector-content .options-list .option-item',
-              ),
-            ).map((option) => option.textContent.replace(/\s+/g, ' ').trim());
-            if (optionTexts.length < 2) {
-              throw new Error(
-                'Expected at least two test case options, found ' +
-                  optionTexts.length +
-                  ': ' +
-                  optionTexts.join(' | '),
-              );
-            }
-            if (
-              !optionTexts.some((text) =>
-                text.includes('Login and verify inventory'),
-              )
-            ) {
-              throw new Error('Passed test case option is missing');
-            }
-            if (
-              !optionTexts.some((text) =>
-                text.includes('Login with intentional failure'),
-              )
-            ) {
-              throw new Error('Failed test case option is missing');
-            }
-            return { visibleOptions: optionTexts };
-          })()
-        name: assertCaseSelectorOptions
-
-  - name: switch between test cases
-    flow:
-      - javascript: |
-          (function () {
-            const failedOption = Array.from(
-              document.querySelectorAll(
-                '.modern-playwright-selector .selector-content .options-list .option-item',
-              ),
-            ).find((option) =>
-              option.textContent.includes('Login with intentional failure'),
-            );
-            if (!(failedOption instanceof HTMLElement)) {
-              throw new Error('Failed test case option not found');
-            }
-            failedOption.click();
-            return {
-              selectedCase: failedOption.textContent
-                .replace(/\s+/g, ' ')
-                .trim(),
-            };
-          })()
-        name: selectFailedCase
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const headerText = document
-              .querySelector('.modern-playwright-selector .selector-header')
-              ?.textContent.replace(/\s+/g, ' ')
-              .trim();
-            if (!headerText?.includes('Login with intentional failure')) {
-              throw new Error(
-                'Failed test case was not selected: ' + (headerText || ''),
-              );
-            }
-            const taskRows = document.querySelectorAll('.tasks-table .task-row');
-            if (taskRows.length === 0) {
-              throw new Error('Task execution list is empty');
-            }
-            return { selectedCase: headerText, taskRows: taskRows.length };
-          })()
-        name: assertFailedCaseSelected
-
-  - name: filter by status
-    flow:
-      - javascript: |
-          (function () {
-            const header = document.querySelector(
-              '.modern-playwright-selector .selector-header',
-            );
-            if (!(header instanceof HTMLElement)) {
-              throw new Error('Case selector header not found');
-            }
-            if (
-              !document.querySelector(
-                '.modern-playwright-selector .selector-content',
-              )
-            ) {
-              header.click();
-            }
-            return { selectorOpened: true };
-          })()
-        name: openCaseSelectorForFilter
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const statusFilter = document.querySelector(
-              '.modern-playwright-selector .selector-content .status-filter-select',
-            );
-            if (!(statusFilter instanceof HTMLSelectElement)) {
-              throw new Error('Status filter select not found');
-            }
-            statusFilter.value = 'failed';
-            statusFilter.dispatchEvent(new Event('input', { bubbles: true }));
-            statusFilter.dispatchEvent(new Event('change', { bubbles: true }));
-            return { selectedStatus: statusFilter.value };
-          })()
-        name: setFailedStatusFilter
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const options = Array.from(
-              document.querySelectorAll(
-                '.modern-playwright-selector .selector-content .options-list .option-item',
-              ),
-            ).filter((option) => {
-              const style = window.getComputedStyle(option);
-              return style.display !== 'none' && style.visibility !== 'hidden';
-            });
-            const optionTexts = options.map((option) =>
-              option.textContent.replace(/\s+/g, ' ').trim(),
-            );
-            if (optionTexts.length !== 1) {
-              throw new Error(
-                'Expected exactly one failed test option, found ' +
-                  optionTexts.length +
-                  ': ' +
-                  optionTexts.join(' | '),
-              );
-            }
-            if (!optionTexts[0].includes('Login with intentional failure')) {
-              throw new Error(
-                'Failed test option was not rendered: ' + optionTexts[0],
-              );
-            }
-            if (optionTexts[0].includes('Login and verify inventory')) {
-              throw new Error('Passed test option is still visible');
-            }
-            return { visibleOptions: optionTexts };
-          })()
-        name: assertFailedStatusFilter
+          (() => {
+            const filter = document.querySelector('select[aria-label="Filter test cases by status"]');
+            if (!(filter instanceof HTMLSelectElement)) throw new Error('Missing Case status filter');
+            filter.value = 'failed';
+            filter.dispatchEvent(new Event('change', { bubbles: true }));
+          })();
+        name: chooseFailedStatus
+      - aiAssert: The selector shows only Login with intentional failure. Login and verify inventory is filtered out.

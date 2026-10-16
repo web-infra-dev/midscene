@@ -13,7 +13,7 @@ import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 ## 支持的模型
 
-Midscene 支持使用这些多模态模型操作界面：[豆包 Seed](#doubao-seed-model)、[千问 Qwen](#qwen)、[DeepSeek](#deepseek)、[Google Gemini](#gemini)、[OpenAI GPT](#gpt)、[月之暗面 Kimi](#kimi)、[小米 MiMo](#xiaomi-mimo)、[智谱 GLM-V](#glm-v)，以及下文介绍的其他兼容模型 [AutoGLM](#auto-glm) 和 [UI-TARS](#ui-tars)。
+Midscene 支持使用这些多模态模型操作界面：[豆包 Seed](#doubao-seed-model)、[千问 Qwen](#qwen)、[DeepSeek](#deepseek)、[Google Gemini](#gemini)、[OpenAI GPT](#gpt)、[月之暗面 Kimi](#kimi)、[小米 MiMo](#xiaomi-mimo)、[智谱 GLM-V](#glm-v)、[Jev（实验性）](#jev)，以及下文介绍的其他兼容模型 [AutoGLM](#auto-glm) 和 [UI-TARS](#ui-tars)。
 
 每份配置都需要 Base URL、API Key、模型名称和 `MIDSCENE_MODEL_FAMILY`。模型系列（`MIDSCENE_MODEL_FAMILY`）决定了 Midscene 如何适配所选模型。
 
@@ -264,6 +264,42 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 - Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
 
 
+### Jev（实验性） {#jev}
+
+Jev 目前为实验性支持，具体效果受 Jev 模型影响较大。
+
+- 模型供应商：[TypeSafe](https://typesafe.ai/)
+
+Jev 可以用于任务规划（Planning）、定位（Locate）或 Insight。由于 Jev 无法生成输入内容等开放式文本，需要同时配置一个通用大模型作为默认模型，为 Jev 无法完成的任务提供兜底。Jev 不能用作默认模型，默认模型的配置方式参见[多模型组合](#multi-model-combination-example)。
+
+以下使用 TypeSafe 官方服务的 `jev-1.14.0`，选择需要使用 Jev 的模型职责：
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.typesafe.ai/v1",
+    comment: "TypeSafe 官方 API 地址",
+  }}
+  modelName="jev-1.14.0"
+  modelFamily="jev"
+  purposes={['locate', 'planning', 'insight']}
+/>
+
+将相应模型职责配置为 Jev 后，各类任务的处理方式如下：
+
+- **定位**：由 Jev 执行元素定位。
+- **Insight**：`aiBoolean`、`aiAssert` 和 `aiWaitFor` 由 Jev 执行判断；`aiQuery`、`aiString`、`aiNumber` 和 `aiAsk` 由通用默认模型处理。
+- **任务规划**：`aiAct` 由 Jev 选择点击、滚动、等待等动作，并判断任务是否完成。涉及输入内容生成或其他 Jev 不支持的参数时，当前规划步骤由通用默认模型处理。若 Locate 配置为其他模型，点击和滚动步骤所需的具体目标描述也由默认模型生成。
+
+上述模型选择依据任务所需的能力。Jev 请求失败时，不会自动切换至默认模型。
+
+Jev 使用 TypeSafe 的 System One 协议，不使用 OpenAI 协议。OpenAI 的部分模型配置不适用于 Jev，包括温度、原生思考、响应格式和流式输出等。
+
+:::info 图像输入限制
+
+Jev 要求输入图像的最长边不超过 1568 像素，因此 Midscene 会对超出限制的图像进行等比缩放，并在定位后将结果映射回原图坐标。不足 280 像素的边会补白。该图像处理逻辑后续可能调整。
+
+:::
+
 ## 设置环境变量
 
 Midscene 从环境变量读取模型配置。请选择与你的使用方式对应的方法，也可以沿用项目已有的环境变量管理方式。
@@ -336,30 +372,38 @@ npx @midscene/cli@latest model verify
 
 ## 配置多个模型（可选） {#multi-model-combination-example}
 
-多模型配置不是必需项。大多数场景只需配置默认模型，即可完成 UI 定位和操作。仅当复杂规划或页面理解需要使用独立模型时，才需要配置 Planning 模型或 Insight 模型。你可以只配置其中一个，也可以同时配置两者。
+多模型配置不是必需项。大多数场景只需配置默认模型，即可完成 UI 定位和操作。需要分别控制定位、规划或页面理解时，可以配置 Locate、Planning 或 Insight 模型。每个职责独立选择；未配置的职责使用默认模型。
 
 如需了解何时组合多个模型，请阅读[模型策略](./model-strategy)。
 
-以下示例使用 Qwen 3.5 作为默认模型，负责视觉定位。GPT-5.4 作为 Planning 模型和 Insight 模型，负责复杂推理。
+使用多模型组合时，仍需配置默认模型。默认模型承担缓存生成中的顺序敏感性判断等辅助任务，并在某项职责未配置专用模型时承担相应工作；移除专用模型配置后，也会恢复使用默认模型。
+
+以下示例使用 Qwen 3.8 Flash 作为默认模型、Gemini 3.5 Flash 负责定位、GPT-6 Astra 负责规划、GPT-6.1 Sol 负责数据提取、断言和页面理解。模型名称请以所用服务商提供的实际 ID 为准。
 
 ```bash
-# 默认多模态模型：Qwen 3.5
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
-export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
-export MIDSCENE_MODEL_NAME="qwen3.5-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3.5"
+# 默认模型
+export MIDSCENE_MODEL_BASE_URL="https://..."
+export MIDSCENE_MODEL_API_KEY="..."
+export MIDSCENE_MODEL_NAME="qwen3.8-flash"
+export MIDSCENE_MODEL_FAMILY="qwen3"
 
-# Planning 模型：GPT-5.4
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.4 API Key
+# Locate 定位模型
+export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
+export MIDSCENE_LOCATE_MODEL_API_KEY="..."
+export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
+export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
+
+# Planning 规划模型
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
-export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+export MIDSCENE_PLANNING_MODEL_API_KEY="..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 
-# Insight 模型：GPT-5.4
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.4 API Key
+# Insight 页面理解模型
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
-export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+export MIDSCENE_INSIGHT_MODEL_API_KEY="..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-6.1-sol"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
 
 ## 其他兼容模型

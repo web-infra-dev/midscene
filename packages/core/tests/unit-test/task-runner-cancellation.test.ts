@@ -145,6 +145,7 @@ describe('task cancellation boundaries', () => {
       } as unknown as AbstractInterface,
       service,
       {
+        getDefaultModelRuntime: () => model,
         actionSpace: [
           {
             name: 'Noop',
@@ -192,6 +193,7 @@ describe('task cancellation boundaries', () => {
       } as unknown as AbstractInterface,
       { contextRetrieverFn: async () => context() } as unknown as Service,
       {
+        getDefaultModelRuntime: () => model,
         actionSpace: [
           {
             name: 'Noop',

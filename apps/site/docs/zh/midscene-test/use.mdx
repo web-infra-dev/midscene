@@ -120,7 +120,7 @@ Midscene Test 将每一种可在 YAML 中调用的能力称为 **Node（节点�
 
 Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afterEach` 等[生命周期钩子](#定义执行生命周期)中调用，写法相同。
 
-所有平台都提供以下常用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 检查预期结果，`wait` 等待指定时长。
+所有平台都提供以下常用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 检查预期结果，`aiWaitFor` 等待可观察条件成立，`wait` 等待指定时长。
 
 在这些通用能力之外，Midscene 还为各个平台预置了专用操作。例如：
 
@@ -467,6 +467,58 @@ pnpm exec midscene-test --result-dir ./test-results
 ## 查看测试结果
 
 每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
+
+顶部摘要和进度条按最终结果展示 **Passed**、**Failed** 和 **Not run**。Passed 包含此前失败、后来通过的 Case。绿色通过区段内部的描边留白部分表示这些恢复通过的 Case，图例通过 **passed after retry** 展示其数量。它是 Passed 的子集，不会作为独立结果重复计数。运行信息、Project 数和 File 数仍展示在摘要旁。
+
+**Test Report** 总览展示 **Project → File → Case** 三层结构。左侧导航按 Failed、Passed、Not run 分组，每组名称后显示项目数，Projects 标题不重复显示数量。每个 Project 展示 Case 总数及非零的最终结果数。名称和摘要过长时显示省略号，悬浮可查看完整内容。恢复通过的 Project、File、Case 均使用绿色 Passed 标记。受影响的 Project、Case 名称后显示橙色圆形警告图标，悬浮或键盘聚焦可查看 **passed after retry** 提示。文件整体重试的历史保留在 File 的 Attention 和 Project 提示中，不会让其中一直通过的 Case 都被标记为恢复通过。
+
+状态筛选旁的按钮可以统一展开或收起当前 Project 中可见的 File，保留被筛选隐藏的 File 和其他 Project 的展开状态。有失败、文件级错误或恢复通过尝试的 File 默认展开。空文件和收集失败的文件仍然可见。File 错误显示在所属 File 下，Project 初始化、清理错误显示在项目标题下。Case 通过不会覆盖 File 或 Project 自身的错误。
+
+**Compact** 展示 Case 名称、最终结果、执行次数和耗时。**Detailed** 增加截图时间线和简短的报错或未执行原因。此前的失败会注明来自历史尝试，不会改变最终结果。打开通过的 Case 时默认展示最后一次成功执行，可通过 Attempts 查看历史。点击此前失败的摘要会打开对应的失败 Step，点击截图会进入所属 Step。
+
+搜索框查找整个报告中的 Project、File、Case 和错误详情，左侧只保留匹配的 Project。项目标题旁的 **All / Failed / Passed / Not run** 复选框只筛选该 Project，多个选项按“或”组合。**Clear filters** 清空搜索并恢复 All：
+
+- **Passed** 包含所有最终通过的 Case，无论此前是否失败。警告图标和尝试历史提供排查信息，不是独立状态类别。
+- **Failed** 包含最终失败的 Case，并保留匹配的 File、Project 错误。因作用域失败而作为上下文展示的未执行 Case 仍属于 Not run。
+- **Not run** 筛选没有执行的 Case，包括被初始化失败或调度错误阻断的 Case。
+- File 清理失败时，Case 可以全部通过、通过率可以为 100%。该错误仍归属 File，不会虚构失败 Case。
+- 未收集到 Case 的文件收集错误仍然可见，不虚构 Case 数量或通过率。
+
+旧 **tasks / flow** YAML 新生成的报告使用同一页面：每个 task 对应一个 Case，flow 条目对应 Step。内联输入显示为 **Inline YAML**。宿主初始化、清理错误归属于 File，不虚构 YAML 中的钩子。旧 CLI 批量执行和整文件重试报告仍保留来源身份，此页面不会把独立报告推断合并成同一个逻辑 Project，也不会推断 Case 重试历史。只有 Agent dump 的来源标注为 **Source report / Agent report**，不声称还原出 YAML 文件或 task、flow 导航。仅在存在真实原文快照时提供 YAML 视图。历史 HTML 报告需重新生成才能使用新布局。
+
+多 Case 报告可以通过左侧悬浮菜单按钮（**View all cases**）打开 Case 目录。面板在按钮下方展开，报告背景不会变暗。目录按 Project 展示所有 Case 的结果和来源文件，当前 Case 会高亮显示。该列表不受 Overview 筛选条件影响，点击其他 Case 可直接跳转，也支持跨 Project 切换；失败 Case 会定位到失败 Step。打开目录后，焦点会落在当前 Case 上。可以使用 Tab 切换控件，按 Esc 关闭目录并将焦点返回菜单按钮。再次点击菜单按钮或关闭面板不会切换 Case，返回 Overview 时会恢复原来的筛选、排序、展开状态和滚动位置。单 Case 报告不显示这个入口。
+
+Case 的 **Execution** 表头集中展示 **Visual / YAML** 切换、多次尝试时的 **Attempts** 下拉框，以及 Step 状态统计。报告保存了源 YAML 快照时，才可使用 YAML 视图。Visual 视图在截图时间线下方展示统一的 Step 列表和选中 Step 的详情，列表中的生命周期分组使用分割线区分。在宽屏下，拖动分栏线可调整 Step 列表宽度，聚焦后也可使用方向键调整，双击可恢复默认宽度。工作区会定位当前尝试或 File 作用域中的失败 Step，并将对应行和错误滚动到可见位置；此前失败记录通过 Attempts 或显式错误链接查看。
+
+选中 Step 后，可以查看 **Information** 和 **Events**；有录屏或截图证据时，还会显示 **Record**：
+
+- **Record** 展示关联的 Agent 执行过程或截图。悬停时间线缩略图可以预览，点击后会选中截图所属的 Step。
+- **Information** 按对齐的行展示 Input、Output 和 Stable IDs。有对应数据时，还会展示配置、Planned input 和 **Information captured at**（信息采集时间）。采集时间按浏览器本地时区显示，包含毫秒和 UTC 偏移，不一定是 Step 的结束时间。悬停可查看原始 UTC 时间，以及前往 **Events** 查看后续完成或取消情况的说明。
+- **Events** 以表格展示 Time、Operation、Event 和 Status。缺少详细操作事件时，会根据已知时间展示 Step 的开始和结束；没有事件的 Step 会显示空状态。
+
+**Operation** 列说明正在执行什么。悬停 Operation 或 Event 文案，可以查看原始日志名称及解释；Operation 提示还保留了 Operation ID，方便对照日志。
+
+| Operation 文案 | 原始名称 | 含义 |
+| --- | --- | --- |
+| Run step | `node` | 执行整个 Step，包含其内部的 Agent 操作；内置和自定义 Node 都有这一层。 |
+| Get Agent | `acquisition` | 获取本次 Step 使用的 Agent，可能复用已有实例。 |
+| Run Agent operation | `resource` | 通过 Agent 执行操作，例如点击、断言或记录截图。 |
+| Wait for app readiness | `readiness` | 动作完成后，等待配置的就绪回调。 |
+| Clean up resources | `cleanup` | 清理执行过程中使用的资源。 |
+
+这些操作不是互不重叠、依次执行的阶段。**Run step** 包含其内部操作，因此不能把内部操作耗时再加到 Step 总耗时上。例如，Runner 的 `wait` 和不经过 Agent 适配层的自定义 Node 只有 **Run step** 事件；`aiAct`、`aiAssert` 通常在 **Run step** 内先获取 Agent，再执行 Agent 操作。规划、定位及具体页面动作请查看 **Record**。
+
+| Event 文案 | 原始名称 | 含义 |
+| --- | --- | --- |
+| Started | `started` | 操作开始。 |
+| Finished | `settled` | 操作已结束，成功或失败看 Status。 |
+| Result returned | `runner-returned` | Runner 已返回 Step 结果，底层操作可能仍未结束。 |
+| Cancellation requested | `cancel-requested` | 已请求取消，但操作可能仍在运行。 |
+| Cleanup postponed | `cleanup-deferred` | 尚未结束的操作仍在使用资源，清理被推迟。 |
+
+**Execution still running** 和 **pending** 徽标表示 Runner 返回结果时，操作尚未结束，可能出现在超时或取消场景。这不代表报告记录截止时间之后的实时状态。Status 为 `-` 表示这条事件没有结果状态，不代表失败。
+
+Step 错误显示在这些标签页上方。展开 **details** 可查看错误类型、错误码和失败 Node。堆栈共用一个滚动区域，先展示原始错误堆栈，再展示逐层包装的错误和框架调用堆栈。其他诊断信息及关联错误保留在下方。堆栈默认折叠，复制问题详情时也会包含堆栈。敏感信息会脱敏；超出报告大小或 cause 深度限制的诊断信息会标注截断。存在多个问题时，可通过 **View all … issues** 查看。Case 和生命周期清理错误仍显示在 Execution 上方。页头的主题按钮可以切换浅色和深色主题。
 
 报告保留执行前的测试计划，以及实际执行和未执行的步骤、未执行原因、重试停止原因。等待旧操作退出的时间与步骤执行时间分开记录。报告是生成时的快照：`cleanup pending` 表示当时清理尚未完成，资源仍保持隔离；之后完成的清理不会回写已生成的 HTML。
 

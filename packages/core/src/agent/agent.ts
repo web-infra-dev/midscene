@@ -1,4 +1,6 @@
-import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
+import type { ModelTask } from '@/ai-model/model-adapter/types';
+import type { ModelRuntime } from '@/ai-model/models';
+import { resolveModelForTask } from '@/ai-model/models/task-routing';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import { IS_REPORT_BUILD } from '@/constants';
 import yaml from 'js-yaml';
@@ -445,19 +447,24 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     );
   }
 
-  private resolveModelRuntime(intent: TIntent): ModelRuntime {
-    const runtime = getModelRuntime(
-      this.modelConfigManager.getModelConfig(intent),
+  private resolveModelRuntime(intent: TIntent, task?: ModelTask): ModelRuntime {
+    const runtime = resolveModelForTask(
+      this.modelConfigManager,
+      intent,
+      task ??
+        (intent === 'default'
+          ? 'text'
+          : intent === 'insight'
+            ? 'extract'
+            : intent),
     );
     return {
       ...runtime,
       onUsage: (usage) => {
         this.usageCallCounter += 1;
-        // buildUsageInfo leaves intent undefined; fill it from the model
-        // config slot so metrics.byIntent has a meaningful category.
-        const enriched = usage.intent
-          ? usage
-          : { ...usage, intent: usage.slot };
+        // buildUsageInfo leaves intent undefined; fill it from the
+        // requested role, even when its configuration falls back to default.
+        const enriched = usage.intent ? usage : { ...usage, intent };
         this.consumeUsage(
           enriched,
           `callai:${usage.request_id ?? this.usageCallCounter}`,
@@ -469,7 +476,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   private createInsight(getUIContext?: () => UIContext): Insight {
     return new Insight(
       this.taskExecutor,
-      () => this.resolveModelRuntime('insight'),
+      (task) => this.resolveModelRuntime('insight', task),
       (apiName, callContext) => this.resolveUserContext(apiName, callContext),
       getUIContext,
     );
@@ -603,6 +610,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
+      getDefaultModelRuntime: () => this.resolveModelRuntime('default'),
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
@@ -1054,14 +1062,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     );
 
     // assume all operation in action space is related to locating
-    const defaultModel = this.resolveModelRuntime('default');
+    const locateModel = this.resolveModelRuntime('locate');
     const planningModel = this.resolveModelRuntime('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       title,
       plans,
       planningModel,
-      defaultModel,
+      locateModel,
       { abortSignal: abortSignal ?? currentYamlSignal(this) },
     );
     return output;
@@ -1429,7 +1437,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
-      const defaultModel = this.resolveModelRuntime('default');
+      const locateModel = this.resolveModelRuntime('locate');
       const aiActContext = this.resolveUserContext('aiAct', opt?.context);
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
@@ -1535,7 +1543,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         planningModel,
-        defaultModel,
+        locateModel,
         aiActContext,
         cacheable,
         replanningCycleLimit,
@@ -1683,14 +1691,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const defaultModel = this.resolveModelRuntime('default');
+    const locateModel = this.resolveModelRuntime('locate');
     const planningModel = this.resolveModelRuntime('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
       planningModel,
-      defaultModel,
+      locateModel,
       opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
     );
 
@@ -1721,7 +1729,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelRuntime = this.resolveModelRuntime('insight');
+    const modelRuntime = this.resolveModelRuntime('insight', 'boolean');
     const options = this.withContext('aiWaitFor', opt);
     await this.taskExecutor.waitFor(
       assertion,

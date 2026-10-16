@@ -10,6 +10,7 @@ const config = {
 describe('model configuration examples', () => {
   it.each([
     ['default', 'MIDSCENE_MODEL'],
+    ['locate', 'MIDSCENE_LOCATE_MODEL'],
     ['planning', 'MIDSCENE_PLANNING_MODEL'],
     ['insight', 'MIDSCENE_INSIGHT_MODEL'],
   ] as const)('generates the %s configuration', (purpose, prefix) => {
@@ -25,6 +26,7 @@ describe('model configuration examples', () => {
 
   it.each([
     ['default', 'MIDSCENE_MODEL'],
+    ['locate', 'MIDSCENE_LOCATE_MODEL'],
     ['planning', 'MIDSCENE_PLANNING_MODEL'],
     ['insight', 'MIDSCENE_INSIGHT_MODEL'],
   ] as const)(
@@ -43,6 +45,7 @@ describe('model configuration examples', () => {
 
   it.each([
     ['default', 'MIDSCENE_MODEL'],
+    ['locate', 'MIDSCENE_LOCATE_MODEL'],
     ['planning', 'MIDSCENE_PLANNING_MODEL'],
     ['insight', 'MIDSCENE_INSIGHT_MODEL'],
   ] as const)('generates the %s SIWC configuration', (purpose, prefix) => {
@@ -67,7 +70,7 @@ describe('model configuration examples', () => {
     );
     expect(code).toContain(`${prefix}_API_KEY="<your-access-token>"`);
     expect(code).toContain(
-      'MIDSCENE_MODEL_STREAM_MODE="stream" # SIWC requires streaming',
+      `${prefix}_STREAM_MODE="stream" # SIWC requires streaming`,
     );
   });
 

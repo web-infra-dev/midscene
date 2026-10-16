@@ -13,6 +13,8 @@ export interface PlanOptions {
   actionSpace: DeviceAction<any>[];
   actionContext?: string;
   modelRuntime: ModelRuntime;
+  locateModelRuntime?: ModelRuntime;
+  getDefaultModelRuntime?: () => ModelRuntime;
   conversationHistory: ConversationHistory;
   includeLocateInPlanning: boolean;
   imagesIncludeCount?: number;

@@ -22,6 +22,7 @@ export function resolveInsight(
   context: InsightProtocolContext,
 ): InsightAdapter {
   return {
+    booleanFn: insight?.booleanFn,
     protocol: resolveInsightProtocol(insight?.protocol, context),
   };
 }

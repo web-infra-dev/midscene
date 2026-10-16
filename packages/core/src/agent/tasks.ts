@@ -122,6 +122,7 @@ export class TaskExecutor {
 
   taskCache?: TaskCache;
 
+  private readonly getDefaultModelRuntime: () => ModelRuntime;
   private readonly providedActionSpace: DeviceAction[];
 
   private readonly taskBuilder: TaskBuilder;
@@ -147,6 +148,7 @@ export class TaskExecutor {
     service: Service,
     opts: {
       taskCache?: TaskCache;
+      getDefaultModelRuntime: () => ModelRuntime;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       waitAfterAction?: number;
@@ -158,6 +160,7 @@ export class TaskExecutor {
       actionSpace: DeviceAction[];
     },
   ) {
+    this.getDefaultModelRuntime = opts.getDefaultModelRuntime;
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = opts.taskCache;
@@ -169,6 +172,7 @@ export class TaskExecutor {
     this.getAbortSignal = opts.getAbortSignal;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: opts.getDefaultModelRuntime,
       interfaceInstance,
       service,
       taskCache: opts.taskCache,
@@ -311,7 +315,7 @@ export class TaskExecutor {
   public async convertPlanToExecutable(
     plans: PlanningAction[],
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     options?: {
       cacheable?: boolean;
       multimodalPrompt?: TMultimodalPrompt;
@@ -319,7 +323,7 @@ export class TaskExecutor {
       abortSignal?: AbortSignal;
     },
   ) {
-    return this.taskBuilder.build(plans, planningModel, defaultModel, options);
+    return this.taskBuilder.build(plans, planningModel, locateModel, options);
   }
 
   async loadYamlFlowAsPlanning(
@@ -403,7 +407,7 @@ export class TaskExecutor {
     title: string,
     plans: PlanningAction[],
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     options?: { uiContext?: UIContext; abortSignal?: AbortSignal },
   ): Promise<ExecutionResult> {
     const abortSignal = options?.abortSignal ?? this.getAbortSignal?.();
@@ -413,11 +417,11 @@ export class TaskExecutor {
     });
     const runner = session.getRunner();
     const executionPlanningModel = { ...planningModel, executionId: runner.id };
-    const executionDefaultModel = { ...defaultModel, executionId: runner.id };
+    const executionLocateModel = { ...locateModel, executionId: runner.id };
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       executionPlanningModel,
-      executionDefaultModel,
+      executionLocateModel,
       { abortSignal },
     );
     const result = await session.appendAndRun(tasks);
@@ -431,7 +435,7 @@ export class TaskExecutor {
   async action(
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -454,7 +458,7 @@ export class TaskExecutor {
       return this.runAction(
         userPrompt,
         planningModel,
-        defaultModel,
+        locateModel,
         aiActContext,
         cacheable,
         replanningCycleLimitOverride,
@@ -503,7 +507,7 @@ export class TaskExecutor {
   private async runAction(
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -545,9 +549,11 @@ export class TaskExecutor {
     );
     const runner = session.getRunner();
     planningModel = { ...planningModel, executionId: runner.id };
-    defaultModel = { ...defaultModel, executionId: runner.id };
+    locateModel = { ...locateModel, executionId: runner.id };
 
-    const noIndividualLocateModel = planningModel.config.slot === 'default';
+    const noIndividualLocateModel =
+      planningModel.config.slot === 'default' &&
+      locateModel.config.slot === 'default';
     const includeLocateInPlanning =
       effort !== 'deepThink' && noIndividualLocateModel;
     const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
@@ -679,6 +685,8 @@ export class TaskExecutor {
                 actionContext: renderAIContext(aiActContext),
                 actionSpace,
                 modelRuntime: planningModel,
+                locateModelRuntime: locateModel,
+                getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
                 includeLocateInPlanning,
                 imagesIncludeCount,
@@ -804,7 +812,7 @@ export class TaskExecutor {
         executables = await this.convertPlanToExecutable(
           plans,
           planningModel,
-          defaultModel,
+          locateModel,
           {
             cacheable,
             multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),

@@ -237,14 +237,14 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
-            sectionHeaderText: 'E2E Test Framework (Beta)',
+            sectionHeaderText: 'Midscene Test (Beta)',
           },
           {
-            text: 'Midscene Test overview',
+            text: 'Framework overview',
             link: '/midscene-test/overview',
           },
           {
-            text: 'Create and use test projects',
+            text: 'Create and run test projects',
             link: '/midscene-test/use',
           },
           {
@@ -260,7 +260,8 @@ export default defineConfig(async () => {
             link: '/midscene-test/github-actions',
           },
           {
-            sectionHeaderText: 'YAML automation',
+            sectionHeaderText: 'Legacy YAML automation',
+
           },
           {
             text: 'YAML script runner',
@@ -278,7 +279,7 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Reference',
           },
           {
-            text: 'API reference',
+            text: 'GUI Agent API',
             link: '/reference/',
           },
           {
@@ -425,22 +426,22 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
-            sectionHeaderText: 'E2E 测试框架 (Beta)',
+            sectionHeaderText: 'Midscene Test（Beta）',
           },
           {
-            text: 'Midscene Test 概览',
+            text: '框架概览',
             link: '/zh/midscene-test/overview',
           },
           {
-            text: '创建和使用测试项目',
+            text: '创建与运行测试工程',
             link: '/zh/midscene-test/use',
           },
           {
-            text: '配置测试项目',
+            text: '配置测试工程',
             link: '/zh/midscene-test/configuration',
           },
           {
-            text: '编写自定义 Node',
+            text: '开发自定义 Node',
             link: '/zh/midscene-test/extend',
           },
           {
@@ -448,7 +449,7 @@ export default defineConfig(async () => {
             link: '/zh/midscene-test/github-actions',
           },
           {
-            sectionHeaderText: 'YAML 自动化',
+            sectionHeaderText: '旧版 YAML 自动化',
           },
           {
             text: 'YAML 脚本运行器',
@@ -466,7 +467,7 @@ export default defineConfig(async () => {
             sectionHeaderText: '参考文档',
           },
           {
-            text: 'API 参考',
+            text: 'GUI Agent API',
             link: '/zh/reference/',
           },
           {
@@ -612,6 +613,10 @@ export default defineConfig(async () => {
       pluginClientRedirects({
         redirects: [
           ...['', '/zh'].flatMap((locale) => [
+            {
+              from: `^${locale}/(?:index\\.html)?$`,
+              to: `${locale}/introduction`,
+            },
             {
               from: `^${locale}/reference\\.html/?$`,
               to: `${locale}/reference/`,

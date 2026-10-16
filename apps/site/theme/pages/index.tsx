@@ -1,3 +1,5 @@
+import '../components/IntroductionPage.css';
+import '../components/HomeChapter.css';
 import { Banner } from '../components/Banner';
 import { CTAButtons } from '../components/CTAButtons';
 import { FeatureSections } from '../components/FeatureSections';
@@ -23,11 +25,12 @@ export function HomeLayout() {
   const t = useI18n();
 
   return (
-    <div className="home-page">
+    <div className="home-page home-page--standalone">
       {/* Banner Section */}
-      <Banner />
-
-      <TestExample />
+      <section id="test-intent" aria-labelledby="home-hero-title">
+        <Banner />
+        <TestExample />
+      </section>
 
       {/* Feature Sections */}
       <FeatureSections />

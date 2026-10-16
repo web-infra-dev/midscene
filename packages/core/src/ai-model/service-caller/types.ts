@@ -4,6 +4,7 @@ import type OpenAI from 'openai';
 import type { ImageDetail } from '../model-adapter/types';
 import type { ModelRuntime } from '../models';
 import type { OpenAIRequestContext } from './openai/openai-request-context';
+import type { SystemOneRequest } from './system-one';
 
 export type MessageTextContent = { type: 'text'; text: string };
 
@@ -39,6 +40,7 @@ export type ConversationEntry =
 export type ModelCallMessages = (ConversationMessage | ConversationEntry)[];
 
 export interface CallAIOptions {
+  systemOneRequest?: SystemOneRequest;
   stream?: boolean;
   onChunk?: StreamingCallback;
   abortSignal?: AbortSignal;
