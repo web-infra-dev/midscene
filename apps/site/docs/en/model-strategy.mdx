@@ -25,11 +25,12 @@ Data extraction and page-understanding workloads can still include DOM data when
 
 Midscene uses a multimodal Default model for task planning, element localization, page understanding, and the rest of the automation workflow. This default approach covers most UI automation scenarios and lets users get started with minimal configuration.
 
-When complex planning, data extraction, or page understanding requires specialized model capabilities, users can add Planning and Insight models to the Default model. Each model contributes its strengths to the same automation workflow:
+When complex planning, data extraction, or page understanding requires specialized model capabilities, users can add Locate, Planning, or Insight models to the Default model. Each model contributes its strengths to the same automation workflow:
 
 | Model | Role in the combination |
 | --- | --- |
-| Default model | Provides the foundation, handling element localization (Locate) and workloads not assigned to Planning or Insight |
+| Default model | Required base configuration providing all capabilities; each role without a dedicated model uses the Default model |
+| Locate model | Handles independent element localization, including action targets and deepLocate |
 | Planning model | Enhances planning for complex goals, multi-step tasks, and branching scenarios |
 | Insight model | Enhances data extraction, assertions, and page understanding |
 

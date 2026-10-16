@@ -89,6 +89,7 @@ describe('TaskExecutor concurrency isolation', () => {
     } as unknown as Service;
 
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: emptyParamActionSpace,
     });
@@ -249,6 +250,7 @@ describe('TaskExecutor concurrency isolation', () => {
       mockService.locate = locate;
       rs.mocked(mockInterface.actionSpace).mockReturnValue([tap]);
       const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: defaultModel,
         replanningCycleLimit: 1,
         actionSpace: [tap],
       });
@@ -403,6 +405,7 @@ describe('TaskExecutor concurrency isolation', () => {
     }> = [];
 
     const taskExecutorLocal = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: emptyParamActionSpace,
       hooks: {
@@ -514,6 +517,7 @@ describe('TaskExecutor concurrency isolation', () => {
     const progressEvents: string[] = [];
     const progressScopes = new Set<string>();
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 3,
       actionSpace: emptyParamActionSpace,
       hooks: {
@@ -593,6 +597,7 @@ describe('TaskExecutor concurrency isolation', () => {
       .fn()
       .mockResolvedValue('2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)');
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: emptyParamActionSpace,
       useDeviceTime: true,
@@ -961,6 +966,7 @@ ${thirdPlanningFeedback}`);
   it('should not pass empty planning feedback into the next planning request', async () => {
     const seenPendingFeedback: string[] = [];
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: [],
     });
@@ -1037,6 +1043,7 @@ ${thirdPlanningFeedback}`);
 
     const seenPendingFeedback: string[] = [];
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: emptyParamActionSpace,
       useDeviceTime: true,

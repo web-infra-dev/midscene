@@ -91,6 +91,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       })),
     } as any;
     const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+      getDefaultModelRuntime: () => modelRuntime,
       actionSpace: [],
     });
     const modelRuntime = getModelRuntime({
@@ -141,6 +142,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -186,6 +188,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -227,6 +230,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -299,6 +303,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -368,6 +373,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -432,6 +438,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         { interfaceType: 'web' } as any,
         mockService,
         {
+          getDefaultModelRuntime: () => getModelRuntime(defaultModelConfig),
           actionSpace: [],
           replanningCycleLimit: 1,
         },
@@ -493,6 +500,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -542,6 +550,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -581,6 +590,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -622,6 +632,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -668,6 +679,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -728,6 +740,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -770,6 +783,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 
@@ -826,6 +840,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        getDefaultModelRuntime: () => getModelRuntime(mockModelConfig),
         actionSpace: [],
       });
 

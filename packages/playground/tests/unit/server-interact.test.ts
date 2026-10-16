@@ -948,7 +948,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
         centerDistance: 0,
       },
     }));
+    const getModelConfig = rs.fn((intent: 'insight' | 'locate') => ({
+      modelName: `${intent}-model`,
+      modelDescription: intent,
+      intent,
+      slot: intent,
+    }));
     const server = new PlaygroundServer({
+      modelConfigManager: { getModelConfig },
       interface: {
         interfaceType: 'ios',
         actionSpace: () => [],
@@ -1023,6 +1030,20 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(assetResponse.statusCode).toBe(200);
 
     const describeResponse = await describeRecorderEvent(server, rawEvents[0]);
+    expect(getModelConfig.mock.calls.map(([intent]) => intent)).toEqual([
+      'insight',
+      'locate',
+    ]);
+    expect(
+      rs.mocked(coreDescribeElementAtPoint).mock.calls[0][0],
+    ).toMatchObject({
+      locateModelRuntime: {
+        config: { modelName: 'locate-model', intent: 'locate' },
+      },
+      describeModelRuntime: {
+        config: { modelName: 'insight-model', intent: 'insight' },
+      },
+    });
     expect(describeResponse.body).toMatchObject({
       ok: true,
       trace: {

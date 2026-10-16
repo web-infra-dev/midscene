@@ -11,7 +11,7 @@ import type {
 } from '../model-adapter/types';
 import { isLocateIntent } from './utils/intent';
 
-const originalImageDetailForDefaultIntent: ResolveImageDetail = (input) =>
+const originalImageDetailForLocateIntent: ResolveImageDetail = (input) =>
   isLocateIntent(input.intent) || input.requiresOriginalImageDetail
     ? 'original'
     : (input.imageDetail ?? 'high');
@@ -149,7 +149,7 @@ const buildGpt6ChatCompletionParams = (
 export const gptAdapters = {
   'gpt-5': {
     supportedProtocols: ['openai-chat', 'openai-responses'],
-    resolveImageDetail: originalImageDetailForDefaultIntent,
+    resolveImageDetail: originalImageDetailForLocateIntent,
     responses: {
       replayRawAssistantOutput: false,
       unsupportedUserConfig: ['reasoningBudget'],
@@ -170,7 +170,7 @@ export const gptAdapters = {
   },
   'gpt-6': {
     supportedProtocols: ['openai-chat', 'openai-responses'],
-    resolveImageDetail: originalImageDetailForDefaultIntent,
+    resolveImageDetail: originalImageDetailForLocateIntent,
     responses: {
       replayRawAssistantOutput: false,
       unsupportedUserConfig: ['temperature', 'reasoningBudget'],

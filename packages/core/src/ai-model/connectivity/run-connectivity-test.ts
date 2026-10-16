@@ -33,6 +33,7 @@ export interface ConnectivityTestResult {
 
 export interface ConnectivityTestConfig {
   defaultModelConfig: IModelConfig;
+  locateModelConfig?: IModelConfig;
   planningModelConfig: IModelConfig;
   insightModelConfig: IModelConfig;
 }
@@ -239,7 +240,11 @@ export async function runConnectivityTest(
   const checks = await Promise.all([
     runCheck(config.planningModelConfig, runTextConnectivityCheck),
     runCheck(config.insightModelConfig, runVisionConnectivityCheck),
-    runCheck(config.defaultModelConfig, runAiLocateConnectivityCheck),
+    runCheck(
+      config.locateModelConfig ?? config.defaultModelConfig,
+      runAiLocateConnectivityCheck,
+    ),
+    runCheck(config.defaultModelConfig, runTextConnectivityCheck),
   ]);
 
   const passed = checks.every((item) => item.passed);

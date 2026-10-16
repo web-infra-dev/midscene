@@ -334,30 +334,38 @@ For failed checks and connectivity problems, see [Model debugging and observabil
 
 ## Optional: configure multiple models {#multi-model-combination-example}
 
-Multi-model setup is optional. For most use cases, a Default model is enough for UI localization and actions. Add a Planning or Insight model only when complex planning or page understanding requires a separate model. You can configure either one or both.
+Multi-model setup is optional. For most use cases, a Default model is enough for UI localization and actions. Add a Locate, Planning, or Insight model to control localization, planning, or page understanding independently. Each role without a dedicated model uses the Default model.
 
 For guidance on when to combine models, see [Model strategy](./model-strategy).
 
-The following example uses Qwen 3.5 as the Default model for visual grounding. GPT-5.4 serves as the Planning and Insight models for complex reasoning.
+A Default model is still required when combining multiple models. It handles auxiliary tasks such as judging whether an element description is order-sensitive when generating caches, as well as any role without a dedicated model. Removing a dedicated model configuration returns that role to the Default model.
+
+The following example uses Qwen 3.8 Flash as the Default model, Gemini 3.5 Flash for localization, GPT-6 Astra for planning, and GPT-6.1 Sol for extraction, assertions, and page understanding. Use the actual model IDs provided by your service provider.
 
 ```bash
-# Default multimodal model: Qwen 3.5
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 endpoint
-export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen 3.5 API key
-export MIDSCENE_MODEL_NAME="qwen3.5-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3.5"
+# Default model
+export MIDSCENE_MODEL_BASE_URL="https://..."
+export MIDSCENE_MODEL_API_KEY="..."
+export MIDSCENE_MODEL_NAME="qwen3.8-flash"
+export MIDSCENE_MODEL_FAMILY="qwen3"
 
-# Planning model: GPT-5.4
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
+# Locate model
+export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
+export MIDSCENE_LOCATE_MODEL_API_KEY="..."
+export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
+export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
+
+# Planning model
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
-export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+export MIDSCENE_PLANNING_MODEL_API_KEY="..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 
-# Insight model: GPT-5.4
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.4 API key
+# Insight model
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
-export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+export MIDSCENE_INSIGHT_MODEL_API_KEY="..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-6.1-sol"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
 
 ## Other compatible models

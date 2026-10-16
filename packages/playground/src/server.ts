@@ -208,7 +208,7 @@ function createElementDescriberRuntime(
       ? getModelRuntime(modelConfigManager.getModelConfig('insight'))
       : missingModelRuntime,
     locateModelRuntime: modelConfigManager
-      ? getModelRuntime(modelConfigManager.getModelConfig('default'))
+      ? getModelRuntime(modelConfigManager.getModelConfig('locate'))
       : missingModelRuntime,
   };
 }
@@ -4179,6 +4179,7 @@ class PlaygroundServer {
         const modelConfigManager = new ModelConfigManager(req.body.config);
         const result = await runConnectivityTest({
           defaultModelConfig: modelConfigManager.getModelConfig('default'),
+          locateModelConfig: modelConfigManager.getModelConfig('locate'),
           planningModelConfig: modelConfigManager.getModelConfig('planning'),
           insightModelConfig: modelConfigManager.getModelConfig('insight'),
         });
