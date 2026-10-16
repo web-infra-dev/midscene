@@ -163,7 +163,8 @@
   .runner-results {
     --runner-result-color: #969eb2;
     display: flex;
-    width: 424px;
+    width: 500px;
+    max-width: 100%;
     min-width: 0;
     flex-direction: column;
     gap: 6px;
@@ -188,11 +189,15 @@
   .runner-result-recovered {
     position: absolute;
     inset-block: 2px;
-    right: 0;
+    right: 2px;
+    max-width: calc(100% - 4px);
     border-radius: inherit;
-    background: #f59c31;
+    background: var(--runner-surface);
   }
   .runner-results .is-success {
+    --runner-result-color: var(--runner-success);
+  }
+  .runner-results .is-recovered {
     --runner-result-color: var(--runner-success);
   }
   .runner-results .is-danger {
@@ -226,6 +231,11 @@
     font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+  }
+  .runner-counts > .is-recovered::before {
+    box-sizing: border-box;
+    border: 1px solid var(--runner-success);
+    background: var(--runner-surface);
   }
   .runner-counts span {
     text-transform: lowercase;
@@ -418,6 +428,12 @@
     flex: 1;
     flex-direction: column;
     gap: 4px;
+  }
+  .runner-project-nav-name {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
   }
   .runner-project-nav-copy strong,
   .runner-project-nav-copy small {
@@ -894,6 +910,12 @@
     color: var(--runner-muted);
     font-size: 12px;
     font-weight: 400;
+  }
+
+  .runner-file-attention:focus-visible {
+    outline: none;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
   }
 
   .runner-file-identity small {

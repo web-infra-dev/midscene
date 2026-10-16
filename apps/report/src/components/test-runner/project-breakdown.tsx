@@ -1,10 +1,12 @@
 import { CaretDownFilled, CaretUpFilled } from '@ant-design/icons';
+import { Tooltip } from 'antd';
 import { type ReactNode, useId, useMemo, useState } from 'react';
 import { RunnerAttemptTimeline } from './attempt-timeline';
 import { ErrorCards } from './error-card';
 import {
   type RunnerCaseView,
   type RunnerVisualIndex,
+  caseRecoveredAfterFailure,
   getAllAttemptVisualFrames,
   getCaseFailure,
   getCaseSearchMatch,
@@ -18,19 +20,35 @@ import {
   type ProjectBreakdown,
   fileAttention,
   fileDisplayName,
-  fileRecoveredAfterFailure,
   getOverviewCaseSummary,
   getOverviewProjectSort,
   getOverviewProjectStatus,
   projectDisplayName,
-  projectRecoveredAfterFailure,
 } from './overview-model';
+import { RecoveryWarning } from './status-badge';
 import {
   CaseStatus,
   type RunnerCaseDisplayMode,
   caseStatusLabel,
   formatDuration,
 } from './view-primitives';
+
+function AttentionText({ label, details }: { label: string; details: string }) {
+  return (
+    <Tooltip
+      title={details === '-' ? undefined : details}
+      trigger={['hover', 'focus']}
+    >
+      <span
+        className="runner-file-attention"
+        aria-label={details}
+        tabIndex={label !== details ? 0 : undefined}
+      >
+        {label}
+      </span>
+    </Tooltip>
+  );
+}
 
 function SortHeading({
   label,
@@ -118,6 +136,12 @@ function CaseRows({
       : item.status === 'passed' && !item.firstPass
         ? `${failedAttemptCount} earlier failed ${failedAttemptCount === 1 ? 'attempt' : 'attempts'}`
         : '-';
+  const attentionLabel =
+    item.status === 'not-run'
+      ? 'Not run'
+      : caseRecoveredAfterFailure(item)
+        ? `${failedAttemptCount} ${failedAttemptCount === 1 ? 'retry' : 'retries'}`
+        : '-';
   return (
     <>
       <tr
@@ -131,14 +155,11 @@ function CaseRows({
             onClick={() => onOpen(item, failure?.id)}
             aria-label={`Open ${item.testCase.name} in project ${item.project.name}${failure ? ' at the failed Step' : ''} · ${caseStatusLabel(item.status, !item.firstPass)}`}
           >
-            <CaseStatus
-              status={item.status}
-              recovered={!item.firstPass}
-              quiet
-            />
+            <CaseStatus status={item.status} quiet />
             <span className="runner-case-name" title={item.testCase.name}>
               {item.testCase.name}
             </span>
+            {caseRecoveredAfterFailure(item) ? <RecoveryWarning /> : null}
             {item.testCase.attempts.length > 1 ? (
               <small>{item.testCase.attempts.length} attempts</small>
             ) : null}
@@ -155,9 +176,7 @@ function CaseRows({
           ) : null}
         </th>
         <td>
-          <span className="runner-file-attention" title={attention}>
-            {attention}
-          </span>
+          <AttentionText label={attentionLabel} details={attention} />
         </td>
         <td className="runner-file-duration">
           <time>
@@ -222,6 +241,7 @@ function FileRows({
   const id = useId();
   const name = fileDisplayName(item);
   const attention = fileAttention(item);
+  const attentionLabel = fileAttention(item, true);
   return (
     <tbody
       className={`runner-file-group${expanded ? ' is-expanded' : ''}`}
@@ -241,11 +261,7 @@ function FileRows({
               className={`runner-file-chevron${expanded ? ' is-expanded' : ''}`}
               aria-hidden="true"
             />
-            <CaseStatus
-              status={item.status}
-              recovered={fileRecoveredAfterFailure(item)}
-              quiet
-            />
+            <CaseStatus status={item.status} quiet />
             <span className="runner-file-identity">
               <span className="runner-file-path" title={item.sourcePath}>
                 {name}
@@ -275,20 +291,19 @@ function FileRows({
         </td>
         <td>
           {item.hasScopeError ? (
-            <button
-              type="button"
-              className="runner-file-error-toggle"
-              onClick={onToggle}
-              title={attention}
-              aria-label={`${expanded ? 'Hide' : 'Show'} file errors for ${name}`}
-              aria-expanded={expanded}
-            >
-              {attention}
-            </button>
+            <Tooltip title={attention} trigger={['hover', 'focus']}>
+              <button
+                type="button"
+                className="runner-file-error-toggle"
+                onClick={onToggle}
+                aria-label={`${expanded ? 'Hide' : 'Show'} file errors for ${name}`}
+                aria-expanded={expanded}
+              >
+                {attentionLabel}
+              </button>
+            </Tooltip>
           ) : (
-            <span className="runner-file-attention" title={attention}>
-              {attention}
-            </span>
+            <AttentionText label={attentionLabel} details={attention} />
           )}
         </td>
         <td className="runner-file-duration">
@@ -392,11 +407,7 @@ export function ProjectBreakdownTree({
             <header className="runner-project-heading">
               <div className="runner-project-title">
                 <h2 title={name}>{name}</h2>
-                <CaseStatus
-                  status={status}
-                  recovered={projectRecoveredAfterFailure(item)}
-                  quiet
-                />
+                <CaseStatus status={status} quiet />
                 {item.project.projectId.endsWith('legacy-yaml') ? (
                   <small>
                     Legacy YAML

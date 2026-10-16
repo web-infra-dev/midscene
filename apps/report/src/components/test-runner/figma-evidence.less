@@ -269,6 +269,12 @@
       vertical-align: top;
     }
 
+    th:first-child,
+    td:first-child {
+      // Match the heading inset, accounting for the card's 1px border.
+      padding-inline-start: calc(12px - 1px);
+    }
+
     th {
       color: var(--runner-muted);
       border-bottom: 1px solid var(--runner-border);

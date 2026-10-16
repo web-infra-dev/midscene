@@ -579,7 +579,9 @@ describe('Midscene Test hybrid report model', () => {
     expect(markup).toContain(
       '1 of 2 passed Cases had earlier failed attempts.',
     );
-    expect(markup).not.toContain('Passed after retry');
+    expect(markup).toContain(
+      '<span>Passed after retry</span><strong>1</strong>',
+    );
     expect(markup).toContain('<span>Not run</span><strong>1</strong>');
     for (const outcome of ['Failed', 'Not run'])
       expect(markup).toContain(`1 ${outcome}`);
@@ -643,7 +645,9 @@ describe('Midscene Test hybrid report model', () => {
     expect(markup).toContain(
       '2 of 2 passed Cases had earlier failed attempts.',
     );
-    expect(markup).not.toContain('Passed after retry');
+    expect(markup).toContain(
+      '<span>Passed after retry</span><strong>2</strong>',
+    );
   });
 
   it('marks partial token totals and distinguishes a measured zero from unknown usage', () => {

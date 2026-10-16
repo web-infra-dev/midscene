@@ -3,6 +3,12 @@
     flex: none;
     color: var(--runner-warning);
     font-size: 14px;
+
+    &:focus-visible {
+      border-radius: 50%;
+      outline: 2px solid var(--runner-warning);
+      outline-offset: 3px;
+    }
   }
 
   .runner-status-badge.runner-status-pill {

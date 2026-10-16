@@ -1,7 +1,7 @@
 import type { TestRunReportDump } from '@midscene/core';
 import type { PlaywrightTasks } from '../../types';
 import type { RunnerHealthStats } from './model';
-import { RecoveryWarning, StatusBadge } from './status-badge';
+import { StatusBadge } from './status-badge';
 import { TokenUsageTooltip } from './token-usage';
 import { getRunTokenUsage } from './token-usage-model';
 import { formatDuration, formatTimestamp } from './view-primitives';
@@ -46,11 +46,7 @@ export function RunSummary({
       <div className="runner-outcome">
         <div className="runner-overview-title-row">
           <span>Case passed</span>
-          <StatusBadge
-            label={healthLabel}
-            tone={status}
-            warning={status === 'success' ? warning : undefined}
-          />
+          <StatusBadge label={healthLabel} tone={status} />
         </div>
         <div className="runner-result-row">
           <button
@@ -92,13 +88,22 @@ export function RunSummary({
               )}
             </div>
             <div className="runner-counts" aria-label="Run health metrics">
-              {counts.map(({ label, value, tone }) => (
-                <div key={label} className={`is-${tone}`}>
+              {[
+                counts[0],
+                {
+                  label: 'Passed after retry',
+                  value: recoveredCount,
+                  tone: 'recovered',
+                },
+                ...counts.slice(1),
+              ].map(({ label, value, tone }) => (
+                <div
+                  key={label}
+                  className={`is-${tone}`}
+                  title={tone === 'recovered' ? warning : undefined}
+                >
                   <span>{label}</span>
                   <strong>{value}</strong>
-                  {tone === 'success' && warning ? (
-                    <RecoveryWarning message={warning} />
-                  ) : null}
                 </div>
               ))}
             </div>

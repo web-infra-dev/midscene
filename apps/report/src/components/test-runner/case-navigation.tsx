@@ -2,12 +2,17 @@ import { Drawer } from 'antd';
 import { type Ref, useRef, useState } from 'react';
 import closeIcon from './assets/case-navigation-close.svg';
 import menuIcon from './assets/case-navigation-menu.svg';
-import { type RunnerCaseView, getCaseFailure } from './model';
+import {
+  type RunnerCaseView,
+  caseRecoveredAfterFailure,
+  getCaseFailure,
+} from './model';
 import {
   type OverviewProject,
   fileDisplayName,
   projectDisplayName,
 } from './overview-model';
+import { RecoveryWarning } from './status-badge';
 import { CaseStatus, caseStatusLabel } from './view-primitives';
 
 interface CaseNavigationProps {
@@ -50,11 +55,10 @@ export function CaseNavigationList({
                       <strong title={item.testCase.name}>
                         {item.testCase.name}
                       </strong>
-                      <CaseStatus
-                        status={item.status}
-                        recovered={!item.firstPass}
-                        quiet
-                      />
+                      {caseRecoveredAfterFailure(item) ? (
+                        <RecoveryWarning />
+                      ) : null}
+                      <CaseStatus status={item.status} quiet />
                     </span>
                     <small title={fileDisplayName(file)}>
                       {fileDisplayName(file)}

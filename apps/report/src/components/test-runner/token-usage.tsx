@@ -21,11 +21,9 @@ function formatUsage(
 export function TokenUsageDetails({
   usage,
   models,
-  scope,
 }: {
   usage: TokenUsageSummary;
   models: ReportModelUsageSummary[];
-  scope: 'case' | 'run';
 }): JSX.Element {
   const rows: [string, number, TokenUsageSummary['status']][] = [
     ['Model calls', usage.modelCallCount, usage.callStatus],
@@ -55,18 +53,17 @@ export function TokenUsageDetails({
       <dl>
         {rows.map(([label, value, status]) => (
           <div key={label}>
-            <dt>{label}</dt>
+            <dt
+              className={
+                label === 'Cached input tokens' ? 'is-subset' : undefined
+              }
+            >
+              {label}
+            </dt>
             <dd>{formatUsage(value, status)}</dd>
           </div>
         ))}
       </dl>
-      <p>
-        {scope === 'case'
-          ? 'All attempts and per-case hooks; shared hooks excluded.'
-          : 'Includes retries and lifecycle hooks.'}{' '}
-        Cached input is part of input tokens. Partial values show recorded
-        usage; — means unavailable.
-      </p>
     </div>
   );
 }
@@ -92,9 +89,7 @@ export function TokenUsageTooltip({
   return (
     <span>
       <Tooltip
-        title={
-          <TokenUsageDetails usage={usage} models={models} scope={scope} />
-        }
+        title={<TokenUsageDetails usage={usage} models={models} />}
         trigger={['hover', 'focus', 'click']}
         open={open}
         onOpenChange={setOpen}

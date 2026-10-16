@@ -468,9 +468,9 @@ pnpm exec midscene-test --result-dir ./test-results
 
 每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
 
-顶部摘要、进度条和图例按最终结果展示 **Passed**、**Failed** 和 **Not run**。Passed 包含此前失败、后来通过的 Case。绿色通过区段内部的橙色部分表示这些恢复通过的 Case，它是 Passed 的子集，不会作为独立结果重复计数。警告图标提示此前的失败，运行信息、Project 数和 File 数仍展示在摘要旁。
+顶部摘要和进度条按最终结果展示 **Passed**、**Failed** 和 **Not run**。Passed 包含此前失败、后来通过的 Case。绿色通过区段内部的描边留白部分表示这些恢复通过的 Case，图例通过 **passed after retry** 展示其数量。它是 Passed 的子集，不会作为独立结果重复计数。运行信息、Project 数和 File 数仍展示在摘要旁。
 
-**Test Report** 总览展示 **Project → File → Case** 三层结构。左侧导航按 Failed、Passed、Not run 分组，每组名称后显示项目数，Projects 标题不重复显示数量。每个 Project 展示 Case 总数及非零的最终结果数。名称和摘要过长时显示省略号，悬浮可查看完整内容。恢复通过的 Project、File、Case 均使用绿色 Passed 标记，并附带橙色警告图标。文件整体重试的警告归属 File 和 Project，不会让其中一直通过的 Case 都被标记为恢复通过。
+**Test Report** 总览展示 **Project → File → Case** 三层结构。左侧导航按 Failed、Passed、Not run 分组，每组名称后显示项目数，Projects 标题不重复显示数量。每个 Project 展示 Case 总数及非零的最终结果数。名称和摘要过长时显示省略号，悬浮可查看完整内容。恢复通过的 Project、File、Case 均使用绿色 Passed 标记。受影响的 Project、Case 名称后显示橙色圆形警告图标，悬浮或键盘聚焦可查看 **passed after retry** 提示。文件整体重试的历史保留在 File 的 Attention 和 Project 提示中，不会让其中一直通过的 Case 都被标记为恢复通过。
 
 状态筛选旁的按钮可以统一展开或收起当前 Project 中可见的 File，保留被筛选隐藏的 File 和其他 Project 的展开状态。有失败、文件级错误或恢复通过尝试的 File 默认展开。空文件和收集失败的文件仍然可见。File 错误显示在所属 File 下，Project 初始化、清理错误显示在项目标题下。Case 通过不会覆盖 File 或 Project 自身的错误。
 

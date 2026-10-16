@@ -86,7 +86,12 @@ export function ProjectNavigation({
                       onClick={() => onSelect(item.key)}
                     >
                       <span className="runner-project-nav-copy">
-                        <strong title={name}>{name}</strong>
+                        <span className="runner-project-nav-name">
+                          <strong title={name}>{name}</strong>
+                          {projectRecoveredAfterFailure(item) ? (
+                            <RecoveryWarning />
+                          ) : null}
+                        </span>
                         <small
                           id={`project-summary-${item.key}`}
                           title={summary}
@@ -104,9 +109,6 @@ export function ProjectNavigation({
                       ) : (
                         <StepStatus status="not-run" />
                       )}
-                      {projectRecoveredAfterFailure(item) ? (
-                        <RecoveryWarning />
-                      ) : null}
                     </button>
                   );
                 })}

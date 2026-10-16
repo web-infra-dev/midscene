@@ -140,7 +140,7 @@ describe('model token usage details', () => {
       callStatus: 'unknown',
     });
     const markup = renderToStaticMarkup(
-      <TokenUsageDetails usage={usage} models={[]} scope="case" />,
+      <TokenUsageDetails usage={usage} models={[]} />,
     );
     expect(markup).toContain('<dt>Model calls</dt><dd>—</dd>');
     expect(markup).toContain('<dt>Total tokens</dt><dd>1,100</dd>');
@@ -150,7 +150,7 @@ describe('model token usage details', () => {
     const unknown = getRunTokenUsage({ ...metrics, collection: undefined });
     expect(unknown).toMatchObject({ status: 'unknown', callStatus: 'unknown' });
     const markup = renderToStaticMarkup(
-      <TokenUsageDetails usage={unknown} models={[]} scope="run" />,
+      <TokenUsageDetails usage={unknown} models={[]} />,
     );
     expect(markup).toContain('Model details not recorded.');
     expect(markup).toContain('<dt>Input tokens</dt><dd>—</dd>');
@@ -179,13 +179,12 @@ describe('model token usage details', () => {
       collection: { ...metrics.collection!, status: 'partial' },
     });
     const markup = renderToStaticMarkup(
-      <TokenUsageDetails usage={usage} models={[]} scope="run" />,
+      <TokenUsageDetails usage={usage} models={[]} />,
     );
-    expect(markup).toContain('<dt>Input tokens</dt><dd>1,000 (partial)</dd>');
-    expect(markup).toContain(
-      '<dt>Cached input tokens</dt><dd>400 (partial)</dd>',
-    );
-    expect(markup).toContain('<dt>Output tokens</dt><dd>100 (partial)</dd>');
-    expect(markup).toContain('<dt>Total tokens</dt><dd>1,100 (partial)</dd>');
+    const text = markup.replace(/<[^>]*>/g, '');
+    expect(text).toContain('Input tokens1,000 (partial)');
+    expect(text).toContain('Cached input tokens400 (partial)');
+    expect(text).toContain('Output tokens100 (partial)');
+    expect(text).toContain('Total tokens1,100 (partial)');
   });
 });

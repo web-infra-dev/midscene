@@ -6,7 +6,7 @@ import {
 import type { TestRunReportStep, TestRunReportValue } from '@midscene/core';
 import type { ReactNode } from 'react';
 import type { RunnerCaseStatus } from './model';
-import { StatusBadge, recoveryWarning } from './status-badge';
+import { StatusBadge } from './status-badge';
 
 export type RunnerCaseDisplayMode = 'compact' | 'detailed';
 
@@ -72,11 +72,9 @@ export function caseStatusLabel(
 export function CaseStatus({
   status,
   quiet = false,
-  recovered = false,
 }: {
   status: RunnerCaseStatus;
   quiet?: boolean;
-  recovered?: boolean;
 }): JSX.Element {
   const meta = statusMeta[status];
   return (
@@ -85,7 +83,6 @@ export function CaseStatus({
       tone={meta.tone}
       icon={meta.icon}
       quiet={quiet}
-      warning={status === 'passed' && recovered ? recoveryWarning : undefined}
     />
   );
 }

@@ -12,6 +12,7 @@ import {
   buildOverviewProjects,
   changeOverviewSort,
   createOverviewState,
+  fileAttention,
   fileDisplayName,
   fileRecoveredAfterFailure,
   filterOverviewProjects,
@@ -231,6 +232,8 @@ describe('Project → File → Case overview', () => {
     ).toBe(true);
     expect(fileRecoveredAfterFailure(projects[0].files[0])).toBe(true);
     expect(projectRecoveredAfterFailure(projects[0])).toBe(true);
+    expect(fileAttention(projects[0].files[0], true)).toBe('1 retry');
+    expect(fileAttention(projects[0].files[0])).toContain('2 file attempts');
     expect(projects[0].cases[0].firstPass).toBe(true);
     expect(
       filterOverviewProjects(projects, { ...options, statuses: ['passed'] })[0]

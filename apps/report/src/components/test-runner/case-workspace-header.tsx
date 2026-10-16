@@ -5,11 +5,12 @@ import type { PlaywrightTasks } from '../../types';
 import { AttemptSelect } from './attempt-select';
 import {
   type RunnerCaseView,
+  caseRecoveredAfterFailure,
   flattenAttemptSteps,
   getCaseTokenSummary,
 } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
-import { StatusBadge } from './status-badge';
+import { RecoveryWarning, StatusBadge } from './status-badge';
 import { TokenUsageTooltip } from './token-usage';
 import { CaseStatus, formatDuration } from './view-primitives';
 
@@ -52,11 +53,8 @@ export function CaseWorkspaceHeader({
         <div>
           <div className="runner-detail-title-line">
             <h1>{item.testCase.name}</h1>
-            <CaseStatus
-              status={item.status}
-              recovered={!item.firstPass}
-              quiet
-            />
+            {caseRecoveredAfterFailure(item) ? <RecoveryWarning /> : null}
+            <CaseStatus status={item.status} quiet />
             {standaloneRun?.status === 'failed' && item.status !== 'failed' ? (
               <StatusBadge label="Run failed" tone="failed" />
             ) : null}

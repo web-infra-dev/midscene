@@ -569,7 +569,7 @@ export const projectDisplayName = (item: OverviewProject) =>
   item.project.name && item.project.name !== 'legacy-yaml'
     ? item.project.name
     : 'YAML execution';
-export function fileAttention(file: RunnerFileView): string {
+export function fileAttention(file: RunnerFileView, compact = false): string {
   const document = file.document?.attempts?.at(-1) ?? file.document;
   const scopeFailure = !file.hasScopeError
     ? ''
@@ -583,15 +583,18 @@ export function fileAttention(file: RunnerFileView): string {
             document?.cleanup?.status === 'failed'
           ? 'Teardown failed'
           : `${file.issues.filter((issue) => issue.severity === 'error').length} file error${file.issues.filter((issue) => issue.severity === 'error').length === 1 ? '' : 's'}`;
-  return (
-    [
-      file.failedCount && `${file.failedCount} failed`,
-      scopeFailure,
-      file.notRunCount && `${file.notRunCount} not run`,
-      file.retryPassedCount && 'Earlier failed attempts',
-      file.retryCount && `${file.retryCount + 1} file attempts`,
-    ]
-      .filter(Boolean)
-      .join(' · ') || '-'
+  const hints = [
+    file.failedCount && `${file.failedCount} failed`,
+    scopeFailure,
+    file.notRunCount && `${file.notRunCount} not run`,
+    file.retryPassedCount &&
+      (compact ? 'Retry history' : 'Earlier failed attempts'),
+    file.retryCount &&
+      (compact
+        ? `${file.retryCount} ${file.retryCount === 1 ? 'retry' : 'retries'}`
+        : `${file.retryCount + 1} file attempts`),
+  ].filter(
+    (hint): hint is string => typeof hint === 'string' && hint.length > 0,
   );
+  return (compact ? hints[0] : hints.join(' · ')) || '-';
 }

@@ -1,18 +1,30 @@
-import { WarningFilled } from '@ant-design/icons';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
 import { type ReactNode, createElement } from 'react';
 
-export const recoveryWarning =
-  'An earlier attempt failed. Inspect attempts for details.';
+export const recoveryWarning = 'passed after retry';
 
 export function RecoveryWarning({
   message = recoveryWarning,
 }: { message?: string }) {
   return (
-    <WarningFilled
-      className="runner-recovery-warning"
-      aria-label={message}
+    <Tooltip
       title={message}
-    />
+      placement="bottom"
+      arrow={false}
+      trigger={['hover', 'focus']}
+      color="var(--runner-surface)"
+      overlayInnerStyle={{ color: 'var(--runner-text)' }}
+      getPopupContainer={(trigger) =>
+        trigger.closest<HTMLElement>('.test-runner-report') ?? document.body
+      }
+    >
+      <ExclamationCircleOutlined
+        className="runner-recovery-warning"
+        aria-label={message}
+        tabIndex={0}
+      />
+    </Tooltip>
   );
 }
 
@@ -22,14 +34,12 @@ export function StatusBadge({
   icon,
   quiet = false,
   className,
-  warning,
 }: {
   label: string;
   tone: 'success' | 'warning' | 'failed' | 'neutral';
   icon?: ReactNode;
   quiet?: boolean;
   className?: string;
-  warning?: string;
 }): JSX.Element {
   return createElement(
     'span',
@@ -38,6 +48,5 @@ export function StatusBadge({
     },
     quiet ? null : icon,
     createElement('span', null, label.toLowerCase()),
-    warning ? createElement(RecoveryWarning, { message: warning }) : null,
   );
 }

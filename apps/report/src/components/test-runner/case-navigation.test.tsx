@@ -44,7 +44,7 @@ describe('case navigation', () => {
     expect(html).toContain('title="smoke/checkout.yaml"');
     expect(html).toContain('title="blocked.yaml"');
     expect(html).toContain('passed (earlier attempt failed)');
-    expect(html).not.toContain('passed after retry');
+    expect(html).toContain('aria-label="passed after retry"');
     expect(html).toContain('not run');
     expect(html.indexOf('Web regression')).toBeLessThan(
       html.indexOf('Mobile regression'),
