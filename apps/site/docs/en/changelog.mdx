@@ -2,6 +2,22 @@
 
 {/* release-notes:start */}
 
+## v1.16.0
+
+### Highlights
+
+#### Jev 1.4 support: faster, lower-cost visual E2E testing
+
+Midscene now supports Jev 1.4, continuing our focus on visual understanding to drive UI automation. With this integration, developers can experience faster, lower-cost E2E testing. See the [Jev configuration guide](https://midscenejs.com/model-common-config#jev) for setup instructions and the current experimental limitations.
+
+In the tile-matching game test shown in the demo below, 28 model calls were made, with model inference averaging **393.57 ms (approximately 0.39 seconds) per call**. Each call averaged **5,025 input tokens** and **67 output tokens**, at a model cost of approximately **$0.000211 per call**. This is calculated at $0.042 per million input tokens, with output tokens free of charge.
+
+&lt;video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/tile-matching-jev.mp4" controls&gt;&lt;/video&gt;
+
+### Changes
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.15.6...v1.16.0
+
 ## v1.15.6
 
 ### Changes
