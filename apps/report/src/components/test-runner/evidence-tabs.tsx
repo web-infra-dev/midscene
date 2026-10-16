@@ -1,19 +1,73 @@
+import { ClockCircleOutlined } from '@ant-design/icons';
 import type {
+  TestRunReportOperationEvent,
   TestRunReportPlannedStep,
   TestRunReportStep,
 } from '@midscene/core';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
+import { CaptureTime } from './capture-time';
 import { IssueInformation } from './issue-information';
 import type { ReportIssue } from './issues';
 import { getStepDisplayName } from './model';
-import {
-  ReportValue,
-  formatDuration,
-  formatTimestamp,
-} from './view-primitives';
+import { StatusBadge } from './status-badge';
+import { ReportValue, formatDuration } from './view-primitives';
 
 export type RunnerInspectorTab = 'record' | 'io' | 'logs';
+
+const operationCopy: Record<
+  TestRunReportOperationEvent['operationKind'],
+  { label: string; description: string }
+> = {
+  node: {
+    label: 'Run step',
+    description: 'Runs the entire step, including any Agent operations.',
+  },
+  acquisition: {
+    label: 'Get Agent',
+    description:
+      'Gets the Agent used by this step. An existing Agent may be reused.',
+  },
+  resource: {
+    label: 'Run Agent operation',
+    description:
+      'Runs an operation through the Agent, such as clicking, checking a condition, or recording a screenshot.',
+  },
+  readiness: {
+    label: 'Wait for app readiness',
+    description: 'Waits for the configured readiness callback after an action.',
+  },
+  cleanup: {
+    label: 'Clean up resources',
+    description: 'Runs cleanup for resources used during execution.',
+  },
+};
+
+const eventCopy: Record<
+  TestRunReportOperationEvent['kind'],
+  { label: string; description: string }
+> = {
+  started: { label: 'Started', description: 'The operation has started.' },
+  settled: {
+    label: 'Finished',
+    description: 'The operation has ended. See Status for its outcome.',
+  },
+  'runner-returned': {
+    label: 'Result returned',
+    description:
+      'The Runner has returned the step result. The underlying operation may still be running.',
+  },
+  'cancel-requested': {
+    label: 'Cancellation requested',
+    description:
+      'Cancellation was requested. The operation may still be running.',
+  },
+  'cleanup-deferred': {
+    label: 'Cleanup postponed',
+    description:
+      'Cleanup was postponed while unfinished operations still use the resources.',
+  },
+};
 
 function StepInformation({
   step,
@@ -38,7 +92,7 @@ function StepInformation({
       {plannedStep ? (
         <section>
           <h4>Configuration</h4>
-          <dl>
+          <dl className="runner-step-configuration">
             <div>
               <dt>Phase</dt>
               <dd>{step.phase}</dd>
@@ -71,7 +125,9 @@ function StepInformation({
       JSON.stringify(plannedStep.input) !== JSON.stringify(step.input) ? (
         <section>
           <h4>Planned input</h4>
-          <ReportValue value={plannedStep.input} />
+          <div className="runner-detail-io-body">
+            <ReportValue value={plannedStep.input} />
+          </div>
         </section>
       ) : null}
       <section>
@@ -89,17 +145,18 @@ function StepInformation({
       </section>
       {step.operations ? (
         <section>
-          <h4>Capture boundary</h4>
-          <p>
-            {step.operations.capturedAt}. Late outcomes are recorded in the
-            operation event log; this snapshot does not update.
+          <h4>Information captured at</h4>
+          <p className="runner-capture-boundary">
+            <CaptureTime value={step.operations.capturedAt} />
           </p>
         </section>
       ) : null}
       {context ? (
         <section>
           <h4>Stable IDs</h4>
-          <ReportValue value={{ value: context }} />
+          <div className="runner-detail-io-body">
+            <ReportValue value={{ value: context }} />
+          </div>
         </section>
       ) : null}
     </div>
@@ -107,37 +164,100 @@ function StepInformation({
 }
 
 function RuntimeEvents({ step }: { step: TestRunReportStep }): JSX.Element {
-  if (step.status === 'not-run')
-    return <p>No operation events were recorded.</p>;
+  const events: TestRunReportOperationEvent[] =
+    step.status === 'not-run'
+      ? []
+      : (step.operations?.events ?? [
+          {
+            operationId: step.id,
+            operationKind: 'node',
+            kind: 'started',
+            at: step.startedAt,
+          },
+          {
+            operationId: step.id,
+            operationKind: 'node',
+            kind: 'settled',
+            at: step.endedAt,
+            status: step.status,
+          },
+        ]);
+  if (!events.length)
+    return (
+      <div className="runner-events-empty">
+        <ClockCircleOutlined aria-hidden />
+        <p>No operation events were recorded.</p>
+      </div>
+    );
   return (
-    <div className="runner-detail-log-view">
-      {step.operations ? (
-        <ul>
-          {step.operations.events.map((event, index) => (
-            <li key={`${event.operationId}:${index}`}>
-              {event.at}: {event.operationKind} — {event.kind}
-              {event.status ? ` (${event.status})` : ''}
-              {event.pending ? '; still running when Runner returned' : ''}
-            </li>
+    <div className="runner-runtime-events">
+      <table aria-label="Operation events">
+        <thead>
+          <tr>
+            <th scope="col">Time</th>
+            <th scope="col">Operation</th>
+            <th scope="col">Event</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((event, index) => (
+            <tr key={`${event.operationId}:${index}`}>
+              <td>
+                <time dateTime={event.at} title={event.at}>
+                  {event.at}
+                </time>
+              </td>
+              <td>
+                <span
+                  title={`${event.operationKind}: ${operationCopy[event.operationKind].description}\nOperation ID: ${event.operationId}`}
+                >
+                  {operationCopy[event.operationKind].label}
+                </span>
+              </td>
+              <td>
+                <span
+                  className="runner-runtime-event-kind"
+                  title={`${event.kind}: ${eventCopy[event.kind].description}`}
+                >
+                  {eventCopy[event.kind].label}
+                </span>
+                {event.pending ? <small>Execution still running</small> : null}
+                {!step.operations ? (
+                  <small>
+                    {event.kind === 'started'
+                      ? `Step started: ${step.node}`
+                      : `Step ended in ${formatDuration(step.status === 'not-run' ? undefined : step.durationMs)}`}
+                  </small>
+                ) : null}
+              </td>
+              <td>
+                <div className="runner-runtime-event-status">
+                  {event.status ? (
+                    <StatusBadge
+                      label={event.status}
+                      tone={
+                        event.status === 'success'
+                          ? 'success'
+                          : event.status === 'failed'
+                            ? 'failed'
+                            : 'neutral'
+                      }
+                      quiet
+                    />
+                  ) : null}
+                  {event.pending ? (
+                    <StatusBadge label="Pending" tone="warning" quiet />
+                  ) : null}
+                  {!event.status && !event.pending ? (
+                    <span className="runner-muted">-</span>
+                  ) : null}
+                </div>
+              </td>
+            </tr>
           ))}
-        </ul>
-      ) : (
-        <>
-          <p>
-            <time>{formatTimestamp(step.startedAt)}</time>
-            <b>START</b>
-            <span>Step started: {step.node}</span>
-          </p>
-          <p>
-            <time>{formatTimestamp(step.endedAt)}</time>
-            <b>END</b>
-            <span>
-              Step ended with status {step.status} in{' '}
-              {formatDuration(step.durationMs)}
-            </span>
-          </p>
-        </>
-      )}
+        </tbody>
+      </table>
     </div>
   );
 }

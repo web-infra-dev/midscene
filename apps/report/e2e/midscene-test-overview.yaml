@@ -1,0 +1,73 @@
+target:
+  serve: ./dist
+  url: demo-midscene-test-overview.html
+  viewportWidth: 1440
+  viewportHeight: 1600
+  deviceScaleFactor: 1
+tasks:
+  - name: overview distinguishes Case outcomes and File errors
+    flow:
+      - aiAssert: The summary shows 4 of 5 Cases passed and 1 not run. Passed includes the recovered Checkout with retry Case. There are 2 Projects and 6 Files. Web regression is selected. blocked.yaml reports a setup failure and broken.yaml reports a collection failure with an unknown Case count.
+      - aiTap: the Failed status checkbox beside Web regression
+      - aiAssert: blocked.yaml and broken.yaml remain visible because they have File errors. Blocked by document setup is not run, and the run totals have not changed.
+      - aiTap: the All status checkbox beside Web regression
+      - aiTap: the Not run status checkbox beside Web regression
+      - aiAssert: Only Blocked by document setup remains as a Case, still Not run under its failed File. The run totals have not changed.
+      - aiTap: the All status checkbox beside Web regression
+
+  - name: expand and collapse all Files
+    flow:
+      - aiTap: Expand all files beside the status filters
+      - aiAssert: Checkout with retry and Smoke checkout are visible. empty.yaml reports that no Cases were collected.
+      - aiTap: Collapse all files beside the status filters
+      - aiAssert: File rows remain visible and their child Case rows are hidden.
+
+  - name: Project sorting is independent and survives switching
+    flow:
+      - aiTap: the Duration column heading
+      - aiAssert: checkout.yaml is listed before empty.yaml, and broken.yaml with an unknown duration is last.
+      - aiTap: the Files column heading
+      - aiTap: the Files column heading
+      - aiAssert: Web regression lists Files in reverse report order, from top to bottom broken.yaml, empty.yaml, blocked.yaml, smoke/checkout.yaml, checkout.yaml.
+      - aiTap: Select project Mobile regression in the project navigation
+      - aiAssert: Mobile regression is selected and its own File table is displayed.
+      - aiTap: Select project Web regression in the project navigation
+      - aiAssert: Web regression keeps the same File order, starting with broken.yaml and ending with checkout.yaml.
+
+  - name: Case navigation preserves overview filters and File expansion
+    flow:
+      - aiTap: the Passed status checkbox
+      - aiInput: checkout
+        locate: the report search input
+      - aiTap: Expand file smoke/checkout.yaml
+      - aiTap: the Smoke checkout Case
+      - aiAssert: Smoke checkout is open with cart.verify selected and its information visible.
+      - aiTap: View all cases, the floating menu button on the left edge
+      - aiAssert: The All cases directory includes both Projects and their Cases, including Checkout with retry and Blocked by document setup. Smoke checkout is the current Case.
+      # Focus and routing are browser integration contracts, not visual styling.
+      - javascript: |
+          (() => {
+            if (document.activeElement?.getAttribute('aria-current') !== 'page') {
+              throw new Error('Opening the Case directory must focus the current Case');
+            }
+          })();
+        name: currentCaseReceivesFocus
+      - aiKeyboardPress: Tab
+      - aiKeyboardPress: Escape
+      - aiAssert: The All cases drawer is closed and Smoke checkout remains open.
+      - aiTap: View all cases, the floating menu button
+      - aiTap: Mobile checkout in the Mobile regression section
+      - aiAssert: Mobile checkout is open in Mobile regression and the All cases drawer is closed.
+      - aiTap: View all cases, the floating menu button
+      - aiTap: Checkout with retry in the Web regression section
+      - aiAssert: Checkout with retry opens as Passed with a warning. Its successful Attempt 2 is selected and recorded evidence is available.
+      - aiTap: the Overview back link
+      - aiAssert: Web regression is selected. Passed is checked and the search still contains checkout. smoke/checkout.yaml remains expanded with Smoke checkout visible. checkout.yaml remains collapsed and retains its aggregate 2 of 2 passed result.
+
+  - name: clear an empty search
+    flow:
+      - aiInput: no-report-content-matches-this-query
+        locate: the report search input
+      - aiAssert: No matching projects is displayed with a Clear filters action.
+      - aiTap: Clear filters in the main empty state
+      - aiAssert: The search is empty, All is selected, and Web regression and its File table are visible again.

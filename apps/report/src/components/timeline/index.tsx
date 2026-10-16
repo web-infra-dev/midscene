@@ -91,8 +91,6 @@ const TimelineWidget = (props: {
   const sizeRatio = 2;
   const BASE_HEIGHT = 110;
 
-  const titleBg = isDarkMode ? 0x1f1f1f : 0xffffff;
-  const sideBg = isDarkMode ? 0x1f1f1f : 0xffffff;
   const gridTextColor = isDarkMode ? 0xd9d9d9 : 0x000000;
   const shotBorderColor = isDarkMode ? 0x595959 : 0x777777;
   const gridLineColor = isDarkMode ? 0x3d3d3d : 0xe5e5e5;
@@ -138,6 +136,9 @@ const TimelineWidget = (props: {
   useEffect(() => {
     if (!domRef.current) return;
 
+    const surfaceBg = getComputedStyle(domRef.current)
+      .getPropertyValue('--report-surface')
+      .trim();
     const { clientWidth } = domRef.current;
     const canvasWidth = clientWidth * sizeRatio;
     const canvasHeight = BASE_HEIGHT * sizeRatio;
@@ -200,12 +201,8 @@ const TimelineWidget = (props: {
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
       // Background
-      ctx.fillStyle = hexToCSS(sideBg);
+      ctx.fillStyle = surfaceBg;
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-      // Title bar background
-      ctx.fillStyle = hexToCSS(titleBg);
-      ctx.fillRect(0, 0, canvasWidth, timeTitleBottom);
 
       // Title bottom border
       ctx.fillStyle = hexToCSS(gridLineColor);
@@ -241,7 +238,7 @@ const TimelineWidget = (props: {
             screenshotMaxHeight,
           );
         } else if (failedImages.has(shot.img)) {
-          ctx.fillStyle = hexToCSS(sideBg);
+          ctx.fillStyle = surfaceBg;
           ctx.fillRect(shot.x, screenshotTop, shot.width, screenshotMaxHeight);
           ctx.fillStyle = hexToCSS(gridTextColor);
           ctx.fillText('Unavailable', shot.x + 4, screenshotTop + 24);
@@ -318,7 +315,7 @@ const TimelineWidget = (props: {
         // Time label at cursor
         const label = formatTimelineTime(timeOffsetForLeft(hoverX));
         const tw = ctx.measureText(label).width;
-        ctx.fillStyle = hexToCSS(titleBg);
+        ctx.fillStyle = surfaceBg;
         ctx.fillRect(hoverX + 5, timeTextTop, tw + 10, timeContentFontSize + 4);
         ctx.fillStyle = hexToCSS(gridTextColor);
         ctx.fillText(label, hoverX + 5, timeTextTop + timeContentFontSize);
@@ -396,8 +393,6 @@ const TimelineWidget = (props: {
     };
   }, [
     isDarkMode,
-    titleBg,
-    sideBg,
     gridTextColor,
     shotBorderColor,
     gridLineColor,

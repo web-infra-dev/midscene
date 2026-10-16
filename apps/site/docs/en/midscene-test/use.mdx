@@ -120,7 +120,7 @@ Midscene Test calls each capability you can invoke from YAML a **Node**.
 
 Nodes can be called from case `steps` or from [lifecycle hooks](#define-the-execution-lifecycle) such as `beforeEach` and `afterEach`, using the same syntax.
 
-All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, and `wait` pauses for a specified duration.
+All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, `aiWaitFor` waits for an observable condition, and `wait` pauses for a specified duration.
 
 Alongside these shared capabilities, Midscene provides platform-specific operations. For example:
 
@@ -467,6 +467,58 @@ The CLI exits with code `1` when a test case fails, a document cannot be parsed,
 ## View test results
 
 After each run, the CLI prints the results and a `Report:` path. Open the HTML report to inspect Projects, Cases, retry attempts, screenshots, Step input/output, errors, and associated Agent traces.
+
+The summary and result bar show final outcomes: **Passed**, **Failed**, and **Not run**. Passed includes Cases that recovered after earlier failed attempts. An outlined portion inside the green Passed segment represents those recovered Cases, with a **passed after retry** count in the legend. This is a subset of Passed and is never counted again as a separate outcome. Run metadata, Project counts, and File counts appear beside the summary.
+
+The **Test Report** overview shows **Project → File → Case**. The left navigation groups Projects in the order Failed, Passed, and Not run. Each group shows its Project count; the Projects heading has no count. Each Project lists its Case total and nonzero final outcome counts. Long names and summaries are truncated; hover to read the full text. Recovered Projects, Files, and Cases keep their green Passed status. An amber circular warning beside affected Project and Case names explains **passed after retry** on hover or keyboard focus. Whole-file retry history remains in File attention and the Project warning without marking every always-passing Case as recovered.
+
+Use the button beside the status filters to expand or collapse visible Files in the selected Project. Expansion for filtered-out Files and other Projects is preserved. Files with failures, scope errors, or recovered attempts start expanded. Empty and collection-failed Files remain visible. File errors appear beside their File, and Project setup or cleanup errors appear under the Project heading. Passing Cases do not override File or Project errors.
+
+**Compact** shows Case names, final results, attempt counts, and durations. **Detailed** adds screenshot timelines and a short failure or not-run summary. Earlier failures are identified as earlier attempts, without changing the final result. Opening a passed Case shows its final successful attempt; select another attempt to inspect its history. Clicking an earlier-failure summary opens the corresponding failed Step, and clicking a screenshot opens its Step.
+
+Search finds Projects, Files, Cases, and error details across the report. Only matching Projects remain in the navigation. The **All / Failed / Passed / Not run** checkboxes beside the selected Project heading filter that Project; multiple selections are combined with OR. **Clear filters** clears the search and restores All:
+
+- **Passed** includes every finally successful Case, whether or not an earlier attempt failed. Warning icons and attempt history provide diagnostic context, not another status category.
+- **Failed** includes final Case failures and keeps matching File or Project errors visible. A blocked, unexecuted Case remains Not run even when shown as context for a failed scope.
+- **Not run** selects Cases that were never executed, including those blocked by setup or scheduling failures.
+- A File cleanup failure can appear with all Cases passed and a 100% Case pass rate. Its error is still a File failure; it does not invent a failed Case.
+- Collection failures without collected Cases remain visible without fabricating a Case count or pass rate.
+
+New reports generated from legacy **tasks / flow** YAML use the same view: each task is a Case and its flow entries are Steps. Inline input is labeled **Inline YAML**. Host setup or cleanup errors belong to the File, without inventing YAML hooks. Legacy CLI batch and whole-file retry reports retain their source identities; this view does not combine independent reports into a single logical Project or infer Case retry history. A source containing only an Agent dump is labeled **Source report / Agent report**, without claiming a YAML file or task/flow navigation. YAML view is available only when a real source snapshot exists. Regenerate historical HTML reports to use the new layout.
+
+In a multi-Case report, click the floating menu button on the left (**View all cases**) to open the Case directory. The panel opens below the button without dimming the report. It lists all Cases grouped by Project regardless of Overview filters, with each result and source file; the current Case is highlighted. Select another Case to navigate directly, including across Projects. Failed Cases open at their failed Step. Opening the directory focuses the current Case. Use Tab to move between controls and Escape to close it and return focus to the menu button. Click the menu button again or close the panel to keep the current Case. Returning to Overview restores the original filters, sort, expansion, and scroll position. Single-Case reports omit this button.
+
+In a Case, the **Execution** header groups **Visual / YAML**, the **Attempts** dropdown (when multiple attempts exist), and Step status counts. YAML view is available when the report includes a source YAML snapshot. Visual view places the screenshot timeline above a shared Step list and the selected Step's details. Lifecycle groups are separated by dividers in the list. On wide screens, drag the divider to resize the Step list, use arrow keys after focusing it, or double-click to reset it. Failed Steps in the displayed attempt or File scope are selected and brought into view. Earlier failed attempts remain available through Attempts and explicit failure links.
+
+The selected Step has **Information** and **Events** tabs, plus **Record** when recording or screenshot evidence is available:
+
+- **Record** shows the associated Agent execution or a captured screenshot. Hover over timeline thumbnails to preview them; click one to select its owning Step.
+- **Information** presents Input, Output, and Stable IDs as aligned rows. Configuration, planned input, and **Information captured at** appear when available. The capture time uses your browser's local time zone, includes milliseconds and a UTC offset, and is not necessarily the Step's end time. Hover over it for the original UTC timestamp and a reminder to check **Events** for later completion or cancellation.
+- **Events** shows Time, Operation, Event, and Status in a table. If detailed operation events are unavailable, Step start and end times are shown when known. Steps with no events show an empty state.
+
+The **Operation** column describes what is running. Hover over an operation or event label to see its original log name and an explanation. Operation hints also include the Operation ID for matching log entries.
+
+| Operation label | Original name | Meaning |
+| --- | --- | --- |
+| Run step | `node` | The entire Step, including any Agent operations. Applies to both built-in and custom Nodes. |
+| Get Agent | `acquisition` | Get the Agent used by this Step; an existing Agent may be reused. |
+| Run Agent operation | `resource` | Run an operation through the Agent, such as clicking, asserting, or recording a screenshot. |
+| Wait for app readiness | `readiness` | Wait for the configured readiness callback after an action. |
+| Clean up resources | `cleanup` | Run cleanup for resources used during execution. |
+
+These operations are not consecutive, non-overlapping stages. **Run step** includes its internal operations, so do not add their durations to the Step's total duration. For example, Runner's `wait` and custom Nodes that do not use the Agent adapter only have **Run step** events. An `aiAct` or `aiAssert` Step typically gets an Agent, then runs an Agent operation inside **Run step**. Planning, locating, and individual UI actions are shown in **Record**.
+
+| Event label | Original name | Meaning |
+| --- | --- | --- |
+| Started | `started` | The operation has started. |
+| Finished | `settled` | The operation has ended; check Status for its outcome. |
+| Result returned | `runner-returned` | The Runner has returned the Step result. The underlying operation may still be running. |
+| Cancellation requested | `cancel-requested` | Cancellation was requested; the operation may still be running. |
+| Cleanup postponed | `cleanup-deferred` | Cleanup was postponed while unfinished operations still use the resources. |
+
+**Execution still running** and a **pending** badge mean the operation had not ended when the Runner returned its result. This can happen on timeout or cancellation and does not describe its state after the report's capture boundary. A Status of `-` means the event has no outcome, not that it failed.
+
+Step errors appear above these tabs. Expand **details** to view the error type, code, and failed Node. Stacks share one scrollable panel: the original error stack appears first, followed by the wrapping errors and framework stack. Other diagnostics and related errors remain available below. Stacks are hidden while details are collapsed and are included when copying issue details. Sensitive values are redacted; diagnostics exceeding the report size or cause-depth limits are marked as truncated. Use **View all … issues** when several issues exist. Case and lifecycle cleanup errors remain above Execution. The header's theme button switches between light and dark themes.
 
 The report preserves the test plan captured before execution, executed and unexecuted Steps, reasons Steps did not run, and reasons retries stopped. Time spent waiting for an earlier operation is recorded separately from Step execution time. The report is a snapshot at publication: `cleanup pending` means cleanup was unfinished at that point and resources remain quarantined. Cleanup that completes later does not update the published HTML.
 

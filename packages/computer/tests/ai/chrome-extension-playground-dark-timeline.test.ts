@@ -133,10 +133,17 @@ describe('chrome extension dark Playground timeline', () => {
     expect(visualState.connectorColors).toEqual(['rgb(217, 217, 217)']);
     expect(Math.min(...visualState.connectorHeights)).toBeGreaterThan(0);
     expect(visualState.clearButtonInsideViewport).toBe(true);
+  });
 
-    // Keep visual dogfooding for the user-visible result. Fine-grained 2px
-    // color and clipping checks above use the browser's computed geometry so
-    // they do not become false negatives when the full-screen image is scaled.
+  it('reveals the completed execution timeline in dark mode', async () => {
+    // Completion auto-scrolls the history to Output and Report. Reveal the
+    // earlier steps before checking visibility; DOM presence alone is not proof.
+    // Keep a separate timeout budget from the model-driven Bing execution.
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, scroll upward within the execution history area above the Action input until multiple completed action steps and their descriptions are visible. Scroll the side-panel history, not the Bing results page or the Action text input.`,
+    );
+
+    // Keep visual dogfooding after revealing the actual user-visible steps.
     await agent.aiAssert(
       `${SIDE_PANEL} is in dark mode and shows a Playground execution timeline with multiple visible action steps and descriptions`,
     );

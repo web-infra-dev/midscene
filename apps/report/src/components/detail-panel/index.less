@@ -8,7 +8,7 @@
   height: 100%;
   box-sizing: border-box;
   padding: @layout-space;
-  background: #fff;
+  background: var(--report-surface);
 
   .scrollable {
     height: 100%;
@@ -229,7 +229,13 @@
 @media (max-width: 640px),
   (max-width: 932px) and (max-height: 500px) and (pointer: coarse) {
   .detail-panel {
+    .view-switcher {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .view-switcher-actions {
+      margin-left: auto;
       gap: 8px;
     }
 
@@ -256,8 +262,6 @@
 // Dark mode styles
 [data-theme='dark'] {
   .detail-panel {
-    background: #1f1f1f;
-
     .detail-content {
       color: #f8fafd;
     }
