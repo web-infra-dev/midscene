@@ -336,30 +336,38 @@ npx @midscene/cli@latest model verify
 
 ## 配置多个模型（可选） {#multi-model-combination-example}
 
-多模型配置不是必需项。大多数场景只需配置默认模型，即可完成 UI 定位和操作。仅当复杂规划或页面理解需要使用独立模型时，才需要配置 Planning 模型或 Insight 模型。你可以只配置其中一个，也可以同时配置两者。
+多模型配置不是必需项。大多数场景只需配置默认模型，即可完成 UI 定位和操作。需要分别控制定位、规划或页面理解时，可以配置 Locate、Planning 或 Insight 模型。每个职责独立选择；未配置的职责使用默认模型。
 
 如需了解何时组合多个模型，请阅读[模型策略](./model-strategy)。
 
-以下示例使用 Qwen 3.5 作为默认模型，负责视觉定位。GPT-5.4 作为 Planning 模型和 Insight 模型，负责复杂推理。
+使用多模型组合时，仍需配置默认模型。默认模型承担缓存生成中的顺序敏感性判断等辅助任务，并在某项职责未配置专用模型时承担相应工作；移除专用模型配置后，也会恢复使用默认模型。
+
+以下示例使用 Qwen 3.8 Flash 作为默认模型、Gemini 3.5 Flash 负责定位、GPT-6 Astra 负责规划、GPT-6.1 Sol 负责数据提取、断言和页面理解。模型名称请以所用服务商提供的实际 ID 为准。
 
 ```bash
-# 默认多模态模型：Qwen 3.5
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
-export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
-export MIDSCENE_MODEL_NAME="qwen3.5-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3.5"
+# 默认模型
+export MIDSCENE_MODEL_BASE_URL="https://..."
+export MIDSCENE_MODEL_API_KEY="..."
+export MIDSCENE_MODEL_NAME="qwen3.8-flash"
+export MIDSCENE_MODEL_FAMILY="qwen3"
 
-# Planning 模型：GPT-5.4
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.4 API Key
+# Locate 定位模型
+export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
+export MIDSCENE_LOCATE_MODEL_API_KEY="..."
+export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
+export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
+
+# Planning 规划模型
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
-export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+export MIDSCENE_PLANNING_MODEL_API_KEY="..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 
-# Insight 模型：GPT-5.4
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.4 API Key
+# Insight 页面理解模型
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
-export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+export MIDSCENE_INSIGHT_MODEL_API_KEY="..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-6.1-sol"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
 
 ## 其他兼容模型

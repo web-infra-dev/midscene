@@ -133,8 +133,18 @@ describe('GPT image detail handling', () => {
 
   it.each([
     {
+      intent: 'locate',
+      requiresOriginalImageDetail: false,
+      expected: 'original',
+    },
+    {
       intent: 'default',
       requiresOriginalImageDetail: false,
+      expected: 'high',
+    },
+    {
+      intent: 'default',
+      requiresOriginalImageDetail: true,
       expected: 'original',
     },
     {
@@ -178,8 +188,11 @@ describe('GPT image detail handling', () => {
     },
   );
 
-  it('overrides image detail to original for gpt-5 default intent requests', async () => {
-    await callAI(imageMessage, getModelRuntime(baseModelConfig));
+  it('uses original detail for Locate even with the Default model slot', async () => {
+    await callAI(
+      imageMessage,
+      getModelRuntime({ ...baseModelConfig, intent: 'locate' }),
+    );
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -206,40 +219,43 @@ describe('GPT image detail handling', () => {
     );
   });
 
-  it('keeps the original image detail for non-default intents', async () => {
-    await callAI(
-      imageMessage,
-      getModelRuntime({
-        ...baseModelConfig,
-        intent: 'planning',
-        slot: 'planning',
-      }),
-    );
+  it.each(['default', 'planning', 'insight'] as const)(
+    'uses high detail for the %s intent',
+    async (intent) => {
+      await callAI(
+        imageMessage,
+        getModelRuntime({
+          ...baseModelConfig,
+          intent,
+          slot: intent,
+        }),
+      );
 
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: {
-                  url: 'https://example.com/shot.png',
-                  detail: 'high',
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: 'https://example.com/shot.png',
+                    detail: 'high',
+                  },
                 },
-              },
-              {
-                type: 'text',
-                text: 'Inspect this screenshot.',
-              },
-            ],
-          },
-        ],
-      }),
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
-  });
+                {
+                  type: 'text',
+                  text: 'Inspect this screenshot.',
+                },
+              ],
+            },
+          ],
+        }),
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    },
+  );
 
   it('overrides image detail to original when required by the caller and adapter', async () => {
     await callAI(
@@ -326,6 +342,6 @@ describe('GPT image detail handling', () => {
     expect(JSON.parse(JSON.stringify(request))).not.toHaveProperty(
       'temperature',
     );
-    expect(request.messages[0].content[0].image_url.detail).toBe('original');
+    expect(request.messages[0].content[0].image_url.detail).toBe('high');
   });
 });

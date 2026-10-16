@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const reportTemplateMagicString = 'REPLACE_ME_WITH_REPORT_HTML';
-export const reportTemplateMaxBytes = 3 * 1024 * 1024 + 72 * 1024;
+export const reportTemplateMaxBytes = 4 * 1024 * 1024;
 
 export const reportTemplateModulePaths = {
   cjs: 'lib/report-html-template.js',
@@ -25,7 +25,7 @@ const defaultReportTemplatePath = path.join(
 function validateReportTemplateSize(size, label) {
   if (size > reportTemplateMaxBytes) {
     throw new Error(
-      `${label} exceeds the 3 MiB + 72 KiB size limit (${size} bytes). This may indicate recursive Report template bundling.`,
+      `${label} exceeds the 4 MiB size limit (${size} bytes). This may indicate recursive Report template bundling.`,
     );
   }
 }

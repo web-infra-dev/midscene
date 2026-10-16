@@ -2,6 +2,7 @@ import {
   DEFAULT_MODEL_CONFIG_KEYS,
   type DEFAULT_MODEL_CONFIG_KEYS_LEGACY,
   INSIGHT_MODEL_CONFIG_KEYS,
+  LOCATE_MODEL_CONFIG_KEYS,
   PLANNING_MODEL_CONFIG_KEYS,
 } from './constants';
 import {
@@ -45,12 +46,14 @@ const getInvalidModelFamilyMessage = (modelFamily: TModelFamily): string =>
   `Invalid MIDSCENE_MODEL_FAMILY value: ${modelFamily}. Current version v${getCurrentVersion()} accepts the following model families: ${MODEL_FAMILY_VALUES.join(', ')}. You can also visit ${MODEL_CONFIG_DOC_URL} for the latest configuration information.`;
 
 type TModelConfigKeys =
+  | typeof LOCATE_MODEL_CONFIG_KEYS
   | typeof INSIGHT_MODEL_CONFIG_KEYS
   | typeof PLANNING_MODEL_CONFIG_KEYS
   | typeof DEFAULT_MODEL_CONFIG_KEYS
   | typeof DEFAULT_MODEL_CONFIG_KEYS_LEGACY;
 
 const KEYS_MAP: Record<TIntent, TModelConfigKeys> = {
+  locate: LOCATE_MODEL_CONFIG_KEYS,
   insight: INSIGHT_MODEL_CONFIG_KEYS,
   planning: PLANNING_MODEL_CONFIG_KEYS,
   default: DEFAULT_MODEL_CONFIG_KEYS,
@@ -278,6 +281,15 @@ export const parseOpenaiSdkConfig = ({
       return timeout;
     })(),
     temperature,
+    streamMode: (() => {
+      const mode = provider[keys.streamMode]?.trim() ?? 'non-stream';
+      if (mode === 'stream' || mode === 'non-stream') {
+        return mode;
+      }
+      throw new Error(
+        `Invalid ${keys.streamMode}: "${mode}". Expected "stream" or "non-stream".`,
+      );
+    })(),
     retryCount: (() => {
       if (!provider[keys.retryCount]) return 1;
       const val = Number(provider[keys.retryCount]);

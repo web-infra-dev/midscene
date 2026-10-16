@@ -198,6 +198,10 @@ describe('LocalExecutionAdapter', () => {
     it('should use the provided config without overriding global config', async () => {
       const aiConfig = { MIDSCENE_MODEL_NAME: 'test-model' };
       const modelConfig = { modelName: 'test-model' } as any;
+      const locateModelConfig = {
+        modelName: 'test-locate-model',
+        intent: 'locate',
+      } as any;
       const planningModelConfig = {
         modelName: 'test-planning-model',
         intent: 'planning',
@@ -209,6 +213,7 @@ describe('LocalExecutionAdapter', () => {
       const getModelConfig = rs
         .fn()
         .mockReturnValueOnce(modelConfig)
+        .mockReturnValueOnce(locateModelConfig)
         .mockReturnValueOnce(planningModelConfig)
         .mockReturnValueOnce(insightModelConfig);
       const result = {
@@ -232,6 +237,7 @@ describe('LocalExecutionAdapter', () => {
       expect(overrideAIConfig).not.toHaveBeenCalled();
       expect(runConnectivityTest).toHaveBeenCalledWith({
         defaultModelConfig: modelConfig,
+        locateModelConfig,
         planningModelConfig,
         insightModelConfig,
       });

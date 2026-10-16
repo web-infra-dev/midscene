@@ -9,9 +9,14 @@ import './ModelConfigTabs.css';
 
 type ModelProtocol = 'openai-chat' | 'openai-responses';
 
-type ModelConfigTabType = 'default' | 'planning' | 'insight';
+type ModelConfigTabType = 'default' | 'locate' | 'planning' | 'insight';
 
-const tabOrder: ModelConfigTabType[] = ['default', 'planning', 'insight'];
+const tabOrder: ModelConfigTabType[] = [
+  'default',
+  'locate',
+  'planning',
+  'insight',
+];
 
 export function ModelConfigCard(props: ModelConfigCardProps) {
   const lang = useLang();
@@ -25,12 +30,14 @@ export function ModelConfigCard(props: ModelConfigCardProps) {
   const labels: Record<ModelConfigTabType, string> =
     lang === 'zh'
       ? {
-          default: '🎯 用作默认模型',
+          default: '🤖 用作默认模型',
+          locate: '🎯 用作定位模型',
           planning: '🧠 用作 Planning 模型',
           insight: '🔎 用作 Insight 模型',
         }
       : {
-          default: '🎯 Use as default model',
+          default: '🤖 Use as default model',
+          locate: '🎯 Use as Locate model',
           planning: '🧠 Use as Planning model',
           insight: '🔎 Use as Insight model',
         };

@@ -21,7 +21,7 @@ function formatConfigLine(name: string, config: ConfigValue): string {
 
 export function buildModelConfigCode(
   config: ModelConfigCardProps,
-  purpose: 'default' | 'planning' | 'insight',
+  purpose: 'default' | 'locate' | 'planning' | 'insight',
   selectedProtocol: 'openai-chat' | 'openai-responses',
 ): string {
   const protocolConfig = config.protocol ?? selectedProtocol;
@@ -45,7 +45,7 @@ export function buildModelConfigCode(
       ? [formatConfigLine(`${prefix}_PROTOCOL`, protocolConfig)]
       : []),
     ...(config.streamMode
-      ? [formatConfigLine('MIDSCENE_MODEL_STREAM_MODE', config.streamMode)]
+      ? [formatConfigLine(`${prefix}_STREAM_MODE`, config.streamMode)]
       : []),
   ].join('\n');
 }
