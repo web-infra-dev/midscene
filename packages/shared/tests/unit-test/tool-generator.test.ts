@@ -20,6 +20,7 @@ import { composeUserPrompt } from '@/agent-tools/user-prompt';
 import { withCliVerboseContext } from '@/cli';
 import * as cliInterrupt from '@/cli/interrupt';
 import { createRecordCliCommand } from '@/cli/record-command';
+import { markMidsceneLocatorField } from '@/zod-schema-utils';
 import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
@@ -36,15 +37,17 @@ const multimodalPromptSchema = z.object({
   convertHttpImage2Base64: z.boolean().optional(),
 });
 
-const locateSchema = z
-  .object({
-    prompt: z.union([z.string(), multimodalPromptSchema]),
-    deepLocate: z.boolean().optional(),
-    deepThink: z.boolean().optional(),
-    cacheable: z.boolean().optional(),
-    xpath: z.union([z.string(), z.boolean()]).optional(),
-  })
-  .passthrough();
+const locateSchema = markMidsceneLocatorField(
+  z
+    .object({
+      prompt: z.union([z.string(), multimodalPromptSchema]),
+      deepLocate: z.boolean().optional(),
+      deepThink: z.boolean().optional(),
+      cacheable: z.boolean().optional(),
+      xpath: z.union([z.string(), z.boolean()]).optional(),
+    })
+    .passthrough(),
+);
 
 const actionSpace = [
   {
