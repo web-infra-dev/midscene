@@ -7,6 +7,10 @@ import {
   parseImageScripts,
 } from '@/dump/html-utils';
 import type { ReportGenerator } from '@/report-generator';
+import {
+  enterYamlExecution,
+  runInYamlExecutionContext,
+} from '@/yaml/execution-session';
 import { setMidsceneRunDir } from '@midscene/shared/common';
 import {
   MIDSCENE_MODEL_API_KEY,
@@ -81,7 +85,7 @@ describe('Agent independent report lifecycle', () => {
       const persistedFiles: Array<{ path: string; content: string }> = [];
 
       for (let run = 0; run < 3; run++) {
-        await agent._startNewReport();
+        await agent.resetDump();
         expect(agent.reportFile).toBeUndefined();
         await agent.recordToReport('before execution', {
           screenshotBase64: `data:image/png;base64,${Buffer.from(`before-${run}`).toString('base64')}`,
@@ -93,7 +97,7 @@ describe('Agent independent report lifecycle', () => {
         const imageIds = agent.dump
           .collectAllScreenshots()
           .map((screenshot) => screenshot.id);
-        const reportPath = await agent._finalizeReport();
+        const reportPath = await agent.finalizeReport();
         expect(reportPath).toBeDefined();
         const html = await readFile(reportPath!, 'utf8');
         expect(executionIds(html)).toEqual(ids);
@@ -142,7 +146,7 @@ describe('Agent independent report lifecycle', () => {
 
         // A repeated finalize, the next run and eventual destroy must leave
         // every previously published report byte-for-byte unchanged.
-        expect(await agent._finalizeReport()).toBe(reportPath);
+        expect(await agent.finalizeReport()).toBe(reportPath);
         for (const report of reports) {
           expect(await readFile(report.path, 'utf8')).toBe(report.html);
         }
@@ -166,27 +170,26 @@ describe('Agent independent report lifecycle', () => {
 
   it('does not reuse the preceding execution when the next run has no dump', async () => {
     createAgent();
-    await agent._startNewReport();
+    await agent.resetDump();
     await agent.recordToReport('first run', { screenshotBase64: 'AAAA' });
-    const firstPath = await agent._finalizeReport();
+    const firstPath = await agent.finalizeReport();
     const firstHtml = await readFile(firstPath!, 'utf8');
 
-    await agent._startNewReport();
+    await agent.resetDump();
     expect(agent.dump.executions).toEqual([]);
     expect(await agent.flushReport()).toBeUndefined();
-    expect(await agent._finalizeReport()).toBeUndefined();
+    expect(await agent.finalizeReport()).toBeUndefined();
     expect(agent.reportFile).toBeUndefined();
     expect(await readFile(firstPath!, 'utf8')).toBe(firstHtml);
   });
 
-  it('keeps ordinary SDK calls in one report across an in-memory reset', async () => {
+  it('keeps ordinary SDK calls in one report until explicitly reset', async () => {
     createAgent();
     await agent.recordToReport('first SDK call', { screenshotBase64: 'AAAA' });
     const firstPath = agent.reportFile;
     const firstId = agent.dump.executions[0].id;
-    agent.resetDump();
     await agent.recordToReport('second SDK call', { screenshotBase64: 'AQ==' });
-    const secondId = agent.dump.executions[0].id;
+    const secondId = agent.dump.executions[1].id;
     await agent.destroy();
 
     expect(agent.reportFile).toBe(firstPath);
@@ -196,12 +199,181 @@ describe('Agent independent report lifecycle', () => {
     ]);
   });
 
+  it('finalizes the preceding SDK report when resetDump is awaited', async () => {
+    createAgent();
+    await agent.recordToReport('first SDK run', { screenshotBase64: 'AAAA' });
+    const firstPath = agent.reportFile!;
+    const firstId = agent.dump.executions[0].id;
+    const dump = await agent.resetDump();
+    const firstHtml = await readFile(firstPath, 'utf8');
+    expect(executionIds(firstHtml)).toEqual([firstId]);
+    expect(dump).toBe(agent.dump);
+    expect(dump.executions).toEqual([]);
+    expect(agent.reportFile).toBeUndefined();
+
+    await agent.recordToReport('second SDK run', { screenshotBase64: 'AQ==' });
+    const secondId = agent.dump.executions[0].id;
+    const secondPath = await agent.finalizeReport();
+    expect(secondPath).not.toBe(firstPath);
+    expect(executionIds(await readFile(secondPath!, 'utf8'))).toEqual([
+      secondId,
+    ]);
+    expect(await readFile(firstPath, 'utf8')).toBe(firstHtml);
+    expect(agent.dump.executions).toEqual([]);
+    expect(destroyInterface).not.toHaveBeenCalled();
+  });
+
+  it('shares concurrent resets and prevents actions until reset completes', async () => {
+    createAgent();
+    await agent.recordToReport('preceding run', { screenshotBase64: 'AAAA' });
+    const generator = (agent as any).reportState.generator as ReportGenerator;
+    const finalize = generator.finalize.bind(generator);
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const finalization = rs
+      .spyOn(generator, 'finalize')
+      .mockImplementation(async () => {
+        await pending;
+        return finalize();
+      });
+    const first = agent.resetDump();
+    const second = agent.resetDump();
+    try {
+      await expect(
+        agent.recordToReport('too early', { screenshotBase64: 'AQ==' }),
+      ).rejects.toThrow('Await resetDump() first');
+      await expect(agent.startObserving()).rejects.toThrow(
+        'Await resetDump() first',
+      );
+    } finally {
+      release();
+    }
+    const [firstDump, secondDump] = await Promise.all([first, second]);
+    expect(firstDump).toBe(secondDump);
+    expect(finalization).toHaveBeenCalledOnce();
+    const fileName = agent.reportFileName;
+    await agent.resetDump();
+    expect(agent.reportFileName).not.toBe(fileName);
+    expect(await agent.finalizeReport()).toBeUndefined();
+  });
+
+  it('rejects reset and finalization while screenshot capture is unfinished', async () => {
+    createAgent();
+    let started!: () => void;
+    let release!: () => void;
+    const capturing = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const screenshot = new Promise<string>((resolve) => {
+      release = () => resolve('AAAA');
+    });
+    agent.interface.screenshotBase64 = async () => {
+      started();
+      return screenshot;
+    };
+    const recording = agent.recordToReport('pending screenshot');
+    await capturing;
+    const fileName = agent.reportFileName;
+    try {
+      await expect(agent.resetDump()).rejects.toThrow('Agent is executing');
+      await expect(agent.finalizeReport()).rejects.toThrow(
+        'Agent is executing',
+      );
+      expect(agent.reportFileName).toBe(fileName);
+    } finally {
+      release();
+      await recording;
+    }
+    await agent.resetDump();
+    expect(agent.reportFileName).not.toBe(fileName);
+  });
+
+  it('does not reset an active YAML owner even between its actions', async () => {
+    createAgent();
+    await runInYamlExecutionContext(async () => {
+      const owner = enterYamlExecution(agent);
+      try {
+        await expect(agent.resetDump()).rejects.toThrow('Agent is executing');
+      } finally {
+        owner.finish();
+      }
+    });
+    await agent.resetDump();
+  });
+
+  it('keeps flushReport writable but seals finalized reports until reset', async () => {
+    createAgent();
+    await agent.recordToReport('first step', { screenshotBase64: 'AAAA' });
+    const path = await agent.flushReport();
+    await agent.recordToReport('second step', { screenshotBase64: 'AQ==' });
+    expect(agent.dump.executions).toHaveLength(2);
+    expect(await agent.finalizeReport()).toBe(path);
+    const html = await readFile(path!, 'utf8');
+    await expect(
+      agent.recordToReport('late step', { screenshotBase64: 'AQ==' }),
+    ).rejects.toThrow('report has been finalized');
+    expect(await agent.flushReport()).toBe(path);
+    expect(await readFile(path!, 'utf8')).toBe(html);
+    await agent.resetDump();
+    await agent.recordToReport('fresh step', { screenshotBase64: 'AQ==' });
+  });
+
+  it('rejects a preceding runner callback instead of writing it into the new report', async () => {
+    createAgent();
+    const hooks = (agent as any).taskExecutor.hooks;
+    const runner = { dump: rs.fn() };
+    hooks.onExecutionCreated(runner);
+    await agent.recordToReport('old run', { screenshotBase64: 'AAAA' });
+    const oldPath = await agent.finalizeReport();
+    const oldHtml = await readFile(oldPath!, 'utf8');
+    await agent.resetDump();
+    await agent.recordToReport('new run', { screenshotBase64: 'AQ==' });
+    const ids = agent.dump.executions.map(({ id }) => id);
+    await expect(hooks.onSnapshotChange(runner)).rejects.toThrow(
+      'late execution update',
+    );
+    expect(runner.dump).not.toHaveBeenCalled();
+    const path = await agent.finalizeReport();
+    expect(executionIds(await readFile(path!, 'utf8'))).toEqual(ids);
+    expect(await readFile(oldPath!, 'utf8')).toBe(oldHtml);
+  });
+
+  it('waits for active SDK work on destroy without creating another report', async () => {
+    createAgent();
+    let release!: () => void;
+    let started!: () => void;
+    const startedCapture = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    agent.interface.screenshotBase64 = async () => {
+      started();
+      return new Promise<string>((resolve) => {
+        release = () => resolve('AAAA');
+      });
+    };
+    const recording = agent.recordToReport('last screenshot');
+    await startedCapture;
+    const fileName = agent.reportFileName;
+    const disposal = agent.destroy();
+    expect(destroyInterface).not.toHaveBeenCalled();
+    release();
+    await Promise.all([recording, disposal]);
+    expect(destroyInterface).toHaveBeenCalledOnce();
+    expect(agent.reportFileName).toBe(fileName);
+    expect(
+      executionIds(await readFile(agent.reportFile!, 'utf8')),
+    ).toHaveLength(1);
+    await expect(agent.resetDump()).rejects.toThrow('destroyed Agent');
+  });
+
   it('supports disabled reports without disposing the device between runs', async () => {
     createAgent('single-html', false);
     for (let run = 0; run < 2; run++) {
-      await agent._startNewReport();
+      await agent.resetDump();
       await agent.recordToReport('unpersisted', { screenshotBase64: 'AAAA' });
-      expect(await agent._finalizeReport()).toBeUndefined();
+      expect(await agent.finalizeReport()).toBeUndefined();
       expect(agent.reportFile).toBeUndefined();
     }
     expect(destroyInterface).not.toHaveBeenCalled();
@@ -211,9 +383,9 @@ describe('Agent independent report lifecycle', () => {
     createAgent();
     const scopeIds: string[] = [];
     for (const name of ['first case', 'second case']) {
-      await agent._startNewReport();
+      await agent.resetDump();
       await agent.runYaml(`tasks: [{ name: ${name}, flow: [] }]`);
-      const path = await agent._finalizeReport();
+      const path = await agent.finalizeReport();
       const dump = extractTestRunReportDumpSync(path!)!;
       expect(dump.summary.total).toBe(1);
       const document = dump.projects[0].documents[0];
@@ -223,14 +395,28 @@ describe('Agent independent report lifecycle', () => {
     expect(new Set(scopeIds).size).toBe(2);
   });
 
+  it('resets inline YAML exports when no filesystem report is generated', async () => {
+    createAgent('single-html', false);
+    await agent.runYaml('tasks: [{ name: inline-first-yaml, flow: [] }]');
+    const first = agent.reportHTMLString();
+    expect(first).toContain('inline-first-yaml');
+    await agent.resetDump();
+    await agent.runYaml('tasks: [{ name: inline-second-yaml, flow: [] }]');
+    const second = agent.reportHTMLString();
+    expect(second).toContain('inline-second-yaml');
+    expect(second).not.toContain('inline-first-yaml');
+    expect(await agent.finalizeReport()).toBeUndefined();
+    expect(first).not.toContain('inline-second-yaml');
+  });
+
   it.each(['finalization', 'queued write'] as const)(
     'starts two subsequent reports after a real %s failure',
     async (failure) => {
       createAgent();
-      await agent._startNewReport();
+      await agent.resetDump();
       const generator = (
-        agent as unknown as { reportGenerator: ReportGenerator }
-      ).reportGenerator;
+        agent as unknown as { reportState: { generator: ReportGenerator } }
+      ).reportState.generator;
       const error = new Error(`injected ${failure} failure`);
       if (failure === 'queued write') {
         rs.spyOn(
@@ -246,18 +432,17 @@ describe('Agent independent report lifecycle', () => {
         });
         rs.spyOn(generator, 'finalize').mockRejectedValueOnce(error);
       }
-      await expect(agent._finalizeReport()).rejects.toBe(error);
+      await expect(agent.finalizeReport()).rejects.toBe(error);
       const paths: string[] = [];
       for (let run = 0; run < 2; run++) {
-        await agent._startNewReport();
+        await agent.resetDump();
         await agent.recordToReport(`recovered-${run}`, {
           screenshotBase64: 'AQ==',
         });
-        const path = await agent._finalizeReport();
+        const ids = agent.dump.executions.map((execution) => execution.id);
+        const path = await agent.finalizeReport();
         const html = await readFile(path!, 'utf8');
-        expect(executionIds(html)).toEqual(
-          agent.dump.executions.map((execution) => execution.id),
-        );
+        expect(executionIds(html)).toEqual(ids);
         expect(html).not.toContain('failed finalization');
         paths.push(path!);
       }

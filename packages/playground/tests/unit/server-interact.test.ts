@@ -227,13 +227,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: rs.fn(() => {
+      resetDump: rs.fn(async () => {
         dump.executions = [];
       }),
-      _startNewReport: rs.fn(async () => {
-        dump.executions = [];
-      }),
-      _finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
+      finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
       callActionInActionSpace: rs.fn(async () => {
         appendExecution({ id: 'login', logTime: 300, name: 'Act - login' });
         return { ok: true };
@@ -288,10 +285,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
         format: string;
       };
     };
-    expect(agent._startNewReport).toHaveBeenCalledBefore(
+    expect(agent.resetDump).toHaveBeenCalledBefore(
       agent.callActionInActionSpace,
     );
-    expect(agent._finalizeReport).toHaveBeenCalledOnce();
+    expect(agent.finalizeReport).toHaveBeenCalledOnce();
     expect(body.dump).toBeNull();
     expect(body.reportHTML).toBeNull();
     expect(body.report).toMatchObject({
@@ -330,9 +327,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [],
       },
-      resetDump: rs.fn(),
-      _startNewReport: rs.fn(async () => {}),
-      _finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
+      resetDump: rs.fn(async () => {}),
+      finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
       aiAct: rs.fn(async (_prompt: string, options: any) => {
         capturedSignal = options.abortSignal;
         (agent as any).onDumpUpdate?.('', {
@@ -480,9 +476,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: rs.fn(),
-      _startNewReport: rs.fn(async () => {}),
-      _finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
+      resetDump: rs.fn(async () => {}),
+      finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
       callActionInActionSpace: rs.fn(async () => ({ ok: true })),
       reportFile: `${process.cwd()}/package.json`,
     };
@@ -563,9 +558,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: rs.fn(),
-      _startNewReport: rs.fn(async () => {}),
-      _finalizeReport: rs.fn(async () => reportPath),
+      resetDump: rs.fn(async () => {}),
+      finalizeReport: rs.fn(async () => reportPath),
       callActionInActionSpace: rs.fn(async () => ({ ok: true })),
       reportFile: reportPath,
     };

@@ -33,6 +33,7 @@ const fakeContext = (tag: string): UIContext =>
 
 const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
+  (agent as any).reportState = { activeOperations: new Set(), yamlRecords: [] };
   const createTypeQueryExecution = rs.fn(async () => ({
     output: true,
     thought: 'ok',
@@ -141,11 +142,10 @@ describe('Agent.startObserving', () => {
     const framePath = (observer as any).writer.resolveFramePath(
       bufferedFrame.persisted,
     );
-    (agent as any).reportGenerator = {
+    (agent as any).reportState.generator = {
       flush: rs.fn().mockResolvedValue(undefined),
       finalize: rs.fn().mockResolvedValue(undefined),
     };
-    (agent as any).resetDump = rs.fn();
 
     expect(existsSync(framePath)).toBe(true);
     await agent.destroy();

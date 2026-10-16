@@ -70,6 +70,7 @@ interface ExecutionResult<OutputType = any> {
 }
 
 interface TaskExecutorHooks {
+  onExecutionCreated?: (runner: TaskRunner) => void;
   onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
@@ -197,7 +198,7 @@ export class TaskExecutor {
       onTaskEvent?: (event: TaskRunnerEvent) => Promise<void> | void;
     },
   ) {
-    return new ExecutionSession(
+    const session = new ExecutionSession(
       title,
       (signal) =>
         options?.uiContext
@@ -215,6 +216,8 @@ export class TaskExecutor {
         ...(options?.onTaskEvent ? { onTaskEvent: options.onTaskEvent } : {}),
       },
     );
+    this.hooks?.onExecutionCreated?.(session.getRunner());
+    return session;
   }
 
   private getActionSpace(): DeviceAction[] {

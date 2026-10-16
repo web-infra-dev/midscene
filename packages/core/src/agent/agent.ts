@@ -8,7 +8,11 @@ import type { TUserPrompt } from '../ai-model/index';
 import { generateTestRunReportScriptTag } from '../dump/html-utils';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
-import { waitForResourceIdle } from '../test-runner/engine/resource-operations';
+import {
+  hasPendingResourceOperation,
+  waitForResourceIdle,
+} from '../test-runner/engine/resource-operations';
+import { WorkflowError } from '../test-runner/errors';
 import type { WorkflowExecutionRecord } from '../test-runner/execution-record';
 import { buildAgentTestRunReportDump } from '../test-runner/reporting/agent-report';
 import { executionRecordsToReportInput } from '../test-runner/reporting/execution-record';
@@ -57,6 +61,7 @@ import {
   currentYamlSignal,
   enterYamlAction,
   enterYamlExecution,
+  hasActiveYamlExecution,
   runInYamlExecutionContext,
 } from '../yaml/execution-session';
 
@@ -191,6 +196,19 @@ type AgentInputOption = LocateOption & {
   mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
 };
 
+interface AgentReportState {
+  dump: ReportActionDump;
+  file?: string | null;
+  fileName?: string;
+  generator: IReportGenerator;
+  finalization?: Promise<string | undefined>;
+  lastExecution?: ExecutionDump;
+  executionIndexByRunner: WeakMap<TaskRunner, number>;
+  yamlScopeId: string;
+  yamlRecords: WorkflowExecutionRecord[];
+  activeOperations: Set<Promise<unknown>>;
+}
+
 export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   implements InsightAPI
 {
@@ -203,42 +221,63 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   service: Service;
 
-  dump: ReportActionDump;
+  private reportState: AgentReportState;
+  private reportReset?: Promise<ReportActionDump>;
+  private readonly reportByRunner = new WeakMap<TaskRunner, AgentReportState>();
 
-  reportFile?: string | null;
+  get dump(): ReportActionDump {
+    return this.reportState.dump;
+  }
+  set dump(value: ReportActionDump) {
+    this.reportState.dump = value;
+  }
 
-  reportFileName?: string;
-  private yamlReportScopeId = uuid();
-  private readonly yamlExecutionRecords: WorkflowExecutionRecord[] = [];
+  get reportFile(): string | null | undefined {
+    return this.reportState.file;
+  }
+  set reportFile(value: string | null | undefined) {
+    this.reportState.file = value;
+  }
+
+  get reportFileName(): string | undefined {
+    return this.reportState.fileName;
+  }
+  set reportFileName(value: string | undefined) {
+    this.reportState.fileName = value;
+  }
 
   /** @internal Runner snapshots retain immutable data and shared image files. */
   _prepareForTestRunner(): void {
-    this.reportGenerator.enableSourceSnapshots?.();
+    this.reportState.generator.enableSourceSnapshots?.();
   }
   async _createReportSource(scopeId: string, executionIds?: readonly string[]) {
-    return this.reportGenerator.createSourceSnapshot?.(scopeId, executionIds);
+    return this.reportState.generator.createSourceSnapshot?.(
+      scopeId,
+      executionIds,
+    );
   }
 
   /** @internal The Agent owns one report stream across root YAML invocations. */
   async _writeYamlExecutionReport(
     record: WorkflowExecutionRecord,
   ): Promise<string | undefined> {
-    const existingIndex = this.yamlExecutionRecords.findIndex(
+    const report = this.reportState;
+    const existingIndex = report.yamlRecords.findIndex(
       (entry) => entry.runId === record.runId,
     );
     const recordIndex =
-      existingIndex < 0 ? this.yamlExecutionRecords.length : existingIndex;
-    this.yamlExecutionRecords[recordIndex] = record;
+      existingIndex < 0 ? report.yamlRecords.length : existingIndex;
+    report.yamlRecords[recordIndex] = record;
     try {
-      const path = await this.reportGenerator.writeRunnerReport?.(
+      const path = await report.generator.writeRunnerReport?.(
         this.buildYamlReportInput(),
-        this.yamlReportScopeId,
+        report.yamlScopeId,
         this.getReportMeta(),
       );
-      this.reportFile = path ?? this.reportFile;
+      report.file = path ?? report.file;
       return path;
     } catch (error) {
-      this.yamlExecutionRecords[recordIndex] = Object.freeze({
+      report.yamlRecords[recordIndex] = Object.freeze({
         ...record,
         status: 'failed',
         reportError: error,
@@ -248,14 +287,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   private buildYamlReportInput() {
-    const scopedRecords = this.yamlExecutionRecords.map((entry) => ({
+    const scopedRecords = this.reportState.yamlRecords.map((entry) => ({
       ...entry,
       ...(entry.execution
         ? {
             execution: {
               document: {
                 ...entry.execution.document,
-                reportScopeId: this.yamlReportScopeId,
+                reportScopeId: this.reportState.yamlScopeId,
               },
               cases: entry.execution.cases.map((outcome) => ({
                 ...outcome,
@@ -263,7 +302,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
                   ? {
                       run: {
                         ...outcome.run,
-                        reportScopeId: this.yamlReportScopeId,
+                        reportScopeId: this.reportState.yamlScopeId,
                       },
                     }
                   : {}),
@@ -271,7 +310,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
                   ? {
                       attempts: outcome.attempts.map((attempt) => ({
                         ...attempt,
-                        reportScopeId: this.yamlReportScopeId,
+                        reportScopeId: this.reportState.yamlScopeId,
                       })),
                     }
                   : {}),
@@ -281,7 +320,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         : {}),
     }));
     return executionRecordsToReportInput(scopedRecords, {
-      runId: this.yamlReportScopeId,
+      runId: this.reportState.yamlScopeId,
     });
   }
 
@@ -396,16 +435,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     };
   }
 
-  private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
-
   private fullActionSpace: DeviceAction[];
 
   private activeFileChooserAccepter?: FileChooserAccepter;
 
   private activeFileChooserAllowedDir?: string;
-
-  private reportGenerator: IReportGenerator;
-  private reportFinalization?: Promise<string | undefined>;
 
   // @deprecated use .interface instead
   get page() {
@@ -476,7 +510,12 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   private createInsight(getUIContext?: () => UIContext): Insight {
     return new Insight(
-      this.taskExecutor,
+      {
+        createTypeQueryExecution: (...args) =>
+          this.withReportOperation(() =>
+            this.taskExecutor.createTypeQueryExecution(...args),
+          ),
+      },
       (task) => this.resolveModelRuntime('insight', task),
       (apiName, callContext) => this.resolveUserContext(apiName, callContext),
       getUIContext,
@@ -622,7 +661,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       operationResource: this,
       actionSpace: this.fullActionSpace,
       hooks: {
+        onExecutionCreated: (runner) => {
+          this.reportByRunner.set(runner, this.reportState);
+        },
         onSnapshotChange: async (runner) => {
+          const report = this.reportByRunner.get(runner);
+          assert(
+            report === this.reportState && !report.finalization,
+            'Cannot write a late execution update into a different or finalized report.',
+          );
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
           this.collectUsageMetrics(executionDump);
@@ -630,7 +677,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           // Persist report updates before notifying listeners so screenshot
           // payloads can be released from memory and serialized as references.
           this.writeOutActionDumps(executionDump);
-          await this.reportGenerator.flush();
+          await report.generator.flush();
 
           // Call all registered dump update listeners
           const dumpString = this.dumpDataString();
@@ -645,15 +692,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         onProgress: this.progressBus.publish,
       },
     });
-    this.dump = this.resetDump();
-    this.reportFileName =
+    const reportFileName =
       opts?.reportFileName ??
       // Keep deprecated testId behavior for generated report names until it is
       // fully removed from the public API.
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
 
-    this.reportGenerator = this.createReportGenerator(
-      this.opts.reportAttributes?.['data-group-id'] === this.reportFileName,
+    this.reportState = this.createReportState(
+      reportFileName,
+      this.opts.reportAttributes?.['data-group-id'] === reportFileName,
     );
 
     Object.defineProperty(this, observationArtifactAdapterSymbol, {
@@ -754,6 +801,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * before your next action.
    */
   async startObserving(opt?: UIObserverOption): Promise<UIObserver> {
+    this.assertReportWritable();
     // A frozen context pins perception to a single snapshot; observing a
     // window of frames contradicts that. Fail fast instead of silently
     // producing an all-identical sequence.
@@ -855,52 +903,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
   }
 
-  private createReportGenerator(reuseExistingReport = false): IReportGenerator {
-    return ReportGenerator.create(this.reportFileName!, {
-      generateReport: this.opts.generateReport,
-      persistExecutionDump: this.opts.persistExecutionDump,
-      outputFormat: this.opts.outputFormat,
-      autoPrintReportMsg: this.opts.autoPrintReportMsg,
-      reuseExistingReport,
-    });
-  }
-
-  /** @internal Start an independent Playground report without reconnecting the device. */
-  async _startNewReport(): Promise<void> {
-    try {
-      await this._finalizeReport();
-    } catch (error) {
-      // A rejected write queue belongs to the preceding report. Its failure
-      // must stay visible without preventing a fresh generator from starting.
-      warn(
-        `Failed to finalize previous report; starting a new report: ${String(error)}`,
-      );
-    }
-    assert(!this.destroyed, 'Cannot start a report using a destroyed Agent.');
-
-    this.resetDump();
-    this.lastExecutionDump = undefined;
-    this.reportFile = undefined;
-    this.yamlReportScopeId = uuid();
-    this.yamlExecutionRecords.length = 0;
-    this.reportFileName = getReportFileName(
-      this.opts.testId || this.interface.interfaceType || 'web',
-    );
-    this.reportGenerator = this.createReportGenerator();
-    this.reportFinalization = undefined;
-  }
-
-  /** @internal Publish a completed report once; destroy must not rewrite old links. */
-  _finalizeReport(): Promise<string | undefined> {
-    this.reportFinalization ??= this.reportGenerator.finalize().then((path) => {
-      this.reportFile = path;
-      return path;
-    });
-    return this.reportFinalization;
-  }
-
-  resetDump() {
-    this.dump = new ReportActionDump({
+  private createEmptyDump(): ReportActionDump {
+    return new ReportActionDump({
       sdkVersion: getVersion(),
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
@@ -908,21 +912,141 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       modelBriefs: [],
       deviceType: this.interface.interfaceType,
     });
-    this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+  }
 
-    return this.dump;
+  private createReportState(
+    fileName: string,
+    reuseExistingReport = false,
+  ): AgentReportState {
+    return {
+      dump: this.createEmptyDump(),
+      fileName,
+      generator: ReportGenerator.create(fileName, {
+        generateReport: this.opts.generateReport,
+        persistExecutionDump: this.opts.persistExecutionDump,
+        outputFormat: this.opts.outputFormat,
+        autoPrintReportMsg: this.opts.autoPrintReportMsg,
+        reuseExistingReport,
+      }),
+      executionIndexByRunner: new WeakMap(),
+      yamlScopeId: uuid(),
+      yamlRecords: [],
+      activeOperations: new Set(),
+    };
+  }
+
+  private clearDumpInMemory(report = this.reportState): void {
+    report.dump = this.createEmptyDump();
+    report.executionIndexByRunner = new WeakMap();
+    report.lastExecution = undefined;
+    report.yamlRecords.length = 0;
+  }
+
+  private assertReportIdle(): void {
+    assert(
+      !this.reportState.activeOperations.size &&
+        !this.activeObserver &&
+        // An owned YAML player disposes its Agent before releasing ownership.
+        // destroy() has already drained its operations before finalizing.
+        (!hasActiveYamlExecution(this) || this.destroyed) &&
+        !hasPendingResourceOperation(this),
+      'Cannot reset or finalize a report while the Agent is executing. Await the active operation first.',
+    );
+  }
+
+  private assertReportWritable(): AgentReportState {
+    const report = this.reportState;
+    assert(!this.destroyed, 'Cannot execute using a destroyed Agent.');
+    assert(
+      !this.reportReset,
+      'Report reset is in progress. Await resetDump() first.',
+    );
+    assert(
+      !report.finalization,
+      'The report has been finalized. Call and await resetDump() before executing again.',
+    );
+    return report;
+  }
+
+  private async withReportOperation<T>(
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const report = this.assertReportWritable();
+    const pending = Promise.resolve().then(operation);
+    report.activeOperations.add(pending);
+    try {
+      return await pending;
+    } finally {
+      report.activeOperations.delete(pending);
+    }
+  }
+
+  /**
+   * Finalize the preceding report and reset execution records for a new report.
+   * Historical artifacts are retained; this Agent and its device stay connected.
+   * Await this method before executing again. Concurrent resets share one reset.
+   */
+  async resetDump(): Promise<ReportActionDump> {
+    assert(!this.destroyed, 'Cannot reset a report using a destroyed Agent.');
+    if (this.reportReset) return this.reportReset;
+    this.assertReportIdle();
+    this.reportReset = (async () => {
+      try {
+        await this.finalizeReport();
+      } catch (error) {
+        // Failure belongs to the preceding report, not to the next write queue.
+        warn(
+          `Failed to finalize previous report; resetting dump: ${String(error)}`,
+        );
+      }
+      assert(!this.destroyed, 'Cannot reset a report using a destroyed Agent.');
+      const fileName = getReportFileName(
+        this.opts.testId || this.interface.interfaceType || 'web',
+      );
+      this.reportState = this.createReportState(fileName);
+      return this.dump;
+    })();
+    try {
+      return await this.reportReset;
+    } finally {
+      this.reportReset = undefined;
+    }
+  }
+
+  /**
+   * Seal the current report and release its in-memory records without
+   * disconnecting the device. Export in-memory data before calling this method.
+   * Repeated calls return the same result and never rewrite published artifacts.
+   */
+  async finalizeReport(): Promise<string | undefined> {
+    const report = this.reportState;
+    if (!report.finalization) {
+      this.assertReportIdle();
+      report.finalization = (async () => {
+        await report.generator.flush();
+        const path = await report.generator.finalize();
+        report.file = path;
+        this.clearDumpInMemory(report);
+        return path;
+      })();
+    }
+    return report.finalization;
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
+    assert(
+      !this.reportState.finalization,
+      'Cannot append to a finalized report. Await resetDump() first.',
+    );
     const currentDump = this.dump;
     if (runner) {
-      const existingIndex = this.executionDumpIndexByRunner.get(runner);
+      const existingIndex = this.reportState.executionIndexByRunner.get(runner);
       if (existingIndex !== undefined) {
         currentDump.executions[existingIndex] = execution;
         return;
       }
       currentDump.executions.push(execution);
-      this.executionDumpIndexByRunner.set(
+      this.reportState.executionIndexByRunner.set(
         runner,
         currentDump.executions.length - 1,
       );
@@ -1002,17 +1126,18 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     // dumpDataString() handles browser environment with inline screenshots
     const dumpString = this.dumpDataString(opt);
-    if (!this.yamlExecutionRecords.length) return reportHTMLContent(dumpString);
+    if (!this.reportState.yamlRecords.length)
+      return reportHTMLContent(dumpString);
 
     // Browser exports have no file writer, so the execution record must own
     // the hierarchy independently of whether file report generation is enabled.
-    const reportId = this.yamlReportScopeId;
+    const reportId = this.reportState.yamlScopeId;
     const runnerDump = buildAgentTestRunReportDump(
       this.buildYamlReportInput(),
       this.dump,
       {
         reportId,
-        scopeId: this.yamlReportScopeId,
+        scopeId: this.reportState.yamlScopeId,
         sourcePath: this.reportFile ?? '<inline-agent-report>',
       },
     );
@@ -1022,26 +1147,39 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     })}\n${generateTestRunReportScriptTag(runnerDump)}`;
   }
 
-  private lastExecutionDump?: ExecutionDump;
-
   writeOutActionDumps(executionDump?: ExecutionDump) {
-    const exec = executionDump || this.lastExecutionDump;
+    const report = this.reportState;
+    if (report.finalization) {
+      if (executionDump) {
+        throw new WorkflowError(
+          'Cannot append to a finalized report. Await resetDump() first.',
+          {
+            code: 'REPORT_FINALIZED',
+          },
+        );
+      }
+      return;
+    }
+    const exec = executionDump || report.lastExecution;
     if (exec) {
-      this.lastExecutionDump = exec;
-      this.reportGenerator.onExecutionUpdate(
+      report.lastExecution = exec;
+      report.generator.onExecutionUpdate(
         exec,
         this.getReportMeta(),
         this.opts.reportAttributes,
       );
     }
-    this.reportFile = this.reportGenerator.getReportPath();
+    report.file = report.generator.getReportPath();
   }
 
   /** Persist current report data without disposing this Agent or its device. */
   async flushReport(): Promise<string | undefined> {
+    if (this.reportReset) await this.reportReset;
+    const report = this.reportState;
+    if (report.finalization) return report.finalization;
     this.writeOutActionDumps();
-    await this.reportGenerator.flush();
-    return this.lastExecutionDump ? (this.reportFile ?? undefined) : undefined;
+    await report.generator.flush();
+    return report.lastExecution ? (report.file ?? undefined) : undefined;
   }
 
   private getReportMeta(): ReportMeta {
@@ -1074,6 +1212,16 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params
+    abortSignal?: AbortSignal,
+  ) {
+    return this.withReportOperation(() =>
+      this.executeActionInActionSpace<T>(type, opt, abortSignal),
+    );
+  }
+
+  private async executeActionInActionSpace<T>(
+    type: string,
+    opt?: T,
     abortSignal?: AbortSignal,
   ) {
     debug('callActionInActionSpace', type, ',', opt);
@@ -1459,6 +1607,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     taskPrompt: TUserPrompt,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
+    return this.withReportOperation(() => this.executeAiAct(taskPrompt, opt));
+  }
+
+  private async executeAiAct(
+    taskPrompt: TUserPrompt,
+    opt?: AiActOptions,
+  ): Promise<string | undefined> {
     const internalOptions = opt as AiActInternalOptions | undefined;
     const internalReportDisplay = internalOptions?._internalReportDisplay;
     const taskPromptText =
@@ -1670,6 +1825,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     markdownPath: string,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
+    return this.withReportOperation(() =>
+      this.executeMarkdown(markdownPath, opt),
+    );
+  }
+
+  private async executeMarkdown(
+    markdownPath: string,
+    opt?: AiActOptions,
+  ): Promise<string | undefined> {
     const markdown = await readFile(markdownPath, 'utf-8');
     const { prompt } = await markdownToAiActPrompt(markdown, markdownPath);
     return this.aiAct(prompt, {
@@ -1685,7 +1849,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     scenarioText: string,
     opt?: RunGherkinScenarioOptions,
   ): Promise<void> {
-    return runGherkinScenario(this, scenarioText, opt);
+    return this.withReportOperation(() =>
+      runGherkinScenario(this, scenarioText, opt),
+    );
   }
 
   /**
@@ -1724,6 +1890,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * Do not rely on rect for strict element boundaries. Prefer center for the target.
    */
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
+    return this.withReportOperation(() => this.executeLocate(prompt, opt));
+  }
+
+  private async executeLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const locateParam = buildDetailedLocateParam(
       prompt,
       this.withContext('aiLocate', opt),
@@ -1771,14 +1941,16 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const modelRuntime = this.resolveModelRuntime('insight', 'boolean');
     const options = this.withContext('aiWaitFor', opt);
-    await this.taskExecutor.waitFor(
-      assertion,
-      {
-        ...options,
-        timeoutMs: options?.timeoutMs || 15 * 1000,
-        checkIntervalMs: options?.checkIntervalMs || 3 * 1000,
-      },
-      modelRuntime,
+    await this.withReportOperation(() =>
+      this.taskExecutor.waitFor(
+        assertion,
+        {
+          ...options,
+          timeoutMs: options?.timeoutMs || 15 * 1000,
+          checkIntervalMs: options?.checkIntervalMs || 3 * 1000,
+        },
+        modelRuntime,
+      ),
     );
   }
 
@@ -1792,6 +1964,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<{
     result: Record<string, any>;
   }> {
+    return this.withReportOperation(() =>
+      this.executeYaml(yamlScriptContent, options),
+    );
+  }
+
+  private async executeYaml(
+    yamlScriptContent: string,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<{ result: Record<string, any> }> {
     if (this.destroyed)
       throw new Error('Cannot run YAML using a destroyed Agent.');
     const script = parseYamlScript(yamlScriptContent, 'yaml');
@@ -1830,7 +2011,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       this.interface.evaluateJavaScript,
       'evaluateJavaScript is not supported in current agent',
     );
-    return this.interface.evaluateJavaScript(script);
+    return this.withReportOperation(() =>
+      this.interface.evaluateJavaScript!(script),
+    );
   }
 
   /**
@@ -1917,6 +2100,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     // Keep the public owner from disposing the interface until that call has
     // actually settled.
     await waitForResourceIdle(this);
+    while (this.reportState.activeOperations.size) {
+      await Promise.allSettled([...this.reportState.activeOperations]);
+    }
 
     // Observers own observation frame files until explicitly disposed.
     for (const observer of this.ownedObservers) {
@@ -1936,12 +2122,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       interfaceDestroyError = error;
     }
 
-    // Wait for all queued write operations to complete
-    await this.reportGenerator.flush();
-
-    await this._finalizeReport();
-
-    this.resetDump(); // reset dump to release memory
+    if (this.reportReset) await this.reportReset.catch(() => {});
+    await this.finalizeReport();
 
     if (interfaceDestroyError) {
       throw interfaceDestroyError;
@@ -1961,10 +2143,19 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     options?: { abortSignal?: AbortSignal },
   ): Promise<void> {
     options?.abortSignal?.throwIfAborted();
-    await this.taskExecutor.sleep(ms, options?.abortSignal);
+    await this.withReportOperation(() =>
+      this.taskExecutor.sleep(ms, options?.abortSignal),
+    );
   }
 
   async recordToReport(title?: string, opt?: RecordToReportOptions) {
+    return this.withReportOperation(() => this.writeRecordToReport(title, opt));
+  }
+
+  private async writeRecordToReport(
+    title?: string,
+    opt?: RecordToReportOptions,
+  ) {
     const now = Date.now();
     const screenshots = opt?.screenshots;
     const screenshotBase64 = opt?.screenshotBase64;
@@ -2042,7 +2233,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     this.appendExecutionDump(executionDump);
 
     this.writeOutActionDumps(executionDump);
-    await this.reportGenerator.flush();
+    await this.reportState.generator.flush();
 
     // Call all registered dump update listeners
     this.notifyDumpUpdateListeners(executionDump);
@@ -2056,6 +2247,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       content?: string;
       screenshotBase64?: string;
     },
+  ) {
+    return this.withReportOperation(() => this.writeErrorToReport(title, opt));
+  }
+
+  private async writeErrorToReport(
+    title: string,
+    opt: { error: unknown; content?: string; screenshotBase64?: string },
   ) {
     const now = Date.now();
     const error = serializeError(opt.error);
@@ -2100,7 +2298,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     this.appendExecutionDump(executionDump);
     this.writeOutActionDumps(executionDump);
-    await this.reportGenerator.flush();
+    await this.reportState.generator.flush();
     this.notifyDumpUpdateListeners(executionDump);
   }
 
