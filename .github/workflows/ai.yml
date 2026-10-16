@@ -187,5 +187,6 @@ jobs:
         command: pnpm run e2e
         artifact-name: e2e-app-report-output
         publish-pages: true
+        cloudflare-worker-name: e2e-reports
         cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         cloudflare-account-id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
