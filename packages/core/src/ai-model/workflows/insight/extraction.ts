@@ -17,13 +17,14 @@ import {
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
 import { multimodalPromptToMessages } from '../../shared/multimodal-prompt';
+import { extractBoolean } from './boolean';
 import { parseInsightResponse } from './insight-response-parser';
 
 type InsightAIArgs = [ConversationSystemMessage, ...ConversationUserMessage[]];
 
 const debugInsight = getDebug('ai:insight');
 
-export async function AiExtractElementInfo<T>(options: {
+export interface ExtractOptions {
   dataQuery: string | Record<string, string>;
   multimodalPrompt?: TMultimodalPrompt;
   context: UIContext;
@@ -31,7 +32,12 @@ export async function AiExtractElementInfo<T>(options: {
   extractOption?: ServiceExtractOption;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
-}) {
+}
+
+export async function AiExtractElementInfo<T>(options: ExtractOptions) {
+  if (options.modelRuntime.adapter.insight.booleanFn) {
+    return extractBoolean<T>(options);
+  }
   const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
     options;
   const insightProtocol = modelRuntime.adapter.insight.protocol;

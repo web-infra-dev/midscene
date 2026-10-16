@@ -16,6 +16,7 @@ import {
   runWithAbortSignal,
   waitForRetry,
 } from './request-timeout';
+import { callSystemOne, prepareSystemOne } from './system-one';
 import type { ModelCallMessages } from './types';
 import type {
   AICallResult,
@@ -65,6 +66,16 @@ export async function callAI(
   const { config: modelConfig } = modelRuntime;
 
   const prepare = async (): Promise<PreparedModelInput> => {
+    if (options?.systemOneRequest) {
+      assert(
+        modelConfig.modelFamily === 'jev',
+        'System One requests require the Jev model family',
+      );
+      return {
+        protocol: 'system-one',
+        input: await prepareSystemOne(modelConfig, options.systemOneRequest),
+      };
+    }
     const input = { messages, modelRuntime, options };
     if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
       return { protocol: 'codex', input: prepareCodexCall(input) };
@@ -107,7 +118,7 @@ export async function callAI(
     ...response
   } = result;
 
-  const usage = buildUsageInfo({
+  const rawUsageInfo = buildUsageInfo({
     apiProtocol: prepared.protocol,
     stream: response.isStreamed,
     usageData: rawUsage,
@@ -121,6 +132,10 @@ export async function callAI(
     slot: modelConfig.slot,
     internalCallId,
   });
+
+  const usage = rawUsageInfo
+    ? { ...rawUsageInfo, modelRouting: modelRuntime.modelRouting }
+    : undefined;
 
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
@@ -136,6 +151,10 @@ export async function callAI(
 }
 
 type PreparedModelInput =
+  | {
+      protocol: 'system-one';
+      input: Awaited<ReturnType<typeof prepareSystemOne>>;
+    }
   | { protocol: 'codex'; input: ReturnType<typeof prepareCodexCall> }
   | PreparedOpenAIInput;
 
@@ -229,6 +248,7 @@ async function callModelOnce(
             slot: modelConfig.slot,
             intent: modelConfig.intent,
             modelFamily: modelConfig.modelFamily,
+            modelRouting: modelRuntime.modelRouting,
             ...event,
             attempt,
           });
@@ -261,9 +281,11 @@ async function callModelOnce(
   };
   try {
     return await runWithAbortSignal(requestSignal, () =>
-      prepared.protocol === 'codex'
-        ? callCodex(context, prepared.input)
-        : callOpenAI(context, prepared),
+      prepared.protocol === 'system-one'
+        ? callSystemOne(context, prepared.input)
+        : prepared.protocol === 'codex'
+          ? callCodex(context, prepared.input)
+          : callOpenAI(context, prepared),
     );
   } catch (error) {
     options?.abortSignal?.throwIfAborted();

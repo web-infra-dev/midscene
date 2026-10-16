@@ -13,7 +13,7 @@ For complete parameter definitions, see [Model configuration reference](./model-
 
 ## Supported models
 
-Midscene supports these multimodal models for operating user interfaces: [Doubao Seed](#doubao-seed-model), [Qwen](#qwen), [DeepSeek](#deepseek), [Google Gemini](#gemini), [OpenAI GPT](#gpt), [Moonshot Kimi](#kimi), [Xiaomi MiMo](#xiaomi-mimo), and [Zhipu GLM-V](#glm-v), as well as the other compatible models [AutoGLM](#auto-glm) and [UI-TARS](#ui-tars) described below.
+Midscene supports these multimodal models for operating user interfaces: [Doubao Seed](#doubao-seed-model), [Qwen](#qwen), [DeepSeek](#deepseek), [Google Gemini](#gemini), [OpenAI GPT](#gpt), [Moonshot Kimi](#kimi), [Xiaomi MiMo](#xiaomi-mimo), [Zhipu GLM-V](#glm-v), and [Jev (experimental)](#jev), as well as the other compatible models [AutoGLM](#auto-glm) and [UI-TARS](#ui-tars) described below.
 
 Each configuration requires a Base URL, API key, model name, and `MIDSCENE_MODEL_FAMILY`. The model family (`MIDSCENE_MODEL_FAMILY`) determines how Midscene adapts to the selected model.
 
@@ -261,6 +261,42 @@ Environment variable configuration example, using `glm-5v-turbo`:
 
 - Github: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
 - Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
+
+### Jev (experimental) {#jev}
+
+Jev support is experimental. Results are heavily influenced by the Jev model.
+
+- Model provider: [TypeSafe](https://typesafe.ai/)
+
+Jev can be used for Planning, Locate, or Insight. Because Jev cannot generate input content or other open-ended text, you must also configure a general-purpose default model to handle tasks Jev cannot perform. Jev cannot serve as the default model. See [Multiple models](#multi-model-combination-example) for default model configuration.
+
+The following example uses `jev-1.14.0` through TypeSafe's official service. Select the role you want Jev to perform:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.typesafe.ai/v1",
+    comment: "TypeSafe official API endpoint",
+  }}
+  modelName="jev-1.14.0"
+  modelFamily="jev"
+  purposes={['locate', 'planning', 'insight']}
+/>
+
+When the corresponding model role is configured to use Jev, tasks are handled as follows:
+
+- **Locate**: Jev performs element localization.
+- **Insight**: Jev evaluates `aiBoolean`, `aiAssert`, and `aiWaitFor`. The general-purpose default model handles `aiQuery`, `aiString`, `aiNumber`, and `aiAsk`.
+- **Planning**: In `aiAct`, Jev selects actions such as tapping, scrolling, and waiting, and determines whether the task is complete. The general-purpose default model handles the current planning step when it requires input content generation or other parameters Jev cannot produce. If Locate is configured to use another model, the default model also generates the concrete target descriptions required for tap and scroll steps.
+
+Model selection is based on the capabilities required by each task. Failed Jev requests do not automatically switch to the default model.
+
+Jev uses TypeSafe's System One protocol, not an OpenAI protocol. Some OpenAI model settings do not apply, such as temperature, native reasoning, response format, and streaming output.
+
+:::info Image input limits
+
+Jev requires the longest edge of an input image to be no more than 1568 pixels. Midscene therefore scales images that exceed this limit while preserving their aspect ratio, then maps localization results back to the original image coordinates. Edges shorter than 280 pixels are padded. This image processing behavior may change in future versions.
+
+:::
 
 ## Set environment variables
 

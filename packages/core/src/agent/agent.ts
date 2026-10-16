@@ -1,4 +1,6 @@
-import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
+import type { ModelTask } from '@/ai-model/model-adapter/types';
+import type { ModelRuntime } from '@/ai-model/models';
+import { resolveModelForTask } from '@/ai-model/models/task-routing';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import { IS_REPORT_BUILD } from '@/constants';
 import yaml from 'js-yaml';
@@ -445,9 +447,16 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     );
   }
 
-  private resolveModelRuntime(intent: TIntent): ModelRuntime {
-    const runtime = getModelRuntime(
-      this.modelConfigManager.getModelConfig(intent),
+  private resolveModelRuntime(intent: TIntent, task?: ModelTask): ModelRuntime {
+    const runtime = resolveModelForTask(
+      this.modelConfigManager,
+      intent,
+      task ??
+        (intent === 'default'
+          ? 'text'
+          : intent === 'insight'
+            ? 'extract'
+            : intent),
     );
     return {
       ...runtime,
@@ -467,7 +476,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   private createInsight(getUIContext?: () => UIContext): Insight {
     return new Insight(
       this.taskExecutor,
-      () => this.resolveModelRuntime('insight'),
+      (task) => this.resolveModelRuntime('insight', task),
       (apiName, callContext) => this.resolveUserContext(apiName, callContext),
       getUIContext,
     );
@@ -1720,7 +1729,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelRuntime = this.resolveModelRuntime('insight');
+    const modelRuntime = this.resolveModelRuntime('insight', 'boolean');
     const options = this.withContext('aiWaitFor', opt);
     await this.taskExecutor.waitFor(
       assertion,
