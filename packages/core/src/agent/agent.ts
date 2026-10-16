@@ -742,7 +742,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * Frames come from the device's continuous frame source when available
    * (scrcpy on Android, WDA MJPEG on iOS — both opt-in; CDP screencast on
    * web) and fall back to plain screenshots otherwise. Sampling is capped at
-   * 5fps. Sampled recordings thin their bounded buffer. Decoding is
+   * 50fps. Sampled recordings thin their bounded buffer; source mode records
+   * dropped frames and rejects AI judgment on incomplete evidence. Decoding is
    * deferred to the end. At insight time, Midscene analyzes every retained frame
    * and sends at most eight evidence images, emphasizing localized changes
    * while keeping full-screen baseline and final-state context.

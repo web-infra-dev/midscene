@@ -1119,7 +1119,8 @@ expect(onesieItem.price).toBe(7.99);
 
 ```typescript
 function startObserving(options?: {
-  intervalMs?: number; // 采样间隔。默认 1,000 ms，最小 200 ms
+  captureMode?: 'sampled' | 'source'; // default: sampled
+  intervalMs?: number; // 采样间隔。默认 1,000 ms，最小 20 ms；源帧模式忽略此项
   maxFrames?: number; // 最多保留的帧数。默认 30
   watchdogMs?: number; // 最长录制时间。默认 300,000 ms；0 表示不限制
 }): Promise<UIObserver>;
@@ -1150,6 +1151,7 @@ await observation.dispose();
 采样和资源占用：
 
 - Midscene 会优先使用连续帧源。Android 使用 scrcpy（`scrcpyConfig.enabled`），iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`），Web 使用 CDP screencast。无法使用连续帧源时，Midscene 会定时截图。移动端此时的采样频率较低。
+- 观察短暂反馈时，可以缩短 `intervalMs`，并根据录制时长设置足够大的 `maxFrames`。实际采样速度取决于帧源和截图处理耗时；设置 20 ms 间隔不能保证捕获每个持续 20 ms 的状态。默认采样模式超过 `maxFrames` 后会稀疏保留帧，同时保留首帧和最新帧。源帧模式会统计丢帧，并拒绝依据不完整证据作出 AI 判断。
 - 在 Node.js 中，查询和断言支持可选的 `observationRegion: { left, top, width, height }`，单位是处理后截图的像素。自动变化检测会限定在这个区域内；省略时搜索整个屏幕。模型仍会收到全屏首帧和最终状态图作为上下文。例如：`await observation.aiAssert('按钮的颜色发生了变化', undefined, { observationRegion: { left: 800, top: 550, width: 250, height: 200 } });`。浏览器运行时缺少图像分析后端，会使用采样的全屏图，并拒绝 `observationRegion`。
 - 分析时会先裁出观察区域，再缩放图像，区域外的变化不会影响检测或转变选帧。边界包含小数时，只分析完整落在区域内的像素；区域内没有完整像素时会报错。放大图可以包含周边上下文，但标出的测量框始终位于观察区域内。
 - Node.js 的变化区域分析要求所有源截图的原始像素尺寸一致。分辨率变化时会报错，避免生成错位的放大图。
@@ -1157,6 +1159,10 @@ await observation.dispose();
 - data URL 形式的帧会在采样时写入文件。`UIObserver` 不会把所有图片长期保存在内存中。其他帧会在录制停止时分批解码并保存。查询或断言时，Midscene 才读取图片。
 - Midscene 会分析保留下来的所有源帧，同时最多向模型发送 8 张证据图。检测到局部变化时，会发送最多 6 张放大的变化区域网格，以及首帧和最终状态的全屏图；否则会均匀抽取最多 8 张全屏图。观察证据会显示在报告时间线中，并带有 `Observed` 标签。
 - iOS 的观察帧来自 MJPEG 流，分辨率和质量较低。最后一张截图仍使用完整质量。
+
+进行计时时，可使用 `captureMode: 'source'` 配合支持推送的设备帧源。该模式逐帧保留已送达图像，达到 `maxFrames` 后把溢出计入 `droppedFrames`，不回退到普通截图采样。若发生丢帧，所有观察 AI 方法均在调用模型前抛出错误；仍可导出不完整证据供审阅。`intervalMs` 不生效。源图像不会转换为 JPEG 或缩放。
+
+用 `observer.recordEvent({name, timing})` 记录独立测量的输入时间范围，用 `await observation.exportRecord()` 导出全部保留帧及事件。时间包含 `clockId`、`kind`、`startMs`、`endMs`；`capturedAt` 仍为墙上时钟的展示或接收时间。不要跨时钟域比较，也不要将 AI 选出的证据图当作完整计时记录。`dispose()` 前需复制导出的图像文件。对阈值应计算保守上下界，跨越阈值时保留无法判定；合成器帧时间不能证明显示器物理呈现时间。
 
 #### `aiWaitFor()` {#agentaiwaitfor}
 

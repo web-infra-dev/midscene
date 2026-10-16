@@ -47,9 +47,9 @@ describe('recordAndReleaseScreenshotSequence', () => {
       evidence.frames.map(({ screenshot }) => screenshot),
     );
     expect(task.recorder?.map(({ description }) => description)).toEqual([
-      'Observed baseline — source frame 1/12',
-      'Observed change-regions — source frame 7/12',
-      'Observed final — source frame 12/12',
+      'Observed baseline — source frame 1/12; device time unavailable',
+      'Observed change-regions — source frame 7/12; device time unavailable',
+      'Observed final — source frame 12/12; device time unavailable',
     ]);
     expect(uiContext.screenshotSequence).toBeUndefined();
     expect(uiContext).not.toHaveProperty('screenshotSequenceEvidence');
