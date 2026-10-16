@@ -14,6 +14,7 @@ import type {
 import {
   type AbstractInterface,
   type ComputerInputPrimitives,
+  type DeviceFrameSource,
   type InputStrategy,
   type ResolvedTextInputOptions,
   defineAction,
@@ -657,6 +658,8 @@ export interface ComputerDeviceInputOpt {
 }
 
 export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
+  /** Explicit native/remote capture source. The caller owns display/guest selection and clock verification. */
+  observationFrameSource?: () => Promise<DeviceFrameSource>;
   displayId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   customActions?: DeviceAction<any>[];
@@ -877,6 +880,10 @@ export class ComputerDevice implements AbstractInterface {
       },
     },
   };
+
+  async openFrameSource(): Promise<DeviceFrameSource | undefined> {
+    return this.options?.observationFrameSource?.();
+  }
 
   constructor(options?: ComputerDeviceOpt) {
     if (
