@@ -1,10 +1,14 @@
 target:
   serve: ./dist
   url: demo-agent.html
+  deviceScaleFactor: 1
 tasks:
   - name: task selection and URL navigation stay in sync
     flow:
-      - aiTap: the first task in the Execution list
+      - aiTap:
+          locate:
+            prompt: the first Plan task row in the left Execution list, below the Act group heading
+            deepLocate: true
       # URL synchronization is DOM plumbing. Visual task navigation stays on AI.
       - javascript: |
           (() => {

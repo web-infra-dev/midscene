@@ -1,6 +1,6 @@
 # Report e2e coverage
 
-Report e2e tests exercise core user workflows against generated reports with real Agent recordings. Run `pnpm --filter @midscene/report e2e` with model credentials configured. The command builds the report and CLI, generates fixtures, and runs the YAML suites.
+Report e2e tests exercise core user workflows against generated reports with real Agent recordings. Run `pnpm --filter @midscene/report e2e` with model credentials configured. The command builds the report and CLI, generates fixtures, and runs all YAML suites before summarizing failures. Any failed suite still makes the command fail.
 
 ## Development principle
 
@@ -24,6 +24,8 @@ Use final outcomes everywhere: Passed, Failed and Not run. Passed includes Cases
 - Use playback, model details, theme switching and the mobile Steps/Player flow.
 
 Keep assertions short and describe the observable result of an action. Locators should include enough context to distinguish overlapping controls, such as Replay all tasks versus the single-task Replay tab, or the All cases drawer versus the execution steps list. Assert sorting through the resulting row order rather than the appearance of an arrow. Use exact fixture values for data correctness, independently of their visual arrangement.
+
+Do not depend on a full source path or filename being visible: CI paths can be long and intentionally truncated. Locate a File through its Project and hierarchy when its name is not the behavior under test. Before interacting with controls covered by a hover preview, move the pointer to a neutral target such as the Case title. Distinguish the selected Step's Record / Information / Events tabs from controls inside its embedded Agent recording; use `deepLocate` when the target needs closer inspection.
 
 Retain `aiAssert`, `aiTap`, `aiHover` and related AI coverage. Reserve JavaScript for browser integration that needs deterministic checks, such as history/hash changes, focus, native select events or comparing a value before and after navigation. Avoid assertions about CSS classes, colors, borders, spacing, dimensions and screenshot coordinates.
 

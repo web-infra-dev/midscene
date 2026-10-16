@@ -11,7 +11,7 @@
   overflow-y: hidden;
   box-sizing: border-box;
   border-radius: 16px;
-  background: #fff;
+  background: var(--report-surface);
 
   .page-nav {
     box-sizing: border-box;
@@ -23,7 +23,7 @@
     width: 100%;
     height: @report-pane-header-height;
     padding: 0 10px 0 8px;
-    background: #fff;
+    background: inherit;
     border-bottom: 1px solid #ededf0;
     border-radius: 16px 16px 0 0;
     flex-shrink: 0;
@@ -189,7 +189,7 @@
     overflow: auto;
     border: 0;
     border-radius: 0;
-    background: #fff;
+    background: transparent;
     color: #1f2937;
     font-family:
       'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', monospace;
@@ -287,7 +287,7 @@
       font-weight: 500;
       position: sticky;
       top: 0;
-      background: #fff;
+      background: var(--report-surface);
       z-index: 1;
 
       .header-cell {
@@ -692,10 +692,7 @@
 // Dark mode styles
 [data-theme='dark'] {
   .side-bar {
-    background: #1f1f1f;
-
     .page-nav {
-      background: #1f1f1f;
       border-bottom-color: rgba(255, 255, 255, 0.12);
 
       .page-nav-left {
@@ -750,7 +747,6 @@
     }
 
     .agent-markdown-source {
-      background: transparent;
       color: #f8fafd;
 
       .line-heading {
@@ -779,7 +775,6 @@
 
     .tasks-table {
       .table-header {
-        background: #1f1f1f;
         color: rgba(255, 255, 255, 0.45);
       }
 

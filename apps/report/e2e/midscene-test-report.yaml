@@ -87,9 +87,14 @@ tasks:
 
   - name: inspect recorded evidence information and events
     flow:
-      - aiTap: the Information tab for aiAct
+      # Closing the attempt menu can leave the pointer over a timeline preview.
+      - aiHover: the Checkout with retry Case title, outside screenshot timelines
+      - aiTap:
+          locate:
+            prompt: the Information tab between Record and Events in the selected aiAct Step's inspector, above the embedded Agent recording
+            deepLocate: true
       - aiAssert: The selected Step's Information shows Input, Output and Stable IDs.
-      - aiTap: the Events tab for aiAct
+      - aiTap: the Events tab beside Information in the selected Step's inspector
       - aiAssert: Runtime events include Started and Finished, with success reported for the finished operation.
-      - aiTap: the Record tab for aiAct
+      - aiTap: the Record tab beside Information in the selected Step's inspector
       - aiAssert: The recorded Agent task list and screenshot viewer are available.

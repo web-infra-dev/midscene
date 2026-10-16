@@ -4,8 +4,8 @@ target:
 tasks:
   - name: inspect Agent evidence from a legacy YAML Case timeline
     flow:
-      - aiAssert: The Test Report overview includes the web Project and generate-report.yaml.
-      - aiTap: Expand file generate-report.yaml
+      - aiAssert: The Test Report overview shows the web Project and a File with 2 passed Cases.
+      - aiTap: Expand the only File in the web Project's Files table
       - aiTap: the login to sauce demo Case
       - aiAssert: The Case has execution steps and a screenshot timeline.
       - aiTap: a screenshot in the Case timeline above the execution steps
