@@ -1,6 +1,9 @@
 import type { TestRunReportDump } from '@midscene/core';
+import type { PlaywrightTasks } from '../../types';
 import type { RunnerHealthStats } from './model';
 import { StatusBadge } from './status-badge';
+import { TokenUsageTooltip } from './token-usage';
+import { getRunTokenUsage } from './token-usage-model';
 import { formatDuration, formatTimestamp } from './view-primitives';
 
 export function RunSummary({
@@ -12,12 +15,14 @@ export function RunSummary({
     0,
   ),
   onReviewOutcome,
+  reports,
 }: {
   dump: TestRunReportDump;
   health: RunnerHealthStats;
   totalCaseCount: number;
   totalFileCount?: number;
   onReviewOutcome(): void;
+  reports?: PlaywrightTasks[];
 }): JSX.Element {
   const successfulWithRetries =
     dump.summary.failed === 0 &&
@@ -35,10 +40,8 @@ export function RunSummary({
       : status === 'warning'
         ? 'Passed after retry'
         : 'Run passed';
-  const tokenStatus =
-    dump.metrics.collection?.fields?.totalTokens ??
-    dump.metrics.collection?.status ??
-    'unknown';
+  const usage = getRunTokenUsage(dump.metrics);
+  const tokenStatus = usage.status;
   const counts = [
     {
       label: 'Passed',
@@ -109,7 +112,7 @@ export function RunSummary({
         <span>
           Created at <strong>{formatTimestamp(dump.startedAt)}</strong>
         </span>
-        <span>
+        <TokenUsageTooltip usage={usage} reports={reports} scope="run">
           tokens
           <strong>
             {tokenStatus === 'unknown'
@@ -117,7 +120,7 @@ export function RunSummary({
               : dump.metrics.totalTokens.toLocaleString()}
           </strong>
           {tokenStatus === 'partial' ? '(partial)' : null}
-        </span>
+        </TokenUsageTooltip>
         <span>
           total time <strong>{formatDuration(dump.durationMs)}</strong>
         </span>

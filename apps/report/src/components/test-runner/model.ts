@@ -9,6 +9,10 @@ import type {
 } from '@midscene/core';
 import type { PlaywrightTasks } from '../../types';
 import { getReportDocuments } from './report-documents';
+import {
+  type TokenUsageSummary,
+  getStepsTokenUsage,
+} from './token-usage-model';
 
 export type RunnerCaseStatus = 'passed' | 'retry-passed' | 'failed' | 'not-run';
 
@@ -121,36 +125,8 @@ export const flattenAttemptSteps = (
 
 export const getCaseTokenSummary = (
   testCase: TestRunReportCase,
-): { totalTokens: number; status: 'complete' | 'partial' | 'unknown' } => {
-  let totalTokens = 0;
-  let hasKnownUsage = false;
-  let incomplete = false;
-
-  for (const step of testCase.attempts.flatMap(flattenAttemptSteps)) {
-    if (step.status === 'not-run') continue;
-    if (!step.metrics) {
-      if (
-        step.agentDetails?.length ||
-        step.evidenceCollection?.modelUsageUnavailable
-      )
-        incomplete = true;
-      continue;
-    }
-    const status =
-      step.metrics.collection?.fields?.totalTokens ??
-      step.metrics.collection?.status ??
-      'complete';
-    if (status !== 'complete') incomplete = true;
-    if (status === 'unknown') continue;
-    hasKnownUsage = true;
-    totalTokens += step.metrics.totalTokens;
-  }
-
-  return {
-    totalTokens,
-    status: incomplete ? (hasKnownUsage ? 'partial' : 'unknown') : 'complete',
-  };
-};
+): TokenUsageSummary =>
+  getStepsTokenUsage(testCase.attempts.flatMap(flattenAttemptSteps));
 
 export const getCaseStatus = (testCase: TestRunReportCase): RunnerCaseStatus =>
   testCase.status === 'not-run'

@@ -54,6 +54,11 @@ should point here instead of duplicating rules.
   `apps/report/e2e/report-single.yaml`, keep the report loading assertions on
   `aiAssert`; if they are flaky, improve the prompt, timing, or fixture while
   preserving `aiAssert` coverage.
+- Follow the Report development and test scope in
+  `CONTRIBUTING.md#report-development-and-test-scope`: prioritize core workflows
+  and data correctness, and avoid making incidental visual details default
+  test or review gates. Usability defects that block those workflows still need
+  coverage.
 - Do not hand-edit generated output under `dist/` or `apps/site/doc_build/`.
 - When changing shared packages or exported entry points, run a focused build
   for the affected project before finishing.

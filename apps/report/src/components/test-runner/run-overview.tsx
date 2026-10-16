@@ -52,6 +52,10 @@ export function RunOverview({
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const reportIssues = issues ?? collectReportIssues(dump);
+  const reports = useMemo(
+    () => [...visualIndex.reportsById.values()],
+    [visualIndex],
+  );
   const breakdownRef = useRef<HTMLElement>(null);
   const navigationProjects = useMemo(
     () =>
@@ -148,6 +152,7 @@ export function RunOverview({
     <div className="runner-page runner-overview">
       <RunSummary
         dump={dump}
+        reports={reports}
         health={health}
         totalCaseCount={totalCaseCount}
         totalFileCount={

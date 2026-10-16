@@ -346,7 +346,7 @@ describe('report lifecycle failures', () => {
       dump.projects[0].documents[0].cases[0].attempts[1].steps[0].metrics,
     ).toEqual(metrics);
     const cases = flattenRunnerCases(dump);
-    expect(getCaseTokenSummary(cases[0].testCase)).toEqual({
+    expect(getCaseTokenSummary(cases[0].testCase)).toMatchObject({
       totalTokens: 1234,
       status: 'complete',
     });

@@ -154,6 +154,7 @@ export function CaseWorkspace({
     <div className="runner-page runner-case-workspace">
       <CaseWorkspaceHeader
         item={item}
+        reports={reports}
         standaloneRun={standaloneRun}
         backLabel={backLabel}
         onBack={onBack}

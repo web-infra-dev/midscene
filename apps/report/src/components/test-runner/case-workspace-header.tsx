@@ -1,10 +1,16 @@
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import type { TestRunReportAttempt, TestRunReportDump } from '@midscene/core';
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
+import type { PlaywrightTasks } from '../../types';
 import { AttemptSelect } from './attempt-select';
-import { type RunnerCaseView, getCaseTokenSummary } from './model';
+import {
+  type RunnerCaseView,
+  flattenAttemptSteps,
+  getCaseTokenSummary,
+} from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
 import { StatusBadge } from './status-badge';
+import { TokenUsageTooltip } from './token-usage';
 import { CaseStatus, formatDuration } from './view-primitives';
 
 export function CaseWorkspaceHeader({
@@ -12,6 +18,7 @@ export function CaseWorkspaceHeader({
   backLabel,
   onBack,
   standaloneRun,
+  reports,
   caseNavigation,
   children,
 }: {
@@ -19,10 +26,19 @@ export function CaseWorkspaceHeader({
   backLabel: string;
   onBack(): void;
   standaloneRun?: TestRunReportDump;
+  reports?: PlaywrightTasks[];
   caseNavigation?: ReactNode;
   children?: ReactNode;
 }): JSX.Element {
   const tokens = getCaseTokenSummary(item.testCase);
+  const details = useMemo(
+    () =>
+      item.testCase.attempts
+        .flatMap(flattenAttemptSteps)
+        .filter((step) => step.status !== 'not-run')
+        .flatMap((step) => step.agentDetails ?? []),
+    [item.testCase],
+  );
   return (
     <section className="runner-detail-case-header">
       {caseNavigation}
@@ -59,7 +75,12 @@ export function CaseWorkspaceHeader({
                   item.testCase.attempts.length}
               </strong>
             </span>
-            <span title="Cumulative model tokens across all Case attempts, including per-case setup and teardown.">
+            <TokenUsageTooltip
+              usage={tokens}
+              reports={reports}
+              details={details}
+              scope="case"
+            >
               Tokens
               <strong>
                 {tokens.status === 'unknown'
@@ -67,7 +88,7 @@ export function CaseWorkspaceHeader({
                   : tokens.totalTokens.toLocaleString()}
               </strong>
               {tokens.status === 'partial' ? '(partial)' : null}
-            </span>
+            </TokenUsageTooltip>
             <span>
               Case time{' '}
               <strong>
@@ -79,7 +100,9 @@ export function CaseWorkspaceHeader({
           </div>
         </div>
       </div>
-      {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
+      {standaloneRun && (
+        <SingleCaseRunInfo dump={standaloneRun} reports={reports} />
+      )}
       {children}
     </section>
   );

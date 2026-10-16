@@ -451,12 +451,23 @@ describe('Midscene Test hybrid report model', () => {
       step('teardown', 'success', { metrics: tokenMetrics(15) }),
     ];
     first.steps[0].metrics = tokenMetrics(1_000);
+    first.steps[0].metrics.promptTokens = 800;
+    first.steps[0].metrics.cachedInputTokens = 300;
+    first.steps[0].metrics.completionTokens = 200;
     second.steps[0].metrics = tokenMetrics(2_000);
+    second.steps[0].metrics.promptTokens = 1_600;
+    second.steps[0].metrics.cachedInputTokens = 600;
+    second.steps[0].metrics.completionTokens = 400;
     second.steps[1].metrics = tokenMetrics(500);
 
     expect(getCaseTokenSummary(item.testCase)).toEqual({
       totalTokens: 3_550,
+      promptTokens: 2_950,
+      cachedInputTokens: 900,
+      completionTokens: 600,
+      modelCallCount: 5,
       status: 'complete',
+      callStatus: 'complete',
     });
     const markup = renderToStaticMarkup(
       createElement(CaseWorkspaceHeader, {
@@ -498,7 +509,7 @@ describe('Midscene Test hybrid report model', () => {
         step('known', 'success', { metrics: tokenMetrics(known) }),
         step('unknown', 'failed', { metrics: tokenMetrics(9_999, 'unknown') }),
       ];
-      expect(getCaseTokenSummary(item.testCase)).toEqual({
+      expect(getCaseTokenSummary(item.testCase)).toMatchObject({
         totalTokens: known,
         status: 'partial',
       });
@@ -514,7 +525,7 @@ describe('Midscene Test hybrid report model', () => {
       modelTimeMs: 'unknown',
     };
     item.testCase.attempts[0].steps[0].metrics = metrics;
-    expect(getCaseTokenSummary(item.testCase)).toEqual({
+    expect(getCaseTokenSummary(item.testCase)).toMatchObject({
       totalTokens: 500,
       status: 'complete',
     });
@@ -524,7 +535,7 @@ describe('Midscene Test hybrid report model', () => {
     const cases = flattenRunnerCases(dump);
     expect(getCaseTokenSummary(cases[1].testCase).status).toBe('unknown');
     for (const index of [0, 3])
-      expect(getCaseTokenSummary(cases[index].testCase)).toEqual({
+      expect(getCaseTokenSummary(cases[index].testCase)).toMatchObject({
         totalTokens: 0,
         status: 'complete',
       });
@@ -551,9 +562,13 @@ describe('Midscene Test hybrid report model', () => {
       '<span>Passed after retry</span><strong>1</strong>',
     );
     expect(markup).toContain('<span>Not run</span><strong>1</strong>');
-    expect(markup).toContain(
-      'aria-label="1 Passed without retry, 1 Failed, 1 Passed after retry, 1 Not run"',
-    );
+    for (const outcome of [
+      'Passed without retry',
+      'Failed',
+      'Passed after retry',
+      'Not run',
+    ])
+      expect(markup).toContain(`1 ${outcome}`);
     expect(markup).toContain('tokens<strong>—</strong>');
     expect(markup).not.toContain('runner-overview-outcome-message');
     expect(markup).toContain('>run failed</span>');
@@ -583,9 +598,13 @@ describe('Midscene Test hybrid report model', () => {
     );
     expect(markup).toContain('Review case results: 0 of 0 passed');
     expect(markup).toContain('tokens<strong>—</strong>');
-    expect(markup).toContain(
-      'aria-label="0 Passed without retry, 0 Failed, 0 Passed after retry, 0 Not run"',
-    );
+    for (const outcome of [
+      'Passed without retry',
+      'Failed',
+      'Passed after retry',
+      'Not run',
+    ])
+      expect(markup).toContain(`0 ${outcome}`);
     expect(markup).not.toContain('flex-grow:');
     expect(markup).not.toContain('NaN');
   });

@@ -55,9 +55,12 @@ tasks:
     flow:
       - aiTap: the Checkout with retry Case
       - aiAssert: Attempt 1 is selected. order.create failed with Inventory was not ready, and the Case has a nonzero Tokens total. Information shows input sku demo-item and a redacted apiKey.
+      - aiHover: the Tokens total in the Case header
+      - aiAssert: A model usage tooltip shows model calls and input, cached input, output, and total tokens.
+      - aiHover: the Case title
       - javascript: |
           (() => {
-            const tokens = document.querySelector('.runner-case-meta [title^="Cumulative model tokens"] strong')?.textContent;
+            const tokens = document.querySelector('[aria-label="Case model token usage"] strong')?.textContent;
             const total = Number(tokens?.replaceAll(',', ''));
             if (!Number.isFinite(total) || total <= 0) throw new Error('Expected cumulative Case tokens');
             window.caseTokensBeforeRetrySwitch = tokens;
@@ -73,7 +76,7 @@ tasks:
       - aiAssert: Attempt 2 succeeded. aiAct is selected and its recorded Agent execution is available.
       - javascript: |
           (() => {
-            const tokens = document.querySelector('.runner-case-meta [title^="Cumulative model tokens"] strong')?.textContent;
+            const tokens = document.querySelector('[aria-label="Case model token usage"] strong')?.textContent;
             if (tokens !== window.caseTokensBeforeRetrySwitch) throw new Error('Case tokens must include all attempts and remain unchanged when switching');
             delete window.caseTokensBeforeRetrySwitch;
           })();
