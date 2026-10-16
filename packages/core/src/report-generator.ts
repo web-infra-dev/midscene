@@ -479,8 +479,8 @@ ${generateAgentReportComment(agentDump)}`;
       return;
     }
 
-    const reportDir = dirname(this.reportPath);
-    const existingExecutionIndices = readdirSync(reportDir)
+    if (!existsSync(this.executionDumpDir)) return;
+    const existingExecutionIndices = readdirSync(this.executionDumpDir)
       .map((name) => /^(\d+)\.execution\.json$/.exec(name)?.[1])
       .filter((index): index is string => Boolean(index))
       .map((index) => Number.parseInt(index, 10))
@@ -620,12 +620,24 @@ ${generateAgentReportComment(agentDump)}`;
     return key;
   }
 
+  private get executionDumpDir(): string {
+    // Inline HTML files share their parent directory. Each needs its own
+    // numbered JSON namespace; external-asset reports already have one.
+    return this.screenshotMode === 'inline'
+      ? join(
+          dirname(this.reportPath),
+          '.execution-dumps',
+          basename(this.reportPath),
+        )
+      : dirname(this.reportPath);
+  }
+
   private async persistExecutionDumpToFile(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
     referenceImageRefs: ReadonlyMap<string, ImageUrlRef>,
   ): Promise<void> {
-    const dir = dirname(this.reportPath);
+    const dir = this.executionDumpDir;
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -640,12 +652,30 @@ ${generateAgentReportComment(agentDump)}`;
     }
 
     const fileName = `${fileIndex}.execution.json`;
-    const filePath = join(dirname(this.reportPath), fileName);
-    await writeFileAsync(
-      filePath,
-      singleDump.serializeWithReferenceImages(referenceImageRefs, 2),
-      'utf-8',
+    const filePath = join(dir, fileName);
+    let serialized = singleDump.serializeWithReferenceImages(
+      referenceImageRefs,
+      2,
     );
+    if (this.screenshotMode === 'inline') {
+      // JSON is two directories below the HTML. Point to the existing file
+      // copies so it can be consumed without resolving inline HTML assets.
+      serialized = JSON.stringify(
+        JSON.parse(serialized),
+        (_key, value) => {
+          const ref = normalizeStoredImageRef(value);
+          return ref
+            ? {
+                ...ref,
+                storage: 'file',
+                path: `../../screenshots/${ref.id}.${imageRefFileExtension(ref)}`,
+              }
+            : value;
+        },
+        2,
+      );
+    }
+    await writeFileAsync(filePath, serialized, 'utf-8');
   }
 }
 

@@ -21,6 +21,7 @@ const createInterfaceStub = () =>
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
+  (agent as any).reportState = { activeOperations: new Set() };
   const taskExecutor = {
     action: rs.fn(async (..._args: unknown[]) => ({
       output: {
