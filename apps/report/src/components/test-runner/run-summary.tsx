@@ -46,13 +46,13 @@ export function RunSummary({
       description: 'Passed without retry',
       tone: 'success',
     },
-    { label: 'Failed', value: dump.summary.failed, tone: 'danger' },
     {
       label: 'Passed after retry',
       value: health.retryPassedCount,
       description: 'Passed after retry',
       tone: 'warning',
     },
+    { label: 'Failed', value: dump.summary.failed, tone: 'danger' },
     { label: 'Not run', value: dump.summary.notRun, tone: 'neutral' },
   ];
   return (

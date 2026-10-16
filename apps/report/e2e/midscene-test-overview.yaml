@@ -7,7 +7,7 @@ target:
 tasks:
   - name: grouped project navigation keeps file errors distinct from failed cases
     flow:
-      - aiAssert: The summary shows 4 of 5 cases passed, with a result bar and legend showing 3 passed without retry, 0 failed, 1 passed after retry and 1 not run. The run information shows 2 Projects and 6 Files. Web regression is selected under Failed in the left project navigation; its Case outcome summary is shortened with an ellipsis to fit its row. Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
+      - aiAssert: The summary shows 4 of 5 cases passed. The legend reads left to right as 3 passed without retry, 1 passed after retry, 0 failed and 1 not run, and the result bar follows the same order while omitting the zero-count failed segment. The run information shows 2 Projects and 6 Files. Web regression is selected under Failed in the left project navigation; its Case outcome summary is shortened with an ellipsis to fit its row. Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
       - javascript: |
           (() => {
             const table = document.querySelector('.runner-file-table');
