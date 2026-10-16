@@ -12,7 +12,7 @@ import { HeroStats, TestExample, AgentVisionDemo, AgentModels, AgentPlatforms, T
 
 # See interfaces like a human<br />E2E testing in natural language
 
-A GUI Agent and E2E testing framework for web, mobile, and desktop apps.
+Midscene.js provides a vision-based GUI Agent and a natural-language E2E testing framework for web, mobile, and desktop apps.
 
 <div className="rp-not-doc">
   <HeroStats />
@@ -43,7 +43,7 @@ Midscene uses vision to complete tasks the way a person interacts with an app: l
 
 ### One API, across platforms {#platforms}
 
-Visual localization does not depend on a particular UI rendering stack. Platform adapters provide screenshots and actions, bringing the same approach to web, mobile, and desktop interfaces, including Canvas.
+Visual localization does not depend on a particular UI rendering stack. Platform adapters provide screenshots and actions, bringing the same approach to web, mobile, and desktop interfaces, including HTML canvas.
 
 <div className="rp-not-doc introduction-block">
   <AgentPlatforms hideHeading />
@@ -54,14 +54,6 @@ Visual localization does not depend on a particular UI rendering stack. Platform
 <div className="rp-not-doc introduction-block">
   <AgentModels hideHeading />
 </div>
-
-### Integrate, replay, and debug {#agent-toolkit}
-
-Use the GUI Agent directly without adopting Midscene Test. Connect it to your workflow through APIs, Playwright, Puppeteer, or Skills.
-
-- **Flexible APIs**: Add autonomous flows, precise actions, visual assertions, and data extraction to existing Playwright, Puppeteer, or JavaScript tests. [Explore the APIs](./reference/)
-- **Replay and debugging**: Review screenshots, AI decisions, and execution results in reports, then try and refine instructions in the Playground. [Get started](./quick-start)
-- **Skills for AI coding agents**: Let AI coding agents operate apps, verify interfaces, and inspect execution results through Midscene Skills. [Explore Skills](./skills)
 
 ### Benchmarks {#benchmarks}
 
@@ -74,6 +66,8 @@ Use the GUI Agent directly without adopting Midscene Test. Connect it to your wo
 Midscene Test (`@midscene/test`) is designed from the ground up for natural-language E2E testing. Write actions and assertions in YAML, extend test steps with TypeScript Nodes, and manage setup, cleanup, retries, and execution reports within one framework. [Get started with Midscene Test](./midscene-test/use)
 
 ### AI steps and Nodes in one YAML file {#ai-and-nodes}
+
+Organize tests in YAML so people and AI agents can read, write, and review natural-language intent alongside code steps.
 
 <div className="rp-not-doc introduction-block">
   <TestFramework hideHeading />

@@ -92,7 +92,6 @@ export function TestFramework({
               <h2 id="home-framework-title">{t('frameworkHeading')}</h2>
             </header>
           )}
-          <p className="home-framework__lead">{t('frameworkDesc')}</p>
 
           <ul
             className="home-framework__legend"

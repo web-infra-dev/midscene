@@ -31,7 +31,7 @@ export const EN_US = {
   // Banner - Title
   heroTitle: 'See interfaces like a human\nE2E testing in natural language',
   heroSubtitle:
-    'A GUI Agent and E2E testing framework for web, mobile, and desktop apps.',
+    'Midscene.js provides a vision-based GUI Agent and a natural-language E2E testing framework for web, mobile, and desktop apps.',
 
   openSource: 'Fully open source',
 
