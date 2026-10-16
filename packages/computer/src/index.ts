@@ -1,3 +1,12 @@
+export {
+  ObservationFrameSource,
+  RegionObservation,
+} from './observation-frame-source';
+export type {
+  ObservationFrameProcessOptions,
+  RegionGeometry,
+  RegionMeasurementFrame,
+} from './observation-frame-source';
 export { ComputerDevice } from './device';
 export type { ComputerDeviceOpt, DisplayInfo } from './device';
 

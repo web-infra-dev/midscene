@@ -28,6 +28,7 @@ function createLocalComputerDevice(
 ): ComputerDevice {
   return new ComputerDevice({
     displayId: opts?.displayId,
+    observationFrameSource: opts?.observationFrameSource,
     customActions: opts?.customActions,
     keyboardTypeDelay: opts?.keyboardTypeDelay,
     inputStrategy: opts?.inputStrategy,
