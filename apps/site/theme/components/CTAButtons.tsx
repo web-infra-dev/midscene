@@ -14,7 +14,7 @@ export function CTAButtons({ variant = 'default' }: CTAButtonsProps) {
     return (
       <div className="home-hero__actions">
         <Link
-          href={tUrl('/introduction')}
+          href={tUrl('/quick-start')}
           className="home-hero__button home-hero__button--primary"
         >
           <span>{t('introduction')}</span>

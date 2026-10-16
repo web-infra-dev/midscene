@@ -1,9 +1,11 @@
-import { CodeBlockRuntime } from '@rspress/core/theme';
+import { CodeBlockRuntime, Tab, Tabs } from '@rspress/core/theme';
 import { useI18n } from '../i18n';
 import { SectionDivider } from './SectionDivider';
 import './TestExample.css';
 
-export function TestExample() {
+export function TestExample({
+  hideHeading = false,
+}: { hideHeading?: boolean }) {
   const t = useI18n();
   const name = JSON.stringify(t('exampleCase'));
   const act = JSON.stringify(t('exampleAct'));
@@ -33,28 +35,35 @@ test(${name}, async () => {
     <>
       <section
         className="home-feature home-example"
-        aria-labelledby="home-example-title"
+        aria-labelledby={hideHeading ? undefined : 'home-example-title'}
       >
         <div className="home-feature__inner">
-          <header className="home-feature__header">
-            <div className="home-feature__heading-block">
-              <span className="home-feature__eyebrow">
-                <span aria-hidden="true">{'//'}</span>
-                {t('exampleEyebrow')}
-              </span>
-              <h2 id="home-example-title">{t('exampleHeading')}</h2>
-            </div>
-          </header>
+          {!hideHeading && (
+            <header className="home-feature__header">
+              <div className="home-feature__heading-block">
+                <span className="home-feature__eyebrow">
+                  <span aria-hidden="true">{'//'}</span>
+                  {t('exampleEyebrow')}
+                </span>
+                <h2 id="home-example-title">{t('exampleHeading')}</h2>
+              </div>
+              <p className="home-chapter-intro">{t('exampleDesc')}</p>
+            </header>
+          )}
 
-          <div className="home-example__codes">
-            <div className="home-example__code">
-              <h3>{t('exampleYamlTitle')}</h3>
-              <CodeBlockRuntime lang="yaml" code={yaml} wrapCode />
-            </div>
-            <div className="home-example__code">
-              <h3>Vitest + JavaScript</h3>
-              <CodeBlockRuntime lang="javascript" code={javascript} wrapCode />
-            </div>
+          <div className="home-example__code">
+            <Tabs defaultValue="yaml">
+              <Tab label="YAML · @midscene/test" value="yaml">
+                <CodeBlockRuntime lang="yaml" code={yaml} wrapCode />
+              </Tab>
+              <Tab label="Vitest + JavaScript" value="vitest">
+                <CodeBlockRuntime
+                  lang="javascript"
+                  code={javascript}
+                  wrapCode
+                />
+              </Tab>
+            </Tabs>
           </div>
         </div>
       </section>

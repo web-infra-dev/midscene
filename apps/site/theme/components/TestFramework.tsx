@@ -1,138 +1,178 @@
-import { CodeBlockRuntime, Tab, Tabs } from '@rspress/core/theme';
-import { Link } from '@rspress/core/theme-original';
-import { ArrowRight } from 'lucide-react';
-import { useI18n, useI18nUrl } from '../i18n';
+import { useState } from 'react';
+import { useI18n } from '../i18n';
 import './TestFramework.css';
 
-export function TestFramework() {
+type StepKind = 'ai' | 'node';
+
+interface YamlLine {
+  indent: number;
+  key?: string;
+  value?: string;
+  item?: boolean;
+  kind?: StepKind;
+}
+
+export function TestFramework({
+  hideHeading = false,
+}: { hideHeading?: boolean }) {
   const t = useI18n();
-  const tUrl = useI18nUrl();
-  const yaml = `beforeEach:
-  - user.create: { name: Alice }
-  - gotoUrl: https://your-app.example/users
+  const [focus, setFocus] = useState<StepKind | null>(null);
 
-cases:
-  - name: ${t('frameworkCase')}
-    steps:
-      - aiAct: ${t('frameworkAct')}
-      - aiAssert: ${t('frameworkAssert')}`;
-  const node = `import { defineNode, z } from '@midscene/test';
-import { userService } from './user-service';
-
-export const createUser = defineNode({
-  name: 'user.create',
-  description: ${JSON.stringify(t('frameworkNodeDescription'))},
-  inputSchema: z.strictObject({ name: z.string() }),
-  async execute({ input, onTeardown }) {
-    const user = await userService.create(input);
-    onTeardown(() => userService.remove(user.id));
-  },
-});`;
-  const spec = [
-    '### `user.create`',
-    '',
-    t('frameworkNodeDescription'),
-    '',
-    '**String shorthand:** Not supported by this Node.',
-    '',
-    '#### Input Schema',
-    '',
-    '```json',
-    '{',
-    '  "type": "object",',
-    '  "properties": { "name": { "type": "string" } },',
-    '  "required": ["name"]',
-    '}',
-    '```',
-    '',
-    `<!-- ${t('frameworkSpecOmitted')} -->`,
-  ].join('\n');
-  const examples = [
+  const lines: YamlLine[] = [
+    { indent: 0, key: 'beforeEach' },
     {
-      label: t('frameworkYamlTab'),
-      file: 'cases/users.yaml',
-      lang: 'yaml',
-      code: yaml,
-      note: t('frameworkYamlNote'),
+      indent: 2,
+      item: true,
+      key: 'order.prepare',
+      value: '{ status: paid }',
+      kind: 'node',
     },
     {
-      label: t('frameworkNodeTab'),
-      file: 'nodes.ts',
-      lang: 'typescript',
-      code: node,
-      note: t('frameworkNodeNote'),
+      indent: 2,
+      item: true,
+      key: 'gotoUrl',
+      value: '${shopUrl}/orders/latest',
+      kind: 'node',
+    },
+    { indent: 0 },
+    { indent: 0, key: 'cases' },
+    { indent: 2, item: true, key: 'name', value: t('frameworkCaseName') },
+    { indent: 4, key: 'steps' },
+    {
+      indent: 6,
+      item: true,
+      key: 'aiAct',
+      value: t('frameworkCaseAct'),
+      kind: 'ai',
     },
     {
-      label: 'Node Spec',
-      file: 'midscene-node-spec.md',
-      lang: 'markdown',
-      code: spec,
-      note: t('frameworkSpecNote'),
+      indent: 6,
+      item: true,
+      key: 'aiAssert',
+      value: t('frameworkCaseAssert'),
+      kind: 'ai',
+    },
+    {
+      indent: 6,
+      item: true,
+      key: 'order.checkRefund',
+      value: '{ status: refunding }',
+      kind: 'node',
+    },
+    { indent: 0 },
+    { indent: 0, key: 'afterEach' },
+    { indent: 2, item: true, key: 'clearCookies', value: '{}', kind: 'node' },
+  ];
+
+  const legend: { kind: StepKind; title: string; description: string }[] = [
+    {
+      kind: 'ai',
+      title: t('frameworkAiTitle'),
+      description: t('frameworkAiDesc'),
+    },
+    {
+      kind: 'node',
+      title: t('frameworkNodeTitle'),
+      description: t('frameworkNodeDesc'),
     },
   ];
+
   return (
     <section
       className="home-feature home-framework"
-      aria-labelledby="home-framework-title"
+      aria-labelledby={hideHeading ? undefined : 'home-framework-title'}
     >
       <div className="home-feature__inner home-framework__layout">
         <div className="home-framework__copy">
-          <header className="home-feature__heading-block">
-            <span className="home-feature__eyebrow">
-              <span aria-hidden="true">{'//'}</span>@midscene/test
-            </span>
-            <h2 id="home-framework-title">{t('frameworkHeading')}</h2>
-          </header>
-          <div className="home-framework__points">
-            <div>
-              <h3>{t('frameworkYamlTitle')}</h3>
-              <p>{t('frameworkYamlDesc')}</p>
-            </div>
-            <div>
-              <h3>{t('frameworkNodeTitle')}</h3>
-              <p>{t('frameworkNodeDesc')}</p>
-            </div>
-            <div>
-              <h3>{t('frameworkSpecTitle')}</h3>
-              <p>{t('frameworkSpecDesc')}</p>
-            </div>
-          </div>
-          <Link
-            className="home-framework__link"
-            href={tUrl('/midscene-test/overview')}
+          {!hideHeading && (
+            <header className="home-feature__heading-block">
+              <span className="home-feature__eyebrow">
+                <span aria-hidden="true">{'//'}</span>@midscene/test
+              </span>
+              <h2 id="home-framework-title">{t('frameworkHeading')}</h2>
+            </header>
+          )}
+
+          <ul
+            className="home-framework__legend"
+            aria-label={t('frameworkLegendLabel')}
           >
-            {t('frameworkLink')}
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-        <div className="home-framework__examples">
-          <Tabs defaultValue="yaml">
-            {examples.map((example) => (
-              <Tab
-                key={example.file}
-                label={example.label}
-                value={example.lang === 'yaml' ? 'yaml' : example.file}
-              >
-                <CodeBlockRuntime
-                  lang={example.lang}
-                  code={[
-                    example.lang === 'markdown'
-                      ? `<!-- ${example.file}\n${example.note} -->`
-                      : [example.file, example.note]
-                          .map(
-                            (line) =>
-                              `${example.lang === 'yaml' ? '#' : '//'} ${line}`,
-                          )
-                          .join('\n'),
-                    example.code,
-                  ].join('\n\n')}
-                  wrapCode
-                  codeButtonGroupProps={{ showWrapCodeButton: false }}
-                />
-              </Tab>
+            {legend.map((item) => (
+              <li key={item.kind}>
+                <button
+                  type="button"
+                  className={`home-framework__legend-item home-framework__legend-item--${item.kind}`}
+                  aria-pressed={focus === item.kind}
+                  onClick={() => setFocus(item.kind)}
+                  onMouseEnter={() => setFocus(item.kind)}
+                  onMouseLeave={() => setFocus(null)}
+                  onFocus={() => setFocus(item.kind)}
+                  onBlur={() => setFocus(null)}
+                >
+                  <span className="home-framework__tag" aria-hidden="true">
+                    {item.kind === 'ai' ? 'AI' : 'Node'}
+                  </span>
+                  <span className="home-framework__legend-text">
+                    <strong>{item.title}</strong>
+                    <span>{item.description}</span>
+                  </span>
+                </button>
+              </li>
             ))}
-          </Tabs>
+          </ul>
         </div>
+
+        <figure
+          className="home-framework__file"
+          data-focus={focus ?? undefined}
+        >
+          <figcaption className="home-framework__file-bar">
+            <span className="home-framework__dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            cases/refund.yaml
+          </figcaption>
+          <pre className="home-framework__code">
+            <code>
+              {lines.map((line, index) => (
+                <span
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static lines
+                  key={index}
+                  className="home-framework__line"
+                  data-kind={line.kind}
+                >
+                  <span className="home-framework__line-no" aria-hidden="true">
+                    {index + 1}
+                  </span>
+                  <span className="home-framework__line-text">
+                    {' '.repeat(line.indent)}
+                    {line.item && (
+                      <span className="home-framework__punct">- </span>
+                    )}
+                    {line.key && (
+                      <>
+                        <span className="home-framework__key">{line.key}</span>
+                        <span className="home-framework__punct">:</span>
+                      </>
+                    )}
+                    {line.value && (
+                      <span className="home-framework__value">
+                        {` ${line.value}`}
+                      </span>
+                    )}
+                  </span>
+                  {line.kind && (
+                    <span className="home-framework__tag">
+                      {line.kind === 'ai' ? 'AI' : 'Node'}
+                    </span>
+                  )}
+                </span>
+              ))}
+            </code>
+          </pre>
+        </figure>
       </div>
     </section>
   );
