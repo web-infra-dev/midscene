@@ -1,12 +1,13 @@
-target:
-  serve: ./dist
-  url: demo-midscene-test-lifecycle.html
-  viewportWidth: 1440
-  viewportHeight: 1200
-  deviceScaleFactor: 1
-tasks:
+beforeAll:
+  - report.open:
+      path: demo-midscene-test-lifecycle.html
+      viewportWidth: 1440
+      viewportHeight: 1200
+      deviceScaleFactor: 1
+
+cases:
   - name: inspect setup and cleanup failures
-    flow:
+    steps:
       - aiAssert: The run failed. Project browser disposal failed is reported, and the Cases include Verify cart summary and the not-run Blocked by document setup.
       - aiTap: the Blocked by document setup Case
       - aiAssert: The Case did not run. The failed fixture.connect setup Step shows Database connection refused and input host fixture-database. No retry attempt can be selected.

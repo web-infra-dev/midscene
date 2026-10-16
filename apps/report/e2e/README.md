@@ -1,6 +1,6 @@
 # Report e2e coverage
 
-Report e2e tests exercise core user workflows against generated reports with real Agent recordings. Run `pnpm --filter @midscene/report e2e` with model credentials configured. The command builds the report and CLI, generates fixtures, and runs all YAML suites before summarizing failures. Any failed suite still makes the command fail.
+Report e2e tests exercise core user workflows against generated reports with real Agent recordings. Run `pnpm --filter @midscene/report e2e` with model credentials configured. The command builds the report and CLI, generates fixtures, and runs all YAML suites through Midscene Test before summarizing failures. The project sets `test.bail: 0` so a failed Case does not prevent later files from running. Any failed suite still makes the command fail.
 
 ## Development principle
 
@@ -33,4 +33,4 @@ Retain `aiAssert`, `aiTap`, `aiHover` and related AI coverage. Reserve JavaScrip
 
 Put aggregation rules, serialization limits, state transitions and functional calculations in the nearest unit tests. Add e2e coverage when browser integration or a user workflow is necessary. Each scenario should cover one workflow; avoid repeating the same navigation and visual checks across suites.
 
-Generated fixtures belong in ignored `dist/`. Keep the static pages unchanged during a run; concurrent builds clean that directory. When another build must run concurrently, copy the generated static pages and YAML suites to a temporary directory and change only `target.serve` to point at the copied pages.
+Generated fixtures belong in ignored `dist/`. Keep the static pages unchanged during a run; concurrent builds clean that directory. When another build must run concurrently, copy the generated static pages to a temporary directory and adjust the static server's path in `midscene.config.ts` to serve that snapshot.

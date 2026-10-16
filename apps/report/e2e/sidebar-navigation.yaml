@@ -1,35 +1,41 @@
-target:
-  serve: ./dist
-  url: demo-agent.html
-  deviceScaleFactor: 1
-tasks:
-  - name: task selection and URL navigation stay in sync
-    flow:
+# Keep these checks in one Case: later sections use the page state left by earlier ones.
+beforeAll:
+  - report.open:
+      path: demo-agent.html
+      deviceScaleFactor: 1
+
+cases:
+  - name: Agent task navigation and model call details
+    steps:
+      # task selection and URL navigation stay in sync
       - aiTap:
-          locate:
-            prompt: the first Plan task row in the left Execution list, below the Act group heading
+          prompt: the first Plan task row in the left Execution list, below the Act group heading
+          options:
             deepLocate: true
       # URL synchronization is DOM plumbing. Visual task navigation stays on AI.
-      - javascript: |
-          (() => {
-            const selected = document.querySelector('.tasks-table .task-row.selected');
-            if (!selected?.id || location.hash !== '#' + selected.id) throw new Error('Selected task is not reflected in the URL');
-            const next = [...document.querySelectorAll('.tasks-table .task-row')].find(row => row.id && row !== selected);
-            if (!next) throw new Error('A second task is required');
-            location.hash = next.id;
-          })();
-        name: navigateViaTaskHash
-      - sleep: 500
-      - javascript: |
-          (() => {
-            const selected = document.querySelector('.tasks-table .task-row.selected');
-            if (!selected?.id || location.hash !== '#' + selected.id) throw new Error('URL navigation did not select the matching task');
-          })();
-        name: verifyHashSelection
+      # navigateViaTaskHash
+      - javascript:
+          script: |
+            (() => {
+              const selected = document.querySelector('.tasks-table .task-row.selected');
+              if (!selected?.id || location.hash !== '#' + selected.id) throw new Error('Selected task is not reflected in the URL');
+              const next = [...document.querySelectorAll('.tasks-table .task-row')].find(row => row.id && row !== selected);
+              if (!next) throw new Error('A second task is required');
+              location.hash = next.id;
+            })();
+      - wait:
+          duration: 500
+          unit: ms
+      # verifyHashSelection
+      - javascript:
+          script: |
+            (() => {
+              const selected = document.querySelector('.tasks-table .task-row.selected');
+              if (!selected?.id || location.hash !== '#' + selected.id) throw new Error('URL navigation did not select the matching task');
+            })();
       - aiAssert: A task is selected and its information is available.
 
-  - name: toggle model call details
-    flow:
+      # toggle model call details
       - aiTap: Model Call Details
       - aiAssert: Model Call Details is enabled and an Intent column is shown in the task list.
       - aiTap: Model Call Details

@@ -1,28 +1,30 @@
-target:
-  serve: ./dist
-  url: demo-merged.html
-tasks:
-  - name: merged report summarizes both test results
-    flow:
+# Keep these checks in one Case: later sections use the page state left by earlier ones.
+beforeAll:
+  - report.open:
+      path: demo-merged.html
+
+cases:
+  - name: Merged report results, selection and filtering
+    steps:
+      # merged report summarizes both test results
       - aiAssert: The merged report shows 2 tests, with 1 passed and 1 failed.
 
-  - name: select another test in the merged report
-    flow:
+      # select another test in the merged report
       - aiTap: the test Case selector above the Execution list
       - aiAssert: The selector offers Login and verify inventory and Login with intentional failure.
       - aiTap: Login with intentional failure in the open selector
       - aiAssert: Login with intentional failure is selected and its execution tasks are displayed.
 
-  - name: filter the merged Case selector by result
-    flow:
+      # filter the merged Case selector by result
       - aiTap: the test Case selector above the Execution list
       # Native select dispatch is browser plumbing; assert its visible effect with AI.
-      - javascript: |
-          (() => {
-            const filter = document.querySelector('select[aria-label="Filter test cases by status"]');
-            if (!(filter instanceof HTMLSelectElement)) throw new Error('Missing Case status filter');
-            filter.value = 'failed';
-            filter.dispatchEvent(new Event('change', { bubbles: true }));
-          })();
-        name: chooseFailedStatus
+      # chooseFailedStatus
+      - javascript:
+          script: |
+            (() => {
+              const filter = document.querySelector('select[aria-label="Filter test cases by status"]');
+              if (!(filter instanceof HTMLSelectElement)) throw new Error('Missing Case status filter');
+              filter.value = 'failed';
+              filter.dispatchEvent(new Event('change', { bubbles: true }));
+            })();
       - aiAssert: The selector shows only Login with intentional failure. Login and verify inventory is filtered out.

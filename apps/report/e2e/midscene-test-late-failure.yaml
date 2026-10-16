@@ -1,12 +1,13 @@
-target:
-  serve: ./dist
-  url: demo-midscene-test-late-failure.html
-  viewportWidth: 1280
-  viewportHeight: 900
-  deviceScaleFactor: 1
-tasks:
+beforeAll:
+  - report.open:
+      path: demo-midscene-test-late-failure.html
+      viewportWidth: 1280
+      viewportHeight: 900
+      deviceScaleFactor: 1
+
+cases:
   - name: opening a failed Case reveals its failed Step
-    flow:
+    steps:
       - aiAssert: The overview includes Failure after many steps with a failed result.
       - aiTap: the Failure after many steps Case
       # Entry navigation must reveal a late failure without manual scrolling.
