@@ -120,7 +120,7 @@ Midscene Test calls each capability you can invoke from YAML a **Node**.
 
 Nodes can be called from case `steps` or from [lifecycle hooks](#define-the-execution-lifecycle) such as `beforeEach` and `afterEach`, using the same syntax.
 
-All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, and `wait` pauses for a specified duration.
+All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, `aiWaitFor` waits for an observable condition, and `wait` pauses for a specified duration.
 
 Alongside these shared capabilities, Midscene provides platform-specific operations. For example:
 

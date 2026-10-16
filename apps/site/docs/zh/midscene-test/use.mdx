@@ -120,7 +120,7 @@ Midscene Test 将每一种可在 YAML 中调用的能力称为 **Node（节点�
 
 Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afterEach` 等[生命周期钩子](#定义执行生命周期)中调用，写法相同。
 
-所有平台都提供以下常用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 检查预期结果，`wait` 等待指定时长。
+所有平台都提供以下常用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 检查预期结果，`aiWaitFor` 等待可观察条件成立，`wait` 等待指定时长。
 
 在这些通用能力之外，Midscene 还为各个平台预置了专用操作。例如：
 

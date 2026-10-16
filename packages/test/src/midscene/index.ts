@@ -8,6 +8,8 @@ import {
   aiAssertInputSchema,
   aiAssertOptionsInputSchema,
   aiTapInputSchema,
+  aiWaitForInputSchema,
+  aiWaitForOptionsInputSchema,
   insightInputSchema,
   insightOptionsInputSchema,
   locateOptionsInputSchema,
@@ -59,7 +61,6 @@ export {
   aiPinchInputSchema,
   aiQueryInputSchema,
   aiScrollInputSchema,
-  aiWaitForInputSchema,
   javascriptInputSchema,
   runGherkinScenarioInputSchema,
   setAIContextInputSchema,
@@ -73,7 +74,6 @@ export type {
   AiPinchNodeInput,
   AiQueryNodeInput,
   AiScrollNodeInput,
-  AiWaitForNodeInput,
   JavascriptNodeInput,
   RunGherkinScenarioNodeInput,
   SetAIContextNodeInput,
@@ -84,6 +84,8 @@ export {
   aiActOptionsInputSchema,
   aiAssertInputSchema,
   aiAssertOptionsInputSchema,
+  aiWaitForInputSchema,
+  aiWaitForOptionsInputSchema,
   aiTapInputSchema,
   insightInputSchema,
   insightOptionsInputSchema,
@@ -126,6 +128,8 @@ export const waitInputSchema = z.strictObject({
 
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
+export type AiWaitForNodeInput = z.infer<typeof aiWaitForInputSchema>;
+export type AiWaitForNodeOptions = z.infer<typeof aiWaitForOptionsInputSchema>;
 export type AiTapNodeInput = z.infer<typeof aiTapInputSchema>;
 export type InsightNodeInput = z.infer<typeof insightInputSchema>;
 export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
