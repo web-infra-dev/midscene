@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CaseWorkspace } from './case-workspace';
-import { CaseWorkspaceHeader } from './case-workspace-header';
+import { CaseExecutionToolbar } from './case-workspace-header';
 import {
   getCaseWorkspaceDocument,
   getCaseWorkspaceDocumentAttemptIndex,
@@ -204,12 +204,15 @@ describe('whole-file retry report projection and viewer', () => {
       const cases = flattenRunnerCases(dump);
       expect(cases).toHaveLength(1);
       const item = cases[0];
-      expect(item).toMatchObject({ status: 'retry-passed', retryCount: 1 });
+      expect(item).toMatchObject({
+        status: 'passed',
+        retryCount: 1,
+      });
       expect(getRunnerHealth(cases)).toMatchObject({
         executed: 1,
         finalPassRate: 1,
-        firstPassRate: 0,
-        retryPassedCount: 1,
+        firstPassRate: failure === 'steps' ? 0 : 1,
+        retryPassedCount: failure === 'steps' ? 1 : 0,
       });
       const failedDocument = item.document.attempts![0];
       const failedAttempt = item.testCase.attempts.find(
@@ -255,11 +258,10 @@ describe('whole-file retry report projection and viewer', () => {
       expect(html).toContain(`${failure} failed`);
 
       const retryHeader = renderToStaticMarkup(
-        <CaseWorkspaceHeader
+        <CaseExecutionToolbar
+          viewSwitch={null}
           item={item}
           selectedDocumentAttemptIndex={1}
-          backLabel="Overview"
-          onBack={() => {}}
           onSelectAttempt={() => {}}
           onSelectDocumentAttempt={() => {}}
         />,

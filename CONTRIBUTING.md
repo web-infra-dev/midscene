@@ -222,6 +222,39 @@ OPENAI_API_KEY="your_token"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 ```
 
+### Report Development and Test Scope
+
+Prioritize Report's core user workflows and data correctness during development,
+review, and testing: loading reports, reading outcomes and metrics, filtering and
+sorting, navigating Cases and attempts, inspecting failures and evidence, and
+using replay and mobile navigation.
+
+Use final Report outcomes consistently: Passed, Failed and Not run. Recovery
+after an earlier failed attempt is diagnostic history within Passed, never a
+separate filter, navigation group or additional Case count. Keep earlier
+attempts and File/Project errors available for debugging.
+
+Keep e2e assertions concise and focused on observable functional outcomes. Use
+enough context to locate the intended control, while allowing the layout and
+visual design to evolve. Preserve AI interaction and assertion coverage; use
+JavaScript for deterministic browser integration such as history, focus, and
+value comparisons.
+
+Cosmetic details such as spacing, colors, borders, shadows, corner radii, icon
+appearance, and exact dimensions should not become default test or review gates.
+Do not replace brittle e2e style checks with equally brittle CSS or markup
+assertions in unit tests. Use unit tests for aggregation, serialization, state
+transitions, and other behavioral rules. Add targeted visual checks when an
+explicit design requirement calls for them.
+
+Treat content clipping, overlap, or scrolling and keyboard problems that hide
+important information or prevent an action as functional defects. Cover the
+affected workflow without locking in incidental styling.
+
+See the Report e2e guidelines in
+[English](./apps/report/e2e/README.md) or
+[中文](./apps/report/e2e/README.zh.md) for coverage and authoring guidance.
+
 
 ### Add New Tests
 

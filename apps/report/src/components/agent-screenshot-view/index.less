@@ -5,7 +5,7 @@
   flex-direction: column;
   height: 100%;
   min-width: 0;
-  background: #fff;
+  background: inherit;
 }
 
 .agent-screenshot-header {
@@ -66,7 +66,7 @@
   border: 1px solid @border-color;
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--report-surface);
   flex-shrink: 0;
   transition:
     border-color 0.18s,
@@ -157,10 +157,6 @@
 }
 
 [data-theme='dark'] {
-  .agent-screenshot-view {
-    background: #1f1f1f;
-  }
-
   .agent-screenshot-header,
   .agent-screenshot-item,
   .agent-screenshot-item figcaption {
@@ -183,8 +179,6 @@
   }
 
   .agent-screenshot-item {
-    background: #1f1f1f;
-
     &.selected {
       border-color: #69b1ff;
       box-shadow: 0 0 0 2px rgba(105, 177, 255, 0.22);

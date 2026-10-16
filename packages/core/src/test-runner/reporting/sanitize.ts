@@ -177,16 +177,15 @@ export function sanitizeReportValue(value: unknown): TestRunReportValue {
 }
 
 export function sanitizeReportError(error: unknown): TestRunReportError {
-  const messageText = (value: string) =>
-    sanitizeReportText(
-      value
-        .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
-        .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')
-        .replace(
-          /(["']?\b(?:password|passwd|secret|token|authorization|cookie|api[_-]?key)\b["']?\s*[:=]\s*)(?:\[REDACTED\]|"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi,
-          '$1[REDACTED]',
-        ),
-    );
+  const redactText = (value: string) =>
+    value
+      .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+      .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')
+      .replace(
+        /(["']?\b(?:password|passwd|secret|token|authorization|cookie|api[_-]?key)\b["']?\s*[:=]\s*)(?:\[REDACTED\]|"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi,
+        '$1[REDACTED]',
+      );
+  const messageText = (value: string) => sanitizeReportText(redactText(value));
   const ancestors = new WeakSet<object>();
   let remainingBytes = MAX_SERIALIZED_BYTES - 1024;
   let nodes = 0;
@@ -212,6 +211,7 @@ export function sanitizeReportError(error: unknown): TestRunReportError {
       truncated?: unknown;
       name?: unknown;
       message?: unknown;
+      stack?: unknown;
       code?: unknown;
       details?: unknown;
       cause?: unknown;
@@ -282,6 +282,32 @@ export function sanitizeReportError(error: unknown): TestRunReportError {
         result.errors.push(visit(item, depth + 1));
       }
       if (result.errors.length < source.errors.length) result.truncated = true;
+    }
+    if (typeof source.stack === 'string' && source.stack) {
+      // Keep the runtime stack, including user frames beyond the message limit.
+      // Allocate after causes so the original failure has priority over wrappers.
+      let stack = redactText(source.stack);
+      const budget = Math.max(0, remainingBytes - 128);
+      if (stringByteLength(JSON.stringify(stack)) > budget) {
+        const suffix = '\n… [truncated: stack trace size limit]';
+        let low = 0;
+        let high = stack.length;
+        while (low < high) {
+          const middle = Math.ceil((low + high) / 2);
+          if (
+            stringByteLength(JSON.stringify(stack.slice(0, middle) + suffix)) <=
+            budget
+          )
+            low = middle;
+          else high = middle - 1;
+        }
+        stack = low ? stack.slice(0, low) + suffix : '';
+        result.truncated = true;
+      }
+      if (stack) {
+        result.stack = stack;
+        remainingBytes -= stringByteLength(JSON.stringify(stack));
+      }
     }
     ancestors.delete(current);
     return result;

@@ -26,6 +26,7 @@ export interface TestRunReportError {
   format?: 'midscene-error';
   name: string;
   message: string;
+  stack?: string;
   code?: string;
   details?: TestRunReportValue;
   cause?: TestRunReportError;

@@ -128,7 +128,7 @@
       }
       dl > div {
         display: grid;
-        grid-template-columns: 72px minmax(0, 1fr);
+        grid-template-columns: 88px minmax(0, 1fr);
         gap: 8px;
       }
       dt {
@@ -167,6 +167,30 @@
         background: transparent;
         font-size: 12px;
         line-height: 20px;
+      }
+    }
+    .runner-error-detail .runner-error-stack {
+      max-height: 240px;
+      padding: 12px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      section {
+        margin: 0;
+      }
+      section + section {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--runner-border);
+      }
+      pre {
+        max-height: none;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+      }
+      &:focus-visible {
+        outline: 2px solid var(--runner-primary);
+        outline-offset: 2px;
       }
     }
   }

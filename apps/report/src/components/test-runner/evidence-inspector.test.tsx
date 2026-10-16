@@ -151,13 +151,19 @@ describe('case evidence inspection', () => {
       },
     });
     expect(html).not.toContain('Operation lifecycle');
-    expect(html).toContain('still running when Runner returned');
+    expect(html).toContain('Execution still running');
+    expect(html).toContain('>Result returned</span>');
     const { html: information } = render('io', [report], {
       ...step,
       operations: { capturedAt: '2026-10-08T11:00:00.000Z', events: [] },
     });
-    expect(information).toContain('this snapshot does not update');
-    expect(information).toContain('2026-10-08T11:00:00.000Z');
+    expect(information).toContain('Information captured at');
+    expect(information).toContain(
+      'See Events for later completion or cancellation.',
+    );
+    expect(information).toContain('dateTime="2026-10-08T11:00:00.000Z"');
+    expect(information).not.toContain('Capture boundary');
+    expect(information).not.toContain('this snapshot does not update');
   });
 
   it('does not mount the player when inspecting data or events', () => {
