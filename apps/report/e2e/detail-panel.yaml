@@ -6,9 +6,9 @@ tasks:
     flow:
       - aiTap: a Plan task in the left task list
       - aiTap: Screenshots in the task detail view switch
-      - aiAssert: Screenshots is selected and the task's screenshot evidence is visible.
+      - aiAssert: The task's screenshot evidence shows a UI Context image with its capture time.
       - aiTap: JSON View in the task detail view switch
-      - aiAssert: JSON View is selected and structured task data is visible.
+      - aiAssert: The task's structured JSON data is visible, including taskId and status.
 
   - name: inspect task information
     flow:

@@ -25,6 +25,8 @@ Use final outcomes everywhere: Passed, Failed and Not run. Passed includes Cases
 
 Keep assertions short and describe the observable result of an action. Locators should include enough context to distinguish overlapping controls, such as Replay all tasks versus the single-task Replay tab, or the All cases drawer versus the execution steps list. Assert sorting through the resulting row order rather than the appearance of an arrow. Use exact fixture values for data correctness, independently of their visual arrangement.
 
+Verify view switches through their content, such as screenshot capture information or structured JSON, rather than the visual selected state of a tab. For responsive icon-only actions, exercise the action and verify its result instead of requiring a visible text label.
+
 Do not depend on a full source path or filename being visible: CI paths can be long and intentionally truncated. Locate a File through its Project and hierarchy when its name is not the behavior under test. Before interacting with controls covered by a hover preview, move the pointer to a neutral target such as the Case title. Distinguish the selected Step's Record / Information / Events tabs from controls inside its embedded Agent recording; use `deepLocate` when the target needs closer inspection.
 
 Retain `aiAssert`, `aiTap`, `aiHover` and related AI coverage. Reserve JavaScript for browser integration that needs deterministic checks, such as history/hash changes, focus, native select events or comparing a value before and after navigation. Avoid assertions about CSS classes, colors, borders, spacing, dimensions and screenshot coordinates.

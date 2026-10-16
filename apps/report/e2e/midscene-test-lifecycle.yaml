@@ -16,4 +16,4 @@ tasks:
       - aiTap: View all 2 issues
       - aiAssert: The issues drawer shows Document fixture disposal failed and Case session disposal failed.
       - aiTap: the close button in the Other issues drawer
-      - aiAssert: The drawer is closed and cart.verify remains selected.
+      - aiAssert: The Other issues drawer is closed and cart.verify remains selected in the execution steps list.

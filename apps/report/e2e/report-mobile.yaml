@@ -18,6 +18,11 @@ tasks:
       - aiTap: the close button in the task information drawer
       - aiAssert: The drawer is closed and the task's player content is visible again.
       - aiTap: JSON View in the task detail view switch
-      - aiAssert: The selected task's JSON data is visible and a Copy JSON action is available.
+      - aiAssert: The selected task's JSON data is visible, including taskId and status.
+      - aiTap:
+          locate:
+            prompt: Copy JSON, the copy icon button in the task detail toolbar
+            deepLocate: true
+      - aiAssert: A success message confirms the JSON was copied to the clipboard.
       - aiTap: Steps in the mobile report switch
       - aiAssert: The task list is visible again with Steps selected.
