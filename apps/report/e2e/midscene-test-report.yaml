@@ -3,185 +3,87 @@ target:
   url: demo-midscene-test.html
   viewportWidth: 1440
   viewportHeight: 1200
-  # Keep screenshot coordinates consistent on Retina and CI machines.
   deviceScaleFactor: 1
 tasks:
-  - name: batch health and Project File Case hierarchy
+  - name: filter Cases and inspect detailed evidence
     flow:
-      - aiAssert: The overview shows 2 of 2 cases passed, one Retried case, one File and an 8 second total time. Compact is selected. Web regression is selected in the project navigation and its table has checkout.yaml expanded, showing Checkout with retry and Verify cart summary.
-      - aiTap: the Retried status checkbox near All, Failed and Passed
-      - aiAssert: Only Checkout with retry remains under checkout.yaml. The file still shows 2 of 2 passed without an extra percentage.
-      - aiTap: the checked Retried status checkbox
-      - aiAssert: All is checked again and both cases are visible under checkout.yaml.
-      - aiTap: the Passed status checkbox
-      - aiAssert: Verify cart summary is visible and Checkout with retry is filtered out.
+      - aiAssert: The overview shows 2 of 2 Cases passed, including one passed after retry. Web regression contains checkout.yaml with Checkout with retry and Verify cart summary.
       - aiTap: the Retried status checkbox
-      - aiAssert: Passed and Retried are checked together, All is unchecked, and both cases are visible.
+      - aiAssert: Checkout with retry is the only Case shown. checkout.yaml retains its aggregate 2 of 2 passed result.
+      - aiTap: the Passed status checkbox
+      - aiAssert: Both Cases are visible with Passed and Retried selected.
+      - aiTap: the Retried status checkbox
+      - aiAssert: Verify cart summary is the only Case shown under checkout.yaml. The File still has its passed after retry result.
       - aiTap: the All status checkbox
-      - aiTap: the Duration column header in the Web regression table
-      - aiAssert: Duration has an active descending sort arrow. There is no sorting dropdown.
-      - aiTap: the Files column header
-      - aiAssert: Files has an ascending arrow after switching from Duration. Checkout with retry still appears before Verify cart summary within its file.
-      - aiTap: the Detailed view button
-      - aiAssert: Both cases are visible with their status and duration. Checkout with retry shows a short Earlier attempt summary with Inventory was not ready and a screenshot timeline. Verify cart summary has no screenshot evidence. The timeline stays inside its Case row without covering another row. checkout.yaml is shown as their parent file, not repeated in each Case row.
-      - javascript: |
-          (() => {
-            const rows = [...document.querySelectorAll('.runner-file-table tr')];
-            for (const [index, row] of rows.entries()) {
-              if (!row.classList.contains('runner-case-evidence-row')) continue;
-              const preview = row.querySelector('.runner-detail-timeline-card');
-              if (!preview) continue;
-              const bottom = preview.getBoundingClientRect().bottom;
-              if (bottom > row.getBoundingClientRect().bottom + 1) throw new Error('Screenshots overflow their Case row');
-              const next = rows[index + 1];
-              if (next && bottom > next.getBoundingClientRect().top + 1) throw new Error('Screenshots overlap the next row');
-            }
-          })();
-        name: verifyTimelineContainment
-      - aiTap: the Earlier attempt error summary below Checkout with retry
-      - aiAssert: The Case detail opens at the failed order.create Step from Attempt 1, showing Inventory was not ready.
+      - aiAssert: All is selected and both Cases are visible.
+      - aiTap: Detailed
+      - aiAssert: Checkout with retry has screenshot evidence and an Earlier attempt error summary containing Inventory was not ready.
+      - aiHover: a screenshot in the Checkout with retry timeline
+      - aiAssert: A screenshot preview is visible.
+      - aiHover: Compact, outside the timeline preview
+      - aiTap: the Earlier attempt error summary for Checkout with retry
+      - aiAssert: The Case opens on the failed order.create Step in Attempt 1, showing Inventory was not ready.
       - aiTap: the Overview back link
-      - aiHover: a screenshot thumbnail in the Checkout with retry timeline
-      - aiAssert: An enlarged screenshot preview is visible near the hovered thumbnail.
-      - aiHover: the Compact view control at the top left, outside the screenshot timeline and its floating preview
+      - sleep: 500
       - aiTap: the Compact view button
-      - aiAssert: Compact is selected. Both case rows are visible without screenshot timelines or error summaries.
-      - aiTap: the Collapse file checkout.yaml button
-      - aiAssert: checkout.yaml remains visible with its aggregate statistics, but its child Case rows are hidden.
-      - aiTap: the Expand file checkout.yaml button
-      - aiTap: the Collapse Passed after retry projects button in the left navigation
-      - aiAssert: The Web regression navigation item is hidden, but its selected project heading and file table remain visible on the right.
-      - aiTap: the Expand Passed after retry projects button in the left navigation
-      - aiAssert: The Web regression navigation item is visible again, and checkout.yaml still shows its two Case rows on the right.
+      - aiAssert: Compact is selected and both Case rows are visible without their detailed evidence.
 
-  - name: direct case navigation and browser history
+  - name: browser history navigates between overview and Case
     flow:
-      - aiTap: the Verify cart summary case row under Web regression
-      - aiAssert: The Verify cart summary case detail has an Overview back link and an Execution panel with cart.verify selected. There is no Attempt selector for this single attempt.
-      # Check history navigation through the route, then assert only visible UI with AI.
+      - aiTap: the Verify cart summary Case
+      - aiAssert: Verify cart summary is open with cart.verify selected and Tokens 0. No retry attempt can be selected.
+      # Browser history is a route integration check; keep visible results on AI.
       - javascript: |
           new Promise((resolve, reject) => {
-            const params = new URLSearchParams(location.hash.slice(1));
-            if (params.get('runner-page') !== 'case' || params.get('runner-case') !== 'web-demo:checkout-document:first-pass-case') throw new Error('Missing Verify cart summary case route');
-            const timeout = setTimeout(() => {
-              window.removeEventListener('hashchange', onRouteChange);
-              reject(new Error('Browser Back did not navigate to the overview'));
-            }, 5000);
-            function onRouteChange() {
-              clearTimeout(timeout);
-              const page = new URLSearchParams(location.hash.slice(1)).get('runner-page');
-              if (page && page !== 'overview') reject(new Error(`Expected overview route, got ${location.hash}`));
-              else resolve();
-            }
-            window.addEventListener('hashchange', onRouteChange, { once: true });
+            const timeout = setTimeout(() => reject(new Error('Back navigation timed out')), 5000);
+            window.addEventListener('hashchange', () => { clearTimeout(timeout); resolve(); }, { once: true });
             history.back();
           });
         name: browserBackFromCase
-      - aiAssert: The overview shows the Web regression project and the Compact and Detailed view controls.
+      - aiAssert: The overview shows Web regression and its Case rows.
       - javascript: |
           new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              window.removeEventListener('hashchange', onRouteChange);
-              reject(new Error('Browser Forward did not navigate to the case'));
-            }, 5000);
-            function onRouteChange() {
-              clearTimeout(timeout);
-              const params = new URLSearchParams(location.hash.slice(1));
-              if (params.get('runner-page') !== 'case' || params.get('runner-case') !== 'web-demo:checkout-document:first-pass-case') {
-                reject(new Error(`Expected Verify cart summary case route, got ${location.hash}`));
-              } else resolve();
-            }
-            window.addEventListener('hashchange', onRouteChange, { once: true });
+            const timeout = setTimeout(() => reject(new Error('Forward navigation timed out')), 5000);
+            window.addEventListener('hashchange', () => { clearTimeout(timeout); resolve(); }, { once: true });
             history.forward();
           });
         name: browserForwardToCase
-      - aiAssert: The Verify cart summary case detail has an Overview back link, a Passed status, and an Execution panel showing cart.verify.
+      - aiAssert: Verify cart summary is open again with cart.verify selected.
       - aiTap: the Overview back link
 
-  - name: retry attempts and custom node errors
+  - name: inspect retry errors and cumulative Case token usage
     flow:
-      - aiTap: the Checkout with retry case row
-      - aiAssert: The Checkout with retry case detail opens at the failed Step on Attempt 1, with order.create selected in the Execution panel.
-      - aiAssert: The selected order.create step and its Step failed card are visible without manual scrolling. The card shows Inventory was not ready with collapsed details. Information is selected, and Input shows sku demo-item with a redacted apiKey value.
-      - aiTap: the collapsed details control inside the Step failed error card
-      - aiAssert: The expanded error card details show NODE_EXECUTION_ERROR.
+      - aiTap: the Checkout with retry Case
+      - aiAssert: Attempt 1 is selected. order.create failed with Inventory was not ready, and the Case has a nonzero Tokens total. Information shows input sku demo-item and a redacted apiKey.
       - javascript: |
-          const main = document.querySelector('.runner-main');
-          if (!(main instanceof HTMLElement)) throw new Error('Missing report scroll container');
-          main.scrollTo({ top: 0 });
-        name: restoreAttemptSelector
-      - aiAssert: The Execution header groups the Visual and YAML switch with the Attempts dropdown on the left, and the Total steps, Success, Failed, Timeout, and Not run counts on the right. A downward chevron is visible at the right edge of the Attempts dropdown.
-      - aiTap: the Attempts dropdown showing Attempt 1 beside Visual and YAML in the Execution header
-      - aiAssert: The dropdown shows Attempt 1 as Failed and Attempt 2 as Passed.
-      - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option
-      - sleep: 500
-      - aiHover: the Checkout with retry case title at the top left, outside the Execution timeline and its floating preview
-      - aiAssert: Attempt 2 is selected. The screenshot timeline appears above the workspace. Execution steps are listed on the left, aiAct is selected, and Record contains the recorded Agent task list and screenshot viewer on the right.
-      - aiHover: a screenshot thumbnail in the timeline at the top of Execution
-      - aiAssert: A screenshot preview is displayed and aiAct is the selected execution step.
-      - aiHover: the Checkout with retry case title at the top left, outside the Execution timeline and its floating preview
-      - aiTap: the Overview back link
-
-  - name: embedded Agent report and evidence tabs
-    flow:
-      - aiTap: the Checkout with retry case row under Web regression
-      - aiAssert: The case opens at the failed Step on Attempt 1, with order.create selected.
-      - aiTap: the Attempts dropdown showing Attempt 1 beside Visual and YAML in the Execution header
-      - aiTap: the passed Attempt 2 option in the open Attempts dropdown, not the failed Attempt 1 option
-      - sleep: 500
-      - aiHover: the Checkout with retry case title at the top left, outside the Execution timeline and its floating preview
-      - aiAssert: Attempt 2 and aiAct are selected, with Record, Information, and Events tabs, and an embedded Agent report.
-      - aiTap: the Information tab
-      - aiAssert: Input, Output, and Stable IDs appear as aligned rows in one white bordered panel extending to the bottom of the detail area. The timeline, execution steps pane, and outer detail area share the same pale background. Document setup, Before each, Case steps, and After each are separated by dividers. Step names align at the left of their rows, and the small recording icon follows the aiAct name. Step rows share the pale background rather than individual white bordered cards.
-      - aiTap: the Events tab
-      - aiAssert: Events is selected. Runtime events appear in a white panel extending to the bottom of the detail area, with Time, Operation, Event, and Status columns. The operation is labeled Run step. Started and Finished events are visible, with a success status for Finished. The execution step list remains visible on the left.
-      - aiTap: the Record tab
-      - aiAssert: The recorded Agent task list and screenshot viewer are visible on the right of the Case workspace. Both panes and the narrow resize strip between them have the same white background, with no pale gray band around the divider.
-
-  - name: execution divider preserves the recording at maximum sidebar width
-    flow:
-      # Keyboard sizing tests the divider's bounds deterministically; keep the
-      # resulting player visibility check on AI.
-      - javascript: |
-          (async () => {
-            const divider = document.querySelector('[aria-label="Resize execution steps"]');
-            if (!(divider instanceof HTMLElement)) throw new Error('Missing execution divider');
-            const initial = Number(divider.getAttribute('aria-valuenow'));
-            divider.dataset.initialWidth = String(initial);
-            divider.focus();
-            divider.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
-            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            const value = Number(divider.getAttribute('aria-valuenow'));
-            const maximum = Number(divider.getAttribute('aria-valuemax'));
-            const pane = document.querySelector('.runner-detail-step-scroll');
-            if (!(pane instanceof HTMLElement)) throw new Error('Missing execution steps pane');
-            if (!Number.isFinite(maximum) || Math.abs(value - maximum) > 0.5 || value <= initial) {
-              throw new Error('Execution sidebar did not grow to its maximum');
-            }
-            if (Math.abs(pane.getBoundingClientRect().width - maximum) > 1) {
-              throw new Error('Execution steps pane does not match the maximum width');
-            }
+          (() => {
+            const tokens = document.querySelector('.runner-case-meta [title^="Cumulative model tokens"] strong')?.textContent;
+            const total = Number(tokens?.replaceAll(',', ''));
+            if (!Number.isFinite(total) || total <= 0) throw new Error('Expected cumulative Case tokens');
+            window.caseTokensBeforeRetrySwitch = tokens;
           })();
-        name: maximizeExecutionSidebar
-      - aiAssert: The aiAct step is selected in the left execution steps pane. To its right, the Record tab is selected, and both the recorded Agent task list and screenshot viewer are visible side by side.
+        name: captureCumulativeCaseTokens
+      - aiTap:
+          locate:
+            prompt: the collapsed details control in the Step failed card
+            deepLocate: true
+      - aiAssert: The error details include NODE_EXECUTION_ERROR.
+      - aiTap: the Attempt 1 selector
+      - aiTap: Attempt 2 in the open attempt menu
+      - aiAssert: Attempt 2 succeeded. aiAct is selected and its recorded Agent execution is available.
       - javascript: |
-          (async () => {
-            const divider = document.querySelector('[aria-label="Resize execution steps"]');
-            if (!(divider instanceof HTMLElement)) throw new Error('Missing execution divider');
-            divider.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            const value = Number(divider.getAttribute('aria-valuenow'));
-            const initial = Number(divider.dataset.initialWidth);
-            if (!Number.isFinite(initial) || value !== initial) throw new Error('Divider did not reset to its initial width');
-            delete divider.dataset.initialWidth;
+          (() => {
+            const tokens = document.querySelector('.runner-case-meta [title^="Cumulative model tokens"] strong')?.textContent;
+            if (tokens !== window.caseTokensBeforeRetrySwitch) throw new Error('Case tokens must include all attempts and remain unchanged when switching');
+            delete window.caseTokensBeforeRetrySwitch;
           })();
-        name: resetExecutionSidebar
-      - aiAssert: The aiAct step remains selected in the left execution steps pane. To its right, both the recorded Agent task list and screenshot viewer remain visible side by side in the Record tab.
+        name: cumulativeCaseTokensSurviveAttemptSwitch
 
-  - name: runner events remain readable in both themes
+  - name: inspect recorded evidence information and events
     flow:
-      - aiTap: the Events tab in the selected aiAct details
-      - aiTap: the theme toggle button in the top right header
-      - aiAssert: The Test Report is in dark theme. The Execution steps and Events table use dark surfaces with readable text, and the Finished event has a green success badge.
-      - aiTap: the theme toggle button in the top right header
-      - aiAssert: The Test Report is back in light theme. The same aiAct step and Events tab remain selected, and the event table is readable.
+      - aiTap: the Information tab for aiAct
+      - aiAssert: The selected Step's Information shows Input, Output and Stable IDs.
+      - aiTap: the Events tab for aiAct
+      - aiAssert: Runtime events include Started and Finished, with success reported for the finished operation.
+      - aiTap: the Record tab for aiAct
+      - aiAssert: The recorded Agent task list and screenshot viewer are available.

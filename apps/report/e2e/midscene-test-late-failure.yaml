@@ -5,9 +5,9 @@ target:
   viewportHeight: 900
   deviceScaleFactor: 1
 tasks:
-  - name: opening a failed case reveals a late selected step and its error
+  - name: opening a failed Case reveals its failed Step
     flow:
-      - aiAssert: The overview shows one passed Case and one failed Case. Web regression is expanded and Failure after many steps is visible.
-      - aiTap: the Failure after many steps case row
-      # Do not scroll here: entry navigation must reveal the late failure.
-      - aiAssert: The selected order.submit row is visible in the left execution pane, even though many preparation steps precede it. The right pane visibly shows order.submit with a failed badge and a Step failed card saying Order submission failed after preparation. No manual scrolling is needed to see the selected step and its error.
+      - aiAssert: The overview includes Failure after many steps with a failed result.
+      - aiTap: the Failure after many steps Case
+      # Entry navigation must reveal a late failure without manual scrolling.
+      - aiAssert: The failed order.submit Step is selected and visible. Its error says Order submission failed after preparation.

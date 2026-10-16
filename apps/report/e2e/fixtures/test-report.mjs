@@ -43,6 +43,7 @@ export function createTestReportFixture(index) {
   const executionId = source?.executionIds[0];
   if (!executionId)
     throw new Error('Report E2E fixture requires an Agent execution.');
+  const executionMetrics = index.executionMetrics?.[executionId];
   return {
     schemaVersion: 1,
     kind: 'test-runner',
@@ -59,7 +60,7 @@ export function createTestReportFixture(index) {
       documentFailures: 0,
       projectFailures: 0,
     },
-    metrics: index.metrics,
+    metrics: structuredClone(index.metrics),
     projects: [
       {
         projectId: 'web-demo',
@@ -113,6 +114,9 @@ export function createTestReportFixture(index) {
                     [
                       step('attempt-2:steps:0', 'aiAct', 3, 6, {
                         title: 'Inspect the recorded Agent flow',
+                        ...(executionMetrics
+                          ? { metrics: structuredClone(executionMetrics) }
+                          : {}),
                         agentDetails: [
                           { reportId: source.reportId, executionId },
                         ],

@@ -2,39 +2,20 @@ target:
   serve: ./dist
   url: demo-agent.html
 tasks:
-  - name: view screenshots tab
+  - name: inspect screenshots and JSON for an Agent task
     flow:
-      - sleep: 2000
-      - aiTap: the first task row in the left sidebar that has type "Planning" or "Insight" or "Locate"
-      - sleep: 2000
-      - aiTap: the "Screenshots" option in the center task detail Replay/Screenshots/JSON View switcher
-      - sleep: 1500
-      - aiAssert: In the center task detail panel, the selected tab among Replay, Screenshots, and JSON View is Screenshots. The content below the tabs shows UI screenshot images for the selected task.
+      - aiTap: a Plan task in the left task list
+      - aiTap: Screenshots in the task detail view switch
+      - aiAssert: Screenshots is selected and the task's screenshot evidence is visible.
+      - aiTap: JSON View in the task detail view switch
+      - aiAssert: JSON View is selected and structured task data is visible.
 
-  - name: view JSON data tab
+  - name: inspect task information
     flow:
-      - aiTap: the "JSON View" option in the center task detail Replay/Screenshots/JSON View switcher
-      - sleep: 1000
-      - aiAssert: In the center task detail panel, the selected tab among Replay, Screenshots, and JSON View is JSON View. The content below the tabs shows structured task details as JSON text instead of UI screenshot images.
+      - aiAssert: The selected task's information shows Param and Output or Element data.
+      - aiTap: the Param section heading in the task information
+      - aiAssert: Param is collapsed and the other information sections remain available.
 
-  - name: inspect detail side sections
+  - name: Playground entry is available for a Plan task
     flow:
-      - aiTap: the first Planning task row in the left sidebar
-      - sleep: 1000
-      - aiAssert: The right detail side panel shows a collapsible Param section and a collapsible section named either Output or Element, and the Param section is expanded with task input data
-      # Collapse both Param and the Output/Element section so the Meta section
-      # (always rendered last) rises to the top of the panel with its heading
-      # and first metadata rows fully on screen. This avoids depending on
-      # scroll position: Meta is long, so any partial scroll leaves either the
-      # heading or the type/status/start rows out of the viewport.
-      - aiTap: the section header named either Output or Element in the right detail side panel
-      - sleep: 500
-      - aiTap: Param section header in the right detail side panel
-      - sleep: 1000
-      - aiAssert: The Meta section is visible in the right detail side panel and shows entries such as type, status, start, end, or total time; the Param header and the header named either Output or Element remain visible above it, both sections are collapsed, and their content is hidden
-
-  - name: open in playground button
-    flow:
-      - aiTap: a task row in the sidebar that shows "Planning" type
-      - sleep: 2000
-      - aiAssert: There is a "Open in Playground" button visible on the page
+      - aiAssert: An Open in Playground action is available for the selected Plan task.

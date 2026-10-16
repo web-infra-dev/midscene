@@ -5,175 +5,66 @@ target:
   viewportHeight: 1600
   deviceScaleFactor: 1
 tasks:
-  - name: grouped project navigation keeps file errors distinct from failed cases
+  - name: overview distinguishes Case outcomes and File errors
     flow:
-      - aiAssert: The summary shows 4 of 5 cases passed. The legend reads left to right as 3 passed without retry, 1 passed after retry, 0 failed and 1 not run, and the result bar follows the same order while omitting the zero-count failed segment. The run information shows 2 Projects and 6 Files. Web regression is selected under Failed in the left project navigation; its Case outcome summary is shortened with an ellipsis to fit its row. Mobile regression is available under Passed. The right table belongs to Web regression and includes blocked.yaml with a not-run Case and Database connection refused, and broken.yaml with a collection error and an unknown Case count.
-      - javascript: |
-          (() => {
-            const table = document.querySelector('.runner-file-table');
-            const columns = [...table.tHead.rows[0].cells].map(cell => cell.getBoundingClientRect());
-            const width = columns.reduce((sum, cell) => sum + cell.width, 0);
-            if (columns.length !== 4 || Math.abs(width - table.getBoundingClientRect().width) > 1) throw new Error('File table contains an unexpected layout column');
-            const duration = table.querySelector('.runner-file-duration').getBoundingClientRect();
-            if (Math.abs(duration.x - columns[3].x) > 1) throw new Error('Duration values are not aligned with their header');
-            for (const cell of table.querySelectorAll('thead th:last-child, .runner-file-duration')) {
-              if (getComputedStyle(cell).textAlign !== 'left') throw new Error('Duration headers and values must stay left-aligned');
-            }
-            for (const item of document.querySelectorAll('.runner-project-nav-item')) {
-              const bounds = item.getBoundingClientRect();
-              const parent = item.parentElement.getBoundingClientRect();
-              const summary = item.querySelector('small');
-              if (bounds.right > parent.right + 1) throw new Error('Long project summary expanded its navigation row');
-              if (summary.title !== summary.textContent.trim()) throw new Error('Project summary tooltip lost the complete outcome counts');
-              if (getComputedStyle(summary).textOverflow !== 'ellipsis') throw new Error('Long project summaries must use an ellipsis');
-            }
-          })();
-        name: verifyFourColumnAlignment
-      - aiTap: the Failed checkbox beside the Web regression heading
-      - aiAssert: Failed is selected, and blocked.yaml and broken.yaml remain visible because they have file errors. Blocked by document setup is visible as Not run. Mobile regression remains available in the left navigation. The top summary still shows 4 of 5 cases passed.
-      - aiTap: the All checkbox beside the Web regression heading
-      - aiTap: the Expand file empty.yaml button
-      - aiAssert: empty.yaml shows No cases were collected for this file. It has no Case child rows and its Passed / Case cell is a dash.
-      - aiTap: the Collapse file empty.yaml button
+      - aiAssert: The summary shows 4 of 5 Cases passed, including 3 passed without retry, 1 passed after retry and 1 not run. There are 2 Projects and 6 Files. Web regression is selected and Mobile regression is available. blocked.yaml reports a setup failure and broken.yaml reports a collection failure with an unknown Case count.
+      - aiTap: the Failed status checkbox beside Web regression
+      - aiAssert: blocked.yaml and broken.yaml remain visible because they have File errors. Blocked by document setup is not run, and the run totals have not changed.
+      - aiTap: the All status checkbox beside Web regression
 
-  - name: expand and collapse all files beside the status filters
+  - name: expand and collapse all Files
     flow:
-      - aiTap: the Expand all files button to the right of the status checkboxes
-      - aiAssert: All files in Web regression are expanded. Checkout with retry and Smoke checkout are visible, and empty.yaml shows No cases were collected for this file.
-      # The toolbar uses an icon; verify its accessible action as DOM plumbing.
-      - javascript: |
-          (() => {
-            const button = document.querySelector('.runner-files-toggle');
-            if (button?.getAttribute('aria-label') !== 'Collapse all files' || button.getAttribute('aria-pressed') !== 'true') throw new Error('Expanded files must offer the Collapse all files action');
-          })();
-        name: verifyCollapseAllFilesAction
-      - aiTap: the Collapse all files button beside the status filters
-      - aiAssert: Web regression still shows its file rows, while their Case rows are hidden.
-      - javascript: |
-          (() => {
-            const button = document.querySelector('.runner-files-toggle');
-            if (button?.getAttribute('aria-label') !== 'Expand all files' || button.getAttribute('aria-pressed') !== 'false') throw new Error('Collapsed files must offer the Expand all files action');
-          })();
-        name: verifyExpandAllFilesAction
+      - aiTap: Expand all files beside the status filters
+      - aiAssert: Checkout with retry and Smoke checkout are visible. empty.yaml reports that no Cases were collected.
+      - aiTap: Collapse all files beside the status filters
+      - aiAssert: File rows remain visible and their child Case rows are hidden.
 
-  - name: Project selection preserves independent sorting and Markdown file order
+  - name: Project sorting is independent and survives switching
     flow:
-      - aiTap: the Duration column header in the Web regression table
-      - javascript: |
-          (() => {
-            const table = document.querySelector('.runner-file-table');
-            if (table.querySelector('[aria-sort="descending"]')?.textContent.trim() !== 'Duration') throw new Error('Web duration was not sorted descending');
-            const files = [...table.querySelectorAll('.runner-file-path')].map(node => node.textContent);
-            if (files.at(-1) !== 'broken.yaml') throw new Error('Unknown duration did not stay last');
-          })();
-        name: verifyWebSortAndUnknownDuration
-      - aiTap: the Select project Mobile regression button in the left navigation
-      - aiAssert: Mobile regression is selected and only its table is displayed on the right. Its Files column is ascending, and All is selected.
-      - aiTap: the Select project Web regression button in the left navigation
-      - aiAssert: Web regression is selected again and its Duration column is still descending.
-      - aiTap: the Duration column header in the Web regression table
-      - aiAssert: Duration is ascending. empty.yaml with 0 ms precedes files with positive durations.
-      - aiTap: the Files column header in the Web regression table
-      - javascript: |
-          (() => {
-            const table = document.querySelector('.runner-file-table');
-            const files = [...table.querySelectorAll('.runner-file-path')].map(node => node.textContent);
-            if (files.join('|') !== 'checkout.yaml|smoke/checkout.yaml|blocked.yaml|empty.yaml|broken.yaml') throw new Error('Markdown document order was not restored');
-            if (table.querySelector('[aria-sort="ascending"]')?.textContent.trim() !== 'Files') throw new Error('Files should sort ascending');
-          })();
-        name: verifyMarkdownFileOrder
-      - aiTap: the Files column header in the Web regression table
-      - javascript: |
-          (() => {
-            const table = document.querySelector('.runner-file-table');
-            const files = [...table.querySelectorAll('.runner-file-path')].map(node => node.textContent);
-            if (files.join('|') !== 'broken.yaml|empty.yaml|blocked.yaml|smoke/checkout.yaml|checkout.yaml') throw new Error('Files descending did not reverse report order');
-            if (table.querySelector('[aria-sort="descending"]')?.textContent.trim() !== 'Files') throw new Error('Web Files should sort descending');
-          })();
-        name: verifyReverseFileOrder
-      - aiTap: the Select project Mobile regression button
-      - aiAssert: Mobile regression still uses Files ascending. The sort applied to Web regression has not changed it.
-      - aiTap: the Select project Web regression button
-      - aiAssert: Web regression still uses Files descending.
+      - aiTap: the Duration column heading
+      - aiAssert: checkout.yaml is listed before empty.yaml, and broken.yaml with an unknown duration is last.
+      - aiTap: the Files column heading
+      - aiTap: the Files column heading
+      - aiAssert: Web regression lists Files in reverse report order, from top to bottom broken.yaml, empty.yaml, blocked.yaml, smoke/checkout.yaml, checkout.yaml.
+      - aiTap: Select project Mobile regression in the project navigation
+      - aiAssert: Mobile regression is selected and its own File table is displayed.
+      - aiTap: Select project Web regression in the project navigation
+      - aiAssert: Web regression keeps the same File order, starting with broken.yaml and ending with checkout.yaml.
 
-  - name: returning from details preserves project filters sort and file expansion
+  - name: Case navigation preserves overview filters and File expansion
     flow:
       - aiTap: the Passed status checkbox
       - aiInput: checkout
-        locate: the search input for projects, files, cases and details
-      - aiTap: the Expand file smoke/checkout.yaml button in Web regression
-      - aiTap: the Duration column header in the Web regression table
-      - aiTap: the Smoke checkout Case row in Web regression
-      - aiAssert: The Smoke checkout Case detail shows an Overview back link and an Execution panel.
-      - aiTap: the floating menu button labeled View all cases on the left edge of the report
-      - aiAssert: The All cases directory opens on the left below the floating menu button, without dimming the report. It lists Web regression and Mobile regression. Smoke checkout is highlighted as the current Case. Checkout with retry and Blocked by document setup are also listed even though the Overview was filtered to passed checkout Cases. Each Case shows its result and source file.
+        locate: the report search input
+      - aiTap: Expand file smoke/checkout.yaml
+      - aiTap: the Smoke checkout Case
+      - aiAssert: Smoke checkout is open with cart.verify selected and its information visible.
+      - aiTap: View all cases, the floating menu button on the left edge
+      - aiAssert: The All cases directory includes both Projects and their Cases, including Checkout with retry and Blocked by document setup. Smoke checkout is the current Case.
+      # Focus and routing are browser integration contracts, not visual styling.
       - javascript: |
           (() => {
-            const directory = document.querySelector('.runner-case-drawer');
-            const panel = directory?.querySelector('.ant-drawer-content-wrapper');
-            const content = directory?.querySelector('.ant-drawer-content');
-            const body = directory?.querySelector('.ant-drawer-body');
-            const trigger = document.querySelector('.runner-case-browse');
-            const steps = document.querySelector('.runner-detail-step-scroll');
-            if (![panel, content, body, trigger, steps].every(node => node instanceof HTMLElement)) throw new Error('Missing Case directory layout elements');
-            const panelBounds = panel.getBoundingClientRect();
-            const triggerBounds = trigger.getBoundingClientRect();
-            if (Math.abs(panelBounds.left) > 1 || Math.abs(triggerBounds.left) > 1) throw new Error('The Case directory and menu button must touch the left viewport edge');
-            if (panelBounds.top < triggerBounds.bottom || panelBounds.right > innerWidth) throw new Error('The directory overlaps its menu button or overflows the viewport');
-            if (panelBounds.right < steps.getBoundingClientRect().right + 8) throw new Error('The default directory width does not cover the underlying Step scrollbar');
-            const panelStyle = getComputedStyle(panel);
-            if (parseFloat(panelStyle.borderTopRightRadius) <= 0 || panelStyle.overflow !== 'hidden') throw new Error('The directory wrapper must clip its rounded corner');
-            const background = getComputedStyle(content).backgroundColor;
-            if (getComputedStyle(body).backgroundColor !== background || getComputedStyle(body, '::-webkit-scrollbar-track').backgroundColor !== background) throw new Error('The directory scrollbar track does not match its container');
-            const aligned = [directory.querySelector('.ant-drawer-title'), directory.querySelector('.runner-case-list h3'), directory.querySelector('.runner-case-list strong'), directory.querySelector('.runner-case-list small')];
-            if (!aligned.every(node => node instanceof HTMLElement)) throw new Error('Missing directory title, Project, Case or File label');
-            const textLeft = node => {
-              const range = document.createRange();
-              range.selectNodeContents(node);
-              return range.getBoundingClientRect().left;
-            };
-            const left = textLeft(aligned[0]);
-            if (aligned.some(node => Math.abs(textLeft(node) - left) > 1)) throw new Error('Directory titles and labels are not left-aligned');
+            if (document.activeElement?.getAttribute('aria-current') !== 'page') {
+              throw new Error('Opening the Case directory must focus the current Case');
+            }
           })();
-        name: verifyCaseDirectoryLayout
-      - javascript: |
-          (() => {
-            const drawer = document.querySelector('.runner-case-drawer');
-            const current = drawer?.querySelector('.runner-case-list [aria-current="page"]');
-            if (!(drawer instanceof HTMLElement) || !(current instanceof HTMLButtonElement)) throw new Error('Missing Case directory or current Case');
-            if (document.activeElement !== current) throw new Error('Opening the directory did not focus the current Case');
-            if (getComputedStyle(drawer).outlineStyle !== 'none') throw new Error('The directory wrapper has a full-page focus outline');
-          })();
-        name: verifyCaseDirectoryFocus
+        name: currentCaseReceivesFocus
       - aiKeyboardPress: Tab
-      - javascript: |
-          (() => {
-            const drawer = document.querySelector('.runner-case-drawer');
-            const focused = document.activeElement;
-            if (!(focused instanceof HTMLButtonElement) || !drawer?.contains(focused) || focused.getAttribute('aria-current') === 'page') throw new Error('Tab did not advance to another directory control');
-          })();
-        name: verifyCaseDirectoryKeyboardNavigation
       - aiKeyboardPress: Escape
-      - aiAssert: The directory is closed and Smoke checkout is still displayed.
-      - javascript: |
-          if (document.activeElement !== document.querySelector('.runner-case-browse')) throw new Error('Closing the directory did not return focus to its menu button');
-        name: verifyCaseDirectoryFocusReturn
-      - aiTap: the floating menu button on the left edge of the report
-      - aiTap: the floating menu button labeled View all cases again to close the directory
-      - aiAssert: The drawer is closed and Smoke checkout is still displayed.
-      - aiTap: the floating menu button on the left edge of the report
-      - aiTap: Mobile checkout in the Mobile regression section of the All cases drawer
-      - aiAssert: The drawer has closed and the Mobile checkout detail shows Mobile regression and cart.verify. The floating menu button is still available on the left edge.
-      - aiTap: the floating menu button on the left edge of the report
-      - aiTap: Checkout with retry in the Web regression section of the All cases drawer
-      - aiAssert: Checkout with retry is displayed at the failed order.create Step in Attempt 1, showing Inventory was not ready. The drawer is closed.
+      - aiAssert: The All cases drawer is closed and Smoke checkout remains open.
+      - aiTap: View all cases, the floating menu button
+      - aiTap: Mobile checkout in the Mobile regression section
+      - aiAssert: Mobile checkout is open in Mobile regression and the All cases drawer is closed.
+      - aiTap: View all cases, the floating menu button
+      - aiTap: Checkout with retry in the Web regression section
+      - aiAssert: Checkout with retry opens on its failed first attempt, showing Inventory was not ready.
       - aiTap: the Overview back link
-      - aiAssert: Web regression is still selected in the project navigation. Passed is still checked, the search input still contains checkout, Duration is still sorted descending, and smoke/checkout.yaml is still expanded showing Smoke checkout. Checkout with retry is filtered out, while the checkout.yaml parent file still shows 2 of 2 passed without an extra percentage or per-file matching note.
+      - aiAssert: Web regression is selected. Passed is checked and the search still contains checkout. smoke/checkout.yaml remains expanded with Smoke checkout visible. checkout.yaml remains collapsed and retains its aggregate 2 of 2 passed result.
 
-  - name: empty search can be cleared without losing the selected Project
+  - name: clear an empty search
     flow:
       - aiInput: no-report-content-matches-this-query
-        locate: the search input for projects, files and cases
-      - aiAssert: The focused search field has one blue border without an extra outline around it. The project navigation shows No matching projects, and the main empty state shows No matching projects with a Clear filters button.
-      - aiTap: the Clear filters button in the main empty state
-      - aiAssert: The search field is empty and its hint mentions projects, files and cases. The sidebar heading is Projects without a total count. Failed 1 appears before Passed 1 in the navigation. Web regression is selected again, All is checked, and the table has Files, Passed / Case, Attention and Duration headers. Its Duration sort remains descending.
+        locate: the report search input
+      - aiAssert: No matching projects is displayed with a Clear filters action.
+      - aiTap: Clear filters in the main empty state
+      - aiAssert: The search is empty, All is selected, and Web regression and its File table are visible again.

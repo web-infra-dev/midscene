@@ -17,6 +17,7 @@ import { collectReportIssues } from './issues';
 import {
   buildRunnerVisualIndex,
   flattenRunnerCases,
+  getCaseTokenSummary,
   getRunnerHealth,
 } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
@@ -331,6 +332,30 @@ describe('report lifecycle failures', () => {
     expect(() => createTestReportFixture({ ...source, sources: [] })).toThrow(
       'requires an Agent execution',
     );
+  });
+
+  it('attributes fixture token usage to the referenced Agent execution', () => {
+    const metrics = { ...source.metrics, modelCallCount: 1, totalTokens: 1234 };
+    const index = {
+      ...source,
+      metrics: { ...metrics, totalTokens: 9000 },
+      executionMetrics: { 'agent-execution': metrics },
+    };
+    const dump = createTestReportFixture(index);
+    expect(
+      dump.projects[0].documents[0].cases[0].attempts[1].steps[0].metrics,
+    ).toEqual(metrics);
+    const cases = flattenRunnerCases(dump);
+    expect(getCaseTokenSummary(cases[0].testCase)).toEqual({
+      totalTokens: 1234,
+      status: 'complete',
+    });
+    expect(getCaseTokenSummary(cases[1].testCase).totalTokens).toBe(0);
+    dump.metrics.totalTokens = 42;
+    dump.projects[0].documents[0].cases[0].attempts[1].steps[0]
+      .metrics!.totalTokens = 42;
+    expect(metrics.totalTokens).toBe(1234);
+    expect(index.metrics.totalTokens).toBe(9000);
   });
 
   it('selects and renders failed document setup when no attempt exists', () => {

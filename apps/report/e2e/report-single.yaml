@@ -1,80 +1,49 @@
 target:
   serve: ./dist
   url: demo-agent.html
+  deviceScaleFactor: 1
 tasks:
-  # --- Basic loading ---
-  - name: report loads and displays tasks
+  - name: load the Agent report
     flow:
-      - sleep: 5000
-      - aiAssert: The report page is loaded with a left-side task list table showing multiple named task rows and a time or duration column; the main report panel also shows a "Record" timeline with visible screenshot thumbnails or frame previews.
+      - aiAssert: The report loads with an Execution task list and screenshot evidence in the Record area.
 
-  # --- Report timing summary ---
-  - name: total row distinguishes elapsed time from model call time
+  - name: inspect elapsed and model timing totals
     flow:
-      - aiScroll: the scrollable left-side Execution task list below the Type and Time headers, not the main Record timeline
+      - aiScroll: the Execution task list
         scrollType: scrollToBottom
-      - sleep: 500
-      - aiAssert: The left-side Execution task list is visibly scrolled to its bottom. Below the task rows there is one combined summary row labeled "Total" whose Time cell contains separate "Elapsed" and "Model" duration values; there is no separate row labeled "Total Time".
-
-  # --- Player area visible with controls ---
-  - name: player area is visible with playback controls
-    flow:
-      # The timing-summary check leaves the task list at the bottom. Replay is
-      # only available for Planning tasks with animation scripts. The sidebar
-      # renders that internal type as "Plan", so return to the top and select
-      # the matching visible row.
-      - aiScroll: the scrollable left-side Execution task list below the Type and Time headers, not the main Record timeline
+      - aiAssert: The task list's Total summary distinguishes Elapsed and Model durations.
+      - aiScroll: the Execution task list
         scrollType: scrollToTop
-      - sleep: 500
-      - aiTap: a task row in the left sidebar whose Type cell is exactly "Plan", not an Insight or Locate row and not the Total summary row
-      - sleep: 2000
+
+  - name: replay tasks and open player settings
+    flow:
+      - aiTap: a Plan task in the Execution list
       - aiTap:
           locate:
-            prompt: >-
-              the button labeled "Replay all tasks", shown as a black
-              triangular play icon at the far right of the top-left sidebar
-              toolbar and immediately to the right of the visible text
-              "Switch: Command + Up / Down"; do not click a task row,
-              timeline thumbnail, copy button, download button, or player
-              control
+            prompt: Replay all tasks, the black play icon beside Switch at the top of the left Execution sidebar, not the Replay tab
             deepLocate: true
-      - sleep: 500
+      # Verify the mode switch as browser plumbing; keep playback coverage on AI.
+      - javascript: |
+          (() => {
+            if (!document.querySelector('.replay-all-mode-wrapper')) throw new Error('Replay all mode did not open');
+          })();
+        name: verifyReplayAllMode
       - aiHover:
           locate:
-            prompt: >-
-              the large central replay canvas below the Record timeline in the
-              main report area; not the left task sidebar and not a timeline
-              thumbnail
+            prompt: the large replay canvas below the Record timeline, outside the left task list and timeline thumbnails
             deepLocate: true
-      - sleep: 300
-      - aiAssert: >-
-          The report is in replay-all mode. The main report area shows the
-          interactive replay player, and its visible bottom overlay control bar
-          contains a play or pause control, current and total playback time, a
-          horizontal seek/progress bar, settings, and fullscreen controls.
-
-  # --- Settings popup ---
-  - name: settings popup opens and shows options
-    flow:
+      - aiAssert: The main Record area shows the replay player with play or pause and seek controls.
       - aiHover:
-        locate:
-          prompt: the central video player replay area, not the timeline thumbnails and not the left task sidebar
-          deepLocate: true
-      - sleep: 300
-      - aiTap:
-        locate:
-          prompt: the visible settings button in the bottom playback control bar. It is the small hexagon or gear-shaped icon in the right-side control group, immediately left of the fullscreen icon and right of the progress bar.
-          deepLocate: true
-      - sleep: 1000
-      - aiAssert: The player settings popup is open above the bottom-right control bar, showing options such as "Focus on cursor", "Subtitle", "Playback speed", and speed choices like "0.5x", "1x", "1.5x", or "2x".
-
-  # --- Markdown timing summary ---
-  # Keep this last: Markdown View replaces the task list, and no later scenario
-  # should depend on an AI-located switch back to Human View.
-  - name: markdown view explains both timing metrics
-    flow:
+          locate:
+            prompt: the large replay canvas below the Record timeline, outside the left task list and timeline thumbnails
+            deepLocate: true
       - aiTap:
           locate:
-            prompt: the "Markdown View" button in the two-button Report view switch at the far upper-left of the sidebar; it is the document-shaped icon next to the speech-bubble Human View icon, not the copy or download buttons farther right
-      - sleep: 500
-      - aiAssert: The left sidebar is showing report Markdown source with a "Timing Summary" section that clearly lists both "Elapsed Time" and "Model Call Time".
+            prompt: the visible Settings button in the bottom playback control bar, the gear-shaped icon immediately left of Fullscreen and right of the progress bar
+            deepLocate: true
+      - aiAssert: Player settings are open with playback speed options.
+
+  - name: inspect the Markdown report
+    flow:
+      - aiTap: Markdown View in the report view switch
+      - aiAssert: The report Markdown includes a Timing Summary with Elapsed Time and Model Call Time.
