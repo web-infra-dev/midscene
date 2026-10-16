@@ -5,6 +5,7 @@ import type { IModelConfig, TIntent } from '@midscene/shared/env';
 import { getModelRuntime } from '../models';
 import type { ModelRuntime } from '../models';
 import { callAI } from '../service-caller';
+import { systemOneResponseSchema } from '../service-caller/system-one';
 import {
   CONNECTIVITY_FIXTURE_IMAGE,
   CONNECTIVITY_FIXTURE_SHOT_SIZE,
@@ -122,6 +123,7 @@ async function runTextConnectivityCheck(
 ): Promise<ConnectivityCheckResultItem> {
   const startTime = Date.now();
   try {
+    const isJev = modelRuntime.config.modelFamily === 'jev';
     const result = await callAI(
       [
         {
@@ -134,9 +136,27 @@ async function runTextConnectivityCheck(
         },
       ],
       modelRuntime,
+      isJev
+        ? {
+            systemOneRequest: {
+              state: { token: TEXT_EXPECTED_TOKEN },
+              questions: {
+                result: {
+                  type: 'noul',
+                  instructions: `Does token equal ${TEXT_EXPECTED_TOKEN}?`,
+                },
+              },
+            },
+          }
+        : undefined,
     );
     const content = result.content.trim();
-    const passed = content.includes(TEXT_EXPECTED_TOKEN);
+    const answer = isJev
+      ? systemOneResponseSchema.parse(JSON.parse(content)).answers.result
+      : undefined;
+    const passed = isJev
+      ? answer?.type === 'noul' && answer.noul >= 0.5
+      : content.includes(TEXT_EXPECTED_TOKEN);
     return buildCheckResult('text', modelRuntime, {
       passed,
       durationMs: Date.now() - startTime,
@@ -156,24 +176,35 @@ async function runVisionConnectivityCheck(
 ): Promise<ConnectivityCheckResultItem> {
   const startTime = Date.now();
   try {
-    await callAI(
-      [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'What is the main content of this image ? It is a photo or a form ?',
-            },
-            {
-              type: 'image',
-              url: CONNECTIVITY_FIXTURE_IMAGE,
-            },
-          ],
-        },
-      ],
-      modelRuntime,
-    );
+    if (modelRuntime.adapter.insight.booleanFn) {
+      await new Service(buildFixtureContext()).extract(
+        { Boolean: 'Does this screenshot show a form?' },
+        modelRuntime,
+        { screenshotIncluded: true },
+        undefined,
+        undefined,
+        buildFixtureContext(),
+      );
+    } else {
+      await callAI(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What is the main content of this image ? It is a photo or a form ?',
+              },
+              {
+                type: 'image',
+                url: CONNECTIVITY_FIXTURE_IMAGE,
+              },
+            ],
+          },
+        ],
+        modelRuntime,
+      );
+    }
     return buildCheckResult('vision', modelRuntime, {
       passed: true,
       durationMs: Date.now() - startTime,

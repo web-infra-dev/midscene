@@ -122,6 +122,7 @@ export class TaskExecutor {
 
   taskCache?: TaskCache;
 
+  private readonly getDefaultModelRuntime: () => ModelRuntime;
   private readonly providedActionSpace: DeviceAction[];
 
   private readonly taskBuilder: TaskBuilder;
@@ -159,6 +160,7 @@ export class TaskExecutor {
       actionSpace: DeviceAction[];
     },
   ) {
+    this.getDefaultModelRuntime = opts.getDefaultModelRuntime;
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = opts.taskCache;
@@ -683,6 +685,8 @@ export class TaskExecutor {
                 actionContext: renderAIContext(aiActContext),
                 actionSpace,
                 modelRuntime: planningModel,
+                locateModelRuntime: locateModel,
+                getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
                 includeLocateInPlanning,
                 imagesIncludeCount,

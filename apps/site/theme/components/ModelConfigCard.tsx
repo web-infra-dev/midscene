@@ -20,6 +20,7 @@ const tabOrder: ModelConfigTabType[] = [
 
 export function ModelConfigCard(props: ModelConfigCardProps) {
   const lang = useLang();
+  const purposes = props.purposes ?? tabOrder;
   const [protocol, setProtocol] = useState<ModelProtocol>('openai-chat');
   const helpText =
     lang === 'zh'
@@ -69,8 +70,8 @@ export function ModelConfigCard(props: ModelConfigCardProps) {
           </a>
         </fieldset>
       )}
-      <Tabs defaultValue="default">
-        {tabOrder.map((type) => (
+      <Tabs defaultValue={purposes[0]}>
+        {purposes.map((type) => (
           <Tab key={type} label={labels[type]} value={type}>
             <CodeBlockRuntime
               key={protocol}

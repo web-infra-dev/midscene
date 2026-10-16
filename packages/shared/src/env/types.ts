@@ -368,6 +368,7 @@ export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
  * valid Model family types
  */
 export type TModelFamily =
+  | 'jev'
   | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'qwen3'
@@ -390,6 +391,7 @@ export type TModelFamily =
   | 'xiaomi-mimo';
 
 export const MODEL_FAMILY_VALUES: TModelFamily[] = [
+  'jev',
   'doubao-vision',
   'doubao-seed',
   'gemini',

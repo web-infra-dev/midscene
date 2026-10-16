@@ -3,6 +3,10 @@ type ConfigValue<T extends string = string> =
   | { value: T; comment?: string };
 
 export interface ModelConfigCardProps {
+  purposes?: [
+    'default' | 'locate' | 'planning' | 'insight',
+    ...('default' | 'locate' | 'planning' | 'insight')[],
+  ];
   baseUrl: ConfigValue;
   modelName: ConfigValue;
   modelFamily: ConfigValue;

@@ -13,12 +13,14 @@ import { doubaoAdapters } from './doubao';
 import { geminiAdapters } from './gemini';
 import { glmAdapters } from './glm';
 import { gptAdapters } from './gpt';
+import { jevAdapters } from './jev/adapter';
 import { kimiAdapters } from './kimi';
 import { mimoAdapters } from './mimo';
 import { qwenAdapters } from './qwen';
 import { uiTarsAdapters } from './ui-tars/adapter';
 
 export const MODEL_ADAPTER_CONFIGS = {
+  ...jevAdapters,
   ...qwenAdapters,
   ...deepSeekAdapters,
   ...doubaoAdapters,

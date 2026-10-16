@@ -53,6 +53,12 @@ export class ModelConfigManager {
       );
     }
 
+    if (defaultConfig.modelFamily === 'jev') {
+      throw new Error(
+        'Jev cannot be the default model. Configure a general-purpose MIDSCENE_MODEL_FAMILY and use Jev in Locate, Planning, or Insight.',
+      );
+    }
+
     const insightConfig = decideModelConfigFromIntentConfig(
       'insight',
       configMap,
