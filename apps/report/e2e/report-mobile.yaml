@@ -1,16 +1,17 @@
-target:
-  serve: ./dist
-  url: demo-agent.html
-  viewportWidth: 390
-  viewportHeight: 844
-  deviceScaleFactor: 1
-tasks:
+beforeAll:
+  - report.open:
+      path: demo-agent.html
+      viewportWidth: 390
+      viewportHeight: 844
+      deviceScaleFactor: 1
+
+cases:
   - name: inspect an Agent task on mobile and return to the Steps list
-    flow:
+    steps:
       - aiAssert: The mobile report has Steps selected and shows the task list.
       - aiTap:
-          locate:
-            prompt: the first execution task row starting with Plan, below the Act heading
+          prompt: the first execution task row starting with Plan, below the Act heading
+          options:
             deepLocate: true
       - aiAssert: Player is selected, the task's player content is visible, and an Information action is available.
       - aiTap: Information in the Record header
@@ -20,8 +21,8 @@ tasks:
       - aiTap: JSON View in the task detail view switch
       - aiAssert: The selected task's JSON data is visible, including taskId and status.
       - aiTap:
-          locate:
-            prompt: Copy JSON, the copy icon button in the task detail toolbar
+          prompt: Copy JSON, the copy icon button in the task detail toolbar
+          options:
             deepLocate: true
       - aiAssert: A success message confirms the JSON was copied to the clipboard.
       - aiTap: Steps in the mobile report switch
