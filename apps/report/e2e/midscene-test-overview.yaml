@@ -17,7 +17,7 @@ tasks:
             const duration = table.querySelector('.runner-file-duration').getBoundingClientRect();
             if (Math.abs(duration.x - columns[3].x) > 1) throw new Error('Duration values are not aligned with their header');
             for (const cell of table.querySelectorAll('thead th:last-child, .runner-file-duration')) {
-              if (getComputedStyle(cell).textAlign !== 'right') throw new Error('Duration headers and values must align to the right');
+              if (getComputedStyle(cell).textAlign !== 'left') throw new Error('Duration headers and values must stay left-aligned');
             }
             for (const item of document.querySelectorAll('.runner-project-nav-item')) {
               const bounds = item.getBoundingClientRect();
