@@ -120,6 +120,19 @@ const mid = new PuppeteerBrowserAgent(browser, page, {
 
 当你要显式指定初始 active page 时，使用 `new PuppeteerBrowserAgent(browser, page, options)`。当你希望 Midscene 自动选择或创建初始 active page 时，使用 `PuppeteerBrowserAgent.create(browser, options)`；这个工厂会优先使用 `initialPage`，否则复用浏览器里的第一个页面，或者创建一个新页面。
 
+### 使用 WebMCP 工具
+
+向 `PuppeteerAgent` 或 `PuppeteerBrowserAgent` 传入 `enableWebMCP: true` 后，`aiAct` 可以调用当前页面提供的 WebMCP 工具，包括修改数据的工具。该选项默认关闭。
+
+```typescript
+const agent = new PuppeteerAgent(page, { enableWebMCP: true });
+await agent.aiAct('把笔记保存为草稿');
+```
+
+Midscene 在每轮规划前读取当前页面可访问的同源工具，并在调用前确认工具仍存在。如果浏览器没有 `document.modelContext` API，或页面没有工具，`aiAct` 会继续使用视觉操作。
+
+WebMCP 仍是实验性功能，需要使用已启用 WebMCP 的 Chrome。本地测试时，可开启 `chrome://flags/#enable-webmcp-testing` 并重启 Chrome。网站也可以通过 Origin Trial 启用 WebMCP。
+
 ### 浏览器支持说明
 
 Midscene 的部分 Web 自动化能力依赖 Chromium-based browser 提供的 Chrome DevTools Protocol（CDP），例如浏览器级事件、触摸手势，以及一些交互操作中使用的 CDP fallback 路径。
