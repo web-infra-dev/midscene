@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose';
+import { SiwcError, tokenResponseError, withSiwcStage } from './errors';
 
 const ISSUER = 'https://auth.openai.com';
 const RESOURCE = 'https://api.openai.com/v1';
@@ -63,7 +64,7 @@ export async function loginWithOpenAI(
           response
             .writeHead(400)
             .end('Authorization was not granted. Return to the terminal.');
-          reject(new Error('OpenAI authorization was denied or failed.'));
+          reject(new SiwcError('OpenAI authorization was denied or failed.'));
           return;
         }
         const code = url.searchParams.get('code');
@@ -112,7 +113,7 @@ export async function loginWithOpenAI(
   // Attach immediately: browser launch or server startup can fail before awaiting the callback.
   void callback.catch(() => undefined);
   const abort = () =>
-    server.emit('error', new Error('OpenAI login cancelled or timed out.'));
+    server.emit('error', new SiwcError('OpenAI login cancelled or timed out.'));
   signal.addEventListener('abort', abort, { once: true });
   try {
     await new Promise<void>((resolve, reject) => {
@@ -139,29 +140,35 @@ export async function loginWithOpenAI(
       code_challenge: createHash('sha256').update(verifier).digest('base64url'),
     }).toString();
     await options.onAuthorization(authorization.toString());
-    const { code, clientId } = await callback;
+    const { code, clientId } = await withSiwcStage(
+      'Authorization callback',
+      () => callback,
+    );
     signal.throwIfAborted();
     const request = dependencies?.fetch ?? fetch;
-    const result = await request(`${ISSUER}/api/accounts/oauth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: clientId,
-        code,
-        code_verifier: verifier,
-        redirect_uri: redirectUri,
-        resource: RESOURCE,
-      }),
-      signal,
-      redirect: 'error',
+    const result = await withSiwcStage('Token exchange', async () => {
+      const response = await request(`${ISSUER}/api/accounts/oauth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: clientId,
+          code,
+          code_verifier: verifier,
+          redirect_uri: redirectUri,
+          resource: RESOURCE,
+        }),
+        signal,
+        redirect: 'error',
+      });
+      if (!response.ok) {
+        throw await tokenResponseError(response);
+      }
+      return response;
     });
-    if (!result.ok) {
-      throw new Error(
-        `OpenAI token exchange failed (HTTP ${result.status}). Run midscene model siwc login again.`,
-      );
-    }
-    const tokens = (await result.json()) as Record<string, unknown>;
+    const tokens = (await withSiwcStage('Token response parsing', () =>
+      result.json(),
+    )) as Record<string, unknown>;
     if (
       !tokens ||
       typeof tokens.access_token !== 'string' ||
@@ -176,25 +183,27 @@ export async function loginWithOpenAI(
       typeof tokens.token_type !== 'string' ||
       tokens.token_type.toLowerCase() !== 'bearer'
     ) {
-      throw new Error('OpenAI returned an invalid token response.');
+      throw new SiwcError('OpenAI returned an invalid token response.');
     }
     const scopes = tokens.scope.split(/\s+/);
     if (!scopes.includes('chatgpt.tokens.use.direct')) {
-      throw new Error(
+      throw new SiwcError(
         'ChatGPT plan usage was not authorized. Run midscene model siwc login again and grant access.',
       );
     }
     const keys =
       dependencies?.keys ??
       createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks.json`));
-    const { payload } = await jwtVerify(tokens.id_token, keys, {
-      issuer: ISSUER,
-      audience: clientId,
-      algorithms: ['RS256'],
-      requiredClaims: ['sub', 'exp', 'iat', 'nonce'],
-    });
+    const { payload } = await withSiwcStage('ID token verification', () =>
+      jwtVerify(tokens.id_token as string, keys, {
+        issuer: ISSUER,
+        audience: clientId,
+        algorithms: ['RS256'],
+        requiredClaims: ['sub', 'exp', 'iat', 'nonce'],
+      }),
+    );
     if (payload.nonce !== nonce || !payload.sub) {
-      throw new Error('OpenAI login identity or nonce did not match.');
+      throw new SiwcError('OpenAI login identity or nonce did not match.');
     }
     signal.throwIfAborted();
     return {
