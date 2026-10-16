@@ -105,7 +105,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '用 YAML 组织人和 AI 都能读写的测试用例，让自然语言意图与代码步骤以清晰、可审阅的结构共同维护。',
   frameworkLegendLabel: '步骤类型',
   frameworkAiTitle: 'AI 步骤',
-  frameworkAiDesc: 'aiAct 和 aiAssert 读取界面截图，按自然语言指令操作和断言。',
+  frameworkAiDesc:
+    'aiAct、aiAssert 等接口读取界面截图，按自然语言指令操作和断言。',
   frameworkNodeTitle: '确定性 Node',
   frameworkNodeDesc:
     '用 TypeScript 实现测试数据、接口校验与清理，每次执行的行为一致。',

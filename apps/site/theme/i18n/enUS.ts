@@ -107,7 +107,7 @@ export const EN_US = {
   frameworkLegendLabel: 'Step types',
   frameworkAiTitle: 'AI steps',
   frameworkAiDesc:
-    'aiAct and aiAssert read the screen and follow natural-language instructions.',
+    'APIs such as aiAct and aiAssert read the screen and follow natural-language instructions.',
   frameworkNodeTitle: 'Deterministic Nodes',
   frameworkNodeDesc:
     'TypeScript code for test data, API checks, and cleanup. It runs the same way every time.',
