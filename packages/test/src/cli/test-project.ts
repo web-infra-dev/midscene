@@ -29,6 +29,8 @@ export type ExecutionProjectDefinition<TContext = unknown> = Omit<
   'nodes'
 > & {
   nodes?: readonly NodeDefinition<any, any, TContext>[];
+  /** Maximum active YAML files in this project. Defaults to 1. */
+  fileConcurrency?: number;
 };
 
 export interface TestOptions {
@@ -65,6 +67,7 @@ export interface LoadedExecutionProject<TProjectContext = unknown>
   extends ResolvedExecutionProject<TProjectContext> {
   /** Effective Nodes: globals plus project-local overrides. */
   readonly nodes: NodeRegistry;
+  readonly fileConcurrency?: number;
 }
 
 export interface LoadedTestProject<TContext = undefined> {
@@ -383,7 +386,16 @@ const validateExecutionProjects = <TProjectContext>(
     }
     rejectUnknownKeys(
       candidate,
-      ['name', 'setup', 'nodes', 'files', 'tags', 'retry', 'variables'],
+      [
+        'name',
+        'setup',
+        'nodes',
+        'files',
+        'tags',
+        'retry',
+        'variables',
+        'fileConcurrency',
+      ],
       label,
     );
     if (
@@ -413,6 +425,15 @@ const validateExecutionProjects = <TProjectContext>(
       projectId: projectIdFromIndex(index),
       name: candidate.name,
       nodes,
+      ...(candidate.fileConcurrency === undefined
+        ? {}
+        : {
+            fileConcurrency: validatePositiveInteger(
+              candidate.fileConcurrency,
+              1,
+              `${label}.fileConcurrency`,
+            ),
+          }),
       ...(files ? { files } : {}),
       tags: validateTagSelection(candidate.tags, `${label}.tags`),
       retry: validateNonNegativeInteger(candidate.retry, 0, `${label}.retry`),

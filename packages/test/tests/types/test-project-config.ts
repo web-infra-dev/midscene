@@ -68,7 +68,7 @@ type NativeBoundary = [
   Assert<
     Absent<
       ExecutionProjectDefinition,
-      'retryScope' | 'fileConcurrency' | 'setupFile' | 'documentSetup'
+      'retryScope' | 'setupFile' | 'documentSetup'
     >
   >,
   Assert<Absent<TestOutputDefinition, 'report'>>,

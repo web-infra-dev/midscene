@@ -416,7 +416,21 @@ Both Projects can use the same YAML file. During case collection, input validati
 
 ### Concurrency and isolation
 
-The scheduling unit is an execution project. `test.maxConcurrency` limits the number of active projects and defaults to `1`. YAML files, cases, and steps within a project run sequentially. Increasing this setting does not make cases within a single project concurrent.
+`test.maxConcurrency` limits active execution projects and defaults to `1`. Each project's `fileConcurrency` limits active YAML files in that project and also defaults to `1`. Cases and steps inside each file remain sequential. A file occupies its slot through its lifecycle and cleanup; case retries stay in that slot.
+
+```ts filename=midscene.config.ts
+export default defineTestProject({
+  projects: [
+    { name: 'android', files: { include: ['android/**/*.yaml'] }, fileConcurrency: 3 },
+    { name: 'ios', files: { include: ['ios/**/*.yaml'] }, fileConcurrency: 1 },
+  ],
+  test: { maxConcurrency: 2 },
+});
+```
+
+This configuration allows up to three Android files and one iOS file at once. It does not acquire devices. Each file must acquire its own device in `beforeAll` and register cleanup with `onTeardown` immediately after acquisition. The same applies to browser pages and Agents. Project `setup` still runs once and its returned context is shared by all files in that project; do not put a single mutable device, Page, or Agent there when enabling file concurrency. Store file-owned resources in the document's runtime scope, not a shared global variable. Independent files must not rely on another file's side effects.
+
+The limits apply at different levels, not as a global file budget: two active projects each with `fileConcurrency: 3` can run up to six files. This experimental option does not provide resource pooling, process isolation, case-level concurrency, or a global device quota. Late operations remain subject to the existing [quarantine rules](#timeouts-and-cancellation); a released scheduling slot does not prove an external resource has been released.
 
 To run different cases concurrently, assign them to multiple projects using directories or tags, and create separate resources for each project. Reuse the setup and Node definitions from the Playwright example above and replace its `defineTestProject()` configuration with the following to run checkout and account cases concurrently:
 

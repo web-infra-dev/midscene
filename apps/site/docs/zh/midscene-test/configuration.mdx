@@ -411,7 +411,21 @@ export default defineTestProject<ProjectContext>({
 
 ### 并发与资源隔离
 
-并发调度的单位是执行项目，`test.maxConcurrency` 设置同时运行的项目数量上限，默认值为 `1`。单个项目内的 YAML 文件、用例和步骤顺序执行。只有一个执行项目时，增大此值也不会让该项目内的用例并发。
+`test.maxConcurrency` 控制同时运行的执行项目数，默认值为 `1`。每个项目的 `fileConcurrency` 控制该项目同时运行的 YAML 文件数，也默认为 `1`。文件内的用例和步骤保持串行。文件从开始执行到生命周期清理结束占用一个名额，用例重试仍在同一名额内执行。
+
+```ts filename=midscene.config.ts
+export default defineTestProject({
+  projects: [
+    { name: 'android', files: { include: ['android/**/*.yaml'] }, fileConcurrency: 3 },
+    { name: 'ios', files: { include: ['ios/**/*.yaml'] }, fileConcurrency: 1 },
+  ],
+  test: { maxConcurrency: 2 },
+});
+```
+
+此配置允许最多三个 Android 文件和一个 iOS 文件同时执行，不负责申请设备。每个文件需要在 `beforeAll` 中申请自己的设备，取得资源后立即用 `onTeardown` 登记清理。浏览器页面与 Agent 同理。项目 `setup` 仍只执行一次，返回的 context 由该项目全部文件共享；启用文件并发时，不应在这里放置一个供所有文件操作的 Device、Page 或 Agent。文件独占资源应放在文档运行作用域中，不要写入共享全局变量。独立文件之间不能依赖前一个文件的副作用。
+
+两个上限作用于不同层级，不提供全局文件预算：两个活动项目各设置 `fileConcurrency: 3`，最多会同时运行六个文件。此实验选项不提供资源池、进程隔离、文件内用例并发或全局设备配额。晚返回的操作仍遵循现有[隔离规则](#超时与取消机制)，调度名额释放不代表外部资源已经释放。
 
 需要让不同用例同时执行时，可以按目录或标签将用例分配到多个项目，并为每个项目创建独立资源。下面沿用前面 Playwright 示例中的 setup 和 Node 定义，替换其 `defineTestProject()` 配置，让下单与账号用例并发运行：
 

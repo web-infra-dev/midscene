@@ -276,7 +276,8 @@ export async function prepareProject(
   return {
     project,
     ...(platform ? { platform } : {}),
-    documentConcurrency: options.documentConcurrency ?? 1,
+    documentConcurrency:
+      options.documentConcurrency ?? project.fileConcurrency ?? 1,
     ...(prerequisiteDocument
       ? { prerequisiteDocumentId: prerequisiteDocument.documentId }
       : {}),
