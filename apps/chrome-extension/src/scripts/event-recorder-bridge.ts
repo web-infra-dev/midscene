@@ -1,6 +1,7 @@
 /// <reference types="chrome" />
 
 import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
+import { RecorderEventSender } from './recorder-event-sender';
 import { serializeRecorderEvent } from './recorder-event-serialization';
 
 // Event Recorder Bridge
@@ -41,6 +42,7 @@ interface ChromeMessage {
     | 'clearEvents';
   data?: ChromeRecordedEvent[] | ChromeRecordedEvent;
   eventIndex?: number;
+  replacesHashId?: string;
   totalEvents?: number;
   sessionId?: string;
 }
@@ -66,7 +68,10 @@ if (window?.recorder?.isActive()) {
 window.recorder = null;
 let events: ChromeRecordedEvent[] = [];
 let debounceTimer: NodeJS.Timeout | null = null;
-let pendingEvents: ChromeRecordedEvent[] | null = null;
+let eventSender = new RecorderEventSender(
+  prepareEventScreenshots,
+  sendSingleEvent,
+);
 let isPageUnloading = false;
 const eventSendStats = { sent: 0, failed: 0, pending: 0 };
 
@@ -207,151 +212,146 @@ async function sendEventsToExtension(
   optimizedEvent: ChromeRecordedEvent[],
   immediate = false,
 ): Promise<void> {
-  // Store the latest events
-  pendingEvents = optimizedEvent;
-  eventSendStats.pending = optimizedEvent.length;
+  if (optimizedEvent.length === 0) return;
 
-  // Clear any existing timer
+  eventSendStats.pending = optimizedEvent.length;
   if (debounceTimer) {
     clearTimeout(debounceTimer);
+    debounceTimer = null;
   }
 
-  const doSend = async () => {
-    const latestEvent = optimizedEvent[optimizedEvent.length - 1];
-    const previousEvent = optimizedEvent[optimizedEvent.length - 2];
-
-    if (immediate || isPageUnloading) {
-      // For immediate sends or page unloading, use existing screenshots with fallback logic
-      if (optimizedEvent.length > 1) {
-        let screenshotBefore = previousEvent.screenshotAfter;
-
-        // If previousEvent screenshot is not available, try to use lastScreenshot as fallback
-        if (!screenshotBefore && lastScreenshot) {
-          screenshotBefore = lastScreenshot;
-          console.log(
-            '[EventRecorder Bridge] Using lastScreenshot as fallback for immediate beforeScreen',
-          );
-        }
-
-        latestEvent.screenshotBefore = screenshotBefore || '';
-
-        if (!screenshotBefore) {
-          console.warn(
-            '[EventRecorder Bridge] No valid screenshot available for immediate beforeScreen',
-          );
-        }
-      } else {
-        // For first event, try to use initialScreenshot or lastScreenshot
-        latestEvent.screenshotBefore =
-          (await initialScreenshot) || lastScreenshot || '';
-      }
-
-      // For screenshotAfter, try to use lastScreenshot or keep existing
-      if (!latestEvent.screenshotAfter && lastScreenshot) {
-        latestEvent.screenshotAfter = lastScreenshot;
-        console.log(
-          '[EventRecorder Bridge] Using lastScreenshot for immediate screenshotAfter',
-        );
-      }
-    } else {
-      const screenshotAfter = await captureScreenshot();
-      let screenshotBefore: string | undefined;
-
-      if (optimizedEvent.length > 1) {
-        const timeSinceLastEvent =
-          latestEvent.timestamp - previousEvent.timestamp;
-
-        // If too much time has passed since the last event, try to use the updated idle screenshot
-        // but fall back to previousEvent.screenshotAfter if lastScreenshot is not available
-        if (timeSinceLastEvent > MAX_IDLE_TIME && lastScreenshot) {
-          screenshotBefore = lastScreenshot;
-          console.log(
-            '[EventRecorder Bridge] Using updated idle screenshot for beforeScreen due to long interval',
-          );
-        } else {
-          screenshotBefore = previousEvent.screenshotAfter;
-        }
-
-        // Ensure we always have a valid screenshotBefore - fallback to previousEvent.screenshotAfter
-        if (!screenshotBefore) {
-          screenshotBefore = previousEvent.screenshotAfter;
-          console.log(
-            '[EventRecorder Bridge] Fallback to previous event screenshot for beforeScreen',
-          );
-        }
-      } else {
-        screenshotBefore = await initialScreenshot;
-      }
-
-      // Update lastScreenshot with the current screenshot
-      if (screenshotAfter) {
-        lastScreenshot = screenshotAfter;
-      }
-
-      // Ensure we have valid screenshots before assigning
-      latestEvent.screenshotAfter = screenshotAfter || lastScreenshot || '';
-      latestEvent.screenshotBefore = screenshotBefore || '';
-
-      // Log warning if screenshots are missing
-      if (!latestEvent.screenshotAfter) {
-        console.warn(
-          '[EventRecorder Bridge] Missing screenshotAfter for event:',
-          latestEvent.type,
-        );
-      }
-      if (!latestEvent.screenshotBefore) {
-        console.warn(
-          '[EventRecorder Bridge] Missing screenshotBefore for event:',
-          latestEvent.type,
-        );
-      }
-    }
-
-    if (!pendingEvents) return;
-
-    console.log('[EventRecorder Bridge] Sending event-update to extension:', {
-      eventIndex: pendingEvents.length - 1,
-      totalEvents: pendingEvents.length,
-      eventType: latestEvent.type,
-      immediate,
-      isPageUnloading,
-    });
-
-    // Send only the latest event incrementally instead of the full array
-    await sendSingleEvent(
-      latestEvent,
-      pendingEvents.length - 1,
-      pendingEvents.length,
-    );
-
-    // Clear the pending events after sending
-    pendingEvents = null;
-    eventSendStats.pending = 0;
+  const send = async () => {
+    await eventSender.send(optimizedEvent, immediate || isPageUnloading);
+    if (events === optimizedEvent) eventSendStats.pending = 0;
   };
 
-  // Set new timer - bypass debounce if page is unloading
   if (immediate || isPageUnloading) {
-    await doSend();
+    await send();
   } else {
-    debounceTimer = setTimeout(doSend, 200);
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      void send().catch((error) => {
+        console.error('[EventRecorder Bridge] Event delivery failed:', error);
+      });
+    }, 200);
   }
 }
 
-// Send a single event incrementally to the extension (O(1) per event instead of O(n))
+async function prepareEventScreenshots(
+  optimizedEvent: ChromeRecordedEvent[],
+  immediate: boolean,
+): Promise<void> {
+  const latestEvent = optimizedEvent[optimizedEvent.length - 1];
+  const previousEvent = optimizedEvent[optimizedEvent.length - 2];
+
+  if (immediate || isPageUnloading) {
+    // For immediate sends or page unloading, use existing screenshots with fallback logic
+    if (optimizedEvent.length > 1) {
+      let screenshotBefore = previousEvent.screenshotAfter;
+
+      // If previousEvent screenshot is not available, try to use lastScreenshot as fallback
+      if (!screenshotBefore && lastScreenshot) {
+        screenshotBefore = lastScreenshot;
+        console.log(
+          '[EventRecorder Bridge] Using lastScreenshot as fallback for immediate beforeScreen',
+        );
+      }
+
+      latestEvent.screenshotBefore = screenshotBefore || '';
+
+      if (!screenshotBefore) {
+        console.warn(
+          '[EventRecorder Bridge] No valid screenshot available for immediate beforeScreen',
+        );
+      }
+    } else {
+      // For first event, try to use initialScreenshot or lastScreenshot
+      latestEvent.screenshotBefore =
+        (await initialScreenshot) || lastScreenshot || '';
+    }
+
+    // For screenshotAfter, try to use lastScreenshot or keep existing
+    if (!latestEvent.screenshotAfter && lastScreenshot) {
+      latestEvent.screenshotAfter = lastScreenshot;
+      console.log(
+        '[EventRecorder Bridge] Using lastScreenshot for immediate screenshotAfter',
+      );
+    }
+  } else {
+    const screenshotAfter = await captureScreenshot();
+    let screenshotBefore: string | undefined;
+
+    if (optimizedEvent.length > 1) {
+      const timeSinceLastEvent =
+        latestEvent.timestamp - previousEvent.timestamp;
+
+      // If too much time has passed since the last event, try to use the updated idle screenshot
+      // but fall back to previousEvent.screenshotAfter if lastScreenshot is not available
+      if (timeSinceLastEvent > MAX_IDLE_TIME && lastScreenshot) {
+        screenshotBefore = lastScreenshot;
+        console.log(
+          '[EventRecorder Bridge] Using updated idle screenshot for beforeScreen due to long interval',
+        );
+      } else {
+        screenshotBefore = previousEvent.screenshotAfter;
+      }
+
+      // Ensure we always have a valid screenshotBefore - fallback to previousEvent.screenshotAfter
+      if (!screenshotBefore) {
+        screenshotBefore = previousEvent.screenshotAfter;
+        console.log(
+          '[EventRecorder Bridge] Fallback to previous event screenshot for beforeScreen',
+        );
+      }
+    } else {
+      screenshotBefore = await initialScreenshot;
+    }
+
+    // Update lastScreenshot with the current screenshot
+    if (screenshotAfter) {
+      lastScreenshot = screenshotAfter;
+    }
+
+    // Ensure we have valid screenshots before assigning
+    latestEvent.screenshotAfter = screenshotAfter || lastScreenshot || '';
+    latestEvent.screenshotBefore = screenshotBefore || '';
+
+    // Log warning if screenshots are missing
+    if (!latestEvent.screenshotAfter) {
+      console.warn(
+        '[EventRecorder Bridge] Missing screenshotAfter for event:',
+        latestEvent.type,
+      );
+    }
+    if (!latestEvent.screenshotBefore) {
+      console.warn(
+        '[EventRecorder Bridge] Missing screenshotBefore for event:',
+        latestEvent.type,
+      );
+    }
+  }
+}
+
+// Send one event version with the identity it replaces, if already delivered.
 async function sendSingleEvent(
   event: ChromeRecordedEvent,
   eventIndex: number,
   totalEvents: number,
+  replacesHashId?: string,
 ): Promise<void> {
   const message: ChromeMessage = {
     action: 'event-update',
     data: serializeRecorderEvent(event),
     eventIndex,
     totalEvents,
+    replacesHashId,
   };
 
   try {
-    await chrome.runtime.sendMessage(message);
+    const response: ChromeResponse = await chrome.runtime.sendMessage(message);
+    if (!response?.success) {
+      throw new Error(response?.error || 'Event delivery was not acknowledged');
+    }
     eventSendStats.sent += 1;
     console.log(
       `[EventRecorder Bridge] Successfully sent event-update #${eventIndex}`,
@@ -363,6 +363,7 @@ async function sendSingleEvent(
       '[EventRecorder Bridge] Failed to send event-update:',
       errorMsg,
     );
+    throw error;
   }
 }
 
@@ -417,6 +418,10 @@ chrome.runtime.onMessage.addListener(
       if (window.recorder) {
         window.recorder.start();
         events = []; // Clear previous events
+        eventSender = new RecorderEventSender(
+          prepareEventScreenshots,
+          sendSingleEvent,
+        );
         lastActivityTime = Date.now(); // Reset activity time
 
         // Initialize lastScreenshot with the initial screenshot
@@ -468,10 +473,10 @@ chrome.runtime.onMessage.addListener(
           finalEventsCount,
           'events',
         );
-        sendResponse({
-          success: true,
-          eventsCount: finalEventsCount,
-        });
+        void sendEventsToExtension(events, true).then(
+          () => sendResponse({ success: true, eventsCount: finalEventsCount }),
+          (error) => sendResponse({ success: false, error: String(error) }),
+        );
       } else {
         console.log(
           '[EventRecorder Bridge] Stop requested but recorder not active with session ID:',
@@ -495,6 +500,12 @@ chrome.runtime.onMessage.addListener(
     } else if (message.action === 'clearEvents') {
       const clearedCount = events.length;
       events = [];
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = null;
+      eventSender = new RecorderEventSender(
+        prepareEventScreenshots,
+        sendSingleEvent,
+      );
       console.log('[EventRecorder Bridge] Cleared', clearedCount, 'events');
       sendResponse({
         success: true,
@@ -525,8 +536,8 @@ window.addEventListener('beforeunload', async () => {
   }
 
   // Flush any pending events immediately without waiting
-  if (events.length > 0 || pendingEvents) {
-    const eventsToSend = pendingEvents || events;
+  if (events.length > 0) {
+    const eventsToSend = events;
     // Use synchronous approach for beforeunload
     try {
       await sendEventsToExtension(eventsToSend, true);
@@ -542,7 +553,9 @@ window.addEventListener('pagehide', async () => {
     isPageUnloading = true;
     console.log('[EventRecorder Bridge] Page hiding, flushing events');
     if (events.length > 0) {
-      await sendEventsToExtension(events, true);
+      await sendEventsToExtension(events, true).catch((error) => {
+        console.error('[EventRecorder Bridge] Final event send failed:', error);
+      });
     }
   }
   if (pageChangeDetectionInterval) {
@@ -563,7 +576,9 @@ document.addEventListener('visibilitychange', () => {
     visibilityTimer = setTimeout(() => {
       console.log('[EventRecorder Bridge] Page became hidden, flushing events');
       if (events.length > 0) {
-        sendEventsToExtension(events, true);
+        void sendEventsToExtension(events, true).catch((error) => {
+          console.error('[EventRecorder Bridge] Event delivery failed:', error);
+        });
       }
     }, 100);
   } else if (document.visibilityState === 'visible') {
@@ -592,7 +607,9 @@ const checkForNavigation = () => {
 
     // Flush events on navigation
     if (events.length > 0 && !isPageUnloading) {
-      sendEventsToExtension(events, true);
+      void sendEventsToExtension(events, true).catch((error) => {
+        console.error('[EventRecorder Bridge] Event delivery failed:', error);
+      });
     }
   }
 

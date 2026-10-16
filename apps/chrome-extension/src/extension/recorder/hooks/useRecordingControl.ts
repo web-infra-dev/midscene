@@ -50,6 +50,7 @@ export const useRecordingControl = (
   const isExtensionMode = isChromeExtension();
   const recordContainerRef = useRef<HTMLDivElement>(null);
   const stopRecordingPromiseRef = useRef<Promise<void> | null>(null);
+  const eventProcessingRef = useRef(Promise.resolve());
   const startRecordingPromiseRef = useRef<Promise<void> | null>(null);
   const [isStarting, setIsStarting] = useState(false);
 
@@ -78,17 +79,21 @@ export const useRecordingControl = (
           return;
         }
 
-        // Set isRecording to false immediately to prevent UI from showing recording state
-        await setIsRecording(false);
-
         try {
           // Check if content script is still available before sending message
           try {
             // Send message to content script to stop recording
-            await safeChromeAPI.tabs.sendMessage(currentTab.id, {
-              action: 'stop',
-              sessionId: currentSessionId,
-            });
+            const response = await safeChromeAPI.tabs.sendMessage(
+              currentTab.id,
+              {
+                action: 'stop',
+                sessionId: currentSessionId,
+              },
+            );
+            if (!response?.success)
+              throw new Error(
+                response?.error || 'Recording stop was not acknowledged',
+              );
           } catch (error: any) {
             // If content script is not available, just stop recording on our side
             if (error.message?.includes('Receiving end does not exist')) {
@@ -109,27 +114,36 @@ export const useRecordingControl = (
             }
           }
 
+          await eventProcessingRef.current;
+          const finalEvents = useRecordStore.getState().events;
+          await setIsRecording(false);
+
           // Update session with final events and status
           if (currentSessionId) {
             const session = getCurrentSession();
             if (session) {
               const duration =
-                events.length > 0
-                  ? events[events.length - 1].timestamp - events[0].timestamp
+                finalEvents.length > 0
+                  ? finalEvents[finalEvents.length - 1].timestamp -
+                    finalEvents[0].timestamp
                   : 0;
 
               // Generate title and description if we have events
               const updateData: Partial<RecordingSession> = {
                 status: 'completed',
-                events: [...events],
+                events: [...finalEvents],
                 duration,
                 updatedAt: Date.now(),
               };
 
               // Generate AI title and description if we have events
-              if (events.length > 3 && !session.name && !session.description) {
+              if (
+                finalEvents.length > 3 &&
+                !session.name &&
+                !session.description
+              ) {
                 recordLogger.info('Generating AI title', {
-                  eventsCount: events.length,
+                  eventsCount: finalEvents.length,
                 });
                 const hideLoadingMessage = message.loading(
                   'Generating recording title and description...',
@@ -137,7 +151,7 @@ export const useRecordingControl = (
                 );
                 try {
                   const { title, description } = await generateRecordTitle(
-                    events,
+                    finalEvents,
                     globalModelConfigManager.getModelConfig('default'),
                   );
 
@@ -165,8 +179,6 @@ export const useRecordingControl = (
         } catch (error) {
           recordLogger.error('Failed to stop recording', undefined, error);
           message.error(`Failed to stop recording: ${error}`);
-          // Still stop recording on our side even if there was an error
-          await setIsRecording(false);
         }
       }),
     [
@@ -391,7 +403,8 @@ export const useRecordingControl = (
   useEffect(() => {
     let port: chrome.runtime.Port | null = null;
     let reconnectTimer: NodeJS.Timeout | null = null;
-    let eventBuffer: ChromeRecordedEvent[] = [];
+    let eventBuffer: { event: ChromeRecordedEvent; replacesHashId?: string }[] =
+      [];
     let isConnected = false;
 
     const connectToServiceWorker = () => {
@@ -467,8 +480,10 @@ export const useRecordingControl = (
                 bufferedCount: eventBuffer.length,
                 newCount: eventsData.length,
               });
-              const mergedEvents = [...eventBuffer, ...eventsData];
-              setEvents(mergedEvents);
+              for (const { event, replacesHashId } of eventBuffer) {
+                await addEvent(event, replacesHashId);
+              }
+              await setEvents(eventsData);
               eventBuffer = [];
             } else {
               setEvents(eventsData);
@@ -482,11 +497,14 @@ export const useRecordingControl = (
             const optimizedEvent = await processEventData(message.data);
 
             if (isConnected) {
-              addEvent(optimizedEvent);
+              await addEvent(optimizedEvent, message.replacesHashId);
             } else {
               // Buffer events if not connected
               recordLogger.info('Buffering event due to disconnected port');
-              eventBuffer.push(optimizedEvent);
+              eventBuffer.push({
+                event: optimizedEvent,
+                replacesHashId: message.replacesHashId,
+              });
             }
           } else {
             recordLogger.warn('Unhandled message format', {
@@ -497,7 +515,17 @@ export const useRecordingControl = (
 
         // Listen to messages via port
         if (port && 'onMessage' in port) {
-          port.onMessage.addListener(handleMessage);
+          port.onMessage.addListener((message: RecordMessage) => {
+            eventProcessingRef.current = eventProcessingRef.current
+              .then(() => handleMessage(message))
+              .catch((error) => {
+                recordLogger.error(
+                  'Failed to process recording event',
+                  undefined,
+                  error,
+                );
+              });
+          });
         }
       } catch (error) {
         recordLogger.error(
@@ -531,7 +559,9 @@ export const useRecordingControl = (
         recordLogger.info('Saving buffered events on cleanup', {
           bufferedCount: eventBuffer.length,
         });
-        eventBuffer.forEach((event) => addEvent(event));
+        eventBuffer.forEach(({ event, replacesHashId }) =>
+          addEvent(event, replacesHashId),
+        );
       }
     };
   }, [addEvent, setEvents, updateEvent, currentSessionId, isRecording]);
