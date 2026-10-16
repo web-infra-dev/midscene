@@ -21,6 +21,7 @@ import {
   rs,
   test,
 } from '@rstest/core';
+import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import { PlaygroundServer } from '../../src/server';
 import type { PlaygroundReportRef } from '../../src/types';
 
@@ -279,7 +280,7 @@ describe('PlaygroundServer independent persisted reports', () => {
     });
     const first = await execute('first-run');
     const firstHtml = await downloadedReport(first.report!);
-    rs.spyOn(agent, '_startNewReport').mockRejectedValueOnce(
+    rs.spyOn(agent, 'resetDump').mockRejectedValueOnce(
       new Error('report setup failed'),
     );
     const setupFailure = await execute('setup-failure');
@@ -289,13 +290,13 @@ describe('PlaygroundServer independent persisted reports', () => {
     });
     expect(aiAct).toHaveBeenCalledOnce();
 
-    // Inject below Agent._finalizeReport so its real cached failure is tested.
+    // Inject below Agent.finalizeReport so its real cached failure is tested.
     aiAct.mockImplementationOnce(async () => {
       await agent.recordToReport('failed finalization', {
         screenshotBase64: 'AQ==',
       });
       rs.spyOn(
-        (agent as any).reportGenerator,
+        (agent as any).reportState.generator,
         'finalize',
       ).mockRejectedValueOnce(new Error('report finalization failed'));
       return 'done';
@@ -314,5 +315,155 @@ describe('PlaygroundServer independent persisted reports', () => {
       expect(html).not.toContain('failed finalization');
       expect(await downloadedReport(first.report!)).toBe(firstHtml);
     }
+  });
+
+  test('local execution reuses the Agent and captures each export before releasing records', async () => {
+    rs.spyOn(agent, 'aiAct').mockImplementation(async (prompt) => {
+      await agent.recordToReport(String(prompt), { screenshotBase64: 'AAAA' });
+      return 'done';
+    });
+    const adapter = new LocalExecutionAdapter(agent);
+    const files: Array<{ path: string; html: string }> = [];
+    for (const prompt of ['local first', 'local second']) {
+      const result = (await adapter.executeAction(
+        'aiAct',
+        { type: 'aiAct', prompt },
+        {},
+      )) as any;
+      expect(result.error).toBeNull();
+      expect(
+        result.dump.executions.map((entry: { name: string }) => entry.name),
+      ).toEqual([`Log - ${prompt}`]);
+      expect(result.reportHTML).toContain(prompt);
+      expect(agent.dump.executions).toEqual([]);
+      const path = agent.reportFile!;
+      const html = await readFile(path, 'utf8');
+      files.push({ path, html });
+      for (const file of files)
+        expect(await readFile(file.path, 'utf8')).toBe(file.html);
+    }
+    expect(files[0].path).not.toBe(files[1].path);
+    expect(destroyDevice).not.toHaveBeenCalled();
+  });
+
+  test('local cancellation aborts unfinished work before finalizing its report', async () => {
+    let started!: () => void;
+    const running = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    rs.spyOn(agent, 'aiAct').mockImplementation(async (_prompt, options) => {
+      await agent.recordToReport('local cancelled run', {
+        screenshotBase64: 'AAAA',
+      });
+      started();
+      await new Promise<void>((resolve) => {
+        options?.abortSignal?.addEventListener('abort', () => resolve(), {
+          once: true,
+        });
+      });
+      options?.abortSignal?.throwIfAborted();
+      return 'done';
+    });
+    const adapter = new LocalExecutionAdapter(agent);
+    const execution = adapter.executeAction(
+      'aiAct',
+      { type: 'aiAct', prompt: 'cancel' },
+      { requestId: 'local-cancel' },
+    );
+    await running;
+    await expect(
+      adapter.executeAction('aiAct', { type: 'aiAct' }, {}),
+    ).rejects.toThrow('Another task is already running');
+    const cancelled = await adapter.cancelTask('local-cancel');
+    const result = (await execution) as any;
+    expect(cancelled.success).toBe(true);
+    expect((cancelled.dump as any).executions[0].name).toBe(
+      'Log - local cancelled run',
+    );
+    expect(result.error).toContain('cancelled');
+    expect(destroyDevice).toHaveBeenCalledOnce();
+    expect(
+      JSON.parse(parseDumpScript(await readFile(agent.reportFile!, 'utf8')))
+        .executions,
+    ).toHaveLength(1);
+  });
+
+  test('requests without a caller id still acquire an exclusive report execution', async () => {
+    let started!: () => void;
+    let release!: () => void;
+    const running = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    rs.spyOn(agent, 'aiAct').mockImplementation(async () => {
+      await agent.recordToReport('generated id run', {
+        screenshotBase64: 'AAAA',
+      });
+      started();
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return 'done';
+    });
+    const first = createResponse();
+    const executing = route(
+      server,
+      'post',
+      '/execute',
+    )({ body: { type: 'aiAct' } }, first);
+    await running;
+    const second = createResponse();
+    try {
+      await route(
+        server,
+        'post',
+        '/execute',
+      )({ body: { type: 'aiAct' } }, second);
+      expect(second.statusCode).toBe(409);
+    } finally {
+      release();
+      await executing;
+    }
+    expect(first.body.requestId).toBeTruthy();
+    expect(first.body.error).toBeNull();
+  });
+
+  test('cancellation during report finalization returns the same sealed artifact', async () => {
+    let started!: () => void;
+    let release!: () => void;
+    const finalizing = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    rs.spyOn(agent, 'aiAct').mockImplementation(async () => {
+      await agent.recordToReport('closing run', { screenshotBase64: 'AAAA' });
+      const generator = (agent as any).reportState.generator;
+      const finalize = generator.finalize.bind(generator);
+      rs.spyOn(generator, 'finalize').mockImplementation(async () => {
+        started();
+        await pending;
+        return finalize();
+      });
+      return 'done';
+    });
+    const executing = execute('closing-run');
+    await finalizing;
+    const cancel = createResponse();
+    const cancellation = route(
+      server,
+      'post',
+      '/cancel/:requestId',
+    )({ params: { requestId: 'closing-run' } }, cancel);
+    release();
+    const [result] = await Promise.all([executing, cancellation]);
+    expect(cancel.statusCode).toBe(200);
+    expect(cancel.body.status).toBe('cancelled');
+    expect(cancel.body.report).not.toBeNull();
+    const cancelledHtml = await downloadedReport(cancel.body.report);
+    expect(await downloadedReport(result.report!)).toBe(cancelledHtml);
+    expect(JSON.parse(parseDumpScript(cancelledHtml)).executions).toHaveLength(
+      1,
+    );
   });
 });

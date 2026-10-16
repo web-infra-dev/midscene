@@ -46,7 +46,7 @@ const createAgent = (enabled = true) => {
     },
   );
   if (enabled) {
-    (agent as any).reportGenerator = new ReportGenerator({
+    (agent as any).reportState.generator = new ReportGenerator({
       reportPath: join(directory, 'unchanged-name.html'),
       screenshotMode: 'inline',
       autoPrint: false,

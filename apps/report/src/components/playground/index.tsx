@@ -288,7 +288,6 @@ export function StandardPlayground({
 
       currentRunningIdRef.current = thisRunningId;
       interruptedFlagRef.current[thisRunningId] = false;
-      activeAgent.resetDump();
 
       // Set up progress callback for direct agent execution
       activeAgent.onTaskStartTip = (tip: string) => {

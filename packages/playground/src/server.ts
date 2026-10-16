@@ -3419,7 +3419,7 @@ class PlaygroundServer {
         type,
         prompt,
         params,
-        requestId,
+        requestId: providedRequestId,
         deepLocate,
         deepThink,
         screenshotIncluded,
@@ -3427,6 +3427,7 @@ class PlaygroundServer {
         deviceOptions,
         reportDisplay,
       } = req.body;
+      const requestId = providedRequestId || uuid();
 
       if (!type) {
         return res.status(400).json({
@@ -3509,7 +3510,7 @@ class PlaygroundServer {
       const startTime = Date.now();
       let reportStarted = false;
       try {
-        await agent._startNewReport();
+        await agent.resetDump();
         reportStarted = true;
         abortController?.signal.throwIfAborted();
         await this._activeConnection.executionHooks?.beforeExecute?.();
@@ -3559,10 +3560,9 @@ class PlaygroundServer {
           // HTML report. Large Android runs otherwise starve Electron's main
           // event loop long enough for the scrcpy Socket.IO heartbeat to fail.
           const reportStartedAt = Date.now();
-          const reportFile = await agent._finalizeReport();
+          const reportFile = await agent.finalizeReport();
           response.report = await this.registerReportFile(reportFile);
           response.dump = null;
-          agent.resetDump();
 
           debugReport(
             'registered persisted report: requestId=%s, duration=%dms, bytes=%d, file=%s',
@@ -3644,7 +3644,18 @@ class PlaygroundServer {
           // a Timeline but have no report artifact to register.
           const latestExecutionDump = this.taskExecutionDumps[requestId];
           if (latestExecutionDump) {
-            agent.writeOutActionDumps?.(latestExecutionDump);
+            try {
+              agent.writeOutActionDumps?.(latestExecutionDump);
+            } catch (error) {
+              if ((error as { code?: string })?.code !== 'REPORT_FINALIZED')
+                throw error;
+              // Completion may already have sealed this report. Continue
+              // teardown and return its cached artifact instead of appending.
+              debugCancel(
+                'Could not persist a cancellation snapshot: %s',
+                error,
+              );
+            }
           }
 
           // Destroy and recreate agent to cancel the current task,

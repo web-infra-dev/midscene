@@ -1368,6 +1368,39 @@ Both `agent.setAIActContext()` and the older `agent.setAIActionContext()` remain
 
 :::
 
+#### `resetDump()` {#agentresetdump}
+
+Finalize the current report, clear execution records, and prepare an independent report for subsequent calls. The Agent, device connection, and AI context settings are reused. Previously generated HTML, JSON, and image files are retained.
+
+```typescript
+function resetDump(): Promise<ReportActionDump>;
+```
+
+Always await `resetDump()` before starting another action. It rejects while an Agent action, YAML execution, or observation window is active. Concurrent calls share one reset; sequential calls prepare separate reports. A previous report write or finalization failure is logged and does not prevent a fresh report from being prepared.
+
+```typescript
+await agent.aiAct('Open the product page');
+await agent.aiAssert('The product details are visible');
+const firstReport = await agent.finalizeReport();
+
+await agent.resetDump();
+await agent.aiAct('Open the shopping cart');
+const secondReport = await agent.finalizeReport();
+```
+
+Consecutive SDK calls stay in one report until `resetDump()` is called. Unlike the former synchronous, memory-only reset, this method is asynchronous and also changes the report destination. Update existing callers to await it. Internal initialization and cleanup do not create another report.
+
+#### `flushReport()` and `finalizeReport()` {#agentreportlifecycle}
+
+```typescript
+function flushReport(): Promise<string | undefined>;
+function finalizeReport(): Promise<string | undefined>;
+```
+
+`flushReport()` persists pending updates while allowing further actions in the same report. `finalizeReport()` seals the report and releases its in-memory execution records without disconnecting the device. Capture `dumpDataString()` or `reportHTMLString()` before finalization if you need an in-memory export. Repeated finalization returns the same result without rewriting historical artifacts; await `resetDump()` before executing again.
+
+Both methods return the report file path when a file was generated, or `undefined` when reports are disabled, the Agent runs in a browser, or no records were produced. File write failures reject the returned Promise. For browser execution, export the HTML from memory before finalizing.
+
 #### `evaluateJavaScript()` {#agentevaluatejavascript}
 
 > Available only for web agents.
