@@ -2,7 +2,7 @@ import { ArrowLeftOutlined } from '@ant-design/icons';
 import type { TestRunReportAttempt, TestRunReportDump } from '@midscene/core';
 import type { ReactNode } from 'react';
 import { AttemptSelect } from './attempt-select';
-import type { RunnerCaseView } from './model';
+import { type RunnerCaseView, getCaseTokenSummary } from './model';
 import { SingleCaseRunInfo } from './single-case-run-info';
 import { StatusBadge } from './status-badge';
 import { CaseStatus, formatDuration } from './view-primitives';
@@ -22,6 +22,7 @@ export function CaseWorkspaceHeader({
   caseNavigation?: ReactNode;
   children?: ReactNode;
 }): JSX.Element {
+  const tokens = getCaseTokenSummary(item.testCase);
   return (
     <section className="runner-detail-case-header">
       {caseNavigation}
@@ -57,6 +58,15 @@ export function CaseWorkspaceHeader({
                 {item.document.attempts?.length ??
                   item.testCase.attempts.length}
               </strong>
+            </span>
+            <span title="Cumulative model tokens across all Case attempts, including per-case setup and teardown.">
+              Tokens
+              <strong>
+                {tokens.status === 'unknown'
+                  ? '—'
+                  : tokens.totalTokens.toLocaleString()}
+              </strong>
+              {tokens.status === 'partial' ? '(partial)' : null}
             </span>
             <span>
               Case time{' '}

@@ -1,6 +1,7 @@
 import type {
   TestRunReportAttempt,
   TestRunReportDump,
+  TestRunReportMetrics,
   TestRunReportStep,
 } from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
@@ -21,6 +22,7 @@ import {
   getAllAttemptVisualFrames,
   getAttemptVisualFrames,
   getCaseSearchMatch,
+  getCaseTokenSummary,
   getDefaultVisualFrameForStep,
   getRunnerHealth,
   getStepForVisualFrame,
@@ -188,6 +190,24 @@ const dump: TestRunReportDump = {
     },
   ],
 };
+
+const tokenMetrics = (
+  totalTokens: number,
+  status: 'complete' | 'partial' | 'unknown' = 'complete',
+): TestRunReportMetrics => ({
+  modelCallCount: 1,
+  modelTimeMs: 100,
+  promptTokens: totalTokens,
+  cachedInputTokens: 0,
+  completionTokens: 0,
+  totalTokens,
+  collection: {
+    status,
+    expectedExecutionCount: 1,
+    capturedExecutionCount: status === 'unknown' ? 0 : 1,
+    reasons: [],
+  },
+});
 
 describe('Midscene Test hybrid report model', () => {
   it('separates final pass rate from first-pass stability', () => {
@@ -411,6 +431,109 @@ describe('Midscene Test hybrid report model', () => {
     expect(regular).not.toContain('Attempt 1');
     expect(regular).not.toContain('aria-label="Attempts"');
     expect(regular).not.toContain('runner-step-status is-success');
+  });
+
+  it('shows cumulative Case tokens before Case time, including retries and per-case hooks only', () => {
+    const run = structuredClone(dump);
+    const item = flattenRunnerCases(run)[1];
+    item.document.beforeAll = [
+      step('shared-setup', 'success', { metrics: tokenMetrics(9_000) }),
+    ];
+    item.document.afterAll = [
+      step('shared-teardown', 'success', { metrics: tokenMetrics(8_000) }),
+    ];
+    item.document.cases[0].attempts[0].steps[0].metrics = tokenMetrics(7_000);
+    const [first, second] = item.testCase.attempts;
+    first.beforeEach = [
+      step('setup', 'success', { metrics: tokenMetrics(35) }),
+    ];
+    first.afterEach = [
+      step('teardown', 'success', { metrics: tokenMetrics(15) }),
+    ];
+    first.steps[0].metrics = tokenMetrics(1_000);
+    second.steps[0].metrics = tokenMetrics(2_000);
+    second.steps[1].metrics = tokenMetrics(500);
+
+    expect(getCaseTokenSummary(item.testCase)).toEqual({
+      totalTokens: 3_550,
+      status: 'complete',
+    });
+    const markup = renderToStaticMarkup(
+      createElement(CaseWorkspaceHeader, {
+        item,
+        backLabel: 'Overview',
+        onBack() {},
+      }),
+    );
+    expect(markup).toContain('Tokens<strong>3,550</strong>');
+    expect(markup.indexOf('Tokens<strong>')).toBeLessThan(
+      markup.indexOf('Case time'),
+    );
+  });
+
+  it.each(['complete', 'partial', 'unknown'] as const)(
+    'renders %s Case token collection without turning missing usage into zero',
+    (status) => {
+      const item = flattenRunnerCases(structuredClone(dump))[0];
+      item.testCase.attempts[0].steps[0].metrics = tokenMetrics(1_234, status);
+      const markup = renderToStaticMarkup(
+        createElement(CaseWorkspaceHeader, {
+          item,
+          backLabel: 'Overview',
+          onBack() {},
+        }),
+      );
+      expect(markup).toContain(
+        `Tokens<strong>${status === 'unknown' ? '—' : '1,234'}</strong>`,
+      );
+      expect(markup.includes('(partial)')).toBe(status === 'partial');
+    },
+  );
+
+  it.each([500, 0])(
+    'keeps known %i tokens when another request has unknown usage',
+    (known) => {
+      const item = flattenRunnerCases(structuredClone(dump))[0];
+      item.testCase.attempts[0].steps = [
+        step('known', 'success', { metrics: tokenMetrics(known) }),
+        step('unknown', 'failed', { metrics: tokenMetrics(9_999, 'unknown') }),
+      ];
+      expect(getCaseTokenSummary(item.testCase)).toEqual({
+        totalTokens: known,
+        status: 'partial',
+      });
+    },
+  );
+
+  it('uses token collection status independently of missing model timing', () => {
+    const item = flattenRunnerCases(structuredClone(dump))[0];
+    const metrics = tokenMetrics(500, 'partial');
+    metrics.collection!.fields = {
+      totalTokens: 'complete',
+      modelCallCount: 'complete',
+      modelTimeMs: 'unknown',
+    };
+    item.testCase.attempts[0].steps[0].metrics = metrics;
+    expect(getCaseTokenSummary(item.testCase)).toEqual({
+      totalTokens: 500,
+      status: 'complete',
+    });
+  });
+
+  it('marks missing traced usage as unknown while keeping Cases without model calls at zero', () => {
+    const cases = flattenRunnerCases(dump);
+    expect(getCaseTokenSummary(cases[1].testCase).status).toBe('unknown');
+    for (const index of [0, 3])
+      expect(getCaseTokenSummary(cases[index].testCase)).toEqual({
+        totalTokens: 0,
+        status: 'complete',
+      });
+    const testCase = structuredClone(cases[0].testCase);
+    testCase.attempts[0].steps[0].evidenceCollection = {
+      status: 'unknown',
+      modelUsageUnavailable: true,
+    };
+    expect(getCaseTokenSummary(testCase).status).toBe('unknown');
   });
 
   it('shows final case counts including retries and not-run cases in the compact summary', () => {
