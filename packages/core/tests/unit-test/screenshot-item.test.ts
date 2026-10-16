@@ -333,3 +333,27 @@ describe('ScreenshotItem', () => {
     });
   });
 });
+
+it('preserves source timing and frame identity in inline and file screenshot references', () => {
+  const timing = {
+    clockId: 'guest:boot',
+    startMs: 470,
+    endMs: 470,
+    kind: 'compositor-frame' as const,
+  };
+  const item = ScreenshotItem.create(
+    'data:image/png;base64,AA==',
+    640,
+    timing,
+    'frame-2',
+  );
+  timing.startMs = 900;
+  expect(item.toSerializable()).toMatchObject({
+    frameId: 'frame-2',
+    capturedAt: 640,
+    timing: { startMs: 470, endMs: 470 },
+  });
+  expect(
+    item.markPersistedToPath('./image.png', '/tmp/image.png'),
+  ).toMatchObject({ frameId: 'frame-2', timing: { startMs: 470 } });
+});

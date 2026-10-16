@@ -564,6 +564,8 @@ export async function buildObservationChangeFocus(
         screenshot: ScreenshotItem.create(
           `data:image/jpeg;base64,${rendered.toString('base64')}`,
           screenshot.capturedAt,
+          screenshot.timing,
+          screenshot.frameId,
         ),
         sourceFrameIndex,
         role: 'change-regions' as const,

@@ -1,3 +1,7 @@
+import type {
+  UIObservationEvent,
+  UIObservationTiming,
+} from '@midscene/shared/agent-tools/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { AgentAIContexts } from '@midscene/shared/agent-tools/agent-context';
@@ -185,6 +189,11 @@ export interface ScreenshotSequenceEvidence {
 }
 
 export abstract class UIContext {
+  observationTiming?: {
+    frames: (UIObservationTiming | undefined)[];
+    events: UIObservationEvent[];
+    droppedFrames: number;
+  };
   /**
    * screenshot of the current UI state. which size is shotSize(be shrunk by screenshotShrinkFactor),
    */
