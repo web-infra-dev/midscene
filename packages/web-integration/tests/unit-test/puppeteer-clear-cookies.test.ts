@@ -6,7 +6,14 @@ describe('clearCookies in Chromium', () => {
   it.each(['native', 'legacy'])(
     '%s APIs keep context-wide semantics',
     async (mode) => {
-      const browser = await puppeteer.launch({ headless: true });
+      const browser = await puppeteer.launch({
+        headless: true,
+        // These about:blank tests can run without Chrome's sandbox on Linux CI.
+        args:
+          process.platform === 'linux' && process.env.CI === 'true'
+            ? ['--no-sandbox']
+            : [],
+      });
       try {
         const context = await browser.createBrowserContext();
         const otherContext = await browser.createBrowserContext();
