@@ -34,6 +34,8 @@ export interface ServiceExtractOption {
   context?: string;
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
+  /** Optional observation focus rectangle in prepared screenshot pixels. */
+  observationRegion?: Rect;
   [key: string]: unknown;
 }
 

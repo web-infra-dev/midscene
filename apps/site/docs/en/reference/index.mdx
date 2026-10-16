@@ -1163,9 +1163,14 @@ await observation.dispose();
 
 Sampling and resource usage:
 
+- In Node.js, queries and assertions accept an optional `observationRegion: { left, top, width, height }` in prepared screenshot pixels. It limits automatic change detection to that area; omitted, the whole screen is searched. Full-screen baseline and final images are still provided for context. For example: `await observation.aiAssert('the button changed color', undefined, { observationRegion: { left: 800, top: 550, width: 250, height: 200 } });`. Browser runtimes use sampled full frames and reject `observationRegion` because the image-analysis backend is unavailable.
+- The observation region is cropped before analysis resizing, so changes outside it do not affect detection or transition ranking. Fractional bounds include only whole pixels contained in the region; regions containing no whole pixel are rejected. Enlarged crops may include surrounding context, but their outlined measurement patches stay inside the region.
+- All source screenshots must have matching original pixel dimensions for Node.js change-region analysis. A resolution change is reported as an error rather than generating misaligned crops.
+- Change-region evidence prioritizes frames before and after visual transitions, using RGB differences so color changes at similar brightness remain visible. The report contains the same evidence images sent to the model. The bounded evidence set may omit events when there are more independent changes than the image budget can represent; it is not an exhaustive video analysis.
+
 - Midscene uses a continuous frame source when one is available. Android uses scrcpy (`scrcpyConfig.enabled`), iOS uses WDA MJPEG (`wdaMjpegFrameSource.enabled`), and the web uses CDP screencast. Without a continuous source, Midscene takes screenshots at intervals. Sampling is slower on mobile in this mode.
 - Data URL frames are written to files during sampling. `UIObserver` does not keep every image in memory. Other frame handles are decoded and saved in small batches when recording stops. Midscene reads the images when a query or assertion runs.
-- The model receives up to `maxFrames` frames and the final screenshot. Increase `intervalMs` to sample less often, or decrease `maxFrames` to limit the frame count. Observed frames appear in the report timeline with an `Observed` label.
+- Midscene analyzes every retained source frame and sends the model at most eight evidence images. When it detects localized changes, it sends up to six enlarged change-region grids plus full-screen baseline and final-state images; otherwise it evenly samples up to eight full frames. Observed evidence appears in the report timeline with an `Observed` label.
 - On iOS, observed frames come from the lower-quality MJPEG stream. The final screenshot still uses full quality.
 
 #### `aiWaitFor()` {#agentaiwaitfor}
