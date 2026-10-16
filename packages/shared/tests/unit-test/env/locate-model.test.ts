@@ -16,7 +16,9 @@ const locate = {
   MIDSCENE_LOCATE_MODEL_FAMILY: 'qwen3-vl',
 };
 
-afterEach(() => rs.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('Locate model configuration', () => {
   it('inherits the whole default configuration only when no Locate model is selected', () => {

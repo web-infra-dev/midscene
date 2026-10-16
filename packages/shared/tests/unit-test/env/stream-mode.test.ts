@@ -8,7 +8,9 @@ const defaults = {
   MIDSCENE_MODEL_STREAM_MODE: 'stream',
 };
 
-afterEach(() => rs.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('per-model stream mode', () => {
   it('reads role settings from the environment while keeping isolated configs independent', () => {
@@ -26,8 +28,8 @@ describe('per-model stream mode', () => {
     expect(manager.getModelConfig('locate').streamMode).toBe('non-stream');
     expect(
       new ModelConfigManager({
-        ...defaults,
-        MIDSCENE_MODEL_STREAM_MODE: undefined,
+        MIDSCENE_MODEL_NAME: defaults.MIDSCENE_MODEL_NAME,
+        MIDSCENE_MODEL_BASE_URL: defaults.MIDSCENE_MODEL_BASE_URL,
       }).getModelConfig('default').streamMode,
     ).toBe('non-stream');
   });
