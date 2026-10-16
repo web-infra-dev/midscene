@@ -377,7 +377,7 @@ export class UIObserverImpl implements UIObserver {
     const frames = [...sampledFrames, this.representativeFrame];
     if (frames.length > MAX_FRAMES_PER_RECORD) {
       warnObserver(
-        `WARNING: exporting ${frames.length} frames (soft limit ${MAX_FRAMES_PER_RECORD}). Running insight against this observation sends every frame to the model; consider increasing intervalMs or decreasing maxFrames to reduce token cost.`,
+        `WARNING: exporting ${frames.length} frames (soft limit ${MAX_FRAMES_PER_RECORD}). Insight analyzes every retained frame and sends at most eight evidence images, but a larger recording increases capture storage and analysis work; consider increasing intervalMs or decreasing maxFrames.`,
       );
     }
     debug(

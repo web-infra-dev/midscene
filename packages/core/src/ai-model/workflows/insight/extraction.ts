@@ -2,7 +2,11 @@ import type {
   ConversationSystemMessage,
   ConversationUserMessage,
 } from '@/ai-model/service-caller/types';
-import type { ServiceExtractOption, UIContext } from '@/types';
+import type {
+  ScreenshotSequenceEvidence,
+  ServiceExtractOption,
+  UIContext,
+} from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { renderAIContext } from '../../../agent/prompt-context';
 import type { TMultimodalPrompt } from '../../../common';
@@ -18,6 +22,7 @@ import {
 } from '../../service-caller/semantic-retry';
 import { multimodalPromptToMessages } from '../../shared/multimodal-prompt';
 import { parseInsightResponse } from './insight-response-parser';
+import { buildObservationPromptEvidence } from './observation-evidence';
 
 type InsightAIArgs = [ConversationSystemMessage, ...ConversationUserMessage[]];
 
@@ -31,6 +36,7 @@ export async function AiExtractElementInfo<T>(options: {
   extractOption?: ServiceExtractOption;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
+  onObservationEvidence?: (evidence: ScreenshotSequenceEvidence) => void;
 }) {
   const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
     options;
@@ -54,21 +60,13 @@ export async function AiExtractElementInfo<T>(options: {
   if (extractOption?.screenshotIncluded !== false) {
     const screenshotSequence = context.screenshotSequence;
     if (screenshotSequence && screenshotSequence.length > 1) {
-      userContent.push({
-        type: 'text',
-        text: `The following ${screenshotSequence.length} images are consecutive screenshots captured over a time window, ordered from earliest to latest (Frame 1 is first, Frame ${screenshotSequence.length} is last). They record what appeared on screen during that window. Some UI elements such as toasts, banners, or transitions may appear only in certain frames and be gone by later ones. Interpret the temporal scope from the statement or question itself: if it asks whether something appeared at any point, inspect the whole sequence; if it asks about the final or current state, use the relevant later frame; if it asks about a change or sequence, compare frames in order. Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on these screenshots and their contents.`,
-      });
-
-      screenshotSequence.forEach((frame, index) => {
-        userContent.push({
-          type: 'text',
-          text: `Frame ${index + 1}/${screenshotSequence.length}`,
-        });
-        userContent.push({
-          type: 'image',
-          url: frame.base64,
-        });
-      });
+      const evidence = await buildObservationPromptEvidence(
+        screenshotSequence,
+        options.abortSignal,
+        extractOption?.observationRegion,
+      );
+      options.onObservationEvidence?.(evidence.reportEvidence);
+      userContent.push(...evidence.content);
     } else {
       userContent.push({
         type: 'text',

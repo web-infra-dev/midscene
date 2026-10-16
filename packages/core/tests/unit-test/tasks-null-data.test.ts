@@ -2,7 +2,12 @@ import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import { ScreenshotItem } from '@/screenshot-item';
-import type { AIUsageInfo, ServiceDump } from '@/types';
+import type {
+  AIUsageInfo,
+  ScreenshotSequenceEvidence,
+  ServiceDump,
+  UIContext,
+} from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, rs } from '@rstest/core';
 
@@ -81,6 +86,51 @@ const createMockDump = (
  * This covers the bug fix for: TypeError: Cannot read properties of null (reading 'StatementIsTruthy')
  */
 describe('TaskExecutor - Null Data Handling', () => {
+  it('records explicit observation evidence even when the model call fails', async () => {
+    const baseline = ScreenshotItem.create('data:image/png;base64,baseline', 1);
+    const final = ScreenshotItem.create('data:image/png;base64,final', 2);
+    const uiContext: UIContext = {
+      screenshot: final,
+      screenshotSequence: [baseline, final],
+      shotSize: { width: 100, height: 100 },
+      shrunkShotToLogicalRatio: 1,
+    };
+    const evidence: ScreenshotSequenceEvidence = {
+      frames: [
+        { screenshot: final, sourceFrameIndex: 1, role: 'final' },
+        { screenshot: baseline, sourceFrameIndex: 0, role: 'baseline' },
+      ],
+    };
+    const mockInsight = {
+      extract: rs.fn(async (...args: any[]) => {
+        args[6].onObservationEvidence(evidence);
+        throw new Error('model unavailable');
+      }),
+    };
+    const executor = new TaskExecutor({} as any, mockInsight as any, {
+      actionSpace: [],
+    });
+    const task = (executor as any).createTypeQueryTask(
+      'Query',
+      'whether the UI changed',
+      getModelRuntime({
+        modelName: 'mock-model',
+        modelDescription: 'test model',
+        intent: 'default',
+        slot: 'default',
+      }),
+      {},
+    );
+    await expect(task.executor({ task, uiContext })).rejects.toThrow(
+      'model unavailable',
+    );
+    expect(task.recorder.map((item: any) => item.screenshot)).toEqual([
+      baseline,
+      final,
+    ]);
+    expect(uiContext.screenshotSequence).toBeUndefined();
+    expect(uiContext).not.toHaveProperty('screenshotSequenceEvidence');
+  });
   it('registers insight reference images when the execution is created', async () => {
     const mockInsight = {
       contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
