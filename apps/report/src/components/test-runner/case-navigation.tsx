@@ -40,7 +40,7 @@ export function CaseNavigationList({
                   aria-current={
                     item.key === currentCaseKey ? 'page' : undefined
                   }
-                  aria-label={`Open ${item.testCase.name} in ${projectDisplayName(project)} from ${fileDisplayName(file)} · ${caseStatusLabel(item.status)}`}
+                  aria-label={`Open ${item.testCase.name} in ${projectDisplayName(project)} from ${fileDisplayName(file)} · ${caseStatusLabel(item.status, !item.firstPass)}`}
                   onClick={() =>
                     onOpenCase(item, getCaseFailure(item.testCase)?.id)
                   }
@@ -50,7 +50,11 @@ export function CaseNavigationList({
                       <strong title={item.testCase.name}>
                         {item.testCase.name}
                       </strong>
-                      <CaseStatus status={item.status} quiet />
+                      <CaseStatus
+                        status={item.status}
+                        recovered={!item.firstPass}
+                        quiet
+                      />
                     </span>
                     <small title={fileDisplayName(file)}>
                       {fileDisplayName(file)}

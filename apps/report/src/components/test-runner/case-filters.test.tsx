@@ -8,7 +8,7 @@ describe('overview status checkboxes', () => {
       <>
         <CaseStatusFilters
           statuses={['failed', 'passed']}
-          counts={{ all: 7, failed: 2, 'retry-passed': 1, passed: 3 }}
+          counts={{ all: 7, failed: 2, 'not-run': 1, passed: 4 }}
           onStatusToggle={() => {}}
         />
         <CaseSearch query="checkout" onQueryChange={() => {}} />
@@ -17,7 +17,9 @@ describe('overview status checkboxes', () => {
     expect(html.match(/type="checkbox"/g)).toHaveLength(4);
     expect(html.match(/checked=""/g)).toHaveLength(2);
     expect(html).toContain('Filter cases by status');
-    expect(html).toContain('Whole-file retries alone do not qualify.');
+    expect(html).toContain('aria-label="Passed (4)"');
+    expect(html).toContain('aria-label="Not run (1)"');
+    expect(html).not.toContain('Retried');
     expect(html).toContain('Search projects, files, cases, and details');
     expect(html).toContain('placeholder="Search projects, files, cases…"');
     expect(html).toContain('aria-label="Failed (2)"');

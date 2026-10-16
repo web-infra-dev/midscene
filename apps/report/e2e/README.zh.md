@@ -10,6 +10,10 @@ Report 的开发、评审和测试优先关注核心流程与数据正确性。�
 
 仓库级原则见开发文档的 [Report 开发与测试范围](../../../CONTRIBUTING.md#report-development-and-test-scope)。
 
+## 结果口径
+
+所有位置统一使用最终结果：Passed、Failed、Not run。Passed 包含此前失败、后来通过的 Case。通过条内部的橙色部分和警告图标表示历史，不是额外类别，也不会增加 Case 数。项目分组、筛选、数量和结果排序遵循同一口径。打开通过的 Case 默认展示最后一次执行，历史失败链接和 Attempts 仍可查看失败记录。整文件恢复通过时在 File、Project 层提示，一直通过的 Case 不继承该警告。File、Project 的作用域错误仍属于失败，不受 Case 通过率影响。
+
 ## 应覆盖的功能
 
 - 加载 Agent、合并报告、旧版 YAML 和原生 Test 报告。

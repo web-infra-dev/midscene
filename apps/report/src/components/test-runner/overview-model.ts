@@ -10,13 +10,14 @@ import {
   type RunnerCaseStatus,
   type RunnerCaseView,
   type RunnerProjectView,
+  caseRecoveredAfterFailure,
   flattenAttemptSteps,
   getCaseSearchMatch,
   groupRunnerProjects,
 } from './model';
 import { getReportDocuments } from './report-documents';
 
-export type OverviewStatus = 'failed' | 'retry-passed' | 'passed';
+export type OverviewStatus = RunnerCaseStatus;
 export type OverviewSort = 'file' | 'passed-rate' | 'result' | 'duration';
 export type OverviewDirection = 'asc' | 'desc';
 export interface OverviewSorting {
@@ -77,15 +78,31 @@ export function getOverviewProjectStatus(
     ? 'failed'
     : item.notRunCount
       ? 'not-run'
-      : item.retryPassedCount
-        ? 'retry-passed'
-        : 'passed';
+      : 'passed';
+}
+
+export function fileRecoveredAfterFailure(file: RunnerFileView): boolean {
+  return (
+    file.status === 'passed' &&
+    Boolean(
+      file.retryPassedCount ||
+        file.document?.attempts
+          ?.slice(0, -1)
+          .some((attempt) => attempt.status === 'failed'),
+    )
+  );
+}
+
+export function projectRecoveredAfterFailure(item: OverviewProject): boolean {
+  return (
+    getOverviewProjectStatus(item) === 'passed' &&
+    (item.retryPassedCount > 0 || item.files.some(fileRecoveredAfterFailure))
+  );
 }
 
 export function getOverviewProjectSummary(item: OverviewProject): string {
   const results = [
-    [item.passedCount - item.retryPassedCount, 'passed'],
-    [item.retryPassedCount, 'passed after retry'],
+    [item.passedCount, 'passed'],
     [item.failedCount, 'failed'],
     [item.notRunCount, 'not run'],
   ] as const;
@@ -101,7 +118,6 @@ export function groupOverviewProjects(projects: readonly OverviewProject[]) {
   return (
     [
       ['failed', 'Failed'],
-      ['retry-passed', 'Passed after retry'],
       ['passed', 'Passed'],
       ['not-run', 'Not run'],
     ] as const
@@ -145,7 +161,8 @@ export function getSelectedOverviewProject(
 }
 
 export function getOverviewCaseSummary(item: RunnerCaseView) {
-  if (item.status === 'passed') return undefined;
+  const recovered = caseRecoveredAfterFailure(item);
+  if (item.status === 'passed' && !recovered) return undefined;
   if (item.status === 'not-run')
     return {
       label: 'Case not run',
@@ -155,7 +172,6 @@ export function getOverviewCaseSummary(item: RunnerCaseView) {
       tone: 'muted',
       stepId: undefined,
     };
-  const recovered = item.status === 'retry-passed';
   const attempt = recovered
     ? [...item.testCase.attempts]
         .reverse()
@@ -185,12 +201,9 @@ export function getOverviewCaseSummary(item: RunnerCaseView) {
 }
 
 const counts = (cases: readonly RunnerCaseView[]) => ({
-  passedCount: cases.filter(
-    (item) => item.status === 'passed' || item.status === 'retry-passed',
-  ).length,
+  passedCount: cases.filter((item) => item.status === 'passed').length,
   failedCount: cases.filter((item) => item.status === 'failed').length,
-  retryPassedCount: cases.filter((item) => item.status === 'retry-passed')
-    .length,
+  retryPassedCount: cases.filter(caseRecoveredAfterFailure).length,
   notRunCount: cases.filter((item) => item.status === 'not-run').length,
 });
 export function toggleOverviewStatus(
@@ -321,12 +334,7 @@ export function buildOverviewProjects(
             ? 'failed'
             : stats.notRunCount || document.executionStatus === 'not-run'
               ? 'not-run'
-              : stats.retryPassedCount ||
-                  document.attempts
-                    ?.slice(0, -1)
-                    .some((attempt) => attempt.status === 'failed')
-                ? 'retry-passed'
-                : 'passed',
+              : 'passed',
         totalCaseCount: fileCases.length,
         durationMs: document.durationMs,
         retryCount: Math.max(
@@ -401,7 +409,7 @@ export function createOverviewState(
         item.files
           .filter(
             (file) =>
-              file.status === 'failed' || file.status === 'retry-passed',
+              file.status === 'failed' || fileRecoveredAfterFailure(file),
           )
           .map((file) => file.key),
       ),
@@ -422,9 +430,9 @@ const issueMatches = (query: string, issues: readonly ReportIssue[]) =>
 const matchesStatus = (
   item: RunnerCaseView,
   statuses: readonly OverviewStatus[],
-) => !statuses.length || statuses.includes(item.status as OverviewStatus);
+) => !statuses.length || statuses.includes(item.status);
 const rank = (status: RunnerCaseStatus) =>
-  ({ failed: 0, 'not-run': 1, 'retry-passed': 2, passed: 3 })[status];
+  ({ failed: 0, 'not-run': 1, passed: 2 })[status];
 const knownNumber = (
   a: number | undefined,
   b: number | undefined,
@@ -491,8 +499,7 @@ export function filterOverviewProjects(
         if (sort === 'passed-rate')
           comparison =
             multiplier *
-            (Number(a.status === 'passed' || a.status === 'retry-passed') -
-              Number(b.status === 'passed' || b.status === 'retry-passed'));
+            (Number(a.status === 'passed') - Number(b.status === 'passed'));
         else if (sort === 'result')
           comparison = multiplier * (rank(a.status) - rank(b.status));
         else if (sort === 'duration')
@@ -551,9 +558,8 @@ export function getOverviewStatusCounts(
   return {
     all: cases.length,
     failed: cases.filter((item) => item.status === 'failed').length,
-    'retry-passed': cases.filter((item) => item.status === 'retry-passed')
-      .length,
     passed: cases.filter((item) => item.status === 'passed').length,
+    'not-run': cases.filter((item) => item.status === 'not-run').length,
   };
 }
 
@@ -582,9 +588,8 @@ export function fileAttention(file: RunnerFileView): string {
       file.failedCount && `${file.failedCount} failed`,
       scopeFailure,
       file.notRunCount && `${file.notRunCount} not run`,
-      file.retryPassedCount && `${file.retryPassedCount} retried`,
-      file.retryCount &&
-        `${file.retryCount} file ${file.retryCount === 1 ? 'retry' : 'retries'}`,
+      file.retryPassedCount && 'Earlier failed attempts',
+      file.retryCount && `${file.retryCount + 1} file attempts`,
     ]
       .filter(Boolean)
       .join(' · ') || '-'

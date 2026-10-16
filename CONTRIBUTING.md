@@ -229,6 +229,11 @@ review, and testing: loading reports, reading outcomes and metrics, filtering an
 sorting, navigating Cases and attempts, inspecting failures and evidence, and
 using replay and mobile navigation.
 
+Use final Report outcomes consistently: Passed, Failed and Not run. Recovery
+after an earlier failed attempt is diagnostic history within Passed, never a
+separate filter, navigation group or additional Case count. Keep earlier
+attempts and File/Project errors available for debugging.
+
 Keep e2e assertions concise and focused on observable functional outcomes. Use
 enough context to locate the intended control, while allowing the layout and
 visual design to evolve. Preserve AI interaction and assertion coverage; use

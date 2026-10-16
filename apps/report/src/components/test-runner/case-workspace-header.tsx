@@ -52,7 +52,11 @@ export function CaseWorkspaceHeader({
         <div>
           <div className="runner-detail-title-line">
             <h1>{item.testCase.name}</h1>
-            <CaseStatus status={item.status} quiet />
+            <CaseStatus
+              status={item.status}
+              recovered={!item.firstPass}
+              quiet
+            />
             {standaloneRun?.status === 'failed' && item.status !== 'failed' ? (
               <StatusBadge label="Run failed" tone="failed" />
             ) : null}

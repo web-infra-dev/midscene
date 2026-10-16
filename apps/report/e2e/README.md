@@ -10,6 +10,10 @@ Content clipping, overlap, scrolling or keyboard problems that hide important in
 
 The repository-wide policy is documented in [Report Development and Test Scope](../../../CONTRIBUTING.md#report-development-and-test-scope).
 
+## Outcome semantics
+
+Use final outcomes everywhere: Passed, Failed and Not run. Passed includes Cases that recover after earlier failed attempts. The amber portion of the Passed bar and warning icons describe history; they are not another category or additional Cases. Project groups, filters, counts and outcome sorting follow the same rule. Opening a passed Case shows its final attempt, while earlier-failure links and Attempts retain access to failed executions. Whole-file recovery warns at the File/Project scope; an always-passing Case does not inherit that warning. File and Project scope errors remain failures independently of their Case pass rates.
+
 ## What belongs here
 
 - Load Agent, merged, legacy YAML and native Test reports.

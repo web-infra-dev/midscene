@@ -205,7 +205,7 @@ describe('whole-file retry report projection and viewer', () => {
       expect(cases).toHaveLength(1);
       const item = cases[0];
       expect(item).toMatchObject({
-        status: failure === 'steps' ? 'retry-passed' : 'passed',
+        status: 'passed',
         retryCount: 1,
       });
       expect(getRunnerHealth(cases)).toMatchObject({

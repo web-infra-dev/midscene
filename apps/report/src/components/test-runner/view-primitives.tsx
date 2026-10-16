@@ -2,12 +2,11 @@ import {
   CheckCircleFilled,
   ClockCircleOutlined,
   CloseCircleFilled,
-  ReloadOutlined,
 } from '@ant-design/icons';
 import type { TestRunReportStep, TestRunReportValue } from '@midscene/core';
 import type { ReactNode } from 'react';
 import type { RunnerCaseStatus } from './model';
-import { StatusBadge } from './status-badge';
+import { StatusBadge, recoveryWarning } from './status-badge';
 
 export type RunnerCaseDisplayMode = 'compact' | 'detailed';
 
@@ -51,11 +50,6 @@ const statusMeta: Record<
     tone: 'success',
     icon: <CheckCircleFilled />,
   },
-  'retry-passed': {
-    label: 'passed after retry',
-    tone: 'warning',
-    icon: <ReloadOutlined />,
-  },
   failed: {
     label: 'failed',
     tone: 'failed',
@@ -68,16 +62,21 @@ const statusMeta: Record<
   },
 };
 
-export function caseStatusLabel(status: RunnerCaseStatus): string {
-  return statusMeta[status].label;
+export function caseStatusLabel(
+  status: RunnerCaseStatus,
+  recovered = false,
+): string {
+  return `${statusMeta[status].label}${status === 'passed' && recovered ? ' (earlier attempt failed)' : ''}`;
 }
 
 export function CaseStatus({
   status,
   quiet = false,
+  recovered = false,
 }: {
   status: RunnerCaseStatus;
   quiet?: boolean;
+  recovered?: boolean;
 }): JSX.Element {
   const meta = statusMeta[status];
   return (
@@ -86,6 +85,7 @@ export function CaseStatus({
       tone={meta.tone}
       icon={meta.icon}
       quiet={quiet}
+      warning={status === 'passed' && recovered ? recoveryWarning : undefined}
     />
   );
 }

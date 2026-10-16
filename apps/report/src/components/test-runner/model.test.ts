@@ -21,6 +21,7 @@ import {
   flattenRunnerCases,
   getAllAttemptVisualFrames,
   getAttemptVisualFrames,
+  getCaseFailure,
   getCaseSearchMatch,
   getCaseTokenSummary,
   getDefaultVisualFrameForStep,
@@ -210,11 +211,28 @@ const tokenMetrics = (
 });
 
 describe('Midscene Test hybrid report model', () => {
+  it('opens final results while keeping earlier failure summaries separate from Case navigation', () => {
+    const testCase = structuredClone(flattenRunnerCases(dump)[1].testCase);
+    expect(getCaseFailure(testCase)).toBeUndefined();
+    testCase.status = 'failed';
+    testCase.attempts.at(-1)!.status = 'failed';
+    testCase.attempts.at(-1)!.cleanup = {
+      status: 'failed',
+      capturedAt: at(7),
+      error: { name: 'CleanupError', message: 'Final disposal failed' },
+    };
+    // A final cleanup failure must not navigate to an older business failure.
+    expect(getCaseFailure(testCase)).toBeUndefined();
+    const finalStep = testCase.attempts.at(-1)!.steps[0];
+    finalStep.status = 'failed';
+    expect(getCaseFailure(testCase)?.id).toBe(finalStep.id);
+  });
+
   it('separates final pass rate from first-pass stability', () => {
     const cases = flattenRunnerCases(dump);
     expect(cases.map((item) => item.status)).toEqual([
       'passed',
-      'retry-passed',
+      'passed',
       'failed',
       'not-run',
     ]);
@@ -557,17 +575,13 @@ describe('Midscene Test hybrid report model', () => {
       }),
     );
     expect(markup).toContain('Review case results: 2 of 4 passed');
-    expect(markup).toContain('<span>Passed</span><strong>1</strong>');
+    expect(markup).toContain('<span>Passed</span><strong>2</strong>');
     expect(markup).toContain(
-      '<span>Passed after retry</span><strong>1</strong>',
+      '1 of 2 passed Cases had earlier failed attempts.',
     );
+    expect(markup).not.toContain('Passed after retry');
     expect(markup).toContain('<span>Not run</span><strong>1</strong>');
-    for (const outcome of [
-      'Passed without retry',
-      'Failed',
-      'Passed after retry',
-      'Not run',
-    ])
+    for (const outcome of ['Failed', 'Not run'])
       expect(markup).toContain(`1 ${outcome}`);
     expect(markup).toContain('tokens<strong>—</strong>');
     expect(markup).not.toContain('runner-overview-outcome-message');
@@ -598,18 +612,13 @@ describe('Midscene Test hybrid report model', () => {
     );
     expect(markup).toContain('Review case results: 0 of 0 passed');
     expect(markup).toContain('tokens<strong>—</strong>');
-    for (const outcome of [
-      'Passed without retry',
-      'Failed',
-      'Passed after retry',
-      'Not run',
-    ])
+    for (const outcome of ['Passed', 'Failed', 'Not run'])
       expect(markup).toContain(`0 ${outcome}`);
     expect(markup).not.toContain('flex-grow:');
     expect(markup).not.toContain('NaN');
   });
 
-  it('keeps retry-passed cases in the total while rendering each case only once in the distribution', () => {
+  it('counts every recovered Case as passed and preserves a successful run outcome', () => {
     const markup = renderToStaticMarkup(
       createElement(RunSummary, {
         dump: {
@@ -629,12 +638,12 @@ describe('Midscene Test hybrid report model', () => {
       }),
     );
     expect(markup).toContain('Review case results: 2 of 2 passed');
-    expect(markup).toContain('<span>Passed</span><strong>0</strong>');
+    expect(markup).toContain('<span>Passed</span><strong>2</strong>');
+    expect(markup).toContain('>run passed</span>');
     expect(markup).toContain(
-      '<span>Passed after retry</span><strong>2</strong>',
+      '2 of 2 passed Cases had earlier failed attempts.',
     );
-    expect(markup.match(/flex-grow:/g)).toHaveLength(1);
-    expect(markup).toContain('title="Passed after retry"');
+    expect(markup).not.toContain('Passed after retry');
   });
 
   it('marks partial token totals and distinguishes a measured zero from unknown usage', () => {

@@ -20,22 +20,18 @@ export function CaseStatusFilters({
             ['all', 'All'],
             ['failed', 'Failed'],
             ['passed', 'Passed'],
-            ['retry-passed', 'Retried'],
+            ['not-run', 'Not run'],
           ] as const
         ).map(([value, label]) => (
           <Checkbox
             key={value}
-            className={`runner-status-filter${value === 'passed' || value === 'retry-passed' ? ' has-alt-checkbox' : ''}`}
+            className={`runner-status-filter${value === 'passed' ? ' has-alt-checkbox' : ''}`}
             checked={
               value === 'all' ? !statuses.length : statuses.includes(value)
             }
             aria-label={`${label} (${counts[value]})`}
             onChange={() => onStatusToggle(value)}
-            title={
-              value === 'retry-passed'
-                ? `${counts[value]} Cases that passed after an earlier failed attempt. Whole-file retries alone do not qualify.`
-                : `${counts[value]} ${label === 'All' ? 'total' : label.toLowerCase()} Cases in this project`
-            }
+            title={`${counts[value]} ${label === 'All' ? 'total' : label.toLowerCase()} Cases in this project`}
           >
             {label}
           </Checkbox>

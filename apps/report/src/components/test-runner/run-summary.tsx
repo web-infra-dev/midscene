@@ -1,7 +1,7 @@
 import type { TestRunReportDump } from '@midscene/core';
 import type { PlaywrightTasks } from '../../types';
 import type { RunnerHealthStats } from './model';
-import { StatusBadge } from './status-badge';
+import { RecoveryWarning, StatusBadge } from './status-badge';
 import { TokenUsageTooltip } from './token-usage';
 import { getRunTokenUsage } from './token-usage-model';
 import { formatDuration, formatTimestamp } from './view-primitives';
@@ -24,36 +24,19 @@ export function RunSummary({
   onReviewOutcome(): void;
   reports?: PlaywrightTasks[];
 }): JSX.Element {
-  const successfulWithRetries =
-    dump.summary.failed === 0 &&
-    dump.summary.notRun === 0 &&
-    health.retryPassedCount > 0;
-  const status =
-    dump.status === 'failed'
-      ? 'failed'
-      : successfulWithRetries
-        ? 'warning'
-        : 'success';
-  const healthLabel =
-    status === 'failed'
-      ? 'Run failed'
-      : status === 'warning'
-        ? 'Passed after retry'
-        : 'Run passed';
+  const status = dump.status === 'failed' ? 'failed' : 'success';
+  const healthLabel = status === 'failed' ? 'Run failed' : 'Run passed';
+  const recoveredCount = Math.min(health.retryPassedCount, dump.summary.passed);
+  const warning = recoveredCount
+    ? `${recoveredCount} of ${dump.summary.passed} passed Cases had earlier failed attempts.`
+    : undefined;
   const usage = getRunTokenUsage(dump.metrics);
   const tokenStatus = usage.status;
   const counts = [
     {
       label: 'Passed',
-      value: Math.max(0, dump.summary.passed - health.retryPassedCount),
-      description: 'Passed without retry',
+      value: dump.summary.passed,
       tone: 'success',
-    },
-    {
-      label: 'Passed after retry',
-      value: health.retryPassedCount,
-      description: 'Passed after retry',
-      tone: 'warning',
     },
     { label: 'Failed', value: dump.summary.failed, tone: 'danger' },
     { label: 'Not run', value: dump.summary.notRun, tone: 'neutral' },
@@ -63,7 +46,11 @@ export function RunSummary({
       <div className="runner-outcome">
         <div className="runner-overview-title-row">
           <span>Case passed</span>
-          <StatusBadge label={healthLabel} tone={status} />
+          <StatusBadge
+            label={healthLabel}
+            tone={status}
+            warning={status === 'success' ? warning : undefined}
+          />
         </div>
         <div className="runner-result-row">
           <button
@@ -80,12 +67,11 @@ export function RunSummary({
             <div
               className="runner-result-bar"
               role="img"
-              aria-label={counts
-                .map(
-                  ({ value, label, description }) =>
-                    `${value} ${description ?? label}`,
-                )
-                .join(', ')}
+              aria-label={
+                counts
+                  .map(({ value, label }) => `${value} ${label}`)
+                  .join(', ') + (warning ? `; ${warning}` : '')
+              }
             >
               {counts.map(({ label, value, tone }) =>
                 value > 0 ? (
@@ -93,15 +79,26 @@ export function RunSummary({
                     key={label}
                     className={`is-${tone}`}
                     style={{ flexGrow: value }}
-                  />
+                  >
+                    {tone === 'success' && recoveredCount > 0 ? (
+                      <span
+                        className="runner-result-recovered"
+                        style={{ width: `${(100 * recoveredCount) / value}%` }}
+                        title={warning}
+                      />
+                    ) : null}
+                  </span>
                 ) : null,
               )}
             </div>
             <div className="runner-counts" aria-label="Run health metrics">
-              {counts.map(({ label, value, tone, description }) => (
-                <div key={label} className={`is-${tone}`} title={description}>
+              {counts.map(({ label, value, tone }) => (
+                <div key={label} className={`is-${tone}`}>
                   <span>{label}</span>
                   <strong>{value}</strong>
+                  {tone === 'success' && warning ? (
+                    <RecoveryWarning message={warning} />
+                  ) : null}
                 </div>
               ))}
             </div>

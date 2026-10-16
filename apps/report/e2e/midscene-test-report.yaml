@@ -7,14 +7,14 @@ target:
 tasks:
   - name: filter Cases and inspect detailed evidence
     flow:
-      - aiAssert: The overview shows 2 of 2 Cases passed, including one passed after retry. Web regression contains checkout.yaml with Checkout with retry and Verify cart summary.
-      - aiTap: the Retried status checkbox
-      - aiAssert: Checkout with retry is the only Case shown. checkout.yaml retains its aggregate 2 of 2 passed result.
+      - aiAssert: The overview shows 2 of 2 Cases passed. Checkout with retry and Verify cart summary are both Passed; Checkout with retry has a warning about an earlier failure.
       - aiTap: the Passed status checkbox
-      - aiAssert: Both Cases are visible with Passed and Retried selected.
-      - aiTap: the Retried status checkbox
-      - aiAssert: Verify cart summary is the only Case shown under checkout.yaml. The File still has its passed after retry result.
-      - aiTap: the All status checkbox
+      - aiAssert: Both Cases remain visible under Passed, and checkout.yaml retains its 2 of 2 passed result.
+      - aiTap: the Failed status checkbox
+      - aiAssert: Both Cases remain visible with Passed and Failed selected.
+      - aiTap: the Passed status checkbox
+      - aiAssert: No files or cases match these filters, because no Case finally failed.
+      - aiTap: Clear filters in the empty results
       - aiAssert: All is selected and both Cases are visible.
       - aiTap: Detailed
       - aiAssert: Checkout with retry has screenshot evidence and an Earlier attempt error summary containing Inventory was not ready.
@@ -54,6 +54,9 @@ tasks:
   - name: inspect retry errors and cumulative Case token usage
     flow:
       - aiTap: the Checkout with retry Case
+      - aiAssert: The Case is Passed with a warning about an earlier failure. Attempt 2 is selected and aiAct succeeded with a recorded execution.
+      - aiTap: the Attempt 2 selector
+      - aiTap: Attempt 1 in the open attempt menu
       - aiAssert: Attempt 1 is selected. order.create failed with Inventory was not ready, and the Case has a nonzero Tokens total. Information shows input sku demo-item and a redacted apiKey.
       - aiHover: the Tokens total in the Case header
       - aiAssert: A model usage tooltip shows model calls and input, cached input, output, and total tokens.

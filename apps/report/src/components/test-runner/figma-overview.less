@@ -178,19 +178,25 @@
     background: var(--runner-border);
   }
   .runner-result-bar > span {
+    position: relative;
+    overflow: hidden;
     min-width: 1px;
     flex-basis: 0;
     border-radius: 8px;
     background: var(--runner-result-color);
+  }
+  .runner-result-recovered {
+    position: absolute;
+    inset-block: 2px;
+    right: 0;
+    border-radius: inherit;
+    background: #f59c31;
   }
   .runner-results .is-success {
     --runner-result-color: var(--runner-success);
   }
   .runner-results .is-danger {
     --runner-result-color: #f5532e;
-  }
-  .runner-results .is-warning {
-    --runner-result-color: #f59c31;
   }
   .runner-counts {
     display: flex;
@@ -226,9 +232,6 @@
   }
   &[data-theme='dark'] .runner-results .is-danger {
     --runner-result-color: var(--runner-danger);
-  }
-  &[data-theme='dark'] .runner-results .is-warning {
-    --runner-result-color: var(--runner-warning);
   }
 
   .runner-breakdown-panel {

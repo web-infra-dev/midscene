@@ -112,16 +112,12 @@ export function RunOverview({
     onStateChange((current) => ({
       ...current,
       query: '',
-      statuses: failed
-        ? ['failed']
-        : health.retryPassedCount
-          ? ['retry-passed']
-          : [],
+      statuses: failed ? ['failed'] : ['passed'],
       selectedProjectKey:
         projects.find((project) =>
           failed
             ? getOverviewProjectStatus(project) === 'failed'
-            : project.retryPassedCount > 0,
+            : getOverviewProjectStatus(project) === 'passed',
         )?.key ?? current.selectedProjectKey,
       collapsedProjectGroups: new Set(),
       expandedFileKeys: new Set([
@@ -133,7 +129,7 @@ export function RunOverview({
                 ? file.status === 'failed' ||
                   file.hasScopeError ||
                   (project.hasScopeError && file.notRunCount > 0)
-                : file.retryPassedCount > 0,
+                : file.status === 'passed',
             )
             .map((file) => file.key),
         ),

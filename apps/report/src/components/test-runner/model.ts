@@ -14,7 +14,7 @@ import {
   getStepsTokenUsage,
 } from './token-usage-model';
 
-export type RunnerCaseStatus = 'passed' | 'retry-passed' | 'failed' | 'not-run';
+export type RunnerCaseStatus = 'passed' | 'failed' | 'not-run';
 
 export interface RunnerCaseView {
   key: string;
@@ -133,9 +133,10 @@ export const getCaseStatus = (testCase: TestRunReportCase): RunnerCaseStatus =>
     ? 'not-run'
     : testCase.status === 'failed'
       ? 'failed'
-      : testCase.attempts.some((attempt) => attempt.status === 'failed')
-        ? 'retry-passed'
-        : 'passed';
+      : 'passed';
+
+export const caseRecoveredAfterFailure = (item: RunnerCaseView): boolean =>
+  item.status === 'passed' && !item.firstPass;
 
 const getCaseDuration = (testCase: TestRunReportCase): number => {
   return testCase.attempts.reduce(
@@ -159,7 +160,9 @@ export const flattenRunnerCases = (
           testCase,
           status,
           durationMs: getCaseDuration(testCase),
-          firstPass: status === 'passed',
+          firstPass:
+            status === 'passed' &&
+            !testCase.attempts.some((attempt) => attempt.status === 'failed'),
           retryCount: Math.max(
             0,
             testCase.attempts.length - 1,
@@ -261,19 +264,14 @@ export const getRunnerHealth = (
   cases: readonly RunnerCaseView[],
 ): RunnerHealthStats => {
   const executed = cases.filter((item) => item.status !== 'not-run').length;
-  const firstPassCount = cases.filter(
-    (item) => item.status === 'passed',
-  ).length;
-  const retryPassedCount = cases.filter(
-    (item) => item.status === 'retry-passed',
-  ).length;
+  const passed = cases.filter((item) => item.status === 'passed');
+  const firstPassCount = passed.filter((item) => item.firstPass).length;
+  const retryPassedCount = passed.filter(caseRecoveredAfterFailure).length;
   return {
     executed,
     firstPassCount,
     retryPassedCount,
-    finalPassRate: executed
-      ? (firstPassCount + retryPassedCount) / executed
-      : 0,
+    finalPassRate: executed ? passed.length / executed : 0,
     firstPassRate: executed ? firstPassCount / executed : 0,
   };
 };
@@ -292,14 +290,11 @@ export const groupRunnerProjects = (
       project,
       cases: projectCases,
       health,
-      passedCount: projectCases.filter(
-        (item) => item.status === 'passed' || item.status === 'retry-passed',
-      ).length,
+      passedCount: projectCases.filter((item) => item.status === 'passed')
+        .length,
       failedCount: projectCases.filter((item) => item.status === 'failed')
         .length,
-      retryPassedCount: projectCases.filter(
-        (item) => item.status === 'retry-passed',
-      ).length,
+      retryPassedCount: health.retryPassedCount,
       notRunCount: projectCases.filter((item) => item.status === 'not-run')
         .length,
       durationMs: project.lifecycle?.durationMs,
@@ -323,13 +318,10 @@ export const getStepDisplayName = (step: TestRunReportStep): string =>
 export const getCaseFailure = (
   testCase: TestRunReportCase,
 ): TestRunReportStep | undefined => {
-  for (const attempt of [...testCase.attempts].reverse()) {
-    const failed = flattenAttemptSteps(attempt).find(
-      (step) => step.status === 'failed',
-    );
-    if (failed) return failed;
-  }
-  return undefined;
+  const attempt = testCase.attempts.at(-1);
+  return testCase.status === 'failed' && attempt
+    ? flattenAttemptSteps(attempt).find((step) => step.status === 'failed')
+    : undefined;
 };
 
 const searchableValue = (value: unknown): string => {

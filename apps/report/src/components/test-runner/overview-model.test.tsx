@@ -13,6 +13,7 @@ import {
   changeOverviewSort,
   createOverviewState,
   fileDisplayName,
+  fileRecoveredAfterFailure,
   filterOverviewProjects,
   getOverviewCaseSummary,
   getOverviewProjectSort,
@@ -21,6 +22,7 @@ import {
   getOverviewStatusCounts,
   getSelectedOverviewProject,
   groupOverviewProjects,
+  projectRecoveredAfterFailure,
   selectOverviewProject,
   toggleOverviewFiles,
   toggleOverviewStatus,
@@ -207,7 +209,7 @@ describe('Project → File → Case overview', () => {
     expect(projectsFor(dump)[0].files[0].totalCaseCount).toBe(3);
   });
 
-  it('marks a recovered File retry independently while keeping every always-passing Case out of Retried', () => {
+  it('treats a recovered File as passed and warns only at the affected scope', () => {
     const dump = fixture();
     const document = dump.projects[0].documents[0];
     document.cases = [document.cases[1]];
@@ -218,7 +220,7 @@ describe('Project → File → Case overview', () => {
     ];
     const projects = projectsFor(dump);
     expect(projects[0].files[0]).toMatchObject({
-      status: 'retry-passed',
+      status: 'passed',
       retryCount: 1,
       retryPassedCount: 0,
     });
@@ -227,12 +229,13 @@ describe('Project → File → Case overview', () => {
         projects[0].files[0].key,
       ),
     ).toBe(true);
+    expect(fileRecoveredAfterFailure(projects[0].files[0])).toBe(true);
+    expect(projectRecoveredAfterFailure(projects[0])).toBe(true);
+    expect(projects[0].cases[0].firstPass).toBe(true);
     expect(
-      filterOverviewProjects(projects, {
-        ...options,
-        statuses: ['retry-passed'],
-      }),
-    ).toEqual([]);
+      filterOverviewProjects(projects, { ...options, statuses: ['passed'] })[0]
+        .files[0].cases,
+    ).toHaveLength(1);
   });
 
   it('sums recorded Case attempt durations while retaining the File wall-clock duration', () => {
@@ -382,7 +385,7 @@ describe('Project → File → Case overview', () => {
     expect(getOverviewStatusCounts([project], '')).toEqual({
       all: 2,
       failed: 0,
-      'retry-passed': 0,
+      'not-run': 0,
       passed: 2,
     });
   });
@@ -451,7 +454,7 @@ describe('Project → File → Case overview', () => {
     ]);
     const counts = getOverviewStatusCounts(projects, '');
     expect(counts.failed).toBe(0);
-    expect(counts.all).toBe(counts.passed + counts['retry-passed'] + 1);
+    expect(counts.all).toBe(counts.passed + counts.failed + counts['not-run']);
   });
 
   it('implements mutually exclusive All and OR status filters without an empty state', () => {
@@ -461,7 +464,7 @@ describe('Project → File → Case overview', () => {
     expect(both).toEqual(['failed', 'passed']);
     expect(toggleOverviewStatus(both, 'all')).toEqual([]);
     expect(toggleOverviewStatus(failed, 'failed')).toEqual([]);
-    const allThree = toggleOverviewStatus(both, 'retry-passed');
+    const allThree = toggleOverviewStatus(both, 'not-run');
     expect(allThree).toHaveLength(3);
     const dump = fixture();
     dump.projects[0].documents[0].cases.push({
@@ -476,7 +479,7 @@ describe('Project → File → Case overview', () => {
         ...options,
         statuses: allThree,
       })[0].files[0].cases,
-    ).toHaveLength(2);
+    ).toHaveLength(3);
   });
 
   it('combines search and status, matches parents/errors, and leaves full-file rates unchanged', () => {
@@ -487,6 +490,7 @@ describe('Project → File → Case overview', () => {
       statuses: ['passed'],
     });
     expect(query[0].files[0].cases.map((item) => item.testCase.name)).toEqual([
+      'Checkout with retry',
       'Verify cart summary',
     ]);
     expect(query[0].files[0].item).toBe(projects[0].files[0]);
@@ -494,7 +498,7 @@ describe('Project → File → Case overview', () => {
     const retry = filterOverviewProjects(projects, {
       ...options,
       query: 'Inventory',
-      statuses: ['retry-passed'],
+      statuses: ['passed'],
     });
     expect(retry[0].files[0].cases[0].testCase.name).toBe(
       'Checkout with retry',
@@ -505,15 +509,15 @@ describe('Project → File → Case overview', () => {
         query: 'checkout.yaml',
         statuses: ['passed'],
       })[0].files[0].cases,
-    ).toHaveLength(1);
+    ).toHaveLength(2);
     expect(
       filterOverviewProjects(projects, { ...options, query: 'missing query' }),
     ).toEqual([]);
     expect(getOverviewStatusCounts(projects, 'Inventory')).toEqual({
       all: 1,
       failed: 0,
-      'retry-passed': 1,
-      passed: 0,
+      'not-run': 0,
+      passed: 1,
     });
   });
 
@@ -656,24 +660,24 @@ describe('Project → File → Case overview', () => {
         projectSorts: new Map([
           [projects[0].key, { sort: 'passed-rate', direction: 'desc' }],
         ]),
-      })[0].files[0].cases.map((item) => item.status),
-    ).toEqual(['retry-passed', 'passed', 'failed', 'not-run']);
+      })[0].files[0].cases.map((item) => item.testCase.caseIndex),
+    ).toEqual([0, 1, 2, 3]);
     expect(
       filterOverviewProjects(projects, {
         ...options,
         projectSorts: new Map([
           [projects[0].key, { sort: 'result', direction: 'asc' }],
         ]),
-      })[0].files[0].cases.map((item) => item.status),
-    ).toEqual(['failed', 'not-run', 'retry-passed', 'passed']);
+      })[0].files[0].cases.map((item) => item.testCase.caseIndex),
+    ).toEqual([2, 3, 0, 1]);
     expect(
       filterOverviewProjects(projects, {
         ...options,
         projectSorts: new Map([
           [projects[0].key, { sort: 'result', direction: 'desc' }],
         ]),
-      })[0].files[0].cases.map((item) => item.status),
-    ).toEqual(['passed', 'retry-passed', 'not-run', 'failed']);
+      })[0].files[0].cases.map((item) => item.testCase.caseIndex),
+    ).toEqual([0, 1, 3, 2]);
   });
 
   it('keeps inline YAML and Agent-only source reports honest', () => {
@@ -800,7 +804,7 @@ describe('overview project navigation', () => {
       notRunCount: 1,
     };
     expect(getOverviewProjectSummary(mixed)).toBe(
-      '6 cases · 2 passed · 1 passed after retry · 2 failed · 1 not run',
+      '6 cases · 3 passed · 2 failed · 1 not run',
     );
     const html = renderToStaticMarkup(
       <ProjectNavigation
@@ -811,9 +815,7 @@ describe('overview project navigation', () => {
       />,
     );
     expect(
-      html.match(
-        /title="6 cases · 2 passed · 1 passed after retry · 2 failed · 1 not run"/g,
-      ),
+      html.match(/title="6 cases · 3 passed · 2 failed · 1 not run"/g),
     ).toHaveLength(2);
     expect(html).toContain(`aria-describedby="project-summary-${mixed.key}"`);
     expect(html).toContain('id="project-summary-another-project"');
@@ -844,12 +846,10 @@ describe('overview project navigation', () => {
         passedCount: base.cases.length,
         retryPassedCount: base.cases.length,
       }),
-    ).toBe(
-      `${base.cases.length} cases · ${base.cases.length} passed after retry`,
-    );
+    ).toBe(`${base.cases.length} cases · ${base.cases.length} passed`);
   });
 
-  it('groups failed, retried, passed and not-run projects in that order without losing their identities', () => {
+  it('groups Projects by final outcome, keeping recovered Projects in Passed', () => {
     const base = projectsFor(fixture())[0];
     const project = (key: string, changes = {}) => ({
       ...base,
@@ -873,8 +873,7 @@ describe('overview project navigation', () => {
       ]),
     ).toEqual([
       ['failed', ['failed']],
-      ['retry-passed', ['retried']],
-      ['passed', ['passed']],
+      ['passed', ['passed', 'retried']],
       ['not-run', ['not-run']],
     ]);
     expect(getSelectedOverviewProject(projects)?.key).toBe('failed');
@@ -882,7 +881,7 @@ describe('overview project navigation', () => {
       getSelectedOverviewProject(
         projects.filter((item) => item.key !== 'failed'),
       )?.key,
-    ).toBe('retried');
+    ).toBe('passed');
     expect(getSelectedOverviewProject(projects, 'passed')?.key).toBe('passed');
     expect(getSelectedOverviewProject(projects, 'missing')?.key).toBe('failed');
     expect(getSelectedOverviewProject([])).toBeUndefined();
@@ -916,18 +915,15 @@ describe('overview project navigation', () => {
     expect(html).toContain('<h2>Projects</h2>');
     for (const [label, count] of [
       ['Failed', 1],
-      ['Passed after retry', 1],
-      ['Passed', 2],
+      ['Passed', 3],
     ]) {
       expect(html).toContain(`<span>${label}</span><span>${count}</span>`);
       expect(html).toContain(`Collapse ${label} projects (${count})`);
     }
     expect(html.indexOf('Collapse Failed projects (1)')).toBeLessThan(
-      html.indexOf('Collapse Passed after retry projects (1)'),
+      html.indexOf('Collapse Passed projects (3)'),
     );
-    expect(
-      html.indexOf('Collapse Passed after retry projects (1)'),
-    ).toBeLessThan(html.indexOf('Collapse Passed projects (2)'));
+    expect(html).not.toContain('Passed after retry');
   });
 
   it('keeps a project with only file errors in the Failed navigation group', () => {

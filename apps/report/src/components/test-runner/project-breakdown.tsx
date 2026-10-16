@@ -18,10 +18,12 @@ import {
   type ProjectBreakdown,
   fileAttention,
   fileDisplayName,
+  fileRecoveredAfterFailure,
   getOverviewCaseSummary,
   getOverviewProjectSort,
   getOverviewProjectStatus,
   projectDisplayName,
+  projectRecoveredAfterFailure,
 } from './overview-model';
 import {
   CaseStatus,
@@ -113,8 +115,8 @@ function CaseRows({
   const attention =
     item.status === 'not-run'
       ? item.testCase.notRunReason || 'Not run'
-      : item.status === 'retry-passed'
-        ? `${failedAttemptCount} retried`
+      : item.status === 'passed' && !item.firstPass
+        ? `${failedAttemptCount} earlier failed ${failedAttemptCount === 1 ? 'attempt' : 'attempts'}`
         : '-';
   return (
     <>
@@ -127,9 +129,13 @@ function CaseRows({
             type="button"
             className="runner-case-open"
             onClick={() => onOpen(item, failure?.id)}
-            aria-label={`Open ${item.testCase.name} in project ${item.project.name}${failure ? ' at the failed Step' : ''} · ${caseStatusLabel(item.status)}`}
+            aria-label={`Open ${item.testCase.name} in project ${item.project.name}${failure ? ' at the failed Step' : ''} · ${caseStatusLabel(item.status, !item.firstPass)}`}
           >
-            <CaseStatus status={item.status} quiet />
+            <CaseStatus
+              status={item.status}
+              recovered={!item.firstPass}
+              quiet
+            />
             <span className="runner-case-name" title={item.testCase.name}>
               {item.testCase.name}
             </span>
@@ -235,7 +241,11 @@ function FileRows({
               className={`runner-file-chevron${expanded ? ' is-expanded' : ''}`}
               aria-hidden="true"
             />
-            <CaseStatus status={item.status} quiet />
+            <CaseStatus
+              status={item.status}
+              recovered={fileRecoveredAfterFailure(item)}
+              quiet
+            />
             <span className="runner-file-identity">
               <span className="runner-file-path" title={item.sourcePath}>
                 {name}
@@ -382,7 +392,11 @@ export function ProjectBreakdownTree({
             <header className="runner-project-heading">
               <div className="runner-project-title">
                 <h2 title={name}>{name}</h2>
-                <CaseStatus status={status} quiet />
+                <CaseStatus
+                  status={status}
+                  recovered={projectRecoveredAfterFailure(item)}
+                  quiet
+                />
                 {item.project.projectId.endsWith('legacy-yaml') ? (
                   <small>
                     Legacy YAML

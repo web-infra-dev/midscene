@@ -2,14 +2,15 @@ import groupChevron from './assets/overview-group-chevron.svg';
 import groupDivider from './assets/overview-group-divider.svg';
 import failedIcon from './assets/overview-project-failed.svg';
 import passedIcon from './assets/overview-project-passed.svg';
-import retriedIcon from './assets/overview-project-retried.svg';
 import type { RunnerCaseStatus } from './model';
 import {
   type OverviewProject,
   getOverviewProjectSummary,
   groupOverviewProjects,
   projectDisplayName,
+  projectRecoveredAfterFailure,
 } from './overview-model';
+import { RecoveryWarning } from './status-badge';
 import { StepStatus } from './view-primitives';
 
 export function ProjectNavigation({
@@ -34,11 +35,9 @@ export function ProjectNavigation({
         const icon =
           group.status === 'failed'
             ? failedIcon
-            : group.status === 'retry-passed'
-              ? retriedIcon
-              : group.status === 'passed'
-                ? passedIcon
-                : undefined;
+            : group.status === 'passed'
+              ? passedIcon
+              : undefined;
         return (
           <section className="runner-project-nav-group" key={group.status}>
             {index > 0 ? (
@@ -105,6 +104,9 @@ export function ProjectNavigation({
                       ) : (
                         <StepStatus status="not-run" />
                       )}
+                      {projectRecoveredAfterFailure(item) ? (
+                        <RecoveryWarning />
+                      ) : null}
                     </button>
                   );
                 })}
