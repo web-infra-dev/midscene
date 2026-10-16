@@ -77,7 +77,10 @@ describe('resizeBase64ImageToJpeg image backend usage', () => {
 
     expect(result).toMatch(/^data:image\/jpeg;base64,/);
     expect(imageBackendMocks.metadata).not.toHaveBeenCalled();
-    expect(imageBackendMocks.resize).toHaveBeenCalledWith(4, 3);
+    expect(imageBackendMocks.resize).toHaveBeenCalledWith(4, 3, {
+      fit: 'cover',
+      kernel: 'lanczos3',
+    });
     expect(imageBackendMocks.jpeg).toHaveBeenCalledWith({ quality: 90 });
   });
 
@@ -119,7 +122,10 @@ describe('constrainBase64ImageToMaxSize image backend usage', () => {
     ).resolves.toMatch(/^data:image\/jpeg;base64,/);
 
     expect(imageBackendMocks.metadata).not.toHaveBeenCalled();
-    expect(imageBackendMocks.resize).toHaveBeenCalledWith(4, 3);
+    expect(imageBackendMocks.resize).toHaveBeenCalledWith(4, 3, {
+      fit: 'cover',
+      kernel: 'lanczos3',
+    });
     expect(imageBackendMocks.jpeg).toHaveBeenCalledWith({ quality: 82 });
   });
 

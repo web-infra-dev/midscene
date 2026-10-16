@@ -96,16 +96,30 @@ describe('normalizeBase64Image', () => {
       'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
     );
   });
+
+  it('wraps bare WebP base64 with the WebP MIME type', () => {
+    expect(normalizeBase64Image(' UklGRjQAAABXRUJQ VlA4IA== ')).toBe(
+      'data:image/webp;base64,UklGRjQAAABXRUJQVlA4IA==',
+    );
+  });
 });
 
 describe('normalizeScreenshotBase64', () => {
-  it('accepts PNG and JPEG data urls', () => {
+  const webpBody =
+    'UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+
+  it('accepts PNG, JPEG, and WebP data urls', () => {
     expect(
-      normalizeScreenshotBase64(' data:image/png;base64,aaa\r\nbbb '),
-    ).toBe('data:image/png;base64,aaabbb');
+      normalizeScreenshotBase64(
+        ' data:image/png;base64,iVBORw0KGgo\r\nAAAANSUhEUgAAAAUA ',
+      ),
+    ).toBe('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA');
     expect(normalizeScreenshotBase64('data:image/jpeg;base64,/9j/4AAQ')).toBe(
       'data:image/jpeg;base64,/9j/4AAQ',
     );
+    expect(
+      normalizeScreenshotBase64(`data:image/webp;base64,${webpBody}`),
+    ).toBe(`data:image/webp;base64,${webpBody}`);
   });
 
   it('normalizes jpg data urls to jpeg', () => {
@@ -114,10 +128,24 @@ describe('normalizeScreenshotBase64', () => {
     );
   });
 
-  it('wraps raw base64 as PNG', () => {
-    expect(normalizeScreenshotBase64(' iVBORw0KGgo aaa\r\nbbb ')).toBe(
-      'data:image/png;base64,iVBORw0KGgoaaabbb',
+  it('recognizes raw PNG base64', () => {
+    expect(normalizeScreenshotBase64(' iVBORw0KGgo AAAANSUhEUgAAAAUA ')).toBe(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
     );
+  });
+
+  it('recognizes raw JPEG base64', () => {
+    expect(normalizeScreenshotBase64(' /9j/4AAQ SkZJRg== ')).toBe(
+      'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+    );
+  });
+
+  it('recognizes raw WebP base64', () => {
+    expect(
+      normalizeScreenshotBase64(
+        ` ${webpBody.slice(0, 20)} ${webpBody.slice(20)} `,
+      ),
+    ).toBe(`data:image/webp;base64,${webpBody}`);
   });
 
   it('uses the provided label in validation errors', () => {
@@ -130,14 +158,15 @@ describe('normalizeScreenshotBase64', () => {
         label: 'custom screenshot',
       }),
     ).toThrow(
-      'custom screenshot must be a PNG/JPEG data URI or raw PNG base64 string',
+      'custom screenshot must be a PNG/JPEG/WebP data URI or raw PNG/JPEG/WebP base64 string',
     );
   });
 });
 
 describe('inferBase64ImageFormat', () => {
-  it('detects png payloads and otherwise falls back to jpeg', () => {
+  it('detects PNG and WebP payloads and otherwise falls back to JPEG', () => {
     expect(inferBase64ImageFormat('iVBORw0KGgoaaa')).toBe('png');
+    expect(inferBase64ImageFormat('UklGRjQAAABXRUJQ')).toBe('webp');
     expect(inferBase64ImageFormat('/9j/4AAQSkZJRg==')).toBe('jpeg');
   });
 });
@@ -152,8 +181,7 @@ describe('convertImgBufferToJpeg', () => {
       await expect(
         convertImgBufferToJpeg(Buffer.from('invalid image')),
       ).rejects.toMatchObject({
-        message:
-          'Failed to convert image to JPEG with Sharp: Sharp not available',
+        message: 'Failed to convert image to JPEG: Sharp not available',
         cause: sharpError,
       });
     } finally {
