@@ -1,0 +1,55 @@
+name: Midscene Verify hosted alpha
+on:
+  workflow_dispatch:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  deployment_status:
+  check_run:
+    types: [rerequested]
+permissions:
+  contents: read
+concurrency:
+  group: midscene-verify-single-runner
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.3.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/ai-ci
+        with:
+          command: node scripts/hosted-run.mjs
+          shell: bash
+        env:
+          VERIFY_CONFIG: policy.json
+          VERIFY_DATA_DIR: ${{ runner.temp }}/verify-evidence
+          VERIFY_PUBLIC_URL: ${{ vars.VERIFY_PUBLIC_URL }}
+          GITHUB_APP_ID: ${{ vars.VERIFY_APP_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.VERIFY_APP_KEY }}
+          GITHUB_WEBHOOK_SECRET: ${{ secrets.VERIFY_WEBHOOK_SECRET }}
+          VERIFY_RELAY_TOKEN: ${{ secrets.VERIFY_RELAY_TOKEN }}
+          VERIFY_REPORT_TOKEN: ${{ secrets.VERIFY_REPORT_TOKEN }}
+          MIDSCENE_MODEL_API_KEY: ${{ secrets.VERIFY_MODEL_API_KEY }}
+          MIDSCENE_MODEL_BASE_URL: ${{ secrets.VERIFY_MODEL_BASE_URL }}
+          MIDSCENE_MODEL_NAME: qwen3-vl-plus
+          MIDSCENE_MODEL_FAMILY: qwen3-vl
+          MIDSCENE_MODEL_RETRY_COUNT: '0'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verify-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/verify-evidence/evidence
+          if-no-files-found: ignore
+          retention-days: 14

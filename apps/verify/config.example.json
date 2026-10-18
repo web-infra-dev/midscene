@@ -1,0 +1,29 @@
+{
+  "repositories": [
+    {
+      "repository": "your-org/your-web-app",
+      "installationId": 123456,
+      "environment": "Preview",
+      "allowedOrigins": ["https://your-pr-preview.example.com"],
+      "revisionPath": "/__revision.json",
+      "timeoutMs": 180000,
+      "criteria": [
+        {
+          "id": "AC-1",
+          "title": "A new task can be saved and remains visible after submission",
+          "path": "/tasks",
+          "steps": [
+            {
+              "type": "aiAct",
+              "prompt": "Create a task named Midscene acceptance test and save it."
+            },
+            {
+              "type": "aiAssert",
+              "prompt": "The task list contains Midscene acceptance test."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

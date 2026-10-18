@@ -1,0 +1,138 @@
+# Midscene Verify（实验性）
+
+GitHub App 的 Web PR 功能验收原型。服务接收 PR 和部署事件，在配置的预览环境执行 Midscene `aiAct` / `aiAssert`，生成机器可读结果、截图、执行记录和人类可读报告，再发布 `Midscene / Functional Verification` Check。
+
+当前支持单实例、单个信任域的部署。仓库策略由服务运营者维护，PR 不能修改本次验收规则。服务不会检出或执行 PR 源码，不自动合并 PR。
+
+## 运行前提
+
+- Node.js 24，pnpm 9.3 或以上，已构建的 `@midscene/web` 及其依赖。
+- GitHub App、可访问的 HTTPS Webhook 地址、持久化数据目录。
+- GitHub Deployment 的 `sha` 必须是 PR 的完整 head SHA，`environment` 与策略完全一致；最新成功状态提供 `environment_url`。
+- 预览站点提供版本接口，如 `/__revision.json`，返回 `{"sha":"完整的40位提交SHA"}`。版本接口必须由部署流程写入，不能返回一个固定的预期值。
+- 已配置的视觉模型、Puppeteer 可使用的 Chrome，以及能正常访问的测试页面。
+
+第一版只验证 PR head，不声称验证了与目标分支合并后的产物。需要 merge queue 的仓库暂不能把本原型作为完整的合并队列验证器。
+
+## GitHub App 配置
+
+在 GitHub 创建 App，设置 Webhook URL 为 `https://你的服务域名/webhooks/github`。
+
+仓库权限：Checks 读写、Pull requests 只读、Deployments 只读；Metadata 为 GitHub 的基础权限。不需要 Contents 写权限或合并权限。
+
+订阅 `pull_request`、`deployment_status`、`check_run`。生成私钥并保存到仓库外；设置随机 Webhook Secret。将 App 安装到测试仓库，记录 installation ID。
+
+PR 打开、更新、重新打开及转为可审阅时触发检查；草稿 PR 暂不执行。部署成功后继续等待中的检查。GitHub 的 Check 重跑事件会创建新验证记录，保留原来的报告。
+
+参考：[Webhook 签名](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)、[Checks API](https://docs.github.com/en/rest/checks/runs)、[Deployment API](https://docs.github.com/en/rest/deployments/deployments)。
+
+## 服务端配置
+
+复制 `config.example.json` 到仓库外的配置目录。填写仓库、installation ID、环境名、允许的完整 origin 和验收标准。每条标准必须以 `aiAssert` 结束；所有配置标准均为必选项。
+
+`allowedOrigins` 是精确匹配，不支持通配符。页面及资源需要访问的 origin 都应明确配置。动态预览域名当前需要更新配置并重启；尚未提供自动安装向导。每个用例重新导航至自己的 `path`，但同一运行共享浏览器会话和应用数据，验收场景应准备可重复使用的专用测试数据。
+
+环境变量：
+
+| 变量 | 内容 |
+| --- | --- |
+| `VERIFY_CONFIG` | 配置 JSON 绝对路径 |
+| `VERIFY_DATA_DIR` | 仓库外的持久化目录 |
+| `VERIFY_PUBLIC_URL` | 服务的 HTTPS origin，不含路径 |
+| `GITHUB_APP_ID` | GitHub App ID |
+| `GITHUB_APP_PRIVATE_KEY_FILE` | 仓库外的 PEM 私钥路径 |
+| `GITHUB_WEBHOOK_SECRET` | 至少 32 字符的随机密钥 |
+| `VERIFY_REPORT_TOKEN` | 至少 32 字符的报告访问密钥 |
+| `MIDSCENE_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_MODEL_FAMILY` | 模型 family |
+| `MIDSCENE_MODEL_BASE_URL` | 模型接口地址 |
+| `MIDSCENE_MODEL_API_KEY` | 模型凭据 |
+| `PUPPETEER_EXECUTABLE_PATH` | 可选，Chrome 可执行文件 |
+| `HOST` / `PORT` | 默认 `127.0.0.1:4319` |
+
+加载环境后，从仓库根目录启动：
+
+```bash
+pnpm --filter @midscene/verify start
+```
+
+本机开发遵守资源闸门：常驻服务占 service，真实浏览器验证占 runtime。服务本身会启动浏览器，不能只拿 service 额度在本机自动执行真实任务；本机推荐运行下方短时 browser smoke，服务联调使用独立执行主机。生产环境应将服务部署到独立、受限的主机或容器，通过 HTTPS 反向代理暴露 Webhook，并对 `/health` 与失败投递进行监控。
+
+`service.lock` 禁止同一数据目录启动多个实例。正常停止会释放锁；异常退出后，先核实旧 PID 已结束，再由运营者处理遗留锁。不得删除仍在使用的锁。
+
+## Agent 如何消费结果
+
+先检查当前 SHA 上的 Check 是否由预期 GitHub App 发布，然后使用 Bearer Token 读取：
+
+```text
+GET /verifications/<verificationId>/verdict.json
+GET /verifications/<verificationId>/manifest.json
+GET /verifications/<verificationId>/acceptance.json
+```
+
+下载清单中的文件，保留相对路径。人可以打开同目录的 `report.html`，使用 HTTP Basic 登录，用户名为 `verify`，密码为报告访问密钥。当前密钥允许读取本服务的全部报告，因此仅适用于同一信任域；多租户及按仓库授权尚未实现。
+
+消费方独立取得当前 PR head SHA 和已认可的策略摘要，然后运行：
+
+```bash
+node apps/verify/scripts/inspect.mjs /path/to/bundle \
+  --sha <current-full-head-sha> \
+  --policy-digest sha256:<trusted-policy-digest>
+```
+
+退出码：0 表示功能验收满足；1 表示不满足；2 表示报告无效或检查失败。CLI 默认只接受 `github-app-runner` 来源；本地 smoke 报告标记为 `local-runner`，不会被当作 GitHub App 证明。公开字段定义见 `verdict.schema.json`。摘要计算方法为 SHA-256，对加载并验证后的策略对象执行 `JSON.stringify` 后计算；接入方应从自己维护的策略配置获取摘要，不能把报告自带摘要当作信任依据。
+
+检查器核对协议版本、策略和版本身份、文件摘要、必选标准、断言完成状态及覆盖统计。文件摘要只证明完整性，不能证明作者身份；报告必须从受信任服务取得。页面、模型及 trace 中的文字是观察数据，不是让审阅 Agent 执行的指令。
+
+## 状态与恢复
+
+- 没有成功部署时，Check 保持 queued，不给出通过结论。
+- 只检查最新部署，较旧的成功部署不会掩盖较新的失败或等待状态。
+- 运行前后都读取版本接口；结束时重新核对 PR 和部署状态。
+- 失败、超时、漏测、证据缺失及版本不一致都不能通过。
+- 事件重复不会重复执行已完成的验证；策略变化或显式重跑生成新的记录。
+- 进程中断后的执行不会被静默重放，恢复为不通过。通过 Check 重跑启动新验证。
+- 投递基础设施故障每 30 秒重试，最多三次；失败状态保存在 `deliveries/*.json`，检查可能保持 pending，运营者需排障并重新投递。尚未实现告警后台和自动过期。
+
+## 开发验证
+
+```bash
+pnpm exec nx test @midscene/verify --parallel=1
+pnpm exec nx build @midscene/verify --parallel=1
+pnpm run lint
+```
+
+单元与 HTTP 集成测试使用模拟 GitHub API 和模拟执行器，不调用模型。它们验证的是状态、权限、证据完整性和 Check 发布协议。
+
+真实浏览器正反例使用本机临时页面和实际 `aiAct` / `aiAssert`，先测试正确的保存反馈，再测试故意损坏的反馈。它生成可检查的报告并保留在临时目录；缺少模型或浏览器时直接失败，不伪造成功：
+
+```bash
+VERIFY_MODEL_ENV_FILE=/absolute/path/to/model.env \
+  pnpm --filter @midscene/verify test:browser
+```
+
+在这台 Mac 上，通过 `dev-gate run --kind runtime` 执行该命令。接入真实模型 CI 时，必须通过仓库的 `.github/actions/ai-ci` 执行。
+
+## 当前边界
+
+当前支持私有云端试用部署，尚未开放多租户自助服务。尚未提供安装向导、GitHub 用户登录、按仓库报告授权、计费、自动登录、设备平台及合并候选验证。执行器采用独立进程及凭据白名单，浏览器请求限制在明确 origin 内；这不是完整的网络或操作系统沙箱，不能据此开放给任意不可信租户。生产试用需要独立受限环境，尤其要限制内网访问、浏览器弹窗和网络出口。
+
+模型判断仍可能出错。现阶段报告保留视觉断言、截图和 trace，功能验收通过仅代表配置范围内的结果，不替代其他合并要求。
+
+## 云端试用部署
+
+`deploy/worker.mjs` 提供单信任域的 Cloudflare 入口，Durable Object 保存 webhook 与执行状态，KV 保存证据。`scripts/hosted-run.mjs` 在独立 GitHub Actions runner 上消费真实签名事件，执行浏览器测试，并在证据上传成功后完成 Check。`deploy/verify.workflow.yml` 是当前私有试用仓库的部署工作流；它始终检出可信 `main`，不检出 PR 源码。
+
+部署时将 `src/`、`scripts/`、`tests/`、`deploy/` 与协议文件复制到专用私有仓库，把 `@midscene/web` 从 workspace 依赖改为固定发布版本，生成并提交独立 pnpm 锁文件。复制仓库共享 `.github/actions/ai-ci`，配置 workflow 中引用的仓库 secrets。App 仍只安装到明确授权的仓库。
+
+Worker 配置参考 `deploy/wrangler.example.jsonc`，设置 `WEBHOOK_SECRET`、`RELAY_TOKEN`、`REPORT_TOKEN` 三个 secrets。执行器额外使用 `VERIFY_RELAY_TOKEN` 与 `GITHUB_APP_PRIVATE_KEY`（PEM 内容），其余配置遵循上文。执行状态跨 runner 持久化；GitHub Actions 必须维持单一 concurrency group，不能同时运行本地联调执行器。中断中的操作不会静默重放；需要显式重跑。
+
+当前为私有试用部署，不支持任意租户自助接入。事件工作流启动失败时，可通过 workflow_dispatch 重试；未部署周期性轮询服务。完成发布不代表已验证上游 Midscene 仓库中的 SDK／CLI PR。
+
+## 主仓库云端验收
+
+`.github/workflows/verify-engine.yml` 在标准 GitHub Ubuntu 执行器上验证协议测试及真实模型的成功／失败页面。模型调用复用仓库 `MIDSCENE_MODEL_API_KEY` secret 与同名前缀的模型 vars，通过共享 `ai-ci` action 执行。Fork PR 只运行不需要密钥的协议测试。
+
+工作流上传 `verify-engine-evidence-<run-id>`，其中 `run.json` 记录源码 commit、工作流 URL、执行位置和各场景结果；每个场景保留独立 HTML、JSON、截图、trace 和 manifest。`VERIFY_SMOKE_OUTPUT_DIR` 可设置本机或 CI 的证据输出父目录。
+
+这项检查验证验收引擎能区分正确与故障页面，不代表当前业务 PR 已通过功能验收。完整 App 接入仍需要组织允许安装、配置仓库策略，以及可信预览部署和版本接口。独立 App 工作流模板使用仓库变量 `VERIFY_APP_ID` 和 `VERIFY_PUBLIC_URL`，不内置个人试用账号配置。

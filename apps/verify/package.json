@@ -1,0 +1,24 @@
+{
+  "name": "@midscene/verify",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "build": "node scripts/check.mjs",
+    "test:browser": "node scripts/browser-smoke.mjs"
+  },
+  "dependencies": {
+    "@midscene/web": "workspace:*",
+    "puppeteer": "24.6.0"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [],
+        "outputs": []
+      }
+    }
+  }
+}

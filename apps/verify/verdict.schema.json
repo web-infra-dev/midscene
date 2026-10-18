@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Midscene Verify verdict v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "verificationId",
+    "subject",
+    "policyDigest",
+    "generatedAt",
+    "execution",
+    "functionalGate",
+    "coverage",
+    "criteria",
+    "limitations",
+    "provenance",
+    "artifacts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "verificationId": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "policyDigest": { "$ref": "#/$defs/digest" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "subject": {
+      "type": "object",
+      "required": ["repository", "headSha", "deploymentSha"],
+      "additionalProperties": false,
+      "properties": {
+        "repository": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$" },
+        "pullRequest": { "type": "integer", "minimum": 1 },
+        "headSha": { "$ref": "#/$defs/sha" },
+        "deploymentSha": { "$ref": "#/$defs/sha" },
+        "deploymentId": { "type": "integer", "minimum": 1 },
+        "previewUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "status",
+        "attemptCount",
+        "observedRevisionBefore",
+        "observedRevisionAfter",
+        "model"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "error",
+            "timed-out",
+            "interrupted",
+            "deployment-changed"
+          ]
+        },
+        "attemptCount": { "const": 1 },
+        "observedRevisionBefore": { "type": ["string", "null"] },
+        "observedRevisionAfter": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "errorCode": { "enum": ["MODEL_SERVICE_ERROR", "ENVIRONMENT_ERROR"] }
+      }
+    },
+    "functionalGate": {
+      "type": "object",
+      "required": ["status", "blockingReasons"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["satisfied", "not-satisfied"] },
+        "blockingReasons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["code"],
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "enum": [
+                  "STALE_REVISION",
+                  "DEPLOYMENT_REVISION_MISMATCH",
+                  "EXECUTION_INCOMPLETE",
+                  "OBSERVED_REVISION_MISMATCH",
+                  "UNEXPECTED_CRITERION",
+                  "DUPLICATE_CRITERION",
+                  "ASSERTION_NOT_COMPLETED",
+                  "EVIDENCE_MISSING",
+                  "CRITERION_NOT_RUN",
+                  "CRITERION_FAILED"
+                ]
+              },
+              "criterionId": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["required", "passed", "failed", "notRun"],
+      "additionalProperties": false,
+      "properties": {
+        "required": { "type": "integer", "minimum": 1 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "notRun": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "status", "method", "steps", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+          "title": { "type": "string" },
+          "status": { "enum": ["passed", "failed", "not-run"] },
+          "method": { "const": "visual-model-assertion" },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type", "status"],
+              "additionalProperties": false,
+              "properties": {
+                "type": { "enum": ["aiAct", "aiAssert"] },
+                "status": { "enum": ["passed", "failed"] }
+              }
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[\\w.-]+$" }
+          },
+          "errorCode": {
+            "enum": [
+              "STEP_EXECUTION_FAILED",
+              "EVIDENCE_CAPTURE_FAILED",
+              "MODEL_SERVICE_ERROR",
+              "ENVIRONMENT_ERROR"
+            ]
+          }
+        }
+      }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } },
+    "provenance": {
+      "type": "object",
+      "required": ["kind", "installationId"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["github-app-runner", "local-runner"] },
+        "installationId": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } }
+  },
+  "$defs": {
+    "sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "artifact": {
+      "type": "object",
+      "required": ["path", "digest", "bytes"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "pattern": "^[\\w.-]+$" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "bytes": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}
