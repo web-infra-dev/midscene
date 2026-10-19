@@ -91,7 +91,7 @@ test('GitHub client exchanges installation tokens and reuses them without leakin
   );
 });
 
-test('HTTP webhook -> durable queue -> controller -> authenticated evidence delivery', async (t) => {
+test('HTTP webhook -> durable queue -> controller -> public read-only evidence delivery', async (t) => {
   const { store } = await temporary(t);
   const github = fakeGitHub();
   const controller = new Controller({
@@ -103,11 +103,9 @@ test('HTTP webhook -> durable queue -> controller -> authenticated evidence deli
   });
   const queue = createQueue({ store, controller });
   const secret = 's'.repeat(32);
-  const token = 't'.repeat(32);
   const server = createVerifyServer({
     store,
     webhookSecret: secret,
-    reportToken: token,
     onQueued: () => {},
   });
   server.listen(0, '127.0.0.1');
@@ -147,30 +145,27 @@ test('HTTP webhook -> durable queue -> controller -> authenticated evidence deli
   const [run] = await store.list('runs');
   assert.equal(run.report.functionalGate.status, 'satisfied');
   const url = `${base}/verifications/${run.id}/verdict.json`;
-  assert.equal((await fetch(url)).status, 401);
-  const response = await fetch(url, {
-    headers: { authorization: `Bearer ${token}` },
-  });
+  const response = await fetch(url);
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get('www-authenticate'), null);
   assert.equal((await response.json()).verificationId, run.id);
-  const html = await fetch(`${base}/verifications/${run.id}/report.html`, {
-    headers: {
-      authorization: `Basic ${Buffer.from(`verify:${token}`).toString('base64')}`,
-    },
-  });
+  const html = await fetch(`${base}/verifications/${run.id}/report.html`);
   assert.equal(html.status, 200);
   assert.match(
     html.headers.get('content-security-policy'),
     /default-src 'none'/,
   );
   assert.equal(
-    (
-      await fetch(`${base}/verifications/${run.id}/service.lock`, {
-        headers: { authorization: `Bearer ${token}` },
-      })
-    ).status,
+    (await fetch(`${base}/verifications/${run.id}/service.lock`)).status,
     404,
   );
+  for (const name of ['manifest.json', 'AC-1.png', 'AC-1.trace.json']) {
+    assert.equal(
+      (await fetch(`${base}/verifications/${run.id}/${name}`)).status,
+      200,
+    );
+  }
+  assert.equal((await fetch(url, { method: 'PUT', body: '{}' })).status, 404);
   await fetch(`${base}/webhooks/github`, { method: 'POST', headers, body });
   await queue.wake();
   assert.equal((await store.list('runs')).length, 1);

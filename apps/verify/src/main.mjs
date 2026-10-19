@@ -29,10 +29,9 @@ requireValue(
   'VERIFY_PUBLIC_URL must be a plain HTTPS origin',
 );
 const webhookSecret = required('GITHUB_WEBHOOK_SECRET');
-const reportToken = required('VERIFY_REPORT_TOKEN');
 requireValue(
-  webhookSecret.length >= 32 && reportToken.length >= 32,
-  'Use secrets of at least 32 characters',
+  webhookSecret.length >= 32,
+  'Use a Webhook secret of at least 32 characters',
 );
 const github = new GitHub({
   appId: required('GITHUB_APP_ID'),
@@ -61,7 +60,6 @@ const queue = createQueue({
 const server = createVerifyServer({
   store,
   webhookSecret,
-  reportToken,
   onQueued: () => void queue.wake(),
 });
 server.requestTimeout = 30_000;

@@ -40,7 +40,6 @@ jobs:
           GITHUB_APP_PRIVATE_KEY: ${{ secrets.VERIFY_APP_KEY }}
           GITHUB_WEBHOOK_SECRET: ${{ secrets.VERIFY_WEBHOOK_SECRET }}
           VERIFY_RELAY_TOKEN: ${{ secrets.VERIFY_RELAY_TOKEN }}
-          VERIFY_REPORT_TOKEN: ${{ secrets.VERIFY_REPORT_TOKEN }}
           MIDSCENE_MODEL_API_KEY: ${{ secrets.VERIFY_MODEL_API_KEY }}
           MIDSCENE_MODEL_BASE_URL: ${{ secrets.VERIFY_MODEL_BASE_URL }}
           MIDSCENE_MODEL_NAME: qwen3-vl-plus

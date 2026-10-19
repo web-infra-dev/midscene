@@ -240,7 +240,7 @@ export class Controller {
           ),
           `[Agent result](${this.publicUrl}/verifications/${id}/verdict.json)`,
           `[Evidence manifest](${this.publicUrl}/verifications/${id}/manifest.json)`,
-          'Evidence requires service authentication. Other repository merge requirements still apply.',
+          'Reports and evidence are publicly readable without a password. Other repository merge requirements still apply.',
         ].join('\n\n'),
       },
     });

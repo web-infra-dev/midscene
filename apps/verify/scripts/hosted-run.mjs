@@ -137,7 +137,6 @@ const queue = createQueue({
 const server = createVerifyServer({
   store,
   webhookSecret: required('GITHUB_WEBHOOK_SECRET'),
-  reportToken: required('VERIFY_REPORT_TOKEN'),
   onQueued: () => {},
 });
 server.listen(0, '127.0.0.1');

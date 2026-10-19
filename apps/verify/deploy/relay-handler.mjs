@@ -7,7 +7,7 @@ export async function handleRelay(req, env, storage) {
   if (p === '/health')
     return json({ ok: true, purpose: 'Midscene Verify live integration' });
   if (
-    ![env.WEBHOOK_SECRET, env.RELAY_TOKEN, env.REPORT_TOKEN].every(
+    ![env.WEBHOOK_SECRET, env.RELAY_TOKEN].every(
       (value) => typeof value === 'string' && value.length >= 32,
     )
   )
@@ -84,16 +84,6 @@ export async function handleRelay(req, env, storage) {
   const preview = /^\/preview\/(index.html|__revision.json)$/.test(p);
   const report = /^\/verifications\/[a-f0-9]{64}\/[\w.-]+$/.test(p);
   if (!preview && !report) return new Response('Not found', { status: 404 });
-  const auth = req.headers.get('authorization') ?? '';
-  const canRead =
-    admin ||
-    auth === `Bearer ${env.REPORT_TOKEN}` ||
-    auth === `Basic ${btoa(`verify:${env.REPORT_TOKEN}`)}`;
-  if (report && !canRead)
-    return new Response('Authentication required', {
-      status: 401,
-      headers: { 'www-authenticate': 'Basic realm="Midscene Verify"' },
-    });
   if (req.method === 'PUT' && admin) {
     await env.DATA.put(p, await req.arrayBuffer(), {
       metadata: {

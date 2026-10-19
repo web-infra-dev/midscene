@@ -28,7 +28,7 @@ PR 打开、更新、重新打开及转为可审阅时触发检查；草稿 PR �
 
 ## PR 结果评论
 
-证据与 Check 发布后，App 会为本次验证新增一条 PR 评论，说明实际 commit、功能结论、执行状态、各验收条件和报告入口，并附带 Agent 可读取的 JSON。云端运行还会给出 GitHub Actions 入口，方便审阅者通过 GitHub 下载完整证据。服务上的报告链接仍需要实例的报告凭据。
+证据与 Check 发布后，App 会为本次验证新增一条 PR 评论，说明实际 commit、功能结论、执行状态、各验收条件和报告入口，并附带 Agent 可读取的 JSON。云端运行还会给出 GitHub Actions 入口，方便审阅者通过 GitHub 下载完整证据。报告、截图、执行记录和 JSON 证据均可公开只读访问，无需密码。
 
 App 需要 **Pull requests 读写权限**；已有安装需要接受更新后的权限。若评论发布失败，服务会重试发布，不重新执行浏览器操作。重复事件和评论发布成功后写状态失败的恢复流程会复用已有 App 评论；其他用户复制相同标记不能阻止 App 发布。显式重跑产生新验证和新评论。评论不代表批准或合并 PR。
 
@@ -48,7 +48,6 @@ App 需要 **Pull requests 读写权限**；已有安装需要接受更新后的
 | `GITHUB_APP_ID` | GitHub App ID |
 | `GITHUB_APP_PRIVATE_KEY_FILE` | 仓库外的 PEM 私钥路径 |
 | `GITHUB_WEBHOOK_SECRET` | 至少 32 字符的随机密钥 |
-| `VERIFY_REPORT_TOKEN` | 至少 32 字符的报告访问密钥 |
 | `MIDSCENE_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_MODEL_FAMILY` | 模型 family |
 | `MIDSCENE_MODEL_BASE_URL` | 模型接口地址 |
@@ -68,7 +67,7 @@ pnpm --filter @midscene/verify start
 
 ## Agent 如何消费结果
 
-先检查当前 SHA 上的 Check 是否由预期 GitHub App 发布，然后使用 Bearer Token 读取：
+先检查当前 SHA 上的 Check 是否由预期 GitHub App 发布，然后通过 HTTPS 直接读取，无需密码或报告 Token：
 
 ```text
 GET /verifications/<verificationId>/verdict.json
@@ -76,7 +75,7 @@ GET /verifications/<verificationId>/manifest.json
 GET /verifications/<verificationId>/acceptance.json
 ```
 
-下载清单中的文件，保留相对路径。人可以打开同目录的 `report.html`，使用 HTTP Basic 登录，用户名为 `verify`，密码为报告访问密钥。当前密钥允许读取本服务的全部报告，因此仅适用于同一信任域；多租户及按仓库授权尚未实现。
+下载清单中的文件，保留相对路径。人可以在浏览器中直接打开 `report.html`。报告和证据为公开只读资源；Webhook 签名、证据上传、队列读取和执行状态修改仍需鉴权。只发布准备公开分享的证据。
 
 消费方独立取得当前 PR head SHA 和已认可的策略摘要，然后运行：
 
@@ -131,7 +130,7 @@ VERIFY_MODEL_ENV_FILE=/absolute/path/to/model.env \
 
 部署时将 `src/`、`scripts/`、`tests/`、`deploy/` 与协议文件复制到专用私有仓库，把 `@midscene/web` 从 workspace 依赖改为固定发布版本，生成并提交独立 pnpm 锁文件。复制仓库共享 `.github/actions/ai-ci`，配置 workflow 中引用的仓库 secrets。App 仍只安装到明确授权的仓库。
 
-Worker 配置参考 `deploy/wrangler.example.jsonc`，设置 `WEBHOOK_SECRET`、`RELAY_TOKEN`、`REPORT_TOKEN` 三个 secrets。执行器额外使用 `VERIFY_RELAY_TOKEN` 与 `GITHUB_APP_PRIVATE_KEY`（PEM 内容），其余配置遵循上文。执行状态跨 runner 持久化；GitHub Actions 必须维持单一 concurrency group，不能同时运行本地联调执行器。中断中的操作不会静默重放；需要显式重跑。
+Worker 配置参考 `deploy/wrangler.example.jsonc`，设置 `WEBHOOK_SECRET`、`RELAY_TOKEN` 两个 secrets。执行器额外使用 `VERIFY_RELAY_TOKEN` 与 `GITHUB_APP_PRIVATE_KEY`（PEM 内容），其余配置遵循上文。执行状态跨 runner 持久化；GitHub Actions 必须维持单一 concurrency group，不能同时运行本地联调执行器。中断中的操作不会静默重放；需要显式重跑。
 
 当前为私有试用部署，不支持任意租户自助接入。事件工作流启动失败时，可通过 workflow_dispatch 重试；未部署周期性轮询服务。完成发布不代表已验证上游 Midscene 仓库中的 SDK／CLI PR。
 

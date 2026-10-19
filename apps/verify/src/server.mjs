@@ -1,27 +1,9 @@
-import { timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { verifyWebhook } from './github.mjs';
 
-function authenticated(header, token) {
-  let supplied = '';
-  if (header?.startsWith('Bearer ')) supplied = header.slice(7);
-  if (header?.startsWith('Basic ')) {
-    const basic = Buffer.from(header.slice(6), 'base64').toString();
-    if (basic.startsWith('verify:')) supplied = basic.slice(7);
-  }
-  const a = Buffer.from(supplied);
-  const b = Buffer.from(token);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
-export function createVerifyServer({
-  store,
-  webhookSecret,
-  reportToken,
-  onQueued,
-}) {
+export function createVerifyServer({ store, webhookSecret, onQueued }) {
   return createServer(async (req, res) => {
     res.setHeader('x-content-type-options', 'nosniff');
     res.setHeader('cache-control', 'no-store');
@@ -97,15 +79,6 @@ export function createVerifyServer({
         req.url ?? '',
       );
       if (req.method === 'GET' && match) {
-        if (!authenticated(req.headers.authorization, reportToken)) {
-          res
-            .writeHead(401, {
-              'www-authenticate':
-                'Basic realm="Midscene Verify", charset="UTF-8"',
-            })
-            .end();
-          return;
-        }
         const [, id, name] = match;
         const run = await store.get('runs', id);
         if (!run?.report) {

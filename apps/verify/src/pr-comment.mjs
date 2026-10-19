@@ -57,7 +57,7 @@ export function verificationComment({
           `[Download the report, screenshots and traces from this workflow run](${workflowUrl}).`,
         ]
       : []),
-    'The service report links require the instance report credential. Workflow artifacts use GitHub access and retention rules.',
+    'Reports, screenshots and JSON evidence are publicly readable without a password. Workflow artifacts use GitHub access and retention rules.',
     '',
     '<details>',
     '<summary>Agent-readable result</summary>',

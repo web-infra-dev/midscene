@@ -3,7 +3,7 @@ import path from 'node:path';
 import { policyDigest, requireValue, validatePolicy } from './config.mjs';
 import { evidenceEntry } from './report.mjs';
 
-// The caller must obtain the bundle from a trusted authenticated service and
+// The caller must obtain the bundle from a trusted service and
 // independently obtain expected SHA/policy. Hashes prove integrity, not identity.
 export async function inspectBundle(
   directory,

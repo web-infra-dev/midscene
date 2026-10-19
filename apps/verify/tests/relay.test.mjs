@@ -15,7 +15,6 @@ test('hosted relay validates signatures and protects durable state', async () =>
   const env = {
     WEBHOOK_SECRET: 's'.repeat(32),
     RELAY_TOKEN: 'r'.repeat(32),
-    REPORT_TOKEN: 't'.repeat(32),
   };
   const send = (p, options = {}) =>
     handleRelay(
@@ -68,8 +67,63 @@ test('hosted relay validates signatures and protects durable state', async () =>
   ]);
   await send('/delivery/test-delivery', { method: 'DELETE', headers });
   assert.deepEqual(await (await send('/deliveries', { headers })).json(), []);
-  assert.equal(
-    (await send(`/verifications/${'a'.repeat(64)}/verdict.json`)).status,
-    401,
+});
+
+test('hosted reports are public read-only while uploads and state remain protected', async () => {
+  const files = new Map();
+  const env = {
+    WEBHOOK_SECRET: 's'.repeat(32),
+    RELAY_TOKEN: 'r'.repeat(32),
+    DATA: {
+      async put(key, value, options) {
+        files.set(key, { value, metadata: options.metadata });
+      },
+      async getWithMetadata(key) {
+        return files.get(key) ?? { value: null };
+      },
+    },
+  };
+  const storage = { list: async () => new Map() };
+  const send = (path, options = {}) =>
+    handleRelay(
+      new Request(`https://verify.example.com${path}`, options),
+      env,
+      storage,
+    );
+  const prefix = `/verifications/${'a'.repeat(64)}`;
+  for (const [name, type, body] of [
+    ['report.html', 'text/html', '<h1>Passed</h1>'],
+    ['verdict.json', 'application/json', '{"result":"passed"}'],
+    ['AC-1.png', 'image/png', 'screenshot'],
+  ]) {
+    const path = `${prefix}/${name}`;
+    assert.equal((await send(path, { method: 'PUT', body })).status, 405);
+    assert.equal((await send(path)).status, 404);
+    assert.equal(
+      (
+        await send(path, {
+          method: 'PUT',
+          body,
+          headers: {
+            authorization: `Bearer ${env.RELAY_TOKEN}`,
+            'content-type': type,
+          },
+        })
+      ).status,
+      200,
+    );
+    const response = await send(path);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('www-authenticate'), null);
+    assert.equal(response.headers.get('content-type'), type);
+    assert.equal(await response.text(), body);
+    assert.equal((await send(path, { method: 'DELETE' })).status, 405);
+  }
+  assert.equal((await send('/state/runs')).status, 404);
+  assert.equal((await send('/deliveries')).status, 404);
+  const html = await send(`${prefix}/report.html`);
+  assert.match(
+    html.headers.get('content-security-policy'),
+    /default-src 'none'/,
   );
 });
