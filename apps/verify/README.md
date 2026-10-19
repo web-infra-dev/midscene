@@ -49,6 +49,12 @@ After evidence and the Check are published, the App posts a new PR conversation 
 
 Grant the App **Pull requests: read and write** and approve the updated permissions on existing installations. A comment permission failure leaves publication retryable and never reruns browser actions. Duplicate deliveries and recovery after a successful comment POST reuse the App's existing comment; copied markers from other authors do not count. Explicit rerequests produce a new verification and a new comment. Comments do not approve or merge PRs.
 
+## Native Midscene HTML reports
+
+Each criterion includes `<criterion-id>.midscene.html`, generated with the Agent's `reportHTMLString({ inlineScreenshots: true })`. It embeds the report viewer, execution dump and screenshots so reviewers can open the original interactive Midscene report directly. The acceptance summary links to each native report; PR comments expose the same links. A single-criterion Check opens its native report from Details.
+
+Native reports are public and require no password. Only their response policy permits the inline viewer scripts; the acceptance summary remains script-free. The native files are included in the evidence manifest and are required for a successful functional verdict. For workspace development, build `@midscene/report` to generate Core's embedded viewer template before running real-model acceptance.
+
 ## Agent consumption
 
 First verify the current commit's Check was published by the expected App. Fetch `/verifications/<id>/verdict.json`, `manifest.json`, and the manifest files directly over HTTPS; no password or report token is required. Preserve relative paths. Humans can open `report.html` directly in a browser.

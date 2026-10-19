@@ -1,4 +1,5 @@
 // Single-repository alpha ingress. State is strongly consistent Durable Object storage; evidence uses KV.
+import { reportContentSecurityPolicy } from '../src/report-policy.mjs';
 const json = (value, status = 200) =>
   Response.json(value, { status, headers: { 'cache-control': 'no-store' } });
 export async function handleRelay(req, env, storage) {
@@ -102,7 +103,6 @@ export async function handleRelay(req, env, storage) {
     'x-content-type-options': 'nosniff',
   };
   if (report)
-    headers['content-security-policy'] =
-      "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; frame-ancestors 'none'";
+    headers['content-security-policy'] = reportContentSecurityPolicy(p);
   return new Response(item.value, { headers });
 }

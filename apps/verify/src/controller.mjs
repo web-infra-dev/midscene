@@ -222,7 +222,13 @@ export class Controller {
       status: 'completed',
       conclusion,
       completed_at: new Date().toISOString(),
-      details_url: reportUrl,
+      details_url:
+        run.report.criteria.length === 1 &&
+        run.report.criteria[0].evidence.includes(
+          `${run.report.criteria[0].id}.midscene.html`,
+        )
+          ? `${this.publicUrl}/verifications/${id}/${run.report.criteria[0].id}.midscene.html`
+          : reportUrl,
       output: {
         title: passed
           ? 'Required functional criteria passed'

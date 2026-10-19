@@ -37,6 +37,10 @@ export async function passingRunner({ directory }) {
     ),
   );
   await writeFile(
+    path.join(directory, 'AC-1.midscene.html'),
+    '<!doctype html><html><script type="midscene_web_dump">{"fixture":true}</script></html>',
+  );
+  await writeFile(
     path.join(directory, 'AC-1.trace.json'),
     JSON.stringify({
       executions: [

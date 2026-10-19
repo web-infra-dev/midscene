@@ -101,7 +101,11 @@ export async function inspectBundle(
           ),
         'Required assertion missing',
       );
-      for (const name of [`${expected.id}.png`, `${expected.id}.trace.json`])
+      for (const name of [
+        `${expected.id}.png`,
+        `${expected.id}.trace.json`,
+        `${expected.id}.midscene.html`,
+      ])
         requireValue(
           names.has(name) && result.evidence.includes(name),
           'Required evidence missing',

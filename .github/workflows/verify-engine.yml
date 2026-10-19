@@ -42,8 +42,8 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
       - uses: ./.github/actions/pnpm-cache/restore
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Build browser integration dependencies
-        run: pnpm exec nx build @midscene/web --parallel=1
+      - name: Build browser integration and native report viewer
+        run: pnpm exec nx build @midscene/report --parallel=1
       - uses: ./.github/actions/setup-puppeteer-browser
         with:
           package-directory: apps/verify

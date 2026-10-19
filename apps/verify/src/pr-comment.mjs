@@ -26,6 +26,11 @@ export function verificationComment({
     checkUrl,
     verdictUrl: `${base}/verdict.json`,
     manifestUrl: `${base}/manifest.json`,
+    midsceneReportUrls: report.criteria.flatMap((criterion) =>
+      criterion.evidence
+        .filter((name) => name.endsWith('.midscene.html'))
+        .map((name) => `${base}/${name}`),
+    ),
     ...(workflowUrl ? { workflowUrl } : {}),
   };
   return [
@@ -51,7 +56,15 @@ export function verificationComment({
         `- ${item.code}${item.criterionId ? `: ${item.criterionId}` : ''}`,
     ),
     '',
-    `[App Check](${checkUrl}) · [HTML report](${base}/report.html) · [Agent verdict](${base}/verdict.json) · [Evidence manifest](${base}/manifest.json)`,
+    ...report.criteria.flatMap((criterion) =>
+      criterion.evidence
+        .filter((name) => name.endsWith('.midscene.html'))
+        .map(
+          (name) =>
+            `[Open Midscene HTML report — ${criterion.id}](${base}/${name})`,
+        ),
+    ),
+    `[App Check](${checkUrl}) · [Acceptance summary](${base}/report.html) · [Agent verdict](${base}/verdict.json) · [Evidence manifest](${base}/manifest.json)`,
     ...(workflowUrl
       ? [
           `[Download the report, screenshots and traces from this workflow run](${workflowUrl}).`,

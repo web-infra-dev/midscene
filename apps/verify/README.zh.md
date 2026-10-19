@@ -65,6 +65,12 @@ pnpm --filter @midscene/verify start
 
 `service.lock` 禁止同一数据目录启动多个实例。正常停止会释放锁；异常退出后，先核实旧 PID 已结束，再由运营者处理遗留锁。不得删除仍在使用的锁。
 
+## 原生 Midscene HTML 报告
+
+每个验收用例生成 `<criterion-id>.midscene.html`，通过 Agent 的 `reportHTMLString({ inlineScreenshots: true })` 导出，内嵌报告查看器、执行记录和截图，可直接打开原生交互报告。验收摘要和 App 评论都会给出直达链接；只有一个验收用例时，Check 的 Details 直接打开该原生报告。
+
+原生报告公开访问，无需密码。只有原生报告的响应策略允许查看器所需的内联脚本，验收摘要页仍禁止脚本。原生 HTML 纳入证据 manifest；缺失时不能通过功能验收。本地工作区执行真实模型验收前，需要构建 `@midscene/report`，生成 Core 内嵌的查看器模板。
+
 ## Agent 如何消费结果
 
 先检查当前 SHA 上的 Check 是否由预期 GitHub App 发布，然后通过 HTTPS 直接读取，无需密码或报告 Token：

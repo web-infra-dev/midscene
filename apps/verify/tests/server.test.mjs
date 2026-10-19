@@ -159,12 +159,27 @@ test('HTTP webhook -> durable queue -> controller -> public read-only evidence d
     (await fetch(`${base}/verifications/${run.id}/service.lock`)).status,
     404,
   );
-  for (const name of ['manifest.json', 'AC-1.png', 'AC-1.trace.json']) {
+  for (const name of [
+    'manifest.json',
+    'AC-1.png',
+    'AC-1.trace.json',
+    'AC-1.midscene.html',
+  ]) {
     assert.equal(
       (await fetch(`${base}/verifications/${run.id}/${name}`)).status,
       200,
     );
   }
+  const native = await fetch(
+    `${base}/verifications/${run.id}/AC-1.midscene.html`,
+  );
+  assert.match(
+    native.headers.get('content-security-policy'),
+    /script-src 'unsafe-inline'/,
+  );
+  assert.ok(
+    !html.headers.get('content-security-policy').includes('script-src'),
+  );
   assert.equal((await fetch(url, { method: 'PUT', body: '{}' })).status, 404);
   await fetch(`${base}/webhooks/github`, { method: 'POST', headers, body });
   await queue.wake();

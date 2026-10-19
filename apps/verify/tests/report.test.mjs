@@ -50,6 +50,11 @@ test('report, Markdown, HTML and manifest share the same criterion results', asy
     await readFile(path.join(input.directory, 'report.html'), 'utf8'),
     /AC-1: passed/,
   );
+  assert.match(
+    await readFile(path.join(input.directory, 'report.html'), 'utf8'),
+    /href="AC-1.midscene.html"/,
+  );
+  assert.ok(manifest.files.some((file) => file.path === 'AC-1.midscene.html'));
 });
 
 test('model denial is an execution error, not a failed product assertion', async (t) => {
@@ -209,5 +214,17 @@ test('worker inherits the shared AI CI connection policy without arbitrary Node 
         '--require=evil --network-family-autoselection-attempt-timeout=2000',
     }),
     { NODE_OPTIONS: '--network-family-autoselection-attempt-timeout=2000' },
+  );
+});
+
+test('missing native HTML report blocks acceptance', async (t) => {
+  const input = await setup(t);
+  await unlink(path.join(input.directory, 'AC-1.midscene.html'));
+  const report = await buildReport(input);
+  assert.equal(report.functionalGate.status, 'not-satisfied');
+  assert.ok(
+    report.functionalGate.blockingReasons.some(
+      (reason) => reason.code === 'EVIDENCE_MISSING',
+    ),
   );
 });

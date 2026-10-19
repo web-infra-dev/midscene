@@ -175,6 +175,9 @@ test('publishes one App comment per verification with human and Agent results', 
   assert.equal(summary.headSha, sha);
   assert.equal(summary.policyDigest, run.report.policyDigest);
   assert.equal(summary.coverage.passed, 1);
+  assert.equal(summary.midsceneReportUrls.length, 1);
+  assert.match(summary.midsceneReportUrls[0], /AC-1.midscene.html$/);
+  assert.match(body, /Open Midscene HTML report/);
 });
 
 test('comment permission failure retries publication without rerunning browser actions', async (t) => {

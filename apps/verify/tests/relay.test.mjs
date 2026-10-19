@@ -93,6 +93,7 @@ test('hosted reports are public read-only while uploads and state remain protect
   const prefix = `/verifications/${'a'.repeat(64)}`;
   for (const [name, type, body] of [
     ['report.html', 'text/html', '<h1>Passed</h1>'],
+    ['AC-1.midscene.html', 'text/html', '<html>Native replay</html>'],
     ['verdict.json', 'application/json', '{"result":"passed"}'],
     ['AC-1.png', 'image/png', 'screenshot'],
   ]) {
@@ -125,5 +126,17 @@ test('hosted reports are public read-only while uploads and state remain protect
   assert.match(
     html.headers.get('content-security-policy'),
     /default-src 'none'/,
+  );
+  const native = await send(`${prefix}/AC-1.midscene.html`);
+  assert.match(
+    native.headers.get('content-security-policy'),
+    /script-src 'unsafe-inline'/,
+  );
+  assert.ok(
+    !html.headers.get('content-security-policy').includes('script-src'),
+  );
+  assert.match(
+    native.headers.get('content-security-policy'),
+    /form-action 'none'/,
   );
 });

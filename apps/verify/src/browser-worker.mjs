@@ -14,6 +14,13 @@ process.on('disconnect', async () => {
   await browser?.close().catch(() => {});
 });
 
+function nativeReportHtml(agent) {
+  const html = agent.reportHTMLString({ inlineScreenshots: true });
+  if (!html || !html.includes('midscene_web_dump'))
+    throw new Error('Native report generation failed');
+  return html;
+}
+
 async function execute({ previewUrl, policy, directory, headSha }) {
   const preview = allowedUrl(previewUrl, policy);
   browser = await puppeteer.launch({ headless: true });
@@ -100,6 +107,10 @@ async function execute({ previewUrl, policy, directory, headSha }) {
           await writeFile(
             path.join(directory, `${criterion.id}.trace.json`),
             agent.dumpDataString({ inlineScreenshots: true }),
+          );
+          await writeFile(
+            path.join(directory, `${criterion.id}.midscene.html`),
+            nativeReportHtml(agent),
           );
         } catch {
           outcome.status = 'failed';

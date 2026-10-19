@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { verifyWebhook } from './github.mjs';
+import { reportContentSecurityPolicy } from './report-policy.mjs';
 
 export function createVerifyServer({ store, webhookSecret, onQueued }) {
   return createServer(async (req, res) => {
@@ -80,6 +81,10 @@ export function createVerifyServer({ store, webhookSecret, onQueued }) {
       );
       if (req.method === 'GET' && match) {
         const [, id, name] = match;
+        res.setHeader(
+          'content-security-policy',
+          reportContentSecurityPolicy(name),
+        );
         const run = await store.get('runs', id);
         if (!run?.report) {
           res.writeHead(404).end();
