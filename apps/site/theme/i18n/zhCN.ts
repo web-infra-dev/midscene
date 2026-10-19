@@ -6,7 +6,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   chapterFramework: 'Midscene Test',
   agentChapterHeading: '为测试而生的 GUI Agent',
   agentChapterDesc:
-    '看懂界面、执行测试步骤、验证用户看到的结果。通过 API 接入已有测试工程，或通过 Skills 让 AI 编程 Agent 测试你的应用。',
+    '从用户视角验证完整流程，是 E2E 测试的初衷。Midscene 通过视觉观察界面、执行操作并验证结果，可通过 API 接入已有工程，或通过 Skills 交给 AI 编程 Agent 使用。',
   frameworkChapterHeading: '全新设计的自然语言 E2E 测试框架',
   frameworkChapterDesc:
     'Midscene Test 是为自然语言 E2E 测试全新设计的框架。在 YAML 中用自然语言描述操作与断言，通过 TypeScript Node 扩展测试步骤，并由框架统一管理数据准备、清理、重试与执行报告。',

@@ -4,7 +4,7 @@ export const EN_US = {
   chapterFramework: 'MIDSCENE TEST',
   agentChapterHeading: 'A GUI Agent built for testing',
   agentChapterDesc:
-    'Understand interfaces, perform test steps, and verify what users see. Integrate with your existing test stack through APIs, or let AI coding agents test your UI through Skills.',
+    'E2E testing aims to verify complete workflows from the user’s perspective. Midscene uses vision to observe, act, and check results. Integrate through APIs or let AI coding agents use it through Skills.',
   frameworkChapterHeading:
     'A new E2E testing framework designed for natural language',
   frameworkChapterDesc:

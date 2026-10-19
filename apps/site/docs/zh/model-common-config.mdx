@@ -2,7 +2,7 @@ import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 # 使用模型 API Key
 
-本文介绍如何使用模型服务商提供的 API Key 接入 Midscene，包括选择模型、完成配置和验证连接。如果你已有 ChatGPT 订阅，也可以参考[使用 ChatGPT 订阅](./chatgpt-subscription)文档中的描述操作。
+本文介绍如何使用模型服务商提供的 API Key 接入 Midscene，包括完成配置和验证连接。如果你已有 ChatGPT 订阅，也可以参考[使用 ChatGPT 订阅](./chatgpt-subscription)文档中的描述操作。
 
 本页列出的模型配置，本质上都是环境变量。你可以根据使用方式提供这些配置：
 
@@ -13,7 +13,7 @@ import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 ## 支持的模型
 
-Midscene 支持使用这些多模态模型操作界面：[豆包 Seed](#doubao-seed-model)、[千问 Qwen](#qwen)、[DeepSeek](#deepseek)、[Google Gemini](#gemini)、[OpenAI GPT](#gpt)、[月之暗面 Kimi](#kimi)、[小米 MiMo](#xiaomi-mimo)、[智谱 GLM-V](#glm-v)、[Jev（实验性）](#jev)，以及下文介绍的其他兼容模型 [AutoGLM](#auto-glm) 和 [UI-TARS](#ui-tars)。
+支持的模型概览和接入方式见[模型选择指南](./model-selection)。下面提供各模型的配置示例。
 
 每份配置都需要 Base URL、API Key、模型名称和 `MIDSCENE_MODEL_FAMILY`。模型系列（`MIDSCENE_MODEL_FAMILY`）决定了 Midscene 如何适配所选模型。
 
@@ -353,7 +353,7 @@ import 'dotenv/config';
 
 ## 验证配置
 
-设置环境变量后，运行以下任一命令：
+加载模型配置后，运行以下任一命令验证连接与兼容性：
 
 ```bash
 # 使用当前项目中安装的 CLI
@@ -365,15 +365,11 @@ npx @midscene/cli@latest model verify
 
 如果验证失败，请阅读[模型调试与可观测性](./model-debugging-observability)。
 
-## 配置多个模型（可选） {#multi-model-combination-example}
+## 多模型配置示例 {#multi-model-combination-example}
 
-多模型配置不是必需项。大多数场景只需配置默认模型，即可完成 UI 定位和操作。需要分别控制定位、规划或页面理解时，可以配置 Locate、Planning 或 Insight 模型。每个职责独立选择；未配置的职责使用默认模型。
+模型职责与组合思路见[模型选择指南](./model-selection#multi-model-strategy)。下面展示默认模型与 Planning、Locate、Insight 模型的配置方式。
 
-如需了解何时组合多个模型，请阅读[模型策略](./model-strategy)。
-
-使用多模型组合时，仍需配置默认模型。默认模型承担缓存生成中的顺序敏感性判断等辅助任务，并在某项职责未配置专用模型时承担相应工作；移除专用模型配置后，也会恢复使用默认模型。
-
-以下示例使用 Qwen 3.8 Flash 作为默认模型、Gemini 3.5 Flash 负责定位、GPT-6 Astra 负责规划、GPT-6.1 Sol 负责数据提取、断言和页面理解。模型名称请以所用服务商提供的实际 ID 为准。
+保留必填的默认模型配置，再按需添加专用模型；未配置的职责使用默认模型。每个专用模型的服务地址、API Key、模型名称和 family 都需要独立填写。请将示例中的占位值和模型名称替换为服务商提供的实际配置。
 
 ```bash
 # 默认模型
@@ -382,17 +378,17 @@ export MIDSCENE_MODEL_API_KEY="..."
 export MIDSCENE_MODEL_NAME="qwen3.8-flash"
 export MIDSCENE_MODEL_FAMILY="qwen3"
 
-# Locate 定位模型
-export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
-export MIDSCENE_LOCATE_MODEL_API_KEY="..."
-export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
-export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
-
 # Planning 规划模型
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
 export MIDSCENE_PLANNING_MODEL_API_KEY="..."
 export MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
 export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
+
+# Locate 定位模型
+export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
+export MIDSCENE_LOCATE_MODEL_API_KEY="..."
+export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
+export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
 
 # Insight 页面理解模型
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
@@ -400,6 +396,8 @@ export MIDSCENE_INSIGHT_MODEL_API_KEY="..."
 export MIDSCENE_INSIGHT_MODEL_NAME="gpt-6.1-sol"
 export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
+
+修改配置后，按[设置环境变量](#设置环境变量)中的方式重新加载，再运行[验证配置](#验证配置)中的命令。
 
 ## 其他兼容模型
 
@@ -428,7 +426,7 @@ AutoGLM 提供了两个版本的模型，通过 `MIDSCENE_MODEL_FAMILY` 区分�
 请根据你的应用语言选择合适的版本。
 
 :::info
-AutoGLM 更适合移动端交互。`aiAssert` 和 `aiQuery` 等 API 需要理解页面。使用这些 API 时，请通过 `MIDSCENE_INSIGHT_MODEL_...` 环境变量配置独立的 Insight 模型。详情请参考[模型策略](./model-strategy)。
+AutoGLM 更适合移动端交互。`aiAssert` 和 `aiQuery` 等 API 需要理解页面。使用这些 API 时，请通过 `MIDSCENE_INSIGHT_MODEL_...` 环境变量配置独立的 Insight 模型。详情请参考[模型选择指南](./model-selection)。
 :::
 
 **了解更多关于智谱 AutoGLM**
@@ -469,6 +467,6 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 
 ## 下一步
 
-- 在[模型策略](./model-strategy)中了解何时使用 Default、Planning 和 Insight 模型。
+- 在[模型选择指南](./model-selection)中了解何时使用 Default、Planning 和 Insight 模型。
 - 在[模型配置参考](./model-config)中查询全部环境变量。
 - 在[模型调试与可观测性](./model-debugging-observability)中排查连接和兼容性问题。

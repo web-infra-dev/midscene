@@ -2,7 +2,7 @@ import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 # Use a model API key
 
-Connect Midscene using an API key from a model provider. This guide covers choosing a model, configuring it, and verifying the connection. If you already have a ChatGPT subscription, you can also follow [Use a ChatGPT subscription](./chatgpt-subscription).
+Connect Midscene using an API key from a model provider. This guide covers model configuration and connection verification. If you already have a ChatGPT subscription, you can also follow [Use a ChatGPT subscription](./chatgpt-subscription).
 
 The model configuration shown on this page consists of environment variables. Provide it according to how you use Midscene:
 
@@ -13,7 +13,7 @@ For complete parameter definitions, see [Model configuration reference](./model-
 
 ## Supported models
 
-Midscene supports these multimodal models for operating user interfaces: [Doubao Seed](#doubao-seed-model), [Qwen](#qwen), [DeepSeek](#deepseek), [Google Gemini](#gemini), [OpenAI GPT](#gpt), [Moonshot Kimi](#kimi), [Xiaomi MiMo](#xiaomi-mimo), [Zhipu GLM-V](#glm-v), and [Jev (experimental)](#jev), as well as the other compatible models [AutoGLM](#auto-glm) and [UI-TARS](#ui-tars) described below.
+For an overview of supported models and connection methods, see the [Model Selection Guide](./model-selection). Configuration examples for each model follow.
 
 Each configuration requires a Base URL, API key, model name, and `MIDSCENE_MODEL_FAMILY`. The model family (`MIDSCENE_MODEL_FAMILY`) determines how Midscene adapts to the selected model.
 
@@ -351,7 +351,7 @@ If a variable with the same name already exists in the current shell, dotenv kee
 
 ## Verify the setup
 
-After setting the environment variables, run one of the following commands:
+After loading the model configuration, run one of the following commands to verify connectivity and compatibility:
 
 ```bash
 # Use the CLI installed in the current project
@@ -363,15 +363,11 @@ npx @midscene/cli@latest model verify
 
 For failed checks and connectivity problems, see [Model debugging and observability](./model-debugging-observability).
 
-## Optional: configure multiple models {#multi-model-combination-example}
+## Multi-model configuration example {#multi-model-combination-example}
 
-Multi-model setup is optional. For most use cases, a Default model is enough for UI localization and actions. Add a Locate, Planning, or Insight model to control localization, planning, or page understanding independently. Each role without a dedicated model uses the Default model.
+For model roles and combination guidance, see the [Model Selection Guide](./model-selection#multi-model-strategy). The example below shows configuration for the Default, Planning, Locate, and Insight models.
 
-For guidance on when to combine models, see [Model strategy](./model-strategy).
-
-A Default model is still required when combining multiple models. It handles auxiliary tasks such as judging whether an element description is order-sensitive when generating caches, as well as any role without a dedicated model. Removing a dedicated model configuration returns that role to the Default model.
-
-The following example uses Qwen 3.8 Flash as the Default model, Gemini 3.5 Flash for localization, GPT-6 Astra for planning, and GPT-6.1 Sol for extraction, assertions, and page understanding. Use the actual model IDs provided by your service provider.
+Keep the required Default model configuration and add specialized models as needed. Roles without a dedicated model use the Default model. Set each specialized model's endpoint, API key, model name, and family independently. Replace the placeholders and model names with the actual configuration from your providers.
 
 ```bash
 # Default model
@@ -380,17 +376,17 @@ export MIDSCENE_MODEL_API_KEY="..."
 export MIDSCENE_MODEL_NAME="qwen3.8-flash"
 export MIDSCENE_MODEL_FAMILY="qwen3"
 
-# Locate model
-export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
-export MIDSCENE_LOCATE_MODEL_API_KEY="..."
-export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
-export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
-
 # Planning model
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
 export MIDSCENE_PLANNING_MODEL_API_KEY="..."
 export MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
 export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
+
+# Locate model
+export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
+export MIDSCENE_LOCATE_MODEL_API_KEY="..."
+export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
+export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
 
 # Insight model
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
@@ -398,6 +394,8 @@ export MIDSCENE_INSIGHT_MODEL_API_KEY="..."
 export MIDSCENE_INSIGHT_MODEL_NAME="gpt-6.1-sol"
 export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
+
+After changing the configuration, reload it using your chosen [environment-variable setup](#set-environment-variables), then run the commands in [Verify the setup](#verify-the-setup).
 
 ## Other compatible models
 
@@ -426,7 +424,7 @@ AutoGLM provides two model versions, distinguished by `MIDSCENE_MODEL_FAMILY`:
 Choose the appropriate version based on your application language.
 
 :::info
-AutoGLM is best suited for mobile interaction. APIs such as `aiAssert` and `aiQuery` require page understanding. When using these APIs, configure a separate Insight model with the `MIDSCENE_INSIGHT_MODEL_...` environment variables. See [Model strategy](./model-strategy) for details.
+AutoGLM is best suited for mobile interaction. APIs such as `aiAssert` and `aiQuery` require page understanding. When using these APIs, configure a separate Insight model with the `MIDSCENE_INSIGHT_MODEL_...` environment variables. See [Model Selection Guide](./model-selection) for details.
 :::
 
 **Learn more about Zhipu AutoGLM**
@@ -465,6 +463,6 @@ Migration mapping:
 
 ## Next steps
 
-- Learn when to use Default, Planning, and Insight models in [Model strategy](./model-strategy).
+- Learn when to use Default, Planning, and Insight models in [Model Selection Guide](./model-selection).
 - Look up every environment variable in [Model configuration reference](./model-config).
 - Diagnose connectivity and compatibility issues in [Model debugging and observability](./model-debugging-observability).

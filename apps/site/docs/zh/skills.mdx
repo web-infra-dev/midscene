@@ -14,28 +14,6 @@ Skills 通过在终端中直接运行 CLI 命令来工作。AI 编程助手充�
 | iOS Device Automation | `@midscene/ios` | `npx @midscene/ios` | 通过 WebDriverAgent 控制 iOS 设备 |
 | HarmonyOS Device Automation | `@midscene/harmony` | `npx @midscene/harmony` | 通过 HDC 控制鸿蒙设备 |
 
-在默认 Puppeteer 模式下，可以通过 `--viewport-width <width>` 和 `--viewport-height <height>` 覆盖默认的 `1440x800` 视口尺寸。这两个参数仅支持默认 Puppeteer 模式，不支持 `--bridge` 或 `--cdp` 模式。
-
-在 CDP 模式下，每个 HTTP header 使用一个独立的 `--extra-http-header 'Name:Value'` 参数。每条 CLI 命令都会创建新的 CDP session，因此所有可能发起请求的独立命令都必须重复携带这些参数：
-
-```bash
-npx @midscene/web connect \
-  --cdp ws://127.0.0.1:9222/devtools/browser \
-  --extra-http-header 'x-use-ppe:1' \
-  --extra-http-header 'x-tt-env:ppe_example' \
-  --url https://example.com
-
-npx @midscene/web act \
-  --cdp ws://127.0.0.1:9222/devtools/browser \
-  --extra-http-header 'x-use-ppe:1' \
-  --extra-http-header 'x-tt-env:ppe_example' \
-  --prompt "click the button"
-```
-
-header 会在 `connect --url` 导航前生效，因此初始文档请求也会携带这些 header。不要把敏感鉴权值直接留在 shell 历史中。
-
-如果 Chrome 安装在非标准路径，请将 `MIDSCENE_CHROME_PATH` 设置为 Chrome 可执行文件路径。`MIDSCENE_MCP_CHROME_PATH` 会暂时作为迁移别名继续生效。
-
 ## 安装
 
 确保已安装 [Node.js](https://nodejs.org)，然后运行：
@@ -97,6 +75,30 @@ Skills 不仅限于本地桌面测试，通过组合不同 Skill 可以覆盖更
 - **跨应用工作流**：串联多个应用操作，如从浏览器取数据 → 粘贴到 Excel → 截图发送到 Slack
 - **CI/CD 集成**：在 Linux CI 中通过 Xvfb 无头模式运行，无需物理显示器
 - **日常任务自动化**：批量填写表单、定时截图监控、自动整理文件等
+
+## 浏览器连接配置（按需使用）
+
+在默认 Puppeteer 模式下，可以通过 `--viewport-width <width>` 和 `--viewport-height <height>` 覆盖默认的 `1440x800` 视口尺寸。这两个参数仅支持默认 Puppeteer 模式，不支持 `--bridge` 或 `--cdp` 模式。
+
+在 CDP 模式下，每个 HTTP header 使用一个独立的 `--extra-http-header 'Name:Value'` 参数。每条 CLI 命令都会创建新的 CDP session，因此所有可能发起请求的独立命令都必须重复携带这些参数：
+
+```bash
+npx @midscene/web connect \
+  --cdp ws://127.0.0.1:9222/devtools/browser \
+  --extra-http-header 'x-use-ppe:1' \
+  --extra-http-header 'x-tt-env:ppe_example' \
+  --url https://example.com
+
+npx @midscene/web act \
+  --cdp ws://127.0.0.1:9222/devtools/browser \
+  --extra-http-header 'x-use-ppe:1' \
+  --extra-http-header 'x-tt-env:ppe_example' \
+  --prompt "click the button"
+```
+
+header 会在 `connect --url` 导航前生效，因此初始文档请求也会携带这些 header。不要把敏感鉴权值直接留在 shell 历史中。
+
+如果 Chrome 安装在非标准路径，请将 `MIDSCENE_CHROME_PATH` 设置为 Chrome 可执行文件路径。`MIDSCENE_MCP_CHROME_PATH` 会暂时作为迁移别名继续生效。
 
 ## 更多
 
