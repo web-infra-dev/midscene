@@ -261,7 +261,6 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: 'Legacy YAML automation',
-
           },
           {
             text: 'YAML script runner',
