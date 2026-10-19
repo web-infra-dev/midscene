@@ -1352,39 +1352,6 @@ await agent.setAIActContext('如果 “使用cookie” 对话框存在，先关�
 
 :::
 
-#### `resetDump()` {#agentresetdump}
-
-收尾当前报告、清空执行记录，并为后续调用准备一份独立报告。Agent、设备连接和 AI 上下文配置继续复用，已生成的 HTML、JSON 和图片文件会保留。
-
-```typescript
-function resetDump(): Promise<ReportActionDump>;
-```
-
-开始下一个动作前必须等待 `resetDump()` 完成。Agent 动作、YAML 执行或观察窗口仍在运行时，调用会报错。并发调用共享同一次重置，顺序调用则分别准备新报告。上一份报告的写入或收尾失败会记录日志，不会阻止准备新报告。
-
-```typescript
-await agent.aiAct('打开商品页面');
-await agent.aiAssert('商品详情已显示');
-const firstReport = await agent.finalizeReport();
-
-await agent.resetDump();
-await agent.aiAct('打开购物车');
-const secondReport = await agent.finalizeReport();
-```
-
-不调用 `resetDump()` 时，连续的 SDK 调用仍写入同一份报告。与原来同步、只清内存的行为相比，这个方法现在是异步的，也会切换报告的写入位置；已有调用方需要改为等待它完成。内部初始化和清理不会额外创建新报告。
-
-#### `flushReport()` 和 `finalizeReport()` {#agentreportlifecycle}
-
-```typescript
-function flushReport(): Promise<string | undefined>;
-function finalizeReport(): Promise<string | undefined>;
-```
-
-`flushReport()` 等待当前更新写入，后续动作仍可追加到同一份报告。`finalizeReport()` 完成并封存报告，释放内存中的执行记录，设备连接继续保留。如果需要内存中的导出数据，应在收尾前调用 `dumpDataString()` 或 `reportHTMLString()`。重复收尾返回相同结果，不会改写历史文件；再次执行前需要等待 `resetDump()` 完成。
-
-生成报告文件时，两个方法返回文件路径；关闭报告、在浏览器中运行或没有执行记录时，返回 `undefined`。文件写入失败会使返回的 Promise 失败。浏览器执行应先从内存导出 HTML，再完成报告收尾。
-
 #### `evaluateJavaScript()` {#agentevaluatejavascript}
 
 > 仅 Web Agent 可用。
