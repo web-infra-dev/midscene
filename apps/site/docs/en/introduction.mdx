@@ -69,9 +69,9 @@ Visual localization does not depend on a particular UI rendering stack. Platform
 
 Midscene Test (`@midscene/test`) is designed from the ground up for natural-language E2E testing. Write actions and assertions in YAML, extend test steps with TypeScript Nodes, and manage setup, cleanup, retries, and execution reports within one framework. [Get started with Midscene Test](./midscene-test/use)
 
-### AI steps and Nodes in one YAML file {#ai-and-nodes}
+### AI and business operations in one YAML file {#ai-and-nodes}
 
-Organize tests in YAML so people and AI agents can read, write, and review natural-language intent alongside code steps.
+Each YAML step calls a Node: an AI operation, a platform operation, or a custom business operation. Compose these Nodes into test cases that people and AI agents can read, write, and review.
 
 <div className="rp-not-doc introduction-block">
   <TestFramework hideHeading />
@@ -79,7 +79,7 @@ Organize tests in YAML so people and AI agents can read, write, and review natur
 
 ### Customize your test project {#nodes-and-spec}
 
-Extend Midscene Test with TypeScript Nodes for your business operations. Register them to make them callable from YAML, then generate a Markdown Node Spec describing the available operations and their inputs. People and AI agents can use the Spec to reference these Nodes in test cases. [Develop custom Nodes](./midscene-test/extend)
+Extend Midscene Test with TypeScript Nodes for your business operations. Register them to make them callable from YAML, then generate a Markdown Node Spec describing all Nodes registered for the current execution project, including AI, platform, and custom business operations and their inputs. People and AI agents can use the Spec to reference these Nodes in test cases. [Develop custom Nodes](./midscene-test/extend)
 
 <div className="rp-not-doc introduction-block">
   <TestProject hideHeading />

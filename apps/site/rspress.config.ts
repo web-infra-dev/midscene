@@ -237,7 +237,7 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Midscene Test (Beta)',
+            sectionHeaderText: 'Midscene Test',
           },
           {
             text: 'Framework overview',
@@ -425,7 +425,7 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Midscene Test（Beta）',
+            sectionHeaderText: 'Midscene Test',
           },
           {
             text: '框架概览',

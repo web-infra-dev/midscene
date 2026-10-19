@@ -89,7 +89,7 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`
 
 ## 🧩 Midscene Test：用 YAML 组织用例，用 TypeScript 扩展
 
-[Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`，Beta）帮助你将 GUI 自动化组织为可持续维护的 E2E 测试工程：
+[Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）帮助你将 GUI 自动化组织为可持续维护的 E2E 测试工程：
 
 - **用 YAML 描述测试用例**：组合界面操作、断言与业务节点，表达测试流程和预期结果。
 - **用 TypeScript 节点复用业务能力**：将数据准备、接口调用与清理封装为节点，供不同用例复用。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。

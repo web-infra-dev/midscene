@@ -4,8 +4,8 @@ Midscene Test is a new framework for AI-driven end-to-end (E2E) testing.
 
 Provided by `@midscene/test`, it separates declarative test cases from programmable extensions: use YAML and natural language to describe test flows, and TypeScript to extend business operations and test infrastructure.
 
-:::info Project status (Beta)
-Midscene Test is intended to replace the previous YAML automation solution. It is currently in **Beta**, and its test protocol and APIs continue to evolve. The legacy `tasks/flow` YAML path is now in maintenance mode: compatibility and necessary fixes continue, but no new capabilities will be added. Use Midscene Test for new projects and new cases. If you have questions or suggestions, we welcome your feedback on GitHub.
+:::info Migrating from the legacy YAML runner
+Midscene Test is intended to replace the previous YAML automation solution. The legacy `tasks/flow` YAML path is now in maintenance mode: compatibility and necessary fixes continue, but no new capabilities will be added. Use Midscene Test for new projects and new cases. If you have questions or suggestions, we welcome your feedback on GitHub.
 
 (If you are still using the previous solution, see [YAML script runner](../yaml-script-runner).)
 :::
@@ -40,7 +40,7 @@ Focusing on "What to test", expressing business test intent. At this layer, test
 ### Engineering Demands of E2E Projects
 In actual enterprise-level adoption, E2E testing projects are by no means one-time, AI-driven instant verifications. Instead, they must run continuously as long-term assets, facing real and rigorous engineering demands such as stability, speed, and maintainability. To address this, Midscene provides supporting engineering capabilities to ensure the stability and efficiency of E2E projects in production:
 - **Unified Observability and Logging**: Both AI visual steps and your custom Node executions are centrally recorded in the same execution lifecycle. The test report and runtime logs visualize the inputs, outputs, duration, execution status, and screenshots of every step. This simplifies troubleshooting and replay for human engineers and provides structured context for AI Agents to autonomously diagnose issues and optimize test cases.
-- **Standardized Lifecycle and Concurrency Control**: Out-of-the-box lifecycle hooks (Before/After), concurrent environment isolation, and sandboxing ensure that your custom framework and test cases run stably and predictably in CI (Continuous Integration) pipelines.
+- **Standardized Lifecycle and Concurrency Control**: Lifecycle hooks (Before/After) and configurable concurrency manage setup, execution, and cleanup.
 
 ### Example Scenario: Verify an Order Refund Flow
 

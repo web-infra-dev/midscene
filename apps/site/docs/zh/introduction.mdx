@@ -69,9 +69,9 @@ E2E 测试的初衷是从用户视角验证完整流程。Midscene 通过视觉�
 
 Midscene Test（`@midscene/test`）是为自然语言 E2E 测试全新设计的框架。在 YAML 中用自然语言描述操作与断言，通过 TypeScript Node 扩展测试步骤，并由框架统一管理数据准备、清理、重试与执行报告。 [开始使用 Midscene Test](./midscene-test/use)
 
-### AI 步骤与确定性 Node 写在同一个 YAML 里 {#ai-and-nodes}
+### AI 操作与业务操作写在同一个 YAML 里 {#ai-and-nodes}
 
-用 YAML 组织人和 AI 都能读写的测试用例，让自然语言意图与代码步骤以清晰、可审阅的结构共同维护。
+每个 YAML 步骤都对应一个 Node（节点），可以是 AI 操作、平台操作或自定义业务操作。将这些 Node 组合成人和 AI 都能读写、审阅的测试用例。
 
 <div className="rp-not-doc introduction-block">
   <TestFramework hideHeading />
@@ -79,7 +79,7 @@ Midscene Test（`@midscene/test`）是为自然语言 E2E 测试全新设计的�
 
 ### 定制属于自己的测试工程 {#nodes-and-spec}
 
-Midscene Test 提供扩展机制，用 TypeScript 将业务操作定义为 Node，注册后即可在 YAML 中调用。再生成描述可用操作及输入参数的 Markdown Node Spec，让人和 AI 都能据此在用例中引用这些 Node。 [开发自定义 Node](./midscene-test/extend)
+Midscene Test 提供扩展机制，用 TypeScript 将业务操作定义为 Node，注册后即可在 YAML 中调用。再生成 Markdown Node Spec，描述当前执行项目注册的全部 Node 及其输入参数，包括 AI、平台和自定义业务操作，让人和 AI 都能据此在用例中引用这些 Node。 [开发自定义 Node](./midscene-test/extend)
 
 <div className="rp-not-doc introduction-block">
   <TestProject hideHeading />

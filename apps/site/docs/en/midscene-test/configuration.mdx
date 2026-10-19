@@ -453,9 +453,9 @@ Run `midscene-test nodes` to generate a Node Spec of the available Nodes. Use `-
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-Without a selector, `nodes` generates a shared Spec only when every Project has the same effective Node set. If the sets differ, it reports an error asking you to select a Project instead of merging potentially different definitions with the same name.
+When `projects` is declared, omitting `--project` generates a separate Spec for each Execution Project, even when their Node definitions are identical.
 
-For Spec contents and general command options, see [Generate the current Project's Node Spec](./use#generate-the-current-projects-node-spec).
+For filenames, output rules, Spec contents, and command options, see [Generate the current Project's Node Spec](./use#generate-the-current-projects-node-spec).
 
 ## Timeouts and cancellation
 
