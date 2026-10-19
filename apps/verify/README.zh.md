@@ -147,3 +147,27 @@ Worker 配置参考 `deploy/wrangler.example.jsonc`，设置 `WEBHOOK_SECRET`、
 工作流上传 `verify-engine-evidence-<run-id>`，其中 `run.json` 记录源码 commit、工作流 URL、执行位置和各场景结果；每个场景保留独立 HTML、JSON、截图、trace 和 manifest。`VERIFY_SMOKE_OUTPUT_DIR` 可设置本机或 CI 的证据输出父目录。
 
 这项检查验证验收引擎能区分正确与故障页面，不代表当前业务 PR 已通过功能验收。完整 App 接入仍需要组织允许安装、配置仓库策略，以及可信预览部署和版本接口。独立 App 工作流模板使用仓库变量 `VERIFY_APP_ID` 和 `VERIFY_PUBLIC_URL`，不内置个人试用账号配置。
+
+## 根据 PR 上下文生成验收计划（公开仓库实验版）
+
+在服务运营者维护的仓库策略中启用 `planning`，即可根据 PR 描述、正文中明确引用的同仓库 Issue（`#123`）、固定 base/head 版本的代码、有限的直接相对导入依赖，以及 base 版本的仓库文档生成浏览器验收项。服务通过 GitHub 读取代码，不执行仓库中的指令或 PR 源码。收集的文本会发送给配置的规划模型；公开证据仅记录上下文来源和哈希，不复制源码正文。由于报告公开且无需认证，此模式目前拒绝私有仓库。
+
+```json
+{
+  "planning": {
+    "mode": "context",
+    "paths": ["/tasks"],
+    "maxCriteria": 3,
+    "excludePrefixes": [".github/", "docs/"]
+  },
+  "criteria": []
+}
+```
+
+将这些字段加入已有仓库策略，保留 installation、部署、域名、版本接口和超时配置。此模式允许 `criteria` 为空，也可以保留必选的固定验收项；模型生成的条件不能替换它们。排除路径是运营者对验证范围的明确选择，会记录在 `context.json` 中，应尽量缩小范围。生成的计划只能使用已批准的路径和 `aiAct`／`aiAssert`，每项最多六步。程序校验来源和文件引用；遗漏文件、上下文截断、需求不清或规划失败，都不能得到通过结论。文件覆盖情况仍是模型判断，不代表已覆盖全部业务语义。
+
+计划在浏览器执行前保存。证据新增 `plan.json`、`context.json` 和 `operator-policy.json`，并保留原生 HTML 回放、轨迹、截图和结论。调用 `inspectBundle` 时传入可信的运营者策略摘要；校验器会检查执行策略是否恰好由固定条件和已保存的生成条件组成。发布重试复用已有计划与执行结果。PR 描述更新会触发新的上下文验证；Issue 更新后需要显式重跑 Check。执行期间 PR 的 head、base、标题或正文变化，会使结果失效。
+
+规划模型使用兼容 OpenAI chat-completions 的 HTTPS 接口，配置项为 `VERIFY_PLANNER_BASE_URL`、`VERIFY_PLANNER_API_KEY` 和 `VERIFY_PLANNER_MODEL`；未设置时使用对应的 `MIDSCENE_MODEL_*` 配置。规划请求超时为 90 秒，输出上限为 6,000 token；上下文最多收集 100,000 字符、30 个改动文件和五个 Issue 引用。仓库权限需要时增加 Contents 和 Issues 只读权限。模型生成的操作不构成安全沙箱，仅应连接已批准的测试环境并使用可丢弃的数据。
+
+App 评论包含计划摘要、验收项标题、计划与来源链接、覆盖缺口、待澄清问题、原生报告入口和 Agent JSON。计划不完整或执行异常时，Check 为 `action_required`，评论为 **Inconclusive**；需求不清时标为 **Needs clarification**。本阶段只支持已有 Web Preview，尚不构建 PR 源码、不运行生成的单元或接口测试，也不检查所有传递依赖或对照 base/head 浏览器行为。

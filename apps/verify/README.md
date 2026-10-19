@@ -117,3 +117,27 @@ This is a private pilot, without self-service tenant onboarding. Use workflow_di
 The workflow uploads `verify-engine-evidence-<run-id>`. Its `run.json` records the source commit, workflow URL, execution environment, and scenario results. Each scenario retains HTML, JSON, screenshots, traces, and a manifest. Set `VERIFY_SMOKE_OUTPUT_DIR` to choose a local or CI evidence parent directory.
 
 This check verifies that the engine distinguishes working and broken fixtures; it does not certify the current business PR. Full App integration still requires organization installation approval, repository policies, and a trusted preview deployment with a revision endpoint. The separate App workflow template uses repository variables `VERIFY_APP_ID` and `VERIFY_PUBLIC_URL` instead of personal pilot configuration.
+
+## Context-driven acceptance planning (public-repository alpha)
+
+Enable `planning` in an operator-owned repository policy to generate browser checks from the PR description, explicitly referenced same-repository issues (`#123`), immutable base/head code, a bounded first hop of relative imports, and base-revision repository documentation. The service reads code through GitHub; it does not execute repository instructions or PR source. The planner sends bounded source text to the configured model. Public reports contain source identities/hashes, not a copy of the collected source text. This mode currently rejects private repositories because evidence is published without authentication.
+
+```json
+{
+  "planning": {
+    "mode": "context",
+    "paths": ["/tasks"],
+    "maxCriteria": 3,
+    "excludePrefixes": [".github/", "docs/"]
+  },
+  "criteria": []
+}
+```
+
+Add these fields to the existing repository policy; keep installation, deployment, origin, revision and timeout settings. `criteria` may be empty in this mode, or contain mandatory baseline checks that generated checks cannot replace. Exclusions are explicit operator scope decisions and appear in `context.json`. Configure them narrowly. A generated plan can use only approved paths and `aiAct`/`aiAssert`, with at most six steps per criterion. Source and file references are validated. Uncovered files, context truncation, unclear requirements, and planning failures cannot produce acceptance success. All file coverage is a planner assessment, not proof of exhaustive semantic coverage.
+
+The plan is frozen before browser execution. Evidence includes `plan.json`, `context.json`, and `operator-policy.json`, alongside native HTML replays, traces, screenshots and verdicts. `inspectBundle` takes the trusted **operator policy digest** and verifies that the execution policy consists exactly of the baseline plus the frozen generated criteria. Publication retries reuse the saved plan and execution. PR edits trigger a new context-based run; issue edits require an explicit Check rerun. The final result is invalidated when the PR head, base, title or body changes during execution.
+
+Use an OpenAI-compatible HTTPS chat-completions endpoint via `VERIFY_PLANNER_BASE_URL`, `VERIFY_PLANNER_API_KEY`, and `VERIFY_PLANNER_MODEL`. These fall back to `MIDSCENE_MODEL_BASE_URL`, `MIDSCENE_MODEL_API_KEY`, and `MIDSCENE_MODEL_NAME`. Planning has a 90-second request timeout and a 6,000 output-token cap; source text is limited to 100,000 characters, 30 changed files and five issue references. Request Contents and Issues read permissions when required by the repository. Only use approved test environments and disposable data: model-generated actions are not a security sandbox.
+
+App comments include the plan summary, readable criterion titles, source/plan links, coverage gaps, clarification questions, native report links, and Agent JSON. Incomplete plans or execution errors use an `action_required` Check and an **Inconclusive** comment; ambiguous requirements use **Needs clarification**. This phase supports existing Web previews only. It does not build PR code, run generated unit/API tests, inspect all transitive dependencies or compare base/head browser behavior.

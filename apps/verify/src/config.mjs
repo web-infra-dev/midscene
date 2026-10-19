@@ -49,9 +49,45 @@ export function validatePolicy(policy) {
       policy.timeoutMs <= 600_000,
     'timeoutMs must be between 1000 and 600000',
   );
+  if (policy.planning) {
+    requireValue(
+      policy.planning.mode === 'context',
+      'Unsupported planning mode',
+    );
+    requireValue(
+      Array.isArray(policy.planning.paths) &&
+        policy.planning.paths.length > 0 &&
+        policy.planning.paths.length <= 20 &&
+        policy.planning.paths.every(
+          (value) =>
+            typeof value === 'string' &&
+            value.startsWith('/') &&
+            !value.startsWith('//') &&
+            !value.includes('\\'),
+        ),
+      'Approved planning paths are required',
+    );
+    requireValue(
+      Number.isInteger(policy.planning.maxCriteria) &&
+        policy.planning.maxCriteria >= 1 &&
+        policy.planning.maxCriteria <= 10,
+      'Planning maxCriteria must be 1..10',
+    );
+    requireValue(
+      policy.planning.excludePrefixes === undefined ||
+        (Array.isArray(policy.planning.excludePrefixes) &&
+          policy.planning.excludePrefixes.every(
+            (value) =>
+              typeof value === 'string' &&
+              value.length > 0 &&
+              !value.startsWith('/'),
+          )),
+      'Invalid context exclusion prefixes',
+    );
+  }
   requireValue(
     Array.isArray(policy.criteria) &&
-      policy.criteria.length > 0 &&
+      (policy.criteria.length > 0 || policy.planning) &&
       policy.criteria.length <= 50,
     'At least one required criterion is necessary',
   );

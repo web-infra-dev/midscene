@@ -42,7 +42,9 @@ export class GitHub {
     });
     if (!response.ok) {
       // Never include response bodies, tokens, or private repository URLs in logs.
-      throw new Error(`GitHub API request failed (${response.status})`);
+      const error = new Error(`GitHub API request failed (${response.status})`);
+      error.status = response.status;
+      throw error;
     }
     return response.status === 204 ? undefined : response.json();
   }

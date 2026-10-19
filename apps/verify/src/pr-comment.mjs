@@ -1,3 +1,9 @@
+const plain = (value) =>
+  String(value)
+    .replace(/[\r\n]/g, ' ')
+    .replace(/([\\`*_[\]<>|])/g, '\\$1')
+    .replace(/@/g, '@\u200b');
+
 export function verificationComment({
   run,
   conclusion,
@@ -10,9 +16,13 @@ export function verificationComment({
   const result =
     conclusion === 'success'
       ? 'Passed'
-      : conclusion === 'cancelled'
-        ? 'Superseded'
-        : 'Failed';
+      : conclusion === 'action_required'
+        ? report.planning?.status === 'needs-clarification'
+          ? 'Needs clarification'
+          : 'Inconclusive'
+        : conclusion === 'cancelled'
+          ? 'Superseded'
+          : 'Failed';
   const summary = {
     schemaVersion: report.schemaVersion,
     verificationId: run.id,
@@ -23,6 +33,14 @@ export function verificationComment({
     conclusion,
     execution: report.execution.status,
     coverage: report.coverage,
+    ...(report.planning
+      ? {
+          planning: report.planning,
+          operatorPolicyDigest: report.operatorPolicyDigest,
+          planUrl: `${base}/plan.json`,
+          contextUrl: `${base}/context.json`,
+        }
+      : {}),
     checkUrl,
     verdictUrl: `${base}/verdict.json`,
     manifestUrl: `${base}/manifest.json`,
@@ -45,10 +63,28 @@ export function verificationComment({
         ]
       : []),
     '',
-    '| Criterion | Result |',
-    '| --- | --- |',
+    ...(report.planning
+      ? [
+          `Plan: ${plain(report.planning.summary)}`,
+          `[Verification plan](${base}/plan.json) · [Context sources](${base}/context.json)`,
+          ...report.planning.unverified.map(
+            (item) =>
+              `- Not verified: ${plain(item.path)} — ${plain(item.reason)}`,
+          ),
+          ...report.planning.questions.map(
+            (item) => `- Clarification needed: ${plain(item)}`,
+          ),
+          ...report.planning.limitations.map(
+            (item) => `- Context limitation: ${plain(item)}`,
+          ),
+          '',
+        ]
+      : []),
+    '| Criterion | What was tested | Result |',
+    '| --- | --- | --- |',
     ...report.criteria.map(
-      (criterion) => `| ${criterion.id} | ${criterion.status} |`,
+      (criterion) =>
+        `| ${criterion.id} | ${plain(criterion.title)} | ${criterion.status} |`,
     ),
     '',
     ...report.functionalGate.blockingReasons.map(

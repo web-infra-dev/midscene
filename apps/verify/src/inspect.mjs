@@ -1,6 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { policyDigest, requireValue, validatePolicy } from './config.mjs';
+import {
+  digest,
+  policyDigest,
+  requireValue,
+  validatePolicy,
+} from './config.mjs';
 import { evidenceEntry } from './report.mjs';
 
 // The caller must obtain the bundle from a trusted service and
@@ -54,8 +59,8 @@ export async function inspectBundle(
     'Manifest identity mismatch',
   );
   requireValue(
-    report.policyDigest === expectedPolicyDigest &&
-      policyDigest(policy) === expectedPolicyDigest,
+    (report.operatorPolicyDigest ?? report.policyDigest) ===
+      expectedPolicyDigest && policyDigest(policy) === report.policyDigest,
     'Policy identity mismatch',
   );
   requireValue(
@@ -76,6 +81,34 @@ export async function inspectBundle(
       report.criteria.length === policy.criteria.length,
     'Criterion count mismatch',
   );
+  if (policy.planning) {
+    for (const name of ['plan.json', 'context.json', 'operator-policy.json'])
+      requireValue(names.has(name), `Missing ${name}`);
+    const plan = await json('plan.json');
+    const operator = validatePolicy(await json('operator-policy.json'));
+    requireValue(
+      policyDigest(operator) === expectedPolicyDigest,
+      'Operator policy mismatch',
+    );
+    requireValue(
+      digest(JSON.stringify(plan)) === report.planning?.digest &&
+        plan.headSha === headSha &&
+        plan.status === report.planning.status,
+      'Plan identity mismatch',
+    );
+    requireValue(
+      policyDigest({
+        ...operator,
+        criteria: [...operator.criteria, ...plan.criteria],
+      }) === policyDigest(policy),
+      'Execution policy differs from frozen plan',
+    );
+    if (plan.status !== 'ready')
+      requireValue(
+        report.functionalGate.status === 'not-satisfied',
+        'Incomplete plan cannot pass',
+      );
+  }
   const ids = new Set(report.criteria.map((item) => item.id));
   requireValue(
     ids.size === policy.criteria.length,
