@@ -521,3 +521,13 @@ test('requirements must quote provided demand sources and cannot silently disapp
     /omits a requirement/,
   );
 });
+
+test('visual assertions cannot rely on a previous assertion to define the expected message', () => {
+  const draft = raw();
+  draft.criteria[0].steps.at(-1).prompt =
+    'The same or similar validation message is displayed again.';
+  assert.throws(() => validatePlan(draft, context, automatic), /independently/);
+  draft.criteria[0].steps.at(-1).prompt =
+    'The text Enter a note before saving is visible and the saved notes list is empty.';
+  assert.equal(validatePlan(draft, context, automatic).plan.status, 'ready');
+});
