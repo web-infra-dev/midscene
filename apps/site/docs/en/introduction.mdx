@@ -6,7 +6,10 @@ footer: true
 title: Midscene.js — GUI Agent and E2E Testing Framework
 ---
 
-import { HeroStats, TestExample, AgentVisionDemo, AgentModels, AgentPlatforms, TestFramework, TestProject, WhoIsUsing } from '@theme';
+import { HeroStats, TestExample, AgentVisionDemo, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
+import TestPhilosophy from './common/test-philosophy.mdx';
+import TestWorkflow from './common/test-workflow.mdx';
+import TestCollaboration from './common/test-collaboration.mdx';
 
 # See interfaces like a human<br />E2E testing in natural language
 
@@ -67,25 +70,15 @@ Visual localization does not depend on a particular UI rendering stack. Platform
 
 ## A new E2E testing framework designed for natural language {#midscene-test}
 
-Midscene Test (`@midscene/test`) is a natural-language E2E testing framework designed for the AI era. It combines AI’s flexibility with the determinism of code in each test case: natural language expresses actions and expectations, while code handles business logic that requires precise control. Test flows have a clear, readable structure that both people and AI agents can understand, write, and maintain, allowing test intent and its underlying implementation to evolve independently. [Get started with Midscene Test](./midscene-test/use)
+<TestPhilosophy />
 
 ### AI and business operations in one YAML file {#ai-and-nodes}
 
-Each YAML step calls a Node: an AI operation, a platform operation, or a custom business operation. Compose these Nodes into test cases that people and AI agents can read, write, and review.
-
-<div className="rp-not-doc introduction-block">
-  <TestFramework hideHeading />
-</div>
+<TestWorkflow />
 
 ### Test cases maintained by people and AI {#nodes-and-spec}
 
-As your product evolves, your test project can grow a library of reusable business operations while keeping test intent clear in each case. People and AI agents can use the same capability reference to understand, write, and update cases, while the implementation of business operations is maintained independently.
-
-Midscene Test provides custom Nodes for these business capabilities and generates a Markdown Node Spec from the operations registered in the project, giving people and AI agents a shared reference for authoring test cases. [Explore custom Nodes](./midscene-test/extend)
-
-<div className="rp-not-doc introduction-block">
-  <TestProject hideHeading />
-</div>
+<TestCollaboration />
 
 ## Who is using Midscene {#users}
 

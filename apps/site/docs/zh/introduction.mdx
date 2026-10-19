@@ -6,7 +6,10 @@ footer: true
 title: Midscene.js — GUI Agent 与 E2E 测试框架
 ---
 
-import { HeroStats, TestExample, AgentVisionDemo, AgentModels, AgentPlatforms, TestFramework, TestProject, WhoIsUsing } from '@theme';
+import { HeroStats, TestExample, AgentVisionDemo, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
+import TestPhilosophy from './common/test-philosophy.mdx';
+import TestWorkflow from './common/test-workflow.mdx';
+import TestCollaboration from './common/test-collaboration.mdx';
 
 # 像人一样看懂界面<br />用自然语言完成 E2E 测试
 
@@ -67,25 +70,15 @@ E2E 测试的初衷是从用户视角验证完整流程。Midscene 通过视觉�
 
 ## 全新设计的自然语言 E2E 测试框架 {#midscene-test}
 
-Midscene Test（`@midscene/test`）是面向 AI 时代设计的自然语言 E2E 测试框架。它将 AI 的灵活性与代码的确定性结合在同一份用例中：用自然语言表达操作意图与预期，用代码承载需要精确控制的业务逻辑。测试流程以清晰、可读的结构呈现，让人和 AI 都能理解、编写和维护，也让测试意图与底层实现能够独立演进。[开始使用 Midscene Test](./midscene-test/use)
+<TestPhilosophy />
 
 ### AI 操作与业务操作写在同一个 YAML 里 {#ai-and-nodes}
 
-每个 YAML 步骤都对应一个 Node（节点），可以是 AI 操作、平台操作或自定义业务操作。将这些 Node 组合成人和 AI 都能读写、审阅的测试用例。
-
-<div className="rp-not-doc introduction-block">
-  <TestFramework hideHeading />
-</div>
+<TestWorkflow />
 
 ### 让人和 AI 共同维护测试用例 {#nodes-and-spec}
 
-随着业务发展，测试工程可以持续积累可复用的业务操作，让用例保持对测试意图的清晰表达。人和 AI 可以基于同一份能力说明理解、编写和修改用例，业务操作的实现则可以独立维护。
-
-Midscene Test 通过自定义 Node 承载这些业务能力，并根据项目已注册的操作生成 Markdown 格式的 Node Spec，为人和 AI 提供一致的用例编写依据。[了解扩展机制](./midscene-test/extend)
-
-<div className="rp-not-doc introduction-block">
-  <TestProject hideHeading />
-</div>
+<TestCollaboration />
 
 ## 谁在使用 Midscene {#users}
 
