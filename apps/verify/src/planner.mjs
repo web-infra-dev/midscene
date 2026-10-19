@@ -161,6 +161,9 @@ export async function requestPlan(
     body: JSON.stringify({
       model,
       temperature: 0,
+      ...(env.VERIFY_PLANNER_ENABLE_THINKING === 'false'
+        ? { enable_thinking: false }
+        : {}),
       max_tokens: 6000,
       response_format: { type: 'json_object' },
       messages: [

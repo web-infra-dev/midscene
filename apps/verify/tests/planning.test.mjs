@@ -182,6 +182,10 @@ test('model requests isolate untrusted context and reject truncated model output
   );
   assert.match(sent.messages[0].content, /untrusted evidence/);
   assert.equal(sent.messages[1].role, 'user');
+  assert.equal('enable_thinking' in sent, false);
+  options.env.VERIFY_PLANNER_ENABLE_THINKING = 'false';
+  await assert.rejects(requestPlan({}, options), /Incomplete planner/);
+  assert.equal(sent.enable_thinking, false);
 });
 
 test('controller freezes a generated plan, executes it, publishes evidence and does not replan publication retries', async (t) => {
