@@ -1,21 +1,22 @@
-target:
-  serve: ./dist
-  url: demo-agent.html
-tasks:
-  - name: inspect screenshots and JSON for an Agent task
-    flow:
+# Keep these checks in one Case: later sections use the page state left by earlier ones.
+beforeAll:
+  - report.open:
+      path: demo-agent.html
+
+cases:
+  - name: Agent task screenshots, JSON and information
+    steps:
+      # inspect screenshots and JSON for an Agent task
       - aiTap: a Plan task in the left task list
       - aiTap: Screenshots in the task detail view switch
       - aiAssert: The task's screenshot evidence shows a UI Context image with its capture time.
       - aiTap: JSON View in the task detail view switch
       - aiAssert: The task's structured JSON data is visible, including taskId and status.
 
-  - name: inspect task information
-    flow:
+      # inspect task information
       - aiAssert: The selected task's information shows Param and Output or Element data.
       - aiTap: the Param section heading in the task information
       - aiAssert: Param is collapsed and the other information sections remain available.
 
-  - name: Playground entry is available for a Plan task
-    flow:
+      # Playground entry is available for a Plan task
       - aiAssert: An Open in Playground action is available for the selected Plan task.

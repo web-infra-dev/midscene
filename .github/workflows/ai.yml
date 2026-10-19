@@ -173,18 +173,19 @@ jobs:
     - name: Setup Puppeteer browser
       uses: ./.github/actions/setup-puppeteer-browser
 
-    - name: Run apps/report e2e tests
+    - name: Prepare AI CI
+      id: ai-ci
       uses: ./.github/actions/ai-ci
-      with:
-        command: cd apps/report && pnpm run e2e
-      id: e2e-tests-app-report
 
-    - name: Upload apps/report e2e report
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+    - name: Run apps/report e2e tests and publish report
+      id: e2e-tests-app-report
+      uses: web-infra-dev/midscene-action@5ef922b20a69d69a0f34639c4c867ba2049f6ede # v1
+      env:
+        NODE_OPTIONS: ${{ steps.ai-ci.outputs.node-options }}
       with:
-        name: e2e-app-report-output
-        path: |
-          ${{ github.workspace }}/midscene_run/report
-          ${{ github.workspace }}/apps/report/midscene_run/report
-        if-no-files-found: ignore
+        working-directory: apps/report
+        command: pnpm run e2e
+        artifact-name: e2e-app-report-output
+        publish-pages: true
+        cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        cloudflare-account-id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
