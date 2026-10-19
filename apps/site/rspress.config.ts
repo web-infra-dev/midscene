@@ -172,10 +172,6 @@ export default defineConfig(async () => {
             link: '/basics',
           },
           {
-            text: 'Model strategy',
-            link: '/model-strategy',
-          },
-          {
             text: 'Showcases',
             link: '/showcases',
           },
@@ -183,8 +179,12 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Getting Started',
           },
           {
-            text: 'Quick start',
+            text: 'Try the GUI Agent',
             link: '/quick-start',
+          },
+          {
+            text: 'Model Selection Guide',
+            link: '/model-selection',
           },
           {
             text: 'Use a model API key',
@@ -360,10 +360,6 @@ export default defineConfig(async () => {
             link: '/zh/basics',
           },
           {
-            text: '模型策略',
-            link: '/zh/model-strategy',
-          },
-          {
             text: '案例展示',
             link: '/zh/showcases',
           },
@@ -371,8 +367,12 @@ export default defineConfig(async () => {
             sectionHeaderText: '开始使用',
           },
           {
-            text: '快速开始',
+            text: '快速体验 GUI Agent',
             link: '/zh/quick-start',
+          },
+          {
+            text: '模型选择指南',
+            link: '/zh/model-selection',
           },
           {
             text: '使用模型 API Key',
@@ -622,6 +622,7 @@ export default defineConfig(async () => {
             },
             ...[
               ['reporting', 'consume-report-file'],
+              ['model-strategy', 'model-selection'],
               ['cli', 'yaml-script-runner'],
               [
                 'blog-programming-practice-using-structured-api',
