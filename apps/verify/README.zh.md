@@ -170,4 +170,4 @@ Worker 配置参考 `deploy/wrangler.example.jsonc`，设置 `WEBHOOK_SECRET`、
 
 规划模型使用兼容 OpenAI chat-completions 的 HTTPS 接口，配置项为 `VERIFY_PLANNER_BASE_URL`、`VERIFY_PLANNER_API_KEY` 和 `VERIFY_PLANNER_MODEL`；未设置时使用对应的 `MIDSCENE_MODEL_*` 配置。规划请求超时为 90 秒，输出上限为 6,000 token；上下文最多收集 100,000 字符、30 个改动文件和五个 Issue 引用。仓库权限需要时增加 Contents 和 Issues 只读权限。模型生成的操作不构成安全沙箱，仅应连接已批准的测试环境并使用可丢弃的数据。
 
-App 评论包含计划摘要、验收项标题、计划与来源链接、覆盖缺口、待澄清问题、原生报告入口和 Agent JSON。计划不完整或执行异常时，Check 为 `action_required`，评论为 **Inconclusive**；需求不清时标为 **Needs clarification**。本阶段只支持已有 Web Preview，尚不构建 PR 源码、不运行生成的单元或接口测试，也不检查所有传递依赖或对照 base/head 浏览器行为。
+App 评论包含计划摘要、验收项标题、计划与来源链接、覆盖缺口、待澄清问题、原生报告入口和 Agent JSON。未观察到功能失败，但计划不完整或执行异常时，Check 为 `action_required`，评论为 **Inconclusive**；需求不清时标为 **Needs clarification**。已观察到的功能失败优先显示 **Failed**，同时保留覆盖缺口。本阶段只支持已有 Web Preview，尚不构建 PR 源码、不运行生成的单元或接口测试，也不检查所有传递依赖或对照 base/head 浏览器行为。

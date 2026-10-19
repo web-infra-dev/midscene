@@ -291,15 +291,21 @@ export class Controller {
           current.title === pr.title &&
           current.body === pr.body));
     const passed = fresh && run.report.functionalGate.status === 'satisfied';
-    const conclusion = passed
-      ? 'success'
-      : !fresh
-        ? 'cancelled'
-        : policy.planning &&
-            (run.planning?.plan.status !== 'ready' ||
-              run.report.execution.status !== 'completed')
-          ? 'action_required'
-          : 'failure';
+    const observedFailure = run.report.criteria.some(
+      (item) =>
+        item.status === 'failed' && item.errorCode === 'STEP_EXECUTION_FAILED',
+    );
+    let conclusion = 'failure';
+    if (!fresh) conclusion = 'cancelled';
+    else if (passed) conclusion = 'success';
+    else if (
+      policy.planning &&
+      !observedFailure &&
+      (run.planning?.plan.status !== 'ready' ||
+        run.report.execution.status !== 'completed')
+    ) {
+      conclusion = 'action_required';
+    }
     await api('PATCH', `/check-runs/${run.checkId}`, {
       status: 'completed',
       conclusion,

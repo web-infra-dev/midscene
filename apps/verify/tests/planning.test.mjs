@@ -324,3 +324,40 @@ test('ambiguous plans ask for clarification and do not execute browser actions',
   await controller.handle('pull_request', payload, 'ambiguous');
   assert.match(github.state.comments[0].body, /Needs clarification/);
 });
+
+test('an observed functional failure takes precedence over incomplete planning coverage', async (t) => {
+  const { store } = await temporary(t);
+  const github = fakeGitHub();
+  const controller = new Controller({
+    github,
+    store,
+    policies: [automatic],
+    publicUrl: 'https://verify.example.com',
+    planner: async () =>
+      validatePlan(
+        {
+          ...raw(),
+          criteria: [],
+          unverified: [
+            { path: 'src/save.ts', reason: 'Additional scenario not covered' },
+          ],
+        },
+        context,
+        automatic,
+      ),
+    runner: async (input) => {
+      const result = await passingRunner(input);
+      result.criteria[0].status = 'failed';
+      result.criteria[0].errorCode = 'STEP_EXECUTION_FAILED';
+      result.criteria[0].steps.at(-1).status = 'failed';
+      return result;
+    },
+  });
+  await controller.handle('pull_request', payload, 'failure-with-gap');
+  assert.equal(
+    github.calls.filter((call) => call.body?.conclusion).at(-1).body.conclusion,
+    'failure',
+  );
+  assert.match(github.state.comments[0].body, /Midscene Verify: Failed/);
+  assert.match(github.state.comments[0].body, /Not verified/);
+});
