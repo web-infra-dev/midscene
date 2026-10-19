@@ -540,7 +540,7 @@ v1.10 adds BDD-style Gherkin script execution, upgrades the recommended Doubao m
 ### New Model Support
 
 - Recommended and supported `Doubao-Seed-2.1-turbo`, which has very fast localization speed and strong localization quality in our current private evaluation set.
-- The Doubao Seed family now uses `MIDSCENE_MODEL_FAMILY="doubao-seed"`, while the legacy `doubao-vision` family remains compatible. See: [Common Model Configuration](./model-common-config#doubao-seed-model), [Model Strategy](./model-strategy)
+- The Doubao Seed family now uses `MIDSCENE_MODEL_FAMILY="doubao-seed"`, while the legacy `doubao-vision` family remains compatible. See: [Common Model Configuration](./model-common-config#doubao-seed-model), [Model Strategy](./model-selection)
 
 ### MCP Retirement
 
@@ -784,7 +784,7 @@ Pinch/zoom gestures are now supported on Android, iOS, and HarmonyOS, enabling u
 
 ### GPT-5 / GPT-5.4 & Codex App-Server Provider Support
 
-Added support for GPT-5, GPT-5.4 models and Codex app-server provider. You can now use the latest OpenAI models for visual understanding and automation. See: [Model Config](./model-config), [Model Strategy](./model-strategy)
+Added support for GPT-5, GPT-5.4 models and Codex app-server provider. You can now use the latest OpenAI models for visual understanding and automation. See: [Model Config](./model-config), [Model Strategy](./model-selection)
 
 ### Custom extraBody for Model Requests
 
@@ -1055,7 +1055,7 @@ v1.1 optimizes model planning capabilities and MCP extensibility, making automat
 
 When deep thinking is enabled in `aiAct`, the model will interpret intent more thoroughly and optimize its planning results. This is suited for complex forms, multi-step flows, and similar scenarios. It improves accuracy but increases planning latency.
 
-Currently supported: Qwen3-vl on Alibaba Cloud and Doubao-vision on Volcano Engine. See [Model strategy](./model-strategy) for details.
+Currently supported: Qwen3-vl on Alibaba Cloud and Doubao-vision on Volcano Engine. See [Model strategy](./model-selection) for details.
 
 Example usage:
 
@@ -1124,7 +1124,7 @@ Starting in v1.0, Midscene fully adopts a visual-understanding approach to deliv
 - **Far fewer tokens**: Removing DOM extraction cuts token usage by about 80%, lowering cost and speeding up local runs
 - **Open-source options**: Open-source vision models like Qwen3-VL 8B/30B perform well, enabling self-hosted deployments
 
-See our updated [Model strategy](./model-strategy) for details.
+See our updated [Model strategy](./model-selection) for details.
 
 ### 🚀 Better results by multiple model combinations
 
@@ -1245,7 +1245,7 @@ The biggest highlight of v0.29 is the official introduction of iOS platform supp
 
 ### Qwen3-VL model adaptation
 
-We've adapted the latest Qwen `Qwen3-VL` model, giving developers faster and more accurate visual understanding capabilities. See [Model strategy](./model-strategy).
+We've adapted the latest Qwen `Qwen3-VL` model, giving developers faster and more accurate visual understanding capabilities. See [Model strategy](./model-selection).
 
 ### AI core capability enhancement
 

@@ -540,7 +540,7 @@ v1.10 新增 BDD 风格的 Gherkin 脚本执行能力，升级推荐模型到 Do
 ### 新增模型支持
 
 - 推荐并支持 `Doubao-Seed-2.1-turbo`，在当前私有测评集中具备很快的定位速度和良好的定位效果。
-- 豆包 Seed 系列统一使用 `MIDSCENE_MODEL_FAMILY="doubao-seed"`，同时继续兼容旧的 `doubao-vision` family。详见：[常用模型配置](./model-common-config#doubao-seed-model)、[模型策略](./model-strategy)
+- 豆包 Seed 系列统一使用 `MIDSCENE_MODEL_FAMILY="doubao-seed"`，同时继续兼容旧的 `doubao-vision` family。详见：[常用模型配置](./model-common-config#doubao-seed-model)、[模型策略](./model-selection)
 
 ### MCP 下线
 
@@ -784,7 +784,7 @@ v1.6 版本新增了 CDP 浏览器连接模式、跨平台双指缩放手势、G
 
 ### 新增 GPT-5 / GPT-5.4 与 Codex app-server provider 支持
 
-适配了 GPT-5 和 GPT-5.4 模型，同时新增 Codex app-server provider，开发者可以使用最新的 OpenAI 模型进行视觉理解与自动化操作。详见：[模型配置](./model-config)、[模型策略](./model-strategy)
+适配了 GPT-5 和 GPT-5.4 模型，同时新增 Codex app-server provider，开发者可以使用最新的 OpenAI 模型进行视觉理解与自动化操作。详见：[模型配置](./model-config)、[模型策略](./model-selection)
 
 ### 新增模型请求 extraBody 参数
 
@@ -1055,7 +1055,7 @@ v1.1 版本在模型规划能力与 MCP 扩展性上实现优化，让复杂场�
 
 在 `aiAct` 时开启深度思考能力后，模型会更加深入地理解用户意图、优化规划结果，适用于复杂表单、多步骤流程等场景。它会带来更高的准确率，但也会增加规划耗时。
 
-目前已支持阿里云的 Qwen3-vl 与火山引擎的 Doubao-vision 模型，具体请参考 [模型策略](./model-strategy)。
+目前已支持阿里云的 Qwen3-vl 与火山引擎的 Doubao-vision 模型，具体请参考 [模型策略](./model-selection)。
 
 示例用法：
 
@@ -1125,7 +1125,7 @@ Midscene v1.0 已发布！欢迎体验，看看它如何帮助你自动化你的
 - **token 量显著下降**：在去除 DOM 提取之后，视觉方案的 token 使用量可以减少 80%，成本更低，且本地运行速度也变得更快
 - **有开源模型解决方案**：开源模型表现渐佳，开发者开始有机会进行私有化部署模型，如 Qwen3-VL 提供的 8B、30B 等版本在不少项目中都有着不错的效果
 
-详情请阅读我们更新版的[模型策略](./model-strategy)
+详情请阅读我们更新版的[模型策略](./model-selection)
 
 ### 🚀 多模型组合，为复杂任务带来更好效果
 
@@ -1255,7 +1255,7 @@ v0.29 版本最大的亮点是正式引入了对 iOS 平台的支持！现在，
 
 ### 适配 Qwen3-VL 模型
 
-我们适配了最新的通义千问 `Qwen3-VL` 模型，开发者可以体验到更快的、更准确的视觉理解能力。详见 [模型策略](./model-strategy)
+我们适配了最新的通义千问 `Qwen3-VL` 模型，开发者可以体验到更快的、更准确的视觉理解能力。详见 [模型策略](./model-selection)
 
 ### AI 核心能力增强
 
