@@ -264,13 +264,15 @@ Environment variable configuration example, using `glm-5v-turbo`:
 
 ### Jev (experimental) {#jev}
 
-Jev support is experimental. Results are heavily influenced by the Jev model.
+Jev is a model for making choices. You can use it to select the next action, locate UI elements, and evaluate whether a condition holds. It is fast and inexpensive, but is not suitable for tasks that require complex reasoning.
+
+Midscene support for Jev is experimental.
 
 - Model provider: [TypeSafe](https://typesafe.ai/)
 
-Jev can be used for Planning, Locate, or Insight. Because Jev cannot generate input content or other open-ended text, you must also configure a general-purpose default model to handle tasks Jev cannot perform. Jev cannot serve as the default model. See [Multiple models](#multi-model-combination-example) for default model configuration.
+**First configure a general-purpose default model (`MIDSCENE_MODEL_*`) and keep that configuration, then add the Jev configuration below.** Jev handles Planning, Locate, and Insight; the general-purpose default model still handles tasks Jev cannot perform. See [Multiple models](#multi-model-combination-example) for default model configuration.
 
-The following example uses `jev-1.14.0` through TypeSafe's official service. Select the role you want Jev to perform:
+Copy the following configuration to use Jev for Planning, Locate, and Insight:
 
 <ModelConfigCard
   baseUrl={{
@@ -279,16 +281,9 @@ The following example uses `jev-1.14.0` through TypeSafe's official service. Sel
   }}
   modelName="jev-1.14.0"
   modelFamily="jev"
-  purposes={['locate', 'planning', 'insight']}
+  layout="combined"
+  purposes={['planning', 'locate', 'insight']}
 />
-
-When the corresponding model role is configured to use Jev, tasks are handled as follows:
-
-- **Locate**: Jev performs element localization.
-- **Insight**: Jev evaluates `aiBoolean`, `aiAssert`, and `aiWaitFor`. The general-purpose default model handles `aiQuery`, `aiString`, `aiNumber`, and `aiAsk`.
-- **Planning**: In `aiAct`, Jev selects actions such as tapping, scrolling, and waiting, and determines whether the task is complete. The general-purpose default model handles the current planning step when it requires input content generation or other parameters Jev cannot produce. If Locate is configured to use another model, the default model also generates the concrete target descriptions required for tap and scroll steps.
-
-Model selection is based on the capabilities required by each task. Failed Jev requests do not automatically switch to the default model.
 
 Jev uses TypeSafe's System One protocol, not an OpenAI protocol. Some OpenAI model settings do not apply, such as temperature, native reasoning, response format, and streaming output.
 

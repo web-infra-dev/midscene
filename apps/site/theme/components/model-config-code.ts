@@ -3,6 +3,7 @@ type ConfigValue<T extends string = string> =
   | { value: T; comment?: string };
 
 export interface ModelConfigCardProps {
+  layout?: 'tabs' | 'combined';
   purposes?: [
     'default' | 'locate' | 'planning' | 'insight',
     ...('default' | 'locate' | 'planning' | 'insight')[],
@@ -14,6 +15,19 @@ export interface ModelConfigCardProps {
   protocol?: ConfigValue<'openai-chat' | 'openai-responses'>;
   streamMode?: ConfigValue;
   responses?: boolean | { baseUrl: ConfigValue };
+}
+
+export function buildCombinedModelConfigCode(
+  config: ModelConfigCardProps,
+  purposes: NonNullable<ModelConfigCardProps['purposes']>,
+  selectedProtocol: 'openai-chat' | 'openai-responses',
+): string {
+  return purposes
+    .map(
+      (purpose) =>
+        `# ${purpose[0].toUpperCase()}${purpose.slice(1)}\n${buildModelConfigCode(config, purpose, selectedProtocol)}`,
+    )
+    .join('\n\n');
 }
 
 function formatConfigLine(name: string, config: ConfigValue): string {

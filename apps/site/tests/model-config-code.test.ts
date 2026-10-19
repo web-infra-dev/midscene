@@ -1,5 +1,8 @@
 import { describe, expect, it } from '@rstest/core';
-import { buildModelConfigCode } from '../theme/components/model-config-code';
+import {
+  buildCombinedModelConfigCode,
+  buildModelConfigCode,
+} from '../theme/components/model-config-code';
 
 const config = {
   baseUrl: { value: 'https://example.com/v1', comment: '模型地址' },
@@ -8,6 +11,44 @@ const config = {
 };
 
 describe('model configuration examples', () => {
+  it('combines all requested roles in order without adding a default model', () => {
+    const code = buildCombinedModelConfigCode(
+      config,
+      ['planning', 'locate', 'insight'],
+      'openai-chat',
+    );
+    expect(code.match(/^# .+$/gm)).toEqual([
+      '# Planning',
+      '# Locate',
+      '# Insight',
+    ]);
+    for (const role of ['PLANNING', 'LOCATE', 'INSIGHT']) {
+      for (const field of ['BASE_URL', 'API_KEY', 'NAME', 'FAMILY']) {
+        expect(code).toContain(`MIDSCENE_${role}_MODEL_${field}=`);
+      }
+    }
+    expect(code).not.toContain('MIDSCENE_MODEL_');
+  });
+
+  it('applies the selected protocol to every combined role', () => {
+    const code = buildCombinedModelConfigCode(
+      {
+        ...config,
+        responses: { baseUrl: 'https://example.com/responses-api' },
+      },
+      ['planning', 'locate'],
+      'openai-responses',
+    );
+    for (const role of ['PLANNING', 'LOCATE']) {
+      expect(code).toContain(
+        `MIDSCENE_${role}_MODEL_BASE_URL="https://example.com/responses-api"`,
+      );
+      expect(code).toContain(
+        `MIDSCENE_${role}_MODEL_PROTOCOL="openai-responses"`,
+      );
+    }
+  });
+
   it.each([
     ['default', 'MIDSCENE_MODEL'],
     ['locate', 'MIDSCENE_LOCATE_MODEL'],
