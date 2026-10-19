@@ -47,6 +47,8 @@ jobs:
       - uses: ./.github/actions/setup-puppeteer-browser
         with:
           package-directory: apps/verify
+      - name: Verify browser storage isolation between criteria
+        run: node apps/verify/scripts/isolation-smoke.mjs
       - name: Verify passing and failing fixtures with the real model
         uses: ./.github/actions/ai-ci
         with:

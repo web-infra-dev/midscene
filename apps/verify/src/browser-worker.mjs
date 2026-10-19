@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import puppeteer from 'puppeteer';
+import { configurePage, openIsolatedPage } from './browser-session.mjs';
 import { allowedUrl } from './config.mjs';
 import { executionErrorCode } from './execution-error.mjs';
 
@@ -28,23 +29,7 @@ async function execute({ previewUrl, policy, directory, headSha }) {
     await browser.close();
     throw new Error('CANCELLED');
   }
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 900 });
-  await page.setBypassServiceWorker(true);
-  await page.setRequestInterception(true);
-  page.on('request', (request) => {
-    try {
-      const url = request.url();
-      if (!url.startsWith('data:') && !url.startsWith('blob:'))
-        allowedUrl(url, policy);
-      void request.continue().catch(() => {});
-    } catch {
-      void request.abort().catch(() => {});
-    }
-  });
-  page.on('popup', (popup) => {
-    void popup.close().catch(() => {});
-  });
+  const page = await configurePage(await browser.newPage(), policy);
   const revisionUrl = allowedUrl(
     new URL(policy.revisionPath, preview.origin).href,
     policy,
@@ -69,7 +54,11 @@ async function execute({ previewUrl, policy, directory, headSha }) {
       throw new Error('REVISION_MISMATCH');
     for (const criterion of policy.criteria) {
       const outcome = { id: criterion.id, status: 'passed', steps: [] };
-      const agent = new PuppeteerAgent(page, {
+      const session = policy.planning
+        ? await openIsolatedPage(browser, policy)
+        : null;
+      const criterionPage = session?.page ?? page;
+      const agent = new PuppeteerAgent(criterionPage, {
         generateReport: false,
         cache: false,
         replanningCycleLimit: 10,
@@ -79,7 +68,7 @@ async function execute({ previewUrl, policy, directory, headSha }) {
           new URL(criterion.path, preview.origin).href,
           policy,
         );
-        const response = await page.goto(target.href, {
+        const response = await criterionPage.goto(target.href, {
           waitUntil: 'networkidle2',
           timeout: 30_000,
         });
@@ -101,7 +90,7 @@ async function execute({ previewUrl, policy, directory, headSha }) {
       } finally {
         // A screenshot and the full Midscene trace are required even on success.
         try {
-          await page.screenshot({
+          await criterionPage.screenshot({
             path: path.join(directory, `${criterion.id}.png`),
           });
           await writeFile(
@@ -116,7 +105,11 @@ async function execute({ previewUrl, policy, directory, headSha }) {
           outcome.status = 'failed';
           outcome.errorCode = 'EVIDENCE_CAPTURE_FAILED';
         }
-        await agent.destroy();
+        try {
+          await agent.destroy();
+        } finally {
+          await session?.close();
+        }
         result.criteria.push(outcome);
       }
       if (result.status === 'error') break;
