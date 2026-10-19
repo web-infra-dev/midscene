@@ -1,0 +1,134 @@
+# Structure test cases around intent and guardrails
+
+A Midscene Test case is an ordered list of Steps. When every Step only describes an action on the current interface, the case records *how* the test was performed but not *what* it is meant to confirm. This leads to two kinds of wrong results:
+
+- **The case fails although the feature still works.** A chain of `aiTap` targets such as "the Apply button next to the coupon field" fails after the button is renamed or the field moves behind a toggle, even though a shopper can still apply the coupon.
+- **The case passes although the outcome is wrong.** A final check such as "a success message is shown" passes when the order was placed without the discount.
+
+This guide describes how to organize a case so that the expected outcome is explicit and changes rarely, while the action instructions change with the interface. The structure follows the [CIGE test case format](https://www.amazon.science/publications/cige-an-agentic-ai-test-case-standard) (Context, Intent, Guardrails, Execution), mapped onto Midscene Test YAML.
+
+## Four parts of a case
+
+| Part | Question it answers | Where it goes in Midscene Test YAML |
+| --- | --- | --- |
+| **Context** | Which system, environment, and starting state does the case assume? | Deterministic Nodes in `beforeAll` or `beforeEach`, such as `gotoUrl` or a custom data-preparation Node. Application knowledge through `setAIContext`. References to the product spec or build as YAML comments. |
+| **Intent** | Which outcome must be true for the case to pass? | The case `name`, written as one outcome sentence, and the last `aiAssert` in `steps`, which states that outcome as something observable. |
+| **Guardrails** | What must the Agent never do, and which evidence is required before the case can pass? | Operating constraints through `setAIContext`. Evidence checks as `aiAssert` Steps or deterministic custom Nodes placed before the final assertion. |
+| **Execution** | How does the Agent reach the outcome on the current interface? | `aiAct` Steps. |
+
+The four parts change at different rates. Intent changes only when the product requirement changes. Guardrails change rarely, and when they do they usually become stricter. Execution changes whenever the interface changes. Keeping the parts in separate places means that an interface change only requires editing `aiAct` Steps, and a reviewer can see from the diff that the expected outcome was not touched.
+
+:::info
+A Midscene Test case accepts only `name`, `tags`, and `steps`. Keep references such as the spec document or build ID in YAML comments, or add them as `tags` if you want to filter Cases by them.
+:::
+
+## Example: checkout with a discount code
+
+The product requirement: a shopper who applies the code `SAVE10` at checkout gets 10% off the subtotal, tax is calculated on the discounted subtotal, and a confirmed order is recorded.
+
+### Written as a sequence of actions
+
+```yaml filename=cases/checkout.yaml
+beforeEach:
+  - gotoUrl: https://your-shop.example/cart
+
+cases:
+  - name: Checkout test
+    steps:
+      - aiTap: The "Proceed to checkout" button
+      - aiInput:
+          prompt: The coupon code field
+          value: SAVE10
+      - aiTap: The "Apply" button next to the coupon code field
+      - aiTap: The "Place order" button
+      - aiAssert: A success message is displayed
+```
+
+Each Step names a specific element, so the case depends on the current layout. If the coupon field moves behind a "Have a code?" link, the third Step fails, although the requirement is still met. The final assertion only checks for a success message, so the case also passes when the discount was not applied.
+
+### Organized around intent and guardrails
+
+```yaml filename=cases/checkout.yaml
+# Spec: https://your-wiki.example/checkout-discounts (requirement CHK-3)
+# Build: release notes for the build under test
+
+beforeAll:
+  # Context: application knowledge for all AI operations
+  - setAIContext:
+      target: default
+      context: |
+        The test account is already signed in and has a saved shipping address.
+        Discount codes are entered on the checkout page, not in the cart.
+  # Guardrails: operating constraints for actions
+  - setAIContext:
+      target: aiAct
+      context: |
+        Pay only with the saved test card ending in 4242. Never enter other card details.
+        Stay on your-shop.example. If checkout redirects to another domain, stop.
+
+beforeEach:
+  # Context: deterministic starting state
+  - cart.prepare:
+      sku: midscene-mug
+      quantity: 2
+  - gotoUrl: https://your-shop.example/cart
+
+cases:
+  - name: A shopper can check out with SAVE10 and the order total reflects the discount and tax on the discounted subtotal
+    tags: [checkout, discount]
+    steps:
+      # Execution: adaptive actions
+      - aiAct: Proceed to checkout and apply the discount code SAVE10
+      - aiAct: Place the order with the saved shipping address and the saved test card
+      # Guardrails: evidence required before the case can pass
+      - order.verifyLatest:
+          discountCode: SAVE10
+          status: confirmed
+      # Intent: the observable outcome
+      - aiAssert:
+          prompt: >-
+            The order confirmation page shows an order number, a discount line
+            for SAVE10 equal to 10% of the subtotal, and tax calculated on the
+            discounted subtotal.
+          message: The confirmed order does not reflect the SAVE10 discount correctly.
+```
+
+`gotoUrl`, `setAIContext`, `aiAct`, and `aiAssert` are official Nodes registered by the Web scaffold. `cart.prepare` and `order.verifyLatest` are business Nodes your project must implement and register. See [Develop custom Nodes](../midscene-test/extend).
+
+Compared with the first version:
+
+- The case `name` states the requirement. People and AI Agents can read what the case confirms without reading its Steps.
+- The `aiAct` Steps describe business actions instead of individual elements, so the Agent can adapt to a renamed button or an extra dialog. See [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent) for how to write these instructions.
+- The final `aiAssert` checks the outcome named in the requirement, not just the completion of an action.
+- The starting state is prepared by deterministic Nodes instead of AI actions.
+
+## Two kinds of guardrails
+
+Guardrails cover two different concerns, and they belong in different places.
+
+**Operating constraints** limit what the Agent may do while acting: which payment method to use, which domain to stay on, which records must not be deleted. Put them in `setAIContext` with `target: aiAct` in `beforeAll`, so they apply to every `aiAct` call of the same Agent. A Step's own `options.context` overrides the Agent-level value instead of being appended to it, so repeat the constraints there if you use per-call context.
+
+**Evidence checks** define what must be confirmed before the case may pass. They prevent false positives: results where the interface looks correct but the business outcome is not. In the example, the confirmation page alone is not enough evidence; `order.verifyLatest` reads the order through the backend API and fails the Step if no confirmed order with the discount exists. When a backend check is not available, use an additional `aiAssert` that checks a different observable source, such as the order history page.
+
+Place evidence checks before the final `aiAssert`. By default, a failed Step stops the remaining Steps of the case, so the intent assertion only runs when the evidence is present.
+
+## When the interface changes
+
+When a case fails, open the report at the failed Step, for example with `#runner-step=first-error` (see [Link to a report Step](../midscene-test/use#link-to-a-report-step)), and decide which part of the case is affected:
+
+| What happened | What to change |
+| --- | --- |
+| The page or flow changed, and the requirement is still met when you check it manually. | Update the `aiAct` Steps, or add application knowledge through `setAIContext`. Do not change the case `name` or the final `aiAssert`. |
+| The case passed, but the outcome turned out to be wrong. | Add or tighten an evidence check. Do not remove existing checks. |
+| The requirement itself changed, and the spec was updated. | Update the case `name` and the final `aiAssert` to the new requirement, and review the change like any other change to expected behavior. |
+| The environment was not ready, such as a missing test account or an unreachable service. | Fix the environment or the `beforeAll` and `beforeEach` Nodes. Do not change the case. |
+
+Following these rules, most interface changes produce a diff that only touches `aiAct` Steps. A diff that changes the case `name`, the final `aiAssert`, or removes an evidence check means the expected behavior changed, and it should be reviewed against the spec.
+
+Each Step must describe its target on its own, without references such as "the previous step". Write the final `aiAssert` so that it states the complete expected outcome. See [Test case design conventions](../midscene-test/use#test-case-design-conventions).
+
+## Next steps
+
+- Read [Create and use test projects](../midscene-test/use) for the full YAML syntax and lifecycle hooks.
+- Read [Develop custom Nodes](../midscene-test/extend) to implement data preparation and evidence checks such as `cart.prepare` and `order.verifyLatest`.
+- Read [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent) to write `aiAct` instructions and Context that the Agent can follow reliably.

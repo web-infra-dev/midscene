@@ -261,7 +261,6 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: 'Legacy YAML automation',
-
           },
           {
             text: 'YAML script runner',
@@ -304,6 +303,10 @@ export default defineConfig(async () => {
           {
             text: 'Write BDD scripts with Gherkin',
             link: '/advanced/bdd-style-scripts-with-gherkin',
+          },
+          {
+            text: 'Structure test cases around intent',
+            link: '/advanced/structure-test-cases-around-intent',
           },
           {
             text: 'Integrate with any interface',
@@ -492,6 +495,10 @@ export default defineConfig(async () => {
           {
             text: '使用 Gherkin 编写 BDD 脚本',
             link: '/zh/advanced/bdd-style-scripts-with-gherkin',
+          },
+          {
+            text: '围绕意图组织测试用例',
+            link: '/zh/advanced/structure-test-cases-around-intent',
           },
           {
             text: '与任意界面集成',
