@@ -1,12 +1,21 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { allowedUrl, digest, policyDigest } from './config.mjs';
+import { publishVerificationComment } from './pr-comment.mjs';
 import { buildReport } from './report.mjs';
 
 export const checkName = 'Midscene / Functional Verification';
 
 export class Controller {
-  constructor({ github, store, policies, runner, publicUrl, publishEvidence }) {
+  constructor({
+    github,
+    store,
+    policies,
+    runner,
+    publicUrl,
+    publishEvidence,
+    workflowUrl,
+  }) {
     Object.assign(this, {
       github,
       store,
@@ -14,6 +23,7 @@ export class Controller {
       runner,
       publicUrl,
       publishEvidence,
+      workflowUrl,
     });
   }
 
@@ -207,9 +217,10 @@ export class Controller {
     const current = await api('GET', `/pulls/${number}`);
     const fresh = current.state === 'open' && current.head.sha === sha;
     const passed = fresh && run.report.functionalGate.status === 'satisfied';
+    const conclusion = passed ? 'success' : fresh ? 'failure' : 'cancelled';
     await api('PATCH', `/check-runs/${run.checkId}`, {
       status: 'completed',
-      conclusion: passed ? 'success' : fresh ? 'failure' : 'cancelled',
+      conclusion,
       completed_at: new Date().toISOString(),
       details_url: reportUrl,
       output: {
@@ -232,6 +243,14 @@ export class Controller {
           'Evidence requires service authentication. Other repository merge requirements still apply.',
         ].join('\n\n'),
       },
+    });
+    await publishVerificationComment({
+      api,
+      run,
+      appId: this.github.appId,
+      conclusion,
+      publicUrl: this.publicUrl,
+      workflowUrl: this.workflowUrl,
     });
     run.state = 'completed';
     await this.store.put('runs', id, run);

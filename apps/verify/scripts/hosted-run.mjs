@@ -59,6 +59,12 @@ const controller = new Controller({
   policies,
   runner: runBrowser,
   publicUrl: origin.origin,
+  workflowUrl:
+    process.env.GITHUB_RUN_ID &&
+    /^\d+$/.test(process.env.GITHUB_RUN_ID) &&
+    /^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPOSITORY ?? '')
+      ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+      : undefined,
   async publishEvidence({ id, directory, report }) {
     let manifest;
     try {

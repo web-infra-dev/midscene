@@ -68,12 +68,29 @@ export function fakeGitHub() {
     deployed: true,
     status: 'success',
     check: undefined,
+    comments: [],
   };
   return {
     state,
+    appId: 5365383,
     calls,
     async api(installationId, method, route, body) {
       calls.push({ installationId, method, route, body });
+      if (route.includes('/issues/7/comments?')) {
+        const page = Number(
+          new URL(`https://example.com${route}`).searchParams.get('page'),
+        );
+        return state.comments.slice((page - 1) * 100, page * 100);
+      }
+      if (route.endsWith('/issues/7/comments') && method === 'POST') {
+        const comment = {
+          id: 100 + state.comments.length,
+          ...body,
+          performed_via_github_app: { id: 5365383 },
+        };
+        state.comments.push(comment);
+        return comment;
+      }
       if (route.endsWith('/pulls/7'))
         return {
           state: 'open',

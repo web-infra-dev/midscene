@@ -14,7 +14,7 @@ This version tests PR heads, not merge candidates or merge queues. It does not c
 
 ## GitHub App setup
 
-Create an App with Checks read/write, Pull requests read, Deployments read and GitHub's mandatory Metadata access. Subscribe to `pull_request`, `deployment_status`, and `check_run`. Set its webhook to `https://your-service/webhooks/github`, configure a random webhook secret, generate a private key outside the repository, and install it on a test repository.
+Create an App with Checks read/write, Pull requests read/write, Deployments read and GitHub's mandatory Metadata access. Subscribe to `pull_request`, `deployment_status`, and `check_run`. Set its webhook to `https://your-service/webhooks/github`, configure a random webhook secret, generate a private key outside the repository, and install it on a test repository.
 
 References: [signature validation](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries), [Checks API](https://docs.github.com/en/rest/checks/runs), [Deployments API](https://docs.github.com/en/rest/deployments/deployments).
 
@@ -43,6 +43,12 @@ pnpm --filter @midscene/verify start
 Deploy one instance per data directory behind an HTTPS reverse proxy. Monitor health and failed deliveries. `service.lock` prevents concurrent owners; after an abnormal exit, verify the old PID is gone before handling the stale lock. Never remove an active lock.
 
 On development machines, respect the shared resource gate. A persistent service consumes a service slot and browser execution requires a runtime slot; do not run automatic browser jobs under only a service allocation. Use the short-lived browser smoke command locally, or host the App on a separate execution machine.
+
+## PR result comments
+
+After evidence and the Check are published, the App posts a new PR conversation comment for that verification. It includes the exact commit, functional result, execution status, criterion results, report links, and a machine-readable JSON summary. Hosted runs also link to their GitHub Actions artifacts so reviewers can download evidence using GitHub access. Service report links still require the instance report credential.
+
+Grant the App **Pull requests: read and write** and approve the updated permissions on existing installations. A comment permission failure leaves publication retryable and never reruns browser actions. Duplicate deliveries and recovery after a successful comment POST reuse the App's existing comment; copied markers from other authors do not count. Explicit rerequests produce a new verification and a new comment. Comments do not approve or merge PRs.
 
 ## Agent consumption
 

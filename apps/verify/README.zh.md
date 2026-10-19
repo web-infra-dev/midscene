@@ -18,13 +18,19 @@ GitHub App 的 Web PR 功能验收原型。服务接收 PR 和部署事件，在
 
 在 GitHub 创建 App，设置 Webhook URL 为 `https://你的服务域名/webhooks/github`。
 
-仓库权限：Checks 读写、Pull requests 只读、Deployments 只读；Metadata 为 GitHub 的基础权限。不需要 Contents 写权限或合并权限。
+仓库权限：Checks 读写、Pull requests 读写、Deployments 只读；Metadata 为 GitHub 的基础权限。不需要 Contents 写权限；服务不调用合并 API。
 
 订阅 `pull_request`、`deployment_status`、`check_run`。生成私钥并保存到仓库外；设置随机 Webhook Secret。将 App 安装到测试仓库，记录 installation ID。
 
 PR 打开、更新、重新打开及转为可审阅时触发检查；草稿 PR 暂不执行。部署成功后继续等待中的检查。GitHub 的 Check 重跑事件会创建新验证记录，保留原来的报告。
 
 参考：[Webhook 签名](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)、[Checks API](https://docs.github.com/en/rest/checks/runs)、[Deployment API](https://docs.github.com/en/rest/deployments/deployments)。
+
+## PR 结果评论
+
+证据与 Check 发布后，App 会为本次验证新增一条 PR 评论，说明实际 commit、功能结论、执行状态、各验收条件和报告入口，并附带 Agent 可读取的 JSON。云端运行还会给出 GitHub Actions 入口，方便审阅者通过 GitHub 下载完整证据。服务上的报告链接仍需要实例的报告凭据。
+
+App 需要 **Pull requests 读写权限**；已有安装需要接受更新后的权限。若评论发布失败，服务会重试发布，不重新执行浏览器操作。重复事件和评论发布成功后写状态失败的恢复流程会复用已有 App 评论；其他用户复制相同标记不能阻止 App 发布。显式重跑产生新验证和新评论。评论不代表批准或合并 PR。
 
 ## 服务端配置
 
