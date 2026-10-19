@@ -6,7 +6,7 @@ import { extractTestRunReportDumpSync } from '@/dump/html-utils';
 import { mergeReportFiles } from '@/report-cli';
 import { ReportGenerator } from '@/report-generator';
 import type { TestRunReportDump } from '@/test-run-report';
-import { ExecutionDump } from '@/types';
+import { ExecutionDump, ReportActionDump } from '@/types';
 import type { MidsceneYamlScript } from '@/types';
 import { ScriptPlayer } from '@/yaml/player';
 import { getLegacyYamlPlayerState } from '@/yaml/player-state';
@@ -287,6 +287,75 @@ describe('old YAML entries publish standard Runner reports', () => {
     ).toEqual({ answer: 42 });
     expect(player.result.answer).toEqual({ answer: 42 });
   });
+
+  test.each(
+    (['inline', 'directory'] as const).flatMap((mode) =>
+      [false, true].map((cleanupFails) => ({ mode, cleanupFails })),
+    ),
+  )(
+    'publishes owned YAML/source before releasing records: $mode, cleanupFails=$cleanupFails',
+    async ({ mode, cleanupFails }) => {
+      const agent = createAgent();
+      const generator = new ReportGenerator({
+        reportPath: join(directory, 'owned.html'),
+        screenshotMode: mode,
+        autoPrint: false,
+      });
+      (agent as any).reportState.generator = generator;
+      const cleanupError = new Error('device cleanup failed');
+      if (cleanupFails)
+        rs.spyOn(agent.interface, 'destroy').mockRejectedValue(cleanupError);
+      rs.mocked(agent.evaluateJavaScript).mockImplementation(async () => {
+        await agent.recordToReport('YAML evidence', {
+          screenshotBase64: 'data:image/png;base64,AAAA',
+        });
+        return { answer: 42 };
+      });
+      const source = rs.spyOn(agent, '_createReportSource');
+      const player = new ScriptPlayer(
+        { tasks: [{ name: 'owned', flow: [{ javascript: 'return 42' }] }] },
+        async () => ({
+          agent,
+          freeFn: [{ name: 'agent', fn: () => agent.destroy() }],
+        }),
+      );
+      player.output = undefined;
+      if (cleanupFails)
+        await expect(player.run()).rejects.toThrow('device cleanup failed');
+      else await player.run();
+      expect(source).toHaveBeenCalledOnce();
+      const record = getLegacyYamlPlayerState(player).executionRecord!;
+      expect(record.reportSources).toHaveLength(1);
+      const snapshot = ReportActionDump.fromSerializedString(
+        readFileSync(record.reportSources![0].dumpPath!, 'utf8'),
+      );
+      expect(snapshot.executions).toHaveLength(1);
+      expect(snapshot.executions[0].name).toContain('YAML evidence');
+      const screenshot = JSON.parse(snapshot.serialize()).executions[0].tasks[0]
+        .recorder[0].screenshot;
+      expect(
+        readFileSync(join(directory, screenshot.path)).length,
+      ).toBeGreaterThan(0);
+      const html = readFileSync(player.reportFile!, 'utf8');
+      expect(readDump(player.reportFile!).summary).toMatchObject({
+        total: 1,
+        passed: 1,
+      });
+      if (cleanupFails)
+        expect(JSON.stringify(readDump(player.reportFile!))).toContain(
+          'device cleanup failed',
+        );
+      const state = generator as unknown as {
+        executionsByKey: Map<string, ExecutionDump>;
+        lastExecution?: ExecutionDump;
+      };
+      expect(state.executionsByKey.size).toBe(0);
+      expect(state.lastExecution).toBeUndefined();
+      expect(agent.dump.executions).toEqual([]);
+      expect(await agent.finalizeReport()).toBe(player.reportFile);
+      expect(readFileSync(player.reportFile!, 'utf8')).toBe(html);
+    },
+  );
 
   test('replaces the root snapshot across consecutive public Agent.runYaml calls', async () => {
     const agent = createAgent();

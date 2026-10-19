@@ -946,9 +946,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     assert(
       !this.reportState.activeOperations.size &&
         !this.activeObserver &&
-        // An owned YAML player disposes its Agent before releasing ownership.
-        // destroy() has already drained its operations before finalizing.
-        (!hasActiveYamlExecution(this) || this.destroyed) &&
+        !hasActiveYamlExecution(this) &&
         !hasPendingResourceOperation(this),
       'Cannot reset or finalize a report while the Agent is executing. Await the active operation first.',
     );
@@ -1267,20 +1265,22 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { fileChooserAccept?: string | string[] },
   ): Promise<void> {
-    assert(locatePrompt, 'missing locate prompt for tap');
+    await this.withReportOperation(async () => {
+      assert(locatePrompt, 'missing locate prompt for tap');
 
-    const detailedLocateParam = buildDetailedLocateParam(
-      locatePrompt,
-      this.withContext('aiTap', opt),
-    );
+      const detailedLocateParam = buildDetailedLocateParam(
+        locatePrompt,
+        this.withContext('aiTap', opt),
+      );
 
-    const fileChooserAccept = opt?.fileChooserAccept
-      ? this.normalizeFileInput(opt.fileChooserAccept)
-      : undefined;
+      const fileChooserAccept = opt?.fileChooserAccept
+        ? this.normalizeFileInput(opt.fileChooserAccept)
+        : undefined;
 
-    await withFileChooser(this.interface, fileChooserAccept, async () => {
-      await this.callActionInActionSpace('Tap', {
-        locate: detailedLocateParam,
+      await withFileChooser(this.interface, fileChooserAccept, async () => {
+        await this.callActionInActionSpace('Tap', {
+          locate: detailedLocateParam,
+        });
       });
     });
   }
@@ -2123,7 +2123,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     if (this.reportReset) await this.reportReset.catch(() => {});
-    await this.finalizeReport();
+    // Owned YAML cleanup runs before its record includes cleanup errors. The
+    // player publishes that record and its source snapshot before finalizing.
+    if (!hasActiveYamlExecution(this)) await this.finalizeReport();
 
     if (interfaceDestroyError) {
       throw interfaceDestroyError;

@@ -356,7 +356,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     this.executionController?.abort(
       new Error(`Task cancelled by user: ${requestId}`),
     );
-    if (!this.agent) {
+    const agent = this.agent;
+    if (!agent) {
       return { error: 'No active agent found for this requestId' };
     }
 
@@ -367,8 +368,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     // Get dump data separately - don't let reportHTML errors affect dump retrieval
     // IMPORTANT: Must extract dump BEFORE agent.destroy(), as dump is stored in agent memory
     try {
-      if (typeof this.agent.dumpDataString === 'function') {
-        const dumpString = this.agent.dumpDataString();
+      if (typeof agent.dumpDataString === 'function') {
+        const dumpString = agent.dumpDataString();
         if (dumpString) {
           const groupedDump = ReportActionDump.fromSerializedString(dumpString);
           dump = groupedDump;
@@ -383,8 +384,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     // Try to get reportHTML separately so failures do not affect dump retrieval.
     try {
-      if (typeof this.agent.reportHTMLString === 'function') {
-        const html = this.agent.reportHTMLString();
+      if (typeof agent.reportHTMLString === 'function') {
+        const html = agent.reportHTMLString();
         if (html && typeof html === 'string') {
           reportHTML = html;
         }
@@ -397,8 +398,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     }
 
     try {
-      await this.agent.destroy?.();
-      this.agent = null; // Clear agent reference
+      await agent.destroy?.();
       return { success: true, dump, reportHTML };
     } catch (error: unknown) {
       const errorMessage =
@@ -407,6 +407,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         `[LocalExecutionAdapter] Failed to cancel agent: ${errorMessage}`,
       );
       return { error: `Failed to cancel: ${errorMessage}`, dump, reportHTML };
+    } finally {
+      // destroy() invalidates the Agent even when report or device cleanup fails.
+      if (this.agent === agent) this.agent = null;
     }
   }
 

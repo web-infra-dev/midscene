@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { Agent } from '@/agent';
@@ -97,7 +97,12 @@ describe('Agent independent report lifecycle', () => {
         const imageIds = agent.dump
           .collectAllScreenshots()
           .map((screenshot) => screenshot.id);
+        const generator = (agent as any).reportState.generator;
+        expect(generator.executionsByKey.size).toBe(2);
         const reportPath = await agent.finalizeReport();
+        expect(generator.executionsByKey.size).toBe(0);
+        expect(generator.lastExecution).toBeUndefined();
+        expect(agent.dump.executions).toEqual([]);
         expect(reportPath).toBeDefined();
         const html = await readFile(reportPath!, 'utf8');
         expect(executionIds(html)).toEqual(ids);
@@ -258,6 +263,75 @@ describe('Agent independent report lifecycle', () => {
     expect(agent.reportFileName).not.toBe(fileName);
     expect(await agent.finalizeReport()).toBeUndefined();
   });
+
+  it.each(
+    (['registration', 'completion'] as const).flatMap((phase) =>
+      [false, true].map((fails) => ({ phase, fails })),
+    ),
+  )(
+    'protects aiTap file chooser $phase, including failure=$fails',
+    async ({ phase, fails }) => {
+      createAgent();
+      const upload = join(directory, 'upload.txt');
+      await writeFile(upload, 'fixture');
+      let started!: () => void;
+      let release!: () => void;
+      const entered = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const error = new Error('file chooser failed');
+      const dispose = rs.fn(() => {
+        // Disposal is part of the public operation too.
+        expect(
+          (agent as any).reportState.activeOperations.size,
+        ).toBeGreaterThan(0);
+      });
+      const wait = async () => {
+        started();
+        await gate;
+        if (fails) throw error;
+      };
+      agent.interface.registerFileChooserListener = async () => {
+        if (phase === 'registration') await wait();
+        return {
+          dispose,
+          getError: async () => {
+            if (phase === 'completion') await wait();
+            return undefined;
+          },
+        };
+      };
+      const click = rs
+        .spyOn(agent, 'callActionInActionSpace')
+        .mockResolvedValue(undefined);
+      const tapping = agent.aiTap('upload', { fileChooserAccept: upload });
+      const settled = tapping.then(
+        () => undefined,
+        (failure) => failure,
+      );
+      await entered;
+      const reportName = agent.reportFileName;
+      try {
+        await expect(agent.resetDump()).rejects.toThrow('Agent is executing');
+        await expect(agent.finalizeReport()).rejects.toThrow(
+          'Agent is executing',
+        );
+        expect(agent.reportFileName).toBe(reportName);
+        expect(click).toHaveBeenCalledTimes(phase === 'registration' ? 0 : 1);
+      } finally {
+        release();
+      }
+      expect(await settled).toBe(fails ? error : undefined);
+      expect(dispose).toHaveBeenCalledTimes(
+        phase === 'registration' && fails ? 0 : 1,
+      );
+      await agent.resetDump();
+      expect(agent.reportFileName).not.toBe(reportName);
+    },
+  );
 
   it('rejects reset and finalization while screenshot capture is unfinished', async () => {
     createAgent();

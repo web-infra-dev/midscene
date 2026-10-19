@@ -24,6 +24,7 @@ import {
   YamlExecutionOwnershipError,
   currentYamlSignal,
   enterYamlExecution,
+  hasActiveYamlExecution,
   runInYamlExecutionContext,
 } from './execution-session';
 import { createLegacyYamlExecutionRecord } from './legacy-yaml-execution-record';
@@ -290,9 +291,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       );
       // Register ownership immediately: discovering actions can fail too.
       agent = newAgent;
-      agent._prepareForTestRunner?.();
-      freeFn = [...(newFreeFn || [])];
       session = enterYamlExecution(agent);
+      freeFn = [...(newFreeFn || [])];
+      agent._prepareForTestRunner?.();
       signal = this.abortSignal ?? currentYamlSignal(agent);
       signal?.throwIfAborted();
       this.actionSpace = await agent.getActionSpace();
@@ -447,6 +448,26 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       }
     }
     session?.finish(state.executionRecord);
+    // destroy() defers report finalization while YAML owns the Agent. Publish
+    // cleanup outcomes and source snapshots before releasing its executions.
+    if (agent?.destroyed && !hasActiveYamlExecution(agent)) {
+      try {
+        await agent.finalizeReport();
+      } catch (error) {
+        reportError = reportError
+          ? new AggregateError(
+              [reportError, error],
+              'YAML report publication failed',
+            )
+          : error;
+        this.setPlayerStatus('error', reportError as Error);
+        state.executionRecord = Object.freeze({
+          ...state.executionRecord,
+          status: 'failed',
+          reportError,
+        });
+      }
+    }
     if (reportError) {
       const errors = [
         setupError,

@@ -91,6 +91,70 @@ describe('ReportGenerator — append-only model', () => {
     await generator.flush();
   });
 
+  it('waits for source publication before releasing executions and sealing snapshots', async () => {
+    const generator = new ReportGenerator({
+      reportPath: join(tmpDir, 'pending-source.html'),
+      screenshotMode: 'inline',
+      autoPrint: false,
+    });
+    const screenshot = ScreenshotItem.create(fakeBase64(64), Date.now());
+    const execution = createExecution([screenshot]);
+    generator.onExecutionUpdate(execution, defaultReportMeta);
+    await generator.flush();
+    const state = generator as unknown as {
+      executionsByKey: Map<string, ExecutionDump>;
+      lastExecution?: ExecutionDump;
+      screenshotStore: { persist: (...args: unknown[]) => Promise<unknown> };
+    };
+    const persist = state.screenshotStore.persist.bind(state.screenshotStore);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const pendingWrite = rs
+      .spyOn(state.screenshotStore, 'persist')
+      .mockImplementationOnce(async (...args) => {
+        await gate;
+        return persist(...args);
+      });
+    const snapshot = generator.createSourceSnapshot('scope');
+    let finalized = false;
+    const finalization = generator.finalize().then((path) => {
+      finalized = true;
+      return path;
+    });
+    try {
+      // The HTML queue can finish independently of the blocked snapshot write.
+      await generator.flush();
+      expect(finalized).toBe(false);
+      expect(state.executionsByKey.size).toBe(1);
+      expect(state.lastExecution).toBe(execution);
+      await expect(generator.createSourceSnapshot('too-late')).rejects.toThrow(
+        'finalized',
+      );
+    } finally {
+      release();
+    }
+    const source = await snapshot;
+    const path = await finalization;
+    pendingWrite.mockRestore();
+    const dump = ReportActionDump.fromSerializedString(
+      readFileSync(source.dumpPath, 'utf8'),
+    );
+    expect(dump.executions.map((item) => item.id)).toEqual([execution.id]);
+    expect(
+      existsSync(join(tmpDir, 'screenshots', `${screenshot.id}.png`)),
+    ).toBe(true);
+    expect(state.executionsByKey.size).toBe(0);
+    expect(state.lastExecution).toBeUndefined();
+    const html = readFileSync(path!, 'utf8');
+    expect(await generator.finalize()).toBe(path);
+    expect(readFileSync(path!, 'utf8')).toBe(html);
+    expect(() =>
+      generator.onExecutionUpdate(execution, defaultReportMeta),
+    ).toThrow('finalized');
+  });
+
   // Writer contract for the self-describing screenshot mode. The merger reads
   // this attribute back to decide directory vs inline, so the generated value
   // must match for both modes (see report.ts readDeclaredScreenshotMode).
