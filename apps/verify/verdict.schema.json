@@ -226,6 +226,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "requirementIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
@@ -271,7 +277,13 @@
       ],
       "properties": {
         "status": {
-          "enum": ["ready", "incomplete", "needs-clarification", "error"]
+          "enum": [
+            "ready",
+            "incomplete",
+            "needs-clarification",
+            "error",
+            "invalid"
+          ]
         },
         "summary": {
           "type": "string"
@@ -295,6 +307,25 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        },
+        "review": {
+          "type": "object",
+          "required": ["approved", "findings"],
+          "additionalProperties": false,
+          "properties": {
+            "approved": {
+              "type": "boolean"
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "model": {
+              "type": "string"
+            }
           }
         }
       },

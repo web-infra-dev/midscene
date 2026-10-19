@@ -166,8 +166,8 @@ Worker 配置参考 `deploy/wrangler.example.jsonc`，设置 `WEBHOOK_SECRET`、
 
 将这些字段加入已有仓库策略，保留 installation、部署、域名、版本接口和超时配置。此模式允许 `criteria` 为空，也可以保留必选的固定验收项；模型生成的条件不能替换它们。排除路径是运营者对验证范围的明确选择，会记录在 `context.json` 中，应尽量缩小范围。生成的计划只能使用已批准的路径和 `aiAct`／`aiAssert`，每项最多六步。程序校验来源和文件引用；遗漏文件、上下文截断、需求不清或规划失败，都不能得到通过结论。文件覆盖情况仍是模型判断，不代表已覆盖全部业务语义。
 
-计划在浏览器执行前保存。自动规划模式下，每个验收项使用独立浏览器上下文，隔离 Cookie、localStorage 和 IndexedDB；同一验收项的步骤之间保留存储，以便验证重新加载。浏览器隔离不会重置服务端数据。证据新增 `plan.json`、`context.json` 和 `operator-policy.json`，并保留原生 HTML 回放、轨迹、截图和结论。调用 `inspectBundle` 时传入可信的运营者策略摘要；校验器会检查执行策略是否恰好由固定条件和已保存的生成条件组成。发布重试复用已有计划与执行结果。PR 描述更新会触发新的上下文验证；Issue 更新后需要显式重跑 Check。执行期间 PR 的 head、base、标题或正文变化，会使结果失效。
+先提取带原文引用的需求清单，每个需求 ID 都必须映射到验收项或明确的覆盖缺口；即使所有改动文件都已覆盖，遗漏需求映射仍会被拒绝。执行前通过独立模型调用审查计划，检查场景是否自行准备数据、断言是否对应当前状态，以及需求覆盖情况。首次审查不通过时，允许依据反馈修订一次计划；保留两次草案和审查结果。再次不通过则阻止浏览器执行，以 Inconclusive 发布问题说明，不通过反复执行浏览器断言来获取通过结果。审查仍是模型判断，不保证计划绝对正确。计划和审查结果在浏览器执行前一起保存。自动规划模式下，每个验收项使用独立浏览器上下文，隔离 Cookie、localStorage 和 IndexedDB；同一验收项的步骤之间保留存储，以便验证重新加载。浏览器隔离不会重置服务端数据。证据新增 `plan.json`、`context.json` 和 `operator-policy.json`，并保留原生 HTML 回放、轨迹、截图和结论。调用 `inspectBundle` 时传入可信的运营者策略摘要；校验器会检查执行策略是否恰好由固定条件和已保存的生成条件组成。发布重试复用已有计划与执行结果。PR 描述更新会触发新的上下文验证；Issue 更新后需要显式重跑 Check。执行期间 PR 的 head、base、标题或正文变化，会使结果失效。
 
-规划模型使用兼容 OpenAI chat-completions 的 HTTPS 接口，配置项为 `VERIFY_PLANNER_BASE_URL`、`VERIFY_PLANNER_API_KEY` 和 `VERIFY_PLANNER_MODEL`；未设置时使用对应的 `MIDSCENE_MODEL_*` 配置。规划请求超时为 90 秒，输出上限为 6,000 token；上下文最多收集 100,000 字符、30 个改动文件和五个 Issue 引用。仓库权限需要时增加 Contents 和 Issues 只读权限。模型生成的操作不构成安全沙箱，仅应连接已批准的测试环境并使用可丢弃的数据。
+规划模型使用兼容 OpenAI chat-completions 的 HTTPS 接口，配置项为 `VERIFY_PLANNER_BASE_URL`、`VERIFY_PLANNER_API_KEY` 和 `VERIFY_PLANNER_MODEL`；未设置时使用对应的 `MIDSCENE_MODEL_*` 配置。需求提取、规划和审查请求的超时各为 90 秒，含一次计划修订时最多调用五次模型，输出上限为 6,000 token；上下文最多收集 100,000 字符、30 个改动文件和五个 Issue 引用。仓库权限需要时增加 Contents 和 Issues 只读权限。模型生成的操作不构成安全沙箱，仅应连接已批准的测试环境并使用可丢弃的数据。
 
 App 评论包含计划摘要、验收项标题、计划与来源链接、覆盖缺口、待澄清问题、原生报告入口和 Agent JSON。未观察到功能失败，但计划不完整或执行异常时，Check 为 `action_required`，评论为 **Inconclusive**；需求不清时标为 **Needs clarification**。已观察到的功能失败优先显示 **Failed**，同时保留覆盖缺口。本阶段只支持已有 Web Preview，尚不构建 PR 源码、不运行生成的单元或接口测试，也不检查所有传递依赖或对照 base/head 浏览器行为。

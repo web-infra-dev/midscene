@@ -6,7 +6,13 @@ import { digest, policyDigest } from '../src/config.mjs';
 import { collectContext } from '../src/context.mjs';
 import { Controller } from '../src/controller.mjs';
 import { inspectBundle } from '../src/inspect.mjs';
-import { requestPlan, validatePlan } from '../src/planner.mjs';
+import {
+  extractRequirements,
+  planFromContext,
+  requestPlan,
+  reviewAcceptancePlan,
+  validatePlan,
+} from '../src/planner.mjs';
 import {
   fakeGitHub,
   passingRunner,
@@ -46,6 +52,11 @@ test('planner preserves baseline and rejects invented sources, routes, missing c
   assert.equal(result.plan.status, 'ready');
   assert.deepEqual(result.executionPolicy.criteria[0], policy.criteria[0]);
   for (const mutate of [
+    (plan) => {
+      plan.criteria[0].steps = [
+        { type: 'aiAssert', prompt: "The status has aria-live='polite'" },
+      ];
+    },
     (plan) => {
       plan.criteria[0].sources = ['invented'];
     },
@@ -360,4 +371,149 @@ test('an observed functional failure takes precedence over incomplete planning c
   );
   assert.match(github.state.comments[0].body, /Midscene Verify: Failed/);
   assert.match(github.state.comments[0].body, /Not verified/);
+});
+
+test('a rejected consistency review blocks browser execution and publishes its findings', async (t) => {
+  const { store } = await temporary(t);
+  const github = fakeGitHub();
+  const planned = validatePlan(raw(), context, automatic);
+  await reviewAcceptancePlan(planned.plan, context, async () => ({
+    model: 'review-fixture',
+    raw: {
+      approved: false,
+      findings: [
+        'The second scenario references a record created only in the first scenario.',
+      ],
+    },
+  }));
+  assert.equal(planned.plan.status, 'invalid');
+  const controller = new Controller({
+    github,
+    store,
+    policies: [automatic],
+    publicUrl: 'https://verify.example.com',
+    planner: async () => planned,
+    runner: async () => assert.fail('must not execute rejected plan'),
+  });
+  await controller.handle('pull_request', payload, 'invalid-plan');
+  assert.match(github.state.comments[0].body, /Inconclusive/);
+  assert.match(github.state.comments[0].body, /second scenario references/);
+});
+
+test('consistency review requires explicit approval and retains valid plans', async () => {
+  const planned = validatePlan(raw(), context, automatic);
+  await assert.rejects(
+    reviewAcceptancePlan(planned.plan, context, async () => ({
+      raw: { approved: 'true', findings: [] },
+    })),
+    /Invalid plan review/,
+  );
+  await assert.rejects(
+    reviewAcceptancePlan(planned.plan, context, async () => ({
+      raw: { approved: true, findings: ['Missing setup'] },
+    })),
+    /Contradictory/,
+  );
+  await reviewAcceptancePlan(planned.plan, context, async () => ({
+    model: 'review-fixture',
+    raw: { approved: true, findings: [] },
+  }));
+  assert.equal(planned.plan.status, 'ready');
+  assert.equal(planned.plan.review.approved, true);
+});
+
+test('plan repair is bounded, uses review findings, and preserves both drafts before execution', async () => {
+  let drafts = 0;
+  let reviews = 0;
+  const result = await planFromContext({
+    context,
+    policy: automatic,
+    complete: async (input) => {
+      drafts++;
+      if (drafts === 2)
+        assert.deepEqual(input.repair.findings, [
+          'Missing isolated scenario setup',
+        ]);
+      return { raw: raw(), model: 'planner-fixture' };
+    },
+    reviewComplete: async () => ({
+      model: 'review-fixture',
+      raw:
+        ++reviews === 1
+          ? { approved: false, findings: ['Missing isolated scenario setup'] }
+          : { approved: true, findings: [] },
+    }),
+  });
+  assert.equal(drafts, 2);
+  assert.equal(result.plan.status, 'ready');
+  assert.equal(result.plan.attempts[0].plan.status, 'invalid');
+  assert.equal(result.plan.attempts[1].plan.status, 'ready');
+  const blocked = await planFromContext({
+    context,
+    policy: automatic,
+    complete: async () => ({ raw: raw(), model: 'fixture' }),
+    reviewComplete: async () => ({
+      raw: { approved: false, findings: ['Still invalid'] },
+      model: 'fixture',
+    }),
+  });
+  assert.equal(blocked.plan.attempts.length, 2);
+  assert.equal(blocked.plan.status, 'invalid');
+});
+
+test('requirements must quote provided demand sources and cannot silently disappear from the plan', async () => {
+  const demand = {
+    ...context,
+    sources: [
+      {
+        id: 'issue:2',
+        kind: 'issue',
+        content: 'Saved notes must remain visible after reload.',
+      },
+    ],
+  };
+  const requirements = await extractRequirements(demand, async () => ({
+    raw: {
+      requirements: [
+        {
+          id: 'REQ-1',
+          statement: 'Notes persist across reload',
+          sourceId: 'issue:2',
+          quote: demand.sources[0].content,
+        },
+      ],
+    },
+  }));
+  await assert.rejects(
+    extractRequirements(demand, async () => ({
+      raw: {
+        requirements: [
+          { ...requirements[0], quote: 'Invented expected behavior' },
+        ],
+      },
+    })),
+    /not grounded/,
+  );
+  const plan = raw();
+  assert.throws(
+    () => validatePlan(plan, { ...context, requirements }, automatic),
+    /requirement mapping/,
+  );
+  plan.criteria[0].requirementIds = ['REQ-1'];
+  assert.equal(
+    validatePlan(plan, { ...context, requirements }, automatic).plan.status,
+    'ready',
+  );
+  assert.throws(
+    () =>
+      validatePlan(
+        plan,
+        {
+          ...context,
+          requirements: [...requirements, { ...requirements[0], id: 'REQ-2' }],
+        },
+        automatic,
+      ),
+    /omits a requirement/,
+  );
 });

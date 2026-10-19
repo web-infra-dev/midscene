@@ -123,6 +123,9 @@ export async function buildReport({
         : {}),
       steps,
       evidence,
+      ...(expected.requirementIds
+        ? { requirementIds: expected.requirementIds }
+        : {}),
       ...(result?.errorCode ? { errorCode: result.errorCode } : {}),
     });
   }
@@ -136,6 +139,7 @@ export async function buildReport({
           operatorPolicyDigest: policyDigest(operatorPolicy),
           planning: {
             status: planning.plan.status,
+            ...(planning.plan.review ? { review: planning.plan.review } : {}),
             summary: planning.plan.summary,
             digest: digest(JSON.stringify(planning.plan)),
             contextDigest: planning.plan.contextDigest ?? null,

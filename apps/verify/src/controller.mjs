@@ -241,7 +241,9 @@ export class Controller {
         try {
           if (
             run.planning &&
-            ['error', 'needs-clarification'].includes(run.planning.plan.status)
+            ['error', 'invalid', 'needs-clarification'].includes(
+              run.planning.plan.status,
+            )
           ) {
             run.execution = { status: 'planning-blocked', criteria: [] };
           } else {
