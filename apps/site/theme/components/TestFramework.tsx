@@ -138,7 +138,6 @@ export function TestFramework({
             <code>
               {lines.map((line, index) => (
                 <span
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static lines
                   key={index}
                   className="home-framework__line"
                   data-kind={line.kind}
