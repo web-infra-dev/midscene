@@ -120,6 +120,23 @@ const mid = new PuppeteerBrowserAgent(browser, page, {
 
 Use `new PuppeteerBrowserAgent(browser, page, options)` when you explicitly choose the initial active page. Use `PuppeteerBrowserAgent.create(browser, options)` when you want Midscene to choose or create the initial active page; the factory uses `initialPage` when provided, otherwise it reuses the first existing browser page or creates a new page.
 
+### Synchronize the viewport after another browser controller
+
+If Playwright, a browser skill, or another CDP client resizes a shared desktop page, Puppeteer's local viewport configuration and Midscene's cached logical size can become stale. Before returning control to Midscene, explicitly synchronize them with the live page:
+
+```typescript
+// Both controllers refer to the same page. Finish the external operation first.
+await playwrightPage.setViewportSize({ width: 800, height: 600 });
+const { changed, viewport } = await agent.interface.syncViewport();
+await agent.aiTap('Submit');
+```
+
+`syncViewport()` returns `{ changed, viewport: { width, height, deviceScaleFactor } }`. It adopts the live dimensions and device scale factor in place, preserving the Page, Agent, report, listeners, and persistent XPath caches. With `PuppeteerBrowserAgent`, it synchronizes only the active page and keeps the existing page ownership scope. Native viewport mode (`page.viewport() === null`) stays native. A configured `deviceScaleFactor: 0` (system default) is resolved to the live DPR on the first call, since an external client may have overridden the system value.
+
+This method runs only when called. Existing automation does not gain per-action probes. When the viewport is consistent, it reads live metrics once without calling `setViewport()`.
+
+Call it between completed actions while other controllers are paused. It does not repair actions already in flight or rewrite frozen screenshot contexts; call `agent.unfreezePageContext()` before resuming live automation if needed. It rejects mobile/touch emulation, pinch zoom, overlapping synchronization calls, and page or viewport changes detected during synchronization. An optional `{ signal }` checks cancellation between browser operations; an already dispatched browser command may still finish.
+
 ### Browser support
 
 Some Midscene web automation features rely on Chrome DevTools Protocol (CDP), which is provided by Chromium-based browsers. These include browser-level events, touch gestures, and CDP fallback paths used by specific interactions.
