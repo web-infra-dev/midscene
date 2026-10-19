@@ -143,7 +143,7 @@ Within each scope, callbacks run in reverse registration order. See [Resource li
 
 ### Context sharing scope
 
-Without `fileSetup`, the `context` returned by `setup` is reused throughout the current execution project. With `fileSetup`, its returned context is reused only within that file, including retries. Nodes in all YAML files, lifecycle hooks, cases, and retries receive the same object. The framework does not copy, clear, or recreate it between files, cases, or retries.
+Without `fileSetup`, the `context` returned by `setup` is reused across all files in the current execution project. With `fileSetup`, each file receives the context returned by its own setup invocation. Within that file, lifecycle hooks, cases, and retries receive the same object; the framework does not copy, clear, or recreate it between cases or retries.
 
 For example, after a Node writes an order ID to `context.orderId`, later Nodes can read it, including Nodes in the next case. Reset case-specific data in preparation steps or remove it during cleanup. A retry does not automatically restore the initial context. Resetting resources such as browser pages and login state also depends on the project implementation.
 
@@ -458,6 +458,8 @@ Each file runs `fileSetup → beforeAll → Cases → afterAll → file cleanup`
 For Android, iOS, and other device platforms, create one Device/Agent per file and borrow an exclusive physical device through your team's allocation service. Register both Agent destruction and device release in the proper reverse order. The framework does not create a device pool, reset business state, or isolate external accounts. Keep the Project limit at 1 when files share one physical device or display; separate Agent objects alone do not isolate physical hardware.
 
 A file setup failure skips that file's hooks and Cases and attempts registered cleanup. A file-local device failure can leave other independent files running; failed Project setup or a confirmed shared Browser disconnection stops that Project. If setup or cleanup times out while operations remain unresolved, the run stops admitting new files globally and reports pending resources. Timeout does not mean release: late acquisition and cleanup remain tracked, and parent resources wait for their actual completion. Custom Nodes can signal a confirmed shared-resource failure by throwing `WorkflowError` from `@midscene/test` with `code: 'PROJECT_RESOURCE_ERROR'`; a generic page/context closure alone does not establish that the shared Browser failed. On cancellation or bail, cleanup scopes share one shutdown deadline based on `teardownTimeout`. Bail lets the current attempt finish, then skips later Cases and retries; cancellation requests active operations to stop.
+
+Browser closure messages alone do not identify the resource owner: a Browser may belong to one file or be shared by the Project. When a Node or `fileSetup` confirms a Project-owned resource failure, it must report `PROJECT_RESOURCE_ERROR` explicitly (directly or through an error's `cause` / `AggregateError.errors`) to stop sibling files. Unclassified Browser failures remain local to the file.
 
 ### Compatibility with Project concurrency
 

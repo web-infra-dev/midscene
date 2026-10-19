@@ -143,7 +143,7 @@ export default defineTestProject<ProjectContext>({
 
 ### context 的共享范围
 
-未配置 `fileSetup` 时，`setup` 返回的 `context` 在当前执行项目内复用。配置后改为使用 `fileSetup` 返回的 context，仅在当前文件及其用例重试中复用。所有 YAML 文件、生命周期钩子、用例和重试中的 Node 都接收同一个对象，框架不会在文件切换、用例切换或重试时复制、清空或重新创建它。
+未配置 `fileSetup` 时，`setup` 返回的 `context` 在当前执行项目的所有文件间复用。配置后，每个文件使用各自调用 `fileSetup` 返回的 context。同一文件内的生命周期钩子、用例和重试接收同一个对象；框架不会在用例切换或重试时复制、清空或重新创建它。
 
 例如，某个 Node 将订单 ID 写入 `context.orderId` 后，后续 Node 都能读到这个值，包括下一条用例中的 Node。用例独有的数据需要在准备步骤中重置，或在清理时移除；重试也不会自动恢复 `context` 的初始状态。浏览器页面、登录状态等资源是否重置，同样取决于项目实现。
 
@@ -453,6 +453,8 @@ export default defineTestProject<FileContext, SharedContext>({
 Android、iOS 等平台应在每份文件内创建独立 Device/Agent，并通过团队的设备分配服务独占借用一台物理设备，按正确的逆序登记 Agent 销毁与设备归还。框架不负责创建设备池、重置业务状态或隔离外部账号。只有一台手机或一个桌面时，将 Project 上限保留为 1；仅创建不同 Agent 对象不能隔离物理设备。
 
 fileSetup 失败时，跳过该文件钩子和用例，尝试已登记的清理。单文件设备故障可以让其他独立文件继续执行；Project setup 失败或已确认共享 Browser 断开时停止该 Project。如果准备或清理超时后仍有操作未结束，本次运行停止开始新的文件，并报告待释放资源。超时不代表释放：迟到的资源获取和清理会继续被跟踪，父级资源等待它们实际完成。自定义 Node 已确认共享资源故障时，可以抛出 `@midscene/test` 的 `WorkflowError`，并设置 `code: 'PROJECT_RESOURCE_ERROR'`；仅有页面或会话关闭的通用报错不足以确认共享 Browser 故障。取消或 bail 时，各清理范围共用一个基于 `teardownTimeout` 的收尾时限。bail 等当前尝试结束后跳过后续用例和重试；取消则请求正在执行的操作退出。
+
+Browser 关闭的报错文案不能确定资源归属：Browser 可能由单个文件独占，也可能由 Project 共享。Node 或 `fileSetup` 确认 Project 资源失效后，必须显式报告 `PROJECT_RESOURCE_ERROR`（可直接抛出，也可放在错误的 `cause` 或 `AggregateError.errors` 中），才会停止其他文件。未标明共享资源故障的 Browser 错误仅影响当前文件。
 
 ### 与旧 Project 并发的兼容规则
 

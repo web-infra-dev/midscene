@@ -1,13 +1,16 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { defineNode } from '@midscene/core/internal/test-runner';
+import { WorkflowError, defineNode } from '@midscene/core/internal/test-runner';
 import type {
   CollectedWorkflowDocument,
   WorkflowDocumentRunResult,
 } from '@midscene/core/internal/test-runner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { executeDocumentInvocation } from '../src/cli/document-invocation';
+import {
+  executeDocumentInvocation,
+  isSharedResourceFailure,
+} from '../src/cli/document-invocation';
 import type { PreparedDocumentInvocation } from '../src/cli/execution-plan';
 import * as resultStore from '../src/cli/result-store';
 import type { TestProjectCaseRunResult } from '../src/cli/types';
@@ -62,6 +65,68 @@ const invocationOptions = (runDir: string, retry = 3) => {
     onProgress() {},
   };
 };
+
+describe('resource failure policy', () => {
+  it.each([
+    { policy: true, notification: false },
+    { policy: true, notification: true },
+    { policy: false, notification: true },
+  ])(
+    'classifies independently of notifications: %j',
+    async ({ policy, notification }) => {
+      const runDir = mkdtempSync(join(tmpdir(), 'midscene-failure-policy-'));
+      try {
+        const markProjectFatal = vi.fn();
+        const onUnresolvedResources = vi.fn();
+        await executeDocumentInvocation({
+          ...invocationOptions(runDir, 0),
+          isolatedContext: true,
+          markProjectFatal,
+          ...(policy
+            ? { isProjectResourceFailure: isSharedResourceFailure }
+            : {}),
+          ...(notification ? { onUnresolvedResources } : {}),
+          invocation: {
+            document: collectedDocument('shared resource failure'),
+            retry: { scope: 'case', count: 0 },
+            reportEnabled: false,
+            bindings: {
+              resolveNode: () =>
+                defineNode({
+                  name: 'javascript',
+                  execute() {
+                    throw new WorkflowError('Shared resource failed', {
+                      code: 'PROJECT_RESOURCE_ERROR',
+                    });
+                  },
+                }),
+            },
+          },
+        });
+        expect(markProjectFatal.mock.calls.length > 0).toBe(policy);
+        expect(onUnresolvedResources).not.toHaveBeenCalled();
+      } finally {
+        rmSync(runDir, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it('recognizes explicit ownership through aggregate errors and cyclic causes', () => {
+    const error = new Error('wrapper');
+    error.cause = error;
+    expect(isSharedResourceFailure(error)).toBe(false);
+    expect(
+      isSharedResourceFailure(
+        new AggregateError([
+          error,
+          new WorkflowError('shared failure', {
+            code: 'PROJECT_RESOURCE_ERROR',
+          }),
+        ]),
+      ),
+    ).toBe(true);
+  });
+});
 
 describe('persisted retry decisions', () => {
   it('records host disposal failure and stops the owning Project without rejecting the run', async () => {

@@ -10,7 +10,10 @@ import {
   waitForScopeOperations,
 } from '@midscene/core/internal/test-runner';
 import { createProjectRuntime } from '../engine/project-runtime';
-import { executeDocumentInvocation } from './document-invocation';
+import {
+  executeDocumentInvocation,
+  isSharedResourceFailure,
+} from './document-invocation';
 import type { PreparedExecutionProject } from './execution-plan';
 import type {
   TestExecutionProjectRunResult,
@@ -201,6 +204,7 @@ export async function runPreparedFiles(
         onProgress: (message) => options.onProgress(prepared, message),
         sinks: state,
         isolatedContext: project.fileSetup !== undefined,
+        isProjectResourceFailure: isSharedResourceFailure,
         setupTimeoutMs: options.setupTimeoutMs,
         teardownTimeoutMs: options.teardownTimeoutMs,
         onUnresolvedResources: () => {

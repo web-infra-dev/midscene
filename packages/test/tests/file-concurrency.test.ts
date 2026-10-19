@@ -313,7 +313,11 @@ describe('native file concurrency', () => {
   });
 
   it.each([
-    new Error('Browser has been closed'),
+    new Error('Browser has been closed', {
+      cause: new WorkflowError('Shared Browser disconnected', {
+        code: 'PROJECT_RESOURCE_ERROR',
+      }),
+    }),
     new WorkflowError('Shared device allocation service failed', {
       code: 'PROJECT_RESOURCE_ERROR',
     }),
@@ -427,6 +431,8 @@ describe('native file concurrency', () => {
   });
 
   it.each([
+    'Browser has been closed',
+    'browser.newContext: Target page, context or browser has been closed',
     'BrowserContext has been closed',
     'page.click: Target page, context or browser has been closed',
   ])(
@@ -440,6 +446,22 @@ describe('native file concurrency', () => {
       const result = await run();
       expect(result.status).toBe('failed');
       expect(state.events).toContain('step:web/2.yaml');
+    },
+  );
+
+  it.each(['fileSetup', 'cleanup'])(
+    'does not stop sibling files for an unclassified Browser closure in %s',
+    async (phase) => {
+      const { state, run } = fixture({ global: 1 });
+      const fail = async (key: string) => {
+        if (key === 'web/1.yaml') throw new Error('Browser has been closed');
+      };
+      if (phase === 'fileSetup') state.fileSetup = fail;
+      else state.fileCleanup = fail;
+      const result = await run();
+      expect(result.status).toBe('failed');
+      expect(state.events).toContain('step:web/2.yaml');
+      expect(state.events).toContain('project-end:web');
     },
   );
 

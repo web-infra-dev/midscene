@@ -31,6 +31,8 @@ interface ExecuteDocumentInvocationOptions {
   setupTimeoutMs?: number;
   teardownTimeoutMs?: () => number;
   onUnresolvedResources?(): void;
+  /** Classify failures by resource ownership, independently of notifications. */
+  isProjectResourceFailure?(error: unknown): boolean;
   invocation: PreparedDocumentInvocation;
   project: LoadedExecutionProject<unknown>;
   projectContext: unknown;
@@ -85,9 +87,8 @@ const documentHasFatalError = (result: WorkflowDocumentRunResult): boolean =>
   (result.teardownErrors ?? []).some(isFatalDeviceError) ||
   !!result.executionErrors?.some(isResourceRecoveryError);
 
-// A disconnected Browser can be shared by all file environments in a Project.
-// Device-offline errors belong to the exclusive file lease in fileSetup mode.
-const isSharedResourceFailure = (error: unknown): boolean => {
+// Only an explicit ownership signal can establish a Project-wide failure.
+export const isSharedResourceFailure = (error: unknown): boolean => {
   const seen = new Set<object>();
   const pending: unknown[] = [error];
   while (pending.length && seen.size < 50) {
@@ -96,19 +97,10 @@ const isSharedResourceFailure = (error: unknown): boolean => {
     seen.add(item);
     const failure = item as {
       code?: string;
-      message?: string;
       cause?: unknown;
       errors?: unknown[];
     };
-    const message =
-      typeof failure.message === 'string' ? failure.message.trim() : '';
-    if (
-      failure.code === 'PROJECT_RESOURCE_ERROR' ||
-      /^(?:browser\.[\w]+:.*(?:closed|disconnected)|browser (?:has been |was |is )?(?:closed|disconnected)|browser connection.*closed)/i.test(
-        message,
-      )
-    )
-      return true;
+    if (failure.code === 'PROJECT_RESOURCE_ERROR') return true;
     if (failure.cause) pending.push(failure.cause);
     if (Array.isArray(failure.errors))
       pending.push(...failure.errors.slice(0, 50));
@@ -121,19 +113,21 @@ export async function executeDocumentInvocation(
   options: ExecuteDocumentInvocationOptions,
 ): Promise<void> {
   const { invocation, project, sinks } = options;
+  const isProjectResourceFailure =
+    options.isProjectResourceFailure ?? (() => false);
   const { document } = invocation;
   const documentRetry = invocation.retry.scope === 'document';
   const attempts: WorkflowDocumentExecutionResult[] = [];
   const fileSetup = invocation.bindings.documentSetup;
   const documentSetup =
-    options.onUnresolvedResources && fileSetup
+    options.isProjectResourceFailure && fileSetup
       ? {
           ...fileSetup,
           async setup(ctx: Parameters<typeof fileSetup.setup>[0]) {
             try {
               return await fileSetup.setup(ctx);
             } catch (error) {
-              if (isSharedResourceFailure(error)) options.markProjectFatal();
+              if (isProjectResourceFailure(error)) options.markProjectFatal();
               throw error;
             }
           },
@@ -178,14 +172,11 @@ export async function executeDocumentInvocation(
             (step) =>
               step.error &&
               (isFatalDeviceError(step.error) ||
-                (!!options.onUnresolvedResources &&
-                  isSharedResourceFailure(step.error))),
+                isProjectResourceFailure(step.error)),
           ) ||
           (run.teardownErrors ?? []).some(
             (error) =>
-              isFatalDeviceError(error) ||
-              (!!options.onUnresolvedResources &&
-                isSharedResourceFailure(error)),
+              isFatalDeviceError(error) || isProjectResourceFailure(error),
           ),
         onCaseStart: (collectedCase) => {
           options.onProgress(
@@ -197,10 +188,7 @@ export async function executeDocumentInvocation(
           options.onProgress(`${indent}→ ${formatStep(info)}`);
         },
         onStepResult: async (info, result) => {
-          if (
-            options.onUnresolvedResources &&
-            isSharedResourceFailure(result.error)
-          )
+          if (isProjectResourceFailure(result.error))
             options.markProjectFatal();
           await invocation.bindings.onStepResult?.(info, result);
           options.onProgress(formatStepResult(info, result));
@@ -218,15 +206,14 @@ export async function executeDocumentInvocation(
         },
         onCaseOutcome: (outcome) => {
           if (
-            options.onUnresolvedResources &&
             outcome.attempts?.some(
               (attempt) =>
                 [
                   ...attempt.beforeEach,
                   ...attempt.steps,
                   ...attempt.afterEach,
-                ].some((step) => isSharedResourceFailure(step.error)) ||
-                attempt.teardownErrors?.some(isSharedResourceFailure),
+                ].some((step) => isProjectResourceFailure(step.error)) ||
+                attempt.teardownErrors?.some(isProjectResourceFailure),
             )
           )
             options.markProjectFatal();
@@ -302,7 +289,6 @@ export async function executeDocumentInvocation(
       if (!options.isolatedContext && documentHasFatalError(execution.document))
         options.markProjectFatal();
       if (
-        options.onUnresolvedResources &&
         [
           ...execution.document.beforeAll,
           ...execution.document.afterAll,
@@ -312,7 +298,7 @@ export async function executeDocumentInvocation(
           ...(execution.document.teardownErrors ?? []).map((error) => ({
             error,
           })),
-        ].some(({ error }) => isSharedResourceFailure(error))
+        ].some(({ error }) => isProjectResourceFailure(error))
       )
         options.markProjectFatal();
       const owners = [
