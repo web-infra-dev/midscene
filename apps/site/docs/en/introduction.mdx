@@ -67,7 +67,7 @@ Visual localization does not depend on a particular UI rendering stack. Platform
 
 ## A new E2E testing framework designed for natural language {#midscene-test}
 
-Midscene Test (`@midscene/test`) is designed from the ground up for natural-language E2E testing. Write actions and assertions in YAML, extend test steps with TypeScript Nodes, and manage setup, cleanup, retries, and execution reports within one framework. [Get started with Midscene Test](./midscene-test/use)
+Midscene Test (`@midscene/test`) is a natural-language E2E testing framework designed for the AI era. It combines AI’s flexibility with the determinism of code in each test case: natural language expresses actions and expectations, while code handles business logic that requires precise control. Test flows have a clear, readable structure that both people and AI agents can understand, write, and maintain, allowing test intent and its underlying implementation to evolve independently. [Get started with Midscene Test](./midscene-test/use)
 
 ### AI and business operations in one YAML file {#ai-and-nodes}
 
@@ -77,9 +77,11 @@ Each YAML step calls a Node: an AI operation, a platform operation, or a custom 
   <TestFramework hideHeading />
 </div>
 
-### Customize your test project {#nodes-and-spec}
+### Test cases maintained by people and AI {#nodes-and-spec}
 
-Extend Midscene Test with TypeScript Nodes for your business operations. Register them to make them callable from YAML, then generate a Markdown Node Spec describing all Nodes registered for the current execution project, including AI, platform, and custom business operations and their inputs. People and AI agents can use the Spec to reference these Nodes in test cases. [Develop custom Nodes](./midscene-test/extend)
+As your product evolves, your test project can grow a library of reusable business operations while keeping test intent clear in each case. People and AI agents can use the same capability reference to understand, write, and update cases, while the implementation of business operations is maintained independently.
+
+Midscene Test provides custom Nodes for these business capabilities and generates a Markdown Node Spec from the operations registered in the project, giving people and AI agents a shared reference for authoring test cases. [Explore custom Nodes](./midscene-test/extend)
 
 <div className="rp-not-doc introduction-block">
   <TestProject hideHeading />
@@ -93,8 +95,10 @@ Extend Midscene Test with TypeScript Nodes for your business operations. Registe
 
 ## Next steps {#next-steps}
 
+- **Understand the basics**: Learn how the GUI Agent works and explore its core capabilities in [The Basics](./basics)
 - **Try visual interaction**: Follow the [quick start](./quick-start) to try natural-language actions and assertions
 - **Create a test project**: Write and run YAML test cases with [Midscene Test](./midscene-test/use)
-- **Let AI coding agents operate your UI**: Connect them through [Midscene Skills](./skills)
+
+To let AI coding agents operate your UI, explore [Midscene Skills](./skills).
 
 </div>

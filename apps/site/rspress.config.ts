@@ -183,6 +183,10 @@ export default defineConfig(async () => {
             link: '/quick-start',
           },
           {
+            text: 'Create a test project',
+            link: '/midscene-test/use',
+          },
+          {
             text: 'Model Selection Guide',
             link: '/model-selection',
           },
@@ -369,6 +373,10 @@ export default defineConfig(async () => {
           {
             text: '快速体验 GUI Agent',
             link: '/zh/quick-start',
+          },
+          {
+            text: '创建测试项目',
+            link: '/zh/midscene-test/use',
           },
           {
             text: '模型选择指南',

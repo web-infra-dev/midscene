@@ -67,7 +67,7 @@ E2E 测试的初衷是从用户视角验证完整流程。Midscene 通过视觉�
 
 ## 全新设计的自然语言 E2E 测试框架 {#midscene-test}
 
-Midscene Test（`@midscene/test`）是为自然语言 E2E 测试全新设计的框架。在 YAML 中用自然语言描述操作与断言，通过 TypeScript Node 扩展测试步骤，并由框架统一管理数据准备、清理、重试与执行报告。 [开始使用 Midscene Test](./midscene-test/use)
+Midscene Test（`@midscene/test`）是面向 AI 时代设计的自然语言 E2E 测试框架。它将 AI 的灵活性与代码的确定性结合在同一份用例中：用自然语言表达操作意图与预期，用代码承载需要精确控制的业务逻辑。测试流程以清晰、可读的结构呈现，让人和 AI 都能理解、编写和维护，也让测试意图与底层实现能够独立演进。[开始使用 Midscene Test](./midscene-test/use)
 
 ### AI 操作与业务操作写在同一个 YAML 里 {#ai-and-nodes}
 
@@ -77,9 +77,11 @@ Midscene Test（`@midscene/test`）是为自然语言 E2E 测试全新设计的�
   <TestFramework hideHeading />
 </div>
 
-### 定制属于自己的测试工程 {#nodes-and-spec}
+### 让人和 AI 共同维护测试用例 {#nodes-and-spec}
 
-Midscene Test 提供扩展机制，用 TypeScript 将业务操作定义为 Node，注册后即可在 YAML 中调用。再生成 Markdown Node Spec，描述当前执行项目注册的全部 Node 及其输入参数，包括 AI、平台和自定义业务操作，让人和 AI 都能据此在用例中引用这些 Node。 [开发自定义 Node](./midscene-test/extend)
+随着业务发展，测试工程可以持续积累可复用的业务操作，让用例保持对测试意图的清晰表达。人和 AI 可以基于同一份能力说明理解、编写和修改用例，业务操作的实现则可以独立维护。
+
+Midscene Test 通过自定义 Node 承载这些业务能力，并根据项目已注册的操作生成 Markdown 格式的 Node Spec，为人和 AI 提供一致的用例编写依据。[了解扩展机制](./midscene-test/extend)
 
 <div className="rp-not-doc introduction-block">
   <TestProject hideHeading />
@@ -93,8 +95,10 @@ Midscene Test 提供扩展机制，用 TypeScript 将业务操作定义为 Node�
 
 ## 下一步 {#next-steps}
 
+- **了解基本概念**：阅读[基础概念](./basics)，了解 GUI Agent 的工作方式与核心能力
 - **体验视觉交互**：通过[快速开始](./quick-start)尝试自然语言操作与断言
 - **创建测试工程**：用 [Midscene Test](./midscene-test/use) 编写并运行 YAML 用例
-- **让 AI 编程 Agent 操作界面**：接入 [Midscene Skills](./skills)
+
+如果希望让 AI 编程 Agent 操作界面，可以了解 [Midscene Skills](./skills)。
 
 </div>
