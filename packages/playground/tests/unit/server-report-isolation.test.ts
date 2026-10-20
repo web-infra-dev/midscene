@@ -296,7 +296,7 @@ describe('PlaygroundServer independent persisted reports', () => {
         screenshotBase64: 'AQ==',
       });
       rs.spyOn(
-        (agent as any).reportState.generator,
+        (agent as any).reportManager.reportState.generator,
         'finalize',
       ).mockRejectedValueOnce(new Error('report finalization failed'));
       return 'done';
@@ -438,7 +438,7 @@ describe('PlaygroundServer independent persisted reports', () => {
     });
     rs.spyOn(agent, 'aiAct').mockImplementation(async () => {
       await agent.recordToReport('closing run', { screenshotBase64: 'AAAA' });
-      const generator = (agent as any).reportState.generator;
+      const generator = (agent as any).reportManager.reportState.generator;
       const finalize = generator.finalize.bind(generator);
       rs.spyOn(generator, 'finalize').mockImplementation(async () => {
         started();

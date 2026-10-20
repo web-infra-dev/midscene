@@ -69,7 +69,7 @@ function createFixtureAgent(
     },
   );
   // Use a real generator at an isolated path, without changing global run dirs.
-  (agent as any).reportState.generator = new ReportGenerator({
+  (agent as any).reportManager.reportState.generator = new ReportGenerator({
     reportPath,
     screenshotMode,
     autoPrint: false,

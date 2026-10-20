@@ -2,6 +2,7 @@ import { Agent } from '@/agent';
 import { actionHoverParamSchema } from '@/device';
 import { TaskExecutionError } from '@/task-runner';
 import { describe, expect, it, rs } from '@rstest/core';
+import { installAgentReportManager } from './test-helpers/agent-report-manager';
 
 const planningModel = {
   config: { slot: 'default' },
@@ -21,7 +22,7 @@ const createInterfaceStub = () =>
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  (agent as any).reportState = { activeOperations: new Set() };
+  installAgentReportManager(agent);
   const taskExecutor = {
     action: rs.fn(async (..._args: unknown[]) => ({
       output: {

@@ -1,9 +1,10 @@
 import { Agent } from '@/agent';
 import { describe, expect, it, rs } from '@rstest/core';
+import { installAgentReportManager } from './test-helpers/agent-report-manager';
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  (agent as any).reportState = { activeOperations: new Set() };
+  installAgentReportManager(agent);
   (agent as any).opts = {};
   (agent as any).callActionInActionSpace = rs.fn(async () => undefined);
   return agent;

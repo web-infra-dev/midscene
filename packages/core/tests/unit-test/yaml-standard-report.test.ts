@@ -46,7 +46,7 @@ const createAgent = (enabled = true) => {
     },
   );
   if (enabled) {
-    (agent as any).reportState.generator = new ReportGenerator({
+    (agent as any).reportManager.reportState.generator = new ReportGenerator({
       reportPath: join(directory, 'unchanged-name.html'),
       screenshotMode: 'inline',
       autoPrint: false,
@@ -301,7 +301,7 @@ describe('old YAML entries publish standard Runner reports', () => {
         screenshotMode: mode,
         autoPrint: false,
       });
-      (agent as any).reportState.generator = generator;
+      (agent as any).reportManager.reportState.generator = generator;
       const cleanupError = new Error('device cleanup failed');
       if (cleanupFails)
         rs.spyOn(agent.interface, 'destroy').mockRejectedValue(cleanupError);

@@ -97,7 +97,7 @@ describe('Agent independent report lifecycle', () => {
         const imageIds = agent.dump
           .collectAllScreenshots()
           .map((screenshot) => screenshot.id);
-        const generator = (agent as any).reportState.generator;
+        const generator = (agent as any).reportManager.reportState.generator;
         expect(generator.executionsByKey.size).toBe(2);
         const reportPath = await agent.finalizeReport();
         expect(generator.executionsByKey.size).toBe(0);
@@ -231,7 +231,8 @@ describe('Agent independent report lifecycle', () => {
   it('shares concurrent resets and prevents actions until reset completes', async () => {
     createAgent();
     await agent.recordToReport('preceding run', { screenshotBase64: 'AAAA' });
-    const generator = (agent as any).reportState.generator as ReportGenerator;
+    const generator = (agent as any).reportManager.reportState
+      .generator as ReportGenerator;
     const finalize = generator.finalize.bind(generator);
     let release!: () => void;
     const pending = new Promise<void>((resolve) => {
@@ -286,7 +287,7 @@ describe('Agent independent report lifecycle', () => {
       const dispose = rs.fn(() => {
         // Disposal is part of the public operation too.
         expect(
-          (agent as any).reportState.activeOperations.size,
+          (agent as any).reportManager.reportState.activeOperations.size,
         ).toBeGreaterThan(0);
       });
       const wait = async () => {
@@ -489,8 +490,10 @@ describe('Agent independent report lifecycle', () => {
       createAgent();
       await agent.resetDump();
       const generator = (
-        agent as unknown as { reportState: { generator: ReportGenerator } }
-      ).reportState.generator;
+        agent as unknown as {
+          reportManager: { reportState: { generator: ReportGenerator } };
+        }
+      ).reportManager.reportState.generator;
       const error = new Error(`injected ${failure} failure`);
       if (failure === 'queued write') {
         rs.spyOn(

@@ -73,7 +73,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportState.generator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     await agent.recordToReport('snapshot', { content: 'check attributes' });
 
@@ -103,7 +103,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportState.generator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     const listener = rs.fn();
     agent.onDumpUpdate = listener;
@@ -146,7 +146,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportState.generator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     const providedScreenshot =
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB';
@@ -182,7 +182,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportState.generator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     const beforeScreenshot = 'before';
     const afterScreenshot = 'data:image/jpg;base64,after';
@@ -307,7 +307,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportState.generator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     await expect(
       agent.recordToReport('empty screenshots', {
@@ -343,7 +343,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportState.generator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     await expect(
       agent.recordToReport('conflicting screenshots', {
@@ -373,7 +373,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportState.generator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     const error = {
       message: 'javascript gate failed',
@@ -436,7 +436,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportState.generator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     let maxDumpLength = 0;
     let leakedBase64Count = 0;
@@ -490,7 +490,7 @@ describe('Agent dump update screenshot serialization', () => {
       },
     );
 
-    (agent as any).reportState.generator = {
+    (agent as any).reportManager.reportState.generator = {
       onExecutionUpdate: rs.fn(),
       flush: rs.fn(async () => {
         order.push('report.flush');
