@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p7-061",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Compare the store age with the 15-year threshold, then select the product image."
+  },
+  "instruction": {
+    "en": "Select product images from stores with more than 15 years of history",
+    "zh": "选择大于15年老店的商品图片"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [140.0, 2903.0, 651.0, 2392.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L1136",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#81",
+    "image": {
+      "format": "png",
+      "sha256": "63974862a6e9044b2caf282c084010a02f2bf5736559ef2c0fb8a23ec7cd0bf0"
+    },
+    "patch": null,
+    "collectedAt": 1792485871017
+  }
+}

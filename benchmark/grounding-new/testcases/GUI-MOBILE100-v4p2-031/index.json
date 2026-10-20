@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-031",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Turn off the vibration function",
+    "zh": "关闭振动功能"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1708.0, 1001.0, 1783.0, 866.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1234",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=88",
+    "image": {
+      "format": "png",
+      "sha256": "0886a9de956d7fa1de0bc6262a2bbb052e8be454e04e38feb593d6b98abef6c9"
+    },
+    "patch": null,
+    "collectedAt": 1792485870232
+  }
+}

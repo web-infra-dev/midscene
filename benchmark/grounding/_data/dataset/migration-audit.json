@@ -1,13 +1,16 @@
 {
-  "version": "web-primary-v3-mobile-primary-v1-20261008",
+  "version": "web-primary-v3-mobile-primary-v1-webclick-png-20261020",
   "source_batch_id": "web-mobile200-primary-astra-20261008-141330",
   "source_manifest_sha256": "fa0ef7b8b2583f1d105bf72d13825fa6b1fcf6009be338c3610920330ee733b2",
-  "destination_manifest_sha256": "ce2395b3451df13e3362a0f11e2d27abd949d05695cce4cd7f3d97b78e7c7388",
-  "source_index_hashes_match": true,
-  "all_200_queries_gt_and_image_bytes_unchanged": true,
+  "destination_manifest_sha256": "d8b1b0a6c02bf500f193158775d568dbe3ca420d8c16eab04fb3c676bd66e41e",
+  "source_index_hashes_match": false,
+  "all_200_queries_gt_and_image_bytes_unchanged": false,
   "allowed_metadata_changes": [
     "image_path",
-    "original_dataset_root"
+    "original_dataset_root",
+    "query_zh",
+    "image_sha256",
+    "image_bytes"
   ],
   "changes": [
     {
@@ -89,11 +92,19 @@
       "fields": {
         "image_path": {
           "before": "images/GUI-WEB100-v4p8-007.jpg",
-          "after": "../cases/GUI-WEB100-v4p8-007/GUI-WEB100-v4p8-007.jpg"
+          "after": "../cases/GUI-WEB100-v4p8-007/GUI-WEB100-v4p8-007.png"
         },
         "original_dataset_root": {
           "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
           "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        },
+        "image_sha256": {
+          "before": "5971971746cc3494e0355da48ee4bc468fa8185cf7ab68e43f18fc55bf957545",
+          "after": "3f065fe13ee5cdf96bb8a5302c82c50458000b0c5d52333d4bd6559863d9d555"
+        },
+        "image_bytes": {
+          "before": 118331,
+          "after": 154337
         }
       }
     },
@@ -1162,11 +1173,19 @@
       "fields": {
         "image_path": {
           "before": "images/GUI-WEB100-v4p5-096.jpg",
-          "after": "../cases/GUI-WEB100-v4p5-096/GUI-WEB100-v4p5-096.jpg"
+          "after": "../cases/GUI-WEB100-v4p5-096/GUI-WEB100-v4p5-096.png"
         },
         "original_dataset_root": {
           "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
           "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        },
+        "image_sha256": {
+          "before": "34e4bd6d0ba3e5876b6e8ac807d251d702c08aa0247c2def776a21c88247962a",
+          "after": "4da8bb37f7c43c46d1d3b93976c42d65c86bd40ffe7461994a75a8320347058f"
+        },
+        "image_bytes": {
+          "before": 165031,
+          "after": 434264
         }
       }
     },
@@ -1175,11 +1194,19 @@
       "fields": {
         "image_path": {
           "before": "images/GUI-WEB100-v4p5-097.jpg",
-          "after": "../cases/GUI-WEB100-v4p5-097/GUI-WEB100-v4p5-097.jpg"
+          "after": "../cases/GUI-WEB100-v4p5-097/GUI-WEB100-v4p5-097.png"
         },
         "original_dataset_root": {
           "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
           "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        },
+        "image_sha256": {
+          "before": "056bebcb1753869542a9ecdfe1fb922706149e37b11f02d67534c0f29732846c",
+          "after": "7bb581eeddb56b9b2a568d610ca2fefc1063f3dcc8563bc7117dc35ea62a5165"
+        },
+        "image_bytes": {
+          "before": 44991,
+          "after": 53001
         }
       }
     },
@@ -1188,11 +1215,19 @@
       "fields": {
         "image_path": {
           "before": "images/GUI-WEB100-v4p4-098.jpg",
-          "after": "../cases/GUI-WEB100-v4p4-098/GUI-WEB100-v4p4-098.jpg"
+          "after": "../cases/GUI-WEB100-v4p4-098/GUI-WEB100-v4p4-098.png"
         },
         "original_dataset_root": {
           "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
           "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        },
+        "image_sha256": {
+          "before": "f773b6476d7395d6e2d85d2a8ba6fe8db057990625c2246a4a44fc2e5ce207df",
+          "after": "c37514d5c94340a3933ea8ff203d53cfafdc9b196cf118e04a7bd92100fcffc6"
+        },
+        "image_bytes": {
+          "before": 85142,
+          "after": 124249
         }
       }
     },
@@ -1201,11 +1236,19 @@
       "fields": {
         "image_path": {
           "before": "images/GUI-WEB100-v4p4-099.jpg",
-          "after": "../cases/GUI-WEB100-v4p4-099/GUI-WEB100-v4p4-099.jpg"
+          "after": "../cases/GUI-WEB100-v4p4-099/GUI-WEB100-v4p4-099.png"
         },
         "original_dataset_root": {
           "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
           "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        },
+        "image_sha256": {
+          "before": "0115a25b44325a76e84a129e4848ac9ba0a538692858599048e252dd9a6eb8fc",
+          "after": "23b7ed9111bc8533340aa15cb2f22460bc8c8bc1db6463e6079f4f6437fc39aa"
+        },
+        "image_bytes": {
+          "before": 59425,
+          "after": 91805
         }
       }
     },
@@ -1214,11 +1257,19 @@
       "fields": {
         "image_path": {
           "before": "images/GUI-WEB100-v4p4-100.jpg",
-          "after": "../cases/GUI-WEB100-v4p4-100/GUI-WEB100-v4p4-100.jpg"
+          "after": "../cases/GUI-WEB100-v4p4-100/GUI-WEB100-v4p4-100.png"
         },
         "original_dataset_root": {
           "before": "/Users/bytedance/Documents/Codex/2026-09-23/wo-xi/worktrees/midscene-grounding/benchmark/grounding/_data/dataset",
           "after": "prior midscene-grounding benchmark/grounding/_data/dataset snapshot"
+        },
+        "image_sha256": {
+          "before": "a451bc91b3e3861cc9ee87c49b1ad41f4717a67d6c408860712447622d5ec520",
+          "after": "de9fe1bb3890542c06573f1a946457751c3a3d71df56fc2b62ca57011a0f7451"
+        },
+        "image_bytes": {
+          "before": 121950,
+          "after": 279685
         }
       }
     },
@@ -1768,6 +1819,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-061.png",
           "after": "../cases/GUI-MOBILE100-v4p2-061/GUI-MOBILE100-v4p2-061.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "打开无痕搜索"
         }
       }
     },
@@ -1786,6 +1841,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-063.png",
           "after": "../cases/GUI-MOBILE100-v4p2-063/GUI-MOBILE100-v4p2-063.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "避开城市的限行区域"
         }
       }
     },
@@ -1795,6 +1854,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-064.png",
           "after": "../cases/GUI-MOBILE100-v4p2-064/GUI-MOBILE100-v4p2-064.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "听歌识曲"
         }
       }
     },
@@ -1822,6 +1885,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-067.png",
           "after": "../cases/GUI-MOBILE100-v4p2-067/GUI-MOBILE100-v4p2-067.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "关闭所有语音播报"
         }
       }
     },
@@ -1840,6 +1907,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-069.png",
           "after": "../cases/GUI-MOBILE100-v4p2-069/GUI-MOBILE100-v4p2-069.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "切换到符号输入模式"
         }
       }
     },
@@ -1849,6 +1920,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-070.png",
           "after": "../cases/GUI-MOBILE100-v4p2-070/GUI-MOBILE100-v4p2-070.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "关闭指纹识别解锁功能"
         }
       }
     },
@@ -2122,5 +2197,39 @@
         }
       }
     }
-  ]
+  ],
+  "metadata_corrections": [
+    {
+      "date": "2026-10-20",
+      "field": "query_zh",
+      "cases": [
+        "GUI-MOBILE100-v4p2-061",
+        "GUI-MOBILE100-v4p2-063",
+        "GUI-MOBILE100-v4p2-064",
+        "GUI-MOBILE100-v4p2-067",
+        "GUI-MOBILE100-v4p2-069",
+        "GUI-MOBILE100-v4p2-070"
+      ],
+      "previous_manifest_sha256": "ce2395b3451df13e3362a0f11e2d27abd949d05695cce4cd7f3d97b78e7c7388",
+      "source": "Each case retained official source_record.instruction_zh from VenusBench-GD revision 7e5714566f912203c9989b06ef4c08bdf913e3fa.",
+      "scope": "Auxiliary Chinese display metadata only. Evaluation prompts (query/index.prompt), GT, image bytes, and original source records remain unchanged."
+    }
+  ],
+  "all_200_queries_and_gt_unchanged": true,
+  "unchanged_image_bytes_count": 194,
+  "unchanged_index_files_count": 194,
+  "image_corrections": {
+    "date": "2026-10-20",
+    "record_file": "source-image-restoration.json",
+    "record_sha256": "91f4472e70eaba659eb692c06ccb847ea140fde1a9317a01b74aa0e7da21a6d4",
+    "cases": [
+      "GUI-WEB100-v4p4-098",
+      "GUI-WEB100-v4p4-099",
+      "GUI-WEB100-v4p4-100",
+      "GUI-WEB100-v4p5-096",
+      "GUI-WEB100-v4p5-097",
+      "GUI-WEB100-v4p8-007"
+    ],
+    "scope": "Six cached-preview JPEG screenshots replaced byte-for-byte with the pinned official Parquet embedded PNGs. Runtime index changes are limited to .jpg -> .png filenames. All prompts, GT, dimensions, case IDs and source records remain unchanged. Historical evaluation results refer to the earlier JPEG snapshot."
+  }
 }

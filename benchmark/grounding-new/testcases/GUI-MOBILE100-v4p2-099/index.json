@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-099",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "Save is visible but has a light-blue background; there is no Save button with the requested red background, so this is an official Refusal case."
+  },
+  "instruction": {
+    "en": "Find the \"Save\" button with a red background in the lower-left corner of the interface.",
+    "zh": "在界面的左下角中找到红色背景的”Save“按钮"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L5861",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#row=837",
+    "image": {
+      "format": "png",
+      "sha256": "4d054894b7c274c37c1c6ae299f87e8ccde2e733379433ff8e28055ca1a265db"
+    },
+    "patch": null,
+    "collectedAt": 1792485870330
+  }
+}

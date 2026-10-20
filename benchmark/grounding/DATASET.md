@@ -1,12 +1,18 @@
 # Primary-factor grounding dataset / 十主考点定位测试集
 
-Frozen revision: **Web primary v3 + Mobile primary v1, 2026-10-08**, 200 cases.
-This is the exact query/GT/image selection evaluated in batch
-`web-mobile200-primary-astra-20261008-141330`. Membership and order are fixed by
+Current revision: **Web primary v3 + Mobile primary v1, WebClick PNG restoration,
+2026-10-20**, 200 cases. Revision ID:
+`web-primary-v3-mobile-primary-v1-webclick-png-20261020`.
+The query/GT roster follows batch `web-mobile200-primary-astra-20261008-141330`,
+but six WebClick images now use official PNG bytes instead of the evaluated JPEG
+snapshots. The restoration made no model calls; historical scores belong to the
+earlier image revision. Membership and order are fixed by
 `_data/dataset/case_names.json`; historical version numbers in case IDs are retained.
 
-固定版本：**Web primary v3 + Mobile primary v1，2026-10-08，共 200 题**。
-query、GT 与图片均为上述批次评测的版本；成员及顺序以
+当前版本：**Web primary v3 + Mobile primary v1，WebClick PNG 恢复版，2026-10-20，共 200 题**。
+版本 ID 为 `web-primary-v3-mobile-primary-v1-webclick-png-20261020`。
+query、GT 名单沿用上述评测批次，但六张 WebClick 图片已从当时的 JPEG 快照恢复为
+官方 PNG 字节。本次恢复未调用模型，历史成绩属于此前的图片版本。成员及顺序以
 `_data/dataset/case_names.json` 为准，保留 case ID 中的历史版本号。
 
 ## Composition and selection / 配额与筛选标准
@@ -18,8 +24,8 @@ not by themselves establish a statistically orthogonal factorial design.
 
 | Primary factor / 主考点 | Web | Mobile | Selection criterion / 筛选标准 |
 | --- | ---: | ---: | --- |
-| Element basic / 直接元素定位 | 20 | 20 | Visible text or appearance directly identifies the target / 直接根据可见文字或外观定位 |
-| Unfamiliar Icon / 不常见图标 | 5 | 5 | Recognize an application/domain-specific symbol / 识别应用或领域专用符号 |
+| Basic Element / 直接元素定位 | 20 | 20 | Visible text or appearance directly identifies the target / 直接根据可见文字或外观定位 |
+| Specialized Icon / 专用图标 | 5 | 5 | Recognize an application/domain-specific symbol / 识别应用或领域专用符号 |
 | Small Target / 小目标 | 10 | 10 | A small visible landing target among nearby content / 小落点及邻近干扰 |
 | Color Recognition / 颜色识别 | 5 | 5 | Color distinguishes similarly shaped candidates / 同形或近似形状，必须按颜色区分 |
 | Functional / 功能意图定位 | 20 | 20 | Map intent to a visible functional control / 从意图判断功能入口 |
@@ -29,6 +35,12 @@ not by themselves establish a statistically orthogonal factorial design.
 | Disambiguation / 重复元素消歧 | 5 | 5 | An explicit anchor distinguishes repeated targets / 用明确锚点区分重复候选 |
 | Refusal / 目标不存在 | 5 | 5 | Official no-target annotation and no satisfying visible target / 官方无目标标注，画面中无满足全部条件的目标 |
 | Total / 合计 | 100 | 100 | |
+
+Basic Element and Specialized Icon are the current display names for the
+`element` and `unfamiliar` primary factors. Frozen dataset metadata retains its
+original labels.
+
+Basic Element 和 Specialized Icon 分别是 `element` 和 `unfamiliar` 主考点的当前展示名称；冻结题库元数据保留原名称。
 
 `primary_factor`, `primary_factor_reason`, secondary tags, and original benchmark
 categories remain in the manifest. Mobile selection standards include the exact
@@ -41,7 +53,7 @@ understanding, and multiple constraints/association, four cases each.
 名单见 `mobile-search-standards.json`，两端推理多样性见各自 reasoning-diversity 记录。
 Mobile 推理分数值比较、时间日历、状态角色、语义理解、多条件关联，各四题。
 
-Unfamiliar-icon rarity is a reviewer judgment. The Mobile small-target selection
+Specialized-icon selection and rarity are reviewer judgments. The Mobile small-target selection
 uses a 360-pixel short-side reference scale, GT short edge ≤28 pixels and area
 ≤0.5%; this is a curation threshold, not physical device dp or an official metric.
 
@@ -81,9 +93,12 @@ conversion notes are retained per row.
 
 ## GT and scoring / GT 与计分
 
-- Queries, GT coordinates, and original image bytes are unchanged from the
-  evaluated snapshot. Existing rounded/unrounded conversions remain as recorded.
-  / query、GT 和原图与已评测快照一致；旧题逐题保留已有取整或非取整转换。
+- All 200 evaluation prompts and GT coordinates are unchanged from the earlier
+  evaluated snapshot. Six WebClick images were restored to official PNG bytes;
+  the other 194 images are unchanged. Existing rounded/unrounded GT conversions
+  remain as recorded.
+  / 200 题评测指令和 GT 与此前已评测快照一致；六张 WebClick 图片恢复为官方 PNG，
+  其余 194 张图片未变。旧题逐题保留已有取整或非取整 GT 转换。
 - New normalized GT uses decoded image width/height without rounding or padding.
   / 新题归一化 GT 乘实际解码图片尺寸，不取整、不扩大框。
 - FineState fine cases use the original locate instruction and current-state
@@ -112,14 +127,15 @@ recorded in `refusal-selection.json`; they are not a random benchmark sample.
 _data/
   cases/<case_name>/
     index.json                   # Query, GT, primary factor, tags, expected outcome
-    <case_name>.png|jpg           # Unmodified original screenshot bytes
+    <case_name>.png|jpg           # Current evaluation screenshot bytes
   dataset/
     case_names.json              # Ordered authoritative 200-case roster
     manifest.jsonl               # Portable paths and complete source metadata
-    image-hashes.json            # Original image SHA-256 per case
-    case-index-hashes.json       # Evaluated runtime index SHA-256 per case
+    image-hashes.json            # Current image SHA-256 per case
+    case-index-hashes.json       # Current runtime index SHA-256 per case
     audit.json                   # Current composition, source counts, snapshot hashes
-    migration-audit.json         # Path-only metadata changes and semantic/byte checks
+    migration-audit.json         # Manifest metadata changes and semantic/byte checks
+    source-image-restoration.json # Official PNG provenance and before/after hashes
     web-audit.json               # Original Web v3 curation receipt
     mobile-audit.json            # Original Mobile v1 curation receipt
     *-official-source-verification.json # Web fine / all Mobile source checks
@@ -130,13 +146,28 @@ _data/
 Image paths resolve relative to `_data/dataset/`; index image filenames resolve
 relative to their case folder. Historical `prior_image_path` fields are provenance
 text, not runtime dependencies. `original_dataset_root` is a portable historical
-snapshot label. Only these path fields differ from the evaluated manifest;
-`migration-audit.json` records each change. All 200 evaluated index files and
-image bytes are copied exactly. Original source records are unchanged.
+snapshot label. Path adaptations, six corrected auxiliary `query_zh` values and
+the six WebClick image restorations differ from the evaluated snapshot;
+`migration-audit.json` records the manifest changes.
+On 2026-10-20, Mobile cases 061/063/064/067/069/070 restored the official Chinese
+text retained in their source records. All 200 evaluation prompts (`query` /
+`index.prompt`), GT boxes, image dimensions, case IDs and order remain unchanged.
+The six restored cases use `.png` index filenames; the other 194 index files and
+image files are byte-for-byte unchanged. `source-image-restoration.json` records
+the pinned WebClick revision, Parquet hashes, official PNG hashes and before/after
+image/index hashes. Original source records and the evaluated snapshot's historical
+manifest hash are retained. New results record the current revision ID and
+integrity hashes in `versions.dataset`.
 
 图片路径相对于 `_data/dataset/`；index 图片名相对于所在 case 目录。旧图片路径只用于
-历史溯源，不参与加载；旧本机根路径改为历史快照标签。迁移仅适配这些路径元数据，
-逐题记录见 `migration-audit.json`。200 份已评测 index 和原图按字节复制，原始来源记录未改。
+历史溯源，不参与加载；旧本机根路径改为历史快照标签。与已评测 manifest 的差异包括
+路径适配、2026-10-20 对 Mobile 061/063/064/067/069/070 六题 `query_zh` 的修正，
+以及六张 WebClick 图片恢复；中文取自各题保留的官方来源记录，manifest 逐题差异见
+`migration-audit.json`。200 题实际评测指令（`query` / `index.prompt`）、GT、图片尺寸、
+题目 ID 和顺序未变。六题 index 图片名改为 `.png`，其余 194 份 index 和图片字节未变。
+`source-image-restoration.json` 记录固定 WebClick 版本、Parquet 哈希、官方 PNG 哈希及
+图片/index 修改前后的哈希。原始来源记录和已评测快照的历史 manifest 哈希保留。
+新结果的 `versions.dataset` 记录当前版本 ID 和一致性哈希。
 
 Existing `source-validation.json`, `secondary-review.json`,
 `refusal-semantic-review.json`, and `review-evidence/` are historical curation
@@ -147,11 +178,14 @@ Original Web/Mobile curation receipts retain their pre-evaluation status wording
 为对应 case 的历史复核记录；当前版本以 audit.json 为准。两端原始抽样记录保留当时
 “未评测”的状态文字，不能用该旧字段判断当前运行状态。
 
-Run `pnpm validate:data` from `benchmark/grounding` to verify 200 unique original
-screenshots, dimensions, index hashes, query/GT consistency, GT bounds, ten-factor
-quotas on each platform, and four-category mapping. Original case files occupy
-205,370,074 bytes (about 196 MiB). Runtime reports and credentials are ignored by Git.
+Run `pnpm validate:data` from `benchmark/grounding` to verify 200 unique current
+screenshots, dimensions, index hashes, query/GT consistency, retained official
+Chinese annotations for nonempty VenusBench-GD `query_zh`, GT bounds, ten-factor
+quotas on each platform, and four-category mapping. The six restored PNGs must also
+match their recorded official SHA-256 values. Runtime reports and credentials are
+ignored by Git.
 
-在 benchmark/grounding 执行 `pnpm validate:data`，核对 200 张唯一原图、尺寸、index 哈希、
-query/GT 一致性、框边界、两端十主类配额及四分类映射。case 文件约 196 MiB；
+在 benchmark/grounding 执行 `pnpm validate:data`，核对当前 200 张唯一截图、尺寸、index 哈希、
+query/GT 一致性、框边界、两端十主类配额及四分类映射。非空的 VenusBench-GD `query_zh`
+也会与保留的官方中文逐字核对，六张恢复的 PNG 还须匹配记录的官方 SHA-256。
 模型认证信息和运行报告由 Git 忽略。

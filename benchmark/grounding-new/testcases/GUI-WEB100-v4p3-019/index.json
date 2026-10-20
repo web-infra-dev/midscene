@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p3-019",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The screen already contains the heading Beauty under $25. Find the corresponding image directly without calculating product prices."
+  },
+  "instruction": {
+    "en": "Find beauty products under $25, click the image to view details.",
+    "zh": "找到25美元以下的美妆商品，点击图片查看详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [220.0, 2079.0, 669.0, 1592.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L11958",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#854",
+    "image": {
+      "format": "png",
+      "sha256": "f5b9335e366d0398a9d674a3342fb8553021e3210bf290fc8eea5ca66e3a7997"
+    },
+    "patch": null,
+    "collectedAt": 1792485870924
+  }
+}

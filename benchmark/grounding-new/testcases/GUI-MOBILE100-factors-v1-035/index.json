@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-035",
+  "platform": "mobile",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "The audio-output protocol symbol must be recognized and distinguished from lyrics, the playlist, and volume."
+  },
+  "instruction": {
+    "en": "use airplay",
+    "zh": "使用 airplay。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2276.0, 660.0, 2417.0, 509.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L5258",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#438",
+    "image": {
+      "format": "png",
+      "sha256": "b395117af8e61d57a4b0659df8e2e3fc6d16855e8f33d1155d06f272ed3201de"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870180
+  }
+}

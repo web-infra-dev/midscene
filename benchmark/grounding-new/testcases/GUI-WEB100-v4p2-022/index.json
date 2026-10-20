@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-022",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Small send icon in a chat composer"
+  },
+  "instruction": {
+    "en": "Submit the current question",
+    "zh": "提交当前的问题"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1056.0, 2736.0, 1121.0, 2671.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L464",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#33",
+    "image": {
+      "format": "png",
+      "sha256": "68ad8b7bdee915fd668f4c0a7cddc08f8eacb25522fca308d5f7781191919471"
+    },
+    "patch": null,
+    "collectedAt": 1792485870802
+  }
+}

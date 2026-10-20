@@ -297,6 +297,17 @@ test(
       const results = await readJson<MidsceneResultsFileData>(
         path.join(runDir, 'results.json'),
       );
+      const [audit, manifestBytes, restorationBytes] = await Promise.all([
+        readJson<{ version: string }>(path.join(DATASET_ROOT, 'audit.json')),
+        readFile(path.join(DATASET_ROOT, 'manifest.jsonl')),
+        readFile(path.join(DATASET_ROOT, 'source-image-restoration.json')),
+      ]);
+      assert.deepEqual(results.versions.dataset, {
+        id: audit.version,
+        manifestSha256: digest(manifestBytes),
+        sourceImageRestorationSha256: digest(restorationBytes),
+      });
+      assert.equal(results.meta.title, `${audit.version} Grounding`);
       const state = await readJson<{
         status: string;
         progress: { total: number; completed: number };
@@ -394,6 +405,10 @@ test(
       const embeddedResults = JSON.parse(
         embedded[1],
       ) as MidsceneResultsFileData;
+      assert.deepEqual(
+        embeddedResults.versions.dataset,
+        results.versions.dataset,
+      );
       assert.equal(embeddedResults.progress.total, 4);
       assert.equal(embeddedResults.items.length, 4);
       assert.ok(

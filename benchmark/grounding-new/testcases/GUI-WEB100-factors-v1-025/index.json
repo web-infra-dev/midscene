@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-025",
+  "platform": "web",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "The product-comparison symbol is less universal than a favorite heart or shopping cart; the original query specifies both its appearance and the associated product."
+  },
+  "instruction": {
+    "en": "A gray comparison/price history icon with vertical bars that appears below the air succulents product information.",
+    "zh": "出现在 air succulents 商品信息下方、带有竖条的灰色比较/历史价格图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1309.0, 891.0, 1348.0, 844.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L33386",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "L2_annotations.json#1757",
+    "image": {
+      "format": "png",
+      "sha256": "fee345f3e4eaa2db5e6f10cc3766ac3d7266ffb676485fe86c1e4ab675249d74"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870578
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p8-083",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "Use the fourth position among several video chapters to locate CUDA Core Design."
+  },
+  "instruction": {
+    "en": "Select the fourth chapter in this educational video about GPU technology to learn about CUDA core design.",
+    "zh": "选择这段关于 GPU 技术的教学视频中的第四章，以了解 CUDA 核心设计。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2045.0, 1262.0, 2347.0, 28.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L51854",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2729",
+    "image": {
+      "format": "png",
+      "sha256": "79e68b985aad0edbfa96ef515fb86241a8f1cd33c137449644024dbfc16d957a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870563
+  }
+}

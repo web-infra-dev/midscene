@@ -443,6 +443,7 @@ describe('Jev requests and coordinates', () => {
       modelRuntime: getModelRuntime(jevConfig),
     });
     expect(result.parseResult.element).toBeUndefined();
+    expect(result.parseResult.outcome).toBe('not-found');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
   it('supports text-only boolean checks and preserves false', async () => {

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p5-025",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The 30-second forward button in the bottom mini player is narrow and small, and uses a standard media symbol."
+  },
+  "instruction": {
+    "en": "A media control button with a forward arrow and '30' number, positioned in the bottom media player area",
+    "zh": "位于底部媒体播放器区域、带有向前箭头和数字“30”的媒体控制按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2172.0, 1082.0, 2237.0, 1020.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L23202",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "1221",
+    "image": {
+      "format": "png",
+      "sha256": "8674e6d574f2cd96ad7f9e0b6ce64ca2b92f8fe8fc36c6dd9703c62704117861"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870481
+  }
+}

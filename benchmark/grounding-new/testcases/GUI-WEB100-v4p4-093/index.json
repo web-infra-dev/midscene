@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-093",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. There is only one Keras link near the top of the software-list screenshot. The official box covers the Keras text; the dense multicolumn list is the main difficulty."
+  },
+  "instruction": {
+    "en": "open keras",
+    "zh": "打开 keras。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [22.0, 830.0, 61.0, 711.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3758",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_313",
+    "image": {
+      "format": "png",
+      "sha256": "1ca2543193ce0494170c5677e22de165cfa48258183829f0de3814e9e619ec4d"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870998
+  }
+}

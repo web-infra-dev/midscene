@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-001",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Restrict the candidates to Sundays before comparing prices; retains an example of ranking alone."
+  },
+  "instruction": {
+    "en": "Select the date with the second highest price on Sunday.",
+    "zh": "选择周日价格最二高的日期"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1259.0, 803.0, 1354.0, 491.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L870",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#62",
+    "image": {
+      "format": "png",
+      "sha256": "23cb3458fa767680727cc38fd2ec5f0f4381de30da6a7ae1ff147a32a8462683"
+    },
+    "patch": null,
+    "collectedAt": 1792485870684
+  }
+}

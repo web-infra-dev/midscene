@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-039",
+  "platform": "web",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "The rectangle split into grayscale halves represents image color inversion, rather than a common toggle or favorite icon."
+  },
+  "instruction": {
+    "en": "Click on the color invert icon ",
+    "zh": "点击颜色反转（color invert）图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [10.9, 876.4, 106.1, 783.9],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Tajamul21/MedSPOT/resolve/dc65c80d24cd380e08ff7de2b2aa63b7d20bef60/Annotations/Bluelight_Annotation.json",
+    "dataset": "MedSPOT",
+    "recordId": "Annotations/Bluelight_Annotation.json#tasks[8].steps[0]",
+    "image": {
+      "format": "png",
+      "sha256": "18c492b2090da86ee553959969d82f5595ae0d32c6e1a50ae44fbf3500d278db"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870590
+  }
+}

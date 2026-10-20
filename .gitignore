@@ -55,6 +55,7 @@ jspm_packages/
 .env
 .env.*
 !examples/catalog/test/*/.env.example
+!benchmark/grounding-new/.env.example
 
 # next.js build output
 .next

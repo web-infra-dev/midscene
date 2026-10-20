@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-062",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The instruction describes the game mechanics or IP as League of Legends auto-chess, which must be mapped to the visible game entry."
+  },
+  "instruction": {
+    "en": "Explore the mobile version of the League of Legends auto-chess game featured in today's recommendations",
+    "zh": "浏览今日推荐中的 League of Legends 自走棋游戏的移动版。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1064.2, 845.0, 1257.3, 33.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L49517",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2606",
+    "image": {
+      "format": "png",
+      "sha256": "89a4fdc7a581b77ca874d8b383d80861188ce085188e3988af8b8e7e62584508"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870214
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-046",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Switch to driver-side functionality",
+    "zh": "切换至司机端功能"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2085.0, 386.0, 2206.0, 262.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L8696",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=621",
+    "image": {
+      "format": "png",
+      "sha256": "9a4ecfd108545e8a3d10f87d9b1386065535a47285e3265fa8de5aa3981d7ca1"
+    },
+    "patch": null,
+    "collectedAt": 1792485870286
+  }
+}

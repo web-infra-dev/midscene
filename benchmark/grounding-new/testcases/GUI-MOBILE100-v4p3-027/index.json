@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-027",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The small gray envelope with a red dot in the upper-right corner is an explicit target; the other icons have different appearances, so color is not the primary factor."
+  },
+  "instruction": {
+    "en": "A gray envelope icon with a red notification dot in the top-right corner",
+    "zh": "右上角一个带有红色通知圆点的灰色信封图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [117.0, 1064.0, 196.0, 983.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L7774",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "409",
+    "image": {
+      "format": "png",
+      "sha256": "9e6e534754dd32d408052ad095403b6f13015c1ae470f824e314a9bd084ad23f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870446
+  }
+}

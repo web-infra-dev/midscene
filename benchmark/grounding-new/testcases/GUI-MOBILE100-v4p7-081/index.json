@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p7-081",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is determined solely by its spatial position between the grinning face and the heart-eyes emoji."
+  },
+  "instruction": {
+    "en": "A cartoon-style emoticon displayed in the emoji selection row between a grinning face and a heart-eyes emoji",
+    "zh": "表情选择行中，位于咧嘴笑脸和爱心眼表情之间的卡通风格表情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1430.7, 730.0, 1499.7, 665.1],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L8173",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "430",
+    "image": {
+      "format": "png",
+      "sha256": "c906723b69757aeac7e79053a378b3af0e318ffc89c271726d95124c62cc5fbc"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870498
+  }
+}

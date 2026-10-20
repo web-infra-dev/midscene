@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-004",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Select the text \"That means visiting large factories more often.\"",
+    "zh": "选择文本“那就是多去大厂”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [524.0, 654.0, 562.0, 419.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L16564",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1183",
+    "image": {
+      "format": "png",
+      "sha256": "685e7fd1fbd64fd5d72a7f2d16db756bc8df6c0d5ed91e974f5cee5e4d53990a"
+    },
+    "patch": null,
+    "collectedAt": 1792485870341
+  }
+}

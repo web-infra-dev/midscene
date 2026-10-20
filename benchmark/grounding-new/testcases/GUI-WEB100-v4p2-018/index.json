@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-018",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Identify the only footwear product; retains a user-approved semantic reasoning case."
+  },
+  "instruction": {
+    "en": "Find the one and only footwear item and click on the image to view details.",
+    "zh": "找到唯一一个鞋类商品，点击图片查看详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1147.0, 2128.0, 1511.0, 1762.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L11510",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#822",
+    "image": {
+      "format": "png",
+      "sha256": "b2cd665cfc5ce62a674211759b7d8d1d427d3afca57540680eb4dc73e3b883cf"
+    },
+    "patch": null,
+    "collectedAt": 1792485870777
+  }
+}

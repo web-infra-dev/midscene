@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-069",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "Login panel has no tutorial toggle switch."
+  },
+  "instruction": {
+    "en": "Find the toggle switch to view the tutorial",
+    "zh": "找到查看教程的切换开关"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L1920",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#274",
+    "image": {
+      "format": "png",
+      "sha256": "f152d666ed4cfe41340165ee3c19aee3e1e466838cde4221e19ab6a8f9817d2d"
+    },
+    "patch": null,
+    "collectedAt": 1792485870920
+  }
+}

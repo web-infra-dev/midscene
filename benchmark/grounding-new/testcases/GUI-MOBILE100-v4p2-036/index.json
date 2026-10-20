@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-036",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The 关注 text button is very small and close to the song title, heart, and comments; its standard label is directly visible."
+  },
+  "instruction": {
+    "en": "Follow this artist or artwork",
+    "zh": "关注该艺术家或作品"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1575.0, 523.0, 1631.0, 422.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1696",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=121",
+    "image": {
+      "format": "png",
+      "sha256": "dd2fdf79e7984aba5a430fb61743e79c73126bf48b7b44ca9693b7c3199f2026"
+    },
+    "patch": null,
+    "collectedAt": 1792485870237
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p5-087",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. There is only one snowy landscape photo beneath the Picture of the day heading. The query directly names this labeled image area, and the official box fully covers the photo."
+  },
+  "instruction": {
+    "en": "click on the picture of the day",
+    "zh": "点击每日图片（picture of the day）。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [745.0, 1664.0, 1379.0, 538.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3230",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_269",
+    "image": {
+      "format": "png",
+      "sha256": "12a51f56420fb1459a974b060b7c9b52338a8454e4038480292423526d0a3091"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485871007
+  }
+}

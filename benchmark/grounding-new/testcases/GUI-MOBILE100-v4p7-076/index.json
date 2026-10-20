@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p7-076",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "First restrict the dates to Wednesdays in August 2025, then compare their ticket prices; the 27th at 400 yuan is the unique minimum."
+  },
+  "instruction": {
+    "en": "Select the date with the lowest price on a Wednesday in August 2025",
+    "zh": "选择2025年8月周三价格最低的日期"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1205.0, 587.0, 1302.0, 495.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L72",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#5",
+    "image": {
+      "format": "png",
+      "sha256": "bcbcfed9de190b31553afcbdcc29ba74179850fd16d5df4a8cc957a394f34731"
+    },
+    "patch": null,
+    "collectedAt": 1792485870496
+  }
+}

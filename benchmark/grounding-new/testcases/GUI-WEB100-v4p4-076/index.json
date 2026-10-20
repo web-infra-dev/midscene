@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-076",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The query directly names the common pause icon; the target in the playback bar is approximately 24.5×24.5 normalized pixels in size."
+  },
+  "instruction": {
+    "en": "Find the pause icon.",
+    "zh": "找到暂停图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1740.0, 1547.0, 1814.0, 1473.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L17026",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1216",
+    "image": {
+      "format": "png",
+      "sha256": "4a07090b99a75446343f6e60ea36e8323766b99f753d8480c34327a6c3b0ce68"
+    },
+    "patch": null,
+    "collectedAt": 1792485870958
+  }
+}

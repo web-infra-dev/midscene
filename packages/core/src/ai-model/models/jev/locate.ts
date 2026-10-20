@@ -47,6 +47,9 @@ export const jevLocate: LocateFn = async ({
       ? {
           locatedPixelResult: mapJevBox(answers.target.box, locateImage),
         }
-      : { errors: ['The target is not present in the screenshot'] }),
+      : {
+          outcome: 'not-found' as const,
+          errors: ['The target is not present in the screenshot'],
+        }),
   };
 };

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-050",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Map \"uses multiple processing layers\" to the concept of deep learning, then locate the link with that name."
+  },
+  "instruction": {
+    "en": "Navigate to the wiki page about the machine learning technique that uses multiple processing layers",
+    "zh": "前往介绍使用多个处理层的机器学习技术的 wiki 页面。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1078.0, 781.0, 1127.0, 552.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L67434",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "L2_annotations.json#3549",
+    "image": {
+      "format": "png",
+      "sha256": "0eb48e7bc5225df5428a36ee69cbe2ebb395809cfc337ebd3a5c5ba0b99d37ac"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870633
+  }
+}

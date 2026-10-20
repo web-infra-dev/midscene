@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-046",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Follow the two differently colored lines to find their intersection, then locate the transfer icon."
+  },
+  "instruction": {
+    "en": "Find the transfer station icon where the blue and orange metro lines intersect, near the 'Wensan Road' station.",
+    "zh": "找到蓝色和橙色地铁线路交汇处、靠近'文三路'站的换乘站图标"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1134.0, 1943.0, 1171.0, 1907.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/visual_grounding.json#L2536",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/visual_grounding.json#181",
+    "image": {
+      "format": "png",
+      "sha256": "167c8f0e5686ed6ed31390847786761c6c0da3058341cbfa813cc4eb764a7aeb"
+    },
+    "patch": null,
+    "collectedAt": 1792485870614
+  }
+}

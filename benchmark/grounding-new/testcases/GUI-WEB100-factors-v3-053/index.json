@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v3-053",
+  "platform": "web",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The target is the narrow vertical line marking the current playback position inside the progress bar, requiring a precise point along the timeline."
+  },
+  "instruction": {
+    "en": "Locate the current progress on the video progress bar",
+    "zh": "定位视频进度条上的当前进度。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1197.0, 443.0, 1453.0, 408.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/web/ANumericRange240json/A4SeekBar40.json#L8",
+    "dataset": "FineState-Bench",
+    "recordId": "web/ANumericRange240json/A4SeekBar40.json#7",
+    "image": {
+      "format": "png",
+      "sha256": "7d1d33828bd4c4d666dece105440c019c945e41ed76e948c263589c4167b9834"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870675
+  }
+}

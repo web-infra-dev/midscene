@@ -45,7 +45,15 @@ function fixture(): MidsceneResultsFileData {
     config,
     progress: { total: 3, completed: 3, currentDescription: '' },
     outcomes: { success: 2, failed: 1, pending: 0 },
-    versions: { grounding: version, midscene: version },
+    versions: {
+      grounding: version,
+      midscene: version,
+      dataset: {
+        id: 'test-dataset',
+        manifestSha256: 'a'.repeat(64),
+        sourceImageRestorationSha256: 'b'.repeat(64),
+      },
+    },
     midsceneRepo: {
       repoPath: '.',
       action: 'existing',

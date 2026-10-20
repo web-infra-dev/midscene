@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-065",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The story content, author role, and author entry must be linked; the adjacent photography card has a different role."
+  },
+  "instruction": {
+    "en": "Explore other books written by the same author who created this story about elephant herds in the Amboseli National Park",
+    "zh": "浏览创作了这部讲述 Amboseli National Park 象群故事的作者所写的其他书籍。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1639.9, 763.0, 1834.8, 42.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L55331",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2912",
+    "image": {
+      "format": "png",
+      "sha256": "a807380e91b7e732769bfa3f47049398afedbc182899db09b3d292da16ae7555"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870216
+  }
+}

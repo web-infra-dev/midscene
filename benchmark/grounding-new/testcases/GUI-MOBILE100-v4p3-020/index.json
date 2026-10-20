@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-020",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "display flagged massages",
+    "zh": "显示已标记的消息"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [252.0, 910.0, 386.0, 621.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2834",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#236",
+    "image": {
+      "format": "png",
+      "sha256": "7e1b7c7ec0741ffdaa5351a573fce665c36a9b6aa31ba30f8708ae7fccf357e2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870423
+  }
+}

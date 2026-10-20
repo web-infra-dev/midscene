@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-038",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Take a screenshot to save the current video frame.",
+    "zh": "截屏保存当前视频画面"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [295.0, 2302.0, 378.0, 2213.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L2648",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=189",
+    "image": {
+      "format": "png",
+      "sha256": "ca38e6e26f98ed4a1c3fc8c4bf55735cc8c53c689601a9055abf8e4e06744dc4"
+    },
+    "patch": null,
+    "collectedAt": 1792485870252
+  }
+}

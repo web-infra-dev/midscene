@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p7-098",
+  "platform": "mobile",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "Emails from the same sender are repeated; the checked state and middle position uniquely identify the target checkbox."
+  },
+  "instruction": {
+    "en": "Locate the checkbox of the checked 'Microsoft Account Team' email in the middle of the image",
+    "zh": "定位图像中部已勾选的“Microsoft Account Team”邮件的复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1003.0, 120.0, 1084.0, 42.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/BToggleOption200json/B2Checkbox40.json#L26",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/BToggleOption200json/B2Checkbox40.json#25",
+    "image": {
+      "format": "jpeg",
+      "sha256": "8ab874bc3842231586ff81334281274473ac28e566d9a140545dc9570a56dda2"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870557
+  }
+}

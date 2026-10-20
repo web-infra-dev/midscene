@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-055",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Switch the Booking list to a grid of cards using the List/Grid segmented control at the top; this differs from the existing filtering actions."
+  },
+  "instruction": {
+    "en": "Display hotels in a card-based layout",
+    "zh": "以卡片式布局展示酒店"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [35.0, 2989.0, 96.0, 2890.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L6764",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#483",
+    "image": {
+      "format": "png",
+      "sha256": "7c29bb3f01df0562c24f0036ae52d2daee7d9fa47384b56c9536a5a085bf4843"
+    },
+    "patch": null,
+    "collectedAt": 1792485870898
+  }
+}

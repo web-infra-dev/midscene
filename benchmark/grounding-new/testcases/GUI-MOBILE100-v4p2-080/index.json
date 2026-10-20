@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-080",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Combine the comedy/cultivation themes with more than 4.5 million plays to match the second audio entry."
+  },
+  "instruction": {
+    "en": "Listen to the audio drama with comedy and cultivation themes that has over 4.5 million plays",
+    "zh": "收听具有喜剧和修仙题材、播放量超过 450 万的有声剧。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1551.0, 1225.0, 1654.0, 1122.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L55616",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2927",
+    "image": {
+      "format": "png",
+      "sha256": "712807d800135b5dca08a20f2846f9ef2b31010c41c26212a79320f774b071f7"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870318
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-013",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find an image showing the process of producing instant noodles in a metal tray.",
+    "zh": "找到显示金属托盘中方便面生产过程的图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1466.0, 480.0, 1711.0, 43.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L16844",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1203",
+    "image": {
+      "format": "png",
+      "sha256": "599861958e9e24a0d8f13871723d1a3a343f206c4cc1ae8cd198b3bb3fded022"
+    },
+    "patch": null,
+    "collectedAt": 1792485870412
+  }
+}

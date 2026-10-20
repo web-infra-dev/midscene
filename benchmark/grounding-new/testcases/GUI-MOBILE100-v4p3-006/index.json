@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-006",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find the text \"1:00 – 2:30 PM\".",
+    "zh": "找到文本“1:00 – 2:30 PM”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1464.0, 520.0, 1525.0, 132.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L20176",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1441",
+    "image": {
+      "format": "png",
+      "sha256": "e67cb880631c509f5c628ade0289d6732cd4ab3cede0520759ef7c355d2a8918"
+    },
+    "patch": null,
+    "collectedAt": 1792485870348
+  }
+}

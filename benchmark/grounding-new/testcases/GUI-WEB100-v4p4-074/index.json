@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-074",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "Both departure and arrival groups contain the same time interval; the specific checkbox in the arrival group must be selected."
+  },
+  "instruction": {
+    "en": "Select the checkbox for the arrival time slot \"12:00–18:00 in the afternoon.\"",
+    "zh": "选择“下午 12~18点”抵达时段的复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1131.0, 934.0, 1162.0, 905.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L5546",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#396",
+    "image": {
+      "format": "png",
+      "sha256": "6163ed3d858e7121bd187d5fc83dd732063990856c6246bfa6a8dde35b92dc62"
+    },
+    "patch": null,
+    "collectedAt": 1792485870951
+  }
+}

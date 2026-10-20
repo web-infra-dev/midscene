@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-073",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The news cards show positive and negative stock-price changes; the target card includes SFTBF +1.34%."
+  },
+  "instruction": {
+    "en": "Help me check the news images of stocks with rising prices.",
+    "zh": "帮我查看股价上涨股票的新闻图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [694.0, 1022.0, 1067.0, 49.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L3936",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#row=281",
+    "image": {
+      "format": "png",
+      "sha256": "d8ecd63a1e5452bc13679de7cdb8c74ab716ddc447e549730b4f5c61f54489cb"
+    },
+    "patch": null,
+    "collectedAt": 1792485870317
+  }
+}
