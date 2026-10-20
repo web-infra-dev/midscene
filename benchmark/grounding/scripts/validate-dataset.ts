@@ -57,6 +57,23 @@ export function validateComposition(manifest: DatasetRow[]) {
   return { counts, factorCounts };
 }
 
+export function validateSourceTranslations(manifest: DatasetRow[]) {
+  for (const row of manifest) {
+    if (row.source_name !== 'VenusBench-GD' || !row.query_zh) continue;
+    for (const field of ['raw_record', 'source_record'] as const) {
+      const officialChinese = row[field]?.instruction_zh;
+      if (
+        typeof officialChinese === 'string' &&
+        row.query_zh !== officialChinese
+      ) {
+        throw new Error(
+          `Source Chinese translation mismatch: ${row.case_name} (query_zh vs ${field}.instruction_zh)`,
+        );
+      }
+    }
+  }
+}
+
 export async function validateDataset() {
   const [cases, manifest] = await Promise.all([loadCases(), loadManifest()]);
   const indexHashes: Record<string, string> = JSON.parse(
@@ -65,6 +82,7 @@ export async function validateDataset() {
   if (cases.length !== 200 || manifest.length !== 200)
     throw new Error('Expected the fixed 200-case dataset');
   const { counts, factorCounts } = validateComposition(manifest);
+  validateSourceTranslations(manifest);
   const seenImages = new Set<string>();
   const rows = new Map(manifest.map((row) => [row.case_name, row]));
   for (const item of cases) {

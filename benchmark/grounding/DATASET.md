@@ -125,7 +125,7 @@ _data/
     image-hashes.json            # Original image SHA-256 per case
     case-index-hashes.json       # Evaluated runtime index SHA-256 per case
     audit.json                   # Current composition, source counts, snapshot hashes
-    migration-audit.json         # Path-only metadata changes and semantic/byte checks
+    migration-audit.json         # Manifest metadata changes and semantic/byte checks
     web-audit.json               # Original Web v3 curation receipt
     mobile-audit.json            # Original Mobile v1 curation receipt
     *-official-source-verification.json # Web fine / all Mobile source checks
@@ -136,13 +136,19 @@ _data/
 Image paths resolve relative to `_data/dataset/`; index image filenames resolve
 relative to their case folder. Historical `prior_image_path` fields are provenance
 text, not runtime dependencies. `original_dataset_root` is a portable historical
-snapshot label. Only these path fields differ from the evaluated manifest;
-`migration-audit.json` records each change. All 200 evaluated index files and
-image bytes are copied exactly. Original source records are unchanged.
+snapshot label. These path fields and six corrected auxiliary `query_zh` values
+differ from the evaluated manifest; `migration-audit.json` records each change.
+On 2026-10-20, Mobile cases 061/063/064/067/069/070 restored the official Chinese
+text retained in their source records. All 200 evaluation prompts (`query` /
+`index.prompt`), GT boxes, index files and image bytes remain unchanged.
+Original source records and the evaluated snapshot's historical hash are retained.
 
 图片路径相对于 `_data/dataset/`；index 图片名相对于所在 case 目录。旧图片路径只用于
-历史溯源，不参与加载；旧本机根路径改为历史快照标签。迁移仅适配这些路径元数据，
-逐题记录见 `migration-audit.json`。200 份已评测 index 和原图按字节复制，原始来源记录未改。
+历史溯源，不参与加载；旧本机根路径改为历史快照标签。与已评测 manifest 的差异包括
+路径适配，以及 2026-10-20 对 Mobile 061/063/064/067/069/070 六题 `query_zh` 的修正，
+中文取自各题保留的官方来源记录，逐题差异见 `migration-audit.json`。200 题实际评测
+指令（`query` / `index.prompt`）、GT、index 和图片字节均未改变；原始来源记录及
+已评测快照的历史哈希保留。
 
 Existing `source-validation.json`, `secondary-review.json`,
 `refusal-semantic-review.json`, and `review-evidence/` are historical curation
@@ -154,10 +160,12 @@ Original Web/Mobile curation receipts retain their pre-evaluation status wording
 “未评测”的状态文字，不能用该旧字段判断当前运行状态。
 
 Run `pnpm validate:data` from `benchmark/grounding` to verify 200 unique original
-screenshots, dimensions, index hashes, query/GT consistency, GT bounds, ten-factor
+screenshots, dimensions, index hashes, query/GT consistency, retained official
+Chinese annotations for nonempty VenusBench-GD `query_zh`, GT bounds, ten-factor
 quotas on each platform, and four-category mapping. Original case files occupy
 205,370,074 bytes (about 196 MiB). Runtime reports and credentials are ignored by Git.
 
 在 benchmark/grounding 执行 `pnpm validate:data`，核对 200 张唯一原图、尺寸、index 哈希、
 query/GT 一致性、框边界、两端十主类配额及四分类映射。case 文件约 196 MiB；
+非空的 VenusBench-GD `query_zh` 也会与保留的官方中文逐字核对。
 模型认证信息和运行报告由 Git 忽略。

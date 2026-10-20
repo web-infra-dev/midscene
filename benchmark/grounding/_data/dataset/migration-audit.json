@@ -2,12 +2,13 @@
   "version": "web-primary-v3-mobile-primary-v1-20261008",
   "source_batch_id": "web-mobile200-primary-astra-20261008-141330",
   "source_manifest_sha256": "fa0ef7b8b2583f1d105bf72d13825fa6b1fcf6009be338c3610920330ee733b2",
-  "destination_manifest_sha256": "ce2395b3451df13e3362a0f11e2d27abd949d05695cce4cd7f3d97b78e7c7388",
+  "destination_manifest_sha256": "5b1e6f4b016989d2caaa6537d40c49e5405acfe0ad8c5c1b1df126786160448d",
   "source_index_hashes_match": true,
   "all_200_queries_gt_and_image_bytes_unchanged": true,
   "allowed_metadata_changes": [
     "image_path",
-    "original_dataset_root"
+    "original_dataset_root",
+    "query_zh"
   ],
   "changes": [
     {
@@ -1768,6 +1769,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-061.png",
           "after": "../cases/GUI-MOBILE100-v4p2-061/GUI-MOBILE100-v4p2-061.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "打开无痕搜索"
         }
       }
     },
@@ -1786,6 +1791,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-063.png",
           "after": "../cases/GUI-MOBILE100-v4p2-063/GUI-MOBILE100-v4p2-063.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "避开城市的限行区域"
         }
       }
     },
@@ -1795,6 +1804,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-064.png",
           "after": "../cases/GUI-MOBILE100-v4p2-064/GUI-MOBILE100-v4p2-064.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "听歌识曲"
         }
       }
     },
@@ -1822,6 +1835,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-067.png",
           "after": "../cases/GUI-MOBILE100-v4p2-067/GUI-MOBILE100-v4p2-067.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "关闭所有语音播报"
         }
       }
     },
@@ -1840,6 +1857,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-069.png",
           "after": "../cases/GUI-MOBILE100-v4p2-069/GUI-MOBILE100-v4p2-069.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "切换到符号输入模式"
         }
       }
     },
@@ -1849,6 +1870,10 @@
         "image_path": {
           "before": "images/GUI-MOBILE100-v4p2-070.png",
           "after": "../cases/GUI-MOBILE100-v4p2-070/GUI-MOBILE100-v4p2-070.png"
+        },
+        "query_zh": {
+          "before": "关闭振动功能",
+          "after": "关闭指纹识别解锁功能"
         }
       }
     },
@@ -2121,6 +2146,23 @@
           "after": "../cases/GUI-MOBILE100-v4p2-100/GUI-MOBILE100-v4p2-100.png"
         }
       }
+    }
+  ],
+  "metadata_corrections": [
+    {
+      "date": "2026-10-20",
+      "field": "query_zh",
+      "cases": [
+        "GUI-MOBILE100-v4p2-061",
+        "GUI-MOBILE100-v4p2-063",
+        "GUI-MOBILE100-v4p2-064",
+        "GUI-MOBILE100-v4p2-067",
+        "GUI-MOBILE100-v4p2-069",
+        "GUI-MOBILE100-v4p2-070"
+      ],
+      "previous_manifest_sha256": "ce2395b3451df13e3362a0f11e2d27abd949d05695cce4cd7f3d97b78e7c7388",
+      "source": "Each case retained official source_record.instruction_zh from VenusBench-GD revision 7e5714566f912203c9989b06ef4c08bdf913e3fa.",
+      "scope": "Auxiliary Chinese display metadata only. Evaluation prompts (query/index.prompt), GT, image bytes, and original source records remain unchanged."
     }
   ]
 }

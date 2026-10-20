@@ -68,7 +68,7 @@
     "batch_id": "web-mobile200-primary-astra-20261008-141330",
     "manifest_sha256": "fa0ef7b8b2583f1d105bf72d13825fa6b1fcf6009be338c3610920330ee733b2"
   },
-  "manifest_sha256": "ce2395b3451df13e3362a0f11e2d27abd949d05695cce4cd7f3d97b78e7c7388",
+  "manifest_sha256": "5b1e6f4b016989d2caaa6537d40c49e5405acfe0ad8c5c1b1df126786160448d",
   "query_gt_image_bytes_match_evaluated_snapshot": true,
   "screenshots_unique": 200,
   "expected_outcomes": {

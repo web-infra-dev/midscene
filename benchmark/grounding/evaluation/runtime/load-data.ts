@@ -162,6 +162,9 @@ export type DatasetRow = {
   platform: 'web' | 'mobile';
   task_class: 'basic' | 'functional' | 'reason' | 'refusal';
   query: string;
+  query_zh?: string | null;
+  raw_record?: { instruction_zh?: string };
+  source_record?: { instruction_zh?: string };
   bbox_xyxy: [number, number, number, number] | null;
   image_sha256: string;
   width: number;

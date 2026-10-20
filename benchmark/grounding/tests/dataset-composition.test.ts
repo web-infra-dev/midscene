@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { loadManifest } from '../evaluation/runtime/load-data.js';
-import { validateComposition } from '../scripts/validate-dataset.js';
+import {
+  validateComposition,
+  validateSourceTranslations,
+} from '../scripts/validate-dataset.js';
 
 test('primary-factor quotas cannot be replaced by legacy four-category counts', async () => {
   const manifest = await loadManifest();
@@ -26,5 +29,38 @@ test('legacy display classes must agree with the primary factor', async () => {
   assert.throws(
     () => validateComposition(changed),
     /factor\/category mismatch/,
+  );
+});
+
+test('Chinese source translations match the retained official records', async () => {
+  validateSourceTranslations(await loadManifest());
+});
+
+test('copied Chinese text is rejected for both official record shapes', async () => {
+  const manifest = await loadManifest();
+  for (const field of ['raw_record', 'source_record'] as const) {
+    const row = manifest.find(
+      (item) =>
+        item.source_name === 'VenusBench-GD' &&
+        item[field]?.instruction_zh &&
+        item[field]?.instruction_zh !== '关闭振动功能',
+    )!;
+    assert.throws(
+      () => validateSourceTranslations([{ ...row, query_zh: '关闭振动功能' }]),
+      new RegExp(`Source Chinese translation mismatch: ${row.case_name}`),
+    );
+  }
+});
+
+test('optional translations and locally supplied translations remain valid', async () => {
+  const manifest = await loadManifest();
+  const venus = manifest.find((row) => row.source_name === 'VenusBench-GD')!;
+  const mmbench = manifest.find((row) => row.source_name === 'MMBench-GUI L2')!;
+  assert.doesNotThrow(() =>
+    validateSourceTranslations([
+      { ...venus, query_zh: null },
+      { ...venus, query_zh: '' },
+      { ...mmbench, query_zh: '本地辅助翻译' },
+    ]),
   );
 });
