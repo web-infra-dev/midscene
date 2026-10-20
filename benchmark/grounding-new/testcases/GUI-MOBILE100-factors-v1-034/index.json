@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-034",
+  "platform": "mobile",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "Dynamic shot corresponds to a specialized shooting symbol; HDR, AI, and the menu are among the other tools beside it."
+  },
+  "instruction": {
+    "en": "open dynamic shot",
+    "zh": "开启动态拍摄。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [134.0, 825.0, 242.0, 699.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3878",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#323",
+    "image": {
+      "format": "jpeg",
+      "sha256": "c9a86f924c5e14a5f6b87ca5f2c62fb242a0f55457887a4a944f851f8ae7bf3c"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870178
+  }
+}

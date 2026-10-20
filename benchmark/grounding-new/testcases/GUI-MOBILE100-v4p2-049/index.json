@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-049",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The small tab icon at the top of the browser contains the number 1; it is a conventional tab-switching function, with localization precision as the main challenge."
+  },
+  "instruction": {
+    "en": "Click to switch tabs",
+    "zh": "点击切换标签页"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [148.0, 913.0, 205.0, 851.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L8038",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=574",
+    "image": {
+      "format": "png",
+      "sha256": "50fb29cd1d4303f8be4736b60b9241aebd253da2a67e73bf9833c89965208eae"
+    },
+    "patch": null,
+    "collectedAt": 1792485870291
+  }
+}

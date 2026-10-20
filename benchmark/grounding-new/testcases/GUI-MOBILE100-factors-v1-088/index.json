@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-088",
+  "platform": "mobile",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The target is the narrow playback line inside the audio control rather than the whole message or the play button on the left."
+  },
+  "instruction": {
+    "en": "Find the current playback position of the first voice message",
+    "zh": "找到第一条语音消息的当前播放位置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [274.0, 804.0, 384.0, 757.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A4SeekBar40.json#L2",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A4SeekBar40.json#1",
+    "image": {
+      "format": "png",
+      "sha256": "58986ce1930816f15b353353f22fc56637d0cfb56a6b6cafefd79a5956887c3e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870226
+  }
+}

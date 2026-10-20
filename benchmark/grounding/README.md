@@ -2,9 +2,11 @@
 
 [中文说明](./README.zh.md)
 
-Run the fixed **Web primary v3 + Mobile primary v1 (2026-10-08)** dataset through this checkout's
-`@midscene/core` `Agent.aiLocate`. The runner and interactive report are migrated
-from `midscene-evaluation`; no separate evaluation checkout or service is needed.
+Run the fixed **Web primary v3 + Mobile primary v1, WebClick PNG restoration
+(2026-10-20)** dataset through this checkout's `@midscene/core` `Agent.aiLocate`.
+The dataset revision is `web-primary-v3-mobile-primary-v1-webclick-png-20261020`.
+The runner and interactive report are migrated from `midscene-evaluation`;
+no separate evaluation checkout or service is needed.
 
 ## Setup
 
@@ -83,8 +85,8 @@ LangSmith is disabled by default. Explicitly enabling it requires your own
 
 | Primary factor | Web | Mobile |
 | --- | ---: | ---: |
-| Element basic | 20 | 20 |
-| Unfamiliar Icon | 5 | 5 |
+| Basic Element | 20 | 20 |
+| Specialized Icon | 5 | 5 |
 | Small Target | 10 | 10 |
 | Color Recognition | 5 | 5 |
 | Functional | 20 | 20 |
@@ -103,9 +105,15 @@ factors map to Basic: **Basic 55 / Functional 20 / Reason 20 / Refusal 5** per p
 See [DATASET.md](./DATASET.md) for sources, selection criteria, GT conversions and
 provenance. `_data/dataset/case_names.json` fixes the roster/order; `manifest.jsonl`
 contains primary factors, original queries, GT, source IDs and revisions. All 200
-queries, GT boxes and original screenshots match the evaluated revision. Index
-and image SHA-256 checks run before evaluation. Data files are excluded from
-automatic formatting.
+evaluation prompts and GT boxes retain the 2026-10-08 selection. On 2026-10-20,
+six WebClick JPEG snapshots were replaced with official PNG bytes; case IDs,
+order and image dimensions are unchanged. This restoration made no model calls.
+Earlier scores belong to the previous JPEG snapshot and are not scores for this revision.
+
+Before evaluation, validation checks current index/image hashes and the six PNGs'
+official SHA-256 values recorded in `_data/dataset/source-image-restoration.json`.
+Results record the dataset revision ID and integrity hashes in `versions.dataset`.
+Data files are excluded from automatic formatting.
 
 - Positive cases pass when the predicted point falls inside the original GT box.
 - Refusal cases pass only when the SDK parser explicitly returns `not-found`.
@@ -126,16 +134,15 @@ Each run creates `output/runs/<run-id>/`:
 
 | File | Content |
 | --- | --- |
-| `report.html` | Standalone native report with original screenshots, JS, CSS, and data embedded; can be shared as one file |
+| `report.html` | Standalone native report with run screenshots, JS, CSS, and data embedded; can be shared as one file |
 | `report-live.html` | Progress report reading adjacent `state.json` / `results.json` |
 | `results.json`, `state.json` | Per-case predictions/errors, scoring, progress, and version metadata |
 | `run-config.json` | Normalized selection and evaluation settings, without model credentials |
-| `dataset-snapshot.json`, `images/` | Selected source metadata and a copy of original screenshots |
+| `dataset-snapshot.json`, `images/` | Selected source metadata and copies of the run's screenshots |
 | `midscene-main.diff` | Local core diff against `origin/main` at run time |
 
 The report includes model comparisons, GT/prediction overlays, per-case details,
-Web/Mobile and Basic/Functional/Reason/Refusal filters and statistics. Embedding
-the original 200 images makes a full report approximately 300 MB.
+Web/Mobile and Basic/Functional/Reason/Refusal filters and statistics.
 To rebuild a saved report without making model requests:
 
 ```sh
@@ -166,6 +173,6 @@ pnpm exec nx test @midscene/core -- tests/unit-test/grounding-locate-not-found.t
 
 ## Case browser and manual review
 
-Run `pnpm browse:cases` and open the printed local URL to browse all 200 cases without model configuration or evaluation results. Filter by platform and primary factor, search, toggle GT overlays, zoom screenshots, and save review statuses and notes in the current browser. Export reviews as JSON for backup. The original dataset is unchanged. The server listens only on localhost, port 4318.
+Run `pnpm browse:cases` and open the printed local URL to browse all 200 cases without model configuration or evaluation results. Filter by platform and primary factor, search, toggle GT overlays, zoom screenshots, and save review statuses and notes in the current browser. Export reviews as JSON for backup. Browser reviews do not modify dataset files. The server listens only on localhost, port 4318.
 
 Alternatively, run `node scripts/browse-cases.mjs` and open `output/case-browser/index.html` directly, preserving its relative location to `_data`.

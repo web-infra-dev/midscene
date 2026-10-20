@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-060",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "Locate the icon using an explicit text anchor and the relationship to its right."
+  },
+  "instruction": {
+    "en": "Find the icon located to the right of the text \"CUSTOM FEEDS\".",
+    "zh": "找到位于“CUSTOM FEEDS”文本右侧的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [765.0, 559.0, 814.0, 503.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/spatial_grounding.json#L5686",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/spatial_grounding.json#406",
+    "image": {
+      "format": "png",
+      "sha256": "bc7ca7e841e8f06a7a0c01ffbd1d3691e7e2f3349587569ab2b1ba6453a34bb4"
+    },
+    "patch": null,
+    "collectedAt": 1792485870644
+  }
+}

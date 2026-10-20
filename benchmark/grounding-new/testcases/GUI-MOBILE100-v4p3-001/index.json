@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-001",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find the text \"Bach's Air on the G String (Orchestral...)\".",
+    "zh": "找到文本“巴赫G弦上的咏叹调 (Orchestral...)”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2094.0, 761.0, 2145.0, 179.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L8654",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#618",
+    "image": {
+      "format": "png",
+      "sha256": "12947b792ccc7d06dcc1ebed05c6bb130b3b000b3fab4889eea029312337b629"
+    },
+    "patch": null,
+    "collectedAt": 1792485870333
+  }
+}

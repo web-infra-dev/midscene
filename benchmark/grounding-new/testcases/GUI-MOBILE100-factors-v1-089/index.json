@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-089",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target is determined solely by adjacency to the approximately 4 minutes text anchor."
+  },
+  "instruction": {
+    "en": "Find the icon adjacent to the text, approximately 4 minutes.",
+    "zh": "找到大约4分钟文本相邻的图标"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [637.0, 93.0, 681.0, 56.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/spatial_grounding.json#L30",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/spatial_grounding.json#2",
+    "image": {
+      "format": "png",
+      "sha256": "e58a407054ff14dfe4072c0554db60a0a0a644e5f063f6dfd0d90f7cfc404e50"
+    },
+    "patch": null,
+    "collectedAt": 1792485870228
+  }
+}

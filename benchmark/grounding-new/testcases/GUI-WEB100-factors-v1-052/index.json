@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-052",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Use the meaning of the building-block toy brand and the MEGA logo on the product packaging to identify the brand filter; the query does not name MEGA directly."
+  },
+  "instruction": {
+    "en": "Refine your search to view Charizard products from the company known for building block toys and figures",
+    "zh": "缩小搜索范围，以查看以积木玩具和人偶而闻名的公司生产的 Charizard 商品。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [668.0, 244.0, 689.0, 211.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L67719",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "L2_annotations.json#3564",
+    "image": {
+      "format": "png",
+      "sha256": "b53c9dc82a416d833c8b0c1e238da91e2669ce40cdac6ee587388a00ee506e54"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870636
+  }
+}

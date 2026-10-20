@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-047",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "Several color dots in the first row have the same shape; red and the second-item constraint are needed to distinguish dark red from bright red."
+  },
+  "instruction": {
+    "en": "Click the second red option in the first row.",
+    "zh": "点击第一行第二个红色"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [1495.0, 418.0, 1623.0, 296.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/CSpecificData200json_cn/C2ColorPicker40.json#L19",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/CSpecificData200json_cn/C2ColorPicker40.json#1",
+    "image": {
+      "format": "png",
+      "sha256": "cff807c4541af5338ede454dcdd4c02f30097365668b8ec1fd66f5a30758596b"
+    },
+    "patch": "Added instruction.en by translating the original Chinese instruction",
+    "collectedAt": 1792485870189
+  }
+}

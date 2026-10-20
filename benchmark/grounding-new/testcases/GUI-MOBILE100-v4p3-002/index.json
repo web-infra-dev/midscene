@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-002",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find the text \"Vanward JD.com Self-operated Flagship Store\".",
+    "zh": "找到文本“万和京东自营旗舰店”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1123.0, 583.0, 1172.0, 199.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L8920",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#637",
+    "image": {
+      "format": "png",
+      "sha256": "7a2e5549e25b5ced83194de2a36f8b92f9f0a1ef935f84a0b3bc60b2368d0292"
+    },
+    "patch": null,
+    "collectedAt": 1792485870335
+  }
+}

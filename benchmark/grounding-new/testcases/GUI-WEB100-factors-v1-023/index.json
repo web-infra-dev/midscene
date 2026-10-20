@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-023",
+  "platform": "web",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "Requires recognizing the specialized GitHub Issues symbol, rather than a common gear, search, or plus icon."
+  },
+  "instruction": {
+    "en": "Access your recent issues on GitHub",
+    "zh": "查看你在 GitHub 上最近的议题（issues）。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [22.4, 2345.5, 67.2, 2300.7],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L62703",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "L2_annotations.json#3300",
+    "image": {
+      "format": "png",
+      "sha256": "65fbbbd40b5f1d0b28e82ae7244254db5aefda47cce3314eb92f8a308037d9b0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870577
+  }
+}

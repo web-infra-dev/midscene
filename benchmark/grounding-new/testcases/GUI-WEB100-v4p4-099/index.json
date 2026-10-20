@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-099",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. The Payment options list contains only one Digital wallets text link, tightly covered by the GT. Other payment methods have different text, so no inference about digital-wallet functionality is needed."
+  },
+  "instruction": {
+    "en": "digital wallets text link",
+    "zh": "数字钱包（digital wallets）文本链接。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [728.0, 118.2, 746.0, 32.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/963",
+    "image": {
+      "format": "png",
+      "sha256": "23b7ed9111bc8533340aa15cb2f22460bc8c8bc1db6463e6079f4f6437fc39aa"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485871005
+  }
+}

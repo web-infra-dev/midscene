@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-058",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "First locate the full-screen reference, then select the icon immediately to its left; recognizing that icon's function is not required."
+  },
+  "instruction": {
+    "en": "Find the icon in the lower-right corner, to the left of the full-screen button.",
+    "zh": "找到右下角、全屏按钮左侧的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1778.0, 2936.0, 1827.0, 2887.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/spatial_grounding.json#L5560",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/spatial_grounding.json#397",
+    "image": {
+      "format": "png",
+      "sha256": "f48c441af5f1cf32e5267e02eb85e2c2d9dd064db9d247fdab31af8f50963abc"
+    },
+    "patch": null,
+    "collectedAt": 1792485870641
+  }
+}

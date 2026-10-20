@@ -38,6 +38,12 @@ export type CodeVersionSnapshot = {
   isDirty: boolean;
 };
 
+export type DatasetVersionSnapshot = {
+  id: string;
+  manifestSha256: string;
+  sourceImageRestorationSha256: string;
+};
+
 export type ModelConnectivityResult = {
   modelId: string;
   modelAlias: string;

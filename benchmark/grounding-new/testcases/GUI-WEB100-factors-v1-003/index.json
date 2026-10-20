@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-003",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query explicitly specifies the Nikon button. The GT is on the rounded button at the top; Nikon in the left column is a checkbox rather than a button."
+  },
+  "instruction": {
+    "en": "Find the button labeled \"Nikon\" in the brand filter section.",
+    "zh": "找到品牌筛选区域中标有“Nikon”的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [585.0, 1337.0, 653.0, 1199.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L5406",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#386",
+    "image": {
+      "format": "png",
+      "sha256": "fa394e2a8ad829c4d0384a5f2100f1d2bafd285de56160577aaf28b761605582"
+    },
+    "patch": null,
+    "collectedAt": 1792485870573
+  }
+}

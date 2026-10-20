@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-072",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Use the +0.58% change sign to identify the rising stock, then locate its corresponding favorite star."
+  },
+  "instruction": {
+    "en": "Help me save the stocks that are currently rising.",
+    "zh": "帮我收藏当前上涨的股票"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [943.0, 1021.0, 1002.0, 962.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L3250",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#row=232",
+    "image": {
+      "format": "png",
+      "sha256": "691b80d55ee67fb381dc6f7c180222396ff43d97fae62b0e70aeadfd77bf6c8c"
+    },
+    "patch": null,
+    "collectedAt": 1792485870315
+  }
+}

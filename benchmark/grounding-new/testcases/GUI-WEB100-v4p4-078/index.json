@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-078",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. The resource-list header contains a unique \"编辑时间\" label, tightly covered by the GT. The times in the rows below are specific dates, not targets with the same name."
+  },
+  "instruction": {
+    "en": "Find the text \"Edit Time\".",
+    "zh": "找到文本“编辑时间”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [256.0, 2694.0, 293.0, 2567.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L13218",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#944",
+    "image": {
+      "format": "png",
+      "sha256": "a4c4755a205142cea1864f7ea4307706ede06c30f055350d580aa7f1a2fced48"
+    },
+    "patch": null,
+    "collectedAt": 1792485870965
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-031",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Publish control in a large workflow editor with many competing canvas controls."
+  },
+  "instruction": {
+    "en": "Publish/deploy the workflow to the production/execution environment",
+    "zh": "将工作流发布/部署到生产环境/执行环境"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [30.0, 3716.0, 97.0, 3599.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L730",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#52",
+    "image": {
+      "format": "png",
+      "sha256": "6ecd5d76cec770be421f338194ec095e95e87e4cd4012ca5745db7bf9df789b4"
+    },
+    "patch": null,
+    "collectedAt": 1792485870823
+  }
+}

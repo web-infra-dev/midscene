@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-070",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "ChatGPT page has no checkbox to the right of ChatGPT in the upper-right."
+  },
+  "instruction": {
+    "en": "Find the checkbox to the right of ChatGPT in the upper-right corner of the screen.",
+    "zh": "找到屏幕右上角ChatGPT右边的复选框"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L5245",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#749",
+    "image": {
+      "format": "png",
+      "sha256": "8038a932743bfd9a0d4760560a267e1a0f0f92a178b3ee57ac1159a6499e0969"
+    },
+    "patch": null,
+    "collectedAt": 1792485870921
+  }
+}

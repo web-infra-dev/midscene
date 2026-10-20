@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-050",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Sort by the remaining time of auction or time-limited items",
+    "zh": "按拍卖或限时商品的剩余时间排序"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1797.0, 114.0, 1852.0, 60.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L5070",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=362",
+    "image": {
+      "format": "png",
+      "sha256": "393c4211221c65de9824011a92d22191f65864e3eef6a3fb1bbaaa0503b6a043"
+    },
+    "patch": null,
+    "collectedAt": 1792485870293
+  }
+}

@@ -57,6 +57,62 @@ export function validateComposition(manifest: DatasetRow[]) {
   return { counts, factorCounts };
 }
 
+export function validateSourceTranslations(manifest: DatasetRow[]) {
+  for (const row of manifest) {
+    if (row.source_name !== 'VenusBench-GD' || !row.query_zh) continue;
+    for (const field of ['raw_record', 'source_record'] as const) {
+      const officialChinese = row[field]?.instruction_zh;
+      if (
+        typeof officialChinese === 'string' &&
+        row.query_zh !== officialChinese
+      ) {
+        throw new Error(
+          `Source Chinese translation mismatch: ${row.case_name} (query_zh vs ${field}.instruction_zh)`,
+        );
+      }
+    }
+  }
+}
+
+export type SourceImageRestoration = {
+  source_name: string;
+  source_revision: string;
+  cases: {
+    case_name: string;
+    source_id: string;
+    official_image_sha256: string;
+  }[];
+};
+
+export function validateRestoredSourceImages(
+  manifest: DatasetRow[],
+  restoration: SourceImageRestoration,
+) {
+  const webclick = manifest.filter((row) => row.source_name === 'WebClick');
+  const originals = new Map(
+    restoration.cases.map((entry) => [entry.case_name, entry]),
+  );
+  if (
+    restoration.source_name !== 'WebClick' ||
+    originals.size !== restoration.cases.length ||
+    originals.size !== webclick.length ||
+    webclick.length !== 6
+  ) {
+    throw new Error('Incomplete or duplicate WebClick source image records');
+  }
+  for (const row of webclick) {
+    const original = originals.get(row.case_name);
+    if (
+      !original ||
+      row.source_revision !== restoration.source_revision ||
+      row.source_id !== original.source_id ||
+      row.image_sha256 !== original.official_image_sha256
+    ) {
+      throw new Error(`Official source image mismatch: ${row.case_name}`);
+    }
+  }
+}
+
 export async function validateDataset() {
   const [cases, manifest] = await Promise.all([loadCases(), loadManifest()]);
   const indexHashes: Record<string, string> = JSON.parse(
@@ -65,6 +121,16 @@ export async function validateDataset() {
   if (cases.length !== 200 || manifest.length !== 200)
     throw new Error('Expected the fixed 200-case dataset');
   const { counts, factorCounts } = validateComposition(manifest);
+  validateSourceTranslations(manifest);
+  validateRestoredSourceImages(
+    manifest,
+    JSON.parse(
+      await readFile(
+        path.join(datasetDir, 'source-image-restoration.json'),
+        'utf8',
+      ),
+    ) as SourceImageRestoration,
+  );
   const seenImages = new Set<string>();
   const rows = new Map(manifest.map((row) => [row.case_name, row]));
   for (const item of cases) {

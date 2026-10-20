@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-029",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Next arrow inside a video share dialog"
+  },
+  "instruction": {
+    "en": "Expand more sharing options",
+    "zh": "展开更多分享选项"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [885.0, 1961.0, 967.0, 1880.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L8276",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#591",
+    "image": {
+      "format": "png",
+      "sha256": "931dcb869023201711009d2421e65ee9b40fed1f17f28e4467d399940f7a4a96"
+    },
+    "patch": null,
+    "collectedAt": 1792485870814
+  }
+}

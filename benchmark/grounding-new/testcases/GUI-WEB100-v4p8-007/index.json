@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p8-007",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Use the legend to identify Betty, then determine her last meeting of the week; color is a secondary factor."
+  },
+  "instruction": {
+    "en": "Click on Betty's last meeting of the week",
+    "zh": "点击Betty本周最后一场会议。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [486.0, 1067.0, 611.0, 917.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00000-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/373",
+    "image": {
+      "format": "png",
+      "sha256": "3f065fe13ee5cdf96bb8a5302c82c50458000b0c5d52333d4bd6559863d9d555"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485871025
+  }
+}

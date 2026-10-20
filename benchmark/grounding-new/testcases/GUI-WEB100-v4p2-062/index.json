@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-062",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "Workflow editor has no back icon in its lower-left corner."
+  },
+  "instruction": {
+    "en": "Find the back icon in the lower-left corner.",
+    "zh": "找到左下角的返回图标"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L93",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#13",
+    "image": {
+      "format": "png",
+      "sha256": "5a1f20c847ca71c90d906ef6e35c08ef2847292c751fbe3f48c0b5bd3e33e12e"
+    },
+    "patch": null,
+    "collectedAt": 1792485870905
+  }
+}

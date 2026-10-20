@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p5-018",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The target text #cat is very narrow, with several adjacent blue hashtags; color is not the main factor distinguishing the target."
+  },
+  "instruction": {
+    "en": "A blue hashtag labeled '#cat' in the video description section",
+    "zh": "视频描述区域中标为“#cat”的蓝色话题标签。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1376.0, 854.0, 1432.0, 734.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L7470",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "393",
+    "image": {
+      "format": "png",
+      "sha256": "462c66d7e307e32b7885220267941a8ca2a9977b1beded2b74290b0bd793869e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870479
+  }
+}

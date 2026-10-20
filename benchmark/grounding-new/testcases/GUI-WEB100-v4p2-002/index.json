@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-002",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Both the departure time and the upper bound on arrival time must be satisfied; matching a single field is insufficient."
+  },
+  "instruction": {
+    "en": "Choose a ticket for a train departing at 2 p.m. and arriving before 8 p.m.",
+    "zh": "选择20点之前到达的、14点出发的车票"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [753.0, 2012.0, 842.0, 1919.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L4510",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#322",
+    "image": {
+      "format": "png",
+      "sha256": "b872d125f50f68b0ab16cb83c45f0a3a076cbc5cb733c8608e14dd39ecc0ef12"
+    },
+    "patch": null,
+    "collectedAt": 1792485870686
+  }
+}

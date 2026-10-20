@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-078",
+  "platform": "mobile",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The current cursor or tick inside the scale must be located; the whole slider or a colored circular button does not satisfy the official local ground truth."
+  },
+  "instruction": {
+    "en": "Locate the current position of the color temperature adjustment slider",
+    "zh": "定位色温调节滑块的当前位置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2117.0, 602.0, 2253.0, 568.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A1Slider100.json#L16",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A1Slider100.json#15",
+    "image": {
+      "format": "png",
+      "sha256": "b7c70f899ed412e2da18d9ceb3c51ca674cdf64908b74c966377eb48f71fa87f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870221
+  }
+}

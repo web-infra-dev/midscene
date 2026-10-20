@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-test('standalone browser preserves every runtime query, GT and local screenshot', async () => {
+test('standalone browser sorts case IDs and preserves every runtime query, GT and local screenshot', async () => {
   execFileSync(process.execPath, ['scripts/browse-cases.mjs'], { cwd: root });
   const output = path.join(root, 'output/case-browser/index.html');
   const html = await readFile(output, 'utf8');
@@ -22,7 +22,7 @@ test('standalone browser preserves every runtime query, GT and local screenshot'
   assert.equal(rows.length, 200);
   assert.deepEqual(
     rows.map((row) => row.case_name),
-    names,
+    [...names].sort(),
   );
   assert.equal(rows.filter((row) => row.bbox_xyxy === null).length, 10);
   await Promise.all(

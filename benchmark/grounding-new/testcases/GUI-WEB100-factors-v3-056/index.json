@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v3-056",
+  "platform": "web",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The target is the endpoint on the outer circle where two pie sectors meet. Locating the whole chart, an entire sector, or the center does not satisfy the specified position."
+  },
+  "instruction": {
+    "en": "Select the intersection point of 'Display Ads' and 'Email' with the pie chart edge",
+    "zh": "选中 'Display Ads' 与 'Email' 的交界线和饼图边缘的交点。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1250.0, 616.0, 1288.0, 584.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/web/ANumericRange240json/A5ChartPoint40.json#L8",
+    "dataset": "FineState-Bench",
+    "recordId": "web/ANumericRange240json/A5ChartPoint40.json#7",
+    "image": {
+      "format": "png",
+      "sha256": "f62d7f4b5387e9b6a5d30e0424f1847901b0fa47d47e8ae37e9a007d24087133"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870677
+  }
+}

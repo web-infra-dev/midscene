@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-056",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The participating teams and the not-started state must be combined; the page also includes a completed China-versus-Sweden match."
+  },
+  "instruction": {
+    "en": "Get information about the China versus Cameroon youth team match that hasn't started yet",
+    "zh": "查看尚未开始的中国与喀麦隆青年队比赛的信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1481.0, 1073.0, 1686.9, 3.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L52652",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2771",
+    "image": {
+      "format": "png",
+      "sha256": "7f197531c7f061de4879cd66c2787b95efffa089b7ebc5c80359c01b5c595c81"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870201
+  }
+}

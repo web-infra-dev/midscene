@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-028",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Analytics tab among visually similar tabs"
+  },
+  "instruction": {
+    "en": "View an overview of note-related data",
+    "zh": "查看笔记相关数据总览"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1345.0, 798.0, 1439.0, 509.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L7912",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#565",
+    "image": {
+      "format": "png",
+      "sha256": "3ea5310213e12b37521f78257faa580c13fdd49986d47c2e0bd458114b8f62e5"
+    },
+    "patch": null,
+    "collectedAt": 1792485870811
+  }
+}

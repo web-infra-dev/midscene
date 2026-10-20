@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-068",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "Appearance settings contain no Drivers checkbox in the Text section."
+  },
+  "instruction": {
+    "en": "Find the checkbox for Drivers under the Text section.",
+    "zh": "在Text部分下找到Drivers的复选框"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L1605",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#229",
+    "image": {
+      "format": "png",
+      "sha256": "c23e819f89ee02f83c369c9245f71e5dd79b8f473cc3c1945d8582e28a4c0fd0"
+    },
+    "patch": null,
+    "collectedAt": 1792485870916
+  }
+}

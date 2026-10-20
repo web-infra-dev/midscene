@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-033",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Image-search/camera control beside search on a dense commerce results page."
+  },
+  "instruction": {
+    "en": "Upload a picture or use the camera to take a photo of the item",
+    "zh": "上传图片或使用摄像头拍摄商品"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [124.0, 3026.0, 216.0, 2825.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1038",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#74",
+    "image": {
+      "format": "png",
+      "sha256": "d494bbe625f85bb526760d8ab1949fc23c760568045511f135ae2c3985329606"
+    },
+    "patch": null,
+    "collectedAt": 1792485870834
+  }
+}

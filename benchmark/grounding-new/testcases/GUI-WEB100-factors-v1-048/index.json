@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-048",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "First read the selected date, the 9th, then infer that the next day is the 10th; the target date is not given directly."
+  },
+  "instruction": {
+    "en": "The next day of selected date",
+    "zh": "所选日期的下一天。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [503.1, 415.7, 550.9, 359.9],
+  "reference": {
+    "url": "https://raw.githubusercontent.com/xlang-ai/OSWorld-G/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json#L9745",
+    "dataset": "OSWorld-G",
+    "recordId": "ZNXMeuznz8-2",
+    "image": {
+      "format": "png",
+      "sha256": "1dbc4aff89281f823da7676537830cf42073a252b993026514461d3570827233"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870620
+  }
+}

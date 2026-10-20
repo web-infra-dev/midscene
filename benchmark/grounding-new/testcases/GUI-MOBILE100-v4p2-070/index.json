@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-070",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Turn off fingerprint recognition unlock feature",
+    "zh": "关闭指纹识别解锁功能"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [979.0, 1043.0, 1361.0, 557.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L7338",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=524",
+    "image": {
+      "format": "png",
+      "sha256": "e4a481bd29ed73a239839118e5083c86e77314c723e2a740f97368855fce16e3"
+    },
+    "patch": null,
+    "collectedAt": 1792485870312
+  }
+}

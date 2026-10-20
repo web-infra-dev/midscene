@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p7-082",
+  "platform": "mobile",
+  "category": {
+    "item": "Relative Position",
+    "reason": "The target health card is between the Resting Heart Rate and Heart Rate Variability anchor cards."
+  },
+  "instruction": {
+    "en": "A health metric card located between the Resting Heart Rate and Heart Rate Variability cards in the Heart section",
+    "zh": "在 Heart 区域中，位于 Resting Heart Rate 卡片与 Heart Rate Variability 卡片之间的健康指标卡片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1362.1, 1121.0, 1716.1, 60.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L26774",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "1409",
+    "image": {
+      "format": "png",
+      "sha256": "4d2c93d3f2eb9b26150dbfde64ed7edf45013e2a0ceac74c89233302b570014f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870500
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-059",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. View GitHub repository contributors through the Insights subnavigation; this differs from the existing project-sponsorship task."
+  },
+  "instruction": {
+    "en": "Display a list of developers who have contributed to the repository",
+    "zh": "显示对仓库有贡献的开发者列表"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [335.0, 1280.0, 410.0, 690.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L8794",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#628",
+    "image": {
+      "format": "png",
+      "sha256": "a01f87b020bb45e10802b67e1e526711f38c07848818923f15fccb7e2094fc98"
+    },
+    "patch": null,
+    "collectedAt": 1792485870902
+  }
+}

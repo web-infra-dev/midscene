@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-029",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "A square icon with a letter 'A' and a pencil symbol, indicating a text formatting or editing function",
+    "zh": "一个带有字母“A”和铅笔符号的方形图标，表示文本格式设置或编辑功能。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [745.0, 346.0, 799.0, 293.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L25026",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "1317",
+    "image": {
+      "format": "png",
+      "sha256": "0d94a39232da0d07aff89cabe7f265ac8c329ec731a4771e87bfa7aa7c8f43cc"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870457
+  }
+}

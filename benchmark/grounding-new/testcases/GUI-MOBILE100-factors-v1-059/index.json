@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-059",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The home/away relationship and team logo at the top must be linked to the ratings tabs below; the target is the away team rather than the home team."
+  },
+  "instruction": {
+    "en": "Check the player ratings for the Monkey Kings team that played as visitors in this completed basketball game",
+    "zh": "查看在这场已结束的篮球比赛中作为客队出战的 Monkey Kings 队的球员评分。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [877.7, 688.1, 973.7, 415.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L53089",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2794",
+    "image": {
+      "format": "png",
+      "sha256": "34a37e898290c6daef221e730f38e63bd9b635c78c059a181ef35f82225c5fff"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870209
+  }
+}

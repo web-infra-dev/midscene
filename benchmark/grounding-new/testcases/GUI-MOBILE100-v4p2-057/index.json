@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-057",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Change the incoming call ringtone",
+    "zh": "更换来电铃声"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [451.0, 1041.0, 704.0, 554.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1290",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=92",
+    "image": {
+      "format": "png",
+      "sha256": "8beb72ebd208c0df81ed267dddbc3d25ed4bee49939513d840751620c95fe28e"
+    },
+    "patch": null,
+    "collectedAt": 1792485870297
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-092",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. There is only one blue Go button in the route-input panel at the upper left of the map; the official box covers it."
+  },
+  "instruction": {
+    "en": "click the button with \"go\"",
+    "zh": "点击带有 \"go\" 的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [398.0, 751.0, 472.0, 669.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2762",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_230",
+    "image": {
+      "format": "png",
+      "sha256": "4d991cbe5ac7854439818ff7fe3cd520b8b155f0c39ac4326abc44f600e273ce"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870988
+  }
+}

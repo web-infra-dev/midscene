@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p6-090",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The standalone marker already added to the map is directly visible; the main difficulty is locating a small target."
+  },
+  "instruction": {
+    "en": "Click on the marker already added to the map",
+    "zh": "点击已添加到地图上的标记。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [553.0, 1470.0, 608.0, 1418.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2966",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_247",
+    "image": {
+      "format": "png",
+      "sha256": "0e9df1252f06b1220ba44c51c9b33b6e27298dcb0db64fa76cee6681440205c1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485871012
+  }
+}

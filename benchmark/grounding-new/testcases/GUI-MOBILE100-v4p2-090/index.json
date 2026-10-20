@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-090",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Map nearly 70K to the approximate value 68.9K to match the Game4 sports discussion."
+  },
+  "instruction": {
+    "en": "View discussions about a popular sports match that has generated nearly 70K posts",
+    "zh": "查看一场热门体育比赛的相关讨论，该比赛已产生接近 70K 条帖子。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1752.0, 1068.0, 2046.0, 14.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L58428",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "3075",
+    "image": {
+      "format": "png",
+      "sha256": "3032a171754d83f4e9b858ee5688698958b142fc22a3de3884f849edd5050739"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870323
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-086",
+  "platform": "mobile",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The same slider has handles at both ends; the target is the current position of the left handle, not the entire slider."
+  },
+  "instruction": {
+    "en": "Locate the current position of the leftmost price slider",
+    "zh": "定位最左侧价格滑块的当前位置。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [537.0, 544.0, 625.0, 460.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A1Slider100.json#L23",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A1Slider100.json#22",
+    "image": {
+      "format": "png",
+      "sha256": "e15e3f36ea98d68eca5e383a0c4ca3d8f317439dec5037fdc9dfa5663fea57b3"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870224
+  }
+}

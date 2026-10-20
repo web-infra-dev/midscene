@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-014",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find the tab labeled \"08-14 Thursday\"",
+    "zh": "找到“08-14 周四”的标签页"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [345.0, 333.0, 440.0, 175.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L21030",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1502",
+    "image": {
+      "format": "png",
+      "sha256": "8afecc9b2745123beeddbb4090bdc3de86915d661cc1dfd06fdc783af2f32c93"
+    },
+    "patch": null,
+    "collectedAt": 1792485870416
+  }
+}

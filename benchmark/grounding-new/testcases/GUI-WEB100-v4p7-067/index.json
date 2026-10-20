@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p7-067",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "Among multiple news items, use the displayed \"13 hr ago\" to locate the corresponding title."
+  },
+  "instruction": {
+    "en": "Find the title posted 13 hours ago, view details",
+    "zh": "找到13小时前发布的标题，查看详情"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1523.0, 1777.0, 1626.0, 950.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L13470",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#962",
+    "image": {
+      "format": "png",
+      "sha256": "b53b191b8cd21c3a17b5abddfde50806d371e8282f60d021dadcba51fa167e1d"
+    },
+    "patch": null,
+    "collectedAt": 1792485871023
+  }
+}

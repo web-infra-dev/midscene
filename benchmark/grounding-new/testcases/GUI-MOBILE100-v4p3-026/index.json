@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-026",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "A white rectangular box containing a metro symbol, the station name '龙耀路' (Long Yao Road), and a red circular badge with the number 11, indicating a subway station on Line 11.",
+    "zh": "一个白色矩形框，包含地铁标志、“龙耀路”（Long Yao Road）站名，以及带数字 11 的红色圆形徽章，表示 11 号线地铁站。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1150.0, 366.0, 1230.0, 216.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L7356",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "387",
+    "image": {
+      "format": "png",
+      "sha256": "1367733c35e0f27e2bf6c69a7ee2e870e99187a976fc75866d5c58239adb8f35"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870444
+  }
+}

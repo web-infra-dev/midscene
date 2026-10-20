@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-020",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "First restrict the candidates to sold-out hotels, then use distance from the landmark to find the nearest hotel."
+  },
+  "instruction": {
+    "en": "On the map, find the hotel nearest to Tianqiao Performing Arts that is already sold out.",
+    "zh": "在地图上，找到离天桥演艺最近的已售罄酒店。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1677.0, 2113.0, 1742.0, 2059.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L6568",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#469",
+    "image": {
+      "format": "png",
+      "sha256": "36e2f431c0b981d2c4765fffad3feb7f9971d6dddab76413c8c03af7c9cf0670"
+    },
+    "patch": null,
+    "collectedAt": 1792485870791
+  }
+}

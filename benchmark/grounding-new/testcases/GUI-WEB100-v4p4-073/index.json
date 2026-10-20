@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-073",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The Automatic label and its group are explicitly specified; the main task is locating the small circular control."
+  },
+  "instruction": {
+    "en": "Locate the \"Automatic\" checkbox under the \"Distance units\" section.",
+    "zh": "找到“Distance units”部分下的“Automatic”复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [700.0, 674.0, 746.0, 630.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L5952",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#425",
+    "image": {
+      "format": "png",
+      "sha256": "2fd38f5bec94ed2ea1701c7333623e367155042329be804b1d3f5d6b01b219ae"
+    },
+    "patch": null,
+    "collectedAt": 1792485870946
+  }
+}

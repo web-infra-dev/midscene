@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-051",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The color dots at the bottom have the same shape; only color together with the selected state or adjacency constraints distinguishes the target."
+  },
+  "instruction": {
+    "en": "Change green to the first blue to its left.",
+    "zh": "将绿色改为其左边第一个蓝色"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [2125.0, 634.0, 2257.0, 512.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/CSpecificData200json_cn/C2ColorPicker40.json#L37",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/CSpecificData200json_cn/C2ColorPicker40.json#2",
+    "image": {
+      "format": "png",
+      "sha256": "ae6d94cc0306788b006f770090d1fe77340885f4d3ca93c11912f4dbf5958aca"
+    },
+    "patch": "Added instruction.en by translating the original Chinese instruction",
+    "collectedAt": 1792485870190
+  }
+}

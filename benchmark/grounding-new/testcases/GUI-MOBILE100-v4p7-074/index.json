@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p7-074",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "First use distance to select the nearest store at 1.5 km, then compare its product prices to select the 5-yuan item; this requires two stages of comparison."
+  },
+  "instruction": {
+    "en": "Choose the cheapest item from the store nearest to me.",
+    "zh": "选择离我最近的商店最便宜的商品"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1257.0, 410.0, 1458.0, 197.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L4622",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#330",
+    "image": {
+      "format": "png",
+      "sha256": "404fcd59dfbc161e6a2e5e19d5b3f0cd6dbdb48079eaa85aca34d2c7cb9ecf43"
+    },
+    "patch": null,
+    "collectedAt": 1792485870489
+  }
+}

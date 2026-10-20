@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-021",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "open the file named \"result\"",
+    "zh": "打开名为“result”的文件。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [304.0, 962.0, 579.0, 770.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L266",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#22",
+    "image": {
+      "format": "png",
+      "sha256": "5142f1f95d9f7ec452e47e73eb21eb38cca1c8ffb8bf9f3bb58f6fffba390f00"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870425
+  }
+}

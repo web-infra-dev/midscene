@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v2-042",
+  "platform": "web",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The brand and shoe model apply to multiple color variants; the yellow upper is the key to distinguishing the target."
+  },
+  "instruction": {
+    "en": "A yellow Adidas Grand Court Base 00S sneaker with three white stripes on the side and a gum sole",
+    "zh": "一只黄色 Adidas Grand Court Base 00S 运动鞋，侧面有三条白色条纹，采用生胶鞋底。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [762.7, 1921.3, 923.8, 1759.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L30916",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "L2_annotations.json#1627",
+    "image": {
+      "format": "png",
+      "sha256": "5fb4f06b0c8d9f3e22a9ae14a00fe633db7a52da22c4e65e08324b69c5075b87"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870665
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v2-045",
+  "platform": "web",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The query specifies only Black. Locate the circular swatch by color, without reading a color label or distinguishing it by icon shape."
+  },
+  "instruction": {
+    "en": "Click on Black.",
+    "zh": "点击黑色（Black）。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [640.0, 61.0, 664.0, 37.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-18K/resolve/f061eba2b7e3fffcf511694f15ad3ca38898ab9e/data/train-00018-of-00019.parquet",
+    "dataset": "GroundUI-18K",
+    "recordId": "data/train-00018-of-00019.parquet#210",
+    "image": {
+      "format": "jpeg",
+      "sha256": "8672cbcde505129a40bf94b74bb2d342dc91f6100b26fe9f49e44b050372c27e"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870674
+  }
+}

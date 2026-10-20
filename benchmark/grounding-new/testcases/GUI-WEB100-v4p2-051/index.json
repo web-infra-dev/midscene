@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-051",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Select all items in the shopping cart: a global selection within a dense list, distinct from the existing payment and photo-taking actions."
+  },
+  "instruction": {
+    "en": "Select all items in the shopping cart",
+    "zh": "全选购物车商品"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [351.0, 345.0, 396.0, 303.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L72",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#5",
+    "image": {
+      "format": "png",
+      "sha256": "da2d5f76fdeaec175a4fec06ab14a773cfd4bfffaec772f1680f45691e1a2108"
+    },
+    "patch": null,
+    "collectedAt": 1792485870896
+  }
+}

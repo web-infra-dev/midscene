@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-012",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Compare the number of subtasks in the third phase, then locate the completion control."
+  },
+  "instruction": {
+    "en": "Click to complete the task with the most subtasks in the third phase.",
+    "zh": "点击完成第三阶段中子任务最多的任务。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [586.0, 1876.0, 619.0, 1842.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L15220",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#1087",
+    "image": {
+      "format": "png",
+      "sha256": "57a419a264f2eefdfea2389dbb0088a38275a08de920c0eec88b7d0da652d361"
+    },
+    "patch": null,
+    "collectedAt": 1792485870704
+  }
+}

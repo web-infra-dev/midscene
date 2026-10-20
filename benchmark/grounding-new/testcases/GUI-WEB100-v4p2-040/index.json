@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-040",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Reporting navigation item on a dense task dashboard."
+  },
+  "instruction": {
+    "en": "Generate project report",
+    "zh": "生成项目报告"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [442.0, 452.0, 500.0, 35.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L3040",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#217",
+    "image": {
+      "format": "png",
+      "sha256": "cd8837ca635c0fb9eb06d4f11848c9641ed271e504e5fe802ce98161d46dc03f"
+    },
+    "patch": null,
+    "collectedAt": 1792485870864
+  }
+}

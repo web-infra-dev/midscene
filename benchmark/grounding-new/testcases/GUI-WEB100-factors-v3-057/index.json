@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v3-057",
+  "platform": "web",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The target is the lower-left resizing position of the graphic selection box, a local area of approximately 77×62 pixels; locating the graphic center or the whole canvas does not satisfy it."
+  },
+  "instruction": {
+    "en": "Help me find the lower left corner of the picture on the canvas",
+    "zh": "帮我找到画布上图片的左下角。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [543.0, 1509.0, 605.0, 1432.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/web/DViewManipilation160json/D2ZoomPan30.json#L5",
+    "dataset": "FineState-Bench",
+    "recordId": "web/DViewManipilation160json/D2ZoomPan30.json#4",
+    "image": {
+      "format": "png",
+      "sha256": "4f660389868b0c5ca4175a547562cd75a2b492e1c17dee4ea002bc45ea1ce9fd"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870680
+  }
+}

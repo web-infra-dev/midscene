@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-041",
+  "platform": "web",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "The medical-image measurement tool is represented only by M, requiring recognition of a domain-specific or software-specific symbol."
+  },
+  "instruction": {
+    "en": "Click on the Measurement layout icon",
+    "zh": "点击测量布局（Measurement layout）图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [16.4, 1214.0, 111.6, 1127.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Tajamul21/MedSPOT/resolve/dc65c80d24cd380e08ff7de2b2aa63b7d20bef60/Annotations/Bluelight_Annotation.json",
+    "dataset": "MedSPOT",
+    "recordId": "Annotations/Bluelight_Annotation.json#tasks[10].steps[0]",
+    "image": {
+      "format": "png",
+      "sha256": "96b25c00c79109b124f71e4d82973595d7268c4bdefe135660797e187357b800"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870598
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-044",
+  "platform": "mobile",
+  "category": {
+    "item": "Small Target",
+    "reason": "The small 换一换 refresh icon is beside the search suggestions and has ordinary refresh semantics; the main challenge is the size of the target."
+  },
+  "instruction": {
+    "en": "Change to a new set of trending topics",
+    "zh": "换一批热搜内容"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [256.0, 738.0, 310.0, 679.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L3082",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=220",
+    "image": {
+      "format": "png",
+      "sha256": "9bcaf87a611338bf0a5269e6e7af3ba6412fad7d32ab9303ad6ada09c5e9fe86"
+    },
+    "patch": null,
+    "collectedAt": 1792485870270
+  }
+}

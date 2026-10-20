@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p3-006",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Identify that the ordered product belongs to the book category; retains a user-approved semantic reasoning case."
+  },
+  "instruction": {
+    "en": "Select images of products that belong to the book category on the page.",
+    "zh": "选择页面中属于书籍类的商品图片"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1658.0, 1147.0, 1832.0, 1006.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L1094",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#78",
+    "image": {
+      "format": "png",
+      "sha256": "e00b7c341866a5c6d225ced19e16cb5fd7a26af182da4d15329f38c9f8273ac1"
+    },
+    "patch": null,
+    "collectedAt": 1792485870922
+  }
+}

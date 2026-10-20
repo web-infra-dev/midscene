@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-017",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Determine whether the number of paying customers falls within the open interval; the target is the corresponding product image."
+  },
+  "instruction": {
+    "en": "Select the product image for people paying more than 60 and less than 100",
+    "zh": "选择付款 >60 而且 <100人的商品图"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [610.0, 2789.0, 1095.0, 2298.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L4160",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#297",
+    "image": {
+      "format": "png",
+      "sha256": "7d300f81422d1f2496e6bd3871cd7759a892caf2f19f81065c7a8aa0067341cb"
+    },
+    "patch": null,
+    "collectedAt": 1792485870768
+  }
+}

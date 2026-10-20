@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v2-044",
+  "platform": "web",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "Use the forest-green color to locate the target among identically shaped dark-blue, silver, and green circular swatches."
+  },
+  "instruction": {
+    "en": "Click on the 'Forest Green' circle.",
+    "zh": "点击 'Forest Green' 圆形。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [769.0, 1395.0, 843.0, 1235.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/agent-studio/GroundUI-18K/resolve/f061eba2b7e3fffcf511694f15ad3ca38898ab9e/data/train-00008-of-00019.parquet",
+    "dataset": "GroundUI-18K",
+    "recordId": "data/train-00008-of-00019.parquet#682",
+    "image": {
+      "format": "png",
+      "sha256": "24cc7e58755633f0cfb22c6264c6191e4eccc590b3170d2e7439fb401560585a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870672
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-024",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Route action on a detailed map place card"
+  },
+  "instruction": {
+    "en": "Plan a route to Hangzhou East Railway Station",
+    "zh": "规划前往杭州东站的路线"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [388.0, 733.0, 493.0, 626.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L3306",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#236",
+    "image": {
+      "format": "png",
+      "sha256": "5a03736ef8cb7a4264430e4d49368acc931b6d7c21ad48c24d304728652e1839"
+    },
+    "patch": null,
+    "collectedAt": 1792485870803
+  }
+}

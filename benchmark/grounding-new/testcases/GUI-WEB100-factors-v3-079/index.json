@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v3-079",
+  "platform": "web",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The official fine-grained box covers only a narrow strip near the right boundary of column E. The instruction specifies the column boundary over the full table height; clicking inside the column does not satisfy boundary localization."
+  },
+  "instruction": {
+    "en": "The vertical line on the right side of point E is the right selection line, and the selection height covers the entire table.",
+    "zh": "E 点右侧的竖线是右侧选择线，选择高度覆盖整个表格。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [290.0, 977.0, 1278.0, 923.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/web/DViewManipilation160json/D7TableColumn15.json#L3",
+    "dataset": "FineState-Bench",
+    "recordId": "web/DViewManipilation160json/D7TableColumn15.json#2",
+    "image": {
+      "format": "png",
+      "sha256": "703734ff4eb0693a45568836228a9fd1d41bb691567cd032503aeac1700b7e85"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870682
+  }
+}

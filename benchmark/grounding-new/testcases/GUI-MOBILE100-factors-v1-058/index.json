@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-058",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "The meaning of rage must be mapped to a visual expression and distinguished from other similar expressions such as laughter, crying, and surprise."
+  },
+  "instruction": {
+    "en": "Select the emoji that expresses extreme anger or rage to convey strong negative feelings in your reply",
+    "zh": "选择表达极度愤怒或暴怒的表情，以在回复中传达强烈的负面情绪。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1711.7, 302.0, 1803.7, 190.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L52728",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2775",
+    "image": {
+      "format": "png",
+      "sha256": "1a75301e55d8a6be7088880cbbcdcc584f8228e0d0b0e377f9050dd6cddad2a1"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870203
+  }
+}

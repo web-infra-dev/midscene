@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p6-097",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Link the free Fitness Room amenity information to the gym-photo card below."
+  },
+  "instruction": {
+    "en": "Explore more images of the workout space that's listed as a free service at this Shanghai hotel",
+    "zh": "浏览这家上海酒店列为免费服务的健身空间的更多图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1707.0, 496.0, 2021.0, 70.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L55882",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2941",
+    "image": {
+      "format": "png",
+      "sha256": "2440890eaf69f99511ed91b3a1fd3db16c76b51694d4475113ac06cff7d752e0"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870487
+  }
+}

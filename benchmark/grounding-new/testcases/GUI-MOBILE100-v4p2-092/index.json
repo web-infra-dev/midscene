@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-092",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "The instruction requires a switch to the left of the label, but the screenshot has a switch only on the right; this is an official Refusal case."
+  },
+  "instruction": {
+    "en": "Click the toggle switch located to the left of \"Enable System Haptics.\"",
+    "zh": "点击位于”打开系统触感“左侧的切换开关"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L366",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#row=52",
+    "image": {
+      "format": "png",
+      "sha256": "7f96222b714b0f267664406ad8562196c48db25acd344be9bf42e8ee51a17f5f"
+    },
+    "patch": null,
+    "collectedAt": 1792485870326
+  }
+}

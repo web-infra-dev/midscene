@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-013",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "Match the exact dates to a subtask, then locate that row's completion control; date inference is not counted separately."
+  },
+  "instruction": {
+    "en": "Find the task in the third phase with the date of December 12-14, and click to complete the task.",
+    "zh": "找到第三阶段任务中时间是12月12-14日的任务，点击完成任务\n"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1019.0, 2000.0, 1056.0, 1965.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L8276",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#591",
+    "image": {
+      "format": "png",
+      "sha256": "c4c391c200c7c52eab9dc6581326c01065bc611642483f9fde00bfc65aba00f1"
+    },
+    "patch": null,
+    "collectedAt": 1792485870709
+  }
+}

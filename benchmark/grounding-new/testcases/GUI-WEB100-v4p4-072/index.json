@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-072",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. The centered dialog has the unique title \"保持登录状态\", which is covered by the GT. The button below says only \"保持\", so it does not match the specified text."
+  },
+  "instruction": {
+    "en": "Find the text \"Keep me logged in\".",
+    "zh": "找到文本“保持登录状态”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [714.0, 2053.0, 766.0, 1785.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L6162",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#440",
+    "image": {
+      "format": "png",
+      "sha256": "d687b3f4363015b1d886a5fc0a7b8ea9715ab24ee37c2101023c4495f114b025"
+    },
+    "patch": null,
+    "collectedAt": 1792485870945
+  }
+}

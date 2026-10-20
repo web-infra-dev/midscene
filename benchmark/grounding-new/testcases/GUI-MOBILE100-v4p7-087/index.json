@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p7-087",
+  "platform": "mobile",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "There is a unique intersection between the black vertical line and the blue curve; the ground truth is a narrow point box rather than the whole chart."
+  },
+  "instruction": {
+    "en": "Select the intersection point of the black vertical line and the blue line chart",
+    "zh": "选择黑色竖线与蓝色折线图的交点。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [814.0, 779.0, 845.0, 763.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A5ChartPoint40.json#L8",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A5ChartPoint40.json#7",
+    "image": {
+      "format": "png",
+      "sha256": "8649b16fc3c460e1423ffe93ede47241e5a02fe5d8c10f49324c5aab5218709b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870503
+  }
+}

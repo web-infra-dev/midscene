@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-080",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The Standard option in the Text group is explicitly specified; the main task is locating a control approximately 9.9×9.1 normalized pixels in size."
+  },
+  "instruction": {
+    "en": "Find the \"Standard\" checkbox in the \"Text\" section of the Appearance settings.",
+    "zh": "在外观设置中的“文本”部分找到“标准”复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [277.0, 2970.0, 312.0, 2932.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L13316",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#951",
+    "image": {
+      "format": "png",
+      "sha256": "30dc997b34e538c96c07e708c72646639eb55affdf12543aab1393415f04dfa7"
+    },
+    "patch": null,
+    "collectedAt": 1792485870966
+  }
+}

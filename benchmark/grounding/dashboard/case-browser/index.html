@@ -100,7 +100,7 @@
       }
       main {
         display: grid;
-        grid-template-columns: 220px minmax(0, 1fr);
+        grid-template-columns: 320px minmax(0, 1fr);
         min-height: 0;
         flex: 1;
       }
@@ -129,9 +129,8 @@
       }
       .case span {
         display: block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow-wrap: anywhere;
         font-size: 12px;
       }
       article {
@@ -311,7 +310,7 @@
         nav {
           display: flex;
           gap: 6px;
-          max-height: 76px;
+          max-height: 100px;
           border-bottom: 1px solid #dae1da;
         }
         nav > p,
@@ -319,7 +318,7 @@
           display: none;
         }
         nav .case {
-          flex: 0 0 190px;
+          flex: 0 0 280px;
           margin: 0;
         }
         header h1 {
@@ -395,7 +394,7 @@
       };
       const factorNames = {
         element: '直接元素定位',
-        unfamiliar: '不常见图标',
+        unfamiliar: '专用图标',
         small: '小目标',
         color: '颜色识别',
         functional: '功能意图',

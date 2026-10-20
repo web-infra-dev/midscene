@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-095",
+  "platform": "mobile",
+  "category": {
+    "item": "Refusal",
+    "reason": "The network-diagnostics row has an arrow rather than a toggle switch on the right; this is an official Refusal case."
+  },
+  "instruction": {
+    "en": "Find the toggle switch for network diagnostics.",
+    "zh": "找到网络诊断的切换开关"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L1549",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#row=221",
+    "image": {
+      "format": "png",
+      "sha256": "0dda2617f6e94265a7dd69ec76b41fec749cfbf7c4c4bfd92b9003cd41b73095"
+    },
+    "patch": null,
+    "collectedAt": 1792485870328
+  }
+}

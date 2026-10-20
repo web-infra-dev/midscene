@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p7-066",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Read the task-successor structure within the specified phase rather than matching a given text value."
+  },
+  "instruction": {
+    "en": "Find the next task after \"Determine Decor Style and Core...\" in Phase One, and click to view.",
+    "zh": "找到第一阶段中的“确定装修风格与核心...”的下一个任务，点击查看。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [662.0, 1899.0, 734.0, 1526.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L8150",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#582",
+    "image": {
+      "format": "png",
+      "sha256": "6df414aa536dfc7595e11a2d1e9ab835370feaa0543412cc1c18e2e806544b25"
+    },
+    "patch": null,
+    "collectedAt": 1792485871021
+  }
+}

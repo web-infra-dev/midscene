@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-019",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Tap the division sign in the calculator",
+    "zh": "点击计算器中的除号。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1102.0, 1020.0, 1322.0, 780.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L2474",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#206",
+    "image": {
+      "format": "jpeg",
+      "sha256": "69a39654e0c81c9ac38c16e4d57e9683dab92573da26cff614a81f7f6061c27a"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870422
+  }
+}

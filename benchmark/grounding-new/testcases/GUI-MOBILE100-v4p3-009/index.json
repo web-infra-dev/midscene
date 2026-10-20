@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-009",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find the text \"Ba Wang Cha Ji (Zichuang Business Center Store)\" in the image.",
+    "zh": "找到图片中“霸王茶姬（紫创商务中心店）”的文字"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1258.0, 726.0, 1308.0, 209.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L4832",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#345",
+    "image": {
+      "format": "png",
+      "sha256": "38915cf3d4d6e29bc75e3cb5a0dd72fb65e46ec6e83dd7ce65980a54ad6d3525"
+    },
+    "patch": null,
+    "collectedAt": 1792485870359
+  }
+}

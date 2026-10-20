@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p7-075",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Compare the paid-customer counts of four mouse products; 450,000 is the unique maximum."
+  },
+  "instruction": {
+    "en": "Select the product image with the highest number of paid customers.",
+    "zh": "选择已付款人数最多的商品图片"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1829.0, 412.0, 2208.0, 25.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L3124",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#223",
+    "image": {
+      "format": "png",
+      "sha256": "181ec517d96a2c82bb73ee64de01ac69f1e0f8bc0cf1f14b6db89bc775119f6c"
+    },
+    "patch": null,
+    "collectedAt": 1792485870492
+  }
+}

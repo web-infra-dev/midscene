@@ -1,5 +1,5 @@
 {
-  "version": "web-primary-v3-mobile-primary-v1-20261008",
+  "version": "web-primary-v3-mobile-primary-v1-webclick-png-20261020",
   "cases": 200,
   "platforms": {
     "web": 100,
@@ -68,8 +68,8 @@
     "batch_id": "web-mobile200-primary-astra-20261008-141330",
     "manifest_sha256": "fa0ef7b8b2583f1d105bf72d13825fa6b1fcf6009be338c3610920330ee733b2"
   },
-  "manifest_sha256": "ce2395b3451df13e3362a0f11e2d27abd949d05695cce4cd7f3d97b78e7c7388",
-  "query_gt_image_bytes_match_evaluated_snapshot": true,
+  "manifest_sha256": "d8b1b0a6c02bf500f193158775d568dbe3ca420d8c16eab04fb3c676bd66e41e",
+  "query_gt_image_bytes_match_evaluated_snapshot": false,
   "screenshots_unique": 200,
   "expected_outcomes": {
     "point": 190,
@@ -77,5 +77,11 @@
   },
   "this_revision_model_results_used_for_selection": false,
   "historical_refusal_selection": "The retained refusal subsets were calibrated using earlier model outcomes; see refusal-selection.json.",
-  "license_metadata": "Source values are preserved per row, including undeclared or conflicting historical metadata. No blanket license is assigned."
+  "license_metadata": "Source values are preserved per row, including undeclared or conflicting historical metadata. No blanket license is assigned.",
+  "query_gt_match_evaluated_snapshot": true,
+  "screenshots_unchanged_from_evaluated_snapshot": 194,
+  "case_indexes_unchanged_from_evaluated_snapshot": 194,
+  "restored_official_images": 6,
+  "source_image_restoration_sha256": "91f4472e70eaba659eb692c06ccb847ea140fde1a9317a01b74aa0e7da21a6d4",
+  "evaluation_status": "not_evaluated_with_restored_images"
 }

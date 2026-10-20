@@ -3,7 +3,8 @@
 [English](./README.md)
 
 使用当前仓库构建的 `@midscene/core` `Agent.aiLocate`，评测固定的
-**Web primary v3 + Mobile primary v1 (2026-10-08)，共 200 题**。运行器和交互报告迁自
+**Web primary v3 + Mobile primary v1，WebClick PNG 恢复版（2026-10-20），共 200 题**。
+题库版本为 `web-primary-v3-mobile-primary-v1-webclick-png-20261020`。运行器和交互报告迁自
 `midscene-evaluation`，运行时无需另一个评测仓库或后台服务。
 
 ## 快速开始
@@ -79,8 +80,8 @@ pnpm evaluate --config examples/run-config.json --models-file _private/models.js
 
 | 主考点 | Web | Mobile |
 | --- | ---: | ---: |
-| Element basic（直接元素定位） | 20 | 20 |
-| Unfamiliar Icon（不常见图标） | 5 | 5 |
+| Basic Element（直接元素定位） | 20 | 20 |
+| Specialized Icon（专用图标） | 5 | 5 |
 | Small Target（小目标） | 10 | 10 |
 | Color Recognition（颜色识别） | 5 | 5 |
 | Functional（功能意图定位） | 20 | 20 |
@@ -97,8 +98,13 @@ pnpm evaluate --config examples/run-config.json --models-file _private/models.js
 
 来源、筛选标准、GT 转换及逐题溯源见 [DATASET.md](./DATASET.md)。
 `_data/dataset/case_names.json` 固定题目顺序；`manifest.jsonl` 包含十主类、
-原 query、GT、来源 ID 和版本。200 题的 query、GT 和原图与本版已评测快照一致。
-运行前核对 index 和截图 SHA-256，数据目录不参与自动格式化。
+原 query、GT、来源 ID 和版本。200 题的评测指令和 GT 保留 2026-10-08 的选题版本。
+2026-10-20 将六张 WebClick JPEG 快照恢复为官方 PNG 字节；题目 ID、顺序和图片尺寸不变。
+本次恢复未调用模型，旧成绩属于此前的 JPEG 快照，不能作为当前版本的成绩。
+
+运行前核对当前 index 和截图哈希，并按 `_data/dataset/source-image-restoration.json`
+记录的官方 SHA-256 校验六张 PNG。结果的 `versions.dataset` 记录题库版本 ID 和
+一致性哈希。数据目录不参与自动格式化。
 
 - 正常定位：预测点落在原 GT 框内即正确。
 - Refusal：仅 SDK 解析器明确返回 `not-found` 时算正确；API 404、超时、
@@ -119,11 +125,11 @@ pnpm evaluate --config examples/run-config.json --models-file _private/models.js
 | `report-live.html` | 读取同目录结果文件的进度报告 |
 | `results.json`、`state.json` | 逐题预测、错误、计分、进度、版本记录 |
 | `run-config.json` | 本轮标准化配置，不含模型认证信息 |
-| `dataset-snapshot.json`、`images/` | 本轮题目来源信息及原始截图副本 |
+| `dataset-snapshot.json`、`images/` | 本轮题目来源信息及实际评测截图副本 |
 | `midscene-main.diff` | 运行时 core 相对 `origin/main` 的差异 |
 
 报告保留模型对比、GT/预测框、逐题详情，支持 Web/Mobile 和四分类统计与筛选。
-保留全部原图的 200 题 HTML 约 300 MB。可离线从结果重新生成报告，无需调用模型：
+可离线从结果重新生成报告，无需调用模型：
 
 ```sh
 pnpm report output/runs/<run-id>/results.json

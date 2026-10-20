@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-077",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. There is only one dropdown displaying Cables & Accessories to the left of the search bar, and the GT covers it. The sidebar also contains category text with the same name, but it is not the specified navigation dropdown."
+  },
+  "instruction": {
+    "en": "Find the 'Cables & Accessories' dropdown menu in the navigation bar.",
+    "zh": "在导航栏中找到'Cables & Accessories'的下拉菜单。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [20.0, 850.0, 99.0, 565.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L11202",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#800",
+    "image": {
+      "format": "png",
+      "sha256": "acfca7385ced434cad5e4f92be3a72e6361de4ce3efaf22263268bda9a01dc07"
+    },
+    "patch": null,
+    "collectedAt": 1792485870961
+  }
+}

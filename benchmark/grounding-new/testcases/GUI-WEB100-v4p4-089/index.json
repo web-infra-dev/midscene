@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-089",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. The Learn about data section contains only one Earth image, with a ruler image beside it and mountains below; the official box fully covers the Earth image."
+  },
+  "instruction": {
+    "en": "open the picture of earth",
+    "zh": "打开地球图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [425.0, 1994.0, 857.0, 1571.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L3338",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_278",
+    "image": {
+      "format": "png",
+      "sha256": "0232d6e1e7a0c24c89c53a7388f205176ae0519b5e02dc5b9d2c9f8e4482c63b"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870981
+  }
+}

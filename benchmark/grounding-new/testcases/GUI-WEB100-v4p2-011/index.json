@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-011",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "First filter stocks whose market capitalization exceeds the threshold, then select the lowest price."
+  },
+  "instruction": {
+    "en": "Among all stocks with a market capitalization exceeding 1 trillion U.S. dollars, find the one with the lowest price and view details.",
+    "zh": "在所有市值超过1万亿美元的股票中，找到价格最低的那支，查看详情\n\n"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [470.0, 420.0, 518.0, 314.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L9214",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#658",
+    "image": {
+      "format": "png",
+      "sha256": "9e255aed526f4755389b01fe06301b88d1d6376bb1c72ded425ba5e0af266b68"
+    },
+    "patch": null,
+    "collectedAt": 1792485870701
+  }
+}

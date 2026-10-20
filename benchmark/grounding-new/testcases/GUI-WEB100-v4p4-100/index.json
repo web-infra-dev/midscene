@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-100",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The Turtle Beach label is explicit; the GT is the small box beside it, measuring 16×16 original-image pixels."
+  },
+  "instruction": {
+    "en": "Select turtle beach brand",
+    "zh": "选择 turtle beach 品牌。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [560.5, 28.5, 576.5, 12.5],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/969",
+    "image": {
+      "format": "png",
+      "sha256": "de9fe1bb3890542c06573f1a946457751c3a3d71df56fc2b62ca57011a0f7451"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485871006
+  }
+}

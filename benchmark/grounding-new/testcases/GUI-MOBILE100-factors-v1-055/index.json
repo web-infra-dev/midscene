@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-055",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The target and the adjacent red and blue dots have the same shape and no color-name labels; color and spatial constraints jointly identify the target uniquely."
+  },
+  "instruction": {
+    "en": "Click the purple to the lower right of the selected blue.",
+    "zh": "点击已选择的蓝色右下方的紫色"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [2089.0, 782.0, 2201.0, 722.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/CSpecificData200json_cn/C2ColorPicker40.json#L217",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/CSpecificData200json_cn/C2ColorPicker40.json#12",
+    "image": {
+      "format": "png",
+      "sha256": "f3ce4924b175522ad4a2391abf3f665b1291c145a2f6ed5fdd3d4a0859f06ff5"
+    },
+    "patch": "Added instruction.en by translating the original Chinese instruction",
+    "collectedAt": 1792485870199
+  }
+}

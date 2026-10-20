@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-075",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. The second search result on the left has the unique name \"中国海油加油站(长运站)\", and the GT covers that name. The map contains only numbered markers, with no other text target of the same name."
+  },
+  "instruction": {
+    "en": "Find the text \"CNOOC Gas Station (Changyun Station).\"",
+    "zh": "找到文本“中国海油加油站(长运站)”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [598.0, 410.0, 634.0, 106.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L6050",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#432",
+    "image": {
+      "format": "png",
+      "sha256": "adcf77331df5b872db8cf10972853886493e510a8caeac8481d37b43d1e11cd8"
+    },
+    "patch": null,
+    "collectedAt": 1792485870953
+  }
+}

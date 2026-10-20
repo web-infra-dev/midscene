@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+import { createHash } from 'node:crypto';
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -35,10 +36,12 @@ import { collectCodeVersion } from '../evaluation/runtime/collect-code-version.j
 import { loadCases, loadModels } from '../evaluation/runtime/load-data.js';
 import {
   casesDir,
+  datasetDir,
   groundingRoot,
   outputRootDir,
 } from '../evaluation/runtime/paths.js';
 import { ensureRunDir } from '../evaluation/runtime/task-store.js';
+import type { DatasetVersionSnapshot } from '../evaluation/types.js';
 
 function createInitialState(input: {
   runId: string;
@@ -234,6 +237,25 @@ function buildMidsceneSourceSnapshot(source: MidsceneRuntimeSource) {
   };
 }
 
+export async function collectDatasetVersion(): Promise<DatasetVersionSnapshot> {
+  const [auditBytes, manifestBytes, restorationBytes] = await Promise.all([
+    readFile(path.join(datasetDir, 'audit.json')),
+    readFile(path.join(datasetDir, 'manifest.jsonl')),
+    readFile(path.join(datasetDir, 'source-image-restoration.json')),
+  ]);
+  const audit = JSON.parse(auditBytes.toString()) as { version?: unknown };
+  if (typeof audit.version !== 'string' || !audit.version.trim()) {
+    throw new Error('Dataset audit.json must declare a non-empty version');
+  }
+  return {
+    id: audit.version,
+    manifestSha256: createHash('sha256').update(manifestBytes).digest('hex'),
+    sourceImageRestorationSha256: createHash('sha256')
+      .update(restorationBytes)
+      .digest('hex'),
+  };
+}
+
 export async function runEvaluation(configPath: string): Promise<void> {
   const originalCwd = process.cwd();
   const args = { configPath };
@@ -248,12 +270,14 @@ export async function runEvaluation(configPath: string): Promise<void> {
     repoPath: defaultMidsceneRepoPath,
   });
 
-  const [models, cases, groundingVersion, midsceneVersion] = await Promise.all([
-    loadModels(),
-    loadCases(),
-    collectCodeVersion(groundingRoot),
-    buildMidsceneVersionSnapshot(midsceneSource),
-  ]);
+  const [models, cases, groundingVersion, midsceneVersion, datasetVersion] =
+    await Promise.all([
+      loadModels(),
+      loadCases(),
+      collectCodeVersion(groundingRoot),
+      buildMidsceneVersionSnapshot(midsceneSource),
+      collectDatasetVersion(),
+    ]);
 
   const runId = runConfig.execution.runId.trim();
   if (!runId) {
@@ -342,6 +366,7 @@ export async function runEvaluation(configPath: string): Promise<void> {
     versions: {
       grounding: groundingVersion,
       midscene: midsceneVersion,
+      dataset: datasetVersion,
     },
     midsceneRepo: {
       ...buildMidsceneRepoSnapshot(midsceneSource),

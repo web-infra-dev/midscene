@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-015",
+  "platform": "web",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "The query does not provide a date number; the unique target must be found in the date grid by its blue state."
+  },
+  "instruction": {
+    "en": "Find the date with the only blue button among all the dates.",
+    "zh": "找到所有日期中唯一一个蓝色按钮的日期。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1031.0, 2621.0, 1108.0, 2550.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L14912",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#1065",
+    "image": {
+      "format": "png",
+      "sha256": "ec7d0d882134afe447d118603eddb4c52d869f378ba248b3a32b5acd70d715f6"
+    },
+    "patch": null,
+    "collectedAt": 1792485870718
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-030",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "Alipay is explicitly specified; the target is a small checkbox approximately 9.6×9.4 normalized pixels in size."
+  },
+  "instruction": {
+    "en": "Click to select Alipay payment",
+    "zh": "点击选择支付宝支付"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [619.0, 2819.0, 655.0, 2782.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L8738",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#624",
+    "image": {
+      "format": "png",
+      "sha256": "6d3d7202ae57e84e54ac715f9ffa0965b8c5f1bbc6ebf48a28daa20abace7e4d"
+    },
+    "patch": null,
+    "collectedAt": 1792485870821
+  }
+}

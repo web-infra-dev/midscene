@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-066",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "First compare the durations of four train services, then locate the arrival-time field for the service with the longest duration."
+  },
+  "instruction": {
+    "en": "Arrival time of the shift with the longest duration",
+    "zh": "选择时间最多的班次的到达时间"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1830.0, 781.0, 1914.0, 575.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L4216",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#301",
+    "image": {
+      "format": "png",
+      "sha256": "8755c6ab8aa4065adf6ccdd21032cb9b85a6a599aa8caae2147016b165feffa0"
+    },
+    "patch": null,
+    "collectedAt": 1792485870218
+  }
+}

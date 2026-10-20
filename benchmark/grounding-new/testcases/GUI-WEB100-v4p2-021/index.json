@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-021",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Refund detail control on a dense order page"
+  },
+  "instruction": {
+    "en": "After clicking, you will be redirected to the refund details page.",
+    "zh": "点击后跳转至退款详情页面"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1056.0, 1599.0, 1126.0, 1421.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L226",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#16",
+    "image": {
+      "format": "png",
+      "sha256": "21231834b77dd49047bda820a1a87a0661c428cc9d01e2264120a34be1d3d442"
+    },
+    "patch": null,
+    "collectedAt": 1792485870798
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-003",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find the text \"Lowest price online? 17.8\".",
+    "zh": "找到文本“全网低价 ?17.8”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1484.0, 726.0, 1521.0, 517.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L9060",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#647",
+    "image": {
+      "format": "png",
+      "sha256": "0173f73317fa03911ced35afb4e7e7d0b9a0a067b2a4ca8b3dff43e4cc70a4df"
+    },
+    "patch": null,
+    "collectedAt": 1792485870338
+  }
+}

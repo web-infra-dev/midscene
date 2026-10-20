@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p6-094",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Combine the activity type and the end-of-month date 8/31 to match the Outdoor Walk entry."
+  },
+  "instruction": {
+    "en": "View the details of your end-of-August walking activity",
+    "zh": "查看你在八月底步行活动的详细信息。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1643.0, 1128.0, 1875.0, 50.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L56262",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "2961",
+    "image": {
+      "format": "png",
+      "sha256": "65e217f2523f43a20b09903a08d719a40be0c349372645b92ef6902e8072de35"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870485
+  }
+}

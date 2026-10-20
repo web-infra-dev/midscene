@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p7-091",
+  "platform": "mobile",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "There is only one bar between 06:00 and 12:00; the target is the local position at the top of that bar."
+  },
+  "instruction": {
+    "en": "Select the top of the bar chart between 06:00 and 12:00",
+    "zh": "选中06:00与12:00之间柱子的顶端。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [929.0, 508.0, 1007.0, 439.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A5ChartPoint40.json#L31",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/ANumericRange240json/A5ChartPoint40.json#30",
+    "image": {
+      "format": "png",
+      "sha256": "ef710aac41c37dc4c7ca0ec942919e6530b603862c5f8f25777dd744f788ef74"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870555
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-026",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. The only \"安装应用\" entry at the top corresponds to downloading the Spotify desktop client. The official box accurately covers this entry and distinguishes it from the song-download icon."
+  },
+  "instruction": {
+    "en": "Download the Spotify desktop client",
+    "zh": "下载 Spotify 桌面客户端"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [31.0, 2713.0, 95.0, 2485.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L7940",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#567",
+    "image": {
+      "format": "png",
+      "sha256": "9ed320fd18a06b61c252be6d623638c79a52fe5668827e05607be5fdf9a5ec3b"
+    },
+    "patch": null,
+    "collectedAt": 1792485870930
+  }
+}

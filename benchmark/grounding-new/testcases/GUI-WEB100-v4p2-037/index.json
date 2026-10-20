@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-037",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Add-to-watchlist icon among many finance toolbar icons."
+  },
+  "instruction": {
+    "en": "Add new assets to the current watchlist",
+    "zh": "添加新资产到当前自选列表"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [12.0, 3579.0, 84.0, 3509.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L5742",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#410",
+    "image": {
+      "format": "png",
+      "sha256": "c9dd4eca32df83e627b946053b1725a4b352946d58b10c72de3379be886cb05d"
+    },
+    "patch": null,
+    "collectedAt": 1792485870850
+  }
+}
