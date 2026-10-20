@@ -1434,6 +1434,9 @@ importers:
       lodash.merge:
         specifier: 4.6.2
         version: 4.6.2
+      string-width:
+        specifier: 4.2.3
+        version: 4.2.3
       tinyglobby:
         specifier: 0.2.15
         version: 0.2.15

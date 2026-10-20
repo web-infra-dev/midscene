@@ -7,6 +7,7 @@ import {
   asExecutionError,
   observeResourceOperations,
   runConcurrentJobs,
+  sumTestRunReportMetrics,
 } from '@midscene/core/internal/test-runner';
 import type {
   CollectedCase,
@@ -16,7 +17,7 @@ import {
   TestRunReportAssembler,
   calculateTestRunHealth,
 } from '@midscene/core/report';
-import { getDebug } from '@midscene/shared/logger';
+import { getDebug, runWithConsoleLogScope } from '@midscene/shared/logger';
 import { createProjectRuntime } from '../engine/project-runtime';
 import { writeTestResultMarkdown } from '../report/result-markdown';
 import {
@@ -29,6 +30,7 @@ import type {
   PreparedExecutionProject,
   PreparedTestRunPlan,
 } from './execution-plan';
+import { configuredModelNames } from './model-usage';
 import { createOperationJournal } from './operation-journal';
 import { writeTestProjectRunResult, writeTestRunPlan } from './result-store';
 import type {
@@ -146,6 +148,34 @@ export async function runPreparedTestProject(
     (total, prepared) => total + prepared.collectionErrors.length,
     0,
   );
+  plan.onEvent?.({
+    type: 'run-start',
+    configuredModels: configuredModelNames(),
+    projects: preparedProjects.length,
+    documents: totalDocuments + totalErrors,
+    cases: totalCases,
+    projectRoot,
+    configPath,
+    startedAt: startedAt.toISOString(),
+    concurrency: Math.min(
+      definition.test.maxConcurrency,
+      preparedProjects.length,
+    ),
+    files: preparedProjects.flatMap((prepared) => [
+      ...prepared.documents.map((document) => ({
+        documentId: document.documentId,
+        projectName: prepared.project.name,
+        sourcePath: document.sourcePath,
+        cases: document.cases.length,
+      })),
+      ...prepared.collectionErrors.map((error) => ({
+        documentId: error.sourcePath,
+        projectName: prepared.project.name,
+        sourcePath: error.sourcePath,
+        cases: 0,
+      })),
+    ]),
+  });
   progress(
     `midscene-test: preflighted ${preparedProjects.length} projects, ${totalDocuments} documents, ${totalCases} cases, ${totalErrors} collection errors`,
   );
@@ -290,7 +320,10 @@ export async function runPreparedTestProject(
       });
       let hasProjectExecutionError = false;
       try {
-        await runtime.start();
+        await runWithConsoleLogScope(
+          { projectName: project.name, phase: 'setup' },
+          () => runtime.start(),
+        );
         if (!runtime.canRun) {
           cases.push(
             ...notRunSuite(
@@ -342,6 +375,7 @@ export async function runPreparedTestProject(
                 failedCaseCount += count;
               },
               onProgress: projectProgress,
+              onEvent: plan.onEvent,
               sinks: {
                 cases,
                 documents,
@@ -413,7 +447,10 @@ export async function runPreparedTestProject(
           ) ||
           projectFatal ||
           rootController.signal.aborted;
-        lifecycle = await runtime.finish(hasFailure ? 'failed' : 'success');
+        lifecycle = await runWithConsoleLogScope(
+          { projectName: project.name, phase: 'teardown' },
+          () => runtime.finish(hasFailure ? 'failed' : 'success'),
+        );
       }
       if (hasProjectExecutionError) {
         const completed = new Set(cases.map((item) => item.caseId));
@@ -571,6 +608,7 @@ export async function runPreparedTestProject(
         buildRunnerDump: (index) => {
           reportIndex = index;
           const dump = buildTestRunReportDump(completedResult, index);
+          completedResult = { ...completedResult, metrics: dump.metrics };
           const warn = getDebug('test-runner:report-assembler', {
             console: true,
           });
@@ -593,6 +631,16 @@ export async function runPreparedTestProject(
     'write-result',
     join(dirname(summaryPath), 'result.md'),
     async () => {
+      if (!completedResult.metrics) {
+        const dump = buildTestRunReportDump(
+          completedResult,
+          reportIndex ?? {
+            sources: [],
+            metrics: sumTestRunReportMetrics([]),
+          },
+        );
+        completedResult = { ...completedResult, metrics: dump.metrics };
+      }
       const markdownPath = await writeTestResultMarkdown(
         completedResult,
         reportIndex,

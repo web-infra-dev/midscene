@@ -314,7 +314,7 @@ describe('generated project integration', () => {
       expect(exitCode, result.stderr).toBe(state === 'clean' ? 0 : 1);
       if (state !== 'clean') {
         expect(result.stdout).toContain(
-          '0/2 cases passed, 1 failed, 1 not run',
+          'Cases 1 failed | 0 passed | 1 not run (2)',
         );
         expect(result.stderr).toContain(
           state === 'dirty'

@@ -107,7 +107,10 @@ export async function callOpenAI(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-    getDebug('ai:call', { console: true })('call AI error', error);
+    getDebug('ai:call', {
+      console: true,
+      warning: { kind: 'model-request-detail', modelName, error },
+    })('call AI error', error);
     if (error instanceof AIResponseParseError) {
       throw error;
     }

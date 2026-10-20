@@ -9,6 +9,7 @@ import type {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { executeDocumentInvocation } from '../src/cli/document-invocation';
 import type { PreparedDocumentInvocation } from '../src/cli/execution-plan';
+import type { TestReporterEvent } from '../src/cli/reporter-events';
 import * as resultStore from '../src/cli/result-store';
 import type { TestProjectCaseRunResult } from '../src/cli/types';
 import { NodeRegistry } from '../src/engine/registry';
@@ -64,6 +65,69 @@ const invocationOptions = (runDir: string, retry = 3) => {
 };
 
 describe('persisted retry decisions', () => {
+  it('publishes final Case progress only after whole-document retries settle', async () => {
+    const runDir = mkdtempSync(join(tmpdir(), 'midscene-document-progress-'));
+    try {
+      const events: TestReporterEvent[] = [];
+      let calls = 0;
+      await executeDocumentInvocation({
+        ...invocationOptions(runDir, 1),
+        onEvent: (event) => events.push(event),
+        invocation: {
+          document: collectedDocument('recovered document'),
+          retry: { scope: 'document', count: 1 },
+          reportEnabled: false,
+          bindings: {
+            resolveNode: () =>
+              defineNode({
+                name: 'javascript',
+                execute() {
+                  calls++;
+                  if (calls === 1) throw new Error('retry document');
+                },
+              }),
+          },
+        },
+      });
+      expect(calls).toBe(2);
+      expect(events.filter((event) => event.type === 'step-end')).toEqual([
+        expect.objectContaining({
+          result: expect.objectContaining({ status: 'failed' }),
+        }),
+        expect.objectContaining({
+          result: expect.objectContaining({ status: 'success' }),
+        }),
+      ]);
+      expect(
+        events.filter((event) => event.type === 'document-start'),
+      ).toHaveLength(1);
+      expect(events.filter((event) => event.type === 'document-end')).toEqual([
+        expect.objectContaining({
+          document: expect.objectContaining({
+            status: 'success',
+            attemptIndex: 1,
+          }),
+          cases: [expect.objectContaining({ status: 'success' })],
+        }),
+      ]);
+      expect(events.at(-1)?.type).toBe('document-end');
+
+      expect(events.filter((event) => event.type === 'case-end')).toEqual([
+        expect.objectContaining({
+          outcome: expect.objectContaining({ status: 'success' }),
+          documentRetries: 1,
+        }),
+      ]);
+      expect(
+        events.filter((event) => event.type === 'document-retry'),
+      ).toHaveLength(1);
+      expect(
+        events.filter((event) => event.type === 'case-attempt-end'),
+      ).toHaveLength(0);
+    } finally {
+      rmSync(runDir, { recursive: true, force: true });
+    }
+  });
   it('records host disposal failure and stops the owning Project without rejecting the run', async () => {
     const runDir = mkdtempSync(join(tmpdir(), 'midscene-retry-disposal-'));
     try {
