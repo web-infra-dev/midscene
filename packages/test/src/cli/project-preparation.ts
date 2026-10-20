@@ -252,7 +252,26 @@ export async function prepareProject(
           retry: { scope: 'case', count: project.retry },
           defaultTimeoutMs,
           reportEnabled: true,
-          bindings: { resolveNode: project.nodes.require.bind(project.nodes) },
+          bindings: {
+            resolveNode: project.nodes.require.bind(project.nodes),
+            ...(project.fileSetup
+              ? {
+                  documentSetup: {
+                    name: project.fileSetup.name,
+                    setup({ projectContext, document, signal, onTeardown }) {
+                      return project.fileSetup!.setup({
+                        project,
+                        projectContext,
+                        file: document,
+                        env: Object.freeze({ ...process.env }),
+                        signal,
+                        onTeardown,
+                      });
+                    },
+                  },
+                }
+              : {}),
+          },
         });
     } catch (error) {
       const collectionError = asCollectionError(

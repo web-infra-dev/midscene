@@ -117,5 +117,5 @@ export default defineTestProject<ReportContext>({
     }),
   ],
   // Files share the browser/server, but own their context, Page and Agent.
-  test: { maxConcurrency: 1, bail: 0, testTimeout: 600_000 },
+  test: { maxConcurrentFiles: 1, bail: 0, testTimeout: 600_000 },
 });

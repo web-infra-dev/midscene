@@ -282,7 +282,7 @@ describe('generated project integration', () => {
         nodes: [...base.nodes, { name: 'test.body', execute() { log('later-body'); } }],
         projects: base.projects.map(project => ({
           ...project,
-          setup: { name: 'fixture', setup({ onTeardown }) {
+          fileSetup: { name: 'fixture', setup({ onTeardown }) {
             onTeardown(() => agent.destroy());
             return { agent };
           } },

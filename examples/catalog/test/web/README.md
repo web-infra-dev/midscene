@@ -17,3 +17,19 @@ Run tests with `{{TEST_COMMAND}}`. Read `midscene-node-spec.web.md` for the avai
 After changing Node registrations in `midscene.config.ts`, run `{{RUN_NODES_COMMAND}}` to refresh the spec. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.
 
 Tests run serially and stop after the first failed case (`test.bail: 1`). Reports are saved and the browser is closed on failure. Reports are written to `midscene_run/report/`.
+
+## How preparation works
+
+| Stage | Frequency | What this example does |
+| --- | --- | --- |
+| `setup` (project configuration) | Once per project | Starts a shared Browser |
+| `fileSetup` (project configuration) | Once per file | Creates a separate BrowserContext and Page; returns the Node `context` |
+| `beforeAll` (YAML) | Once before the file's cases | Sets the viewport; the first `getAgent` call creates the Agent for later Nodes to reuse |
+
+`fileSetup` applies to every file; each file declares its own `beforeAll`. The business Node `todo.setup` is unrelated to the `setup` configuration field.
+
+## Usage notes
+
+- Raise `test.maxConcurrentFiles` to run files concurrently. Cases within a file stay sequential.
+- Retries do not repeat these three stages; `beforeEach` resets business state.
+- File cleanup destroys the Agent and closes the BrowserContext. The Browser closes after all file cleanup. Isolate backend accounts and data separately.

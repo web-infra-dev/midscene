@@ -9,6 +9,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
@@ -18,6 +19,7 @@ import {
   runTestProject,
 } from '../src/cli';
 import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
+import type { TestProjectRunResult } from '../src/cli/types';
 
 interface RunnerState {
   configLoads: number;
@@ -78,12 +80,18 @@ describe('test project main-process runner', () => {
     const pending = createDeferred();
     const state = Object.assign(setRunnerState(join(root, 'results')), {
       pending: pending.promise,
+      cleaned: false,
     });
     writeFileSync(
       join(root, 'midscene.config.ts'),
       `
       export default {
-        projects: [{ name: 'late' }],
+        test: { teardownTimeout: 20 },
+        projects: [{ name: 'late', setup: {
+          name: 'late-cleanup', setup({ onTeardown }) {
+            onTeardown(() => { globalThis.__testProjectRunnerState.cleaned = true; });
+          },
+        } }],
         nodes: [{ name: 'pending', execute() { return globalThis.__testProjectRunnerState.pending; } }],
       };
     `,
@@ -96,6 +104,9 @@ describe('test project main-process runner', () => {
     const result = await runTestProject({
       projectRoot: root,
       resultDir: state.resultDir,
+    }).catch((error) => {
+      expect(error).toBeInstanceOf(WorkflowExecutionFailure);
+      return (error as WorkflowExecutionFailure<TestProjectRunResult>).result;
     });
     expect(result.collectionErrors).toEqual([]);
     expect(result.cases).toHaveLength(1);
@@ -132,6 +143,8 @@ describe('test project main-process runner', () => {
       }),
     );
     expect(readFileSync(result.summaryPath, 'utf8')).toBe(summaryBefore);
+    await vi.waitFor(() => expect(state.cleaned).toBe(true));
+    await new Promise((resolve) => setImmediate(resolve));
   });
   it('persists the full safe plan before setup, including filtered cases and unresolved variables', async () => {
     const root = createProject();
@@ -857,8 +870,8 @@ cases:
         });
         export default {
           projects: [
-            { name: 'android', setup, nodes: [localNode('android', 'androidText')] },
-            { name: 'ios', setup, nodes: [localNode('ios', 'iosText')] },
+            { name: 'android', maxConcurrentFiles: 1, setup, nodes: [localNode('android', 'androidText')] },
+            { name: 'ios', maxConcurrentFiles: 1, setup, nodes: [localNode('ios', 'iosText')] },
           ],
           nodes: [
             {
@@ -871,7 +884,7 @@ cases:
               execute({ context }) { state.events.push(context.owner + ':inherited'); },
             },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
         };
       `,
     );
@@ -1048,11 +1061,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.record',
             stringInputKey: 'value',
@@ -1199,11 +1212,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2, bail: 1 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2, bail: 1 },
           nodes: [{
             name: 'test.bail',
             async execute({ input, context }) {
@@ -1305,11 +1318,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.interrupt',
             async execute({ input, context, signal }) {
@@ -1409,10 +1422,10 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.record',
             stringInputKey: 'value',
@@ -1480,7 +1493,7 @@ cases:
     'recovery',
     'document-recovery',
   ] as const)(
-    'stops only the owning Project after %s resource cleanup problems',
+    'contains settled cleanup failures and stops new files for unresolved %s resources',
     async (scope) => {
       const root = createProject();
       const resultDir = join(root, 'results');
@@ -1493,9 +1506,9 @@ cases:
         `
         const state = globalThis.__testProjectRunnerState;
         export default {
-          test: { bail: 0, maxConcurrency: '${scope}' === 'document-recovery' ? 2 : 1 },
+          test: { bail: 0, maxConcurrentFiles: 1, maxConcurrentProjects: 2, teardownTimeout: 20 },
           projects: ['alpha', 'beta'].map(name => ({
-            name, retry: 2,
+            name, retry: 2, maxConcurrentFiles: 1,
             setup: { name: 'resources', setup({ onTeardown }) {
               onTeardown(() => state.events.push('project-cleanup:' + name));
               return { name };
@@ -1551,16 +1564,33 @@ cases:
     steps: [{ check: next-file }]
 `,
       );
+      const unresolved = ['pending', 'recovery', 'document-recovery'].includes(
+        scope,
+      );
       try {
-        const result = await runTestProject({ projectRoot: root, resultDir });
+        const result = await runTestProject({
+          projectRoot: root,
+          resultDir,
+        }).catch((error) => {
+          expect(unresolved).toBe(true);
+          expect(error).toBeInstanceOf(WorkflowExecutionFailure);
+          return (error as WorkflowExecutionFailure<TestProjectRunResult>)
+            .result;
+        });
         const [alpha, beta] = result.projects;
         expect(result.status).toBe('failed');
-        expect(result.errors).toBeUndefined();
+        if (unresolved) {
+          expect(result.errors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ code: 'UNRESOLVED_FILE_RESOURCES' }),
+            ]),
+          );
+        } else expect(result.errors).toBeUndefined();
         expect(alpha.status).toBe('failed');
         expect(alpha.cases.at(-1)).toMatchObject({
           name: 'next file',
           status: 'not-run',
-          notRunReason: 'fatal-error',
+          notRunReason: unresolved ? 'interrupted' : 'fatal-error',
         });
         if (scope !== 'document-recovery')
           expect(alpha.cases[0].attempts).toHaveLength(1);
@@ -1596,16 +1626,19 @@ cases:
           expect(state.events).not.toContain('alpha:after-problem');
           expect(state.events).not.toContain('alpha:after-setup');
         }
-        expect(beta.status).toBe('success');
-        expect(beta.cases.every((item) => item.status === 'success')).toBe(
-          true,
-        );
+        expect(beta.status).toBe(unresolved ? 'failed' : 'success');
+        expect(
+          beta.cases.every(
+            (item) => item.status === (unresolved ? 'not-run' : 'success'),
+          ),
+        ).toBe(true);
         expect(
           state.events.filter((event) => event === 'alpha:problem'),
         ).toHaveLength(1);
         expect(state.events).not.toContain('alpha:second');
         expect(state.events).not.toContain('alpha:next-file');
-        expect(state.events).toContain('beta:next-file');
+        if (unresolved) expect(state.events).not.toContain('beta:next-file');
+        else expect(state.events).toContain('beta:next-file');
       } finally {
         pending.resolve();
         await pending.promise;
@@ -1614,7 +1647,7 @@ cases:
       expect(state.events).toEqual(
         expect.arrayContaining([
           'project-cleanup:alpha',
-          'project-cleanup:beta',
+          ...(unresolved ? [] : ['project-cleanup:beta']),
         ]),
       );
       if (['pending', 'recovery', 'document-recovery'].includes(scope))
@@ -1641,11 +1674,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.device',
             execute({ input, context }) {
@@ -1719,10 +1752,10 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [
             {
               name: 'test.lifecycle',
@@ -1815,11 +1848,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
