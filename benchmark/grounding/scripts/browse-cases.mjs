@@ -5,6 +5,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const dataset = path.join(root, '_data/dataset');
+const factorLabels = {
+  'Element basic': 'Basic Element',
+  'Unfamiliar Icon': 'Specialized Icon',
+};
+const displayFactorLabel = (label) => factorLabels[label] || label;
 const names = JSON.parse(
   await readFile(path.join(dataset, 'case_names.json'), 'utf8'),
 ).sort();
@@ -30,10 +35,8 @@ const rows = await Promise.all(
     }
     return {
       ...row,
-      primary_factor_label:
-        row.primary_factor === 'unfamiliar'
-          ? 'Specialized Icon'
-          : row.primary_factor_label,
+      primary_factor_label: displayFactorLabel(row.primary_factor_label),
+      secondary_factors: row.secondary_factors?.map(displayFactorLabel),
       query: index.prompt,
       bbox_xyxy: shot.gtBox,
       image: `../../_data/cases/${name}/${shot.fileName}`,

@@ -83,7 +83,7 @@ LangSmith is disabled by default. Explicitly enabling it requires your own
 
 | Primary factor | Web | Mobile |
 | --- | ---: | ---: |
-| Element basic | 20 | 20 |
+| Basic Element | 20 | 20 |
 | Specialized Icon | 5 | 5 |
 | Small Target | 10 | 10 |
 | Color Recognition | 5 | 5 |

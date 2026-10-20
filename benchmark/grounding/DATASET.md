@@ -18,7 +18,7 @@ not by themselves establish a statistically orthogonal factorial design.
 
 | Primary factor / 主考点 | Web | Mobile | Selection criterion / 筛选标准 |
 | --- | ---: | ---: | --- |
-| Element basic / 直接元素定位 | 20 | 20 | Visible text or appearance directly identifies the target / 直接根据可见文字或外观定位 |
+| Basic Element / 直接元素定位 | 20 | 20 | Visible text or appearance directly identifies the target / 直接根据可见文字或外观定位 |
 | Specialized Icon / 专用图标 | 5 | 5 | Recognize an application/domain-specific symbol / 识别应用或领域专用符号 |
 | Small Target / 小目标 | 10 | 10 | A small visible landing target among nearby content / 小落点及邻近干扰 |
 | Color Recognition / 颜色识别 | 5 | 5 | Color distinguishes similarly shaped candidates / 同形或近似形状，必须按颜色区分 |
@@ -30,10 +30,11 @@ not by themselves establish a statistically orthogonal factorial design.
 | Refusal / 目标不存在 | 5 | 5 | Official no-target annotation and no satisfying visible target / 官方无目标标注，画面中无满足全部条件的目标 |
 | Total / 合计 | 100 | 100 | |
 
-Specialized Icon is the current display name for the `unfamiliar` primary factor.
-Frozen dataset metadata retains its original label.
+Basic Element and Specialized Icon are the current display names for the
+`element` and `unfamiliar` primary factors. Frozen dataset metadata retains its
+original labels.
 
-Specialized Icon 是 `unfamiliar` 主考点的当前展示名称；冻结题库元数据保留原名称。
+Basic Element 和 Specialized Icon 分别是 `element` 和 `unfamiliar` 主考点的当前展示名称；冻结题库元数据保留原名称。
 
 `primary_factor`, `primary_factor_reason`, secondary tags, and original benchmark
 categories remain in the manifest. Mobile selection standards include the exact
