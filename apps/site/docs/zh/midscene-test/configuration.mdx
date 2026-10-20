@@ -448,9 +448,9 @@ export default defineTestProject<ProjectContext>({
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-未指定项目时，如果所有项目中生效的 Node 定义都相同，命令会生成一份共享说明书。如果定义不同，命令会报错，并提示你通过 `--project` 选择项目，避免混合不同项目中的同名定义。
+声明 `projects` 后，未指定 `--project` 时会为每个执行项目分别生成说明书，即使各项目的 Node 定义相同。
 
-说明书内容与通用命令参数见[生成当前项目的 Node 说明书](./use#生成当前项目的-node-说明书)。
+文件命名、输出规则、说明书内容与命令参数见[生成当前项目的 Node 说明书](./use#生成当前项目的-node-说明书)。
 
 ## 超时与取消机制
 

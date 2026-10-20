@@ -27,10 +27,6 @@
   background: var(--rp-c-bg-soft);
 }
 
-.home-platform-table tbody tr {
-  position: relative;
-}
-
 .home-platform-table tbody tr:hover,
 .home-platform-table tbody tr:focus-within {
   background: var(--rp-c-bg-soft);
@@ -41,21 +37,13 @@
 }
 
 .home-platform-table a {
+  display: inline-block;
   color: inherit;
   text-decoration: none;
 }
 
-.home-platform-table a::after {
-  position: absolute;
-  inset: 0;
-  content: "";
-}
-
+/* Keep hit targets on the links: older WebKit cannot contain them on a tr. */
 .home-platform-table a:focus-visible {
-  outline: none;
-}
-
-.home-platform-table a:focus-visible::after {
   outline: 2px solid var(--rp-c-brand);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }

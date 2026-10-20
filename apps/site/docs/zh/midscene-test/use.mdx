@@ -1,12 +1,8 @@
 # 创建和使用测试项目
 
-本文从创建项目开始，介绍如何运行示例、了解可用的测试操作、编写 YAML 用例和查看运行结果。已有原生 Test 项目的读者可以直接从[了解可用的测试操作](#了解可用的测试操作)开始。
+本文从创建项目开始，介绍如何运行示例、了解可用的测试操作、编写 YAML 用例和查看运行结果。已有 Midscene Test 项目的读者可以直接从[了解可用的测试操作](#了解可用的测试操作)开始。
 
 整体设计见 [Midscene Test 概览](./overview)。业务操作的实现方式见[编写自定义 Node](./extend)，运行环境和执行参数见[配置测试项目](./configuration)。
-
-:::info 已有旧版 YAML 项目
-这里的“旧版 YAML”特指由 `midscene` 执行的 `tasks/flow` 用例及 YAML 批配置，不包括原生 `cases/steps` Test 文件。旧链路只做兼容维护和必要修复，不再新增能力；现有项目可以继续运行，新项目和新增用例推荐使用 Midscene Test。两条链路共用执行内核和新的报告页面，具体命令边界与字段转换见[迁移到 Midscene Test](../migrate-to-midscene-test)。
-:::
 
 ## 创建项目
 
@@ -445,16 +441,7 @@ pnpm exec midscene-test --config ./config/midscene.config.ts
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-### 尚未迁移的旧版 YAML 继续使用旧命令
-
-顶层使用 `tasks/flow` 的旧文件和 YAML 批配置继续使用 `midscene`：
-
-```bash
-pnpm exec midscene ./legacy-flow.yaml
-pnpm exec midscene --config ./legacy-batch.yaml
-```
-
-`midscene-test` 不会自动识别或执行这些旧文件，也不接受旧批配置和旧 CLI 参数。一个文件完整转换为 `cases/steps` 后，才能改用 `midscene-test`。迁移期间，两类文件可以放在同一仓库的不同目录，但同一次命令只能选择一种格式。迁移步骤和字段映射见[迁移到 Midscene Test](../migrate-to-midscene-test)。
+### 结果输出
 
 需要把结构化运行结果写到指定目录时，使用 `--result-dir`：
 
@@ -483,8 +470,6 @@ pnpm exec midscene-test --result-dir ./test-results
 - **Not run** 筛选没有执行的 Case，包括被初始化失败或调度错误阻断的 Case。
 - File 清理失败时，Case 可以全部通过、通过率可以为 100%。该错误仍归属 File，不会虚构失败 Case。
 - 未收集到 Case 的文件收集错误仍然可见，不虚构 Case 数量或通过率。
-
-旧 **tasks / flow** YAML 新生成的报告使用同一页面：每个 task 对应一个 Case，flow 条目对应 Step。内联输入显示为 **Inline YAML**。宿主初始化、清理错误归属于 File，不虚构 YAML 中的钩子。旧 CLI 批量执行和整文件重试报告仍保留来源身份，此页面不会把独立报告推断合并成同一个逻辑 Project，也不会推断 Case 重试历史。只有 Agent dump 的来源标注为 **Source report / Agent report**，不声称还原出 YAML 文件或 task、flow 导航。仅在存在真实原文快照时提供 YAML 视图。历史 HTML 报告需重新生成才能使用新布局。
 
 多 Case 报告可以通过左侧悬浮菜单按钮（**View all cases**）打开 Case 目录。面板在按钮下方展开，报告背景不会变暗。目录按 Project 展示所有 Case 的结果和来源文件，当前 Case 会高亮显示。该列表不受 Overview 筛选条件影响，点击其他 Case 可直接跳转，也支持跨 Project 切换；失败 Case 会定位到失败 Step。打开目录后，焦点会落在当前 Case 上。可以使用 Tab 切换控件，按 Esc 关闭目录并将焦点返回菜单按钮。再次点击菜单按钮或关闭面板不会切换 Case，返回 Overview 时会恢复原来的筛选、排序、展开状态和滚动位置。单 Case 报告不显示这个入口。
 

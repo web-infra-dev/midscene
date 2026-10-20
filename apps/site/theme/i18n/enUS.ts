@@ -101,16 +101,18 @@ export const EN_US = {
   modelCostTasks: '/ 60 tasks',
 
   // Test framework
-  frameworkHeading: 'AI steps and Nodes\nin one YAML file',
+  frameworkHeading: 'AI and business operations\nin one YAML file',
   frameworkDesc:
-    'Organize tests in YAML so people and AI agents can read, write, and review natural-language intent alongside code steps.',
+    'Each YAML step calls a Node: an AI operation, a platform operation, or a custom business operation. Compose these Nodes into test cases that people and AI agents can read, write, and review.',
+  frameworkAiTag: 'AI',
+  frameworkNodeTag: 'Business',
   frameworkLegendLabel: 'Step types',
-  frameworkAiTitle: 'AI steps',
+  frameworkAiTitle: 'AI operations',
   frameworkAiDesc:
     'APIs such as aiAct and aiAssert read the screen and follow natural-language instructions.',
-  frameworkNodeTitle: 'Deterministic Nodes',
+  frameworkNodeTitle: 'Business operations',
   frameworkNodeDesc:
-    'TypeScript code for test data, API checks, and cleanup. It runs the same way every time.',
+    'Custom Nodes use TypeScript to prepare test data, check APIs, and clean up resources.',
   frameworkStartLink: 'Create a test project',
   frameworkLink: 'Explore the framework design',
   frameworkCaseName: 'A paid order supports a full refund',
@@ -121,7 +123,7 @@ export const EN_US = {
   projectEyebrow: 'TEST PROJECT',
   projectHeading: 'Customize your test project',
   projectDesc:
-    'Extend Midscene Test with TypeScript Nodes for your business operations. Register them to make them callable from YAML, then generate a Markdown Node Spec describing the available operations and their inputs. People and AI agents can use the Spec to reference these Nodes in test cases.',
+    'Extend Midscene Test with TypeScript Nodes for your business operations. Register them to make them callable from YAML, then generate a Markdown Node Spec describing all Nodes registered for the current execution project, including AI, platform, and custom business operations and their inputs. People and AI agents can use the Spec to reference these Nodes in test cases.',
   projectNodesRole: 'Define your operations',
   projectNodesDesc:
     'Implement business logic and declare its inputs in TypeScript.',

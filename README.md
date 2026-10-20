@@ -89,7 +89,7 @@ Use the same Agent APIs to describe actions and assertions across platforms:
 
 ## 🧩 Midscene Test: YAML for cases, TypeScript for extensions
 
-[Midscene Test](https://midscenejs.com/midscene-test/overview) (`@midscene/test`, Beta) turns GUI automation into a maintainable E2E test project:
+[Midscene Test](https://midscenejs.com/midscene-test/overview) (`@midscene/test`) turns GUI automation into a maintainable E2E test project:
 
 - **Describe test cases in YAML.** Combine UI actions, assertions, and business operations to express the flow and expected results.
 - **Reuse business capabilities through TypeScript Nodes.** Wrap data preparation, API calls, and cleanup in nodes that different cases can share. A refund test can prepare an order through an API, request a refund through the UI, and verify the result in one workflow.

@@ -183,6 +183,10 @@ export default defineConfig(async () => {
             link: '/quick-start',
           },
           {
+            text: 'Create a test project',
+            link: '/midscene-test/use',
+          },
+          {
             text: 'Model Selection Guide',
             link: '/model-selection',
           },
@@ -237,7 +241,7 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Midscene Test (Beta)',
+            sectionHeaderText: 'Midscene Test',
           },
           {
             text: 'Framework overview',
@@ -371,6 +375,10 @@ export default defineConfig(async () => {
             link: '/zh/quick-start',
           },
           {
+            text: '创建测试项目',
+            link: '/zh/midscene-test/use',
+          },
+          {
             text: '模型选择指南',
             link: '/zh/model-selection',
           },
@@ -425,7 +433,7 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Midscene Test（Beta）',
+            sectionHeaderText: 'Midscene Test',
           },
           {
             text: '框架概览',

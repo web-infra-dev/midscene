@@ -110,7 +110,11 @@ export function TestFramework({
                   onBlur={() => setFocus(null)}
                 >
                   <span className="home-framework__tag" aria-hidden="true">
-                    {item.kind === 'ai' ? 'AI' : 'Node'}
+                    {t(
+                      item.kind === 'ai'
+                        ? 'frameworkAiTag'
+                        : 'frameworkNodeTag',
+                    )}
                   </span>
                   <span className="home-framework__legend-text">
                     <strong>{item.title}</strong>
@@ -165,7 +169,11 @@ export function TestFramework({
                   </span>
                   {line.kind && (
                     <span className="home-framework__tag">
-                      {line.kind === 'ai' ? 'AI' : 'Node'}
+                      {t(
+                        line.kind === 'ai'
+                          ? 'frameworkAiTag'
+                          : 'frameworkNodeTag',
+                      )}
                     </span>
                   )}
                 </span>

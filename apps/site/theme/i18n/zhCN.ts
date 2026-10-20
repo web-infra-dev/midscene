@@ -100,16 +100,18 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelCostTasks: '/ 60 项任务',
 
   // Test framework
-  frameworkHeading: 'AI 步骤与确定性 Node\n写在同一个 YAML 里',
+  frameworkHeading: 'AI 操作与业务操作\n写在同一个 YAML 里',
   frameworkDesc:
-    '用 YAML 组织人和 AI 都能读写的测试用例，让自然语言意图与代码步骤以清晰、可审阅的结构共同维护。',
+    '每个 YAML 步骤都调用一个 Node，可以是 AI 操作、平台操作或自定义业务操作。将这些 Node 组合成人和 AI 都能读写、审阅的测试用例。',
+  frameworkAiTag: 'AI',
+  frameworkNodeTag: '业务',
   frameworkLegendLabel: '步骤类型',
-  frameworkAiTitle: 'AI 步骤',
+  frameworkAiTitle: 'AI 操作',
   frameworkAiDesc:
     'aiAct、aiAssert 等接口读取界面截图，按自然语言指令操作和断言。',
-  frameworkNodeTitle: '确定性 Node',
+  frameworkNodeTitle: '业务操作',
   frameworkNodeDesc:
-    '用 TypeScript 实现测试数据、接口校验与清理，每次执行的行为一致。',
+    '通过自定义 Node，用 TypeScript 准备测试数据、校验接口并清理资源。',
   frameworkStartLink: '创建测试项目',
   frameworkLink: '了解框架设计',
   frameworkCaseName: '已支付订单支持全额退款',
@@ -120,7 +122,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   projectEyebrow: '测试工程',
   projectHeading: '定制属于自己的测试工程',
   projectDesc:
-    'Midscene Test 提供扩展机制，用 TypeScript 将业务操作定义为 Node，注册后即可在 YAML 中调用。再生成描述可用操作及输入参数的 Markdown Node Spec，让人和 AI 都能据此在用例中引用这些 Node。',
+    'Midscene Test 提供扩展机制，用 TypeScript 将业务操作定义为 Node，注册后即可在 YAML 中调用。再生成 Markdown Node Spec，描述当前执行项目注册的全部 Node 及其输入参数，包括 AI、平台和自定义业务操作，让人和 AI 都能据此在用例中引用这些 Node。',
   projectNodesRole: '定义自己的操作',
   projectNodesDesc: '用 TypeScript 实现业务逻辑，并声明操作的输入参数。',
   projectSpecOperation: '已注册的 Node 名称',
