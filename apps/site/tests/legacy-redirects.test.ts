@@ -16,14 +16,21 @@ const rules = readFileSync(new URL('public/_redirects', docs), 'utf8')
   });
 
 describe('legacy HTTP redirects', () => {
-  it('temporarily redirects landing pages to Introduction', () => {
+  it('permanently redirects former landing URLs to the homepages', () => {
     for (const locale of ['', '/zh']) {
-      for (const suffix of ['/', '/index.html']) {
+      const suffixes = [
+        '/introduction',
+        '/introduction.html',
+        '/introduction/',
+        '/index.html',
+        ...(locale ? [''] : []),
+      ];
+      for (const suffix of suffixes) {
         const from = `${locale}${suffix}`;
         expect(rules.find((rule) => rule.from === from)).toEqual({
           from,
-          to: `${locale}/introduction`,
-          status: '302',
+          to: `${locale}/`,
+          status: '301',
         });
       }
     }
@@ -37,7 +44,7 @@ describe('legacy HTTP redirects', () => {
       '/zh/test-runner-overview': '/zh/midscene-test/overview',
       '/reference.html': '/reference/',
       '/report.html': '/consume-report-file',
-      '/benchmark': '/introduction',
+      '/benchmark': '/',
       '/api-reference': '/reference/',
       '/choose-a-model': '/model-common-config',
       '/integrate-with-yaml.html': '/automate-with-scripts-in-yaml',
@@ -112,7 +119,7 @@ describe('legacy HTTP redirects', () => {
     }
   });
 
-  it('keeps retired document destinations aligned with Rspress redirects', async () => {
+  it('keeps retired document destinations aligned without redirecting homepages', async () => {
     const config = await (typeof siteConfig === 'function'
       ? siteConfig()
       : siteConfig);
@@ -123,6 +130,12 @@ describe('legacy HTTP redirects', () => {
       string,
       { redirects: { from: string; to: string }[] },
     ];
+    for (const homepage of ['/', '/zh/']) {
+      expect(rules.find(({ from }) => from === homepage)).toBeUndefined();
+      expect(
+        options.redirects.find(({ from }) => new RegExp(from).test(homepage)),
+      ).toBeUndefined();
+    }
     for (const { from, to } of rules.filter(
       ({ from }) => !/\.(png|ico)$/.test(from),
     )) {
