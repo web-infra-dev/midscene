@@ -53,15 +53,31 @@ export function formatTokenCount(value: number): string {
   return `${(value / 1_000_000).toFixed(1)}m`;
 }
 
-export function usageModelNames(metrics?: TestRunReportMetrics): string {
-  const names = metrics?.models?.map((model) =>
-    stripVTControlCharacters(model.modelName).replace(/\s+/g, ' ').trim(),
-  );
-  return names?.length
-    ? names.join(', ')
-    : metrics?.modelCallCount
-      ? 'unknown'
-      : '—';
+export function formatModelUsage(metrics?: TestRunReportMetrics): string[] {
+  if (!metrics) return ['—'];
+  if (!metrics.models?.length) {
+    const name =
+      metrics.modelCallCount || metrics.collection?.status === 'unknown'
+        ? 'unknown'
+        : '—';
+    return [`${name} · ${formatTokenUsage(metrics)}`];
+  }
+  return metrics.models.map((model) => {
+    const name =
+      stripVTControlCharacters(model.modelName).replace(/\s+/g, ' ').trim() ||
+      'unknown';
+    // Per-model snapshots have no collection state. Retain the run's state
+    // conservatively so missing usage never becomes an apparently complete row.
+    const usage = formatTokenUsage({
+      ...metrics,
+      modelCallCount: model.callCount,
+      promptTokens: model.promptTokens,
+      cachedInputTokens: model.cachedInputTokens,
+      completionTokens: model.completionTokens,
+      totalTokens: model.totalTokens,
+    });
+    return `${name} · ${usage}`;
+  });
 }
 
 export function formatTokenUsage(
