@@ -121,15 +121,34 @@ debug "Target item: $ITEM_NAME"
 debug "Zip path: $ZIP_PATH"
 debug "Expected extension version from manifest: $EXPECTED_CRX_VERSION"
 
-ACCESS_TOKEN="$(
-  curl --silent --show-error --fail-with-body \
+TOKEN_RESPONSE="$(
+  curl --silent --show-error --write-out $'\n%{http_code}' \
     -X POST "https://oauth2.googleapis.com/token" \
-    -d "client_id=${CHROME_WEB_STORE_CLIENT_ID}" \
-    -d "client_secret=${CHROME_WEB_STORE_CLIENT_SECRET}" \
-    -d "refresh_token=${CHROME_WEB_STORE_REFRESH_TOKEN}" \
-    -d "grant_type=refresh_token" \
-    | jq -er '.access_token'
-)"
+    --data-urlencode "client_id=${CHROME_WEB_STORE_CLIENT_ID}" \
+    --data-urlencode "client_secret=${CHROME_WEB_STORE_CLIENT_SECRET}" \
+    --data-urlencode "refresh_token=${CHROME_WEB_STORE_REFRESH_TOKEN}" \
+    --data-urlencode "grant_type=refresh_token"
+)" || fail "OAuth token request failed before receiving an HTTP response"
+TOKEN_HTTP_STATUS="${TOKEN_RESPONSE##*$'\n'}"
+TOKEN_BODY="${TOKEN_RESPONSE%$'\n'*}"
+if [[ "$TOKEN_HTTP_STATUS" != "200" ]]; then
+  TOKEN_ERROR="$(jq -r '.error | select(type == "string")' <<<"$TOKEN_BODY" 2>/dev/null || true)"
+  # Only print known error codes, never arbitrary response text or credentials.
+  case "$TOKEN_ERROR" in
+    invalid_client)
+      fail "OAuth token request failed (HTTP ${TOKEN_HTTP_STATUS}, invalid_client). Check CHROME_WEB_STORE_CLIENT_ID and CHROME_WEB_STORE_CLIENT_SECRET belong to the same active OAuth client."
+      ;;
+    invalid_grant)
+      fail "OAuth token request failed (HTTP ${TOKEN_HTTP_STATUS}, invalid_grant). Reauthorize the extension owner using the same OAuth client and update CHROME_WEB_STORE_REFRESH_TOKEN."
+      ;;
+    *)
+      fail "OAuth token request failed (HTTP ${TOKEN_HTTP_STATUS}). Check the Google OAuth client configuration."
+      ;;
+  esac
+fi
+ACCESS_TOKEN="$(jq -er '.access_token | select(type == "string" and length > 0)' <<<"$TOKEN_BODY" 2>/dev/null)" \
+  || fail "OAuth token response did not contain a non-empty access token"
+unset TOKEN_RESPONSE TOKEN_BODY TOKEN_ERROR
 
 api_get() {
   local url="$1"
