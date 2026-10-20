@@ -101,13 +101,13 @@ model list:
 
 - `README.md` and `README.zh.md` (the "Driven by Visual Language Model"
   section).
-- `apps/site/docs/en/introduction.mdx` and
-  `apps/site/docs/zh/introduction.mdx` (same section).
+- `apps/site/docs/en/index.mdx` and
+  `apps/site/docs/zh/index.mdx` (same section).
 
 Keep all four spots in sync and consistent with the strategy/config docs.
 Leave historical references in `changelog.mdx` alone, and keep illustrative
 "newer beats older" comparisons in `faq.md` intact. Remember README and
-introduction are bilingual: update the en/zh counterparts in the same change.
+homepage are bilingual: update the en/zh counterparts in the same change.
 
 ## Validation Guidance
 

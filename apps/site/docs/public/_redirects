@@ -1,8 +1,13 @@
-# The introduction page is the canonical landing page.
-/ /introduction 302
-/index.html /introduction 302
-/zh/ /zh/introduction 302
-/zh/index.html /zh/introduction 302
+# The root pages are the canonical landing pages.
+/index.html / 301
+/zh /zh/ 301
+/zh/index.html /zh/ 301
+/introduction / 301
+/introduction.html / 301
+/introduction/ / 301
+/zh/introduction /zh/ 301
+/zh/introduction.html /zh/ 301
+/zh/introduction/ /zh/ 301
 # HTTP compatibility for retired pages; Rspress client redirects run after the response.
 # Keep document destinations aligned with rspress.config.ts.
 /android-integration /platforms/android 301
@@ -21,9 +26,9 @@
 /report /consume-report-file 301
 /report.html /consume-report-file 301
 /report/ /consume-report-file 301
-/benchmark /introduction 301
-/benchmark.html /introduction 301
-/benchmark/ /introduction 301
+/benchmark / 301
+/benchmark.html / 301
+/benchmark/ / 301
 /api-reference /reference/ 301
 /api-reference.html /reference/ 301
 /api-reference/ /reference/ 301

@@ -161,11 +161,11 @@ export default defineConfig(async () => {
       sidebar: {
         '/': [
           {
-            sectionHeaderText: 'Introduction',
+            sectionHeaderText: 'Discover Midscene',
           },
           {
             text: 'Introduction',
-            link: '/introduction',
+            link: '/',
           },
           {
             text: 'The Basics',
@@ -353,11 +353,11 @@ export default defineConfig(async () => {
         ],
         '/zh': [
           {
-            sectionHeaderText: '介绍',
+            sectionHeaderText: '了解 Midscene',
           },
           {
             text: '介绍',
-            link: '/zh/introduction',
+            link: '/zh/',
           },
           {
             text: '基本概念',
@@ -619,10 +619,11 @@ export default defineConfig(async () => {
       }),
       pluginClientRedirects({
         redirects: [
+          { from: '^/zh$', to: '/zh/' },
           ...['', '/zh'].flatMap((locale) => [
             {
-              from: `^${locale}/(?:index\\.html)?$`,
-              to: `${locale}/introduction`,
+              from: `^${locale}/(?:introduction(?:\\.html)?/?|index\\.html)$`,
+              to: `${locale}/`,
             },
             {
               from: `^${locale}/reference\\.html/?$`,
@@ -769,7 +770,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/benchmark(?:\\.html)?/?$',
-            to: '/introduction',
+            to: '/',
           },
           {
             from: '^/integrate-with-yaml(?:\\.html)?/?$',

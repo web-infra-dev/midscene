@@ -3,14 +3,14 @@ import { ChromeExtensionButton } from './components/ChromeExtensionButton';
 import { ModelConfigCard } from './components/ModelConfigCard';
 import { AppControlBenchComparison } from './components/app-control-bench-comparison';
 import { AppControlBenchReport } from './components/app-control-bench-report';
-import { HomeLayout } from './pages';
+import './components/IntroductionPage.css';
+import './components/HomeChapter.css';
 
 export {
   AppControlBenchComparison,
   AppControlBenchReport,
   BenchmarkReportPreview,
   ChromeExtensionButton,
-  HomeLayout,
   ModelConfigCard,
 };
 export * from '@rspress/core/theme-original';
