@@ -1,7 +1,7 @@
 /** CLI-only interception. SDK consumers never have their streams patched. */
 export function captureTerminalOutput(
   output: (message: string, write: (message: string) => void) => void,
-  streams: readonly Pick<NodeJS.WriteStream, 'write'>[] = [
+  streams: readonly Pick<NodeJS.WritableStream, 'write'>[] = [
     process.stdout,
     process.stderr,
   ],
@@ -12,8 +12,8 @@ export function captureTerminalOutput(
     const forward = original.bind(stream);
     const intercepted: typeof stream.write = (
       chunk: string | Uint8Array,
-      encoding?: BufferEncoding | ((error?: Error) => void),
-      callback?: (error?: Error) => void,
+      encoding?: BufferEncoding | ((error?: Error | null) => void),
+      callback?: (error?: Error | null) => void,
     ): boolean => {
       const done = typeof encoding === 'function' ? encoding : callback;
       const message =

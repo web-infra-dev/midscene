@@ -77,7 +77,16 @@ describe('independent Agent report snapshots', () => {
       modelCallCount: 1,
       modelTimeMs: 125,
       totalTokens: 42,
-      collection: { status: 'complete' },
+      collection: {
+        status: 'partial',
+        fields: {
+          modelCallCount: 'complete',
+          modelTimeMs: 'complete',
+          totalTokens: 'complete',
+          promptTokens: 'unknown',
+          completionTokens: 'unknown',
+        },
+      },
     });
     usage.total_tokens = 1000;
     expect(metrics?.totalTokens).toBe(42);

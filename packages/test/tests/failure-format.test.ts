@@ -15,7 +15,10 @@ const step = (input: unknown): StepRunResult => ({
   meta: { continueOnError: false, sourceLocation: { line: 45, column: 9 } },
   status: 'failed',
   continuedAfterError: false,
-  error: new Error('failure'),
+  error: new NodeExecutionError(
+    'demo.applyProjectOutcome',
+    new Error('failure'),
+  ),
   startedAt: '',
   endedAt: '',
   durationMs: 0,
