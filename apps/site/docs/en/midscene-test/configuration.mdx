@@ -387,7 +387,7 @@ export default defineTestProject<ProjectContext>({
     },
   ],
   test: {
-    maxConcurrency: 1, // Maximum number of active Execution Projects
+    maxConcurrentProjects: 1, // Maximum number of active Execution Projects
     bail: 0, // Stop scheduling new tasks after this many failed cases when > 0
     testTimeout: 120_000,
   },
@@ -413,28 +413,34 @@ For Spec contents and general command options, see [Generate the current Project
 
 ## Concurrency and isolation
 
-By default, scheduling operates on execution projects. Set `test.maxConcurrentFiles` explicitly to run multiple YAML files within one project at the same time.
+Two limits apply together: `maxConcurrentFiles` limits files across the whole run, and `maxConcurrentProjects` limits projects whose preparation has started but whose cleanup has not finished. Each defaults to `1` independently. Set either to `null` to remove that limit; numeric values must be positive integers.
 
-| Configuration | Concurrent unit | Files within one project |
-| --- | --- | --- |
-| `test.maxConcurrency`, default `1` | Execution project | Sequential |
-| `test.maxConcurrentFiles` | Test file | Concurrent, within global and project limits |
+| `test` configuration | Behavior |
+| --- | --- |
+| Omitted | Finish one project at a time, running its files sequentially |
+| `{ maxConcurrentFiles: 4 }` | One project at a time, with up to 4 files running together |
+| `{ maxConcurrentProjects: 2 }` | Files remain globally sequential; up to 2 project environments may stay open |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: 1 }` | Finish one project at a time, without a global file limit |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: null }` | Remove both global limits; local file limits and available resources still apply |
 
-Both modes use asynchronous execution in the same Node.js process. Project code must isolate module globals, external accounts, and test data.
+Execution is asynchronous within one Node.js process. Raising only the project limit does not raise file concurrency. Removing limits does not guarantee a faster run: browser capacity, devices, and model service quotas still matter.
 
 ### File concurrency with maxConcurrentFiles
 
 | Configuration | Meaning |
 | --- | --- |
-| `test.maxConcurrentFiles` | Total file limit across all projects; accepts positive integers only |
-| `projects[].maxConcurrentFiles` | File limit for this project; inherits the global value when omitted and is capped by it |
-| `projects[].fileSetup` | Prepares an independent environment for each file; required when the effective project limit exceeds `1`, even if only one file is selected |
+| `test.maxConcurrentFiles` | Total active files across all projects; default `1`, `null` for unlimited |
+| `test.maxConcurrentProjects` | Projects from the start of preparation through completed cleanup; default `1`, `null` for unlimited |
+| `projects[].maxConcurrentFiles` | Positive integer file limit for this project; inherits the global file limit when omitted and cannot raise it |
+| `projects[].fileSetup` | Prepares an independent environment for each file; required when the effective project file limit exceeds `1`, including unlimited, even if only one file is selected |
 
-For example, with a global limit of `3` and Web and Android limits of `2` each, two Web files and one Android file can run together, or one Web file and two Android files. Projects do not reserve capacity; eligible projects take turns admitting files.
+For example, with `test: { maxConcurrentFiles: 3, maxConcurrentProjects: 2 }` and Web and Android file limits of `2` each, two Web files and one Android file can run together, or one Web file and two Android files. The project count does not multiply the global file limit.
 
-A file occupies a slot from preparation through completed cleanup, including device waits and case retries. The first file holds one slot during project `setup`; other files in that project wait for initialization without taking additional slots.
+A file occupies a slot from preparation through completed cleanup, including device waits and case retries. Starting a new project claims both a project slot and its first file slot before `setup`; other files in that project wait for initialization without taking additional slots. Eligible projects take turns admitting files.
 
-The last file retains its slot until project cleanup returns. After cancellation or `bail`, cleanup for initialized projects with no active files is also scheduled within the global limit. See [Timeouts and cancellation](#timeouts-and-cancellation) for preparation and cleanup limits.
+A project keeps its slot between files, even when none is currently running. Its last file retains a file slot through project cleanup; the project slot is released only when cleanup actually finishes. With `maxConcurrentProjects: 1`, the next project starts after the previous one is fully cleaned up. Setting only `maxConcurrentFiles: 1` allows files from different projects to interleave if the project limit permits it.
+
+After cancellation or `bail`, cleanup for initialized projects with no active files is also scheduled within the global file limit. See [Timeouts and cancellation](#timeouts-and-cancellation).
 
 ### Isolate resources with fileSetup
 
@@ -518,12 +524,11 @@ See [Project lifecycle](#project-lifecycle) for context scope and cleanup order,
 
 Nodes or `fileSetup` must explicitly report shared-resource failures; Browser closure messages alone do not establish ownership. See [Asynchronous operations, errors, and cancellation](./extend#asynchronous-operations-errors-and-cancellation) for how to report them.
 
-### Compatibility with Project concurrency
+### Existing configurations
 
-- Without `test.maxConcurrentFiles`, existing Project scheduling and the shared `setup` environment remain unchanged. Increasing `test.maxConcurrency` only increases the number of concurrent projects.
-- Do not combine `maxConcurrency` and `maxConcurrentFiles`, even when both are `1`.
-- `fileSetup`, project file limits, and the new `setupTimeout` / `teardownTimeout` settings require an explicit `test.maxConcurrentFiles`.
-- With an effective project file limit of `1`, `fileSetup` can be omitted during migration. Files can still interleave across projects; start at `1` and raise the limit after preparing independent environments.
+`test.maxConcurrency` is no longer supported. Use `maxConcurrentProjects` and `maxConcurrentFiles` together. To run up to two projects while keeping each project's files sequential, set both global limits to `2` and each project's `maxConcurrentFiles` to `1`.
+
+`fileSetup`, project file limits, and preparation/cleanup timeouts can be configured without explicitly setting either global limit. When a project's effective file limit is `1`, `fileSetup` is optional and its files can share the `setup` return value.
 
 Cases are not automatically divided between projects. If two projects select the same YAML file, each runs it once. Use non-overlapping `files` or `tags` rules to split the work.
 
@@ -539,9 +544,7 @@ Legacy `tasks/flow` YAML still runs through `midscene`. Its `concurrent` / `--co
 | `test.setupTimeout` | Each project `setup` or `fileSetup`, including device waits | `120000` ms |
 | `test.teardownTimeout` | Each cleanup scope, including hooks, waiting for operations, and cleanup callbacks | `30000` ms |
 
-The last two settings apply only to file scheduling and require `test.maxConcurrentFiles`. After cancellation or `bail`, cleanup scopes share a shutdown deadline based on `teardownTimeout`.
-
-Existing Project scheduling keeps its previous waiting limits: after lifecycle hooks, wait up to `1` second for running operations to stop, then up to `10` seconds for registered cleanup callbacks. Steps in `afterEach` and `afterAll` have their own step timeouts.
+Preparation and cleanup limits also apply when concurrency settings are omitted. After cancellation or `bail`, cleanup scopes share a shutdown deadline based on `teardownTimeout`.
 
 ### Cancellation and cleanup
 
@@ -551,7 +554,7 @@ After interruption, the framework still attempts cleanup. Nodes in `afterEach` a
 
 Callbacks registered with `onTeardown()` do not receive a new signal. Avoid reusing the original step's signal, which may already be aborted.
 
-Timeouts bound the wait for results. If operations or cleanup remain unfinished, the framework records `cleanup pending`, keeps tracking resources, and releases them after operations actually finish. File scheduling stops starting new files in this state. See [Handling failures](./use#handling-failures) for the full rules.
+Timeouts bound the wait for results. If operations or cleanup remain unfinished, the framework records `cleanup pending`, keeps tracking resources, and releases them after operations actually finish. No new files start in this state. See [Handling failures](./use#handling-failures) for the full rules.
 
 ## Programmatic APIs
 

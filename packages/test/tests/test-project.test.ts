@@ -26,7 +26,60 @@ const createConfig = (
 };
 
 describe('test project config', () => {
-  it('opts into file concurrency and caps local limits without executing setup', async () => {
+  it.each([
+    [{}, 1, 1],
+    [{ maxConcurrentFiles: 4 }, 4, 1],
+    [{ maxConcurrentFiles: null }, null, 1],
+    [{ maxConcurrentProjects: 2 }, 1, 2],
+    [{ maxConcurrentProjects: null }, 1, null],
+    [{ maxConcurrentFiles: 3, maxConcurrentProjects: 2 }, 3, 2],
+    [{ maxConcurrentFiles: null, maxConcurrentProjects: null }, null, null],
+  ])(
+    'defaults the two limits independently: %j',
+    async (test, files, projects) => {
+      const { path } = createConfig(`export default {
+      test: ${JSON.stringify(test)},
+      fileSetup: { name: 'file', setup() {} },
+    };`);
+      expect((await loadTestProject(path)).test).toMatchObject({
+        maxConcurrentFiles: files,
+        maxConcurrentProjects: projects,
+      });
+    },
+  );
+
+  it('allows file setup, local limits and timeouts with default global limits', async () => {
+    const { path } = createConfig(`export default {
+      test: { setupTimeout: 100, teardownTimeout: 200 },
+      projects: [{
+        name: 'web', maxConcurrentFiles: 4,
+        fileSetup: { name: 'file', setup() {} },
+      }],
+    };`);
+    const loaded = await loadTestProject(path);
+    expect(loaded.test).toMatchObject({
+      maxConcurrentFiles: 1,
+      maxConcurrentProjects: 1,
+      setupTimeout: 100,
+      teardownTimeout: 200,
+    });
+    expect(loaded.projects[0].maxConcurrentFiles).toBe(1);
+  });
+
+  it('retains local device limits when the global file limit is removed', async () => {
+    const { path } = createConfig(`export default {
+      test: { maxConcurrentFiles: null },
+      projects: [
+        { name: 'web', fileSetup: { name: 'file', setup() {} } },
+        { name: 'android', maxConcurrentFiles: 1 },
+      ],
+    };`);
+    expect(
+      (await loadTestProject(path)).projects.map((p) => p.maxConcurrentFiles),
+    ).toEqual([Number.POSITIVE_INFINITY, 1]);
+  });
+
+  it('caps local file limits without executing setup', async () => {
     const { path } = createConfig(`
       const fileSetup = { name: 'file', setup() { throw new Error('must not run during validation'); } };
       export default {
@@ -71,7 +124,7 @@ describe('test project config', () => {
   it.each([
     [
       'test: { maxConcurrentFiles: 1, maxConcurrency: 1 }',
-      'cannot be combined',
+      'test.maxConcurrency is no longer supported',
     ],
     [
       'test: { maxConcurrentFiles: 0 }',
@@ -85,21 +138,8 @@ describe('test project config', () => {
       "test: { maxConcurrentFiles: '3' }",
       'test.maxConcurrentFiles must be a positive integer',
     ],
-    ['test: { setupTimeout: 100 }', 'requires test.maxConcurrentFiles'],
-    ['test: { teardownTimeout: 100 }', 'requires test.maxConcurrentFiles'],
-    [
-      'fileSetup: { name: "file", setup() {} }',
-      'requires test.maxConcurrentFiles',
-    ],
-    [
-      'projects: [{ name: "web", maxConcurrentFiles: 1 }]',
-      'requires test.maxConcurrentFiles',
-    ],
-    [
-      'projects: [{ name: "web", fileSetup: { name: "file", setup() {} } }]',
-      'requires test.maxConcurrentFiles',
-    ],
     ['test: { maxConcurrentFiles: 2 }', 'fileSetup is required'],
+    ['test: { maxConcurrentFiles: null }', 'fileSetup is required'],
     [
       'test: { maxConcurrentFiles: 2 }, projects: [{ name: "web", files: { include: ["one.yaml"] } }]',
       'fileSetup is required',
@@ -282,13 +322,15 @@ describe('test project config', () => {
       {
         projectId: 'project-0',
         name: 'default',
+        maxConcurrentFiles: 1,
         tags: { include: [], exclude: [] },
         retry: 0,
         variables: {},
         nodes: expect.any(NodeRegistry),
       },
     ]);
-    expect(loaded.test.maxConcurrency).toBe(1);
+    expect(loaded.test.maxConcurrentFiles).toBe(1);
+    expect(loaded.test.maxConcurrentProjects).toBe(1);
   });
 
   it('defaults omitted global and Project Nodes to empty registries', async () => {
@@ -453,7 +495,7 @@ describe('test project config', () => {
             files: { include: ['ios/**/*.yaml'], exclude: [] },
           },
         ],
-        test: { maxConcurrency: 2, bail: 2, testTimeout: 30000 },
+        test: { maxConcurrentProjects: 2, bail: 2, testTimeout: 30000 },
         output: {
           reportDir: './out/report',
         },
@@ -492,7 +534,10 @@ describe('test project config', () => {
       retry: 0,
     });
     expect(loaded.test).toEqual({
-      maxConcurrency: 2,
+      maxConcurrentFiles: 1,
+      maxConcurrentProjects: 2,
+      setupTimeout: 120_000,
+      teardownTimeout: 30_000,
       bail: 2,
       testTimeout: 30000,
     });
@@ -590,28 +635,28 @@ describe('test project config', () => {
     ],
     [
       'zero max concurrency',
-      'test: { maxConcurrency: 0 }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: 0 }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'negative max concurrency',
-      'test: { maxConcurrency: -1 }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: -1 }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'fractional max concurrency',
-      'test: { maxConcurrency: 1.5 }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: 1.5 }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'string max concurrency',
-      `test: { maxConcurrency: '2' }`,
-      'test.maxConcurrency must be a positive integer',
+      `test: { maxConcurrentProjects: '2' }`,
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'infinite max concurrency',
-      'test: { maxConcurrency: Infinity }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: Infinity }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'negative bail',

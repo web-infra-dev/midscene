@@ -37,6 +37,7 @@ interface FileProjectState {
 interface FileSchedulerOptions {
   projects: readonly PreparedExecutionProject[];
   maxConcurrentFiles: number;
+  maxConcurrentProjects: number;
   setupTimeoutMs: number;
   teardownTimeoutMs(): number;
   signal: AbortSignal;
@@ -49,7 +50,7 @@ interface FileSchedulerOptions {
   onInfrastructureError(error: unknown): void;
 }
 
-/** One global budget, round-robin admission, and no reservations per Project. */
+/** Round-robin files within global file and live Project limits. */
 export async function runPreparedFiles(
   options: FileSchedulerOptions,
 ): Promise<FileProjectState[]> {
@@ -67,6 +68,7 @@ export async function runPreparedFiles(
   let nextProject = 0;
   let resourcesUnresolved = false;
   let occupied = 0;
+  let occupiedProjects = 0;
   const cleanupQueue: Array<() => void> = [];
   const release = () => {
     occupied--;
@@ -101,11 +103,24 @@ export async function runPreparedFiles(
       state.cases.some((item) => item.status !== 'success') ||
       state.documents.some((item) => item.status !== 'success');
     state.lifecycle = await state.runtime.finish(failed ? 'failed' : 'success');
+    const releaseProject = () => {
+      occupiedProjects--;
+      wake?.();
+    };
     if (
       state.lifecycle.cleanup?.status === 'pending' ||
       state.lifecycle.pendingOperations?.length
-    )
+    ) {
       unresolved();
+      // A result snapshot can precede actual resource release.
+      void Promise.all([
+        waitForScopeOperations(state.runtime.signal),
+        getResourceCleanupCompletion(state.runtime.signal),
+      ]).then(releaseProject, (error) => {
+        options.onInfrastructureError(error);
+        releaseProject();
+      });
+    } else releaseProject();
   };
 
   const admit = () => {
@@ -113,6 +128,8 @@ export async function runPreparedFiles(
       const index = (nextProject + offset) % states.length;
       const state = states[index];
       if (invalid(state) || state.finished || state.initializing) continue;
+      if (!state.runtime && occupiedProjects >= options.maxConcurrentProjects)
+        continue;
       const cleanupOnly =
         !!state.runtime &&
         state.active === 0 &&
@@ -129,7 +146,11 @@ export async function runPreparedFiles(
       nextProject = (index + 1) % states.length;
       occupied++;
       state.active++;
-      if (!state.runtime && !cleanupOnly) state.initializing = true;
+      if (!state.runtime && !cleanupOnly) {
+        // Claim both budgets before setup so idle Projects are not pre-created.
+        occupiedProjects++;
+        state.initializing = true;
+      }
       const invocationIndex = cleanupOnly ? -1 : state.cursor++;
       return { state, index, invocationIndex };
     }

@@ -262,7 +262,7 @@ defineTestProject<ProjectContext>({
       ],
     },
   ],
-  test: { maxConcurrency: 2, bail: 1, testTimeout: 30_000 },
+  test: { maxConcurrentProjects: 2, bail: 1, testTimeout: 30_000 },
   nodes: [projectNode],
 });
 
@@ -476,4 +476,16 @@ defineProjectSetup({
   // @ts-expect-error Setups no longer declare supported platforms.
   platform: 'web',
   setup() {},
+});
+
+// Limits can be removed independently without changing the other default.
+defineTestProject({
+  test: { maxConcurrentFiles: null, maxConcurrentProjects: null },
+});
+defineTestProject({ test: { maxConcurrentProjects: 2 } });
+defineTestProject({
+  test: {
+    // @ts-expect-error Project and file concurrency use separate named limits.
+    maxConcurrency: 2,
+  },
 });

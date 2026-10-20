@@ -410,7 +410,7 @@ Resource failures or failed or unfinished registered cleanup stop retries and la
 | --- | --- |
 | A file's exclusive device fails, and operations and cleanup have finished | With `fileSetup`, other independent files can continue, subject to `bail` |
 | An explicitly reported shared project resource failure | Stop other files in that project; without `fileSetup`, resource failures or cleanup problems also stop the project |
-| Operations or cleanup remain unfinished | File scheduling stops starting all new files; existing Project scheduling stops later files in that project |
+| Operations or cleanup remain unfinished | Stop starting all new files |
 
 An ordinary `afterEach` step failure remains a case failure and can be retried after operations and registered cleanup finish. Run infrastructure errors, such as result publication failures, cancel the entire run.
 

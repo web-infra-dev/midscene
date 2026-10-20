@@ -6,7 +6,6 @@ import {
   WorkflowPublicationError,
   asExecutionError,
   observeResourceOperations,
-  runConcurrentJobs,
 } from '@midscene/core/internal/test-runner';
 import type {
   CollectedCase,
@@ -17,15 +16,12 @@ import {
   calculateTestRunHealth,
 } from '@midscene/core/report';
 import { getDebug } from '@midscene/shared/logger';
-import { createProjectRuntime } from '../engine/project-runtime';
 import { writeTestResultMarkdown } from '../report/result-markdown';
 import {
   buildTestRunReportDump,
   collectTestRunReportSources,
 } from '../report/test-run-report';
-import { executeDocumentInvocation } from './document-invocation';
 import type {
-  PreparedDocumentInvocation,
   PreparedExecutionProject,
   PreparedTestRunPlan,
 } from './execution-plan';
@@ -152,10 +148,8 @@ export async function runPreparedTestProject(
   );
 
   const effectiveConcurrency = Math.min(
-    definition.test.maxConcurrentFiles ?? definition.test.maxConcurrency,
-    definition.test.maxConcurrentFiles === undefined
-      ? preparedProjects.length
-      : Math.max(1, totalDocuments),
+    definition.test.maxConcurrentFiles ?? Number.POSITIVE_INFINITY,
+    Math.max(1, totalDocuments),
   );
   await writeTestRunPlan(runDir, preparedProjects);
   const journal = createOperationJournal(runDir);
@@ -177,8 +171,7 @@ export async function runPreparedTestProject(
     definition.test.bail > 0 && failedCaseCount >= definition.test.bail;
   let shutdownDeadline: number | undefined;
   const beginShutdown = () => {
-    if (definition.test.maxConcurrentFiles !== undefined)
-      shutdownDeadline ??= Date.now() + definition.test.teardownTimeout!;
+    shutdownDeadline ??= Date.now() + definition.test.teardownTimeout;
   };
   rootController.signal.addEventListener('abort', beginShutdown, {
     once: true,
@@ -191,7 +184,7 @@ export async function runPreparedTestProject(
     Math.max(
       0,
       Math.min(
-        definition.test.teardownTimeout!,
+        definition.test.teardownTimeout,
         shutdownDeadline === undefined
           ? Number.POSITIVE_INFINITY
           : shutdownDeadline - Date.now(),
@@ -281,244 +274,41 @@ export async function runPreparedTestProject(
     announceProject(prepared, projectIndex);
     return buildProjectResult(prepared, notRunSuite(prepared, reason), []);
   };
-  const runPreparedProject = async (
-    prepared: PreparedProject,
-    projectIndex: number,
-  ): Promise<TestExecutionProjectRunResult> => {
-    const { project } = prepared;
-    announceProject(prepared, projectIndex);
-    const projectProgress = (message: string) =>
-      runInfrastructureCallback(() =>
-        progress(
-          effectiveConcurrency > 1 ? `[${project.name}]${message}` : message,
-        ),
-      );
-    const cases: TestProjectCaseRunResult[] = [];
-    const documents: WorkflowDocumentRunResult[] = [];
-    let lifecycle: TestExecutionProjectRunResult['lifecycle'];
-    let projectFatal = false;
-
-    if (
-      prepared.collectionErrors.length > 0 ||
-      (plan.preflightScope === 'run' && totalErrors > 0)
-    ) {
-      cases.push(...notRunSuite(prepared, 'project-preflight-failed'));
-    } else if (rootController.signal.aborted) {
-      cases.push(...notRunSuite(prepared, 'interrupted'));
-    } else if (bailReached()) {
-      cases.push(...notRunSuite(prepared, 'bail'));
-    } else {
-      const runtime = createProjectRuntime({
-        project,
-        setup: project.setup,
-        signal: rootController.signal,
-      });
-      let hasProjectExecutionError = false;
-      try {
-        await runtime.start();
-        if (!runtime.canRun) {
-          cases.push(
-            ...notRunSuite(
-              prepared,
-              rootController.signal.aborted
-                ? 'interrupted'
-                : 'project-setup-failed',
-            ),
-          );
-        } else {
-          const runDocument = async (
-            invocation: PreparedDocumentInvocation,
-            documentIndex: number,
-          ) => {
-            const { document } = invocation;
-            if (
-              rootController.signal.aborted ||
-              bailReached() ||
-              projectFatal
-            ) {
-              const reason = rootController.signal.aborted
-                ? 'interrupted'
-                : projectFatal
-                  ? 'fatal-error'
-                  : 'bail';
-              cases.push(
-                ...document.cases.map((item) =>
-                  asNotRun(document.documentId, item, project.name, reason),
-                ),
-              );
-              return;
-            }
-            projectProgress(
-              `  [document ${documentIndex + 1}/${prepared.documents.length}] ${document.sourcePath}`,
-            );
-            await executeDocumentInvocation({
-              invocation,
-              project,
-              projectContext: runtime.context,
-              runDir,
-              signal: runtime.signal,
-              rootSignal: rootController.signal,
-              shouldBail: bailReached,
-              isProjectFatal: () => projectFatal,
-              markProjectFatal: () => {
-                projectFatal = true;
-              },
-              addFailedCases,
-              onProgress: projectProgress,
-              sinks: {
-                cases,
-                documents,
-              },
-            });
-          };
-          let prerequisiteFailed = false;
-          const prerequisite = prepared.invocations.find(
-            (invocation) =>
-              invocation.document.documentId ===
-              prepared.prerequisiteDocumentId,
-          );
-          const prerequisiteCount = prerequisite ? 1 : 0;
-          if (prerequisite) {
-            await runDocument(prerequisite, 0);
-            prerequisiteFailed =
-              documents.at(-1)?.status === 'failed' ||
-              latestById(cases, (item) => item.caseId).some(
-                (item) => item.status !== 'success',
-              );
-          }
-          if (!prerequisiteFailed) {
-            await runConcurrentJobs(
-              prepared.invocations.filter(
-                (invocation) => invocation !== prerequisite,
-              ),
-              {
-                concurrency: prepared.documentConcurrency,
-                shouldStop: () =>
-                  rootController.signal.aborted ||
-                  bailReached() ||
-                  projectFatal,
-              },
-              async (invocation, index) => {
-                try {
-                  await runDocument(invocation, index + prerequisiteCount);
-                } catch (error) {
-                  recordInfrastructureError(error);
-                  throw error;
-                }
-              },
-            );
-          }
-          const completed = new Set(cases.map((item) => item.caseId));
-          const reason = prerequisiteFailed
-            ? 'project-setup-failed'
-            : rootController.signal.aborted
-              ? 'interrupted'
-              : projectFatal
-                ? 'fatal-error'
-                : 'bail';
-          cases.push(
-            ...notRunSuite(prepared, reason).filter(
-              (item) => !completed.has(item.caseId),
-            ),
-          );
-        }
-      } catch (error) {
-        hasProjectExecutionError = true;
-        recordInfrastructureError(error);
-      } finally {
-        const hasFailure =
-          hasProjectExecutionError ||
-          latestById(cases, (item) => item.caseId).some(
-            (item) => item.status !== 'success',
-          ) ||
-          latestById(documents, (item) => item.documentId).some(
-            (item) => item.status === 'failed',
-          ) ||
-          projectFatal ||
-          rootController.signal.aborted;
-        lifecycle = await runtime.finish(hasFailure ? 'failed' : 'success');
-      }
-      if (hasProjectExecutionError) {
-        const completed = new Set(cases.map((item) => item.caseId));
-        cases.push(
-          ...notRunSuite(prepared, 'interrupted').filter(
-            (item) => !completed.has(item.caseId),
-          ),
-        );
-      }
-    }
-
-    const order = new Map(
-      prepared.documents.map((document, index) => [document.documentId, index]),
-    );
-    const documentOrder = (id: string) =>
-      order.get(id) ?? Number.MAX_SAFE_INTEGER;
-    cases.sort(
-      (a, b) =>
-        documentOrder(a.documentId) - documentOrder(b.documentId) ||
-        a.caseIndex - b.caseIndex,
-    );
-    documents.sort(
-      (a, b) =>
-        documentOrder(a.documentId) - documentOrder(b.documentId) ||
-        (a.attemptIndex ?? 0) - (b.attemptIndex ?? 0),
-    );
-    return buildProjectResult(prepared, cases, documents, lifecycle);
-  };
-
   const projectResults: Array<TestExecutionProjectRunResult | undefined> =
     new Array(preparedProjects.length);
 
   try {
-    if (definition.test.maxConcurrentFiles !== undefined) {
-      const states = await runPreparedFiles({
-        projects: preparedProjects,
-        maxConcurrentFiles: definition.test.maxConcurrentFiles,
-        setupTimeoutMs: definition.test.setupTimeout!,
-        teardownTimeoutMs,
-        signal: rootController.signal,
-        runDir,
-        preflightFailed: plan.preflightScope === 'run' && totalErrors > 0,
-        shouldBail: bailReached,
-        addFailedCases,
-        announceProject,
-        onProgress: (prepared, message) =>
-          runInfrastructureCallback(() =>
-            progress(
-              effectiveConcurrency > 1
-                ? `[${prepared.project.name}]${message}`
-                : message,
-            ),
+    const states = await runPreparedFiles({
+      projects: preparedProjects,
+      maxConcurrentFiles: effectiveConcurrency,
+      maxConcurrentProjects:
+        definition.test.maxConcurrentProjects ?? Number.POSITIVE_INFINITY,
+      setupTimeoutMs: definition.test.setupTimeout,
+      teardownTimeoutMs,
+      signal: rootController.signal,
+      runDir,
+      preflightFailed: plan.preflightScope === 'run' && totalErrors > 0,
+      shouldBail: bailReached,
+      addFailedCases,
+      announceProject,
+      onProgress: (prepared, message) =>
+        runInfrastructureCallback(() =>
+          progress(
+            effectiveConcurrency > 1
+              ? `[${prepared.project.name}]${message}`
+              : message,
           ),
-        onInfrastructureError: recordInfrastructureError,
-      });
-      states.forEach((state, index) => {
-        projectResults[index] = buildProjectResult(
-          state.prepared,
-          state.cases,
-          state.documents,
-          state.lifecycle,
-        );
-      });
-    } else
-      await runConcurrentJobs(
-        preparedProjects,
-        {
-          concurrency: effectiveConcurrency,
-          shouldStop: () =>
-            hasInfrastructureError ||
-            rootController.signal.aborted ||
-            bailReached(),
-        },
-        async (prepared, index) => {
-          try {
-            projectResults[index] = await runPreparedProject(prepared, index);
-          } catch (error) {
-            recordInfrastructureError(error);
-            throw error;
-          }
-        },
+        ),
+      onInfrastructureError: recordInfrastructureError,
+    });
+    states.forEach((state, index) => {
+      projectResults[index] = buildProjectResult(
+        state.prepared,
+        state.cases,
+        state.documents,
+        state.lifecycle,
       );
+    });
   } catch (error) {
     recordInfrastructureError(error);
   } finally {

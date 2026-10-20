@@ -382,7 +382,7 @@ export default defineTestProject<ProjectContext>({
     },
   ],
   test: {
-    maxConcurrency: 1, // 同时运行的执行项目数量上限
+    maxConcurrentProjects: 1, // 同时运行的执行项目数量上限
     bail: 0,           // 大于 0 时，失败用例数达到此值后停止调度新任务
     testTimeout: 120_000,
   },
@@ -408,28 +408,34 @@ pnpm exec midscene-test nodes --project android-smoke
 
 ## 并发与资源隔离
 
-默认按执行项目调度。要让同一项目中的多份 YAML 同时执行，显式设置 `test.maxConcurrentFiles`。
+两个上限同时生效：`maxConcurrentFiles` 控制整次运行同时推进的文件数，`maxConcurrentProjects` 控制已开始准备、尚未清理完的项目数。两者省略时各自默认为 `1`，不会根据另一个字段推导。`null` 表示不限制该项；数值必须是正整数。
 
-| 配置 | 同时执行的单位 | 同一项目内的文件 |
-| --- | --- | --- |
-| `test.maxConcurrency`，默认 `1` | 执行项目 | 顺序执行 |
-| `test.maxConcurrentFiles` | 测试文件 | 可并发执行，受全局和项目上限约束 |
+| `test` 配置 | 执行方式 |
+| --- | --- |
+| 省略 | 逐个项目完成，每个项目内逐个文件执行 |
+| `{ maxConcurrentFiles: 4 }` | 一次一个项目，项目内最多同时推进 4 份文件 |
+| `{ maxConcurrentProjects: 2 }` | 全局仍逐个文件执行，最多保留 2 个项目环境 |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: 1 }` | 逐个项目完成，不设全局文件上限 |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: null }` | 不设这两个全局上限，仍受项目文件上限和实际资源约束 |
 
-两种模式都在同一个 Node.js 进程中异步执行。模块全局变量、外部账号和测试数据需要由项目隔离。
+执行使用同一个 Node.js 进程内的异步并发。只提高项目上限，不会提高文件并发数。不限制并发也不一定更快，还要考虑浏览器容量、设备数量和模型服务限额。
 
 ### 使用 maxConcurrentFiles 开启文件并发
 
 | 配置 | 含义 |
 | --- | --- |
-| `test.maxConcurrentFiles` | 所有项目合计的文件上限，只接受正整数 |
-| `projects[].maxConcurrentFiles` | 当前项目的文件上限；省略时沿用全局值，填写更大值时仍受全局上限限制 |
-| `projects[].fileSetup` | 为每份文件准备独立环境；项目有效上限大于 `1` 时必填，即使只选中一份文件 |
+| `test.maxConcurrentFiles` | 所有项目合计的活动文件上限，默认 `1`，`null` 表示不限制 |
+| `test.maxConcurrentProjects` | 从开始准备到清理完成的项目数上限，默认 `1`，`null` 表示不限制 |
+| `projects[].maxConcurrentFiles` | 当前项目的文件上限，只接受正整数；省略时沿用全局文件上限，不能突破全局上限 |
+| `projects[].fileSetup` | 为每份文件准备独立环境；项目有效文件上限大于 `1`（包括不限制）时必填，即使只选中一份文件 |
 
-例如，全局上限为 `3`，Web 和 Android 各为 `2`，可以同时执行两份 Web 和一份 Android，或一份 Web 和两份 Android。项目不预留名额，满足条件的项目轮流领取文件。
+例如，设置 `test: { maxConcurrentFiles: 3, maxConcurrentProjects: 2 }`，Web 和 Android 的文件上限各为 `2`，可以同时运行两份 Web 加一份 Android，也可以一份 Web 加两份 Android。项目数不会与全局文件上限相乘。
 
-文件从准备到清理完成都占用名额，等待设备和用例重试也计算在内。首份文件占一个名额执行项目 `setup`，同项目的其他文件等待初始化完成，不额外占名额。
+文件从开始准备到清理完成都占一个文件名额，包括等待设备和用例重试。启动新项目时，先同时取得项目名额和首份文件的名额，再执行 `setup`；同项目的其他文件等待初始化，不额外占文件名额。具备执行条件的项目轮流领取文件。
 
-最后一份文件要等项目清理返回后才归还名额。取消或 `bail` 后，已初始化但没有在执行文件的项目，也会在全局上限内安排清理。准备和清理的时限见[超时与取消机制](#超时与取消机制)。
+项目在文件之间暂时空闲时，仍保留项目名额。最后一份文件保留文件名额完成项目清理，项目名额也等到实际清理结束才释放。因此，`maxConcurrentProjects: 1` 会等前一个项目全部清理完再启动下一个；只设置 `maxConcurrentFiles: 1`，则在项目上限允许时，不同项目的文件仍可交错执行。
+
+取消或 `bail` 后，已初始化但暂无活动文件的项目，也在全局文件上限内安排清理。准备和清理的时限见[超时与取消机制](#超时与取消机制)。
 
 ### 用 fileSetup 隔离资源
 
@@ -513,12 +519,11 @@ Android、iOS 等平台需要为每份并发文件独占分配设备，并创建
 
 共享资源故障需要由 Node 或 `fileSetup` 显式标记，不能根据 Browser 关闭的报错文案推断。报告方式见[异步操作、错误与取消](./extend#异步操作错误与取消)。
 
-### 与旧 Project 并发的兼容规则
+### 现有配置
 
-- 未设置 `test.maxConcurrentFiles` 时，保留原来的 Project 调度和 `setup` 共享环境。增大 `test.maxConcurrency` 只会增加同时执行的项目数。
-- `maxConcurrency` 与 `maxConcurrentFiles` 不能同时填写，即使都为 `1`。
-- `fileSetup`、项目文件上限，以及新增的 `setupTimeout` / `teardownTimeout` 都要求显式设置 `test.maxConcurrentFiles`。
-- 项目有效文件上限为 `1` 时，可以暂时省略 `fileSetup`。文件仍可能在不同项目间交错执行；迁移时可先设为 `1`，准备好独立环境后再提高上限。
+原生 Test 不再支持 `test.maxConcurrency`，改用 `maxConcurrentProjects` 和 `maxConcurrentFiles` 组合。若要同时运行最多两个项目、每个项目内仍逐个文件执行，应把两个全局上限都设为 `2`，并把各项目的 `maxConcurrentFiles` 设为 `1`。
+
+`fileSetup`、项目文件上限和准备／清理超时都可以单独配置，不要求显式填写全局并发字段。项目有效文件上限为 `1` 时，`fileSetup` 可省略，文件可以共用 `setup` 返回的环境。
 
 项目不会自动均分用例。同一 YAML 被两个项目选中，就会分别执行一次；要分批运行，使用互不重叠的 `files` 或 `tags` 规则。
 
@@ -534,9 +539,7 @@ Android、iOS 等平台需要为每份并发文件独占分配设备，并创建
 | `test.setupTimeout` | 每次项目 `setup` 或 `fileSetup`，包括等待设备 | `120000` ms |
 | `test.teardownTimeout` | 每个清理范围，包括清理钩子、等待操作退出和清理函数 | `30000` ms |
 
-后两项只用于文件调度模式，要求设置 `test.maxConcurrentFiles`。取消或 `bail` 后，各清理范围共用一个基于 `teardownTimeout` 的收尾时限。
-
-旧 Project 调度模式保留原来的等待方式：生命周期钩子结束后，最多等待运行中的操作退出 `1` 秒，再等待注册的清理函数执行 `10` 秒。`afterEach` 和 `afterAll` 中的步骤另受步骤超时约束。
+省略并发配置时，准备和清理时限仍然生效。取消或 `bail` 后，各清理范围共用一个基于 `teardownTimeout` 的收尾时限。
 
 ### 取消与清理
 
@@ -546,7 +549,7 @@ Android、iOS 等平台需要为每份并发文件独占分配设备，并创建
 
 `onTeardown()` 注册的清理函数不会收到新的 signal。避免在其中复用原步骤的 signal，它可能已经取消。
 
-超时只限制等待结果的时间。操作或清理尚未结束时，框架记录 `cleanup pending`，继续跟踪资源，等操作实际结束后再释放。文件调度模式下，此时停止启动新文件。完整失败规则见[失败时如何执行](./use#失败时如何执行)。
+超时只限制等待结果的时间。操作或清理尚未结束时，框架记录 `cleanup pending`，继续跟踪资源，等操作实际结束后再释放。此时停止启动新文件。完整失败规则见[失败时如何执行](./use#失败时如何执行)。
 
 ## 编程式 API
 

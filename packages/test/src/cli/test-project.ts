@@ -39,10 +39,10 @@ export type ExecutionProjectDefinition<
 };
 
 export interface TestOptions {
-  /** Legacy Project concurrency; cannot be combined with maxConcurrentFiles. */
-  maxConcurrency?: number;
-  /** Global active files, from preparation through actual cleanup. */
-  maxConcurrentFiles?: number;
+  /** Global active files, including preparation and cleanup. Default 1; null is unlimited. */
+  maxConcurrentFiles?: number | null;
+  /** Projects from setup through completed cleanup. Default 1; null is unlimited. */
+  maxConcurrentProjects?: number | null;
   /** Milliseconds for each Project setup/fileSetup, including device waits. */
   setupTimeout?: number;
   /** Milliseconds per cleanup scope; shared deadline during abnormal shutdown. */
@@ -52,10 +52,10 @@ export interface TestOptions {
 }
 
 export interface ResolvedTestOptions {
-  maxConcurrency: number;
-  maxConcurrentFiles?: number;
-  setupTimeout?: number;
-  teardownTimeout?: number;
+  maxConcurrentFiles: number | null;
+  maxConcurrentProjects: number | null;
+  setupTimeout: number;
+  teardownTimeout: number;
   bail: number;
   testTimeout: number;
 }
@@ -371,16 +371,17 @@ const validateNonNegativeInteger = (
   return value as number;
 };
 
+const validateConcurrency = (value: unknown, label: string): number | null => {
+  if (value === null) return null;
+  return validatePositiveInteger(value, 1, label);
+};
+
 const validateFileConcurrency = (
-  maxConcurrentFiles: number | undefined,
+  maxConcurrentFiles: number,
   fileSetup: unknown,
   label: string,
 ): void => {
-  if (
-    maxConcurrentFiles !== undefined &&
-    maxConcurrentFiles > 1 &&
-    !fileSetup
-  ) {
+  if (maxConcurrentFiles > 1 && !fileSetup) {
     throw new TypeError(
       `Midscene config ${label}.fileSetup is required when the effective maxConcurrentFiles is greater than 1.`,
     );
@@ -405,7 +406,9 @@ const validateExecutionProjects = <TContext, TProjectContext>(
     const fileSetup = validateSetup<
       FileSetupDefinition<TContext, TProjectContext>
     >(defaultFileSetup, 'fileSetup');
-    validateFileConcurrency(test.maxConcurrentFiles, fileSetup, 'default');
+    const maxConcurrentFiles =
+      test.maxConcurrentFiles ?? Number.POSITIVE_INFINITY;
+    validateFileConcurrency(maxConcurrentFiles, fileSetup, 'default');
     return {
       hasExplicitProjects: false,
       projects: Object.freeze([
@@ -414,9 +417,7 @@ const validateExecutionProjects = <TContext, TProjectContext>(
           name: 'default',
           ...(setup ? { setup } : {}),
           ...(fileSetup ? { fileSetup } : {}),
-          ...(test.maxConcurrentFiles === undefined
-            ? {}
-            : { maxConcurrentFiles: test.maxConcurrentFiles }),
+          maxConcurrentFiles,
           tags: Object.freeze({ include: [], exclude: [] }),
           retry: 0,
           variables: Object.freeze({}),
@@ -487,32 +488,22 @@ const validateExecutionProjects = <TContext, TProjectContext>(
     const fileSetup = validateSetup<
       FileSetupDefinition<TContext, TProjectContext>
     >(candidate.fileSetup, `${label}.fileSetup`);
-    if (
-      test.maxConcurrentFiles === undefined &&
-      (fileSetup !== undefined || candidate.maxConcurrentFiles !== undefined)
-    ) {
-      throw new TypeError(
-        `Midscene config ${label}.fileSetup/maxConcurrentFiles requires test.maxConcurrentFiles.`,
-      );
-    }
-    const maxConcurrentFiles =
-      test.maxConcurrentFiles === undefined
-        ? undefined
-        : Math.min(
-            test.maxConcurrentFiles,
-            validatePositiveInteger(
-              candidate.maxConcurrentFiles,
-              test.maxConcurrentFiles,
-              `${label}.maxConcurrentFiles`,
-            ),
-          );
+    const globalFileLimit = test.maxConcurrentFiles ?? Number.POSITIVE_INFINITY;
+    const maxConcurrentFiles = Math.min(
+      globalFileLimit,
+      validatePositiveInteger(
+        candidate.maxConcurrentFiles,
+        globalFileLimit,
+        `${label}.maxConcurrentFiles`,
+      ),
+    );
     validateFileConcurrency(maxConcurrentFiles, fileSetup, label);
     return Object.freeze({
       projectId: projectIdFromIndex(index),
       name: candidate.name,
       nodes,
       ...(fileSetup ? { fileSetup } : {}),
-      ...(maxConcurrentFiles === undefined ? {} : { maxConcurrentFiles }),
+      maxConcurrentFiles,
       ...(files ? { files } : {}),
       tags: validateTagSelection(candidate.tags, `${label}.tags`),
       retry: validateNonNegativeInteger(candidate.retry, 0, `${label}.retry`),
@@ -535,45 +526,29 @@ const validateTestOptions = (value: unknown): ResolvedTestOptions => {
     throw new TypeError('Midscene config test must be an object.');
   }
   const candidate = (value ?? {}) as Record<string, unknown>;
-  const fileMode = candidate.maxConcurrentFiles !== undefined;
-  if (fileMode && candidate.maxConcurrency !== undefined) {
+  if (candidate.maxConcurrency !== undefined) {
     throw new TypeError(
-      'Midscene config test.maxConcurrentFiles cannot be combined with test.maxConcurrency.',
-    );
-  }
-  if (
-    !fileMode &&
-    (candidate.setupTimeout !== undefined ||
-      candidate.teardownTimeout !== undefined)
-  ) {
-    throw new TypeError(
-      'Midscene config test.setupTimeout/teardownTimeout requires test.maxConcurrentFiles.',
+      'Midscene config test.maxConcurrency is no longer supported. Use test.maxConcurrentProjects and test.maxConcurrentFiles instead.',
     );
   }
   return Object.freeze({
-    ...(fileMode
-      ? {
-          maxConcurrentFiles: validatePositiveInteger(
-            candidate.maxConcurrentFiles,
-            1,
-            'test.maxConcurrentFiles',
-          ),
-          setupTimeout: validatePositiveInteger(
-            candidate.setupTimeout,
-            120_000,
-            'test.setupTimeout',
-          ),
-          teardownTimeout: validatePositiveInteger(
-            candidate.teardownTimeout,
-            30_000,
-            'test.teardownTimeout',
-          ),
-        }
-      : {}),
-    maxConcurrency: validatePositiveInteger(
-      (candidate as Record<string, unknown>).maxConcurrency,
-      1,
-      'test.maxConcurrency',
+    maxConcurrentFiles: validateConcurrency(
+      candidate.maxConcurrentFiles,
+      'test.maxConcurrentFiles',
+    ),
+    maxConcurrentProjects: validateConcurrency(
+      candidate.maxConcurrentProjects,
+      'test.maxConcurrentProjects',
+    ),
+    setupTimeout: validatePositiveInteger(
+      candidate.setupTimeout,
+      120_000,
+      'test.setupTimeout',
+    ),
+    teardownTimeout: validatePositiveInteger(
+      candidate.teardownTimeout,
+      30_000,
+      'test.teardownTimeout',
     ),
     bail: validateNonNegativeInteger(
       (candidate as Record<string, unknown>).bail,
@@ -658,14 +633,6 @@ const validateTestProjectDefinition = <TContext, TProjectContext = TContext>(
     definition.nodes as NodeDefinition[] | undefined,
   );
   const test = validateTestOptions(definition.test);
-  if (
-    definition.fileSetup !== undefined &&
-    test.maxConcurrentFiles === undefined
-  ) {
-    throw new TypeError(
-      'Midscene config fileSetup requires test.maxConcurrentFiles.',
-    );
-  }
   const resolvedProjects = validateExecutionProjects<TContext, TProjectContext>(
     definition.projects,
     definition.setup,

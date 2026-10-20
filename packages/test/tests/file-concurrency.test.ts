@@ -39,7 +39,8 @@ const fixture = (
   options: {
     projects?: string[];
     files?: number;
-    global?: number;
+    global?: number | null;
+    projectLimit?: number | null;
     local?: number;
     retry?: number;
     bail?: number;
@@ -125,8 +126,14 @@ afterAll:
           await s.node?.(phase, context, signal, testCase?.attemptIndex ?? 0);
         },
       })),
-      test: { maxConcurrentFiles: ${options.global ?? 2}, bail: ${options.bail ?? 0},
-        setupTimeout: ${options.setupTimeout ?? 1000}, teardownTimeout: ${options.teardownTimeout ?? 1000} },
+      test: ${JSON.stringify({
+        maxConcurrentFiles: 'global' in options ? options.global : 2,
+        maxConcurrentProjects:
+          'projectLimit' in options ? options.projectLimit : null,
+        bail: options.bail ?? 0,
+        setupTimeout: options.setupTimeout ?? 1000,
+        teardownTimeout: options.teardownTimeout ?? 1000,
+      })},
     };
   `,
   );
@@ -147,6 +154,163 @@ const waitFor = (predicate: () => boolean) =>
   });
 
 describe('native file concurrency', () => {
+  it('runs whole Projects and their files serially when both limits are omitted', async () => {
+    const { state, run } = fixture({
+      projects: ['web', 'android'],
+      files: 3,
+      global: undefined,
+      projectLimit: undefined,
+      fileSetup: false,
+    });
+    const cleanup = gate();
+    state.projectCleanup = async (project) => {
+      if (project === 'web') await cleanup.promise;
+    };
+    const resultPromise = run();
+    await waitFor(() => state.events.includes('project-cleanup:web'));
+    expect(state.events).not.toContain('setup:android');
+    expect(state.events.filter((e) => e.startsWith('step:'))).toEqual([
+      'step:web',
+      'step:web',
+      'step:web',
+    ]);
+    cleanup.resolve();
+    expect((await resultPromise).status).toBe('success');
+    expect(state.events.indexOf('project-end:web')).toBeLessThan(
+      state.events.indexOf('setup:android'),
+    );
+  });
+
+  it('runs unlimited files in one Project at a time when the Project limit is omitted', async () => {
+    const { state, run } = fixture({
+      projects: ['web', 'android'],
+      files: 3,
+      global: null,
+      projectLimit: undefined,
+    });
+    const steps = gate();
+    state.node = async (phase) => {
+      if (phase === 'step') await steps.promise;
+    };
+    const resultPromise = run();
+    await waitFor(() => state.events.includes('step:web/3.yaml'));
+    expect(state.events).not.toContain('setup:android');
+    steps.resolve();
+    expect((await resultPromise).status).toBe('success');
+    expect(state.events.indexOf('project-end:web')).toBeLessThan(
+      state.events.indexOf('setup:android'),
+    );
+  });
+
+  it('counts Project setup and cleanup against the Project limit even with free file slots', async () => {
+    const { state, run } = fixture({
+      projects: ['alpha', 'beta', 'gamma'],
+      files: 2,
+      global: 3,
+      local: 1,
+      projectLimit: 2,
+    });
+    const setup = gate();
+    const cleanup = gate();
+    const beta = gate();
+    let live = 0;
+    let peak = 0;
+    state.setup = async (project) => {
+      peak = Math.max(peak, ++live);
+      if (project === 'alpha') await setup.promise;
+    };
+    state.projectCleanup = async (project) => {
+      if (project === 'alpha') await cleanup.promise;
+      live--;
+    };
+    state.node = async (phase, context) => {
+      if (phase === 'step' && context.key.startsWith('beta/'))
+        await beta.promise;
+    };
+    const resultPromise = run();
+    await waitFor(() => state.events.includes('step:beta/1.yaml'));
+    expect(state.events).not.toContain('setup:gamma');
+    setup.resolve();
+    await waitFor(() => state.events.includes('project-cleanup:alpha'));
+    expect(state.events).not.toContain('setup:gamma');
+    cleanup.resolve();
+    await waitFor(() => state.events.includes('setup:gamma'));
+    beta.resolve();
+    expect((await resultPromise).status).toBe('success');
+    expect(peak).toBe(2);
+    expect(live).toBe(0);
+    expect(state.events.indexOf('project-end:alpha')).toBeLessThan(
+      state.events.indexOf('setup:gamma'),
+    );
+  });
+
+  it('retains idle Project resources between files under the Project limit', async () => {
+    const { state, run } = fixture({
+      projects: ['alpha', 'beta', 'gamma'],
+      files: 2,
+      global: 1,
+      projectLimit: 2,
+    });
+    const result = await run();
+    expect(result.status).toBe('success');
+    expect(
+      state.events.filter((e) => e.startsWith('step:')).slice(0, 3),
+    ).toEqual(['step:alpha/1.yaml', 'step:beta/1.yaml', 'step:alpha/2.yaml']);
+    expect(state.events.indexOf('project-end:alpha')).toBeLessThan(
+      state.events.indexOf('setup:gamma'),
+    );
+  });
+
+  it('keeps the default global file limit at one when only Project concurrency is raised', async () => {
+    const { state, run } = fixture({
+      projects: ['web', 'android'],
+      files: 2,
+      global: undefined,
+      projectLimit: 2,
+    });
+    let active = 0;
+    let peak = 0;
+    state.fileSetup = async () => {
+      peak = Math.max(peak, ++active);
+    };
+    state.fileCleanup = async () => {
+      active--;
+    };
+    expect((await run()).status).toBe('success');
+    expect(peak).toBe(1);
+    expect(state.events.indexOf('setup:android')).toBeLessThan(
+      state.events.indexOf('project-end:web'),
+    );
+  });
+
+  it.each([undefined, 1])(
+    'removes both global limits while retaining a local limit of %s',
+    async (local) => {
+      const { state, run } = fixture({
+        projects: ['web', 'android'],
+        files: 3,
+        global: null,
+        projectLimit: null,
+        local,
+      });
+      const steps = gate();
+      state.node = async (phase) => {
+        if (phase === 'step') await steps.promise;
+      };
+      const resultPromise = run();
+      const expected = local === 1 ? 2 : 6;
+      await waitFor(
+        () =>
+          state.events.filter((e) => e.startsWith('step:')).length === expected,
+      );
+      expect(state.events.filter((e) => e.startsWith('file:'))).toHaveLength(
+        expected,
+      );
+      steps.resolve();
+      expect((await resultPromise).status).toBe('success');
+    },
+  );
+
   it('shares three global admissions across two Projects with three files each, through cleanup', async () => {
     const { state, run } = fixture({
       projects: ['web', 'android'],
@@ -340,22 +504,29 @@ describe('native file concurrency', () => {
     },
   );
 
-  it('does not stop another Project when shared setup fails', async () => {
-    const { state, run } = fixture({ projects: ['web', 'android'], global: 2 });
-    state.setup = async (project) => {
-      if (project === 'web') throw new Error('launch failed');
-    };
-    const result = await run();
-    expect(result.status).toBe('failed');
-    expect(state.events).toContain('project-end:web');
-    expect(state.events).not.toContain('file:web/1.yaml');
-    expect(state.events).toContain('step:android/2.yaml');
-    expect(
-      result.projects[0].cases.every(
-        (item) => item.notRunReason === 'project-setup-failed',
-      ),
-    ).toBe(true);
-  });
+  it.each([1, 2, null])(
+    'releases a failed setup under a Project limit of %s without stopping peers',
+    async (projectLimit) => {
+      const { state, run } = fixture({
+        projects: ['web', 'android'],
+        global: 2,
+        projectLimit,
+      });
+      state.setup = async (project) => {
+        if (project === 'web') throw new Error('launch failed');
+      };
+      const result = await run();
+      expect(result.status).toBe('failed');
+      expect(state.events).toContain('project-end:web');
+      expect(state.events).not.toContain('file:web/1.yaml');
+      expect(state.events).toContain('step:android/2.yaml');
+      expect(
+        result.projects[0].cases.every(
+          (item) => item.notRunReason === 'project-setup-failed',
+        ),
+      ).toBe(true);
+    },
+  );
 
   it('requests cancellation of sibling files when their shared environment fails', async () => {
     const { state, run } = fixture({ files: 3, global: 2 });
