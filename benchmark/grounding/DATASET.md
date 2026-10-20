@@ -19,7 +19,7 @@ not by themselves establish a statistically orthogonal factorial design.
 | Primary factor / 主考点 | Web | Mobile | Selection criterion / 筛选标准 |
 | --- | ---: | ---: | --- |
 | Element basic / 直接元素定位 | 20 | 20 | Visible text or appearance directly identifies the target / 直接根据可见文字或外观定位 |
-| Unfamiliar Icon / 不常见图标 | 5 | 5 | Recognize an application/domain-specific symbol / 识别应用或领域专用符号 |
+| Specialized Icon / 专用图标 | 5 | 5 | Recognize an application/domain-specific symbol / 识别应用或领域专用符号 |
 | Small Target / 小目标 | 10 | 10 | A small visible landing target among nearby content / 小落点及邻近干扰 |
 | Color Recognition / 颜色识别 | 5 | 5 | Color distinguishes similarly shaped candidates / 同形或近似形状，必须按颜色区分 |
 | Functional / 功能意图定位 | 20 | 20 | Map intent to a visible functional control / 从意图判断功能入口 |
@@ -29,6 +29,11 @@ not by themselves establish a statistically orthogonal factorial design.
 | Disambiguation / 重复元素消歧 | 5 | 5 | An explicit anchor distinguishes repeated targets / 用明确锚点区分重复候选 |
 | Refusal / 目标不存在 | 5 | 5 | Official no-target annotation and no satisfying visible target / 官方无目标标注，画面中无满足全部条件的目标 |
 | Total / 合计 | 100 | 100 | |
+
+Specialized Icon is the current display name for the `unfamiliar` primary factor.
+Frozen dataset metadata retains its original label.
+
+Specialized Icon 是 `unfamiliar` 主考点的当前展示名称；冻结题库元数据保留原名称。
 
 `primary_factor`, `primary_factor_reason`, secondary tags, and original benchmark
 categories remain in the manifest. Mobile selection standards include the exact
@@ -41,7 +46,7 @@ understanding, and multiple constraints/association, four cases each.
 名单见 `mobile-search-standards.json`，两端推理多样性见各自 reasoning-diversity 记录。
 Mobile 推理分数值比较、时间日历、状态角色、语义理解、多条件关联，各四题。
 
-Unfamiliar-icon rarity is a reviewer judgment. The Mobile small-target selection
+Specialized-icon selection and rarity are reviewer judgments. The Mobile small-target selection
 uses a 360-pixel short-side reference scale, GT short edge ≤28 pixels and area
 ≤0.5%; this is a curation threshold, not physical device dp or an official metric.
 

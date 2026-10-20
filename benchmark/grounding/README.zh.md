@@ -80,7 +80,7 @@ pnpm evaluate --config examples/run-config.json --models-file _private/models.js
 | 主考点 | Web | Mobile |
 | --- | ---: | ---: |
 | Element basic（直接元素定位） | 20 | 20 |
-| Unfamiliar Icon（不常见图标） | 5 | 5 |
+| Specialized Icon（专用图标） | 5 | 5 |
 | Small Target（小目标） | 10 | 10 |
 | Color Recognition（颜色识别） | 5 | 5 |
 | Functional（功能意图定位） | 20 | 20 |

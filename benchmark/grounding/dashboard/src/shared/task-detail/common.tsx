@@ -26,6 +26,7 @@ export const imageTypeTagSx: Record<ImageType, Record<string, string>> = {
 };
 
 export const caseTagLabel: Record<string, string> = {
+  'Unfamiliar Icon': 'Specialized Icon',
   no_crop: '不宜裁剪',
   very_simple: '非常简单',
   image_too_blurry: '图过于糊',
