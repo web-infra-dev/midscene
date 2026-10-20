@@ -143,3 +143,15 @@ Use an OpenAI-compatible HTTPS chat-completions endpoint via `VERIFY_PLANNER_BAS
 App comments include the plan summary, readable criterion titles, source/plan links, coverage gaps, clarification questions, native report links, and Agent JSON. When no functional failure has been observed, incomplete plans or execution errors use an `action_required` Check and an **Inconclusive** comment; ambiguous requirements use **Needs clarification**. An observed functional failure takes precedence and produces **Failed**, while coverage gaps remain visible. This phase supports existing Web previews only. It does not build PR code, run generated unit/API tests, inspect all transitive dependencies or compare base/head browser behavior.
 
 For endpoints that support `enable_thinking`, set `VERIFY_PLANNER_ENABLE_THINKING=false` to disable extended reasoning and keep bounded planning requests responsive; this provider-specific field is omitted by default.
+
+## Reliability evaluation and failure diagnosis
+
+Reports and App comments expose `diagnosis.category` and `nextAction`. Action failures are inconclusive, distinct from observed visual assertion failures. Provider and navigation errors remain execution errors. An `assertion-failed` observation is not a confirmed product defect: inspect screenshots and traces, including possible model false positives.
+
+The versioned `evaluation/cases.json` defines eight baseline cases. The evaluation CLI scores separately collected first-attempt observations; it does **not** execute browser tests or establish ground truth. Keep independent human-reviewed labels and original evidence. Pin the engine SHA and exact planner/visual model versions before collecting a run. Missing cases, inconclusive outcomes, false positives, false negatives and invalid decisions on inconclusive cases are reported separately. Rates use all observed cases with the relevant ground-truth label, including inconclusive observations; read the missing and inconclusive counts alongside rates. No observations means a null rate, never zero.
+
+```bash
+node apps/verify/scripts/evaluate.mjs observations.json new-result.json
+```
+
+Input fields: `corpusVersion`, `engineSha` (full SHA), `plannerModel`, `visualModel`, and `observations`. Each observation has `caseId`, `attempt: 1`, `outcome` (`passed`, `assertion-failed`, or `inconclusive`), `evidence` (original evidence location), and `durationMs`. Duplicate cases and retries are rejected. The output includes input/corpus hashes and refuses to overwrite an existing file. These constraints help preserve first-run records but do not authenticate externally supplied observations. This initial evaluator does not measure model cost or automatically run the entire corpus; unit-test results must not be presented as measured model reliability.

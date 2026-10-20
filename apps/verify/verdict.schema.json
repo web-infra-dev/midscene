@@ -98,7 +98,11 @@
           "type": ["string", "null"]
         },
         "errorCode": {
-          "enum": ["MODEL_SERVICE_ERROR", "ENVIRONMENT_ERROR"]
+          "enum": [
+            "MODEL_SERVICE_ERROR",
+            "ENVIRONMENT_ERROR",
+            "ACTION_EXECUTION_FAILED"
+          ]
         }
       }
     },
@@ -212,7 +216,8 @@
               "STEP_EXECUTION_FAILED",
               "EVIDENCE_CAPTURE_FAILED",
               "MODEL_SERVICE_ERROR",
-              "ENVIRONMENT_ERROR"
+              "ENVIRONMENT_ERROR",
+              "ACTION_EXECUTION_FAILED"
             ]
           },
           "sources": {
@@ -330,6 +335,30 @@
         }
       },
       "additionalProperties": false
+    },
+    "diagnosis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "nextAction"],
+      "properties": {
+        "category": {
+          "enum": [
+            "passed",
+            "revision-mismatch",
+            "assertion-failed",
+            "planning-incomplete",
+            "action-incomplete",
+            "execution-error",
+            "evidence-incomplete"
+          ]
+        },
+        "nextAction": {
+          "type": "string"
+        },
+        "criterionId": {
+          "type": "string"
+        }
+      }
     }
   },
   "$defs": {

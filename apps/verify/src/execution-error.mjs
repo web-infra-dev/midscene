@@ -1,6 +1,6 @@
 // Midscene wraps provider errors through TaskExecutionError and aiAssert. Keep
 // infrastructure failures separate without copying provider bodies or secrets.
-export function executionErrorCode(error) {
+export function executionErrorCode(error, phase = 'aiAssert') {
   const visited = new Set();
   let current = error;
   while (current && !visited.has(current)) {
@@ -11,8 +11,17 @@ export function executionErrorCode(error) {
     ) {
       return 'MODEL_SERVICE_ERROR';
     }
-    if (message === 'PAGE_UNAVAILABLE') return 'ENVIRONMENT_ERROR';
+    if (
+      /^(?:PAGE_UNAVAILABLE|REVISION_UNAVAILABLE|REVISION_MISMATCH)$/.test(
+        message,
+      )
+    )
+      return 'ENVIRONMENT_ERROR';
     current = current.cause;
   }
-  return 'STEP_EXECUTION_FAILED';
+  return phase === 'aiAssert'
+    ? 'STEP_EXECUTION_FAILED'
+    : phase === 'aiAct'
+      ? 'ACTION_EXECUTION_FAILED'
+      : 'ENVIRONMENT_ERROR';
 }

@@ -63,6 +63,7 @@ async function execute({ previewUrl, policy, directory, headSha }) {
         cache: false,
         replanningCycleLimit: 10,
       });
+      let phase = 'navigation';
       try {
         const target = allowedUrl(
           new URL(criterion.path, preview.origin).href,
@@ -76,11 +77,12 @@ async function execute({ previewUrl, policy, directory, headSha }) {
         for (const step of criterion.steps) {
           const record = { type: step.type, status: 'failed' };
           outcome.steps.push(record);
+          phase = step.type;
           await agent[step.type](step.prompt);
           record.status = 'passed';
         }
       } catch (error) {
-        outcome.errorCode = executionErrorCode(error);
+        outcome.errorCode = executionErrorCode(error, phase);
         outcome.status =
           outcome.errorCode === 'STEP_EXECUTION_FAILED' ? 'failed' : 'not-run';
         if (outcome.status === 'not-run') {
@@ -115,8 +117,9 @@ async function execute({ previewUrl, policy, directory, headSha }) {
       if (result.status === 'error') break;
     }
     result.observedRevisionAfter = await revision();
-  } catch {
+  } catch (error) {
     result.status = 'error';
+    result.errorCode = executionErrorCode(error, 'environment');
   } finally {
     await browser.close();
   }

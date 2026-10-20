@@ -1,6 +1,7 @@
 import { lstat, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { digest, policyDigest } from './config.mjs';
+import { diagnose } from './diagnosis.mjs';
 
 const escapeHtml = (text) =>
   String(text).replace(
@@ -181,10 +182,12 @@ export async function buildReport({
     },
     artifacts,
   };
+  report.diagnosis = diagnose(report);
   const summary = [
     '# Midscene functional verification',
     '',
     `Result: **${report.functionalGate.status}**`,
+    `Diagnosis: ${report.diagnosis.category}. ${report.diagnosis.nextAction}`,
     `Execution: ${report.execution.status}${report.execution.errorCode ? ` (${report.execution.errorCode})` : ''}`,
     `Commit: \`${subject.headSha}\``,
     `Verification: \`${id}\``,

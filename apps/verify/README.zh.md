@@ -173,3 +173,15 @@ Worker 配置参考 `deploy/wrangler.example.jsonc`，设置 `WEBHOOK_SECRET`、
 App 评论包含计划摘要、验收项标题、计划与来源链接、覆盖缺口、待澄清问题、原生报告入口和 Agent JSON。未观察到功能失败，但计划不完整或执行异常时，Check 为 `action_required`，评论为 **Inconclusive**；需求不清时标为 **Needs clarification**。已观察到的功能失败优先显示 **Failed**，同时保留覆盖缺口。本阶段只支持已有 Web Preview，尚不构建 PR 源码、不运行生成的单元或接口测试，也不检查所有传递依赖或对照 base/head 浏览器行为。
 
 对支持 `enable_thinking` 的服务，可设置 `VERIFY_PLANNER_ENABLE_THINKING=false` 关闭扩展推理，避免规划请求超时；默认不发送这一服务专用字段。
+
+## 可靠性评测与失败分类
+
+报告和 App 评论新增 `diagnosis.category` 与 `nextAction`。操作失败按“无法确定”处理，与视觉断言失败区分；模型服务和页面导航错误属于执行错误。`assertion-failed` 不等于已确认的产品缺陷，需要查看截图和轨迹，排除模型误判。
+
+固定评测集见 `evaluation/cases.json`，包含八类基础场景。评测命令统计另行收集的首轮记录，**不会执行浏览器测试，也不会自动确定正确答案**。需独立审阅预期结果并保留原始证据；采集前固定引擎 SHA、规划模型与视觉模型的精确版本。统计单独列出缺测、无法确定、误报、漏报，以及本应无法确定却给出结论的情况。误报与漏报的分母包含对应真值类别的全部已测样本，包括无法确定；必须同时查看缺测和无法确定数量。没有样本时比率为 null，不记为零。
+
+```bash
+node apps/verify/scripts/evaluate.mjs observations.json new-result.json
+```
+
+输入包含 `corpusVersion`、完整 `engineSha`、`plannerModel`、`visualModel` 和 `observations`。每条记录包含 `caseId`、`attempt: 1`、`outcome`（`passed`、`assertion-failed` 或 `inconclusive`）、原始证据地址 `evidence` 和 `durationMs`。命令拒绝重复场景与重试记录，输出输入和评测集的哈希，并拒绝覆盖已有结果。这些约束有助于保留首轮记录，但不能证明外部输入的真实性。当前尚未统计模型费用，也没有自动执行完整评测集；单元测试通过不能当作模型可靠性成绩。

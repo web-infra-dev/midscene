@@ -33,6 +33,7 @@ export function verificationComment({
     conclusion,
     execution: report.execution.status,
     coverage: report.coverage,
+    diagnosis: report.diagnosis,
     ...(report.planning
       ? {
           planning: report.planning,
@@ -57,6 +58,11 @@ export function verificationComment({
     '',
     `Commit: \`${run.subject.headSha}\``,
     `Execution: **${report.execution.status}**. Required criteria: **${report.coverage.passed}/${report.coverage.required} passed**.`,
+    ...(report.diagnosis
+      ? [
+          `Diagnosis: **${report.diagnosis.category}**. ${report.diagnosis.nextAction}`,
+        ]
+      : []),
     ...(conclusion === 'cancelled'
       ? [
           'This revision has been superseded. This result does not verify the current PR head.',

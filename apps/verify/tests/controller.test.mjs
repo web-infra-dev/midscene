@@ -80,12 +80,12 @@ test('head changed during run is cancelled, not accepted', async (t) => {
   assert.equal(run.report.functionalGate.status, 'not-satisfied');
 });
 
-test('runner crash completes with failure and all criteria not run', async (t) => {
+test('runner crash is inconclusive with all criteria not run', async (t) => {
   const { controller, github, store } = await setup(t, async () => {
     throw new Error('crash');
   });
   await controller.handle('pull_request', payload, 'delivery');
-  assert.equal(conclusion(github), 'failure');
+  assert.equal(conclusion(github), 'action_required');
   assert.equal((await store.list('runs'))[0].report.coverage.notRun, 1);
 });
 
@@ -134,7 +134,7 @@ test('interrupted execution is not silently replayed after restart', async (t) =
   github.state.deployed = true;
   await controller.handle('pull_request', payload, 'delivery');
   assert.equal(calls, 0);
-  assert.equal(conclusion(github), 'failure');
+  assert.equal(conclusion(github), 'action_required');
 });
 
 test('remote evidence publication must succeed before a successful check is published', async (t) => {
@@ -234,12 +234,15 @@ test('recovers remote comment after state-write crash and ignores copied markers
   assert.equal((await store.list('runs'))[0].commentId, realComment.id);
 });
 
-test('failed and superseded results are labeled honestly in App comments', async (t) => {
+test('incomplete and superseded results are labeled honestly in App comments', async (t) => {
   const failed = await setup(t, async () => {
     throw new Error('Runner crash');
   });
   await failed.controller.handle('pull_request', payload, 'failed');
-  assert.match(failed.github.state.comments[0].body, /Midscene Verify: Failed/);
+  assert.match(
+    failed.github.state.comments[0].body,
+    /Midscene Verify: Inconclusive/,
+  );
   assert.match(
     failed.github.state.comments[0].body,
     /Execution: \*\*error\*\*/,

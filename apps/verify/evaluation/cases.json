@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "save-working",
+      "truth": "working",
+      "requirement": "Saving a note shows success and the saved text."
+    },
+    {
+      "id": "persistence-broken",
+      "truth": "defective",
+      "requirement": "Saved text remains after reloading persisted notes."
+    },
+    {
+      "id": "empty-input-working",
+      "truth": "working",
+      "requirement": "Empty and whitespace-only submissions show validation and add no item."
+    },
+    {
+      "id": "ambiguous-demand",
+      "truth": "inconclusive",
+      "requirement": "An underspecified expected outcome requires clarification."
+    },
+    {
+      "id": "preview-unavailable",
+      "truth": "inconclusive",
+      "requirement": "An unavailable preview must not be reported as a product defect or success."
+    },
+    {
+      "id": "stale-revision",
+      "truth": "inconclusive",
+      "requirement": "A preview for an old commit must not verify the current PR."
+    },
+    {
+      "id": "action-not-completed",
+      "truth": "inconclusive",
+      "requirement": "A failed action must not be reported as an observed product assertion failure."
+    },
+    {
+      "id": "visible-validation-working",
+      "truth": "working",
+      "requirement": "A clearly visible validation message satisfies an explicit standalone screenshot assertion."
+    }
+  ]
+}

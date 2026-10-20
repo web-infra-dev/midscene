@@ -301,9 +301,8 @@ export class Controller {
     if (!fresh) conclusion = 'cancelled';
     else if (passed) conclusion = 'success';
     else if (
-      policy.planning &&
       !observedFailure &&
-      (run.planning?.plan.status !== 'ready' ||
+      ((policy.planning && run.planning?.plan.status !== 'ready') ||
         run.report.execution.status !== 'completed')
     ) {
       conclusion = 'action_required';
