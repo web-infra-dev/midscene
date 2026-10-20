@@ -161,7 +161,7 @@ export default defineConfig(async () => {
       sidebar: {
         '/': [
           {
-            sectionHeaderText: 'Introduction',
+            sectionHeaderText: 'Discover Midscene',
           },
           {
             text: 'Introduction',
@@ -353,7 +353,7 @@ export default defineConfig(async () => {
         ],
         '/zh': [
           {
-            sectionHeaderText: '介绍',
+            sectionHeaderText: '了解 Midscene',
           },
           {
             text: '介绍',
