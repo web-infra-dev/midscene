@@ -8,6 +8,9 @@
 /zh/introduction /zh/ 301
 /zh/introduction.html /zh/ 301
 /zh/introduction/ /zh/ 301
+# Markdown clients must receive Markdown, without running client-side redirects.
+/introduction.md /index.md 301
+/zh/introduction.md /zh/index.md 301
 # HTTP compatibility for retired pages; Rspress client redirects run after the response.
 # Keep document destinations aligned with rspress.config.ts.
 /android-integration /platforms/android 301

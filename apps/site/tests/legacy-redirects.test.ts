@@ -16,6 +16,17 @@ const rules = readFileSync(new URL('public/_redirects', docs), 'utf8')
   });
 
 describe('legacy HTTP redirects', () => {
+  it('redirects legacy Markdown URLs to the generated homepage Markdown', () => {
+    for (const locale of ['', '/zh']) {
+      const from = `${locale}/introduction.md`;
+      expect(rules.find((rule) => rule.from === from)).toEqual({
+        from,
+        to: `${locale}/index.md`,
+        status: '301',
+      });
+    }
+  });
+
   it('permanently redirects former landing URLs to the homepages', () => {
     for (const locale of ['', '/zh']) {
       const suffixes = [
@@ -108,7 +119,7 @@ describe('legacy HTTP redirects', () => {
       const localized = pathname.startsWith('/zh/')
         ? pathname.slice(1)
         : `en${pathname}`;
-      const targetStem = `${localized.replace(/\.html$/, '')}${pathname.endsWith('/') ? 'index' : ''}`;
+      const targetStem = `${localized.replace(/\.(html|md)$/, '')}${pathname.endsWith('/') ? 'index' : ''}`;
       const target = ['mdx', 'md']
         .map((extension) => new URL(`${targetStem}.${extension}`, docs))
         .find((candidate) => existsSync(candidate));
@@ -137,7 +148,8 @@ describe('legacy HTTP redirects', () => {
       ).toBeUndefined();
     }
     for (const { from, to } of rules.filter(
-      ({ from }) => !/\.(png|ico)$/.test(from),
+      // Markdown and image requests are served before client JavaScript runs.
+      ({ from }) => !/\.(png|ico|md)$/.test(from),
     )) {
       const match = options.redirects.find((rule) =>
         new RegExp(rule.from).test(from),

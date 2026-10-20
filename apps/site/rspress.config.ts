@@ -598,6 +598,9 @@ export default defineConfig(async () => {
         {
           llmsTxt: {
             name: 'llms.txt',
+            // plugin-llms 2.0.18 skips home routes even when include accepts them.
+            onAfterLlmsTxtGenerate: (content) =>
+              `${content}\n\n## Overview\n\n- [Introduction](${SITE_URL}/index.md)\n`,
           },
           llmsFullTxt: {
             name: 'llms-full.txt',
@@ -607,6 +610,8 @@ export default defineConfig(async () => {
         {
           llmsTxt: {
             name: 'zh/llms.txt',
+            onAfterLlmsTxtGenerate: (content) =>
+              `${content}\n\n## 概览\n\n- [介绍](${SITE_URL}/zh/index.md)\n`,
           },
           llmsFullTxt: {
             name: 'zh/llms-full.txt',
