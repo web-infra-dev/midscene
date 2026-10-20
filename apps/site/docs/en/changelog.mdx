@@ -1,5 +1,501 @@
 # Changelog
 
+{/* release-notes:start */}
+
+## v1.16.0
+
+### Highlights
+
+#### Jev 1.4 support: faster, lower-cost visual E2E testing
+
+Midscene now supports Jev 1.4, continuing our focus on visual understanding to drive UI automation. With this integration, developers can experience faster, lower-cost E2E testing. See the [Jev configuration guide](https://midscenejs.com/model-common-config#jev) for setup instructions and the current experimental limitations.
+
+In the tile-matching game test shown in the demo below, 28 model calls were made, with model inference averaging **393.57 ms (approximately 0.39 seconds) per call**. Each call averaged **5,025 input tokens** and **67 output tokens**, at a model cost of approximately **$0.000211 per call**. This is calculated at $0.042 per million input tokens, with output tokens free of charge.
+
+&lt;video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/tile-matching-jev.mp4" controls&gt;&lt;/video&gt;
+
+### Changes
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.15.6...v1.16.0
+
+## v1.15.6
+
+### Changes
+
+#### Features 🎉
+* feat(llm): add dedicated locate model configuration by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3268
+* feat(llm): add experimental Jev model support by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3271
+
+#### CI & Chore ⚙️
+* chore(core): redesign introduction page by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3267
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.15.5...v1.15.6
+
+## v1.15.5
+
+### Changes
+
+#### Features 🎉
+* feat(web): add Puppeteer test runner nodes by @quanru in https://github.com/web-infra-dev/midscene/pull/3160
+* feat(report): redesign test report workspace and clarify execution details by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3245
+
+#### Fixes 🐞
+* fix(core): preserve aiAct reference images for independent locating by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3257
+* fix(ios): wait for input readiness and restore focus after clearing by @quanru in https://github.com/web-infra-dev/midscene/pull/3239
+* fix(shared): preserve empty string CLI argument values by @quanru in https://github.com/web-infra-dev/midscene/pull/3260
+* fix(core): align default scrolling across Android, iOS, and HarmonyOS by @resonlei in https://github.com/web-infra-dev/midscene/pull/3225
+* fix(web-integration): preserve CLI viewport after disconnect by @quanru in https://github.com/web-infra-dev/midscene/pull/3261
+* fix(test): validate wait options and preserve cross-module screenshots by @quanru in https://github.com/web-infra-dev/midscene/pull/3246
+* fix(web-integration): launch cookie tests without sandbox on Linux CI by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3269
+
+#### CI & Chore ⚙️
+* chore(core): add a highlight section to release note by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3256
+
+#### New Contributors
+* @resonlei made their first contribution in https://github.com/web-infra-dev/midscene/pull/3225
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.15.4...v1.15.5
+
+## v1.15.4
+
+### Changes
+
+2026-10-14 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.15.4)
+
+#### Features 🎉
+* feat(test): add TodoMVC create starters and example sync by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3210
+
+#### Fixes 🐞
+* fix(site): restore x profile link in ios showcases by @ottomao in https://github.com/web-infra-dev/midscene/pull/3145
+* fix(core): clarify planning cycle limit error by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3251
+
+#### Documentation 📖
+* docs(core): guide to use chatgpt subscription  by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3248
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.15.3...v1.15.4
+
+## v1.15.3
+
+### Changes
+
+2026-10-13 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.15.3)
+
+#### Features 🎉
+* feat(test): generate Markdown results after each test run by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3240
+
+#### Fixes 🐞
+* fix(test): clarify project creation guidance and test reference by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3229
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.15.2...v1.15.3
+
+## v1.15.2
+
+### Changes
+
+2026-10-12 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.15.2)
+
+#### Fixes 🐞
+* fix(core): drain cancelled operations before runner continuation by @codeestX in https://github.com/web-infra-dev/midscene/pull/3216
+* fix(site): redirect historical documentation URLs by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3237
+* fix(workflow): centralize AI CI connection timeout by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3238
+* fix(report): retain test evidence and clarify execution failures by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3226
+
+#### Documentation 📖
+* docs(site): add Rome OS and reorder homepage users by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3231
+
+#### CI & Chore ⚙️
+* ci(workflow): increase AI network connection attempt timeout by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3230
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.15.1...v1.15.2
+
+## v1.15.1
+
+### Changes
+
+2026-10-12 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.15.1)
+
+#### Fixes 🐞
+* fix(test): load tsx through its ESM entry for project configs by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3227
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.15.0...v1.15.1
+
+## v1.15.0
+
+### Changes
+
+2026-10-10 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.15.0)
+
+#### Features 🎉
+* feat(core): add custom action readiness hook by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3133
+* feat(test): add model verification command and setup guidance by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3209
+* feat(llm): configure model streaming and record call metadata by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3214
+* feat(cli): add ChatGPT SIWC login and refresh by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3215
+
+#### Fixes 🐞
+* fix(report): prepare timeline screenshots in atomic groups by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3211
+* fix(test): preserve CLI error stacks and causes by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3212
+
+#### Refactors ♻️
+* refactor(cli): nest SIWC credentials with file metadata by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3220
+
+#### Documentation 📖
+* docs(site): refresh homepage messaging and layout by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3204
+
+#### CI & Chore ⚙️
+* chore(docs): update homepage by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3219
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.14.0...v1.15.0
+
+## v1.14.0
+
+### Changes
+
+2026-09-29 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.14.0)
+
+#### Features 🎉
+* feat(web-integration): add BrowserAgent page selection actions by @quanru in https://github.com/web-infra-dev/midscene/pull/2774
+* feat(test): add setAIContext node for midscene/test by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3188
+* feat(ios): support gateway WDA base URLs by @quanru in https://github.com/web-infra-dev/midscene/pull/3187
+* feat(core): support Responses API with configuration and documentation by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3161
+
+#### Fixes 🐞
+* fix(core): record HTTP responses on model parsing failures by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3185
+* fix(site): restore legacy URLs and refresh favicon cache by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3198
+* fix(site): redirect retired documentation URLs by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3202
+* fix(cli): upgrade yargs for Node.js 26 compatibility by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3203
+
+#### Refactors ♻️
+* refactor(core): configure locate result keys and aliases by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3189
+
+#### Documentation 📖
+* docs(site): consolidate images under a dedicated directory by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3186
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.13.3...v1.14.0
+
+## v1.13.3
+
+### Changes
+
+2026-09-23 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.13.3)
+
+#### Features 🎉
+* feat(test): expose run health metrics and inline report assets by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3172
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.13.2...v1.13.3
+
+## v1.13.2
+
+### Changes
+
+2026-09-23 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.13.2)
+
+#### Fixes 🐞
+* fix(computer): avoid encoded PowerShell transport on Windows by @quanru in https://github.com/web-infra-dev/midscene/pull/3166
+
+#### Documentation 📖
+* docs(site): add GPT-6 Sol and Luna model guidance by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3182
+* docs(site): add midscene-android and midscene-jev-runner to Awesome Midscene by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3179
+
+#### CI & Chore ⚙️
+* chore(test): generate separate node references for each project by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3181
+* chore(test): update spec for midscene test by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3184
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.13.1...v1.13.2
+
+## v1.13.1
+
+### Changes
+
+2026-09-22 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.13.1)
+
+#### Features 🎉
+* feat(report): redesign test reports and unify timeline interactions by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3174
+
+#### Fixes 🐞
+* fix(cli): allow sequential YAML files to reuse one page by @quanru in https://github.com/web-infra-dev/midscene/pull/3164
+
+#### Documentation 📖
+* docs(site): update Xiaomi MiMo model guidance by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3176
+
+#### CI & Chore ⚙️
+* chore(workflow): upgrade rstest to 0.12.0 by @fi3ework in https://github.com/web-infra-dev/midscene/pull/3178
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.13.0...v1.13.1
+
+## v1.13.0
+
+### Changes
+
+2026-09-20 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.13.0)
+
+#### Features 🎉
+* feat(test): unify native Test and legacy YAML execution and reporting by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3139
+
+#### Fixes 🐞
+* fix(report): support dark mobile tabs by @quanru in https://github.com/web-infra-dev/midscene/pull/3162
+* fix(shared): enable declaration maps by @Amour1688 in https://github.com/web-infra-dev/midscene/pull/3165
+
+#### Documentation 📖
+* docs(site): generalize GPT original detail limitations by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3163
+
+#### New Contributors
+* @Amour1688 made their first contribution in https://github.com/web-infra-dev/midscene/pull/3165
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.9...v1.13.0
+
+## v1.12.9
+
+### Changes
+
+2026-09-17 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.12.9)
+
+#### Features 🎉
+* feat(computer): support desktop swipe gestures by @quanru in https://github.com/web-infra-dev/midscene/pull/3144
+* feat(core): expose device adapter schema and types by @quanru in https://github.com/web-infra-dev/midscene/pull/3153
+* feat(report): support mobile steps and player views by @quanru in https://github.com/web-infra-dev/midscene/pull/3155
+* feat(report): support portable step selectors by @quanru in https://github.com/web-infra-dev/midscene/pull/3159
+* feat(test): support native ESM project configs by @quanru in https://github.com/web-infra-dev/midscene/pull/3154
+
+#### Fixes 🐞
+* fix(harmony): convert swipe duration to HDC speed by @quanru in https://github.com/web-infra-dev/midscene/pull/3149
+
+#### Refactors ♻️
+* refactor(core): centralize model request lifecycle and protocol calls by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3147
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.8...v1.12.9
+
+## v1.12.8
+
+### Changes
+
+2026-09-16 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.12.8)
+
+#### Fixes 🐞
+* fix(core): retry invalid planning action parameters by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3138
+* fix(core): retry incomplete planning responses by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3146
+* fix(core): clarify scroll and swipe intent in planning by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3136
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.7...v1.12.8
+
+## v1.12.7
+
+### Changes
+
+2026-09-15 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.12.7)
+
+#### Fixes 🐞
+* fix(core): clarify and validate scroll and swipe actions by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3134
+* fix(computer): improve modifier-key input compatibility in desktop clients by @quanru in https://github.com/web-infra-dev/midscene/pull/3124
+* fix(web-integration): reuse static UI context by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3089
+* fix(android-playground): preserve scrcpy GOP integrity by @quanru in https://github.com/web-infra-dev/midscene/pull/3142
+* fix(core): record YAML sleep in reports without model dependencies by @quanru in https://github.com/web-infra-dev/midscene/pull/3118
+* fix(shared): preserve schema-typed CLI strings by @quanru in https://github.com/web-infra-dev/midscene/pull/3135
+* fix(computer): capture reliable opaque RDP screenshots by @quanru in https://github.com/web-infra-dev/midscene/pull/3140
+
+#### Documentation 📖
+* docs(site): add application knowledge guide and update context examples by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3143
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.6...v1.12.7
+
+## v1.12.6
+
+### Changes
+
+2026-09-10 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.12.6)
+
+#### Features 🎉
+* feat(report): add unified Midscene Test reports with visual debugging by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3109
+* feat(test): support project-scoped node registration by @LawisChen in https://github.com/web-infra-dev/midscene/pull/3111
+
+#### Fixes 🐞
+* fix(core): collect streaming usage through stream completion by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3117
+* fix(core): preserve global model config with custom clients by @linhongyu510 in https://github.com/web-infra-dev/midscene/pull/3094
+
+#### Refactors ♻️
+* refactor(core): split model service caller by protocol by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3116
+* refactor(test): align platform test exports and clarify project docs by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3123
+
+#### Documentation 📖
+* docs(site): fix reference callout boundary and section headings by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3121
+* docs(site): update DeepSeek Flash model configuration by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3131
+
+#### CI & Chore ⚙️
+* chore(test): add model configuration template to .env.example and update README; adjust create command tests by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3115
+
+#### New Contributors
+* @LawisChen made their first contribution in https://github.com/web-infra-dev/midscene/pull/3111
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.5...v1.12.6
+
+## v1.12.5
+
+### Changes
+
+2026-09-08 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.12.5)
+
+#### Features 🎉
+* feat(test): add 'create' command to create testing project by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3102
+* feat(core): add GPT-6 adapter and model-specific Codex parameters by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3110
+
+#### Fixes 🐞
+* fix(computer): smooth native drag trajectory by @quanru in https://github.com/web-infra-dev/midscene/pull/3098
+* fix(studio): restrict file exports and default local services to loopback by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3103
+* fix(visualizer): show aiAct output alongside report by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3091
+* fix(core): unify normalized coordinate mapping and rounding by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3113
+
+#### Refactors ♻️
+* refactor(core): use authoritative centers throughout localization by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3100
+
+#### Documentation 📖
+* docs(site): unify Midscene Test branding by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3106
+* docs(workflow): organize readmes around GUI Agent and Testing Kit by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3108
+* docs(site): clarify execution records and reorder testing kit by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3112
+
+#### CI & Chore ⚙️
+* ci(workflow): add `notify_stable_release` dispatch option to toggle IM notifications by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3107
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.4...v1.12.5
+
+## v1.12.4
+
+### Changes
+
+2026-09-07 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.12.4)
+
+#### Features 🎉
+* feat(core): support scoped AI contexts and stateless Test Runner workflows by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3065
+
+#### Fixes 🐞
+* fix(computer): handle Linux delayed input by @simplyme0823 in https://github.com/web-infra-dev/midscene/pull/3081
+* fix(cli): honor HarmonyOS batch target overrides by @quanru in https://github.com/web-infra-dev/midscene/pull/3082
+* fix(core): retry locate responses with missing coordinates by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3095
+* fix(test): settle running steps on cancellation by @quanru in https://github.com/web-infra-dev/midscene/pull/3088
+* fix(core): avoid duplicate YAML assertion errors by @quanru in https://github.com/web-infra-dev/midscene/pull/3044
+
+#### Performance 🚀
+* perf(shared): cache system Chrome path resolution by @quanru in https://github.com/web-infra-dev/midscene/pull/3052
+* perf(visualizer): memoize selected action lookup by @quanru in https://github.com/web-infra-dev/midscene/pull/3054
+
+#### Documentation 📖
+* docs(core): update overview for test runner by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3092
+* docs(site): use official Doubao pricing by @simplyme0823 in https://github.com/web-infra-dev/midscene/pull/3093
+
+#### Testing 🧪
+* test(web-integration): expand input E2E coverage by @quanruzhuoxiu in https://github.com/web-infra-dev/midscene/pull/2953
+
+#### CI & Chore ⚙️
+* chore(test): align node contracts with agent APIs by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3101
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.3...v1.12.4
+
+## v1.12.3
+
+### Changes
+
+2026-09-02 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.12.3)
+
+#### Features 🎉
+* feat(core): add configurable text input strategies by @quanruzhuoxiu in https://github.com/web-infra-dev/midscene/pull/3042
+
+#### Fixes 🐞
+* fix(android): recover static scrcpy screenshots in-band by @quanru in https://github.com/web-infra-dev/midscene/pull/3074
+* fix(ios): make keyboard auto-dismiss best effort by @quanru in https://github.com/web-infra-dev/midscene/pull/3075
+* fix(android): harden scrcpy freshness recovery by @quanru in https://github.com/web-infra-dev/midscene/pull/3080
+* fix(studio): restore packaged Android device preview by @quanru in https://github.com/web-infra-dev/midscene/pull/3077
+* fix(core): make JSON object validation explicit by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3076
+* fix(computer): use physical pixels for Windows DPI scaling by @quanru in https://github.com/web-infra-dev/midscene/pull/3064
+* fix(core): use rstest mock API in core tests by @quanru in https://github.com/web-infra-dev/midscene/pull/3084
+
+#### Refactors ♻️
+* refactor(core): decouple model interaction protocols by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3070
+* refactor(core): simplify planning locate parameters by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3073
+
+#### Documentation 📖
+* docs(site): refresh homepage model strategy cards by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3035
+
+#### CI & Chore ⚙️
+* chore(workflow): migrate core to rstest by @fi3ework in https://github.com/web-infra-dev/midscene/pull/3033
+
+#### Other Changes
+* style(site): polish homepage toolkit cards and dividers by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3078
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.2...v1.12.3
+
+## v1.12.2
+
+### Changes
+
+2026-08-28 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.12.2)
+
+#### Features 🎉
+* feat(core): apply preferred language to planning details by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3062
+
+#### Fixes 🐞
+* fix(android): avoid scrcpy server upload memory leak by @quanru in https://github.com/web-infra-dev/midscene/pull/3048
+* fix(web-integration): validate CDP endpoint protocol by @quanru in https://github.com/web-infra-dev/midscene/pull/3051
+* fix(android-playground): correct dev:server bin path by @quanru in https://github.com/web-infra-dev/midscene/pull/3050
+* fix(shared): preserve recorder artifacts during signal shutdown by @quanru in https://github.com/web-infra-dev/midscene/pull/3049
+
+#### Refactors ♻️
+* refactor(core): organize DeepSeek model files by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3059
+
+#### Documentation 📖
+* docs(site): add appcontrolbench by @simplyme0823 in https://github.com/web-infra-dev/midscene/pull/3031
+* docs(site): clarify preferred language behavior by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3061
+* docs(site): clarify AppControlBench chart grouping by @simplyme0823 in https://github.com/web-infra-dev/midscene/pull/3063
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.1...v1.12.2
+
+## v1.12.1
+
+### Changes
+
+2026-08-27 · [GitHub Release](https://github.com/web-infra-dev/midscene/releases/tag/v1.12.1)
+
+#### Features 🎉
+* feat(site): implement the V4 homepage design by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3025
+* feat(test): add P0 platform preset nodes by @quanru in https://github.com/web-infra-dev/midscene/pull/3026
+
+#### Fixes 🐞
+* fix(android): adopt upstream ADB disconnect fix by @quanru in https://github.com/web-infra-dev/midscene/pull/3016
+* fix(core): make task execution errors transport-safe by @quanru in https://github.com/web-infra-dev/midscene/pull/3000
+* fix(ios): make keyboard dismissal deterministic by @quanru in https://github.com/web-infra-dev/midscene/pull/3017
+* fix(site): restore docs header alignment and update AVATR logo by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3032
+* fix(android): constrain replanning screenshots to scrcpy max size by @quanru in https://github.com/web-infra-dev/midscene/pull/3021
+* fix(android): configure bitrate and harden scrcpy recovery by @quanru in https://github.com/web-infra-dev/midscene/pull/3009
+* fix(core): deduplicate multimodal reference images in reports by @quanru in https://github.com/web-infra-dev/midscene/pull/3019
+* fix(cli): restore YAML task progress output by @quanru in https://github.com/web-infra-dev/midscene/pull/3028
+* fix(cli): preserve serial YAML config order by @quanru in https://github.com/web-infra-dev/midscene/pull/2972
+* fix(workflow): replace simple-git-hooks with husky by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3037
+* fix(cli): isolate shared-browser YAML tabs by @quanru in https://github.com/web-infra-dev/midscene/pull/2967
+* fix(android): avoid unreliable select-all when clearing inputs by @quanru in https://github.com/web-infra-dev/midscene/pull/3018
+* fix(test): load TypeScript configs on Windows by @dajiaohuang in https://github.com/web-infra-dev/midscene/pull/3030
+* fix(core): omit DeepSeek temperature in thinking mode by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3043
+* fix(shared): remove Canvas image fallback by @quanruzhuoxiu in https://github.com/web-infra-dev/midscene/pull/2888
+
+#### Documentation 📖
+* docs(site): update DeepSeek card description by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3036
+* docs(site): add v1.11 and v1.12 changelogs by @quanruzhuoxiu in https://github.com/web-infra-dev/midscene/pull/3034
+* docs(site): move DeepSeek guidance into model notes by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3039
+
+#### Testing 🧪
+* test(report): verify screenshot pixel integrity by @linhongyu510 in https://github.com/web-infra-dev/midscene/pull/2976
+
+#### CI & Chore ⚙️
+* chore(workflow): migrate cli and web-integration to rstest by @fi3ework in https://github.com/web-infra-dev/midscene/pull/3007
+
+#### Other Changes
+* 支持bridge 模式创建不打扰用户的 tab by @RainMountainCao in https://github.com/web-infra-dev/midscene/pull/3038
+
+#### New Contributors
+* @RainMountainCao made their first contribution in https://github.com/web-infra-dev/midscene/pull/3038
+* @dajiaohuang made their first contribution in https://github.com/web-infra-dev/midscene/pull/3030
+* @linhongyu510 made their first contribution in https://github.com/web-infra-dev/midscene/pull/2976
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.12.0...v1.12.1
+
+{/* release-notes:end */}
+
 ## v1.12 - DeepSeek V4, Midscene Test, and Report Timing Summaries
 
 v1.12 adds DeepSeek V4 vision model support, introduces Midscene Test (Beta), and adds timing summaries to reports.
@@ -44,7 +540,7 @@ v1.10 adds BDD-style Gherkin script execution, upgrades the recommended Doubao m
 ### New Model Support
 
 - Recommended and supported `Doubao-Seed-2.1-turbo`, which has very fast localization speed and strong localization quality in our current private evaluation set.
-- The Doubao Seed family now uses `MIDSCENE_MODEL_FAMILY="doubao-seed"`, while the legacy `doubao-vision` family remains compatible. See: [Common Model Configuration](./model-common-config#doubao-seed-model), [Model Strategy](./model-strategy)
+- The Doubao Seed family now uses `MIDSCENE_MODEL_FAMILY="doubao-seed"`, while the legacy `doubao-vision` family remains compatible. See: [Common Model Configuration](./model-common-config#doubao-seed-model), [Model Strategy](./model-selection)
 
 ### MCP Retirement
 
@@ -288,7 +784,7 @@ Pinch/zoom gestures are now supported on Android, iOS, and HarmonyOS, enabling u
 
 ### GPT-5 / GPT-5.4 & Codex App-Server Provider Support
 
-Added support for GPT-5, GPT-5.4 models and Codex app-server provider. You can now use the latest OpenAI models for visual understanding and automation. See: [Model Config](./model-config), [Model Strategy](./model-strategy)
+Added support for GPT-5, GPT-5.4 models and Codex app-server provider. You can now use the latest OpenAI models for visual understanding and automation. See: [Model Config](./model-config), [Model Strategy](./model-selection)
 
 ### Custom extraBody for Model Requests
 
@@ -559,7 +1055,7 @@ v1.1 optimizes model planning capabilities and MCP extensibility, making automat
 
 When deep thinking is enabled in `aiAct`, the model will interpret intent more thoroughly and optimize its planning results. This is suited for complex forms, multi-step flows, and similar scenarios. It improves accuracy but increases planning latency.
 
-Currently supported: Qwen3-vl on Alibaba Cloud and Doubao-vision on Volcano Engine. See [Model strategy](./model-strategy) for details.
+Currently supported: Qwen3-vl on Alibaba Cloud and Doubao-vision on Volcano Engine. See [Model strategy](./model-selection) for details.
 
 Example usage:
 
@@ -628,7 +1124,7 @@ Starting in v1.0, Midscene fully adopts a visual-understanding approach to deliv
 - **Far fewer tokens**: Removing DOM extraction cuts token usage by about 80%, lowering cost and speeding up local runs
 - **Open-source options**: Open-source vision models like Qwen3-VL 8B/30B perform well, enabling self-hosted deployments
 
-See our updated [Model strategy](./model-strategy) for details.
+See our updated [Model strategy](./model-selection) for details.
 
 ### 🚀 Better results by multiple model combinations
 
@@ -749,7 +1245,7 @@ The biggest highlight of v0.29 is the official introduction of iOS platform supp
 
 ### Qwen3-VL model adaptation
 
-We've adapted the latest Qwen `Qwen3-VL` model, giving developers faster and more accurate visual understanding capabilities. See [Model strategy](./model-strategy).
+We've adapted the latest Qwen `Qwen3-VL` model, giving developers faster and more accurate visual understanding capabilities. See [Model strategy](./model-selection).
 
 ### AI core capability enhancement
 

@@ -161,19 +161,15 @@ export default defineConfig(async () => {
       sidebar: {
         '/': [
           {
-            sectionHeaderText: 'Introduction',
+            sectionHeaderText: 'Discover Midscene',
           },
           {
             text: 'Introduction',
-            link: '/introduction',
+            link: '/',
           },
           {
             text: 'The Basics',
             link: '/basics',
-          },
-          {
-            text: 'Model strategy',
-            link: '/model-strategy',
           },
           {
             text: 'Showcases',
@@ -183,8 +179,16 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Getting Started',
           },
           {
-            text: 'Quick start',
+            text: 'Try the GUI Agent',
             link: '/quick-start',
+          },
+          {
+            text: 'Create a test project',
+            link: '/midscene-test/use',
+          },
+          {
+            text: 'Model Selection Guide',
+            link: '/model-selection',
           },
           {
             text: 'Use a model API key',
@@ -237,14 +241,14 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
-            sectionHeaderText: 'E2E Test Framework (Beta)',
+            sectionHeaderText: 'Midscene Test',
           },
           {
-            text: 'Midscene Test overview',
+            text: 'Framework overview',
             link: '/midscene-test/overview',
           },
           {
-            text: 'Create and use test projects',
+            text: 'Create and run test projects',
             link: '/midscene-test/use',
           },
           {
@@ -256,7 +260,11 @@ export default defineConfig(async () => {
             link: '/midscene-test/extend',
           },
           {
-            sectionHeaderText: 'YAML automation',
+            text: 'Run in GitHub Actions',
+            link: '/midscene-test/github-actions',
+          },
+          {
+            sectionHeaderText: 'Legacy YAML automation',
           },
           {
             text: 'YAML script runner',
@@ -274,7 +282,7 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Reference',
           },
           {
-            text: 'API reference',
+            text: 'GUI Agent API',
             link: '/reference/',
           },
           {
@@ -345,19 +353,15 @@ export default defineConfig(async () => {
         ],
         '/zh': [
           {
-            sectionHeaderText: '介绍',
+            sectionHeaderText: '了解 Midscene',
           },
           {
             text: '介绍',
-            link: '/zh/introduction',
+            link: '/zh/',
           },
           {
             text: '基本概念',
             link: '/zh/basics',
-          },
-          {
-            text: '模型策略',
-            link: '/zh/model-strategy',
           },
           {
             text: '案例展示',
@@ -367,8 +371,16 @@ export default defineConfig(async () => {
             sectionHeaderText: '开始使用',
           },
           {
-            text: '快速开始',
+            text: '快速体验 GUI Agent',
             link: '/zh/quick-start',
+          },
+          {
+            text: '创建测试项目',
+            link: '/zh/midscene-test/use',
+          },
+          {
+            text: '模型选择指南',
+            link: '/zh/model-selection',
           },
           {
             text: '使用模型 API Key',
@@ -421,26 +433,30 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
-            sectionHeaderText: 'E2E 测试框架 (Beta)',
+            sectionHeaderText: 'Midscene Test',
           },
           {
-            text: 'Midscene Test 概览',
+            text: '框架概览',
             link: '/zh/midscene-test/overview',
           },
           {
-            text: '创建和使用测试项目',
+            text: '创建与运行测试工程',
             link: '/zh/midscene-test/use',
           },
           {
-            text: '配置测试项目',
+            text: '配置测试工程',
             link: '/zh/midscene-test/configuration',
           },
           {
-            text: '编写自定义 Node',
+            text: '开发自定义 Node',
             link: '/zh/midscene-test/extend',
           },
           {
-            sectionHeaderText: 'YAML 自动化',
+            text: '在 GitHub Actions 中运行',
+            link: '/zh/midscene-test/github-actions',
+          },
+          {
+            sectionHeaderText: '旧版 YAML 自动化',
           },
           {
             text: 'YAML 脚本运行器',
@@ -458,7 +474,7 @@ export default defineConfig(async () => {
             sectionHeaderText: '参考文档',
           },
           {
-            text: 'API 参考',
+            text: 'GUI Agent API',
             link: '/zh/reference/',
           },
           {
@@ -603,13 +619,19 @@ export default defineConfig(async () => {
       }),
       pluginClientRedirects({
         redirects: [
+          { from: '^/zh$', to: '/zh/' },
           ...['', '/zh'].flatMap((locale) => [
+            {
+              from: `^${locale}/(?:introduction(?:\\.html)?/?|index\\.html)$`,
+              to: `${locale}/`,
+            },
             {
               from: `^${locale}/reference\\.html/?$`,
               to: `${locale}/reference/`,
             },
             ...[
               ['reporting', 'consume-report-file'],
+              ['model-strategy', 'model-selection'],
               ['cli', 'yaml-script-runner'],
               [
                 'blog-programming-practice-using-structured-api',
@@ -748,7 +770,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/benchmark(?:\\.html)?/?$',
-            to: '/introduction',
+            to: '/',
           },
           {
             from: '^/integrate-with-yaml(?:\\.html)?/?$',

@@ -26,6 +26,43 @@ const createConfig = (
 };
 
 describe('test project config', () => {
+  it.each([1, 3])(
+    'explains how to migrate the removed project concurrency limit %i',
+    async (limit) => {
+      const { path } = createConfig(`export default {
+        test: { maxConcurrency: ${limit} },
+      };`);
+      const error = await loadTestProject(path).catch((error) => error);
+      expect(error).toBeInstanceOf(TypeError);
+      expect(error.message).toContain(
+        'test.maxConcurrency is no longer supported',
+      );
+      expect(error.message).toContain(
+        'project concurrency, not file concurrency',
+      );
+      expect(error.message).toContain(`maxConcurrentProjects: ${limit}`);
+      expect(error.message).toContain(`maxConcurrentFiles: ${limit}`);
+      expect(error.message).toContain('projects[].maxConcurrentFiles to 1');
+      expect(error.message).toContain('fileSetup');
+      expect(error.message).toContain('https://midscenejs.com/');
+
+      const migrated = createConfig(`export default {
+        test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${limit} },
+        projects: [
+          { name: 'web', maxConcurrentFiles: 1 },
+          { name: 'android', maxConcurrentFiles: 1 },
+        ],
+      };`);
+      const loaded = await loadTestProject(migrated.path);
+      expect(loaded.test.maxConcurrentProjects).toBe(limit);
+      expect(loaded.test.maxConcurrentFiles).toBe(limit);
+      expect(
+        loaded.projects.map((project) => project.maxConcurrentFiles),
+      ).toEqual([1, 1]);
+      expect(loaded.projects.every((project) => !project.fileSetup)).toBe(true);
+    },
+  );
+
   it.each([
     [{}, 1, 1],
     [{ maxConcurrentFiles: 4 }, 4, 1],

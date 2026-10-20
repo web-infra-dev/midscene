@@ -1,10 +1,10 @@
 # Model Configuration Reference
 
-Use this page to look up every Midscene model setting. For supported model names, model families, and copyable setup examples, see [Use a model API key](./model-common-config). For model roles and combination guidance, see [Model strategy](./model-strategy). For connection issues, logs, tracing, and call recording, see [Model debugging and observability](./model-debugging-observability).
+Use this page to look up every Midscene model setting. For supported model names, model families, and copyable setup examples, see [Use a model API key](./model-common-config). For model roles and combination guidance, see [Model Selection Guide](./model-selection). For connection issues, logs, tracing, and call recording, see [Model debugging and observability](./model-debugging-observability).
 
 ## Required settings
 
-You need to set a default model for Midscene; see [Model strategy](./model-strategy) for details.
+You need to set a default model for Midscene; see [Model Selection Guide](./model-selection) for details.
 
 
 | Name | Description |
@@ -24,10 +24,11 @@ Select the protocol through an environment variable: `openai-chat` (the default)
 MIDSCENE_MODEL_PROTOCOL="openai-responses"
 ```
 
-When configuring separate Planning or Insight models, use the corresponding environment variables. Each model can use a different protocol:
+When configuring separate Planning, Locate or Insight models, use the corresponding environment variables. Each model can use a different protocol:
 
 ```bash
 MIDSCENE_PLANNING_MODEL_PROTOCOL="openai-responses"
+MIDSCENE_LOCATE_MODEL_PROTOCOL="openai-responses"
 MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 ```
 
@@ -39,7 +40,7 @@ Keep in mind:
 
 ## Advanced settings (optional)
 
-If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_MODEL_*` settings in this section only take effect for the Insight or Planning intent when you configure the corresponding `MIDSCENE_INSIGHT_MODEL_*` or `MIDSCENE_PLANNING_MODEL_*` setting.
+For a dedicated Planning, Locate, or Insight model, use the corresponding `MIDSCENE_PLANNING_MODEL_*`, `MIDSCENE_LOCATE_MODEL_*`, or `MIDSCENE_INSIGHT_MODEL_*` settings. Streaming is also configured per model using `STREAM_MODE` with the corresponding prefix. A dedicated model defaults to `non-stream` and does not inherit the Default model’s streaming setting. Roles without a dedicated model use the complete Default configuration. An explicit per-call `stream` option takes precedence.
 
 | Name | Description |
 |------|-------------|
@@ -49,7 +50,6 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure). Retries occur when the model request encounters an HTTP error or when the model response cannot be structurally parsed |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | Interval between retries in milliseconds, default 2000 |
-| `MIDSCENE_MODEL_STREAM_MODE` | Defaults to non-streaming (`non-stream`). When set to `stream`, streamed results are aggregated into a complete result before parsing. |
 | `MIDSCENE_MODEL_REASONING_ENABLED` | Controls whether model-native thinking is enabled. Midscene disables it by default. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number), supported by some models. See [Model-native thinking](#model-native-reasoning) |
@@ -61,27 +61,6 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 
 > Note: Control replanning behavior with the agent option `replanningCycleLimit` (defaults to 20, or 40 for `vlm-ui-tars`), not with environment variables.
 
-### Configure a dedicated Insight model
-
-Set the following if the Insight intent needs a different model:
-
-| Name | Description |
-|------|-------------|
-| `MIDSCENE_INSIGHT_MODEL_API_KEY` | API key |
-| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completions` or `/responses`) |
-| `MIDSCENE_INSIGHT_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-responses`. |
-| `MIDSCENE_INSIGHT_MODEL_NAME` | Model name |
-| `MIDSCENE_INSIGHT_MODEL_FAMILY` | Model family |
-| `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | Optional; hard timeout per request for the Insight intent in milliseconds |
-| `MIDSCENE_INSIGHT_MODEL_TEMPERATURE` | Optional; sampling temperature for Insight intent responses |
-| `MIDSCENE_INSIGHT_MODEL_RETRY_COUNT` | Optional; same effect as `MIDSCENE_MODEL_RETRY_COUNT` |
-| `MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL` | Optional; same effect as `MIDSCENE_MODEL_RETRY_INTERVAL` |
-| `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | Optional; same effect as `MIDSCENE_MODEL_HTTP_PROXY` |
-| `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
-| `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
-| `MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
-| `MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Insight scenarios |
-
 ### Configure a dedicated Planning model
 
 Set the following if the Planning intent needs a different model:
@@ -91,6 +70,7 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_API_KEY` | API key |
 | `MIDSCENE_PLANNING_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completions` or `/responses`) |
 | `MIDSCENE_PLANNING_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-responses`. |
+| `MIDSCENE_PLANNING_MODEL_STREAM_MODE` | Streaming mode for this model: `stream` or `non-stream` (default). |
 | `MIDSCENE_PLANNING_MODEL_NAME` | Model name |
 | `MIDSCENE_PLANNING_MODEL_FAMILY` | Model family |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | Optional; hard timeout per request for the Planning intent in milliseconds |
@@ -103,7 +83,55 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Planning scenarios |
 
+### Configure a dedicated Locate model
+
+The Locate model handles `aiLocate`, target localization for actions such as tapping, input, scrolling and dragging, and independent localization and `deepLocate` within `aiAct`. Without `MIDSCENE_LOCATE_MODEL_NAME`, it uses the complete Default model configuration. Once selected, its endpoint, API key and other settings are independent: no per-field inheritance and no automatic fallback after a request fails.
+
+Set the following if the Locate intent needs a different model:
+
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_LOCATE_MODEL_API_KEY` | API key |
+| `MIDSCENE_LOCATE_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completions` or `/responses`) |
+| `MIDSCENE_LOCATE_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-responses`. |
+| `MIDSCENE_LOCATE_MODEL_STREAM_MODE` | Streaming mode for this model: `stream` or `non-stream` (default). |
+| `MIDSCENE_LOCATE_MODEL_NAME` | Model name |
+| `MIDSCENE_LOCATE_MODEL_FAMILY` | Model family |
+| `MIDSCENE_LOCATE_MODEL_TIMEOUT` | Optional; hard timeout per request for the Locate intent in milliseconds |
+| `MIDSCENE_LOCATE_MODEL_TEMPERATURE` | Optional; sampling temperature for Locate intent responses |
+| `MIDSCENE_LOCATE_MODEL_RETRY_COUNT` | Optional; same effect as `MIDSCENE_MODEL_RETRY_COUNT` |
+| `MIDSCENE_LOCATE_MODEL_RETRY_INTERVAL` | Optional; same effect as `MIDSCENE_MODEL_RETRY_INTERVAL` |
+| `MIDSCENE_LOCATE_MODEL_HTTP_PROXY` | Optional; same effect as `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_LOCATE_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
+| `MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
+| `MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
+| `MIDSCENE_LOCATE_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Locate scenarios |
+
+### Configure a dedicated Insight model
+
+Set the following if the Insight intent needs a different model:
+
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_INSIGHT_MODEL_API_KEY` | API key |
+| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completions` or `/responses`) |
+| `MIDSCENE_INSIGHT_MODEL_PROTOCOL` | HTTP protocol: `openai-chat` (default) or `openai-responses`. |
+| `MIDSCENE_INSIGHT_MODEL_STREAM_MODE` | Streaming mode for this model: `stream` or `non-stream` (default). |
+| `MIDSCENE_INSIGHT_MODEL_NAME` | Model name |
+| `MIDSCENE_INSIGHT_MODEL_FAMILY` | Model family |
+| `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | Optional; hard timeout per request for the Insight intent in milliseconds |
+| `MIDSCENE_INSIGHT_MODEL_TEMPERATURE` | Optional; sampling temperature for Insight intent responses |
+| `MIDSCENE_INSIGHT_MODEL_RETRY_COUNT` | Optional; same effect as `MIDSCENE_MODEL_RETRY_COUNT` |
+| `MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL` | Optional; same effect as `MIDSCENE_MODEL_RETRY_INTERVAL` |
+| `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | Optional; same effect as `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
+| `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
+| `MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
+| `MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Insight scenarios |
+
 ### Model-native thinking {#model-native-reasoning}
+
+The thinking settings below apply to every model role. Use the `MIDSCENE_MODEL_` prefix for the Default model, or `MIDSCENE_PLANNING_MODEL_`, `MIDSCENE_LOCATE_MODEL_`, and `MIDSCENE_INSIGHT_MODEL_` for the corresponding role. Each prefix supports the `REASONING_ENABLED`, `REASONING_EFFORT`, and `REASONING_BUDGET` suffixes. Configure each model independently; support depends on the selected model and its family.
 
 Midscene disables model-native thinking by default for better execution speed and stability. If a model cannot disable native thinking, Midscene reduces it as much as possible by controlling the thinking granularity or budget.
 

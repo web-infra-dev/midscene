@@ -136,7 +136,7 @@ Set either Web timeout to `0` to skip its check. These checks warn and continue 
 Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
 
 > If `modelConfig` is provided at agent initialization, **all system environment variables for model config are ignored**. Only the values in this object are used.
-> The supported keys and values are listed in [Model configuration](../model-config). See [Model strategy](../model-strategy) to understand the Default, Planning, and Insight model roles.
+> The supported keys and values are listed in [Model configuration](../model-config). See [Model Selection Guide](../model-selection) to understand the Default, Planning, and Insight model roles.
 
 **Custom OpenAI client**
 
@@ -274,7 +274,7 @@ For optimal results, please provide clear and detailed instructions for `agent.a
 
 Related documentation:
 
-- [Model strategy](../model-strategy)
+- [Model Selection Guide](../model-selection)
 
 :::
 
@@ -587,7 +587,7 @@ function aiScroll(
 - Parameters:
 
   **Recommended usage:**
-  - `locate: string | object | undefined` — A natural language description of the scroll target, or [prompting with images](#prompting-with-images). When omitted, Midscene scrolls at the current pointer position.
+  - `locate: string | object | undefined` — A natural language description of the scroll target, or [prompting with images](#prompting-with-images). When omitted, mobile platforms use the default gesture described below; Web and desktop platforms scroll at the current pointer position.
   - `opt: object` — Configuration:
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` — Scroll behavior. Default: `'singleAction'`.
     - `direction?: 'down' | 'up' | 'right' | 'left'` — Direction of the off-screen content to reveal, rather than the movement of currently visible content. Used only when `scrollType` is `'singleAction'`. For example, `'down'` reveals content below the current viewport. Default: `'down'`.
@@ -622,6 +622,30 @@ await agent.aiScroll(
   'The form panel',
 );
 ```
+
+##### Mobile scrolling
+
+Android, iOS, and HarmonyOS use the same default gesture: move through the middle of the screen across its central 70%, taking about one second.
+
+The default aims to keep some content from the previous screen visible so you can continue reading. Finger travel is not the same as content displacement: lists may keep moving after release, and paged controls may snap to another page.
+
+| Scenario | Usage |
+| --- | --- |
+| Neither `locate` nor `distance` | Use the default gesture above. |
+| Only `distance` | Perform a scroll gesture of the specified distance. |
+| Only `locate` | Scroll at the specified location. The default distance is based on the screen size. |
+| Both `locate` and `distance` | Perform a scroll gesture of the specified distance at the specified location. |
+| Scroll to an edge | Use a type such as `scrollToTop`. Long lists may require multiple calls to reach the edge. |
+
+Choose a `distance` within the available screen space. An excessive distance may cause the gesture to fail.
+
+For a dialog or a smaller list, specify both `locate` and a suitable `distance`. For example:
+
+```typescript
+await agent.aiScroll('The list inside the dialog', { direction: 'down', distance: 100 });
+```
+
+For a quick gesture or specific endpoints, use `Swipe`. `Swipe` follows coordinates or a direction and accepts a `duration`; `Scroll` is intended for browsing content.
 
 :::note Signature update
 

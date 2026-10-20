@@ -16,6 +16,26 @@ const rules = readFileSync(new URL('public/_redirects', docs), 'utf8')
   });
 
 describe('legacy HTTP redirects', () => {
+  it('permanently redirects former landing URLs to the homepages', () => {
+    for (const locale of ['', '/zh']) {
+      const suffixes = [
+        '/introduction',
+        '/introduction.html',
+        '/introduction/',
+        '/index.html',
+        ...(locale ? [''] : []),
+      ];
+      for (const suffix of suffixes) {
+        const from = `${locale}${suffix}`;
+        expect(rules.find((rule) => rule.from === from)).toEqual({
+          from,
+          to: `${locale}/`,
+          status: '301',
+        });
+      }
+    }
+  });
+
   it('redirects reported missing documentation URLs to their replacements', () => {
     const expected = {
       '/android-integration': '/platforms/android',
@@ -24,7 +44,7 @@ describe('legacy HTTP redirects', () => {
       '/zh/test-runner-overview': '/zh/midscene-test/overview',
       '/reference.html': '/reference/',
       '/report.html': '/consume-report-file',
-      '/benchmark': '/introduction',
+      '/benchmark': '/',
       '/api-reference': '/reference/',
       '/choose-a-model': '/model-common-config',
       '/integrate-with-yaml.html': '/automate-with-scripts-in-yaml',
@@ -50,6 +70,7 @@ describe('legacy HTTP redirects', () => {
       });
       for (const [previous, current] of [
         ['reporting', 'consume-report-file'],
+        ['model-strategy', 'model-selection'],
         ['cli', 'yaml-script-runner'],
         ['computer-introduction', 'platforms/desktop'],
         ['android-introduction', 'platforms/android'],
@@ -78,7 +99,7 @@ describe('legacy HTTP redirects', () => {
   it('uses unique sources and existing targets, including fragment anchors', () => {
     expect(new Set(rules.map(({ from }) => from)).size).toBe(rules.length);
     for (const { from, to, status } of rules) {
-      expect(['200', '301']).toContain(status);
+      expect(['200', '301', '302']).toContain(status);
       expect(rules.some((rule) => rule.from === to)).toBe(false);
       const [pathname, fragment] = to.split('#');
       if (existsSync(new URL(`public${pathname}`, docs))) {
@@ -98,7 +119,7 @@ describe('legacy HTTP redirects', () => {
     }
   });
 
-  it('keeps retired document destinations aligned with Rspress redirects', async () => {
+  it('keeps retired document destinations aligned without redirecting homepages', async () => {
     const config = await (typeof siteConfig === 'function'
       ? siteConfig()
       : siteConfig);
@@ -109,6 +130,12 @@ describe('legacy HTTP redirects', () => {
       string,
       { redirects: { from: string; to: string }[] },
     ];
+    for (const homepage of ['/', '/zh/']) {
+      expect(rules.find(({ from }) => from === homepage)).toBeUndefined();
+      expect(
+        options.redirects.find(({ from }) => new RegExp(from).test(homepage)),
+      ).toBeUndefined();
+    }
     for (const { from, to } of rules.filter(
       ({ from }) => !/\.(png|ico)$/.test(from),
     )) {

@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "1.15.4",
+  "version": "1.16.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -49,6 +49,11 @@
       "types": "./dist/types/puppeteer/agent-launcher.d.ts",
       "require": "./dist/lib/puppeteer/agent-launcher.js",
       "import": "./dist/es/puppeteer/agent-launcher.mjs"
+    },
+    "./puppeteer/test": {
+      "types": "./dist/types/puppeteer/test-runner/index.d.ts",
+      "require": "./dist/lib/puppeteer/test-runner/index.js",
+      "import": "./dist/es/puppeteer/test-runner/index.mjs"
     },
     "./playwright": {
       "types": "./dist/types/playwright/index.d.ts",

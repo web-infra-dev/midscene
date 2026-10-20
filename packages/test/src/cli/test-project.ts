@@ -527,8 +527,21 @@ const validateTestOptions = (value: unknown): ResolvedTestOptions => {
   }
   const candidate = (value ?? {}) as Record<string, unknown>;
   if (candidate.maxConcurrency !== undefined) {
+    const limit =
+      typeof candidate.maxConcurrency === 'number' &&
+      Number.isInteger(candidate.maxConcurrency) &&
+      candidate.maxConcurrency > 0
+        ? candidate.maxConcurrency
+        : 1;
     throw new TypeError(
-      'Midscene config test.maxConcurrency is no longer supported. Use test.maxConcurrentProjects and test.maxConcurrentFiles instead.',
+      [
+        'Midscene config test.maxConcurrency is no longer supported.',
+        'It controlled project concurrency, not file concurrency. Remove it and use:',
+        `  test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${limit} }`,
+        '  Set projects[].maxConcurrentFiles to 1 to keep files sequential within each project.',
+        'For parallel files, configure fileSetup and raise both test.maxConcurrentFiles and projects[].maxConcurrentFiles.',
+        'Migration guide: https://midscenejs.com/midscene-test/configuration.html#existing-configurations',
+      ].join('\n'),
     );
   }
   return Object.freeze({

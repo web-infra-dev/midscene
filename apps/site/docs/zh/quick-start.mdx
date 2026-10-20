@@ -2,17 +2,19 @@ import { ChromeExtensionButton } from '@theme';
 import SetupEnv from './common/setup-env.mdx';
 import ShowcaseWeb from './showcases-web.mdx';
 
-# 快速开始
+# 快速体验 GUI Agent
 
-Chrome Extension 是 Midscene 面向 Web 的 Playground。无需搭建项目，你就可以在网页中体验交互、数据提取和界面检查等核心能力。
+通过 Chrome Extension，你可以在浏览器的 Playground 中体验 GUI Agent，无需搭建测试项目。本指南带你配置模型、执行一条自然语言指令、验证结果并查看执行过程。
 
-本指南将带你配置模型、安装 Chrome Extension，并运行第一条自然语言指令。验证指令效果后，你可以通过 Agent API 将这些指令集成到自动化代码中。文末还列出了 Android、iOS、HarmonyOS 和桌面端的上手指南。
+如果你要直接编写 YAML 测试，可以前往 [Midscene Test](./midscene-test/use)。移动端和桌面端的 Playground 入口见[其他平台](#在其他平台使用-midscene)。
 
 ## 配置模型
 
 使用 Chrome Extension 前，需要先准备一个具备 UI 定位能力的多模态模型。
 
 <SetupEnv />
+
+如果使用 ChatGPT 订阅，请按照[使用 ChatGPT 订阅](./chatgpt-subscription)获取完整模型配置，再继续安装扩展。两种接入方式任选一种即可。
 
 安装 Chrome Extension 后，将这组配置粘贴到设置中。
 
@@ -25,9 +27,69 @@ Chrome Extension 是 Midscene 面向 Web 的 Playground。无需搭建项目，�
 2. 在 Chrome 的扩展列表中打开 **Midscene**。浏览器右侧会出现 Midscene 侧边栏。
 3. 点击侧边栏中的设置图标，将[配置模型](#配置模型)中的完整配置粘贴到设置页并保存。
 
-<span id="chrome-extension-faq" />
+## 执行操作并验证结果
 
-**常见问题**
+打开 [TodoMVC 示例页面](https://todomvc.com/examples/react/dist/#/)，保持页面可见，在 Midscene 侧边栏中依次体验下面三类 API。
+
+### 1. 执行一个目标（`aiAct`）
+
+选择 `aiAct`，输入并运行：
+
+```text
+添加一个名为“体验 Midscene”的待办事项，然后将它标记为已完成。
+```
+
+Agent 会观察页面，找到输入框，添加待办事项并勾选它。执行结束后，你应当在页面中看到该事项处于已完成状态。
+
+### 2. 检查结果（`aiAssert`）
+
+选择 `aiAssert`，输入并运行：
+
+```text
+列表中存在名为“体验 Midscene”的待办事项，且它已被标记为完成。
+```
+
+条件成立时断言通过；不成立时，结果中会显示错误及模型返回的原因。
+
+### 3. 提取数据（`aiQuery`，可选）
+
+选择 `aiQuery`，输入并运行：
+
+```text
+列表中可见的待办事项，返回 {name: string, completed: boolean}[]。
+```
+
+结果会包含待办事项名称及其完成状态。你可以看到，同一个界面既能被操作，也能被检查和读取。
+
+## 查看执行过程
+
+运行后，在 Playground 的结果区域查看执行步骤和截图，将操作过程与页面的最终状态对照。如果执行失败，先查看失败步骤和错误信息；模型连接问题可参考[模型调试与可观测性](./model-debugging-observability)。
+
+下面是另一段完整示例：用 Chrome Extension 填写 GitHub 注册表单。视频下方的报告链接可以用于体验执行回放。
+
+<ShowcaseWeb />
+
+## 下一步
+
+- **了解关键 API**：阅读[基本概念](./basics)。
+- **编写 YAML 测试**：通过 [Midscene Test](./midscene-test/use) 创建项目、运行用例并查看报告。
+- **接入已有测试工程**：阅读[集成到 Playwright](./integrate-with-playwright)或[集成到 Puppeteer](./integrate-with-puppeteer)，创建 Agent 后即可调用 `aiAct`、`aiAssert` 等 API。
+- **让 AI 编程助手操作应用**：安装 [Midscene Skills](./skills)。
+
+## 在其他平台使用 Midscene
+
+Midscene 在 Android、iOS、HarmonyOS 和桌面端也提供完整的自动化能力，并为每个平台提供对应的 Playground。使用前，需要先完成该平台的设备环境准备。例如，Android 平台需要安装并配置 adb。具体要求、Playground 启动方法和故障排查，请参考以下文档。
+
+| 平台 | 平台指南 |
+| --- | --- |
+| Android | [Android](./platforms/android) |
+| iOS | [iOS](./platforms/ios) |
+| HarmonyOS | [HarmonyOS](./platforms/harmonyos) |
+| 桌面端 | [Windows、macOS 和 Linux](./platforms/desktop) |
+
+## 常见问题
+
+<span id="chrome-extension-faq" />
 
 <details>
 <summary>是否可以手动安装 Chrome Extension？</summary>
@@ -55,45 +117,3 @@ Chrome Extension 是 Midscene 面向 Web 的 Playground。无需搭建项目，�
 设置环境变量 `OLLAMA_ORIGINS="*"`，允许 Chrome Extension 访问 Ollama 模型。
 
 </details>
-
-## 完成第一次体验
-
-打开任意网页，在 Midscene 侧边栏中输入符合当前页面内容的自然语言指令。例如：
-
-- 规划并交互（`aiAct`）：`点击登录按钮`。
-- 提取结构化数据（`aiQuery`）：`页面中的商品，{name: string, price: number}[]`。
-- 检查界面（`aiAssert`）：`页面顶部显示导航栏`。
-
-运行指令后，Midscene 会理解当前页面，并执行操作或返回结果。下面的案例展示了 Chrome Extension 自动填写 GitHub 注册表单的过程：
-
-<ShowcaseWeb />
-
-## 从 Playground 集成到代码
-
-Chrome Extension 与 `@midscene/web` 共享核心能力。在 Playground 中验证自然语言指令后，可以通过对应的 Agent API 将这些指令集成到 UI 测试脚本中：
-
-```typescript
-// 规划并执行交互
-await agent.aiAct('点击登录按钮');
-
-// 提取结构化数据
-const products = await agent.aiQuery<Array<{ name: string; price: number }>>(
-  '页面中的商品，{name: string, price: number}[]',
-);
-
-// 检查界面
-await agent.aiAssert('页面顶部显示导航栏');
-```
-
-以上代码只展示 API 的调用形式。要在浏览器项目中创建 Agent 并运行完整脚本，请继续阅读[集成到 Playwright](./integrate-with-playwright)或[集成到 Puppeteer](./integrate-with-puppeteer)。如需了解各类 API 的用途和选择方法，请阅读[基本概念](./basics)；所有参数详见 [API 参考](./reference/#common)。
-
-## 在其他平台使用 Midscene
-
-Midscene 在 Android、iOS、HarmonyOS 和桌面端也提供完整的自动化能力，并为每个平台提供对应的 Playground。使用前，需要先完成该平台的设备环境准备。例如，Android 平台需要安装并配置 adb。具体要求、Playground 启动方法和故障排查，请参考以下文档。
-
-| 平台 | 平台指南 |
-| --- | --- |
-| Android | [Android](./platforms/android) |
-| iOS | [iOS](./platforms/ios) |
-| HarmonyOS | [HarmonyOS](./platforms/harmonyos) |
-| 桌面端 | [Windows、macOS 和 Linux](./platforms/desktop) |

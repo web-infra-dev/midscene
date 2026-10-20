@@ -72,6 +72,7 @@ describe('midscene-test model CLI', () => {
     });
     expect(mocks.verify).toHaveBeenCalledWith({
       defaultModelConfig: { modelName: 'default' },
+      locateModelConfig: { modelName: 'locate' },
       planningModelConfig: { modelName: 'planning' },
       insightModelConfig: { modelName: 'insight' },
     });

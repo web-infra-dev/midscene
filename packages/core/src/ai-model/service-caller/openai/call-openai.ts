@@ -1,7 +1,3 @@
-import {
-  MIDSCENE_MODEL_STREAM_MODE,
-  globalConfigManager,
-} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import type { ModelCallContext, ModelCallResult } from '../types';
 import { AIResponseParseError } from '../utils';
@@ -36,10 +32,7 @@ export async function callOpenAI(
 ): Promise<ModelCallResult> {
   const { config: modelConfig } = modelRuntime;
   const { modelName } = modelConfig;
-  const isStreaming =
-    options?.stream ??
-    globalConfigManager.getEnvConfigValue(MIDSCENE_MODEL_STREAM_MODE) ===
-      'stream';
+  const isStreaming = options?.stream ?? modelConfig.streamMode === 'stream';
   const { openai, openAIRequestContext } = await createClient({
     modelConfig,
     proxyAgent: prepared.input.proxyAgent,

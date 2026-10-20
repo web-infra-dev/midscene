@@ -2,7 +2,7 @@ import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 # Use a model API key
 
-Connect Midscene using an API key from a model provider. This guide covers choosing a model, configuring it, and verifying the connection. If you already have a ChatGPT subscription, you can also follow [Use a ChatGPT subscription](./chatgpt-subscription).
+Connect Midscene using an API key from a model provider. This guide covers model configuration and connection verification. If you already have a ChatGPT subscription, you can also follow [Use a ChatGPT subscription](./chatgpt-subscription).
 
 The model configuration shown on this page consists of environment variables. Provide it according to how you use Midscene:
 
@@ -13,7 +13,7 @@ For complete parameter definitions, see [Model configuration reference](./model-
 
 ## Supported models
 
-Midscene supports these multimodal models for operating user interfaces: [Doubao Seed](#doubao-seed-model), [Qwen](#qwen), [DeepSeek](#deepseek), [Google Gemini](#gemini), [OpenAI GPT](#gpt), [Moonshot Kimi](#kimi), [Xiaomi MiMo](#xiaomi-mimo), and [Zhipu GLM-V](#glm-v), as well as the other compatible models [AutoGLM](#auto-glm) and [UI-TARS](#ui-tars) described below.
+For an overview of supported models and connection methods, see the [Model Selection Guide](./model-selection). Configuration examples for each model follow.
 
 Each configuration requires a Base URL, API key, model name, and `MIDSCENE_MODEL_FAMILY`. The model family (`MIDSCENE_MODEL_FAMILY`) determines how Midscene adapts to the selected model.
 
@@ -262,6 +262,37 @@ Environment variable configuration example, using `glm-5v-turbo`:
 - Github: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
 - Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
 
+### Jev (experimental) {#jev}
+
+Jev is a model for making choices. You can use it to select the next action, locate UI elements, and evaluate whether a condition holds. It is fast and inexpensive, but is not suitable for tasks that require complex reasoning.
+
+Midscene support for Jev is experimental.
+
+- Model provider: [TypeSafe](https://typesafe.ai/)
+
+**First configure a general-purpose default model (`MIDSCENE_MODEL_*`) and keep that configuration, then add the Jev configuration below.** Jev handles Planning, Locate, and Insight; the general-purpose default model still handles tasks Jev cannot perform. See [Multiple models](#multi-model-combination-example) for default model configuration.
+
+Copy the following configuration to use Jev for Planning, Locate, and Insight:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.typesafe.ai/v1",
+    comment: "TypeSafe official API endpoint",
+  }}
+  modelName="jev-1.14.0"
+  modelFamily="jev"
+  layout="combined"
+  purposes={['planning', 'locate', 'insight']}
+/>
+
+Jev uses TypeSafe's System One protocol, not an OpenAI protocol. Some OpenAI model settings do not apply, such as temperature, native reasoning, response format, and streaming output.
+
+:::info Image input limits
+
+Jev requires the longest edge of an input image to be no more than 1568 pixels. Midscene therefore scales images that exceed this limit while preserving their aspect ratio, then maps localization results back to the original image coordinates. Edges shorter than 280 pixels are padded. This image processing behavior may change in future versions.
+
+:::
+
 ## Set environment variables
 
 Midscene reads model configuration from environment variables. Choose the method that matches how you use Midscene, or keep using your project's existing environment-management approach.
@@ -320,7 +351,7 @@ If a variable with the same name already exists in the current shell, dotenv kee
 
 ## Verify the setup
 
-After setting the environment variables, run one of the following commands:
+After loading the model configuration, run one of the following commands to verify connectivity and compatibility:
 
 ```bash
 # Use the CLI installed in the current project
@@ -332,33 +363,39 @@ npx @midscene/cli@latest model verify
 
 For failed checks and connectivity problems, see [Model debugging and observability](./model-debugging-observability).
 
-## Optional: configure multiple models {#multi-model-combination-example}
+## Multi-model configuration example {#multi-model-combination-example}
 
-Multi-model setup is optional. For most use cases, a Default model is enough for UI localization and actions. Add a Planning or Insight model only when complex planning or page understanding requires a separate model. You can configure either one or both.
+For model roles and combination guidance, see the [Model Selection Guide](./model-selection#multi-model-strategy). The example below shows configuration for the Default, Planning, Locate, and Insight models.
 
-For guidance on when to combine models, see [Model strategy](./model-strategy).
-
-The following example uses Qwen 3.5 as the Default model for visual grounding. GPT-5.4 serves as the Planning and Insight models for complex reasoning.
+Keep the required Default model configuration and add specialized models as needed. Roles without a dedicated model use the Default model. Set each specialized model's endpoint, API key, model name, and family independently. Replace the placeholders and model names with the actual configuration from your providers.
 
 ```bash
-# Default multimodal model: Qwen 3.5
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 endpoint
-export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen 3.5 API key
-export MIDSCENE_MODEL_NAME="qwen3.5-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3.5"
+# Default model
+export MIDSCENE_MODEL_BASE_URL="https://..."
+export MIDSCENE_MODEL_API_KEY="..."
+export MIDSCENE_MODEL_NAME="qwen3.8-flash"
+export MIDSCENE_MODEL_FAMILY="qwen3"
 
-# Planning model: GPT-5.4
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
+# Planning model
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
-export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+export MIDSCENE_PLANNING_MODEL_API_KEY="..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 
-# Insight model: GPT-5.4
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.4 API key
+# Locate model
+export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
+export MIDSCENE_LOCATE_MODEL_API_KEY="..."
+export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
+export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
+
+# Insight model
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
-export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+export MIDSCENE_INSIGHT_MODEL_API_KEY="..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-6.1-sol"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
+
+After changing the configuration, reload it using your chosen [environment-variable setup](#set-environment-variables), then run the commands in [Verify the setup](#verify-the-setup).
 
 ## Other compatible models
 
@@ -387,7 +424,7 @@ AutoGLM provides two model versions, distinguished by `MIDSCENE_MODEL_FAMILY`:
 Choose the appropriate version based on your application language.
 
 :::info
-AutoGLM is best suited for mobile interaction. APIs such as `aiAssert` and `aiQuery` require page understanding. When using these APIs, configure a separate Insight model with the `MIDSCENE_INSIGHT_MODEL_...` environment variables. See [Model strategy](./model-strategy) for details.
+AutoGLM is best suited for mobile interaction. APIs such as `aiAssert` and `aiQuery` require page understanding. When using these APIs, configure a separate Insight model with the `MIDSCENE_INSIGHT_MODEL_...` environment variables. See [Model Selection Guide](./model-selection) for details.
 :::
 
 **Learn more about Zhipu AutoGLM**
@@ -426,6 +463,6 @@ Migration mapping:
 
 ## Next steps
 
-- Learn when to use Default, Planning, and Insight models in [Model strategy](./model-strategy).
+- Learn when to use Default, Planning, and Insight models in [Model Selection Guide](./model-selection).
 - Look up every environment variable in [Model configuration reference](./model-config).
 - Diagnose connectivity and compatibility issues in [Model debugging and observability](./model-debugging-observability).

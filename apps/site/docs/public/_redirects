@@ -1,3 +1,13 @@
+# The root pages are the canonical landing pages.
+/index.html / 301
+/zh /zh/ 301
+/zh/index.html /zh/ 301
+/introduction / 301
+/introduction.html / 301
+/introduction/ / 301
+/zh/introduction /zh/ 301
+/zh/introduction.html /zh/ 301
+/zh/introduction/ /zh/ 301
 # HTTP compatibility for retired pages; Rspress client redirects run after the response.
 # Keep document destinations aligned with rspress.config.ts.
 /android-integration /platforms/android 301
@@ -16,9 +26,9 @@
 /report /consume-report-file 301
 /report.html /consume-report-file 301
 /report/ /consume-report-file 301
-/benchmark /introduction 301
-/benchmark.html /introduction 301
-/benchmark/ /introduction 301
+/benchmark / 301
+/benchmark.html / 301
+/benchmark/ / 301
 /api-reference /reference/ 301
 /api-reference.html /reference/ 301
 /api-reference/ /reference/ 301
@@ -127,3 +137,9 @@
 /zh/apple-touch-icon.png /favicon.png 200
 /zh/apple-touch-icon-precomposed.png /favicon.png 200
 /zh/og-image.png /og-image.png 200
+/model-strategy /model-selection 301
+/model-strategy.html /model-selection 301
+/model-strategy/ /model-selection 301
+/zh/model-strategy /zh/model-selection 301
+/zh/model-strategy.html /zh/model-selection 301
+/zh/model-strategy/ /zh/model-selection 301

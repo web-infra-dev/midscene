@@ -1,10 +1,10 @@
 # 模型配置参考
 
-本页汇总 Midscene 的全部模型配置。如需查看支持的模型名称、模型 family 和可复制的配置示例，请参考[使用模型 API Key](./model-common-config)。如需了解模型职责和组合方式，请参考[模型策略](./model-strategy)。如需排查连接问题、查看日志、采集 Trace 或记录调用，请参考[模型调试与可观测性](./model-debugging-observability)。
+本页汇总 Midscene 的全部模型配置。如需查看支持的模型名称、模型 family 和可复制的配置示例，请参考[使用模型 API Key](./model-common-config)。如需了解模型职责和组合方式，请参考[模型选择指南](./model-selection)。如需排查连接问题、查看日志、采集 Trace 或记录调用，请参考[模型调试与可观测性](./model-debugging-observability)。
 
 ## 必选配置
 
-你需要为 Midscene 配上一个默认模型，详见 [模型策略](./model-strategy) 文档。
+你需要为 Midscene 配上一个默认模型，详见 [模型选择指南](./model-selection) 文档。
 
 | 名称 | 描述 |
 |------|-------------|
@@ -23,10 +23,11 @@ Midscene 默认使用 OpenAI 的 Chat Completions 协议，同时也支持 Respo
 MIDSCENE_MODEL_PROTOCOL="openai-responses"
 ```
 
-为 Planning 或 Insight 单独配置模型时，使用对应的环境变量，各模型的协议可以分别设置：
+为 Planning、Locate 或 Insight 单独配置模型时，使用对应的环境变量，各模型的协议可以分别设置：
 
 ```bash
 MIDSCENE_PLANNING_MODEL_PROTOCOL="openai-responses"
+MIDSCENE_LOCATE_MODEL_PROTOCOL="openai-responses"
 MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 ```
 
@@ -38,7 +39,7 @@ MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 
 ## 高阶配置（可选）
 
-如果你为 Insight 或 Planning 配置了独立模型，那么本节中的模型相关 `MIDSCENE_MODEL_*` 配置需要使用对应的 `MIDSCENE_INSIGHT_MODEL_*` 或 `MIDSCENE_PLANNING_MODEL_*` 配置才能在 Insight 或 Planning 意图时生效。
+如果你为 Planning、Locate 或 Insight 配置了独立模型，请使用对应的 `MIDSCENE_PLANNING_MODEL_*`、`MIDSCENE_LOCATE_MODEL_*` 或 `MIDSCENE_INSIGHT_MODEL_*` 设置该模型的参数。流式模式也按模型独立配置，使用对应前缀的 `STREAM_MODE`。专用模型未设置时默认为 `non-stream`，不会继承默认模型的流式设置；未配置专用模型时，该职责使用完整的默认模型配置。单次调用显式指定的 `stream` 选项优先生效。
 
 | 名称 | 描述 |
 |------|-------------|
@@ -48,7 +49,6 @@ MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）。模型请求遇到 HTTP 错误，或模型返回值无法被结构化解析时，都会发起重试 |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | AI 调用重试间隔毫秒数，默认 2000 |
-| `MIDSCENE_MODEL_STREAM_MODE` | 默认是非流式（`non-stream`）；如果指定为流式（`stream`），会将流式的结果聚合为完整结果再解析。 |
 | `MIDSCENE_MODEL_REASONING_ENABLED` | 控制是否启用模型的原生思考能力，Midscene 默认关闭。详见[模型原生思考](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | 控制模型的原生思考力度，部分模型支持。常用值：`low`、`medium`、`high`。详见[模型原生思考](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 Token 预算（数字），部分模型支持。详见[模型原生思考](#model-native-reasoning) |
@@ -60,27 +60,6 @@ MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 
 > 提示：通过 Agent 的 `replanningCycleLimit` 入参控制重规划次数（默认 20，`vlm-ui-tars` 为 40），不再使用环境变量。
 
-### 为 Insight 意图单独配置模型
-
-如果你想为 Insight 意图单独配置模型，需额外配置以下字段：
-
-| 名称 | 描述 |
-|------|-------------|
-| `MIDSCENE_INSIGHT_MODEL_API_KEY` | API Key |
-| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
-| `MIDSCENE_INSIGHT_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-responses`。 |
-| `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
-| `MIDSCENE_INSIGHT_MODEL_FAMILY` | 模型 family |
-| `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | 可选，Insight 意图的单次请求硬超时（毫秒）|
-| `MIDSCENE_INSIGHT_MODEL_TEMPERATURE` | 可选，Insight 意图的模型采样温度 |
-| `MIDSCENE_INSIGHT_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |
-| `MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_INTERVAL` |
-| `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
-| `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
-| `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
-| `MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
-| `MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Insight 场景中控制结构化响应策略 |
-
 ### 为 Planning 意图单独配置模型
 
 如果你想为 Planning 意图单独配置模型，需额外配置以下字段：
@@ -90,6 +69,7 @@ MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 | `MIDSCENE_PLANNING_MODEL_API_KEY` | API Key |
 | `MIDSCENE_PLANNING_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
 | `MIDSCENE_PLANNING_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-responses`。 |
+| `MIDSCENE_PLANNING_MODEL_STREAM_MODE` | 该模型的流式模式：`stream` 或 `non-stream`（默认）。 |
 | `MIDSCENE_PLANNING_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_PLANNING_MODEL_FAMILY` | 模型 family |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | 可选，Planning 意图的单次请求硬超时（毫秒）|
@@ -102,7 +82,55 @@ MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Planning 场景中控制结构化响应策略 |
 
+### 为 Locate 意图单独配置模型
+
+定位模型负责 `aiLocate`、点击/输入/滚动/拖拽等动作中的目标定位，以及 `aiAct` 内的独立定位和 `deepLocate`。未配置 `MIDSCENE_LOCATE_MODEL_NAME` 时使用完整的默认模型配置；配置后，地址、API Key 和其他参数独立读取，不从默认模型逐字段继承，也不在调用失败后自动切换模型。
+
+如果你想为 Locate 意图单独配置模型，需额外配置以下字段：
+
+| 名称 | 描述 |
+|------|-------------|
+| `MIDSCENE_LOCATE_MODEL_API_KEY` | API Key |
+| `MIDSCENE_LOCATE_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
+| `MIDSCENE_LOCATE_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-responses`。 |
+| `MIDSCENE_LOCATE_MODEL_STREAM_MODE` | 该模型的流式模式：`stream` 或 `non-stream`（默认）。 |
+| `MIDSCENE_LOCATE_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_LOCATE_MODEL_FAMILY` | 模型 family |
+| `MIDSCENE_LOCATE_MODEL_TIMEOUT` | 可选，Locate 意图的单次请求硬超时（毫秒）|
+| `MIDSCENE_LOCATE_MODEL_TEMPERATURE` | 可选，Locate 意图的模型采样温度 |
+| `MIDSCENE_LOCATE_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |
+| `MIDSCENE_LOCATE_MODEL_RETRY_INTERVAL` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_INTERVAL` |
+| `MIDSCENE_LOCATE_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_LOCATE_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
+| `MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
+| `MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
+| `MIDSCENE_LOCATE_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Locate 场景中控制结构化响应策略 |
+
+### 为 Insight 意图单独配置模型
+
+如果你想为 Insight 意图单独配置模型，需额外配置以下字段：
+
+| 名称 | 描述 |
+|------|-------------|
+| `MIDSCENE_INSIGHT_MODEL_API_KEY` | API Key |
+| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
+| `MIDSCENE_INSIGHT_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-responses`。 |
+| `MIDSCENE_INSIGHT_MODEL_STREAM_MODE` | 该模型的流式模式：`stream` 或 `non-stream`（默认）。 |
+| `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_INSIGHT_MODEL_FAMILY` | 模型 family |
+| `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | 可选，Insight 意图的单次请求硬超时（毫秒）|
+| `MIDSCENE_INSIGHT_MODEL_TEMPERATURE` | 可选，Insight 意图的模型采样温度 |
+| `MIDSCENE_INSIGHT_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |
+| `MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_INTERVAL` |
+| `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
+| `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
+| `MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
+| `MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Insight 场景中控制结构化响应策略 |
+
 ### 模型原生思考 {#model-native-reasoning}
+
+以下思考参数适用于所有模型职责。默认模型使用 `MIDSCENE_MODEL_` 前缀；Planning、Locate 和 Insight 分别使用 `MIDSCENE_PLANNING_MODEL_`、`MIDSCENE_LOCATE_MODEL_` 和 `MIDSCENE_INSIGHT_MODEL_` 前缀，后缀均为 `REASONING_ENABLED`、`REASONING_EFFORT` 或 `REASONING_BUDGET`。各模型独立配置，实际支持情况取决于该模型及其 family。
 
 Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳定性。如果模型不支持关闭原生思考，Midscene 会通过控制思考粒度或限制思考额度，尽可能减少模型的原生思考。
 

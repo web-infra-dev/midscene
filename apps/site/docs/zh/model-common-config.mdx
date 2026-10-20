@@ -2,7 +2,7 @@ import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 # 使用模型 API Key
 
-本文介绍如何使用模型服务商提供的 API Key 接入 Midscene，包括选择模型、完成配置和验证连接。如果你已有 ChatGPT 订阅，也可以参考[使用 ChatGPT 订阅](./chatgpt-subscription)文档中的描述操作。
+本文介绍如何使用模型服务商提供的 API Key 接入 Midscene，包括完成配置和验证连接。如果你已有 ChatGPT 订阅，也可以参考[使用 ChatGPT 订阅](./chatgpt-subscription)文档中的描述操作。
 
 本页列出的模型配置，本质上都是环境变量。你可以根据使用方式提供这些配置：
 
@@ -13,7 +13,7 @@ import { ModelConfigCard, PackageManagerTabs } from '@theme';
 
 ## 支持的模型
 
-Midscene 支持使用这些多模态模型操作界面：[豆包 Seed](#doubao-seed-model)、[千问 Qwen](#qwen)、[DeepSeek](#deepseek)、[Google Gemini](#gemini)、[OpenAI GPT](#gpt)、[月之暗面 Kimi](#kimi)、[小米 MiMo](#xiaomi-mimo)、[智谱 GLM-V](#glm-v)，以及下文介绍的其他兼容模型 [AutoGLM](#auto-glm) 和 [UI-TARS](#ui-tars)。
+支持的模型概览和接入方式见[模型选择指南](./model-selection)。下面提供各模型的配置示例。
 
 每份配置都需要 Base URL、API Key、模型名称和 `MIDSCENE_MODEL_FAMILY`。模型系列（`MIDSCENE_MODEL_FAMILY`）决定了 Midscene 如何适配所选模型。
 
@@ -264,6 +264,37 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 - Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
 
 
+### Jev（实验性） {#jev}
+
+Jev 是一个做选择的模型，可以用它选择下一步动作、定位界面元素，以及判断条件是否成立。它的优势是速度快、成本低，但不适用于需要复杂推理的任务。
+
+Midscene 对 Jev 的支持是实验性的。
+
+- 模型供应商：[TypeSafe](https://typesafe.ai/)
+
+**先配置并保留一个通用模型的默认配置（`MIDSCENE_MODEL_*`），再追加下面的 Jev 配置。** Jev 用于 Planning、Locate 和 Insight，无法处理的任务仍由通用默认模型完成。默认模型的配置方式参见[多模型组合](#multi-model-combination-example)。
+
+复制以下配置，将 Planning、Locate 和 Insight 配置为 Jev：
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.typesafe.ai/v1",
+    comment: "TypeSafe 官方 API 地址",
+  }}
+  modelName="jev-1.14.0"
+  modelFamily="jev"
+  layout="combined"
+  purposes={['planning', 'locate', 'insight']}
+/>
+
+Jev 使用 TypeSafe 的 System One 协议，不使用 OpenAI 协议。OpenAI 的部分模型配置不适用于 Jev，包括温度、原生思考、响应格式和流式输出等。
+
+:::info 图像输入限制
+
+Jev 要求输入图像的最长边不超过 1568 像素，因此 Midscene 会对超出限制的图像进行等比缩放，并在定位后将结果映射回原图坐标。不足 280 像素的边会补白。该图像处理逻辑后续可能调整。
+
+:::
+
 ## 设置环境变量
 
 Midscene 从环境变量读取模型配置。请选择与你的使用方式对应的方法，也可以沿用项目已有的环境变量管理方式。
@@ -322,7 +353,7 @@ import 'dotenv/config';
 
 ## 验证配置
 
-设置环境变量后，运行以下任一命令：
+加载模型配置后，运行以下任一命令验证连接与兼容性：
 
 ```bash
 # 使用当前项目中安装的 CLI
@@ -334,33 +365,39 @@ npx @midscene/cli@latest model verify
 
 如果验证失败，请阅读[模型调试与可观测性](./model-debugging-observability)。
 
-## 配置多个模型（可选） {#multi-model-combination-example}
+## 多模型配置示例 {#multi-model-combination-example}
 
-多模型配置不是必需项。大多数场景只需配置默认模型，即可完成 UI 定位和操作。仅当复杂规划或页面理解需要使用独立模型时，才需要配置 Planning 模型或 Insight 模型。你可以只配置其中一个，也可以同时配置两者。
+模型职责与组合思路见[模型选择指南](./model-selection#multi-model-strategy)。下面展示默认模型与 Planning、Locate、Insight 模型的配置方式。
 
-如需了解何时组合多个模型，请阅读[模型策略](./model-strategy)。
-
-以下示例使用 Qwen 3.5 作为默认模型，负责视觉定位。GPT-5.4 作为 Planning 模型和 Insight 模型，负责复杂推理。
+保留必填的默认模型配置，再按需添加专用模型；未配置的职责使用默认模型。每个专用模型的服务地址、API Key、模型名称和 family 都需要独立填写。请将示例中的占位值和模型名称替换为服务商提供的实际配置。
 
 ```bash
-# 默认多模态模型：Qwen 3.5
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
-export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
-export MIDSCENE_MODEL_NAME="qwen3.5-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3.5"
+# 默认模型
+export MIDSCENE_MODEL_BASE_URL="https://..."
+export MIDSCENE_MODEL_API_KEY="..."
+export MIDSCENE_MODEL_NAME="qwen3.8-flash"
+export MIDSCENE_MODEL_FAMILY="qwen3"
 
-# Planning 模型：GPT-5.4
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.4 API Key
+# Planning 规划模型
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
-export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+export MIDSCENE_PLANNING_MODEL_API_KEY="..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 
-# Insight 模型：GPT-5.4
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.4 API Key
+# Locate 定位模型
+export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
+export MIDSCENE_LOCATE_MODEL_API_KEY="..."
+export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
+export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
+
+# Insight 页面理解模型
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
-export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+export MIDSCENE_INSIGHT_MODEL_API_KEY="..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-6.1-sol"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
+
+修改配置后，按[设置环境变量](#设置环境变量)中的方式重新加载，再运行[验证配置](#验证配置)中的命令。
 
 ## 其他兼容模型
 
@@ -389,7 +426,7 @@ AutoGLM 提供了两个版本的模型，通过 `MIDSCENE_MODEL_FAMILY` 区分�
 请根据你的应用语言选择合适的版本。
 
 :::info
-AutoGLM 更适合移动端交互。`aiAssert` 和 `aiQuery` 等 API 需要理解页面。使用这些 API 时，请通过 `MIDSCENE_INSIGHT_MODEL_...` 环境变量配置独立的 Insight 模型。详情请参考[模型策略](./model-strategy)。
+AutoGLM 更适合移动端交互。`aiAssert` 和 `aiQuery` 等 API 需要理解页面。使用这些 API 时，请通过 `MIDSCENE_INSIGHT_MODEL_...` 环境变量配置独立的 Insight 模型。详情请参考[模型选择指南](./model-selection)。
 :::
 
 **了解更多关于智谱 AutoGLM**
@@ -430,6 +467,6 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 
 ## 下一步
 
-- 在[模型策略](./model-strategy)中了解何时使用 Default、Planning 和 Insight 模型。
+- 在[模型选择指南](./model-selection)中了解何时使用 Default、Planning 和 Insight 模型。
 - 在[模型配置参考](./model-config)中查询全部环境变量。
 - 在[模型调试与可观测性](./model-debugging-observability)中排查连接和兼容性问题。

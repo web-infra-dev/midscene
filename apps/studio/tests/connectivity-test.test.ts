@@ -40,6 +40,11 @@ describe('runConnectivityTest', () => {
         intent: 'default',
         slot: 'default',
       }),
+      locateModelConfig: expect.objectContaining({
+        modelName: 'gpt-4o',
+        intent: 'locate',
+        slot: 'default',
+      }),
       planningModelConfig: expect.objectContaining({
         openaiApiKey: 'sk-test',
         openaiBaseURL: 'https://api.example.com/v1',

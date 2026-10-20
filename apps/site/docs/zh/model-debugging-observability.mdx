@@ -67,11 +67,11 @@ npx @midscene/cli@latest model verify
 
 该命令会读取当前工作目录下的 `.env` 文件。Dotenv 的 Debug 日志默认开启。`.env` 中的变量会覆盖已有的 Shell 环境变量。
 
-两条命令都会检查 default、planning 和 insight 模型配置，无需加载 Test 项目或连接浏览器、设备。检查成功时退出码为 `0`，失败时为 `1`。
+两条命令都会检查 default、locate、planning 和 insight 模型配置，无需加载 Test 项目或连接浏览器、设备。检查成功时退出码为 `0`，失败时为 `1`。
 
 输出会列出各模型名称和 endpoint，并展示文本、图像和 AI 定位检查各自的结果、耗时与实际请求数。最后汇总总请求数及成功、失败的检查数；若某项检查在发送请求前就失败，其请求数为 `0`。
 
-`Model role` 列表示被检查的模型配置用途：`planning` 进行简单文本响应检查，`insight` 进行图像理解检查，`default` 进行 AI 定位检查。planning 检查验证该模型能否正常响应，不评估任务规划质量。相同的 endpoint 会合并列在表格下方。命令通常在 30 秒内完成。
+`Model role` 列表示被检查的模型配置用途：`default` 和 `planning` 分别进行简单文本响应检查，`insight` 进行图像理解检查，`locate` 进行 AI 定位检查，共四项检查。文本检查要求回复 `CONNECTIVITY_OK`，返回内容包含该文本即可通过，不评估任务规划质量。相同的 endpoint 会合并列在表格下方。命令通常在 30 秒内完成。
 
 如果 `curl` 请求成功，但 Midscene 验证命令失败，说明模型 API 可以连接。请继续检查模型能力和 Midscene 配置。
 
@@ -93,12 +93,12 @@ npx @midscene/cli@latest model verify
 
 ## 模型效果不理想
 
-如果模型可以正常连接，但定位、规划或页面理解不稳定，可以尝试以下方法：
+如果模型可以正常连接，但规划、定位或页面理解不稳定，可以尝试以下方法：
 
 - 查看[回放报告](./consume-report-file)，确认任务执行顺序正确，并且没有进入错误页面或逻辑分支。
 - 优先使用同一系列中较新的正式支持版本。
 - 使用代表性任务对比不同服务商的模型，关注成功率、延迟和成本。
-- 复杂任务可以单独配置 Planning 模型或 Insight 模型。具体分工请参考[模型策略](./model-strategy)。
+- 复杂任务可以单独配置 Planning 模型或 Insight 模型。具体分工请参考[模型选择指南](./model-selection)。
 
 ## 调试能力
 

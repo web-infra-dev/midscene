@@ -193,7 +193,7 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 });
 ```
 
-`createMidsceneNodes()` does not mutate a global registry; its Nodes become available only after the returned array is included in project configuration. `agentClass` is the sole source of Agent-backed Node definitions, while `getAgent` describes how execution obtains an Agent instance from the current context. The factory throws during registration if the class does not expose `getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent provide common and platform Node definitions together. The base Agent, other Web Agents, and ComputerAgent only provide common Agent Nodes.
+`createMidsceneNodes()` does not mutate a global registry; its Nodes become available only after the returned array is included in project configuration. `agentClass` is the sole source of Agent-backed Node definitions, while `getAgent` describes how execution obtains an Agent instance from the current context. The factory throws during registration if the class does not expose `getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, PuppeteerAgent, PuppeteerPageAgent, PuppeteerBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent provide common and platform Node definitions together. The base Agent and ComputerAgent only provide common Agent Nodes.
 
 For an Android/iOS registration example, see [Configure multiple execution projects](#configure-multiple-execution-projects).
 
@@ -245,6 +245,31 @@ beforeEach:
 ```
 
 See the [current project's Node Spec](./use#generate-the-current-projects-node-spec) for navigation inputs.
+
+### Puppeteer
+
+Puppeteer exposes the same `gotoUrl`, `setCookies`, `clearCookies`, and `setViewportSize` Node names. Install the `puppeteer` peer dependency and pass `PuppeteerAgent` (or `PuppeteerBrowserAgent`) to `createMidsceneNodes()`:
+
+```bash
+pnpm add -D puppeteer
+```
+
+```ts
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PuppeteerAgent,
+  getAgent: ({ context }) => {
+    context.agent ??= new PuppeteerAgent(context.page, {
+      testRunner: { baseURL: 'https://example.com' },
+    });
+    return context.agent;
+  },
+});
+```
+
+The Playwright and Puppeteer integrations use the same Web Node schemas and execution implementation. Browser-specific code is limited to a driver adapter. For portable YAML, use `domcontentloaded`, `load`, or `networkidle` for `gotoUrl.waitUntil`; the Puppeteer adapter maps `networkidle` to `networkidle0`. Existing engine-specific values remain supported: Playwright accepts `commit`, while Puppeteer accepts `networkidle0` and `networkidle2`. Using one of those values with the other driver produces an explicit error. Cookie references and result redaction also behave the same on both integrations. Relative URLs resolve against `testRunner.baseURL`, then against the current HTTP(S) page URL.
 
 ### Android
 
@@ -421,9 +446,9 @@ Run `midscene-test nodes` to generate a Node Spec of the available Nodes. Use `-
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-Without a selector, `nodes` generates a shared Spec only when every Project has the same effective Node set. If the sets differ, it reports an error asking you to select a Project instead of merging potentially different definitions with the same name.
+When `projects` is declared, omitting `--project` generates a separate Spec for each Execution Project, even when their Node definitions are identical.
 
-For Spec contents and general command options, see [Generate the current Project's Node Spec](./use#generate-the-current-projects-node-spec).
+For filenames, output rules, Spec contents, and command options, see [Generate the current Project's Node Spec](./use#generate-the-current-projects-node-spec).
 
 ## Concurrency and isolation
 
@@ -555,7 +580,7 @@ Nodes or `fileSetup` must explicitly report shared-resource failures; Browser cl
 
 ### Existing configurations
 
-`test.maxConcurrency` is no longer supported. Use `maxConcurrentProjects` and `maxConcurrentFiles` together. To run up to two projects while keeping each project's files sequential, set both global limits to `2` and each project's `maxConcurrentFiles` to `1`.
+`test.maxConcurrency` has been removed; loading an old configuration reports an error with a migration example. It controlled project concurrency, so simply renaming it to `maxConcurrentFiles` changes behavior. To preserve an old limit of `2`, set `test: { maxConcurrentProjects: 2, maxConcurrentFiles: 2 }` and each project's `maxConcurrentFiles` to `1`.
 
 `fileSetup`, project file limits, and preparation/cleanup timeouts can be configured without explicitly setting either global limit. When a project's effective file limit is `1`, `fileSetup` is optional and its files can share the `setup` return value.
 

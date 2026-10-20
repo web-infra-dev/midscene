@@ -39,9 +39,12 @@ cases:
             timeout: 180000
       - aiAssert:
           prompt: >-
-            Exactly two Todos remain. "Learn AI the day after tomorrow" is
-            completed, "Learn JS today" is not completed, and the footer says
-            "1 item left".
+            The list displays exactly two Todo rows in total, counting both
+            completed and incomplete rows. "Learn AI the day after tomorrow"
+            has a checked checkbox and strikethrough text. "Learn JS today"
+            has an unchecked checkbox. There is no row named "Learn Rust
+            tomorrow". The footer indicates one incomplete item ("1 item
+            left", with or without a trailing exclamation mark).
           message: TodoMVC does not show the expected final state.
           $:
             timeout: 180000

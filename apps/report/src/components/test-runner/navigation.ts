@@ -80,7 +80,10 @@ export const resolveRunnerNavigation = (
     };
   }
 
-  if (isSingleCaseReport(projects) && cases.length === 1) {
+  const hasExplicitPage = new URLSearchParams(
+    hash.startsWith('#') ? hash.slice(1) : '',
+  ).has('runner-page');
+  if (!hasExplicitPage && isSingleCaseReport(projects) && cases.length === 1) {
     const [onlyCase] = cases;
     return {
       page: 'case',
@@ -90,9 +93,6 @@ export const resolveRunnerNavigation = (
     };
   }
 
-  const hasExplicitPage = new URLSearchParams(
-    hash.startsWith('#') ? hash.slice(1) : '',
-  ).has('runner-page');
   if (!hasExplicitPage && stepTarget) {
     return {
       page: 'case',

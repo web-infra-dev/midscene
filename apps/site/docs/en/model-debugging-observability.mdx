@@ -67,11 +67,11 @@ npx @midscene/cli@latest model verify
 
 The command reads the `.env` file in the current working directory. Dotenv debug logging is enabled by default, and values from `.env` override existing shell environment variables.
 
-Both commands check the default, planning, and insight model configurations without loading a Test project or connecting to a browser or device. The exit code is `0` on success and `1` on failure.
+Both commands check the default, locate, planning, and insight model configurations without loading a Test project or connecting to a browser or device. The exit code is `0` on success and `1` on failure.
 
 The output lists each model and endpoint, then shows the text, vision, and AI locate check results, durations, and actual request counts. The summary includes total requests and passed/failed checks; a check that fails before sending a request has a count of `0`.
 
-The `Model role` column identifies the configuration being tested. `planning` uses a simple text-response check, `insight` uses an image-understanding check, and `default` uses AI locate. The planning check verifies a basic response from that model; it does not evaluate task-planning quality. Shared endpoints are listed once below the table. The command usually completes within 30 seconds.
+The `Model role` column identifies the configuration being tested. `default` and `planning` each use a simple text-response check, `insight` uses an image-understanding check, and `locate` uses AI locate, for four checks in total. Text checks ask for `CONNECTIVITY_OK` and pass when the response contains that token; they do not evaluate task-planning quality. Shared endpoints are listed once below the table. The command usually completes within 30 seconds.
 
 If the `curl` request succeeds but the Midscene verification command fails, the model API is reachable. Continue by checking the model capabilities and Midscene configuration.
 
@@ -93,12 +93,12 @@ Also confirm that `MIDSCENE_MODEL_NAME` matches a model available from that endp
 
 ## Improve model performance
 
-If the model connects successfully but localization, planning, or page understanding is unstable, try the following:
+If the model connects successfully but planning, localization, or page understanding is unstable, try the following:
 
 - Review the [replay report](./consume-report-file) to confirm the task timeline is correct and the flow did not enter the wrong page or branch.
 - Prefer newer officially supported versions within the same model series.
 - Compare models from different providers with representative tasks, focusing on success rate, latency, and cost.
-- For complex tasks, configure a separate Planning or Insight model. See [Model strategy](./model-strategy) for the responsibilities of each model.
+- For complex tasks, configure a separate Planning or Insight model. See [Model Selection Guide](./model-selection) for the responsibilities of each model.
 
 ## Debugging capabilities
 

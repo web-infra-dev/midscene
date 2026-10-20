@@ -15,14 +15,6 @@
     line-height: 20px;
   }
 
-  .runner-detail-debug-workbench {
-    grid-template-columns: 320px minmax(0, 1fr);
-  }
-
-  .runner-detail-step-list > button {
-    grid-template-columns: 27px minmax(0, 1fr) 52px;
-  }
-
   .runner-detail-step-tail time {
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -39,103 +31,13 @@
     padding-block: 10px;
   }
 
-  .runner-overview-summary {
-    align-items: stretch;
-  }
-
-  .runner-overview-outcome {
-    min-height: 0;
-    padding-block: 0;
-  }
-
   .runner-detail-evidence-heading .runner-detail-step-description {
     flex: 1 0 100%;
     min-width: 0;
-    margin: 0;
     overflow-wrap: anywhere;
   }
 
   .runner-detail-evidence-heading {
     row-gap: 10px;
-  }
-
-  .runner-status-badge.runner-status-pill {
-    display: inline-flex;
-    width: auto;
-    height: auto;
-    min-height: 24px;
-    align-items: center;
-    padding: 4px 8px;
-    gap: 5px;
-    border: 0;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 16px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .runner-status-badge.runner-status-pill > span {
-    display: inline;
-  }
-
-  .runner-project-tree-case-title h3,
-  .runner-project-tree-case .runner-status-pill {
-    font-weight: 400;
-  }
-
-  .runner-detail-log-view p {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 12px;
-  }
-
-  .runner-detail-log-view p > span {
-    grid-column: 1 / -1;
-    min-width: 0;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-
-  .runner-detail-log-view time {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .runner-project-tree-case-issue {
-    min-width: 0;
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 860px) {
-  .test-runner-report {
-    .runner-project-tree-case-item.is-detailed .runner-project-tree-case-issue {
-      display: flex;
-    }
-
-    .runner-detail-debug-workbench {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-}
-
-@media (max-width: 620px) {
-  .test-runner-report {
-    .runner-project-tree-case,
-    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-      grid-template-columns: 7px minmax(0, 1fr);
-    }
-
-    .runner-project-tree-case-title {
-      flex-wrap: wrap;
-      gap: 5px;
-      padding-block: 6px;
-    }
-
-    .runner-project-tree-case-title h3 {
-      white-space: normal;
-      overflow-wrap: anywhere;
-    }
   }
 }
