@@ -125,7 +125,7 @@ $.continueOnError; // true
 * `scope`：标记当前 Node 执行的上下文边界，值为 `case` 或 `document`。
 * `case` 或 `document`：当前执行位置的详细运行信息。
 
-其中，`context` 用于访问项目共享的资源与状态。下一节介绍如何通过它在多个 Node 之间共享数据。
+其中，`context` 用于访问运行资源和测试状态。下一节介绍如何通过它在多个 Node 之间共享数据。
 
 ## 跨 Node 共享上下文
 
@@ -133,11 +133,9 @@ Node 的每次执行都是独立调用，框架不会自动将上一次执行的
 
 ### 创建共享上下文
 
-开启[文件并发](./configuration#使用-maxconcurrentfiles-开启文件并发)时，`fileSetup` 为每份文件返回独立 context；文件内的 Node 和用例重试共享它，订单 ID 等可变数据应保存在文件 context 中。下面的示例沿用未配置 `fileSetup` 的项目 context。
+Node 通过 `context` 共享运行资源和测试数据。未配置 `fileSetup` 时，它来自项目 `setup`；配置后，它来自 `fileSetup`，共享范围缩小为当前文件。范围和重试规则见[context 的共享范围](./configuration#context-的共享范围)。下面的示例使用项目 setup。
 
-未配置 `fileSetup` 时，Midscene Test 提供了项目级上下文机制。同一个执行项目中的 Node 可以通过共享的 `context` 对象访问运行资源、传递测试数据。这个对象由项目的 `setup` 创建并返回，框架在执行各 Node 时，将它传入 `execute()`。
-
-对于上面的订单退款流程，setup 可以提供浏览器页面、应用地址和订单服务，订单 ID 则在 Node 创建订单后写入。下面的 `setup.ts` 展示了这个共享对象的创建方式：`ProjectContext` 描述它的类型，`setup` 负责创建并返回实际的对象。
+订单退款流程的 setup 可以提供浏览器页面、应用地址和订单服务，订单 ID 则在 Node 创建订单后写入。下面的 `setup.ts` 展示了这个共享对象的创建方式：`ProjectContext` 描述它的类型，`setup` 负责创建并返回实际的对象。
 
 导入的 `orderService` 是你自己的测试数据服务，需要实现 `create` 和 `remove` 方法。应用地址也需替换为测试环境地址。
 
@@ -288,6 +286,10 @@ Agent 接入和平台资源配置见[配置测试项目](./configuration)。
 异步操作使用 `async execute()`，并通过 `await` 等待完成。操作失败时应抛出错误。
 
 Midscene Test 在执行 Node 时通过 `signal` 提供 `AbortSignal`。调用支持取消的 API 时，将它传入，例如 `fetch(url, { signal })`。长时间运行的循环可以在每次迭代之间调用 `signal.throwIfAborted()`，以响应步骤超时或运行取消。
+
+文件并发中，Node 或 `fileSetup` 确认项目共享资源失效后，必须显式报告 `PROJECT_RESOURCE_ERROR`，才会停止该项目的其他文件。可以直接抛出 `@midscene/test` 的 `WorkflowError` 并设置此 `code`，也可以将该错误放在 `cause` 或 `AggregateError.errors` 中。
+
+Browser 可能由单个文件独占，也可能由项目共享，框架不会根据关闭报错的文案推断资源归属。未标明共享资源故障的 Browser 错误按文件错误处理。影响范围见[失败时如何执行](./use#失败时如何执行)。
 
 ### 资源的生命周期与清理
 

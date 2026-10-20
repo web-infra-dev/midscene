@@ -250,19 +250,19 @@ export default defineTestProject({
 | Legacy batch setting | Native Test configuration or mechanism | Notes |
 | --- | --- | --- |
 | `files` | `projects[].files.include` | `midscene` preserves old order and repeated invocations. Native selection is sorted and deduplicated, with no `files.order` switch. |
-| `setup` | Legacy prerequisite file; native setup / `beforeAll` | The legacy host runs the old setup file first. In native Test, create resources in setup and express file prerequisites as lifecycle Steps; there is no `setupFile` option. |
-| `concurrent` | Legacy file scheduling; native `test.maxConcurrentFiles` + `fileSetup` | `midscene` keeps its existing semantics. In native Test, explicitly enable file scheduling and prepare independent resources for every file. |
+| `setup` | Project `setup` / YAML `beforeAll` | Legacy execution runs a prerequisite YAML file first. Native setup creates resources, and `beforeAll` runs file prerequisites; there is no `setupFile` option. |
+| `concurrent` | `test.maxConcurrentFiles` + `fileSetup` | Explicitly enable file concurrency and prepare an independent environment for each file. |
 | `retry` | Legacy whole-file retry; native `projects[].retry` | Native retries only a failed Case. Keep legacy files on `midscene` when whole-file replay is required; there is no `retryScope` switch. |
 | `continueOnError: false` | `test.bail: 1` | Stop scheduling new files or Cases when the failure threshold is reached. Concurrent work that has already started still completes cleanup. |
 | `continueOnError: true` | `test.bail: 0` | Disable global failure-threshold stopping. `midscene` separately preserves old task continuation; native Cases continue by default. |
 | `summary` | Test `summary.json`, report, and programmatic APIs | `midscene` still writes the legacy summary. Native Test has no same-name setting; migrate consumers and use `--result-dir` to select the structured result directory. |
-| `shareBrowserContext` | Legacy resource host; native Project setup | The legacy host creates independent Pages/Agents over the shared browser context. Native Test shares resources within a Project through setup and uses independent resources between concurrent Projects. |
+| `shareBrowserContext` | Project `setup` and `fileSetup` | Native Test can share a Browser in setup and create a separate BrowserContext per file in fileSetup; this changes the legacy shared-session behavior. |
 | `headed` | Browser or device setup launch settings | For example, Playwright uses `chromium.launch({ headless: false })`. |
 | `keepWindow` | setup cleanup policy | Use only for local debugging; the project must decide whether to delay or skip browser teardown. |
 | `dotenvOverride`, `dotenvDebug` | Project environment-loading policy | Native Test reads `process.env`. If you rely on an `.env` file, load it explicitly in the config or launch script and configure precedence and debugging there. |
 | `web`, `android`, `ios`, `harmony`, `computer`, `interface` | Project `setup`, `variables`, and registered platform Nodes | Move device connection and Agent creation into setup; keep serializable environment differences in `variables`. |
 
-This native example selects files and adopts Case retries; it does not preserve the old setup-file scheduling. To run native files concurrently, configure `test.maxConcurrentFiles` and move per-file resources into `fileSetup`; see [File concurrency](./midscene-test/configuration#file-concurrency-with-maxconcurrentfiles). Without the new setting, `test.maxConcurrency` retains its Project-level scheduling behavior. Do not combine the two settings. Legacy `concurrent` / `--concurrent` and setup-file behavior remain unchanged behind the `midscene` entry.
+The native example above migrates file selection, case retries, and the failure threshold; it does not preserve legacy setup-file behavior or file concurrency. For concurrency, add `test.maxConcurrentFiles` and `fileSetup` as shown in [File concurrency](./midscene-test/configuration#file-concurrency-with-maxconcurrentfiles). To keep existing cases and batch configuration, continue using `midscene`; legacy `concurrent` / `--concurrent` and setup-file behavior remain unchanged.
 
 The `midscene` entry preserves legacy output naming: explicit flow `name` values, numeric keys for unnamed extracted results, and the existing overwrite behavior for duplicate names.
 

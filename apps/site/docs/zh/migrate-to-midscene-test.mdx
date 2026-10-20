@@ -250,19 +250,19 @@ export default defineTestProject({
 | 旧版批配置 | 原生 Test 配置或机制 | 说明 |
 | --- | --- | --- |
 | `files` | `projects[].files.include` | `midscene` 保留旧顺序和重复调用；原生选择固定去重、排序，没有 `files.order` 开关。 |
-| `setup` | 旧链路前置文件；原生 setup / `beforeAll` | 旧宿主先执行 setup 文件；原生在 setup 创建资源，用生命周期 Step 表达文件前置条件，没有 `setupFile` 参数。 |
-| `concurrent` | 旧链路文件调度；原生 `test.maxConcurrentFiles` + `fileSetup` | `midscene` 保留原有语义；原生 Test 显式开启文件调度，为每份文件准备独立资源。 |
+| `setup` | 项目 `setup` / YAML `beforeAll` | 旧版先执行前置 YAML；原生 setup 创建资源，`beforeAll` 执行文件的前置步骤，不提供 `setupFile` 参数。 |
+| `concurrent` | `test.maxConcurrentFiles` + `fileSetup` | 显式开启文件并发，并为每份文件准备独立环境。 |
 | `retry` | 旧链路整文件重试；原生 `projects[].retry` | 原生只重试失败 Case；确需整文件重放时继续使用 `midscene`，没有 `retryScope` 开关。 |
 | `continueOnError: false` | `test.bail: 1` | 失败达到阈值后停止调度新的文件或 Case。已经开始的并发任务仍会完成清理。 |
 | `continueOnError: true` | `test.bail: 0` | 不因失败阈值触发全局停止；`midscene` 另行保留旧 task continuation，原生 Case 默认继续。 |
 | `summary` | Test `summary.json`、报告和编程式 API | `midscene` 仍写旧 summary；原生 Test 没有同名配置，应迁移消费方。可用 `--result-dir` 指定结构化结果目录。 |
-| `shareBrowserContext` | 旧链路资源宿主；原生项目的 `setup` | 旧宿主在共享浏览器上下文上创建独立 Page/Agent；原生通过 setup 在项目内共享资源，并发项目之间持有独立资源。 |
+| `shareBrowserContext` | 项目 `setup` 和 `fileSetup` | 原生可在 setup 中共享 Browser，在 fileSetup 中为每份文件创建独立 BrowserContext；这会改变旧版共享会话的行为。 |
 | `headed` | 浏览器或设备 setup 的启动参数 | 例如 Playwright 使用 `chromium.launch({ headless: false })`。 |
 | `keepWindow` | setup 的清理策略 | 仅建议本地调试使用；需要由项目决定是否延迟或跳过浏览器 teardown。 |
 | `dotenvOverride`、`dotenvDebug` | 项目的环境变量加载方式 | 原生读取 `process.env`；依赖 `.env` 文件时，在配置文件或启动脚本中显式加载，并在那里设置优先级和调试行为。 |
 | `web`、`android`、`ios`、`harmony`、`computer`、`interface` | 项目的 `setup`、`variables` 和平台注册 Node | 设备连接和 Agent 创建移入 setup；可序列化的环境差异放入 `variables`。 |
 
-这个原生示例只迁移了文件选择和 Case 重试，不保留旧前置文件的调度方式。需要原生文件并发时，设置 `test.maxConcurrentFiles`，并将文件资源移入 `fileSetup`，详见[文件并发](./midscene-test/configuration#使用-maxconcurrentfiles-开启文件并发)。不填写新设置时，`test.maxConcurrency` 仍按 Project 调度，两者不能混用。旧 `concurrent` / `--concurrent` 和前置文件行为继续由 `midscene` 入口保留。
+上面的原生示例迁移了文件选择、用例重试和失败阈值，未保留旧版的前置文件和文件并发。需要并发时，按[文件并发配置](./midscene-test/configuration#使用-maxconcurrentfiles-开启文件并发)补充 `test.maxConcurrentFiles` 和 `fileSetup`。保留原用例和批配置时，继续使用 `midscene`；旧 `concurrent` / `--concurrent` 和前置文件行为不变。
 
 `midscene` 保留旧输出命名规则：显式 flow `name`、未命名提取结果的数字键，以及重复名称的覆盖规则均保留。
 

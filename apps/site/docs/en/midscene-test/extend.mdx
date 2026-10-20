@@ -125,7 +125,7 @@ The argument object passed to `execute()` contains these commonly used fields:
 - `scope`: identifies the current Node execution boundary as either `case` or `document`.
 - `case` or `document`: detailed runtime information for the current execution position.
 
-The `context` field provides access to the project's shared resources and state. The next section explains how to use it to share data between Nodes.
+The `context` field provides access to runtime resources and test state. The next section explains how to use it to share data between Nodes.
 
 ## Share context across Nodes
 
@@ -133,9 +133,7 @@ Each Node execution is a separate invocation; the framework does not automatical
 
 ### Create the shared context
 
-With [file concurrency](./configuration#file-concurrency-with-maxconcurrentfiles), `fileSetup` returns a separate context for each file. Nodes and Case retries within that file share it; keep mutable values such as order IDs in the file context. The following example uses the existing Project context without `fileSetup`.
-
-Without `fileSetup`, Midscene Test provides a project-level context mechanism. Nodes in the same execution project can access runtime resources and pass test data through a shared `context` object. The project's `setup` creates and returns this object, and the framework passes it to each Node's `execute()`.
+Nodes share runtime resources and test data through `context`. Without `fileSetup`, it comes from project `setup`; with `fileSetup`, it comes from that function and is shared only within the current file. See [Context sharing scope](./configuration#context-sharing-scope) for scope and retry rules. The example below uses project setup.
 
 For the order refund workflow above, setup can provide a browser page, an application URL, and an order service. A Node adds the order ID after creating an order. The following `setup.ts` shows how to create this shared object: `ProjectContext` describes its type, and `setup` creates and returns the actual object.
 
@@ -288,6 +286,10 @@ The order preparation Node also returns `summary` and `data`. `summary` describe
 Use `async execute()` and `await` for asynchronous work. Throw an error when an operation fails.
 
 Midscene Test passes an `AbortSignal` as `signal` when executing a Node. Pass it to APIs that support cancellation, such as `fetch(url, { signal })`. For long-running loops, check `signal.throwIfAborted()` between iterations. This lets the operation stop when the step times out or the run is cancelled.
+
+With file concurrency, a Node or `fileSetup` that confirms a shared project resource has failed must explicitly report `PROJECT_RESOURCE_ERROR` to stop other files in that project. Throw `WorkflowError` from `@midscene/test` with this `code`, either directly or nested in `cause` or `AggregateError.errors`.
+
+A Browser can belong to one file or be shared by the project; the framework does not infer ownership from closure messages. Unclassified Browser errors are treated as file errors. See [Handling failures](./use#handling-failures) for the affected scope.
 
 ### Resource lifecycle and cleanup
 
