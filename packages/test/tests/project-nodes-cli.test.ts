@@ -60,8 +60,8 @@ describe('Project-scoped Node Specs', () => {
       expect(errors).toHaveLength(1);
       expect(errors[0]).toContain('test.maxConcurrency is no longer supported');
       expect(errors[0]).toContain('maxConcurrentProjects: 2');
-      expect(errors[0]).toContain('maxConcurrentFiles: 2');
-      expect(errors[0]).toContain('projects[].maxConcurrentFiles to 1');
+      expect(errors[0]).toContain('maxConcurrentFiles: 1');
+      expect(errors[0]).toContain('implicit default project');
       expect(existsSync(join(root, 'midscene-node-spec.md'))).toBe(false);
     },
   );

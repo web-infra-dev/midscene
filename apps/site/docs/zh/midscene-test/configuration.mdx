@@ -575,7 +575,7 @@ Android、iOS 等平台需要为每份并发文件独占分配设备，并创建
 
 ### 现有配置
 
-`test.maxConcurrency` 已移除，加载旧配置会报错并给出迁移示例。旧值控制项目并发，不能只改名为 `maxConcurrentFiles`。例如，保留旧值 `2` 的行为，需要设置 `test: { maxConcurrentProjects: 2, maxConcurrentFiles: 2 }`，并把各项目的 `maxConcurrentFiles` 设为 `1`。
+`test.maxConcurrency` 已移除，加载旧配置会报错并给出迁移示例。旧值控制项目并发，不能只改名为 `maxConcurrentFiles`。例如，保留旧值 `2` 的行为，需要设置 `test: { maxConcurrentProjects: 2, maxConcurrentFiles: 2 }`，并把各项目的 `maxConcurrentFiles` 设为 `1`。未声明 `projects` 时，全局文件上限保持 `1`。
 
 `fileSetup`、项目文件上限和准备／清理超时都可以单独配置，不要求显式填写全局并发字段。项目有效文件上限为 `1` 时，`fileSetup` 可省略，文件可以共用 `setup` 返回的环境。
 

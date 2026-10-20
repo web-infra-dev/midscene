@@ -521,7 +521,10 @@ const validateExecutionProjects = <TContext, TProjectContext>(
   return { projects: Object.freeze(projects), hasExplicitProjects: true };
 };
 
-const validateTestOptions = (value: unknown): ResolvedTestOptions => {
+const validateTestOptions = (
+  value: unknown,
+  hasExplicitProjects: boolean,
+): ResolvedTestOptions => {
   if (value !== undefined && !isRecord(value)) {
     throw new TypeError('Midscene config test must be an object.');
   }
@@ -537,9 +540,13 @@ const validateTestOptions = (value: unknown): ResolvedTestOptions => {
       [
         'Midscene config test.maxConcurrency is no longer supported.',
         'It controlled project concurrency, not file concurrency. Remove it and use:',
-        `  test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${limit} }`,
-        '  Set projects[].maxConcurrentFiles to 1 to keep files sequential within each project.',
-        'For parallel files, configure fileSetup and raise both test.maxConcurrentFiles and projects[].maxConcurrentFiles.',
+        `  test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${hasExplicitProjects ? limit : 1} }`,
+        hasExplicitProjects
+          ? '  Set projects[].maxConcurrentFiles to 1 to keep files sequential within each project.'
+          : '  The implicit default project keeps running files sequentially.',
+        hasExplicitProjects
+          ? 'For parallel files, configure fileSetup and raise both test.maxConcurrentFiles and projects[].maxConcurrentFiles.'
+          : 'For parallel files, configure fileSetup and raise test.maxConcurrentFiles.',
         'Migration guide: https://midscenejs.com/midscene-test/configuration.html#existing-configurations',
       ].join('\n'),
     );
@@ -645,7 +652,10 @@ const validateTestProjectDefinition = <TContext, TProjectContext = TContext>(
   const nodes = new NodeRegistry(
     definition.nodes as NodeDefinition[] | undefined,
   );
-  const test = validateTestOptions(definition.test);
+  const test = validateTestOptions(
+    definition.test,
+    definition.projects !== undefined,
+  );
   const resolvedProjects = validateExecutionProjects<TContext, TProjectContext>(
     definition.projects,
     definition.setup,

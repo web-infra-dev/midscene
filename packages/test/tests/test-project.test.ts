@@ -26,11 +26,20 @@ const createConfig = (
 };
 
 describe('test project config', () => {
-  it.each([1, 3])(
-    'explains how to migrate the removed project concurrency limit %i',
-    async (limit) => {
+  it.each([
+    [1, false],
+    [3, false],
+    [1, true],
+    [3, true],
+  ] as const)(
+    'explains the removed limit %i with explicit projects=%s',
+    async (limit, hasExplicitProjects) => {
+      const projects = hasExplicitProjects
+        ? 'projects: [{ name: "web", maxConcurrentFiles: 1 }, { name: "android", maxConcurrentFiles: 1 }],'
+        : '';
       const { path } = createConfig(`export default {
         test: { maxConcurrency: ${limit} },
+        ${projects}
       };`);
       const error = await loadTestProject(path).catch((error) => error);
       expect(error).toBeInstanceOf(TypeError);
@@ -41,24 +50,26 @@ describe('test project config', () => {
         'project concurrency, not file concurrency',
       );
       expect(error.message).toContain(`maxConcurrentProjects: ${limit}`);
-      expect(error.message).toContain(`maxConcurrentFiles: ${limit}`);
-      expect(error.message).toContain('projects[].maxConcurrentFiles to 1');
+      const fileLimit = hasExplicitProjects ? limit : 1;
+      expect(error.message).toContain(`maxConcurrentFiles: ${fileLimit}`);
+      expect(error.message).toContain(
+        hasExplicitProjects
+          ? 'projects[].maxConcurrentFiles to 1'
+          : 'implicit default project keeps running files sequentially',
+      );
       expect(error.message).toContain('fileSetup');
       expect(error.message).toContain('https://midscenejs.com/');
 
       const migrated = createConfig(`export default {
-        test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${limit} },
-        projects: [
-          { name: 'web', maxConcurrentFiles: 1 },
-          { name: 'android', maxConcurrentFiles: 1 },
-        ],
+        test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${fileLimit} },
+        ${projects}
       };`);
       const loaded = await loadTestProject(migrated.path);
       expect(loaded.test.maxConcurrentProjects).toBe(limit);
-      expect(loaded.test.maxConcurrentFiles).toBe(limit);
+      expect(loaded.test.maxConcurrentFiles).toBe(fileLimit);
       expect(
         loaded.projects.map((project) => project.maxConcurrentFiles),
-      ).toEqual([1, 1]);
+      ).toEqual(hasExplicitProjects ? [1, 1] : [1]);
       expect(loaded.projects.every((project) => !project.fileSetup)).toBe(true);
     },
   );

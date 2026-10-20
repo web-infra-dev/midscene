@@ -580,7 +580,7 @@ Nodes or `fileSetup` must explicitly report shared-resource failures; Browser cl
 
 ### Existing configurations
 
-`test.maxConcurrency` has been removed; loading an old configuration reports an error with a migration example. It controlled project concurrency, so simply renaming it to `maxConcurrentFiles` changes behavior. To preserve an old limit of `2`, set `test: { maxConcurrentProjects: 2, maxConcurrentFiles: 2 }` and each project's `maxConcurrentFiles` to `1`.
+`test.maxConcurrency` has been removed; loading an old configuration reports an error with a migration example. It controlled project concurrency, so simply renaming it to `maxConcurrentFiles` changes behavior. To preserve an old limit of `2`, set `test: { maxConcurrentProjects: 2, maxConcurrentFiles: 2 }` and each project's `maxConcurrentFiles` to `1`. Without explicit `projects`, keep the global file limit at `1`.
 
 `fileSetup`, project file limits, and preparation/cleanup timeouts can be configured without explicitly setting either global limit. When a project's effective file limit is `1`, `fileSetup` is optional and its files can share the `setup` return value.
 
