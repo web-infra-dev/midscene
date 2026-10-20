@@ -510,7 +510,9 @@ export class TaskRunner {
     let finalizeError: TaskExecutionError | undefined;
     if (!successfullyCompleted) {
       this.status = 'error';
-      const errorTask = this.latestErrorTask();
+      // A queued cancellation must not inherit a previous failed task when
+      // this flush is recovering with allowWhenError.
+      const errorTask = this.tasks[taskIndex] ?? null;
       const error =
         errorTask?.error ??
         (this.abortSignal?.aborted

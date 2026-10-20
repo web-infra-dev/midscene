@@ -1,9 +1,10 @@
+import assert from 'node:assert/strict';
 import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
 import { type AbstractInterface, defineActionSleep } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type Service from '@/service';
-import { TaskRunner } from '@/task-runner';
+import { TaskExecutionError, TaskRunner } from '@/task-runner';
 import type { ExecutorContext, UIContext } from '@/types';
 import { describe, expect, it, rs } from '@rstest/core';
 
@@ -36,6 +37,57 @@ describe('task cancellation boundaries', () => {
     expect(runner.tasks[0].status).toBe('cancelled');
     expect(runner.tasks[0].timing).toBeUndefined();
   });
+
+  it('does not reuse a previous locate refusal when queued recovery is cancelled', async () => {
+    const controller = new AbortController();
+    const action = rs.fn();
+    const runner = new TaskRunner('recovery', async () => context(), {
+      abortSignal: controller.signal,
+    });
+    const refusal = await runner
+      .appendAndFlush({
+        type: 'Planning',
+        subType: 'Locate',
+        executor: async ({ task }) => {
+          task.log = {
+            dump: {
+              type: 'locate',
+              taskInfo: {
+                formatResponse: { outcome: 'not-found' },
+                rawResponse: '{"bbox":[]}',
+              },
+            },
+          };
+          throw new Error('Element not found');
+        },
+      })
+      .catch((error) => error as TaskExecutionError);
+    assert(refusal instanceof TaskExecutionError);
+    expect(refusal.locateOutcome).toBe('not-found');
+
+    await runner.append(
+      { type: 'Action Space', executor: action },
+      { allowWhenError: true },
+    );
+    controller.abort(new Error('cancel recovery before dispatch'));
+    const cancelled = await runner
+      .flush({ allowWhenError: true })
+      .catch((error) => error as TaskExecutionError);
+
+    assert(cancelled instanceof TaskExecutionError);
+    expect(cancelled.message).toBe('cancel recovery before dispatch');
+    expect(cancelled.locateOutcome).toBeUndefined();
+    expect(cancelled.locateRawResponse).toBeUndefined();
+    expect(cancelled.toJSON()).toMatchObject({
+      cause: { message: 'cancel recovery before dispatch' },
+      task: { taskId: runner.tasks[1].taskId, status: 'cancelled' },
+    });
+    expect(cancelled.toJSON().locateOutcome).toBeUndefined();
+    expect(cancelled.toJSON().locateRawResponse).toBeUndefined();
+    expect(action).not.toHaveBeenCalled();
+    expect(runner.tasks[1].timing).toBeUndefined();
+  });
+
   it('stops a batch after the current non-cooperative executor actually settles', async () => {
     const controller = new AbortController();
     const entered = gate();
