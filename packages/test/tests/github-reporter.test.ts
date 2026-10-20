@@ -32,12 +32,37 @@ describe('GitHub reporter', () => {
     try {
       vi.stubEnv('GITHUB_ACTIONS', 'true');
       vi.stubEnv('GITHUB_STEP_SUMMARY', join(dir, 'summary.md'));
-      const result = {
+      const result: TestProjectRunResult = {
+        schemaVersion: 3,
+        runId: 'github-summary',
+        startedAt: '2026-10-20T00:00:00.000Z',
+        endedAt: '2026-10-20T00:00:01.250Z',
         durationMs: 1250,
-        summary: { passed: 1, failed: 1, notRun: 0, passedAfterRetry: 1 },
+        status: 'failed',
+        exitCode: 1,
+        resultDir: '/repo',
+        reportDir: '/repo/report',
+        summary: {
+          total: 2,
+          passed: 1,
+          failed: 1,
+          notRun: 0,
+          passedAfterRetry: 1,
+          finalPassRate: 0.5,
+          firstPassRate: 0,
+          filtered: 0,
+          collectionErrors: 0,
+          documentFailures: 0,
+          projectFailures: 0,
+        },
+        projects: [],
+        documents: [],
+        collectionErrors: [],
         cases: [
           {
             caseId: 'recovered',
+            caseIndex: 0,
+            documentId: 'a.yaml',
             status: 'failed',
             name: 'old attempt',
             projectName: 'web',
@@ -45,6 +70,8 @@ describe('GitHub reporter', () => {
           },
           {
             caseId: 'recovered',
+            caseIndex: 0,
+            documentId: 'a.yaml',
             status: 'success',
             name: 'recovered',
             projectName: 'web',
@@ -52,6 +79,8 @@ describe('GitHub reporter', () => {
           },
           {
             caseId: 'failed',
+            caseIndex: 1,
+            documentId: 'b.yaml',
             status: 'failed',
             name: 'checkout',
             projectName: 'web',
@@ -60,7 +89,7 @@ describe('GitHub reporter', () => {
         ],
         summaryPath: '/repo/summary.json',
         reportPath: '/repo/report/index.html',
-      } as TestProjectRunResult;
+      };
       writeGitHubSummary(result);
       writeGitHubSummary(result);
       const output = readFileSync(join(dir, 'summary.md'), 'utf8');
