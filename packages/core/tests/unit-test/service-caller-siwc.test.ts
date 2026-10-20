@@ -4,7 +4,10 @@ import os from 'node:os' with { rstest: 'importActual' };
 import { join } from 'node:path';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller';
-import { readSiwcAccessToken } from '@/ai-model/service-caller/openai/siwc';
+import {
+  SIWC_AUTH_STORAGE_KEY,
+  readSiwcAccessToken,
+} from '@/ai-model/service-caller/openai/siwc';
 import { ModelConfigManager } from '@midscene/shared/env';
 import { afterEach, beforeEach, expect, it, rs } from '@rstest/core';
 
@@ -55,63 +58,81 @@ it('reports missing, malformed and incomplete credentials without logging in', a
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
-it('uses saved credentials and streaming Responses despite conflicting settings', async () => {
-  await saveToken('saved-token');
-  const response = {
-    id: 'resp-test',
-    status: 'completed',
-    output: [
-      {
-        type: 'message',
-        role: 'assistant',
-        content: [{ type: 'output_text', text: 'Hello' }],
-      },
-    ],
-    usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
-  };
-  fetchMock.mockImplementation(
-    async () =>
-      new Response(
-        `data: ${JSON.stringify({ type: 'response.completed', response })}\n\n`,
-        { headers: { 'content-type': 'text/event-stream' } },
-      ),
-  );
-  const config = new ModelConfigManager({
-    MIDSCENE_MODEL_NAME: 'test-model',
-    MIDSCENE_MODEL_FAMILY: 'gpt-5',
-    MIDSCENE_MODEL_AUTH_MODE: 'siwc',
-    MIDSCENE_MODEL_BASE_URL: 'codex://app-server',
-    MIDSCENE_MODEL_API_KEY: 'unused',
-    MIDSCENE_MODEL_PROTOCOL: 'openai-chat',
-    MIDSCENE_MODEL_STREAM_MODE: 'non-stream',
-    MIDSCENE_MODEL_INIT_CONFIG_JSON: JSON.stringify({
-      baseURL: 'https://example.test/v1',
-      apiKey: 'also-unused',
-    }),
-  }).getModelConfig('default');
-  const result = await callAI(
-    [{ role: 'user', content: 'Hello' }],
-    getModelRuntime(config),
-    { stream: false },
-  );
-  expect(result.content).toBe('Hello');
-  const [url, init] = fetchMock.mock.calls[0];
-  expect(String(url)).toBe('https://api.openai.com/v1/responses');
-  expect(new Headers(init?.headers).get('authorization')).toBe(
-    'Bearer saved-token',
-  );
-  expect(JSON.parse(String(init?.body))).toMatchObject({
-    stream: true,
-    store: false,
-  });
-  expect(config).toMatchObject({
-    openaiApiKey: 'unused',
-    openaiBaseURL: 'codex://app-server',
-    protocol: 'openai-chat',
-    streamMode: 'non-stream',
-  });
-  expect(fetchMock).toHaveBeenCalledTimes(1);
-});
+it.each(['file', 'extension'])(
+  'uses %s credentials and streaming Responses despite conflicting settings',
+  async (source) => {
+    if (source === 'extension') {
+      rs.stubGlobal('chrome', {
+        runtime: { id: 'midscene-extension' },
+        storage: {
+          local: {
+            get: async () => ({
+              [SIWC_AUTH_STORAGE_KEY]: {
+                credentials: { access_token: 'saved-token' },
+              },
+            }),
+          },
+        },
+      });
+    } else {
+      await saveToken('saved-token');
+    }
+    const response = {
+      id: 'resp-test',
+      status: 'completed',
+      output: [
+        {
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'Hello' }],
+        },
+      ],
+      usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
+    };
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(
+          `data: ${JSON.stringify({ type: 'response.completed', response })}\n\n`,
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+    );
+    const config = new ModelConfigManager({
+      MIDSCENE_MODEL_NAME: 'test-model',
+      MIDSCENE_MODEL_FAMILY: 'gpt-5',
+      MIDSCENE_MODEL_AUTH_MODE: 'siwc',
+      MIDSCENE_MODEL_BASE_URL: 'codex://app-server',
+      MIDSCENE_MODEL_API_KEY: 'unused',
+      MIDSCENE_MODEL_PROTOCOL: 'openai-chat',
+      MIDSCENE_MODEL_STREAM_MODE: 'non-stream',
+      MIDSCENE_MODEL_INIT_CONFIG_JSON: JSON.stringify({
+        baseURL: 'https://example.test/v1',
+        apiKey: 'also-unused',
+      }),
+    }).getModelConfig('default');
+    const result = await callAI(
+      [{ role: 'user', content: 'Hello' }],
+      getModelRuntime(config),
+      { stream: false },
+    );
+    expect(result.content).toBe('Hello');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe('https://api.openai.com/v1/responses');
+    expect(new Headers(init?.headers).get('authorization')).toBe(
+      'Bearer saved-token',
+    );
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      stream: true,
+      store: false,
+    });
+    expect(config).toMatchObject({
+      openaiApiKey: 'unused',
+      openaiBaseURL: 'codex://app-server',
+      protocol: 'openai-chat',
+      streamMode: 'non-stream',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  },
+);
 
 it('does not attempt token refresh after an authentication failure', async () => {
   await saveToken('expired-token');
@@ -134,4 +155,34 @@ it('does not attempt token refresh after an authentication failure', async () =>
   ).rejects.toThrow('Token expired');
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(await readSiwcAccessToken()).toBe('expired-token');
+});
+
+it('reads extension storage on every call and propagates errors', async () => {
+  const get = rs
+    .fn()
+    .mockResolvedValueOnce({
+      [SIWC_AUTH_STORAGE_KEY]: { credentials: { access_token: 'first' } },
+    })
+    .mockResolvedValueOnce({
+      [SIWC_AUTH_STORAGE_KEY]: { credentials: { access_token: 'second' } },
+    })
+    .mockResolvedValueOnce({})
+    .mockRejectedValueOnce(new Error('Storage unavailable'));
+  rs.stubGlobal('chrome', {
+    runtime: { id: 'midscene-extension' },
+    storage: { local: { get } },
+  });
+  expect(await readSiwcAccessToken()).toBe('first');
+  expect(await readSiwcAccessToken()).toBe('second');
+  await expect(readSiwcAccessToken()).rejects.toThrow('Use your ChatGPT plan');
+  await expect(readSiwcAccessToken()).rejects.toThrow('Storage unavailable');
+  expect(get).toHaveBeenCalledWith(SIWC_AUTH_STORAGE_KEY);
+});
+
+it('does not mistake a browser chrome object for extension storage', async () => {
+  const get = rs.fn();
+  rs.stubGlobal('chrome', { storage: { local: { get } } });
+  await saveToken('node-token');
+  expect(await readSiwcAccessToken()).toBe('node-token');
+  expect(get).not.toHaveBeenCalled();
 });

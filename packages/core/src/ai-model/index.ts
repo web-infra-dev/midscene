@@ -5,6 +5,7 @@ export {
   callAI,
 } from './service-caller/index';
 export { getModelRuntime, type ModelRuntime } from './models';
+export { SIWC_AUTH_STORAGE_KEY } from './service-caller/openai/siwc';
 export {
   runConnectivityTest,
   type ConnectivityTestConfig,

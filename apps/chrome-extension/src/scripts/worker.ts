@@ -2,6 +2,12 @@
 
 import type { UIContext } from '@midscene/core';
 import { uuid } from '@midscene/shared/utils';
+import { SIWC_LOGIN_MESSAGE } from '../extension/siwc/auth';
+import {
+  registerSiwcListeners,
+  startSiwcLogin,
+} from '../extension/siwc/background';
+
 import { BridgeConnector, type BridgeStatus } from '../utils/bridgeConnector';
 import { registerAlarmListener, safeSetupKeepalive } from '../utils/keepalive';
 import { workerMessageTypes } from '../utils/workerMessageTypes';
@@ -388,6 +394,9 @@ setTimeout(() => initBackgroundBridge(), 0);
 // Register alarm listener for keepalive pings
 registerAlarmListener();
 
+// Register SIWC callbacks synchronously on every service worker startup.
+registerSiwcListeners();
+
 // Setup keepalive on startup - will be updated after initBackgroundBridge checks stopped state
 safeSetupKeepalive({
   shouldEnable: true,
@@ -435,6 +444,18 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === SIWC_LOGIN_MESSAGE) {
+    if (sender.id !== chrome.runtime.id || sender.tab) {
+      sendResponse({ success: false, error: 'Invalid SIWC login request.' });
+      return false;
+    }
+    startSiwcLogin().then(
+      () => sendResponse({ success: true }),
+      (error) => sendResponse({ success: false, error: error.message }),
+    );
+    return true;
+  }
+
   // Handle screenshot capture request
   if (request.action === 'captureScreenshot') {
     if (sender.tab && sender.tab.id !== undefined) {
