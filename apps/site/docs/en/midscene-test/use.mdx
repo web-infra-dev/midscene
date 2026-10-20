@@ -337,7 +337,7 @@ Framework maintainers configure `tags.include` and `tags.exclude` for each Execu
 
 ## Define the execution lifecycle
 
-This section covers the lifecycle of a single YAML file. For the full relationship between project `setup`, file hooks, cases, and cleanup, see [Project, file, and case lifecycle](./configuration#project-file-and-case-lifecycle).
+`beforeAll` runs after `setup` and `fileSetup`, when configured, using the prepared `context`. See [Project lifecycle](./configuration#setup-filesetup-and-beforeall) for their roles. This section covers YAML hooks.
 
 ### Setup and cleanup steps
 

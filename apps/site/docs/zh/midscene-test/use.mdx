@@ -337,7 +337,7 @@ cases:
 
 ## 定义执行生命周期
 
-本节介绍单个 YAML 文件的生命周期。项目 `setup`、文件钩子、用例和清理之间的完整关系，见[项目、文件与用例的生命周期](./configuration#项目文件与用例的生命周期)。
+`beforeAll` 在 `setup`、`fileSetup`（如配置）完成后执行，使用准备好的 `context`。三者区别见[项目生命周期](./configuration#setupfilesetup-与-beforeall)；本节介绍 YAML 钩子的用法。
 
 ### 准备与清理步骤
 

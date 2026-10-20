@@ -12,4 +12,18 @@
 
 执行 `{{TEST_COMMAND}}` 运行测试。Node 列表见 `midscene-node-spec.web.md`；修改配置中的 Node 后执行 `{{RUN_NODES_COMMAND}}` 刷新。用例串行运行，首次失败即停止后续用例（`test.bail: 1`）；失败时仍会保存报告并关闭浏览器。报告位于 `midscene_run/report/`。
 
-`setup` 启动共用浏览器，`fileSetup` 为每份测试文件准备独立的浏览器会话、页面和 Agent。提高 `test.maxConcurrentFiles` 可以同时执行多份文件；文件内用例仍按顺序运行，用例重试沿用当前文件环境。
+## 准备工作如何执行
+
+| 阶段 | 次数 | 本例中的工作 |
+| --- | --- | --- |
+| `setup`（项目配置） | 项目一次 | 启动共享 Browser |
+| `fileSetup`（项目配置） | 每份文件一次 | 创建独立 BrowserContext、Page，返回 Node 使用的 `context` |
+| `beforeAll`（YAML） | 文件用例开始前一次 | 设置视口；首次调用 `getAgent` 创建 Agent，后续 Node 复用 |
+
+`fileSetup` 自动应用到每份文件；`beforeAll` 由各文件声明。业务 Node `todo.setup` 与配置项 `setup` 无关。
+
+## 注意事项
+
+- 提高 `test.maxConcurrentFiles` 可并发运行文件，文件内用例仍顺序执行。
+- 重试不重跑上述三个阶段；`beforeEach` 负责重置业务状态。
+- 文件结束后先销毁 Agent、关闭 BrowserContext；所有文件清理完再关闭 Browser。后端账号和数据需自行隔离。

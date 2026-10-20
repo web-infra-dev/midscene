@@ -15,12 +15,12 @@ Midscene Test 支持以下配置文件：
 
 Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。如果两个文件同时存在，Midscene Test 会报告冲突，而不是静默选择其中一个；此时可以通过 `--config <路径>` 明确指定要使用的文件。
 
-在 `setup` 中创建浏览器或设备资源，并通过 `nodes` 注册对应 Agent 的 Node。这些资源和 Node 决定各执行项目可用的能力。
+在 `setup` 中准备项目共享资源，在 `fileSetup` 中准备每份文件独立使用的资源，并通过 `nodes` 注册对应 Agent 的 Node。
 
 | 字段 | 用途 |
 | --- | --- |
 | `setup` | 准备项目共享的浏览器或设备资源。 |
-| `fileSetup` | 开启文件调度后，为每份 YAML 准备独立的运行环境。 |
+| `fileSetup` | 为每份 YAML 准备运行环境，串行和并发执行时都可使用。 |
 | `nodes` | 注册所有执行项目共享的 Node。 |
 | `projects` | 声明具名执行项目，分别配置资源和用例选择规则。声明后，`setup` 和 `fileSetup` 都放在各项目中；省略时，顶层配置用于默认项目。 |
 | `test` | 设置并发数、失败阈值和默认步骤超时。 |
@@ -32,7 +32,7 @@ Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。�
 
 ### 完整示例：Playwright
 
-下面的配置让同一执行项目中的文件顺序执行，共用一个页面。需要同时执行多份文件时，使用后文的[文件并发配置](#使用-maxconcurrentfiles-开启文件并发)。
+下面是只使用 `setup` 的串行配置：同一执行项目中的所有文件共用一个页面。需要每份文件使用独立环境时，添加 [`fileSetup`](#用-filesetup-隔离资源)，不必先开启并发。
 
 如果要在已有工程中手动接入，请先安装 `@midscene/test`、`@midscene/web` 和 `playwright`（`pnpm add -D @midscene/test @midscene/web playwright`），再执行 `pnpm exec playwright install chromium` 安装浏览器。运行测试前，还需按[模型配置](../model-config)设置 API Key 等环境变量。
 
@@ -108,6 +108,20 @@ export default defineTestProject<ProjectContext>({
 这里的 `onTeardown()` 在项目结束时执行。在 Node 内部注册的清理函数有独立的[执行范围](./extend#资源的生命周期与清理)。
 
 ## 项目生命周期
+
+### setup、fileSetup 与 beforeAll
+
+三者按 `setup → fileSetup → beforeAll → 用例` 的顺序执行，未配置的部分会跳过。
+
+| 配置 | 位置 | 执行次数 | 用途 |
+| --- | --- | --- | --- |
+| `setup` | 项目配置 | 每个项目一次 | 准备共享资源，例如 Browser |
+| `fileSetup` | 项目配置 | 每份文件一次 | 创建独立页面、Agent，返回 Node 使用的 `context` |
+| `beforeAll` | YAML | 每份文件的用例开始前一次 | 使用 `context` 登录、准备测试数据等 |
+
+正常执行两份 YAML 时，`setup` 执行一次，`fileSetup` 和 `beforeAll` 各执行两次；并发数不改变执行次数。
+
+`fileSetup` 配置一次即可用于所有文件；`beforeAll` 由各文件声明。自定义 Node 也能在 `beforeAll` 中创建资源，但框架不会因此创建独立的文件 context。
 
 ### 项目、文件与用例的生命周期
 
@@ -441,11 +455,6 @@ pnpm exec midscene-test nodes --project android-smoke
 
 `setup` 准备项目共享资源，`fileSetup` 准备每份文件独享的资源。Web 测试可以共享一个 Browser，每份文件分别创建 BrowserContext、Page 和 Agent，隔离 Cookie 等浏览器状态。
 
-| 定义方式 | 配置位置 | 执行时机 | 返回值用于 |
-| --- | --- | --- | --- |
-| `defineProjectSetup()` | `projects[].setup` | 项目首份文件执行前，一次 | 传给 `fileSetup` 的 `projectContext` |
-| `defineFileSetup()` | `projects[].fileSetup` | 每份文件的 `beforeAll` 之前 | 该文件所有 Node 的 `context` |
-
 ```ts filename=midscene.config.ts
 import {
   defineFileSetup,
@@ -499,6 +508,26 @@ export default defineTestProject<FileContext, SharedContext>({
   }),
 });
 ```
+
+YAML 使用已准备好的 Agent，`beforeAll` 设置视口，`beforeEach` 为每个用例打开首页：
+
+```yaml filename=cases/web/search.yaml
+beforeAll:
+  - setViewportSize:
+      width: 1280
+      height: 720
+
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: 搜索商品
+    steps:
+      - aiAct: 搜索马克杯
+      - aiAssert: 搜索结果中包含马克杯
+```
+
+本例在 `fileSetup` 中创建 Agent。文件结束后依次销毁 Agent、关闭 BrowserContext；所有文件清理完成后关闭共享 Browser。
 
 `defineFileSetup<FileContext, SharedContext>` 的两个类型分别描述文件返回值和项目返回值。`fileSetup` 返回完整的文件 context，不会与 `projectContext` 自动合并；Node 需要的共享字段应显式返回。
 
@@ -568,3 +597,10 @@ import {
 * **`runTestProject()`**：异步发现、运行并汇总整个项目。
 * **`CaseRunner` / `createCaseRunner()`**：直接执行纯对象形式的单个用例（不含文件解析和生命周期控制）。
 * **`runWorkflowDocument()`**：执行单个文档的完整生命周期及内部全部 Case。
+
+## 使用注意事项
+
+- **按需配置。** 没有共享资源可只用 `fileSetup`；有效文件上限为 `1` 时可省略它，文件共用 `setup` 的返回值。
+- **并发需要隔离。** 有效文件上限大于 `1`（含不限制）时必须配置 `fileSetup`，即使只选中一份文件。各文件应使用独立页面、Agent 和设备，后端账号与数据也需自行隔离。
+- **重试不重做准备。** `setup`、`fileSetup`、`beforeAll` 不重跑；每次尝试需要的状态在 `beforeEach` 中重置。
+- **及时登记清理。** 创建资源后立即调用 `onTeardown()`。先清理文件资源，再清理项目共享资源；清理逻辑应能处理准备只完成一部分的情况。

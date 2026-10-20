@@ -22,11 +22,13 @@ interface ProjectContext {
   browser: Browser;
 }
 
+// Create the Agent on first use; reuse it within this file.
 const getAgent = ({ context }: NodeExecutionContext<unknown, FileContext>) => {
   context.agent ??= new PlaywrightAgent(context.page);
   return context.agent;
 };
 
+// Once per project: keep the shared Browser until every file has cleaned up.
 const setup = defineProjectSetup<ProjectContext>({
   name: 'web',
   async setup({ env, onTeardown }) {
@@ -38,6 +40,7 @@ const setup = defineProjectSetup<ProjectContext>({
   },
 });
 
+// Before each file's beforeAll: create its session, page, and Node context.
 const fileSetup = defineFileSetup<FileContext, ProjectContext>({
   name: 'web-file',
   async setup({ projectContext, signal, onTeardown }) {
