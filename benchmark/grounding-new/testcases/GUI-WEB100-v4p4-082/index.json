@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-082",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. The registration page has only one \"使用 Google 帐号注册\" button, fully enclosed by the GT. The Apple button has a different icon and text."
+  },
+  "instruction": {
+    "en": "Find the button that says \"Sign up with Google account.\"",
+    "zh": "找到“使用 Google 帐号注册”的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1027.0, 1836.0, 1115.0, 1187.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L16732",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1195",
+    "image": {
+      "format": "png",
+      "sha256": "23364bcd772032806326b581874de42ddc51ac8d498f132268dd8aacc632eabf"
+    },
+    "patch": null,
+    "collectedAt": 1792485870971
+  }
+}

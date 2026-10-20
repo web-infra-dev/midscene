@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-007",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find the button that says \"Enjoy a coupon for 70 off on purchases of 700 or more.\"",
+    "zh": "找到“可享满700减70消费券”的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [637.0, 1057.0, 707.0, 394.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L20960",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1497",
+    "image": {
+      "format": "png",
+      "sha256": "a96853f0d603128447639c1a64a8a284745442ad24e0ca77036de6a96fca56c1"
+    },
+    "patch": null,
+    "collectedAt": 1792485870351
+  }
+}

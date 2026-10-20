@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-083",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The dialog X is directly visible; the target is approximately 18.5×15.6 normalized pixels in size, with no additional functional understanding required."
+  },
+  "instruction": {
+    "en": "Find the close or cancel icon in the \"Add to Favorites\" dialog box.",
+    "zh": "找到“添加收藏”对话框中的关闭或取消图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [680.0, 2625.0, 740.0, 2554.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L20050",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1432",
+    "image": {
+      "format": "png",
+      "sha256": "c29939081fde90466edaf7b3be314c8f21832a56a90bcfb52f99d34c1bb6625e"
+    },
+    "patch": null,
+    "collectedAt": 1792485870972
+  }
+}

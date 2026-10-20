@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-063",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "Combine two anchors, the comment-section title and the first comment, to identify the icon instance."
+  },
+  "instruction": {
+    "en": "Find the icon located to the right of the title in the comment section and above the first comment.",
+    "zh": "找到评论区标题右侧且在第一条评论上方的图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [201.0, 2602.0, 227.0, 2561.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/spatial_grounding.json#L8458",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/spatial_grounding.json#604",
+    "image": {
+      "format": "png",
+      "sha256": "3705bb484818736684c329c1dd9f4f904c6c21cb72276cbf6e87104935bd3d82"
+    },
+    "patch": null,
+    "collectedAt": 1792485870646
+  }
+}

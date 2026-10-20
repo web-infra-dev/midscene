@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-042",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Add waypoint",
+    "zh": "添加途经点"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [174.0, 810.0, 266.0, 704.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1612",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=115",
+    "image": {
+      "format": "png",
+      "sha256": "1c15b92923d952ff4f02483bd41eda6ed1e1ddf37226dec33be26865f9f071d2"
+    },
+    "patch": null,
+    "collectedAt": 1792485870266
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-064",
+  "platform": "web",
+  "category": {
+    "item": "Refusal",
+    "reason": "Create control is blue; no red Create button appears at the top."
+  },
+  "instruction": {
+    "en": "Find the red Create button at the top of the screen.",
+    "zh": "找到屏幕顶部红色的创建按钮"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": "REFUSAL",
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/refusal_grounding.json#L373",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/refusal_grounding.json#53",
+    "image": {
+      "format": "png",
+      "sha256": "20c00822731eb2210cfc49ba0ccfb7f183aa870609af48b030cd081969459de6"
+    },
+    "patch": null,
+    "collectedAt": 1792485870907
+  }
+}

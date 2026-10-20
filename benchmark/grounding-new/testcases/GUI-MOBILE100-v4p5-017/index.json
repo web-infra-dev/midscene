@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p5-017",
+  "platform": "mobile",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "The heart-shaped favorite controls are repeated; the 12万 count and character-description anchor uniquely identify the target."
+  },
+  "instruction": {
+    "en": "A like or favorite counter showing a heart icon and 12万 (120,000) count, located beneath a character description in the novel details page",
+    "zh": "位于小说详情页角色描述下方的点赞或收藏计数器，显示心形图标和 12万（120,000）的计数。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1550.0, 459.0, 1658.0, 386.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L6995",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "368",
+    "image": {
+      "format": "png",
+      "sha256": "b834f44264f1b96ed2c78793d6c78ac81bedf5a0f368c024c3b50afe82152eec"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870471
+  }
+}

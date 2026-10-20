@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-054",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Will use the car later.",
+    "zh": "待会用车"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1828.0, 1022.0, 1892.0, 959.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1472",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=105",
+    "image": {
+      "format": "png",
+      "sha256": "1afc6fb6e4c25c56001e99df59de4f686d41eda1aee444ed678d89e819d9f00d"
+    },
+    "patch": null,
+    "collectedAt": 1792485870296
+  }
+}

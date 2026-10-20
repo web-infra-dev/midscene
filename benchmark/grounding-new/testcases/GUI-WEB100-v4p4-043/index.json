@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-043",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. The only \"Show whole month\" link at the top of the flight-results list corresponds to the monthly calendar view, and the official box accurately covers it."
+  },
+  "instruction": {
+    "en": "Switch to monthly calendar view",
+    "zh": "切换至月度日历视图"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [481.0, 2358.0, 513.0, 2144.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L7716",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#551",
+    "image": {
+      "format": "png",
+      "sha256": "e67fbeed36c6c79df992daa89601babb2bbf75b97e0836504499045ccbb08552"
+    },
+    "patch": null,
+    "collectedAt": 1792485870937
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-024",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The 0.5x zoom value is explicitly visible and requires no functional inference; at a reference scale with the short side set to 360 pixels, the box is approximately 36×34 pixels, so it is classified as Element rather than Small."
+  },
+  "instruction": {
+    "en": "switch to 0.5x",
+    "zh": "切换到 0.5x。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1765.0, 583.0, 1874.0, 465.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L770",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#64",
+    "image": {
+      "format": "png",
+      "sha256": "7d22eed86b5dfea33e18101fbdc132d8d5a5f4f82d024f8bfb1c56f168545122"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870430
+  }
+}

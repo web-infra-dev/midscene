@@ -1,6 +1,7 @@
 import type {
   CaseRecord,
   CodeVersionSnapshot,
+  DatasetVersionSnapshot,
   ImageType,
   StoredModelRecord,
 } from '../types.js';
@@ -185,6 +186,7 @@ export type MidsceneResultsFileData = {
   versions: {
     grounding: CodeVersionSnapshot;
     midscene: CodeVersionSnapshot;
+    dataset: DatasetVersionSnapshot;
   };
   midsceneRepo: {
     repoPath: string;

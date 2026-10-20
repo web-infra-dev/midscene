@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-005",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Read the task dependency rather than merely matching its name."
+  },
+  "instruction": {
+    "en": "In the first phase, check the task upon which the task \"Protect finished works in public areas and interiors...\" depends.",
+    "zh": "在第一阶段中，查看“对公共区域及室内成品进行...”任务所依赖的那个任务。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [512.0, 1271.0, 581.0, 965.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L7800",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#557",
+    "image": {
+      "format": "png",
+      "sha256": "cc77a99afb7d1dbcc74fd81f9a944c2888e8e140890bda257c3fc4ca73ac58f7"
+    },
+    "patch": null,
+    "collectedAt": 1792485870690
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-032",
+  "platform": "mobile",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "Several brush-tip shapes look similar; the watercolor brush tool type must be mapped to its tip."
+  },
+  "instruction": {
+    "en": "choose watercolor brush style",
+    "zh": "选择水彩画笔样式。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [2208.0, 510.0, 2430.0, 408.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_mobile_v2.json#L3374",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_mobile_v2.json#281",
+    "image": {
+      "format": "png",
+      "sha256": "393d91b899acde24fb4f680cefe64aa8b2dde0efc093d7bd103cf082eba54fe7"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870177
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p8-009",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Combine distance from the landmark with hotel status, primarily testing comparison and state reasoning."
+  },
+  "instruction": {
+    "en": "Find the nearest available hotel for sale near \"Aurora International Building\" on the map.",
+    "zh": "在地图上找到离“震旦国际大楼”最近的在售酒店。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [97.0, 2883.0, 138.0, 2740.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L7352",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#525",
+    "image": {
+      "format": "png",
+      "sha256": "edae2fe2c4c93eb38ad8b130dfccbcccaf79306fad629227206865feea1808ce"
+    },
+    "patch": null,
+    "collectedAt": 1792485871033
+  }
+}

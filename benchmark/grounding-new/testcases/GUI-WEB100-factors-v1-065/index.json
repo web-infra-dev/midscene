@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-065",
+  "platform": "web",
+  "category": {
+    "item": "Relative Position",
+    "reason": "First locate the first image in the top row, then find the image immediately to its right; the query does not directly provide the name."
+  },
+  "instruction": {
+    "en": "Find the artist image located immediately to the right and adjacent to the first artist image in the top row.",
+    "zh": "找到位于顶部一行第一个艺术家图像右侧且相邻的艺术家图像。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [501.0, 1920.0, 761.0, 1661.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/spatial_grounding.json#L12798",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/spatial_grounding.json#914",
+    "image": {
+      "format": "png",
+      "sha256": "db9c578ccaf97f7fb9b9722edff3b91f61a248bd58cf5576f018878f6a547ff0"
+    },
+    "patch": null,
+    "collectedAt": 1792485870651
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-098",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. Only one blue button on the left side of the page says Try it now, and the GT tightly encloses it. Get it free and the cookie buttons have different text."
+  },
+  "instruction": {
+    "en": "The button that says \"Try it now\"",
+    "zh": "写着 \"Try it now\" 的按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [431.0, 124.9, 471.0, 16.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00001-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/574",
+    "image": {
+      "format": "png",
+      "sha256": "c37514d5c94340a3933ea8ff203d53cfafdc9b196cf118e04a7bd92100fcffc6"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485871004
+  }
+}

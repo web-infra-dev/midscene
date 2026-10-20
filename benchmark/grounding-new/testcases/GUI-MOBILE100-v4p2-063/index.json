@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-063",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Avoid the city's restricted traffic zones.",
+    "zh": "避开城市的限行区域"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1319.0, 1018.0, 1402.0, 879.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L2606",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=186",
+    "image": {
+      "format": "png",
+      "sha256": "aa624a53b93e15f10c7988798a83dea3462e8960a48a5e40ae6cb3adf7b56bc6"
+    },
+    "patch": null,
+    "collectedAt": 1792485870301
+  }
+}

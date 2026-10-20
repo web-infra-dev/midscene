@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-028",
+  "platform": "mobile",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "Several coupons have identical 可领取 buttons; the 415-50 coupon text uniquely identifies the target row."
+  },
+  "instruction": {
+    "en": "A rectangular button with pink text '可领取' located on the right side of the coupon card for 415-50",
+    "zh": "位于 415-50 优惠券卡片右侧、带有粉色“可领取”文字的矩形按钮。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1742.0, 1048.0, 1929.0, 879.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L7850",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "413",
+    "image": {
+      "format": "png",
+      "sha256": "9d747ff3be6e8bfdd575c6c11d08f8840efa2326195f5d064cdf2591edcc7990"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870450
+  }
+}

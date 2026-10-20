@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-088",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "Remember me is directly named; the GT is the small checkbox to its left."
+  },
+  "instruction": {
+    "en": "select remember me",
+    "zh": "选择 remember me。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [878.0, 301.0, 924.0, 257.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L2918",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_243",
+    "image": {
+      "format": "png",
+      "sha256": "ea487493e4ed4807556b680b8b36e25d6490f480fac16de62fd46fe8adcdfdc9"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870979
+  }
+}

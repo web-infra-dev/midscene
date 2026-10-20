@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-034",
+  "platform": "web",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "A specialized image-transformation icon combining two triangles and a bent arrow."
+  },
+  "instruction": {
+    "en": "Click on the Transformation layout icon",
+    "zh": "点击变换布局（Transformation layout）图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [5.5, 550.0, 106.2, 449.2],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Tajamul21/MedSPOT/resolve/dc65c80d24cd380e08ff7de2b2aa63b7d20bef60/Annotations/Bluelight_Annotation.json",
+    "dataset": "MedSPOT",
+    "recordId": "Annotations/Bluelight_Annotation.json#tasks[3].steps[0]",
+    "image": {
+      "format": "png",
+      "sha256": "14624128f0e70e3d847e7ccadafbaf04c3a77257d6385b681119f0dc8c3159ca"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870584
+  }
+}

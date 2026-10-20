@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-005",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find the text \"Albany Transit System\" in the transportation agency options.",
+    "zh": "在交通机构选项中找到文本“Albany Transit System”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [914.0, 824.0, 973.0, 265.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L15094",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1078",
+    "image": {
+      "format": "png",
+      "sha256": "8eb67a3b20e6a4ba2c2cd2a9ff6387ab36338c9e79f5a780af7b32c5c5f46b94"
+    },
+    "patch": null,
+    "collectedAt": 1792485870343
+  }
+}

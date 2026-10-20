@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-081",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. The Assets list contains only one download item with the full matching name, and the GT covers that row. Other filenames differ in their operating-system or architecture suffixes, allowing direct matching by the full text."
+  },
+  "instruction": {
+    "en": "Select the 'etcd-v3.6.4-linux-ppc64le.tar.gz' menu item from the asset list.",
+    "zh": "在资产列表中选择 'etcd-v3.6.4-linux-ppc64le.tar.gz' 菜单项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1296.0, 2978.0, 1371.0, 1238.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L13190",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#942",
+    "image": {
+      "format": "png",
+      "sha256": "8a2ae8f42a934266e5128f91bc25a19fcbc382ed24f6fe167c0cc4ce0c8123ce"
+    },
+    "patch": null,
+    "collectedAt": 1792485870970
+  }
+}

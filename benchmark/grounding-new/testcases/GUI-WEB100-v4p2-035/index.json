@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-035",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Night-mode action represented by a compact unlabeled header icon."
+  },
+  "instruction": {
+    "en": "Switch to night mode",
+    "zh": "切换为夜间模式"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [29.0, 2915.0, 91.0, 2854.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L1248",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#89",
+    "image": {
+      "format": "png",
+      "sha256": "7d5ae3bb4531745c63876871290ff8f26af483109f72457e1aa61c3600423fff"
+    },
+    "patch": null,
+    "collectedAt": 1792485870841
+  }
+}

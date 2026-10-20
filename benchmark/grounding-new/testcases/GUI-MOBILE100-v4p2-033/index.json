@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-033",
+  "platform": "mobile",
+  "category": {
+    "item": "Functional",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Expand the advanced filter panel",
+    "zh": "展开高级筛选面板"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [226.0, 994.0, 293.0, 858.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L576",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#row=41",
+    "image": {
+      "format": "png",
+      "sha256": "88dcb44f3122cb1a8cbb083fc760d71900392fdb036743282cb3b111656b5e80"
+    },
+    "patch": null,
+    "collectedAt": 1792485870233
+  }
+}

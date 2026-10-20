@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p5-096",
+  "platform": "web",
+  "category": {
+    "item": "Disambiguation",
+    "reason": "Among multiple coffee-maker cards, use the full model name to identify the corresponding image."
+  },
+  "instruction": {
+    "en": "Click on the image for the Ninja 12-Cup Programmable Coffee Brewer",
+    "zh": "点击 Ninja 12-Cup Programmable Coffee Brewer 的图片。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [793.5, 774.9, 1034.6, 577.6],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Hcompany/WebClick/resolve/9482a7d5aaa8f4cd5d28d9ed0c8e0c48d20b1e4a/test-00002-of-00004.parquet",
+    "dataset": "WebClick",
+    "recordId": "default/test/1196",
+    "image": {
+      "format": "png",
+      "sha256": "4da8bb37f7c43c46d1d3b93976c42d65c86bd40ffe7461994a75a8320347058f"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485871010
+  }
+}

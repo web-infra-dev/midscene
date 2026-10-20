@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-086",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. The screenshot contains only one thumbs-up icon beneath the issue, adjacent to thumbs-down and smiley buttons; the official box covers the thumbs-up button."
+  },
+  "instruction": {
+    "en": "Click the thumbs up icon on this issue",
+    "zh": "点击此 issue 上的拇指朝上图标。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [700.0, 649.0, 767.0, 542.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OS-Copilot/ScreenSpot-v2/blob/5efbb1f1b5463a575f2eb7bc30fe29e49c15f93c/screenspot_web_v2.json#L326",
+    "dataset": "ScreenSpot-v2",
+    "recordId": "screenspot_web_v2_27",
+    "image": {
+      "format": "png",
+      "sha256": "a94884520f0e18f556f5b6256eb6016a22df0c54f0ae8891f91631ef2171c894"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870978
+  }
+}

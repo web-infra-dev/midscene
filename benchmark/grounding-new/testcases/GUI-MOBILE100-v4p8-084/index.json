@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p8-084",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Red planet must be mapped to Mars; the target label is Astronaut on Mars."
+  },
+  "instruction": {
+    "en": "Select the option to generate an AI image of a person exploring the red planet",
+    "zh": "选择生成一个人在红色星球上探索的 AI 图像的选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [803.0, 1142.0, 1210.0, 597.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L58599",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "3084",
+    "image": {
+      "format": "png",
+      "sha256": "0ec6933e7ef183abce805fc0c2c6e6fbd28ac15a1af8e3b0b5f34ebd548d2570"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870567
+  }
+}

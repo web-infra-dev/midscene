@@ -170,6 +170,7 @@ export type DatasetRow = {
   width: number;
   height: number;
   source_name: string;
+  source_revision: string;
   source_category: string;
   source_id: string;
   image_path: string;

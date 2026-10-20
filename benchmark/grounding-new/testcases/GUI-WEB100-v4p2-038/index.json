@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-038",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "No Advance Payment Required is explicitly specified; the target is a checkbox approximately 10.4×11.2 normalized pixels in size."
+  },
+  "instruction": {
+    "en": "Select the \"No Advance Payment Required\" filter option",
+    "zh": "勾选无需提前付款筛选项"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [181.0, 878.0, 224.0, 838.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L2018",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#144",
+    "image": {
+      "format": "png",
+      "sha256": "0a1be38c10082077e35c284cc57dfcdbea1f6c8144db6c7649c656558ef8456e"
+    },
+    "patch": null,
+    "collectedAt": 1792485870855
+  }
+}

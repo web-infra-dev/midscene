@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-010",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+  },
+  "instruction": {
+    "en": "Find the text \"Chèchí YEN\" in the follow list.",
+    "zh": "在关注列表中找到文本“掣驰YEN”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1008.0, 355.0, 1054.0, 193.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L17096",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1221",
+    "image": {
+      "format": "png",
+      "sha256": "8d228be044ba463c0c13f5d9bdad9dc603d21737bda76310520fe1b36f376e4e"
+    },
+    "patch": null,
+    "collectedAt": 1792485870367
+  }
+}

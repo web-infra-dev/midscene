@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-068",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Compare the visible discount amounts 557, 511, and 637, and select the booking entry corresponding to the largest amount."
+  },
+  "instruction": {
+    "en": "Book the room with the highest discount amount",
+    "zh": "预定优惠金额最多的房间"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1920.0, 1024.0, 2038.0, 899.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L4608",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#329",
+    "image": {
+      "format": "png",
+      "sha256": "f45d5411215d9cd9bff5105bc68ba637809b5f09d313e9e30c175b91493c68bc"
+    },
+    "patch": null,
+    "collectedAt": 1792485870219
+  }
+}

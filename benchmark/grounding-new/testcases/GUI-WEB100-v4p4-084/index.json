@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-084",
+  "platform": "web",
+  "category": {
+    "item": "Small Target",
+    "reason": "The Forward simultaneously label is explicit; the small box is approximately 8.1×7.3 normalized pixels in size."
+  },
+  "instruction": {
+    "en": "Find the checkbox for the \"Forward simultaneously\" text.",
+    "zh": "找到“同时转发”文本的复选框。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1020.0, 1515.0, 1048.0, 1484.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L17110",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1222",
+    "image": {
+      "format": "png",
+      "sha256": "97e12b08735c4da01a739ee3b7aca79acb0a6cb7531f2bbdbedf7af9b4a68ca1"
+    },
+    "patch": null,
+    "collectedAt": 1792485870974
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-027",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. The only \"重置\" button in the expanded price-range panel corresponds to clearing the price filter; it is clearly distinct from \"确定\" and the panel-close button."
+  },
+  "instruction": {
+    "en": "Clear the current price filter criteria",
+    "zh": "清空当前价格筛选条件"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1156.0, 1095.0, 1226.0, 957.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L7786",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#556",
+    "image": {
+      "format": "png",
+      "sha256": "d30a753d9f07eea536506f17573d99c7ff7c7f278e2f3d61bf963c7ea62b331f"
+    },
+    "patch": null,
+    "collectedAt": 1792485870933
+  }
+}

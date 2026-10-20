@@ -140,7 +140,10 @@ try {
     `${new Date().toISOString().replace(/[:.]/g, '-')}-grounding`;
   if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(config.execution.runId))
     throw new Error('Invalid --run-id');
-  config.meta.title ||= 'Web v4.7 + Mobile v4.6 Grounding';
+  const { collectDatasetVersion, runEvaluation } = await import(
+    './run-midscene-evaluation.js'
+  );
+  config.meta.title ||= `${(await collectDatasetVersion()).id} Grounding`;
   const runDir = await ensureRunDir(config.execution.runId);
   const configPath = path.join(runDir, 'run-config.json');
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, {
@@ -157,7 +160,6 @@ try {
       2,
     )}\n`,
   );
-  const { runEvaluation } = await import('./run-midscene-evaluation.js');
   await runEvaluation(configPath);
 } finally {
   await closeAdapter?.();

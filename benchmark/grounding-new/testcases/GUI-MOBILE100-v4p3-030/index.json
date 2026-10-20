@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p3-030",
+  "platform": "mobile",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The Feedback icon has an explicit application name and a complete appearance description; it is classified as Element, with purple only describing an icon of a distinct shape."
+  },
+  "instruction": {
+    "en": "A vibrant purple application icon featuring a white speech bubble with an exclamation mark, labeled 'Feedback' at the bottom",
+    "zh": "一个鲜艳的紫色应用图标，上面是带有感叹号的白色对话气泡，底部标为“Feedback”。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [413.0, 703.0, 579.0, 571.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L26356",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "1387",
+    "image": {
+      "format": "png",
+      "sha256": "856b13cc63b6b8c38b9f8bbe7c7cc0e97129a1e129d2dd2a45d97626c0f52bb5"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870459
+  }
+}

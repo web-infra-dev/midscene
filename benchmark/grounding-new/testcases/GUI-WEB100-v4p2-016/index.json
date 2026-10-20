@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-016",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Identify which newly published book card has no star rating."
+  },
+  "instruction": {
+    "en": "In the newly published paper books, find books without star ratings and click to view details.",
+    "zh": "在刚出版的纸质书中，找到没有星级评分的书籍，点击查看详情。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [895.0, 1976.0, 1300.0, 1703.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L12490",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#892",
+    "image": {
+      "format": "png",
+      "sha256": "72884e2679539cdbe0dea6aeed74dc6b90d319a653c5c8fb48d1a7411149918b"
+    },
+    "patch": null,
+    "collectedAt": 1792485870731
+  }
+}

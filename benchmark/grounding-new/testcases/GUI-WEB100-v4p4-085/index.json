@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p4-085",
+  "platform": "web",
+  "category": {
+    "item": "Basic Element",
+    "reason": "The original query directly names the target or describes its visible appearance. The comment-sorting dropdown is already open, with Best as its first option, enclosed by the GT. The current value above also displays Best, but the query explicitly asks for an option in the menu."
+  },
+  "instruction": {
+    "en": "Find the \"Best\" option from the comment sorting menu.",
+    "zh": "从评论排序菜单中找到“最佳”选项"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [399.0, 1145.0, 517.0, 736.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/element_grounding.json#L20218",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/element_grounding.json#1444",
+    "image": {
+      "format": "png",
+      "sha256": "ebb1fad12e5c2c390ded44415075c3e2cca0e6e499d700489ec0e451a528466a"
+    },
+    "patch": null,
+    "collectedAt": 1792485870976
+  }
+}

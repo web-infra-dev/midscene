@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-047",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. User-message entry within a dense inbox with several adjacent message classes."
+  },
+  "instruction": {
+    "en": "View user messages",
+    "zh": "查看用户消息"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [258.0, 1053.0, 330.0, 780.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L6428",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#459",
+    "image": {
+      "format": "png",
+      "sha256": "99f08796c30701f7e5d3129482b5773003f6fa8329497878a486ae51c962ceb0"
+    },
+    "patch": null,
+    "collectedAt": 1792485870869
+  }
+}

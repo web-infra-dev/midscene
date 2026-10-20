@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-factors-v1-054",
+  "platform": "web",
+  "category": {
+    "item": "Fine-grained Manipulation",
+    "reason": "The official box covers only a narrow area near the insertion point, not the entire input field."
+  },
+  "instruction": {
+    "en": "Add \"s\" after the word \"extension\".",
+    "zh": "在单词 \"extension\" 后添加 \"s\"。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [415.4, 700.1, 457.0, 684.1],
+  "reference": {
+    "url": "https://raw.githubusercontent.com/xlang-ai/OSWorld-G/daa6bd8e0e629f0917ad2984df930bf0bd967540/benchmark/OSWorld-G.json#L10905",
+    "dataset": "OSWorld-G",
+    "recordId": "rpngAhRMhE-1",
+    "image": {
+      "format": "png",
+      "sha256": "02725866456bfab43a6bab60c07d6c5726dc69ce8e029524d59da21a32daae21"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792485870640
+  }
+}

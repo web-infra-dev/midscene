@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-v4p2-071",
+  "platform": "mobile",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Compare the update dates in the list; 12 hours ago is more recent than 2 days ago or August 8."
+  },
+  "instruction": {
+    "en": "View recently updated videos",
+    "zh": "查看最近更新的视频"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [914.0, 1049.0, 1197.0, 32.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L5042",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#row=360",
+    "image": {
+      "format": "png",
+      "sha256": "c3076b464575097ffd837751f9dfae3db9ecdd5ed9d4b25905c1a9e96dc7b63c"
+    },
+    "patch": null,
+    "collectedAt": 1792485870312
+  }
+}

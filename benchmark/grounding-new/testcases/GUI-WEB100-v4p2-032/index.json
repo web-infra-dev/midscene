@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-032",
+  "platform": "web",
+  "category": {
+    "item": "Functional",
+    "reason": "Map the action intent in the original query to the page control. Tiny shuffle control in the playback bar, separated from the prominent play button."
+  },
+  "instruction": {
+    "en": "Shuffle mode",
+    "zh": "随机播放模式"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1740.0, 1373.0, 1817.0, 1300.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/functional_grounding.json#L772",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/functional_grounding.json#55",
+    "image": {
+      "format": "png",
+      "sha256": "e7548d581ba6b98b4e81b2fd559f2b9633db263248c6f61b849d307176150d06"
+    },
+    "patch": null,
+    "collectedAt": 1792485870826
+  }
+}

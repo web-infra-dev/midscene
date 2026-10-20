@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-052",
+  "platform": "mobile",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "Five circular dots have the same shape; orange and yellow are similar but visibly distinguishable, so color information must be used in the selection."
+  },
+  "instruction": {
+    "en": "Change yellow to the first orange to its left.",
+    "zh": "将黄色改为其左侧第一个橙色"
+  },
+  "instructionLanguage": "zh",
+  "groundTruth": [2237.0, 472.0, 2331.0, 362.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/CSpecificData200json_cn/C2ColorPicker40.json#L73",
+    "dataset": "FineState-Bench",
+    "recordId": "mobile/CSpecificData200json_cn/C2ColorPicker40.json#4",
+    "image": {
+      "format": "png",
+      "sha256": "78fda24bfabaa77f53507c5268b4d105161076c29a973f53ccf8b866d4e054cb"
+    },
+    "patch": "Added instruction.en by translating the original Chinese instruction",
+    "collectedAt": 1792485870198
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "GUI-MOBILE100-factors-v1-023",
+  "platform": "mobile",
+  "category": {
+    "item": "Specialized Icon",
+    "reason": "The target is an application-specific DeepSearch swirl icon rather than a generic magnifying-glass icon, and the icon itself has no text label."
+  },
+  "instruction": {
+    "en": "A rounded square button with the DeepSearch icon, positioned between the paperclip and lightbulb buttons",
+    "zh": "一个带有 DeepSearch 图标的圆角方形按钮，位于回形针按钮和灯泡按钮之间。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1386.9, 291.0, 1479.9, 191.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/OpenGVLab/MMBench-GUI/blob/e27757e3910e0d5995b811f916b509b4e34a4690/L2_annotations.json#L22708",
+    "dataset": "MMBench-GUI L2",
+    "recordId": "1195",
+    "image": {
+      "format": "png",
+      "sha256": "ec7b5dd163a05a52c7823814705d3614acc817b2bcca2c315d7b20a572c16b58"
+    },
+    "patch": "Added instruction.zh by translating the original English instruction",
+    "collectedAt": 1792483500019
+  }
+}

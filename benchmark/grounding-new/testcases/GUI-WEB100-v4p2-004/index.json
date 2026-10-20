@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-004",
+  "platform": "web",
+  "category": {
+    "item": "Reasoning",
+    "reason": "Combine the phase, week number, and timeline to identify the task."
+  },
+  "instruction": {
+    "en": "Find the tasks scheduled to be completed between the 17th and 23rd of Week 47 in Phase Two, and click to view details.",
+    "zh": "找到第二阶段中预计第47周17-23日之间完成的任务，点击查看详情"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [1702.0, 3550.0, 1773.0, 3077.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L14716",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#1051",
+    "image": {
+      "format": "png",
+      "sha256": "9952bb0acf638bb3285fa52b6059a9c14d1db9de24ca550e254d3b60caed2fc6"
+    },
+    "patch": null,
+    "collectedAt": 1792485870688
+  }
+}

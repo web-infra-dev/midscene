@@ -1,0 +1,25 @@
+{
+  "name": "GUI-WEB100-v4p2-014",
+  "platform": "web",
+  "category": {
+    "item": "Color Recognition",
+    "reason": "First restrict the candidates to October 14 as specified in the original query, then use color to distinguish identically shaped options within that date column."
+  },
+  "instruction": {
+    "en": "Select the option for Tuesday, October 14, with the color purple.",
+    "zh": "选择10月14日星期二颜色是紫色的选项。"
+  },
+  "instructionLanguage": "en",
+  "groundTruth": [707.0, 1380.0, 773.0, 1092.0],
+  "reference": {
+    "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L10236",
+    "dataset": "VenusBench-GD",
+    "recordId": "instruction/reason_grounding.json#731",
+    "image": {
+      "format": "png",
+      "sha256": "758e0b6ad86c46806e86422a53c388cb367eae9d8fcdf4da9ec0c46ccd8f794d"
+    },
+    "patch": null,
+    "collectedAt": 1792485870712
+  }
+}
