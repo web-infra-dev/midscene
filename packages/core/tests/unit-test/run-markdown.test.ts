@@ -5,11 +5,13 @@ import { Agent } from '@/agent';
 import { markdownToAiActPrompt } from '@/agent/run-markdown';
 import { paramStr } from '@/agent/ui-utils';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
+import { installAgentReportManager } from './test-helpers/agent-report-manager';
 
 let tempDir: string | undefined;
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
+  installAgentReportManager(agent);
   (agent as any).opts = {};
   (agent as any).aiAct = rs.fn(async () => 'done');
   return agent;

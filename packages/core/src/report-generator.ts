@@ -142,7 +142,8 @@ export class ReportGenerator implements IReportGenerator {
 
   // write queue for serial execution
   private writeQueue: Promise<void> = Promise.resolve();
-  private destroyed = false;
+  private finalization?: Promise<string | undefined>;
+  private sourcePublications = new Set<Promise<unknown>>();
 
   constructor(options: {
     reportPath: string;
@@ -214,12 +215,12 @@ export class ReportGenerator implements IReportGenerator {
     reportMeta: ReportMeta,
     attributes?: ReportAttributes,
   ): void {
+    this.assertOpen();
     this.lastExecution = execution;
     this.lastReportMeta = reportMeta;
     this.executionsByKey.set(this.getExecutionCommentKey(execution), execution);
     this.mergeReportAttributes(attributes);
     this.writeQueue = this.writeQueue.then(async () => {
-      if (this.destroyed) return;
       await this.doWriteExecution(execution, reportMeta);
     });
   }
@@ -229,27 +230,40 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   async finalize(): Promise<string | undefined> {
-    // Re-write the last execution to capture any final state changes
-    if (this.lastExecution && this.lastReportMeta) {
-      this.onExecutionUpdate(this.lastExecution, this.lastReportMeta);
+    if (!this.finalization) {
+      // Enqueue the final state before sealing the generator to new writes.
+      if (this.lastExecution && this.lastReportMeta) {
+        this.onExecutionUpdate(this.lastExecution, this.lastReportMeta);
+      }
+      this.finalization = this.finishPublication();
     }
-    await this.flush();
-    this.destroyed = true;
+    return this.finalization;
+  }
 
-    if (!this.initialized) {
-      // No executions were ever written — no file exists
-      return undefined;
+  private async finishPublication(): Promise<string | undefined> {
+    // Snapshots freeze independently of the HTML queue, but both must be on
+    // disk before their backing executions and diagnostic data are released.
+    await Promise.all([this.flush(), ...this.sourcePublications]);
+    if (this.initialized) {
+      await this.appendAgentReportComment();
+      try {
+        await compactReportDumps(this.reportPath);
+      } catch (error) {
+        warnReport(
+          `Failed to compact report ${this.reportPath}; keeping the uncompressed report: ${String(error)}`,
+        );
+      }
     }
+    this.executionsByKey.clear();
+    this.lastExecution = undefined;
+    this.lastReportMeta = undefined;
+    this.executionCommentKeyByObject = new WeakMap();
+    this.executionLogFileIndexByExecutionKey.clear();
+    return this.initialized ? this.reportPath : undefined;
+  }
 
-    await this.appendAgentReportComment();
-    try {
-      await compactReportDumps(this.reportPath);
-    } catch (error) {
-      warnReport(
-        `Failed to compact report ${this.reportPath}; keeping the uncompressed report: ${String(error)}`,
-      );
-    }
-    return this.reportPath;
+  private assertOpen(): void {
+    if (this.finalization) throw new Error('The report has been finalized.');
   }
 
   getReportPath(): string | undefined {
@@ -261,6 +275,7 @@ export class ReportGenerator implements IReportGenerator {
     scopeId: string,
     meta: ReportMeta,
   ): Promise<string> {
+    this.assertOpen();
     this.writeQueue = this.writeQueue.then(async () => {
       // This runs at YAML invocation completion, never on progress ticks. Keep
       // all file I/O asynchronous and publish atomically for an open viewer.
@@ -383,6 +398,7 @@ ${generateAgentReportComment(agentDump)}`;
     scopeId: string,
     executionIds?: readonly string[],
   ): Promise<WorkflowReportSource & { dumpPath: string }> {
+    this.assertOpen();
     // Scope IDs originate in the kernel; never allow a filename to escape the report directory.
     if (!scopeId || basename(scopeId) !== scopeId)
       throw new Error('Invalid report scope ID');
@@ -407,15 +423,26 @@ ${generateAgentReportComment(agentDump)}`;
         executions,
       }).serialize(),
     );
-    const { serialized } = await this.serializeSourceDump(frozen, screenshots);
-    const dumpPath = `${this.reportPath}.${scopeId}.${uuid()}.json`;
-    mkdirSync(dirname(dumpPath), { recursive: true });
-    await writeFileAsync(dumpPath, serialized, { flag: 'wx' });
-    return {
-      sourcePath: this.reportPath,
-      dumpPath,
-      collection: { status: 'complete', capturedAt },
-    };
+    const publication = (async () => {
+      const { serialized } = await this.serializeSourceDump(
+        frozen,
+        screenshots,
+      );
+      const dumpPath = `${this.reportPath}.${scopeId}.${uuid()}.json`;
+      mkdirSync(dirname(dumpPath), { recursive: true });
+      await writeFileAsync(dumpPath, serialized, { flag: 'wx' });
+      return {
+        sourcePath: this.reportPath,
+        dumpPath,
+        collection: { status: 'complete' as const, capturedAt },
+      };
+    })();
+    this.sourcePublications.add(publication);
+    try {
+      return await publication;
+    } finally {
+      this.sourcePublications.delete(publication);
+    }
   }
 
   private printReportPath(): void {
@@ -479,8 +506,8 @@ ${generateAgentReportComment(agentDump)}`;
       return;
     }
 
-    const reportDir = dirname(this.reportPath);
-    const existingExecutionIndices = readdirSync(reportDir)
+    if (!existsSync(this.executionDumpDir)) return;
+    const existingExecutionIndices = readdirSync(this.executionDumpDir)
       .map((name) => /^(\d+)\.execution\.json$/.exec(name)?.[1])
       .filter((index): index is string => Boolean(index))
       .map((index) => Number.parseInt(index, 10))
@@ -620,12 +647,24 @@ ${generateAgentReportComment(agentDump)}`;
     return key;
   }
 
+  private get executionDumpDir(): string {
+    // Inline HTML files share their parent directory. Each needs its own
+    // numbered JSON namespace; external-asset reports already have one.
+    return this.screenshotMode === 'inline'
+      ? join(
+          dirname(this.reportPath),
+          '.execution-dumps',
+          basename(this.reportPath),
+        )
+      : dirname(this.reportPath);
+  }
+
   private async persistExecutionDumpToFile(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
     referenceImageRefs: ReadonlyMap<string, ImageUrlRef>,
   ): Promise<void> {
-    const dir = dirname(this.reportPath);
+    const dir = this.executionDumpDir;
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -640,12 +679,30 @@ ${generateAgentReportComment(agentDump)}`;
     }
 
     const fileName = `${fileIndex}.execution.json`;
-    const filePath = join(dirname(this.reportPath), fileName);
-    await writeFileAsync(
-      filePath,
-      singleDump.serializeWithReferenceImages(referenceImageRefs, 2),
-      'utf-8',
+    const filePath = join(dir, fileName);
+    let serialized = singleDump.serializeWithReferenceImages(
+      referenceImageRefs,
+      2,
     );
+    if (this.screenshotMode === 'inline') {
+      // JSON is two directories below the HTML. Point to the existing file
+      // copies so it can be consumed without resolving inline HTML assets.
+      serialized = JSON.stringify(
+        JSON.parse(serialized),
+        (_key, value) => {
+          const ref = normalizeStoredImageRef(value);
+          return ref
+            ? {
+                ...ref,
+                storage: 'file',
+                path: `../../screenshots/${ref.id}.${imageRefFileExtension(ref)}`,
+              }
+            : value;
+        },
+        2,
+      );
+    }
+    await writeFileAsync(filePath, serialized, 'utf-8');
   }
 }
 

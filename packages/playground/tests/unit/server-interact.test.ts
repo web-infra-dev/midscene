@@ -227,9 +227,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: rs.fn(() => {
+      resetDump: rs.fn(async () => {
         dump.executions = [];
       }),
+      finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
       callActionInActionSpace: rs.fn(async () => {
         appendExecution({ id: 'login', logTime: 300, name: 'Act - login' });
         return { ok: true };
@@ -287,6 +288,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(agent.resetDump).toHaveBeenCalledBefore(
       agent.callActionInActionSpace,
     );
+    expect(agent.finalizeReport).toHaveBeenCalledOnce();
     expect(body.dump).toBeNull();
     expect(body.reportHTML).toBeNull();
     expect(body.report).toMatchObject({
@@ -325,7 +327,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [],
       },
-      resetDump: rs.fn(),
+      resetDump: rs.fn(async () => {}),
+      finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
       aiAct: rs.fn(async (_prompt: string, options: any) => {
         capturedSignal = options.abortSignal;
         (agent as any).onDumpUpdate?.('', {
@@ -473,7 +476,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: rs.fn(),
+      resetDump: rs.fn(async () => {}),
+      finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
       callActionInActionSpace: rs.fn(async () => ({ ok: true })),
       reportFile: `${process.cwd()}/package.json`,
     };
@@ -554,7 +558,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: rs.fn(),
+      resetDump: rs.fn(async () => {}),
+      finalizeReport: rs.fn(async () => reportPath),
       callActionInActionSpace: rs.fn(async () => ({ ok: true })),
       reportFile: reportPath,
     };
