@@ -4,11 +4,11 @@ import { ModelConfigCard } from '@theme';
 
 Authorize Midscene through [Sign in with ChatGPT (SIWC)](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) to call GPT models using your ChatGPT subscription. This guide walks you through sign-in, configuration, and connection verification.
 
-Choose either a ChatGPT subscription or a [model API key](./model-api-setup) to connect Midscene. You only need to complete one of these setup guides.
+A ChatGPT subscription and a [model API key](./model-api-setup) are two ways to connect Midscene. You can choose either based on your model payment plan.
 
 ## Sign in
 
-Run in your terminal:
+The CLI provides a general-purpose way to authorize. Run the following command in your terminal:
 
 ```bash
 pnpm dlx @midscene/cli model siwc login
@@ -16,9 +16,29 @@ pnpm dlx @midscene/cli model siwc login
 
 Follow the terminal instructions to sign in to ChatGPT in your browser and authorize plan usage. You can choose a name for your Agent during authorization. Once authorized, the Agent appears on your ChatGPT usage page.
 
-The command prints an access token and its expiration time. Copy the token to use as `MIDSCENE_MODEL_API_KEY` in the next step.
+The command saves credentials to `~/.midscene/siwc.json` and prints an access token and its expiration time. Complete sign-in manually before first use.
+
+If you use the browser extension, click **Use your ChatGPT plan** in its model configuration dialog and follow the on-screen instructions to authorize, without running a command. Your credentials will be saved in the extension's local storage.
 
 ## Configure the model
+
+For SIWC authentication, use the following configuration, with `gpt-6-sol` as an example:
+
+```bash
+MIDSCENE_MODEL_AUTH_MODE="siwc"
+MIDSCENE_MODEL_NAME="gpt-6-sol"
+MIDSCENE_MODEL_FAMILY="gpt-6"
+```
+
+Midscene reads the access token from the saved credentials and uses it as the API Key to call OpenAI models, automatically using the Responses API and streaming as required by OpenAI.
+
+Paste this configuration into the browser extension's model configuration dialog, or follow the [model configuration guide](./model-api-setup) to load it into your runtime.
+
+Available models depend on your ChatGPT account. For other GPT model names, families, and usage notes, see [Use a model API key](./model-api-setup#gpt).
+
+### Configure an access token manually
+
+If you prefer to manage tokens yourself, use the following configuration. Do not set `MIDSCENE_MODEL_AUTH_MODE="siwc"` in this case.
 
 The following example uses `gpt-6-sol`. Replace `<your-access-token>` with the token you just obtained:
 
@@ -37,29 +57,19 @@ The following example uses `gpt-6-sol`. Replace `<your-access-token>` with the t
   }}
 />
 
-SIWC requires the Responses API with streaming enabled. Keep the `openai-responses` and `stream` settings in the example. Midscene sets `store: false` by default, as required by this flow. See the [official OpenAI documentation](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference).
-
-Available models depend on your ChatGPT account. For other GPT model names, families, and usage notes, see [Use a model API key](./model-api-setup#gpt).
-
-## Load the configuration
-
-Load the complete configuration above according to how you use Midscene:
-
-- **Playground**: Paste the configuration text into the settings page.
-- **CLI**: Create a `.env` file in the directory where you run commands and paste the configuration without adding `export`. The CLI reads this file automatically.
-- **JavaScript SDK**: Load the configuration into the Node.js process environment. See [Set environment variables](./model-api-setup#set-environment-variables) for instructions.
-
-The credentials saved by the sign-in command do not automatically populate these model settings. You still need to set `MIDSCENE_MODEL_API_KEY` manually.
+SIWC requires the Responses API with streaming enabled. Keep the `openai-responses` and `stream` settings in the example.
 
 ## Verify the connection
 
-Run this command in the directory containing your `.env` file:
+In the browser extension, click **Verify** in the model configuration dialog to test the connection.
+
+To verify from the command line, run this command in the directory containing your `.env` file:
 
 ```bash
 pnpm dlx @midscene/cli model verify
 ```
 
-This command uses values from `.env` to override variables with the same names in the current shell. If your configuration is only saved in Playground, save the same configuration to `.env` before running the command.
+This command uses values from `.env` to override variables with the same names in the current shell.
 
 Once verification succeeds, continue with the tasks in [Try the GUI Agent](./quick-start). For failed checks, see [Model advanced configuration and debugging](./model-config#verify-model-connectivity).
 
@@ -71,12 +81,14 @@ Access tokens are valid for one hour. See the [OpenAI token reference](https://d
 pnpm dlx @midscene/cli model siwc refresh
 ```
 
-The command updates the local credentials and prints a new access token. Replace `MIDSCENE_MODEL_API_KEY` in Playground, `.env`, or your environment variables, then reload the configuration before running another task.
+The command updates the local credentials and prints a new access token. In Node.js with `AUTH_MODE="siwc"`, the next request reads the updated token without configuration changes. When configuring tokens manually, replace `MIDSCENE_MODEL_API_KEY` and reload the configuration.
+
+The browser extension stores credentials separately. When its token expires, sign in again using the extension button. Automatic refresh is not yet supported.
 
 ## Usage and credentials
 
 - SIWC consumes your subscription usage. ChatGPT determines how token consumption translates into plan usage. Midscene reports show token consumption for each task step.
-- Full credentials are saved locally to `~/.midscene/siwc.json` for subsequent refreshes. Midscene does not collect your credentials.
+- CLI credentials are saved to `~/.midscene/siwc.json`; extension credentials are saved in the extension's local storage. Midscene does not collect your credentials.
 - Follow OpenAI's regional restrictions and terms of use. See the [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/).
 
 ## Reuse your Codex sign-in (deprecated) {#use-codex-app-server-oauth-no-api-key}
