@@ -157,6 +157,7 @@ export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON。自定义鉴权 header 请使用 `defaultHeaders`；`extra_headers` 和 `extraHeaders` 也会作为别名兼容 |
 | `MIDSCENE_MODEL_EXTRA_BODY_JSON` | 合并到每次模型请求体中的 JSON。与 `MIDSCENE_MODEL_INIT_CONFIG_JSON`（配置 SDK 客户端）不同，此参数会展开到每次发送到模型的协议请求体中，例如在 vLLM 中启用思考模式：`'{"chat_template_kwargs":{"enable_thinking":true}}'` |
 | `MIDSCENE_MODEL_PROTOCOL` | 模型 API 协议：`openai-chat`（默认）或 `openai-responses`。后者的适用范围见[使用 Responses API](#model-api-type)。 |
+| `MIDSCENE_MODEL_AUTH_MODE` | 认证模式：`api-key`（默认）或 `siwc`。使用 `siwc` 时，参见[使用 ChatGPT 订阅额度](./chatgpt-subscription)。 |
 | `MIDSCENE_MODEL_STREAM_MODE` | 默认是非流式（`non-stream`）；如果指定为流式（`stream`），会将流式的结果聚合为完整结果再解析。 |
 
 ### 使用 Responses API {#model-api-type}

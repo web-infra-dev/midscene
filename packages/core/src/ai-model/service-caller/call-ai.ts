@@ -10,6 +10,7 @@ import {
 import { type PreparedOpenAIInput, callOpenAI } from './openai/call-openai';
 import { prepareChatCompletion } from './openai/chat-completion/chat-completion';
 import { prepareResponses } from './openai/responses/responses';
+import { prepareSiwcCall } from './openai/siwc';
 import {
   buildRequestAbortSignal,
   resolveEffectiveTimeoutMs,
@@ -36,11 +37,11 @@ const DEFAULT_MODEL_PROTOCOL = 'openai-chat';
 
 export async function callAI(
   messages: ModelCallMessages,
-  modelRuntime: ModelRuntime,
-  options?: CallAIOptions,
+  originalModelRuntime: ModelRuntime,
+  originalOptions?: CallAIOptions,
 ): Promise<AICallResult> {
-  options?.abortSignal?.throwIfAborted();
-  const isStreaming = options?.stream === true;
+  originalOptions?.abortSignal?.throwIfAborted();
+  const isStreaming = originalOptions?.stream === true;
   if (isStreaming) {
     // Explicit streaming is currently used only by recorder code generation.
     // Streaming can also be aggregated without onChunk, but then the caller
@@ -49,10 +50,16 @@ export async function callAI(
     // Once onChunk delivers a chunk, later errors are not retried to avoid
     // delivering duplicate content. Errors before the first chunk can retry.
     assert(
-      typeof options?.onChunk === 'function',
+      typeof originalOptions?.onChunk === 'function',
       'onChunk is required when stream: true is explicitly specified',
     );
   }
+
+  // Resolve authentication constraints before protocol selection and validation.
+  const { modelRuntime, options } = await prepareSiwcCall(
+    originalModelRuntime,
+    originalOptions,
+  );
 
   // Low-level callers without a TaskRunner still need a stable ID for the
   // lifetime of this model call (including its network retries).
