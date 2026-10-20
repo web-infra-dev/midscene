@@ -1,3 +1,3 @@
 # Midscene Chrome Extension
 
-See <https://midscenejs.com/quick-experience.html>.
+See <https://midscenejs.com/quick-start.html#chrome-extension>.

@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const autoGlmAdapter = new ResolvedModelAdapter(
   autoGlmAdapters['auto-glm'],
@@ -35,7 +35,6 @@ describe('auto-glm model adapter', () => {
     expect(autoGlmAdapter.planning.cacheEnabled).toBe(false);
     expect(autoGlmAdapter.planning.defaultReplanningCycleLimit).toBe(100);
     expect(autoGlmAdapter.planning.supportsActionDeepLocate).toBe(false);
-    expect(autoGlmAdapter.locate.supportsSearchArea).toBe(false);
   });
 
   it('keeps Auto-GLM request penalties without reasoning params', () => {

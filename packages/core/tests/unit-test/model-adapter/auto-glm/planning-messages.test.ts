@@ -1,46 +1,48 @@
-import { ConversationHistory } from '@/ai-model/conversation-history';
 import { resolveCustomPlanningDefinition } from '@/ai-model/model-adapter/planning';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanner } from '@/ai-model/models/auto-glm/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { toChatMessages } from '@/ai-model/service-caller/openai/chat-completion/utils';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import type { TUserPrompt } from '@/common';
 import type { UIContext } from '@/types';
-import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const serviceCallerMock = vi.hoisted(() => {
+const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
     rawResponse?: string;
     usage?: unknown;
-    rawChoiceMessage?: unknown;
+    rawAssistantOutput?: unknown;
 
     constructor(
       message: string,
       rawResponse?: string,
       usage?: unknown,
-      rawChoiceMessage?: unknown,
+      rawAssistantOutput?: unknown,
     ) {
       super(message);
       this.name = 'AIResponseParseError';
       this.rawResponse = rawResponse;
       this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
+      this.rawAssistantOutput = rawAssistantOutput;
     }
   }
 
   return {
     AIResponseParseError,
-    callAIWithStringResponse: vi.fn(),
+    callAIWithStringResponse: rs.fn(),
   };
 });
 
-vi.mock('@/ai-model/service-caller/index', () => {
+rs.mock('@/ai-model/service-caller/index', () => {
   return serviceCallerMock;
 });
 
-vi.mock('../../../../src/ai-model/service-caller/index', () => {
+rs.mock('../../../../src/ai-model/service-caller/index', () => {
   return serviceCallerMock;
 });
 
@@ -77,54 +79,61 @@ function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
     ...overrides,
+    effort: overrides.effort ?? 'balance',
   };
 }
 
-function runAutoGlmPlanning(userInstruction: string, options: PlanOptions) {
+async function runAutoGlmPlanning(
+  userInstruction: TUserPrompt,
+  options: PlanOptions,
+) {
   return runCustomPlanning(
-    userInstruction,
+    await prepareUserPrompt(userInstruction),
     options,
     resolveCustomPlanningDefinition(createAutoGlmPlanner(false)),
   );
 }
 
+const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
+  .resolveImageDetail;
+
 describe('createAutoGlmPlanner messages', () => {
   beforeEach(() => {
-    vi.mocked(callAIWithStringResponse).mockReset();
+    rs.mocked(callAIWithStringResponse).mockReset();
   });
 
   it('passes Auto-GLM action context, reference images, and abort signal to the model call', async () => {
     const abortController = new AbortController();
-    const referenceImageMessages: ChatCompletionUserMessageParam[] = [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: { url: 'data:image/png;base64,REF==' },
-          },
-        ],
-      },
-    ];
     const conversationHistory = new ConversationHistory();
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
         '<think>Need to click submit</think><answer>do(action="Tap", element=[500,500])</answer>',
       usage: { total_tokens: 12 } as any,
-      rawChoiceMessage: { role: 'assistant', content: 'raw choice' } as any,
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: 'raw choice' },
+      } as any,
     });
 
     const result = await runAutoGlmPlanning(
-      'click submit',
+      {
+        prompt: 'click submit',
+        images: [
+          {
+            name: 'submit reference',
+            url: 'data:image/png;base64,REF==',
+          },
+        ],
+      },
       createPlanOptions({
-        actionContext: 'prefer the primary submit button',
-        referenceImageMessages,
+        actionContext:
+          '<CONTEXT>\nprefer the primary submit button\n</CONTEXT>',
         conversationHistory,
         abortSignal: abortController.signal,
       }),
     );
 
-    const [messages, runtime, callOptions] = vi.mocked(callAIWithStringResponse)
+    const [messages, runtime, callOptions] = rs.mocked(callAIWithStringResponse)
       .mock.calls[0];
     expect(runtime).toMatchObject({
       config: expect.objectContaining({ modelFamily: 'auto-glm' }),
@@ -136,20 +145,34 @@ describe('createAutoGlmPlanner messages', () => {
     expect(messages[0]).toMatchObject({
       role: 'system',
       content: expect.stringContaining(
-        '<high_priority_knowledge>prefer the primary submit button</high_priority_knowledge>\n',
+        '<CONTEXT>\nprefer the primary submit button\n</CONTEXT>\n',
       ),
     });
     expect(messages[1]).toMatchObject({
       role: 'user',
       content: [{ type: 'text', text: 'click submit' }],
     });
-    expect(messages).toContain(referenceImageMessages[0]);
-    expect(result.rawChoiceMessage).toEqual({
-      role: 'assistant',
-      content: 'raw choice',
+    expect(messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'user',
+          content: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'image',
+              url: 'data:image/png;base64,REF==',
+            }),
+          ]),
+        }),
+      ]),
+    );
+    expect(result.rawAssistantOutput).toEqual({
+      type: 'chat-completion',
+      rawValue: { role: 'assistant', content: 'raw choice' },
     });
     expect(conversationHistory.snapshot()).toHaveLength(2);
-    expect(conversationHistory.snapshot()[1]).toMatchObject({
+    expect(
+      toChatMessages(conversationHistory.snapshot(), resolveImageDetail)[1],
+    ).toMatchObject({
       role: 'assistant',
       content: expect.stringContaining('do(action="Tap", element=[500,500])'),
     });

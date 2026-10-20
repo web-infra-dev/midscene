@@ -1,0 +1,25 @@
+.test-runner-report[data-theme='dark'] {
+  .runner-header {
+    background: var(--runner-bg);
+  }
+
+  .runner-main::before {
+    filter: invert(1);
+    opacity: 0.2;
+  }
+
+  .runner-detail-title-line h1,
+  .runner-detail-evidence-title h2,
+  .runner-detail-inspector-tabs button.is-selected,
+  .runner-detail-io-body {
+    color: var(--runner-text);
+  }
+
+  .runner-breakdown-view-switch > button.is-selected {
+    color: var(--runner-text);
+  }
+
+  .runner-detail-screenshot-canvas {
+    background: #15171a;
+  }
+}

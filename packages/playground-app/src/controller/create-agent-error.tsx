@@ -1,7 +1,10 @@
 import { Tooltip } from 'antd';
 import React, { type ReactNode, useState } from 'react';
 
-const INSTALL_CHROME_COMMAND = 'npx puppeteer browsers install chrome';
+// Keep this in sync with apps/studio/package.json. The test verifies the
+// relationship so a Puppeteer upgrade cannot leave users with a stale command.
+export const STUDIO_PUPPETEER_VERSION = '24.6.0';
+const INSTALL_CHROME_COMMAND = `npx puppeteer@${STUDIO_PUPPETEER_VERSION} browsers install chrome`;
 const PUPPETEER_CONFIGURATION_URL = 'https://pptr.dev/guides/configuration';
 const CHROME_MISSING_RE = /could not find (?:google )?chrome/;
 
@@ -27,15 +30,17 @@ function getErrorMessage(error: unknown): string {
   return String(error);
 }
 
-function copyInstallCommand() {
+export function getPuppeteerChromeInstallCommand(): string {
+  return INSTALL_CHROME_COMMAND;
+}
+
+function copyInstallCommand(command: string) {
   if (typeof navigator === 'undefined') {
     return;
   }
 
   try {
-    void navigator.clipboard
-      ?.writeText(INSTALL_CHROME_COMMAND)
-      .catch(() => undefined);
+    void navigator.clipboard?.writeText(command).catch(() => undefined);
   } catch {
     // Clipboard access can be unavailable or denied; copying is best-effort.
   }
@@ -91,6 +96,7 @@ export function isPuppeteerChromeMissingError(error: unknown): boolean {
 
 function ChromeMissingDescription({ error }: { error: unknown }) {
   const rawMessage = getErrorMessage(error);
+  const installCommand = getPuppeteerChromeInstallCommand();
   const [copyVisible, setCopyVisible] = useState(false);
 
   return (
@@ -130,12 +136,12 @@ function ChromeMissingDescription({ error }: { error: unknown }) {
             whiteSpace: 'nowrap',
           }}
         >
-          {INSTALL_CHROME_COMMAND}
+          {installCommand}
         </pre>
         <button
           aria-label="Copy install command"
           onBlur={() => setCopyVisible(false)}
-          onClick={copyInstallCommand}
+          onClick={() => copyInstallCommand(installCommand)}
           onFocus={() => setCopyVisible(true)}
           style={{
             alignItems: 'center',

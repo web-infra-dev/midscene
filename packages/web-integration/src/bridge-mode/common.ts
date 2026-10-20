@@ -46,10 +46,21 @@ export interface BridgeConnectTabOptions {
    */
   forceSameTabNavigation?: boolean;
   /**
+   * Whether the newly created tab should become Chrome's active tab.
+   * @default true
+   */
+  activateTab?: boolean;
+  /**
    * Custom timeout for connecting to the tab in milliseconds.
    * @default 30000 (30 seconds)
    */
   timeout?: number;
+  /**
+   * Whether the blue water-flow animation border and mouse pointer
+   * overlay should be shown while controlling the page.
+   * @default true
+   */
+  enableWaterFlowAnimation?: boolean;
 }
 
 export enum MouseEvent {
@@ -63,6 +74,7 @@ export enum MouseEvent {
 export enum KeyboardEvent {
   PREFIX = 'keyboard.',
   Type = 'keyboard.type',
+  InsertText = 'keyboard.insertText',
   Press = 'keyboard.press',
 }
 

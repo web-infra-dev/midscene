@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { StaticPageAgent, StaticPage } from '@midscene/web/static';
 import { PlaygroundServer } from '@midscene/playground';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from '@rstest/core';
 import { ScreenshotItem } from '@midscene/core';
 
 const dumpFilePath = join(__dirname, '../../fixtures/ui-context.json');

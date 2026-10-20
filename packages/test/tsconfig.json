@@ -1,0 +1,33 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM"],
+    "rootDir": ".",
+    "declarationDir": "dist/types",
+    "types": ["node"]
+  },
+  "include": ["src", "tests"],
+  "references": [
+    {
+      "path": "../android"
+    },
+    {
+      "path": "../computer"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../harmony"
+    },
+    {
+      "path": "../ios"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
@@ -76,7 +77,10 @@ class FreeRdpSessionTransport final : public SessionTransport {
   void HookEndPaint(rdpUpdate* update);
   // Records that at least one paint has reached the local framebuffer and
   // wakes Connect().
-  void MarkFramePainted(std::optional<RawFrame> first_frame = std::nullopt);
+  void MarkFramePainted();
+  // Records a framebuffer update even when it is too blank or uniform to count
+  // as the first informative frame.
+  void MarkFramebufferUpdated();
   bool HasFramePainted() const;
   BOOL CallOriginalEndPaint(rdpContext* context);
   // Mark the session as no longer active and wake any first-frame waiter.
@@ -87,6 +91,7 @@ class FreeRdpSessionTransport final : public SessionTransport {
 
  private:
   friend struct MidsceneRdpContext;
+  friend struct RdpScreenshotTestPeer;
 
   freerdp* instance_ = nullptr;
   std::thread event_thread_;
@@ -98,14 +103,19 @@ class FreeRdpSessionTransport final : public SessionTransport {
   // RDP session exposes a zero-filled (all black) buffer until the first paint
   // is processed, so screenshots taken before this is > 0 would be blank.
   std::atomic<uint64_t> frames_painted_{0};
+  // Number of valid framebuffer updates observed before the first informative
+  // frame. This distinguishes a silent desktop from a blank or locked one.
+  std::atomic<uint64_t> framebuffer_updates_{0};
   // Tracks whether the session is still alive while Connect() waits for the
   // first frame, so a drop during that window wakes the wait immediately
   // instead of stalling until the timeout.
   std::atomic<bool> session_active_{false};
   std::condition_variable frame_cv_;
   std::mutex frame_mutex_;
-  std::optional<RawFrame> first_frame_;
-  bool first_frame_consumed_ = false;
+  // Protected by frame_mutex_; use a monotonic clock for screenshot settling.
+  std::chrono::steady_clock::time_point last_frame_update_{};
+  // Protected by mutex_; reset for each new connection.
+  bool first_screenshot_pending_ = true;
   pEndPaint original_end_paint_ = nullptr;
   uint16_t mouse_x_ = 0;
   uint16_t mouse_y_ = 0;
@@ -114,7 +124,9 @@ class FreeRdpSessionTransport final : public SessionTransport {
 
   void ResetStateLocked();
   void ClearSessionErrorLocked();
-  void SetSessionError(std::string message, std::string code);
+  bool RecordEventLoopFailureIfActive(bool operation_failed,
+                                      bool disconnect_requested,
+                                      std::string message);
   std::string LastFreeRdpErrorLocked() const;
   void StopInstance(bool preserve_session_error);
   void EventLoop();

@@ -35,8 +35,20 @@ export const MIDSCENE_MODEL_REASONING_ENABLED =
   'MIDSCENE_MODEL_REASONING_ENABLED';
 export const MIDSCENE_MODEL_REASONING_BUDGET =
   'MIDSCENE_MODEL_REASONING_BUDGET';
+export const MIDSCENE_MODEL_PROTOCOL = 'MIDSCENE_MODEL_PROTOCOL';
+export const MIDSCENE_LOCATE_MODEL_STREAM_MODE =
+  'MIDSCENE_LOCATE_MODEL_STREAM_MODE';
+export const MIDSCENE_PLANNING_MODEL_STREAM_MODE =
+  'MIDSCENE_PLANNING_MODEL_STREAM_MODE';
+export const MIDSCENE_INSIGHT_MODEL_STREAM_MODE =
+  'MIDSCENE_INSIGHT_MODEL_STREAM_MODE';
+export const MIDSCENE_MODEL_STREAM_MODE = 'MIDSCENE_MODEL_STREAM_MODE';
+export const MIDSCENE_MODEL_RESPONSE_FORMAT = 'MIDSCENE_MODEL_RESPONSE_FORMAT';
 
 export type TModelReasoningEnabled = boolean | 'default';
+export type TModelProtocol = 'openai-chat' | 'openai-responses';
+
+export type TModelResponseFormat = 'none' | 'auto';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -63,6 +75,8 @@ export const MIDSCENE_ADB_PATH = 'MIDSCENE_ADB_PATH';
 export const MIDSCENE_ADB_REMOTE_HOST = 'MIDSCENE_ADB_REMOTE_HOST';
 export const MIDSCENE_ADB_REMOTE_PORT = 'MIDSCENE_ADB_REMOTE_PORT';
 export const MIDSCENE_ANDROID_IME_STRATEGY = 'MIDSCENE_ANDROID_IME_STRATEGY';
+export const MIDSCENE_ANDROID_SCREENSHOT_STRATEGY =
+  'MIDSCENE_ANDROID_SCREENSHOT_STRATEGY';
 
 export const MIDSCENE_IOS_DEVICE_UDID = 'MIDSCENE_IOS_DEVICE_UDID';
 export const MIDSCENE_IOS_SIMULATOR_UDID = 'MIDSCENE_IOS_SIMULATOR_UDID';
@@ -89,8 +103,9 @@ export const MIDSCENE_REPLANNING_CYCLE_LIMIT =
   'MIDSCENE_REPLANNING_CYCLE_LIMIT';
 
 export const MIDSCENE_RUN_DIR = 'MIDSCENE_RUN_DIR';
+export const MIDSCENE_RECORD_MODEL_CALL = 'MIDSCENE_RECORD_MODEL_CALL';
 
-// INSIGHT (unified VQA and Grounding)
+// INSIGHT (visual understanding and extraction)
 export const MIDSCENE_INSIGHT_MODEL_NAME = 'MIDSCENE_INSIGHT_MODEL_NAME';
 export const MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY =
   'MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY';
@@ -117,6 +132,40 @@ export const MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED =
   'MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED';
 export const MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET =
   'MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET';
+export const MIDSCENE_INSIGHT_MODEL_PROTOCOL =
+  'MIDSCENE_INSIGHT_MODEL_PROTOCOL';
+export const MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT =
+  'MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT';
+
+// LOCATE
+export const MIDSCENE_LOCATE_MODEL_NAME = 'MIDSCENE_LOCATE_MODEL_NAME';
+export const MIDSCENE_LOCATE_MODEL_SOCKS_PROXY =
+  'MIDSCENE_LOCATE_MODEL_SOCKS_PROXY';
+export const MIDSCENE_LOCATE_MODEL_HTTP_PROXY =
+  'MIDSCENE_LOCATE_MODEL_HTTP_PROXY';
+export const MIDSCENE_LOCATE_MODEL_BASE_URL = 'MIDSCENE_LOCATE_MODEL_BASE_URL';
+export const MIDSCENE_LOCATE_MODEL_API_KEY = 'MIDSCENE_LOCATE_MODEL_API_KEY';
+export const MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON =
+  'MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON';
+export const MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON =
+  'MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON';
+export const MIDSCENE_LOCATE_MODEL_TIMEOUT = 'MIDSCENE_LOCATE_MODEL_TIMEOUT';
+export const MIDSCENE_LOCATE_MODEL_TEMPERATURE =
+  'MIDSCENE_LOCATE_MODEL_TEMPERATURE';
+export const MIDSCENE_LOCATE_MODEL_RETRY_COUNT =
+  'MIDSCENE_LOCATE_MODEL_RETRY_COUNT';
+export const MIDSCENE_LOCATE_MODEL_RETRY_INTERVAL =
+  'MIDSCENE_LOCATE_MODEL_RETRY_INTERVAL';
+export const MIDSCENE_LOCATE_MODEL_FAMILY = 'MIDSCENE_LOCATE_MODEL_FAMILY';
+export const MIDSCENE_LOCATE_MODEL_REASONING_EFFORT =
+  'MIDSCENE_LOCATE_MODEL_REASONING_EFFORT';
+export const MIDSCENE_LOCATE_MODEL_REASONING_ENABLED =
+  'MIDSCENE_LOCATE_MODEL_REASONING_ENABLED';
+export const MIDSCENE_LOCATE_MODEL_REASONING_BUDGET =
+  'MIDSCENE_LOCATE_MODEL_REASONING_BUDGET';
+export const MIDSCENE_LOCATE_MODEL_PROTOCOL = 'MIDSCENE_LOCATE_MODEL_PROTOCOL';
+export const MIDSCENE_LOCATE_MODEL_RESPONSE_FORMAT =
+  'MIDSCENE_LOCATE_MODEL_RESPONSE_FORMAT';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -147,6 +196,10 @@ export const MIDSCENE_PLANNING_MODEL_REASONING_ENABLED =
   'MIDSCENE_PLANNING_MODEL_REASONING_ENABLED';
 export const MIDSCENE_PLANNING_MODEL_REASONING_BUDGET =
   'MIDSCENE_PLANNING_MODEL_REASONING_BUDGET';
+export const MIDSCENE_PLANNING_MODEL_PROTOCOL =
+  'MIDSCENE_PLANNING_MODEL_PROTOCOL';
+export const MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT =
+  'MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT';
 export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
@@ -163,6 +216,7 @@ export const BASIC_ENV_KEYS = [
   MIDSCENE_DEBUG_MODEL_PROFILE,
   MIDSCENE_DEBUG_MODEL_RESPONSE,
   MIDSCENE_RUN_DIR,
+  MIDSCENE_RECORD_MODEL_CALL,
 ] as const;
 
 export const BOOLEAN_ENV_KEYS = [
@@ -182,6 +236,7 @@ export const STRING_ENV_KEYS = [
   MIDSCENE_ADB_REMOTE_HOST,
   MIDSCENE_ADB_REMOTE_PORT,
   MIDSCENE_ANDROID_IME_STRATEGY,
+  MIDSCENE_ANDROID_SCREENSHOT_STRATEGY,
   MIDSCENE_IOS_DEVICE_UDID,
   MIDSCENE_IOS_SIMULATOR_UDID,
   MIDSCENE_REPORT_TAG_NAME,
@@ -209,6 +264,10 @@ export const GLOBAL_ENV_KEYS = [
  * Can only be access after agent.constructor
  */
 export const MODEL_ENV_KEYS = [
+  MIDSCENE_INSIGHT_MODEL_STREAM_MODE,
+  MIDSCENE_PLANNING_MODEL_STREAM_MODE,
+  MIDSCENE_LOCATE_MODEL_STREAM_MODE,
+  MIDSCENE_MODEL_STREAM_MODE,
   // model default
   MIDSCENE_MODEL_NAME,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
@@ -224,6 +283,8 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_REASONING_EFFORT,
   MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_REASONING_BUDGET,
+  MIDSCENE_MODEL_PROTOCOL,
+  MIDSCENE_MODEL_RESPONSE_FORMAT,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
@@ -236,7 +297,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_OPENAI_SOCKS_PROXY,
-  // INSIGHT (unified VQA and Grounding)
+  // INSIGHT (visual understanding and extraction)
   MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY,
   MIDSCENE_INSIGHT_MODEL_HTTP_PROXY,
@@ -252,6 +313,26 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT,
   MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED,
   MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
+  MIDSCENE_INSIGHT_MODEL_PROTOCOL,
+  MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT,
+  // LOCATE
+  MIDSCENE_LOCATE_MODEL_NAME,
+  MIDSCENE_LOCATE_MODEL_SOCKS_PROXY,
+  MIDSCENE_LOCATE_MODEL_HTTP_PROXY,
+  MIDSCENE_LOCATE_MODEL_BASE_URL,
+  MIDSCENE_LOCATE_MODEL_API_KEY,
+  MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON,
+  MIDSCENE_LOCATE_MODEL_TIMEOUT,
+  MIDSCENE_LOCATE_MODEL_TEMPERATURE,
+  MIDSCENE_LOCATE_MODEL_RETRY_COUNT,
+  MIDSCENE_LOCATE_MODEL_RETRY_INTERVAL,
+  MIDSCENE_LOCATE_MODEL_FAMILY,
+  MIDSCENE_LOCATE_MODEL_REASONING_EFFORT,
+  MIDSCENE_LOCATE_MODEL_REASONING_ENABLED,
+  MIDSCENE_LOCATE_MODEL_REASONING_BUDGET,
+  MIDSCENE_LOCATE_MODEL_PROTOCOL,
+  MIDSCENE_LOCATE_MODEL_RESPONSE_FORMAT,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -268,6 +349,8 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_REASONING_EFFORT,
   MIDSCENE_PLANNING_MODEL_REASONING_ENABLED,
   MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
+  MIDSCENE_PLANNING_MODEL_PROTOCOL,
+  MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT,
   MIDSCENE_MODEL_FAMILY,
 ] as const;
 
@@ -285,6 +368,7 @@ export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
  * valid Model family types
  */
 export type TModelFamily =
+  | 'jev'
   | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'qwen3'
@@ -301,10 +385,14 @@ export type TModelFamily =
   | 'auto-glm'
   | 'auto-glm-multilingual'
   | 'gpt-5'
+  | 'gpt-6'
+  | 'deepseek'
   | 'kimi'
+  | 'kimi3'
   | 'xiaomi-mimo';
 
 export const MODEL_FAMILY_VALUES: TModelFamily[] = [
+  'jev',
   'doubao-vision',
   'doubao-seed',
   'gemini',
@@ -321,9 +409,14 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'auto-glm',
   'auto-glm-multilingual',
   'gpt-5',
+  'gpt-6',
+  'deepseek',
   'kimi',
+  'kimi3',
   'xiaomi-mimo',
 ];
+
+export type TModelStreamMode = 'stream' | 'non-stream';
 
 export interface IModelConfigForInsight {
   // model name
@@ -336,12 +429,35 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_API_KEY]?: string;
   [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON]?: string;
+  [MIDSCENE_INSIGHT_MODEL_PROTOCOL]?: TModelProtocol;
+  [MIDSCENE_INSIGHT_MODEL_STREAM_MODE]?: TModelStreamMode;
   // timeout
   [MIDSCENE_INSIGHT_MODEL_TIMEOUT]?: string;
   // temperature
   [MIDSCENE_INSIGHT_MODEL_TEMPERATURE]?: string;
   // model family
   [MIDSCENE_INSIGHT_MODEL_FAMILY]?: TModelFamily;
+}
+
+export interface IModelConfigForLocate {
+  // model name
+  [MIDSCENE_LOCATE_MODEL_NAME]: string;
+  // proxy
+  [MIDSCENE_LOCATE_MODEL_SOCKS_PROXY]?: string;
+  [MIDSCENE_LOCATE_MODEL_HTTP_PROXY]?: string;
+  // OpenAI
+  [MIDSCENE_LOCATE_MODEL_BASE_URL]?: string;
+  [MIDSCENE_LOCATE_MODEL_API_KEY]?: string;
+  [MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON]?: string;
+  [MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON]?: string;
+  [MIDSCENE_LOCATE_MODEL_PROTOCOL]?: TModelProtocol;
+  [MIDSCENE_LOCATE_MODEL_STREAM_MODE]?: TModelStreamMode;
+  // timeout
+  [MIDSCENE_LOCATE_MODEL_TIMEOUT]?: string;
+  // temperature
+  [MIDSCENE_LOCATE_MODEL_TEMPERATURE]?: string;
+  // model family
+  [MIDSCENE_LOCATE_MODEL_FAMILY]?: TModelFamily;
 }
 
 export interface IModelConfigForPlanning {
@@ -355,6 +471,8 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_API_KEY]?: string;
   [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON]?: string;
+  [MIDSCENE_PLANNING_MODEL_PROTOCOL]?: TModelProtocol;
+  [MIDSCENE_PLANNING_MODEL_STREAM_MODE]?: TModelStreamMode;
   // timeout
   [MIDSCENE_PLANNING_MODEL_TIMEOUT]?: string;
   // temperature
@@ -382,6 +500,8 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_API_KEY]?: string;
   [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_MODEL_EXTRA_BODY_JSON]?: string;
+  [MIDSCENE_MODEL_PROTOCOL]?: TModelProtocol;
+  [MIDSCENE_MODEL_STREAM_MODE]?: TModelStreamMode;
   // extra
   [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
   // temperature
@@ -392,6 +512,8 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_REASONING_ENABLED]?: string;
   // reasoning budget (number as string)
   [MIDSCENE_MODEL_REASONING_BUDGET]?: string;
+  // Response format strategy (none/auto)
+  [MIDSCENE_MODEL_RESPONSE_FORMAT]?: TModelResponseFormat;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -407,11 +529,12 @@ export interface IModelConfigForDefaultLegacy {
 }
 
 /**
- * - insight: Visual Question Answering and Visual Grounding (unified)
+ * - locate: visual element localization
+ * - insight: visual understanding and extraction
  * - planning: planning
- * - default: all except insight、planning
+ * - default: base configuration for all capabilities
  */
-export type TIntent = 'insight' | 'planning' | 'default';
+export type TIntent = 'insight' | 'planning' | 'locate' | 'default';
 
 /**
  * Env-style model configuration map supplied directly to the agent.
@@ -473,25 +596,32 @@ export interface IModelConfig {
   openaiBaseURL?: string;
   openaiApiKey?: string;
   openaiExtraConfig?: Record<string, unknown>;
+  protocol?: TModelProtocol;
   /**
-   * Extra body parameters merged into each chat completion request body.
+   * Extra body parameters merged into each model request body.
    * Unlike openaiExtraConfig (which configures the OpenAI client instance),
-   * this is spread directly into the completion.create() call body.
+   * this is spread directly into the protocol request body.
    * Example: { "chat_template_kwargs": { "enable_thinking": true } }
    */
   extraBody?: Record<string, unknown>;
   /**
-   * Timeout for API calls in milliseconds.
-   * If not set, uses OpenAI SDK default (10 minutes).
+   * Midscene hard timeout per model request in milliseconds, including body reads.
+   * Must be finite and non-negative. Defaults to 180000 (180 seconds).
+   * Each retry gets a fresh timeout; retry delays are excluded.
+   * Set to 0 to disable only the Midscene hard timeout.
+   * SDK and network timeouts may still apply; callers can cancel via AbortSignal.
    */
   timeout?: number;
   /**
    * Temperature for model sampling.
    */
   temperature?: number;
+  streamMode?: TModelStreamMode;
   /**
    * Number of retries when AI call fails.
    * Default is 1 (retry once after failure).
+   * Retries occur on HTTP errors or when the model response cannot be
+   * structurally parsed.
    */
   retryCount?: number;
   /**
@@ -515,6 +645,11 @@ export interface IModelConfig {
    * Passed through to model-family-specific parameters (e.g., thinking_budget for qwen).
    */
   reasoningBudget?: number;
+  /**
+   * Response format strategy. "auto" lets the model adapter enable a
+   * provider-supported structured response format for eligible intents.
+   */
+  responseFormat?: TModelResponseFormat;
   /**
    * Model family - unified model configuration
    * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'gemma',

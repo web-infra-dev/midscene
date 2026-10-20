@@ -3,7 +3,7 @@ import type {
   LocateResultElement,
   Size,
 } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { ComputerAgent, RDPDevice, agentForRDPComputer } from '../../../src';
 import type {
   RDPBackendClient,
@@ -74,6 +74,21 @@ class FakeRDPBackend implements RDPBackendClient {
   }
 }
 
+class FailingDragRDPBackend extends FakeRDPBackend {
+  override async mouseMove(x: number, y: number): Promise<void> {
+    await super.mouseMove(x, y);
+    const isDragging = this.calls.some(
+      (call) =>
+        call.name === 'mouseButton' &&
+        call.args[0] === 'left' &&
+        call.args[1] === 'down',
+    );
+    if (isDragging && x > 300) {
+      throw new Error('simulated mouse movement failure');
+    }
+  }
+}
+
 const mockExecutorContext = { task: {} } as ExecutorContext;
 
 function createLocate(
@@ -82,12 +97,6 @@ function createLocate(
 ): LocateResultElement {
   return {
     description: content,
-    rect: {
-      left: center[0] - 10,
-      top: center[1] - 10,
-      width: 20,
-      height: 20,
-    },
     center,
   };
 }
@@ -119,6 +128,8 @@ describe('@midscene/computer RDP device', () => {
       ignoreCertificate: true,
       backend,
       customActions: [],
+      inputStrategy: 'sequential',
+      keyboardTypeDelay: 25,
     });
     await device.connect();
 
@@ -128,6 +139,8 @@ describe('@midscene/computer RDP device', () => {
     // never be serialized into the helper's JSON connection request.
     expect(config).not.toHaveProperty('backend');
     expect(config).not.toHaveProperty('customActions');
+    expect(config).not.toHaveProperty('inputStrategy');
+    expect(config).not.toHaveProperty('keyboardTypeDelay');
     expect(config).toMatchObject({
       host: '10.0.0.3',
       port: 3389,
@@ -273,6 +286,87 @@ describe('@midscene/computer RDP device', () => {
     );
   });
 
+  it('types RDP Unicode code points individually with the device delay', async () => {
+    const backend = new FakeRDPBackend();
+    const agent = await agentForRDPComputer({
+      host: '10.0.0.1',
+      keyboardTypeDelay: 1,
+      backend,
+      generateReport: false,
+    });
+
+    await agent.interface.inputPrimitives.keyboard!.typeText('A😀B', {
+      replace: false,
+    });
+
+    expect(backend.calls.filter((call) => call.name === 'typeText')).toEqual([
+      { name: 'typeText', args: ['A'] },
+      { name: 'typeText', args: ['😀'] },
+      { name: 'typeText', args: ['B'] },
+    ]);
+  });
+
+  it('lets an action-level zero disable the RDP device delay', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.1',
+      keyboardTypeDelay: 80,
+      backend,
+    });
+    await device.connect();
+
+    await device.inputPrimitives.keyboard!.typeText('hello', {
+      replace: false,
+      keyboardTypeDelay: 0,
+    });
+
+    expect(backend.calls.filter((call) => call.name === 'typeText')).toEqual([
+      { name: 'typeText', args: ['hello'] },
+    ]);
+  });
+
+  it('forces sequential RDP backend calls without a positive delay', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.1',
+      backend,
+      inputStrategy: 'sequential',
+    });
+    await device.connect();
+
+    await device.inputPrimitives.keyboard!.typeText('A😀B', {
+      replace: false,
+    });
+
+    expect(backend.calls.filter((call) => call.name === 'typeText')).toEqual([
+      { name: 'typeText', args: ['A'] },
+      { name: 'typeText', args: ['😀'] },
+      { name: 'typeText', args: ['B'] },
+    ]);
+  });
+
+  it('rejects conflicting bulk input before clearing the RDP field', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.1',
+      backend,
+      keyboardTypeDelay: 80,
+    });
+    await device.connect();
+
+    await expect(
+      device.inputPrimitives.keyboard!.typeText('hello', {
+        inputStrategy: 'bulk',
+        target: createLocate([10, 20]),
+      }),
+    ).rejects.toThrow(
+      'inputStrategy "bulk" requires keyboardTypeDelay to be omitted or set to 0; use inputStrategy "sequential" for delayed input',
+    );
+    expect(backend.calls.some((call) => call.name === 'clearInput')).toBe(
+      false,
+    );
+  });
+
   it('lists the connected RDP display as a single primary monitor', async () => {
     const backend = new FakeRDPBackend();
     const device = new RDPDevice({
@@ -394,6 +488,61 @@ describe('@midscene/computer RDP device', () => {
         name: 'mouseMove',
         args: [800, 640],
       },
+    );
+  });
+
+  it('exposes Swipe and performs it as a held mouse drag', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    const swipe = device
+      .actionSpace()
+      .find((action) => action.name === 'Swipe');
+    expect(swipe).toBeDefined();
+
+    await swipe!.call(
+      {
+        start: createLocate([300, 500], 'slider handle'),
+        direction: 'right',
+        distance: 2_000,
+        duration: 300,
+      },
+      mockExecutorContext,
+    );
+
+    const mouseButtons = backend.calls.filter(
+      (call) => call.name === 'mouseButton',
+    );
+    expect(mouseButtons).toEqual([
+      { name: 'mouseButton', args: ['left', 'down'] },
+      { name: 'mouseButton', args: ['left', 'up'] },
+    ]);
+    expect(backend.calls.findLast((call) => call.name === 'mouseMove')).toEqual(
+      {
+        name: 'mouseMove',
+        args: [1919, 500],
+      },
+    );
+  });
+
+  it('releases the mouse button when a swipe movement fails', async () => {
+    const backend = new FailingDragRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    await expect(
+      device.inputPrimitives.pointer.swipe!(
+        { x: 200, y: 500 },
+        { x: 700, y: 500 },
+      ),
+    ).rejects.toThrow('simulated mouse movement failure');
+
+    expect(backend.calls.filter((call) => call.name === 'mouseButton')).toEqual(
+      [
+        { name: 'mouseButton', args: ['left', 'down'] },
+        { name: 'mouseButton', args: ['left', 'up'] },
+      ],
     );
   });
 });

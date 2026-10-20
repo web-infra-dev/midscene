@@ -2,12 +2,12 @@ import fs from 'node:fs';
 import { PuppeteerAgent } from '@/puppeteer';
 import { TaskCache } from '@midscene/core/agent';
 import { uuid } from '@midscene/shared/utils';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import yaml from 'js-yaml';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getFixturePath } from './test-utils';
 import { launchPage } from './utils';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 3 * 60 * 1000,
 });
 
@@ -58,8 +58,8 @@ describe('aiAct plan cache fallback', () => {
     agent = new PuppeteerAgent(originPage, {
       cache: { id: cacheId },
     });
-    const runYamlSpy = vi.spyOn(agent, 'runYaml');
-    const actionSpy = vi.spyOn((agent as any).taskExecutor, 'action');
+    const runYamlSpy = rs.spyOn(agent, 'runYaml');
+    const actionSpy = rs.spyOn((agent as any).taskExecutor, 'action');
 
     await agent.aiAct(prompt);
 

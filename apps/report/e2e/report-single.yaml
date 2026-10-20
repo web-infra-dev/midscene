@@ -1,44 +1,54 @@
-target:
-  serve: ./dist
-  url: demo.html
-tasks:
-  # --- Basic loading ---
-  - name: report loads and displays tasks
-    flow:
-      - sleep: 5000
-      - aiAssert: The report page is loaded with a left-side task list table. The table shows multiple task rows, visible task names, and a time or duration column for the tasks.
-      - aiAssert: The main report panel shows a "Record" timeline section with visible screenshot thumbnails or frame previews.
+# Keep these checks in one Case: later sections use the page state left by earlier ones.
+beforeAll:
+  - report.open:
+      path: demo-agent.html
+      deviceScaleFactor: 1
 
-  # --- Player area visible with controls ---
-  - name: player area is visible with playback controls
-    flow:
-      - aiAssert: There is a video player area with a progress bar and playback time display
+cases:
+  - name: Agent report loading, timing, replay, settings and Markdown
+    steps:
+      # load the Agent report
+      - aiAssert: The report loads with an Execution task list and screenshot evidence in the Record area.
 
-  # --- Settings popup ---
-  - name: settings popup opens and shows options
-    flow:
-      - aiHover:
-        locate:
-          prompt: the central video player replay area, not the timeline thumbnails and not the left task sidebar
-          deepLocate: true
-      - sleep: 300
+      # inspect elapsed and model timing totals
+      - aiScroll:
+          prompt: the Execution task list
+          options:
+            scrollType: scrollToBottom
+      - aiAssert: The task list's Total summary distinguishes Elapsed and Model durations.
+      - aiScroll:
+          prompt: the Execution task list
+          options:
+            scrollType: scrollToTop
+
+      # replay tasks and open player settings
+      - aiTap: a Plan task in the Execution list
       - aiTap:
-        locate:
-          prompt: the visible settings button in the bottom playback control bar. It is the small hexagon or gear-shaped icon in the right-side control group, immediately left of the fullscreen icon and right of the progress bar.
-          deepLocate: true
-      - sleep: 1000
-      - aiAssert: The player settings popup is open above the bottom-right control bar, showing options such as "Focus on cursor", "Subtitle", "Playback speed", and speed choices like "0.5x", "1x", "1.5x", or "2x".
+          prompt: Replay all tasks, the black play icon beside Switch at the top of the left Execution sidebar, not the Replay tab
+          options:
+            deepLocate: true
+      # Verify the mode switch as browser plumbing; keep playback coverage on AI.
+      # verifyReplayAllMode
+      - javascript:
+          script: |
+            (() => {
+              if (!document.querySelector('.replay-all-mode-wrapper')) throw new Error('Replay all mode did not open');
+            })();
+      - aiHover:
+          prompt: the large replay canvas below the Record timeline, outside the left task list and timeline thumbnails
+          options:
+            deepLocate: true
+      - aiAssert: The main Record area shows the replay player with play or pause and seek controls.
+      - aiHover:
+          prompt: the large replay canvas below the Record timeline, outside the left task list and timeline thumbnails
+          options:
+            deepLocate: true
+      - aiTap:
+          prompt: the visible Settings button in the bottom playback control bar, the gear-shaped icon immediately left of Fullscreen and right of the progress bar
+          options:
+            deepLocate: true
+      - aiAssert: Player settings are open with playback speed options.
 
-  # --- Dark mode ---
-  - name: toggle dark mode
-    flow:
-      - aiTap: theme toggle button in the top right header
-      - sleep: 2000
-      - aiAssert: The report UI is in dark theme; the top header, left sidebar, and page chrome are dark charcoal or black rather than white
-
-  - name: toggle back to light mode
-    flow:
-      - aiAssert: The report UI is currently in dark theme before clicking the theme toggle again
-      - aiTap: theme toggle button in the top right header
-      - sleep: 2000
-      - aiAssert: The report UI is in light theme; the top header, left sidebar, and page chrome are light or white rather than dark charcoal or black
+      # inspect the Markdown report
+      - aiTap: Markdown View in the report view switch
+      - aiAssert: The report Markdown includes a Timing Summary with Elapsed Time and Model Call Time.

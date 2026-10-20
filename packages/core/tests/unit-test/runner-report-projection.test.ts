@@ -1,0 +1,522 @@
+import type { TestRunReportSourceIndex } from '@/test-run-report';
+import { type RunReportInput, buildTestRunReportDump } from '@/test-runner';
+import { executionRecordsToReportInput } from '@/test-runner';
+import { runWorkflowDocument } from '@/test-runner';
+import { sumTestRunReportMetrics } from '@/test-runner/reporting/metrics';
+import { createLegacyYamlRuntime } from '@/yaml/legacy-yaml-runtime';
+import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
+import { collectLegacyYamlDocument } from '@/yaml/test-runner-compat';
+import { describe, expect, test } from '@rstest/core';
+
+const index: TestRunReportSourceIndex = {
+  sources: [],
+  metrics: {
+    modelCallCount: 0,
+    modelTimeMs: 0,
+    promptTokens: 0,
+    cachedInputTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+  },
+};
+
+async function input() {
+  const outputs: Record<string, unknown> = {};
+  const runtime = createLegacyYamlRuntime({
+    agent: {
+      dump: { executions: [] },
+      evaluateJavaScript: async () => ({ password: 'raw-value', answer: 42 }),
+    } as any,
+    actionSpace: [],
+    sourcePath: '/fixtures/legacy.yaml',
+    setResult: (key, value) => {
+      outputs[key ?? 'result'] = value;
+    },
+  });
+  const execution = await runtime.runScript({
+    tasks: [
+      { name: 'first', flow: [{ javascript: 'first()', name: 'first' }] },
+      { name: 'second', flow: [{ javascript: 'second()', name: 'second' }] },
+    ],
+  });
+  const report: RunReportInput = {
+    runId: 'root',
+    status: 'success',
+    startedAt: execution.document.startedAt,
+    endedAt: execution.document.endedAt,
+    durationMs: execution.document.durationMs,
+    summary: {
+      total: 2,
+      passed: 2,
+      failed: 0,
+      notRun: 0,
+      filtered: 0,
+      collectionErrors: 0,
+      documentFailures: 0,
+      projectFailures: 0,
+    },
+    projects: [
+      {
+        projectId: 'legacy-yaml',
+        name: 'legacy',
+        platform: 'web',
+        status: 'success',
+        retry: 0,
+        documents: [execution.document],
+        collectionErrors: [],
+        cases: execution.cases.map((outcome) => ({
+          ...outcome,
+          documentId: execution.document.documentId,
+          documentRunId: execution.document.documentRunId,
+        })),
+      },
+    ],
+  };
+  return { report, outputs };
+}
+
+describe('entry-independent report projection', () => {
+  test('retains captured usage even when an external source lacks execution IDs', async () => {
+    const { report } = await input();
+    const usage = sumTestRunReportMetrics([
+      { ...index.metrics, modelCallCount: 1, totalTokens: 42 },
+    ]);
+    const dump = buildTestRunReportDump(report, {
+      ...index,
+      capturedMetrics: usage,
+      executionMetrics: {},
+      sources: [
+        {
+          reportId: 'external',
+          scopeId: 'external',
+          sourcePath: 'external.html',
+          executionIds: [],
+        },
+      ],
+    });
+    expect(dump.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+  });
+
+  test('retains independently captured usage when Agent detail storage fails', async () => {
+    const { report } = await input();
+    const attempt = report.projects[0].cases[0].run!;
+    const usage = sumTestRunReportMetrics([
+      {
+        ...index.metrics,
+        modelCallCount: 1,
+        modelTimeMs: 125,
+        totalTokens: 42,
+      },
+    ]);
+    attempt.steps[0].node = 'aiAssert';
+    attempt.steps[0].report = {
+      traces: [
+        { type: 'midscene-execution', executionId: 'lost', metrics: usage },
+      ],
+    };
+    const dump = buildTestRunReportDump(report, {
+      ...index,
+      executionMetrics: {},
+    });
+    const step = dump.projects[0].documents[0].cases[0].attempts[0].steps[0];
+    expect(step.agentDetailDiagnostic).toContain('lost');
+    expect(step.evidenceCollection?.status).toBe('unknown');
+    expect(step.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+    expect(dump.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: {
+        status: 'complete',
+        expectedExecutionCount: 1,
+        capturedExecutionCount: 0,
+      },
+    });
+    expect(dump.executionMetrics?.lost).toEqual(usage);
+  });
+
+  test('does not count usage twice or invalidate it when a device operation is unfinished', async () => {
+    const { report } = await input();
+    const attempt = report.projects[0].cases[0].run!;
+    const usage = sumTestRunReportMetrics([
+      { ...index.metrics, modelCallCount: 1, totalTokens: 42 },
+    ]);
+    const source = {
+      reportId: 'agent',
+      scopeId: attempt.reportScopeId ?? attempt.runId,
+      sourcePath: 'agent.html',
+      executionIds: ['saved'],
+      collection: {
+        status: 'partial' as const,
+        capturedAt: '2026-10-10T00:00:00Z',
+        reason: 'Device operation pending.',
+      },
+    };
+    attempt.steps[0].report = {
+      traces: [
+        { type: 'midscene-execution', executionId: 'saved', metrics: usage },
+      ],
+      sources: [source],
+    };
+    const dump = buildTestRunReportDump(report, {
+      ...index,
+      metrics: usage,
+      executionMetrics: { saved: usage },
+      sources: [source],
+    });
+    expect(dump.metrics).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 42,
+      collection: { status: 'complete' },
+    });
+    expect(
+      dump.projects[0].documents[0].cases[0].attempts[0].steps[0]
+        .evidenceCollection?.status,
+    ).toBe('partial');
+  });
+
+  test('projects cleanup failures once without dropping an independent error with the same message', async () => {
+    const failure = await runWorkflowDocument(
+      collectLegacyYamlDocument({ tasks: [] }),
+      {
+        resolveNode: () => {
+          throw new Error('No authored steps');
+        },
+        documentSetup: {
+          name: 'owner',
+          setup({ onTeardown }) {
+            onTeardown(() => {
+              throw new Error('close failed');
+            });
+            return undefined;
+          },
+        },
+        onDocumentResult() {
+          throw new Error('close failed');
+        },
+      },
+    ).catch((error) => error);
+    const { report } = await input();
+    report.projects[0].documents = [failure.result.document];
+    report.projects[0].cases = [];
+    expect(failure.result.document.executionErrors).toHaveLength(1);
+    // Replaying persisted results must not depend on shared Error object identity.
+    const document = buildTestRunReportDump(report, index).projects[0]
+      .documents[0];
+    expect(
+      buildTestRunReportDump(JSON.parse(JSON.stringify(report)), index)
+        .projects[0].documents[0].hostErrors,
+    ).toEqual(document.hostErrors);
+    expect(document.cleanup?.status).toBe('failed');
+    expect(document.hostErrors?.map(({ phase }) => phase)).toEqual([
+      'cleanup',
+      'execution',
+    ]);
+    expect(document.hostErrors?.map(({ error }) => error.message)).toEqual([
+      'close failed',
+      'close failed',
+    ]);
+    expect(document.cleanup?.error?.errors).toHaveLength(1);
+  });
+  test('distinguishes complete zero metrics, missing evidence and partial coverage', async () => {
+    const { report } = await input();
+    expect(
+      buildTestRunReportDump(report, index).metrics.collection?.status,
+    ).toBe('complete');
+    const attempt = report.projects[0].cases[0].run!;
+    attempt.steps[0].node = 'aiAct';
+    attempt.steps[0].report = {
+      traces: [
+        { type: 'midscene-execution', executionId: 'known' },
+        { type: 'midscene-execution', executionId: 'missing' },
+      ],
+    };
+    expect(
+      buildTestRunReportDump(report, index).metrics.collection,
+    ).toMatchObject({
+      status: 'unknown',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 0,
+    });
+    const partial = buildTestRunReportDump(report, {
+      ...index,
+      sources: [
+        {
+          reportId: 'agent',
+          scopeId: attempt.reportScopeId ?? attempt.runId,
+          sourcePath: 'agent.html',
+          executionIds: ['known'],
+        },
+      ],
+    });
+    expect(partial.metrics.collection).toMatchObject({
+      status: 'partial',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 1,
+    });
+    expect(
+      partial.projects[0].documents[0].cases[0].attempts[0].steps[0]
+        .evidenceCollection?.status,
+    ).toBe('partial');
+    const complete = buildTestRunReportDump(report, {
+      ...index,
+      sources: [
+        {
+          reportId: 'agent',
+          scopeId: attempt.reportScopeId ?? attempt.runId,
+          sourcePath: 'agent.html',
+          executionIds: ['known', 'missing'],
+        },
+      ],
+    });
+    expect(complete.metrics.collection).toMatchObject({
+      status: 'complete',
+      expectedExecutionCount: 2,
+      capturedExecutionCount: 2,
+    });
+  });
+  test('preserves known platforms and omits unavailable platform metadata', async () => {
+    const { report } = await input();
+    expect(buildTestRunReportDump(report, index).projects[0].platform).toBe(
+      'web',
+    );
+
+    const { platform: _platform, ...projectWithoutPlatform } =
+      report.projects[0];
+    const dump = buildTestRunReportDump(
+      { ...report, projects: [projectWithoutPlatform] },
+      index,
+    );
+    expect(dump.projects[0]).not.toHaveProperty('platform');
+  });
+
+  test('bounds run-level infrastructure diagnostics without mutating raw errors', async () => {
+    const { report } = await input();
+    const error = new Error(
+      `${'publication failed '.repeat(200)}original-tail`,
+    );
+    const dump = buildTestRunReportDump(
+      { ...report, status: 'failed', errors: [error] },
+      index,
+    );
+    expect(dump.status).toBe('failed');
+    expect(dump.diagnostics).toContainEqual(
+      expect.objectContaining({
+        level: 'error',
+        code: 'run-infrastructure-error',
+      }),
+    );
+    const diagnostic = dump.diagnostics!.find(
+      (item) => item.code === 'run-infrastructure-error',
+    )!;
+    expect(diagnostic.message).not.toContain('original-tail');
+    expect(diagnostic.error?.message).not.toContain('original-tail');
+    expect(diagnostic.error?.stack).toBe(error.stack);
+    expect(
+      new TextEncoder().encode(JSON.stringify(diagnostic.error)).byteLength,
+    ).toBeLessThanOrEqual(64 * 1024);
+    expect(error.message).toContain('original-tail');
+    expect(dump.summary).toEqual(report.summary);
+  });
+
+  test('keeps artifact failures separate from successful actions in invocation projection', async () => {
+    const player = new ScriptPlayer(
+      { tasks: [{ name: 'task', flow: [{ javascript: 'work()' }] }] },
+      async () => ({
+        agent: {
+          dump: { executions: [] },
+          getActionSpace: async () => [],
+          evaluateJavaScript: async () => 'raw result',
+        } as any,
+        freeFn: [],
+      }),
+    );
+    player.output = undefined;
+    await player.run();
+    const record = {
+      ...getLegacyYamlPlayerState(player).executionRecord!,
+      status: 'failed' as const,
+      publicationErrors: [new Error('record file unavailable')],
+    };
+    const dump = buildTestRunReportDump(
+      executionRecordsToReportInput([record], { runId: 'root' }),
+      index,
+    );
+    expect(dump.summary).toMatchObject({
+      passed: 1,
+      failed: 0,
+      documentFailures: 1,
+    });
+    expect(dump.projects[0].documents[0].hostErrors).toContainEqual(
+      expect.objectContaining({
+        phase: 'publication',
+        error: expect.objectContaining({ message: 'record file unavailable' }),
+      }),
+    );
+    expect(dump.projects[0].documents[0].cases[0].status).toBe('success');
+  });
+
+  test('shows setup failure with not-run tasks even without a kernel result', async () => {
+    const player = new ScriptPlayer(
+      { tasks: [{ name: 'not started', flow: [{ aiAct: 'do work' }] }] },
+      async () => {
+        throw new Error('device missing');
+      },
+    );
+    player.output = undefined;
+    await player.run();
+    const input = executionRecordsToReportInput(
+      [getLegacyYamlPlayerState(player).executionRecord!],
+      {
+        runId: 'root',
+      },
+    );
+    const dump = buildTestRunReportDump(input, index);
+    expect(dump.status).toBe('failed');
+    expect(dump.summary).toMatchObject({
+      total: 1,
+      notRun: 1,
+      documentFailures: 1,
+    });
+    expect(
+      dump.projects[0].documents[0].hostErrors?.find(
+        (item) => item.phase === 'setup',
+      )?.error.message,
+    ).toBe('device missing');
+    expect(dump.projects[0].documents[0].cases[0].status).toBe('not-run');
+  });
+
+  test('preserves whole-file retry history while summarizing the final outcome', async () => {
+    const records = [];
+    for (const attemptIndex of [0, 1]) {
+      const player = new ScriptPlayer(
+        { tasks: [{ name: 'task', flow: [{ javascript: 'work()' }] }] },
+        async () => ({
+          agent: {
+            dump: { executions: [] },
+            getActionSpace: async () => [],
+            evaluateJavaScript: async () => 'ok',
+          } as any,
+          freeFn: [
+            {
+              name: 'cleanup',
+              fn: () => {
+                if (attemptIndex === 0) throw new Error('cleanup failed');
+              },
+            },
+          ],
+        }),
+        undefined,
+        '/fixtures/retry.yaml',
+      );
+      player.output = undefined;
+      try {
+        await player.run();
+      } catch (error) {
+        expect((error as Error).message).toBe('cleanup failed');
+      }
+      // The file-retry host owns attempt identity, not the public player API.
+      records.push({
+        ...getLegacyYamlPlayerState(player).executionRecord!,
+        attemptIndex,
+      });
+    }
+    records.forEach((record, attemptIndex) => {
+      const step = record.execution!.cases[0].run!.steps[0];
+      record.execution!.document.beforeAll = [
+        { ...step, phase: 'beforeAll', node: `setup-${attemptIndex}` },
+      ];
+    });
+    const input = executionRecordsToReportInput(records, { runId: 'root' });
+    const dump = buildTestRunReportDump(input, index);
+    expect(dump.status).toBe('success');
+    expect(dump.summary).toMatchObject({
+      total: 1,
+      passed: 1,
+      documentFailures: 0,
+    });
+    const [document] = dump.projects[0].documents;
+    expect(dump.projects[0].documents).toHaveLength(1);
+    expect(document.attempts?.map((attempt) => attempt.attemptIndex)).toEqual([
+      0, 1,
+    ]);
+    expect(
+      document.attempts?.[0].hostErrors?.find(
+        (item) => item.phase === 'cleanup',
+      )?.error.message,
+    ).toBe('cleanup failed');
+    expect(document.hostErrors).toBeUndefined();
+    expect(
+      document.cases[0].attempts.map((attempt) => attempt.attemptIndex),
+    ).toEqual([0, 1]);
+    expect(document.cases).toHaveLength(1);
+    expect(
+      document.attempts?.map((attempt) => attempt.beforeAll[0].node),
+    ).toEqual(['setup-0', 'setup-1']);
+    expect(records[0].execution?.document.status).toBe('success');
+  });
+
+  test('uses execution identities even when legacy tasks share one Agent', async () => {
+    const { report, outputs } = await input();
+    const dump = buildTestRunReportDump(report, index);
+    const steps = dump.projects[0].documents[0].cases.map(
+      (item) => item.attempts[0].steps[0],
+    );
+    expect(new Set(steps.map((step) => step.id)).size).toBe(2);
+    expect(steps[0].title).toBe('first()');
+    expect(steps[0].output?.data?.value).toEqual({
+      password: '[REDACTED]',
+      answer: 42,
+    });
+    expect(outputs.first).toEqual({ password: 'raw-value', answer: 42 });
+    expect(report.projects[0].cases[0].run?.steps[0].output?.data).toEqual(
+      outputs.first,
+    );
+  });
+
+  test('retains multiple whole-file attempts instead of overwriting by documentId', async () => {
+    const first = (await input()).report;
+    const second = (await input()).report;
+    const project = first.projects[0];
+    const repeated: RunReportInput = {
+      ...first,
+      projects: [
+        {
+          ...project,
+          documents: [...project.documents, ...second.projects[0].documents],
+          cases: [...project.cases, ...second.projects[0].cases],
+        },
+      ],
+    };
+    const dump = buildTestRunReportDump(repeated, index);
+    const documents = dump.projects[0].documents;
+    expect(documents).toHaveLength(2);
+    expect(new Set(documents.map((item) => item.documentId)).size).toBe(2);
+    expect(documents[0].logicalDocumentId).toBe(documents[1].logicalDocumentId);
+    const caseKeys = documents.flatMap((document) =>
+      document.cases.map((item) => `${document.documentId}:${item.caseId}`),
+    );
+    expect(caseKeys).toHaveLength(4);
+    expect(new Set(caseKeys).size).toBe(4);
+    const ambiguous = {
+      ...repeated,
+      projects: [
+        {
+          ...repeated.projects[0],
+          cases: project.cases.map(({ documentRunId: _, ...item }) => item),
+        },
+      ],
+    };
+    expect(() => buildTestRunReportDump(ambiguous, index)).toThrow(
+      'documentRunId',
+    );
+  });
+});

@@ -1,19 +1,21 @@
-import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/errors';
-import {
-  AiExtractElementInfo,
-  AiLocateElement,
-  AiLocateSection,
-  buildSearchAreaConfig,
-} from '@/ai-model/inspect';
 import type { ModelRuntime } from '@/ai-model/models';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import {
   AIResponseParseError,
   callAIWithObjectResponse,
 } from '@/ai-model/service-caller';
-import type { AIArgs } from '@/ai-model/types';
-import type { SearchAreaConfig } from '@/ai-model/workflows/inspect/types';
-import { expandSearchArea } from '@/common';
+import type { ModelCallMessages } from '@/ai-model/service-caller/types';
+import type { MessageContent } from '@/ai-model/service-caller/types';
+import { modelFamilyRequiredForLocateMessage } from '@/ai-model/shared/model-locate-result/errors';
+import {
+  AiLocateElement,
+  AiLocateSection,
+  buildSearchAreaConfig,
+} from '@/ai-model/workflows/grounding';
+import { mergeSearchAreaResults } from '@/ai-model/workflows/grounding/search-area';
+import type { SearchAreaConfig } from '@/ai-model/workflows/grounding/types';
+import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
+import type { RawAssistantOutput } from '@/types';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -21,7 +23,6 @@ import type {
   LocateResultElement,
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
-  PlanningLocateParam,
   Rect,
   ServiceExtractOption,
   ServiceExtractParam,
@@ -30,12 +31,22 @@ import type {
   UIContext,
 } from '@/types';
 import { ServiceError } from '@/types';
-import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
+import {
+  compositeElementInfoImg,
+  compositePointMarkerImg,
+  cropByRect,
+  resizeBase64ImageToJpeg,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import {
   createServiceDump,
+  getDescribeDeepContextAreas,
+  getDescribeDeepLocateResizeSize,
+  getDescribeMarkerBorderThickness,
+  getDescribeMarkerRect,
+  getRectInCrop,
   recoverDescribeResponseFromParseError,
 } from './utils';
 
@@ -54,22 +65,26 @@ interface ServiceOptions {
 
 interface LocateSearchAreaResult {
   config?: SearchAreaConfig;
+  error?: string;
   trace: {
     sourceRect?: Rect;
     rawResponse?: string;
-    rawChoiceMessage?: unknown;
+    rawAssistantOutput?: RawAssistantOutput;
     usage?: AIUsageInfo;
   };
 }
 
 const debug = getDebug('ai:service');
+
 export default class Service {
-  contextRetrieverFn: () => Promise<UIContext> | UIContext;
+  contextRetrieverFn: (signal?: AbortSignal) => Promise<UIContext> | UIContext;
 
   taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
 
   constructor(
-    context: UIContext | (() => Promise<UIContext> | UIContext),
+    context:
+      | UIContext
+      | ((signal?: AbortSignal) => Promise<UIContext> | UIContext),
     opt?: ServiceOptions,
   ) {
     assert(context, 'context is required for Service');
@@ -85,23 +100,22 @@ export default class Service {
   }
 
   async locate(
-    query: PlanningLocateParam,
+    query: DetailedLocateParam,
     opt: LocateOpts,
     modelRuntime: ModelRuntime,
     abortSignal?: AbortSignal,
   ): Promise<LocateResultWithDump> {
     const { config: modelConfig } = modelRuntime;
-    const queryPrompt = typeof query === 'string' ? query : query.prompt;
+    const queryPrompt = query.prompt;
     assert(queryPrompt, 'query is required for locate');
 
-    assert(typeof query === 'object', 'query should be an object for locate');
-
     if (!modelConfig.modelFamily) {
-      throw new Error(defaultModelFamilyRequiredForLocateMessage);
+      throw new Error(modelFamilyRequiredForLocateMessage(modelConfig.slot));
     }
 
     const context = opt?.context || (await this.contextRetrieverFn());
 
+    const searchAreaStartTime = Date.now();
     const searchArea = await this.resolveLocateSearchArea({
       query,
       queryPrompt,
@@ -111,12 +125,32 @@ export default class Service {
       abortSignal,
     });
 
+    if (!searchArea.config && searchArea.error) {
+      const errorMessage = `cannot find search area for "${queryPrompt}": ${searchArea.error}`;
+      const taskInfo: ServiceTaskInfo = {
+        ...(this.taskInfo ? this.taskInfo : {}),
+        durationMs: Date.now() - searchAreaStartTime,
+        searchAreaRawResponse: searchArea.trace.rawResponse,
+        searchAreaRawChoiceMessage: searchArea.trace.rawAssistantOutput,
+        searchAreaUsage: searchArea.trace.usage,
+      };
+      const dump = createServiceDump({
+        type: 'locate',
+        userQuery: { element: queryPrompt },
+        matchedElement: [],
+        data: null,
+        taskInfo,
+        deepLocate: true,
+        error: errorMessage,
+      });
+      throw new ServiceError(errorMessage, dump);
+    }
+
     const startTime = Date.now();
     const {
       parseResult,
-      rect,
       rawResponse,
-      rawChoiceMessage,
+      rawAssistantOutput,
       usage,
       reasoning_content,
     } = await AiLocateElement({
@@ -131,13 +165,13 @@ export default class Service {
     const taskInfo: ServiceTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
-      rawResponse: JSON.stringify(rawResponse),
-      rawChoiceMessage,
-      formatResponse: JSON.stringify(parseResult),
+      rawResponse,
+      rawAssistantOutput,
+      formatResponse: parseResult,
       usage,
       searchArea: searchArea.trace.sourceRect,
       searchAreaRawResponse: searchArea.trace.rawResponse,
-      searchAreaRawChoiceMessage: searchArea.trace.rawChoiceMessage,
+      searchAreaRawChoiceMessage: searchArea.trace.rawAssistantOutput,
       searchAreaUsage: searchArea.trace.usage,
       reasoning_content,
     };
@@ -152,7 +186,6 @@ export default class Service {
       userQuery: {
         element: queryPrompt,
       },
-      matchedRect: rect,
       data: null,
       taskInfo,
       deepLocate: !!searchArea.trace.sourceRect,
@@ -174,23 +207,21 @@ export default class Service {
       return {
         element: {
           center: element.center,
-          rect: element.rect,
           description: element.description,
+          ...(element.rect ? { rect: element.rect } : {}),
         },
-        rect,
         dump,
       };
     }
 
     return {
       element: null,
-      rect,
       dump,
     };
   }
 
   private async resolveLocateSearchArea(options: {
-    query: PlanningLocateParam;
+    query: DetailedLocateParam;
     queryPrompt: TUserPrompt;
     opt: LocateOpts;
     context: UIContext;
@@ -200,16 +231,19 @@ export default class Service {
     const { query, queryPrompt, opt, context, modelRuntime, abortSignal } =
       options;
     const { adapter } = modelRuntime;
-    const hasPlanLocatedElement = !!opt?.planLocatedElement?.rect;
+    const hasPlanLocatedElement = !!opt?.planLocatedElement?.center;
 
     if (!query.deepLocate) {
       return { trace: {} };
     }
 
+    // TODO: Make the plan, section-locate, and element-locate fallback paths
+    // resolve only the source rect, then build the search-area config once in
+    // this orchestration layer instead of building it inside AiLocateSection.
     if (hasPlanLocatedElement) {
       const config = await buildSearchAreaConfig({
         context,
-        baseRect: opt.planLocatedElement!.rect,
+        baseRect: mergeSearchAreaResults(opt.planLocatedElement!),
       });
 
       return {
@@ -218,13 +252,14 @@ export default class Service {
           sourceRect: config.sourceRect,
           rawResponse: JSON.stringify({
             source: 'plan-located-element',
+            center: opt.planLocatedElement!.center,
             rect: opt.planLocatedElement!.rect,
           }),
         },
       };
     }
 
-    if (adapter.locate.supportsSearchArea) {
+    if (adapter.locate.kind === 'standard' && adapter.locate.searchArea) {
       const searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: queryPrompt,
@@ -232,19 +267,23 @@ export default class Service {
         abortSignal,
       });
       const { searchAreaConfig } = searchAreaResponse;
-      assert(
-        searchAreaConfig,
-        `cannot find search area for "${queryPrompt}"${
-          searchAreaResponse.error ? `: ${searchAreaResponse.error}` : ''
-        }`,
-      );
+      if (!searchAreaConfig) {
+        return {
+          error: searchAreaResponse.error || 'unknown search area error',
+          trace: {
+            rawResponse: searchAreaResponse.rawResponse,
+            rawAssistantOutput: searchAreaResponse.rawAssistantOutput,
+            usage: searchAreaResponse.usage,
+          },
+        };
+      }
 
       return {
         config: searchAreaConfig,
         trace: {
           sourceRect: searchAreaConfig.sourceRect,
           rawResponse: searchAreaResponse.rawResponse,
-          rawChoiceMessage: searchAreaResponse.rawChoiceMessage,
+          rawAssistantOutput: searchAreaResponse.rawAssistantOutput,
           usage: searchAreaResponse.usage,
         },
       };
@@ -257,7 +296,7 @@ export default class Service {
       abortSignal,
     });
     assert(
-      firstPassLocateResult.rect,
+      firstPassLocateResult.parseResult.element?.center,
       `cannot find search area for "${queryPrompt}"${
         firstPassLocateResult.parseResult.errors?.length
           ? `: ${firstPassLocateResult.parseResult.errors.join('\n')}`
@@ -267,7 +306,9 @@ export default class Service {
 
     const config = await buildSearchAreaConfig({
       context,
-      baseRect: firstPassLocateResult.rect,
+      baseRect: mergeSearchAreaResults(
+        firstPassLocateResult.parseResult.element!,
+      ),
     });
 
     return {
@@ -276,10 +317,11 @@ export default class Service {
         sourceRect: config.sourceRect,
         rawResponse: JSON.stringify({
           source: 'deep-locate-first-pass',
-          rect: firstPassLocateResult.rect,
+          center: firstPassLocateResult.parseResult.element?.center,
+          rect: firstPassLocateResult.parseResult.element?.rect,
           rawResponse: firstPassLocateResult.rawResponse,
         }),
-        rawChoiceMessage: firstPassLocateResult.rawChoiceMessage,
+        rawAssistantOutput: firstPassLocateResult.rawAssistantOutput,
         usage: firstPassLocateResult.usage,
       },
     };
@@ -308,7 +350,7 @@ export default class Service {
       ReturnType<typeof AiExtractElementInfo<T>>
     >['parseResult'];
     let rawResponse: string;
-    let rawChoiceMessage: unknown;
+    let rawAssistantOutput: RawAssistantOutput | undefined;
     let usage: Awaited<ReturnType<typeof AiExtractElementInfo<T>>>['usage'];
     let reasoning_content: string | undefined;
 
@@ -324,7 +366,7 @@ export default class Service {
       });
       parseResult = result.parseResult;
       rawResponse = result.rawResponse;
-      rawChoiceMessage = result.rawChoiceMessage;
+      rawAssistantOutput = result.rawAssistantOutput;
       usage = result.usage;
       reasoning_content = result.reasoning_content;
     } catch (error) {
@@ -335,7 +377,7 @@ export default class Service {
           ...(this.taskInfo ? this.taskInfo : {}),
           durationMs: timeCost,
           rawResponse: error.rawResponse,
-          rawChoiceMessage: error.rawChoiceMessage,
+          rawAssistantOutput: error.rawAssistantOutput,
           usage: error.usage,
         };
         const dump = createServiceDump({
@@ -355,8 +397,8 @@ export default class Service {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse,
-      rawChoiceMessage,
-      formatResponse: JSON.stringify(parseResult),
+      rawAssistantOutput,
+      formatResponse: parseResult,
       usage,
       reasoning_content,
     };
@@ -400,7 +442,7 @@ export default class Service {
     target: Rect | [number, number],
     modelRuntime: ModelRuntime,
     opt?: {
-      deepLocate?: boolean;
+      deepDescribe?: boolean;
       context?: UIContext;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
@@ -413,7 +455,8 @@ export default class Service {
 
     // Convert [x,y] center point to Rect if needed
     const defaultRectSize = 30;
-    const targetRect: Rect = Array.isArray(target)
+    const targetFromPoint = Array.isArray(target);
+    const targetRect: Rect = targetFromPoint
       ? {
           left: Math.floor(target[0] - defaultRectSize / 2),
           top: Math.floor(target[1] - defaultRectSize / 2),
@@ -421,45 +464,123 @@ export default class Service {
           height: defaultRectSize,
         }
       : target;
+    const targetPoint = targetFromPoint
+      ? {
+          x: target[0],
+          y: target[1],
+        }
+      : undefined;
 
-    let imagePayload = await compositeElementInfoImg({
-      inputImgBase64: screenshotBase64,
-      size: shotSize,
-      elementsPositionInfo: [
+    const usePointMarker = targetFromPoint;
+    const imagePayload = usePointMarker
+      ? await compositePointMarkerImg({
+          inputImgBase64: screenshotBase64,
+          size: shotSize,
+          point: targetPoint!,
+        })
+      : await compositeElementInfoImg({
+          inputImgBase64: screenshotBase64,
+          size: shotSize,
+          elementsPositionInfo: [
+            {
+              rect: getDescribeMarkerRect(targetRect),
+            },
+          ],
+          borderThickness: getDescribeMarkerBorderThickness(targetRect),
+          centerPoint: true,
+        });
+
+    const shouldDeepDescribe = opt?.deepDescribe;
+    let imageContent: MessageContent[];
+    if (shouldDeepDescribe) {
+      const contextAreas = getDescribeDeepContextAreas(targetRect, shotSize);
+      const contextImages = await Promise.all(
+        contextAreas.map(async (area) => {
+          debug('describe: cropping deep context area', area);
+          const croppedResult = await cropByRect(screenshotBase64, area.rect);
+          const cropSize = {
+            width: croppedResult.width,
+            height: croppedResult.height,
+          };
+          const targetInCrop = getRectInCrop(targetRect, area.rect, cropSize);
+          const markedCropPayload = targetFromPoint
+            ? await compositePointMarkerImg({
+                inputImgBase64: croppedResult.imageBase64,
+                size: cropSize,
+                point: {
+                  x: targetPoint!.x - area.rect.left,
+                  y: targetPoint!.y - area.rect.top,
+                },
+              })
+            : await compositeElementInfoImg({
+                inputImgBase64: croppedResult.imageBase64,
+                size: cropSize,
+                elementsPositionInfo: [
+                  {
+                    rect: getDescribeMarkerRect(targetInCrop),
+                  },
+                ],
+                borderThickness: getDescribeMarkerBorderThickness(targetInCrop),
+                centerPoint: true,
+              });
+          const resizeSize = getDescribeDeepLocateResizeSize(croppedResult);
+          return {
+            kind: area.kind,
+            imageBase64: resizeSize
+              ? await resizeBase64ImageToJpeg(markedCropPayload, {
+                  sourceSize: cropSize,
+                  targetSize: resizeSize,
+                })
+              : markedCropPayload,
+          };
+        }),
+      );
+      const contextImageContent = contextImages.flatMap<MessageContent>(
+        (item, index) => [
+          {
+            type: 'text',
+            text: `Image ${index + 2}: focused detail crop around the target, for reading text, icon shape, and exact local boundaries.`,
+          },
+          {
+            type: 'image',
+            url: item.imageBase64,
+          },
+        ],
+      );
+
+      imageContent = [
         {
-          rect: targetRect,
+          type: 'text' as const,
+          text: 'Use these images together to describe the real UI target marked by the temporary callout. Do not describe the marker itself.',
         },
-      ],
-      borderThickness: 3,
-    });
-
-    if (opt?.deepLocate) {
-      const searchArea = expandSearchArea(targetRect, shotSize);
-      // Always crop in describe mode. Unlike locate's deepLocate (where
-      // cropping too small loses context for finding elements), describe's
-      // deepLocate intentionally zooms in so the model produces a more
-      // precise description from a focused view. expandSearchArea already
-      // guarantees a minimum 400x400 area with surrounding context.
-      // Describe is not a coordinate-parsing flow, so it does not need image
-      // padding for bbox normalization.
-      debug('describe: cropping to searchArea', searchArea);
-      const croppedResult = await cropByRect(imagePayload, searchArea);
-      imagePayload = croppedResult.imageBase64;
+        {
+          type: 'text' as const,
+          text: 'Image 1: full screenshot overview with the target marker, for page position and ownership context.',
+        },
+        {
+          type: 'image' as const,
+          url: imagePayload,
+        },
+        ...contextImageContent,
+      ];
+    } else {
+      imageContent = [
+        {
+          type: 'text' as const,
+          text: 'Full screenshot with a temporary callout marking the target:',
+        },
+        {
+          type: 'image' as const,
+          url: imagePayload,
+        },
+      ];
     }
 
-    const msgs: AIArgs = [
+    const msgs: ModelCallMessages = [
       { role: 'system', content: systemPrompt },
       {
         role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: imagePayload,
-              detail: 'high',
-            },
-          },
-        ],
+        content: imageContent,
       },
     ];
 

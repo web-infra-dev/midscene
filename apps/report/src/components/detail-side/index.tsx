@@ -3,6 +3,7 @@
 import './index.less';
 
 import {
+  CloseOutlined,
   DownOutlined,
   FileImageOutlined,
   RadiusSettingOutlined,
@@ -122,34 +123,20 @@ const CollapsibleCard = (props: {
 
 // Shared helper function to render element detail box
 const renderElementDetailBox = (_value: LocateResultElement) => {
-  const hasCenter = _value.center && Array.isArray(_value.center);
-  const hasRect = _value.rect;
+  const { center, rect } = _value;
 
-  // If it has center and rect, show detailed info
-  if (hasCenter && hasRect) {
-    const { center, rect } = _value;
-    const { left, top, width, height } = rect;
-
-    return (
-      <div className="element-detail-box">
-        <div className="element-detail-line">
-          {_value.description} (center=[{center[0]}, {center[1]}])
-        </div>
-        <div className="element-detail-line element-detail-coords">
-          left={Math.round(left)}, top={Math.round(top)}, width=
-          {Math.round(width)}, height={Math.round(height)}
-        </div>
-      </div>
-    );
-  }
-
-  // Fallback to simple tag
   return (
-    <span>
-      <Tag bordered={false} color="orange" className="element-button">
-        Element
-      </Tag>
-    </span>
+    <div className="element-detail-box">
+      <div className="element-detail-line">
+        {_value.description} (center=[{center[0]}, {center[1]}])
+      </div>
+      {rect && (
+        <div className="element-detail-line element-detail-coords">
+          left={Math.round(rect.left)}, top={Math.round(rect.top)}, width=
+          {Math.round(rect.width)}, height={Math.round(rect.height)}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -266,7 +253,7 @@ const objectWithoutKeys = (
     {} as Record<string, unknown>,
   );
 
-const DetailSide = (): JSX.Element => {
+const DetailSide = ({ onClose }: { onClose?: () => void }): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useExecutionDump((store) => store.insightDump);
   const { matchedElement: elements } = dump || {};
@@ -434,7 +421,9 @@ const DetailSide = (): JSX.Element => {
         ? [
             {
               key: 'act context',
-              content: aiActContextValue,
+              content: (
+                <pre className="act-context-source">{aiActContextValue}</pre>
+              ),
             },
           ]
         : []),
@@ -507,6 +496,10 @@ const DetailSide = (): JSX.Element => {
     // Get subGoalStatus and memoriesStatus from param
     const subGoalStatus = (planningTask.param as any)?.subGoalStatus;
     const memoriesStatus = (planningTask.param as any)?.memoriesStatus;
+    const locateContext =
+      planningTask.subType === 'Locate'
+        ? (planningTask.param as any)?.context
+        : undefined;
 
     if (planningTask.param?.userInstruction) {
       const instructionContent =
@@ -540,7 +533,7 @@ const DetailSide = (): JSX.Element => {
           ...(isPageContextFrozen
             ? [
                 {
-                  key: 'context',
+                  key: 'UI Context',
                   content: <Tag color="blue">Frozen Context 🧊</Tag>,
                 },
               ]
@@ -562,6 +555,16 @@ const DetailSide = (): JSX.Element => {
             content: promptContent,
             images: images,
           },
+          ...(locateContext
+            ? [
+                {
+                  key: 'context',
+                  content: (
+                    <pre className="act-context-source">{locateContext}</pre>
+                  ),
+                },
+              ]
+            : []),
           ...(memoriesStatus
             ? [
                 {
@@ -581,7 +584,7 @@ const DetailSide = (): JSX.Element => {
           ...(isPageContextFrozen
             ? [
                 {
-                  key: 'context',
+                  key: 'UI Context',
                   content: <Tag color="blue">Frozen Context 🧊</Tag>,
                 },
               ]
@@ -618,10 +621,20 @@ const DetailSide = (): JSX.Element => {
               },
             ]
           : []),
-        ...(isPageContextFrozen
+        ...(taskParam?.context
           ? [
               {
                 key: 'context',
+                content: (
+                  <pre className="act-context-source">{taskParam.context}</pre>
+                ),
+              },
+            ]
+          : []),
+        ...(isPageContextFrozen
+          ? [
+              {
+                key: 'UI Context',
                 content: <Tag color="blue">Frozen Context 🧊</Tag>,
               },
             ]
@@ -680,14 +693,7 @@ const DetailSide = (): JSX.Element => {
     if (task.errorMessage) {
       errorText = task.errorMessage;
     } else if (task.error) {
-      // if no errorMessage, try to show error object
-      if (typeof task.error === 'string') {
-        errorText = task.error;
-      } else if (typeof task.error === 'object' && task.error.message) {
-        errorText = task.error.message;
-      } else {
-        errorText = JSON.stringify(task.error, null, 2) || 'Unknown error';
-      }
+      errorText = task.error.message;
     }
 
     // add stack info (if exists and not duplicate)
@@ -1098,6 +1104,16 @@ const DetailSide = (): JSX.Element => {
     <div className="detail-side">
       <div className="info-tabs">
         <div className="info-tab">Information</div>
+        {onClose && (
+          <button
+            type="button"
+            className="detail-side-close"
+            aria-label="Close step information"
+            onClick={onClose}
+          >
+            <CloseOutlined aria-hidden="true" />
+          </button>
+        )}
       </div>
       <div className="info-content">
         <details open>

@@ -2,20 +2,26 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createYamlPlayer } from '@/create-yaml-player';
-import { runYamlCase, runYamlCaseResult } from '@/framework/yaml-case';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import {
+  type YamlPlayerSnapshotHandler,
+  runYamlCase,
+  runYamlCaseResult,
+  runYamlCaseResultWithSnapshots,
+} from '@/framework/yaml-case';
+import type { ScriptPlayerTaskStatus } from '@midscene/core';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
-vi.mock('@/create-yaml-player', () => ({
-  createYamlPlayer: vi.fn(),
+rs.mock('@/create-yaml-player', () => ({
+  createYamlPlayer: rs.fn(),
 }));
 
 const createPlayer = (overrides: Record<string, any> = {}) => ({
   status: 'done',
   output: '/tmp/output.json',
   reportFile: '/tmp/report.html',
-  errorInSetup: undefined,
+  errorInSetup: undefined as Error | undefined,
   taskStatusList: [],
-  run: vi.fn().mockResolvedValue(undefined),
+  run: rs.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -23,7 +29,7 @@ const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-yaml-case-'));
 
 describe('runYamlCase', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   test('runs a YAML player and returns output metadata', async () => {
@@ -31,7 +37,7 @@ describe('runYamlCase', () => {
     const output = join(root, 'output.json');
     writeFileSync(output, '{}');
     const player = createPlayer({ output });
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
 
     try {
       const result = await runYamlCase({ file: 'relative.yaml', headed: true });
@@ -49,6 +55,45 @@ describe('runYamlCase', () => {
     }
   });
 
+  test('reports task names before and after the YAML player runs', async () => {
+    const taskStatusList: ScriptPlayerTaskStatus[] = [
+      { name: 'login', status: 'init', totalSteps: 1, flow: [] },
+    ];
+    const player = createPlayer({
+      status: 'init',
+      taskStatusList,
+    });
+    player.run.mockImplementation(async () => {
+      player.status = 'done';
+      taskStatusList[0].status = 'done';
+    });
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    const snapshots: Array<{ player: string; task: string }> = [];
+    const onPlayerSnapshot = rs.fn<YamlPlayerSnapshotHandler>(
+      ({ player: currentPlayer }) => {
+        snapshots.push({
+          player: currentPlayer.status,
+          task: currentPlayer.taskStatusList[0].status,
+        });
+      },
+    );
+
+    await runYamlCaseResultWithSnapshots(
+      { file: 'relative.yaml' },
+      onPlayerSnapshot,
+    );
+
+    expect(onPlayerSnapshot).toHaveBeenCalledTimes(2);
+    expect(onPlayerSnapshot.mock.calls[0][0]).toMatchObject({
+      file: expect.stringMatching(/relative\.yaml$/),
+    });
+    expect(onPlayerSnapshot.mock.calls[0][0].player).toBe(player);
+    expect(snapshots).toEqual([
+      { player: 'init', task: 'init' },
+      { player: 'done', task: 'done' },
+    ]);
+  });
+
   test('passes merged execution config to the YAML player', async () => {
     const player = createPlayer();
     const executionConfig = {
@@ -58,7 +103,7 @@ describe('runYamlCase', () => {
       },
       tasks: [],
     };
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
 
     await runYamlCase({ file: 'relative.yaml', executionConfig });
 
@@ -73,7 +118,7 @@ describe('runYamlCase', () => {
     const root = createTempDir();
     const yaml = join(root, 'case.yaml');
     const player = createPlayer();
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
     writeFileSync(yaml, 'web:\n  url: https://file.example\ntasks: []\n');
 
     try {
@@ -106,7 +151,7 @@ describe('runYamlCase', () => {
     const root = createTempDir();
     const yaml = join(root, 'case.yaml');
     const player = createPlayer();
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
     writeFileSync(
       yaml,
       [
@@ -115,6 +160,10 @@ describe('runYamlCase', () => {
         '  userAgent: file-agent',
         'android:',
         '  launch: file.app',
+        'harmony:',
+        '  launch: file.bundle/FileAbility',
+        '  autoDismissKeyboard: false',
+        '  hdcPath: /file/path/to/hdc',
         'tasks: []',
         '',
       ].join('\n'),
@@ -134,8 +183,13 @@ describe('runYamlCase', () => {
           android: {
             deviceId: 'global-device',
           },
+          harmony: {
+            deviceId: 'global-harmony-device',
+            launch: 'global.bundle/GlobalAbility',
+            autoDismissKeyboard: true,
+          },
           ios: {
-            deviceId: 'ios-device',
+            wdaHost: 'ios-wda-host',
           },
         },
       });
@@ -153,8 +207,14 @@ describe('runYamlCase', () => {
             launch: 'file.app',
             deviceId: 'global-device',
           },
+          harmony: {
+            launch: 'global.bundle/GlobalAbility',
+            autoDismissKeyboard: true,
+            hdcPath: '/file/path/to/hdc',
+            deviceId: 'global-harmony-device',
+          },
           ios: {
-            deviceId: 'ios-device',
+            wdaHost: 'ios-wda-host',
           },
           tasks: [],
         },
@@ -171,11 +231,32 @@ describe('runYamlCase', () => {
       status: 'error',
       errorInSetup: error,
     });
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
 
     await expect(runYamlCase({ file: 'broken.yaml' })).rejects.toThrow(
       'setup failed',
     );
+  });
+
+  test('preserves report metadata when player cleanup rejects', async () => {
+    const cleanupError = new Error('cleanup failed');
+    const player = createPlayer();
+    player.run.mockImplementation(async () => {
+      player.status = 'error';
+      player.errorInSetup = cleanupError;
+      throw cleanupError;
+    });
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
+
+    const result = await runYamlCaseResult({ file: 'cleanup-failed.yaml' });
+
+    expect(result).toMatchObject({
+      success: false,
+      executed: true,
+      report: '/tmp/report.html',
+      resultType: 'failed',
+      error: 'cleanup failed',
+    });
   });
 
   test('throws task failures with report and output paths', async () => {
@@ -193,7 +274,7 @@ describe('runYamlCase', () => {
         },
       ],
     });
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
 
     try {
       await expect(runYamlCase({ file: 'failed.yaml' })).rejects.toThrow(
@@ -224,7 +305,7 @@ describe('runYamlCase', () => {
         },
       ],
     });
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
 
     try {
       const result = await runYamlCaseResult({ file: 'partial.yaml' });

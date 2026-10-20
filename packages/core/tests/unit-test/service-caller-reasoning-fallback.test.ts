@@ -5,22 +5,22 @@ import {
   callAIWithObjectResponse,
 } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const { mockDebugLog, mockWarnLog } = vi.hoisted(() => ({
-  mockDebugLog: vi.fn(),
-  mockWarnLog: vi.fn(),
+const { mockDebugLog, mockWarnLog } = rs.hoisted(() => ({
+  mockDebugLog: rs.fn(),
+  mockWarnLog: rs.fn(),
 }));
-const mockCreate = vi.fn();
+const mockCreate = rs.fn();
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn((_topic, options) =>
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn((_topic, options) =>
     options?.console ? mockWarnLog : mockDebugLog,
   ),
 }));
 
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
+rs.mock('openai', () => ({
+  default: rs.fn().mockImplementation(() => ({
     chat: {
       completions: {
         create: mockCreate,
@@ -45,7 +45,38 @@ describe('service-caller reasoning fallback', () => {
     mockWarnLog.mockClear();
   });
 
-  it('uses reasoning_content when content is empty and modelFamily is unset', async () => {
+  it('throws when content is empty and reasoning fallback is not enabled', async () => {
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: '',
+            reasoning_content:
+              '<action-type>Tap</action-type><action-param-json>{"locate":{"prompt":"POI RichInfo tab"}}</action-param-json>',
+          },
+        },
+      ],
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      },
+    });
+
+    await expect(
+      callAI(
+        [{ role: 'user', content: 'next action' }],
+        getModelRuntime({
+          ...baseModelConfig,
+          modelName: 'gpt-5',
+          modelFamily: 'gpt-5',
+          retryCount: 0,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(AIResponseParseError);
+  });
+
+  it('uses reasoning_content when content is empty and qwen enables reasoning fallback', async () => {
     mockCreate.mockResolvedValue({
       choices: [
         {
@@ -65,7 +96,10 @@ describe('service-caller reasoning fallback', () => {
 
     const response = await callAI(
       [{ role: 'user', content: 'next action' }],
-      getModelRuntime(baseModelConfig),
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'qwen3',
+      }),
     );
 
     expect(response.content).toContain('<action-type>Tap</action-type>');
@@ -103,7 +137,7 @@ describe('service-caller reasoning fallback', () => {
     });
   });
 
-  it('parses object responses from reasoning_content when content is blank', async () => {
+  it('parses qwen object responses from reasoning_content when content is blank', async () => {
     mockCreate.mockResolvedValue({
       choices: [
         {
@@ -124,7 +158,13 @@ describe('service-caller reasoning fallback', () => {
     const response = await callAIWithObjectResponse<{
       type: string;
       param: { locate: { prompt: string } };
-    }>([{ role: 'user', content: 'next action' }], baseModelConfig);
+    }>(
+      [{ role: 'user', content: 'next action' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'qwen3',
+      }),
+    );
 
     expect(response.content).toEqual({
       type: 'Tap',
@@ -143,7 +183,7 @@ describe('service-caller reasoning fallback', () => {
     const rawResponse = `\`\`\`json
 {
   "bbox": 37, 313, 55, 324,
-  "errors": []
+  "error": ""
 }
 \`\`\``;
 
@@ -164,7 +204,7 @@ describe('service-caller reasoning fallback', () => {
 
     const promise = callAIWithObjectResponse(
       [{ role: 'user', content: 'locate element' }],
-      baseModelConfig,
+      getModelRuntime(baseModelConfig),
       { jsonParserSource: 'locate' },
     );
 
@@ -214,6 +254,198 @@ describe('service-caller reasoning fallback', () => {
       }),
       expect.any(Object),
     );
+  });
+
+  it('only sends json_object response format for object-response calls', async () => {
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: '{"answer":true}',
+          },
+        },
+      ],
+    });
+
+    const modelRuntime = getModelRuntime({
+      ...baseModelConfig,
+      modelFamily: 'doubao-seed',
+    });
+
+    await callAI([{ role: 'user', content: 'hello' }], modelRuntime);
+    expect(mockCreate).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({
+        response_format: expect.anything(),
+      }),
+      expect.any(Object),
+    );
+
+    await callAIWithObjectResponse(
+      [{ role: 'user', content: 'return a json object' }],
+      modelRuntime,
+    );
+    expect(mockCreate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        response_format: { type: 'json_object' },
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('retries JSON parsing when retryTimes is configured', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"bbox":[100,200,300,400]}' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      });
+
+    const response = await callAIWithObjectResponse(
+      [{ role: 'user', content: 'locate element' }],
+      getModelRuntime(baseModelConfig),
+      {
+        jsonParserSource: 'locate',
+        retryTimes: 1,
+      },
+    );
+
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ temperature: 0 }),
+      expect.any(Object),
+    );
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ temperature: 0.2 }),
+      expect.any(Object),
+    );
+    const retryFeedback = mockCreate.mock.calls[1]?.[0]?.messages.at(-1);
+    expect(retryFeedback).toMatchObject({ role: 'user' });
+    expect(retryFeedback?.content).toEqual(
+      expect.stringContaining('The previous response was invalid:'),
+    );
+    expect(retryFeedback?.content).toContain('not JSON');
+    expect(response.content).toEqual({ bbox: [100, 200, 300, 400] });
+  });
+
+  it('keeps a non-zero adapter temperature during JSON parsing retries', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"answer":true}' } }],
+      });
+
+    await callAIWithObjectResponse(
+      [{ role: 'user', content: 'return a json object' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'doubao-seed',
+        temperature: 0.6,
+      }),
+      { retryTimes: 1 },
+    );
+
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ temperature: 0.6 }),
+      expect.any(Object),
+    );
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ temperature: 0.6 }),
+      expect.any(Object),
+    );
+  });
+
+  it('keeps an explicitly configured zero temperature during JSON parsing retries', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"answer":true}' } }],
+      });
+
+    await callAIWithObjectResponse(
+      [{ role: 'user', content: 'return a json object' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'doubao-seed',
+        temperature: 0,
+      }),
+      { retryTimes: 1 },
+    );
+
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ temperature: 0 }),
+      expect.any(Object),
+    );
+  });
+
+  it('does not add temperature on retries when the adapter disables it', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"answer":true}' } }],
+      });
+
+    await callAIWithObjectResponse(
+      [{ role: 'user', content: 'return a json object' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'kimi',
+      }),
+      { retryTimes: 1 },
+    );
+
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ temperature: undefined }),
+      expect.any(Object),
+    );
+  });
+
+  it('uses model retry settings for JSON parsing failures', async () => {
+    rs.useFakeTimers();
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"bbox":[100,200,300,400]}' } }],
+      });
+
+    try {
+      const responsePromise = callAIWithObjectResponse(
+        [{ role: 'user', content: 'locate element' }],
+        getModelRuntime({
+          ...baseModelConfig,
+          retryCount: 1,
+          retryInterval: 123,
+        }),
+        { jsonParserSource: 'locate' },
+      );
+
+      await rs.advanceTimersByTimeAsync(122);
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+
+      await rs.advanceTimersByTimeAsync(1);
+      await expect(responsePromise).resolves.toMatchObject({
+        content: { bbox: [100, 200, 300, 400] },
+      });
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+    } finally {
+      rs.useRealTimers();
+    }
   });
 
   it('disables reasoning by default for supported model families', async () => {

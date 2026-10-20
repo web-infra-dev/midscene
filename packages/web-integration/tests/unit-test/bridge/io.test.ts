@@ -1,7 +1,7 @@
 import { BridgeSignalKill } from '@/bridge-mode/common';
 import { BridgeClient } from '@/bridge-mode/io-client';
 import { BridgeServer, killRunningServer } from '@/bridge-mode/io-server';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const DEFAULT_HOST = '127.0.0.1';
 let testPort = 1234;
@@ -25,7 +25,7 @@ describe('bridge-io', () => {
     const server = new BridgeServer(DEFAULT_HOST, port);
     await server.listen();
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         return Promise.resolve('ok');
       },
@@ -35,9 +35,9 @@ describe('bridge-io', () => {
     // client should be closed automatically
     // client.disconnect();
 
-    const onDisconnect = vi.fn();
+    const onDisconnect = rs.fn();
     const client2 = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         return Promise.resolve('ok');
       },
@@ -93,7 +93,7 @@ describe('bridge-io', () => {
     await server.listen();
 
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         return Promise.resolve('ok');
       },
@@ -113,7 +113,7 @@ describe('bridge-io', () => {
     const server = new BridgeServer(DEFAULT_HOST, port);
     await server.listen();
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         expect(method).toBe(method);
         expect(args).toEqual(args);
@@ -136,7 +136,7 @@ describe('bridge-io', () => {
     await server.listen();
 
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         return Promise.reject(new Error(errMsg));
       },
@@ -152,10 +152,10 @@ describe('bridge-io', () => {
     const server = new BridgeServer(DEFAULT_HOST, port);
     await server.listen();
 
-    const fn = vi.fn();
+    const fn = rs.fn();
 
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         return Promise.resolve('ok');
       },
@@ -173,8 +173,8 @@ describe('bridge-io', () => {
 
   it('client close before server', async () => {
     const port = testPort++;
-    const onConnect = vi.fn();
-    const onDisconnect = vi.fn();
+    const onConnect = rs.fn();
+    const onDisconnect = rs.fn();
     const server = new BridgeServer(
       DEFAULT_HOST,
       port,
@@ -183,7 +183,7 @@ describe('bridge-io', () => {
     );
     await server.listen();
 
-    const client = new BridgeClient(`ws://localhost:${port}`, () => {
+    const client = new BridgeClient(`ws://127.0.0.1:${port}`, () => {
       return Promise.resolve('ok');
     });
     await client.connect();
@@ -203,7 +203,7 @@ describe('bridge-io', () => {
     await server.listen();
 
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         return Promise.resolve('ok');
       },
@@ -230,7 +230,7 @@ describe('bridge-io', () => {
     await server.listen();
 
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         throw new Error('internal error');
       },
@@ -249,7 +249,7 @@ describe('bridge-io', () => {
     await server.listen();
 
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
@@ -283,7 +283,7 @@ describe('bridge-io', () => {
     let resolveConfirmation!: (allowed: boolean) => void;
 
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       async (method, args) => {
         // Same check as page-browser-side.ts
         if (confirmationPromise) {
@@ -344,7 +344,7 @@ describe('bridge-io', () => {
     });
 
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       async (method, args) => {
         // Block on confirmation before processing, just like page-browser-side.ts
         const allowed = await confirmationPromise;
@@ -394,7 +394,7 @@ describe('bridge-io', () => {
     });
 
     const client = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       async (method, args) => {
         const allowed = await confirmationPromise;
         if (!allowed) {
@@ -427,7 +427,7 @@ describe('bridge-io', () => {
     server1.listen();
 
     const client = new BridgeClient(
-      `ws://localhost:${commonPort}`,
+      `ws://127.0.0.1:${commonPort}`,
       (method, args) => {
         return Promise.resolve('ok');
       },
@@ -443,7 +443,7 @@ describe('bridge-io', () => {
     server2.listen();
 
     const client2 = new BridgeClient(
-      `ws://localhost:${commonPort}`,
+      `ws://127.0.0.1:${commonPort}`,
       (method, args) => {
         return Promise.resolve('ok2');
       },
@@ -461,7 +461,7 @@ describe('bridge-io', () => {
     await server.listen();
 
     const client1 = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         return Promise.resolve('response1');
       },
@@ -477,7 +477,7 @@ describe('bridge-io', () => {
 
     // Extension clicks Start → new client connects to the SAME server
     const client2 = new BridgeClient(
-      `ws://localhost:${port}`,
+      `ws://127.0.0.1:${port}`,
       (method, args) => {
         return Promise.resolve('response2');
       },

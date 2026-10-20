@@ -2,10 +2,7 @@
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
 import { getTaskSearchArea } from '@midscene/core/dump/task-service-dump';
-import {
-  getCenterHighlightBox,
-  normalizeHighlightElementForReport,
-} from './highlight-element';
+import { getCenterHighlightBox } from './highlight-element';
 
 import type {
   ExecutionDump,
@@ -526,7 +523,7 @@ export const generateAnimationScripts = (
         );
 
         locateElements.forEach((element) => {
-          const highlightElement = normalizeHighlightElementForReport(element);
+          const highlightElement = element;
           const highlightBox = getCenterHighlightBox(highlightElement);
 
           insightCameraState = {

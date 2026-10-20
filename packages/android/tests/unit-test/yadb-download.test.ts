@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   YADB_VERSION,
   downloadYadbReleaseAsset,
@@ -31,7 +31,7 @@ describe('yadb download script', () => {
 
     const destinationPath = path.join(dirPath, 'yadb');
     const dispatcher = { kind: 'proxy-dispatcher' };
-    const fetchImpl = vi.fn(async () => ({
+    const fetchImpl = rs.fn(async () => ({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode('yadb-binary').buffer,
       status: 200,
@@ -61,7 +61,7 @@ describe('yadb download script', () => {
     const destinationPath = path.join(dirPath, 'yadb');
     const apiAssetUrl =
       'https://api.github.com/repos/ysbing/YADB/releases/assets/392259748';
-    const fetchImpl = vi.fn(async (url: string) => {
+    const fetchImpl = rs.fn(async (url: string) => {
       if (
         url === 'https://github.com/ysbing/YADB/releases/download/v1.1.1/yadb'
       ) {
@@ -119,7 +119,7 @@ describe('yadb download script', () => {
   });
 
   it('throws when the browser URL and API metadata fallback both fail', async () => {
-    const fetchImpl = vi.fn(async () => ({
+    const fetchImpl = rs.fn(async () => ({
       ok: false,
       status: 502,
       statusText: 'Bad Gateway',

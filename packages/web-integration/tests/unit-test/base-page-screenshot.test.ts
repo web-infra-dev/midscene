@@ -1,32 +1,32 @@
 import { Page } from '@/puppeteer/base-page';
-import { describe, expect, it, vi } from 'vitest';
+import * as coreUtilsActual from '@midscene/core/utils' with {
+  rstest: 'importActual',
+};
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
-  logMsg: vi.fn(),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
+  logMsg: rs.fn(),
 }));
 
-vi.mock('@midscene/core/utils', async () => {
-  const actual = await vi.importActual('@midscene/core/utils');
-  return {
-    ...actual,
-    sleep: vi.fn(() => Promise.resolve()),
-  };
-});
-
-vi.mock('@midscene/shared/node', () => ({
-  getElementInfosScriptContent: vi.fn(() => ''),
-  getExtraReturnLogic: vi.fn(() => Promise.resolve('() => ({})')),
+rs.mock('@midscene/core/utils', () => ({
+  ...coreUtilsActual,
+  sleep: rs.fn(() => Promise.resolve()),
 }));
 
-vi.mock('@/web-page', () => ({
-  commonWebActionsForWebPage: vi.fn(() => []),
+rs.mock('@midscene/shared/node', () => ({
+  getElementInfosScriptContent: rs.fn(() => ''),
+  getExtraReturnLogic: rs.fn(() => Promise.resolve('() => ({})')),
+}));
+
+rs.mock('@/web-page', () => ({
+  commonWebActionsForWebPage: rs.fn(() => []),
 }));
 
 describe('Page screenshotBase64', () => {
   it('uses the regular playwright screenshot path when it succeeds', async () => {
-    const screenshot = vi.fn().mockResolvedValue(Buffer.from('plain-shot'));
-    const newCDPSession = vi.fn();
+    const screenshot = rs.fn().mockResolvedValue(Buffer.from('plain-shot'));
+    const newCDPSession = rs.fn();
     const mockPage = {
       url: () => 'http://example.com',
       isClosed: () => false,
@@ -50,14 +50,14 @@ describe('Page screenshotBase64', () => {
   });
 
   it('falls back to a CDP screenshot when playwright screenshot times out', async () => {
-    const screenshot = vi
+    const screenshot = rs
       .fn()
       .mockRejectedValue(
         new Error('page.screenshot: Timeout 10000ms exceeded.'),
       );
-    const detach = vi.fn().mockResolvedValue(undefined);
-    const send = vi.fn().mockResolvedValue({ data: 'Y2RwLXNob3Q=' });
-    const newCDPSession = vi.fn().mockResolvedValue({
+    const detach = rs.fn().mockResolvedValue(undefined);
+    const send = rs.fn().mockResolvedValue({ data: 'Y2RwLXNob3Q=' });
+    const newCDPSession = rs.fn().mockResolvedValue({
       send,
       detach,
     });
@@ -88,16 +88,16 @@ describe('Page screenshotBase64', () => {
   });
 
   it('times out when the CDP screenshot fallback does not return in time', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
 
-    const screenshot = vi
+    const screenshot = rs
       .fn()
       .mockRejectedValue(
         new Error('page.screenshot: Timeout 10000ms exceeded.'),
       );
-    const detach = vi.fn().mockResolvedValue(undefined);
-    const send = vi.fn(() => new Promise(() => {}));
-    const newCDPSession = vi.fn().mockResolvedValue({
+    const detach = rs.fn().mockResolvedValue(undefined);
+    const send = rs.fn(() => new Promise(() => {}));
+    const newCDPSession = rs.fn().mockResolvedValue({
       send,
       detach,
     });
@@ -121,7 +121,7 @@ describe('Page screenshotBase64', () => {
       (error) => error,
     );
 
-    await vi.advanceTimersByTimeAsync(10 * 1000);
+    await rs.advanceTimersByTimeAsync(10 * 1000);
 
     await expect(resultPromise).resolves.toMatchObject({
       message: 'CDP screenshot timeout after 10000ms.',
@@ -133,20 +133,20 @@ describe('Page screenshotBase64', () => {
     });
     expect(detach).toHaveBeenCalledTimes(1);
 
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   it('does not wait for CDP session detach after the screenshot timeout', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
 
-    const screenshot = vi
+    const screenshot = rs
       .fn()
       .mockRejectedValue(
         new Error('page.screenshot: Timeout 10000ms exceeded.'),
       );
-    const detach = vi.fn(() => new Promise(() => {}));
-    const send = vi.fn(() => new Promise(() => {}));
-    const newCDPSession = vi.fn().mockResolvedValue({
+    const detach = rs.fn(() => new Promise(() => {}));
+    const send = rs.fn(() => new Promise(() => {}));
+    const newCDPSession = rs.fn().mockResolvedValue({
       send,
       detach,
     });
@@ -170,13 +170,13 @@ describe('Page screenshotBase64', () => {
       (error) => error,
     );
 
-    await vi.advanceTimersByTimeAsync(10 * 1000);
+    await rs.advanceTimersByTimeAsync(10 * 1000);
 
     await expect(resultPromise).resolves.toMatchObject({
       message: 'CDP screenshot timeout after 10000ms.',
     });
     expect(detach).toHaveBeenCalledTimes(1);
 
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 });

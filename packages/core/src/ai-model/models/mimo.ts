@@ -8,15 +8,18 @@ import type {
 const buildMimoChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { intent, midsceneDefaults, userConfig } = input;
+  const { midsceneDefaults, userConfig } = input;
   const { reasoningEnabled } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   // https://platform.xiaomimimo.com/docs/zh-CN/api/chat/openai-api
   // Observed with thinking disabled: Mimo needs json_object to return JSON.
-  commonOverrideConfig.response_format = {
-    type: intent === 'default' ? 'json_object' : 'text',
-  };
+  if (
+    userConfig.responseFormat !== 'none' &&
+    input.expectedJsonObjectResponse
+  ) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
 
   if (userConfig.temperature !== undefined) {
     commonOverrideConfig.temperature = userConfig.temperature;
@@ -42,6 +45,7 @@ export const mimoAdapters = {
     chatCompletion: {
       unsupportedUserConfig: ['reasoningEffort', 'reasoningBudget'],
       buildChatCompletionParams: buildMimoChatCompletionParams,
+      useReasoningAsContentFallback: true,
     },
   },
 } satisfies Pick<Record<TModelFamily, ModelAdapterDefinition>, 'xiaomi-mimo'>;

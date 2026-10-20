@@ -2,20 +2,20 @@ import { Agent as PageAgent, commonContextParser } from '@/agent';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock page implementation
 const mockPage = {
   interfaceType: 'puppeteer',
   mouse: {
-    click: vi.fn(),
+    click: rs.fn(),
   },
-  actionSpace: vi.fn(() => []),
-  screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
-  evaluateJavaScript: vi.fn(),
-  size: vi.fn().mockResolvedValue({ width: 1920, height: 1080 }),
-  url: vi.fn().mockResolvedValue('https://example.com'),
-  getContext: vi.fn().mockImplementation(async function (
+  actionSpace: rs.fn(() => []),
+  screenshotBase64: rs.fn().mockResolvedValue('mock-screenshot'),
+  evaluateJavaScript: rs.fn(),
+  size: rs.fn().mockResolvedValue({ width: 1920, height: 1080 }),
+  url: rs.fn().mockResolvedValue('https://example.com'),
+  getContext: rs.fn().mockImplementation(async function (
     this: AbstractInterface,
   ) {
     return await commonContextParser(this, {});
@@ -34,7 +34,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
   let mockContext2: UIContext;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
 
     // Create mock contexts
     mockContext = {
@@ -84,7 +84,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     // Mock _snapshotContext method to return different contexts on successive calls
     let callCount = 0;
-    vi.spyOn(agent, '_snapshotContext').mockImplementation(async () => {
+    rs.spyOn(agent, '_snapshotContext').mockImplementation(async () => {
       callCount++;
       return callCount === 1 ? mockContext : mockContext2;
     });
@@ -176,7 +176,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
       });
 
       // Mock second agent's _snapshotContext
-      vi.spyOn(agent2, '_snapshotContext').mockResolvedValue(mockContext2);
+      rs.spyOn(agent2, '_snapshotContext').mockResolvedValue(mockContext2);
 
       // Freeze context for agent1 only
       await agent.freezePageContext();
@@ -240,8 +240,8 @@ describe('PageAgent freeze/unfreeze page context', () => {
   describe('getUIContext with frozen context', () => {
     it('should return frozen context for all actions when frozen', async () => {
       // Mock commonContextParser to return a new context each time
-      const mockParseContext = vi.fn().mockResolvedValue(mockContext2);
-      vi.spyOn(
+      const mockParseContext = rs.fn().mockResolvedValue(mockContext2);
+      rs.spyOn(
         await import('@/agent/utils'),
         'commonContextParser',
       ).mockImplementation(mockParseContext);
@@ -272,13 +272,13 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     it('should return fresh context for all actions when not frozen', async () => {
       // Mock commonContextParser
-      const mockParseContext = vi
+      const mockParseContext = rs
         .fn()
         .mockResolvedValueOnce({ ...mockContext, fresh: 1 })
         .mockResolvedValueOnce({ ...mockContext, fresh: 2 })
         .mockResolvedValueOnce({ ...mockContext, fresh: 3 });
 
-      vi.spyOn(
+      rs.spyOn(
         await import('@/agent/utils'),
         'commonContextParser',
       ).mockImplementation(mockParseContext);
@@ -299,12 +299,12 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     it('should switch between frozen and fresh contexts correctly', async () => {
       // Mock commonContextParser
-      const mockParseContext = vi
+      const mockParseContext = rs
         .fn()
         .mockResolvedValueOnce({ ...mockContext2, callNumber: 1 })
         .mockResolvedValueOnce({ ...mockContext2, callNumber: 2 });
 
-      vi.spyOn(
+      rs.spyOn(
         await import('@/agent/utils'),
         'commonContextParser',
       ).mockImplementation(mockParseContext);
@@ -334,8 +334,8 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     it('should handle extract and assert actions correctly when frozen', async () => {
       // Mock commonContextParser
-      const mockParseContext = vi.fn().mockResolvedValue(mockContext2);
-      vi.spyOn(
+      const mockParseContext = rs.fn().mockResolvedValue(mockContext2);
+      rs.spyOn(
         await import('@/agent/utils'),
         'commonContextParser',
       ).mockImplementation(mockParseContext);

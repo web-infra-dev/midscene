@@ -16,7 +16,7 @@ import {
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createCoordinateDistanceToPixels } from '@/ai-model/shared/model-locate-result';
 import type { DeviceAction } from '@/device';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const defaultSize = { width: 1080, height: 1920 };
 const autoGlmPlanning = new ResolvedModelAdapter(

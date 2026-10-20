@@ -8,13 +8,16 @@
     },
     "declarationDir": "dist/types"
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "scripts", "e2e/midscene.config.ts"],
   "references": [
     {
       "path": "../../packages/core"
     },
     {
       "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/test"
     },
     {
       "path": "../../packages/visualizer"

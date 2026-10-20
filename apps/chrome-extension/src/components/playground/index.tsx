@@ -1,6 +1,11 @@
 import { PlaygroundSDK } from '@midscene/playground';
-import { UniversalPlayground } from '@midscene/visualizer';
+import {
+  type CommonAgentOptions,
+  type EnvConfigProps,
+  UniversalPlayground,
+} from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
+import { Empty } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { getExtensionVersion } from '../../utils/chrome';
 import './index.less';
@@ -12,6 +17,42 @@ export interface PlaygroundProps {
   showContextPreview?: boolean;
   dryMode?: boolean;
   onPlaygroundSDKChange?: (sdk: PlaygroundSDK | null) => void;
+  onVerify?: EnvConfigProps['onVerify'];
+  agentOptions?: CommonAgentOptions;
+  onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
+}
+
+function ExtensionWelcomeEmptyState() {
+  return (
+    <div className="extension-welcome-empty-state">
+      <Empty
+        image={
+          <img
+            alt=""
+            className="extension-welcome-midscene-icon"
+            src="icon128.png"
+          />
+        }
+        description={
+          <div className="extension-welcome-copy">
+            <div className="extension-welcome-title">
+              Welcome to Midscene.js Playground!
+            </div>
+            <p>
+              This is a panel for experimenting and testing Midscene.js
+              features. You can use natural language instructions to operate the
+              web page, such as clicking buttons, filling in forms, and querying
+              information.
+            </p>
+            <p>
+              Please enter your instructions in the input box below to start
+              experiencing.
+            </p>
+          </div>
+        }
+      />
+    </div>
+  );
 }
 
 // Browser Extension Playground Component using Universal Playground
@@ -20,6 +61,9 @@ export function BrowserExtensionPlayground({
   showContextPreview = true,
   dryMode = false,
   onPlaygroundSDKChange,
+  onVerify,
+  agentOptions,
+  onAgentOptionsSave,
 }: PlaygroundProps) {
   const extensionVersion = getExtensionVersion();
   const forceSameTabNavigation = useEnvConfig(
@@ -108,18 +152,49 @@ export function BrowserExtensionPlayground({
     <UniversalPlayground
       playgroundSDK={playgroundSDK}
       contextProvider={contextProvider}
+      envConfigReminderProps={{
+        onVerify,
+        agentOptions,
+        onAgentOptionsSave,
+        configModalClassName: 'chrome-extension-model-env-config-modal',
+        configModalWidth: 360,
+        envTextareaAutoSize: false,
+        envTextareaMinRows: 4,
+      }}
       config={{
         showContextPreview,
+        // The SDK is intentionally recreated when the active browser tab
+        // changes. Keep the Playground conversation independent of that
+        // short-lived SDK instance so a tab switch does not open an empty
+        // session.
+        storageNamespace: 'chrome-extension-playground',
+        hidePlayerFullscreenControl: true,
+        // The extension is an action console, not a long-lived report archive.
+        // Keep one execution timeline so repeated submits cannot pile up cards.
+        clearTimelineBeforeRun: true,
         layout: 'vertical',
         showVersionInfo: true,
         enableScrollToBottom: true,
         showEnvConfigReminder: true,
+        emptyState: <ExtensionWelcomeEmptyState />,
+        // Studio uses a timeline wrapper for its execution-flow connectors.
+        // Keep that structure local to the extension so Studio remains
+        // unaffected while both surfaces share the same progress-row markup.
+        timelineWrapper: (content, { headerAction }) => (
+          <div className="chrome-extension-execution-timeline-skin">
+            {headerAction}
+            {content}
+          </div>
+        ),
       }}
       branding={{
         title: 'Playground',
         version: `${extensionVersion}(SDK v${__SDK_VERSION__})`,
       }}
-      className="chrome-extension-playground"
+      // Use the same compact execution-flow skin as Studio. The extension
+      // keeps its own shell and controls, while this shared class normalizes
+      // progress rows into Studio-style timeline entries.
+      className="chrome-extension-playground playground-conversation-skin"
       dryMode={dryMode}
     />
   );

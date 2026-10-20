@@ -260,7 +260,7 @@ export function RecorderHistoryList({
       popupHeight={305}
       popupPlacement="bottom"
       popupWidth={280}
-      portalContainerSelector=".studio-recorder-floating-card"
+      portalContainerSelector=".studio-recorder-control-card"
       renderItemActions={(history, { scrollVersion }) => {
         const sessionId = history.params?.sessionId;
         const session =

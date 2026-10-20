@@ -1,0 +1,458 @@
+.test-runner-report {
+  .runner-detail-evidence-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: 8px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--runner-code-bg);
+    box-shadow: none;
+    container: runner-evidence / inline-size;
+  }
+
+  .runner-detail-evidence-heading {
+    display: block;
+    min-height: 0;
+    padding: 12px 12px 0;
+    border: 0;
+  }
+
+  .runner-detail-evidence-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .runner-detail-evidence-title h2 {
+    margin: 0;
+    color: #000;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px;
+  }
+
+  .runner-detail-evidence-title .runner-status-pill {
+    min-height: 20px;
+    padding: 2px 8px;
+    font-size: 12px;
+  }
+
+  .runner-detail-evidence-heading .runner-detail-step-description {
+    margin: 8px 0 0;
+    color: var(--runner-muted);
+    font-size: 12px;
+    line-height: 20px;
+  }
+
+  .runner-detail-inspector {
+    flex: 1;
+    margin-top: 16px;
+    border: 0;
+    background: transparent;
+  }
+
+  .runner-detail-tabs-row {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .runner-detail-evidence-panel > .runner-error-cards,
+  .runner-detail-inspector-tabs {
+    margin-inline: 12px;
+  }
+
+  .runner-detail-inspector-tabs {
+    display: flex;
+    width: fit-content;
+    min-height: 32px;
+    padding: 0;
+    gap: 24px;
+    border: 0;
+    background: transparent;
+  }
+
+  .runner-detail-inspector-tabs button {
+    flex: 0 0 auto;
+    min-width: 0;
+    height: 32px;
+    padding: 0;
+    color: #7d7d7d;
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .runner-detail-inspector-tabs button.is-selected {
+    color: #000;
+  }
+
+  .runner-detail-inspector-tabs button.is-selected::after {
+    background: var(--runner-text);
+  }
+
+  .runner-detail-inspector-tabs button::after {
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+
+  .runner-detail-inspector-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 16px 0 0;
+  }
+
+  .runner-detail-inspector-content.has-stable-trace-height {
+    min-height: 864px;
+  }
+
+  .runner-detail-record-view {
+    display: grid;
+    flex: 1;
+    gap: 12px;
+  }
+
+  .runner-detail-screenshot-stage {
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-screenshot-toolbar {
+    min-height: 40px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--runner-border);
+  }
+
+  .runner-detail-screenshot-canvas {
+    min-height: 420px;
+    max-height: 620px;
+    padding: 12px;
+    background: #fafafa;
+  }
+
+  .runner-detail-screenshot-canvas img {
+    border-radius: 8px;
+  }
+
+  .runner-detail-screenshot-caption {
+    min-height: 32px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--runner-border);
+    font-size: 12px;
+  }
+
+  .runner-detail-io-grid {
+    display: block;
+    flex: 1 0 auto;
+    // Match the heading inset, accounting for the card's 1px border.
+    padding: 0 calc(12px - 1px);
+    overflow: hidden;
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-io-grid > section {
+    display: grid;
+    grid-template-columns: 128px minmax(0, 1fr);
+    min-height: 0;
+    padding: 16px 0;
+    gap: 24px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .runner-detail-io-grid > section + section {
+    border-top: 1px solid var(--runner-border);
+  }
+
+  .runner-detail-io-grid h4 {
+    margin: 0;
+    padding: 0;
+    color: var(--runner-subtle);
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 22px;
+  }
+
+  .runner-detail-io-body {
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    color: var(--runner-text);
+    background: transparent;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .runner-detail-io-grid .runner-json-block pre {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-step-configuration {
+    display: grid;
+    margin: 0;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 22px;
+
+    > div {
+      display: grid;
+      grid-template-columns: minmax(0, 128px) minmax(0, 1fr);
+      align-items: baseline;
+      gap: 16px;
+    }
+
+    dt {
+      color: var(--runner-muted);
+    }
+
+    dd {
+      margin: 0;
+      color: var(--runner-text);
+    }
+  }
+
+  .runner-detail-io-grid .runner-capture-boundary {
+    min-width: 0;
+    margin: 0;
+    font-size: 14px;
+    line-height: 22px;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-runtime-events,
+  .runner-events-empty {
+    flex: 1 0 auto;
+    min-width: 0;
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+    background: var(--runner-surface);
+  }
+
+  .runner-runtime-events {
+    overflow-x: auto;
+
+    table {
+      width: 100%;
+      min-width: 640px;
+      border-spacing: 0;
+      font-size: 14px;
+      line-height: 22px;
+      text-align: left;
+    }
+
+    th,
+    td {
+      padding: 12px 16px;
+      vertical-align: top;
+    }
+
+    th:first-child,
+    td:first-child {
+      // Match the heading inset, accounting for the card's 1px border.
+      padding-inline-start: calc(12px - 1px);
+    }
+
+    th {
+      color: var(--runner-muted);
+      border-bottom: 1px solid var(--runner-border);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    tbody tr + tr td {
+      border-top: 1px solid var(--runner-border);
+    }
+
+    time {
+      font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    time {
+      color: var(--runner-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    small {
+      display: block;
+      margin-top: 4px;
+      color: var(--runner-muted);
+      font-size: 12px;
+      line-height: 20px;
+    }
+  }
+
+  .runner-runtime-event-kind {
+    font-weight: 500;
+  }
+
+  .runner-runtime-event-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .runner-events-empty {
+    display: flex;
+    min-height: 200px;
+    padding: 24px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--runner-muted);
+    text-align: center;
+
+    > .anticon {
+      font-size: 24px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 22px;
+    }
+  }
+
+  .runner-detail-io-grid p {
+    margin: 8px 0 0;
+    color: inherit;
+    font: inherit;
+  }
+
+  .runner-detail-inline-trace {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-inline-trace .runner-detail-trace-view {
+    flex: 1;
+    min-height: 840px;
+    height: 840px;
+  }
+
+  .runner-detail-inline-trace .main-layout {
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-inline-trace .page-side {
+    min-width: 200px;
+    max-width: calc(100% - 328px);
+    height: 100%;
+    margin: 0;
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-inline-trace .main-layout > .resize-handle {
+    position: relative;
+    display: block;
+    width: 8px;
+    background: var(--runner-surface);
+    outline: none;
+  }
+
+  .runner-detail-inline-trace .main-layout > .resize-handle::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: var(--runner-border);
+    transform: translateX(-50%);
+    transition:
+      width 120ms ease,
+      background 120ms ease;
+    content: '';
+  }
+
+  .runner-detail-inline-trace .main-layout > .resize-handle:hover::before,
+  .runner-detail-inline-trace
+    .main-layout
+    > .resize-handle:focus-visible::before {
+    width: 2px;
+    background: var(--runner-primary);
+  }
+
+  .runner-detail-inline-trace .main-right {
+    height: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .runner-detail-inline-trace .main-right .main-content {
+    border-radius: 0;
+  }
+
+  .runner-detail-inline-trace .report-overview {
+    display: none;
+  }
+
+  .runner-detail-inline-trace .player-container {
+    padding: 24px;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .runner-detail-inline-trace .canvas-container {
+    border-radius: 12px;
+  }
+
+  .runner-detail-inline-trace .tasks-table .column-time {
+    font-family: 'Report Inter', sans-serif;
+  }
+
+  .runner-detail-inline-trace .total-summary-row:not(:has(.column-prompt)) {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .summary-cell {
+      width: 100% !important;
+      flex: 1 0 100% !important;
+    }
+
+    .summary-time-values {
+      width: 100%;
+      grid-template-columns: 1fr auto;
+      justify-items: start;
+      row-gap: 8px;
+    }
+  }
+}
+
+@container runner-evidence (max-width: 560px) {
+  .test-runner-report .runner-detail-io-grid > section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+}

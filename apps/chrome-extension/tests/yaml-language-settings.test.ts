@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   DEFAULT_YAML_LANGUAGE_PREFERENCE,
   YAML_LANGUAGE_STORAGE_KEY,
@@ -10,7 +10,7 @@ import {
 describe('yaml language settings', () => {
   it('falls back to auto when storage is empty', () => {
     const storage = {
-      getItem: vi.fn(() => null),
+      getItem: rs.fn(() => null),
     };
 
     expect(getStoredYamlLanguagePreference(storage)).toBe(
@@ -20,7 +20,7 @@ describe('yaml language settings', () => {
 
   it('returns a custom language stored by the user', () => {
     const storage = {
-      getItem: vi.fn(() => 'Japanese'),
+      getItem: rs.fn(() => 'Japanese'),
     };
 
     expect(getStoredYamlLanguagePreference(storage)).toBe('Japanese');
@@ -28,7 +28,7 @@ describe('yaml language settings', () => {
 
   it('returns an explicitly stored YAML language', () => {
     const storage = {
-      getItem: vi.fn(() => 'Chinese'),
+      getItem: rs.fn(() => 'Chinese'),
     };
 
     expect(getStoredYamlLanguagePreference(storage)).toBe('Chinese');
@@ -36,7 +36,7 @@ describe('yaml language settings', () => {
 
   it('persists YAML language preference with the expected key', () => {
     const storage = {
-      setItem: vi.fn(),
+      setItem: rs.fn(),
     };
 
     persistYamlLanguagePreference('English', storage);

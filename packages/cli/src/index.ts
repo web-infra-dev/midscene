@@ -1,13 +1,21 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { createReportCliCommands } from '@midscene/core';
 import type { BaseMidsceneTools } from '@midscene/shared/agent-tools/base-tools';
 import { runToolsCLI } from '@midscene/shared/cli';
-import dotenv from 'dotenv';
 import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { createConfig, createFilesConfig } from './config-factory';
+import {
+  type ConfigFactoryOptions,
+  createConfig,
+  createFilesConfig,
+} from './config-factory';
+import { pickYamlTargetConfig } from './config-options';
+import { loadDotenvConfig } from './dotenv-loader';
 import { runFrameworkTestConfig } from './framework';
+import { runModelCommand } from './model-command';
+import {
+  assertLegacyBatchConfigPath,
+  assertLegacyWorkflowSelection,
+} from './workflow-format';
 
 Promise.resolve(
   (async () => {
@@ -27,6 +35,12 @@ Promise.resolve(
           extraCommands: createReportCliCommands(),
         },
       );
+      return;
+    }
+
+    if (firstArg === 'model') {
+      const exitCode = await runModelCommand(rawArgs);
+      process.exit(exitCode);
       return;
     }
 
@@ -51,25 +65,25 @@ Promise.resolve(
 
     // Extract new configuration options
     const configOptions = {
+      ...pickYamlTargetConfig(options),
       concurrent: options.concurrent,
       continueOnError: options['continue-on-error'],
       retry: options.retry,
       summary: options.summary,
       shareBrowserContext: options['share-browser-context'],
+      reusePage: options['reuse-page'],
       headed: options.headed,
       keepWindow: options['keep-window'],
       dotenvOverride: options['dotenv-override'],
       dotenvDebug: options['dotenv-debug'],
-      web: options.web,
-      android: options.android,
-      ios: options.ios,
       files: cmdFiles,
       setup: options.setup as string | undefined,
-    };
+    } satisfies ConfigFactoryOptions;
 
     let config;
 
     if (configFile) {
+      assertLegacyBatchConfigPath(configFile);
       config = await createConfig(configFile, configOptions);
       console.log(`   Config file: ${configFile}`);
     } else if (cmdFiles && cmdFiles.length > 0) {
@@ -90,15 +104,16 @@ Promise.resolve(
       process.exit(1);
     }
 
-    const dotEnvConfigFile = join(process.cwd(), '.env');
-    if (existsSync(dotEnvConfigFile)) {
-      console.log(`   Env file: ${dotEnvConfigFile}`);
-      dotenv.config({
-        path: dotEnvConfigFile,
-        debug: config.dotenvDebug,
-        override: config.dotenvOverride,
-      });
-    }
+    assertLegacyWorkflowSelection([
+      ...(config.setup ? [config.setup] : []),
+      ...config.files,
+    ]);
+
+    loadDotenvConfig({
+      dotenvDebug: config.dotenvDebug,
+      dotenvOverride: config.dotenvOverride,
+      log: console.log,
+    });
 
     const exitCode = await runFrameworkTestConfig(config);
 

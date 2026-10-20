@@ -1,0 +1,837 @@
+.playground-shell .studio-playground-input-first .bottom-input-section {
+  position: relative;
+  min-height: 204.077px;
+  height: auto;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  border: 1px solid #e5e5e5;
+  border-radius: 20px;
+  background: #f5f5f5;
+  overflow: hidden;
+  padding: 0;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .bottom-input-section:focus-within::after {
+  position: absolute;
+  top: 44.077px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  border: 1px solid #2b83ff;
+  border-radius: 16px 16px 20px 20px;
+  content: "";
+  pointer-events: none;
+  z-index: 4;
+}
+
+.playground-shell .studio-playground-input-first .bottom-input-section::before {
+  display: flex;
+  height: 44.077px;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 8px 12px 8px 16px;
+  color: #0d0d0d;
+  content: "API Playground";
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22.106px;
+}
+
+.playground-shell .studio-playground-input-first .prompt-input-wrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 160px;
+  height: auto;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 0;
+  border-top: 1px solid #ebebeb;
+  border-radius: 16px;
+  background: #fff;
+  padding: 12px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper:focus-within {
+  border-top-color: transparent;
+  box-shadow: none;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group-wrapper {
+  position: relative;
+  height: 28px;
+  flex: 0 0 28px;
+  gap: 8px;
+  z-index: 1;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group {
+  gap: 8px;
+  margin-right: 0;
+  scrollbar-width: none;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group::-webkit-scrollbar {
+  display: none;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-form-item
+  .ant-radio-group {
+  gap: 8px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper,
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .more-apis-button {
+  height: 28px;
+  border: 1px solid rgba(229, 229, 229, 0.87);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0 8px;
+  color: #000;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper {
+  line-height: 26px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper-checked {
+  border-color: #e9e9e9;
+  background: #e5e5e5;
+  color: #000;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper-checked:hover {
+  background: #e5e5e5;
+  color: #000;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .more-apis-button {
+  gap: 2px;
+  line-height: 16px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group-wrapper
+  .action-icons {
+  display: none;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input {
+  position: relative;
+  display: flex;
+  margin-top: 0;
+  min-height: 94px;
+  height: auto;
+  flex: 0 0 auto;
+  flex-direction: column;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding-bottom: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input:focus-within {
+  box-shadow: none;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input.loading,
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input.disabled {
+  border: 0;
+  background: transparent;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input.loading::before {
+  display: none;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  > .ant-form-item {
+  min-height: 0;
+  height: 56px;
+  flex: 0 0 56px;
+  margin-bottom: 0;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  > .ant-form-item
+  .ant-form-item-control,
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  > .ant-form-item
+  .ant-form-item-control-input,
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  > .ant-form-item
+  .ant-form-item-control-input-content {
+  min-height: 0;
+  height: 100%;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea {
+  height: 100%;
+  min-height: 56px;
+  max-height: 56px;
+  padding: 0 4px;
+  color: rgba(0, 0, 0, 0.9);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 22px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params-container {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  flex: 0 0 auto;
+  padding: 0 4px;
+  overflow: visible;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .ant-input {
+  padding-bottom: 0;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper {
+  position: static;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 28px;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 10px;
+  padding: 0;
+  line-height: 28px;
+  z-index: 2;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .input-actions-wrapper {
+  margin-right: auto;
+  gap: 8px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .settings-wrapper,
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .selector-trigger {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .input-icon-trigger,
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  button[aria-label="Import Markdown or YAML replay"] {
+  display: inline-flex;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 6px;
+  color: #666;
+  cursor: pointer;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .input-icon-trigger:hover,
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  button[aria-label="Import Markdown or YAML replay"]:hover {
+  background: #f2f2f2;
+  color: #333;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  button[aria-label="Import Markdown or YAML replay"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .input-toolbar-icon,
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  button[aria-label="Import Markdown or YAML replay"]
+  svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .ant-btn {
+  height: 28px;
+  border: 1px solid #d9d9d9;
+  border-radius: 12px !important;
+  background: #fff;
+  padding: 6px 12px;
+  color: #000;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .prompt-stop-button {
+  width: auto;
+  min-width: 0;
+  height: 28px;
+  gap: 6px;
+  border: 1px solid #d9d9d9;
+  border-radius: 12px !important;
+  background: #fff;
+  padding: 6px 12px;
+  color: #000;
+  box-shadow: none;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .prompt-stop-button
+  .prompt-stop-square-icon {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 2px;
+  color: #151414;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .prompt-stop-button
+  .ant-btn-icon {
+  display: inline-flex;
+  width: 10px;
+  height: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .ant-btn-primary {
+  border-color: transparent;
+  background: #2b83ff;
+  color: #fff;
+  width: 63px;
+  min-width: 63px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input.prompt-input-empty
+  .form-controller-wrapper
+  .ant-btn-primary,
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input.disabled
+  .form-controller-wrapper
+  .ant-btn-primary {
+  border-color: transparent;
+  background: #e5e5e5;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .ant-btn
+  .anticon {
+  font-size: 12px;
+}
+
+.playground-shell .studio-playground-input-first .middle-dialog-area {
+  order: 1;
+  min-height: 250px;
+  height: auto;
+  flex: 0 0 auto;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid #ececec;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.playground-shell .studio-playground-input-first .clear-button-container {
+  top: 52px;
+  right: 12px;
+}
+
+.playground-shell .studio-playground-input-first .info-list-container {
+  min-height: 196px;
+  padding: 0 16px 20px 20px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .info-list-container
+  .playground-empty-state-wrapper {
+  min-height: 196px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .playground-empty-state-wrapper-offset-for-prompt {
+  padding-bottom: 0;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .bottom-input-section {
+  border-color: #323131;
+  background: #242424;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .bottom-input-section::before {
+  color: #eee;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .bottom-input-section:focus-within::after {
+  display: block;
+  border-color: #538cff;
+  box-shadow: inset 0 0 0 2px rgba(26, 121, 255, 0.25);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper {
+  border: 0;
+  border-top: 1px solid #323131;
+  background: #181818;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper:focus-within {
+  border-top-color: transparent;
+  box-shadow: none;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .more-apis-button {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #242424;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper-checked,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper-checked:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea {
+  border: 0;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea:hover,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea:focus {
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  > .ant-form-item
+  .ant-form-item-control-input-content
+  textarea.ant-input {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params
+  .ant-form-item:not(:last-child) {
+  margin-bottom: 12px !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params
+  textarea.ant-input {
+  padding: 4px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params
+  textarea.ant-input:hover,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params
+  textarea.ant-input:focus {
+  border-color: #40a9ff !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input:focus-within {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .input-icon-trigger,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  button[aria-label="Import Markdown or YAML replay"] {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .input-icon-trigger:hover,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  button[aria-label="Import Markdown or YAML replay"]:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .ant-btn,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .prompt-stop-button {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #242424;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .prompt-stop-button
+  .prompt-stop-square-icon {
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .ant-btn-primary {
+  border-color: transparent;
+  background: #2b83ff;
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input.prompt-input-empty
+  .form-controller-wrapper
+  .ant-btn-primary,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input.disabled
+  .form-controller-wrapper
+  .ant-btn-primary {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .middle-dialog-area {
+  border-color: #323131;
+  background: #181818;
+}

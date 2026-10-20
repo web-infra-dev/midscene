@@ -1,6 +1,7 @@
 import path from 'node:path';
 import {
   AndroidAgent,
+  type AndroidAgentOpt,
   AndroidDevice,
   getConnectedDevicesWithDetails,
 } from '@midscene/android';
@@ -15,12 +16,19 @@ import {
   SCRCPY_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
-import type ScrcpyServer from './scrcpy-server';
+export interface ScrcpyServerController {
+  /** Bind host, used to connect local Playground pages to this sidecar. */
+  readonly host?: string;
+  currentDeviceId: string | null;
+  launch(port?: number): Promise<unknown>;
+  close(): unknown;
+}
 
 export interface AndroidPlatformOptions {
   staticDir?: string;
-  scrcpyServer?: ScrcpyServer;
+  scrcpyServer?: ScrcpyServerController;
   scrcpyPort?: number;
+  getAgentOptions?: () => AndroidAgentOpt;
 }
 
 async function getAdbTargets(): Promise<PlaygroundSessionTarget[]> {
@@ -70,6 +78,11 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
         : findAvailablePort(SCRCPY_SERVER_PORT),
     ]);
     const scrcpyPort = resolvedScrcpyPort;
+    const scrcpyHost = options?.scrcpyServer?.host;
+    const scrcpyPreviewOptions = {
+      scrcpyPort,
+      ...(scrcpyHost ? { scrcpyHost } : {}),
+    };
 
     if (playgroundPort !== PLAYGROUND_SERVER_PORT) {
       console.log(
@@ -133,7 +146,7 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
         const connectAgent = async () => {
           const device = new AndroidDevice(deviceId);
           await device.connect();
-          return new AndroidAgent(device);
+          return new AndroidAgent(device, options?.getAgentOptions?.());
         };
 
         if (options?.scrcpyServer) {
@@ -145,10 +158,9 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
         return {
           agent,
           agentFactory: connectAgent,
-          preview: createScrcpyPreviewDescriptor(
-            { scrcpyPort },
-            { title: 'Android device preview' },
-          ),
+          preview: createScrcpyPreviewDescriptor(scrcpyPreviewOptions, {
+            title: 'Android device preview',
+          }),
           displayName: deviceId,
           metadata: {
             deviceId,
@@ -170,7 +182,7 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
                 await options.scrcpyServer?.launch(scrcpyPort);
               },
               stop: async () => {
-                options.scrcpyServer?.close();
+                await options.scrcpyServer?.close();
               },
             },
           ]
@@ -184,14 +196,9 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
           server.scrcpyPort = scrcpyPort;
         },
       },
-      preview: createScrcpyPreviewDescriptor(
-        {
-          scrcpyPort,
-        },
-        {
-          title: 'Android device preview',
-        },
-      ),
+      preview: createScrcpyPreviewDescriptor(scrcpyPreviewOptions, {
+        title: 'Android device preview',
+      }),
       metadata: {
         scrcpyPort,
         sessionConnected: false,

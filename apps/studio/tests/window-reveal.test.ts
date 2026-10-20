@@ -17,7 +17,7 @@ class FakeWindow extends EventEmitter {
 }
 
 function register(window: FakeWindow) {
-  registerWindowRevealHandlers({
+  return registerWindowRevealHandlers({
     isDestroyed: () => window.isDestroyed(),
     onDidFailLoad: (listener) =>
       window.webContents.once('did-fail-load', listener),
@@ -90,5 +90,60 @@ describe('window reveal handlers', () => {
     vi.advanceTimersByTime(2000);
 
     expect(window.showCalls).toBe(1);
+  });
+
+  it('defers activation until the initial reveal completes', () => {
+    const window = new FakeWindow();
+    const controller = register(window);
+    const activate = vi.fn();
+
+    controller.requestActivation(activate);
+
+    expect(controller.hasRevealed()).toBe(false);
+    expect(activate).not.toHaveBeenCalled();
+
+    window.emit('ready-to-show');
+
+    expect(controller.hasRevealed()).toBe(true);
+    expect(window.showCalls).toBe(1);
+    expect(activate).toHaveBeenCalledOnce();
+  });
+
+  it('runs activation immediately after the window has been revealed', () => {
+    const window = new FakeWindow();
+    const controller = register(window);
+    const activate = vi.fn();
+
+    window.webContents.emit('did-finish-load');
+    controller.requestActivation(activate);
+
+    expect(activate).toHaveBeenCalledOnce();
+  });
+
+  it('coalesces repeated activation requests before reveal', () => {
+    const window = new FakeWindow();
+    const controller = register(window);
+    const firstActivation = vi.fn();
+    const secondActivation = vi.fn();
+
+    controller.requestActivation(firstActivation);
+    controller.requestActivation(secondActivation);
+    window.emit('ready-to-show');
+
+    expect(firstActivation).toHaveBeenCalledOnce();
+    expect(secondActivation).not.toHaveBeenCalled();
+  });
+
+  it('drops activation requests for a destroyed window', () => {
+    const window = new FakeWindow();
+    const controller = register(window);
+    const activate = vi.fn();
+    window.destroyed = true;
+
+    controller.requestActivation(activate);
+    window.emit('ready-to-show');
+
+    expect(controller.hasRevealed()).toBe(false);
+    expect(activate).not.toHaveBeenCalled();
   });
 });

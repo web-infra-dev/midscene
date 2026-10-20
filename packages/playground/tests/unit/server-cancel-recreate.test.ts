@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 /**
  * Bug regression test: After clicking Stop then Run, the system should not
@@ -10,18 +10,18 @@ describe('PlaygroundServer cancel and recreate agent', () => {
     // Simulate the agent lifecycle in PlaygroundServer
     let agentInstance = {
       destroyed: false,
-      interface: { screenshotBase64: vi.fn() },
-      destroy: vi.fn(async () => {
+      interface: { screenshotBase64: rs.fn() },
+      destroy: rs.fn(async () => {
         agentInstance.destroyed = true;
       }),
     };
 
-    const agentFactory = vi.fn(async () => {
+    const agentFactory = rs.fn(async () => {
       // Factory creates a fresh agent (not destroyed)
       agentInstance = {
         destroyed: false,
-        interface: { screenshotBase64: vi.fn() },
-        destroy: vi.fn(async () => {
+        interface: { screenshotBase64: rs.fn() },
+        destroy: rs.fn(async () => {
           agentInstance.destroyed = true;
         }),
       };
@@ -58,15 +58,15 @@ describe('PlaygroundServer cancel and recreate agent', () => {
     // the agent without recreating it, causing "agent already destroyed" on next Run
     let agent = {
       destroyed: false,
-      destroy: vi.fn(async () => {
+      destroy: rs.fn(async () => {
         agent.destroyed = true;
       }),
     };
 
-    const agentFactory = vi.fn(async () => {
+    const agentFactory = rs.fn(async () => {
       agent = {
         destroyed: false,
-        destroy: vi.fn(async () => {
+        destroy: rs.fn(async () => {
           agent.destroyed = true;
         }),
       };
@@ -95,8 +95,8 @@ describe('PlaygroundServer cancel and recreate agent', () => {
     // New code uses direct cast assignment.
 
     const iface: Record<string, unknown> = {
-      screenshotBase64: vi.fn(),
-      size: vi.fn(),
+      screenshotBase64: rs.fn(),
+      size: rs.fn(),
     };
     // iface does NOT have 'options' property initially
 
@@ -120,7 +120,7 @@ describe('PlaygroundServer cancel and recreate agent', () => {
     // cancel should still destroy the agent to stop the running task.
     const agent = {
       destroyed: false,
-      destroy: vi.fn(async () => {
+      destroy: rs.fn(async () => {
         agent.destroyed = true;
       }),
     };

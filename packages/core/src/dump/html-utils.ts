@@ -1,12 +1,153 @@
 import { closeSync, openSync, readSync, statSync } from 'node:fs';
+import { open as openAsync } from 'node:fs/promises';
+import { StringDecoder } from 'node:string_decoder';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
+import {
+  TEST_RUN_REPORT_SCRIPT_TYPE,
+  type TestRunReportDump,
+} from '../test-run-report';
+import type { AIUsageInfo, IReportActionDump, ModelBrief } from '../types';
 
 export const escapeContent = escapeScriptTag;
 export const unescapeContent = antiEscapeScriptTag;
 
+function cleanHtmlCommentValue(value: unknown): string {
+  return String(value ?? 'N/A')
+    .replace(/\0/g, '')
+    .replace(/--/g, '- -');
+}
+
+function formatModelBriefForAgent(brief: ModelBrief): string {
+  const intent = brief.intent || 'default';
+  const model = brief.name || 'unknown';
+  const description = brief.modelDescription
+    ? ` (${brief.modelDescription})`
+    : '';
+  return `${intent}: ${model}${description}`;
+}
+
+function hasUsageModelInfo(usage?: AIUsageInfo): usage is AIUsageInfo {
+  return Boolean(
+    usage &&
+      (usage.model_name ||
+        usage.response_model_name ||
+        usage.model_description ||
+        usage.intent),
+  );
+}
+
+function formatUsageModelForAgent(source: string, usage: AIUsageInfo): string {
+  const intent = usage.intent || source;
+  const model = usage.model_name || usage.response_model_name || 'unknown';
+  const description = usage.model_description
+    ? ` (${usage.model_description})`
+    : '';
+  return `${intent}: ${model}${description}`;
+}
+
+function collectUsageModelsForAgent(report: IReportActionDump): string {
+  const models = new Map<string, string>();
+  const executions = Array.isArray(report.executions) ? report.executions : [];
+  for (const execution of executions) {
+    const tasks = Array.isArray(execution.tasks) ? execution.tasks : [];
+    for (const task of tasks) {
+      const taskWithUsage = task as {
+        usage?: AIUsageInfo;
+        searchAreaUsage?: AIUsageInfo;
+      };
+      const usages: Array<[string, AIUsageInfo | undefined]> = [
+        ['main', taskWithUsage.usage],
+        ['searchArea', taskWithUsage.searchAreaUsage],
+      ];
+
+      for (const [source, usage] of usages) {
+        if (!hasUsageModelInfo(usage)) {
+          continue;
+        }
+        const formatted = formatUsageModelForAgent(source, usage);
+        models.set(formatted, formatted);
+      }
+    }
+  }
+
+  return Array.from(models.values()).join('; ');
+}
+
+export function generateAgentReportComment(report: IReportActionDump): string {
+  const executions = Array.isArray(report.executions) ? report.executions : [];
+  const taskCount = executions.reduce(
+    (sum, execution) =>
+      sum + (Array.isArray(execution.tasks) ? execution.tasks.length : 0),
+    0,
+  );
+  const modelBriefs = report.modelBriefs?.length
+    ? report.modelBriefs.map(formatModelBriefForAgent).join('; ')
+    : collectUsageModelsForAgent(report) || 'No model metadata recorded';
+
+  const lines = [
+    'For Agent Analysis:',
+    `Report: ${cleanHtmlCommentValue(report.groupName)}`,
+    `SDK: ${cleanHtmlCommentValue(report.sdkVersion)}`,
+    `Device: ${cleanHtmlCommentValue(report.deviceType)}`,
+    `Executions: ${executions.length}; Tasks: ${taskCount}`,
+    `Models: ${cleanHtmlCommentValue(modelBriefs)}`,
+    'Structured report JSON is stored in script[type="midscene_web_dump"] tags near this comment.',
+    'Screenshots are stored as script[type="midscene-image"] tags or files referenced by screenshot refs.',
+    'For AI analysis, inspect each execution task for type, status, timing, param, output, usage, searchAreaUsage, recorder, and screenshot refs.',
+    'Use the Markdown export when available; it contains the same report context plus image links for agent review.',
+  ];
+
+  return `\n<!--\n${lines.join('\n')}\n-->\n`;
+}
+
 function htmlScriptCloseTag(): string {
   // biome-ignore lint/style/useTemplate: keep this token runtime-built for inline report bundles
   return String.fromCharCode(60) + '/script>';
+}
+
+/** Avoid raw close tokens: this writer itself is bundled into report HTML. */
+export function generateTestRunReportScriptTag(
+  dump: TestRunReportDump,
+): string {
+  return [
+    String.fromCharCode(60),
+    'script type="',
+    TEST_RUN_REPORT_SCRIPT_TYPE,
+    '">\n',
+    escapeScriptTag(JSON.stringify(dump)),
+    '\n',
+    htmlScriptCloseTag(),
+    '\n',
+  ].join('');
+}
+
+export function extractTestRunReportDumpSync(
+  filePath: string,
+): TestRunReportDump | undefined {
+  let result: TestRunReportDump | undefined;
+  // Consume executable scripts as whole elements: the embedded viewer itself
+  // contains report-writer source with data-tag strings that are not payloads.
+  const openTag = `${String.fromCharCode(60)}script`;
+  streamScanTags(filePath, openTag, htmlScriptCloseTag(), (content) => {
+    const tagEnd = content.indexOf('>');
+    const attributes = content.slice(0, tagEnd);
+    const type = attributes.match(/(?:^|\s)type\s*=\s*["']([^"']+)["']/i)?.[1];
+    if (type !== TEST_RUN_REPORT_SCRIPT_TYPE) return false;
+    if (result)
+      throw new Error(
+        `Report contains multiple Midscene Test dumps: ${filePath}`,
+      );
+    const parsed = JSON.parse(unescapeContent(content.slice(tagEnd + 1)));
+    if (
+      parsed?.schemaVersion !== 1 ||
+      parsed?.kind !== 'test-runner' ||
+      !Array.isArray(parsed.projects)
+    )
+      throw new Error(`Invalid Midscene Test report dump: ${filePath}`);
+    result = parsed;
+    return false;
+  });
+  return result;
 }
 
 /** Chunk size for streaming file operations (64KB) */
@@ -18,6 +159,60 @@ export const STREAMING_CHUNK_SIZE = 64 * 1024;
  * @returns true to stop scanning, false to continue
  */
 type TagMatchCallback = (content: string) => boolean;
+
+class StreamingTagMatcher {
+  private leftover = '';
+  private capturing = false;
+  private currentContent = '';
+
+  constructor(
+    private readonly openTag: string,
+    private readonly closeTag: string,
+    private readonly onMatch: TagMatchCallback,
+  ) {}
+
+  push(nextChunk: string): boolean {
+    const chunk = this.leftover + nextChunk;
+    this.leftover = '';
+    let searchStart = 0;
+
+    while (searchStart < chunk.length) {
+      if (!this.capturing) {
+        const startIndex = chunk.indexOf(this.openTag, searchStart);
+        if (startIndex === -1) {
+          const retainedSuffixLength = Math.max(0, this.openTag.length - 1);
+          this.leftover = retainedSuffixLength
+            ? chunk.slice(-retainedSuffixLength)
+            : '';
+          return false;
+        }
+        this.capturing = true;
+        searchStart = startIndex + this.openTag.length;
+      }
+
+      const endIndex = chunk.indexOf(this.closeTag, searchStart);
+      if (endIndex !== -1) {
+        this.currentContent += chunk.slice(searchStart, endIndex);
+        if (this.onMatch(this.currentContent)) return true;
+        this.capturing = false;
+        this.currentContent = '';
+        searchStart = endIndex + this.closeTag.length;
+        continue;
+      }
+
+      const retainedSuffixLength = Math.max(0, this.closeTag.length - 1);
+      const contentEnd = Math.max(
+        searchStart,
+        chunk.length - retainedSuffixLength,
+      );
+      this.currentContent += chunk.slice(searchStart, contentEnd);
+      this.leftover = chunk.slice(contentEnd);
+      return false;
+    }
+
+    return false;
+  }
+}
 
 /**
  * Stream through a file and find tags matching the pattern.
@@ -37,62 +232,52 @@ export function streamScanTags(
   const fd = openSync(filePath, 'r');
   const fileSize = statSync(filePath).size;
   const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
-
+  const decoder = new StringDecoder('utf8');
+  const matcher = new StreamingTagMatcher(openTag, closeTag, onMatch);
   let position = 0;
-  let leftover = '';
-  let capturing = false;
-  let currentContent = '';
 
   try {
     while (position < fileSize) {
       const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
-      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
       position += bytesRead;
-
-      let searchStart = 0;
-
-      while (searchStart < chunk.length) {
-        if (!capturing) {
-          const startIdx = chunk.indexOf(openTag, searchStart);
-          if (startIdx !== -1) {
-            capturing = true;
-            currentContent = chunk.slice(startIdx + openTag.length);
-            const endIdx = currentContent.indexOf(closeTag);
-            if (endIdx !== -1) {
-              const shouldStop = onMatch(currentContent.slice(0, endIdx));
-              if (shouldStop) return;
-              capturing = false;
-              currentContent = '';
-              searchStart =
-                startIdx + openTag.length + endIdx + closeTag.length;
-            } else {
-              leftover = currentContent.slice(-closeTag.length);
-              currentContent = currentContent.slice(0, -closeTag.length);
-              break;
-            }
-          } else {
-            leftover = chunk.slice(-openTag.length);
-            break;
-          }
-        } else {
-          const endIdx = chunk.indexOf(closeTag, searchStart);
-          if (endIdx !== -1) {
-            currentContent += chunk.slice(searchStart, endIdx);
-            const shouldStop = onMatch(currentContent);
-            if (shouldStop) return;
-            capturing = false;
-            currentContent = '';
-            searchStart = endIdx + closeTag.length;
-          } else {
-            currentContent += chunk.slice(searchStart, -closeTag.length);
-            leftover = chunk.slice(-closeTag.length);
-            break;
-          }
-        }
-      }
+      if (matcher.push(decoder.write(buffer.subarray(0, bytesRead)))) return;
     }
+    matcher.push(decoder.end());
   } finally {
     closeSync(fd);
+  }
+}
+
+/** Asynchronously stream tags without blocking the Node.js event loop. */
+export async function streamScanTagsAsync(
+  filePath: string,
+  openTag: string,
+  closeTag: string,
+  onMatch: TagMatchCallback,
+): Promise<void> {
+  const handle = await openAsync(filePath, 'r');
+  const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+  const decoder = new StringDecoder('utf8');
+  let position = 0;
+  const matcher = new StreamingTagMatcher(openTag, closeTag, onMatch);
+
+  try {
+    while (true) {
+      const { bytesRead } = await handle.read(
+        buffer,
+        0,
+        STREAMING_CHUNK_SIZE,
+        position,
+      );
+      if (bytesRead === 0) {
+        matcher.push(decoder.end());
+        return;
+      }
+      position += bytesRead;
+      if (matcher.push(decoder.write(buffer.subarray(0, bytesRead)))) return;
+    }
+  } finally {
+    await handle.close();
   }
 }
 
@@ -127,20 +312,48 @@ export function extractImageByIdSync(
  *
  * @param srcFilePath - Source HTML file path
  * @param destFilePath - Destination file path to append to
+ * @param writtenImageIds - IDs already written to the destination
  */
 export function streamImageScriptsToFile(
   srcFilePath: string,
   destFilePath: string,
+  writtenImageIds: Set<string> = new Set(),
 ): void {
   const { appendFileSync } = require('node:fs');
   const openTag = '<script type="midscene-image"';
   const closeTag = htmlScriptCloseTag();
 
   streamScanTags(srcFilePath, openTag, closeTag, (content) => {
+    const imageId = parseImageScriptId(content);
+    if (!imageId || writtenImageIds.has(imageId)) {
+      return false;
+    }
     // Write complete tag immediately to destination, don't accumulate
     appendFileSync(destFilePath, `${openTag}${content}${closeTag}\n`);
+    writtenImageIds.add(imageId);
     return false; // Continue scanning for more tags
   });
+}
+
+function parseImageScriptId(contentAfterType: string): string | null {
+  const match = /^ data-id="([a-z0-9_-]{1,128})">/i.exec(contentAfterType);
+  return match?.[1] ?? null;
+}
+
+/** Collect IDs of real inline image script tags without blocking on a large report. */
+export async function collectImageScriptIds(
+  filePath: string,
+): Promise<Set<string>> {
+  const imageIds = new Set<string>();
+  const openTag = '<script type="midscene-image"';
+  const closeTag = htmlScriptCloseTag();
+
+  await streamScanTagsAsync(filePath, openTag, closeTag, (content) => {
+    const imageId = parseImageScriptId(content);
+    if (imageId) imageIds.add(imageId);
+    return false;
+  });
+  return imageIds;
 }
 
 /**

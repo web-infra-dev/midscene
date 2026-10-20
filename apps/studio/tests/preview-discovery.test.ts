@@ -41,6 +41,7 @@ describe('shouldPauseDiscoveryPollingDuringPreview', () => {
     expectPauseDecision(null, true);
     expectPauseDecision('connecting', true);
     expectPauseDecision('waiting-for-stream', true);
+    expectPauseDecision('recovering', true);
   });
 
   it('resumes discovery once the scrcpy preview has settled', () => {

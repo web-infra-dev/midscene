@@ -12,3 +12,10 @@
   padding: 0;
   margin: 0 !important;
 }
+
+// Ant Design gives Empty descriptions a fixed dark foreground. Bind this
+// Recorder-specific empty state to the extension's semantic text token so it
+// stays readable on both the light and dark side-panel surfaces.
+.record-list-empty-description {
+  color: var(--midscene-text-primary, #1f2329);
+}

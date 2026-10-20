@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { ComputerDevice, checkComputerEnvironment } from '../../src';
+
+const needsDisplay = process.platform === 'linux' && !process.env.DISPLAY;
 
 describe('ComputerDevice', () => {
   it('should create device instance', () => {
@@ -13,7 +15,35 @@ describe('ComputerDevice', () => {
     expect(device).toBeDefined();
   });
 
-  it('should list displays', async () => {
+  it('leaves CLI-owned Xvfb for the process exit cleanup', async () => {
+    const device = new ComputerDevice({
+      keepXvfbAliveUntilProcessExit: true,
+    });
+    const stop = rs.fn();
+    const deviceInternals = device as unknown as {
+      xvfbInstance?: { stop(): void };
+    };
+    deviceInternals.xvfbInstance = { stop };
+
+    await device.destroy();
+
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  it('stops API-owned Xvfb during normal device teardown', async () => {
+    const device = new ComputerDevice({});
+    const stop = rs.fn();
+    const deviceInternals = device as unknown as {
+      xvfbInstance?: { stop(): void };
+    };
+    deviceInternals.xvfbInstance = { stop };
+
+    await device.destroy();
+
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
+  it.skipIf(needsDisplay)('should list displays', async () => {
     const displays = await ComputerDevice.listDisplays();
     expect(Array.isArray(displays)).toBe(true);
 
@@ -24,7 +54,7 @@ describe('ComputerDevice', () => {
     }
   });
 
-  it('should check computer environment', async () => {
+  it.skipIf(needsDisplay)('should check computer environment', async () => {
     const envCheck = await checkComputerEnvironment();
     expect(envCheck).toBeDefined();
     expect(envCheck).toHaveProperty('available');
@@ -53,6 +83,7 @@ describe('ComputerDevice', () => {
     expect(actionNames).toContain('DoubleClick');
     expect(actionNames).toContain('RightClick');
     expect(actionNames).toContain('DragAndDrop');
+    expect(actionNames).toContain('Swipe');
 
     console.log('Available actions:', actionNames);
   });

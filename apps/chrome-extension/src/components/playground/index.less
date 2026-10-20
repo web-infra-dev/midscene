@@ -2,18 +2,306 @@
   position: fixed;
 }
 
-.clear-button-container {
-  width: 28;
-  height: 28;
-  border-radius: 4px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 4px 0;
-  position: fixed;
-  top: 60px;
-  right: 12px;
-  background: #fff;
-  z-index: 999;
-  border: 1px solid rgba(240, 240, 240);
+/*
+ * The shared playground root defaults to viewport height. In a Chrome side
+ * panel it is nested below the extension navigation, so every flex ancestor
+ * must be shrinkable for the timeline to own the remaining scrollable space.
+ */
+.chrome-extension-playground {
+  --midscene-timeline-connector: rgba(31, 35, 41, 0.2);
+
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+
+  .system-message-icon {
+    rect,
+    path {
+      fill: var(--midscene-accent, #2b83ff);
+    }
+  }
+
+  .prompt-input-wrapper {
+    .mode-radio-group-wrapper .mode-radio-group {
+      .ant-radio-button-wrapper.ant-radio-button-wrapper-checked,
+      .more-apis-button.selected-from-dropdown {
+        background: var(--midscene-accent, #2b83ff);
+        color: #fff;
+
+        &:hover {
+          background: var(--midscene-accent-hover, #1a6fe6);
+          color: #fff;
+        }
+      }
+    }
+
+    .form-controller-wrapper .ant-btn-primary {
+      background: var(--midscene-accent, #2b83ff);
+      border-color: var(--midscene-accent, #2b83ff);
+
+      &:not(:disabled):hover,
+      &:not(:disabled):focus {
+        background: var(--midscene-accent-hover, #1a6fe6);
+        border-color: var(--midscene-accent-hover, #1a6fe6);
+      }
+
+      &:disabled,
+      &.ant-btn-loading {
+        background: var(--midscene-accent, #2b83ff);
+        border-color: transparent;
+        color: rgba(255, 255, 255, 0.72);
+      }
+    }
+  }
+
+  .middle-dialog-area .scroll-to-bottom-button {
+    right: 8px;
+    bottom: 8px;
+    background: var(--midscene-accent, #2b83ff);
+    border-color: var(--midscene-accent, #2b83ff);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    color: #fff;
+
+    &:not(:disabled):hover {
+      background: var(--midscene-accent-hover, #1a6fe6);
+      border-color: var(--midscene-accent-hover, #1a6fe6);
+    }
+  }
+
+  .command-form,
+  .playground-timeline-region,
+  .middle-dialog-area {
+    min-height: 0;
+  }
+
+  /* Keep the shared clear action inside the timeline instead of pinning it
+   * to the side-panel viewport while the message list scrolls. */
+  .clear-button-container {
+    top: 16px;
+    right: 0;
+  }
+
+  /* Keep the composer state explicit in the extension. The shared pseudo
+   * element relies on a mask that is clipped by the side-panel layout. */
+  .prompt-input-wrapper .main-side-console-input {
+    border: 1px solid #e5e5e5;
+    background: var(--midscene-surface, #fff);
+  }
+
+  // The side panel deliberately has no inline padding. Use an inset focus
+  // ring so all four sides remain visible instead of clipping an outer shadow
+  // at the panel boundary.
+  .prompt-input-wrapper .main-side-console-input:focus-within {
+    box-shadow: inset 0 0 0 3px rgba(43, 131, 255, 0.16);
+  }
+
+  .prompt-input-wrapper .main-side-console-input.loading {
+    border-color: transparent;
+    background:
+      linear-gradient(
+          var(--midscene-surface, #fff),
+          var(--midscene-surface, #fff)
+        )
+        padding-box,
+      linear-gradient(
+          135deg,
+          #4285f4 0%,
+          #0066ff 25%,
+          #7b02c5 50%,
+          #ea4335 75%,
+          #ff7043 100%
+        )
+        border-box;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  // The Studio conversation skin owns generous shell padding. The extension
+  // has a narrower side panel, so let its timeline and composer use their
+  // own internal spacing instead of inheriting that outer inset.
+  &.playground-conversation-skin {
+    .middle-dialog-area .info-list-container {
+      padding: 16px 0 0;
+    }
+
+    .bottom-input-section {
+      padding: 0;
+      margin-top: 16px;
+    }
+
+    .prompt-input-wrapper {
+      padding: 0;
+    }
+
+    // The shared toolbar uses a white gradient beneath history/settings to
+    // hint at horizontal overflow. In the side panel it masks otherwise
+    // fully visible mode buttons, so keep the controls without that overlay.
+    .mode-radio-group-wrapper .action-icons {
+      background: transparent;
+    }
+  }
+
+  .extension-welcome-empty-state {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+
+    .ant-empty {
+      margin: 0;
+    }
+
+    .ant-empty-image {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 16px;
+    }
+
+    .extension-welcome-midscene-icon {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ant-empty-description {
+      color: var(--midscene-text-secondary, #777);
+    }
+
+    .extension-welcome-copy {
+      max-width: 320px;
+      font-size: 14px;
+      line-height: 22px;
+    }
+
+    .extension-welcome-title {
+      color: var(--midscene-text-primary, #1f2329);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    p {
+      margin: 12px 0 0;
+    }
+  }
+
+  .middle-dialog-area .info-list-container.info-list-container-empty {
+    display: flex;
+    min-height: 0;
+
+    .playground-empty-state-wrapper {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+  }
+
+  /* Studio renders these connectors through its execution timeline wrapper.
+   * The extension uses the same progress markup but owns this wrapper and
+   * palette so Studio's styles remain unchanged. */
+  .chrome-extension-execution-timeline-skin {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+
+    .clear-button-container {
+      position: absolute;
+      top: 16px;
+      right: 12px;
+      z-index: 20;
+
+      .clear-button {
+        box-sizing: border-box;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--midscene-border-strong, rgba(0, 0, 0, 0.08));
+        border-radius: 8px;
+        background: var(--midscene-surface-elevated, #fff);
+        color: var(--midscene-text-secondary, #777);
+        opacity: 1;
+
+        &:hover {
+          background: var(--midscene-surface-muted, #f1f2f3);
+          color: var(--midscene-text-primary, #1f2329);
+        }
+      }
+    }
+
+    // The clear control occupies the timeline's right edge. Reserve its
+    // 32px hit area plus the 12px edge inset and an 8px content gap so a
+    // right-aligned user bubble never sits underneath it.
+    .user-message-container {
+      box-sizing: border-box;
+      padding-right: 52px;
+    }
+  }
+}
+
+[data-theme='dark'] .chrome-extension-playground {
+  // The shared conversation skin owns connector geometry. The extension only
+  // supplies its dark-theme color so a second pseudo-element cannot obscure
+  // the high-contrast line.
+  --midscene-timeline-connector: #d9d9d9;
+
+  // Ant Design assigns `rgba(0, 0, 0, 0.88)` directly to list items. That
+  // bypasses the playground root's dark foreground token and makes any
+  // currentColor-based timeline affordance render black. Override it at the
+  // actual list-item element, rather than relying on inheritance.
+  .chrome-extension-execution-timeline-skin
+    .middle-dialog-area
+    .info-list-container
+    .ant-list
+    .ant-list-item {
+    color: var(--midscene-text-primary);
+  }
+
+  .system-message-header .system-message-title {
+    color: var(--midscene-text-primary);
+  }
+
+  .clear-button-container .clear-button {
+    color: var(--midscene-text-secondary);
+
+    &:hover {
+      color: var(--midscene-text-primary);
+    }
+  }
+
+  .mode-radio-group-wrapper .action-icons {
+    color: var(--midscene-text-secondary);
+
+    .history-selector-wrapper,
+    .settings-wrapper,
+    .selector-trigger,
+    .selector-trigger-button {
+      color: var(--midscene-text-secondary);
+    }
+  }
+
+  .prompt-input-wrapper .main-side-console-input {
+    border-color: var(--midscene-border-strong);
+    color: var(--midscene-text-primary);
+
+    .main-side-console-input-textarea,
+    .ant-input {
+      color: var(--midscene-text-primary) !important;
+
+      &::placeholder {
+        color: var(--midscene-text-secondary) !important;
+        opacity: 1;
+      }
+    }
+  }
+
+  // The overflow fade covers visible mode buttons in the narrow side panel.
+  &.playground-conversation-skin .mode-radio-group-wrapper .action-icons {
+    background: transparent;
+  }
 }

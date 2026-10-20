@@ -22,6 +22,27 @@ function CompletedActionIcon() {
   );
 }
 
+function FailedActionIcon() {
+  return createElement(
+    'svg',
+    {
+      width: 16,
+      height: 16,
+      viewBox: '0 0 16 16',
+      fill: 'none',
+      xmlns: 'http://www.w3.org/2000/svg',
+      'aria-hidden': true,
+      focusable: false,
+    },
+    createElement('path', {
+      d: 'M5 5L11 11M11 5L5 11',
+      stroke: '#FF4D4F',
+      strokeWidth: '1.2',
+      strokeLinecap: 'round',
+    }),
+  );
+}
+
 /**
  * Default icon for a completed `InfoListItem.actionKind`. All action types
  * resolve to the same green checkmark glyph; callers can opt out by passing
@@ -29,6 +50,11 @@ function CompletedActionIcon() {
  */
 export function defaultProgressActionIcon(_kind: string): ReactNode | null {
   return createElement(CompletedActionIcon);
+}
+
+/** Default error icon matching the completed checkmark's 1.2px stroke. */
+export function defaultProgressErrorIcon(): ReactNode {
+  return createElement(FailedActionIcon);
 }
 
 /**

@@ -1,38 +1,43 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IModelConfig } from '@midscene/shared/env';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import ts from 'typescript';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  callAI: vi.fn(),
-  callAIWithObjectResponse: vi.fn(),
-  AiExtractElementInfo: vi.fn(),
-  AiLocateElement: vi.fn(),
-  AiLocateSection: vi.fn(),
-  buildSearchAreaConfig: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  callAI: rs.fn(),
+  callAIWithObjectResponse: rs.fn(),
+  AiExtractElementInfo: rs.fn(),
+  AiLocateElement: rs.fn(),
+  AiLocateSection: rs.fn(),
+  buildSearchAreaConfig: rs.fn(),
 }));
 
-vi.mock('@/ai-model/service-caller', () => ({
+rs.mock('@/ai-model/service-caller', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
   callAI: mocks.callAI,
   callAIWithObjectResponse: mocks.callAIWithObjectResponse,
 }));
 
-vi.mock('@/ai-model/service-caller/index', () => ({
+rs.mock('@/ai-model/service-caller/index', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
   callAI: mocks.callAI,
   callAIWithObjectResponse: mocks.callAIWithObjectResponse,
 }));
 
-vi.mock('@/ai-model/inspect', () => ({
-  AiExtractElementInfo: mocks.AiExtractElementInfo,
+rs.mock('@/ai-model/workflows/grounding', () => ({
   AiLocateElement: mocks.AiLocateElement,
   AiLocateSection: mocks.AiLocateSection,
   buildSearchAreaConfig: mocks.buildSearchAreaConfig,
 }));
 
+rs.mock('@/ai-model/workflows/insight', () => ({
+  AiExtractElementInfo: mocks.AiExtractElementInfo,
+}));
+
 import { runConnectivityTest } from '@/ai-model/connectivity';
+import { getModelRuntime } from '@/ai-model/models';
+import Service from '@/service';
 
 function readImports(filePath: string): string[] {
   const source = readFileSync(filePath, 'utf-8');
@@ -64,6 +69,7 @@ describe('runConnectivityTest service load order', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'default',
     slot: 'default',
+    retryCount: 3,
   };
   const planningModelConfig: IModelConfig = {
     modelName: 'test-planning-model',
@@ -71,6 +77,7 @@ describe('runConnectivityTest service load order', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'planning',
     slot: 'planning',
+    retryCount: 3,
   };
   const insightModelConfig: IModelConfig = {
     modelName: 'test-insight-model',
@@ -78,16 +85,18 @@ describe('runConnectivityTest service load order', () => {
     modelFamily: 'gpt-5',
     intent: 'insight',
     slot: 'insight',
+    retryCount: 3,
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('runs the default locate check through the real Service constructor', async () => {
     mocks.callAI
       .mockResolvedValueOnce({ content: 'CONNECTIVITY_OK' })
-      .mockResolvedValueOnce({ content: 'What needs to be done?' });
+      .mockResolvedValueOnce({ content: 'What needs to be done?' })
+      .mockResolvedValueOnce({ content: 'CONNECTIVITY_OK' });
     mocks.AiLocateElement.mockResolvedValue({
       parseResult: {
         element: {
@@ -117,11 +126,35 @@ describe('runConnectivityTest service load order', () => {
       expect.objectContaining({
         targetElementDescription: 'the main todo input box',
         modelRuntime: expect.objectContaining({
-          config: defaultModelConfig,
+          config: expect.objectContaining({
+            ...defaultModelConfig,
+            retryCount: 0,
+          }),
         }),
       }),
     );
+    expect(defaultModelConfig.retryCount).toBe(3);
   });
+
+  it.each(['default', 'locate'] as const)(
+    'reports the missing family for the %s slot',
+    async (slot) => {
+      const service = new Service({} as any);
+      const runtime = getModelRuntime({
+        ...defaultModelConfig,
+        modelFamily: undefined,
+        intent: 'locate',
+        slot,
+      });
+      await expect(
+        service.locate({ prompt: 'input' }, {}, runtime),
+      ).rejects.toThrow(
+        slot === 'locate'
+          ? 'Configure MIDSCENE_LOCATE_MODEL_FAMILY'
+          : 'Configure MIDSCENE_MODEL_FAMILY',
+      );
+    },
+  );
 
   it('keeps service independent from the ai-model barrel', () => {
     const serviceImports = readImports(

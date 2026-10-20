@@ -1,0 +1,8 @@
+# Retry a failed YAML file while preserving the shared browser context.
+concurrent: 1
+continueOnError: false
+retry: 1
+shareBrowserContext: true
+
+files:
+  - 03-retry-once.yaml

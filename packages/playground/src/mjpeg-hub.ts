@@ -78,6 +78,14 @@ export function writeMjpegFrame(
   return writable;
 }
 
+function endMjpegResponse(res: Response): void {
+  try {
+    res.end();
+  } catch {
+    /* response already closed */
+  }
+}
+
 /**
  * Owns the lifecycle of an in-process MJPEG frame producer (e.g. Chromium
  * CDP `Page.startScreencast`) and fans frames out to all currently connected
@@ -240,19 +248,13 @@ export class InterfaceMjpegHub {
     // browser cannot open any further /mjpeg request and shows a permanent
     // blank canvas.
     //
-    // Use `res.end()` (not `res.destroy()`) so the chunked-transfer
-    // terminator (`0\r\n\r\n`) is flushed before close. With `destroy()`
-    // Chromium reports ERR_INCOMPLETE_CHUNKED_ENCODING on the previous
-    // request *and on the next* — apparently because the connection-pool
-    // entry is poisoned — leaving the new <img>.naturalWidth at 0.
+    // Use graceful end for MJPEG responses so Chromium does not poison the
+    // connection pool with ERR_INCOMPLETE_CHUNKED_ENCODING and leave the next
+    // <img>.naturalWidth at 0.
     for (const [oldSubscriber, oldRes] of producer.responses) {
       producer.subscribers.delete(oldSubscriber);
       producer.responses.delete(oldSubscriber);
-      try {
-        oldRes.end();
-      } catch {
-        /* response already closed */
-      }
+      endMjpegResponse(oldRes);
     }
 
     producer.subscribers.add(subscriber);
@@ -391,14 +393,11 @@ export class InterfaceMjpegHub {
       clearTimeout(producer.stopTimer);
       producer.stopTimer = undefined;
     }
-    // Hard-close any subscriber sockets we still own so the browser <img>
-    // does not hang on a half-open multipart response.
+    // End any subscriber responses we still own. A hard destroy here can leave
+    // Chromium's multipart image loader stuck on a blank cached connection
+    // after the producer dies during navigation.
     for (const [, res] of producer.responses) {
-      try {
-        res.destroy();
-      } catch {
-        /* socket already closed */
-      }
+      endMjpegResponse(res);
     }
     producer.responses.clear();
     producer.subscribers.clear();

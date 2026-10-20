@@ -7,7 +7,12 @@ import {
 } from 'node:fs';
 import * as path from 'node:path';
 import { z } from 'zod';
+import {
+  extractAllDumpScriptsSync,
+  extractTestRunReportDumpSync,
+} from './dump/html-utils';
 import { resolveScreenshotSource } from './dump/screenshot-store';
+import { deriveCaseStatus } from './dump/task-status';
 import {
   ReportMergingTool,
   collectDedupedExecutions,
@@ -15,6 +20,7 @@ import {
 } from './report';
 import { reportToMarkdown } from './report-markdown';
 import type { MarkdownAttachment } from './report-markdown';
+import { collectReportSummary } from './report-stats';
 import type { ReportFileAttributes, TestStatus } from './types';
 import { ReportActionDump } from './types';
 
@@ -203,19 +209,73 @@ export async function reportFileToMarkdown(
   return markdownFromReport(resolvedHtmlPath, outputDir);
 }
 
+const TEST_STATUS_VALUES: ReadonlySet<TestStatus> = new Set<TestStatus>([
+  'passed',
+  'failed',
+  'timedOut',
+  'skipped',
+  'interrupted',
+]);
+
+const FAILING_TEST_STATUSES: ReadonlySet<TestStatus> = new Set<TestStatus>([
+  'failed',
+  'timedOut',
+  'interrupted',
+]);
+
+/**
+ * Reuse a `playwright_test_status` already recorded on the source report's dump
+ * scripts (e.g. a Playwright-generated report carries the precise
+ * timedOut/skipped/interrupted status). Returns undefined when the source has
+ * no such attribute, so the caller can fall back to deriving from the dump.
+ *
+ * A single source report may bundle several executions (e.g. an already-merged
+ * report), so surface a failing status if any execution failed — mirroring
+ * `deriveCaseStatus`'s any-failure-wins semantics rather than taking the first
+ * script's status and masking later failures.
+ */
+function readSourceTestStatus(htmlPath: string): TestStatus | undefined {
+  const recorded: TestStatus[] = [];
+  for (const { openTag } of extractAllDumpScriptsSync(htmlPath)) {
+    const match = openTag.match(/playwright_test_status="([^"]*)"/);
+    if (!match) continue;
+    const status = decodeURIComponent(match[1]) as TestStatus;
+    if (TEST_STATUS_VALUES.has(status)) {
+      recorded.push(status);
+    }
+  }
+  if (recorded.length === 0) return undefined;
+  return recorded.find((s) => FAILING_TEST_STATUSES.has(s)) ?? recorded[0];
+}
+
 function deriveReportAttributesFromHtml(
   htmlPath: string,
   index: number,
 ): ReportFileAttributes {
   const fallbackId = `${path.basename(path.dirname(htmlPath)) || path.basename(htmlPath, path.extname(htmlPath))}-${index + 1}`;
+  const runnerDump = extractTestRunReportDumpSync(htmlPath);
   try {
-    const { baseDump } = collectDedupedExecutions(htmlPath);
+    const { baseDump, executions } = collectDedupedExecutions(htmlPath);
+    // Prefer a status the source report already recorded (keeps Playwright's
+    // precise timedOut/skipped/interrupted); otherwise infer it from the dump
+    // so a failing case is not silently merged in as passed.
+    const recordedStatus = readSourceTestStatus(htmlPath);
+    const testStatus =
+      recordedStatus && FAILING_TEST_STATUSES.has(recordedStatus)
+        ? recordedStatus
+        : runnerDump?.status === 'failed'
+          ? 'failed'
+          : (recordedStatus ??
+            (runnerDump ? 'passed' : deriveCaseStatus(executions)));
     return {
       testId: fallbackId,
       testTitle: baseDump.groupName || fallbackId,
       testDescription: baseDump.groupDescription ?? '',
-      testDuration: 0,
-      testStatus: 'passed' as TestStatus,
+      testDuration:
+        runnerDump?.durationMs ??
+        collectReportSummary({ executions }).timing.wallTimeMs ??
+        0,
+      testStatus,
     };
   } catch {
     return {
@@ -223,7 +283,7 @@ function deriveReportAttributesFromHtml(
       testTitle: fallbackId,
       testDescription: '',
       testDuration: 0,
-      testStatus: 'passed' as TestStatus,
+      testStatus: runnerDump?.status === 'failed' ? 'failed' : 'passed',
     };
   }
 }

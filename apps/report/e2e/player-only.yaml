@@ -1,0 +1,8 @@
+beforeAll:
+  - report.open:
+      path: demo-agent.html?player-only=1&play-control=1&auto-play=1
+
+cases:
+  - name: player-only mode opens the replay without report navigation
+    steps:
+      - aiAssert: A replay player with playback controls is visible. The report header and task navigation are hidden.

@@ -1,8 +1,13 @@
 import { type PropsWithChildren, useEffect, useRef, useState } from 'react';
 import { fitMobilePreviewViewport } from './preview-layout';
+import './MobilePreviewFrame.css';
+
+const MOBILE_PREVIEW_IDEAL_HEIGHT_PX = 716;
+const MOBILE_PREVIEW_DEFAULT_ASPECT_RATIO = 9 / 19.5;
 
 interface MobilePreviewFrameProps extends PropsWithChildren {
   enabled: boolean;
+  highlightActive: boolean;
   /**
    * Width-over-height ratio of the connected device's actual screen.
    * Passed in by MainContent once the playground reports the device
@@ -15,10 +20,17 @@ interface MobilePreviewFrameProps extends PropsWithChildren {
 export function MobilePreviewFrame({
   children,
   enabled,
+  highlightActive,
   aspectRatio,
 }: MobilePreviewFrameProps) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const safeAspectRatio =
+    typeof aspectRatio === 'number' &&
+    Number.isFinite(aspectRatio) &&
+    aspectRatio > 0
+      ? aspectRatio
+      : MOBILE_PREVIEW_DEFAULT_ASPECT_RATIO;
 
   useEffect(() => {
     if (!enabled) {
@@ -36,7 +48,8 @@ export function MobilePreviewFrame({
         fitMobilePreviewViewport(
           stage.clientWidth,
           stage.clientHeight,
-          aspectRatio,
+          safeAspectRatio,
+          { maxHeight: MOBILE_PREVIEW_IDEAL_HEIGHT_PX },
         ),
       );
     };
@@ -50,15 +63,13 @@ export function MobilePreviewFrame({
       };
     }
 
-    const observer = new ResizeObserver(() => {
-      updateViewportSize();
-    });
+    const observer = new ResizeObserver(updateViewportSize);
     observer.observe(stage);
 
     return () => {
       observer.disconnect();
     };
-  }, [aspectRatio, enabled]);
+  }, [enabled, safeAspectRatio]);
 
   const rootClassName = [
     'h-full w-full min-h-0',
@@ -69,19 +80,26 @@ export function MobilePreviewFrame({
     .join(' ');
   const shellClassName = [
     'h-full w-full min-h-0',
-    enabled && 'flex max-h-full max-w-[392px] items-center justify-center',
+    enabled && 'flex max-h-full items-center justify-center',
   ]
     .filter(Boolean)
     .join(' ');
   const stageClassName = [
+    'mobile-preview-frame-stage',
     'h-full w-full min-h-0',
-    enabled && 'flex items-center justify-center overflow-hidden',
+    enabled && 'flex items-center justify-center overflow-visible',
   ]
     .filter(Boolean)
     .join(' ');
-  const viewportClassName = enabled
-    ? 'shrink-0 translate-y-[-18px] overflow-hidden rounded-[8px] border border-border-subtle'
-    : 'h-full w-full min-h-0 overflow-hidden';
+  const viewportClassName = [
+    'mobile-preview-frame-viewport',
+    highlightActive ? 'mobile-preview-frame-viewport-active' : '',
+    enabled
+      ? 'relative shrink-0 translate-y-[-18px] overflow-visible rounded-[12px]'
+      : 'relative h-full w-full min-h-0 overflow-visible rounded-[12px]',
+  ]
+    .filter(Boolean)
+    .join(' ');
   const viewportStyle = enabled
     ? viewportSize.width > 0 && viewportSize.height > 0
       ? {

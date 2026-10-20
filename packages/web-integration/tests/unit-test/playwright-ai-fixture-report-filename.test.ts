@@ -21,15 +21,19 @@
  * synthesizes, then invoke `fixture.ai({page}, ...)` which is the cheapest
  * code path that runs `createOrReuseAgentForPage`.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockState = vi.hoisted(() => ({
+const mockState = rs.hoisted(() => ({
   ctorOpts: [] as any[],
+  reportFile: undefined as string | undefined,
 }));
 
-vi.mock('@/playwright/index', () => {
+rs.mock('@/playwright/agent', () => {
   class MockPlaywrightAgent {
-    reportFile?: string;
+    reportFile = mockState.reportFile;
 
     constructor(_page: any, opts: any) {
       mockState.ctorOpts.push(opts);
@@ -42,10 +46,11 @@ vi.mock('@/playwright/index', () => {
 });
 
 import { PlaywrightAiFixture } from '@/playwright/ai-fixture';
+import { MAX_PLAYWRIGHT_REPORT_TAG_BYTES } from '@/playwright/report-filename';
 
 const createPage = () =>
   ({
-    on: vi.fn(),
+    on: rs.fn(),
   }) as any;
 
 const runAi = async (testInfo: any) => {
@@ -55,8 +60,16 @@ const runAi = async (testInfo: any) => {
 };
 
 describe('PlaywrightAiFixture reportFileName derivation', () => {
+  let tempDir: string;
+
   beforeEach(() => {
     mockState.ctorOpts.length = 0;
+    mockState.reportFile = undefined;
+    tempDir = mkdtempSync(join(tmpdir(), 'midscene-fixture-report-'));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
   });
 
   it('uses the human-readable test title and drops the Playwright UUID testId', async () => {
@@ -91,6 +104,27 @@ describe('PlaywrightAiFixture reportFileName derivation', () => {
     // replaceIllegalPathCharsAndSpace turns ' ' and '#' into '-', so the
     // retry marker surfaces as "(retry--2)" on disk.
     expect(opts.reportFileName).toContain('login-case(retry--2)');
+  });
+
+  it('caps Chinese titles by UTF-8 bytes and appends a stable hash', async () => {
+    const longTitle =
+      '1426803-【配置-策略模板配置】【创建策略模板】策略模板名称与当前存在的名称重复'.repeat(
+        10,
+      );
+    const opts = await runAi({
+      testId: 'uuid',
+      titlePath: ['1426803.spec.ts', longTitle],
+      annotations: [],
+      retry: 1,
+    });
+
+    expect(Buffer.byteLength(opts.reportFileName, 'utf8')).toBeLessThanOrEqual(
+      MAX_PLAYWRIGHT_REPORT_TAG_BYTES,
+    );
+    expect(opts.reportFileName).toMatch(
+      /^playwright-.+-[0-9a-f]{10}-[0-9a-f-]{36}$/,
+    );
+    expect(opts.groupName).toContain('策略模板名称与当前存在的名称重复');
   });
 
   it('preserves the page-level uuid suffix so multiple pages in one test do not clash', async () => {
@@ -160,5 +194,39 @@ describe('PlaywrightAiFixture reportFileName derivation', () => {
     // groupName keeps the original hierarchy-carrying separators.
     expect(opts.groupName).toContain('/');
     expect(opts.groupName).toContain('\\');
+  });
+
+  it('preserves its finalized report when the Playwright reporter is not configured', async () => {
+    const reportPath = join(tempDir, 'fixture-owned-report.html');
+    writeFileSync(reportPath, 'fixture report', 'utf-8');
+    mockState.reportFile = reportPath;
+
+    const fixture = PlaywrightAiFixture();
+    const page = createPage();
+    const testInfo = {
+      testId: 'fixture-only-test',
+      titlePath: ['fixture-only.spec.ts', 'keeps its report'],
+      annotations: [],
+      retry: 0,
+    } as any;
+    let getAgent: any;
+
+    await fixture.agentForPage(
+      { page },
+      async (fn: any) => {
+        getAgent = fn;
+      },
+      testInfo,
+    );
+    await getAgent(page);
+
+    const [finalizeReports] = fixture._midsceneFinalizeReports as any;
+    await finalizeReports({}, async () => {}, testInfo);
+
+    expect(existsSync(reportPath)).toBe(true);
+    expect(testInfo.annotations).toContainEqual({
+      type: 'MIDSCENE_DUMP_ANNOTATION',
+      description: reportPath,
+    });
   });
 });

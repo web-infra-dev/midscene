@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { decideModelConfigFromIntentConfig } from '../../../src/env/parse-model-config';
 
 const baseConfig = {

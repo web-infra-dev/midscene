@@ -1,22 +1,16 @@
 import type { UIContext } from '@midscene/core';
+import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
 import { Blackboard } from '../src/component/blackboard';
 import { normalizeBlackboardHighlights } from '../src/component/blackboard/highlights';
 
 describe('blackboard highlights', () => {
-  it('keeps both rect and center for locate results', () => {
+  it('accepts point-only locate results', () => {
     const highlights = normalizeBlackboardHighlights([
       {
         description: '礼包',
         center: [698, 1950],
-        rect: {
-          left: 620,
-          top: 1910,
-          width: 156,
-          height: 80,
-        },
       },
     ]);
 
@@ -25,12 +19,6 @@ describe('blackboard highlights', () => {
         key: expect.any(String),
         label: '礼包',
         center: [698, 1950],
-        rect: {
-          left: 620,
-          top: 1910,
-          width: 156,
-          height: 80,
-        },
       },
     ]);
   });
@@ -40,22 +28,10 @@ describe('blackboard highlights', () => {
       {
         description: '礼包',
         center: [698, 1950],
-        rect: {
-          left: 620,
-          top: 1910,
-          width: 156,
-          height: 80,
-        },
       },
       {
         description: '礼包',
         center: [698, 1950],
-        rect: {
-          left: 620,
-          top: 1910,
-          width: 156,
-          height: 80,
-        },
       },
     ]);
 
@@ -76,12 +52,6 @@ describe('blackboard highlights', () => {
             id: 'gift',
             attributes: { nodeType: 1 as any },
             content: '礼包',
-            rect: {
-              left: 620,
-              top: 1910,
-              width: 156,
-              height: 80,
-            },
             center: [698, 1950],
             isVisible: true,
           },

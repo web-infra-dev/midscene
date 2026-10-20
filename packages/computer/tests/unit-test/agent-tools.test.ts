@@ -1,19 +1,19 @@
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { getMidsceneRunBaseDir } from '@midscene/shared/common';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentForRDPComputer, agentFromComputer } from '../../src/agent';
 import { ComputerMidsceneTools } from '../../src/agent-tools';
 
-vi.mock('../../src/agent', () => ({
-  agentFromComputer: vi.fn(),
-  agentForRDPComputer: vi.fn(),
+rs.mock('../../src/agent', () => ({
+  agentFromComputer: rs.fn(),
+  agentForRDPComputer: rs.fn(),
 }));
 
-vi.mock('../../src/device', () => ({
-  ComputerDevice: vi.fn().mockImplementation(() => ({
-    actionSpace: vi.fn().mockReturnValue([]),
-    destroy: vi.fn(),
+rs.mock('../../src/device', () => ({
+  ComputerDevice: rs.fn().mockImplementation(() => ({
+    actionSpace: rs.fn().mockReturnValue([]),
+    destroy: rs.fn(),
   })),
 }));
 
@@ -23,13 +23,13 @@ const validPngBase64 =
 function createMockAgent() {
   return {
     interface: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
     page: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
-    aiAction: vi.fn().mockResolvedValue('done'),
-    destroy: vi.fn(),
+    aiAction: rs.fn().mockResolvedValue('done'),
+    destroy: rs.fn(),
   };
 }
 
@@ -43,12 +43,12 @@ function clearCliReportSession(): void {
 describe('ComputerMidsceneTools', () => {
   beforeEach(() => {
     clearCliReportSession();
-    vi.mocked(agentFromComputer).mockResolvedValue(createMockAgent() as any);
-    vi.mocked(agentForRDPComputer).mockResolvedValue(createMockAgent() as any);
+    rs.mocked(agentFromComputer).mockResolvedValue(createMockAgent() as any);
+    rs.mocked(agentForRDPComputer).mockResolvedValue(createMockAgent() as any);
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     clearCliReportSession();
   });
 
@@ -63,12 +63,43 @@ describe('ComputerMidsceneTools', () => {
     expect(takeScreenshotTool).toBeDefined();
 
     await takeScreenshotTool?.handler({
-      computer: { 'display-id': 'display-2', headless: true },
+      computer: {
+        'display-id': 'display-2',
+        headless: true,
+        'keyboard-type-delay': 80,
+        'keyboard-modifier-delay': 50,
+        'keyboard-layout': 'en-US',
+        'input-strategy': 'sequential',
+      },
     });
 
     expect(agentFromComputer).toHaveBeenCalledWith({
       displayId: 'display-2',
       headless: true,
+      keyboardTypeDelay: 80,
+      keyboardModifierDelay: 50,
+      keyboardLayout: 'en-US',
+      inputStrategy: 'sequential',
+    });
+  });
+
+  it('keeps CLI-owned Xvfb alive until process exit when configured', async () => {
+    const tools = new ComputerMidsceneTools({
+      keepXvfbAliveUntilProcessExit: true,
+    });
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      computer: { headless: true },
+    });
+
+    expect(agentFromComputer).toHaveBeenCalledWith({
+      headless: true,
+      keepXvfbAliveUntilProcessExit: true,
     });
   });
 
@@ -103,7 +134,7 @@ describe('ComputerMidsceneTools', () => {
 
   it('passes top-level display-id alias to act', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
 
     const tools = new ComputerMidsceneTools();
     await tools.initTools();
@@ -142,6 +173,10 @@ describe('ComputerMidsceneTools', () => {
       expect.objectContaining({
         'computer.displayId': expect.anything(),
         'computer.headless': expect.anything(),
+        'computer.inputStrategy': expect.anything(),
+        'computer.keyboardTypeDelay': expect.anything(),
+        'computer.keyboardModifierDelay': expect.anything(),
+        'computer.keyboardLayout': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.replanningCycleLimit': expect.anything(),
         'computer.screenshotShrinkFactor': expect.anything(),
@@ -152,6 +187,10 @@ describe('ComputerMidsceneTools', () => {
         'computer.displayId': expect.anything(),
         'computer.headless': expect.anything(),
         'computer.host': expect.anything(),
+        'computer.inputStrategy': expect.anything(),
+        'computer.keyboardTypeDelay': expect.anything(),
+        'computer.keyboardModifierDelay': expect.anything(),
+        'computer.keyboardLayout': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.port': expect.anything(),
         'computer.username': expect.anything(),
@@ -180,6 +219,10 @@ describe('ComputerMidsceneTools', () => {
       'local-address': '10.0.0.20',
       'security-protocol': 'nla',
       'ignore-certificate': true,
+      'input-strategy': 'sequential',
+      'keyboard-type-delay': 80,
+      'keyboard-modifier-delay': 50,
+      'keyboard-layout': 'en-US',
     });
 
     expect(agentForRDPComputer).toHaveBeenCalledWith(
@@ -191,7 +234,15 @@ describe('ComputerMidsceneTools', () => {
         localAddress: '10.0.0.20',
         securityProtocol: 'nla',
         ignoreCertificate: true,
+        inputStrategy: 'sequential',
+        keyboardTypeDelay: 80,
       }),
+    );
+    expect(rs.mocked(agentForRDPComputer).mock.calls[0][0]).not.toHaveProperty(
+      'keyboardModifierDelay',
+    );
+    expect(rs.mocked(agentForRDPComputer).mock.calls[0][0]).not.toHaveProperty(
+      'keyboardLayout',
     );
     expect(agentFromComputer).not.toHaveBeenCalled();
   });
@@ -278,7 +329,7 @@ describe('ComputerMidsceneTools', () => {
 
   it('reuses the Computer agent when called twice with identical init args', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
 
     const tools = new ComputerMidsceneTools();
     await tools.initTools();
@@ -301,7 +352,7 @@ describe('ComputerMidsceneTools', () => {
   it('rebuilds the Computer agent when init args change', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromComputer)
+    rs.mocked(agentFromComputer)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 
@@ -330,7 +381,7 @@ describe('ComputerMidsceneTools', () => {
   it('rebuilds the Computer agent when init args are omitted after being set', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromComputer)
+    rs.mocked(agentFromComputer)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 

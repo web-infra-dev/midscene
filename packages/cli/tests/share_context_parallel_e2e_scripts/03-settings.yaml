@@ -1,0 +1,7 @@
+tasks:
+  - name: Verify settings tab isolation and setup state
+    flow:
+      - javascript: verifyParallelYamlCase('settings')
+      - javascript: openParallelYamlPopup('settings')
+      - sleep: 500
+      - javascript: verifyParallelYamlPopup('settings')

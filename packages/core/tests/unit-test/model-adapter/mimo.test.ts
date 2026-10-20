@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { mimoAdapters } from '@/ai-model/models/mimo';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const mimoAdapter = new ResolvedModelAdapter(
   mimoAdapters['xiaomi-mimo'],
@@ -15,7 +15,6 @@ describe('mimo model adapter', () => {
 
     expect(result.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
@@ -48,7 +47,6 @@ describe('mimo model adapter', () => {
     expect(result.config).toEqual({
       temperature: 0.7,
       seed: 123,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
@@ -69,12 +67,10 @@ describe('mimo model adapter', () => {
 
     expect(disabledResult.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
     expect(enabledResult.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'enabled' },
     });
   });
@@ -93,7 +89,6 @@ describe('mimo model adapter', () => {
     ]);
     expect(result.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
@@ -107,39 +102,42 @@ describe('mimo model adapter', () => {
 
     expect(result.config).toEqual({
       temperature: 0.7,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
 
-  it('uses text response format for planning intent', () => {
+  it('does not set response format without an expected JSON object response', () => {
     const result = mimoAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'planning',
+      intent: 'default',
       userConfig: {},
     });
 
     expect(result.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
 
-  it('uses json_object response format for default intent only', () => {
-    const defaultResult = mimoAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
-      userConfig: {},
-    });
-    const insightResult = mimoAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'insight',
-      userConfig: {},
-    });
+  it('uses json_object response format when expected', () => {
+    const expectedResult = mimoAdapter.chatCompletion.buildChatCompletionParams(
+      {
+        intent: 'planning',
+        expectedJsonObjectResponse: true,
+        userConfig: {},
+      },
+    );
 
-    expect(defaultResult.config.response_format).toEqual({
+    expect(expectedResult.config.response_format).toEqual({
       type: 'json_object',
     });
-    expect(insightResult.config.response_format).toEqual({
-      type: 'text',
+  });
+
+  it('does not use json_object response format when disabled', () => {
+    const result = mimoAdapter.chatCompletion.buildChatCompletionParams({
+      expectedJsonObjectResponse: true,
+      userConfig: { responseFormat: 'none' },
     });
+
+    expect(result.config.response_format).toBeUndefined();
   });
 });

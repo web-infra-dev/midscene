@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getTmpFile } from '@midscene/core/utils';
 import { uuid } from '@midscene/shared/utils';
+import { describe, expect, test } from '@rstest/core';
 import { execa } from 'execa';
-import { describe, expect, test } from 'vitest';
 
 const cliBin = require.resolve('../../bin/midscene');
 
@@ -131,14 +131,22 @@ tasks:
     `;
       const path = await saveYaml(yamlString);
       const params = [path];
-      await execa(cliBin, params);
+      // Stop and await the CLI before Rstest's 5-minute deadline. Otherwise a
+      // timed-out attempt can resume during its retry and consume its snapshots.
+      await execa(cliBin, params, { timeout: 240_000, killSignal: 'SIGKILL' });
       const result = JSON.parse(readFileSync(output!, 'utf-8'));
       expect(result.items.length).toBeGreaterThanOrEqual(2);
-      expect(result.items[0].imageUrl).toContain('/static/media/');
-      // Normalize imageUrl to avoid hash changes breaking snapshots
+      expect(result.items[0].imageUrl).toContain('/assets/');
+      // This test still uses SauceDemo as an online fixture. If it fails again
+      // because that site changes, move it to a local fixture instead of
+      // depending on external deployment details.
+      // Normalize imageUrl to avoid hash changes breaking snapshots.
       const normalizedItems = result.items.map((item: any) => ({
         ...item,
-        imageUrl: item.imageUrl?.replace(/\.[a-f0-9]+\.jpg$/, '.jpg'),
+        imageUrl: item.imageUrl?.replace(
+          /\/assets\/(.+)-[A-Za-z0-9_-]{8}\.jpg$/,
+          '/assets/$1.jpg',
+        ),
       }));
       expect(normalizedItems).toMatchSnapshot();
       expect(result['page-title']).toMatchSnapshot();

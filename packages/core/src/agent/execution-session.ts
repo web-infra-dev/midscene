@@ -1,4 +1,5 @@
 import {
+  type ExecutionReferenceImage,
   type TaskExecutionError,
   TaskRunner,
   type TaskRunnerEventListener,
@@ -11,6 +12,8 @@ import type {
 
 type ExecutionSessionOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
+  abortSignal?: AbortSignal;
+  referenceImages?: readonly ExecutionReferenceImage[];
   onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
@@ -26,7 +29,7 @@ export class ExecutionSession {
 
   constructor(
     name: string,
-    contextProvider: () => Promise<UIContext>,
+    contextProvider: (signal?: AbortSignal) => Promise<UIContext>,
     options?: ExecutionSessionOptions,
   ) {
     this.runner = new TaskRunner(name, contextProvider, options);

@@ -18,6 +18,41 @@ interface RawScreenshotEntry {
   base64: string;
 }
 
+const rawBase64BodyPattern = /^[a-zA-Z0-9+/=\s]+$/;
+
+const imageSrcFromString = (value: string): string => {
+  const trimmed = value.trim();
+  if (trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  if (trimmed.length < 32 || !rawBase64BodyPattern.test(trimmed)) {
+    return value;
+  }
+
+  const body = trimmed.replace(/\s/g, '');
+  const mimeType = body.startsWith('/9j/')
+    ? 'image/jpeg'
+    : body.startsWith('UklGR')
+      ? 'image/webp'
+      : 'image/png';
+  return `data:${mimeType};base64,${body}`;
+};
+
+const screenshotBase64 = (screenshot: unknown): string | undefined => {
+  if (typeof screenshot === 'string') {
+    return imageSrcFromString(screenshot);
+  }
+  if (
+    screenshot &&
+    typeof screenshot === 'object' &&
+    'base64' in screenshot &&
+    typeof screenshot.base64 === 'string'
+  ) {
+    return imageSrcFromString(screenshot.base64);
+  }
+  return undefined;
+};
+
 const collectScreenshotEntries = (
   allTasks: ExecutionTask[],
 ): RawScreenshotEntry[] => {
@@ -25,20 +60,22 @@ const collectScreenshotEntries = (
 
   for (const task of allTasks) {
     const ctxScreenshot = task.uiContext?.screenshot;
-    if (ctxScreenshot && task.timing?.start) {
+    const ctxBase64 = screenshotBase64(ctxScreenshot);
+    if (ctxBase64 && task.timing?.start) {
       entries.push({
         task,
         ts: task.timing.start,
-        base64: ctxScreenshot.base64,
+        base64: ctxBase64,
       });
     }
 
     for (const recorder of task.recorder ?? []) {
-      if (recorder.screenshot) {
+      const recorderBase64 = screenshotBase64(recorder.screenshot);
+      if (recorderBase64) {
         entries.push({
           task,
           ts: recorder.ts,
-          base64: recorder.screenshot.base64,
+          base64: recorderBase64,
         });
       }
     }

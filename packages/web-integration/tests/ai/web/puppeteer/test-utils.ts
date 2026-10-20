@@ -1,6 +1,10 @@
 import path from 'node:path';
-import type { PuppeteerAgent } from '@/puppeteer';
-import { afterEach } from 'vitest';
+import type { PuppeteerAgent, PuppeteerBrowserAgent } from '@/puppeteer';
+import { afterEach } from '@rstest/core';
+
+// Agent teardown and Chrome shutdown are intentionally awaited. Saturated AI
+// runners need a larger cleanup budget than Rstest's 10-second hook default.
+const DEFAULT_CLEANUP_TIMEOUT = 60 * 1000;
 
 /**
  * Path to fixtures directory
@@ -18,7 +22,7 @@ export function getFixturePath(filename: string): string {
  * Shared test context for Puppeteer integration tests
  */
 export interface TestContext {
-  agent: PuppeteerAgent | null;
+  agent: PuppeteerAgent | PuppeteerBrowserAgent | null;
   resetFn: (() => Promise<void>) | null;
 }
 
@@ -49,7 +53,7 @@ export function createTestContext(): TestContext {
       }
       context.resetFn = null;
     }
-  });
+  }, DEFAULT_CLEANUP_TIMEOUT);
 
   return context;
 }

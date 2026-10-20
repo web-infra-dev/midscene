@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 
 import { resolveAiActionContext } from '@/puppeteer/agent-launcher';
 import type { MidsceneYamlScriptWebEnv } from '@midscene/core';

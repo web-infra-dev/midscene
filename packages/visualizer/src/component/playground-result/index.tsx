@@ -1,5 +1,4 @@
 import { LoadingOutlined } from '@ant-design/icons';
-import { noReplayAPIs } from '@midscene/playground';
 import { Spin } from 'antd';
 import type React from 'react';
 import type {
@@ -9,7 +8,7 @@ import type {
 } from '../../types';
 import type { ReplayScriptsInfo } from '../../utils/replay-scripts';
 import { emptyResultTip, serverLaunchTip } from '../misc';
-import { Player } from '../player';
+import { Player, type PlayerPresentation } from '../player';
 import ShinyText from '../shiny-text';
 import './index.less';
 
@@ -25,9 +24,12 @@ interface PlaygroundResultProps {
   notReadyMessage?: React.ReactNode | string;
   fitMode?: 'width' | 'height';
   autoZoom?: boolean;
-  actionType?: string; // The action type that was executed
+  // When a report is available, also show the return value above it.
+  showOutputAlongsideReport?: boolean;
   canDownloadReport?: boolean;
   onDownloadReport?: ReportDownloadHandler;
+  playerPresentation?: PlayerPresentation;
+  hidePlayerFullscreenControl?: boolean;
 }
 
 export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
@@ -42,9 +44,11 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   notReadyMessage,
   fitMode,
   autoZoom,
-  actionType,
+  showOutputAlongsideReport = false,
   canDownloadReport,
   onDownloadReport,
+  playerPresentation,
+  hidePlayerFullscreenControl,
 }) => {
   let resultWrapperClassName = 'result-wrapper';
   if (verticalMode) {
@@ -55,10 +59,6 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   }
 
   let resultDataToShow: React.ReactNode = emptyResultTip;
-
-  // Determine if this is a data extraction API that should prioritize result output
-  const shouldPrioritizeResult =
-    actionType && noReplayAPIs.includes(actionType);
 
   if (!serverValid && serviceMode === 'Server') {
     resultDataToShow = serverLaunchTip(notReadyMessage);
@@ -79,7 +79,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       </pre>
     );
 
-    if (result.reportHTML || replayScriptsInfo) {
+    if (result.reportHTML || result.report || replayScriptsInfo) {
       resultDataToShow = (
         <div className="combined-result-layout">
           <div style={{ flex: '0 0 auto', maxHeight: '40%', overflow: 'auto' }}>
@@ -99,12 +99,16 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
                 imageWidth={replayScriptsInfo?.width}
                 imageHeight={replayScriptsInfo?.height}
                 reportFileContent={result.reportHTML || null}
+                reportUrl={result.report?.url}
+                reportFormat={result.report?.format}
                 fitMode={fitMode}
                 autoZoom={autoZoom}
                 canDownloadReport={
                   canDownloadReport ?? serviceMode !== 'In-Browser'
                 }
                 onDownloadReport={onDownloadReport}
+                presentation={playerPresentation}
+                hideFullscreenControl={hidePlayerFullscreenControl}
               />
             </div>
           </div>
@@ -114,11 +118,11 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       resultDataToShow = errorNode;
     }
   } else if (
-    shouldPrioritizeResult &&
+    showOutputAlongsideReport &&
     result?.result !== undefined &&
     replayScriptsInfo
   ) {
-    // For data extraction APIs: show both result output and replay/report
+    // Show both the API return value and the replay/report.
     const resultOutput =
       typeof result?.result === 'string' ? (
         <pre>{result?.result}</pre>
@@ -143,12 +147,16 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
               imageWidth={replayScriptsInfo.width}
               imageHeight={replayScriptsInfo.height}
               reportFileContent={reportContent}
+              reportUrl={result.report?.url}
+              reportFormat={result.report?.format}
               fitMode={fitMode}
               autoZoom={autoZoom}
               canDownloadReport={
                 canDownloadReport ?? serviceMode !== 'In-Browser'
               }
               onDownloadReport={onDownloadReport}
+              presentation={playerPresentation}
+              hideFullscreenControl={hidePlayerFullscreenControl}
             />
           </div>
         </div>
@@ -165,18 +173,22 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         imageWidth={replayScriptsInfo.width}
         imageHeight={replayScriptsInfo.height}
         reportFileContent={reportContent}
+        reportUrl={result?.report?.url}
+        reportFormat={result?.report?.format}
         fitMode={fitMode}
         autoZoom={autoZoom}
         canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
         onDownloadReport={onDownloadReport}
+        presentation={playerPresentation}
+        hideFullscreenControl={hidePlayerFullscreenControl}
       />
     );
   } else if (
-    shouldPrioritizeResult &&
+    showOutputAlongsideReport &&
     result?.result !== undefined &&
-    result?.reportHTML
+    (result?.reportHTML || result?.report)
   ) {
-    // For data extraction APIs: show both result output and reportHTML
+    // Show both the API return value and the report.
     const resultOutput =
       typeof result?.result === 'string' ? (
         <pre>{result?.result}</pre>
@@ -195,36 +207,44 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
           <div className="combined-result-player">
             <Player
               key={replayCounter}
-              reportFileContent={result.reportHTML}
+              reportFileContent={result.reportHTML || null}
+              reportUrl={result.report?.url}
+              reportFormat={result.report?.format}
               fitMode={fitMode}
               autoZoom={autoZoom}
               canDownloadReport={
                 canDownloadReport ?? serviceMode !== 'In-Browser'
               }
               onDownloadReport={onDownloadReport}
+              presentation={playerPresentation}
+              hideFullscreenControl={hidePlayerFullscreenControl}
             />
           </div>
         </div>
       </div>
     );
-  } else if (shouldPrioritizeResult && result?.result !== undefined) {
-    // For data extraction APIs without reportHTML: show result output only
+  } else if (showOutputAlongsideReport && result?.result !== undefined) {
+    // Without a report, show the API return value on its own.
     resultDataToShow =
       typeof result?.result === 'string' ? (
         <pre>{result?.result}</pre>
       ) : (
         <pre>{JSON.stringify(result?.result, null, 2)}</pre>
       );
-  } else if (result?.reportHTML) {
+  } else if (result?.reportHTML || result?.report) {
     // No replay scripts but has report - show Player with report only
     resultDataToShow = (
       <Player
         key={replayCounter}
-        reportFileContent={result.reportHTML}
+        reportFileContent={result.reportHTML || null}
+        reportUrl={result.report?.url}
+        reportFormat={result.report?.format}
         fitMode={fitMode}
         autoZoom={autoZoom}
         canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
         onDownloadReport={onDownloadReport}
+        presentation={playerPresentation}
+        hideFullscreenControl={hidePlayerFullscreenControl}
       />
     );
   } else if (result?.result !== undefined) {

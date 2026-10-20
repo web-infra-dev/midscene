@@ -8,7 +8,7 @@ import {
   PlayCircleOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { RecordTimeline } from '@midscene/recorder';
+import { RecordTimeline } from '@midscene/recorder-ui';
 import { Alert, Button, Empty, Spin } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -19,6 +19,7 @@ import { ProgressModal } from './ProgressModal';
 interface RecordDetailProps {
   sessionId: string;
   isRecording: boolean;
+  isStarting: boolean;
   currentTab: chrome.tabs.Tab | null;
   // events: ChromeRecordedEvent[];
   onBack: () => void;
@@ -32,6 +33,7 @@ interface RecordDetailProps {
 export const RecordDetail: React.FC<RecordDetailProps> = ({
   sessionId,
   isRecording,
+  isStarting,
   // events = [],
   onBack,
   onStartRecording,
@@ -260,7 +262,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             <Empty description="No events recorded yet" />
           ) : (
             <div className="p-[16px 0]">
-              <RecordTimeline events={events} />
+              <RecordTimeline events={events} variant="chrome-extension" />
             </div>
           )
         ) : (
@@ -283,7 +285,8 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               type="primary"
               icon={<PlayCircleOutlined />}
               onClick={() => onStartRecording(sessionId)}
-              disabled={isRecording}
+              disabled={isRecording || isStarting}
+              loading={isStarting}
               className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] !h-[40px] !py-[12px] !px-[12px] !rounded-[48px]"
               style={{ fontFamily: 'Inter, -apple-system, sans-serif' }}
             >

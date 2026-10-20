@@ -1,0 +1,381 @@
+import AppKit
+import Darwin
+import Foundation
+
+final class FlippedDocumentView: NSView {
+  override var isFlipped: Bool { true }
+}
+
+@MainActor
+final class SmokeButton: NSButton {
+  // AppKit normally consumes the first click while a programmatically
+  // activated application is still transitioning to the foreground. The
+  // hosted macOS runner can remain in that transition even after System
+  // Events says the process is frontmost. Accepting the activation click
+  // keeps this fixture focused on whether the global mouse event arrived.
+  override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+    true
+  }
+}
+
+@MainActor
+final class SmokeTextField: NSTextField {
+  override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+    true
+  }
+}
+
+@MainActor
+final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
+  private let readyURL: URL
+  private let stateURL: URL
+
+  private var window: NSWindow!
+  private var button: SmokeButton!
+  private var textField: SmokeTextField!
+  private var scrollView: NSScrollView!
+  private var activationSource: DispatchSourceSignal?
+  private var pointerMonitor: DispatchSourceTimer?
+  private var leftButtonWasDown = false
+
+  private var activationCount = 0
+  private var inputReadyGeneration = 0
+  private var pointerDownCount = 0
+  private var lastPointerX: CGFloat = -1
+  private var lastPointerY: CGFloat = -1
+  private var clickCount = 0
+  private var buttonActionCount = 0
+  private var textChangeCount = 0
+  private var lastKey = ""
+  private var wheelEventCount = 0
+
+  init(readyFile: String, stateFile: String) {
+    readyURL = URL(fileURLWithPath: readyFile)
+    stateURL = URL(fileURLWithPath: stateFile)
+    super.init()
+  }
+
+  func applicationDidFinishLaunching(_ notification: Notification) {
+    installMainMenu()
+
+    guard let screen = NSScreen.main else {
+      fail("macOS did not expose a primary screen")
+    }
+
+    let windowSize = NSSize(width: 640, height: 500)
+    let origin = NSPoint(
+      x: screen.visibleFrame.midX - windowSize.width / 2,
+      y: screen.visibleFrame.midY - windowSize.height / 2
+    )
+    window = NSWindow(
+      contentRect: NSRect(origin: origin, size: windowSize),
+      styleMask: [.titled, .closable, .miniaturizable],
+      backing: .buffered,
+      defer: false,
+      screen: screen
+    )
+    window.title = "Midscene macOS Desktop Smoke"
+    window.isReleasedWhenClosed = false
+    // GitHub-hosted macOS sessions can keep Chrome above a newly activated
+    // regular-level window even after System Events reports this fixture as
+    // frontmost. Keep this test-only fixture above the browser so the
+    // computer-input smoke checks are delivered to their intended target.
+    window.level = .floating
+
+    button = SmokeButton(title: "Midscene Smoke Button", target: self, action: #selector(buttonClicked))
+    button.frame = NSRect(x: 190, y: 370, width: 260, height: 72)
+    button.isBordered = false
+    button.wantsLayer = true
+    button.layer?.backgroundColor = NSColor.systemGreen.cgColor
+    button.layer?.cornerRadius = 6
+    button.contentTintColor = .black
+    window.contentView?.addSubview(button)
+
+    textField = SmokeTextField(frame: NSRect(x: 120, y: 275, width: 400, height: 44))
+    textField.placeholderString = "Type smoke text"
+    textField.delegate = self
+    textField.target = self
+    textField.action = #selector(textCommitted)
+    window.contentView?.addSubview(textField)
+
+    scrollView = NSScrollView(frame: NSRect(x: 120, y: 55, width: 400, height: 160))
+    scrollView.hasVerticalScroller = true
+    scrollView.borderType = .bezelBorder
+    let documentView = FlippedDocumentView(frame: NSRect(x: 0, y: 0, width: 380, height: 720))
+    for index in 0..<18 {
+      let label = NSTextField(labelWithString: "Scrollable smoke row \(index + 1)")
+      label.frame = NSRect(x: 20, y: 16 + index * 38, width: 320, height: 24)
+      documentView.addSubview(label)
+    }
+    scrollView.documentView = documentView
+    scrollView.contentView.postsBoundsChangedNotifications = true
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(scrollBoundsChanged),
+      name: NSView.boundsDidChangeNotification,
+      object: scrollView.contentView
+    )
+    window.contentView?.addSubview(scrollView)
+
+    installActivationSignal()
+    installPointerMonitor()
+    activateFixture()
+    writeState()
+  }
+
+  func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    true
+  }
+
+  func controlTextDidChange(_ obj: Notification) {
+    textChangeCount += 1
+    writeState()
+  }
+
+  @objc private func buttonClicked() {
+    buttonActionCount += 1
+    writeState()
+  }
+
+  @objc private func textCommitted() {
+    lastKey = "Enter"
+    writeState()
+  }
+
+  @objc private func scrollBoundsChanged() {
+    wheelEventCount += 1
+    writeState()
+  }
+
+  private func activateFixture() {
+    activationCount += 1
+    let activation = activationCount
+    focusFixture()
+    writeState()
+
+    // Hosted macOS sessions can report the app as active before the first
+    // activation request has settled. Repeat the complete focus sequence on a
+    // later AppKit turn, then publish readiness only after the window is key.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+      guard let self else { return }
+      guard activation == self.activationCount else { return }
+      self.focusFixture()
+      self.publishInputReady(for: activation, attemptsRemaining: 40)
+    }
+  }
+
+  private func focusFixture() {
+    NSApplication.shared.unhide(nil)
+    NSApplication.shared.activate(ignoringOtherApps: true)
+    NSRunningApplication.current.activate(options: [.activateAllWindows])
+    window.orderFrontRegardless()
+    window.makeKeyAndOrderFront(nil)
+    window.makeFirstResponder(textField)
+  }
+
+  private func publishInputReady(for activation: Int, attemptsRemaining: Int) {
+    guard activation == activationCount else { return }
+    if window.isVisible && window.isKeyWindow && NSApplication.shared.isActive {
+      inputReadyGeneration += 1
+      writeState()
+      if inputReadyGeneration == 1 {
+        writeReadyMetadata()
+      }
+      return
+    }
+    guard attemptsRemaining > 0 else {
+      writeState()
+      return
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+      self?.publishInputReady(
+        for: activation,
+        attemptsRemaining: attemptsRemaining - 1
+      )
+    }
+  }
+
+  private func installActivationSignal() {
+    signal(SIGUSR1, SIG_IGN)
+    let source = DispatchSource.makeSignalSource(signal: SIGUSR1, queue: .main)
+    source.setEventHandler { [weak self] in
+      self?.activateFixture()
+    }
+    source.resume()
+    activationSource = source
+  }
+
+  private func installPointerMonitor() {
+    // GitHub-hosted AppKit sessions can drop control dispatch even when the
+    // fixture is frontmost. Sample the combined session while Midscene holds
+    // the button for 100 ms so the smoke still proves a real targeted press.
+    let source = DispatchSource.makeTimerSource(queue: .main)
+    source.schedule(deadline: .now(), repeating: .milliseconds(10))
+    source.setEventHandler { [weak self] in
+      self?.samplePointerState()
+    }
+    source.resume()
+    pointerMonitor = source
+  }
+
+  private func samplePointerState() {
+    let leftButtonIsDown = CGEventSource.buttonState(
+      .combinedSessionState,
+      button: .left
+    )
+    defer { leftButtonWasDown = leftButtonIsDown }
+    guard leftButtonIsDown && !leftButtonWasDown else { return }
+
+    let pointerLocation = NSEvent.mouseLocation
+    pointerDownCount += 1
+    lastPointerX = pointerLocation.x
+    lastPointerY = pointerLocation.y
+
+    let buttonWindowRect = button.convert(button.bounds, to: nil)
+    let buttonScreenRect = window.convertToScreen(buttonWindowRect)
+    if buttonScreenRect.contains(pointerLocation) {
+      clickCount += 1
+    }
+    writeState()
+  }
+
+  private func installMainMenu() {
+    let mainMenu = NSMenu()
+
+    let applicationMenuItem = NSMenuItem()
+    mainMenu.addItem(applicationMenuItem)
+    let applicationMenu = NSMenu()
+    applicationMenuItem.submenu = applicationMenu
+    applicationMenu.addItem(
+      withTitle: "Quit Midscene Desktop Smoke Fixture",
+      action: #selector(NSApplication.terminate(_:)),
+      keyEquivalent: "q"
+    )
+
+    let editMenuItem = NSMenuItem()
+    mainMenu.addItem(editMenuItem)
+    let editMenu = NSMenu(title: "Edit")
+    editMenuItem.submenu = editMenu
+    editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+    editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+    editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+    editMenu.addItem(NSMenuItem.separator())
+    editMenu.addItem(
+      withTitle: "Select All",
+      action: #selector(NSText.selectAll(_:)),
+      keyEquivalent: "a"
+    )
+
+    NSApplication.shared.mainMenu = mainMenu
+  }
+
+  private func topLeftBounds(of view: NSView, on screen: NSScreen) -> [String: CGFloat] {
+    let windowRect = view.convert(view.bounds, to: nil)
+    let screenRect = window.convertToScreen(windowRect)
+    return [
+      "left": screenRect.minX - screen.frame.minX,
+      "top": screen.frame.maxY - screenRect.maxY,
+      "width": screenRect.width,
+      "height": screenRect.height,
+    ]
+  }
+
+  private func windowBounds(on screen: NSScreen) -> [String: CGFloat] {
+    let frame = window.frame
+    return [
+      "left": frame.minX - screen.frame.minX,
+      "top": screen.frame.maxY - frame.maxY,
+      "width": frame.width,
+      "height": frame.height,
+    ]
+  }
+
+  private func writeReadyMetadata() {
+    guard let screen = window.screen ?? NSScreen.main else {
+      fail("fixture window is not attached to a screen")
+    }
+    writeJSON(
+      [
+        "processId": ProcessInfo.processInfo.processIdentifier,
+        "visible": window.isVisible,
+        "backingScaleFactor": window.backingScaleFactor,
+        "screen": [
+          "left": 0,
+          "top": 0,
+          "width": screen.frame.width,
+          "height": screen.frame.height,
+        ],
+        "window": windowBounds(on: screen),
+        "button": topLeftBounds(of: button, on: screen),
+        "textField": topLeftBounds(of: textField, on: screen),
+        "scroll": topLeftBounds(of: scrollView, on: screen),
+      ],
+      to: readyURL
+    )
+    print("Midscene macOS desktop smoke fixture ready")
+    fflush(stdout)
+  }
+
+  private func writeState() {
+    guard window != nil, textField != nil, scrollView != nil else {
+      return
+    }
+    writeJSON(
+      [
+        "visible": window.isVisible,
+        "active": NSApplication.shared.isActive,
+        "keyWindow": window.isKeyWindow,
+        "activationCount": activationCount,
+        "inputReadyGeneration": inputReadyGeneration,
+        "pointerDownCount": pointerDownCount,
+        "lastPointerX": lastPointerX,
+        "lastPointerY": lastPointerY,
+        "clickCount": clickCount,
+        "buttonActionCount": buttonActionCount,
+        "textChangeCount": textChangeCount,
+        "text": textField.stringValue,
+        "lastKey": lastKey,
+        "wheelEventCount": wheelEventCount,
+        "scrollValue": scrollView.contentView.bounds.origin.y,
+      ],
+      to: stateURL
+    )
+  }
+
+  private func writeJSON(_ value: [String: Any], to url: URL) {
+    do {
+      let data = try JSONSerialization.data(withJSONObject: value, options: [.prettyPrinted])
+      try data.write(to: url, options: [.atomic])
+    } catch {
+      fail("Failed to write fixture JSON: \(error)")
+    }
+  }
+
+  private func fail(_ message: String) -> Never {
+    FileHandle.standardError.write(Data("\(message)\n".utf8))
+    exit(3)
+  }
+}
+
+@main
+@MainActor
+struct MacOSDesktopSmokeFixture {
+  static func main() {
+    guard CommandLine.arguments.count == 3 else {
+      FileHandle.standardError.write(
+        Data("Usage: macos-desktop-smoke-app <ready-file> <state-file>\n".utf8)
+      )
+      exit(2)
+    }
+
+    let app = NSApplication.shared
+    app.setActivationPolicy(.regular)
+    let controller = FixtureController(
+      readyFile: CommandLine.arguments[1],
+      stateFile: CommandLine.arguments[2]
+    )
+    app.delegate = controller
+    app.run()
+    withExtendedLifetime(controller) {}
+  }
+}

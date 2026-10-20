@@ -1,9 +1,12 @@
-import { execSync, spawn } from 'node:child_process';
+import { execFileSync, execSync, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
 import type { ComputerAgent } from '../../src';
 
 const IS_MAC = process.platform === 'darwin';
 const IS_LINUX = process.platform === 'linux';
+const IS_WINDOWS = process.platform === 'win32';
 
 /**
  * Check if running in a headless Linux environment (Xvfb, no desktop)
@@ -34,6 +37,30 @@ export function findLinuxBrowser(): string {
 }
 
 /**
+ * Find the Chrome binary installed on a GitHub-hosted Windows runner.
+ */
+export function findWindowsBrowser(): string {
+  const candidates = [
+    process.env.ProgramFiles,
+    process.env['ProgramFiles(x86)'],
+    process.env.LOCALAPPDATA,
+  ]
+    .filter((root): root is string => Boolean(root))
+    .map((root) =>
+      path.join(root, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    );
+
+  const browser = candidates.find((candidate) => existsSync(candidate));
+  if (browser) {
+    return browser;
+  }
+
+  throw new Error(
+    `No Chrome binary found on Windows. Tried: ${candidates.join(', ')}`,
+  );
+}
+
+/**
  * Opens a browser and navigates to the specified URL
  */
 export async function openBrowserAndNavigate(
@@ -58,6 +85,40 @@ export async function openBrowserAndNavigate(
       ],
       { stdio: 'ignore', detached: true },
     );
+    child.unref();
+    await sleep(8000);
+    return;
+  }
+
+  if (process.env.CI && IS_MAC) {
+    execFileSync('open', ['-a', 'Safari', url], { stdio: 'ignore' });
+    await sleep(5000);
+    return;
+  }
+
+  if (process.env.CI && IS_WINDOWS) {
+    const chromeArguments = [
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-session-crashed-bubble',
+      '--start-maximized',
+      '--new-window',
+    ];
+    if (process.env.RUNNER_TEMP) {
+      chromeArguments.push(
+        `--user-data-dir=${path.join(
+          process.env.RUNNER_TEMP,
+          `midscene-chrome-${process.pid}`,
+        )}`,
+      );
+    }
+    chromeArguments.push(url);
+
+    const child = spawn(findWindowsBrowser(), chromeArguments, {
+      stdio: 'ignore',
+      detached: true,
+      windowsHide: false,
+    });
     child.unref();
     await sleep(8000);
     return;

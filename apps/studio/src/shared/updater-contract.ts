@@ -12,6 +12,19 @@ export type UpdateStatus =
   | { state: 'downloaded'; version: string }
   | { state: 'error'; message: string };
 
+/**
+ * Platforms where electron-updater cannot apply the update in-place and the
+ * user must download the next release manually. Linux ships as a plain zip
+ * from @electron/packager; the updater only knows how to relaunch
+ * AppImage/DEB/RPM-style targets. Windows publishes an NSIS setup.exe, so
+ * NsisUpdater can keep the normal download + quitAndInstall path there.
+ */
+export function isExternalDownloadOnlyPlatform(
+  platform: NodeJS.Platform,
+): boolean {
+  return platform === 'linux';
+}
+
 export interface UpdaterApi {
   check: () => Promise<unknown>;
   download: () => Promise<{ success: boolean; error?: string }>;

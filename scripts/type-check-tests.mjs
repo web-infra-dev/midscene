@@ -45,10 +45,21 @@ const projects = readWorkspacePatterns()
   )
   .sort();
 
-function typeCheckProject(project) {
-  const projectPath = join(workspaceRoot, project);
-  const projectConfig = join(projectPath, 'tsconfig.json');
+// `scripts/**` and the per-project `rstest.config.ts` files sit outside every
+// package tsconfig's `include`, so nothing type-checked them until this entry
+// was added. A misplaced config key used to reach CI unnoticed.
+const targets = [
+  {
+    name: 'workspace tools',
+    config: join(workspaceRoot, 'tsconfig.tools.json'),
+  },
+  ...projects.map((project) => ({
+    name: project,
+    config: join(workspaceRoot, project, 'tsconfig.json'),
+  })),
+];
 
+function typeCheckProject({ name: project, config: projectConfig }) {
   return new Promise((resolve) => {
     let output = '';
     const child = spawn(
@@ -80,8 +91,8 @@ async function runTypeChecks() {
   const running = new Set();
   const results = [];
 
-  for (const project of projects) {
-    const task = typeCheckProject(project).then((result) => {
+  for (const target of targets) {
+    const task = typeCheckProject(target).then((result) => {
       running.delete(task);
       results.push(result);
 

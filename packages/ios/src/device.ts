@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import {
   type ActionScrollParam,
   type DeviceAction,
+  type ExecutorContext,
   type InterfaceType,
   type Point,
   type Size,
@@ -9,12 +10,18 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type DeviceFrameSource,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
   type MobileInputPrimitives,
   type PointerPoint,
+  type ResolvedTextInputOptions,
   createDefaultMobileActions,
   defineAction,
+  resolveDefaultMobileScroll,
+  resolveTextInputOptions,
+  sendTextSequentially,
+  shouldInputSequentially,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
@@ -24,11 +31,17 @@ import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
+import { MjpegFrameSource } from './mjpeg-frame-source';
+import {
+  assertWdaConnectionOptions,
+  normalizeMjpegStreamUrl,
+} from './wda-options';
 
 // Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
 
 const debugDevice = getDebug('ios:device');
+const debugDeviceWarning = getDebug('ios:device', { console: true });
 
 /**
  * HTTP methods supported by WebDriverAgent API
@@ -37,6 +50,17 @@ export const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
 export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 
 const DEFAULT_WDA_MJPEG_PORT = 9100;
+const keyboardFollowUpMaxAgeMs = 30_000;
+const keyboardFollowUpKeys: ReadonlySet<string> = new Set([
+  'enter',
+  'return',
+  'tab',
+]);
+
+type PendingKeyboardFollowUp = {
+  target: PointerPoint;
+  createdAt: number;
+};
 
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
@@ -49,7 +73,17 @@ export class IOSDevice implements AbstractInterface {
   private wdaManager: WDAManager;
   /** URL of WDA's native MJPEG server for real-time streaming */
   mjpegStreamUrl: string;
+  /** Lazily-started consumer of the WDA MJPEG stream, used by UI observation. */
+  private mjpegFrameSource: MjpegFrameSource | null = null;
+  /**
+   * Continuous frame-source capability for UI observation. Only wired up when
+   * the MJPEG frame source is opt-in enabled; otherwise left undefined so
+   * observers fall back to sequential screenshots.
+   */
+  openFrameSource?: AbstractInterface['openFrameSource'];
   private appNameMapping: Record<string, string> = {};
+  /** Auto-dismissed input eligible for one immediate submit/navigation key. */
+  private pendingKeyboardFollowUp: PendingKeyboardFollowUp | undefined;
   interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
   options?: IOSDeviceOpt;
@@ -62,9 +96,17 @@ export class IOSDevice implements AbstractInterface {
       dragAndDrop: (from, to) => this.swipePoint(from, to, 1000),
     },
     keyboard: {
-      keyboardPress: (keyName) => this.pressKey(keyName),
+      keyboardPress: (keyName, opts) =>
+        this.pressKey(keyName, opts?.target as ElementInfo | undefined),
       typeText: async (value, opts) => {
+        const resolvedInputOptions = resolveTextInputOptions(
+          opts,
+          this.options,
+        );
         const target = opts?.target as ElementInfo | undefined;
+        const focusRestorePoint = target
+          ? { x: target.center[0], y: target.center[1] }
+          : undefined;
         if (target && opts?.replace !== false) {
           await this.clearInput(target);
         } else if (target) {
@@ -75,7 +117,12 @@ export class IOSDevice implements AbstractInterface {
           return;
         }
 
-        await this.typeText(value, opts);
+        await this.typeText(
+          value,
+          opts,
+          focusRestorePoint,
+          resolvedInputOptions,
+        );
       },
       clearInput: (target) =>
         this.clearInput(target as ElementInfo | undefined),
@@ -95,6 +142,7 @@ export class IOSDevice implements AbstractInterface {
         }
       },
       pinch: async (center, opts) => {
+        this.invalidatePendingKeyboardFollowUp('pinch');
         await this.wdaBackend.pinch(
           Math.round(center.x),
           Math.round(center.y),
@@ -105,16 +153,86 @@ export class IOSDevice implements AbstractInterface {
       },
     },
     scroll: {
-      scroll: (param) => this.performActionScroll(param),
+      scroll: (param, opts) => this.performActionScroll(param, opts),
     },
   };
 
+  private invalidatePendingKeyboardFollowUp(reason: string): void {
+    if (!this.pendingKeyboardFollowUp) {
+      return;
+    }
+    debugDevice(`Discarding pending keyboard follow-up: ${reason}`);
+    this.pendingKeyboardFollowUp = undefined;
+  }
+
+  private registerPendingKeyboardFollowUp(target?: PointerPoint): void {
+    if (!target) {
+      return;
+    }
+    this.pendingKeyboardFollowUp = {
+      target,
+      createdAt: Date.now(),
+    };
+    debugDevice(
+      `Registered one keyboard follow-up for (${target.x}, ${target.y})`,
+    );
+  }
+
+  private consumePendingKeyboardFollowUp(
+    key: string,
+  ): PointerPoint | undefined {
+    const pendingFollowUp = this.pendingKeyboardFollowUp;
+    this.pendingKeyboardFollowUp = undefined;
+    if (!pendingFollowUp) {
+      return undefined;
+    }
+
+    const normalizedKey = key.trim().toLowerCase();
+    if (!keyboardFollowUpKeys.has(normalizedKey)) {
+      debugDevice(
+        `Discarding pending keyboard follow-up: ${JSON.stringify(key)} is not a submit/navigation key`,
+      );
+      return undefined;
+    }
+
+    const ageMs = Date.now() - pendingFollowUp.createdAt;
+    if (ageMs > keyboardFollowUpMaxAgeMs) {
+      debugDevice(
+        `Discarding pending keyboard follow-up: expired after ${ageMs}ms`,
+      );
+      return undefined;
+    }
+
+    return pendingFollowUp.target;
+  }
+
+  private async tryAutoDismissKeyboard(): Promise<boolean> {
+    let dismissed: boolean;
+    try {
+      dismissed = await this.hideKeyboard();
+    } catch (error) {
+      debugDeviceWarning(
+        'Text input request completed, but auto-dismissing the iOS keyboard failed',
+        error,
+      );
+      return false;
+    }
+    if (!dismissed) {
+      debugDeviceWarning(
+        'Text input request completed, but the iOS keyboard could not be auto-dismissed because no supported dismissal control was found or the keyboard remained visible',
+      );
+    }
+    return dismissed;
+  }
+
   private async tapPoint(point: PointerPoint): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('tap');
     debugDevice(`tap at coordinates (${point.x}, ${point.y})`);
     await this.wdaBackend.tap(Math.round(point.x), Math.round(point.y));
   }
 
   private async doubleTapPoint(point: PointerPoint): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('double tap');
     await this.wdaBackend.doubleTap(Math.round(point.x), Math.round(point.y));
   }
 
@@ -122,6 +240,7 @@ export class IOSDevice implements AbstractInterface {
     point: PointerPoint,
     duration = 1000,
   ): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('long press');
     await this.wdaBackend.longPress(
       Math.round(point.x),
       Math.round(point.y),
@@ -134,6 +253,7 @@ export class IOSDevice implements AbstractInterface {
     end: PointerPoint,
     duration = 500,
   ): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('swipe');
     await this.wdaBackend.swipe(
       Math.round(start.x),
       Math.round(start.y),
@@ -144,20 +264,19 @@ export class IOSDevice implements AbstractInterface {
   }
 
   private async clearInputAt(point?: PointerPoint): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('clear input');
     if (point) {
       await this.tapPoint(point);
-      await sleep(100);
     }
 
+    await this.wdaBackend.waitForInputFocus();
     debugDevice('Attempting to clear input with WebDriver Clear API');
     const cleared = await this.wdaBackend.clearActiveElement();
-    if (cleared) {
-      debugDevice('Successfully cleared input with WebDriver Clear API');
-    } else {
-      debugDevice(
-        'WebDriver Clear API returned false (no active element or clear failed)',
-      );
-    }
+    assert(
+      cleared,
+      'Cannot verify that input was cleared; refusing to append text',
+    );
+    debugDevice('Successfully cleared input with WebDriver Clear API');
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -165,6 +284,7 @@ export class IOSDevice implements AbstractInterface {
       input: this.inputPrimitives,
       size: () => this.size(),
       sleep: async (timeMs: number) => {
+        this.invalidatePendingKeyboardFollowUp('sleep action');
         await sleep(timeMs);
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
@@ -173,11 +293,20 @@ export class IOSDevice implements AbstractInterface {
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
-    const customActions = this.customActions || [];
+    const customActions = (this.customActions || []).map((action) => ({
+      ...action,
+      call: async (param: any, context?: ExecutorContext) => {
+        this.invalidatePendingKeyboardFollowUp(`custom action ${action.name}`);
+        return await action.call(param, context);
+      },
+    }));
     return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
-  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+  private async performActionScroll(
+    param: ActionScrollParam,
+    opts?: { skipDefaultWait?: boolean },
+  ): Promise<void> {
     const element = param.locate;
     const startingPoint = element
       ? {
@@ -206,7 +335,7 @@ export class IOSDevice implements AbstractInterface {
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
-      await sleep(500);
+      if (!opts?.skipDefaultWait) await sleep(500);
     } else {
       throw new Error(
         `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
@@ -217,6 +346,7 @@ export class IOSDevice implements AbstractInterface {
   }
 
   constructor(options?: IOSDeviceOpt) {
+    assertWdaConnectionOptions(options);
     // deviceId will be auto-detected from WebDriverAgent connection
     this.deviceId = 'pending-connection';
     this.options = options;
@@ -228,10 +358,27 @@ export class IOSDevice implements AbstractInterface {
     this.wdaBackend = new WebDriverAgentBackend({
       port: wdaPort,
       host: wdaHost,
+      ...(options?.wdaBaseUrl !== undefined
+        ? { baseUrl: options.wdaBaseUrl }
+        : {}),
       ...(options?.sessionId ? { sessionId: options.sessionId } : {}),
     });
-    this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
-    this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
+    this.wdaManager = WDAManager.getInstance(
+      wdaPort,
+      wdaHost,
+      options?.wdaBaseUrl,
+    );
+    this.mjpegStreamUrl =
+      options?.wdaMjpegUrl !== undefined
+        ? normalizeMjpegStreamUrl(options.wdaMjpegUrl)
+        : `http://${wdaHost}:${mjpegPort}`;
+
+    // Opt-in (default off), mirroring Android scrcpy: only expose the MJPEG
+    // frame-source capability when explicitly enabled. When off, UI observers
+    // fall back to sequential screenshotBase64() capture.
+    if (options?.wdaMjpegFrameSource?.enabled) {
+      this.openFrameSource = () => this.openMjpegFrameSource();
+    }
   }
 
   describe(): string {
@@ -252,6 +399,7 @@ export class IOSDevice implements AbstractInterface {
       `IOSDevice ${this.deviceId} has been destroyed and cannot execute commands`,
     );
 
+    this.invalidatePendingKeyboardFollowUp('connect');
     debugDevice(`Connecting to iOS device: ${this.deviceId}`);
 
     try {
@@ -314,6 +462,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   public async launch(uri: string): Promise<IOSDevice> {
+    this.invalidatePendingKeyboardFollowUp('launch');
     this.uri = uri;
 
     try {
@@ -345,6 +494,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
    * Supports app name resolution via setAppNameMapping when provided.
    */
   public async terminate(bundleId: string): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('terminate');
     const resolved = this.resolveBundleId(bundleId) ?? bundleId;
     try {
       debugDevice(`Terminating app: ${resolved}`);
@@ -425,6 +575,57 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
   }
 
+  /**
+   * Continuous frame source backed by WDA's MJPEG server. WDA's
+   * `takeScreenshot` is too slow (~250ms) to sample the screen densely, so
+   * observers pull the most recent frame from the continuously-running MJPEG
+   * stream instead — near-instant per grab. Frames are already JPEG data
+   * URLs, so `decode()` is a pass-through.
+   *
+   * Opt-in: only wired up as the `openFrameSource` capability (in the
+   * constructor) when `wdaMjpegFrameSource.enabled` is set, mirroring scrcpy.
+   * `stop()` tears the stream down so device-side encoding only runs while an
+   * observation window is open.
+   */
+  private async openMjpegFrameSource(): Promise<DeviceFrameSource> {
+    const source = await this.ensureMjpegFrameSource();
+    return {
+      latest: () => {
+        const frame = source.getLatest();
+        return frame
+          ? { ref: frame.base64, capturedAt: frame.capturedAt }
+          : null;
+      },
+      // MJPEG frames are already data URLs — no deferred decode cost on iOS.
+      decode: async (refs) => refs.map((frameRef) => frameRef.ref as string),
+      stop: () => {
+        source.stop();
+        if (this.mjpegFrameSource === source) {
+          this.mjpegFrameSource = null;
+        }
+      },
+    };
+  }
+
+  private async ensureMjpegFrameSource(): Promise<MjpegFrameSource> {
+    assert(
+      !this.destroyed,
+      `IOSDevice ${this.deviceId} has been destroyed and cannot stream frames`,
+    );
+    if (!this.mjpegFrameSource) {
+      this.mjpegFrameSource = new MjpegFrameSource(this.mjpegStreamUrl);
+    }
+    try {
+      await this.mjpegFrameSource.ensureStarted();
+    } catch (error) {
+      // Drop the failed source so a later call can retry from a clean state.
+      this.mjpegFrameSource.stop();
+      this.mjpegFrameSource = null;
+      throw error;
+    }
+    return this.mjpegFrameSource;
+  }
+
   async clearInput(element?: ElementInfo): Promise<void> {
     await this.clearInputAt(
       element ? { x: element.center[0], y: element.center[1] } : undefined,
@@ -461,36 +662,109 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   private async typeText(
     text: string,
-    options?: IOSDeviceInputOpt,
+    options?: IOSDeviceInputOpt & { skipDefaultWait?: boolean },
+    focusRestorePoint?: PointerPoint,
+    resolvedInputOptions: ResolvedTextInputOptions = resolveTextInputOptions(
+      options,
+      this.options,
+    ),
   ): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
 
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
+    const typeDelay = resolvedInputOptions.keyboardTypeDelay;
+    const inputSequentially = shouldInputSequentially(resolvedInputOptions);
 
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      // Wait a bit to ensure keyboard is ready
-      await sleep(200);
-      await this.wdaBackend.typeText(text);
-      await sleep(300); // Give more time for text to appear
+      await this.wdaBackend.waitForInputFocus();
+
+      if (inputSequentially) {
+        // Type one character at a time with a delay between keystrokes.
+        // Use typeRawKeys instead of typeText — the latter trims whitespace,
+        // which would silently drop spaces and newlines when sent one at a time.
+        await sendTextSequentially(
+          text,
+          {
+            sendCharacter: (character) =>
+              this.wdaBackend.typeRawKeys([character]),
+            wait: sleep,
+          },
+          {
+            delayMs: typeDelay,
+            delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
+          },
+        );
+      } else {
+        await this.wdaBackend.typeText(text);
+      }
+
+      // Optional settling is owned by a custom action waiter when configured.
+      if (!options?.skipDefaultWait) await sleep(300);
     } catch (error) {
       debugDevice(`Failed to type text with WDA: ${error}`);
       throw error;
     }
 
     if (shouldAutoDismissKeyboard) {
-      await this.hideKeyboard();
+      const dismissed = await this.tryAutoDismissKeyboard();
+      if (dismissed) {
+        this.registerPendingKeyboardFollowUp(focusRestorePoint);
+      }
     }
   }
 
-  private async pressKey(key: string): Promise<void> {
+  private async pressKey(key: string, target?: ElementInfo): Promise<void> {
+    const explicitTargetPoint = target
+      ? { x: target.center[0], y: target.center[1] }
+      : undefined;
+    let focusRestorePoint: PointerPoint | undefined;
+    if (explicitTargetPoint) {
+      this.invalidatePendingKeyboardFollowUp(
+        'keyboard press has an explicit target',
+      );
+      focusRestorePoint = explicitTargetPoint;
+    } else {
+      focusRestorePoint = this.consumePendingKeyboardFollowUp(key);
+    }
+
+    if (focusRestorePoint) {
+      debugDevice(
+        `Restoring text input focus at (${focusRestorePoint.x}, ${focusRestorePoint.y}) before pressing ${key}`,
+      );
+      await this.tapPoint(focusRestorePoint);
+    }
     await this.wdaBackend.pressKey(key);
+  }
+
+  // Keep default browsing gestures inside the screen and leave overlapping
+  // content between observations. Content displacement remains OS/control dependent.
+  private async scrollDefault(
+    direction: 'up' | 'down' | 'left' | 'right',
+  ): Promise<void> {
+    const { from, to } = resolveDefaultMobileScroll(
+      direction,
+      await this.size(),
+    );
+    // A fixed duration changes release velocity with screen size/orientation.
+    // Cap velocity at 400 points/second and keep short gestures at least 1s:
+    // faster short gestures can intermittently fling beyond the viewport.
+    // Swipe keeps its fast default.
+    const duration = Math.max(
+      1000,
+      Math.round(Math.hypot(to.x - from.x, to.y - from.y) / 0.4),
+    );
+    await this.swipePoint(from, to, duration);
   }
 
   // Scroll methods
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('up');
+    }
     const { width, height } = await this.size();
     const start = startPoint
       ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
@@ -506,6 +780,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('down');
+    }
     const { width, height } = await this.size();
     const start = startPoint
       ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
@@ -521,6 +798,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('left');
+    }
     const { width, height } = await this.size();
     // scrollLeft: bring left content into view (swipe finger right)
     const start = startPoint
@@ -537,6 +817,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('right');
+    }
     const { width, height } = await this.size();
     // scrollRight: bring right content into view (swipe finger left)
     const start = startPoint
@@ -775,73 +1058,43 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   // iOS specific methods
   async home(): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('home');
     await this.wdaBackend.pressHomeButton();
   }
 
   async appSwitcher(): Promise<void> {
-    try {
-      // For iOS, use swipe up with slower/longer duration to trigger app switcher
-      debugDevice('Triggering app switcher with slow swipe up gesture');
-      const { width, height } = await this.size();
-
-      // Swipe up from the very bottom of the screen to trigger app switcher
-      const centerX = Math.round(width / 2);
-      const startY = Math.round(height - 5); // Start from very bottom
-      const endY = Math.round(height * 0.5); // Swipe to middle of screen
-
-      // Use a slower, longer swipe to trigger app switcher without additional tapping
-      // Longer duration mimics the "hold" behavior during the swipe itself
-      await this.wdaBackend.swipe(centerX, startY, centerX, endY, 1500); // Slower swipe
-
-      await sleep(800); // Wait for app switcher to appear and stabilize
-    } catch (error) {
-      debugDevice(`App switcher failed: ${error}`);
-      throw new Error(`Failed to trigger app switcher: ${error}`);
-    }
+    this.invalidatePendingKeyboardFollowUp('app switcher');
+    await this.wdaBackend.appSwitcher();
   }
 
+  /**
+   * Hides the iOS software keyboard using a structurally located accessory
+   * control, or configured key names when provided.
+   *
+   * @returns `true` when the keyboard is hidden, or `false` when the current
+   * application exposes no supported dismissal control.
+   * @throws When communication with WebDriverAgent fails.
+   */
   async hideKeyboard(keyNames?: string[]): Promise<boolean> {
+    this.invalidatePendingKeyboardFollowUp('hide keyboard');
     try {
-      // Always try WDA's dismissKeyboard API first (most reliable)
-      // Use common keyboard button names if not specified
-      const dismissKeys =
+      debugDevice(
         keyNames && keyNames.length > 0
-          ? keyNames
-          : ['return', 'done', 'go', 'search', 'next', 'send'];
-
-      debugDevice(
-        `Attempting to dismiss keyboard using WDA API with keys: ${dismissKeys.join(', ')}`,
+          ? `Attempting to dismiss keyboard using configured buttons: ${keyNames.join(', ')}`
+          : 'Attempting to dismiss keyboard using its accessory toolbar',
       );
-
-      try {
-        await this.wdaBackend.dismissKeyboard(dismissKeys);
-        debugDevice('Successfully dismissed keyboard using WDA API');
-        await sleep(500); // Wait longer to ensure UI is stable
-        return true;
-      } catch (wdaError) {
-        debugDevice(
-          `WDA dismissKeyboard failed, falling back to swipe gesture: ${wdaError}`,
-        );
-      }
-
-      // Fallback: Use swipe gesture if WDA API fails
-      // Use safer coordinates: swipe up from bottom of screen
-      const windowSize = await this.wdaBackend.getWindowSize();
-      const centerX = Math.round(windowSize.width / 2);
-      const startY = Math.round(windowSize.height * 0.9); // Start near bottom
-      const endY = Math.round(windowSize.height * 0.5); // Swipe up to middle
-
-      // Perform swipe up gesture to dismiss keyboard
-      await this.swipeCoordinates(centerX, startY, centerX, endY, 300);
+      const dismissed = await this.wdaBackend.dismissKeyboard(keyNames);
       debugDevice(
-        'Dismissed keyboard with swipe up gesture from bottom of screen',
+        dismissed
+          ? 'Successfully dismissed keyboard'
+          : 'No supported keyboard dismiss control was found',
       );
-
-      await sleep(500); // Wait longer to ensure UI is stable
-      return true;
+      return dismissed;
     } catch (error) {
       debugDevice(`Failed to hide keyboard: ${error}`);
-      return false;
+      throw new Error(`Failed to hide the iOS keyboard through WDA: ${error}`, {
+        cause: error,
+      });
     }
   }
 
@@ -857,6 +1110,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       waitTime?: number;
     },
   ): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('open URL');
     const opts = {
       useSafariAsBackup: true,
       waitTime: 2000,
@@ -888,6 +1142,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
    * @param url The URL to open
    */
   async openUrlViaSafari(url: string): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('open URL via Safari');
     try {
       debugDevice(`Opening URL via Safari: ${url}`);
 
@@ -901,7 +1156,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       // to handle different Safari UI states (new tab, existing tab, etc.)
 
       // Type the URL in the address bar
-      await this.typeText(url);
+      await this.typeText(url, { autoDismissKeyboard: false });
       await sleep(500);
 
       // Press Return to navigate
@@ -939,6 +1194,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     endpoint: string,
     data?: any,
   ): Promise<TResult> {
+    this.invalidatePendingKeyboardFollowUp('raw WDA request');
     return await this.wdaBackend.executeRequest<TResult>(
       method,
       endpoint,
@@ -951,7 +1207,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       return;
     }
 
+    this.invalidatePendingKeyboardFollowUp('destroy');
     try {
+      // Stop the MJPEG frame source if it was started.
+      this.mjpegFrameSource?.stop();
+      this.mjpegFrameSource = null;
+
       // Delete WDA session
       await this.wdaBackend.deleteSession();
 

@@ -1,27 +1,27 @@
 import { Page } from '@/puppeteer/base-page';
-import { describe, expect, it, vi } from 'vitest';
+import * as coreUtilsActual from '@midscene/core/utils' with {
+  rstest: 'importActual',
+};
+import { describe, expect, it, rs } from '@rstest/core';
 
 // Mock necessary dependencies to avoid loading AI service dependencies
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
-  logMsg: vi.fn(),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
+  logMsg: rs.fn(),
 }));
 
-vi.mock('@midscene/core/utils', async () => {
-  const actual = await vi.importActual('@midscene/core/utils');
-  return {
-    ...actual,
-    sleep: vi.fn(() => Promise.resolve()),
-  };
-});
-
-vi.mock('@midscene/shared/node', () => ({
-  getElementInfosScriptContent: vi.fn(() => ''),
-  getExtraReturnLogic: vi.fn(() => Promise.resolve('() => ({})')),
+rs.mock('@midscene/core/utils', () => ({
+  ...coreUtilsActual,
+  sleep: rs.fn(() => Promise.resolve()),
 }));
 
-vi.mock('@/web-element', () => ({
-  WebPageContextParser: vi.fn().mockResolvedValue({
+rs.mock('@midscene/shared/node', () => ({
+  getElementInfosScriptContent: rs.fn(() => ''),
+  getExtraReturnLogic: rs.fn(() => Promise.resolve('() => ({})')),
+}));
+
+rs.mock('@/web-element', () => ({
+  WebPageContextParser: rs.fn().mockResolvedValue({
     tree: { node: null, children: [] },
     shotSize: { width: 1024, height: 768 },
     shrunkShotToLogicalRatio: 1,
@@ -29,8 +29,8 @@ vi.mock('@/web-element', () => ({
   }),
 }));
 
-vi.mock('@/web-page', () => ({
-  commonWebActionsForWebPage: vi.fn(() => []),
+rs.mock('@/web-page', () => ({
+  commonWebActionsForWebPage: rs.fn(() => []),
 }));
 
 describe('Page - beforeInvokeAction and afterInvokeAction', () => {
@@ -38,14 +38,14 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     it('should call the beforeInvokeAction hook', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
-      const beforeHook = vi.fn();
+      const beforeHook = rs.fn();
       const page = new Page(mockPage, 'puppeteer', {
         beforeInvokeAction: beforeHook,
       });
@@ -58,11 +58,11 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     it('should not wait for network idle in beforeInvokeAction', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer');
@@ -76,15 +76,15 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     it('should execute immediately without waiting', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockImplementation(() => {
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockImplementation(() => {
           return new Promise((resolve) => setTimeout(() => resolve(true), 100));
         }),
-        waitForNetworkIdle: vi.fn().mockImplementation(() => {
+        waitForNetworkIdle: rs.fn().mockImplementation(() => {
           return new Promise((resolve) => setTimeout(() => resolve(true), 100));
         }),
-        evaluate: vi.fn(),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer');
@@ -102,24 +102,24 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     it('should call the beforeInvokeAction hook without waiting', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const callOrder: string[] = [];
-      mockPage.waitForSelector = vi.fn().mockImplementation(() => {
+      mockPage.waitForSelector = rs.fn().mockImplementation(() => {
         callOrder.push('waitForSelector');
         return Promise.resolve(true);
       });
-      mockPage.waitForNetworkIdle = vi.fn().mockImplementation(() => {
+      mockPage.waitForNetworkIdle = rs.fn().mockImplementation(() => {
         callOrder.push('waitForNetworkIdle');
         return Promise.resolve(true);
       });
 
-      const beforeHook = vi.fn().mockImplementation(() => {
+      const beforeHook = rs.fn().mockImplementation(() => {
         callOrder.push('beforeHook');
       });
 
@@ -137,11 +137,11 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     it('should work without hook configured', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn(),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn(),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer');
@@ -153,19 +153,19 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     });
   });
 
-  describe('afterInvokeAction', () => {
+  describe('defaultActionWait and afterInvokeAction', () => {
     it('should wait for navigation with default timeout', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer');
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       expect(mockPage.waitForSelector).toHaveBeenCalledTimes(1);
       expect(mockPage.waitForSelector).toHaveBeenCalledWith('html', {
@@ -176,15 +176,15 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     it('should wait for network idle for puppeteer', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer');
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       expect(mockPage.waitForNetworkIdle).toHaveBeenCalledTimes(1);
       expect(mockPage.waitForNetworkIdle).toHaveBeenCalledWith({
@@ -194,27 +194,27 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       });
     });
 
-    it('should call the afterInvokeAction hook after waiting', async () => {
+    it('separates lifecycle callbacks from the default waits', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const callOrder: string[] = [];
-      mockPage.waitForSelector = vi.fn().mockImplementation(() => {
+      mockPage.waitForSelector = rs.fn().mockImplementation(() => {
         callOrder.push('waitForSelector');
         return Promise.resolve(true);
       });
-      mockPage.waitForNetworkIdle = vi.fn().mockImplementation(() => {
+      mockPage.waitForNetworkIdle = rs.fn().mockImplementation(() => {
         callOrder.push('waitForNetworkIdle');
         return Promise.resolve(true);
       });
 
-      const afterHook = vi.fn().mockImplementation(() => {
+      const afterHook = rs.fn().mockImplementation(() => {
         callOrder.push('afterHook');
       });
 
@@ -224,34 +224,30 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
 
       await page.afterInvokeAction('testAction', { foo: 'bar' });
 
-      // Both wait methods should be called before the hook
-      expect(callOrder).toContain('waitForSelector');
-      expect(callOrder).toContain('waitForNetworkIdle');
-      expect(callOrder).toContain('afterHook');
-
-      const afterHookIndex = callOrder.indexOf('afterHook');
-      const waitSelectorIndex = callOrder.indexOf('waitForSelector');
-      const waitNetworkIndex = callOrder.indexOf('waitForNetworkIdle');
-
-      expect(waitSelectorIndex).toBeLessThan(afterHookIndex);
-      expect(waitNetworkIndex).toBeLessThan(afterHookIndex);
+      expect(callOrder).toEqual(['afterHook']);
+      await page.defaultActionWait('testAction', { foo: 'bar' });
+      expect(callOrder).toEqual([
+        'afterHook',
+        'waitForSelector',
+        'waitForNetworkIdle',
+      ]);
       expect(afterHook).toHaveBeenCalledWith('testAction', { foo: 'bar' });
     });
 
     it('should skip waiting for navigation when timeout is 0', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn(),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn(),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer', {
         waitForNavigationTimeout: 0,
       });
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       // waitForSelector should not be called when timeout is 0
       expect(mockPage.waitForSelector).not.toHaveBeenCalled();
@@ -260,17 +256,17 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     it('should skip waiting for network idle when timeout is 0', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        waitForNetworkIdle: vi.fn(),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        waitForNetworkIdle: rs.fn(),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer', {
         waitForNetworkIdleTimeout: 0,
       });
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       // waitForNetworkIdle should not be called when timeout is 0
       expect(mockPage.waitForNetworkIdle).not.toHaveBeenCalled();
@@ -279,17 +275,17 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     it('should use the configured network idle timeout', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer', {
         waitForNetworkIdleTimeout: 4321,
       });
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       expect(mockPage.waitForNetworkIdle).toHaveBeenCalledWith({
         idleTime: 200,
@@ -299,26 +295,26 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     });
 
     it('should handle navigation timeout gracefully', async () => {
-      const consoleWarnSpy = vi
+      const consoleWarnSpy = rs
         .spyOn(console, 'warn')
         .mockImplementation(() => {});
 
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs
           .fn()
           .mockRejectedValue(new Error('Timeout waiting for selector')),
-        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        waitForNetworkIdle: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer');
 
       // Should not throw error when navigation times out
       await expect(
-        page.afterInvokeAction('testAction', {}),
+        page.defaultActionWait('testAction', {}),
       ).resolves.toBeUndefined();
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -329,26 +325,26 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     });
 
     it('should handle network idle timeout gracefully', async () => {
-      const consoleWarnSpy = vi
+      const consoleWarnSpy = rs
         .spyOn(console, 'warn')
         .mockImplementation(() => {});
 
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        waitForNetworkIdle: vi
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        waitForNetworkIdle: rs
           .fn()
           .mockRejectedValue(new Error('Timeout waiting for network idle')),
-        evaluate: vi.fn(),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'puppeteer');
 
       // Should not throw error when network idle times out
       await expect(
-        page.afterInvokeAction('testAction', {}),
+        page.defaultActionWait('testAction', {}),
       ).resolves.toBeUndefined();
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -363,10 +359,10 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
     it('should work with playwright interface in beforeInvokeAction', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'playwright');
@@ -376,17 +372,17 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       expect(mockPage.waitForSelector).not.toHaveBeenCalled();
     });
 
-    it('should work with playwright interface in afterInvokeAction', async () => {
+    it('skips network idle for playwright in defaultActionWait', async () => {
       const mockPage = {
         url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockResolvedValue(true),
-        evaluate: vi.fn(),
+        mouse: { move: rs.fn() },
+        keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+        waitForSelector: rs.fn().mockResolvedValue(true),
+        evaluate: rs.fn(),
       } as any;
 
       const page = new Page(mockPage, 'playwright');
-      await page.afterInvokeAction('testAction', {});
+      await page.defaultActionWait('testAction', {});
 
       // Should call waitForSelector for playwright
       expect(mockPage.waitForSelector).toHaveBeenCalledWith('html', {

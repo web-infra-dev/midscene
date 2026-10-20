@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { z } from '@midscene/core';
 import {
   type AgentBehaviorInitArgs,
@@ -13,14 +14,17 @@ import type { ToolDefinition } from '@midscene/shared/agent-tools/types';
 import { getDebug } from '@midscene/shared/logger';
 import { type IOSAgent, agentFromWebDriverAgent } from './agent';
 import { IOSDevice, type IOSDeviceOpt } from './device';
+import { assertWdaConnectionOptions } from './wda-options';
 
 const debug = getDebug('agent-tools:ios');
 
 const iosInitArgShape = {
-  deviceId: z
+  wdaBaseUrl: z
     .string()
     .optional()
-    .describe('iOS device UDID (optional when WDA auto-detect is sufficient)'),
+    .describe(
+      'Full WebDriverAgent API base URL, including gateway path prefix',
+    ),
   wdaHost: z
     .string()
     .optional()
@@ -30,30 +34,45 @@ const iosInitArgShape = {
     .string()
     .optional()
     .describe('Existing WebDriverAgent session ID to reuse'),
-  useWDA: z
-    .boolean()
-    .optional()
-    .describe('Whether to reuse an existing WebDriverAgent session'),
   wdaMjpegPort: z
     .number()
     .optional()
     .describe('WebDriverAgent MJPEG streaming port'),
+  wdaMjpegUrl: z
+    .string()
+    .optional()
+    .describe('Full HTTP(S) WebDriverAgent MJPEG stream URL'),
+  wdaMjpegFrameSource: z
+    .object({ enabled: z.boolean().optional() })
+    .optional()
+    .describe(
+      'Opt-in: use the WDA MJPEG stream as a continuous frame source for UI observation (default off)',
+    ),
   ...agentBehaviorInitArgShape,
 };
 
 type IOSInitArgs = AgentBehaviorInitArgs &
   Pick<
     IOSDeviceOpt,
-    'deviceId' | 'wdaHost' | 'wdaPort' | 'sessionId' | 'useWDA' | 'wdaMjpegPort'
+    | 'wdaBaseUrl'
+    | 'wdaHost'
+    | 'wdaPort'
+    | 'sessionId'
+    | 'wdaMjpegPort'
+    | 'wdaMjpegUrl'
+    | 'wdaMjpegFrameSource'
   >;
 
 function getTargetIdentity(initArgs?: IOSInitArgs): string {
-  if (initArgs?.deviceId) {
-    return initArgs.sessionId
-      ? `${initArgs.deviceId}-session-${initArgs.sessionId}`
-      : initArgs.deviceId;
+  if (initArgs?.wdaBaseUrl || initArgs?.wdaMjpegUrl) {
+    const fingerprint = createHash('sha256')
+      .update(
+        `${initArgs.wdaBaseUrl ?? ''}\0${initArgs.wdaMjpegUrl ?? ''}\0${initArgs.sessionId ?? ''}`,
+      )
+      .digest('hex')
+      .slice(0, 12);
+    return `wda-${fingerprint}`;
   }
-
   if (initArgs?.wdaHost || initArgs?.wdaPort || initArgs?.sessionId) {
     const wdaHost = initArgs.wdaHost ?? 'localhost';
     const wdaPort = initArgs.wdaPort ?? 'default';
@@ -93,6 +112,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
   }
 
   protected async ensureAgent(opts?: IOSInitArgs): Promise<IOSAgent> {
+    assertWdaConnectionOptions(opts);
     const nextSignature = getAgentInitArgsSignature(opts);
 
     if (
@@ -111,7 +131,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
       return this.agent;
     }
 
-    debug('Creating iOS agent with WebDriverAgent options:', opts || {});
+    debug('Creating iOS agent with WebDriverAgent options');
     const reportOptions = this.readCliReportAgentOptions();
     this.agent = await agentFromWebDriverAgent({
       autoDismissKeyboard: false,
@@ -134,6 +154,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
+          assertWdaConnectionOptions(initArgs);
           const identity = getTargetIdentity(initArgs);
           const reportSession = this.createNewCliReportSession(identity);
           this.commitCliReportSession(reportSession);
@@ -153,7 +174,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
             content: [
               {
                 type: 'text',
-                text: `Connected to iOS device${initArgs?.deviceId ? `: ${initArgs.deviceId}` : ''}`,
+                text: 'Connected to iOS device',
               },
               ...this.buildScreenshotContent(screenshot),
             ],

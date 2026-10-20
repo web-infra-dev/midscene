@@ -5,6 +5,7 @@ import type { IModelConfig, TIntent } from '@midscene/shared/env';
 import { getModelRuntime } from '../models';
 import type { ModelRuntime } from '../models';
 import { callAI } from '../service-caller';
+import { systemOneResponseSchema } from '../service-caller/system-one';
 import {
   CONNECTIVITY_FIXTURE_IMAGE,
   CONNECTIVITY_FIXTURE_SHOT_SIZE,
@@ -12,49 +13,34 @@ import {
 
 const TEXT_EXPECTED_TOKEN = 'CONNECTIVITY_OK';
 
-interface ConnectivityCheckResultItem {
+export interface ConnectivityCheckResultItem {
   name: 'text' | 'vision' | 'aiLocate';
   intent: TIntent;
   modelName: string;
   modelFamily?: string;
   passed: boolean;
   durationMs: number;
+  requestCount: number;
+  endpoints: string[];
   message: string;
 }
 
 export interface ConnectivityTestResult {
+  checks: ConnectivityCheckResultItem[];
+  requestCount: number;
   passed: boolean;
   message?: string;
 }
 
 export interface ConnectivityTestConfig {
   defaultModelConfig: IModelConfig;
+  locateModelConfig?: IModelConfig;
   planningModelConfig: IModelConfig;
   insightModelConfig: IModelConfig;
 }
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
-}
-
-function hasValidRect(value: unknown): boolean {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const rect = value as {
-    left?: unknown;
-    top?: unknown;
-    width?: unknown;
-    height?: unknown;
-  };
-
-  return (
-    isFiniteNumber(rect.left) &&
-    isFiniteNumber(rect.top) &&
-    isFiniteNumber(rect.width) &&
-    isFiniteNumber(rect.height)
-  );
 }
 
 function hasValidCenter(value: unknown): boolean {
@@ -79,7 +65,12 @@ function buildCheckResult(
   modelRuntime: ModelRuntime,
   result: Omit<
     ConnectivityCheckResultItem,
-    'name' | 'intent' | 'modelName' | 'modelFamily'
+    | 'name'
+    | 'intent'
+    | 'modelName'
+    | 'modelFamily'
+    | 'requestCount'
+    | 'endpoints'
   >,
 ): ConnectivityCheckResultItem {
   const { config } = modelRuntime;
@@ -88,8 +79,16 @@ function buildCheckResult(
     intent: config.intent,
     modelName: config.modelName,
     modelFamily: config.modelFamily,
+    requestCount: 0,
+    endpoints: [],
     ...result,
   };
+}
+
+function buildConnectivityModelRuntime(
+  modelConfig: IModelConfig,
+): ModelRuntime {
+  return getModelRuntime({ ...modelConfig, retryCount: 0 });
 }
 
 function formatConnectivityCheckName(
@@ -124,6 +123,7 @@ async function runTextConnectivityCheck(
 ): Promise<ConnectivityCheckResultItem> {
   const startTime = Date.now();
   try {
+    const isJev = modelRuntime.config.modelFamily === 'jev';
     const result = await callAI(
       [
         {
@@ -136,9 +136,27 @@ async function runTextConnectivityCheck(
         },
       ],
       modelRuntime,
+      isJev
+        ? {
+            systemOneRequest: {
+              state: { token: TEXT_EXPECTED_TOKEN },
+              questions: {
+                result: {
+                  type: 'noul',
+                  instructions: `Does token equal ${TEXT_EXPECTED_TOKEN}?`,
+                },
+              },
+            },
+          }
+        : undefined,
     );
     const content = result.content.trim();
-    const passed = content.includes(TEXT_EXPECTED_TOKEN);
+    const answer = isJev
+      ? systemOneResponseSchema.parse(JSON.parse(content)).answers.result
+      : undefined;
+    const passed = isJev
+      ? answer?.type === 'noul' && answer.noul >= 0.5
+      : content.includes(TEXT_EXPECTED_TOKEN);
     return buildCheckResult('text', modelRuntime, {
       passed,
       durationMs: Date.now() - startTime,
@@ -158,27 +176,35 @@ async function runVisionConnectivityCheck(
 ): Promise<ConnectivityCheckResultItem> {
   const startTime = Date.now();
   try {
-    await callAI(
-      [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'What is the main content of this image ? It is a photo or a form ?',
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: CONNECTIVITY_FIXTURE_IMAGE,
-                detail: 'high',
+    if (modelRuntime.adapter.insight.booleanFn) {
+      await new Service(buildFixtureContext()).extract(
+        { Boolean: 'Does this screenshot show a form?' },
+        modelRuntime,
+        { screenshotIncluded: true },
+        undefined,
+        undefined,
+        buildFixtureContext(),
+      );
+    } else {
+      await callAI(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What is the main content of this image ? It is a photo or a form ?',
               },
-            },
-          ],
-        },
-      ],
-      modelRuntime,
-    );
+              {
+                type: 'image',
+                url: CONNECTIVITY_FIXTURE_IMAGE,
+              },
+            ],
+          },
+        ],
+        modelRuntime,
+      );
+    }
     return buildCheckResult('vision', modelRuntime, {
       passed: true,
       durationMs: Date.now() - startTime,
@@ -205,16 +231,14 @@ async function runAiLocateConnectivityCheck(
       {},
       modelRuntime,
     );
-    const targetRect = locateResult.rect || locateResult.element?.rect;
     const center = locateResult.element?.center;
-    const passed = hasValidRect(targetRect) && hasValidCenter(center);
+    const passed = hasValidCenter(center);
     return buildCheckResult('aiLocate', modelRuntime, {
       passed,
       durationMs: Date.now() - startTime,
       message: passed
         ? ''
         : `Invalid locate result: ${JSON.stringify({
-            rect: targetRect,
             center,
           })}`,
     });
@@ -230,17 +254,37 @@ async function runAiLocateConnectivityCheck(
 export async function runConnectivityTest(
   config: ConnectivityTestConfig,
 ): Promise<ConnectivityTestResult> {
-  const planningModelRuntime = getModelRuntime(config.planningModelConfig);
-  const insightModelRuntime = getModelRuntime(config.insightModelConfig);
-  const defaultModelRuntime = getModelRuntime(config.defaultModelConfig);
+  const runCheck = async (
+    modelConfig: IModelConfig,
+    check: (runtime: ModelRuntime) => Promise<ConnectivityCheckResultItem>,
+  ) => {
+    const runtime = buildConnectivityModelRuntime(modelConfig);
+    let requestCount = 0;
+    const endpoints = new Set<string>();
+    runtime.onRequest = (endpoint) => {
+      requestCount += 1;
+      if (endpoint) endpoints.add(endpoint);
+    };
+    const result = await check(runtime);
+    return { ...result, requestCount, endpoints: [...endpoints] };
+  };
   const checks = await Promise.all([
-    runTextConnectivityCheck(planningModelRuntime),
-    runVisionConnectivityCheck(insightModelRuntime),
-    runAiLocateConnectivityCheck(defaultModelRuntime),
+    runCheck(config.planningModelConfig, runTextConnectivityCheck),
+    runCheck(config.insightModelConfig, runVisionConnectivityCheck),
+    runCheck(
+      config.locateModelConfig ?? config.defaultModelConfig,
+      runAiLocateConnectivityCheck,
+    ),
+    runCheck(config.defaultModelConfig, runTextConnectivityCheck),
   ]);
 
   const passed = checks.every((item) => item.passed);
   return {
+    checks,
+    requestCount: checks.reduce(
+      (total, check) => total + check.requestCount,
+      0,
+    ),
     passed,
     message: passed ? undefined : buildConnectivityFailureMessage(checks),
   };

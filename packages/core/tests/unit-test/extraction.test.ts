@@ -1,10 +1,23 @@
-import { parseXMLExtractionResponse } from '@/ai-model/prompt/extraction';
-import { describe, expect, it } from 'vitest';
+import { createDefaultInsightProtocol } from '@/ai-model/model-adapter/default-insight-protocol';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
+import { parseInsightResponse } from '@/ai-model/workflows/insight/insight-response-parser';
+import { describe, expect, it } from '@rstest/core';
 
-describe('parseXMLExtractionResponse', () => {
+const defaultInsightProtocol = createDefaultInsightProtocol({
+  jsonParser: parseModelResponseJson,
+});
+
+const parseDefaultInsightResponse = <T>(content: string) =>
+  parseInsightResponse<T>(
+    content,
+    defaultInsightProtocol.dataOutput,
+    parseModelResponseJson,
+  );
+
+describe('default insight response parser', () => {
   it('should parse complete XML response with all fields', () => {
     const xml = `
-<thought>According to the screenshot, I can see a user profile with name, age, and admin status</thought>
+<observation>According to the screenshot, I can see a user profile with name, age, and admin status</observation>
 <data-json>
 {
   "name": "John",
@@ -15,7 +28,7 @@ describe('parseXMLExtractionResponse', () => {
 <errors>[]</errors>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{
+    const result = parseDefaultInsightResponse<{
       name: string;
       age: number;
       isAdmin: boolean;
@@ -41,7 +54,7 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ title: string }>(xml);
+    const result = parseDefaultInsightResponse<{ title: string }>(xml);
 
     expect(result).toEqual({
       data: {
@@ -52,13 +65,13 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should parse XML response with array data', () => {
     const xml = `
-<thought>I found three todo items in the list</thought>
+<observation>I found three todo items in the list</observation>
 <data-json>
 ["todo 1", "todo 2", "todo 3"]
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<string[]>(xml);
+    const result = parseDefaultInsightResponse<string[]>(xml);
 
     expect(result).toEqual({
       thought: 'I found three todo items in the list',
@@ -68,13 +81,13 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should parse XML response with string data', () => {
     const xml = `
-<thought>The page title is "todo list"</thought>
+<observation>The page title is "todo list"</observation>
 <data-json>
 "todo list"
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<string>(xml);
+    const result = parseDefaultInsightResponse<string>(xml);
 
     expect(result).toEqual({
       thought: 'The page title is "todo list"',
@@ -84,13 +97,13 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should parse XML response with boolean data', () => {
     const xml = `
-<thought>This is the SMS page</thought>
+<observation>This is the SMS page</observation>
 <data-json>
 { "result": true }
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ result: boolean }>(xml);
+    const result = parseDefaultInsightResponse<{ result: boolean }>(xml);
 
     expect(result).toEqual({
       thought: 'This is the SMS page',
@@ -100,7 +113,7 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should parse XML response with errors', () => {
     const xml = `
-<thought>Failed to extract some data</thought>
+<observation>Failed to extract some data</observation>
 <data-json>
 {
   "name": "John"
@@ -111,7 +124,7 @@ describe('parseXMLExtractionResponse', () => {
 </errors>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ name: string }>(xml);
+    const result = parseDefaultInsightResponse<{ name: string }>(xml);
 
     expect(result).toEqual({
       thought: 'Failed to extract some data',
@@ -129,7 +142,7 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<number>(xml);
+    const result = parseDefaultInsightResponse<number>(xml);
 
     expect(result).toEqual({
       data: 42,
@@ -138,10 +151,10 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should handle multiline JSON in data-json', () => {
     const xml = `
-<thought>
+<observation>
   Extracting complex data structure
   from the screenshot
-</thought>
+</observation>
 <data-json>
 {
   "users": [
@@ -158,7 +171,7 @@ describe('parseXMLExtractionResponse', () => {
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{
+    const result = parseDefaultInsightResponse<{
       users: Array<{ name: string; role: string }>;
     }>(xml);
 
@@ -172,31 +185,31 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should throw error when data-json is missing', () => {
     const xml = `
-<thought>Some thought</thought>
+<observation>Some thought</observation>
 <errors>[]</errors>
     `.trim();
 
-    expect(() => parseXMLExtractionResponse(xml)).toThrow(
+    expect(() => parseDefaultInsightResponse(xml)).toThrow(
       'Missing required field: data-json',
     );
   });
 
   it('should throw error when data-json is invalid JSON', () => {
     const xml = `
-<thought>Some thought</thought>
+<observation>Some thought</observation>
 <data-json>
 {invalid json}
 </data-json>
     `.trim();
 
-    expect(() => parseXMLExtractionResponse(xml)).toThrow(
+    expect(() => parseDefaultInsightResponse(xml)).toThrow(
       'Failed to parse data-json',
     );
   });
 
   it('should throw error when data-json is markdown text instead of JSON', () => {
     const xml = `
-<thought>根据蓝色框选中的模块，提取到两个子页面：工具入口对比页、协商工具展示页，按照要求整理每个页面的信息如下。</thought>
+<observation>根据蓝色框选中的模块，提取到两个子页面：工具入口对比页、协商工具展示页，按照要求整理每个页面的信息如下。</observation>
 <data-json>
 # 页面名：工具入口（BEFORE/AFTER对比）
 # 页面描述：展示订单协商工具入口改造前后的界面对比，呈现不同阶段的订单列表页面样式，体现设计优化方向
@@ -215,7 +228,7 @@ describe('parseXMLExtractionResponse', () => {
 <errors>[]</errors>
     `.trim();
 
-    expect(() => parseXMLExtractionResponse(xml)).toThrow(
+    expect(() => parseDefaultInsightResponse(xml)).toThrow(
       'Failed to parse data-json',
     );
   });
@@ -230,7 +243,7 @@ invalid json array
 </errors>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ value: number }>(xml);
+    const result = parseDefaultInsightResponse<{ value: number }>(xml);
 
     expect(result).toEqual({
       data: { value: 123 },
@@ -239,13 +252,13 @@ invalid json array
 
   it('should handle case-insensitive tag matching', () => {
     const xml = `
-<THOUGHT>Case insensitive thought</THOUGHT>
+<OBSERVATION>Case insensitive thought</OBSERVATION>
 <DATA-JSON>
 {"result": "success"}
 </DATA-JSON>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ result: string }>(xml);
+    const result = parseDefaultInsightResponse<{ result: string }>(xml);
 
     expect(result.thought).toBe('Case insensitive thought');
     expect(result.data).toEqual({ result: 'success' });
@@ -253,7 +266,7 @@ invalid json array
 
   it('should parse nested objects correctly', () => {
     const xml = `
-<thought>Extracting nested data</thought>
+<observation>Extracting nested data</observation>
 <data-json>
 {
   "user": {
@@ -269,7 +282,7 @@ invalid json array
 </data-json>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{
+    const result = parseDefaultInsightResponse<{
       user: {
         profile: {
           name: string;
@@ -290,7 +303,7 @@ invalid json array
 <errors>[]</errors>
     `.trim();
 
-    const result = parseXMLExtractionResponse<{ value: number }>(xml);
+    const result = parseDefaultInsightResponse<{ value: number }>(xml);
 
     expect(result).toEqual({
       data: { value: 100 },

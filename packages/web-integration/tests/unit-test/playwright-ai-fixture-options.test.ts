@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockState = vi.hoisted(() => ({
+const mockState = rs.hoisted(() => ({
   ctorOpts: [] as any[],
   instances: [] as any[],
 }));
 
-vi.mock('@/playwright/index', () => {
+rs.mock('@/playwright/agent', () => {
   class MockPlaywrightAgent {
     reportFile?: string;
 
@@ -33,7 +33,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
 
   const createPage = () =>
     ({
-      on: vi.fn(),
+      on: rs.fn(),
     }) as any;
 
   const createTestInfo = () =>
@@ -45,11 +45,13 @@ describe('PlaywrightAiFixture option forwarding', () => {
     }) as any;
 
   it('should forward fixture-level AgentOpt and WebPageOpt to the first agent creation', async () => {
+    const waitForActionReady = rs.fn(async () => {});
     const fixture = PlaywrightAiFixture({
       autoPrintReportMsg: false,
       outputFormat: 'html-and-external-assets',
       replanningCycleLimit: 9,
       waitAfterAction: 120,
+      waitForActionReady,
       aiActContext: 'fixture-level-context',
       useDeviceTime: true,
       enableTouchEventsInActionSpace: true,
@@ -64,6 +66,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       outputFormat: 'html-and-external-assets',
       replanningCycleLimit: 9,
       waitAfterAction: 120,
+      waitForActionReady,
       aiActContext: 'fixture-level-context',
       useDeviceTime: true,
       enableTouchEventsInActionSpace: true,

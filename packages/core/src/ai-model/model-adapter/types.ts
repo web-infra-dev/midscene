@@ -1,24 +1,37 @@
-import type { PixelBbox, PlanningAction } from '@/types';
+import type { PlanningAction } from '@/types';
+import type { AIUsageInfo } from '@/types';
 import type {
   IModelConfig,
   TIntent,
+  TModelProtocol,
   TModelReasoningEnabled,
+  TModelResponseFormat,
 } from '@midscene/shared/env';
 import type OpenAI from 'openai';
 import type {
   JsonParser,
   JsonParserContext,
   JsonParserSource,
-} from '../service-caller/json';
+} from '../shared/json';
 import type {
-  LocateResultAdapter,
-  LocateResultAdapterDefinition,
+  LocateResultCodec,
+  LocateResultFormatDefinition,
+  PixelLocateResult,
   ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
-import type { ImagePreprocessPolicy } from '../workflows/image-preprocess';
-import type { LocateFn } from '../workflows/inspect/types';
+import type { LocateFn } from '../workflows/grounding/types';
 import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
+import type { ImagePreprocessPolicy } from './image-preprocess';
+import type { InsightAdapter, InsightDefinition } from './insight-protocol';
+import type {
+  StandardLocateProtocol,
+  StandardLocateProtocolDefinition,
+} from './locate-protocol';
+import type {
+  StandardPlanningProtocol,
+  StandardPlanningProtocolDefinition,
+} from './planning-protocol';
 
 export type {
   ImagePreprocessPolicy,
@@ -43,27 +56,95 @@ export interface MidsceneChatCompletionDefaults {
   temperature: number;
 }
 
-export interface ChatCompletionCallUserConfig extends ReasoningInput {
+export interface ModelRequestUserConfig extends ReasoningInput {
   temperature?: number;
+  responseFormat?: TModelResponseFormat;
 }
 
-export type ChatCompletionUnsupportedUserConfig =
-  keyof ChatCompletionCallUserConfig;
+// Chat Completions and Responses declare unsupported fields independently.
+// Their lists may currently match, but parameter support can differ by protocol.
+export type UnsupportedUserConfig = keyof ModelRequestUserConfig;
 
-export interface ChatCompletionCallInput {
+export interface ModelRequestConfigInput {
   intent?: TIntent;
-  userConfig?: ChatCompletionCallUserConfig;
+  userConfig?: ModelRequestUserConfig;
+  /**
+   * Number of preceding semantic parsing failures for this request.
+   * This is execution context, not part of the user's model configuration.
+   */
+  semanticRetryAttempt?: number;
   requiresOriginalImageDetail?: boolean;
+  /**
+   * Whether this call expects a JSON object response.
+   *
+   * This must not be inferred from `intent === 'default'`: intent selects a
+   * model-config slot, while many non-locate calls (for example, browser
+   * extension recording data generation that produces YAML) also use the
+   * default model.
+   */
+  expectedJsonObjectResponse?: boolean;
 }
 
 export interface ChatCompletionCallContext {
   intent?: TIntent;
-  userConfig: ChatCompletionCallUserConfig;
+  userConfig: ModelRequestUserConfig;
+  semanticRetryAttempt?: number;
   requiresOriginalImageDetail?: boolean;
+  expectedJsonObjectResponse?: boolean;
   midsceneDefaults: MidsceneChatCompletionDefaults;
 }
 
 export type ImageDetail = 'auto' | 'low' | 'high' | 'original';
+
+export interface MidsceneResponsesDefaults {
+  temperature: number;
+}
+
+export interface ResponsesCallContext extends ModelRequestConfigInput {
+  userConfig: ModelRequestUserConfig;
+  midsceneDefaults: MidsceneResponsesDefaults;
+}
+
+export type BuildResponsesParams = (input: ResponsesCallContext) => {
+  config: Record<string, unknown>;
+};
+
+export interface ResponsesAdapter {
+  replayRawAssistantOutput: boolean;
+  unsupportedUserConfig: UnsupportedUserConfig[];
+  buildResponsesParams(
+    input: ModelRequestConfigInput,
+  ): ReturnType<BuildResponsesParams>;
+}
+
+export interface ResponsesDefinition {
+  /** Replay complete output items in later turns. Defaults to false. */
+  replayRawAssistantOutput?: boolean;
+  unsupportedUserConfig?: UnsupportedUserConfig[];
+  buildResponsesParams?: BuildResponsesParams;
+}
+
+export type ResolveImageDetail = (input: {
+  imageDetail?: ImageDetail;
+  intent?: TIntent;
+  requiresOriginalImageDetail?: boolean;
+}) => ImageDetail;
+
+export interface CodexAppServerCallInput {
+  intent?: TIntent;
+  requiresOriginalImageDetail?: boolean;
+  userConfig?: ReasoningInput;
+}
+
+export interface CodexAppServerParamsResult {
+  config: {
+    effort?: string;
+  };
+}
+
+export type BuildCodexAppServerParams = (
+  input: CodexAppServerCallInput,
+) => CodexAppServerParamsResult;
 
 export interface ContentAndReasoning {
   content: string;
@@ -83,24 +164,44 @@ export type ExtractContentAndReasoning = (
 ) => ContentAndReasoning;
 
 export interface ChatCompletionAdapter {
-  unsupportedUserConfig: ChatCompletionUnsupportedUserConfig[];
+  unsupportedUserConfig: UnsupportedUserConfig[];
   buildChatCompletionParams(
-    input: ChatCompletionCallInput,
+    input: ModelRequestConfigInput,
   ): ChatCompletionParamsResult;
-  resolveImageDetail(input: ChatCompletionCallInput): ImageDetail | undefined;
   extractContentAndReasoning: ExtractContentAndReasoning;
+  useReasoningAsContentFallback: boolean;
+  replayRawAssistantMessage: boolean;
 }
 
-export interface ChatCompletionDefinition {
-  unsupportedUserConfig?: ChatCompletionUnsupportedUserConfig[];
+type ChatCompletionMessageExtraction =
+  | {
+      messageExtraction?: {
+        kind: 'default';
+        reasoningContentKeys?: string[];
+      };
+    }
+  | {
+      messageExtraction: {
+        kind: 'custom';
+        extractContentAndReasoning: ExtractContentAndReasoning;
+      };
+    };
+
+export type ChatCompletionDefinition = ChatCompletionMessageExtraction & {
+  unsupportedUserConfig?: UnsupportedUserConfig[];
   buildChatCompletionParams?: (
     input: ChatCompletionCallContext,
   ) => ChatCompletionParamsResult;
-  resolveImageDetail?: (
-    input: ChatCompletionCallContext,
-  ) => ImageDetail | undefined;
-  extractContentAndReasoning?: ExtractContentAndReasoning;
-}
+  useReasoningAsContentFallback?: boolean;
+  /**
+   * Replay the provider's original assistant message in later planning turns.
+   *
+   * Enable this only for model families whose API requires opaque response
+   * fields (for example, reasoning state or thought signatures) to be passed
+   * back unchanged. The default replays Midscene's normalized assistant text.
+   */
+  replayRawAssistantMessage?: boolean;
+};
 
 export type ImagePreprocessDefinition = Partial<ImagePreprocessPolicy>;
 
@@ -122,6 +223,8 @@ interface PlanningPolicy {
 export type PlanningAdapter =
   | (PlanningPolicy & {
       kind: 'standard';
+      protocol: StandardPlanningProtocol;
+      locateResultCodec?: LocateResultCodec;
     })
   | (PlanningPolicy & {
       kind: 'custom';
@@ -132,6 +235,8 @@ export type PlanningAdapter =
 export type PlanningDefinition =
   | (Partial<PlanningPolicy> & {
       kind?: 'standard';
+      protocol?: StandardPlanningProtocolDefinition;
+      locateResultFormat?: LocateResultFormatDefinition | false;
     })
   | (Partial<PlanningPolicy> &
       (
@@ -147,62 +252,75 @@ export type PlanningDefinition =
           }
       ));
 
-interface LocatePolicy {
-  /**
-   * Whether the locate adapter supports finding a coarse search area before the
-   * final element locate step.
-   *
-   * Some custom model families provide their own planning flow but do not
-   * support standalone locate/section-locate. They cannot behave like standard
-   * deepLocate, where a reference element is first located to build the search
-   * area for the final locate call.
-   */
-  supportsSearchArea: boolean;
-}
+export type LocateUserMessageContentOrder = 'image-first' | 'prompt-first';
 
-type StandardLocateAdapter = LocatePolicy & {
+type StandardLocateAdapter = {
   kind: 'standard';
-  resultAdapter: LocateResultAdapter;
+  userMessageContentOrder: LocateUserMessageContentOrder;
+  element: LocateOperation;
+  searchArea?: LocateOperation;
 };
 
-type CustomLocateAdapter = LocatePolicy & {
+interface LocateOperation {
+  protocol: StandardLocateProtocol;
+  resultCodec: LocateResultCodec;
+}
+
+type CustomLocateAdapter = {
   kind: 'custom';
   locateFn: LocateFn;
 };
 
 export type LocateAdapter = StandardLocateAdapter | CustomLocateAdapter;
 
-type StandardLocateDefinition = Partial<LocatePolicy> & {
+type StandardLocateDefinition = {
   kind?: 'standard';
-  resultAdapter?: LocateResultAdapterDefinition;
+  userMessageContentOrder?: LocateUserMessageContentOrder;
+  element?: LocateOperationDefinition;
+  searchArea?: LocateOperationDefinition | false;
 };
+
+interface LocateOperationDefinition {
+  protocol?: StandardLocateProtocolDefinition;
+  resultFormat?: LocateResultFormatDefinition;
+}
 
 export interface PlanningTapLocatorDefinition {
   buildSystemPrompt(): string;
-  getLocatedPixelBbox(actions: PlanningAction[]): PixelBbox | undefined;
+  getLocatedPixelResult(
+    actions: PlanningAction[],
+  ): PixelLocateResult | undefined;
 }
 
-type CustomLocateDefinition = Partial<LocatePolicy> & {
+type CustomLocateDefinition = {
   kind: 'custom';
 } & (
-    | {
-        locateFn: LocateFn;
-        planningTapLocator?: never;
-      }
-    | {
-        planningTapLocator: PlanningTapLocatorDefinition;
-        locateFn?: never;
-      }
-  );
+  | {
+      locateFn: LocateFn;
+      planningTapLocator?: never;
+    }
+  | {
+      planningTapLocator: PlanningTapLocatorDefinition;
+      locateFn?: never;
+    }
+);
 
 export type LocateDefinition =
   | StandardLocateDefinition
   | CustomLocateDefinition;
 
+export type ModelTask = 'locate' | 'boolean' | 'extract' | 'planning' | 'text';
+
 export interface ModelAdapter {
+  supportedTasks?: readonly ModelTask[];
+  supportedProtocols: TModelProtocol[];
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
+  responses: ResponsesAdapter;
+  resolveImageDetail: ResolveImageDetail;
+  buildCodexAppServerParams: BuildCodexAppServerParams;
   imagePreprocess: ImagePreprocessPolicy;
+  insight: InsightAdapter;
   planning: PlanningAdapter;
   locate: LocateAdapter;
 }
@@ -210,12 +328,39 @@ export interface ModelAdapter {
 export interface ModelRuntime {
   config: IModelConfig;
   adapter: ModelAdapter;
+  /**
+   * Report execution that owns this model runtime. It is carried on a
+   * per-execution runtime copy so concurrent Agent operations never share it.
+   */
+  executionId?: string;
+  modelRouting?: {
+    requestedModel: string;
+    requestedSlot: IModelConfig['slot'];
+    task: ModelTask;
+    reason: string;
+  };
+  /**
+   * Optional callback fired after every underlying model call with the shaped
+   * usage info. Provides a single collection point for callers that want to
+   * aggregate usage across all model invocations (including auxiliary calls
+   * such as order-sensitive judging and deep-locate search-area calls).
+   */
+  onUsage?: (usage: AIUsageInfo) => void;
+  /** Called when a protocol request is sent, including failed requests. */
+  onRequest?: (endpoint?: string) => void;
 }
 
 export interface ModelAdapterDefinition {
+  supportedTasks?: readonly ModelTask[];
+  /** API protocols adapted for this model. Defaults to Chat Completions only. */
+  supportedProtocols?: TModelProtocol[];
   jsonParser?: JsonParserPreset | JsonParser;
   chatCompletion?: ChatCompletionDefinition;
+  responses?: ResponsesDefinition;
+  resolveImageDetail?: ResolveImageDetail;
+  buildCodexAppServerParams?: BuildCodexAppServerParams;
   imagePreprocess?: ImagePreprocessDefinition;
+  insight?: InsightDefinition;
   planning?: PlanningDefinition;
   locate?: LocateDefinition;
 }

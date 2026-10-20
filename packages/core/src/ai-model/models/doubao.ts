@@ -1,145 +1,83 @@
 import type { TModelFamily } from '@midscene/shared/env';
-import { assert } from '@midscene/shared/utils';
-import { jsonrepair } from 'jsonrepair';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
-  JsonParserContext,
-  JsonParserSource,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
-import {
-  extractJSONFromCodeBlock,
-  safeParseJson,
-} from '../service-caller/json';
+import { parseModelResponseJson } from '../shared/json';
 import {
   type LocateResultValue,
+  createLocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
 
-export function normalizeDoubaoJsonObject(
-  obj: any,
-  context: Pick<JsonParserContext, 'preserveStringValueKeys'> = {},
-): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
+const doubaoBboxCoordinatesMeta = {
+  shape: 'bbox',
+  order: 'xy',
+  normalizedBy: 1000,
+  rounding: 'round',
+} as const;
+const doubaoPointCoordinatesMeta = {
+  shape: 'point',
+  order: 'xy',
+  normalizedBy: 1000,
+  rounding: 'round',
+} as const;
 
-  if (Array.isArray(obj)) {
-    return obj.map((item) => normalizeDoubaoJsonObject(item, context));
-  }
+/**
+ * Finds a sequence of numbers separated by punctuation or whitespace in a
+ * string. Separators cannot be letters, which prevents extracting the `2` in
+ * a mixed alphanumeric token such as `bbox_2d` as a coordinate.
+ */
+const coordinateSequencePattern =
+  /(?:^|[^a-zA-Z0-9])(\d+(?:[^a-zA-Z0-9]+\d+)+)(?=$|[^a-zA-Z0-9])/g;
 
-  if (typeof obj === 'object') {
-    const normalized: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      const trimmedKey = key.trim();
-      const preserveStringValue =
-        context.preserveStringValueKeys?.includes(trimmedKey) ?? false;
-      const normalizedValue =
-        typeof value === 'string'
-          ? preserveStringValue
-            ? value
-            : value.trim()
-          : normalizeDoubaoJsonObject(value, context);
-      normalized[trimmedKey] = normalizedValue;
-    }
-    return normalized;
-  }
-
-  return typeof obj === 'string' ? obj.trim() : obj;
-}
-
-export function shouldRepairDoubaoLocateJson(source: JsonParserSource) {
+function isFourFiniteNumberArray(input: unknown): input is number[] {
   return (
-    source === 'locate' ||
-    source === 'section-locator' ||
-    source === 'planning-action-param'
+    Array.isArray(input) &&
+    input.length === 4 &&
+    input.every((value) => typeof value === 'number' && Number.isFinite(value))
   );
 }
 
-export function preprocessDoubaoLocateJson(input: string) {
-  if (input.includes('bbox')) {
-    while (/\d+\s+\d+/.test(input)) {
-      input = input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
-    }
+function parseNumbersFromUnexpectedBboxStructure(input: unknown): number[] {
+  const serialized = JSON.stringify(input);
+  if (!serialized) {
+    return [];
   }
-  return input;
+
+  const sequences = Array.from(
+    serialized.matchAll(coordinateSequencePattern),
+    (match) => match[1].match(/\d+/g)?.map(Number) ?? [],
+  );
+  const longestLength = Math.max(
+    0,
+    ...sequences.map((sequence) => sequence.length),
+  );
+  const longestSequences = sequences.filter(
+    (sequence) => sequence.length === longestLength,
+  );
+
+  if (longestSequences.length !== 1) {
+    return [];
+  }
+
+  return longestSequences[0];
 }
-
-const doubaoJsonParser: ModelAdapterDefinition['jsonParser'] = (
-  raw,
-  context = { source: 'generic-object' },
-) => {
-  const { source } = context;
-  try {
-    return safeParseJson(raw, context);
-  } catch (firstError) {
-    if (!shouldRepairDoubaoLocateJson(source)) {
-      throw firstError;
-    }
-
-    const jsonString = preprocessDoubaoLocateJson(
-      extractJSONFromCodeBlock(raw),
-    );
-    try {
-      return normalizeDoubaoJsonObject(
-        JSON.parse(jsonrepair(jsonString)),
-        context,
-      );
-    } catch (error) {
-      throw Error(
-        `failed to parse LLM response into JSON. Error - ${String(
-          error ?? firstError ?? 'unknown error',
-        )}. Response - \n ${raw}`,
-      );
-    }
-  }
-};
 
 export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
   const bbox = unwrapCoordinateListLikeInput(input as any);
-  if (typeof bbox === 'string') {
-    assert(
-      /^(\d+)\s(\d+)\s(\d+)\s(\d+)$/.test(bbox.trim()),
-      `invalid bbox data string for doubao-vision mode: ${bbox}`,
-    );
-    const splitted = bbox.split(' ');
-    if (splitted.length === 4) {
-      return {
-        type: 'bbox',
-        coordinates: [
-          Number(splitted[0]),
-          Number(splitted[1]),
-          Number(splitted[2]),
-          Number(splitted[3]),
-        ],
-      };
-    }
-    throw new Error(`invalid bbox data string for doubao-vision mode: ${bbox}`);
-  }
-
-  let bboxList: number[] = [];
-  if (Array.isArray(bbox) && typeof bbox[0] === 'string') {
-    bbox.forEach((item) => {
-      if (typeof item === 'string' && item.includes(',')) {
-        const [x, y] = item.split(',');
-        bboxList.push(Number(x.trim()), Number(y.trim()));
-      } else if (typeof item === 'string' && item.includes(' ')) {
-        const [x, y] = item.split(' ');
-        bboxList.push(Number(x.trim()), Number(y.trim()));
-      } else {
-        bboxList.push(Number(item));
-      }
-    });
-  } else {
-    bboxList = bbox as number[];
-  }
+  const bboxList = isFourFiniteNumberArray(bbox)
+    ? bbox
+    : parseNumbersFromUnexpectedBboxStructure(bbox);
 
   if (bboxList.length === 4 || bboxList.length === 5) {
-    return {
-      type: 'bbox',
-      coordinates: [bboxList[0], bboxList[1], bboxList[2], bboxList[3]],
-    };
+    return createLocateResultValue(doubaoBboxCoordinatesMeta, [
+      bboxList[0],
+      bboxList[1],
+      bboxList[2],
+      bboxList[3],
+    ]);
   }
 
   if (
@@ -148,14 +86,19 @@ export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
     bboxList.length === 3 ||
     bboxList.length === 7
   ) {
-    return { type: 'point', coordinates: [bboxList[0], bboxList[1]] };
+    return createLocateResultValue(doubaoPointCoordinatesMeta, [
+      bboxList[0],
+      bboxList[1],
+    ]);
   }
 
-  if (bbox.length === 8) {
-    return {
-      type: 'bbox',
-      coordinates: [bboxList[0], bboxList[1], bboxList[4], bboxList[5]],
-    };
+  if (bboxList.length === 8) {
+    return createLocateResultValue(doubaoBboxCoordinatesMeta, [
+      bboxList[0],
+      bboxList[1],
+      bboxList[4],
+      bboxList[5],
+    ]);
   }
 
   const msg = `invalid bbox data for doubao-vision mode: ${JSON.stringify(bbox)} `;
@@ -171,6 +114,15 @@ const buildDoubaoChatCompletionParams = (
 
   if (userConfig.temperature !== undefined) {
     commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  // Doubao Chat Completions JSON mode:
+  // https://docs.volcengine.com/docs/82379/1568221?lang=zh
+  if (
+    userConfig.responseFormat !== 'none' &&
+    input.expectedJsonObjectResponse
+  ) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
   const modelSpecificConfig: Record<string, unknown> = {};
@@ -194,15 +146,18 @@ const buildDoubaoChatCompletionParams = (
 };
 
 const doubaoVisionAdapter: ModelAdapterDefinition = {
-  jsonParser: doubaoJsonParser,
+  jsonParser: parseModelResponseJson,
   chatCompletion: {
     unsupportedUserConfig: ['reasoningBudget'],
     buildChatCompletionParams: buildDoubaoChatCompletionParams,
+    useReasoningAsContentFallback: true,
   },
   locate: {
-    resultAdapter: {
-      coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-      parseRawLocateValue: parseDoubaoRawLocateValue,
+    element: {
+      resultFormat: {
+        coordinates: doubaoBboxCoordinatesMeta,
+        parseRawLocateValue: parseDoubaoRawLocateValue,
+      },
     },
   },
 };

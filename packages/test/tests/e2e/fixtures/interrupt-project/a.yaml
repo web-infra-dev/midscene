@@ -1,0 +1,9 @@
+cases:
+  - name: active case
+    steps:
+      - test.interrupt: stop after this case
+
+  - name: skipped case
+    steps:
+      - test.record:
+          value: must-not-run-in-a

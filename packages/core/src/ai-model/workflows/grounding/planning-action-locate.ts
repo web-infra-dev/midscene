@@ -1,0 +1,135 @@
+import type { DeviceAction } from '@/device';
+import type { RawAssistantOutput } from '@/types';
+import { getDebug } from '@midscene/shared/logger';
+import { assert } from '@midscene/shared/utils';
+import { z } from 'zod';
+import { getMidsceneLocationSchema } from '../../../common';
+import { ScreenshotItem } from '../../../screenshot-item';
+import type { ResolvedCustomPlanningDefinition } from '../../model-adapter/custom-planning-types';
+import type { PlanningTapLocatorDefinition } from '../../model-adapter/types';
+import { AIResponseParseError } from '../../service-caller/index';
+import { prepareUserPrompt } from '../../shared/multimodal-prompt';
+import { ConversationHistory } from '../planning/conversation-history';
+import { runCustomPlanning } from '../planning/custom-planning';
+import type { PlanOptions } from '../planning/types';
+import type { LocateFn, LocateModelResponse, LocateRequest } from './types';
+
+const debugGrounding = getDebug('ai:grounding');
+
+const planningActionLocatorActionSpace: DeviceAction[] = [
+  {
+    name: 'Tap',
+    description: 'Tap the element',
+    paramSchema: z.object({
+      locate: getMidsceneLocationSchema(),
+    }),
+    call: async () => undefined,
+  },
+];
+
+async function buildPlanningTapLocatorPlanOptions(
+  locateRequest: LocateRequest,
+): Promise<PlanOptions> {
+  const { options, locateImage } = locateRequest;
+  const { context } = options;
+
+  return {
+    ...options,
+    context: {
+      ...context,
+      screenshot: ScreenshotItem.create(
+        locateImage.imageBase64,
+        context.screenshot.capturedAt,
+      ),
+      shotSize: {
+        width: locateImage.width,
+        height: locateImage.height,
+      },
+    },
+    actionSpace: planningActionLocatorActionSpace,
+    conversationHistory: new ConversationHistory(),
+    includeLocateInPlanning: true,
+    effort: 'balance',
+  };
+}
+
+export function resolvePlanningTapLocator<TParsed>(
+  definition: PlanningTapLocatorDefinition,
+  planner: ResolvedCustomPlanningDefinition<TParsed>,
+): LocateFn {
+  const locatorPlanner: ResolvedCustomPlanningDefinition<TParsed> = {
+    ...planner,
+    messages: {
+      ...planner.messages,
+      buildSystemPrompt: definition.buildSystemPrompt,
+      buildUserInstruction: (instruction) => `Tap: ${instruction}`,
+    },
+  };
+
+  return async (locateRequest: LocateRequest): Promise<LocateModelResponse> => {
+    const { targetElementDescription } = locateRequest;
+    assert(
+      targetElementDescription,
+      'cannot find the target element description',
+    );
+
+    let errors: string[] = [];
+    let reasoningContent = '';
+    let rawResponse = '';
+    let rawAssistantOutput: RawAssistantOutput | undefined;
+    let usage: LocateModelResponse['usage'];
+
+    try {
+      const locatePlanOptions =
+        await buildPlanningTapLocatorPlanOptions(locateRequest);
+      const planningResponse = await runCustomPlanning(
+        await prepareUserPrompt(targetElementDescription),
+        locatePlanOptions,
+        locatorPlanner,
+      );
+
+      rawResponse = planningResponse.rawResponse ?? '';
+      rawAssistantOutput = planningResponse.rawAssistantOutput;
+      usage = planningResponse.usage;
+      reasoningContent = planningResponse.log;
+
+      debugGrounding('planning-tap-locator rawResponse:', rawResponse);
+
+      const locatedPixelResult = definition.getLocatedPixelResult(
+        planningResponse.actions ?? [],
+      );
+
+      if (!locatedPixelResult) {
+        throw new Error('No locatedPixelResult found in planner response');
+      }
+
+      return {
+        locatedPixelResult,
+        rawResponse,
+        rawAssistantOutput,
+        usage,
+        reasoningContent,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (error instanceof AIResponseParseError) {
+        rawResponse = error.rawResponse;
+        rawAssistantOutput = error.rawAssistantOutput;
+        usage = error.usage;
+      }
+      errors = [
+        errorMessage || 'Failed to parse planning tap locator response',
+      ];
+      debugGrounding('planning-tap-locator parse error:', errors[0]);
+    }
+
+    return {
+      rawResponse,
+      rawAssistantOutput,
+      usage,
+      reasoningContent,
+      errors,
+    };
+  };
+}

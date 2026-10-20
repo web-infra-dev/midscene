@@ -1,26 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock the exec and execFile functions
-vi.mock('node:child_process', () => ({
-  exec: vi.fn(),
-  execFile: vi.fn(),
+rs.mock('node:child_process', () => ({
+  exec: rs.fn(),
+  execFile: rs.fn(),
 }));
 
 // Mock the os module for platform testing
-vi.mock('node:os', () => ({
-  platform: vi.fn(),
+rs.mock('node:os', () => ({
+  platform: rs.fn(),
 }));
 
 import { exec } from 'node:child_process';
 import { platform } from 'node:os';
 import { checkIOSEnvironment, checkMacOSPlatform } from '../../src/utils';
 
-const mockedExec = vi.mocked(exec);
-const mockedPlatform = vi.mocked(platform);
+const mockedExec = rs.mocked(exec);
+const mockedPlatform = rs.mocked(platform);
 
 describe('iOS Utils - Environment Checking', () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   describe('checkMacOSPlatform', () => {

@@ -1,5 +1,5 @@
+import { describe, expect, it } from '@rstest/core';
 import { actionParser } from '@ui-tars/action-parser';
-import { describe, expect, it } from 'vitest';
 
 describe('parse action from vlm', () => {
   it('should parse action with no Thought format', () => {

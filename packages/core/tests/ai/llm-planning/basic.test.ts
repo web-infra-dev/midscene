@@ -1,34 +1,53 @@
-import { ConversationHistory, plan } from '@/ai-model';
+import {
+  ConversationHistory,
+  standardPlan as runPreparedStandardPlan,
+} from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import type { TUserPrompt } from '@/common';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../common';
 import { getContextFromFixture } from '../../evaluation';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,
 });
 
-const modelConfig = globalModelConfigManager.getModelConfig('default');
-const modelRuntime = getModelRuntime(modelConfig);
+const modelConfig = () => globalModelConfigManager.getModelConfig('default');
+const modelRuntime = () => getModelRuntime(modelConfig());
+const hasModelFamily = (() => {
+  try {
+    return Boolean(modelConfig().modelFamily);
+  } catch {
+    return false;
+  }
+})();
+
+const standardPlan = async (
+  userInstruction: TUserPrompt,
+  options: PlanOptions,
+) => runPreparedStandardPlan(await prepareUserPrompt(userInstruction), options);
 
 // These assertions check a deterministic next-action shape. In real
 // model-family runs, planning may choose a valid intermediate Tap before Input
 // or include a whole-page locate for page-level scroll, so keep this suite out
 // of AI CI until that prompt contract is tightened.
-describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
+describe.skipIf(hasModelFamily)('automation - llm planning', () => {
   it('basic run', async () => {
     const { context } = await getContextFromFixture('todo');
 
-    const { actions, shouldContinuePlanning } = await plan(
+    const { actions, shouldContinuePlanning } = await standardPlan(
       'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       },
     );
     expect(actions).toBeTruthy();
@@ -40,14 +59,15 @@ describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
 
   it('scroll page', async () => {
     const { context } = await getContextFromFixture('todo');
-    const { actions, shouldContinuePlanning } = await plan(
+    const { actions, shouldContinuePlanning } = await standardPlan(
       'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       },
     );
     expect(actions).toBeTruthy();
@@ -91,33 +111,33 @@ describe('planning', () => {
   todoInstructions.forEach(({ name, instruction }) => {
     it(`todo mvc - ${name}`, async () => {
       const { context } = await getContextFromFixture('todo');
-      const { actions } = await plan(instruction, {
+      const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       });
       expect(actions).toBeTruthy();
       // console.log(actions);
       expect(actions![0].param.locate).toBeTruthy();
       expect(actions![0].param.locate?.prompt).toBeTruthy();
-      expect(
-        actions![0].param.locate?.id || actions![0].param.locate?.bbox,
-      ).toBeTruthy();
+      expect(actions![0].param.locate?.locatedPixelResult?.center).toBeTruthy();
     });
   });
 
   it('scroll some element', async () => {
     const { context } = await getContextFromFixture('todo');
-    const { actions } = await plan(
+    const { actions } = await standardPlan(
       'Scroll left the status filters (with a button named "completed")',
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       },
     );
     expect(actions).toBeTruthy();
@@ -128,14 +148,15 @@ describe('planning', () => {
 
   it('should not throw in an "if" statement', async () => {
     const { context } = await getContextFromFixture('todo');
-    const { actions, error } = await plan(
+    const { actions, error } = await standardPlan(
       'If there is a cookie prompt, close it',
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       },
     );
 
@@ -146,14 +167,15 @@ describe('planning', () => {
 
   it('should make mark unfinished when something is not found', async () => {
     const { context } = await getContextFromFixture('todo');
-    const res = await plan(
+    const res = await standardPlan(
       'click the input box, wait 300ms. After that, the page will be redirected to the home page, click the close button of the cookie prompt on the home page',
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       },
     );
 

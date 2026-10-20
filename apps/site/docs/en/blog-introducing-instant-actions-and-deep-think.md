@@ -12,7 +12,7 @@ await agent.ai('type "Headphones" in search box, hit Enter');
 
 Behind the scene, Midscene will call the LLM to plan the steps and execute them. You can see the report file to see the process. It's a very common way for AI agents to these kinds of tasks.
 
-![](/blog/report-planning.png)
+![](/images/blog/report-planning.png)
 
 In the meantime, there are many testing engineers who want a faster way to perform actions. When using AI models with complex prompts, some of the LLM models may find it hard to plan the proper steps, or the coordinates of the elements may not be accurate. It could be frustrating for debugging the unpredictable process.
 
@@ -27,7 +27,7 @@ await agent.aiKeyboardPress('Enter');
 
 The typical workflow in the report file is like this, as you can see there is no planning process in the report file:
 
-![](/blog/report-instant-action.png)
+![](/images/blog/report-instant-action.png)
 
 The scripts with instant actions seems a little bit redundant (or not 'ai-style'), but we believe these structured interfaces are a good way to save time debugging when the action is already clear.
 
@@ -45,7 +45,7 @@ await agent.aiTap('target', { deepThink: true });
 
 Let's take the workflow editor page of Coze.com as an example. There are many customized icons on the sidebar. This is usually hard for LLMs to distinguish the target element from its surroundings.
 
-![](/blog/coze-sidebar.png)
+![](/images/blog/coze-sidebar.png)
 
 After using `deepThink` in instant actions, the yaml scripts will be like this (of course, you can also use the javascript interface):
 
@@ -67,7 +67,7 @@ tasks:
 
 By viewing the report file, you can see Midscene has found every target element in the area.
 
-![](/blog/report-coze-deep-think.png)
+![](/images/blog/report-coze-deep-think.png)
 
 Just like the example above, the highly-detailed prompt for `deepThink` is the key to keeping results stable.
 

@@ -136,6 +136,7 @@ const DOM_INCLUDED_KEY = 'midscene-dom-included';
 
 // Device-specific configuration keys
 const IME_STRATEGY_KEY = 'midscene-ime-strategy';
+const SCREENSHOT_STRATEGY_KEY = 'midscene-screenshot-strategy';
 const AUTO_DISMISS_KEYBOARD_KEY = 'midscene-auto-dismiss-keyboard';
 const KEYBOARD_DISMISS_STRATEGY_KEY = 'midscene-keyboard-dismiss-strategy';
 const ALWAYS_REFRESH_SCREEN_INFO_KEY = 'midscene-always-refresh-screen-info';
@@ -182,6 +183,7 @@ export const parseConfig = (configString: string) => {
  */
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension'; // | 'Extension';
 export type ImeStrategyType = 'always-yadb' | 'yadb-for-non-ascii';
+export type ScreenshotStrategyType = 'auto' | 'always-yadb';
 export type KeyboardDismissStrategyType = 'esc-first' | 'back-first';
 
 export const useEnvConfig = create<{
@@ -207,6 +209,8 @@ export const useEnvConfig = create<{
   // Device-specific configuration options
   imeStrategy: ImeStrategyType;
   setImeStrategy: (imeStrategy: ImeStrategyType) => void;
+  screenshotStrategy: ScreenshotStrategyType;
+  setScreenshotStrategy: (screenshotStrategy: ScreenshotStrategyType) => void;
   autoDismissKeyboard: boolean;
   setAutoDismissKeyboard: (autoDismissKeyboard: boolean) => void;
   keyboardDismissStrategy: KeyboardDismissStrategyType;
@@ -240,6 +244,9 @@ export const useEnvConfig = create<{
   const savedImeStrategy =
     (localStorage.getItem(IME_STRATEGY_KEY) as ImeStrategyType) ||
     'yadb-for-non-ascii';
+  const savedScreenshotStrategy =
+    (localStorage.getItem(SCREENSHOT_STRATEGY_KEY) as ScreenshotStrategyType) ||
+    'auto';
   const savedAutoDismissKeyboard =
     localStorage.getItem(AUTO_DISMISS_KEYBOARD_KEY) !== 'false'; // default true
   const savedKeyboardDismissStrategy =
@@ -314,6 +321,11 @@ export const useEnvConfig = create<{
     setImeStrategy: (imeStrategy: ImeStrategyType) => {
       set({ imeStrategy });
       localStorage.setItem(IME_STRATEGY_KEY, imeStrategy);
+    },
+    screenshotStrategy: savedScreenshotStrategy,
+    setScreenshotStrategy: (screenshotStrategy: ScreenshotStrategyType) => {
+      set({ screenshotStrategy });
+      localStorage.setItem(SCREENSHOT_STRATEGY_KEY, screenshotStrategy);
     },
     autoDismissKeyboard: savedAutoDismissKeyboard,
     setAutoDismissKeyboard: (autoDismissKeyboard: boolean) => {

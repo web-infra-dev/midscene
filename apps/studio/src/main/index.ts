@@ -8,14 +8,14 @@ import {
   writeFile as writeFileToDisk,
 } from 'node:fs/promises';
 import path from 'node:path';
+import { setMidsceneRunDir } from '@midscene/shared/common';
+import { setLogDirectoryResolver } from '@midscene/shared/logger';
 import {
-  type ChooseFileSavePathRequest,
   type ChooseReplayFileResult,
   type DiscoverDevicesRequest,
   IPC_CHANNELS,
+  type OpenImagePreviewRequest,
   type PrepareRecorderMarkdownReplayRequest,
-  type WriteFileRequest,
-  type WriteReportFileRequest,
 } from '@shared/electron-contract';
 import type { NativeThemeMode } from '@shared/electron-contract';
 import { resolveExternalUrl } from '@shared/external-links';
@@ -25,13 +25,24 @@ import {
   type OpenDialogOptions,
   app,
   dialog,
+  autoUpdater as electronAutoUpdater,
   ipcMain,
   nativeImage,
   nativeTheme,
   shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
+import { normalizeStudioAgentOptions } from '../shared/agent-options';
+import { MACOS_TRAFFIC_LIGHT_POSITION } from '../shared/titlebar-layout';
+import { registerFileExportHandlers } from './file-export';
+import { startStudioEventLoopWatchdog } from './performance-watchdog';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
+import { runConnectivityTest } from './playground/connectivity-test';
+import {
+  type DeviceDiscoveryService,
+  createDeviceDiscoveryService,
+} from './playground/device-discovery';
+import { createMultiPlatformRuntimeService } from './playground/multi-platform-runtime';
 import type { PlaygroundRuntimeService } from './playground/types';
 import {
   describeRecorderUIEventsInMain,
@@ -39,18 +50,35 @@ import {
   generateRecorderMetadataInMain,
 } from './recorder/codegen';
 import { configureStudioShellEnvHydration } from './shell-env';
+import {
+  acquireStudioSingleInstanceLock,
+  restoreAndFocusStudioWindow,
+} from './single-instance';
+import { StudioArtifactCleanup } from './studio-artifact-cleanup';
 import { studioUpdater } from './updater';
 import { registerUpdaterHandlers } from './updater-handlers';
-import { registerWindowRevealHandlers } from './window-reveal';
+import {
+  type WindowRevealController,
+  registerWindowRevealHandlers,
+} from './window-reveal';
+import {
+  isStudioRendererUrl,
+  restrictStudioNavigation,
+} from './window-security';
+
+const shouldBootstrapStudio = acquireStudioSingleInstanceLock(app);
 
 // macOS GUI launches (Finder, Dock) skip the user's login shell, so
 // `ANDROID_HOME`, `PATH` additions for adb/hdc/xcrun, etc. never reach
 // `process.env`. Configure the hydrator once here, but only run it lazily
 // from the device-specific paths that actually need those binaries.
-configureStudioShellEnvHydration({
-  isPackaged: app.isPackaged,
-  log: (message, error) => console.warn(`[studio:shell-env] ${message}`, error),
-});
+if (shouldBootstrapStudio) {
+  configureStudioShellEnvHydration({
+    isPackaged: app.isPackaged,
+    log: (message, error) =>
+      console.warn(`[studio:shell-env] ${message}`, error),
+  });
+}
 
 /**
  * Main process owns native shell concerns only.
@@ -59,11 +87,13 @@ configureStudioShellEnvHydration({
  */
 
 let mainWindow: BrowserWindow | null = null;
+let mainWindowRevealController: WindowRevealController | null = null;
 let cachedAppIcon: NativeImage | null = null;
 let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
-let deviceDiscoveryServicePromise: Promise<
-  import('./playground/device-discovery').DeviceDiscoveryService
-> | null = null;
+let deviceDiscoveryServicePromise: Promise<DeviceDiscoveryService> | null =
+  null;
+let studioRunDir: string | null = null;
+let isQuitting = false;
 const isStudioSmokeTest = process.env.MIDSCENE_STUDIO_SMOKE_TEST === '1';
 const isStudioE2ETest = process.env.MIDSCENE_STUDIO_E2E_TEST === '1';
 const STUDIO_SMOKE_READY_MARKER = 'MIDSCENE_STUDIO_SMOKE_READY';
@@ -76,7 +106,7 @@ const STUDIO_E2E_FAILED_MARKER = 'MIDSCENE_STUDIO_E2E_FAILED';
 // the renderer without the user keeping DevTools open. Production builds never
 // set this — it would be a liability. The port can be overridden with the
 // MIDSCENE_STUDIO_CDP_PORT env var when multiple dev instances are running.
-if (!app.isPackaged) {
+if (shouldBootstrapStudio && !app.isPackaged) {
   const cdpPort = process.env.MIDSCENE_STUDIO_CDP_PORT ?? '9224';
   app.commandLine.appendSwitch('remote-debugging-port', cdpPort);
   // Bind to loopback so the debug endpoint isn't reachable from the network.
@@ -127,22 +157,46 @@ const getAppIcon = () => {
   return icon;
 };
 
-const resolveStudioUserRunDir = () =>
+const resolveStudioUserRunRoot = () =>
   path.join(app.getPath('userData'), 'midscene_run');
 
 const resolveStudioTempRunDir = () =>
   path.join(app.getPath('temp'), 'midscene-studio');
 
-const ensureStudioRunDirEnv = () => {
+const resolveStudioRunDir = (runRoot: string) =>
+  path.basename(path.resolve(runRoot)) === 'studio'
+    ? runRoot
+    : path.join(runRoot, 'studio');
+
+const formatLocalDate = (date = new Date()) => {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const configureStudioLogDirectory = (runDir: string) => {
+  setLogDirectoryResolver(() => {
+    const logDir = path.join(runDir, 'log', formatLocalDate());
+    mkdirSync(logDir, { recursive: true });
+    return logDir;
+  });
+};
+
+const ensureStudioRunDir = () => {
   const currentRunDir = process.env.MIDSCENE_RUN_DIR;
   const tempRunDir = resolveStudioTempRunDir();
-  const runDir =
+  const runRoot =
     currentRunDir && path.resolve(currentRunDir) !== path.resolve(tempRunDir)
       ? currentRunDir
-      : resolveStudioUserRunDir();
+      : resolveStudioUserRunRoot();
+  const runDir = resolveStudioRunDir(runRoot);
 
-  process.env.MIDSCENE_RUN_DIR = runDir;
   mkdirSync(runDir, { recursive: true });
+  setMidsceneRunDir(runDir);
+  configureStudioLogDirectory(runDir);
+  studioRunDir = runDir;
+  void new StudioArtifactCleanup(runDir).cleanup().catch((error) => {
+    console.error('Failed to clean Studio artifacts:', error);
+  });
 };
 
 // macOS `vibrancy` and Windows `backgroundMaterial: 'acrylic'` only show
@@ -159,42 +213,22 @@ const getTitleBarOverlay = (): TitleBarOverlay => ({
   symbolColor: '#17212b',
 });
 
-const DEFAULT_REPORT_FILE_NAME = 'midscene_report.html';
-const DEFAULT_EXPORT_FILE_NAME = 'midscene_export.json';
-
-const ensureHtmlFileName = (value: string) =>
-  value.toLowerCase().endsWith('.html') ? value : `${value}.html`;
-
-const resolveDefaultReportSavePath = (defaultFileName?: string) => {
-  const safeFileName = path.basename(
-    ensureHtmlFileName(defaultFileName?.trim() || DEFAULT_REPORT_FILE_NAME),
-  );
-  return path.join(app.getPath('downloads'), safeFileName);
+const sanitizeImagePreviewFileName = (fileName?: string) => {
+  const baseName = path.basename(fileName?.trim() || 'screenshot.png');
+  const withoutUnsafeChars = baseName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const withFallback = withoutUnsafeChars || 'screenshot.png';
+  return path.extname(withFallback) ? withFallback : `${withFallback}.png`;
 };
 
-const resolveDefaultFileSavePath = (defaultFileName?: string) => {
-  const safeFileName = path.basename(
-    defaultFileName?.trim() || DEFAULT_EXPORT_FILE_NAME,
+const decodeImagePreviewData = (data: string) => {
+  if (typeof data !== 'string' || !data.trim()) {
+    throw new Error('openImagePreview: image data is required');
+  }
+  const trimmed = data.trim();
+  const dataUrlMatch = /^data:image\/(?:png|jpeg|jpg|webp);base64,(.+)$/i.exec(
+    trimmed,
   );
-  return path.join(app.getPath('downloads'), safeFileName);
-};
-
-const ensureFileExtensionFromFilters = (
-  filePath: string,
-  filters?: ChooseFileSavePathRequest['filters'],
-) => {
-  if (path.extname(filePath)) {
-    return filePath;
-  }
-  const firstExtension = filters?.find((filter) => filter.extensions.length)
-    ?.extensions[0];
-  if (!firstExtension) {
-    return filePath;
-  }
-  if (firstExtension === '*') {
-    return filePath;
-  }
-  return `${filePath}.${firstExtension.replace(/^\./, '')}`;
+  return Buffer.from(dataUrlMatch?.[1] ?? trimmed, 'base64');
 };
 
 const MARKDOWN_REPLAY_EXTENSIONS = new Set(['.md', '.markdown']);
@@ -287,8 +321,8 @@ async function prepareRecorderMarkdownReplayBundle(
 
 const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
   if (!playgroundRuntimePromise) {
-    playgroundRuntimePromise = import('./playground/multi-platform-runtime')
-      .then(({ createMultiPlatformRuntimeService }) =>
+    playgroundRuntimePromise = Promise.resolve()
+      .then(() =>
         createMultiPlatformRuntimeService({
           deviceDiscoveryService: getDeviceDiscoveryService(),
         }),
@@ -313,10 +347,8 @@ const closePlaygroundRuntime = async (): Promise<void> => {
 
 const getDeviceDiscoveryService = async () => {
   if (!deviceDiscoveryServicePromise) {
-    deviceDiscoveryServicePromise = import('./playground/device-discovery')
-      .then(({ createDeviceDiscoveryService }) =>
-        createDeviceDiscoveryService(),
-      )
+    deviceDiscoveryServicePromise = Promise.resolve()
+      .then(() => createDeviceDiscoveryService())
       .catch((error) => {
         deviceDiscoveryServicePromise = null;
         throw error;
@@ -342,11 +374,10 @@ const createMainWindow = () => {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     titleBarOverlay:
       process.platform === 'darwin' ? undefined : getTitleBarOverlay(),
-    // Vertical centers of the 12px traffic lights line up with the sidebar
-    // collapse toggle (24px) at window y=20: (8 + 24/2 = 20 = 14 + 12/2).
-    // y=14 hugs the inset titlebar like native macOS apps.
+    // Keep the native 12px traffic lights vertically centered with the
+    // ShellLayout titlebar controls.
     trafficLightPosition:
-      process.platform === 'darwin' ? { x: 18, y: 14 } : undefined,
+      process.platform === 'darwin' ? MACOS_TRAFFIC_LIGHT_POSITION : undefined,
     vibrancy: process.platform === 'darwin' ? 'sidebar' : undefined,
     visualEffectState: process.platform === 'darwin' ? 'active' : undefined,
     backgroundMaterial: process.platform === 'win32' ? 'acrylic' : undefined,
@@ -355,11 +386,16 @@ const createMainWindow = () => {
       contextIsolation: true,
       nodeIntegration: false,
       preload: preloadEntryPath,
-      sandbox: false,
+      sandbox: true,
     },
   });
 
-  registerWindowRevealHandlers({
+  restrictStudioNavigation(window.webContents, (url) =>
+    isStudioRendererUrl(url, rendererEntryPath, rendererDevUrl),
+  );
+  mainWindow = window;
+
+  const revealController = registerWindowRevealHandlers({
     isDestroyed: () => window.isDestroyed(),
     onDidFailLoad: (listener) =>
       window.webContents.once('did-fail-load', listener),
@@ -368,14 +404,31 @@ const createMainWindow = () => {
     onReadyToShow: (listener) => window.once('ready-to-show', listener),
     show: () => window.show(),
   });
+  mainWindowRevealController = revealController;
 
   if (isStudioSmokeTest || isStudioE2ETest) {
     window.webContents.once('did-finish-load', () => {
       if (isStudioSmokeTest) {
-        console.log(STUDIO_SMOKE_READY_MARKER);
-        setTimeout(() => {
-          app.exit(0);
-        }, 100);
+        // The page can load even when a sandboxed preload fails. Exercise the
+        // native bridge before declaring the startup smoke test successful.
+        void window.webContents
+          .executeJavaScript(`
+          (async () => {
+            if (typeof window.electronShell?.writeFile !== 'function' ||
+                typeof window.electronShell?.chooseReportSavePath !== 'function') {
+              throw new Error('Studio file export bridge is unavailable');
+            }
+            return window.studioUpdater.getVersion();
+          })()
+        `)
+          .then(() => {
+            console.log(STUDIO_SMOKE_READY_MARKER);
+            app.exit(0);
+          })
+          .catch((error) => {
+            console.error(STUDIO_SMOKE_FAILED_MARKER, error);
+            app.exit(1);
+          });
         return;
       }
 
@@ -412,18 +465,16 @@ const createMainWindow = () => {
     });
   }
 
-  mainWindow = window;
-
   // Push every OS appearance change to the renderer so system-follow keeps
   // working even after `themeSource` has been toggled. The renderer
   // matchMedia listener silently stops firing across some Electron versions
   // once themeSource is explicitly set, so we keep nativeTheme as the
   // authoritative signal here.
   const handleNativeThemeUpdated = () => {
-    if (!mainWindow || mainWindow.isDestroyed()) {
+    if (window.isDestroyed()) {
       return;
     }
-    mainWindow.webContents.send(
+    window.webContents.send(
       IPC_CHANNELS.systemThemeChanged,
       nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
     );
@@ -431,61 +482,100 @@ const createMainWindow = () => {
   nativeTheme.on('updated', handleNativeThemeUpdated);
   window.once('closed', () => {
     nativeTheme.off('updated', handleNativeThemeUpdated);
+    if (mainWindow === window) {
+      mainWindow = null;
+      if (mainWindowRevealController === revealController) {
+        mainWindowRevealController = null;
+      }
+    }
   });
+
+  return window;
+};
+
+const ensureMainWindow = (): BrowserWindow => {
+  if (!app.isReady()) {
+    throw new Error('Cannot create the Studio window before Electron is ready');
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    return mainWindow;
+  }
+
+  return createMainWindow();
+};
+
+const activateMainWindow = (): BrowserWindow | null => {
+  if (isQuitting) {
+    return null;
+  }
+
+  const window = ensureMainWindow();
+  const revealController = mainWindowRevealController;
+  if (!revealController) {
+    throw new Error('Studio window reveal controller is not configured');
+  }
+
+  revealController.requestActivation(() => {
+    if (isQuitting || mainWindow !== window || window.isDestroyed()) {
+      return;
+    }
+
+    restoreAndFocusStudioWindow(
+      window,
+      process.platform === 'darwin' ? app : undefined,
+    );
+  });
+
+  return window;
 };
 
 const registerIpcHandlers = () => {
+  registerFileExportHandlers({
+    ipcMain,
+    dialog,
+    getWindow: () => mainWindow,
+    getDownloadsPath: () => app.getPath('downloads'),
+    isTrustedUrl: (url) =>
+      isStudioRendererUrl(
+        url,
+        getRendererEntryPath(),
+        process.env.MIDSCENE_STUDIO_RENDERER_URL,
+      ),
+  });
   ipcMain.handle(IPC_CHANNELS.minimizeWindow, () => {
     mainWindow?.minimize();
   });
   ipcMain.handle(IPC_CHANNELS.openExternalUrl, async (_event, url: string) => {
     await shell.openExternal(resolveExternalUrl(url));
   });
+  ipcMain.handle(IPC_CHANNELS.openRunDirectory, async () => {
+    const runDir = studioRunDir;
+    if (!runDir) {
+      throw new Error(
+        'openRunDirectory: Studio run directory is not configured',
+      );
+    }
+    await mkdir(runDir, { recursive: true });
+    const errorMessage = await shell.openPath(path.resolve(runDir));
+    if (errorMessage) {
+      throw new Error(errorMessage);
+    }
+  });
   ipcMain.handle(
-    IPC_CHANNELS.chooseReportSavePath,
-    async (_event, defaultFileName?: string) => {
-      const dialogOptions = {
-        title: 'Save Midscene Report',
-        defaultPath: resolveDefaultReportSavePath(defaultFileName),
-        filters: [
-          {
-            name: 'HTML Report',
-            extensions: ['html'],
-          },
-        ],
-      };
-      const result = mainWindow
-        ? await dialog.showSaveDialog(mainWindow, dialogOptions)
-        : await dialog.showSaveDialog(dialogOptions);
-
-      if (result.canceled || !result.filePath) {
-        return null;
+    IPC_CHANNELS.openImagePreview,
+    async (_event, request: OpenImagePreviewRequest) => {
+      const imageBuffer = decodeImagePreviewData(request?.data);
+      const previewDir = path.join(app.getPath('temp'), 'midscene-studio');
+      await mkdir(previewDir, { recursive: true });
+      const filePath = path.join(
+        previewDir,
+        `${Date.now()}-${sanitizeImagePreviewFileName(request?.fileName)}`,
+      );
+      await writeFileToDisk(filePath, imageBuffer);
+      const errorMessage = await shell.openPath(filePath);
+      if (errorMessage) {
+        throw new Error(errorMessage);
       }
-
-      return ensureHtmlFileName(result.filePath);
-    },
-  );
-  ipcMain.handle(
-    IPC_CHANNELS.chooseFileSavePath,
-    async (_event, request?: ChooseFileSavePathRequest) => {
-      const filters =
-        request?.filters && request.filters.length > 0
-          ? request.filters
-          : [{ name: 'All Files', extensions: ['*'] }];
-      const dialogOptions = {
-        title: request?.title || 'Save Midscene Export',
-        defaultPath: resolveDefaultFileSavePath(request?.defaultFileName),
-        filters,
-      };
-      const result = mainWindow
-        ? await dialog.showSaveDialog(mainWindow, dialogOptions)
-        : await dialog.showSaveDialog(dialogOptions);
-
-      if (result.canceled || !result.filePath) {
-        return null;
-      }
-
-      return ensureFileExtensionFromFilters(result.filePath, filters);
     },
   );
   ipcMain.handle(
@@ -581,54 +671,13 @@ const registerIpcHandlers = () => {
       // on OS material (macOS vibrancy / Windows acrylic); only Linux needs
       // a solid theme-tinted fallback.
       if (process.platform === 'linux') {
-        mainWindow.setBackgroundColor(isDark ? '#171717' : '#eef1f5');
+        mainWindow.setBackgroundColor(isDark ? '#282828' : '#eef1f5');
       } else {
         mainWindow.setBackgroundColor('#00000000');
       }
       if (process.platform === 'darwin') {
         mainWindow.setVibrancy('sidebar');
       }
-    },
-  );
-  ipcMain.handle(
-    IPC_CHANNELS.writeReportFile,
-    async (_event, request: WriteReportFileRequest) => {
-      const targetPath = request?.path?.trim();
-      if (!targetPath) {
-        throw new Error('writeReportFile: path is required');
-      }
-      if (typeof request.content !== 'string') {
-        throw new Error('writeReportFile: content must be a string');
-      }
-
-      await writeFileToDisk(
-        ensureHtmlFileName(targetPath),
-        request.content,
-        'utf-8',
-      );
-    },
-  );
-  ipcMain.handle(
-    IPC_CHANNELS.writeFile,
-    async (_event, request: WriteFileRequest) => {
-      const targetPath = request?.path?.trim();
-      if (!targetPath) {
-        throw new Error('writeFile: path is required');
-      }
-      if (typeof request.content !== 'string') {
-        throw new Error('writeFile: content must be a string');
-      }
-      if (request.encoding === 'base64') {
-        await writeFileToDisk(
-          targetPath,
-          Buffer.from(request.content, 'base64'),
-        );
-        return;
-      }
-      if (request.encoding && request.encoding !== 'utf-8') {
-        throw new Error(`writeFile: unsupported encoding ${request.encoding}`);
-      }
-      await writeFileToDisk(targetPath, request.content, 'utf-8');
     },
   );
   // Multi-platform playground — a single server for Android, iOS,
@@ -660,11 +709,13 @@ const registerIpcHandlers = () => {
       (await getDeviceDiscoveryService()).setPollingPaused(Boolean(paused));
     },
   );
-  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) => {
-    const { runConnectivityTest } = await import(
-      './playground/connectivity-test'
+  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) =>
+    runConnectivityTest(request),
+  );
+  ipcMain.handle(IPC_CHANNELS.updateAgentOptions, async (_event, options) => {
+    await (await getPlaygroundRuntime()).updateAgentOptions(
+      normalizeStudioAgentOptions(options),
     );
-    return runConnectivityTest(request);
   });
   ipcMain.handle(IPC_CHANNELS.generateRecorderCode, async (_event, request) => {
     return generateRecorderCodeInMain(request);
@@ -687,61 +738,94 @@ const registerIpcHandlers = () => {
   );
 };
 
-app.whenReady().then(() => {
-  ensureStudioRunDirEnv();
+if (shouldBootstrapStudio) {
+  const markStudioQuitting = () => {
+    isQuitting = true;
+  };
 
-  if (process.platform === 'darwin' && app.dock) {
-    app.dock.setIcon(getAppIcon());
-  }
+  app.on('before-quit', markStudioQuitting);
+  electronAutoUpdater.on('before-quit-for-update', markStudioQuitting);
 
-  void getDeviceDiscoveryService()
-    .then((service) =>
-      service.subscribe((devices) => {
-        if (!mainWindow || mainWindow.isDestroyed()) {
-          return;
-        }
+  const primaryReady = app.whenReady().then(() => {
+    if (isQuitting) {
+      return;
+    }
 
-        mainWindow.webContents.send(
-          IPC_CHANNELS.discoveredDevicesUpdated,
-          devices,
-        );
-      }),
-    )
-    .catch((error) => {
-      console.error('Failed to initialize device discovery service:', error);
-    });
+    ensureStudioRunDir();
+    const stopEventLoopWatchdog = startStudioEventLoopWatchdog();
+    app.once('before-quit', stopEventLoopWatchdog);
 
-  registerIpcHandlers();
-  registerUpdaterHandlers(studioUpdater);
-  createMainWindow();
+    if (process.platform === 'darwin' && app.dock) {
+      app.dock.setIcon(getAppIcon());
+    }
 
-  // studioUpdater.init() no-ops when !app.isPackaged, and we skip the
-  // call entirely when running under the smoke/e2e harness so test runs
-  // do not hit the GitHub Releases API.
-  if (!isStudioSmokeTest && !isStudioE2ETest) {
-    studioUpdater.init(() => mainWindow);
-  }
+    void getDeviceDiscoveryService()
+      .then((service) =>
+        service.subscribe((devices) => {
+          if (!mainWindow || mainWindow.isDestroyed()) {
+            return;
+          }
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
+          mainWindow.webContents.send(
+            IPC_CHANNELS.discoveredDevicesUpdated,
+            devices,
+          );
+        }),
+      )
+      .catch((error) => {
+        console.error('Failed to initialize device discovery service:', error);
+      });
+
+    registerIpcHandlers();
+    registerUpdaterHandlers(studioUpdater);
+    ensureMainWindow();
+
+    // studioUpdater.init() no-ops when !app.isPackaged, and we skip the
+    // call entirely when running under the smoke/e2e harness so test runs
+    // do not hit the GitHub Releases API.
+    if (!isStudioSmokeTest && !isStudioE2ETest) {
+      studioUpdater.init(() => mainWindow);
     }
   });
-});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  const requestMainWindowActivation = () => {
+    if (isQuitting) {
+      return;
+    }
+
+    void primaryReady
+      .then(() => {
+        if (!isQuitting) {
+          activateMainWindow();
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to activate Studio window:', error);
+      });
+  };
+
+  if (app.isPackaged) {
+    app.on('second-instance', requestMainWindowActivation);
   }
-});
+  app.on('activate', requestMainWindowActivation);
 
-app.on('before-quit', () => {
-  void closePlaygroundRuntime();
-  void getDeviceDiscoveryService()
-    .then((service) => {
-      service.close();
-    })
-    .catch(() => {
-      // ignore cleanup failures during shutdown
-    });
-});
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+
+  app.on('before-quit', () => {
+    void closePlaygroundRuntime();
+    const discoveryService = deviceDiscoveryServicePromise;
+    if (discoveryService) {
+      void discoveryService
+        .then((service) => {
+          service.close();
+        })
+        .catch(() => {
+          // ignore cleanup failures during shutdown
+        });
+    }
+  });
+}

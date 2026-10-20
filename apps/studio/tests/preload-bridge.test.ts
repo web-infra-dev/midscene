@@ -49,11 +49,11 @@ describe('preload bridge', () => {
     expect(shellApi).toBeDefined();
     expect(studioRuntimeApi).toBeDefined();
     expect(updaterApi).toBeDefined();
-    expect(studioRuntimeApi.recorderEntryEnabled).toBe(false);
 
     await shellApi.closeWindow();
     await shellApi.minimizeWindow();
     await shellApi.openExternalUrl('https://midscenejs.com');
+    await shellApi.openRunDirectory();
     await shellApi.chooseReportSavePath('report.html');
     await shellApi.chooseFileSavePath({
       defaultFileName: 'recording.json',
@@ -80,6 +80,11 @@ describe('preload bridge', () => {
       MIDSCENE_MODEL_API_KEY: 'sk-test',
       MIDSCENE_MODEL_BASE_URL: 'https://api.example.com/v1',
       MIDSCENE_MODEL_NAME: 'gpt-4o',
+    });
+    await studioRuntimeApi.updateAgentOptions({
+      replanningCycleLimit: 12,
+      waitAfterAction: 500,
+      screenshotShrinkFactor: 2,
     });
     await studioRuntimeApi.generateRecorderCode({
       type: 'playwright',
@@ -146,6 +151,7 @@ describe('preload bridge', () => {
       [IPC_CHANNELS.closeWindow],
       [IPC_CHANNELS.minimizeWindow],
       [IPC_CHANNELS.openExternalUrl, 'https://midscenejs.com'],
+      [IPC_CHANNELS.openRunDirectory],
       [IPC_CHANNELS.chooseReportSavePath, 'report.html'],
       [
         IPC_CHANNELS.chooseFileSavePath,
@@ -179,6 +185,14 @@ describe('preload bridge', () => {
           MIDSCENE_MODEL_API_KEY: 'sk-test',
           MIDSCENE_MODEL_BASE_URL: 'https://api.example.com/v1',
           MIDSCENE_MODEL_NAME: 'gpt-4o',
+        },
+      ],
+      [
+        IPC_CHANNELS.updateAgentOptions,
+        {
+          replanningCycleLimit: 12,
+          waitAfterAction: 500,
+          screenshotShrinkFactor: 2,
         },
       ],
       [
@@ -260,17 +274,5 @@ describe('preload bridge', () => {
       IPC_CHANNELS.updaterStatus,
       expect.any(Function),
     );
-  });
-
-  it('exposes the runtime recorder entry flag from the launch environment', async () => {
-    vi.stubEnv('VITE_STUDIO_RECORDER_ENABLED', 'true');
-
-    await loadModule();
-
-    const studioRuntimeApi = mocks.exposeInMainWorld.mock.calls.find(
-      ([name]) => name === 'studioRuntime',
-    )?.[1];
-
-    expect(studioRuntimeApi?.recorderEntryEnabled).toBe(true);
   });
 });

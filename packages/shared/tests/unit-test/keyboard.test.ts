@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { isMac, transformHotkeyInput } from '../../src/us-keyboard-layout';
 
 describe('transformHotkeyInput', () => {
@@ -16,6 +16,11 @@ describe('transformHotkeyInput', () => {
     }
     expect(transformHotkeyInput('Shift A')).toEqual(['Shift', 'A']);
     expect(transformHotkeyInput('Alt 1')).toEqual(['Alt', '1']);
+  });
+
+  it('should transform Command aliases to Meta', () => {
+    expect(transformHotkeyInput('Command r')).toEqual(['Meta', 'R']);
+    expect(transformHotkeyInput('CMD R')).toEqual(['Meta', 'R']);
   });
 
   it('should transform key combinations with multiple modifiers', () => {

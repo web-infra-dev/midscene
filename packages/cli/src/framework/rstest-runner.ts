@@ -2,12 +2,12 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
-import type { RstestUserConfig, TestRunResult } from '@rstest/core/api';
+import { serializeError } from '@midscene/shared/agent-tools/error-formatter';
+import type { RstestConfig, TestRunResult } from '@rstest/core/api';
+import { createYamlProgressReporter } from './progress-reporter';
+import { RSTEST_YAML_CASE_IDS_META_KEY } from './rstest-contract';
 import { resolvePackageFromRstestCore } from './rstest-dependencies';
-import type {
-  GeneratedRstestYamlProject,
-  GeneratedYamlTestCase,
-} from './rstest-project';
+import type { GeneratedRstestYamlProject } from './rstest-project';
 
 export { resolveRstestCoreImportPath } from './rstest-dependencies';
 
@@ -17,26 +17,26 @@ export interface RunRstestYamlProjectOptions {
   stdio?: 'inherit' | 'pipe';
 }
 
-const formatRunError = (
-  error: TestRunResult['unhandledErrors'][number],
-): string => error.stack || `${error.name}: ${error.message}`;
+type RunError = TestRunResult['unhandledErrors'][number];
+type FileResult = TestRunResult['results'][number];
+
+// Rstest 0.12 makes SerializedError.name optional, so supply a fallback.
+const formatRunError = (error: RunError): string =>
+  error.stack || `${error.name || 'Error'}: ${error.message}`;
 
 // Collect every failure rstest surfaced, not just `unhandledErrors`. A failing
 // YAML case shows up as a file-level error (e.g. a module that cannot be
-// loaded) or a test-level error under `files[].results[]`; `unhandledErrors`
+// loaded) or a test-level error under `results[].results[]`; `unhandledErrors`
 // only covers worker crashes and config-load failures. Reporting just the
 // latter is why a failed run printed nothing and looked like "not executed".
 const collectRunErrors = (result: TestRunResult): string[] => {
   const messages: string[] = [];
-  const push = (
-    error: TestRunResult['unhandledErrors'][number],
-    label?: string,
-  ) => {
+  const push = (error: RunError, label?: string) => {
     const formatted = formatRunError(error);
     messages.push(label ? `${label}: ${formatted}` : formatted);
   };
 
-  for (const file of result.files ?? []) {
+  for (const file of result.results) {
     for (const error of file.errors ?? []) {
       push(error, file.name || file.testPath);
     }
@@ -46,107 +46,76 @@ const collectRunErrors = (result: TestRunResult): string[] => {
       }
     }
   }
-  for (const error of result.unhandledErrors ?? []) {
+  for (const error of result.unhandledErrors) {
     push(error);
   }
 
   return Array.from(new Set(messages));
 };
 
-const errorMessage = (
-  error: TestRunResult['unhandledErrors'][number],
-): string => error.message || error.name || 'YAML case failed';
+const errorMessage = (error: RunError): string =>
+  error.message || error.name || 'YAML case failed';
 
-// Attribute each rstest failure back to the YAML case it came from, keyed by the
-// resolved YAML file path. A test-level failure matches on the test name (which
-// equals the case's `testName`); a file-level failure (e.g. the test module
-// could not be loaded) matches on the generated virtual module id.
+// Attribute each rstest failure back to the YAML occurrence it came from.
+// Test-level failures carry stable case IDs in Rstest metadata. File-level
+// failures belong to every case owned by that generated module.
 const mapRunErrorsToCases = (
   project: GeneratedRstestYamlProject,
   result: TestRunResult,
 ): Map<string, string> => {
-  const byTestName = new Map(
-    project.cases.map((item) => [item.testName, item]),
-  );
+  const knownCaseIds = new Set(project.cases.map((item) => item.caseId));
   const errors = new Map<string, string>();
-  const add = (item: GeneratedYamlTestCase | undefined, message: string) => {
-    if (item && message && !errors.has(item.yamlFile)) {
-      errors.set(item.yamlFile, message);
+  const add = (caseId: string, message: string) => {
+    if (knownCaseIds.has(caseId) && message && !errors.has(caseId)) {
+      errors.set(caseId, message);
     }
   };
-  const addAll = (message: string) => {
-    for (const item of project.cases) {
-      add(item, message);
+  const addCases = (caseIds: string[], message: string) => {
+    for (const caseId of caseIds) {
+      add(caseId, message);
     }
   };
-  const matchFileCase = (
-    file: TestRunResult['files'][number],
-  ): GeneratedYamlTestCase | undefined => {
+  const findModuleCaseIds = (file: FileResult): string[] => {
     for (const key of [file.name, file.testPath]) {
       if (!key) continue;
-      const matched = project.cases.find(
-        (item) => key === item.testModule || key.includes(item.testModule),
+      const matched = project.modules.find(
+        (item) => key === item.id || key.includes(item.id),
       );
-      if (matched) return matched;
+      if (matched) return matched.caseIds;
     }
-    return undefined;
+    return [];
   };
-  const isBatchFile = (file: TestRunResult['files'][number]): boolean => {
-    if (!project.batchTest) return false;
-    for (const key of [file.name, file.testPath]) {
-      if (
-        key &&
-        (key === project.batchTest.testModule ||
-          key.includes(project.batchTest.testModule))
-      ) {
-        return true;
-      }
-    }
-    return false;
+  const metadataCaseIds = (
+    testResult: FileResult['results'][number],
+  ): string[] => {
+    const value = testResult.meta?.[RSTEST_YAML_CASE_IDS_META_KEY];
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
   };
-  const isBatchTest = (testName: string): boolean =>
-    testName === project.batchTest?.testName;
 
-  for (const file of result.files ?? []) {
-    const fileCase = matchFileCase(file);
+  for (const file of result.results) {
+    const moduleCaseIds = findModuleCaseIds(file);
     for (const error of file.errors ?? []) {
-      const message = errorMessage(error);
-      if (isBatchFile(file)) {
-        addAll(message);
-      } else {
-        add(fileCase, message);
-      }
+      addCases(moduleCaseIds, errorMessage(error));
     }
     for (const testResult of file.results ?? []) {
-      const item = byTestName.get(testResult.name) ?? fileCase;
+      const caseIds = metadataCaseIds(testResult);
       for (const error of testResult.errors ?? []) {
-        const message = errorMessage(error);
-        if (isBatchTest(testResult.name) || isBatchFile(file)) {
-          addAll(message);
-        } else {
-          add(item, message);
-        }
+        addCases(caseIds.length ? caseIds : moduleCaseIds, errorMessage(error));
       }
     }
   }
 
-  if (
-    project.batchTest &&
-    errors.size === 0 &&
-    result.unhandledErrors?.length
-  ) {
-    addAll(errorMessage(result.unhandledErrors[0]));
-  }
-
-  // A single-case run whose failure rstest could not pin to a file/test (e.g. a
-  // worker crash surfaced only via `unhandledErrors`) still belongs to that one
-  // case — otherwise its real error would be lost to a blank "not executed".
-  if (
-    project.cases.length === 1 &&
-    errors.size === 0 &&
-    result.unhandledErrors?.length
-  ) {
-    add(project.cases[0], errorMessage(result.unhandledErrors[0]));
+  // A run-level error applies to every case that has not persisted its own
+  // result. Keep a more specific attribution when one exists.
+  if (result.unhandledErrors.length) {
+    const message = errorMessage(result.unhandledErrors[0]);
+    for (const item of project.cases) {
+      if (!errors.has(item.caseId) && !existsSync(item.resultFile)) {
+        errors.set(item.caseId, message);
+      }
+    }
   }
 
   return errors;
@@ -156,15 +125,13 @@ const mapRunErrorsToCases = (
 // failure, crash before `writeResultFile`, ...), the batch reader would treat
 // it as "not executed" with no error. Persist a failed result carrying the real
 // error so the failure — and its cause — is visible in the summary JSON.
-const recordUnreportedCaseFailures = (
+const writePendingCaseFailures = (
   project: GeneratedRstestYamlProject,
-  result: TestRunResult,
+  caseErrors: Map<string, string>,
 ): void => {
-  if (!project.cases.length) return;
-  const caseErrors = mapRunErrorsToCases(project, result);
   for (const item of project.cases) {
     if (existsSync(item.resultFile)) continue;
-    const error = caseErrors.get(item.yamlFile);
+    const error = caseErrors.get(item.caseId);
     if (!error) continue;
     const failure: MidsceneYamlConfigResult = {
       file: item.yamlFile,
@@ -184,7 +151,7 @@ const recordUnreportedCaseFailures = (
 export async function runRstestYamlProject(
   options: RunRstestYamlProjectOptions,
 ): Promise<number> {
-  const [{ runRstest }, { rspack }] = await Promise.all([
+  const [{ createRstest }, { rspack }] = await Promise.all([
     import('@rstest/core/api'),
     import(pathToFileURL(resolvePackageFromRstestCore('@rsbuild/core')).href),
   ]);
@@ -193,36 +160,55 @@ export async function runRstestYamlProject(
     project.maxConcurrency !== undefined
       ? Math.max(1, project.maxConcurrency)
       : undefined;
-  const inlineConfig: RstestUserConfig = {
+  const config: RstestConfig = {
     root: project.projectDir,
-    include: project.include,
+    include: project.modules.map((item) => item.id),
     testEnvironment: 'node',
     testTimeout: project.testTimeout,
     ...(maxConcurrency !== undefined ? { maxConcurrency } : {}),
     ...(maxConcurrency !== undefined
-      ? { pool: { maxWorkers: maxConcurrency, minWorkers: maxConcurrency } }
+      ? { pool: { maxWorkers: maxConcurrency } }
       : {}),
     ...(project.bail !== undefined ? { bail: project.bail } : {}),
     ...(project.retry !== undefined && project.retry > 0
       ? { retry: project.retry }
       : {}),
-    reporters: [],
+    reporters: options.stdio === 'pipe' ? [] : [createYamlProgressReporter()],
     tools: {
       rspack: (_config, { appendPlugins }) => {
         appendPlugins(
-          new rspack.experiments.VirtualModulesPlugin(project.virtualModules),
+          new rspack.experiments.VirtualModulesPlugin(
+            Object.fromEntries(
+              project.modules.map((item) => [item.id, item.source]),
+            ),
+          ),
         );
       },
     },
   };
 
-  const result = await runRstest({
-    cwd: options.cwd || project.projectDir,
-    inlineConfig,
-  });
+  let result: TestRunResult;
+  try {
+    const rstest = await createRstest({
+      cwd: options.cwd || project.projectDir,
+      config,
+    });
+    result = await rstest.run();
+  } catch (error) {
+    const serialized = serializeError(error);
+    writePendingCaseFailures(
+      project,
+      new Map(project.cases.map((item) => [item.caseId, serialized.message])),
+    );
+    if (options.stdio !== 'pipe') {
+      console.error(`\nYAML execution failed:\n${formatRunError(serialized)}`);
+    }
+    return 1;
+  }
 
-  if (!result.ok) {
-    recordUnreportedCaseFailures(project, result);
+  const ok = result.status === 'pass';
+  if (!ok) {
+    writePendingCaseFailures(project, mapRunErrorsToCases(project, result));
     if (options.stdio !== 'pipe') {
       const runErrors = collectRunErrors(result);
       if (runErrors.length) {
@@ -231,5 +217,5 @@ export async function runRstestYamlProject(
     }
   }
 
-  return result.ok ? 0 : 1;
+  return ok ? 0 : 1;
 }

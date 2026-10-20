@@ -1,6 +1,12 @@
 #!/bin/bash
 
 cat <<'HEADERS' > ./doc_build/_headers
+/images/platforms/android-dark.png
+  X-Robots-Tag: noindex
+
+/images/platforms/android-light.png
+  X-Robots-Tag: noindex
+
 /*.js
   Cache-Control: public, max-age=86400, must-revalidate
 

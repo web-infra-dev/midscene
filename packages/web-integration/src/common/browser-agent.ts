@@ -1,0 +1,433 @@
+import { Agent as CoreAgent } from '@midscene/core/agent';
+import type { AbstractInterface } from '@midscene/core/device';
+import type { DebugFunction } from '@midscene/shared/logger';
+import { isRetryableBrowserNavigationError } from './browser-agent-utils';
+
+export type BrowserAgentPageScope = 'page' | 'browser';
+
+export type BrowserAgentAdapter<Page, NewPageEvent> = {
+  pages(): Page[] | Promise<Page[]>;
+  newPage(): Promise<Page>;
+  isPageClosed(page: Page): boolean;
+  isPageAllowed?(page: Page): boolean;
+  bringToFront(page: Page): Promise<void> | void;
+  pageTitle(page: Page): Promise<string> | string;
+  pageUrl(page: Page): string;
+  onNewPage(handler: (event: NewPageEvent) => void): void;
+  offNewPage(handler: (event: NewPageEvent) => void): void;
+  resolveNewPage(event: NewPageEvent): Page | Promise<Page | null> | null;
+  isNewPageEvent?: (event: NewPageEvent) => boolean;
+};
+
+export type BrowserPageManagerOptions<Page, NewPageEvent> = {
+  agentName: string;
+  adapter: BrowserAgentAdapter<Page, NewPageEvent>;
+  getActivePage(): Page;
+  setActivePageValue(page: Page): void;
+  autoFollowNewPage: boolean;
+  newPageTimeout: number;
+  debug: DebugFunction;
+};
+
+export type BrowserAgentRuntimeOptions = {
+  agentName: string;
+  pageScope: BrowserAgentPageScope;
+  forceSameTabNavigation?: boolean;
+  autoFollowNewPage?: boolean;
+  newPageTimeout?: number;
+};
+
+export type ResolvedBrowserAgentRuntimeOptions = {
+  pageScope: BrowserAgentPageScope;
+  forceSameTabNavigation: boolean;
+  autoFollowNewPage: boolean;
+  newPageTimeout: number;
+};
+
+export abstract class WebAgentCore<
+  InterfaceType extends AbstractInterface,
+> extends CoreAgent<InterfaceType> {
+  protected isRetryableContextError(error: unknown): boolean {
+    return isRetryableBrowserNavigationError(error);
+  }
+}
+
+const DEFAULT_NEW_PAGE_TIMEOUT = 5000;
+
+export function resolveBrowserAgentRuntimeOptions({
+  agentName,
+  pageScope,
+  forceSameTabNavigation,
+  autoFollowNewPage,
+  newPageTimeout = DEFAULT_NEW_PAGE_TIMEOUT,
+}: BrowserAgentRuntimeOptions): ResolvedBrowserAgentRuntimeOptions {
+  if (pageScope === 'page') {
+    if (autoFollowNewPage) {
+      throw new Error(
+        `[midscene] autoFollowNewPage requires browser mode for ${agentName}. Use BrowserAgent when one agent should follow newly opened pages.`,
+      );
+    }
+
+    return {
+      pageScope,
+      forceSameTabNavigation: forceSameTabNavigation ?? true,
+      autoFollowNewPage: false,
+      newPageTimeout,
+    };
+  }
+
+  if (typeof forceSameTabNavigation !== 'undefined') {
+    throw new Error(
+      `[midscene] forceSameTabNavigation cannot be used in browser mode for ${agentName}. Use PageAgent when same-tab navigation is required.`,
+    );
+  }
+
+  return {
+    pageScope,
+    forceSameTabNavigation: false,
+    autoFollowNewPage: autoFollowNewPage ?? false,
+    newPageTimeout,
+  };
+}
+
+export type BrowserAgentPageSummary = {
+  index: number;
+  active: boolean;
+  title: string;
+  url: string;
+};
+
+export type BrowserAgentPageSelector = {
+  index?: number;
+  title?: string;
+  url?: string;
+};
+
+const normalizeOptionalText = (value: string | undefined) => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.toLowerCase() : undefined;
+};
+
+const pageSummaryMatches = (
+  summary: BrowserAgentPageSummary,
+  title: string | undefined,
+  url: string | undefined,
+) =>
+  (!title || summary.title.toLowerCase().includes(title)) &&
+  (!url || summary.url.toLowerCase().includes(url));
+
+const describeSelector = (selector: BrowserAgentPageSelector) => {
+  const parts: string[] = [];
+  if (selector.index !== undefined) {
+    parts.push(`index ${selector.index}`);
+  }
+  if (selector.title?.trim()) {
+    parts.push(`title "${selector.title.trim()}"`);
+  }
+  if (selector.url?.trim()) {
+    parts.push(`url "${selector.url.trim()}"`);
+  }
+  return parts.join(', ');
+};
+
+export class BrowserPageManager<Page, NewPageEvent> {
+  private readonly agentName: string;
+  private readonly adapter: BrowserAgentAdapter<Page, NewPageEvent>;
+  private readonly getActivePageValue: () => Page;
+  private readonly setActivePageValue: (page: Page) => void;
+  private readonly newPageTimeout: number;
+  private readonly debug: DebugFunction;
+
+  private readonly newPageHandler = (event: NewPageEvent) => {
+    void this.followNewPage(event);
+  };
+
+  constructor(options: BrowserPageManagerOptions<Page, NewPageEvent>) {
+    this.agentName = options.agentName;
+    this.adapter = options.adapter;
+    this.getActivePageValue = options.getActivePage;
+    this.setActivePageValue = options.setActivePageValue;
+    this.newPageTimeout = options.newPageTimeout;
+    this.debug = options.debug;
+
+    if (options.autoFollowNewPage) {
+      this.adapter.onNewPage(this.newPageHandler);
+    }
+  }
+
+  get activePage() {
+    return this.getActivePageValue();
+  }
+
+  pages() {
+    return this.adapter.pages();
+  }
+
+  async pageSummaries(): Promise<BrowserAgentPageSummary[]> {
+    const pages = await this.openPages();
+    const activePage = this.activePage;
+
+    const summaries = await Promise.all(
+      pages.map((page, index) =>
+        this.tryPageSummary(page, index, page === activePage),
+      ),
+    );
+    return summaries
+      .filter(
+        (summary): summary is BrowserAgentPageSummary => summary !== undefined,
+      )
+      .map((summary, index) => ({ ...summary, index }));
+  }
+
+  async pageSummaryByIndex(index: number): Promise<BrowserAgentPageSummary> {
+    const pages = await this.openPages();
+    const page = pages[index];
+    if (!page || this.adapter.isPageClosed(page)) {
+      throw new Error(
+        `[midscene] Cannot find ${this.agentName} page with index ${index}. Available page indexes: ${pages
+          .map((_, pageIndex) => pageIndex)
+          .join(', ')}`,
+      );
+    }
+
+    const summary = await this.tryPageSummary(
+      page,
+      index,
+      page === this.activePage,
+    );
+    if (!summary) {
+      throw new Error(
+        `[midscene] ${this.agentName} page at index ${index} closed while reading its metadata. Run ListBrowserPages again.`,
+      );
+    }
+    return summary;
+  }
+
+  async newPage() {
+    const page = await this.adapter.newPage();
+    await this.setActivePage(page);
+    return page;
+  }
+
+  async setActivePage(page: Page) {
+    if (!page || this.adapter.isPageClosed(page)) {
+      throw new Error(
+        `[midscene] Cannot set ${this.agentName} active page to a closed or invalid page.`,
+      );
+    }
+    if (this.adapter.isPageAllowed?.(page) === false) {
+      throw new Error(
+        `[midscene] Cannot set ${this.agentName} active page to an out-of-scope page.`,
+      );
+    }
+
+    this.setActivePageValue(page);
+    try {
+      await this.adapter.bringToFront(page);
+    } catch (error) {
+      this.debug(`failed to bring page to front: ${error}`);
+    }
+  }
+
+  async setActivePageBySelector(
+    selector: BrowserAgentPageSelector,
+  ): Promise<BrowserAgentPageSummary> {
+    const selectorIndex = selector.index;
+    const title = normalizeOptionalText(selector.title);
+    const url = normalizeOptionalText(selector.url);
+
+    if (selectorIndex === undefined && !title && !url) {
+      throw new Error(
+        `[midscene] SetActivePage requires index, title, or url for ${this.agentName}.`,
+      );
+    }
+
+    const pages = await this.openPages();
+
+    if (selectorIndex !== undefined) {
+      const page = pages[selectorIndex];
+      if (!page || this.adapter.isPageClosed(page)) {
+        throw new Error(
+          `[midscene] Cannot find ${this.agentName} page with index ${selectorIndex}. Available page indexes: ${pages
+            .map((_, index) => index)
+            .join(', ')}`,
+        );
+      }
+
+      const summary = await this.tryPageSummary(page, selectorIndex, true);
+      if (!summary) {
+        throw new Error(
+          `[midscene] ${this.agentName} page at index ${selectorIndex} closed while reading its metadata. Run ListBrowserPages again.`,
+        );
+      }
+      if (!pageSummaryMatches(summary, title, url)) {
+        const textSelector = describeSelector({
+          title: selector.title,
+          url: selector.url,
+        });
+        throw new Error(
+          `[midscene] ${this.agentName} page at index ${selectorIndex} does not match ${textSelector}. Run ListBrowserPages again before selecting a page.`,
+        );
+      }
+
+      await this.setActivePage(page);
+      return summary;
+    }
+
+    const matchedPages: Array<{
+      page: Page;
+      summary: BrowserAgentPageSummary;
+    }> = [];
+    for (let index = 0; index < pages.length; index++) {
+      const page = pages[index];
+      if (this.adapter.isPageClosed(page)) {
+        continue;
+      }
+
+      const summary = await this.tryPageSummary(page, index, false);
+      if (summary && pageSummaryMatches(summary, title, url)) {
+        matchedPages.push({ page, summary });
+      }
+    }
+
+    if (matchedPages.length === 0) {
+      throw new Error(
+        `[midscene] Cannot find ${this.agentName} page matching ${describeSelector(selector)}.`,
+      );
+    }
+
+    if (matchedPages.length > 1) {
+      throw new Error(
+        `[midscene] Multiple ${this.agentName} pages matched ${describeSelector(selector)}. Use ListBrowserPages and pass an index to SetActivePage.`,
+      );
+    }
+
+    const { page, summary } = matchedPages[0];
+    await this.setActivePage(page);
+    return { ...summary, active: true };
+  }
+
+  async waitForNewPage(
+    action?: () => Promise<unknown> | unknown,
+    opts?: { timeout?: number },
+  ) {
+    const waiter = this.createNewPageWaiter(opts?.timeout);
+
+    try {
+      await action?.();
+      return await waiter.promise;
+    } catch (error) {
+      waiter.dispose();
+      throw error;
+    }
+  }
+
+  destroy() {
+    this.adapter.offNewPage(this.newPageHandler);
+  }
+
+  private async openPages(): Promise<Page[]> {
+    const pages = await this.adapter.pages();
+    return pages.filter((page) => !this.adapter.isPageClosed(page));
+  }
+
+  private async tryPageSummary(
+    page: Page,
+    index: number,
+    active: boolean,
+  ): Promise<BrowserAgentPageSummary | undefined> {
+    try {
+      const summary = await this.pageSummary(page, index, active);
+      return this.adapter.isPageClosed(page) ? undefined : summary;
+    } catch (error) {
+      if (this.adapter.isPageClosed(page)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  private async pageSummary(
+    page: Page,
+    index: number,
+    active: boolean,
+  ): Promise<BrowserAgentPageSummary> {
+    return {
+      index,
+      active,
+      title: await this.adapter.pageTitle(page),
+      url: this.adapter.pageUrl(page),
+    };
+  }
+
+  private async followNewPage(event: NewPageEvent) {
+    if (!this.isNewPageEvent(event)) {
+      return;
+    }
+
+    try {
+      const page = await this.adapter.resolveNewPage(event);
+      if (page) {
+        await this.setActivePage(page);
+      }
+    } catch (error) {
+      this.debug(`failed to follow new page: ${error}`);
+    }
+  }
+
+  private isNewPageEvent(event: NewPageEvent) {
+    return this.adapter.isNewPageEvent?.(event) ?? true;
+  }
+
+  private createNewPageWaiter(timeout = this.newPageTimeout) {
+    let settled = false;
+
+    const dispose = () => {
+      this.adapter.offNewPage(handler);
+      clearTimeout(timer);
+    };
+
+    const handler = async (event: NewPageEvent) => {
+      if (settled || !this.isNewPageEvent(event)) {
+        return;
+      }
+
+      settled = true;
+      dispose();
+
+      try {
+        const page = await this.adapter.resolveNewPage(event);
+        if (!page) {
+          throw new Error('new target did not resolve to a page');
+        }
+        resolvePage(page);
+      } catch (error) {
+        rejectPage(error);
+      }
+    };
+
+    let resolvePage!: (page: Page) => void;
+    let rejectPage!: (error: unknown) => void;
+    const promise = new Promise<Page>((resolve, reject) => {
+      resolvePage = resolve;
+      rejectPage = reject;
+    });
+
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      dispose();
+      rejectPage(
+        new Error(
+          `[midscene] Timed out waiting for a new ${this.agentName} page after ${timeout}ms.`,
+        ),
+      );
+    }, timeout);
+
+    this.adapter.onNewPage(handler);
+
+    return { promise, dispose };
+  }
+}

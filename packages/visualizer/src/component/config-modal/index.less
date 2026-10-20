@@ -1,0 +1,188 @@
+.midscene-config-modal {
+  .midscene-config-modal-body-content,
+  .midscene-config-modal-env-section,
+  .midscene-config-modal-agent-options,
+  .midscene-config-modal-heading-copy,
+  .midscene-config-modal-env-fields,
+  .midscene-config-modal-env-field,
+  .midscene-config-modal-option-fields {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .midscene-config-modal-body-content,
+  .midscene-config-modal-env-section,
+  .midscene-config-modal-agent-options,
+  .midscene-config-modal-env-fields,
+  .midscene-config-modal-option-fields {
+    gap: 24px;
+  }
+
+  .midscene-config-modal-heading-copy,
+  .midscene-config-modal-env-field {
+    gap: 8px;
+  }
+
+  .midscene-config-modal-section-heading,
+  .midscene-config-modal-option-field,
+  .midscene-config-modal-footer-actions {
+    align-items: center;
+    display: flex;
+  }
+
+  .midscene-config-modal-section-heading {
+    gap: 24px;
+    justify-content: space-between;
+  }
+
+  .midscene-config-modal-heading-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .midscene-config-modal-heading-copy > .ant-typography {
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .midscene-config-modal-env-style-select {
+    flex: 0 0 200px;
+    width: 200px;
+  }
+
+  .midscene-config-modal-env-textarea {
+    box-sizing: border-box;
+    min-height: 274px;
+    overflow-x: auto;
+    padding-inline: 12px;
+    resize: none;
+    scrollbar-color: var(--midscene-border-control, rgba(0, 0, 0, 0.25))
+      transparent;
+    scrollbar-width: thin;
+    white-space: pre;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: var(--midscene-border-control, rgba(0, 0, 0, 0.25));
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+
+  .midscene-config-modal-verify-row {
+    display: grid;
+    min-height: 32px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+
+    &--error {
+      grid-template-columns: minmax(0, 1fr);
+
+      .midscene-config-modal-verify-button {
+        justify-self: end;
+      }
+    }
+  }
+
+  .midscene-config-modal-verify-alert {
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    max-height: 96px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-block: 4px;
+    scrollbar-width: thin;
+
+    &.ant-alert-error {
+      align-items: flex-start;
+
+      .ant-alert-icon {
+        margin-top: 4px;
+      }
+    }
+
+    &.ant-alert-success {
+      width: fit-content;
+      justify-self: start;
+    }
+
+    .ant-alert-message {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: var(--midscene-border-control, rgba(0, 0, 0, 0.25));
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+
+  .midscene-config-modal-verify-button {
+    flex: none;
+  }
+
+  .midscene-config-modal-verify-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .midscene-config-modal-spinner {
+    animation: midscene-config-modal-spin 0.8s linear infinite;
+  }
+
+  .midscene-config-modal-agent-options > .ant-divider {
+    margin: 0;
+  }
+
+  .midscene-config-modal-option-field {
+    gap: 24px;
+    justify-content: space-between;
+  }
+
+  .midscene-config-modal-option-field > label {
+    flex: 0 1 160px;
+    min-width: 0;
+  }
+
+  .midscene-config-modal-option-field > .ant-input {
+    flex: 0 0 200px;
+    width: 200px;
+  }
+
+  .midscene-config-modal-footer-actions {
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .midscene-config-modal-footer-actions .ant-btn {
+    min-width: 72px;
+  }
+}
+
+@keyframes midscene-config-modal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

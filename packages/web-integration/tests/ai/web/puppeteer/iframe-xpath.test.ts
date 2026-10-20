@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
-import { createServer } from 'http-server';
 import {
   afterAll,
   afterEach,
@@ -10,13 +9,14 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest';
+  rs,
+} from '@rstest/core';
+import { createServer } from 'http-server';
 import { launchPage } from './utils';
 
 const FIXTURES_DIR = path.join(__dirname, '../../fixtures');
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 3 * 60 * 1000,
 });
 

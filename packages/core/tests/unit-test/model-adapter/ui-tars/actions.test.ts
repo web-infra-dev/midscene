@@ -1,7 +1,7 @@
 import { transformUiTarsActions } from '@/ai-model/models/ui-tars/actions';
 import type { UiTarsParsedPlanningResponse } from '@/ai-model/models/ui-tars/parser';
 import type { PlanningAction } from '@/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 type UiTarsActionParam = {
   locate?: Record<string, unknown>;
@@ -64,7 +64,7 @@ describe('transformUiTarsActions', () => {
         },
       },
     });
-    expect(action.param.locate).not.toHaveProperty('locatedPixelBbox');
+    expect(action.param.locate).not.toHaveProperty('locatedPixelResult');
   });
 
   it('transforms drag coordinates into planning points', () => {
@@ -93,8 +93,8 @@ describe('transformUiTarsActions', () => {
         },
       },
     });
-    expect(action.param.from).not.toHaveProperty('locatedPixelBbox');
-    expect(action.param.to).not.toHaveProperty('locatedPixelBbox');
+    expect(action.param.from).not.toHaveProperty('locatedPixelResult');
+    expect(action.param.to).not.toHaveProperty('locatedPixelResult');
   });
 
   it('transforms right and double click actions', () => {

@@ -4,6 +4,7 @@ import type {
   Rect,
   WebElementInfo,
 } from '@midscene/core';
+import type { InputStrategy } from '@midscene/core/device';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 
 import type { NodeType } from '@midscene/shared/constants';
@@ -11,16 +12,31 @@ export type { WebElementInfo };
 
 export type WebPageAgentOpt = AgentOpt & WebPageOpt;
 export type WebPageOpt = {
+  /**
+   * Timeout for the built-in check that the page's html element is available.
+   * Default: 5000ms; 0 skips the check. Does not guarantee application readiness.
+   */
   waitForNavigationTimeout?: number;
+  /**
+   * Timeout for Puppeteer's default post-action network-idle check.
+   * Default: 2000ms; 0 skips the check. Ignored for Playwright.
+   */
   waitForNetworkIdleTimeout?: number;
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   enableTouchEventsInActionSpace?: boolean;
   /**
-   * Per-character delay (ms) used when typing text via the underlying
-   * Puppeteer/Playwright `keyboard.type` API. Default undefined leaves the
-   * option unset and uses the underlying driver's own default.
+   * Finite non-negative per-character delay (ms) used when typing text via the
+   * underlying Puppeteer/Playwright `keyboard.type` API. Default undefined
+   * leaves the option unset and uses the underlying driver's own default.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text to the browser. `bulk` uses one `insertText`
+   * operation; `sequential` sends one Unicode code point at a time. `bulk`
+   * requires `keyboardTypeDelay` to be omitted or set to zero.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
   /**
    * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
    * This makes select elements visible in screenshots captured by Playwright/Puppeteer.

@@ -1,21 +1,21 @@
 import { commonWebActionsForWebPage } from '@/web-page';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, rs, test } from '@rstest/core';
 
 describe('Input action typeOnly mode', () => {
   test('typeOnly mode should preserve current focus and not clear input', async () => {
-    const clearInputMock = vi.fn();
-    const mouseClickMock = vi.fn();
-    const keyboardPressMock = vi.fn();
-    const keyboardTypeMock = vi.fn();
+    const clearInputMock = rs.fn();
+    const mouseClickMock = rs.fn();
+    const keyboardPressMock = rs.fn();
+    const keyboardTypeMock = rs.fn();
 
     // Create a mock page object
     const mockPage = {
       clearInput: clearInputMock,
       mouse: {
         click: mouseClickMock,
-        move: vi.fn(),
-        wheel: vi.fn(),
-        drag: vi.fn(),
+        move: rs.fn(),
+        wheel: rs.fn(),
+        drag: rs.fn(),
       },
       keyboard: {
         type: keyboardTypeMock,
@@ -49,25 +49,25 @@ describe('Input action typeOnly mode', () => {
     expect(keyboardPressMock).not.toHaveBeenCalled();
 
     // Verify: keyboard.type should be called with the value
-    expect(keyboardTypeMock).toHaveBeenCalledWith('new text');
+    expect(keyboardTypeMock).toHaveBeenCalledWith('new text', undefined);
   });
 
   test('replace mode should clear input', async () => {
-    const clearInputMock = vi.fn();
-    const mouseClickMock = vi.fn();
-    const keyboardTypeMock = vi.fn();
+    const clearInputMock = rs.fn();
+    const mouseClickMock = rs.fn();
+    const keyboardTypeMock = rs.fn();
 
     const mockPage = {
       clearInput: clearInputMock,
       mouse: {
         click: mouseClickMock,
-        move: vi.fn(),
-        wheel: vi.fn(),
-        drag: vi.fn(),
+        move: rs.fn(),
+        wheel: rs.fn(),
+        drag: rs.fn(),
       },
       keyboard: {
         type: keyboardTypeMock,
-        press: vi.fn(),
+        press: rs.fn(),
       },
     } as any;
 
@@ -91,25 +91,25 @@ describe('Input action typeOnly mode', () => {
     expect(mouseClickMock).not.toHaveBeenCalled();
 
     // Verify: keyboard.type should be called
-    expect(keyboardTypeMock).toHaveBeenCalledWith('replaced text');
+    expect(keyboardTypeMock).toHaveBeenCalledWith('replaced text', undefined);
   });
 
   test('clear mode should only clear without typing', async () => {
-    const clearInputMock = vi.fn();
-    const mouseClickMock = vi.fn();
-    const keyboardTypeMock = vi.fn();
+    const clearInputMock = rs.fn();
+    const mouseClickMock = rs.fn();
+    const keyboardTypeMock = rs.fn();
 
     const mockPage = {
       clearInput: clearInputMock,
       mouse: {
         click: mouseClickMock,
-        move: vi.fn(),
-        wheel: vi.fn(),
-        drag: vi.fn(),
+        move: rs.fn(),
+        wheel: rs.fn(),
+        drag: rs.fn(),
       },
       keyboard: {
         type: keyboardTypeMock,
-        press: vi.fn(),
+        press: rs.fn(),
       },
     } as any;
 

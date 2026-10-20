@@ -1,21 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock chrome API
-vi.stubGlobal('chrome', {
+rs.stubGlobal('chrome', {
   tabs: {
-    update: vi.fn(),
-    get: vi.fn(),
-    query: vi.fn(),
+    update: rs.fn(),
+    get: rs.fn(),
+    query: rs.fn(),
   },
   debugger: {
-    attach: vi.fn(),
-    detach: vi.fn(),
-    sendCommand: vi.fn(),
+    attach: rs.fn(),
+    detach: rs.fn(),
+    sendCommand: rs.fn(),
   },
 });
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
+}));
+
+rs.mock('../../src/chrome-extension/dynamic-scripts', () => ({
+  getHtmlElementScript: rs.fn(),
+  injectWaterFlowAnimation: rs.fn(async () => 'enable-water-flow'),
+  injectStopWaterFlowAnimation: rs.fn(async () => 'disable-water-flow'),
 }));
 
 import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
@@ -24,7 +30,7 @@ describe('debugger detach race during lazy attach', () => {
   let page: ChromeExtensionProxyPage;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     page = new ChromeExtensionProxyPage(true);
     // Simulate that connectNewTabWithUrl already set the active tab
     // and waited for navigation to finish; the tab is now stable.
@@ -40,7 +46,7 @@ describe('debugger detach race during lazy attach', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('size() succeeds even if enableWaterFlowAnimation transiently fails after attach', async () => {
@@ -97,5 +103,30 @@ describe('debugger detach race during lazy attach', () => {
     expect(result).toEqual({ width: 1024, height: 768 });
     // attach was triggered exactly once by the lazy retry path.
     expect(chrome.debugger.attach).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not inject the water-flow animation when it is disabled', async () => {
+    (chrome.debugger.sendCommand as any).mockResolvedValue({
+      result: { value: { width: 1024, height: 768 } },
+    });
+
+    await page.setWaterFlowAnimationEnabled(false);
+    rs.clearAllMocks();
+
+    const result = await page.size();
+
+    expect(result).toEqual({ width: 1024, height: 768 });
+    expect(chrome.debugger.sendCommand).toHaveBeenCalledWith(
+      { tabId: 1302238007 },
+      'Runtime.evaluate',
+      expect.objectContaining({
+        expression: expect.stringContaining('window.innerWidth'),
+      }),
+    );
+    expect(chrome.debugger.sendCommand).not.toHaveBeenCalledWith(
+      { tabId: 1302238007 },
+      'Runtime.evaluate',
+      { expression: 'enable-water-flow' },
+    );
   });
 });

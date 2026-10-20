@@ -4,7 +4,7 @@ import {
   isMidsceneLocatorField,
   unwrapZodField,
 } from '@/zod-schema-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { z } from 'zod';
 
 describe('zod-schema-utils', () => {

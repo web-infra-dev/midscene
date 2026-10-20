@@ -26,6 +26,8 @@ export interface WDAElementInfo {
 }
 
 export interface WebDriverOptions {
+  /** Full WebDriver API base URL, including any gateway path prefix. */
+  baseUrl?: string;
   port?: number;
   host?: string;
   timeout?: number;
@@ -35,6 +37,12 @@ export interface WebDriverOptions {
    * deleted from the remote WebDriver server.
    */
   sessionId?: string;
+}
+
+/** Per-request overrides for WebDriver transport calls. */
+export interface WebDriverRequestOptions {
+  /** Override the client-wide timeout for this request only. */
+  timeout?: number;
 }
 
 export interface Point {

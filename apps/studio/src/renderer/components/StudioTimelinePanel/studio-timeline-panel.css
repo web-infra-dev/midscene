@@ -1,0 +1,281 @@
+.studio-timeline-panel {
+  --studio-timeline-motion: 200ms cubic-bezier(0.2, 0, 0, 1);
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  flex: 0 0 auto;
+  max-height: none;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid #ececec;
+  border-radius: 20px;
+  background: #fff;
+  transition: height var(--studio-timeline-motion), flex-basis
+    var(--studio-timeline-motion), max-height var(--studio-timeline-motion),
+    border-radius var(--studio-timeline-motion), border-color
+    var(--studio-timeline-motion);
+  will-change: height, max-height;
+}
+
+[data-theme="dark"] .studio-timeline-panel {
+  border-color: #323131;
+  background: #181818;
+}
+
+.studio-timeline-panel:not(.studio-timeline-panel-empty):not(
+    .studio-timeline-panel-collapsed
+  ) {
+  min-height: 250px;
+  max-height: 100%;
+  flex: 0 1 auto;
+}
+
+.studio-timeline-panel-empty {
+  height: 250px;
+  min-height: 250px;
+  max-height: 250px;
+  flex: 0 0 250px;
+}
+
+.studio-timeline-panel-expanded {
+  min-height: 250px;
+  max-height: 100%;
+  flex: 0 1 auto;
+}
+
+.studio-timeline-panel-collapsed {
+  height: 44.077px;
+  min-height: 44.077px;
+  max-height: 44.077px;
+  flex: 0 0 44.077px;
+}
+
+.studio-timeline-panel-body {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.studio-timeline-panel-scroll-body {
+  max-height: calc(100% - 44.077px);
+  flex: 0 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The shared Timeline body remains scrollable without exposing a native bar. */
+.studio-timeline-panel-scroll-body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.studio-timeline-panel-empty .studio-timeline-panel-body {
+  max-height: none;
+  flex: 1 1 auto;
+}
+
+.studio-timeline-panel-collapsed .studio-timeline-panel-body {
+  display: none;
+}
+
+.studio-timeline-panel-header {
+  display: flex;
+  height: 44.077px;
+  flex: 0 0 44.077px;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  border-bottom: 1px solid transparent;
+  padding: 8.038px 12px;
+}
+
+.studio-timeline-panel-title {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0 4px;
+  color: #0d0d0d;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 22.106px;
+  opacity: 0.8;
+  transition: background var(--studio-timeline-motion), opacity
+    var(--studio-timeline-motion);
+}
+
+[data-theme="dark"] .studio-timeline-panel-title {
+  color: #fff;
+}
+
+.studio-timeline-panel-title:is(button) {
+  cursor: pointer;
+}
+
+.studio-timeline-panel-title:is(button):hover {
+  background: rgba(0, 0, 0, 0.04);
+  opacity: 1;
+}
+
+[data-theme="dark"] .studio-timeline-panel-title:is(button):hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.studio-timeline-panel-title svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: #666;
+}
+
+[data-theme="dark"] .studio-timeline-panel-title svg {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.studio-timeline-panel-title .studio-timeline-chevron-collapsed {
+  transform: rotate(180deg);
+}
+
+.studio-timeline-panel-title svg:last-child {
+  transform: none;
+  transition: transform var(--studio-timeline-motion);
+}
+
+.studio-timeline-panel-title[aria-expanded="false"]
+  .studio-timeline-chevron-collapsed {
+  transform: rotate(180deg);
+}
+
+.studio-timeline-panel-header-action {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-timeline-panel-header-action .clear-button-container {
+  position: static;
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-timeline-panel-header-action .clear-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #666;
+}
+
+[data-theme="dark"] .studio-timeline-panel-header-action .clear-button {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.studio-timeline-panel-header-action .clear-button:hover,
+.studio-timeline-panel-header-action .clear-button:focus-visible,
+.studio-timeline-panel-header-action .clear-button:active {
+  background: transparent;
+  color: #666;
+}
+
+[data-theme="dark"] .studio-timeline-panel-header-action .clear-button:hover,
+[data-theme="dark"]
+  .studio-timeline-panel-header-action
+  .clear-button:focus-visible,
+[data-theme="dark"] .studio-timeline-panel-header-action .clear-button:active {
+  color: #fff;
+}
+
+.studio-timeline-panel-header-action .clear-button .anticon {
+  font-size: 16px;
+  color: currentColor;
+}
+
+.studio-timeline-empty-state {
+  display: flex;
+  width: 187px;
+  margin: 43.183px auto 0;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.studio-timeline-panel-body > .studio-timeline-empty-state {
+  margin: auto;
+}
+
+.studio-timeline-panel-body .studio-timeline-empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+
+.studio-timeline-empty-state-icon {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  box-sizing: border-box;
+  margin-bottom: 8.687px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: #999;
+}
+
+[data-theme="dark"] .studio-timeline-empty-state-icon {
+  border-color: #323131;
+  background: #242424;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.studio-timeline-empty-state-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.studio-timeline-empty-state-title {
+  color: #404040;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 22.106px;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .studio-timeline-empty-state-title {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.studio-timeline-empty-state-description {
+  width: 187px;
+  color: #999;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 22.106px;
+}
+
+[data-theme="dark"] .studio-timeline-empty-state-description {
+  color: rgba(255, 255, 255, 0.5);
+}

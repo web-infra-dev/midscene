@@ -1,0 +1,35 @@
+# 模型选择指南
+
+本文介绍 Midscene 支持的模型、两种接入方式，以及默认模型与多模型组合的使用思路。
+
+## 支持的模型
+
+Midscene 支持使用这些多模态模型操作界面：[豆包 Seed](./model-common-config#doubao-seed-model)、[千问 Qwen](./model-common-config#qwen)、[DeepSeek](./model-common-config#deepseek)、[Google Gemini](./model-common-config#gemini)、[OpenAI GPT](./model-common-config#gpt)、[月之暗面 Kimi](./model-common-config#kimi)、[小米 MiMo](./model-common-config#xiaomi-mimo)、[智谱 GLM-V](./model-common-config#glm-v)、[Jev（实验性）](./model-common-config#jev)，以及其他兼容模型 [AutoGLM](./model-common-config#auto-glm) 和 [UI-TARS](./model-common-config#ui-tars)。
+
+## 选择接入方式
+
+Midscene 支持两种模型接入方式，任选一种即可：
+
+- **模型 API Key**：使用模型服务商提供的 API Key，接入上面列出的模型。参见[使用模型 API Key](./model-common-config)。
+- **ChatGPT 订阅**：登录并授权 Midscene，使用 ChatGPT 订阅额度调用 GPT 模型；可用模型以你的账号为准。参见[使用 ChatGPT 订阅](./chatgpt-subscription)。
+
+## 从一个默认模型开始
+
+先配置一个默认多模态模型，用它完成规划、定位和界面理解。这条路径适用于大多数场景。支持的模型和配置示例见[使用模型 API Key](./model-common-config)，也可以选择[使用 ChatGPT 订阅](./chatgpt-subscription)。
+
+## 使用多模型组合能力应对复杂场景 {#multi-model-strategy}
+
+Midscene 支持组合多个模型来应对复杂场景。一条自动化任务可能同时涉及多步骤规划、精确的元素定位，以及数据提取或结果判断，不同模型在这些能力上的表现各有差异。
+
+你可以在保留默认模型的基础上，增加 Planning、Locate 或 Insight 模型，让不同模型按各自擅长的能力分工，共同完成同一条任务。例如，为包含条件分支的长流程配置更擅长规划的模型，为较难识别的界面元素配置定位模型，或为复杂断言和结构化数据提取配置界面理解模型。
+
+各项职责可以独立配置，无需一次引入全部专用模型；未配置的职责继续使用默认模型：
+
+| 模型 | 职责 |
+| --- | --- |
+| 默认模型 | 必填的基础配置，提供各项能力；未配置专用模型的职责使用默认模型 |
+| Planning 模型 | 增强复杂目标、多步骤任务和分支场景的规划 |
+| Locate 模型 | 负责独立的元素定位，包括操作中的目标定位和 `deepLocate` |
+| Insight 模型 | 增强数据提取、断言和页面理解 |
+
+多模型组合可能增加耗时和 Token 消耗。建议先通过[模型调试与可观测性](./model-debugging-observability)定位问题，再按需[配置多个模型](./model-common-config#multi-model-combination-example)。

@@ -31,6 +31,23 @@
   min-height: 300px;
   position: relative;
 
+  &[data-presentation='timeline'] {
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    align-self: stretch;
+
+    .canvas-container {
+      height: 260px;
+      min-height: 0;
+      max-height: none;
+      flex: 0 0 260px;
+      border-radius: 8px;
+    }
+  }
+
   // height adaptive mode
   &[data-fit-mode='height'] {
     background: #fff;

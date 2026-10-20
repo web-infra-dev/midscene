@@ -1,0 +1,635 @@
+import { execFile } from 'node:child_process';
+import { readFile, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { parseDumpScript } from '@midscene/core';
+import {
+  MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_FAMILY,
+  MIDSCENE_MODEL_NAME,
+  MIDSCENE_MODEL_RETRY_COUNT,
+  MIDSCENE_MODEL_TIMEOUT,
+} from '@midscene/shared/env';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { describe, expect, it } from '@rstest/core';
+import {
+  ComputerAgent,
+  ComputerDevice,
+  checkComputerEnvironment,
+} from '../../src';
+import {
+  type WindowsFixtureBounds as Bounds,
+  type RunningWindowsDesktopFixture,
+  startWindowsDesktopFixture,
+  stopWindowsDesktopFixture,
+  waitForWindowsFixtureState,
+} from './windows-desktop-fixture';
+
+const RUN_LIVE_SMOKE =
+  process.platform === 'win32' &&
+  process.env.MIDSCENE_WINDOWS_DESKTOP_SMOKE === '1';
+
+const REPORT_FILE_NAME = 'windows-desktop-smoke';
+const REPORT_HTML_FILE_NAME = `${REPORT_FILE_NAME}.html`;
+
+interface PixelChannels {
+  r: number;
+  g: number;
+  b: number;
+}
+
+interface DetectedScreenshotTarget {
+  bounds: Bounds;
+  pixels: number;
+  average: PixelChannels;
+}
+
+interface ScreenshotAnalysis {
+  width: number;
+  height: number;
+  tap: DetectedScreenshotTarget;
+  doubleClick: DetectedScreenshotTarget;
+  textBox: DetectedScreenshotTarget;
+  scroll: DetectedScreenshotTarget;
+}
+
+interface ReportTask {
+  type?: string;
+  subType?: string;
+  hitBy?: { from?: string };
+  timing?: { callAiStart?: number; callAiEnd?: number };
+  usage?: unknown;
+  searchAreaUsage?: unknown;
+}
+
+interface ReportExecution {
+  id?: string;
+  name?: string;
+  tasks?: ReportTask[];
+}
+
+interface ReportDump {
+  executions?: ReportExecution[];
+}
+
+function toDisplayLocalBounds(bounds: Bounds, screen: Bounds): Bounds {
+  return {
+    left: bounds.left - screen.left,
+    top: bounds.top - screen.top,
+    width: bounds.width,
+    height: bounds.height,
+  };
+}
+
+function locatedPoint(bounds: Bounds, screen: Bounds) {
+  const local = toDisplayLocalBounds(bounds, screen);
+  return [local.left + local.width / 2, local.top + local.height / 2] as [
+    number,
+    number,
+  ];
+}
+
+function locateScreenshotTarget(
+  target: DetectedScreenshotTarget,
+  prompt: string,
+) {
+  return {
+    prompt,
+    locatedPixelResult: {
+      center: locatedPoint(target.bounds, {
+        left: 0,
+        top: 0,
+        width: 0,
+        height: 0,
+      }),
+    },
+  };
+}
+
+function base64Body(dataUrl: string): string {
+  const commaIndex = dataUrl.indexOf(',');
+  if (commaIndex === -1) {
+    throw new Error('screenshot is not a base64 data URL');
+  }
+  return dataUrl.slice(commaIndex + 1);
+}
+
+function quotePowerShellSingle(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function runPowerShell(script: string): Promise<string> {
+  const command = `$ErrorActionPreference = 'Stop'\n${script}`;
+
+  return new Promise((resolve, reject) => {
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-Command', command],
+      { encoding: 'utf8', maxBuffer: 1024 * 1024, windowsHide: true },
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(
+            new Error(
+              `PowerShell screenshot analysis failed: ${error.message}\n${stderr}`,
+            ),
+          );
+          return;
+        }
+        resolve(stdout.trim());
+      },
+    );
+  });
+}
+
+async function analyzeScreenshot(
+  screenshotPath: string,
+): Promise<ScreenshotAnalysis> {
+  const script = `
+Add-Type -AssemblyName System.Drawing
+$bitmap = [System.Drawing.Bitmap]::FromFile(${quotePowerShellSingle(screenshotPath)})
+function Find-ColorTarget(
+  [int] $expectedRed,
+  [int] $expectedGreen,
+  [int] $expectedBlue,
+  [int] $tolerance
+) {
+  $minimumX = $bitmap.Width
+  $minimumY = $bitmap.Height
+  $maximumX = -1
+  $maximumY = -1
+  $red = 0L
+  $green = 0L
+  $blue = 0L
+  $count = 0L
+  $columnCounts = New-Object int[] $bitmap.Width
+  $rowCounts = New-Object int[] $bitmap.Height
+
+  for ($x = 0; $x -lt $bitmap.Width; $x += 1) {
+    for ($y = 0; $y -lt $bitmap.Height; $y += 1) {
+      $pixel = $bitmap.GetPixel($x, $y)
+      if (
+        [Math]::Abs([int]$pixel.R - $expectedRed) -le $tolerance -and
+        [Math]::Abs([int]$pixel.G - $expectedGreen) -le $tolerance -and
+        [Math]::Abs([int]$pixel.B - $expectedBlue) -le $tolerance
+      ) {
+        $minimumX = [Math]::Min($minimumX, $x)
+        $minimumY = [Math]::Min($minimumY, $y)
+        $maximumX = [Math]::Max($maximumX, $x)
+        $maximumY = [Math]::Max($maximumY, $y)
+        $red += $pixel.R
+        $green += $pixel.G
+        $blue += $pixel.B
+        $count += 1
+        $columnCounts[$x] += 1
+        $rowCounts[$y] += 1
+      }
+    }
+  }
+
+  if ($count -eq 0) {
+    throw "Screenshot does not contain target color ($expectedRed, $expectedGreen, $expectedBlue)."
+  }
+
+  # Ignore isolated wallpaper/taskbar pixels that happen to share the exact
+  # fixture color. Every row and column inside a real target has a dense run.
+  $minimumX = $bitmap.Width
+  $minimumY = $bitmap.Height
+  $maximumX = -1
+  $maximumY = -1
+  $minimumDensePixels = 10
+  for ($x = 0; $x -lt $bitmap.Width; $x += 1) {
+    if ($columnCounts[$x] -ge $minimumDensePixels) {
+      $minimumX = [Math]::Min($minimumX, $x)
+      $maximumX = [Math]::Max($maximumX, $x)
+    }
+  }
+  for ($y = 0; $y -lt $bitmap.Height; $y += 1) {
+    if ($rowCounts[$y] -ge $minimumDensePixels) {
+      $minimumY = [Math]::Min($minimumY, $y)
+      $maximumY = [Math]::Max($maximumY, $y)
+    }
+  }
+  if ($maximumX -lt $minimumX -or $maximumY -lt $minimumY) {
+    throw "Screenshot target color ($expectedRed, $expectedGreen, $expectedBlue) has no dense region."
+  }
+
+  [PSCustomObject]@{
+    bounds = [PSCustomObject]@{
+      left = $minimumX
+      top = $minimumY
+      width = $maximumX - $minimumX + 1
+      height = $maximumY - $minimumY + 1
+    }
+    pixels = $count
+    average = [PSCustomObject]@{
+      r = [Math]::Round($red / $count)
+      g = [Math]::Round($green / $count)
+      b = [Math]::Round($blue / $count)
+    }
+  }
+}
+$analysis = [PSCustomObject]@{
+  width = $bitmap.Width
+  height = $bitmap.Height
+  tap = Find-ColorTarget 0 210 80 8
+  doubleClick = Find-ColorTarget 80 150 255 8
+  textBox = Find-ColorTarget 255 220 80 8
+  scroll = Find-ColorTarget 220 100 240 8
+}
+$analysis | ConvertTo-Json -Depth 5 -Compress
+$bitmap.Dispose()
+`.trim();
+
+  return JSON.parse(await runPowerShell(script)) as ScreenshotAnalysis;
+}
+
+function parseReportDumps(html: string): ReportDump[] {
+  const marker = '<script type="midscene_web_dump"';
+  const closeTag = '</script>';
+  const dumps: ReportDump[] = [];
+  let cursor = 0;
+
+  while (cursor < html.length) {
+    const openIndex = html.indexOf(marker, cursor);
+    if (openIndex === -1) break;
+    const closeIndex = html.indexOf(closeTag, openIndex);
+    if (closeIndex === -1) break;
+    const prefix = html.slice(0, closeIndex + closeTag.length);
+    try {
+      const parsed = JSON.parse(parseDumpScript(prefix)) as ReportDump;
+      if (Array.isArray(parsed.executions)) {
+        dumps.push(parsed);
+      }
+    } catch {
+      // The bundled report application can contain the marker as source text.
+      // Only structurally valid JSON dump tags are evidence for this smoke.
+    }
+    cursor = closeIndex + closeTag.length;
+  }
+
+  return dumps;
+}
+
+function latestExecutions(dumps: ReportDump[]): ReportExecution[] {
+  const byKey = new Map<string, ReportExecution>();
+  let anonymousIndex = 0;
+  for (const dump of dumps) {
+    for (const execution of dump.executions ?? []) {
+      const key =
+        execution.id || execution.name || `anonymous-${anonymousIndex++}`;
+      byKey.set(key, execution);
+    }
+  }
+  return Array.from(byKey.values());
+}
+
+describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
+  it('drives a visible WinForms app without calling a model and emits evidence', async () => {
+    const diagnosticsEnv = process.env.MIDSCENE_WINDOWS_DIAGNOSTICS_DIR;
+    if (!diagnosticsEnv) {
+      throw new Error(
+        'MIDSCENE_WINDOWS_DIAGNOSTICS_DIR is required for the Windows desktop smoke',
+      );
+    }
+
+    const diagnosticsDir = path.resolve(diagnosticsEnv);
+    const screenshotFile = path.join(diagnosticsDir, 'desktop.png');
+    const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
+    const evidenceFile = path.join(diagnosticsDir, 'evidence.json');
+    const runDir = path.resolve(process.env.MIDSCENE_RUN_DIR || 'midscene_run');
+    const reportFile = path.join(runDir, 'report', REPORT_HTML_FILE_NAME);
+
+    let fixture: RunningWindowsDesktopFixture | undefined;
+    let device: ComputerDevice | undefined;
+    let selectedDisplayDevice: ComputerDevice | undefined;
+    let missingDisplayDevice: ComputerDevice | undefined;
+    let agent: ComputerAgent<ComputerDevice> | undefined;
+    const evidence: Record<string, unknown> = {
+      platform: process.platform,
+      diagnosticsDir,
+      reportFile,
+    };
+
+    await rm(reportFile, { force: true });
+
+    try {
+      fixture = await startWindowsDesktopFixture(diagnosticsDir, 'fixture');
+      const { metadata } = fixture;
+      evidence.fixture = metadata;
+
+      expect(metadata.userInteractive).toBe(true);
+      expect(metadata.sessionId).toBeGreaterThan(0);
+      expect(metadata.visible).toBe(true);
+      expect(metadata.dpi).toBeGreaterThan(0);
+      const expectedScalePercent = Number(
+        process.env.MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT || '100',
+      );
+      expect(metadata.dpi).toBe(Math.round((96 * expectedScalePercent) / 100));
+      expect(metadata.screen.width).toBeGreaterThan(0);
+      expect(metadata.screen.height).toBeGreaterThan(0);
+      expect(metadata.screenDeviceName).toMatch(/^\\\\\.\\DISPLAY\d+$/i);
+      expect(metadata.slider.width).toBeGreaterThan(100);
+      expect(metadata.slider.height).toBeGreaterThan(20);
+      expect(metadata.form.left).toBeGreaterThanOrEqual(metadata.screen.left);
+      expect(metadata.form.top).toBeGreaterThanOrEqual(metadata.screen.top);
+      expect(metadata.form.left + metadata.form.width).toBeLessThanOrEqual(
+        metadata.screen.left + metadata.screen.width,
+      );
+      expect(metadata.form.top + metadata.form.height).toBeLessThanOrEqual(
+        metadata.screen.top + metadata.screen.height,
+      );
+      const formCenter = {
+        x: metadata.form.left + metadata.form.width / 2,
+        y: metadata.form.top + metadata.form.height / 2,
+      };
+      expect(formCenter.x).toBeGreaterThanOrEqual(metadata.scroll.left);
+      expect(formCenter.x).toBeLessThan(
+        metadata.scroll.left + metadata.scroll.width,
+      );
+      expect(formCenter.y).toBeGreaterThanOrEqual(metadata.scroll.top);
+      expect(formCenter.y).toBeLessThan(
+        metadata.scroll.top + metadata.scroll.height,
+      );
+      if (metadata.processId !== undefined) {
+        expect(metadata.processId).toBe(fixture.process.pid);
+      }
+
+      const displays = await ComputerDevice.listDisplays();
+      evidence.displays = displays;
+      expect(displays.length).toBeGreaterThan(0);
+      const primaryDisplay = displays.find((display) => display.primary);
+      expect(primaryDisplay).toBeDefined();
+      expect(primaryDisplay!.id).toBe(metadata.screenDeviceName);
+
+      const environment = await checkComputerEnvironment();
+      evidence.environment = environment;
+      expect(environment).toMatchObject({
+        available: true,
+        platform: 'win32',
+      });
+      expect(environment.displays).toBeGreaterThan(0);
+
+      device = new ComputerDevice({});
+      await device.connect();
+      const deviceSize = await device.size();
+      evidence.deviceSize = deviceSize;
+      const expectedScale = expectedScalePercent / 100;
+      expect(deviceSize.width / metadata.screen.width).toBeCloseTo(
+        expectedScale,
+        2,
+      );
+      expect(deviceSize.height / metadata.screen.height).toBeCloseTo(
+        expectedScale,
+        2,
+      );
+      const screenshotBase64 = await device.screenshotBase64();
+      const screenshotBuffer = Buffer.from(
+        base64Body(screenshotBase64),
+        'base64',
+      );
+      await writeFile(screenshotFile, screenshotBuffer);
+
+      const screenshotInfo = await imageInfoOfBase64(screenshotBase64);
+      evidence.screenshot = {
+        ...screenshotInfo,
+        bytes: screenshotBuffer.length,
+      };
+      expect(screenshotInfo).toEqual({
+        width: deviceSize.width,
+        height: deviceSize.height,
+      });
+      expect(screenshotBuffer.subarray(0, 8)).toEqual(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      );
+
+      const screenshotAnalysis = await analyzeScreenshot(screenshotFile);
+      evidence.screenshotAnalysis = screenshotAnalysis;
+      expect(screenshotAnalysis.width).toBe(screenshotInfo.width);
+      expect(screenshotAnalysis.height).toBe(screenshotInfo.height);
+      for (const target of [
+        screenshotAnalysis.tap,
+        screenshotAnalysis.doubleClick,
+        screenshotAnalysis.textBox,
+        screenshotAnalysis.scroll,
+      ]) {
+        expect(target.pixels).toBeGreaterThan(200);
+        expect(target.bounds.width).toBeGreaterThan(20);
+        expect(target.bounds.height).toBeGreaterThan(20);
+      }
+
+      selectedDisplayDevice = new ComputerDevice({
+        displayId: primaryDisplay!.id,
+      });
+      const selectedDisplayScreenshot =
+        await selectedDisplayDevice.screenshotBase64();
+      expect(await imageInfoOfBase64(selectedDisplayScreenshot)).toEqual(
+        screenshotInfo,
+      );
+
+      missingDisplayDevice = new ComputerDevice({
+        displayId: String.raw`\\.\MIDSCENE_MISSING_DISPLAY`,
+      });
+      await expect(missingDisplayDevice.screenshotBase64()).rejects.toThrow(
+        /Requested display not found|Failed to take screenshot on Windows/,
+      );
+
+      agent = new ComputerAgent(device, {
+        modelConfig: {
+          [MIDSCENE_MODEL_NAME]: 'windows-ci-model-must-not-run',
+          [MIDSCENE_MODEL_API_KEY]: 'windows-ci-unused-key',
+          [MIDSCENE_MODEL_BASE_URL]: 'http://127.0.0.1:1/v1',
+          [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
+          [MIDSCENE_MODEL_TIMEOUT]: '1000',
+          [MIDSCENE_MODEL_RETRY_COUNT]: '0',
+        },
+        groupName: 'Windows desktop live smoke',
+        groupDescription:
+          'Deterministic WinForms input and screenshot validation on GitHub Actions',
+        reportFileName: REPORT_FILE_NAME,
+        autoPrintReportMsg: false,
+        generateReport: true,
+        waitAfterAction: 200,
+      });
+
+      await agent.callActionInActionSpace('Tap', {
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.tap,
+          'green smoke button detected in the captured screenshot',
+        ),
+      });
+      const clickedState = await waitForWindowsFixtureState(
+        fixture,
+        (state) => state.clickCount >= 1,
+      );
+      expect(clickedState.clickCount).toBe(1);
+
+      await agent.callActionInActionSpace('DoubleClick', {
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.doubleClick,
+          'right-side double-click target detected in the captured screenshot',
+        ),
+      });
+      const doubleClickedState = await waitForWindowsFixtureState(
+        fixture,
+        (state) => state.doubleClickCount >= 2,
+      );
+      expect(doubleClickedState.doubleClickCount).toBe(2);
+
+      const inputText = 'Midscene Windows 输入 😀';
+      await agent.callActionInActionSpace('Input', {
+        value: inputText,
+        mode: 'replace',
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.textBox,
+          'yellow text box detected in the captured screenshot',
+        ),
+      });
+      const inputState = await waitForWindowsFixtureState(
+        fixture,
+        (state) => state.text === inputText,
+      );
+      expect(inputState.text).toBe(inputText);
+
+      await agent.callActionInActionSpace('KeyboardPress', {
+        keyName: 'Enter',
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.textBox,
+          'yellow text box detected in the captured screenshot',
+        ),
+      });
+      const keyState = await waitForWindowsFixtureState(fixture, (state) =>
+        /enter|return/i.test(state.lastKey),
+      );
+      expect(keyState.lastKey).toMatch(/enter|return/i);
+
+      await agent.callActionInActionSpace('Scroll', {
+        scrollType: 'singleAction',
+        direction: 'down',
+        distance: 200,
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.scroll,
+          'purple scroll panel detected in the captured screenshot',
+        ),
+      });
+      const scrolledState = await waitForWindowsFixtureState(
+        fixture,
+        (state) =>
+          state.wheelEventCount > 0 &&
+          state.wheelDelta !== 0 &&
+          state.scrollValue > 0,
+      );
+      evidence.finalState = scrolledState;
+      expect(scrolledState.visible).toBe(true);
+      expect(scrolledState.wheelEventCount).toBeGreaterThan(0);
+      expect(scrolledState.wheelDelta).not.toBe(0);
+      expect(scrolledState.scrollValue).toBeGreaterThan(0);
+
+      await agent.callActionInActionSpace('Scroll', {
+        scrollType: 'singleAction',
+        direction: 'up',
+        distance: 100,
+      });
+      const untargetedScrollState = await waitForWindowsFixtureState(
+        fixture,
+        (state) => state.wheelEventCount > scrolledState.wheelEventCount,
+      );
+      evidence.untargetedScrollState = untargetedScrollState;
+      expect(untargetedScrollState.wheelEventCount).toBeGreaterThan(
+        scrolledState.wheelEventCount,
+      );
+
+      const dump = JSON.parse(agent.dumpDataString()) as ReportDump;
+      await writeFile(dumpFile, `${JSON.stringify(dump, null, 2)}\n`, 'utf8');
+      const dumpTasks = (dump.executions ?? []).flatMap(
+        (execution) => execution.tasks ?? [],
+      );
+      const locateTasks = dumpTasks.filter(
+        (task) => task.type === 'Planning' && task.subType === 'Locate',
+      );
+      expect(locateTasks).toHaveLength(5);
+      expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
+        true,
+      );
+      expect(agent.metrics.calls).toBe(0);
+      expect(
+        dumpTasks.some(
+          (task) =>
+            task.timing?.callAiStart !== undefined ||
+            task.timing?.callAiEnd !== undefined ||
+            task.usage !== undefined ||
+            task.searchAreaUsage !== undefined,
+        ),
+      ).toBe(false);
+
+      await agent.destroy();
+      expect(agent.reportFile).toBe(reportFile);
+      const reportHtml = await readFile(reportFile, 'utf8');
+      expect(reportHtml).not.toContain('REPLACE_ME_WITH_REPORT_HTML');
+      const reportExecutions = latestExecutions(parseReportDumps(reportHtml));
+      const reportTasks = reportExecutions.flatMap(
+        (execution) => execution.tasks ?? [],
+      );
+      const reportLocateTasks = reportTasks.filter(
+        (task) => task.type === 'Planning' && task.subType === 'Locate',
+      );
+      expect(reportLocateTasks).toHaveLength(5);
+      expect(
+        reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
+      ).toBe(true);
+      for (const action of [
+        'Tap',
+        'DoubleClick',
+        'Input',
+        'KeyboardPress',
+        'Scroll',
+      ]) {
+        expect(
+          reportTasks.some(
+            (task) => task.type === 'Action Space' && task.subType === action,
+          ),
+        ).toBe(true);
+      }
+
+      evidence.report = {
+        path: reportFile,
+        executionCount: reportExecutions.length,
+        locateHitSources: reportLocateTasks.map((task) => task.hitBy?.from),
+        modelCalls: agent.metrics.calls,
+      };
+    } catch (error) {
+      evidence.error =
+        error instanceof Error
+          ? { message: error.message, stack: error.stack }
+          : String(error);
+      throw error;
+    } finally {
+      if (agent) {
+        try {
+          await agent.destroy();
+        } catch (error) {
+          evidence.agentDestroyError = String(error);
+        }
+      } else if (device) {
+        try {
+          await device.destroy();
+        } catch (error) {
+          evidence.deviceDestroyError = String(error);
+        }
+      }
+      await selectedDisplayDevice?.destroy().catch((error) => {
+        evidence.selectedDisplayDestroyError = String(error);
+      });
+      await missingDisplayDevice?.destroy().catch((error) => {
+        evidence.missingDisplayDestroyError = String(error);
+      });
+      await stopWindowsDesktopFixture(fixture).catch((error) => {
+        evidence.fixtureStopError = String(error);
+      });
+      await writeFile(
+        evidenceFile,
+        `${JSON.stringify(evidence, null, 2)}\n`,
+        'utf8',
+      );
+    }
+  });
+});

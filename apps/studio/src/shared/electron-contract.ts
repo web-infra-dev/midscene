@@ -7,6 +7,7 @@ import type {
   MidsceneRecorderEvent,
   MidsceneRecorderTarget,
 } from '@midscene/shared/recorder';
+import type { StudioAgentOptions } from './agent-options';
 
 /**
  * IPC channel names bridging the Midscene Studio main process and renderer.
@@ -17,6 +18,8 @@ export const IPC_CHANNELS = {
   closeWindow: 'shell:close-window',
   minimizeWindow: 'shell:minimize-window',
   openExternalUrl: 'shell:open-external-url',
+  openRunDirectory: 'shell:open-run-directory',
+  openImagePreview: 'shell:open-image-preview',
   chooseReportSavePath: 'shell:choose-report-save-path',
   chooseFileSavePath: 'shell:choose-file-save-path',
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
@@ -34,6 +37,7 @@ export const IPC_CHANNELS = {
   discoveredDevicesUpdated: 'studio:discovered-devices-updated',
   setDiscoveryPollingPaused: 'studio:set-discovery-polling-paused',
   runConnectivityTest: 'studio:run-connectivity-test',
+  updateAgentOptions: 'studio:update-agent-options',
   generateRecorderCode: 'studio:generate-recorder-code',
   generateRecorderMetadata: 'studio:generate-recorder-metadata',
   describeRecorderUIEvents: 'studio:describe-recorder-ui-events',
@@ -72,6 +76,11 @@ export interface WriteFileRequest {
   path: string;
   content: string;
   encoding?: 'utf-8' | 'base64';
+}
+
+export interface OpenImagePreviewRequest {
+  data: string;
+  fileName?: string;
 }
 
 export type StudioRecorderCodeType = 'markdown' | 'yaml' | 'playwright';
@@ -227,9 +236,13 @@ export interface ElectronShellApi {
   minimizeWindow: () => Promise<void>;
   /** Open an external HTTP(S) link in the system browser. */
   openExternalUrl: (url: string) => Promise<void>;
-  /** Ask the main process for a target path for a report HTML export. */
+  /** Open the active Midscene run/log directory in the system file manager. */
+  openRunDirectory: () => Promise<void>;
+  /** Open an image with the operating system's default image viewer. */
+  openImagePreview: (request: OpenImagePreviewRequest) => Promise<void>;
+  /** Authorize one report write through a native save dialog. Reload revokes it. */
   chooseReportSavePath: (defaultFileName?: string) => Promise<string | null>;
-  /** Ask the main process for a target path for a generic file export. */
+  /** Authorize one generic file write through a native save dialog. */
   chooseFileSavePath: (
     request?: ChooseFileSavePathRequest,
   ) => Promise<string | null>;
@@ -238,9 +251,9 @@ export interface ElectronShellApi {
    * window is not available (e.g. during teardown).
    */
   toggleMaximizeWindow: () => Promise<void>;
-  /** Persist a report HTML file using the native shell process. */
+  /** Write once to the exact path returned by chooseReportSavePath. */
   writeReportFile: (request: WriteReportFileRequest) => Promise<void>;
-  /** Persist a generic text or base64-encoded binary file via the shell. */
+  /** Write text or base64 once to the exact path returned by chooseFileSavePath. */
   writeFile: (request: WriteFileRequest) => Promise<void>;
   /**
    * Sync the app's resolved theme to the OS so window chrome (border,
@@ -261,7 +274,6 @@ export interface ElectronShellApi {
 export type NativeThemeMode = 'light' | 'dark' | 'system';
 
 export interface StudioRuntimeApi {
-  recorderEntryEnabled: boolean;
   getPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;
   restartPlayground: () => Promise<PlaygroundBootstrap>;
   /** Scan ALL platforms for connected devices (ADB, HDC, displays). */
@@ -275,6 +287,7 @@ export interface StudioRuntimeApi {
   runConnectivityTest: (
     request: ConnectivityTestRequest,
   ) => Promise<ConnectivityTestResult>;
+  updateAgentOptions: (options: StudioAgentOptions) => Promise<void>;
   generateRecorderCode: (
     request: GenerateRecorderCodeRequest,
   ) => Promise<GenerateRecorderCodeResult>;

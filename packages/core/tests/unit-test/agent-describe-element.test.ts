@@ -3,7 +3,6 @@ import { getModelRuntime } from '@/ai-model';
 import {
   type ElementDescriberRuntime,
   describeElementAtPoint,
-  verifyElementByServiceLocate,
   verifyElementDescriptionAtPoint,
   verifyLocator,
 } from '@/element-describer';
@@ -14,7 +13,7 @@ import {
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { getFixture } from '../utils';
 
 const modelConfig = {
@@ -51,24 +50,23 @@ function createElementDescriberRuntime(agent: Agent): ElementDescriberRuntime {
 function mockServiceLocate(
   agent: Agent,
   element: {
-    rect: { left: number; top: number; width: number; height: number };
+    rect?: { left: number; top: number; width: number; height: number };
     center: [number, number];
     description?: string;
   },
 ) {
-  return vi.spyOn(agent.service, 'locate').mockResolvedValue({
+  return rs.spyOn(agent.service, 'locate').mockResolvedValue({
     element: {
       ...element,
       description: element.description || 'mock element',
     },
-    rect: element.rect,
     dump: {} as any,
   });
 }
 
 describe('element describer utils', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('skips locator verification when verifyPrompt is false', async () => {
@@ -76,10 +74,10 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'LocalSearch title',
     });
-    const locate = vi
+    const locate = rs
       .spyOn(agent.service, 'locate')
       .mockRejectedValue(new Error('should not verify locator'));
 
@@ -91,12 +89,12 @@ describe('element describer utils', () => {
       },
     );
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       prompt: 'LocalSearch title',
       deepLocate: false,
-      verifyResult: undefined,
       success: true,
     });
+    expect(result.verifyResult).toBeUndefined();
     expect(locate).not.toHaveBeenCalled();
 
     await agent.destroy();
@@ -107,11 +105,10 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'LocalSearch title',
     });
     const locate = mockServiceLocate(agent, {
-      rect: { left: 0, top: 0, width: 20, height: 20 },
       center: [10, 10] as [number, number],
     });
 
@@ -122,10 +119,8 @@ describe('element describer utils', () => {
 
     expect(result.verifyResult).toEqual({
       pass: true,
-      rect: { left: 0, top: 0, width: 20, height: 20 },
       center: [10, 10],
       centerDistance: 10,
-      includedInRect: true,
     });
     expect(locate).toHaveBeenCalledWith(
       {
@@ -138,6 +133,43 @@ describe('element describer utils', () => {
       expect.any(Object),
       undefined,
     );
+    await agent.destroy();
+  });
+
+  it('accepts a distant center when the returned rect contains the target', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
+      description: 'Broad row container',
+    });
+    mockServiceLocate(agent, {
+      rect: { left: 0, top: 0, width: 100, height: 100 },
+      center: [50, 50] as [number, number],
+    });
+
+    const result = await describeElementAtPoint(
+      createElementDescriberRuntime(agent),
+      [10, 10],
+      {
+        retryLimit: 2,
+      },
+    );
+
+    expect(result).toMatchObject({
+      prompt: 'Broad row container',
+      deepLocate: false,
+      verifyResult: {
+        pass: true,
+        rect: { left: 0, top: 0, width: 100, height: 100 },
+        center: [50, 50],
+        centerDistance: 57,
+        includedInRect: true,
+      },
+      success: true,
+    });
+    expect(describe).toHaveBeenCalledTimes(1);
 
     await agent.destroy();
   });
@@ -147,10 +179,10 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Missing target',
     });
-    vi.spyOn(agent.service, 'locate').mockRejectedValue(
+    rs.spyOn(agent.service, 'locate').mockRejectedValue(
       new Error('failed to locate element'),
     );
 
@@ -162,28 +194,27 @@ describe('element describer utils', () => {
       },
     );
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       prompt: 'Missing target',
       deepLocate: false,
-      verifyResult: undefined,
       success: false,
       error: 'failed to locate element',
       failureStage: 'verify',
     });
+    expect(result.verifyResult).toBeUndefined();
 
     await agent.destroy();
   });
 
-  it('uses screenshot context without scaling screenshot-space coordinates', async () => {
+  it('uses screenshot context without scaling screenshot-space coordinates and honors explicit deepLocate for verification', async () => {
     const agent = new Agent(createMockInterface(), {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Screenshot target',
     });
     const locate = mockServiceLocate(agent, {
-      rect: { left: 0, top: 0, width: 1, height: 1 },
       center: [0.5, 0.5] as [number, number],
     });
 
@@ -202,7 +233,7 @@ describe('element describer utils', () => {
       [0.5, 0.5],
       expect.any(Object),
       expect.objectContaining({
-        deepLocate: true,
+        deepDescribe: false,
         context: expect.objectContaining({
           shotSize: fixtureScreenshotSize,
           shrunkShotToLogicalRatio: 1,
@@ -213,6 +244,7 @@ describe('element describer utils', () => {
     expect(locate).toHaveBeenCalledWith(
       expect.objectContaining({
         prompt: 'Screenshot target',
+        deepLocate: true,
       }),
       {
         context: expect.objectContaining({
@@ -221,6 +253,139 @@ describe('element describer utils', () => {
       },
       expect.any(Object),
       undefined,
+    );
+
+    await agent.destroy();
+  });
+
+  it('enables deepDescribe on the first retry after verifier failure', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    const describe = rs
+      .spyOn(agent.service, 'describe')
+      .mockResolvedValueOnce({
+        description: 'Broad target',
+      })
+      .mockResolvedValueOnce({
+        description: 'Precise target',
+      });
+    mockServiceLocate(agent, {
+      rect: { left: 0, top: 0, width: 100, height: 100 },
+      center: [50, 50] as [number, number],
+    });
+
+    const result = await describeElementAtPoint(
+      createElementDescriberRuntime(agent),
+      [10, 10],
+      {
+        retryLimit: 2,
+        locatorVerifyFn: ({ prompt, verifyResult }) => ({
+          ...verifyResult,
+          pass: prompt === 'Precise target',
+        }),
+      },
+    );
+
+    expect(result.prompt).toBe('Precise target');
+    expect(result.deepLocate).toBe(true);
+    expect(result.deepDescribe).toBe(true);
+    expect(describe).toHaveBeenCalledTimes(2);
+    expect(describe.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ deepDescribe: false }),
+    );
+    expect(describe.mock.calls[1][2]).toEqual(
+      expect.objectContaining({ deepDescribe: true }),
+    );
+
+    await agent.destroy();
+  });
+
+  it('enables deepDescribe on retry even when deepLocate is explicitly false', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    const describe = rs
+      .spyOn(agent.service, 'describe')
+      .mockResolvedValueOnce({
+        description: 'Broad target',
+      })
+      .mockResolvedValueOnce({
+        description: 'Precise target',
+      });
+    mockServiceLocate(agent, {
+      rect: { left: 0, top: 0, width: 100, height: 100 },
+      center: [50, 50] as [number, number],
+    });
+
+    const result = await describeElementAtPoint(
+      createElementDescriberRuntime(agent),
+      [10, 10],
+      {
+        deepLocate: false,
+        retryLimit: 2,
+        locatorVerifyFn: ({ prompt, verifyResult }) => ({
+          ...verifyResult,
+          pass: prompt === 'Precise target',
+        }),
+      },
+    );
+
+    expect(result.prompt).toBe('Precise target');
+    expect(result.deepLocate).toBe(false);
+    expect(result.deepDescribe).toBe(true);
+    expect(describe).toHaveBeenCalledTimes(2);
+    expect(describe.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ deepDescribe: false }),
+    );
+    expect(describe.mock.calls[1][2]).toEqual(
+      expect.objectContaining({ deepDescribe: true }),
+    );
+
+    await agent.destroy();
+  });
+
+  it('keeps deepDescribe disabled on retry when explicitly false', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    const describe = rs
+      .spyOn(agent.service, 'describe')
+      .mockResolvedValueOnce({
+        description: 'Broad target',
+      })
+      .mockResolvedValueOnce({
+        description: 'Precise target',
+      });
+    mockServiceLocate(agent, {
+      rect: { left: 0, top: 0, width: 100, height: 100 },
+      center: [50, 50] as [number, number],
+    });
+
+    const result = await describeElementAtPoint(
+      createElementDescriberRuntime(agent),
+      [10, 10],
+      {
+        deepDescribe: false,
+        retryLimit: 2,
+        locatorVerifyFn: ({ prompt, verifyResult }) => ({
+          ...verifyResult,
+          pass: prompt === 'Precise target',
+        }),
+      },
+    );
+
+    expect(result.prompt).toBe('Precise target');
+    expect(result.deepDescribe).toBe(false);
+    expect(describe).toHaveBeenCalledTimes(2);
+    expect(describe.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ deepDescribe: false }),
+    );
+    expect(describe.mock.calls[1][2]).toEqual(
+      expect.objectContaining({ deepDescribe: false }),
     );
 
     await agent.destroy();
@@ -235,7 +400,7 @@ describe('element describer utils', () => {
       /^data:image\/[a-zA-Z0-9.+-]+;base64,/,
       '',
     );
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Screenshot target',
     });
     mockServiceLocate(agent, {
@@ -272,7 +437,7 @@ describe('element describer utils', () => {
       shrunkShotToLogicalRatio: 1,
       _isFrozen: true,
     };
-    const runPlans = vi
+    const runPlans = rs
       .spyOn(agent.taskExecutor, 'runPlans')
       .mockResolvedValue({
         output: {
@@ -301,6 +466,38 @@ describe('element describer utils', () => {
       { uiContext },
     );
 
+    runPlans.mockResolvedValueOnce({
+      output: { element: { center: [2.5, 4] } },
+      runner: {},
+    } as any);
+    expect(await agent.aiLocate('Point-only target', { uiContext })).toEqual({
+      rect: { left: 0, top: 0.5, width: 8, height: 8 },
+      center: [2.5, 4],
+      dpr: undefined,
+    });
+
+    await agent.destroy();
+  });
+
+  it('rejects a distant center when no rect is returned', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    mockServiceLocate(agent, { center: [50, 50] });
+    const result = await verifyLocator(
+      createElementDescriberRuntime(agent),
+      'target element',
+      undefined,
+      [10, 10],
+    );
+    expect(result).toEqual({
+      pass: false,
+      center: [50, 50],
+      centerDistance: 57,
+    });
+    expect(result.rect).toBeUndefined();
+    expect(result.includedInRect).toBeUndefined();
     await agent.destroy();
   });
 
@@ -340,7 +537,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi
+    const describe = rs
       .spyOn(agent.service, 'describe')
       .mockResolvedValueOnce({
         description: 'First target',
@@ -372,12 +569,137 @@ describe('element describer utils', () => {
     await agent.destroy();
   });
 
+  it('enables verifier locate deepLocate on retry by default', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    const describe = rs
+      .spyOn(agent.service, 'describe')
+      .mockResolvedValueOnce({
+        description: 'First target',
+      })
+      .mockResolvedValueOnce({
+        description: 'Second target',
+      });
+    const locate = mockServiceLocate(agent, {
+      rect: { left: 0, top: 0, width: 20, height: 20 },
+      center: [10, 10] as [number, number],
+    });
+
+    await describeElementAtPoint(
+      createElementDescriberRuntime(agent),
+      [10, 10],
+      {
+        retryLimit: 2,
+        locatorVerifyFn: ({ prompt, verifyResult }) => ({
+          ...verifyResult,
+          pass: prompt === 'Second target',
+        }),
+      },
+    );
+
+    expect(locate).toHaveBeenCalledTimes(2);
+    expect(locate.mock.calls[0][0].deepLocate).toBe(false);
+    expect(locate.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        deepLocate: true,
+      }),
+    );
+    expect(describe.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ deepDescribe: false }),
+    );
+    expect(describe.mock.calls[1][2]).toEqual(
+      expect.objectContaining({ deepDescribe: true }),
+    );
+
+    await agent.destroy();
+  });
+
+  it('keeps verifier locate deepLocate disabled on retry when explicitly false', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    rs.spyOn(agent.service, 'describe')
+      .mockResolvedValueOnce({
+        description: 'First target',
+      })
+      .mockResolvedValueOnce({
+        description: 'Second target',
+      });
+    const locate = mockServiceLocate(agent, {
+      rect: { left: 0, top: 0, width: 20, height: 20 },
+      center: [10, 10] as [number, number],
+    });
+
+    const result = await describeElementAtPoint(
+      createElementDescriberRuntime(agent),
+      [10, 10],
+      {
+        deepLocate: false,
+        retryLimit: 2,
+        locatorVerifyFn: ({ prompt, verifyResult }) => ({
+          ...verifyResult,
+          pass: prompt === 'Second target',
+        }),
+      },
+    );
+
+    expect(result.deepLocate).toBe(false);
+    expect(locate).toHaveBeenCalledTimes(2);
+    expect(locate.mock.calls[0][0].deepLocate).toBe(false);
+    expect(locate.mock.calls[1][0].deepLocate).toBe(false);
+
+    await agent.destroy();
+  });
+
+  it('does not enable locator model reasoning after the first describeElementAtPoint failure', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    const describe = rs
+      .spyOn(agent.service, 'describe')
+      .mockResolvedValueOnce({
+        description: 'First target',
+      })
+      .mockResolvedValueOnce({
+        description: 'Second target',
+      });
+    const locate = mockServiceLocate(agent, {
+      rect: { left: 0, top: 0, width: 20, height: 20 },
+      center: [10, 10] as [number, number],
+    });
+
+    await describeElementAtPoint(
+      createElementDescriberRuntime(agent),
+      [10, 10],
+      {
+        retryLimit: 2,
+        locatorVerifyFn: ({ prompt, verifyResult }) => ({
+          ...verifyResult,
+          pass: prompt === 'Second target',
+        }),
+      },
+    );
+
+    expect(describe).toHaveBeenCalledTimes(2);
+    expect(describe.mock.calls[0][1].config.reasoningEnabled).toBeUndefined();
+    expect(describe.mock.calls[1][1].config.reasoningEnabled).toBeUndefined();
+    expect(locate).toHaveBeenCalledTimes(2);
+    expect(locate.mock.calls[0][2].config.reasoningEnabled).toBeUndefined();
+    expect(locate.mock.calls[1][2].config.reasoningEnabled).toBeUndefined();
+
+    await agent.destroy();
+  });
+
   it('maps logical coordinates into screenshot coordinates', async () => {
     const agent = new Agent(createMockInterface(), {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Mapped target',
     });
     const locate = mockServiceLocate(agent, {
@@ -425,7 +747,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'should not run',
     });
 
@@ -447,7 +769,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Actual-size target',
     });
 
@@ -515,50 +837,6 @@ describe('element describer utils', () => {
     await agent.destroy();
   });
 
-  it('verifies an explicit element description through Service.locate', async () => {
-    const agent = new Agent(createMockInterface(), {
-      generateReport: false,
-      modelConfig,
-    });
-    const locate = vi.spyOn(agent.service, 'locate').mockResolvedValue({
-      element: {
-        rect: { left: 0, top: 0, width: 20, height: 20 },
-        center: [10, 10] as [number, number],
-        description: 'Submit button',
-      },
-      rect: { left: 0, top: 0, width: 20, height: 20 },
-      dump: {} as any,
-    });
-
-    const result = await verifyElementByServiceLocate(
-      createElementDescriberRuntime(agent),
-      'Submit button',
-      [10, 10],
-      { centerDistanceThreshold: 12, deepLocate: true },
-    );
-
-    expect(result).toEqual({
-      pass: true,
-      rect: { left: 0, top: 0, width: 20, height: 20 },
-      center: [10, 10],
-      centerDistance: 0,
-      includedInRect: true,
-    });
-    expect(locate).toHaveBeenCalledWith(
-      {
-        prompt: 'Submit button',
-        cacheable: true,
-        deepLocate: true,
-        xpath: undefined,
-      },
-      {},
-      expect.any(Object),
-      undefined,
-    );
-
-    await agent.destroy();
-  });
-
   it('verifies an explicit element description against a provided screenshot', async () => {
     const agent = new Agent(createMockInterface(), {
       generateReport: false,
@@ -606,64 +884,12 @@ describe('element describer utils', () => {
     await agent.destroy();
   });
 
-  it('passes screenshot context into Service.locate verification', async () => {
-    const agent = new Agent(createMockInterface(), {
-      generateReport: false,
-      modelConfig,
-    });
-    const locate = vi.spyOn(agent.service, 'locate').mockResolvedValue({
-      element: {
-        rect: { left: 1600, top: 700, width: 20, height: 20 },
-        center: [1641, 721] as [number, number],
-        description: 'Mapped submit button',
-      },
-      rect: { left: 1600, top: 700, width: 20, height: 20 },
-      dump: {} as any,
-    });
-
-    const result = await verifyElementByServiceLocate(
-      createElementDescriberRuntime(agent),
-      'Mapped submit button',
-      [50, 25],
-      {
-        screenshotBase64: fixtureScreenshot,
-        coordinateSpace: 'logical',
-        logicalSize: { width: 100, height: 50 },
-        centerDistanceThreshold: 8,
-      },
-    );
-
-    expect(result).toEqual({
-      pass: true,
-      rect: { left: 1600, top: 700, width: 20, height: 20 },
-      center: [1641, 721],
-      centerDistance: 0,
-      includedInRect: false,
-    });
-    expect(locate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        prompt: 'Mapped submit button',
-      }),
-      {
-        context: expect.objectContaining({
-          shotSize: fixtureScreenshotSize,
-          shrunkShotToLogicalRatio: 1,
-          _isFrozen: true,
-        }),
-      },
-      expect.any(Object),
-      undefined,
-    );
-
-    await agent.destroy();
-  });
-
   it('rejects empty explicit element descriptions before verifying', async () => {
     const agent = new Agent(createMockInterface(), {
       generateReport: false,
       modelConfig,
     });
-    const locate = vi
+    const locate = rs
       .spyOn(agent.service, 'locate')
       .mockRejectedValue(new Error('should not verify locator'));
 

@@ -1,4 +1,5 @@
 export {
+  encodedImageInfoOfBuffer,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   isValidJPEGImageBuffer,
@@ -8,10 +9,15 @@ export {
 } from './info';
 export {
   resizeAndConvertImgBuffer,
+  convertImgBufferToJpeg,
+  convertBase64ImageToJpeg,
+  constrainBase64ImageToMaxSize,
+  resizeBase64ImageToJpeg,
   resizeImgBase64,
   zoomForGPT4o,
   saveBase64Image,
   paddingToMatchBlockByBase64,
+  padBase64ImageToMinimumSize,
   cropByRect,
   scaleImage,
   localImg2Base64,
@@ -23,6 +29,9 @@ export {
   normalizeBase64Image,
   normalizeScreenshotBase64,
   type NormalizeScreenshotBase64Options,
+  type ConstrainBase64ImageToMaxSizeOptions,
+  type JpegBase64DataUrl,
+  type ResizeBase64ImageToJpegOptions,
 } from './transform';
 export {
   processImageElementInfo,

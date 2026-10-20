@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { glmAdapters } from '@/ai-model/models/glm';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const glmAdapter = new ResolvedModelAdapter(glmAdapters['glm-v'], 'glm-v');
 
@@ -86,5 +86,27 @@ describe('glm model adapter', () => {
       temperature: 0,
       thinking: { type: 'disabled' },
     });
+  });
+
+  it('uses json_object response format when expected for glm-v', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      expectedJsonObjectResponse: true,
+      userConfig: {},
+    });
+
+    expect(result.config).toEqual({
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      thinking: { type: 'disabled' },
+    });
+  });
+
+  it('does not use json_object response format when disabled', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      expectedJsonObjectResponse: true,
+      userConfig: { responseFormat: 'none' },
+    });
+
+    expect(result.config.response_format).toBeUndefined();
   });
 });

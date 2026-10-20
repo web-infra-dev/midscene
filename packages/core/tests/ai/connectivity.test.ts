@@ -5,8 +5,8 @@ import { getModelRuntime } from '@/ai-model/models';
 import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
+import { beforeAll, describe, expect, it, rs } from '@rstest/core';
 import dotenv from 'dotenv';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { getFixture } from '../utils';
 
 dotenv.config({
@@ -14,7 +14,7 @@ dotenv.config({
   override: true,
 });
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 20 * 1000,
 });
 [
@@ -39,6 +39,7 @@ vi.setConfig({
       globalModelConfigManager.getModelConfig('planning');
     const insightModelConfig = () =>
       globalModelConfigManager.getModelConfig('insight');
+    const defaultModelRuntime = () => getModelRuntime(defaultModelConfig());
 
     beforeAll(() => {
       const result = dotenv.config({
@@ -52,7 +53,6 @@ vi.setConfig({
     });
 
     it('text only', async () => {
-      const defaultModelRuntime = getModelRuntime(defaultModelConfig());
       const result = await callAI(
         [
           {
@@ -65,7 +65,7 @@ vi.setConfig({
               '鲁迅认识周树人吗？回答我：1. 分析原因 2.回答：是/否/无效问题',
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
       );
 
       expect(result.content.length).toBeGreaterThan(1);
@@ -83,7 +83,7 @@ vi.setConfig({
             content: '3 x 5 = ?',
           },
         ],
-        defaultModelConfig(),
+        defaultModelRuntime(),
       );
       expect(result.content).toEqual({ answer: 15 });
     });
@@ -111,14 +111,13 @@ vi.setConfig({
             content: '3 x 5 = ?',
           },
         ],
-        defaultModelConfig(),
+        defaultModelRuntime(),
       );
       expect(result.content).toEqual({ answer: 15 });
     });
 
     it('image input', async () => {
       const imagePath = getFixture('baidu.png');
-      const defaultModelRuntime = getModelRuntime(defaultModelConfig());
       const result = await callAI(
         [
           {
@@ -129,16 +128,14 @@ vi.setConfig({
                 text: 'Describe this image in one sentence.',
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: localImg2Base64(imagePath),
-                  detail: 'high',
-                },
+                type: 'image',
+                url: localImg2Base64(imagePath),
+                detail: 'high',
               },
             ],
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
       );
 
       expect(result.content.length).toBeGreaterThan(10);

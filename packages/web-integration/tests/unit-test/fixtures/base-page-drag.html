@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Midscene Drag Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 32px;
+        font-family: Arial, sans-serif;
+      }
+
+      .items {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .item {
+        width: 96px;
+        height: 56px;
+        display: grid;
+        place-items: center;
+        border: 1px solid #2f5f8f;
+        border-radius: 6px;
+        background: #e8f3ff;
+        color: #17324d;
+        cursor: grab;
+        user-select: none;
+      }
+
+      .dropzone {
+        width: 360px;
+        height: 220px;
+        display: grid;
+        place-items: center;
+        border: 2px dashed #64748b;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: #334155;
+      }
+
+      .dropzone.over {
+        border-color: #2563eb;
+        background: #eff6ff;
+      }
+
+      #result {
+        margin-top: 20px;
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="items">
+      <div class="item" draggable="true" data-fruit="apple">apple</div>
+      <div class="item" draggable="true" data-fruit="banana">banana</div>
+      <div class="item" draggable="true" data-fruit="orange">orange</div>
+    </div>
+
+    <div class="dropzone" id="dropzone">Drop here</div>
+    <div id="result">Dropped: none</div>
+
+    <script>
+      const dropzone = document.querySelector('#dropzone');
+      const result = document.querySelector('#result');
+
+      for (const item of document.querySelectorAll('.item')) {
+        item.addEventListener('dragstart', (event) => {
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', item.dataset.fruit);
+        });
+      }
+
+      dropzone.addEventListener('dragenter', (event) => {
+        event.preventDefault();
+        dropzone.classList.add('over');
+      });
+
+      dropzone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('over');
+      });
+
+      dropzone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        dropzone.classList.remove('over');
+        const fruit = event.dataTransfer.getData('text/plain');
+        result.textContent = `Dropped: ${fruit}`;
+      });
+    </script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { runSingleFlight } from '../src/controller/single-flight';
 
 describe('runSingleFlight', () => {
@@ -9,7 +9,7 @@ describe('runSingleFlight', () => {
     let resolveTask: (value: string) => void = () => {
       throw new Error('task resolver was not initialized');
     };
-    const task = vi.fn(
+    const task = rs.fn(
       () =>
         new Promise<string>((resolve) => {
           resolveTask = resolve;
@@ -32,7 +32,7 @@ describe('runSingleFlight', () => {
     const pendingRef: { current: Promise<string> | null } = {
       current: null,
     };
-    const task = vi
+    const task = rs
       .fn<() => Promise<string>>()
       .mockResolvedValueOnce('first')
       .mockResolvedValueOnce('second');
@@ -48,7 +48,7 @@ describe('runSingleFlight', () => {
     const pendingRef: { current: Promise<string> | null } = {
       current: null,
     };
-    const task = vi
+    const task = rs
       .fn<() => Promise<string>>()
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValueOnce('recovered');

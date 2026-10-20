@@ -21,7 +21,7 @@ export interface ToolDefaults {
    */
   locate?: Record<string, unknown>;
   /**
-   * Merged into the `act` tool's `aiAction` options.
+   * Merged into the `aiAction` options used by the `act` tool.
    * e.g. `{ deepLocate: true, deepThink: true }`.
    */
   act?: Record<string, unknown>;

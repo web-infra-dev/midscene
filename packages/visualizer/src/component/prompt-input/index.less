@@ -65,8 +65,9 @@
         border: none;
         background-color: #f1f2f3;
         color: #1c1f23;
-        font-family: Inter, system-ui, sans-serif;
-        font-size: 12px;
+        font-family: Inter, 'PingFang SC', system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
         flex-shrink: 0; /* Prevent buttons from shrinking */
         white-space: nowrap; /* Prevent text wrapping */
 
@@ -103,8 +104,9 @@
         border: none;
         background-color: #f1f2f3;
         color: #1c1f23;
-        font-family: Inter, system-ui, sans-serif;
-        font-size: 12px;
+        font-family: Inter, 'PingFang SC', system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -323,6 +325,14 @@
       pointer-events: auto;
     }
 
+    .input-actions-wrapper {
+      display: inline-flex;
+      margin-right: auto;
+      align-items: center;
+      gap: 8px;
+      line-height: normal;
+    }
+
     // Send/Run action button — align with the design's brand blue
     // (#2b83ff) instead of antd's default primary.
     .ant-btn-primary {
@@ -478,6 +488,15 @@
       }
     }
   }
+}
+
+.prompt-stop-square-icon {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 2px;
+  background: currentColor;
 }
 
 .selector-trigger {
@@ -716,7 +735,8 @@
 // Dropdown menu styling with scroll support
 .more-apis-dropdown {
   .ant-dropdown-menu {
-    max-height: 400px;
+    max-height: clamp(96px, calc(100dvh - 280px), 400px);
+    overscroll-behavior: contain;
     overflow-y: auto;
     scrollbar-width: thin;
 
@@ -737,6 +757,13 @@
         background: #a8a8a8;
       }
     }
+
+    .ant-dropdown-menu-item,
+    .ant-dropdown-menu-item-group-title {
+      font-family: Inter, 'PingFang SC', system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+    }
   }
 }
 
@@ -746,27 +773,36 @@
     .mode-radio-group-wrapper {
       .mode-radio-group {
         .ant-radio-button-wrapper {
-          background-color: rgba(255, 255, 255, 0.08) !important;
-          color: #f8fafd !important;
+          background-color: var(
+            --midscene-surface-muted,
+            rgba(255, 255, 255, 0.08)
+          );
+          color: var(--midscene-text-primary, #f8fafd);
 
           &.ant-radio-button-wrapper-checked {
-            background-color: rgba(43, 131, 255, 0.32) !important;
-            border-color: transparent !important;
-            color: #fff !important;
+            background-color: var(--midscene-accent, #2b83ff);
+            border-color: transparent;
+            color: #fff;
           }
         }
 
         .more-apis-button {
-          background-color: rgba(255, 255, 255, 0.08) !important;
-          color: #f8fafd !important;
+          background-color: var(
+            --midscene-surface-muted,
+            rgba(255, 255, 255, 0.08)
+          );
+          color: var(--midscene-text-primary, #f8fafd);
 
           &:hover {
-            background-color: rgba(255, 255, 255, 0.12) !important;
+            background-color: var(
+              --midscene-surface-hover,
+              rgba(255, 255, 255, 0.12)
+            );
           }
 
           &.selected-from-dropdown {
-            background-color: rgba(43, 131, 255, 0.32) !important;
-            color: #fff !important;
+            background-color: var(--midscene-accent, #2b83ff);
+            color: #fff;
           }
         }
       }
@@ -779,7 +815,7 @@
           rgba(31, 31, 31, 0.8) 40%,
           rgba(31, 31, 31, 0.95) 60%,
           #1f1f1f 70%
-        ) !important;
+        );
       }
     }
 

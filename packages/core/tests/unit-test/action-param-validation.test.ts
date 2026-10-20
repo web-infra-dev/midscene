@@ -1,6 +1,11 @@
 import { getMidsceneLocationSchema, parseActionParam } from '@/ai-model';
-import { actionKeyboardPressParamSchema, defineAction } from '@/device';
-import { describe, expect, it } from 'vitest';
+import {
+  actionInputParamSchema,
+  actionKeyboardPressParamSchema,
+  defineAction,
+  defineActionInput,
+} from '@/device';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 describe('Action Parameter Validation', () => {
@@ -280,7 +285,6 @@ describe('Action Parameter Validation', () => {
       const rawParam = {
         locate: {
           center: [100, 200] as [number, number],
-          rect: { left: 50, top: 150, width: 100, height: 100 },
           id: 'elem-123',
           attributes: { nodeType: 'BUTTON', class: 'btn' },
           // Any structure is allowed - no validation for locate fields
@@ -327,7 +331,6 @@ describe('Action Parameter Validation', () => {
       const rawParam = {
         locate: {
           center: [200, 400] as [number, number],
-          rect: { left: 100, top: 300, width: 200, height: 200 },
           description: 'button',
         },
         value: 'test',
@@ -338,7 +341,6 @@ describe('Action Parameter Validation', () => {
       });
       expect(parsed!.locate).toEqual({
         center: [100, 200],
-        rect: { left: 50, top: 150, width: 100, height: 100 },
         description: 'button',
       });
       expect(parsed!.value).toBe('test');
@@ -353,7 +355,6 @@ describe('Action Parameter Validation', () => {
       const rawParam = {
         locate: {
           center: [200, 400] as [number, number],
-          rect: { left: 100, top: 300, width: 200, height: 200 },
           description: 'button',
         },
         value: 'test',
@@ -374,7 +375,6 @@ describe('Action Parameter Validation', () => {
       const rawParam = {
         locate: {
           center: [200, 400] as [number, number],
-          rect: { left: 100, top: 300, width: 200, height: 200 },
           description: 'button',
         },
         value: 'test',
@@ -394,12 +394,10 @@ describe('Action Parameter Validation', () => {
       const rawParam = {
         from: {
           center: [200, 400] as [number, number],
-          rect: { left: 100, top: 300, width: 200, height: 200 },
           description: 'start',
         },
         to: {
           center: [600, 800] as [number, number],
-          rect: { left: 500, top: 700, width: 200, height: 200 },
           description: 'end',
         },
         value: 'drag',
@@ -410,12 +408,10 @@ describe('Action Parameter Validation', () => {
       });
       expect(parsed!.from).toEqual({
         center: [100, 200],
-        rect: { left: 50, top: 150, width: 100, height: 100 },
         description: 'start',
       });
       expect(parsed!.to).toEqual({
         center: [300, 400],
-        rect: { left: 250, top: 350, width: 100, height: 100 },
         description: 'end',
       });
     });
@@ -506,6 +502,212 @@ describe('Action Parameter Validation', () => {
       expect(() =>
         parseActionParam(rawParam, actionKeyboardPressParamSchema),
       ).toThrow();
+    });
+  });
+
+  describe('actionInputParamSchema', () => {
+    it('should accept keyboardTypeDelay as a number', () => {
+      const rawParam = {
+        value: 'hello',
+        keyboardTypeDelay: 100,
+      };
+
+      const parsed = parseActionParam(rawParam, actionInputParamSchema);
+      expect(parsed!.value).toBe('hello');
+      expect(parsed!.keyboardTypeDelay).toBe(100);
+    });
+
+    it.each([-1, Number.POSITIVE_INFINITY])(
+      'should reject invalid keyboardTypeDelay %s',
+      (keyboardTypeDelay) => {
+        expect(() =>
+          parseActionParam(
+            { value: 'hello', keyboardTypeDelay },
+            actionInputParamSchema,
+          ),
+        ).toThrow();
+      },
+    );
+
+    it('should apply the default mode without masking device input strategy', () => {
+      const rawParam = {
+        value: 'test',
+      };
+
+      const parsed = parseActionParam(rawParam, actionInputParamSchema);
+      expect(parsed!.mode).toBe('replace');
+      expect(parsed!.inputStrategy).toBeUndefined();
+    });
+
+    it.each(['legacy', 'sequential', 'bulk'] as const)(
+      'should accept the %s input strategy',
+      (inputStrategy) => {
+        const parsed = parseActionParam(
+          { value: 'test', inputStrategy },
+          actionInputParamSchema,
+        );
+        expect(parsed!.inputStrategy).toBe(inputStrategy);
+      },
+    );
+
+    it('should reject an unknown input strategy', () => {
+      expect(() =>
+        parseActionParam(
+          { value: 'test', inputStrategy: 'paste' },
+          actionInputParamSchema,
+        ),
+      ).toThrow();
+    });
+
+    it('should accept autoDismissKeyboard', () => {
+      const rawParam = {
+        value: 'test',
+        autoDismissKeyboard: false,
+      };
+
+      const parsed = parseActionParam(rawParam, actionInputParamSchema);
+      expect(parsed!.autoDismissKeyboard).toBe(false);
+    });
+
+    it('should reject keyboardTypeDelay as non-number', () => {
+      const rawParam = {
+        value: 'test',
+        keyboardTypeDelay: 'fast',
+      };
+
+      expect(() =>
+        parseActionParam(rawParam, actionInputParamSchema),
+      ).toThrow();
+    });
+
+    it('should convert numeric value to string', () => {
+      const rawParam = {
+        value: 42,
+      };
+
+      const parsed = parseActionParam(rawParam, actionInputParamSchema);
+      expect(parsed!.value).toBe('42');
+    });
+  });
+
+  describe('defineActionInput', () => {
+    it('should pass keyboardTypeDelay to typeText', async () => {
+      const typeTextMock = rs.fn().mockResolvedValue(undefined);
+      const clearInputMock = rs.fn().mockResolvedValue(undefined);
+
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: clearInputMock,
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
+      });
+
+      await action.call({
+        value: 'hello',
+        mode: 'replace',
+        keyboardTypeDelay: 80,
+      });
+
+      expect(typeTextMock).toHaveBeenCalledWith('hello', {
+        target: undefined,
+        replace: true,
+        autoDismissKeyboard: undefined,
+        keyboardTypeDelay: 80,
+        inputStrategy: undefined,
+      });
+    });
+
+    it('should pass autoDismissKeyboard to typeText', async () => {
+      const typeTextMock = rs.fn().mockResolvedValue(undefined);
+
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: rs.fn(),
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
+      });
+
+      await action.call({
+        value: 'world',
+        mode: 'typeOnly',
+        autoDismissKeyboard: false,
+      });
+
+      expect(typeTextMock).toHaveBeenCalledWith('world', {
+        target: undefined,
+        replace: false,
+        autoDismissKeyboard: false,
+        keyboardTypeDelay: undefined,
+        inputStrategy: undefined,
+      });
+    });
+
+    it('should call clearInput when mode is clear', async () => {
+      const typeTextMock = rs.fn();
+      const clearInputMock = rs.fn().mockResolvedValue(undefined);
+
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: clearInputMock,
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
+      });
+
+      await action.call({
+        value: '',
+        mode: 'clear',
+      });
+
+      expect(clearInputMock).toHaveBeenCalledWith(undefined);
+      expect(typeTextMock).not.toHaveBeenCalled();
+    });
+
+    it('should convert append mode to typeOnly', async () => {
+      const typeTextMock = rs.fn().mockResolvedValue(undefined);
+
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: rs.fn(),
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
+      });
+
+      await action.call({
+        value: 'extra',
+        mode: 'append' as any,
+      });
+
+      expect(typeTextMock).toHaveBeenCalledWith('extra', {
+        target: undefined,
+        replace: false,
+        autoDismissKeyboard: undefined,
+        keyboardTypeDelay: undefined,
+        inputStrategy: undefined,
+      });
+    });
+
+    it('should pass inputStrategy to typeText', async () => {
+      const typeTextMock = rs.fn().mockResolvedValue(undefined);
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: rs.fn(),
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
+      });
+
+      await action.call({
+        value: 'whole value',
+        mode: 'replace',
+        inputStrategy: 'bulk',
+      });
+
+      expect(typeTextMock).toHaveBeenCalledWith('whole value', {
+        target: undefined,
+        replace: true,
+        autoDismissKeyboard: undefined,
+        keyboardTypeDelay: undefined,
+        inputStrategy: 'bulk',
+      });
     });
   });
 

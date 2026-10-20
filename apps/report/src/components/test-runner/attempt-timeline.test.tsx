@@ -1,0 +1,176 @@
+import type { TestRunReportAttempt } from '@midscene/core';
+import { describe, expect, it } from '@rstest/core';
+import { renderToStaticMarkup } from 'react-dom/server';
+import {
+  RunnerAttemptTimeline,
+  resolveTimelinePreviewPlacement,
+} from './attempt-timeline';
+import type { RunnerPositionedVisualFrame } from './model';
+
+const attempt = {
+  startedAt: '2026-09-20T00:00:00.000Z',
+  endedAt: '2026-09-20T00:00:01.000Z',
+  durationMs: 1_000,
+} as TestRunReportAttempt;
+
+const frames: RunnerPositionedVisualFrame[] = [
+  {
+    frame: {
+      key: 'frame-1',
+      reportId: 'report',
+      executionId: 'execution',
+      label: 'First frame',
+      screenshot: { base64: 'data:image/png;base64,first' },
+    },
+    offsetMs: 100,
+    offsetPercent: 10,
+    stepId: 'step-1',
+  },
+  {
+    frame: {
+      key: 'frame-2',
+      reportId: 'report',
+      executionId: 'execution',
+      label: 'Second frame',
+      screenshot: { base64: 'data:image/png;base64,second' },
+    },
+    offsetMs: 600,
+    offsetPercent: 60,
+    stepId: 'step-1',
+  },
+];
+
+const renderTimeline = ({
+  lockedFrameKey,
+  previewFrameKey,
+}: {
+  lockedFrameKey?: string;
+  previewFrameKey?: string;
+} = {}) =>
+  renderToStaticMarkup(
+    <RunnerAttemptTimeline
+      attempt={attempt}
+      frames={frames}
+      selectedStepId="step-1"
+      previewFrameKey={previewFrameKey}
+      lockedFrameKey={lockedFrameKey}
+      variant="detail"
+      onPreview={() => {}}
+      onSelectFrame={() => {}}
+    />,
+  );
+
+describe('attempt timeline', () => {
+  it('reserves the timeline and hides individual frames until their group is prepared', () => {
+    const html = renderTimeline();
+    expect(html).toContain('aria-busy="true"');
+    expect(html).toContain('Preparing screenshots…');
+    expect(html.match(/hidden=""/g)).toHaveLength(2);
+    expect(html).not.toContain('loading="lazy"');
+    expect(html).not.toContain('timeline-control');
+    expect(html).not.toContain('src="data:image/png;base64,first"');
+    expect(html).not.toContain('src="data:image/png;base64,second"');
+  });
+
+  it('places a preview above when the remaining space below is too small', () => {
+    expect(
+      resolveTimelinePreviewPlacement({
+        availableAbove: 420,
+        availableBelow: 80,
+        previewHeight: 300,
+      }),
+    ).toBe('above');
+    expect(
+      resolveTimelinePreviewPlacement({
+        availableAbove: 80,
+        availableBelow: 420,
+        previewHeight: 300,
+      }),
+    ).toBe('below');
+  });
+
+  it('highlights every frame that belongs to the selected step', () => {
+    const initialHtml = renderTimeline();
+    expect(initialHtml).toContain(
+      'left:clamp(var(--runner-timeline-frame-half-width), 10%, calc(100% - var(--runner-timeline-frame-half-width)))',
+    );
+    expect(initialHtml).toMatch(
+      /aria-label="First frame[^"]*" aria-pressed="true"/,
+    );
+    expect(initialHtml).toMatch(
+      /aria-label="Second frame[^"]*" aria-pressed="true"/,
+    );
+
+    const lockedHtml = renderTimeline({ lockedFrameKey: 'frame-2' });
+    expect(lockedHtml).toMatch(
+      /aria-label="First frame[^"]*" aria-pressed="true"/,
+    );
+    expect(lockedHtml).toMatch(
+      /aria-label="Second frame[^"]*" aria-pressed="true"/,
+    );
+  });
+
+  it('renders the hovered frame as an enlarged image preview', () => {
+    const html = renderTimeline({ previewFrameKey: 'frame-2' });
+    expect(html).toContain('runner-detail-timeline-preview-callout');
+    expect(html).toContain('left:clamp(228px, 60%, calc(100% - 228px))');
+    expect(html).toContain('alt="Preview of Second frame"');
+    expect(html).toContain('src="data:image/png;base64,second"');
+  });
+
+  it('uses the same interactive frame markup in the overview density', () => {
+    const html = renderToStaticMarkup(
+      <RunnerAttemptTimeline
+        attempt={attempt}
+        frames={frames}
+        previewFrameKey="frame-1"
+        variant="overview"
+        onPreview={() => {}}
+        onSelectFrame={() => {}}
+      />,
+    );
+
+    expect(html).toContain('runner-detail-timeline-card is-overview');
+    expect(html).toContain('runner-detail-timeline-preview-callout');
+    expect(html).toContain('aria-label="First frame at 100 ms"');
+    expect(html).not.toContain('runner-detail-timeline-toolbar');
+  });
+
+  it.each(['detail', 'overview', 'standalone'] as const)(
+    'formats axis ticks and frame previews consistently in the %s timeline',
+    (variant) => {
+      for (const [durationMs, offsetMs, tickLabel, previewLabel] of [
+        [1000, 600, '250 ms', '600 ms'],
+        [8000, 6000, '2 s', '6 s'],
+        [240_000, 164_223, '1m 0s', '2m 44s'],
+      ] as const) {
+        const html = renderToStaticMarkup(
+          <RunnerAttemptTimeline
+            attempt={{
+              ...attempt,
+              durationMs,
+              endedAt: new Date(
+                Date.parse(attempt.startedAt) + durationMs,
+              ).toISOString(),
+            }}
+            frames={[
+              frames[0],
+              {
+                ...frames[1],
+                offsetMs,
+                offsetPercent: (offsetMs / durationMs) * 100,
+              },
+            ]}
+            previewFrameKey="frame-2"
+            variant={variant}
+            onPreview={() => {}}
+            onSelectFrame={() => {}}
+          />,
+        );
+        expect(html).toContain(`>${tickLabel}</span>`);
+        expect(html).toContain(`<small>${previewLabel}</small>`);
+        expect(html).toContain(`aria-label="Second frame at ${previewLabel}"`);
+      }
+    },
+  );
+});

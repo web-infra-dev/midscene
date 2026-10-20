@@ -3,9 +3,17 @@
 - SDK Version: 1.0.0
 - Execution count: 2
 
-## Suggested execution markdown files
-- 1-exec-1.md (exec-1)
-- 2-exec-2.md (exec-2)
+## Model Info
+- No model metadata recorded.
+
+## Timing Summary
+| Metric | Duration(ms) | Definition |
+| --- | --- | --- |
+| Elapsed Time | 100 | Total span from the first recorded task start to the last recorded task end, including model calls, actions, waits, and gaps. |
+| Model Call Time | 0 | Total duration of all recorded model calls. |
+
+## Token Usage Summary
+- No token usage recorded.
 
 # exec-1
 
@@ -13,18 +21,32 @@
 - Task count: 1
 
 ## 1. Tap - Submit
+- Task ID: task-1
+- Type: Action Space
+- SubType: Tap
 - Status: finished
 - Start: 2024-03-09T16:00:00.000Z
 - End: 2024-03-09T16:00:00.100Z
 - Cost(ms): 100
 - Screen size: 1440 x 900
 
-![task-1](./screenshots/execution-1-task-1-shot-exec-1.png)
+### Param
 
-### Recorder
-- #1 type=screenshot, ts=2024-03-09T16:00:00.060Z, timing=record-step-1
+```json
+{
+  "locate": {
+    "prompt": "Submit"
+  }
+}
+```
 
-![task-1](./screenshots/execution-1-task-1-shot-recorder-exec-1.png)
+### Screenshots
+- #1 type=ui-context, ts=2024-03-09T16:00:00.000Z, timing=ui-context
+
+![task-1-ui-context](./screenshots/execution-1-task-1-shot-exec-1.png)
+- #2 type=screenshot, ts=2024-03-09T16:00:00.060Z, timing=record-step-1
+
+![task-1-record-step-1](./screenshots/execution-1-task-1-shot-recorder-exec-1.png)
 
 ---
 
@@ -34,6 +56,9 @@
 - Task count: 1
 
 ## 1. Locate - Submit
+- Task ID: task-2
+- Type: Action Space
+- SubType: Locate
 - Status: finished
 - Start: 2024-03-09T16:00:00.000Z
 - End: 2024-03-09T16:00:00.100Z
@@ -41,4 +66,30 @@
 - Screen size: 1024 x 768
 - Locate center: (512, 333)
 
-![task-1](./screenshots/execution-2-task-1-shot-exec-2.png)
+### Param
+
+```json
+{
+  "locate": {
+    "prompt": "Submit"
+  }
+}
+```
+
+### Output
+
+```json
+{
+  "element": {
+    "center": [
+      512,
+      333
+    ]
+  }
+}
+```
+
+### Screenshots
+- #1 type=ui-context, ts=2024-03-09T16:00:00.000Z, timing=ui-context
+
+![task-1-ui-context](./screenshots/execution-2-task-1-shot-exec-2.png)

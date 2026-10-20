@@ -1,11 +1,46 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
+import {
+  ExecutionDump,
+  ReportActionDump,
+} from '../../src/dump/report-action-dump';
 import { ScreenshotItem } from '../../src/screenshot-item';
 
 describe('ScreenshotItem', () => {
   const testBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';
+
+  it('collects and serializes screenshots from another SDK module instance', async () => {
+    rs.resetModules();
+    const other = await import('../../src/screenshot-item');
+    const item = other.ScreenshotItem.create(testBase64, 1);
+    expect(item).not.toBeInstanceOf(ScreenshotItem);
+    expect(ScreenshotItem.isScreenshotItem(item)).toBe(true);
+    expect(ScreenshotItem.isScreenshotItem({ id: item.id })).toBe(false);
+    const execution = new ExecutionDump({
+      id: 'cross-module',
+      logTime: 1,
+      name: 'capture',
+      tasks: [
+        {
+          taskId: 'capture',
+          type: 'Log',
+          subType: 'Screenshot',
+          status: 'finished',
+          recorder: [{ type: 'screenshot', ts: 1, screenshot: item }],
+        } as any,
+      ],
+    });
+    expect(execution.collectScreenshots()).toEqual([item]);
+    const dump = new ReportActionDump({
+      sdkVersion: 'test',
+      groupName: 'test',
+      modelBriefs: [],
+      executions: [execution],
+    });
+    expect(dump.serializeWithInlineScreenshots()).toContain(testBase64);
+  });
 
   describe('create', () => {
     it('should create a ScreenshotItem from base64 string', () => {

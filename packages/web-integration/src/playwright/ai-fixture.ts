@@ -1,4 +1,4 @@
-import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
+import { resolveBrowserAgentRuntimeOptions } from '@/common/browser-agent';
 import type { WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
@@ -8,10 +8,15 @@ import {
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
-import { uuid } from '@midscene/shared/utils';
-import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
+import { replaceIllegalPathCharsAndSpace, uuid } from '@midscene/shared/utils';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
+import {
+  PlaywrightAgent,
+  PlaywrightBrowserAgent,
+  type PlaywrightWebPage,
+} from './agent';
+import { buildPlaywrightReportTag } from './report-filename';
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
 const debugPage = getDebug('web:playwright:ai-fixture');
@@ -65,12 +70,14 @@ export type PlaywrightAiFixtureOptions = Omit<
   | 'reportFileName'
   | 'cache'
 > & {
+  autoFollowNewPage?: boolean;
   cache?: PlaywrightCache;
 };
 
 export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
   const {
     forceSameTabNavigation = true,
+    autoFollowNewPage = false,
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
     cache,
@@ -139,21 +146,45 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
       const cacheConfig = processTestCacheConfig(testInfo);
       // `replaceIllegalPathCharsAndSpace` intentionally preserves `/` and `\`
       // so groupName/groupDescription can still carry hierarchy. But
-      // ReportGenerator rejects path separators in the file name, so strip
-      // them here for the report tag only.
-      const reportTag = `playwright-${title.replace(/[\\/]/g, '-')}-${idForPage}`;
+      // ReportGenerator rejects path separators in the file name, so the
+      // report tag builder strips them without changing the group metadata.
+      const reportTag = buildPlaywrightReportTag(title, idForPage);
 
-      const agent = new PlaywrightAgent(page, {
+      if (autoFollowNewPage && forceSameTabNavigation === true) {
+        throw new Error(
+          '[midscene] autoFollowNewPage cannot be used with forceSameTabNavigation: true.',
+        );
+      }
+
+      const runtimeOptions = resolveBrowserAgentRuntimeOptions({
+        agentName: 'PlaywrightAiFixture',
+        pageScope: autoFollowNewPage ? 'browser' : 'page',
+        forceSameTabNavigation: autoFollowNewPage
+          ? undefined
+          : forceSameTabNavigation,
+        autoFollowNewPage,
+      });
+
+      const commonAgentOpts = {
         testId: reportTag,
         reportFileName: reportTag,
-        forceSameTabNavigation,
         cache: cacheConfig,
         groupName: title,
         groupDescription: file,
         generateReport: true,
         ...sharedAgentOptions,
         ...opts,
-      });
+      };
+
+      const agent = autoFollowNewPage
+        ? new PlaywrightBrowserAgent(page.context(), page, {
+            ...commonAgentOpts,
+            autoFollowNewPage: runtimeOptions.autoFollowNewPage,
+          })
+        : new PlaywrightAgent(page, {
+            ...commonAgentOpts,
+            forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+          });
       pageAgentMap[idForPage] = agent;
       const records = getAgentRecordsForTest(testInfo);
       const record: AgentRecord = { agent };

@@ -11,8 +11,9 @@ import {
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
+  globalModelConfigManager,
 } from '@midscene/shared/env';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const defaultModelConfig = {
   [MIDSCENE_MODEL_NAME]: 'qwen2.5-vl-max',
@@ -37,13 +38,72 @@ const createMockInterface = () =>
     actionSpace: () => [],
   }) as any;
 
+const stubModelEnv = (config: Record<string, string>) => {
+  for (const [key, value] of Object.entries(config)) {
+    rs.stubEnv(key, value);
+  }
+  globalModelConfigManager.clearModelConfigMap();
+};
+
 describe('Agent with custom OpenAI client', () => {
   beforeEach(() => {
-    vi.mock('openai');
+    rs.mock('openai');
+    stubModelEnv(defaultModelConfig);
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.unstubAllEnvs();
+    globalModelConfigManager.clearModelConfigMap();
+    rs.clearAllMocks();
+  });
+
+  it('routes aiLocate and action targets to Locate without changing Planning or Insight', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig: {
+        ...complexModelConfig,
+        MIDSCENE_LOCATE_MODEL_NAME: 'locator',
+        MIDSCENE_LOCATE_MODEL_BASE_URL: 'https://locate.example/v1',
+        MIDSCENE_LOCATE_MODEL_API_KEY: 'locate-key',
+        MIDSCENE_LOCATE_MODEL_FAMILY: 'qwen3-vl',
+      },
+    });
+    const runPlans = rs
+      .spyOn((agent as any).taskExecutor, 'runPlans')
+      .mockResolvedValue({ output: { element: { center: [50, 50] } } });
+    await agent.aiLocate('button');
+    await agent.callActionInActionSpace('Tap', {
+      locate: { prompt: 'button' },
+    });
+    expect(runPlans).toHaveBeenCalledTimes(2);
+    for (const call of runPlans.mock.calls) {
+      expect((call[2] as any).config).toMatchObject({
+        intent: 'planning',
+        modelName: 'gpt-5.1',
+      });
+      expect((call[3] as any).config).toMatchObject({
+        intent: 'locate',
+        slot: 'locate',
+        modelName: 'locator',
+      });
+    }
+    expect(agent.modelConfigManager.getModelConfig('insight').modelName).toBe(
+      'model-for-insight',
+    );
+  });
+
+  it('reports the locate intent even when using the default model slot', () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig: defaultModelConfig,
+    });
+    const consume = rs.spyOn(agent as any, 'consumeUsage');
+    const runtime = (agent as any).resolveModelRuntime('locate');
+    runtime.onUsage({ slot: 'default', total_tokens: 12 });
+    expect(consume).toHaveBeenCalledWith(
+      expect.objectContaining({ intent: 'locate', slot: 'default' }),
+      expect.any(String),
+    );
   });
 
   describe('default modelConfig without createOpenAIClient', () => {
@@ -71,13 +131,16 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
+          "responseFormat": "auto",
           "retryCount": 1,
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -99,13 +162,16 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
+          "responseFormat": "auto",
           "retryCount": 1,
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -127,13 +193,16 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
+          "responseFormat": "auto",
           "retryCount": 1,
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -167,13 +236,16 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
+          "responseFormat": "auto",
           "retryCount": 1,
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -195,13 +267,16 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-planning-key",
           "openaiBaseURL": "https://api.smaple-planning.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
+          "responseFormat": "auto",
           "retryCount": 1,
           "retryInterval": 2000,
           "slot": "planning",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -223,13 +298,16 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-insight-key",
           "openaiBaseURL": "https://api.sample-insight.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
+          "responseFormat": "auto",
           "retryCount": 1,
           "retryInterval": 2000,
           "slot": "insight",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -239,9 +317,87 @@ describe('Agent with custom OpenAI client', () => {
   });
 
   describe('constructor with createOpenAIClient', () => {
+    it('should expose createOpenAIClient on public modelConfigManager for factory-only agents', () => {
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const agent = new Agent(createMockInterface(), {
+        createOpenAIClient: mockCreateClient,
+      });
+
+      const defaultConfig = agent.modelConfigManager.getModelConfig('default');
+      const insightConfig = agent.modelConfigManager.getModelConfig('insight');
+
+      expect(defaultConfig.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
+      expect(insightConfig.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(insightConfig.createOpenAIClient).toBe(mockCreateClient);
+    });
+
+    it('should combine global model config with an agent-scoped createOpenAIClient', () => {
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const agent = new Agent(createMockInterface(), {
+        createOpenAIClient: mockCreateClient,
+      });
+
+      const runtime = (agent as any).resolveModelRuntime('default');
+
+      expect(runtime.config.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(runtime.config.openaiApiKey).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_API_KEY],
+      );
+      expect(runtime.config.openaiBaseURL).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_BASE_URL],
+      );
+      expect(runtime.config.createOpenAIClient).toBe(mockCreateClient);
+      expect(mockCreateClient).not.toHaveBeenCalled();
+    });
+
+    it('should isolate createOpenAIClient between agents sharing global config', () => {
+      const firstCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const secondCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const firstAgent = new Agent(createMockInterface(), {
+        createOpenAIClient: firstCreateClient,
+      });
+      const secondAgent = new Agent(createMockInterface(), {
+        createOpenAIClient: secondCreateClient,
+      });
+
+      const firstRuntime = (firstAgent as any).resolveModelRuntime('default');
+      const secondRuntime = (secondAgent as any).resolveModelRuntime('default');
+      const firstRuntimeAgain = (firstAgent as any).resolveModelRuntime(
+        'default',
+      );
+
+      expect(firstRuntime.config.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(secondRuntime.config.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(firstRuntime.config).not.toBe(secondRuntime.config);
+      expect(firstRuntime.config.createOpenAIClient).toBe(firstCreateClient);
+      expect(secondRuntime.config.createOpenAIClient).toBe(secondCreateClient);
+      expect(firstRuntimeAgain.config.createOpenAIClient).toBe(
+        firstCreateClient,
+      );
+    });
+
     it('should accept createOpenAIClient in AgentOpt with modelConfig', () => {
-      const mockCreateClient = vi.fn(async () => ({
-        chat: { completions: { create: vi.fn() } },
+      const mockCreateClient = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
       }));
 
       // Create a mock interface instance
@@ -257,8 +413,8 @@ describe('Agent with custom OpenAI client', () => {
     });
 
     it('should pass createOpenAIClient to ModelConfigManager when modelConfig is provided', () => {
-      const mockCreateClient = vi.fn(async () => ({
-        chat: { completions: { create: vi.fn() } },
+      const mockCreateClient = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
       }));
 
       // Create a mock interface instance
@@ -295,12 +451,12 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('intent-specific custom clients', () => {
     it('should support different clients for different intents', () => {
-      const mockCreateClient: CreateOpenAIClientFn = vi.fn(
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(
         async (_client, opts) => {
           const { apiKey } = opts as { apiKey?: string };
           // Return different mock clients based on provided options
           return {
-            chat: { completions: { create: vi.fn() } },
+            chat: { completions: { create: rs.fn() } },
             _apiKey: apiKey, // For testing purposes
           };
         },
@@ -332,13 +488,13 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('observability wrapper integration', () => {
     it('should support wrapping clients with langsmith-style wrappers', async () => {
-      const mockWrapOpenAI = vi.fn((client, options) => ({
+      const mockWrapOpenAI = rs.fn((client, options) => ({
         ...client,
         _wrapped: true,
         _options: options,
       }));
 
-      const mockCreateClient: CreateOpenAIClientFn = vi.fn(
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(
         async (client, opts) => {
           const options = opts as { apiKey?: string };
 
@@ -379,7 +535,7 @@ describe('Agent with custom OpenAI client', () => {
       expect(planningConfig.createOpenAIClient).toBeDefined();
 
       // Simulate calling the client creator
-      const baseClient = { chat: { completions: { create: vi.fn() } } };
+      const baseClient = { chat: { completions: { create: rs.fn() } } };
       const clientOptions = {
         baseURL: planningConfig.openaiBaseURL,
         apiKey: planningConfig.openaiApiKey,
@@ -406,8 +562,8 @@ describe('Agent with custom OpenAI client', () => {
     });
 
     it('should provide all config parameters to createOpenAIClient', async () => {
-      const mockCreateClient: CreateOpenAIClientFn = vi.fn(async () => ({
-        chat: { completions: { create: vi.fn() } },
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
       }));
 
       // Create a mock interface instance
@@ -426,8 +582,8 @@ describe('Agent with custom OpenAI client', () => {
         'default',
       );
 
-      // Simulate what createChatClient does
-      const baseClient = { chat: { completions: { create: vi.fn() } } };
+      // Simulate invoking the custom client hook.
+      const baseClient = { chat: { completions: { create: rs.fn() } } };
       const options = {
         baseURL: config.openaiBaseURL,
         apiKey: config.openaiApiKey,
@@ -442,8 +598,8 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('performance characteristics', () => {
     it('should inject createOpenAIClient during config initialization, not on getModelConfig', () => {
-      const mockCreateClient = vi.fn(async () => ({
-        chat: { completions: { create: vi.fn() } },
+      const mockCreateClient = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
       }));
 
       // Create a mock interface instance
@@ -473,7 +629,7 @@ describe('Agent with custom OpenAI client', () => {
   });
 
   describe('planning locate strategy', () => {
-    it('should not include bbox in planning when planning config is explicitly resolved', async () => {
+    it('should pass balance effort when planning config is explicitly resolved', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {
         modelConfig: {
@@ -486,7 +642,7 @@ describe('Agent with custom OpenAI client', () => {
             defaultModelConfig[MIDSCENE_MODEL_BASE_URL],
         },
       });
-      const actionSpy = vi
+      const actionSpy = rs
         .spyOn((agent as any).taskExecutor, 'action')
         .mockResolvedValue({
           output: {
@@ -497,18 +653,18 @@ describe('Agent with custom OpenAI client', () => {
       await agent.aiAct('click the submit button');
 
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][3]).toBe(false);
+      expect(actionSpy.mock.calls[0][6]).toBe('balance');
       expect(
         (agent as any).modelConfigManager.getModelConfig('planning').slot,
       ).toBe('planning');
     });
 
-    it('should include bbox in planning when planning config falls back to default', async () => {
+    it('should pass balance effort when planning config falls back to default', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
       });
-      const actionSpy = vi
+      const actionSpy = rs
         .spyOn((agent as any).taskExecutor, 'action')
         .mockResolvedValue({
           output: {
@@ -519,13 +675,113 @@ describe('Agent with custom OpenAI client', () => {
       await agent.aiAct('click the submit button');
 
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][3]).toBe(true);
+      expect(actionSpy.mock.calls[0][6]).toBe('balance');
       expect(
         (agent as any).modelConfigManager.getModelConfig('planning').slot,
       ).toBe('default');
     });
 
-    it('should disable deepThink before resolving custom planning strategy', async () => {
+    it('should prefer effort over deepThink and explain precedence', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: defaultModelConfig,
+      });
+      const actionSpy = rs
+        .spyOn((agent as any).taskExecutor, 'action')
+        .mockResolvedValue({
+          output: {
+            yamlFlow: [],
+          },
+        });
+      const warnSpy = rs
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      await agent.aiAct('click the submit button', {
+        deepThink: false,
+        effort: 'deepThink',
+      });
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Midscene]',
+        'When both "effort" and "deepThink" are provided, "effort" takes precedence.',
+      );
+      expect(actionSpy.mock.calls[0][6]).toBe('deepThink');
+    });
+
+    it('should prefer balance effort over deepThink and explain precedence', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: defaultModelConfig,
+      });
+      const actionSpy = rs
+        .spyOn((agent as any).taskExecutor, 'action')
+        .mockResolvedValue({
+          output: {
+            yamlFlow: [],
+          },
+        });
+      const warnSpy = rs
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      await agent.aiAct('click the submit button', {
+        deepThink: true,
+        effort: 'balance',
+      });
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Midscene]',
+        'When both "effort" and "deepThink" are provided, "effort" takes precedence.',
+      );
+      expect(actionSpy.mock.calls[0][6]).toBe('balance');
+    });
+
+    it('should keep supporting deepThink without an experimental warning', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: defaultModelConfig,
+      });
+      const actionSpy = rs
+        .spyOn((agent as any).taskExecutor, 'action')
+        .mockResolvedValue({
+          output: {
+            yamlFlow: [],
+          },
+        });
+      const warnSpy = rs
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      await agent.aiAct('click the submit button', { deepThink: true });
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(actionSpy.mock.calls[0][6]).toBe('deepThink');
+    });
+
+    it('should support explicit fast effort without a public-use warning', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: defaultModelConfig,
+      });
+      const actionSpy = rs
+        .spyOn((agent as any).taskExecutor, 'action')
+        .mockResolvedValue({
+          output: {
+            yamlFlow: [],
+          },
+        });
+      const warnSpy = rs
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      await agent.aiAct('click the submit button', { effort: 'fast' });
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(actionSpy.mock.calls[0][6]).toBe('fast');
+    });
+
+    it('should reject fast effort before running custom planning', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {
         modelConfig: {
@@ -533,14 +789,34 @@ describe('Agent with custom OpenAI client', () => {
           [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
         },
       });
-      const actionSpy = vi
+      const actionSpy = rs.spyOn((agent as any).taskExecutor, 'action');
+      rs.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      await expect(
+        agent.aiAct('click the submit button', { effort: 'fast' }),
+      ).rejects.toThrow(
+        'The "fast" aiAct effort is not supported with custom planning adapters (modelFamily: auto-glm).',
+      );
+
+      expect(actionSpy).not.toHaveBeenCalled();
+    });
+
+    it('should support deepThink and normalize unsupported custom planning', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: {
+          ...defaultModelConfig,
+          [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
+        },
+      });
+      const actionSpy = rs
         .spyOn((agent as any).taskExecutor, 'action')
         .mockResolvedValue({
           output: {
             yamlFlow: [],
           },
         });
-      const warnSpy = vi
+      const warnSpy = rs
         .spyOn(console, 'warn')
         .mockImplementation(() => undefined);
 
@@ -548,12 +824,10 @@ describe('Agent with custom OpenAI client', () => {
 
       expect(warnSpy).toHaveBeenCalledWith(
         '[Midscene]',
-        'The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: auto-glm). It will be ignored.',
+        'The "deepThink" aiAct effort is not supported with custom planning adapters (modelFamily: auto-glm). It will be ignored.',
       );
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][3]).toBe(true);
-      expect(actionSpy.mock.calls[0][7]).toBe(1);
-      expect(actionSpy.mock.calls[0][8]).toBe(false);
+      expect(actionSpy.mock.calls[0][6]).toBe('balance');
     });
 
     it('should disable deepLocate before running custom planning', async () => {
@@ -564,14 +838,14 @@ describe('Agent with custom OpenAI client', () => {
           [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
         },
       });
-      const actionSpy = vi
+      const actionSpy = rs
         .spyOn((agent as any).taskExecutor, 'action')
         .mockResolvedValue({
           output: {
             yamlFlow: [],
           },
         });
-      const warnSpy = vi
+      const warnSpy = rs
         .spyOn(console, 'warn')
         .mockImplementation(() => undefined);
 
@@ -582,7 +856,7 @@ describe('Agent with custom OpenAI client', () => {
         'The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: auto-glm). It will be ignored.',
       );
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][10]).toBe(false);
+      expect(actionSpy.mock.calls[0][8]).toBe(false);
     });
   });
 });

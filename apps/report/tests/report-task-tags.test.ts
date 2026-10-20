@@ -3,36 +3,51 @@ import type {
   ExecutionTaskPlanningLocate,
   ExecutionTaskPlanningParam,
 } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   hasDeepLocateFlag,
   hasDeepThinkFlag,
+  hasObserverAssertionFlag,
 } from '../src/utils/report-task-tags';
 
 describe('report task tag flags', () => {
-  it('consumes deepThink from aiAct planning task dump params', () => {
+  it('shows DeepThink for deepThink effort in aiAct planning task dump params', () => {
     const task = {
       type: 'Planning',
       taskId: 'plan-deep-think',
       status: 'finished',
       param: {
-        deepThink: true,
+        effort: 'deepThink',
       },
     } satisfies Pick<ExecutionTask, 'type' | 'taskId' | 'status'> & {
-      param: Pick<ExecutionTaskPlanningParam, 'deepThink'>;
+      param: Pick<ExecutionTaskPlanningParam, 'effort'>;
     };
 
     expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(true);
   });
 
-  it('does not mark planning tasks without deepThink', () => {
+  it.each(['balance', 'fast'] as const)(
+    'does not show DeepThink for %s effort',
+    (effort) => {
+      const task = {
+        type: 'Planning',
+        taskId: `plan-${effort}`,
+        status: 'finished',
+        param: { effort },
+      } satisfies Pick<ExecutionTask, 'type' | 'taskId' | 'status'> & {
+        param: Pick<ExecutionTaskPlanningParam, 'effort'>;
+      };
+
+      expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(false);
+    },
+  );
+
+  it('does not read the legacy planning deepThink dump field', () => {
     const task = {
       type: 'Planning',
-      taskId: 'plan-normal',
+      taskId: 'plan-legacy-deep-think',
       status: 'finished',
-      param: {},
-    } satisfies Pick<ExecutionTask, 'type' | 'taskId' | 'status'> & {
-      param: Pick<ExecutionTaskPlanningParam, 'deepThink'>;
+      param: { deepThink: true },
     };
 
     expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(false);
@@ -69,5 +84,54 @@ describe('report task tag flags', () => {
     >;
 
     expect(hasDeepLocateFlag(task as ExecutionTask)).toBe(true);
+  });
+
+  it('marks tasks with observed-frame recorder items', () => {
+    const task = {
+      type: 'Insight',
+      subType: 'Assert',
+      taskId: 'assert-observed',
+      status: 'finished',
+      recorder: [
+        {
+          type: 'screenshot',
+          ts: 1000,
+          timing: 'observed-frame',
+          screenshot: { base64: 'fake' },
+        },
+      ],
+    } as unknown as ExecutionTask;
+
+    expect(hasObserverAssertionFlag(task)).toBe(true);
+  });
+
+  it('does not mark tasks without observed-frame recorder items', () => {
+    const task = {
+      type: 'Insight',
+      subType: 'Assert',
+      taskId: 'assert-normal',
+      status: 'finished',
+      recorder: [
+        {
+          type: 'screenshot',
+          ts: 1000,
+          timing: 'after-calling',
+          screenshot: { base64: 'fake' },
+        },
+      ],
+    } as unknown as ExecutionTask;
+
+    expect(hasObserverAssertionFlag(task)).toBe(false);
+  });
+
+  it('does not mark tasks with no recorder at all', () => {
+    const task = {
+      type: 'Insight',
+      subType: 'Boolean',
+      taskId: 'boolean-bare',
+      status: 'finished',
+    } as unknown as ExecutionTask;
+
+    expect(hasObserverAssertionFlag(task)).toBe(false);
   });
 });

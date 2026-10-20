@@ -1,396 +1,58 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ModelEnvConfigFormFields } from './ModelEnvConfigFormFields';
-import { ModelEnvConfigStatus } from './ModelEnvConfigStatus';
+import { ConfigModal, type ConfigModalTab } from '@midscene/visualizer';
+import type { StudioAgentOptions } from '../../../shared/agent-options';
 import {
+  FIXED_MODEL_ENV_FIELDS,
+  getModelEnvConfigError,
   parseEnvText,
-  resolveModelConnection,
   setEnvFieldValue,
 } from './connectivity-env';
 
-type TabKey = 'text' | 'form';
-
-type TestStatus =
-  | { kind: 'idle' }
-  | { kind: 'running' }
-  | { kind: 'success' }
-  | { kind: 'error'; message?: string };
-
 export interface ModelEnvConfigModalProps {
   open: boolean;
-  initialTab?: TabKey;
+  initialTab?: ConfigModalTab;
   textValue?: string;
+  agentOptionsValue?: StudioAgentOptions;
   onClose: () => void;
-  onSave?: (payload: { text: string }) => void;
-}
-
-const TEXT_PLACEHOLDER =
-  'MIDSCENE_MODEL_BASE_URL=...\nMIDSCENE_MODEL_API_KEY=...\nMIDSCENE_MODEL_NAME=...\nMIDSCENE_MODEL_FAMILY=...';
-const closeIconSrc = new URL('./model-env-close.svg', import.meta.url).href;
-const connectivityIconSrc = new URL(
-  './model-env-connectivity.svg',
-  import.meta.url,
-).href;
-const SAVE_AFTER_SUCCESS_DELAY_MS = 1800;
-
-function ConnectivityPlayIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-4 w-4 shrink-0 text-text-primary"
-      fill="none"
-      viewBox="0 0 16 16"
-    >
-      <path
-        d="M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z"
-        stroke="currentColor"
-        strokeLinejoin="round"
-        strokeWidth="1.33333"
-      />
-    </svg>
-  );
-}
-
-function EnvModalHeader({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="relative z-10 box-border flex w-full items-center justify-between px-[20px] pt-[20.8px]">
-      <h2 className="m-0 font-sans text-[16px] font-semibold leading-[24px] tracking-normal text-text-primary">
-        Model Env Config
-      </h2>
-      <button
-        aria-label="Close"
-        className="flex h-[16px] w-[16px] cursor-pointer items-center justify-center border-0 bg-transparent p-0"
-        onClick={onClose}
-        type="button"
-      >
-        <img
-          alt=""
-          aria-hidden="true"
-          className="h-[16px] w-[16px]"
-          src={closeIconSrc}
-        />
-      </button>
-    </div>
-  );
-}
-
-function EnvModalTabs({
-  tab,
-  onTabChange,
-}: {
-  tab: TabKey;
-  onTabChange: (tab: TabKey) => void;
-}) {
-  return (
-    <div className="relative z-10 box-border flex h-[36px] w-[210px] items-center rounded-[32px] border border-border-control bg-surface-muted p-[2px]">
-      {/*
-        Active tab fills with `bg-surface-elevated` for the white pill on
-        light mode. In dark mode `surface-elevated` and `surface-muted`
-        collapse to the same `#2b2b2b`, so the pill disappears — fall
-        back to the translucent `bg-surface-active` overlay only in dark.
-      */}
-      <button
-        className={`flex h-[32px] w-[103px] cursor-pointer items-center justify-center border-0 p-0 font-sans text-[14px] leading-[16.9px] transition-colors duration-200 ${
-          tab === 'text'
-            ? 'rounded-[30px] bg-surface-elevated font-medium text-text-primary dark:bg-surface-active'
-            : 'rounded-[10px] bg-transparent font-normal text-text-secondary'
-        }`}
-        onClick={() => onTabChange('text')}
-        type="button"
-      >
-        .env Style
-      </button>
-      <button
-        className={`flex h-[32px] w-[103px] cursor-pointer items-center justify-center border-0 p-0 font-sans text-[14px] leading-[16.9px] transition-colors duration-200 ${
-          tab === 'form'
-            ? 'rounded-[30px] bg-surface-elevated font-medium text-text-primary dark:bg-surface-active'
-            : 'rounded-[10px] bg-transparent font-normal text-text-secondary'
-        }`}
-        onClick={() => onTabChange('form')}
-        type="button"
-      >
-        Form Style
-      </button>
-    </div>
-  );
-}
-
-function EnvModalFooter({
-  onConnectivityTest,
-  onSave,
-  canRunConnectivityTest,
-  testStatus,
-}: {
-  onConnectivityTest: () => void;
-  onSave: () => void;
-  canRunConnectivityTest: boolean;
-  testStatus: TestStatus;
-}) {
-  const isTesting = testStatus.kind === 'running';
-  const connectivityLabel = isTesting ? 'Testing...' : 'Verify and Save Model';
-
-  return (
-    <div className="relative z-10 mt-auto box-border flex w-full items-center justify-end gap-[16px] px-[20px] pb-[24px]">
-      <button
-        className={`flex h-[32px] w-auto min-w-[190px] items-center justify-center gap-[6px] rounded-[8px] border border-border-control bg-surface-elevated px-[16px] py-0 ${
-          isTesting
-            ? 'cursor-not-allowed opacity-60'
-            : canRunConnectivityTest
-              ? 'cursor-pointer hover:bg-surface-hover'
-              : 'cursor-not-allowed'
-        }`}
-        disabled={!canRunConnectivityTest || isTesting}
-        onClick={onConnectivityTest}
-        type="button"
-      >
-        {isTesting ? (
-          <img
-            alt=""
-            className="h-4 w-4 animate-spin"
-            src={connectivityIconSrc}
-          />
-        ) : (
-          <ConnectivityPlayIcon />
-        )}
-        <span className="whitespace-nowrap font-sans text-[14px] font-medium text-text-primary leading-[16px]">
-          {connectivityLabel}
-        </span>
-      </button>
-
-      <button
-        className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border border-brand bg-brand p-0 hover:opacity-90"
-        onClick={onSave}
-        type="button"
-      >
-        <span className="w-[33px] overflow-hidden whitespace-nowrap text-center font-sans text-[14px] font-medium leading-[16px] text-white">
-          Save
-        </span>
-      </button>
-    </div>
-  );
+  onSave?: (payload: {
+    text: string;
+    agentOptions: StudioAgentOptions;
+  }) => void | Promise<void>;
 }
 
 export function ModelEnvConfigModal({
   open,
   initialTab = 'text',
-  textValue: initialTextValue,
+  textValue = '',
+  agentOptionsValue = {},
   onClose,
   onSave,
 }: ModelEnvConfigModalProps) {
-  const [tab, setTab] = useState<TabKey>(initialTab);
-  const [text, setText] = useState(initialTextValue ?? '');
-  const [testStatus, setTestStatus] = useState<TestStatus>({ kind: 'idle' });
-  const testRunIdRef = useRef(0);
-  const pendingSaveTimerRef = useRef<number | null>(null);
-
-  const clearPendingSaveTimer = () => {
-    if (pendingSaveTimerRef.current === null) {
-      return;
-    }
-    window.clearTimeout(pendingSaveTimerRef.current);
-    pendingSaveTimerRef.current = null;
-  };
-
-  useEffect(() => {
-    if (!open) {
-      clearPendingSaveTimer();
-      return;
-    }
-
-    clearPendingSaveTimer();
-    testRunIdRef.current += 1;
-    setTab(initialTab);
-    setText(initialTextValue ?? '');
-    setTestStatus({ kind: 'idle' });
-  }, [initialTab, initialTextValue, open]);
-
-  useEffect(() => () => clearPendingSaveTimer(), []);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        onClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
-
-  const envValues = useMemo(() => parseEnvText(text), [text]);
-  const resolvedConnection = useMemo(
-    () => resolveModelConnection(envValues),
-    [envValues],
-  );
-  const validationError =
-    'error' in resolvedConnection &&
-    resolvedConnection.kind === 'invalid-config'
-      ? resolvedConnection.error
-      : null;
-  const canRunConnectivityTest = !('error' in resolvedConnection);
-  const isExpandedForm = tab === 'form';
-  const hasTestStatus =
-    testStatus.kind === 'success' || testStatus.kind === 'error';
-  const statusKind = validationError
-    ? 'error'
-    : hasTestStatus
-      ? testStatus.kind
-      : null;
-  const statusMessage =
-    validationError ??
-    (testStatus.kind === 'error' ? testStatus.message : undefined);
-  const hasStatusRow = statusKind !== null;
-  const hasValidationStatus = validationError !== null;
-  const modalHeightClass = (() => {
-    if (isExpandedForm && hasValidationStatus) return 'h-[683px]';
-    if (isExpandedForm && hasStatusRow) return 'h-[603px]';
-    if (isExpandedForm) return 'h-[563px]';
-    if (hasValidationStatus) return 'h-[524px]';
-    if (hasStatusRow) return 'h-[444px]';
-    return 'h-[404px]';
-  })();
-  const modalVerticalOffsetClass = (() => {
-    if (isExpandedForm && hasValidationStatus) return 'translate-y-[139.5px]';
-    if (isExpandedForm && hasStatusRow) return 'translate-y-[99.5px]';
-    if (isExpandedForm) return 'translate-y-[79.5px]';
-    if (hasValidationStatus) return 'translate-y-[60px]';
-    if (hasStatusRow) return 'translate-y-[20px]';
-    return '';
-  })();
-  const descriptionMarginClass = hasStatusRow ? 'mt-[12px]' : 'mt-[16px]';
-
-  if (!open) {
-    return null;
-  }
-
-  const handleTextChange = (nextText: string) => {
-    clearPendingSaveTimer();
-    testRunIdRef.current += 1;
-    setText(nextText);
-    setTestStatus((currentStatus) =>
-      currentStatus.kind === 'idle' ? currentStatus : { kind: 'idle' },
-    );
-  };
-
-  const handleFieldChange = (key: string, value: string) => {
-    handleTextChange(setEnvFieldValue(text, key, value));
-  };
-
-  const handleConnectivityTest = async () => {
-    if (testStatus.kind === 'running' || 'error' in resolvedConnection) {
-      return;
-    }
-
-    if (!window.studioRuntime) {
-      setTestStatus({
-        kind: 'error',
-        message: 'Studio runtime is not available.',
-      });
-      return;
-    }
-
-    const testRunId = testRunIdRef.current + 1;
-    testRunIdRef.current = testRunId;
-    setTestStatus({ kind: 'running' });
-    try {
-      const result = await window.studioRuntime.runConnectivityTest(envValues);
-      if (testRunIdRef.current !== testRunId) {
-        return;
-      }
-      if (result.passed) {
-        setTestStatus({ kind: 'success' });
-        clearPendingSaveTimer();
-        pendingSaveTimerRef.current = window.setTimeout(() => {
-          if (testRunIdRef.current === testRunId) {
-            onSave?.({ text });
-          }
-          pendingSaveTimerRef.current = null;
-        }, SAVE_AFTER_SUCCESS_DELAY_MS);
-        return;
-      }
-      setTestStatus({
-        kind: 'error',
-        message: result.message || 'Connectivity test failed without details.',
-      });
-    } catch (error) {
-      if (testRunIdRef.current !== testRunId) {
-        return;
-      }
-      setTestStatus({
-        kind: 'error',
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  };
-
-  const handleSave = () => {
-    clearPendingSaveTimer();
-    testRunIdRef.current += 1;
-    onSave?.({ text });
-  };
-
   return (
-    <div
-      aria-modal="true"
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/35 font-sans"
-      onClick={onClose}
-      // biome-ignore lint/a11y/useSemanticElements: overlay wrapper styled as backdrop; card below carries the dialog semantics
-      role="dialog"
-    >
-      <div
-        className={`relative box-border flex ${modalHeightClass} w-[400px] ${modalVerticalOffsetClass} flex-col overflow-hidden rounded-[16px] bg-surface-elevated shadow-[0px_4px_20px_rgba(0,0,0,0.05)]`}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <EnvModalHeader onClose={onClose} />
-        <div className="mt-[19.2px] px-[21px]">
-          <EnvModalTabs onTabChange={setTab} tab={tab} />
-        </div>
-
-        {tab === 'text' ? (
-          <div className="relative z-10 mt-[16px] flex w-full justify-center">
-            <textarea
-              className="box-border h-[162px] w-[360px] resize-none overflow-hidden rounded-[12px] border border-border-control bg-surface-elevated p-[12px] font-sans text-[14px] font-normal leading-[16.9px] text-text-primary outline-none placeholder:text-text-placeholder"
-              onChange={(event) => handleTextChange(event.target.value)}
-              placeholder={TEXT_PLACEHOLDER}
-              value={text}
-              wrap="off"
-            />
-          </div>
-        ) : (
-          <ModelEnvConfigFormFields
-            onFieldChange={handleFieldChange}
-            values={envValues}
-          />
-        )}
-
-        {tab === 'text' ? (
-          <div className={`relative z-10 ${descriptionMarginClass} px-[21px]`}>
-            <p className="m-0 font-sans text-[12px] font-normal leading-[14.5px] text-text-secondary">
-              The format is KEY=VALUE and separated by new lines. These data
-              will be saved{' '}
-              <span className="font-bold text-text-primary">
-                locally in your browser
-              </span>
-              .
-            </p>
-          </div>
-        ) : null}
-
-        {statusKind ? (
-          <ModelEnvConfigStatus kind={statusKind} message={statusMessage} />
-        ) : null}
-
-        <EnvModalFooter
-          canRunConnectivityTest={canRunConnectivityTest}
-          onConnectivityTest={handleConnectivityTest}
-          onSave={handleSave}
-          testStatus={testStatus}
-        />
-      </div>
-    </div>
+    <ConfigModal
+      agentOptionsValue={agentOptionsValue}
+      className="studio-model-env-config-modal"
+      envTextareaAutoSize={false}
+      envFields={FIXED_MODEL_ENV_FIELDS}
+      initialTab={initialTab}
+      onClose={onClose}
+      onSave={async (payload) => {
+        await onSave?.({
+          text: payload.text,
+          agentOptions: payload.agentOptions,
+        });
+      }}
+      onVerify={async (env) => {
+        if (!window.studioRuntime) {
+          throw new Error('Studio runtime is not available.');
+        }
+        return window.studioRuntime.runConnectivityTest(env);
+      }}
+      open={open}
+      parseEnvText={parseEnvText}
+      setEnvFieldValue={setEnvFieldValue}
+      showEnvStyleSelect
+      textValue={textValue}
+      validateEnvText={getModelEnvConfigError}
+    />
   );
 }

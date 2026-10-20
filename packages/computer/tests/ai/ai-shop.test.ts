@@ -1,9 +1,9 @@
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, vi } from 'vitest';
+import { beforeAll, describe, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import { openBrowserAndNavigate } from './test-utils';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 120 * 1000,
 });
 
@@ -23,7 +23,7 @@ describe('computer shop app automation', () => {
     'should automate shop login and cart operations',
     async () => {
       if (isCacheEnabled) {
-        vi.setConfig({ testTimeout: 1000 * 1000 });
+        rs.setConfig({ testTimeout: 1000 * 1000 });
       }
 
       await openBrowserAndNavigate(agent, 'https://www.saucedemo.com/');

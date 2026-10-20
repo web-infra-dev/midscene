@@ -5,7 +5,7 @@ import type {
   BaseAgent,
   ToolDefinition,
 } from '@midscene/shared/agent-tools/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { createTestContext } from './test-utils';
 import { launchPage } from './utils';
 
@@ -23,6 +23,10 @@ const GITHUB_LOGO_FIXTURE = path.resolve(
  */
 describe(
   'CLI assert tool with image prompts',
+  {
+    // AI calls are slow; keep these inside the project's standard AI budget.
+    timeout: 3 * 60 * 1000,
+  },
   () => {
     const ctx = createTestContext();
 
@@ -98,9 +102,5 @@ describe(
 
       expect(result.isError).toBe(true);
     });
-  },
-  {
-    // AI calls are slow; keep these inside the project's standard AI budget.
-    timeout: 3 * 60 * 1000,
   },
 );

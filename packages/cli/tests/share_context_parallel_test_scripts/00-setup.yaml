@@ -1,0 +1,14 @@
+tasks:
+  - name: Establish shared login state
+    flow:
+      - javascript: |
+          (function() {
+            document.cookie = 'authToken=parallel-token; path=/';
+            localStorage.setItem('userId', 'parallel-user');
+            sessionStorage.setItem('sessionId', 'setup-session');
+            document.querySelector('h1').textContent = 'Setup: shared login state established';
+            checkLoginStatus();
+            return true;
+          })()
+      - recordToReport: Setup login state
+        content: Cookie, localStorage, and sessionStorage have been initialized. The main YAML files should inherit only browser-context state.

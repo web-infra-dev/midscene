@@ -1,18 +1,48 @@
 import {
-  type AIArgs,
+  type MessageContent,
+  type ModelCallMessages,
   callAIWithObjectResponse,
   callAIWithStringResponse,
   getModelRuntime,
 } from '@midscene/core/ai-model';
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 import type { IModelConfig } from '@midscene/shared/env';
 import { message } from 'antd';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-import type { ChatCompletionContentPart } from 'openai/resources/index';
 import type { RecordingSession } from '../../store';
 import { recordLogger } from './logger';
+import { withRecorderMessageTimeout } from './messageTimeout';
 import { isChromeExtension, safeChromeAPI } from './types';
+
+const CONTENT_SCRIPT_MESSAGE_TIMEOUT_MS = 5_000;
+const CONTENT_SCRIPT_INJECTION_TIMEOUT_MS = 5_000;
+const CLEANUP_MESSAGE_TIMEOUT_MS = 2_000;
+
+export const sendContentScriptMessage = <T>(
+  tabId: number,
+  message: unknown,
+  operation: string,
+  timeoutMs = CONTENT_SCRIPT_MESSAGE_TIMEOUT_MS,
+): Promise<T> =>
+  withRecorderMessageTimeout(
+    safeChromeAPI.tabs.sendMessage(tabId, message) as Promise<T>,
+    `${operation} (tab ${tabId})`,
+    timeoutMs,
+  );
+
+const queryTabs = (
+  queryInfo: chrome.tabs.QueryInfo,
+  operation: string,
+  timeoutMs = CLEANUP_MESSAGE_TIMEOUT_MS,
+): Promise<chrome.tabs.Tab[]> =>
+  withRecorderMessageTimeout(
+    new Promise<chrome.tabs.Tab[]>((resolve) => {
+      safeChromeAPI.tabs.query(queryInfo, resolve);
+    }),
+    operation,
+    timeoutMs,
+  );
 
 // Generate default session name with current time
 export const generateDefaultSessionName = () => {
@@ -39,9 +69,13 @@ export const checkContentScriptInjected = async (
   if (!isChromeExtension()) return false;
 
   try {
-    const response = await safeChromeAPI.tabs.sendMessage(tabId, {
-      action: 'ping',
-    });
+    const response = await sendContentScriptMessage<{ success?: boolean }>(
+      tabId,
+      {
+        action: 'ping',
+      },
+      'content-script ping',
+    );
     const isInjected = response?.success === true;
     if (!isInjected) {
       recordLogger.warn('Content script not injected', { tabId });
@@ -73,7 +107,7 @@ export const checkContentScriptInjected = async (
 // Re-inject script if needed
 export const ensureScriptInjected = async (
   currentTab: chrome.tabs.Tab | null,
-) => {
+): Promise<boolean> => {
   if (!isChromeExtension() || !currentTab?.id) {
     recordLogger.error(
       'Cannot ensure script injection - invalid environment or tab',
@@ -85,7 +119,20 @@ export const ensureScriptInjected = async (
 
   if (!isInjected) {
     recordLogger.info('Injecting script', { tabId: currentTab.id });
-    await injectScript(currentTab);
+    const injectionSucceeded = await injectScript(currentTab);
+    if (!injectionSucceeded) {
+      return false;
+    }
+
+    const isInjectedAfterInjection = await checkContentScriptInjected(
+      currentTab.id,
+    );
+    if (!isInjectedAfterInjection) {
+      recordLogger.warn('Injected content script did not become ready', {
+        tabId: currentTab.id,
+      });
+      return false;
+    }
   }
   return true;
 };
@@ -94,28 +141,37 @@ export const ensureScriptInjected = async (
 export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
   if (!isChromeExtension()) {
     message.error('Chrome extension environment required for script injection');
-    return;
+    return false;
   }
 
   if (!currentTab?.id) {
     message.error('No active tab found');
-    return;
+    return false;
   }
 
   try {
     // Inject the record script first
-    await safeChromeAPI.scripting.executeScript({
-      target: { tabId: currentTab.id },
-      files: ['scripts/recorder-iife.js'],
-    });
+    await withRecorderMessageTimeout(
+      safeChromeAPI.scripting.executeScript({
+        target: { tabId: currentTab.id },
+        files: ['scripts/recorder-iife.js'],
+      }),
+      `recorder script injection (tab ${currentTab.id})`,
+      CONTENT_SCRIPT_INJECTION_TIMEOUT_MS,
+    );
 
     // Then inject the content script wrapper
-    await safeChromeAPI.scripting.executeScript({
-      target: { tabId: currentTab.id },
-      files: ['scripts/event-recorder-bridge.js'],
-    });
+    await withRecorderMessageTimeout(
+      safeChromeAPI.scripting.executeScript({
+        target: { tabId: currentTab.id },
+        files: ['scripts/event-recorder-bridge.js'],
+      }),
+      `recorder bridge injection (tab ${currentTab.id})`,
+      CONTENT_SCRIPT_INJECTION_TIMEOUT_MS,
+    );
 
     recordLogger.success('Script injected', { tabId: currentTab.id });
+    return true;
   } catch (error) {
     recordLogger.error(
       'Failed to inject script',
@@ -136,6 +192,7 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
     } else {
       message.error(`Failed to inject recording script: ${error}`);
     }
+    return false;
   }
 };
 
@@ -281,7 +338,7 @@ export const generateRecordTitle = async (
       const screenshots = getScreenshotsForLLM(events);
 
       // Create the message content
-      const messageContent: ChatCompletionContentPart[] = [
+      const messageContent: MessageContent[] = [
         {
           type: 'text',
           text: `Generate a concise title (5-7 words) and brief description (1-2 sentences) for a browser recording session with the following events:\n\n${JSON.stringify(summary, null, 2)}\n\nRespond with a JSON object containing "title" and "description" fields. The title should be action-oriented and highlight the main task accomplished. The description should provide slightly more detail about what was done.`,
@@ -297,10 +354,8 @@ export const generateRecordTitle = async (
 
         screenshots.forEach((screenshot) => {
           messageContent.unshift({
-            type: 'image_url',
-            image_url: {
-              url: screenshot,
-            },
+            type: 'image',
+            url: screenshot,
           });
         });
       }
@@ -321,7 +376,7 @@ export const generateRecordTitle = async (
       const response = await callAIWithObjectResponse<{
         title: string;
         description: string;
-      }>([prompt[0], prompt[1]], modelConfig);
+      }>([prompt[0], prompt[1]], getModelRuntime(modelConfig));
       if (response?.content) {
         return {
           title: response.content.title as string,
@@ -356,20 +411,28 @@ export const cleanupPreviousRecordings = async () => {
     recordLogger.info('Cleaning up previous recordings');
 
     // Get all tabs
-    const tabs = await new Promise<chrome.tabs.Tab[]>((resolve) => {
-      safeChromeAPI.tabs.query({}, resolve);
-    });
+    const tabs = await queryTabs({}, 'recording cleanup tab query');
 
     // Send cleanup message to all tabs
     const cleanupPromises = tabs.map(async (tab) => {
       if (!tab.id) return;
 
       try {
-        await safeChromeAPI.tabs.sendMessage(tab.id, {
-          action: 'stop',
-        });
+        await sendContentScriptMessage(
+          tab.id,
+          { action: 'stop' },
+          'recording cleanup',
+          CLEANUP_MESSAGE_TIMEOUT_MS,
+        );
       } catch (error) {
-        // Ignore errors for tabs that don't have our content script
+        // A non-responsive tab must not prevent a new recording from starting.
+        recordLogger.warn(
+          'Skipping unresponsive tab during recording cleanup',
+          {
+            tabId: tab.id,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
       }
     });
 
@@ -563,7 +626,7 @@ const generateAIMindmap = async (
       };
     });
 
-    const prompt: AIArgs = [
+    const prompt: ModelCallMessages = [
       {
         role: 'system',
         content: `You are an expert test automation analyst who creates detailed Mermaid mindmaps that preserve the complete sequence and details of user interactions.

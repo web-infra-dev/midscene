@@ -1,0 +1,36 @@
+name: PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  commitlint:
+    name: Validate title
+    if: github.event.action != 'edited' || github.event.changes.title
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Validate PR title
+      env:
+        PR_TITLE: ${{ github.event.pull_request.title }}
+      run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint

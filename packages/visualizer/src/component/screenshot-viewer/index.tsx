@@ -76,14 +76,19 @@ export default function ScreenshotViewer({
 
   useEffect(() => {
     if (!isMjpeg) return;
-    const timer = window.setTimeout(() => {
+    const retryIfFrameIsBlank = () => {
       const image = mjpegImageRef.current;
       if (!image || image.naturalWidth > 0 || image.naturalHeight > 0) {
         return;
       }
       setMjpegRetryToken(String(Date.now()));
-    }, 2500);
-    return () => window.clearTimeout(timer);
+    };
+    const initialTimer = window.setTimeout(retryIfFrameIsBlank, 2500);
+    const healthTimer = window.setInterval(retryIfFrameIsBlank, 2500);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(healthTimer);
+    };
   }, [isMjpeg, mjpegRetryToken, mjpegUrl]);
 
   // Core function to fetch screenshot
@@ -284,46 +289,50 @@ export default function ScreenshotViewer({
   const screenshotContent = (
     <div className="screenshot-content" ref={contentRef}>
       {isMjpeg ? (
-        <img
-          key={mjpegRetryToken || 'initial'}
-          ref={mjpegImageRef}
-          src={
-            !mjpegRetryToken
-              ? mjpegUrl
-              : `${mjpegUrl}${mjpegUrl?.includes('?') ? '&' : '?'}_mjpegRetry=${encodeURIComponent(mjpegRetryToken)}`
-          }
-          alt="Device Live Stream"
-          className="screenshot-image"
-          onError={() => {
-            // Server may have closed the polling fallback because the native
-            // MJPEG stream just came online; reconnect so the next /mjpeg
-            // request lands on the native (faster) path. Also covers
-            // transient network blips.
-            window.setTimeout(
-              () => setMjpegRetryToken(String(Date.now())),
-              500,
-            );
-          }}
-        />
+        <div className="screenshot-image-shell">
+          <img
+            key={mjpegRetryToken || 'initial'}
+            ref={mjpegImageRef}
+            src={
+              !mjpegRetryToken
+                ? mjpegUrl
+                : `${mjpegUrl}${mjpegUrl?.includes('?') ? '&' : '?'}_mjpegRetry=${encodeURIComponent(mjpegRetryToken)}`
+            }
+            alt="Device Live Stream"
+            className="screenshot-image"
+            onError={() => {
+              // Server may have closed the polling fallback because the native
+              // MJPEG stream just came online; reconnect so the next /mjpeg
+              // request lands on the native (faster) path. Also covers
+              // transient network blips.
+              window.setTimeout(
+                () => setMjpegRetryToken(String(Date.now())),
+                500,
+              );
+            }}
+          />
+        </div>
       ) : screenshot ? (
-        <img
-          src={
-            screenshot.startsWith('data:image/')
-              ? screenshot
-              : `data:image/png;base64,${screenshot}`
-          }
-          alt="Device Screenshot"
-          className="screenshot-image"
-          onLoad={() => console.log('Screenshot image loaded successfully')}
-          onError={(e) => {
-            console.error('Screenshot image load error:', e);
-            console.error(
-              'Screenshot data preview:',
-              screenshot.substring(0, 100),
-            );
-            setError('Failed to load screenshot image');
-          }}
-        />
+        <div className="screenshot-image-shell">
+          <img
+            src={
+              screenshot.startsWith('data:image/')
+                ? screenshot
+                : `data:image/png;base64,${screenshot}`
+            }
+            alt="Device Screenshot"
+            className="screenshot-image"
+            onLoad={() => console.log('Screenshot image loaded successfully')}
+            onError={(e) => {
+              console.error('Screenshot image load error:', e);
+              console.error(
+                'Screenshot data preview:',
+                screenshot.substring(0, 100),
+              );
+              setError('Failed to load screenshot image');
+            }}
+          />
+        </div>
       ) : (
         <div className="screenshot-placeholder">
           <p>No screenshot available</p>

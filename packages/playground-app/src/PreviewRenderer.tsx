@@ -107,10 +107,10 @@ export function PreviewRenderer({
 
   // Self-derive interaction capabilities from the connected device's
   // actionSpace. Tap is the gate for any pointer interaction; the drag
-  // flavor follows whichever name the device exposes (mobile devices ship
-  // both, Computer/Web only ship DragAndDrop). Keyboard injection rides on
-  // KeyboardPress / Input. If any device omits Tap, the interaction layer
-  // stays disabled — defense in depth, since /interact would 404 anyway.
+  // flavor prefers Swipe when the device exposes a continuous gesture and
+  // otherwise falls back to DragAndDrop. Keyboard injection rides on
+  // KeyboardPress / Input. If any device omits Tap, the interaction layer stays
+  // disabled — defense in depth, since /interact would 404 anyway.
   const manualControlEnabled = actionTypes?.includes('Tap') ?? false;
   const manualDragActionType: ManualDragActionType = actionTypes?.includes(
     'Swipe',

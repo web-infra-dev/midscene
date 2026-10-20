@@ -1,4 +1,5 @@
 import {
+  DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
   createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderSemantic,
@@ -10,6 +11,34 @@ import type {
 } from '@shared/electron-contract';
 import JSZip from 'jszip';
 import type { StudioRecordedEvent, StudioRecordingSession } from './types';
+
+export async function materializeStudioRecorderSessionScreenshots(
+  session: StudioRecordingSession,
+  loadScreenshot: (assetId: string) => Promise<string | null>,
+  maxScreenshots = DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+): Promise<StudioRecordingSession> {
+  const events: StudioRecordedEvent[] = [];
+  let remainingScreenshots = Math.max(0, maxScreenshots);
+  for (const event of session.events) {
+    if (!event.screenshotAsset || remainingScreenshots === 0) {
+      events.push(event);
+      continue;
+    }
+    const screenshot = await loadScreenshot(event.screenshotAsset.id);
+    if (!screenshot) {
+      throw new Error(
+        `Recorder screenshot asset is unavailable: ${event.screenshotAsset.id}`,
+      );
+    }
+    remainingScreenshots -= 1;
+    events.push({
+      ...event,
+      screenshotAsset: undefined,
+      screenshotWithBox: screenshot,
+    });
+  }
+  return { ...session, events };
+}
 
 function getElectronShell(): Pick<
   ElectronShellApi,
@@ -283,6 +312,28 @@ export function generateStudioRecorderYaml(session: StudioRecordingSession) {
     `# Generated from Midscene Studio Recorder: ${session.name}`,
     `${session.target.platformId}:`,
   ];
+
+  if (session.target.values.wdaBaseUrl === '${WDA_BASE_URL}') {
+    lines.splice(
+      3,
+      0,
+      '# Set WDA_BASE_URL to the original WDA gateway URL before replay.',
+    );
+  }
+  if (session.target.values.wdaMjpegUrl === '${WDA_MJPEG_URL}') {
+    lines.splice(
+      3,
+      0,
+      '# Set WDA_MJPEG_URL to the original MJPEG URL before replay.',
+    );
+  }
+  if (session.target.values.sessionId === '${WDA_SESSION_ID}') {
+    lines.splice(
+      3,
+      0,
+      '# Set WDA_SESSION_ID to the existing WDA session ID before replay.',
+    );
+  }
 
   const targetValues = Object.entries(session.target.values);
   if (targetValues.length > 0) {

@@ -182,3 +182,12 @@ export const contextTaskListSummary = (
   if (suffixText.length > 0) lines.push(...paddingLines(suffixText));
   return lines.join('\n');
 };
+
+export const formatYamlProgressSnapshot = (
+  message: string,
+  attempt: number,
+  totalAttempts: number,
+): string =>
+  totalAttempts > 1
+    ? `Attempt ${attempt}/${totalAttempts}\n${message}`
+    : message;

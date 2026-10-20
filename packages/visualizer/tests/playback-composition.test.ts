@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { shouldRestartPlaybackFromBeginning } from '../src/component/player/playback-controls';
 import {
   deriveFrameState,

@@ -1,8 +1,8 @@
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 240 * 1000,
   hookTimeout: 240 * 1000,
 });

@@ -137,7 +137,7 @@ describe('updater handlers', () => {
     }
   });
 
-  it('returns an available status from a raw electron-updater check result', async () => {
+  it('returns a Windows available status from a raw electron-updater check result', async () => {
     const { resolveUpdaterCheckStatus } = await import(
       '../src/main/updater-handlers'
     );
@@ -151,6 +151,30 @@ describe('updater handlers', () => {
       },
       { state: 'checking' },
       'win32',
+    );
+
+    expect(status).toEqual({
+      state: 'available',
+      version: '1.8.1',
+      releaseNotes: 'Bug fixes',
+      externalDownloadOnly: false,
+    });
+  });
+
+  it('keeps Linux raw check results on the external download path', async () => {
+    const { resolveUpdaterCheckStatus } = await import(
+      '../src/main/updater-handlers'
+    );
+
+    const status = resolveUpdaterCheckStatus(
+      {
+        updateInfo: {
+          version: '1.8.1',
+          releaseNotes: 'Bug fixes',
+        },
+      },
+      { state: 'checking' },
+      'linux',
     );
 
     expect(status).toEqual({

@@ -16,6 +16,15 @@ const buildGlmChatCompletionParams = (
     commonOverrideConfig.temperature = userConfig.temperature;
   }
 
+  // Zhipu structured output JSON mode:
+  // https://docs.bigmodel.cn/cn/guide/capabilities/struct-output
+  if (
+    userConfig.responseFormat !== 'none' &&
+    input.expectedJsonObjectResponse
+  ) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
+
   const modelSpecificConfig: Record<string, unknown> = {};
 
   if (reasoningEnabled !== 'default') {
@@ -38,10 +47,13 @@ export const glmAdapters = {
     chatCompletion: {
       unsupportedUserConfig: ['reasoningEffort', 'reasoningBudget'],
       buildChatCompletionParams: buildGlmChatCompletionParams,
+      useReasoningAsContentFallback: true,
     },
     locate: {
-      resultAdapter: {
-        coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      element: {
+        resultFormat: {
+          coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        },
       },
     },
   },
