@@ -322,8 +322,13 @@ describe('generated project integration', () => {
             : 'model backend unavailable',
         );
       }
-      if (state === 'model-error')
-        expect(result.stderr).not.toContain('clear this website');
+      if (state === 'model-error') {
+        // The configured assertion message is input, not the backend failure.
+        expect(result.stderr).toMatch(/^\s*Error: model backend unavailable$/m);
+        expect(result.stderr).toMatch(
+          /^\s*message: TodoMVC initial-state check failed\./m,
+        );
+      }
       const log = readFileSync(join(root, 'executed.log'), 'utf8')
         .trim()
         .split('\n');
