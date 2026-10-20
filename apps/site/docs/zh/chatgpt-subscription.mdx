@@ -47,7 +47,7 @@ SIWC 要求使用 Responses API 并开启流式返回，请保留示例中的 `o
 
 - **Playground**：在设置页面粘贴配置文本。
 - **CLI**：在运行命令的目录中创建 `.env` 文件，粘贴配置文本，无需添加 `export`。CLI 会自动读取该文件。
-- **JavaScript SDK**：将配置加载到 Node.js 进程的环境变量中。如果使用 `.env` 文件，请按照[通过 dotenv 加载配置](./model-common-config#通过-dotenv-为-javascript-sdk-加载-env)的说明操作。
+- **JavaScript SDK**：将配置加载到 Node.js 进程的环境变量中，具体方法见[设置环境变量](./model-common-config#设置环境变量)。
 
 登录命令保存的本地凭据不会自动填入上述模型配置，仍需手动设置 `MIDSCENE_MODEL_API_KEY`。
 
@@ -61,7 +61,7 @@ pnpm dlx @midscene/cli model verify
 
 该命令会使用 `.env` 中的值覆盖当前 Shell 中的同名变量。如果配置只保存在 Playground 中，请先将同一份配置保存为 `.env`，再运行命令。
 
-验证通过后，就可以继续[快速体验 GUI Agent](./quick-start)中的任务。如果验证失败，请参考[模型调试与可观测性](./model-debugging-observability)。
+验证通过后，就可以继续[快速体验 GUI Agent](./quick-start)中的任务。如果验证失败，请参考[模型高级配置与调试](./model-config#verify-model-connectivity)。
 
 ## 刷新 access token
 

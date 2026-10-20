@@ -10,6 +10,12 @@
 /zh/introduction/ /zh/ 301
 # HTTP compatibility for retired pages; Rspress client redirects run after the response.
 # Keep document destinations aligned with rspress.config.ts.
+/model-debugging-observability /model-config#verify-model-connectivity 301
+/model-debugging-observability.html /model-config#verify-model-connectivity 301
+/model-debugging-observability/ /model-config#verify-model-connectivity 301
+/zh/model-debugging-observability /zh/model-config#verify-model-connectivity 301
+/zh/model-debugging-observability.html /zh/model-config#verify-model-connectivity 301
+/zh/model-debugging-observability/ /zh/model-config#verify-model-connectivity 301
 /android-integration /platforms/android 301
 /android-integration.html /platforms/android 301
 /android-integration/ /platforms/android 301

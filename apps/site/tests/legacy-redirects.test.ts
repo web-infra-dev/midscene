@@ -71,6 +71,10 @@ describe('legacy HTTP redirects', () => {
       for (const [previous, current] of [
         ['reporting', 'consume-report-file'],
         ['model-strategy', 'model-selection'],
+        [
+          'model-debugging-observability',
+          'model-config#verify-model-connectivity',
+        ],
         ['cli', 'yaml-script-runner'],
         ['computer-introduction', 'platforms/desktop'],
         ['android-introduction', 'platforms/android'],

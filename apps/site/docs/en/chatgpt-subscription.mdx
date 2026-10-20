@@ -47,7 +47,7 @@ Load the complete configuration above according to how you use Midscene:
 
 - **Playground**: Paste the configuration text into the settings page.
 - **CLI**: Create a `.env` file in the directory where you run commands and paste the configuration without adding `export`. The CLI reads this file automatically.
-- **JavaScript SDK**: Load the configuration into the Node.js process environment. For `.env` files, follow [Load configuration with dotenv](./model-common-config#load-env-with-dotenv-for-the-javascript-sdk).
+- **JavaScript SDK**: Load the configuration into the Node.js process environment. See [Set environment variables](./model-common-config#set-environment-variables) for instructions.
 
 The credentials saved by the sign-in command do not automatically populate these model settings. You still need to set `MIDSCENE_MODEL_API_KEY` manually.
 
@@ -61,7 +61,7 @@ pnpm dlx @midscene/cli model verify
 
 This command uses values from `.env` to override variables with the same names in the current shell. If your configuration is only saved in Playground, save the same configuration to `.env` before running the command.
 
-Once verification succeeds, continue with the tasks in [Try the GUI Agent](./quick-start). For failed checks, see [Model debugging and observability](./model-debugging-observability).
+Once verification succeeds, continue with the tasks in [Try the GUI Agent](./quick-start). For failed checks, see [Model advanced configuration and debugging](./model-config#verify-model-connectivity).
 
 ## Refresh the access token
 
