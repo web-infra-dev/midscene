@@ -9,6 +9,8 @@ import {
   trackResourceOperation,
   waitForScopeOperations,
 } from '@midscene/core/internal/test-runner';
+import { runWithConsoleLogScope } from '@midscene/shared/logger';
+import type { TestReporterEvent } from './reporter-events';
 import { createProjectRuntime } from '../engine/project-runtime';
 import {
   executeDocumentInvocation,
@@ -48,6 +50,7 @@ interface FileSchedulerOptions {
   announceProject(project: PreparedExecutionProject, index: number): void;
   onProgress(project: PreparedExecutionProject, message: string): void;
   onInfrastructureError(error: unknown): void;
+  onEvent?(event: TestReporterEvent): void;
 }
 
 /** Round-robin files within global file and live Project limits. */
@@ -102,7 +105,10 @@ export async function runPreparedFiles(
       options.signal.aborted ||
       state.cases.some((item) => item.status !== 'success') ||
       state.documents.some((item) => item.status !== 'success');
-    state.lifecycle = await state.runtime.finish(failed ? 'failed' : 'success');
+    state.lifecycle = await runWithConsoleLogScope(
+      { projectName: state.prepared.project.name, phase: 'teardown' },
+      () => state.runtime!.finish(failed ? 'failed' : 'success'),
+    );
     const releaseProject = () => {
       occupiedProjects--;
       wake?.();
@@ -188,7 +194,10 @@ export async function runPreparedFiles(
           state.runtime.signal,
         );
         options.announceProject(prepared, index);
-        await state.runtime.start();
+        await runWithConsoleLogScope(
+          { projectName: project.name, phase: 'setup' },
+          () => state.runtime!.start(),
+        );
         state.initializing = false;
         if (!state.runtime.canRun) {
           state.fatal = true;
@@ -224,6 +233,7 @@ export async function runPreparedFiles(
         addFailedCases: options.addFailedCases,
         onProgress: (message) => options.onProgress(prepared, message),
         sinks: state,
+        onEvent: options.onEvent,
         isolatedContext: project.fileSetup !== undefined,
         isProjectResourceFailure: isSharedResourceFailure,
         setupTimeoutMs: options.setupTimeoutMs,

@@ -52,6 +52,10 @@ describe('workflow document collection', () => {
     });
     writeFileSync(source.absolutePath, 'changed after collection');
     expect(document.sourceYaml?.value).toBe(content);
+    expect(document.cases[0].definition.steps[0].meta.sourceLocation).toEqual({
+      line: 5,
+      column: 9,
+    });
     expect(document.cases[0].definition.steps[0].input).toEqual({
       prompt: 'resolved',
     });

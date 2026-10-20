@@ -113,6 +113,14 @@ export function collectWorkflowDocument(
     caseIndex?: number,
   ) => ({
     ...step,
+    meta: {
+      ...step.meta,
+      sourceLocation: snapshot.locate(
+        phase === 'steps'
+          ? ['cases', caseIndex!, 'steps', stepIndex]
+          : [phase, stepIndex],
+      ),
+    },
     templateInput: step.input,
     input: resolveWorkflowVariables(step.input, {
       variables: options.variables,

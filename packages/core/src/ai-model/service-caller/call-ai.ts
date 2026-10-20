@@ -212,7 +212,18 @@ async function callModelWithRetry(
           maxAttempts,
         );
       }
-      getDebug('ai:call', { console: true })(
+      getDebug('ai:call', {
+        console: true,
+        warning: {
+          kind: 'model-request-retry',
+          modelName: config.modelName,
+          error: lastError,
+          callId: input.internalCallId,
+          attempt,
+          maxAttempts,
+          delayMs: retryInterval,
+        },
+      })(
         `AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
       );
     }

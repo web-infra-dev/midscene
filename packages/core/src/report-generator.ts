@@ -21,8 +21,8 @@ import {
   MIDSCENE_REPORT_QUIET,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { getDebug } from '@midscene/shared/logger';
-import { ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
+import { getDebug, logReport } from '@midscene/shared/logger';
+import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import {
   DATA_SCREENSHOT_MODE_ATTR,
   generateAgentReportComment,
@@ -451,11 +451,11 @@ ${generateAgentReportComment(agentDump)}`;
       return;
 
     if (this.screenshotMode === 'directory') {
-      logMsg(
+      logReport(
         `Midscene - report file updated: npx serve ${dirname(this.reportPath)}`,
       );
     } else {
-      logMsg(`Midscene - report file updated: ${this.reportPath}`);
+      logReport(`Midscene - report file updated: ${this.reportPath}`);
     }
   }
 

@@ -21,6 +21,10 @@ export default defineConfig({
   include: enableAiTest ? ['tests/ai/**/*.test.ts', ...basicTest] : basicTest,
   resolve: {
     alias: {
+      '#console-context': path.resolve(
+        __dirname,
+        'src/console-context.node.ts',
+      ),
       '@': path.resolve(__dirname, 'src'),
     },
   },

@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, relative, resolve, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -105,6 +106,157 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
+  it('publishes actual model usage across hooks and failed Case attempts without calling a model', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'cli-model-usage-'));
+    temporaryDirectories.push(root);
+    const resultDir = join(root, 'results');
+    const loggerUrl = pathToFileURL(
+      resolve(packageRoot, '../shared/dist/lib/logger.js'),
+    ).href;
+    writeFileSync(
+      join(root, 'midscene.config.mjs'),
+      `
+import { getDebug } from ${JSON.stringify(loggerUrl)};
+let calls = 0;
+export default {
+  projects: [{ name: 'demo', retry: 1 }],
+  nodes: [{ name: 'demo.usage', execute(ctx) {
+    const executionId = 'recorded-' + (++calls);
+    ctx.report.addTrace({ type: 'midscene-execution', executionId, metrics: {
+      modelCallCount: 1, modelTimeMs: 10, promptTokens: 100, completionTokens: 20, cachedInputTokens: 80, totalTokens: 120,
+      models: [{ modelName: 'actual-model', callCount: 1, modelCallTimeMs: 10, promptTokens: 100, completionTokens: 20, cachedInputTokens: 80, totalTokens: 120 }],
+    } });
+    if (ctx.scope === 'case' && ctx.case.attemptIndex === 0) {
+      getDebug('demo:retry', { console: true, warning: { kind: 'model-request-retry', modelName: 'actual-model', error: Object.assign(new Error('limited'), { status: 429 }), callId: executionId, attempt: 1, maxAttempts: 2, delayMs: 2000 } })('raw provider detail');
+      throw new Error('controlled Case retry');
+    }
+  } }],
+};
+`,
+    );
+    writeFileSync(
+      join(root, 'case.yaml'),
+      'beforeAll:\n  - demo.usage: {}\ncases:\n  - name: recovered Case\n    steps:\n      - demo.usage: {}\nafterAll:\n  - demo.usage: {}\n',
+    );
+    const execution = await execFileAsync(
+      process.execPath,
+      [cliPath, root, '--result-dir', resultDir],
+      {
+        cwd: packageRoot,
+        env: {
+          ...process.env,
+          MIDSCENE_MODEL_NAME: 'configured-model',
+          MIDSCENE_PLANNING_MODEL_NAME: '',
+          MIDSCENE_INSIGHT_MODEL_NAME: '',
+        },
+      },
+    );
+    expect(execution.stdout).toContain('Models (env) configured-model');
+    expect(execution.stdout).toContain('Models actual-model');
+    expect(execution.stdout).toContain(
+      'Tokens 480 total · 400 input (320 cached) · 80 output',
+    );
+    expect(execution.stdout).toContain('model request retry 2/2');
+    expect(execution.stdout).not.toContain('raw provider detail');
+    expect(execution.stdout).not.toContain('\u001b');
+    const summary = JSON.parse(readFileSync(summaryPathFor(resultDir), 'utf8'));
+    expect(summary.metrics).toMatchObject({
+      modelCallCount: 4,
+      totalTokens: 480,
+      models: [{ modelName: 'actual-model', callCount: 4, totalTokens: 480 }],
+    });
+    expect(summary.summary.passedAfterRetry).toBe(1);
+  });
+
+  it('prints concise source locations and resolved inputs for final failures', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'cli-failure-details-'));
+    temporaryDirectories.push(root);
+    const resultDir = join(root, 'results');
+    writeFileSync(
+      join(root, 'midscene.config.mjs'),
+      `export default {
+  projects: [{ name: 'headphones', retry: 1 }],
+  nodes: [{ name: 'demo.outcome', execute({ input }) {
+    if (input.outcome === 'final-failure') throw new Error('Expected 36, received 24.');
+  } }],
+};\n`,
+    );
+    writeFileSync(
+      join(root, 'cases.yaml'),
+      [
+        'cases:',
+        '  - name: Case A',
+        '    steps:',
+        '      - demo.outcome:',
+        '          outcome: success',
+        '          marker: unrelated input marker',
+        '      # Distinguish two occurrences of the same Node.',
+        '      - demo.outcome:',
+        '          outcome: final-failure',
+        '          caseLabel: Case A',
+        '          password: private-secret',
+        '',
+      ].join('\n'),
+    );
+    const execution = await runFailure([root, '--result-dir', resultDir]);
+    expect(execution.code).toBe(1);
+    expect(execution.stderr).toContain('FAIL [headphones] Case A');
+    expect(execution.stderr).toContain('Step     2/2 · demo.outcome');
+    expect(execution.stderr).toContain('Location cases.yaml:8');
+    expect(execution.stderr).toContain('Attempt  2/2');
+    expect(execution.stderr).toContain('Error: Expected 36, received 24.');
+    expect(execution.stderr).toContain('Input    outcome: final-failure');
+    expect(execution.stderr).toContain('caseLabel: Case A');
+    expect(execution.stderr).toContain('password: [REDACTED]');
+    expect(execution.stderr).toMatch(/at midscene\.config\.mjs:4:\d+/);
+    expect(execution.stderr).not.toMatch(
+      /private-secret|unrelated input marker|node_modules|NodeExecutionError/,
+    );
+    expect(execution.stderr).not.toContain('\u001b');
+    const summary = JSON.parse(readFileSync(summaryPathFor(resultDir), 'utf8'));
+    const attempt = summary.projects[0].cases[0].attempts.at(-1);
+    const saved = JSON.parse(
+      readFileSync(join(runDirFor(resultDir), attempt.resultFile), 'utf8'),
+    );
+    expect(saved.steps[1].meta.sourceLocation).toEqual({ line: 8, column: 9 });
+  });
+
+  it('defaults to concise Case results without losing structured steps', async () => {
+    const projectRoot = join(__dirname, 'fixtures', 'test-project');
+    const { resultDir, executionLog } = temporaryRun('midscene-concise-e2e-');
+    const execution = await execFileAsync(
+      process.execPath,
+      [cliPath, projectRoot, '--result-dir', resultDir],
+      {
+        cwd: packageRoot,
+        env: { ...process.env, WORKFLOW_E2E_LOG: executionLog },
+      },
+    );
+    expect(execution.stdout).toContain('1 projects · 2 files · 3 cases');
+    expect(execution.stdout).toContain('RUN');
+    expect(execution.stdout.match(/^ {3}✓ /gm)).toHaveLength(3);
+    expect(execution.stdout.match(/\[web\] flows\/first.yaml/g)).toHaveLength(
+      1,
+    );
+    expect(execution.stdout).toContain('[web] flows/nested/second.yml');
+    expect(execution.stdout.indexOf('first case')).toBeLessThan(
+      execution.stdout.indexOf('second case'),
+    );
+    expect(execution.stdout).toContain('Test Files 2 passed (2)');
+    expect(execution.stdout).toContain('Cases 3 passed (3)');
+    expect(execution.stdout).not.toContain('\u001b');
+    expect(execution.stdout).not.toContain('Final results');
+    expect(execution.stdout).not.toContain('→ step');
+    expect(execution.stdout).not.toContain('attempt 1/');
+    expect(execution.stdout).not.toContain('[document');
+    const summary = JSON.parse(readFileSync(summaryPathFor(resultDir), 'utf8'));
+    const attemptPath = join(
+      runDirFor(resultDir),
+      summary.projects[0].cases[0].attempts[0].resultFile,
+    );
+    expect(JSON.parse(readFileSync(attemptPath, 'utf8')).steps).toHaveLength(2);
+    expect(summary.summary.passed).toBe(3);
+  });
   it.each(['report', 'teardown'])(
     'keeps %s failures focused after an action recovers on retry',
     async (phase) => {
@@ -148,21 +300,27 @@ cases:
         );
       }
 
-      const failure = await runFailure([root, '--result-dir', resultDir]);
+      const failure = await runFailure([
+        root,
+        '--result-dir',
+        resultDir,
+        '--reporter',
+        'verbose',
+      ]);
 
       expect(failure.code).toBe(1);
       expect(failure.stdout).toContain('✓ step 1/1: demo.retry');
       expect(failure.stdout).toContain(
         phase === 'report'
-          ? '1/1 cases passed, 0 failed, 0 not run'
-          : '0/1 cases passed, 1 failed, 0 not run',
+          ? 'Cases 1 passed (1)'
+          : 'Cases 1 failed | 0 passed (1)',
       );
       expect(failure.stdout).toContain('Summary:');
       expect(failure.stderr).not.toContain('recovered action failure');
       expect(failure.stderr).not.toContain('unrelated input marker');
       expect(failure.stderr).not.toContain('unrelated output marker');
       expect(failure.stderr).not.toContain('result: {');
-      expect(failure.stderr.match(/^midscene-test:/gm)).toHaveLength(1);
+      expect(failure.stderr.match(/^FAIL midscene-test:/gm)).toHaveLength(1);
       if (phase === 'report') {
         expect(failure.stderr).toContain('infrastructure:');
         expect(failure.stderr).toContain('Failed to write-report');
@@ -235,7 +393,14 @@ cases:
 
     const execution = await execFileAsync(
       process.execPath,
-      [cliPath, projectRoot, '--result-dir', resultDir],
+      [
+        cliPath,
+        projectRoot,
+        '--result-dir',
+        resultDir,
+        '--reporter',
+        'verbose',
+      ],
       {
         cwd: packageRoot,
         env: { ...process.env, WORKFLOW_E2E_LOG: executionLog },
@@ -251,7 +416,7 @@ cases:
     expect(execution.stdout).toMatch(
       / {6}✓ step 1\/2: test\.record \(\d+ ms\)/,
     );
-    expect(execution.stdout).toContain('3/3 cases passed, 0 failed, 0 not run');
+    expect(execution.stdout).toContain('Cases 3 passed (3)');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
       'first:one',
       'first:two',
@@ -352,7 +517,7 @@ cases:
       },
     );
 
-    expect(execution.stdout).toContain('1/1 cases passed');
+    expect(execution.stdout).toContain('Cases 1 passed (1)');
     const lines = readFileSync(executionLog, 'utf8').trim().split('\n');
     expect(lines).toHaveLength(9);
     const pid = lines[0].split(':')[1];
@@ -397,17 +562,20 @@ cases:
     );
     const { resultDir, executionLog } = temporaryRun('midscene-failure-e2e-');
 
-    const failure = await runFailure([projectRoot, '--result-dir', resultDir], {
-      ...process.env,
-      WORKFLOW_E2E_LOG: executionLog,
-    });
+    const failure = await runFailure(
+      [projectRoot, '--result-dir', resultDir, '--reporter', 'verbose'],
+      {
+        ...process.env,
+        WORKFLOW_E2E_LOG: executionLog,
+      },
+    );
 
     expect(failure.code).toBe(1);
     expect(failure.stdout).toContain('    → step 1/1: test.record');
     expect(failure.stdout).toMatch(
       / {6}✗ step 1\/1: test\.record \(\d+ ms\) — Node "test\.record" failed: controlled case failure/,
     );
-    expect(failure.stdout).toContain('2/3 cases passed, 1 failed, 0 not run');
+    expect(failure.stdout).toContain('Cases 1 failed | 2 passed (3)');
     expect(failure.stderr).toContain('steps[1] test.record');
     expect(failure.stderr).toContain('Error: controlled case failure');
     expect(failure.stderr).toMatch(/at .*midscene\.config\.ts:\d+:\d+/);
@@ -441,13 +609,16 @@ cases:
       'midscene-before-all-e2e-',
     );
 
-    const failure = await runFailure([projectRoot, '--result-dir', resultDir], {
-      ...process.env,
-      WORKFLOW_E2E_LOG: executionLog,
-    });
+    const failure = await runFailure(
+      [projectRoot, '--result-dir', resultDir, '--reporter', 'verbose'],
+      {
+        ...process.env,
+        WORKFLOW_E2E_LOG: executionLog,
+      },
+    );
 
     expect(failure.code).toBe(1);
-    expect(failure.stdout).toContain('0/1 cases passed, 0 failed, 1 not run');
+    expect(failure.stdout).toContain('Cases 0 passed | 1 not run (1)');
     expect(failure.stderr).toContain('beforeAll[1] before.fail');
     expect(failure.stderr).toContain('Error: controlled beforeAll failure');
     expect(failure.stderr).toMatch(/at .*midscene\.config\.ts:\d+:\d+/);

@@ -420,6 +420,26 @@ afterAll
 pnpm exec midscene-test
 ```
 
+CLI 顶部显示版本、项目目录、配置文件和本次运行规模。在交互式终端中，底部按 Project 和文件展示运行中的 Case 与生命周期 Step，统计区持续更新文件、Case、开始时间和运行耗时。黄色表示运行中或重试，绿色表示通过，红色表示失败，辅助信息降低亮度。过长的行会截短；任务树超出终端高度时，会提示尚未显示的内容。
+
+文件最终执行完毕后，结果树保留在动态区上方，Case 按声明顺序展示，文件按完成顺序出现。整文件重试结束后才输出该文件的最终结果。全部结束后集中展示错误，再输出最终统计和报告路径，不重复打印已完成的结果树。
+
+CI 和重定向输出使用纯文本追加日志，不包含颜色或光标控制码，保留已完成的文件树、简短 warning、重试提示、低频进度提示和最终错误与汇总。`--reporter verbose` 在所有环境中均使用追加输出。
+
+默认 warning 使用简短消息，并标注实际产生它的 Project、Case 和 Step。文件生命周期、Project setup/teardown 的 warning 展示各自作用域，不会归到某个 Case。`model request retry` 表示重试 Step 内的一次模型请求，`case retry` 表示重新执行 Case。在交互式终端中，Case 重试在对应的动态树节点上显示为 `attempt 2/2`，不再单独追加永久事件行；计数包含首次执行。CI 保留带上下文的 `case retry · attempt 2/2` 事件，verbose 保留详细尝试过程。最终 Case 结果保留 `passed after retry` 或 `failed after retries`。模型请求重试成功不会增加 Case 重试计数。完整错误对象、堆栈、响应头和请求 ID 保留在 verbose 输出和调试日志中。
+
+交互式终端的 warning 更新动态区，不再追加永久日志行。当前 Step 合并显示在运行中的 Case 行，为统计区留出空间；模型请求重试显示在该行下方，Step 结束后移除；其他提示显示在固定的 Warnings 行。全部结束后，最多展示五条带作用域的简短 warning；CI 仍在事件发生时追加提示。verbose 保留完整诊断。
+
+启动时的 `Models (env)` 按用途合并展示环境中配置的模型，Agent 可以覆盖这些配置。动态统计区展示 usage 中实际记录的模型，并在每个 Step 完成后累计 token。最终统计与 HTML 报告使用相同的汇总，包含失败尝试、Case/文件重试和生命周期 Step。分别显示输入、输出和总 token；缓存输入已计入输入，不重复相加。缺失 usage 标记为不可用或部分采集，不当作零。多个模型在结束后分别展示已记录的 token 总量。未调用模型的运行显示零消耗。
+
+默认错误区分别展示 Project 与 Case、失败 Step 及序号、YAML 源文件行号、配置重试时的 Case 或文件尝试次数，以及可用的首个业务代码堆栈位置。输入只展示失败 Step 解析后的前四个字段，并限制值的长度、隐藏敏感信息。生命周期和基础设施错误保留各自作用域。完整堆栈请查看 verbose，完整输入请查看保存的结果。
+
+需要查看详细步骤、中间 Agent 报告路径和完整错误堆栈时，使用 `--reporter verbose`：
+
+```bash
+pnpm exec midscene-test --reporter verbose
+```
+
 ### 指定用例目录或文件
 
 生成的项目通过 `files.include` 选择 `cases/` 下的 `.yaml` 和 `.yml` 文件。未配置 `files` 时，Midscene Test 会递归查找测试目录下的 YAML 文件，自动忽略 `node_modules` 和 `.git`。

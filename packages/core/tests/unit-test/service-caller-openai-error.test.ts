@@ -435,6 +435,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('uses the successful retry attempt for the final record', async () => {
     const events: Array<Record<string, unknown>> = [];
+    const warnings: import('@midscene/shared/logger').ConsoleLogEntry[] = [];
     rs.resetModules();
     rs.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
       isModelCallRecordingEnabled: () => true,
@@ -464,10 +465,30 @@ describe('service-caller OpenAI error handling', () => {
       };
     });
 
-    await callAI(
-      [{ role: 'user', content: 'hello' }],
-      getModelRuntime(baseConfig({ retryCount: 1, retryInterval: 0 })),
+    const { runWithConsoleLogHandler } = await import(
+      '@midscene/shared/logger'
     );
+    await runWithConsoleLogHandler(
+      (entry) => warnings.push(entry),
+      () =>
+        callAI(
+          [{ role: 'user', content: 'hello' }],
+          getModelRuntime(baseConfig({ retryCount: 1, retryInterval: 0 })),
+        ),
+    );
+
+    expect(warnings.map((entry) => entry.warning?.kind)).toEqual([
+      'model-request-detail',
+      'model-request-retry',
+    ]);
+    expect(warnings[1].warning).toMatchObject({
+      modelName: 'gpt-4o',
+      attempt: 1,
+      maxAttempts: 2,
+      delayMs: 0,
+      callId: expect.any(String),
+      error: expect.any(Error),
+    });
 
     expect(events.map((event) => [event.type, event.attempt])).toEqual([
       ['request', 1],
