@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CliModelUsage,
   configuredModelNames,
+  formatModelUsage,
   formatTokenUsage,
-  usageModelNames,
 } from '../src/cli/model-usage';
 import type { StepRunResult } from '../src/engine/types';
 
@@ -65,7 +65,9 @@ describe('CLI model usage', () => {
       models: [{ modelName: 'actual-model', callCount: 3, totalTokens: 380 }],
     });
     expect(metrics().totalTokens).toBe(120);
-    expect(usageModelNames(usage.snapshot())).toBe('actual-model');
+    expect(formatModelUsage(usage.snapshot())).toEqual([
+      'actual-model · 380 total · 320 input (240 cached) · 60 output',
+    ]);
   });
   it('marks missing usage as unknown and replaces it when a later snapshot arrives', () => {
     const usage = new CliModelUsage();
@@ -103,5 +105,25 @@ describe('CLI model usage', () => {
     vi.stubEnv('MIDSCENE_MODEL_NAME', '');
     vi.stubEnv('MIDSCENE_PLANNING_MODEL_NAME', '');
     expect(configuredModelNames()).toEqual([]);
+  });
+  it('keeps each model with its own token breakdown and collection state', () => {
+    const first = metrics();
+    first.models![0].modelName = 'model-a';
+    const second = metrics(220);
+    second.models![0].modelName = 'model-b';
+    const combined = sumTestRunReportMetrics([first, second]);
+    expect(formatModelUsage(combined)).toEqual([
+      'model-a · 120 total · 100 input (80 cached) · 20 output',
+      'model-b · 220 total · 200 input (80 cached) · 20 output',
+    ]);
+    const partial = sumTestRunReportMetrics([first, second], ['Missing usage']);
+    expect(formatModelUsage(partial)).toEqual([
+      'model-a · ≥120 total (partial) · ≥100 input (80 cached) · ≥20 output',
+      'model-b · ≥220 total (partial) · ≥200 input (80 cached) · ≥20 output',
+    ]);
+    expect(formatModelUsage(undefined)).toEqual(['—']);
+    expect(formatModelUsage(sumTestRunReportMetrics([]))).toEqual([
+      '— · 0 (no model calls)',
+    ]);
   });
 });

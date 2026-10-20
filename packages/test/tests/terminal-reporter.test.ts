@@ -168,6 +168,25 @@ afterEach(() => {
 });
 
 describe('terminal reporter', () => {
+  it('uses a green run header and plain model names without blue accents', () => {
+    vi.stubEnv('NO_COLOR', '');
+    const io = { log: vi.fn(), error: vi.fn(), isTTY: true };
+    const reporter = new TerminalReporter(io, 'verbose');
+    reporter.event({
+      type: 'run-start',
+      projects: 1,
+      documents: 1,
+      cases: 1,
+      configuredModels: [{ name: 'configured-model', intents: ['default'] }],
+    });
+    const output = io.log.mock.calls.flat().join('\n');
+    expect(output).toContain('\u001b[42m');
+    expect(output).toContain('\u001b[32mmidscene-test v');
+    expect(output).toContain(' configured-model ');
+    for (const code of [34, 36, 44, 46])
+      expect(output).not.toContain(`\u001b[${code}m`);
+  });
+
   it('separates live events from completed file trees with one blank line between file groups', () => {
     const { reporter, io } = fixture();
     reporter.console({ type: 'warning', topic: 'test', message: 'live event' });

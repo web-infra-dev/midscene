@@ -11,12 +11,7 @@ import stringWidth from 'string-width';
 import { version } from '../../package.json';
 import { formatCliError } from './error-format';
 import { type CliFailureContext, formatFailureDetails } from './failure-format';
-import {
-  CliModelUsage,
-  formatTokenCount,
-  formatTokenUsage,
-  usageModelNames,
-} from './model-usage';
+import { CliModelUsage, formatModelUsage } from './model-usage';
 import type { TestReporterEvent } from './reporter-events';
 import { TerminalProgress, truncateTerminalLine } from './terminal-progress';
 import type { TestProjectRunResult } from './types';
@@ -215,7 +210,7 @@ export class TerminalReporter {
         this.file(file.projectName, file.sourcePath, file.cases);
       const c = this.color;
       this.log(
-        `\n ${c.bgCyan.black.bold(' RUN ')} ${c.cyan(`midscene-test v${version}`)} ${c.dim(oneLine(event.projectRoot ?? process.cwd()))}`,
+        `\n ${c.bgGreen.black.bold(' RUN ')} ${c.green(`midscene-test v${version}`)} ${c.dim(oneLine(event.projectRoot ?? process.cwd()))}`,
       );
       this.log(
         ` ${c.dim(`${event.projects} projects · ${event.documents} files · ${event.cases} cases${event.concurrency ? ` · ${event.concurrency} concurrent projects` : ''}`)}`,
@@ -224,7 +219,7 @@ export class TerminalReporter {
         this.log(` ${c.dim(`Config ${oneLine(event.configPath)}`)}`);
       for (const model of event.configuredModels ?? [])
         this.log(
-          ` ${c.dim('Models (env)')} ${c.cyan(oneLine(model.name))} ${c.dim(`· ${model.intents.map(oneLine).join(', ')}`)}`,
+          ` ${c.dim('Models (env)')} ${oneLine(model.name)} ${c.dim(`· ${model.intents.map(oneLine).join(', ')}`)}`,
         );
       this.log('');
       if (this.mode === 'default') {
@@ -385,14 +380,10 @@ export class TerminalReporter {
       ` ${c.dim('     Cases')} ${result ? this.stateCounts(result.summary.passed, result.summary.failed, result.summary.notRun, result.summary.total) : this.counts(cases, this.total)}`,
       ` ${c.dim('  Start at')} ${new Date(this.startedAt).toLocaleTimeString('en-GB', { hour12: false })}`,
       ` ${c.dim('  Duration')} ${formatDuration(durationMs)}`,
-      ` ${c.dim('    Models')} ${c.cyan(usageModelNames(metrics))}`,
-      ` ${c.dim('    Tokens')} ${formatTokenUsage(metrics)}`,
-      ...(result && (metrics?.models?.length ?? 0) > 1
-        ? metrics!.models!.map(
-            (model) =>
-              ` ${c.dim('          ')} ${c.cyan(oneLine(model.modelName))} ${c.dim(`· ${formatTokenCount(model.totalTokens)} recorded tokens`)}`,
-          )
-        : []),
+      ...formatModelUsage(metrics).map(
+        (model, index) =>
+          ` ${c.dim(index ? '          ' : '   Models:')} ${model}`,
+      ),
       ...(!result || this.warnings.size
         ? [
             ` ${c.dim('  Warnings')} ${this.warnings.size ? c.yellow(String(this.warnings.size)) : c.dim('0')}${!result && this.latestNotice ? c.dim(` · ${this.latestNotice}`) : ''}`,

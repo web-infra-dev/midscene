@@ -152,9 +152,8 @@ export default {
       },
     );
     expect(execution.stdout).toContain('Models (env) configured-model');
-    expect(execution.stdout).toContain('Models actual-model');
     expect(execution.stdout).toContain(
-      'Tokens 480 total · 400 input (320 cached) · 80 output',
+      'Models: actual-model · 480 total · 400 input (320 cached) · 80 output',
     );
     expect(execution.stdout).toContain('model request retry 2/2');
     expect(execution.stdout).not.toContain('raw provider detail');
