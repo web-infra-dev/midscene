@@ -58,7 +58,7 @@ describe('kimi model adapter', () => {
         throw new Error('kimi should use standard locate adapter');
       }
       expect(() =>
-        locateAdapter.element.resultCodec.toPixelBbox(point, {
+        locateAdapter.element.resultCodec.toPixelResult(point, {
           preparedSize: { width: 1920, height: 1080 },
         }),
       ).toThrow(/invalid point data/);

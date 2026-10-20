@@ -130,7 +130,7 @@ describe('createLocateResultCodec', () => {
       });
 
       expect(() =>
-        codec.toPixelBbox(
+        codec.toPixelResult(
           [invalidValue, 100, 300, 400] as never,
           locateCtx(640, 360),
         ),
@@ -144,11 +144,11 @@ describe('createLocateResultCodec', () => {
     });
 
     expect(
-      codec.toPixelBbox(
+      codec.toPixelResult(
         ['100', '200.5', '300.25', '400'] as never,
         locateCtx(200, 100),
-      ),
-    ).toEqual([20, 20, 60, 40]);
+      ).rect,
+    ).toEqual({ left: 20, top: 20, width: 41, height: 21 });
   });
 
   it('rejects invalid parsed adapter results before coordinate range checks', () => {
@@ -193,7 +193,7 @@ describe('createLocateResultCodec', () => {
     });
 
     expect(() =>
-      codec.toPixelBbox([500, 500, 500], locateCtx(640, 360)),
+      codec.toPixelResult([500, 500, 500], locateCtx(640, 360)),
     ).toThrow(/invalid point data/);
   });
 
