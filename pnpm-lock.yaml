@@ -724,6 +724,25 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
+  benchmark/grounding-new/evaluation:
+    dependencies:
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
+      sharp:
+        specifier: ^0.34.3
+        version: 0.34.3
+    devDependencies:
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.130
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: 3.0.5
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.130)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
+
   benchmark/grounding-new/viewer:
     dependencies:
       '@hono/node-server':

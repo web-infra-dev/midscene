@@ -1,0 +1,19 @@
+{
+  "name": "@midscene/grounding-evaluation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "evaluate": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "sharp": "^0.34.3"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  }
+}
