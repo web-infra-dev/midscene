@@ -11,6 +11,7 @@ import { deepSeekAdapters } from './deepseek/adapter';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
 import { doubaoAdapters } from './doubao';
 import { geminiAdapters } from './gemini';
+import { gemmaAdapters } from './gemma';
 import { glmAdapters } from './glm';
 import { gptAdapters } from './gpt';
 import { jevAdapters } from './jev/adapter';
@@ -22,6 +23,7 @@ import { uiTarsAdapters } from './ui-tars/adapter';
 export const MODEL_ADAPTER_CONFIGS = {
   ...jevAdapters,
   ...qwenAdapters,
+  ...gemmaAdapters,
   ...deepSeekAdapters,
   ...doubaoAdapters,
   ...geminiAdapters,

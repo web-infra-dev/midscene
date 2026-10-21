@@ -434,6 +434,19 @@ AutoGLM 更适合移动端交互。`aiAssert` 和 `aiQuery` 等 API 需要理解
 - GitHub: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
 - Hugging Face: [https://huggingface.co/zai-org/AutoGLM-Phone-9B](https://huggingface.co/zai-org/AutoGLM-Phone-9B)
 
+### Gemma 视觉模型（实验性） {#gemma}
+
+对于本地 OpenAI 兼容的 Gemma 视觉模型部署，可以将 Midscene 指向本地服务，并使用 `gemma` 作为模型系列。示例：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="http://localhost:8080/v1"
+MIDSCENE_MODEL_API_KEY="local"
+MIDSCENE_MODEL_NAME="your-served-gemma-vision-model" # 使用服务端 /v1/models 接口返回的模型 ID
+MIDSCENE_MODEL_FAMILY="gemma"
+```
+
+Gemma 适配器要求模型遵循 Midscene 标准的 `[xmin, ymin, xmax, ymax]` 边界框协议，坐标归一化到 0-1000，并且不会发送 Qwen 专用的 thinking 参数。OpenAI 兼容接口本身并不保证准确的 UI 定位能力；在用于自动化之前，请使用部署的模型验证截图定位效果。
+
 ### UI-TARS 系列 {#ui-tars}
 
 你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。

@@ -374,6 +374,7 @@ export type TModelFamily =
   | 'qwen3'
   | 'qwen3.5'
   | 'qwen3.6'
+  | 'gemma'
   | 'doubao-vision'
   | 'doubao-seed'
   | 'gemini'
@@ -400,6 +401,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'qwen3',
   'qwen3.5',
   'qwen3.6',
+  'gemma',
   'vlm-ui-tars',
   'vlm-ui-tars-doubao',
   'vlm-ui-tars-doubao-1.5',
@@ -650,7 +652,8 @@ export interface IModelConfig {
   responseFormat?: TModelResponseFormat;
   /**
    * Model family - unified model configuration
-   * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', 'doubao-seed', etc.
+   * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'gemma',
+   * 'doubao-vision', 'doubao-seed', etc.
    */
   modelFamily?: TModelFamily;
   uiTarsModelVersion?: UITarsModelVersion;

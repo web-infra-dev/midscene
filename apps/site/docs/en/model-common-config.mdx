@@ -432,6 +432,19 @@ AutoGLM is best suited for mobile interaction. APIs such as `aiAssert` and `aiQu
 - Github: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
 - Hugging Face: [https://huggingface.co/zai-org/AutoGLM-Phone-9B](https://huggingface.co/zai-org/AutoGLM-Phone-9B)
 
+### Gemma Vision Models (experimental) {#gemma}
+
+For local OpenAI-compatible Gemma vision deployments, point Midscene to your local server and use `gemma` as the model family. Example:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="http://localhost:8080/v1"
+MIDSCENE_MODEL_API_KEY="local"
+MIDSCENE_MODEL_NAME="your-served-gemma-vision-model" # Use the model ID returned by your server's /v1/models endpoint
+MIDSCENE_MODEL_FAMILY="gemma"
+```
+
+The Gemma adapter expects Midscene's standard `[xmin, ymin, xmax, ymax]` bounding-box contract, with coordinates normalized to 0-1000, and does not send Qwen-specific thinking parameters. An OpenAI-compatible endpoint alone does not guarantee accurate UI grounding; validate screenshot localization with your deployed model before using it for automation.
+
 ### UI-TARS Series {#ui-tars}
 
 Use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com):
