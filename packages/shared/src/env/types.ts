@@ -36,6 +36,12 @@ export const MIDSCENE_MODEL_REASONING_ENABLED =
 export const MIDSCENE_MODEL_REASONING_BUDGET =
   'MIDSCENE_MODEL_REASONING_BUDGET';
 export const MIDSCENE_MODEL_PROTOCOL = 'MIDSCENE_MODEL_PROTOCOL';
+export const MIDSCENE_LOCATE_MODEL_STREAM_MODE =
+  'MIDSCENE_LOCATE_MODEL_STREAM_MODE';
+export const MIDSCENE_PLANNING_MODEL_STREAM_MODE =
+  'MIDSCENE_PLANNING_MODEL_STREAM_MODE';
+export const MIDSCENE_INSIGHT_MODEL_STREAM_MODE =
+  'MIDSCENE_INSIGHT_MODEL_STREAM_MODE';
 export const MIDSCENE_MODEL_STREAM_MODE = 'MIDSCENE_MODEL_STREAM_MODE';
 export const MIDSCENE_MODEL_RESPONSE_FORMAT = 'MIDSCENE_MODEL_RESPONSE_FORMAT';
 
@@ -99,7 +105,7 @@ export const MIDSCENE_REPLANNING_CYCLE_LIMIT =
 export const MIDSCENE_RUN_DIR = 'MIDSCENE_RUN_DIR';
 export const MIDSCENE_RECORD_MODEL_CALL = 'MIDSCENE_RECORD_MODEL_CALL';
 
-// INSIGHT (unified VQA and Grounding)
+// INSIGHT (visual understanding and extraction)
 export const MIDSCENE_INSIGHT_MODEL_NAME = 'MIDSCENE_INSIGHT_MODEL_NAME';
 export const MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY =
   'MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY';
@@ -130,6 +136,36 @@ export const MIDSCENE_INSIGHT_MODEL_PROTOCOL =
   'MIDSCENE_INSIGHT_MODEL_PROTOCOL';
 export const MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT =
   'MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT';
+
+// LOCATE
+export const MIDSCENE_LOCATE_MODEL_NAME = 'MIDSCENE_LOCATE_MODEL_NAME';
+export const MIDSCENE_LOCATE_MODEL_SOCKS_PROXY =
+  'MIDSCENE_LOCATE_MODEL_SOCKS_PROXY';
+export const MIDSCENE_LOCATE_MODEL_HTTP_PROXY =
+  'MIDSCENE_LOCATE_MODEL_HTTP_PROXY';
+export const MIDSCENE_LOCATE_MODEL_BASE_URL = 'MIDSCENE_LOCATE_MODEL_BASE_URL';
+export const MIDSCENE_LOCATE_MODEL_API_KEY = 'MIDSCENE_LOCATE_MODEL_API_KEY';
+export const MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON =
+  'MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON';
+export const MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON =
+  'MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON';
+export const MIDSCENE_LOCATE_MODEL_TIMEOUT = 'MIDSCENE_LOCATE_MODEL_TIMEOUT';
+export const MIDSCENE_LOCATE_MODEL_TEMPERATURE =
+  'MIDSCENE_LOCATE_MODEL_TEMPERATURE';
+export const MIDSCENE_LOCATE_MODEL_RETRY_COUNT =
+  'MIDSCENE_LOCATE_MODEL_RETRY_COUNT';
+export const MIDSCENE_LOCATE_MODEL_RETRY_INTERVAL =
+  'MIDSCENE_LOCATE_MODEL_RETRY_INTERVAL';
+export const MIDSCENE_LOCATE_MODEL_FAMILY = 'MIDSCENE_LOCATE_MODEL_FAMILY';
+export const MIDSCENE_LOCATE_MODEL_REASONING_EFFORT =
+  'MIDSCENE_LOCATE_MODEL_REASONING_EFFORT';
+export const MIDSCENE_LOCATE_MODEL_REASONING_ENABLED =
+  'MIDSCENE_LOCATE_MODEL_REASONING_ENABLED';
+export const MIDSCENE_LOCATE_MODEL_REASONING_BUDGET =
+  'MIDSCENE_LOCATE_MODEL_REASONING_BUDGET';
+export const MIDSCENE_LOCATE_MODEL_PROTOCOL = 'MIDSCENE_LOCATE_MODEL_PROTOCOL';
+export const MIDSCENE_LOCATE_MODEL_RESPONSE_FORMAT =
+  'MIDSCENE_LOCATE_MODEL_RESPONSE_FORMAT';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -196,7 +232,6 @@ export const NUMBER_ENV_KEYS = [
 ] as const;
 
 export const STRING_ENV_KEYS = [
-  MIDSCENE_MODEL_STREAM_MODE,
   MIDSCENE_ADB_PATH,
   MIDSCENE_ADB_REMOTE_HOST,
   MIDSCENE_ADB_REMOTE_PORT,
@@ -229,6 +264,10 @@ export const GLOBAL_ENV_KEYS = [
  * Can only be access after agent.constructor
  */
 export const MODEL_ENV_KEYS = [
+  MIDSCENE_INSIGHT_MODEL_STREAM_MODE,
+  MIDSCENE_PLANNING_MODEL_STREAM_MODE,
+  MIDSCENE_LOCATE_MODEL_STREAM_MODE,
+  MIDSCENE_MODEL_STREAM_MODE,
   // model default
   MIDSCENE_MODEL_NAME,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
@@ -258,7 +297,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_OPENAI_SOCKS_PROXY,
-  // INSIGHT (unified VQA and Grounding)
+  // INSIGHT (visual understanding and extraction)
   MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY,
   MIDSCENE_INSIGHT_MODEL_HTTP_PROXY,
@@ -276,6 +315,24 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
   MIDSCENE_INSIGHT_MODEL_PROTOCOL,
   MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT,
+  // LOCATE
+  MIDSCENE_LOCATE_MODEL_NAME,
+  MIDSCENE_LOCATE_MODEL_SOCKS_PROXY,
+  MIDSCENE_LOCATE_MODEL_HTTP_PROXY,
+  MIDSCENE_LOCATE_MODEL_BASE_URL,
+  MIDSCENE_LOCATE_MODEL_API_KEY,
+  MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON,
+  MIDSCENE_LOCATE_MODEL_TIMEOUT,
+  MIDSCENE_LOCATE_MODEL_TEMPERATURE,
+  MIDSCENE_LOCATE_MODEL_RETRY_COUNT,
+  MIDSCENE_LOCATE_MODEL_RETRY_INTERVAL,
+  MIDSCENE_LOCATE_MODEL_FAMILY,
+  MIDSCENE_LOCATE_MODEL_REASONING_EFFORT,
+  MIDSCENE_LOCATE_MODEL_REASONING_ENABLED,
+  MIDSCENE_LOCATE_MODEL_REASONING_BUDGET,
+  MIDSCENE_LOCATE_MODEL_PROTOCOL,
+  MIDSCENE_LOCATE_MODEL_RESPONSE_FORMAT,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -311,6 +368,7 @@ export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
  * valid Model family types
  */
 export type TModelFamily =
+  | 'jev'
   | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'qwen3'
@@ -333,6 +391,7 @@ export type TModelFamily =
   | 'xiaomi-mimo';
 
 export const MODEL_FAMILY_VALUES: TModelFamily[] = [
+  'jev',
   'doubao-vision',
   'doubao-seed',
   'gemini',
@@ -355,6 +414,8 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'xiaomi-mimo',
 ];
 
+export type TModelStreamMode = 'stream' | 'non-stream';
+
 export interface IModelConfigForInsight {
   // model name
   [MIDSCENE_INSIGHT_MODEL_NAME]: string;
@@ -367,12 +428,34 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON]?: string;
   [MIDSCENE_INSIGHT_MODEL_PROTOCOL]?: TModelProtocol;
+  [MIDSCENE_INSIGHT_MODEL_STREAM_MODE]?: TModelStreamMode;
   // timeout
   [MIDSCENE_INSIGHT_MODEL_TIMEOUT]?: string;
   // temperature
   [MIDSCENE_INSIGHT_MODEL_TEMPERATURE]?: string;
   // model family
   [MIDSCENE_INSIGHT_MODEL_FAMILY]?: TModelFamily;
+}
+
+export interface IModelConfigForLocate {
+  // model name
+  [MIDSCENE_LOCATE_MODEL_NAME]: string;
+  // proxy
+  [MIDSCENE_LOCATE_MODEL_SOCKS_PROXY]?: string;
+  [MIDSCENE_LOCATE_MODEL_HTTP_PROXY]?: string;
+  // OpenAI
+  [MIDSCENE_LOCATE_MODEL_BASE_URL]?: string;
+  [MIDSCENE_LOCATE_MODEL_API_KEY]?: string;
+  [MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON]?: string;
+  [MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON]?: string;
+  [MIDSCENE_LOCATE_MODEL_PROTOCOL]?: TModelProtocol;
+  [MIDSCENE_LOCATE_MODEL_STREAM_MODE]?: TModelStreamMode;
+  // timeout
+  [MIDSCENE_LOCATE_MODEL_TIMEOUT]?: string;
+  // temperature
+  [MIDSCENE_LOCATE_MODEL_TEMPERATURE]?: string;
+  // model family
+  [MIDSCENE_LOCATE_MODEL_FAMILY]?: TModelFamily;
 }
 
 export interface IModelConfigForPlanning {
@@ -387,6 +470,7 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON]?: string;
   [MIDSCENE_PLANNING_MODEL_PROTOCOL]?: TModelProtocol;
+  [MIDSCENE_PLANNING_MODEL_STREAM_MODE]?: TModelStreamMode;
   // timeout
   [MIDSCENE_PLANNING_MODEL_TIMEOUT]?: string;
   // temperature
@@ -415,6 +499,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_MODEL_EXTRA_BODY_JSON]?: string;
   [MIDSCENE_MODEL_PROTOCOL]?: TModelProtocol;
+  [MIDSCENE_MODEL_STREAM_MODE]?: TModelStreamMode;
   // extra
   [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
   // temperature
@@ -442,11 +527,12 @@ export interface IModelConfigForDefaultLegacy {
 }
 
 /**
- * - insight: Visual Question Answering and Visual Grounding (unified)
+ * - locate: visual element localization
+ * - insight: visual understanding and extraction
  * - planning: planning
- * - default: all except insight、planning
+ * - default: base configuration for all capabilities
  */
-export type TIntent = 'insight' | 'planning' | 'default';
+export type TIntent = 'insight' | 'planning' | 'locate' | 'default';
 
 /**
  * Env-style model configuration map supplied directly to the agent.
@@ -528,6 +614,7 @@ export interface IModelConfig {
    * Temperature for model sampling.
    */
   temperature?: number;
+  streamMode?: TModelStreamMode;
   /**
    * Number of retries when AI call fails.
    * Default is 1 (retry once after failure).

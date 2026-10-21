@@ -45,6 +45,7 @@ import {
 import {
   type EditableSelectStatus,
   buildEditableSelectStatusScript,
+  focusedInputFrameScript,
 } from '../common/input-scripts';
 import {
   type KeyInput,
@@ -85,6 +86,18 @@ type ScreencastFrameEvent = {
 type PageCdpSession = {
   send(method: string, params?: Record<string, unknown>): Promise<unknown>;
   detach(): Promise<void>;
+};
+
+// The two browser integrations expose these frame operations with different
+// generic overloads. Selection only needs this narrow shared contract.
+type EditableFrameContext = {
+  evaluate(script: string): Promise<unknown>;
+  evaluateHandle(script: string): Promise<{
+    asElement(): {
+      contentFrame(): Promise<EditableFrameContext | null>;
+    } | null;
+    dispose(): Promise<void>;
+  }>;
 };
 
 type ScreencastCdpSession = PageCdpSession & {
@@ -1131,23 +1144,35 @@ export class Page<
     action: 'clearInput' | 'selectAllInput',
   ): Promise<void> {
     const center = element?.center;
-    const point =
+    let point =
       center && Number.isFinite(center[0]) && Number.isFinite(center[1])
         ? { x: center[0], y: center[1] }
         : null;
-    const status = await this.evaluate<EditableSelectStatus>(
-      buildEditableSelectStatusScript(point),
-    );
-    const selected = status?.selected === true;
-    const editableFocused = status?.editableFocused === true;
-    if (selected) {
-      return;
-    }
-    // CDP selectAll is only safe once focus is confirmed to be the editable
-    // field. Otherwise the same command selects the page.
-    if (editableFocused) {
-      await this.selectAllByCdp();
-      return;
+    let frame: EditableFrameContext = this.underlyingPage.mainFrame();
+    while (true) {
+      const status = (await frame.evaluate(
+        buildEditableSelectStatusScript(point),
+      )) as EditableSelectStatus;
+      if (status.selected) return;
+      // Browser editing commands follow focus, including cross-origin frames.
+      // Confirm the actual editable field before allowing this fallback.
+      if (status.editableFocused) {
+        await this.selectAllByCdp();
+        return;
+      }
+      if (status.focusedFramePoint === undefined) break;
+
+      // Resolve through the browser handle instead of reading contentDocument:
+      // both integrations can enter cross-origin and nested frames this way.
+      const handle = await frame.evaluateHandle(focusedInputFrameScript);
+      try {
+        const child = await handle.asElement()?.contentFrame();
+        if (!child) break;
+        frame = child;
+        point = status.focusedFramePoint;
+      } finally {
+        await handle.dispose();
+      }
     }
     const verb =
       action === 'clearInput' ? 'clear the input' : 'select input text';

@@ -3,6 +3,11 @@ type ConfigValue<T extends string = string> =
   | { value: T; comment?: string };
 
 export interface ModelConfigCardProps {
+  layout?: 'tabs' | 'combined';
+  purposes?: [
+    'default' | 'locate' | 'planning' | 'insight',
+    ...('default' | 'locate' | 'planning' | 'insight')[],
+  ];
   baseUrl: ConfigValue;
   modelName: ConfigValue;
   modelFamily: ConfigValue;
@@ -10,6 +15,19 @@ export interface ModelConfigCardProps {
   protocol?: ConfigValue<'openai-chat' | 'openai-responses'>;
   streamMode?: ConfigValue;
   responses?: boolean | { baseUrl: ConfigValue };
+}
+
+export function buildCombinedModelConfigCode(
+  config: ModelConfigCardProps,
+  purposes: NonNullable<ModelConfigCardProps['purposes']>,
+  selectedProtocol: 'openai-chat' | 'openai-responses',
+): string {
+  return purposes
+    .map(
+      (purpose) =>
+        `# ${purpose[0].toUpperCase()}${purpose.slice(1)}\n${buildModelConfigCode(config, purpose, selectedProtocol)}`,
+    )
+    .join('\n\n');
 }
 
 function formatConfigLine(name: string, config: ConfigValue): string {
@@ -21,7 +39,7 @@ function formatConfigLine(name: string, config: ConfigValue): string {
 
 export function buildModelConfigCode(
   config: ModelConfigCardProps,
-  purpose: 'default' | 'planning' | 'insight',
+  purpose: 'default' | 'locate' | 'planning' | 'insight',
   selectedProtocol: 'openai-chat' | 'openai-responses',
 ): string {
   const protocolConfig = config.protocol ?? selectedProtocol;
@@ -45,7 +63,7 @@ export function buildModelConfigCode(
       ? [formatConfigLine(`${prefix}_PROTOCOL`, protocolConfig)]
       : []),
     ...(config.streamMode
-      ? [formatConfigLine('MIDSCENE_MODEL_STREAM_MODE', config.streamMode)]
+      ? [formatConfigLine(`${prefix}_STREAM_MODE`, config.streamMode)]
       : []),
   ].join('\n');
 }

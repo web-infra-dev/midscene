@@ -449,6 +449,9 @@ importers:
         specifier: 4.5.2
         version: 4.5.2(@types/react@18.3.23)(immer@10.1.1)(react@18.3.1)
     devDependencies:
+      '@midscene/test':
+        specifier: workspace:*
+        version: link:../../packages/test
       '@rsbuild/plugin-node-polyfill':
         specifier: 1.4.2
         version: 1.4.2(@rsbuild/core@1.6.15)
@@ -470,12 +473,21 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.23)
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.7
       less:
         specifier: ^4.2.0
         version: 4.2.2
+      puppeteer:
+        specifier: 24.6.0
+        version: 24.6.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
       rsbuild-plugin-workspace-dev:
         specifier: 0.0.1
         version: 0.0.1(@rsbuild/core@1.6.15)
+      sirv:
+        specifier: 2.0.4
+        version: 2.0.4
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

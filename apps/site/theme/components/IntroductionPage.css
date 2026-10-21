@@ -1,0 +1,138 @@
+/* MDX owns headings and document navigation; components own their content. */
+
+.rp-doc-layout__doc:has(.introduction-page) {
+  min-width: 0;
+}
+
+.introduction-page {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.introduction-page .home-feature__header {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+}
+
+.introduction-page .home-example .home-feature__header {
+  display: block;
+}
+
+@container (max-width: 1000px) {
+  .introduction-page .home-feature__header,
+  .introduction-page .home-framework__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .introduction-page .home-feature__details {
+    padding-top: 0;
+  }
+}
+
+.introduction-page .home-feature--models .home-feature-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@container (max-width: 640px) {
+  .introduction-page .home-feature--models .home-feature-grid,
+  .introduction-page .home-feature-grid,
+  .introduction-page .home-benchmark-grid,
+  .introduction-page .home-execution-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.introduction-block .home-feature,
+.introduction-block .home-users {
+  margin-block: 0;
+  padding-block: 0;
+}
+
+.introduction-block .home-feature__inner,
+.introduction-block .home-users__inner {
+  width: 100%;
+}
+
+.introduction-block .home-feature__divider {
+  display: none;
+}
+
+.introduction-page .home-hero__stats {
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+  gap: 24px 64px;
+}
+
+.introduction-block {
+  margin-block: 0;
+  padding-block: 0;
+}
+
+.introduction-block .home-example__code > :first-child {
+  margin-top: 0;
+}
+
+.introduction-block .home-example__code > :last-child {
+  margin-bottom: 0;
+}
+
+.agent-vision-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 32px;
+}
+
+.agent-vision-intro > div {
+  min-width: 0;
+}
+
+.agent-vision-intro > div > p:first-child {
+  margin-top: 0;
+}
+
+.agent-vision-intro > div > p:last-child {
+  margin-bottom: 0;
+}
+
+.agent-vision-demo__video {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.agent-vision-demo__video--dark,
+.dark .agent-vision-demo__video--light {
+  display: none;
+}
+
+.dark .agent-vision-demo__video--dark {
+  display: block;
+}
+
+@container (max-width: 640px) {
+  .agent-vision-intro {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@container (max-width: 640px) {
+  .introduction-page .home-project__flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .introduction-page .home-project__card {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+@container (max-width: 640px) {
+  .introduction-page .home-project__arrow {
+    display: none;
+  }
+}

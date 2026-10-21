@@ -19,7 +19,7 @@ function walkCliArgs(
     if (eqIdx >= 0) {
       const key = body.slice(0, eqIdx);
       setArgValue(key, body.slice(eqIdx + 1));
-    } else if (args[i + 1] && !args[i + 1].startsWith('--')) {
+    } else if (args[i + 1] !== undefined && !args[i + 1].startsWith('--')) {
       i++;
       setArgValue(body, args[i]);
     } else {

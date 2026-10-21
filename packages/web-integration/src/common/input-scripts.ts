@@ -19,9 +19,21 @@ export type EditableSelectPoint = {
 export type EditableSelectStatus = {
   selected: boolean;
   editableFocused: boolean;
+  /** Point in the focused child frame; null preserves focus-only selection. */
+  focusedFramePoint?: EditableSelectPoint | null;
 };
 
-const LEGACY_FOCUSED_SELECT_SCRIPT = `(() => {
+export const focusedInputFrameScript = `(() => {
+  let element = document.activeElement;
+  while (element?.shadowRoot?.activeElement) {
+    element = element.shadowRoot.activeElement;
+  }
+  return element instanceof HTMLIFrameElement || element instanceof HTMLFrameElement
+    ? element
+    : null;
+})()`;
+
+export const selectAllInputScript = `(() => {
   let activeElement = document.activeElement;
   while (activeElement?.shadowRoot?.activeElement) {
     activeElement = activeElement.shadowRoot.activeElement;
@@ -60,16 +72,12 @@ function serializePoint(point?: EditableSelectPoint | null): string {
   return JSON.stringify({ x: point.x, y: point.y });
 }
 
-function buildEditableSelectScript(
-  pointLiteral: string,
-  reportStatus: boolean,
+/** Select editable content and report focus or the focused child-frame point. */
+export function buildEditableSelectStatusScript(
+  point?: EditableSelectPoint | null,
 ): string {
   return `(() => {
-  const point = ${pointLiteral};
-  const reportStatus = ${reportStatus ? 'true' : 'false'};
-  if (!reportStatus && !point) {
-    return ${LEGACY_FOCUSED_SELECT_SCRIPT};
-  }
+  const point = ${serializePoint(point)};
 
   function deepActiveElement() {
     let activeElement = document.activeElement;
@@ -137,18 +145,17 @@ function buildEditableSelectScript(
   }
 
   function focusElement(element) {
-    if (deepActiveElement() === element) return true;
+    if (editableTarget(deepActiveElement()) === element) return true;
     try {
       element.focus({ preventScroll: true });
-      return true;
     } catch (error) {
       try {
         element.focus();
-        return true;
       } catch (focusError) {
         return false;
       }
     }
+    return editableTarget(deepActiveElement()) === element;
   }
 
   function selectTarget(element) {
@@ -267,6 +274,24 @@ function buildEditableSelectScript(
     return rectContains(target, point.x, point.y);
   }
 
+  function focusedFramePoint() {
+    const frame = ${focusedInputFrameScript};
+    if (!frame) return undefined;
+    if (!point) return null;
+    const rect = frame.getBoundingClientRect();
+    const scaleX = rect.width / frame.offsetWidth;
+    const scaleY = rect.height / frame.offsetHeight;
+    const x = (point.x - rect.left) / scaleX - frame.clientLeft;
+    const y = (point.y - rect.top) / scaleY - frame.clientTop;
+    if (
+      !Number.isFinite(x) || !Number.isFinite(y) ||
+      x < 0 || y < 0 || x > frame.clientWidth || y > frame.clientHeight
+    ) {
+      return undefined;
+    }
+    return { x, y };
+  }
+
   let selected = false;
   const activeTarget = editableTarget(deepActiveElement());
   if (
@@ -279,23 +304,10 @@ function buildEditableSelectScript(
     const found = findEditableAtPoint(point.x, point.y);
     if (found) selected = selectTarget(found);
   }
-  if (!reportStatus) return !!selected;
   return {
     selected: !!selected,
     editableFocused: confirmedEditableFocus(),
+    focusedFramePoint: focusedFramePoint(),
   };
 })()`;
-}
-
-/**
- * Select the focused input, textarea, or contenteditable element.
- * Returns false when focus is not an editable field. No click point is
- * available here, so this must not search the page or select page text.
- */
-export const selectAllInputScript = buildEditableSelectScript('null', false);
-
-export function buildEditableSelectStatusScript(
-  point?: EditableSelectPoint | null,
-): string {
-  return buildEditableSelectScript(serializePoint(point), true);
 }

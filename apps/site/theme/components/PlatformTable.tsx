@@ -1,5 +1,4 @@
 import { Link } from '@rspress/core/theme-original';
-import { ArrowRight } from 'lucide-react';
 import { useI18n, useI18nUrl } from '../i18n';
 import './PlatformTable.css';
 
@@ -11,69 +10,64 @@ export function PlatformTable() {
       name: t('platformWeb'),
       packageName: '@midscene/web',
       access: t('platformWebAccess'),
-      links: [
-        ['Playwright', '/integrate-with-playwright'],
-        ['Puppeteer', '/integrate-with-puppeteer'],
-        [t('platformBridgeDoc'), '/bridge-mode'],
-      ],
+      href: '/integrate-with-playwright',
     },
     {
       name: 'Android',
       packageName: '@midscene/android',
       access: t('platformAndroidAccess'),
-      links: [[t('platformGuide'), '/platforms/android']],
+      href: '/platforms/android',
     },
     {
       name: 'iOS',
       packageName: '@midscene/ios',
       access: t('platformIosAccess'),
-      links: [[t('platformGuide'), '/platforms/ios']],
+      href: '/platforms/ios',
     },
     {
       name: 'HarmonyOS',
       packageName: '@midscene/harmony',
       access: t('platformHarmonyAccess'),
-      links: [[t('platformGuide'), '/platforms/harmonyos']],
+      href: '/platforms/harmonyos',
     },
     {
       name: t('platformDesktop'),
       packageName: '@midscene/computer',
       access: t('platformDesktopAccess'),
-      links: [[t('platformGuide'), '/platforms/desktop']],
+      href: '/platforms/desktop',
     },
     {
       name: t('platformCustom'),
       packageName: '@midscene/core',
       access: t('platformCustomAccess'),
-      links: [[t('platformCustomDoc'), '/integrate-with-any-interface']],
+      href: '/integrate-with-any-interface',
     },
   ];
 
   return (
-    <ul className="home-platform-list" aria-label={t('clientsHeading')}>
-      {platforms.map(({ name, packageName, access, links }) => (
-        <li className="home-platform-list__row" key={packageName}>
-          <div className="home-platform-list__identity">
-            <div className="home-platform-list__name">
-              <h3>{name}</h3>
-              <code>{packageName}</code>
-            </div>
-          </div>
-          <p>{access}</p>
-          <div className="home-platform-list__links">
-            {links.map(([label, href]) => (
-              <Link
-                key={href}
-                href={tUrl(href)}
-                aria-label={`${name} · ${label}`}
-              >
-                {label}
-                <ArrowRight size={15} aria-hidden="true" />
-              </Link>
-            ))}
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="home-platform-table-wrapper">
+      <table className="home-platform-table" aria-label={t('clientsHeading')}>
+        <thead>
+          <tr>
+            <th scope="col">{t('platformColumnName')}</th>
+            <th scope="col">{t('platformColumnPackage')}</th>
+            <th scope="col">{t('platformColumnDescription')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {platforms.map(({ name, packageName, access, href }) => (
+            <tr key={packageName}>
+              <td>
+                <Link href={tUrl(href)}>
+                  <strong>{name}</strong>
+                </Link>
+              </td>
+              <td>{packageName}</td>
+              <td>{access}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

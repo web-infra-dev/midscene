@@ -72,7 +72,7 @@ await agent.aiAssert('邮箱输入框下方显示了错误提示');
 
 基于截图的 UI 操作无需向模型发送庞大的 DOM 树。在 AppControlBench 评测中，Midscene 搭配豆包 Seed 2.1 Turbo，**60 项任务通过 58 项，模型调用总费用为 0.59 美元**。[评测报告](https://midscenejs.com/zh/app-control-bench-report)提供了逐任务费用与不同模型的对比。
 
-Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等模型，也包括可自托管的开源选项。通过[模型策略](https://midscenejs.com/zh/model-strategy)选择适合的模型，再按照[模型配置指南](https://midscenejs.com/zh/model-common-config)完成配置。
+Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等模型，也包括可自托管的开源选项。通过[模型选择指南](https://midscenejs.com/zh/model-selection)选择适合的模型，再按照[模型配置指南](https://midscenejs.com/zh/model-api-setup)完成配置。
 
 ## 🌐 一套 API，覆盖不同平台
 
@@ -89,7 +89,7 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`
 
 ## 🧩 Midscene Test：用 YAML 组织用例，用 TypeScript 扩展
 
-[Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`，Beta）帮助你将 GUI 自动化组织为可持续维护的 E2E 测试工程：
+[Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）帮助你将 GUI 自动化组织为可持续维护的 E2E 测试工程：
 
 - **用 YAML 描述测试用例**：组合界面操作、断言与业务节点，表达测试流程和预期结果。
 - **用 TypeScript 节点复用业务能力**：将数据准备、接口调用与清理封装为节点，供不同用例复用。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。

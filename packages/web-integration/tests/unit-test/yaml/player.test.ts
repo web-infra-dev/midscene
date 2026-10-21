@@ -125,30 +125,43 @@ describe('yaml utils', () => {
   });
 
   test('player - bad params', async () => {
-    await expect(
-      Agent.prototype.runYaml.call(
-        {} as Agent,
-        `
+    const agent = new Agent(
+      {
+        interfaceType: 'yaml-test',
+        actionSpace: () => [],
+        destroy: async () => {},
+      } as any,
+      {
+        generateReport: false,
+        autoPrintReportMsg: false,
+        modelConfig: {
+          MIDSCENE_MODEL_NAME: 'test',
+          MIDSCENE_MODEL_API_KEY: 'test',
+        },
+      },
+    );
+    try {
+      await expect(
+        agent.runYaml(`
           target:
             serve: ${serverRoot}
-        `,
-      ),
-    ).rejects.toThrow(
-      /property "tasks" is required in yaml script\s*, failed to load yaml/,
-    );
+        `),
+      ).rejects.toThrow(
+        /property "tasks" is required in yaml script\s*, failed to load yaml/,
+      );
 
-    await expect(
-      Agent.prototype.runYaml.call(
-        {} as Agent,
-        `
+      await expect(
+        agent.runYaml(`
           target:
             serve: ${serverRoot}
             viewportWidth: 0
-        `,
-      ),
-    ).rejects.toThrow(
-      /property "tasks" is required in yaml script\s*, failed to load yaml/,
-    );
+        `),
+      ).rejects.toThrow(
+        /property "tasks" is required in yaml script\s*, failed to load yaml/,
+      );
+    } finally {
+      await agent.destroy();
+    }
   });
 });
 

@@ -1,10 +1,26 @@
 import { WebPage as PlaywrightWebPage } from '@/playwright/page';
 import { PuppeteerWebPage } from '@/puppeteer/page';
+import { NodeType } from '@midscene/shared/constants';
+import type { ElementInfo } from '@midscene/shared/extractor';
 import { afterAll, beforeAll, describe, expect, test } from '@rstest/core';
 import { type Browser as PlaywrightBrowser, chromium } from 'playwright';
 import puppeteer, { type Browser as PuppeteerBrowser } from 'puppeteer';
 
 const TEST_TIMEOUT_MS = 120_000;
+
+function elementAt(center: [number, number]): ElementInfo {
+  return {
+    id: 'test-point',
+    indexId: 0,
+    nodeHashId: 'test-point',
+    attributes: { nodeType: NodeType.POSITION },
+    nodeType: NodeType.POSITION,
+    content: '',
+    rect: { left: center[0], top: center[1], width: 1, height: 1 },
+    center,
+    isVisible: true,
+  };
+}
 
 const PAGE_HTML = `
   <!DOCTYPE html>
@@ -199,11 +215,178 @@ function expectPageTextUntouched(state: {
 
 function registerEditableFocusTests(
   openPage: () => Promise<any>,
-  createWebPage: (page: any) => {
-    clearInput: (element?: { center: [number, number] }) => Promise<void>;
-    selectAllInput: (element?: { center: [number, number] }) => Promise<void>;
-  },
+  createWebPage: (
+    page: any,
+  ) => Pick<PuppeteerWebPage, 'clearInput' | 'selectAllInput'>,
 ) {
+  function framedPage(
+    kind: 'same-origin' | 'cross-origin' | 'nested' | 'scaled',
+  ) {
+    const frame = (content: string, crossOrigin: boolean, scaled = false) => {
+      const source = crossOrigin
+        ? `src="data:text/html,${encodeURIComponent(content)}"`
+        : `srcdoc="${content.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}"`;
+      return `<iframe style="display:block;width:600px;height:280px;border:12px solid black;transform-origin:top left;${scaled ? 'transform:scale(0.75);' : ''}" ${source}></iframe>`;
+    };
+    const content = FIELD_HTML.replace(
+      '</body>',
+      '<div id="static" onmousedown="event.preventDefault()" style="width:220px;height:60px;">not editable</div></body>',
+    );
+    const child =
+      kind === 'nested'
+        ? frame(frame(content, true), false)
+        : frame(content, kind === 'cross-origin', kind === 'scaled');
+    return FIELD_HTML.replace('</body>', `${child}</body>`);
+  }
+
+  async function frameTarget(page: any, selector = '#target') {
+    for (const frame of page.frames()) {
+      if (frame === page.mainFrame()) continue;
+      const target = await frame.$(selector);
+      if (!target) continue;
+      let center = await elementCenter(frame, selector);
+      // Puppeteer's boundingBox does not include an ancestor iframe's CSS
+      // scale. Build the screenshot point from the fixture's frame geometry.
+      for (
+        let owner = frame;
+        owner.parentFrame();
+        owner = owner.parentFrame()
+      ) {
+        const handle = await owner.frameElement();
+        try {
+          const geometry = await handle.evaluate((element: HTMLElement) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              left: rect.left,
+              top: rect.top,
+              borderX: element.clientLeft,
+              borderY: element.clientTop,
+              scaleX: rect.width / element.offsetWidth,
+              scaleY: rect.height / element.offsetHeight,
+            };
+          });
+          center = [
+            geometry.left + (geometry.borderX + center[0]) * geometry.scaleX,
+            geometry.top + (geometry.borderY + center[1]) * geometry.scaleY,
+          ];
+        } finally {
+          await handle.dispose();
+        }
+      }
+      return {
+        frame,
+        center,
+      };
+    }
+    throw new Error('Expected a frame containing the target');
+  }
+
+  for (const kind of [
+    'same-origin',
+    'cross-origin',
+    'nested',
+    'scaled',
+  ] as const) {
+    test.each(['clear', 'select', 'focused clear'] as const)(
+      `%s works inside a ${kind} iframe without selecting parent-page text`,
+      async (operation) => {
+        const page = await openPage();
+        try {
+          await page.setContent(framedPage(kind));
+          const { frame, center } = await frameTarget(page);
+          const webPage = createWebPage(page);
+          if (operation === 'select') {
+            await webPage.selectAllInput(elementAt(center));
+            const selected = await frame.$eval(
+              '#target',
+              (input: HTMLInputElement) => ({
+                start: input.selectionStart,
+                end: input.selectionEnd,
+                value: input.value,
+              }),
+            );
+            expect(selected.start).toBe(0);
+            expect(selected.end).toBe(selected.value.length);
+            expect(selected.value).toBe('value to clear');
+          } else {
+            if (operation === 'focused clear') {
+              await frame.focus('#target');
+              await webPage.clearInput();
+            } else {
+              await webPage.clearInput(elementAt(center));
+            }
+            expect((await readGuard(frame)).targetValue).toBe('');
+          }
+          const parentState = await readGuard(page);
+          expect(parentState.targetValue).toBe('value to clear');
+          expectPageTextUntouched(parentState);
+          expectPageTextUntouched(await readGuard(frame));
+        } finally {
+          await page.close();
+        }
+      },
+      TEST_TIMEOUT_MS,
+    );
+  }
+
+  test.each(['same-origin', 'cross-origin'] as const)(
+    'refuses a non-editable click inside a %s iframe even when its input keeps focus',
+    async (kind) => {
+      const page = await openPage();
+      try {
+        await page.setContent(framedPage(kind));
+        const { frame, center } = await frameTarget(page, '#static');
+        await frame.focus('#target');
+        await expect(
+          createWebPage(page).clearInput(elementAt(center)),
+        ).rejects.toThrow(
+          /no editable input, textarea, or contenteditable element/i,
+        );
+        const childState = await readGuard(frame);
+        expect(childState.targetValue).toBe('value to clear');
+        expect(childState.keys).not.toContain('Backspace');
+        expectPageTextUntouched(childState);
+        expectPageTextUntouched(await readGuard(page));
+      } finally {
+        await page.close();
+      }
+    },
+    TEST_TIMEOUT_MS,
+  );
+
+  test.each([
+    { name: 'input', html: FIELD_HTML, selector: '#target' },
+    { name: 'contenteditable', html: EDITOR_HTML, selector: '#editor' },
+  ])(
+    'refuses an inert $name whose focus method silently does nothing',
+    async ({ html, selector }) => {
+      const page = await openPage();
+      try {
+        await page.setContent(html);
+        await page.$eval(selector, (element: HTMLElement) => {
+          element.inert = true;
+        });
+        const center = await elementCenter(page, selector);
+        await expect(
+          createWebPage(page).clearInput(elementAt(center)),
+        ).rejects.toThrow(
+          /no editable input, textarea, or contenteditable element/i,
+        );
+        const state = await readGuard(page);
+        expect(state.keys).not.toContain('Backspace');
+        expectPageTextUntouched(state);
+        if (selector === '#target') {
+          expect(state.targetValue).toBe('value to clear');
+        } else {
+          expect(state.editorText).toBe('editable text');
+        }
+      } finally {
+        await page.close();
+      }
+    },
+    TEST_TIMEOUT_MS,
+  );
+
   test(
     'clears only the focused input and leaves page text unselected',
     async () => {
@@ -212,7 +395,7 @@ function registerEditableFocusTests(
       const webPage = createWebPage(page);
       const center = await elementCenter(page, '#target');
 
-      await webPage.clearInput({ center });
+      await webPage.clearInput(elementAt(center));
       const state = await readGuard(page);
       await page.close();
 
@@ -233,7 +416,7 @@ function registerEditableFocusTests(
       const webPage = createWebPage(page);
       const center = await elementCenter(page, '#target');
 
-      await webPage.clearInput({ center });
+      await webPage.clearInput(elementAt(center));
       const state = await readGuard(page);
       await page.close();
 
@@ -253,7 +436,7 @@ function registerEditableFocusTests(
       const webPage = createWebPage(page);
       const center = await elementCenter(page, '#wrapper');
 
-      await webPage.clearInput({ center });
+      await webPage.clearInput(elementAt(center));
       const state = await readGuard(page);
       await page.close();
 
@@ -272,7 +455,7 @@ function registerEditableFocusTests(
       const webPage = createWebPage(page);
       const center = await elementCenter(page, '#static');
 
-      await expect(webPage.clearInput({ center })).rejects.toThrow(
+      await expect(webPage.clearInput(elementAt(center))).rejects.toThrow(
         /no editable input, textarea, or contenteditable element/i,
       );
       const state = await readGuard(page);
@@ -292,7 +475,7 @@ function registerEditableFocusTests(
       const webPage = createWebPage(page);
       const center = await elementCenter(page, '#static');
 
-      await expect(webPage.selectAllInput({ center })).rejects.toThrow(
+      await expect(webPage.selectAllInput(elementAt(center))).rejects.toThrow(
         /no editable input, textarea, or contenteditable element/i,
       );
       const state = await readGuard(page);
@@ -313,7 +496,7 @@ function registerEditableFocusTests(
       const webPage = createWebPage(page);
       const center = await elementCenter(page, '#target');
 
-      await webPage.selectAllInput({ center });
+      await webPage.selectAllInput(elementAt(center));
       const selected = await page.$eval('#target', (el: HTMLInputElement) => ({
         start: el.selectionStart,
         end: el.selectionEnd,
@@ -339,7 +522,7 @@ function registerEditableFocusTests(
       const webPage = createWebPage(page);
       const center = await elementCenter(page, '#editor');
 
-      await webPage.clearInput({ center });
+      await webPage.clearInput(elementAt(center));
       const state = await readGuard(page);
       await page.close();
 
@@ -358,7 +541,7 @@ function registerEditableFocusTests(
       const webPage = createWebPage(page);
       const center = await elementCenter(page, '#host');
 
-      await webPage.clearInput({ center });
+      await webPage.clearInput(elementAt(center));
       const state = await readGuard(page);
       await page.close();
 
@@ -394,7 +577,7 @@ describe('BasePage clearInput CDP selectAll', () => {
         const webPage = new PuppeteerWebPage(page);
         const center = await puppeteerInputCenter(page);
 
-        await webPage.clearInput({ center } as any);
+        await webPage.clearInput(elementAt(center));
 
         const value = await page.$eval(
           '#target',
@@ -439,7 +622,7 @@ describe('BasePage clearInput CDP selectAll', () => {
         const webPage = new PlaywrightWebPage(page);
         const center = await playwrightInputCenter(page);
 
-        await webPage.clearInput({ center } as any);
+        await webPage.clearInput(elementAt(center));
 
         const value = await playwrightInputValue(page);
         await page.close();
@@ -491,7 +674,7 @@ describe('BasePage clearInput CDP selectAll', () => {
           const webPage = new PlaywrightWebPage(page);
           const center = await playwrightInputCenter(page);
 
-          await webPage.clearInput({ center } as any);
+          await webPage.clearInput(elementAt(center));
 
           const value = await playwrightInputValue(page);
           await page.close();

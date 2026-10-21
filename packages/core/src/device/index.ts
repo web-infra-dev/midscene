@@ -1335,3 +1335,5 @@ export type {
   HarmonyDeviceOpt,
   HarmonyDeviceInputOpt,
 } from './device-options';
+
+export { resolveDefaultMobileScroll } from './mobile-scroll';

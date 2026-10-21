@@ -15,8 +15,8 @@ import {
   buildRunnerVisualIndex,
   flattenRunnerCases,
   getRunnerHealth,
-  groupRunnerProjects,
 } from './model';
+import { buildOverviewProjects, createOverviewState } from './overview-model';
 import { RunOverview } from './run-overview';
 
 const time = {
@@ -119,7 +119,7 @@ const renderCase = (
   );
 const renderOverview = (dump: TestRunReportDump) => {
   const cases = flattenRunnerCases(dump);
-  const projects = groupRunnerProjects(dump, cases);
+  const projects = buildOverviewProjects(dump, cases);
   return renderToStaticMarkup(
     <RunOverview
       dump={dump}
@@ -130,8 +130,8 @@ const renderOverview = (dump: TestRunReportDump) => {
       visualIndex={buildRunnerVisualIndex([])}
       caseDisplayMode="compact"
       onCaseDisplayModeChange={noop}
-      expandedProjectKeys={new Set(projects.map((project) => project.key))}
-      onExpandedProjectKeysChange={noop}
+      state={createOverviewState(projects)}
+      onStateChange={noop}
       onOpenCase={noop}
     />,
   );
@@ -331,7 +331,7 @@ describe('report issue ownership', () => {
     expect(overview).toContain('Project session failed.');
     expect(overview).not.toContain('Case observer failed.');
     expect(overview.indexOf('Project session failed.')).toBeGreaterThan(
-      overview.indexOf('runner-project-tree-node'),
+      overview.indexOf('runner-project-section'),
     );
   });
 

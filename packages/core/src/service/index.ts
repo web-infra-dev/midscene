@@ -6,7 +6,7 @@ import {
 } from '@/ai-model/service-caller';
 import type { ModelCallMessages } from '@/ai-model/service-caller/types';
 import type { MessageContent } from '@/ai-model/service-caller/types';
-import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/shared/model-locate-result/errors';
+import { modelFamilyRequiredForLocateMessage } from '@/ai-model/shared/model-locate-result/errors';
 import {
   AiLocateElement,
   AiLocateSection,
@@ -110,7 +110,7 @@ export default class Service {
     assert(queryPrompt, 'query is required for locate');
 
     if (!modelConfig.modelFamily) {
-      throw new Error(defaultModelFamilyRequiredForLocateMessage);
+      throw new Error(modelFamilyRequiredForLocateMessage(modelConfig.slot));
     }
 
     const context = opt?.context || (await this.contextRetrieverFn());
