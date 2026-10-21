@@ -202,7 +202,7 @@ export default defineConfig(async () => {
             link: '/model-api-setup',
           },
           {
-            text: 'Use a ChatGPT subscription (Beta)',
+            text: 'Use a ChatGPT subscription',
             link: '/chatgpt-subscription',
           },
           {
@@ -390,7 +390,7 @@ export default defineConfig(async () => {
             link: '/zh/model-api-setup',
           },
           {
-            text: '使用 ChatGPT 订阅（Beta）',
+            text: '使用 ChatGPT 订阅',
             link: '/zh/chatgpt-subscription',
           },
           {
