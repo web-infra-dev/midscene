@@ -168,7 +168,7 @@ export default defineConfig(async () => {
             link: '/',
           },
           {
-            text: 'The Basics',
+            text: 'The basics',
             link: '/basics',
           },
           {
@@ -176,7 +176,7 @@ export default defineConfig(async () => {
             link: '/showcases',
           },
           {
-            sectionHeaderText: 'Getting Started',
+            sectionHeaderText: 'Getting started',
           },
           {
             text: 'Try the GUI Agent',
@@ -194,11 +194,11 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Models',
           },
           {
-            text: 'Model Selection Guide',
+            text: 'Model selection guide',
             link: '/model-selection',
           },
           {
-            text: 'Use a model API key',
+            text: 'Use a model API Key',
             link: '/model-api-setup',
           },
           {
@@ -335,15 +335,15 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Benchmark',
           },
           {
-            text: 'AndroidWorld Benchmark',
+            text: 'AndroidWorld benchmark',
             link: '/android-world-benchmark-report',
           },
           {
-            text: 'MobileWorld Benchmark',
+            text: 'MobileWorld benchmark',
             link: '/mobile-world-benchmark-report',
           },
           {
-            text: 'AppControlBench Benchmark',
+            text: 'AppControlBench benchmark',
             link: '/app-control-bench-report',
           },
         ],
@@ -523,15 +523,15 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Benchmark',
           },
           {
-            text: 'AndroidWorld Benchmark',
+            text: 'AndroidWorld benchmark',
             link: '/zh/android-world-benchmark-report',
           },
           {
-            text: 'MobileWorld Benchmark',
+            text: 'MobileWorld benchmark',
             link: '/zh/mobile-world-benchmark-report',
           },
           {
-            text: 'AppControlBench Benchmark',
+            text: 'AppControlBench benchmark',
             link: '/zh/app-control-bench-report',
           },
         ],

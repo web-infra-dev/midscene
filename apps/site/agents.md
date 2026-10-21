@@ -38,6 +38,13 @@ Device 生命周期规范：
 - 避免营销腔和评价先行。程度副词（如「完美」「极致」「彻底」）和成语叠用（如「各司其职」「相辅相成」）如果只是在给架构打分、不增加信息，应删掉。
 - 句子负责陈述事实和对应关系，价值判断交给后文的设计说明。中英文同步修改时，英文同样避免 `perfectly`、`seamlessly`、`empowers` 这类空评价。
 
+目录大小写规范：
+
+- `rspress.config.ts` 中的英文导航标题和分组标题统一使用 sentence case：仅首词首字母大写，普通名词不使用标题式大写。例如 `The basics`、`Getting started`、`Model selection guide`。
+- 专有名词、缩写和项目术语保留约定写法，例如 `Midscene Test`、`GUI Agent`、`Skills`、`Node` / `Nodes`、`API Key`、`GitHub Actions`、`iOS` 和 `HarmonyOS`，不要机械转为小写。
+- `benchmark` 是普通名词，在 `AndroidWorld benchmark`、`MobileWorld benchmark` 和 `AppControlBench benchmark` 中使用小写；作为独立分组标题时写作 `Benchmark`。
+- 中文目录中出现的英文名称与英文目录保持相同大小写。修改目录时同时检查中英文配置。
+
 反例 1（`docs/zh/midscene-test/overview.mdx`）：
 
 > 它将测试框架划分为两种相辅相成的对等能力，各司其职，完美契合了测试团队中的两种核心视角：
