@@ -4280,14 +4280,25 @@ class PlaygroundServer {
     // Initialize routes now, after any middleware has been added
     this.initializeApp();
 
-    this.port = port || defaultPort;
+    this.port = port ?? defaultPort;
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const serverPort = this.port ?? defaultPort;
       const listenHost = resolvePlaygroundListenHost();
-      this.server = this._app.listen(serverPort, listenHost, () => {
+      const onError = (error: Error) => {
+        this.server = undefined;
+        reject(error);
+      };
+      const server = this._app.listen(serverPort, listenHost, () => {
+        server.removeListener('error', onError);
+        const address = server.address();
+        if (address && typeof address !== 'string') {
+          this.port = address.port;
+        }
         resolve(this);
       });
+      this.server = server;
+      server.once('error', onError);
     });
   }
 

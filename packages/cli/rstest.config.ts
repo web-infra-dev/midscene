@@ -25,7 +25,7 @@ export default defineConfig({
   ...(enableCliE2eTest
     ? { pool: { maxWorkers: 1 } }
     : enableAiTest && process.env.CI
-      ? { pool: { maxWorkers: 4 } }
+      ? { pool: { maxWorkers: 2 } }
       : {}),
   resolve: {
     alias: {
