@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { GlobalConfigManager } from '../../../src/env/global-config-manager';
 import { ModelConfigManager } from '../../../src/env/model-config-manager';
 
-afterEach(() => rs.unstubAllEnvs());
+afterEach(() => {
+  rs.unstubAllEnvs();
+});
 
 describe('model auth mode', () => {
   for (const role of ['default', 'planning', 'locate', 'insight'] as const) {

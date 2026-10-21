@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { syncBuiltinESMExports } from 'node:module';
 import os from 'node:os' with { rstest: 'importActual' };
 import { join } from 'node:path';
@@ -16,7 +23,9 @@ const fetchMock = rs.fn<typeof fetch>();
 const saveToken = async (token: unknown) => {
   await writeFile(
     join(os.homedir(), '.midscene', 'siwc.json'),
-    JSON.stringify({ credentials: { access_token: token, expires_at: 0 } }),
+    JSON.stringify({
+      credentials: { access_token: token, expires_at: Date.now() + 3600_000 },
+    }),
   );
 };
 
@@ -41,7 +50,7 @@ afterEach(async () => {
   );
 });
 
-it('reads the current token without checking expiry or caching credentials', async () => {
+it('reads the current token without caching credentials', async () => {
   await saveToken('first');
   expect(await readSiwcAccessToken()).toBe('first');
   await saveToken('second');
@@ -68,7 +77,10 @@ it.each(['file', 'extension'])(
           local: {
             get: async () => ({
               [SIWC_AUTH_STORAGE_KEY]: {
-                credentials: { access_token: 'saved-token' },
+                credentials: {
+                  access_token: 'saved-token',
+                  expires_at: Date.now() + 3600_000,
+                },
               },
             }),
           },
@@ -161,10 +173,20 @@ it('reads extension storage on every call and propagates errors', async () => {
   const get = rs
     .fn()
     .mockResolvedValueOnce({
-      [SIWC_AUTH_STORAGE_KEY]: { credentials: { access_token: 'first' } },
+      [SIWC_AUTH_STORAGE_KEY]: {
+        credentials: {
+          access_token: 'first',
+          expires_at: Date.now() + 3600_000,
+        },
+      },
     })
     .mockResolvedValueOnce({
-      [SIWC_AUTH_STORAGE_KEY]: { credentials: { access_token: 'second' } },
+      [SIWC_AUTH_STORAGE_KEY]: {
+        credentials: {
+          access_token: 'second',
+          expires_at: Date.now() + 3600_000,
+        },
+      },
     })
     .mockResolvedValueOnce({})
     .mockRejectedValueOnce(new Error('Storage unavailable'));
@@ -185,4 +207,120 @@ it('does not mistake a browser chrome object for extension storage', async () =>
   await saveToken('node-token');
   expect(await readSiwcAccessToken()).toBe('node-token');
   expect(get).not.toHaveBeenCalled();
+});
+
+const expiredRecord = () => ({
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
+  credentials: {
+    access_token: 'old-access',
+    refresh_token: 'old-refresh',
+    client_id: 'test-client',
+    expires_at: Date.now() - 1000,
+    ext_agent_host_id: 'host',
+    subject: 'account',
+  },
+});
+const refreshedTokens = {
+  access_token: 'new-access',
+  refresh_token: 'new-refresh',
+  expires_in: 3600,
+  token_type: 'Bearer',
+  scope: 'chatgpt.tokens.use.direct',
+};
+
+it.each(['file', 'extension'])(
+  'refreshes expired %s credentials once for concurrent requests and persists rotation',
+  async (source) => {
+    const record = expiredRecord();
+    const path = join(os.homedir(), '.midscene', 'siwc.json');
+    const storage = { [SIWC_AUTH_STORAGE_KEY]: record };
+    const set = rs.fn(async (value) => {
+      Object.assign(storage, value);
+    });
+    if (source === 'extension') {
+      rs.stubGlobal('chrome', {
+        runtime: { id: 'extension' },
+        storage: {
+          local: {
+            get: async () => storage,
+            set,
+          },
+        },
+      });
+    } else {
+      await writeFile(path, JSON.stringify(record));
+    }
+    fetchMock.mockResolvedValue(Response.json(refreshedTokens));
+    expect(
+      await Promise.all(Array.from({ length: 5 }, () => readSiwcAccessToken())),
+    ).toEqual(Array(5).fill('new-access'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://auth.openai.com/api/accounts/oauth/token');
+    expect(Object.fromEntries(init?.body as URLSearchParams)).toEqual({
+      grant_type: 'refresh_token',
+      client_id: 'test-client',
+      refresh_token: 'old-refresh',
+      resource: 'https://api.openai.com/v1',
+    });
+    const saved =
+      source === 'extension'
+        ? storage[SIWC_AUTH_STORAGE_KEY]
+        : JSON.parse(await readFile(path, 'utf8'));
+    expect(saved).toMatchObject({
+      created_at: record.created_at,
+      credentials: {
+        access_token: 'new-access',
+        refresh_token: 'new-refresh',
+        subject: 'account',
+        ext_agent_host_id: 'host',
+      },
+    });
+    expect(saved.credentials.expires_at).toBeGreaterThan(Date.now());
+    expect(saved.updated_at).not.toBe(record.updated_at);
+    if (source === 'file') {
+      expect((await stat(path)).mode & 0o777).toBe(0o600);
+    }
+    expect(await readSiwcAccessToken()).toBe('new-access');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  },
+);
+
+it.each(['rejected', 'invalid', 'network'])(
+  'preserves credentials on %s refresh and permits a later retry',
+  async (failure) => {
+    const path = join(os.homedir(), '.midscene', 'siwc.json');
+    const content = JSON.stringify(expiredRecord());
+    await writeFile(path, content);
+    if (failure === 'network') {
+      fetchMock.mockRejectedValueOnce(new Error('Network unavailable'));
+    } else {
+      fetchMock.mockResolvedValueOnce(
+        failure === 'rejected'
+          ? new Response('invalid_grant', { status: 400 })
+          : Response.json({ ...refreshedTokens, expires_in: -1 }),
+      );
+    }
+    await expect(readSiwcAccessToken()).rejects.toThrow('siwc login');
+    expect(await readFile(path, 'utf8')).toBe(content);
+    fetchMock.mockResolvedValueOnce(Response.json(refreshedTokens));
+    expect(await readSiwcAccessToken()).toBe('new-access');
+  },
+);
+
+it('does not return the refreshed token if persistence fails', async () => {
+  rs.stubGlobal('chrome', {
+    runtime: { id: 'extension' },
+    storage: {
+      local: {
+        get: async () => ({ [SIWC_AUTH_STORAGE_KEY]: expiredRecord() }),
+        set: async () => {
+          throw new Error('Storage unavailable');
+        },
+      },
+    },
+  });
+  fetchMock.mockResolvedValueOnce(Response.json(refreshedTokens));
+  await expect(readSiwcAccessToken()).rejects.toThrow('Storage unavailable');
 });

@@ -14,7 +14,9 @@ import {
   startSiwcLogin,
 } from '../src/extension/siwc/background';
 
-afterEach(() => rs.unstubAllGlobals());
+afterEach(() => {
+  rs.unstubAllGlobals();
+});
 
 function callbackUrl(attempt: LoginAttempt, state = attempt.state) {
   return `${attempt.redirectUri}?${new URLSearchParams({ state, code: 'code-test', client_id: 'issued-client' })}`;
@@ -55,7 +57,7 @@ describe('extension SIWC authorization', () => {
     const { attempt, url } = await createAuthorization(7, 'host');
     const params = new URL(url).searchParams;
     expect(params.get('client_id')).toBe('dynamic_agent_client');
-    expect(params.get('agent_name_hint')).toBe('Midscene');
+    expect(params.get('agent_name_hint')).toBe('Midscene Chrome Extension');
     expect(params.get('redirect_uri')).toBe(attempt.redirectUri);
     const port = Number(new URL(attempt.redirectUri).port);
     expect(port).toBeGreaterThanOrEqual(49152);

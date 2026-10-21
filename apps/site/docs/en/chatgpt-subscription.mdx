@@ -75,15 +75,19 @@ Once verification succeeds, continue with the tasks in [Try the GUI Agent](./qui
 
 ## Refresh the access token
 
-Access tokens are valid for one hour. See the [OpenAI token reference](https://developers.openai.com/siwc/token-sharing-open-source/token-reference). Check the expiration time printed by the sign-in command and refresh the token with:
+According to OpenAI's documentation, access tokens expire after one hour. A refresh token is needed to obtain a new access token. See the [OpenAI token reference](https://developers.openai.com/siwc/token-sharing-open-source/token-reference).
+
+With `MIDSCENE_MODEL_AUTH_MODE="siwc"`, Midscene manages token refreshing at runtime in both Node.js and the browser extension. If refreshing fails, you need to sign in and authorize again manually.
+
+If you manage tokens yourself, run the following command to refresh them manually:
 
 ```bash
 pnpm dlx @midscene/cli model siwc refresh
 ```
 
-The command updates the local credentials and prints a new access token. In Node.js with `AUTH_MODE="siwc"`, the next request reads the updated token without configuration changes. When configuring tokens manually, replace `MIDSCENE_MODEL_API_KEY` and reload the configuration.
+The command updates the local credentials and prints a new access token. Replace `MIDSCENE_MODEL_API_KEY` with the new token and reload the configuration.
 
-The browser extension stores credentials separately. When its token expires, sign in again using the extension button. Automatic refresh is not yet supported.
+The browser extension stores credentials separately. Refreshing from the command line does not update the extension’s credentials.
 
 ## Usage and credentials
 

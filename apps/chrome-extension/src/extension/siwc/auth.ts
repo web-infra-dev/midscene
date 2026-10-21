@@ -54,7 +54,7 @@ export async function createAuthorization(
   const url = new URL(`${ISSUER}/api/accounts/authorize`);
   url.search = new URLSearchParams({
     client_id: clientId ?? 'dynamic_agent_client',
-    ...(clientId ? {} : { agent_name_hint: 'Midscene' }),
+    ...(clientId ? {} : { agent_name_hint: 'Midscene Chrome Extension' }),
     ext_agent_host_id: hostId,
     response_type: 'code',
     redirect_uri: attempt.redirectUri,

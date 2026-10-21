@@ -6,7 +6,9 @@ import { afterEach, expect, it, rs } from '@rstest/core';
 
 rs.mock('@midscene/shared/utils', () => ({ ifInBrowser: true }));
 
-afterEach(() => rs.unstubAllGlobals());
+afterEach(() => {
+  rs.unstubAllGlobals();
+});
 
 it('reads Chrome extension storage in a browser without Node.js APIs', async () => {
   rs.stubGlobal('chrome', {
@@ -15,7 +17,10 @@ it('reads Chrome extension storage in a browser without Node.js APIs', async () 
       local: {
         get: async () => ({
           [SIWC_AUTH_STORAGE_KEY]: {
-            credentials: { access_token: 'extension-token' },
+            credentials: {
+              access_token: 'extension-token',
+              expires_at: Date.now() + 3600_000,
+            },
           },
         }),
       },

@@ -75,15 +75,19 @@ pnpm dlx @midscene/cli model verify
 
 ## 刷新 access token
 
-Access token 的有效期为 1 小时，详见 [OpenAI token 说明](https://developers.openai.com/siwc/token-sharing-open-source/token-reference)。到期前可以查看登录命令打印的过期时间，并运行以下命令更新 token：
+根据 OpenAI 的说明，access token 会在 1 小时后过期，需要使用 refresh token 获取新的 access token，详见 [OpenAI token 说明](https://developers.openai.com/siwc/token-sharing-open-source/token-reference)。
+
+使用 `MIDSCENE_MODEL_AUTH_MODE="siwc"` 时，Midscene 会在运行时负责维护 token 的刷新，Node.js 和浏览器插件均支持这一流程。如果刷新失败，需要重新进行手动登录授权。
+
+如果你自行管理 token，可以运行以下命令手动刷新：
 
 ```bash
 pnpm dlx @midscene/cli model siwc refresh
 ```
 
-命令会更新本地凭据，并打印新的 access token。在 Node.js 中使用 `AUTH_MODE="siwc"` 时，下次请求会读取更新后的 token，无需修改配置。手动配置 access token 时，仍需替换 `MIDSCENE_MODEL_API_KEY` 并重新加载配置。
+命令会更新本地凭据，并打印新的 access token。将 `MIDSCENE_MODEL_API_KEY` 替换为新的 token 后，重新加载配置即可。
 
-浏览器插件中的凭据独立保存，token 过期后请通过插件按钮重新授权。目前暂不支持自动刷新。
+浏览器插件中的凭据独立保存，命令行刷新不会更新插件中的凭据。
 
 ## 额度与凭据
 
