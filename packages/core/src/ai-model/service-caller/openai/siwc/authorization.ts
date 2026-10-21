@@ -1,4 +1,5 @@
 import { type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose';
+import { tokenResponseError, withSiwcStage } from './errors';
 
 const ISSUER = 'https://auth.openai.com';
 const RESOURCE = 'https://api.openai.com/v1';
@@ -104,29 +105,32 @@ export async function exchangeSiwcCode(
   dependencies?: { fetch: typeof fetch; keys: JWTVerifyGetKey },
 ) {
   signal.throwIfAborted();
-  const response = await (dependencies?.fetch ?? fetch)(
-    `${ISSUER}/api/accounts/oauth/token`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: callback.clientId,
-        code: callback.code,
-        code_verifier: attempt.verifier,
-        redirect_uri: attempt.redirectUri,
-        resource: RESOURCE,
-      }),
-      signal,
-      redirect: 'error',
-    },
-  );
-  if (!response.ok) {
-    throw new Error(
-      `OpenAI token exchange failed (HTTP ${response.status}): ${await response.text()}`,
+  const response = await withSiwcStage('Token exchange', async () => {
+    const response = await (dependencies?.fetch ?? fetch)(
+      `${ISSUER}/api/accounts/oauth/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: callback.clientId,
+          code: callback.code,
+          code_verifier: attempt.verifier,
+          redirect_uri: attempt.redirectUri,
+          resource: RESOURCE,
+        }),
+        signal,
+        redirect: 'error',
+      },
     );
-  }
-  const tokens = await response.json();
+    if (!response.ok) {
+      throw await tokenResponseError(response);
+    }
+    return response;
+  });
+  const tokens = await withSiwcStage('Token response parsing', () =>
+    response.json(),
+  );
   if (
     !tokens ||
     typeof tokens.access_token !== 'string' ||
@@ -147,20 +151,22 @@ export async function exchangeSiwcCode(
   if (!scopes.includes('chatgpt.tokens.use.direct')) {
     throw new Error('ChatGPT plan usage was not authorized.');
   }
-  const { payload } = await jwtVerify(
-    tokens.id_token,
-    dependencies?.keys ??
-      createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks.json`)),
-    {
-      issuer: ISSUER,
-      audience: callback.clientId,
-      algorithms: ['RS256'],
-      // Some CI machines have incorrect system clocks. Do not compare ID token
-      // exp/nbf claims against local time when accepting newly returned tokens.
-      // Keep signature, issuer, audience and required-claim validation.
-      clockTolerance: Number.POSITIVE_INFINITY,
-      requiredClaims: ['sub', 'exp', 'iat', 'nonce'],
-    },
+  const { payload } = await withSiwcStage('ID token verification', () =>
+    jwtVerify(
+      tokens.id_token,
+      dependencies?.keys ??
+        createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks.json`)),
+      {
+        issuer: ISSUER,
+        audience: callback.clientId,
+        algorithms: ['RS256'],
+        // Some CI machines have incorrect system clocks. Do not compare ID token
+        // exp/nbf claims against local time when accepting newly returned tokens.
+        // Keep signature, issuer, audience and required-claim validation.
+        clockTolerance: Number.POSITIVE_INFINITY,
+        requiredClaims: ['sub', 'exp', 'iat', 'nonce'],
+      },
+    ),
   );
   if (payload.nonce !== attempt.nonce || !payload.sub) {
     throw new Error('OpenAI login identity or nonce did not match.');

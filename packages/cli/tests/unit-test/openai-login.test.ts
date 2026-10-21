@@ -187,7 +187,10 @@ describe('OpenAI loopback login', () => {
         },
         context.dependencies,
       ),
-    ).rejects.toThrow('denied');
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('Stage: Authorization callback'),
+      cause: { message: expect.stringContaining('denied') },
+    });
     expect(context.calls).toHaveLength(0);
   });
 

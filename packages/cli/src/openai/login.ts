@@ -8,6 +8,7 @@ import {
   parseSiwcCallback,
 } from '@midscene/core/ai-model';
 import type { JWTVerifyGetKey } from 'jose';
+import { withSiwcStage } from './errors';
 
 interface LoginOptions {
   hostId?: string;
@@ -131,7 +132,10 @@ export async function loginWithOpenAI(
     });
     context.attempt = attempt;
     await options.onAuthorization(url);
-    const result = await callback;
+    const result = await withSiwcStage(
+      'Authorization callback',
+      () => callback,
+    );
     return await exchangeSiwcCode(attempt, result, signal, dependencies);
   } finally {
     signal.removeEventListener('abort', abort);

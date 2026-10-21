@@ -80,3 +80,9 @@ export {
   parseSiwcCallback,
   exchangeSiwcCode,
 } from './service-caller/openai/siwc';
+
+export {
+  SiwcError,
+  withSiwcStage,
+  tokenResponseError,
+} from './service-caller/openai/siwc/errors';

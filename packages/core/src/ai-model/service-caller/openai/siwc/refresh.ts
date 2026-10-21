@@ -1,4 +1,5 @@
 import { type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose';
+import { tokenResponseError, withSiwcStage } from './errors';
 interface RefreshableCredentials {
   client_id?: string;
   refresh_token?: string;
@@ -11,32 +12,36 @@ export async function refreshSiwcCredentials<T extends RefreshableCredentials>(
   signal: AbortSignal,
   dependencies?: { fetch: typeof fetch; keys: JWTVerifyGetKey },
 ) {
-  if (!saved.client_id || !saved.refresh_token) {
+  const { client_id: clientId, refresh_token: refreshToken } = saved;
+  if (!clientId || !refreshToken) {
     throw new Error('Missing client ID or refresh token.');
   }
   const issuer = 'https://auth.openai.com';
   signal.throwIfAborted();
-  const response = await (dependencies?.fetch ?? fetch)(
-    `${issuer}/api/accounts/oauth/token`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        client_id: saved.client_id,
-        refresh_token: saved.refresh_token,
-        resource: 'https://api.openai.com/v1',
-      }),
-      signal,
-      redirect: 'error',
-    },
-  );
-  if (!response.ok) {
-    throw new Error(
-      `OpenAI refresh returned HTTP ${response.status}: ${await response.text()}`,
+  const response = await withSiwcStage('Token refresh', async () => {
+    const response = await (dependencies?.fetch ?? fetch)(
+      `${issuer}/api/accounts/oauth/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: clientId,
+          refresh_token: refreshToken,
+          resource: 'https://api.openai.com/v1',
+        }),
+        signal,
+        redirect: 'error',
+      },
     );
-  }
-  const tokens = await response.json();
+    if (!response.ok) {
+      throw await tokenResponseError(response);
+    }
+    return response;
+  });
+  const tokens = await withSiwcStage('Refresh response parsing', () =>
+    response.json(),
+  );
   if (
     !tokens ||
     typeof tokens.access_token !== 'string' ||
@@ -63,16 +68,18 @@ export async function refreshSiwcCredentials<T extends RefreshableCredentials>(
     const keys =
       dependencies?.keys ??
       createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
-    const { payload } = await jwtVerify(tokens.id_token, keys, {
-      issuer,
-      audience: saved.client_id,
-      algorithms: ['RS256'],
-      // Some CI machines have incorrect system clocks. Do not compare ID token
-      // exp/nbf claims against local time when accepting newly returned tokens.
-      // Keep signature, issuer, audience and required-claim validation.
-      clockTolerance: Number.POSITIVE_INFINITY,
-      requiredClaims: ['sub', 'exp', 'iat'],
-    });
+    const { payload } = await withSiwcStage('ID token verification', () =>
+      jwtVerify(tokens.id_token, keys, {
+        issuer,
+        audience: saved.client_id,
+        algorithms: ['RS256'],
+        // Some CI machines have incorrect system clocks. Do not compare ID token
+        // exp/nbf claims against local time when accepting newly returned tokens.
+        // Keep signature, issuer, audience and required-claim validation.
+        clockTolerance: Number.POSITIVE_INFINITY,
+        requiredClaims: ['sub', 'exp', 'iat'],
+      }),
+    );
     if (payload.sub !== saved.subject) {
       throw new Error('Refreshed identity does not match the saved account.');
     }

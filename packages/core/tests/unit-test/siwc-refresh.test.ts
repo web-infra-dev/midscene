@@ -85,7 +85,13 @@ describe('SIWC refresh', () => {
         new AbortController().signal,
         await dependencies({ error: 'invalid_grant', secret: 'secret' }, 400),
       ),
-    ).rejects.toThrow('OpenAI refresh returned HTTP 400:');
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('Stage: Token refresh'),
+      cause: {
+        message:
+          'HTTP status: 400\nResponse body: {"error":"invalid_grant","secret":"secret"}',
+      },
+    });
   });
 
   for (const invalidClaim of ['issuer', 'audience', 'signature']) {
