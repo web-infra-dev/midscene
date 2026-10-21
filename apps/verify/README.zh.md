@@ -184,4 +184,16 @@ App 评论包含计划摘要、验收项标题、计划与来源链接、覆盖�
 node apps/verify/scripts/evaluate.mjs observations.json new-result.json
 ```
 
-输入包含 `corpusVersion`、完整 `engineSha`、`plannerModel`、`visualModel` 和 `observations`。每条记录包含 `caseId`、`attempt: 1`、`outcome`（`passed`、`assertion-failed` 或 `inconclusive`）、原始证据地址 `evidence` 和 `durationMs`。命令拒绝重复场景与重试记录，输出输入和评测集的哈希，并拒绝覆盖已有结果。这些约束有助于保留首轮记录，但不能证明外部输入的真实性。当前尚未统计模型费用，也没有自动执行完整评测集；单元测试通过不能当作模型可靠性成绩。
+输入包含 `corpusVersion`、完整 `engineSha`、`plannerModel`、`visualModel` 和 `observations`。每条记录包含 `caseId`、`attempt: 1`、`outcome`（`passed`、`assertion-failed` 或 `inconclusive`）、原始证据地址 `evidence` 和 `durationMs`。命令拒绝重复场景与重试记录，输出输入和评测集的哈希，并拒绝覆盖已有结果。这些约束有助于保留首轮记录，但不能证明外部输入的真实性。评分器尚未统计模型费用；单元测试通过不能当作模型可靠性成绩。
+
+
+执行完整评测集，使用真实模型和一个尚不存在的输出目录：
+
+```bash
+VERIFY_MODEL_ENV_FILE=/absolute/path/to/model.env \
+  node apps/verify/scripts/run-evaluation.mjs /absolute/path/to/new-evaluation
+```
+
+按上文配置 `VERIFY_PLANNER_MODEL`、`MIDSCENE_MODEL_NAME` 及对应服务地址和密钥。先提交引擎代码：执行器拒绝存在未提交引擎源码的目录，并记录本地 HEAD 的完整 SHA。服务支持时使用模型快照 ID；模型别名不能固定服务端版本。运行不需要 App 凭据，不写入 GitHub，也不部署。五个用例通过生产代码中的上下文采集和规划模块处理模拟 PR 与源码；三个边界用例采用固定步骤，分别检查预览不可用、版本过期和操作失败。预期标签不发送给模型，测试页面的实际行为另有独立单元测试核对。
+
+每个用例顺序执行一次，关闭模型重试。规划器已有的有限修复属于同一次运行，保留两版草稿。证据包含冻结计划、截图、原生 HTML 报告、执行记录和经过校验的文件哈希。Agent 可读取 `observations.json` 和 `result.json`，人可从 `summary.md` 打开各用例证据。中断后保留已完成的记录，但不算完整基线。执行器拒绝覆盖已有目录；结果不符合预期、执行器报错或边界错误分类不符时，返回非零退出码。模型服务故障不能算作正确识别了需求歧义。八个模拟用例用于回归检查，不能代表生产可靠性，暂不统计费用。更换引擎版本后重测时，保留旧版失败记录。

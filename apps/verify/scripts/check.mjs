@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 
-for (const directory of ['src', 'scripts', 'tests', 'deploy']) {
+for (const directory of ['src', 'scripts', 'tests', 'deploy', 'evaluation']) {
   for (const file of await readdir(
     new URL(`../${directory}/`, import.meta.url),
   )) {

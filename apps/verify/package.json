@@ -7,7 +7,8 @@
     "start": "node src/main.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "build": "node scripts/check.mjs",
-    "test:browser": "node scripts/browser-smoke.mjs"
+    "test:browser": "node scripts/browser-smoke.mjs",
+    "test:evaluation": "node scripts/run-evaluation.mjs"
   },
   "dependencies": {
     "@midscene/web": "workspace:*",

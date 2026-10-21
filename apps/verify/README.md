@@ -154,4 +154,16 @@ The versioned `evaluation/cases.json` defines eight baseline cases. The evaluati
 node apps/verify/scripts/evaluate.mjs observations.json new-result.json
 ```
 
-Input fields: `corpusVersion`, `engineSha` (full SHA), `plannerModel`, `visualModel`, and `observations`. Each observation has `caseId`, `attempt: 1`, `outcome` (`passed`, `assertion-failed`, or `inconclusive`), `evidence` (original evidence location), and `durationMs`. Duplicate cases and retries are rejected. The output includes input/corpus hashes and refuses to overwrite an existing file. These constraints help preserve first-run records but do not authenticate externally supplied observations. This initial evaluator does not measure model cost or automatically run the entire corpus; unit-test results must not be presented as measured model reliability.
+Input fields: `corpusVersion`, `engineSha` (full SHA), `plannerModel`, `visualModel`, and `observations`. Each observation has `caseId`, `attempt: 1`, `outcome` (`passed`, `assertion-failed`, or `inconclusive`), `evidence` (original evidence location), and `durationMs`. Duplicate cases and retries are rejected. The output includes input/corpus hashes and refuses to overwrite an existing file. These constraints help preserve first-run records but do not authenticate externally supplied observations. The scorer does not measure model cost; unit-test results must not be presented as measured model reliability.
+
+
+Run the complete corpus against real models with a new output directory:
+
+```bash
+VERIFY_MODEL_ENV_FILE=/absolute/path/to/model.env \
+  node apps/verify/scripts/run-evaluation.mjs /absolute/path/to/new-evaluation
+```
+
+Configure `VERIFY_PLANNER_MODEL` and `MIDSCENE_MODEL_NAME` plus their endpoint/key variables as above. Commit engine changes first: the runner rejects dirty engine sources and records the full local HEAD SHA. Use provider snapshot model IDs where available; an alias does not pin the provider's backend. No App credentials, GitHub writes or deployment are involved. Five cases use synthetic PR/source context through the production collector and planner; three boundary cases use fixed criteria to isolate preview, revision and action failures. Labels are never provided to the models. Fixture behavior is checked independently in unit tests.
+
+Each case runs once, sequentially, with model retries disabled. The production planner's bounded repair is part of that attempt and retains both drafts. Evidence includes frozen plans, screenshots, native HTML reports, execution records and verified bundle hashes. `observations.json` and `result.json` are machine-readable; `summary.md` links case evidence. Interrupted runs retain completed case records; they are not a complete baseline. The runner refuses an existing output directory and exits nonzero for wrong outcomes, harness errors or wrong boundary diagnoses. Provider failure cannot count as successful ambiguity detection. Eight synthetic cases are a regression baseline, not production reliability statistics; costs remain unmeasured. Keep failed runs when collecting a new engine revision.
