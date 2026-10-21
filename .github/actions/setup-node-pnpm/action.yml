@@ -11,6 +11,9 @@ inputs:
     description: pnpm version to install
     required: false
     default: 9.3.0
+  registry-url:
+    description: Optional package registry to configure for authentication
+    required: false
 
 outputs:
   node-cache-hit:
@@ -43,6 +46,7 @@ runs:
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: ${{ inputs.node-version }}
+        registry-url: ${{ inputs.registry-url }}
 
     - name: Save Node.js toolcache
       if: ${{ runner.environment == 'self-hosted' && steps.node-cache.outputs.cache-hit != 'true' }}
