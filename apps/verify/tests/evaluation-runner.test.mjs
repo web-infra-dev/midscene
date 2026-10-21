@@ -116,6 +116,7 @@ test('runner records every first attempt, rejects overwrites, and never counts p
   assert.equal(result.run.observations.length, 8);
   assert.equal(result.passed, false);
   assert.ok(result.boundaryMismatches.includes('ambiguous-demand'));
+  assert.ok(result.boundaryMismatches.includes('preview-unavailable'));
   assert.equal(result.harnessErrors.length, 5);
   assert.equal(result.metrics.falsePositive, 0);
   assert.equal(result.metrics.falseNegative, 0);

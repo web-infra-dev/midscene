@@ -178,7 +178,9 @@ export async function runEvaluation({
       diagnosis: failure
         ? `harness-${failure.stage}-error`
         : report.diagnosis.category,
-      ...(failure ? { failure } : {}),
+      ...(failure
+        ? { failure }
+        : { executionErrorCode: report.execution.errorCode ?? null }),
     };
     await save(path.join(directory, 'observation.json'), observation);
     run.observations.push(observation);
@@ -197,7 +199,9 @@ export async function runEvaluation({
     .filter(
       (item) =>
         expectedDiagnoses[item.caseId] &&
-        item.diagnosis !== expectedDiagnoses[item.caseId],
+        (item.diagnosis !== expectedDiagnoses[item.caseId] ||
+          (item.caseId === 'preview-unavailable' &&
+            item.executionErrorCode !== 'ENVIRONMENT_ERROR')),
     )
     .map((item) => item.caseId);
   const harnessErrors = run.observations
