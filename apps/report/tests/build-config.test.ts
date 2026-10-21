@@ -19,15 +19,12 @@ const configFiles = (name: string) => {
 };
 
 describe('report TypeScript build scope', () => {
-  it('checks production sources without pulling in test-only dependencies', () => {
+  it('keeps colocated tests and the e2e setup in the build type check', () => {
     const files = configFiles('tsconfig.build.json');
 
     expect(files).toContain('src/index.tsx');
-    expect(
-      files.filter((file) => /\.(test|spec)\.[cm]?[jt]sx?$/.test(file)),
-    ).toEqual([]);
-    expect(files.some((file) => file.startsWith('e2e/'))).toBe(false);
-    expect(files.some((file) => file.startsWith('tests/'))).toBe(false);
+    expect(files).toContain('src/e2e-yaml.test.ts');
+    expect(files).toContain('e2e/midscene.config.ts');
   });
 
   it('keeps unit tests and the e2e setup in the development type check', () => {
