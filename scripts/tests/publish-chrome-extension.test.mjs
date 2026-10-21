@@ -10,13 +10,84 @@ const script = fileURLToPath(
 );
 const supported =
   process.platform !== 'win32' && spawnSync('jq', ['--version']).status === 0;
+const credentials = {
+  client_id: 'client&+with spaces',
+  client_secret: 'secret-value&+with spaces',
+  refresh_token: 'refresh&+with spaces',
+};
+const cases = [
+  {
+    name: 'diagnoses invalid client credentials',
+    status: '401',
+    body: '{"error":"invalid_client","error_description":"secret-value"}',
+    exitCode: 1,
+    message: 'invalid_client',
+  },
+  {
+    name: 'diagnoses revoked grants',
+    status: '400',
+    body: '{"error":"invalid_grant"}',
+    exitCode: 1,
+    message: 'invalid_grant',
+  },
+  {
+    name: 'hides non-JSON error responses',
+    status: '503',
+    body: 'secret-value',
+    exitCode: 1,
+    message: 'HTTP 503',
+  },
+  {
+    name: 'rejects empty access tokens',
+    status: '200',
+    body: '{"access_token":""}',
+    exitCode: 1,
+    message: 'non-empty access token',
+  },
+  {
+    name: 'rejects null access tokens',
+    status: '200',
+    body: '{"access_token":null}',
+    exitCode: 1,
+    message: 'non-empty access token',
+  },
+  {
+    name: 'rejects malformed successful responses',
+    status: '200',
+    body: 'secret-value',
+    exitCode: 1,
+    message: 'non-empty access token',
+  },
+  {
+    name: 'hides unknown error codes',
+    status: '401',
+    body: '{"error":"secret-value"}',
+    exitCode: 1,
+    message: 'HTTP 401',
+  },
+  {
+    name: 'diagnoses transport failures',
+    status: 'transport',
+    body: '',
+    exitCode: 1,
+    message: 'before receiving an HTTP response',
+  },
+  {
+    name: 'encodes credentials and submits after authentication',
+    status: '200',
+    body: '{ "access_token": "valid-token" }',
+    exitCode: 0,
+    message:
+      'Chrome Web Store submission accepted: version 1.112, state PENDING_REVIEW',
+  },
+];
 
-it.skipIf(!supported)(
-  'handles OAuth responses without leaking credentials and only uploads after authentication',
-  async () => {
+for (const scenario of cases) {
+  it.skipIf(!supported)(scenario.name, async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-oauth-'));
     try {
       await fs.writeFile(path.join(dir, 'extension.zip'), 'fixture');
+      await fs.writeFile(path.join(dir, 'calls'), '');
       await fs.writeFile(
         path.join(dir, 'unzip'),
         '#!/bin/bash\nprintf \'{"version":"1.112"}\\n\'\n',
@@ -26,82 +97,85 @@ it.skipIf(!supported)(
         path.join(dir, 'curl'),
         `#!/bin/bash
 case "$*" in
-  *https://oauth2.googleapis.com/token*) ;;
+  *https://oauth2.googleapis.com/token*)
+    printf '%s\\0' "$@" > "$MOCK_DIR/token-args"
+    printf 'token\\n' >> "$MOCK_DIR/calls"
+    if [[ "$MOCK_STATUS" == "transport" ]]; then exit 6; fi
+    printf '%s\\n%s' "$MOCK_BODY" "$MOCK_STATUS"
+    ;;
   *)
-    if [[ "$MOCK_BODY" != '{"access_token":"valid-token"}' ]]; then
-      echo 'unexpected upload' >&2; exit 99
-    fi
     case "$*" in
       *"Authorization: Bearer valid-token"*) ;;
       *) echo 'missing access token' >&2; exit 98 ;;
     esac
     case "$*" in
-      *:upload*) printf '{"uploadState":"SUCCEEDED"}' ;;
-      *:publish*) printf '{}' ;;
-      *:fetchStatus*) printf '{"submittedItemRevisionStatus":{"state":"PENDING_REVIEW","distributionChannels":[{"crxVersion":"1.112"}]}}' ;;
+      *:upload*)
+        printf 'upload\\n' >> "$MOCK_DIR/calls"
+        printf '{"uploadState":"SUCCEEDED"}' ;;
+      *:publish*)
+        printf 'publish\\n' >> "$MOCK_DIR/calls"
+        printf '{}' ;;
+      *:fetchStatus*)
+        printf 'status\\n' >> "$MOCK_DIR/calls"
+        printf '{"submittedItemRevisionStatus":{"state":"PENDING_REVIEW","distributionChannels":[{"crxVersion":"1.112"}]}}' ;;
       *) exit 97 ;;
     esac
-    exit 0
     ;;
 esac
-case "$*" in
-  *--data-urlencode*) ;;
-  *) exit 98 ;;
-esac
-if [[ "$MOCK_STATUS" == "transport" ]]; then
-  exit 6
-fi
-printf '%s\\n%s' "$MOCK_BODY" "$MOCK_STATUS"
 `,
         { mode: 0o755 },
       );
-      for (const [status, body, expected] of [
-        [
-          '401',
-          '{"error":"invalid_client","error_description":"secret-value"}',
-          'invalid_client',
-        ],
-        ['400', '{"error":"invalid_grant"}', 'invalid_grant'],
-        ['503', 'secret-value', 'HTTP 503'],
-        ['200', '{"access_token":""}', 'non-empty access token'],
-        ['200', '{"access_token":null}', 'non-empty access token'],
-        ['401', '{"error":"secret-value"}', 'HTTP 401'],
-        ['transport', '', 'before receiving an HTTP response'],
-        [
-          '200',
-          '{"access_token":"valid-token"}',
-          'Chrome Web Store submission accepted: version 1.112, state PENDING_REVIEW',
-        ],
-      ]) {
-        const result = spawnSync(
-          'bash',
-          [script, '--zip-path', path.join(dir, 'extension.zip')],
-          {
-            encoding: 'utf8',
-            env: {
-              ...process.env,
-              PATH: `${dir}:${process.env.PATH}`,
-              CHROME_WEB_STORE_PUBLISHER_ID: 'fixture',
-              CHROME_WEB_STORE_CLIENT_ID: 'fixture',
-              CHROME_WEB_STORE_CLIENT_SECRET: 'secret-value',
-              CHROME_WEB_STORE_REFRESH_TOKEN: 'fixture',
-              MOCK_BODY: body,
-              MOCK_STATUS: status,
-              GITHUB_STEP_SUMMARY: path.join(dir, 'summary.md'),
-            },
+      const result = spawnSync(
+        'bash',
+        [script, '--zip-path', path.join(dir, 'extension.zip')],
+        {
+          encoding: 'utf8',
+          timeout: 10_000,
+          env: {
+            ...process.env,
+            PATH: `${dir}:${process.env.PATH}`,
+            CHROME_WEB_STORE_PUBLISHER_ID: 'fixture',
+            CHROME_WEB_STORE_CLIENT_ID: credentials.client_id,
+            CHROME_WEB_STORE_CLIENT_SECRET: credentials.client_secret,
+            CHROME_WEB_STORE_REFRESH_TOKEN: credentials.refresh_token,
+            MOCK_BODY: scenario.body,
+            MOCK_STATUS: scenario.status,
+            MOCK_DIR: dir,
+            GITHUB_STEP_SUMMARY: path.join(dir, 'summary.md'),
           },
-        );
-        const succeeds = body === '{"access_token":"valid-token"}';
-        expect(result.status).toBe(succeeds ? 0 : 1);
-        expect(result.stdout + result.stderr).toContain(expected);
-        expect(result.stdout + result.stderr).not.toContain('secret-value');
-        expect(result.stdout + result.stderr).not.toContain('valid-token');
-        expect(result.stdout + result.stderr).not.toContain(
-          'unexpected upload',
-        );
+        },
+      );
+      expect(result.status).toBe(scenario.exitCode);
+      const output = result.stdout + result.stderr;
+      expect(output).toContain(scenario.message);
+      for (const secret of [
+        ...Object.values(credentials),
+        'secret-value',
+        'valid-token',
+      ]) {
+        expect(output).not.toContain(secret);
+      }
+      const calls = (await fs.readFile(path.join(dir, 'calls'), 'utf8'))
+        .trim()
+        .split('\n');
+      expect(calls).toEqual(
+        scenario.exitCode === 0
+          ? ['token', 'upload', 'publish', 'status']
+          : ['token'],
+      );
+      const args = (await fs.readFile(path.join(dir, 'token-args'), 'utf8'))
+        .split('\0')
+        .slice(0, -1);
+      for (const [name, value] of Object.entries({
+        ...credentials,
+        grant_type: 'refresh_token',
+      })) {
+        const index = args.indexOf(`${name}=${value}`);
+        expect(index).toBeGreaterThan(0);
+        expect(args[index - 1]).toBe('--data-urlencode');
       }
     } finally {
       await fs.rm(dir, { recursive: true, force: true });
     }
-  },
-);
+  });
+}
