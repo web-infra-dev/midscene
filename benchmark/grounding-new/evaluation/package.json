@@ -3,17 +3,22 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+  },
   "scripts": {
     "evaluate": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",
-    "sharp": "^0.34.3"
+    "@midscene/shared": "workspace:*",
+    "dotenv": "^18.0.8"
   },
   "devDependencies": {
-    "@types/node": "^18.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "@types/node": "^24.19.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }

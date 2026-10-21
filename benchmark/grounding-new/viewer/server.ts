@@ -5,9 +5,12 @@ import { parseArgs } from 'node:util';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
-import type { Testcase } from './src/types';
+import type { EvaluationResult, Testcase } from './src/types';
 
 const testcasesRoot = fileURLToPath(new URL('../testcases/', import.meta.url));
+const outputRoot = fileURLToPath(
+  new URL('../evaluation/output/', import.meta.url),
+);
 
 export async function createDatasetApp() {
   const entries = await readdir(testcasesRoot, { withFileTypes: true });
@@ -27,11 +30,53 @@ export async function createDatasetApp() {
   );
   const app = new Hono();
   app.get('/api/testcases', (context) => context.json({ testcases }));
+  app.get('/api/runs', async (context) => {
+    const entries = await readdir(outputRoot, { withFileTypes: true }).catch(
+      (error) => {
+        if (error.code !== 'ENOENT') throw error;
+        return [];
+      },
+    );
+    return context.json({
+      runs: entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+        .sort((left, right) => Number(right) - Number(left)),
+    });
+  });
+  app.get('/api/runs/:runId', async (context) => {
+    const runId = context.req.param('runId');
+    const runRoot = path.join(outputRoot, runId);
+    const entries = await readdir(runRoot, { withFileTypes: true }).catch(
+      (error) => {
+        if (error.code !== 'ENOENT') throw error;
+        return null;
+      },
+    );
+    if (!entries) return context.notFound();
+    const results: EvaluationResult[] = await Promise.all(
+      entries
+        .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+        .map(async (entry) => ({
+          ...JSON.parse(await readFile(path.join(runRoot, entry.name), 'utf8')),
+          id: entry.name.slice(0, -5),
+          jsonUrl: `/results/${runId}/${encodeURIComponent(entry.name)}`,
+        })),
+    );
+    return context.json({ results });
+  });
   app.use(
     '/images/*',
     serveStatic({
       root: testcasesRoot,
       rewriteRequestPath: (pathname) => pathname.replace('/images', ''),
+    }),
+  );
+  app.use(
+    '/results/*',
+    serveStatic({
+      root: outputRoot,
+      rewriteRequestPath: (pathname) => pathname.replace('/results', ''),
     }),
   );
   return app;
@@ -48,6 +93,16 @@ if (
   const distRoot = fileURLToPath(new URL('./dist/', import.meta.url));
   const app = await createDatasetApp();
   app.use('*', serveStatic({ root: distRoot }));
+  for (const route of [
+    '/',
+    '/benchmark',
+    '/benchmark/:name',
+    '/runs',
+    '/runs/:runId',
+    '/runs/:runId/:id',
+  ]) {
+    app.get(route, serveStatic({ path: path.join(distRoot, 'index.html') }));
+  }
 
   serve({ fetch: app.fetch, hostname: '127.0.0.1', port }, () =>
     console.log(`Grounding viewer: http://127.0.0.1:${port}`),

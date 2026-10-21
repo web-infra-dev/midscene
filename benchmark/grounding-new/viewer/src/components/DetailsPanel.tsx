@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { TestcaseView } from '../types';
 
 function safeExternalUrl(value: string): string | null {
@@ -14,7 +15,10 @@ const collectedAtFormatter = new Intl.DateTimeFormat('zh-CN', {
   timeStyle: 'long',
 });
 
-export function DetailsPanel({ testcase }: { testcase: TestcaseView }) {
+export function DetailsPanel({
+  testcase,
+  children,
+}: { testcase: TestcaseView; children?: ReactNode }) {
   const { reference } = testcase;
   const sourceLink = safeExternalUrl(reference.url);
   const collectedAt = new Date(reference.collectedAt);
@@ -26,6 +30,7 @@ export function DetailsPanel({ testcase }: { testcase: TestcaseView }) {
 
   return (
     <aside className="details-panel" aria-label="用例详细信息">
+      {children}
       <section className="detail-section instructions-section">
         <h3>
           定位指令 <span className="section-label">Instruction</span>

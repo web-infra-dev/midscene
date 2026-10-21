@@ -14,6 +14,28 @@ export const categoryItems = [
 export type CategoryItem = (typeof categoryItems)[number];
 export type GroundTruth = [number, number, number, number] | 'REFUSAL';
 
+export interface EvaluationResult {
+  id: string;
+  testcase: string;
+  platform: 'web' | 'mobile';
+  model: string;
+  instructionLanguage: 'en' | 'zh';
+  instruction: string;
+  groundTruth: GroundTruth;
+  prediction:
+    | {
+        outcome: 'POINT';
+        center?: [number, number];
+        rect?: { left: number; top: number; width: number; height: number };
+        dpr?: number;
+      }
+    | { outcome: 'REFUSAL' | 'ERROR' };
+  correct: boolean;
+  durationMs: number;
+  error?: string;
+  jsonUrl: string;
+}
+
 export interface Testcase {
   name: string;
   platform: 'web' | 'mobile';

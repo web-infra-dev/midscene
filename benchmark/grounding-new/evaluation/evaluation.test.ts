@@ -1,9 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import sharp from 'sharp';
+import { Agent } from '@midscene/core';
+import { encodedImageInfoOfBuffer } from '@midscene/shared/img';
 import { expect, test } from 'vitest';
 
 type TestCase = {
@@ -15,11 +15,6 @@ type TestCase = {
   reference: { image: { format: 'png' | 'jpeg' } };
 };
 
-// Node loads the built package directly because Vite cannot transform one of
-// @midscene/core's transitive image dependencies.
-const { Agent } = createRequire(import.meta.url)(
-  '@midscene/core',
-) as typeof import('@midscene/core');
 const testcasesDirectory = fileURLToPath(
   new URL('../testcases/', import.meta.url),
 );
@@ -32,6 +27,7 @@ test.each(
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort()
+    // .slice(0, 1)
     .map(
       (name) =>
         JSON.parse(
@@ -41,7 +37,7 @@ test.each(
           ),
         ) as TestCase,
     ),
-)('$name', async (testcase) => {
+)('$name', { concurrent: false, timeout: 120 * 1000 }, async (testcase) => {
   const modelName =
     process.env.MIDSCENE_LOCATE_MODEL_NAME || process.env.MIDSCENE_MODEL_NAME;
   if (!modelName) {
@@ -59,14 +55,14 @@ test.each(
           `image.${testcase.reference.image.format === 'jpeg' ? 'jpg' : 'png'}`,
         ),
       );
-      const { width, height } = await sharp(image).metadata();
+      const { width, height } = encodedImageInfoOfBuffer(image);
       const agent = new Agent(
         {
           interfaceType: 'static',
           actionSpace: () => [],
           screenshotBase64: async () =>
             `data:image/${testcase.reference.image.format};base64,${image.toString('base64')}`,
-          size: async () => ({ width: width!, height: height! }),
+          size: async () => ({ width, height }),
         },
         { generateReport: false },
       );

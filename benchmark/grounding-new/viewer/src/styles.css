@@ -103,6 +103,137 @@ select {
   color: #68778a;
   letter-spacing: 0;
 }
+.page-navigation {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+.page-navigation a {
+  padding: 9px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #68778a;
+  white-space: nowrap;
+}
+.page-navigation a:hover,
+.page-navigation a[aria-current="page"] {
+  background: #edf4ff;
+  color: #1d4ed8;
+  text-decoration: none;
+}
+.app-header:not(:has(.filters)) {
+  justify-content: flex-start;
+}
+.overview-page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 28px 32px;
+}
+.overview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.overview-heading h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+.overview-heading p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.back-link {
+  display: inline-block;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+.overview-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.run-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.run-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+}
+.run-card:hover {
+  border-color: #b8c8df;
+  text-decoration: none;
+}
+.run-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 15px;
+  color: #172332;
+}
+.run-card time {
+  color: var(--muted);
+}
+.results-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+.results-table th,
+.results-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.results-table th {
+  background: #f8faff;
+  color: var(--muted);
+  font-weight: 500;
+}
+.results-table tr:last-child td {
+  border-bottom: 0;
+}
+.results-table tbody tr:hover {
+  background: #f8faff;
+}
+.results-table td:first-child {
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+.benchmark-link {
+  display: inline-block;
+  margin-top: 7px;
+  font-size: 11px;
+}
+.missing-testcase {
+  overflow: auto;
+  max-width: 700px;
+  padding: 20px;
+}
 .app-shell {
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -308,6 +439,7 @@ select {
 }
 .case-button:hover {
   background: #f5f8fd;
+  text-decoration: none;
 }
 .case-button[aria-current="true"] {
   border-color: #dae7ff;
@@ -568,6 +700,34 @@ select {
   font: 9px / 1.3 "SFMono-Regular", Consolas, monospace;
   border-radius: 2px 2px 0 0;
 }
+.prediction-box {
+  position: absolute;
+  border: 2px dashed #2563eb;
+  background: #2563eb10;
+  pointer-events: none;
+}
+.prediction-box-label {
+  position: absolute;
+  bottom: -18px;
+  right: -2px;
+  color: #fff;
+  background: #2563eb;
+  padding: 2px 4px;
+  font: 9px / 1.3 "SFMono-Regular", Consolas, monospace;
+  white-space: nowrap;
+  border-radius: 0 0 2px 2px;
+}
+.prediction-point {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 0 2px #2563eb99;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
 .image-state {
   width: 100%;
   height: 100%;
@@ -624,6 +784,117 @@ select {
   color: #99a4b5;
   font-size: 10px;
   font-weight: 400;
+}
+.evaluation-section {
+  background: #fcfdff;
+}
+.evaluation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.evaluation-heading h3 {
+  margin: 0;
+}
+.reference-fields.evaluation-metadata {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.reference-fields.evaluation-metadata > div + div {
+  margin-top: 0;
+}
+.evaluation-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 12px 0;
+  font-variant-numeric: tabular-nums;
+}
+.evaluation-status {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 550;
+}
+.evaluation-status.passed {
+  color: #13724c;
+  background: #e9f7ef;
+}
+.evaluation-status.failed {
+  color: #bb3345;
+  background: #fff0f2;
+}
+.evaluation-status.error {
+  color: #996314;
+  background: #fff6e2;
+}
+.evaluation-status.pending {
+  color: #8b96a7;
+  background: #f1f4f8;
+}
+.case-button-meta .evaluation-status {
+  font-size: 10px;
+  padding: 1px 5px;
+}
+.prediction-value {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid #dce7fb;
+  border-radius: 6px;
+  color: #245cbb;
+  background: #f4f8ff;
+}
+.prediction-value code,
+.prediction-value strong {
+  font-size: 13px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.prediction-value .field-hint {
+  margin: 0;
+}
+.evaluation-error {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #a72b36;
+  padding: 10px;
+  background: #fff1f0;
+  border-radius: 5px;
+}
+.evaluation-snapshot {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #596b83;
+  margin-top: 14px;
+}
+.evaluation-snapshot summary {
+  cursor: pointer;
+  color: #68788e;
+}
+.evaluation-snapshot p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.evaluation-snapshot .field-hint {
+  margin: 12px 0 6px;
+}
+.evaluation-json {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 11px;
 }
 .instruction-card + .instruction-card {
   margin-top: 17px;
@@ -863,6 +1134,9 @@ code,
   .reference-section {
     grid-column: 1 / -1;
   }
+  .evaluation-section {
+    grid-column: 1 / -1;
+  }
   .reference-fields {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -885,7 +1159,22 @@ code,
   }
   .app-header {
     padding: 0 17px;
-    height: 62px;
+    height: auto;
+    min-height: 62px;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .app-header .filters {
+    flex-basis: 100%;
+  }
+  .overview-page {
+    padding: 24px 17px;
+  }
+  .overview-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .brand {
     font-size: 16px;

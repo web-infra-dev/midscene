@@ -10,13 +10,26 @@ export default defineConfig(async (): Promise<RsbuildConfig> => {
     plugins: [pluginReact()],
     source: { entry: { index: './src/App.tsx' } },
     html: { template: './index.html' },
-    server: { host: '127.0.0.1', port: 4319, strictPort: true },
-    dev: {
-      setupMiddlewares(middlewares) {
-        middlewares.unshift((request, response, next) => {
+    server: {
+      host: '127.0.0.1',
+      port: 4319,
+      strictPort: true,
+      htmlFallback: false,
+      historyApiFallback: {
+        rewrites: [
+          {
+            from: /^\/(?:benchmark(?:\/[^/]+)?|runs(?:\/[^/]+){0,2})?\/?$/,
+            to: '/index.html',
+          },
+          { from: /./, to: ({ parsedUrl }) => parsedUrl.pathname },
+        ],
+      },
+      setup: ({ server }) => {
+        server.middlewares.use((request, response, next) => {
           if (
             request.url?.startsWith('/api/') ||
-            request.url?.startsWith('/images/')
+            request.url?.startsWith('/images/') ||
+            request.url?.startsWith('/results/')
           ) {
             void handleDatasetRequest(request, response);
           } else {

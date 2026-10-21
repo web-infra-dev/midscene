@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, SyntheticEvent } from 'react';
-import type { TestcaseView } from '../types';
+import type { EvaluationResult, TestcaseView } from '../types';
 
 interface Dimensions {
   width: number;
@@ -13,6 +13,9 @@ interface ScreenshotPanelProps {
   onZoomChange: (zoom: 'fit' | 'actual') => void;
   showGT: boolean;
   onShowGTChange: (value: boolean) => void;
+  result?: EvaluationResult;
+  showPrediction: boolean;
+  onShowPredictionChange: (value: boolean) => void;
 }
 
 function originalImageUrl(value: string): string | null {
@@ -33,6 +36,9 @@ export function ScreenshotPanel({
   onZoomChange,
   showGT,
   onShowGTChange,
+  result,
+  showPrediction,
+  onShowPredictionChange,
 }: ScreenshotPanelProps) {
   const viewportRef = useRef<HTMLElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -49,11 +55,15 @@ export function ScreenshotPanel({
   );
   const error = imageUrl ? imageError : '图片地址无效，无法加载原始截图。';
   const loaded = dimensions !== null && error === null;
-  const refusal = testcase.groundTruth === 'REFUSAL';
+  const groundTruth = result?.groundTruth ?? testcase.groundTruth;
+  const refusal = groundTruth === 'REFUSAL';
+  const prediction =
+    result?.prediction.outcome === 'POINT' ? result.prediction : undefined;
+  const hasPrediction = !!(prediction?.center || prediction?.rect);
   const coordinateText =
-    testcase.groundTruth === 'REFUSAL'
+    groundTruth === 'REFUSAL'
       ? 'REFUSAL'
-      : `[${testcase.groundTruth.map((value) => value.toFixed(1)).join(', ')}]`;
+      : `[${groundTruth.map((value) => value.toFixed(1)).join(', ')}]`;
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -82,16 +92,32 @@ export function ScreenshotPanel({
           Math.max(1, viewportSize.height - 48) / dimensions.height,
         )
     : 1;
-  let groundTruthStyle: CSSProperties | undefined;
-  if (dimensions && testcase.groundTruth !== 'REFUSAL') {
-    const [top, right, bottom, left] = testcase.groundTruth;
-    groundTruthStyle = {
+  const groundTruthStyle: CSSProperties | undefined = (() => {
+    if (!dimensions || groundTruth === 'REFUSAL') return undefined;
+    const [top, right, bottom, left] = groundTruth;
+    return {
       top: `${(top / dimensions.height) * 100}%`,
       left: `${(left / dimensions.width) * 100}%`,
       width: `${((right - left) / dimensions.width) * 100}%`,
       height: `${((bottom - top) / dimensions.height) * 100}%`,
     };
-  }
+  })();
+  const predictionBoxStyle: CSSProperties | undefined =
+    dimensions && prediction?.rect
+      ? {
+          top: `${(prediction.rect.top / dimensions.height) * 100}%`,
+          left: `${(prediction.rect.left / dimensions.width) * 100}%`,
+          width: `${(prediction.rect.width / dimensions.width) * 100}%`,
+          height: `${(prediction.rect.height / dimensions.height) * 100}%`,
+        }
+      : undefined;
+  const predictionPointStyle: CSSProperties | undefined =
+    dimensions && prediction?.center
+      ? {
+          left: `${(prediction.center[0] / dimensions.width) * 100}%`,
+          top: `${(prediction.center[1] / dimensions.height) * 100}%`,
+        }
+      : undefined;
 
   function onImageLoad(event: SyntheticEvent<HTMLImageElement>) {
     const image = event.currentTarget;
@@ -117,7 +143,10 @@ export function ScreenshotPanel({
   }
 
   return (
-    <section className="image-panel" aria-label="原始截图与 Ground Truth">
+    <section
+      className="image-panel"
+      aria-label="原始截图、Ground Truth 与模型预测"
+    >
       <section className="image-toolbar" aria-label="截图工具">
         <div className="image-caption">
           <strong>原始截图</strong>
@@ -140,6 +169,20 @@ export function ScreenshotPanel({
             />
             <span>显示 Ground Truth</span>
           </label>
+          {result && (
+            <label className="gt-toggle" title="在截图上显示模型预测位置">
+              <input
+                id="show-prediction"
+                type="checkbox"
+                checked={showPrediction}
+                disabled={!hasPrediction}
+                onChange={(event) =>
+                  onShowPredictionChange(event.target.checked)
+                }
+              />
+              <span>显示预测</span>
+            </label>
+          )}
           <section className="zoom-controls" aria-label="截图缩放">
             <button
               id="zoom-fit"
@@ -241,12 +284,34 @@ export function ScreenshotPanel({
                   </span>
                 </div>
               )}
+              {predictionBoxStyle && (
+                <div
+                  className="prediction-box"
+                  aria-label="模型预测边界框"
+                  style={predictionBoxStyle}
+                  hidden={!showPrediction}
+                >
+                  <span className="prediction-box-label" aria-hidden="true">
+                    预测
+                  </span>
+                </div>
+              )}
+              {predictionPointStyle && (
+                <div
+                  className="prediction-point"
+                  aria-label="模型预测坐标"
+                  title={`预测坐标 [${prediction?.center?.join(', ')}]`}
+                  style={predictionPointStyle}
+                  hidden={!showPrediction}
+                />
+              )}
             </div>
           </div>
         </section>
       </div>
       <div className="image-footer">
         <span id="image-ground-truth">
+          {result ? '运行时 ' : ''}
           {refusal ? 'REFUSAL · 无目标框' : `GT ${coordinateText}`}
         </span>
         <span id="zoom-value">
