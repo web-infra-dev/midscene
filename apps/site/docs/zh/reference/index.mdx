@@ -134,7 +134,7 @@ await agent.aiAct('登录');
 `modelConfig: Record<string, string | number>` 可选。它允许你通过代码配置模型，而不是通过环境变量。
 
 > 如果在 Agent 初始化时提供了 `modelConfig`，**系统环境变量中的模型配置将全部被忽略**，仅使用该对象中的值。
-> 这里可配置的 key / value 与 [模型配置](../model-config) 文档中说明的内容完全一致。Default、Planning 和 Insight 模型的职责请参考[模型选择指南](../model-selection)。
+> 基础配置与模型服务商的配置示例请参考[使用模型 API Key](../model-api-setup)，高级参数请参考[模型高级配置与调试](../model-config)。Default、Planning 和 Insight 模型的职责请参考[模型选择指南](../model-selection)。
 
 **自定义 OpenAI 客户端**
 
@@ -3221,7 +3221,7 @@ function destroy(): Promise<void>;
 
 即使未设置 `DEBUG`，Midscene 也会将日志保存在 `<MIDSCENE_RUN_DIR>/log` 目录中。Debug 日志可能包含模型输入、输出或截图。分享前请先检查内容，也不要将日志提交到源码仓库。
 
-模型连接检查、调用记录和 Tracing 集成请参考[模型调试与可观测性](../model-debugging-observability)。
+模型连接检查、调用记录和 Tracing 集成请参考[模型高级配置与调试](../model-config)。
 
 **另请参阅**
 

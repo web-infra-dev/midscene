@@ -10,6 +10,12 @@
 /zh/introduction/ /zh/ 301
 # HTTP compatibility for retired pages; Rspress client redirects run after the response.
 # Keep document destinations aligned with rspress.config.ts.
+/model-debugging-observability /model-config#verify-model-connectivity 301
+/model-debugging-observability.html /model-config#verify-model-connectivity 301
+/model-debugging-observability/ /model-config#verify-model-connectivity 301
+/zh/model-debugging-observability /zh/model-config#verify-model-connectivity 301
+/zh/model-debugging-observability.html /zh/model-config#verify-model-connectivity 301
+/zh/model-debugging-observability/ /zh/model-config#verify-model-connectivity 301
 /android-integration /platforms/android 301
 /android-integration.html /platforms/android 301
 /android-integration/ /platforms/android 301
@@ -32,9 +38,9 @@
 /api-reference /reference/ 301
 /api-reference.html /reference/ 301
 /api-reference/ /reference/ 301
-/choose-a-model /model-common-config 301
-/choose-a-model.html /model-common-config 301
-/choose-a-model/ /model-common-config 301
+/choose-a-model /model-selection 301
+/choose-a-model.html /model-selection 301
+/choose-a-model/ /model-selection 301
 /integrate-with-yaml /automate-with-scripts-in-yaml 301
 /integrate-with-yaml.html /automate-with-scripts-in-yaml 301
 /integrate-with-yaml/ /automate-with-scripts-in-yaml 301
@@ -63,15 +69,15 @@
 /zh/android-getting-started.html /zh/platforms/android 301
 /zh/android-getting-started/ /zh/platforms/android 301
 
-/model-provider /model-common-config.html 301
-/model-provider.html /model-common-config.html 301
-/model-provider/ /model-common-config.html 301
+/model-provider /model-api-setup 301
+/model-provider.html /model-api-setup 301
+/model-provider/ /model-api-setup 301
 /integrate-with-android /platforms/android 301
 /integrate-with-android.html /platforms/android 301
 /integrate-with-android/ /platforms/android 301
-/zh/model-provider /zh/model-common-config.html 301
-/zh/model-provider.html /zh/model-common-config.html 301
-/zh/model-provider/ /zh/model-common-config.html 301
+/zh/model-provider /zh/model-api-setup 301
+/zh/model-provider.html /zh/model-api-setup 301
+/zh/model-provider/ /zh/model-api-setup 301
 /zh/integrate-with-android /zh/platforms/android 301
 /zh/integrate-with-android.html /zh/platforms/android 301
 /zh/integrate-with-android/ /zh/platforms/android 301
@@ -143,3 +149,12 @@
 /zh/model-strategy /zh/model-selection 301
 /zh/model-strategy.html /zh/model-selection 301
 /zh/model-strategy/ /zh/model-selection 301
+/model-common-config /model-api-setup 301
+/model-common-config.html /model-api-setup 301
+/model-common-config/ /model-api-setup 301
+/zh/model-common-config /zh/model-api-setup 301
+/zh/choose-a-model /zh/model-selection 301
+/zh/model-common-config.html /zh/model-api-setup 301
+/zh/choose-a-model.html /zh/model-selection 301
+/zh/model-common-config/ /zh/model-api-setup 301
+/zh/choose-a-model/ /zh/model-selection 301

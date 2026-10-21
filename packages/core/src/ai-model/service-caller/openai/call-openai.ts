@@ -112,7 +112,7 @@ export async function callOpenAI(
       throw error;
     }
     throw new Error(
-      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${error.message}${formatOpenAIAPIErrorDetails(error, openAIRequestContext)}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
+      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${error.message}${formatOpenAIAPIErrorDetails(error, openAIRequestContext)}\nTrouble shooting: https://midscenejs.com/model-config#verify-model-connectivity`,
       { cause: error },
     );
   }

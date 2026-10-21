@@ -4,18 +4,18 @@
 
 ## 支持的模型
 
-Midscene 支持使用这些多模态模型操作界面：[豆包 Seed](./model-common-config#doubao-seed-model)、[千问 Qwen](./model-common-config#qwen)、[DeepSeek](./model-common-config#deepseek)、[Google Gemini](./model-common-config#gemini)、[OpenAI GPT](./model-common-config#gpt)、[月之暗面 Kimi](./model-common-config#kimi)、[小米 MiMo](./model-common-config#xiaomi-mimo)、[智谱 GLM-V](./model-common-config#glm-v)、[Jev（实验性）](./model-common-config#jev)，以及其他兼容模型 [AutoGLM](./model-common-config#auto-glm) 和 [UI-TARS](./model-common-config#ui-tars)。
+Midscene 支持使用这些多模态模型操作界面：[豆包 Seed](./model-api-setup#doubao-seed-model)、[千问 Qwen](./model-api-setup#qwen)、[DeepSeek](./model-api-setup#deepseek)、[Google Gemini](./model-api-setup#gemini)、[OpenAI GPT](./model-api-setup#gpt)、[月之暗面 Kimi](./model-api-setup#kimi)、[小米 MiMo](./model-api-setup#xiaomi-mimo)、[智谱 GLM-V](./model-api-setup#glm-v)、[Jev（实验性）](./model-api-setup#jev)，以及其他兼容模型 [AutoGLM](./model-api-setup#auto-glm) 和 [UI-TARS](./model-api-setup#ui-tars)。
 
 ## 选择接入方式
 
 Midscene 支持两种模型接入方式，任选一种即可：
 
-- **模型 API Key**：使用模型服务商提供的 API Key，接入上面列出的模型。参见[使用模型 API Key](./model-common-config)。
+- **模型 API Key**：使用模型服务商提供的 API Key，接入上面列出的模型。参见[使用模型 API Key](./model-api-setup)。
 - **ChatGPT 订阅**：登录并授权 Midscene，使用 ChatGPT 订阅额度调用 GPT 模型；可用模型以你的账号为准。参见[使用 ChatGPT 订阅](./chatgpt-subscription)。
 
 ## 从一个默认模型开始
 
-先配置一个默认多模态模型，用它完成规划、定位和界面理解。这条路径适用于大多数场景。支持的模型和配置示例见[使用模型 API Key](./model-common-config)，也可以选择[使用 ChatGPT 订阅](./chatgpt-subscription)。
+先配置一个默认多模态模型，用它完成规划、定位和界面理解。这条路径适用于大多数场景。支持的模型和配置示例见[使用模型 API Key](./model-api-setup)，也可以选择[使用 ChatGPT 订阅](./chatgpt-subscription)。
 
 ## 使用多模型组合能力应对复杂场景 {#multi-model-strategy}
 
@@ -32,4 +32,4 @@ Midscene 支持组合多个模型来应对复杂场景。一条自动化任务�
 | Locate 模型 | 负责独立的元素定位，包括操作中的目标定位和 `deepLocate` |
 | Insight 模型 | 增强数据提取、断言和页面理解 |
 
-多模型组合可能增加耗时和 Token 消耗。建议先通过[模型调试与可观测性](./model-debugging-observability)定位问题，再按需[配置多个模型](./model-common-config#multi-model-combination-example)。
+多模型组合可能增加耗时和 Token 消耗。建议先通过[模型高级配置与调试](./model-config#verify-model-connectivity)定位问题，再按需[配置多个模型](./model-config#multi-model-combination-example)。

@@ -32,7 +32,7 @@ import { initDebugConfig } from './init-debug';
 
 declare const __VERSION__: string | undefined;
 
-const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-common-config.html';
+const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-api-setup.html';
 
 const getCurrentVersion = (): string => {
   if (typeof __VERSION__ !== 'undefined' && __VERSION__) {
@@ -369,12 +369,12 @@ export const decideModelConfigFromIntentConfig = (
 
   assert(
     finalResult.openaiBaseURL,
-    `failed to get base URL of model (intent=${intent}). See https://midscenejs.com/model-strategy`,
+    `failed to get base URL of model (intent=${intent}). See https://midscenejs.com/model-api-setup`,
   );
 
   if (!finalResult.modelName) {
     console.warn(
-      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://midscenejs.com/model-strategy`,
+      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://midscenejs.com/model-api-setup`,
     );
   }
 

@@ -528,7 +528,7 @@ v1.12 adds DeepSeek V4 vision model support, introduces Midscene Test (Beta), an
 
 ### DeepSeek V4 Vision Model Support
 
-- Added support for `deepseek-v4-flash-vision-exp`. See [Common Model Configuration](./model-common-config#deepseek) for setup and [Midscene 1.12: Support for DeepSeek V4 Flash Vision Exp Multimodal Model](https://medium.com/@midscene/midscene-1-12-support-for-deepseek-v4-flash-vision-exp-multimodal-model-f87395075114?postPublishedType=initial) for details.
+- Added support for `deepseek-v4-flash-vision-exp`. See [Common Model Configuration](./model-api-setup#deepseek) for setup and [Midscene 1.12: Support for DeepSeek V4 Flash Vision Exp Multimodal Model](https://medium.com/@midscene/midscene-1-12-support-for-deepseek-v4-flash-vision-exp-multimodal-model-f87395075114?postPublishedType=initial) for details.
 
 ### Midscene Test (Beta)
 
@@ -566,7 +566,7 @@ v1.10 adds BDD-style Gherkin script execution, upgrades the recommended Doubao m
 ### New Model Support
 
 - Recommended and supported `Doubao-Seed-2.1-turbo`, which has very fast localization speed and strong localization quality in our current private evaluation set.
-- The Doubao Seed family now uses `MIDSCENE_MODEL_FAMILY="doubao-seed"`, while the legacy `doubao-vision` family remains compatible. See: [Common Model Configuration](./model-common-config#doubao-seed-model), [Model Strategy](./model-selection)
+- The Doubao Seed family now uses `MIDSCENE_MODEL_FAMILY="doubao-seed"`, while the legacy `doubao-vision` family remains compatible. See: [Common Model Configuration](./model-api-setup#doubao-seed-model), [Model Strategy](./model-selection)
 
 ### MCP Retirement
 
@@ -584,7 +584,7 @@ Midscene now includes an AndroidWorld benchmark report. With v1.9.5, Midscene ac
 
 ### New Model Support
 
-- Added Kimi and Xiaomi MiMo model support. See: [Common Model Configuration](./model-common-config)
+- Added Kimi and Xiaomi MiMo model support. See: [Common Model Configuration](./model-api-setup)
 
 ### Model and Planning Updates
 
@@ -688,8 +688,8 @@ We're building a full record → script → replay loop into Studio: drive a rea
 
 - **Usage intent decoupled from config slot**: Model usage intent is now tracked separately from resolved config slots, making multi-model planning, locating, and report display clearer
 - **Native thinking off by default**: For supported model families, Midscene now disables model-native thinking by default to improve execution speed and stability. See: [Model-Native Thinking Mode](./model-config#model-native-reasoning)
-- **Doubao fast tier**: Doubao fast tier configuration is now supported through `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}`. See: [Common Model Configuration](./model-common-config)
-- **GLM-5V-Turbo support**: Added support for Zhipu GLM-5V-Turbo. See: [Common Model Configuration](./model-common-config)
+- **Doubao fast tier**: Doubao fast tier configuration is now supported through `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}`. See: [Common Model Configuration](./model-api-setup)
+- **GLM-5V-Turbo support**: Added support for Zhipu GLM-5V-Turbo. See: [Common Model Configuration](./model-api-setup)
 - **Better scrollable select planning**: Planning for scrollable selects (dropdowns, scroll wheels) is more reliable in complex scenarios
 
 ### MCP and Platform CLIs
@@ -1043,11 +1043,11 @@ v1.2 introduces support for Zhipu AI open-source models, adds file upload functi
 
 #### Zhipu GLM-V Vision Model
 - Zhipu GLM-V series models are open-source vision models launched by Zhipu AI, available in multiple parameter versions, supporting both cloud deployment and local deployment.
-- See: [GLM-V Model Configuration](./model-common-config.mdx#glm-v)
+- See: [GLM-V Model Configuration](./model-api-setup.mdx#glm-v)
 
 #### Zhipu AutoGLM Mobile Automation Model
 - Zhipu AutoGLM is an open-source mobile automation model launched by Zhipu AI. It can understand mobile screen content based on natural language instructions, and combined with intelligent planning capabilities, generate operation processes to complete user needs.
-- See: [AutoGLM Model Configuration](./model-common-config.mdx#auto-glm)
+- See: [AutoGLM Model Configuration](./model-api-setup.mdx#auto-glm)
 
 ### File upload feature
 

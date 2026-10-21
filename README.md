@@ -72,7 +72,7 @@ await agent.aiAssert('The error message is visible below the email field');
 
 Screenshot-based UI actions avoid sending large DOM trees to the model. In the reported AppControlBench run, Midscene with Doubao Seed 2.1 Turbo passed **58 of 60 tasks with $0.59 in total model cost**. The [report](https://midscenejs.com/app-control-bench-report) provides per-task costs and comparisons across models.
 
-Midscene supports `Qwen3.x`, `Doubao-Seed-2.1`, `DeepSeek V4 Flash`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. See [Model Strategy](https://midscenejs.com/model-strategy) to choose a model and [Model Configuration](https://midscenejs.com/model-common-config) to set it up.
+Midscene supports `Qwen3.x`, `Doubao-Seed-2.1`, `DeepSeek V4 Flash`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. See [Model Selection Guide](https://midscenejs.com/model-selection) to choose a model and [Model Configuration](https://midscenejs.com/model-api-setup) to set it up.
 
 ## 🌐 One API, across platforms
 

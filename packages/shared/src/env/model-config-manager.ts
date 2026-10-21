@@ -49,7 +49,7 @@ export class ModelConfigManager {
     );
     if (!defaultConfig) {
       throw new Error(
-        'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required. See https://midscenejs.com/model-strategy.html',
+        'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required. See https://midscenejs.com/model-api-setup',
       );
     }
 
@@ -162,7 +162,7 @@ export class ModelConfigManager {
 
     if (!modelConfig.modelFamily) {
       throw new Error(
-        `${modelConfig.slot === 'locate' ? 'MIDSCENE_LOCATE_MODEL_FAMILY' : 'MIDSCENE_MODEL_FAMILY'} is not set to a multimodal model with UI localization, so element localization cannot be achieved. Check your model configuration. See https://midscenejs.com/model-strategy.html`,
+        `${modelConfig.slot === 'locate' ? 'MIDSCENE_LOCATE_MODEL_FAMILY' : 'MIDSCENE_MODEL_FAMILY'} is not set to a multimodal model with UI localization, so element localization cannot be achieved. Check your model configuration. See https://midscenejs.com/model-api-setup`,
       );
     }
   }

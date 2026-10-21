@@ -119,14 +119,14 @@ JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 
 ## How do I use Azure OpenAI Service?
 
-When using Azure OpenAI Service, first choose the model and fill in the regular configuration from [Use a model API key](./model-common-config). Azure only requires changing the model service URL and API Key to the Azure form:
+When using Azure OpenAI Service, first choose the model and fill in the regular configuration from [Use a model API key](./model-api-setup). Azure only requires changing the model service URL and API Key to the Azure form:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # Or https://<your-resource>.openai.azure.com/openai/v1
 MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Use a model API key](./model-common-config). Azure is only a model provider with different authentication, not a special model.
+In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Use a model API key](./model-api-setup). Azure is only a model provider with different authentication, not a special model.
 
 This uses the normal OpenAI-compatible path with `Authorization: Bearer ...`. Depending on `MIDSCENE_MODEL_PROTOCOL`, requests go to `/openai/v1/chat/completions` (the default) or `/openai/v1/responses`. Confirm that your Azure model and endpoint support the selected protocol. Do not append `/chat/completions` or `/responses` to `MIDSCENE_MODEL_BASE_URL`. For most `/openai/v1` endpoints you do not need `api-version`.
 
@@ -160,7 +160,7 @@ Azure AD / keyless auth (`DefaultAzureCredential`) is not supported. Use an API 
 
 With a GPT-5 family model, you may find that the same script clicks the correct spot on the official OpenAI API but a consistently offset spot on Azure OpenAI's Chat Completions API. The offset scales with resolution: it appears at large screenshots (e.g. `1920x1080`) and disappears at small ones (e.g. `1280x600`).
 
-We observed that this issue is related to image handling in Azure's Chat Completions API. GPT-5 returns absolute coordinates based on the screenshot it actually sees, and Midscene sends the screenshot with `"detail": "original"` so the model sees the full-resolution image (see the [GPT-5 notes](./model-common-config#gpt)). In affected Chat Completions requests, Azure does not honor `"detail": "original"`, so it downscales large images server-side (the short side is capped at 768). The model then answers in the downscaled coordinate space while Midscene maps coordinates against the original resolution, producing a proportional offset. You can confirm `original` is not taking effect by checking token usage: when `original` works, image token consumption is noticeably higher.
+We observed that this issue is related to image handling in Azure's Chat Completions API. GPT-5 returns absolute coordinates based on the screenshot it actually sees, and Midscene sends the screenshot with `"detail": "original"` so the model sees the full-resolution image (see the [GPT-5 notes](./model-api-setup#gpt)). In affected Chat Completions requests, Azure does not honor `"detail": "original"`, so it downscales large images server-side (the short side is capped at 768). The model then answers in the downscaled coordinate space while Midscene maps coordinates against the original resolution, producing a proportional offset. You can confirm `original` is not taking effect by checking token usage: when `original` works, image token consumption is noticeably higher.
 
 We have verified that `"detail": "original"` works correctly with Azure's Responses API, so we recommend switching to the Responses protocol first:
 
@@ -242,11 +242,11 @@ Midscene's element positioning capability relies on the AI model's visual unders
 
 Generally, newer versions and models with larger parameters perform better than older versions and smaller models. For example, Qwen3-VL performs better than Qwen2.5-VL, and its plus version performs better than the flash version.
 
-For current model recommendations, see [Use a model API key](./model-common-config).
+For current model recommendations, see [Model Selection Guide](./model-selection).
 
 ### 3. Check Model Family Configuration
 
-Verify that the `MIDSCENE_MODEL_FAMILY` parameter is set correctly in your model configuration. Incorrect `MIDSCENE_MODEL_FAMILY` configuration will affect Midscene's adaptation logic for the model. See [Model Configuration](./model-config) for details.
+Verify that the `MIDSCENE_MODEL_FAMILY` parameter is set correctly in your model configuration. Incorrect `MIDSCENE_MODEL_FAMILY` configuration will affect Midscene's adaptation logic for the model. See [Use a model API key](./model-api-setup) for details.
 
 ### 4. Optimize prompts with visual features and position information
 

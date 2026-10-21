@@ -46,7 +46,7 @@ describe('legacy HTTP redirects', () => {
       '/report.html': '/consume-report-file',
       '/benchmark': '/',
       '/api-reference': '/reference/',
-      '/choose-a-model': '/model-common-config',
+      '/choose-a-model': '/model-selection',
       '/integrate-with-yaml.html': '/automate-with-scripts-in-yaml',
     };
 
@@ -71,6 +71,13 @@ describe('legacy HTTP redirects', () => {
       for (const [previous, current] of [
         ['reporting', 'consume-report-file'],
         ['model-strategy', 'model-selection'],
+        ['model-common-config', 'model-api-setup'],
+        ['choose-a-model', 'model-selection'],
+        ['model-provider', 'model-api-setup'],
+        [
+          'model-debugging-observability',
+          'model-config#verify-model-connectivity',
+        ],
         ['cli', 'yaml-script-runner'],
         ['computer-introduction', 'platforms/desktop'],
         ['android-introduction', 'platforms/android'],

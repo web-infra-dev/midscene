@@ -34,7 +34,7 @@ Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。�
 
 下面是只使用 `setup` 的串行配置：同一执行项目中的所有文件共用一个页面。需要每份文件使用独立环境时，添加 [`fileSetup`](#用-filesetup-隔离资源)，不必先开启并发。
 
-如果要在已有工程中手动接入，请先安装 `@midscene/test`、`@midscene/web` 和 `playwright`（`pnpm add -D @midscene/test @midscene/web playwright`），再执行 `pnpm exec playwright install chromium` 安装浏览器。运行测试前，还需按[模型配置](../model-config)设置 API Key 等环境变量。
+如果要在已有工程中手动接入，请先安装 `@midscene/test`、`@midscene/web` 和 `playwright`（`pnpm add -D @midscene/test @midscene/web playwright`），再执行 `pnpm exec playwright install chromium` 安装浏览器。运行测试前，还需按[模型配置](../model-api-setup)设置 API Key 等环境变量。
 
 ```ts filename=midscene.config.ts
 import {

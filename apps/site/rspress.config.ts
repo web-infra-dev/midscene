@@ -187,23 +187,34 @@ export default defineConfig(async () => {
             link: '/midscene-test/use',
           },
           {
+            text: 'Control any platform with Skills',
+            link: '/skills',
+          },
+          {
+            sectionHeaderText: 'Models',
+          },
+          {
             text: 'Model Selection Guide',
             link: '/model-selection',
           },
           {
             text: 'Use a model API key',
-            link: '/model-common-config',
+            link: '/model-api-setup',
           },
           {
             text: 'Use a ChatGPT subscription (Beta)',
             link: '/chatgpt-subscription',
           },
           {
-            text: 'Control any platform with Skills',
-            link: '/skills',
+            text: 'Advanced configuration & debugging',
+            link: '/model-config',
           },
           {
-            sectionHeaderText: 'Web browser',
+            sectionHeaderText: 'Platform integrations',
+          },
+          {
+            text: 'Platform overview',
+            link: '/platforms/',
           },
           {
             text: 'Integrate with Playwright',
@@ -216,13 +227,6 @@ export default defineConfig(async () => {
           {
             text: 'Bridge to the desktop Chrome',
             link: '/bridge-mode',
-          },
-          {
-            sectionHeaderText: 'More platforms',
-          },
-          {
-            text: 'Platform overview',
-            link: '/platforms/',
           },
           {
             text: 'Android',
@@ -286,19 +290,11 @@ export default defineConfig(async () => {
             link: '/reference/',
           },
           {
-            text: 'Model configuration',
-            link: '/model-config',
-          },
-          {
             sectionHeaderText: 'Advanced guides',
           },
           {
             text: 'Provide application knowledge to a GUI Agent',
             link: '/provide-application-knowledge-to-gui-agent',
-          },
-          {
-            text: 'Model debugging & observability',
-            link: '/model-debugging-observability',
           },
           {
             text: 'Process report files',
@@ -379,23 +375,34 @@ export default defineConfig(async () => {
             link: '/zh/midscene-test/use',
           },
           {
+            text: '使用 Skills 控制任意平台',
+            link: '/zh/skills',
+          },
+          {
+            sectionHeaderText: '模型',
+          },
+          {
             text: '模型选择指南',
             link: '/zh/model-selection',
           },
           {
             text: '使用模型 API Key',
-            link: '/zh/model-common-config',
+            link: '/zh/model-api-setup',
           },
           {
             text: '使用 ChatGPT 订阅（Beta）',
             link: '/zh/chatgpt-subscription',
           },
           {
-            text: '使用 Skills 控制任意平台',
-            link: '/zh/skills',
+            text: '高级配置与调试',
+            link: '/zh/model-config',
           },
           {
-            sectionHeaderText: 'Web 浏览器',
+            sectionHeaderText: '平台集成',
+          },
+          {
+            text: '平台概览',
+            link: '/zh/platforms/',
           },
           {
             text: '集成到 Playwright',
@@ -408,13 +415,6 @@ export default defineConfig(async () => {
           {
             text: '桥接到桌面 Chrome',
             link: '/zh/bridge-mode',
-          },
-          {
-            sectionHeaderText: '更多平台',
-          },
-          {
-            text: '平台概览',
-            link: '/zh/platforms/',
           },
           {
             text: 'Android',
@@ -478,19 +478,11 @@ export default defineConfig(async () => {
             link: '/zh/reference/',
           },
           {
-            text: '模型配置',
-            link: '/zh/model-config',
-          },
-          {
             sectionHeaderText: '进阶指南',
           },
           {
             text: '为 GUI Agent 补充应用知识',
             link: '/zh/provide-application-knowledge-to-gui-agent',
-          },
-          {
-            text: '模型调试与可观测性',
-            link: '/zh/model-debugging-observability',
           },
           {
             text: '处理报告文件',
@@ -632,6 +624,11 @@ export default defineConfig(async () => {
             ...[
               ['reporting', 'consume-report-file'],
               ['model-strategy', 'model-selection'],
+              ['model-common-config', 'model-api-setup'],
+              [
+                'model-debugging-observability',
+                'model-config#verify-model-connectivity',
+              ],
               ['cli', 'yaml-script-runner'],
               [
                 'blog-programming-practice-using-structured-api',
@@ -758,7 +755,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/choose-a-model(?:\\.html)?/?$',
-            to: '/model-common-config',
+            to: '/model-selection',
           },
           {
             from: '^/api-reference(?:\\.html)?/?$',
@@ -778,7 +775,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/model-provider(?:\\.html)?/?$',
-            to: '/model-common-config.html',
+            to: '/model-api-setup',
           },
           {
             from: '^/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
@@ -866,11 +863,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/choose-a-model(?:\\.html)?/?$',
-            to: '/zh/model-common-config',
+            to: '/zh/model-selection',
           },
           {
             from: '^/zh/model-provider(?:\\.html)?/?$',
-            to: '/zh/model-common-config.html',
+            to: '/zh/model-api-setup',
           },
           {
             from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',

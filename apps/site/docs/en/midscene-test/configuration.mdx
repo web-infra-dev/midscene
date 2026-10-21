@@ -34,7 +34,7 @@ The example below starts with a single execution project. To manage multiple exe
 
 This sequential configuration uses only `setup`: all files in the execution project share one page. Add [`fileSetup`](#isolate-resources-with-filesetup) when each file needs its own environment, even without concurrency.
 
-To add Midscene Test to an existing project manually, first install `@midscene/test`, `@midscene/web`, and `playwright` (`pnpm add -D @midscene/test @midscene/web playwright`), then run `pnpm exec playwright install chromium` to install the browser. Before running tests, follow [Model configuration](../model-config) to set the required environment variables, including your API Key.
+To add Midscene Test to an existing project manually, first install `@midscene/test`, `@midscene/web`, and `playwright` (`pnpm add -D @midscene/test @midscene/web playwright`), then run `pnpm exec playwright install chromium` to install the browser. Before running tests, follow [Model configuration](../model-api-setup) to set the required environment variables, including your API Key.
 
 ```ts filename=midscene.config.ts
 import {

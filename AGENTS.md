@@ -92,7 +92,7 @@ should point here instead of duplicating rules.
 ### Upgrading recommended models
 
 `apps/site/docs/{en,zh}/model-selection.mdx` and
-`apps/site/docs/{en,zh}/model-common-config.mdx` are the source of truth for
+`apps/site/docs/{en,zh}/model-api-setup.mdx` are the source of truth for
 which models we recommend and the exact model/family strings. When the
 recommended models or their versions change (e.g. `qwen3-vl` → `qwen3.x`,
 `gemini-3-flash` → `gemini-3.5-flash`), update the strategy/config docs first,
