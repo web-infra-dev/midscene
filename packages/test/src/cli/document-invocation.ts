@@ -12,8 +12,11 @@ import type {
   WorkflowDocumentExecutionResult,
   WorkflowDocumentRunResult,
 } from '@midscene/core/internal/test-runner';
+import { runWithConsoleLogScope } from '@midscene/shared/logger';
 import { isFatalDeviceError } from '../errors';
+import { scopeNodeConsole } from './console-scope';
 import type { PreparedDocumentInvocation } from './execution-plan';
+import type { TestReporterEvent } from './reporter-events';
 import {
   writeCaseAttemptResult,
   writeWorkflowDocumentResult,
@@ -44,6 +47,7 @@ interface ExecuteDocumentInvocationOptions {
   markProjectFatal(): void;
   addFailedCases(count: number): void;
   onProgress(message: string): void;
+  onEvent?(event: TestReporterEvent): void;
   onDocumentResult?(result: WorkflowDocumentRunResult): Promise<void>;
   sinks: DocumentInvocationSinks;
 }
@@ -119,20 +123,45 @@ export async function executeDocumentInvocation(
   const documentRetry = invocation.retry.scope === 'document';
   const attempts: WorkflowDocumentExecutionResult[] = [];
   const fileSetup = invocation.bindings.documentSetup;
-  const documentSetup =
-    options.isProjectResourceFailure && fileSetup
-      ? {
-          ...fileSetup,
-          async setup(ctx: Parameters<typeof fileSetup.setup>[0]) {
+  const documentSetup = fileSetup
+    ? {
+        ...fileSetup,
+        setup(ctx: Parameters<typeof fileSetup.setup>[0]) {
+          const scope = {
+            projectName: project.name,
+            sourcePath: document.sourcePath,
+            runId: ctx.document.documentRunId,
+            phase: 'fileSetup',
+          };
+          return runWithConsoleLogScope(scope, async () => {
             try {
-              return await fileSetup.setup(ctx);
+              return await fileSetup.setup({
+                ...ctx,
+                onTeardown(teardown) {
+                  ctx.onTeardown(() =>
+                    runWithConsoleLogScope(
+                      { ...scope, phase: 'teardown' },
+                      teardown,
+                    ),
+                  );
+                },
+              });
             } catch (error) {
               if (isProjectResourceFailure(error)) options.markProjectFatal();
               throw error;
             }
-          },
-        }
-      : fileSetup;
+          });
+        },
+      }
+    : undefined;
+
+  options.onEvent?.({
+    type: 'document-start',
+    documentId: document.documentId,
+    projectName: project.name,
+    sourcePath: document.sourcePath,
+    cases: document.cases.length,
+  });
 
   await runDocumentAttempts(
     {
@@ -145,85 +174,117 @@ export async function executeDocumentInvocation(
         options.onProgress(
           `    file attempt ${documentAttemptIndex + 1}/${invocation.retry.count + 1}: ${document.sourcePath}`,
         );
-      const execution = await runWorkflowDocument(document, {
-        plan: invocation.plan,
-        documentAttemptIndex: documentRetry ? documentAttemptIndex : undefined,
-        ...invocation.bindings,
-        documentSetup,
-        setupTimeoutMs: options.setupTimeoutMs,
-        teardownTimeoutMs: options.teardownTimeoutMs,
-        project,
-        projectContext: options.projectContext,
-        retry: documentRetry ? 0 : invocation.retry.count,
-        signal: options.signal,
-        defaultTimeoutMs: invocation.defaultTimeoutMs,
-        shouldStop: () =>
-          options.rootSignal.aborted ||
-          options.shouldBail() ||
-          options.isProjectFatal(),
-        stopReason: () =>
-          options.rootSignal.aborted
-            ? 'interrupted'
-            : options.isProjectFatal()
-              ? 'fatal-error'
-              : 'bail',
-        isFatalError: (run) =>
-          [...run.beforeEach, ...run.steps, ...run.afterEach].some(
-            (step) =>
-              step.error &&
-              (isFatalDeviceError(step.error) ||
-                isProjectResourceFailure(step.error)),
-          ) ||
-          (run.teardownErrors ?? []).some(
-            (error) =>
-              isFatalDeviceError(error) || isProjectResourceFailure(error),
-          ),
-        onCaseStart: (collectedCase) => {
-          options.onProgress(
-            `    [case ${collectedCase.caseIndex + 1}/${document.cases.length}] ${collectedCase.definition.name}`,
-          );
-        },
-        onStepStart: (info) => {
-          const indent = info.scope === 'case' ? '      ' : '    ';
-          options.onProgress(`${indent}→ ${formatStep(info)}`);
-        },
-        onStepResult: async (info, result) => {
-          if (isProjectResourceFailure(result.error))
-            options.markProjectFatal();
-          await invocation.bindings.onStepResult?.(info, result);
-          options.onProgress(formatStepResult(info, result));
-        },
-        onCaseResult: async (attempt) => {
-          await writeCaseAttemptResult(
-            options.runDir,
-            project.projectId,
-            document.documentId,
-            attempt,
-          );
-          options.onProgress(
-            `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${documentRetry ? 1 : invocation.retry.count + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
-          );
-        },
-        onCaseOutcome: (outcome) => {
-          if (
-            outcome.attempts?.some(
-              (attempt) =>
-                [
-                  ...attempt.beforeEach,
-                  ...attempt.steps,
-                  ...attempt.afterEach,
-                ].some((step) => isProjectResourceFailure(step.error)) ||
-                attempt.teardownErrors?.some(isProjectResourceFailure),
-            )
-          )
-            options.markProjectFatal();
-          if (!options.isolatedContext && caseHasFatalError(outcome))
-            options.markProjectFatal();
-          if (!documentRetry && outcome.status === 'failed')
-            options.addFailedCases(1);
-        },
-        onDocumentResult: options.onDocumentResult,
-      }).catch(async (error: unknown) => {
+      const execution = await runWithConsoleLogScope(
+        { projectName: project.name, sourcePath: document.sourcePath },
+        () =>
+          runWorkflowDocument(document, {
+            plan: invocation.plan,
+            documentAttemptIndex: documentRetry
+              ? documentAttemptIndex
+              : undefined,
+            ...invocation.bindings,
+            resolveNode: (name) =>
+              scopeNodeConsole(invocation.bindings.resolveNode(name)),
+            documentSetup,
+            setupTimeoutMs: options.setupTimeoutMs,
+            teardownTimeoutMs: options.teardownTimeoutMs,
+            project,
+            projectContext: options.projectContext,
+            retry: documentRetry ? 0 : invocation.retry.count,
+            signal: options.signal,
+            defaultTimeoutMs: invocation.defaultTimeoutMs,
+            shouldStop: () =>
+              options.rootSignal.aborted ||
+              options.shouldBail() ||
+              options.isProjectFatal(),
+            stopReason: () =>
+              options.rootSignal.aborted
+                ? 'interrupted'
+                : options.isProjectFatal()
+                  ? 'fatal-error'
+                  : 'bail',
+            isFatalError: (run) =>
+              [...run.beforeEach, ...run.steps, ...run.afterEach].some(
+                (step) =>
+                  step.error &&
+                  (isFatalDeviceError(step.error) ||
+                    isProjectResourceFailure(step.error)),
+              ) ||
+              (run.teardownErrors ?? []).some(
+                (error) =>
+                  isFatalDeviceError(error) || isProjectResourceFailure(error),
+              ),
+            onCaseStart: (collectedCase) => {
+              options.onProgress(
+                `    [case ${collectedCase.caseIndex + 1}/${document.cases.length}] ${collectedCase.definition.name}`,
+              );
+            },
+            onStepStart: (info) => {
+              options.onEvent?.({
+                type: 'step-start',
+                projectName: project.name,
+                info,
+              });
+              const indent = info.scope === 'case' ? '      ' : '    ';
+              options.onProgress(`${indent}→ ${formatStep(info)}`);
+            },
+            onStepResult: async (info, result) => {
+              if (isProjectResourceFailure(result.error))
+                options.markProjectFatal();
+              await invocation.bindings.onStepResult?.(info, result);
+              options.onProgress(formatStepResult(info, result));
+              options.onEvent?.({
+                type: 'step-end',
+                projectName: project.name,
+                info,
+                result,
+              });
+            },
+            onCaseResult: async (attempt) => {
+              await writeCaseAttemptResult(
+                options.runDir,
+                project.projectId,
+                document.documentId,
+                attempt,
+              );
+              options.onProgress(
+                `    ${attempt.status === 'success' ? '✓' : '✗'} case attempt ${attempt.attemptIndex + 1}/${documentRetry ? 1 : invocation.retry.count + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
+              );
+              if (!documentRetry)
+                options.onEvent?.({
+                  type: 'case-attempt-end',
+                  attempt,
+                  maxAttempts: invocation.retry.count + 1,
+                });
+            },
+            onCaseOutcome: (outcome) => {
+              if (documentRetry)
+                options.onEvent?.({
+                  type: 'case-progress',
+                  outcome,
+                  documentAttemptIndex,
+                });
+              else options.onEvent?.({ type: 'case-end', outcome });
+              if (
+                outcome.attempts?.some(
+                  (attempt) =>
+                    [
+                      ...attempt.beforeEach,
+                      ...attempt.steps,
+                      ...attempt.afterEach,
+                    ].some((step) => isProjectResourceFailure(step.error)) ||
+                    attempt.teardownErrors?.some(isProjectResourceFailure),
+                )
+              )
+                options.markProjectFatal();
+              if (!options.isolatedContext && caseHasFatalError(outcome))
+                options.markProjectFatal();
+              if (!documentRetry && outcome.status === 'failed')
+                options.addFailedCases(1);
+            },
+            onDocumentResult: options.onDocumentResult,
+          }),
+      ).catch(async (error: unknown) => {
         if (error instanceof WorkflowExecutionFailure) {
           const partial = error.result as WorkflowDocumentExecutionResult;
           const resourceOnly =
@@ -341,6 +402,12 @@ export async function executeDocumentInvocation(
         shouldStop: options.shouldBail(),
       });
       if (documentRetry) execution.document.retryDecision = decision;
+      if (documentRetry && decision.decision === 'retry')
+        options.onEvent?.({
+          type: 'document-retry',
+          document: execution.document,
+          maxAttempts: invocation.retry.count + 1,
+        });
       attempts.push(execution);
       sinks.cases.push(
         ...execution.cases.map((outcome) => ({
@@ -384,9 +451,25 @@ export async function executeDocumentInvocation(
 
   const final = attempts.at(-1);
   if (!final) return;
+  if (documentRetry)
+    for (const outcome of final.cases)
+      options.onEvent?.({
+        type: 'case-end',
+        outcome,
+        documentRetries: attempts.length - 1,
+      });
   const failedCases = final.cases.filter(
     (item) => item.status === 'failed',
   ).length;
+  options.onEvent?.({
+    type: 'document-end',
+    document: final.document,
+    cases: final.cases,
+    durationMs: attempts.reduce(
+      (total, attempt) => total + attempt.document.durationMs,
+      0,
+    ),
+  });
   if (documentRetry && failedCases) options.addFailedCases(failedCases);
   else if (final.document.status === 'failed' && failedCases === 0)
     options.addFailedCases(Math.max(1, failedCases));

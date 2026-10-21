@@ -3,6 +3,7 @@ import type {
   RunWorkflowDocumentOptions,
   WorkflowDocumentSource,
 } from '@midscene/core/internal/test-runner';
+import type { TestReporterEvent } from './reporter-events';
 import type {
   LoadedExecutionProject,
   LoadedTestProject,
@@ -17,6 +18,7 @@ export interface TestProjectRunOptions {
   resultDir?: string;
   projectNames?: readonly string[];
   onProgress?(message: string): void;
+  onEvent?(event: TestReporterEvent): void;
 }
 
 /** Private, syntax-independent contract between preparation and execution. */
@@ -96,4 +98,5 @@ export interface PreparedTestRunPlan {
   reportEnabled: boolean;
   publications: readonly PreparedRunPublication[];
   onProgress(message: string): void;
+  onEvent?(event: TestReporterEvent): void;
 }

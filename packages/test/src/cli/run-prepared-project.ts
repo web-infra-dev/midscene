@@ -6,6 +6,7 @@ import {
   WorkflowPublicationError,
   asExecutionError,
   observeResourceOperations,
+  sumTestRunReportMetrics,
 } from '@midscene/core/internal/test-runner';
 import type {
   CollectedCase,
@@ -26,6 +27,7 @@ import type {
   PreparedTestRunPlan,
 } from './execution-plan';
 import { runPreparedFiles } from './file-scheduler';
+import { configuredModelNames } from './model-usage';
 import { createOperationJournal } from './operation-journal';
 import { writeTestProjectRunResult, writeTestRunPlan } from './result-store';
 import type {
@@ -143,6 +145,32 @@ export async function runPreparedTestProject(
     (total, prepared) => total + prepared.collectionErrors.length,
     0,
   );
+  plan.onEvent?.({
+    type: 'run-start',
+    configuredModels: configuredModelNames(),
+    projects: preparedProjects.length,
+    documents: totalDocuments + totalErrors,
+    cases: totalCases,
+    projectRoot,
+    configPath,
+    startedAt: startedAt.toISOString(),
+    maxConcurrentProjects: definition.test.maxConcurrentProjects,
+    maxConcurrentFiles: definition.test.maxConcurrentFiles,
+    files: preparedProjects.flatMap((prepared) => [
+      ...prepared.documents.map((document) => ({
+        documentId: document.documentId,
+        projectName: prepared.project.name,
+        sourcePath: document.sourcePath,
+        cases: document.cases.length,
+      })),
+      ...prepared.collectionErrors.map((error) => ({
+        documentId: error.sourcePath,
+        projectName: prepared.project.name,
+        sourcePath: error.sourcePath,
+        cases: 0,
+      })),
+    ]),
+  });
   progress(
     `midscene-test: preflighted ${preparedProjects.length} projects, ${totalDocuments} documents, ${totalCases} cases, ${totalErrors} collection errors`,
   );
@@ -294,10 +322,24 @@ export async function runPreparedTestProject(
       onProgress: (prepared, message) =>
         runInfrastructureCallback(() =>
           progress(
-            effectiveConcurrency > 1
+            preparedProjects.length > 1 || effectiveConcurrency > 1
               ? `[${prepared.project.name}]${message}`
               : message,
           ),
+        ),
+      onEvent: (event) =>
+        runInfrastructureCallback(() => plan.onEvent?.(event)),
+      onProjectEnd: (state) =>
+        runInfrastructureCallback(() =>
+          plan.onEvent?.({
+            type: 'project-end',
+            project: buildProjectResult(
+              state.prepared,
+              state.cases,
+              state.documents,
+              state.lifecycle,
+            ),
+          }),
         ),
       onInfrastructureError: recordInfrastructureError,
     });
@@ -415,6 +457,7 @@ export async function runPreparedTestProject(
         buildRunnerDump: (index) => {
           reportIndex = index;
           const dump = buildTestRunReportDump(completedResult, index);
+          completedResult = { ...completedResult, metrics: dump.metrics };
           const warn = getDebug('test-runner:report-assembler', {
             console: true,
           });
@@ -437,6 +480,16 @@ export async function runPreparedTestProject(
     'write-result',
     join(dirname(summaryPath), 'result.md'),
     async () => {
+      if (!completedResult.metrics) {
+        const dump = buildTestRunReportDump(
+          completedResult,
+          reportIndex ?? {
+            sources: [],
+            metrics: sumTestRunReportMetrics([]),
+          },
+        );
+        completedResult = { ...completedResult, metrics: dump.metrics };
+      }
       const markdownPath = await writeTestResultMarkdown(
         completedResult,
         reportIndex,

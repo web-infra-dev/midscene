@@ -1,3 +1,7 @@
+import type {
+  TestRunReportDocumentPlan,
+  TestRunReportPlannedStep,
+} from '@midscene/core';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runCreateCommand } from '../src/cli/create-command';
@@ -100,11 +104,199 @@ const failedCase = (): CaseRunResult => ({
   afterEach: [],
 });
 
+const plannedSteps = (
+  phase: StepRunResult['phase'],
+  count = 3,
+): TestRunReportPlannedStep[] =>
+  Array.from({ length: count }, (_, stepIndex) => ({
+    id: `${phase}-${stepIndex}`,
+    phase,
+    stepIndex,
+    node: 'test.fail',
+    input: { value: {} },
+    inputMode: 'resolved',
+    continueOnError: false,
+  }));
+
+const documentPlan = (count = 3): TestRunReportDocumentPlan => ({
+  documentId: 'document',
+  sourcePath: 'flow.yaml',
+  retry: { scope: 'case', count: 0 },
+  beforeAll: plannedSteps('beforeAll', count),
+  afterAll: plannedSteps('afterAll', count),
+  cases: [
+    {
+      caseId: 'case',
+      name: 'checkout',
+      caseIndex: 0,
+      selected: true,
+      tags: [],
+      beforeEach: plannedSteps('beforeEach', count),
+      steps: plannedSteps('steps', count),
+      afterEach: plannedSteps('afterEach', count),
+    },
+  ],
+});
+
 const output = () => ({ log: vi.fn(), error: vi.fn() });
 
 beforeEach(() => vi.resetAllMocks());
 
 describe('Test CLI failure diagnostics', () => {
+  it.each([
+    'beforeEach',
+    'steps',
+    'afterEach',
+    'beforeAll',
+    'afterAll',
+  ] as const)(
+    'uses the declared %s Step count when the first Step fails',
+    async (phase) => {
+      const result = failedResult();
+      const document = failedDocument();
+      document.plan = documentPlan();
+      const step = failedStep(phase, failure('first Step failed'));
+      if (phase === 'beforeAll' || phase === 'afterAll') {
+        document[phase] = [step];
+      } else {
+        const run = failedCase();
+        run[phase] = [step];
+        result.cases = [{ ...run, documentId: document.documentId, run }];
+      }
+      result.documents = [document];
+      vi.mocked(runTestProject).mockResolvedValue(result);
+      const io = output();
+      expect(await runTestCli([], io)).toBe(1);
+      const diagnostic = io.error.mock.calls.flat().join('\n');
+      expect(diagnostic).toContain(
+        `Step     ${phase === 'steps' ? '' : `${phase} `}1/3 · test.fail`,
+      );
+      expect(diagnostic).not.toContain('1/1');
+    },
+  );
+
+  it('resolves the failed Case by id in the project plan when no document plan is attached', async () => {
+    const result = failedResult();
+    const run = failedCase();
+    run.caseIndex = 1;
+    run.steps = [failedStep('steps', failure('first Step failed'))];
+    const plan = documentPlan();
+    plan.cases[0].caseIndex = 1;
+    plan.cases.unshift({
+      ...plan.cases[0],
+      caseId: 'other-case',
+      caseIndex: 0,
+      selected: false,
+      steps: plannedSteps('steps', 5),
+    });
+    const cases = [{ ...run, documentId: 'document', run }];
+    result.cases = cases;
+    result.projects = [
+      {
+        projectId: 'project',
+        name: 'web',
+        status: 'failed',
+        retry: 0,
+        fileSelection: { include: ['**/*.yaml'] },
+        tagSelection: { include: [], exclude: [] },
+        sourceCount: 1,
+        selectedCaseCount: 1,
+        filteredCaseCount: 1,
+        cases,
+        documents: [],
+        collectionErrors: [],
+        plans: [plan],
+      },
+    ];
+    vi.mocked(runTestProject).mockResolvedValue(result);
+    const io = output();
+    expect(await runTestCli([], io)).toBe(1);
+    expect(io.error.mock.calls[0][0]).toContain('Step     1/3 · test.fail');
+  });
+
+  it('omits the total when a failure has no execution plan', async () => {
+    const result = failedResult();
+    const run = failedCase();
+    run.steps = [failedStep('steps', failure('first Step failed'))];
+    result.cases = [{ ...run, documentId: 'document', run }];
+    vi.mocked(runTestProject).mockResolvedValue(result);
+    const io = output();
+    expect(await runTestCli([], io)).toBe(1);
+    expect(io.error.mock.calls[0][0]).toContain('Step     1 · test.fail');
+    expect(io.error.mock.calls[0][0]).not.toContain('1/1');
+  });
+
+  it('passes structured Case failure context to the default reporter', async () => {
+    const result = failedResult();
+    const run = failedCase();
+    run.attemptIndex = 1;
+    const step = failedStep('steps', failure('planned final failure'));
+    step.stepIndex = 6;
+    step.node = 'demo.applyProjectOutcome';
+    step.input = {
+      outcome: 'final-failure',
+      caseLabel: 'Case A',
+      token: 'private-token',
+    };
+    step.meta.sourceLocation = { line: 45, column: 9 };
+    run.steps = Array.from(
+      { length: 6 },
+      (_, index): StepRunResult => ({
+        ...step,
+        stepIndex: index,
+        status: 'success' as const,
+        error: undefined,
+        input: { prompt: 'unrelated input marker' },
+      }),
+    ).concat(step);
+    result.cases = [{ ...run, documentId: 'document', run }];
+    result.documents = [{ ...failedDocument(), plan: documentPlan(7) }];
+    vi.mocked(runTestProject).mockResolvedValue(result);
+    const io = output();
+    expect(await runTestCli([], io)).toBe(1);
+    expect(io.error).toHaveBeenCalledTimes(1);
+    const diagnostic = io.error.mock.calls[0][0];
+    expect(diagnostic).toContain('FAIL [web] checkout');
+    expect(diagnostic).toContain('Step     7/7 · demo.applyProjectOutcome');
+    expect(diagnostic).toContain('Location flow.yaml:45');
+    expect(diagnostic).toContain('Attempt  2/2');
+    expect(diagnostic).toContain('Input    outcome: final-failure');
+    expect(diagnostic).toContain('caseLabel: Case A');
+    expect(diagnostic).toContain('token: [REDACTED]');
+    expect(diagnostic).toContain('at user-config.ts:42:5');
+    expect(diagnostic).not.toMatch(
+      /private-token|unrelated input marker|NodeExecutionError/,
+    );
+  });
+
+  it('labels document hook failures and whole-file attempts separately', async () => {
+    const result = failedResult();
+    const document = failedDocument();
+    document.attemptIndex = 1;
+    document.plan = {
+      documentId: document.documentId,
+      sourcePath: document.sourcePath,
+      retry: { scope: 'document', count: 2 },
+      beforeAll: plannedSteps('beforeAll', 1),
+      cases: [],
+      afterAll: [],
+    };
+    const step = failedStep('beforeAll', failure('hook failed'));
+    step.meta.sourceLocation = { line: 3, column: 5 };
+    document.beforeAll = [step];
+    result.documents = [document];
+    vi.mocked(runTestProject).mockResolvedValue(result);
+    const io = output();
+    expect(await runTestCli([], io)).toBe(1);
+    const diagnostic = io.error.mock.calls[0][0];
+    expect(diagnostic).toContain('FAIL [web] flow.yaml');
+    expect(diagnostic).toContain('Step     beforeAll 1/1 · test.fail');
+    expect(diagnostic).toContain('Location flow.yaml:3');
+    expect(diagnostic).toContain('File try 2/3');
+    expect(diagnostic).not.toContain('  Attempt ');
+    expect(diagnostic).not.toContain('Input');
+  });
+
   it('prints stacks and causes for create command failures', async () => {
     vi.mocked(runCreateCommand).mockRejectedValue(failure('create failed'));
     const io = output();
@@ -124,7 +316,7 @@ describe('Test CLI failure diagnostics', () => {
       vi.mocked(runTestProject).mockRejectedValue(error);
       const io = output();
 
-      expect(await runTestCli([], io)).toBe(1);
+      expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(1);
       expect(io.error).toHaveBeenCalledTimes(1);
     },
   );
@@ -149,7 +341,7 @@ describe('Test CLI failure diagnostics', () => {
     vi.mocked(runTestProject).mockResolvedValue(result);
     const io = output();
 
-    expect(await runTestCli([], io)).toBe(1);
+    expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(1);
     const diagnostics = io.error.mock.calls.flat();
     expect(diagnostics).toHaveLength(6);
     expect(diagnostics[0]).toContain('web/invalid.yaml');
@@ -202,7 +394,7 @@ describe('Test CLI failure diagnostics', () => {
     );
     const io = output();
 
-    expect(await runTestCli([], io)).toBe(1);
+    expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(1);
     const diagnostics = io.error.mock.calls.flat();
     expect(diagnostics).toHaveLength(8);
     for (const source of [
@@ -273,7 +465,7 @@ describe('Test CLI failure diagnostics', () => {
     );
     const io = output();
 
-    expect(await runTestCli([], io)).toBe(1);
+    expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(1);
     expect(io.error).toHaveBeenCalledTimes(1);
     const diagnostic = io.error.mock.calls[0][0];
     expect(diagnostic).toContain('midscene-test: infrastructure:');
@@ -284,7 +476,7 @@ describe('Test CLI failure diagnostics', () => {
     expect(diagnostic).not.toContain('unrelated output payload');
     expect(diagnostic).not.toContain('result: {');
     expect(io.log).toHaveBeenCalledWith(
-      'midscene-test: 1/1 cases passed, 0 failed, 0 not run',
+      expect.stringContaining('Cases 1 passed (1)'),
     );
   });
 
@@ -307,7 +499,7 @@ describe('Test CLI failure diagnostics', () => {
     );
     const io = output();
 
-    expect(await runTestCli([], io)).toBe(1);
+    expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(1);
     expect(io.error).toHaveBeenCalledTimes(1);
     expect(io.error.mock.calls[0][0]).toContain('web/flow.yaml:');
     expect(io.error.mock.calls[0][0]).toContain('at callback.ts:12:34');
@@ -339,7 +531,7 @@ describe('Test CLI failure diagnostics', () => {
     vi.mocked(runTestProject).mockResolvedValue(result);
     const io = output();
 
-    expect(await runTestCli([], io)).toBe(0);
+    expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(0);
     expect(io.error).not.toHaveBeenCalled();
   });
 });

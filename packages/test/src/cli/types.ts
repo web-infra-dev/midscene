@@ -1,3 +1,4 @@
+import type { TestRunReportMetrics } from '@midscene/core';
 import type {
   CaseRunOutcome,
   ProjectRuntimeResult,
@@ -51,6 +52,8 @@ export interface TestExecutionProjectRunResult {
 }
 
 export interface TestProjectRunResult {
+  /** Shared report usage, including every attempt and lifecycle phase. */
+  metrics?: TestRunReportMetrics;
   operationLog?: { path: string; snapshotAt: string };
   schemaVersion: 3;
   runId: string;

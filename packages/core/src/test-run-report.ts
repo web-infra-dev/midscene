@@ -1,3 +1,5 @@
+import type { ReportModelUsageSummary } from './report-stats';
+
 export const TEST_RUN_REPORT_SCRIPT_TYPE = 'midscene_test_run_dump';
 
 export type TestRunReportRunStatus = 'success' | 'failed';
@@ -103,6 +105,8 @@ export interface TestRunReportDiagnostic {
 }
 
 export interface TestRunReportMetrics {
+  /** Actual models observed in usage records, independent of configured defaults. */
+  models?: ReportModelUsageSummary[];
   modelCallCount: number;
   modelTimeMs: number;
   promptTokens: number;
@@ -117,7 +121,13 @@ export interface TestRunReportMetrics {
     fields?: Record<
       'modelCallCount' | 'modelTimeMs' | 'totalTokens',
       'complete' | 'partial' | 'unknown'
-    >;
+    > &
+      Partial<
+        Record<
+          'promptTokens' | 'completionTokens',
+          'complete' | 'partial' | 'unknown'
+        >
+      >;
   };
 }
 

@@ -675,7 +675,9 @@ afterAll:
       expect.stringMatching(/^ {6}✓ step 1\/1: noop \(\d+ ms\)$/),
       '      → afterEach 1/1: noop',
       expect.stringMatching(/^ {6}✓ afterEach 1\/1: noop \(\d+ ms\)$/),
-      expect.stringMatching(/^ {4}✓ attempt 1\/1: progress case \(\d+ ms\)$/),
+      expect.stringMatching(
+        /^ {4}✓ case attempt 1\/1: progress case \(\d+ ms\)$/,
+      ),
       '    → afterAll 1/1: noop',
       expect.stringMatching(/^ {4}✓ afterAll 1\/1: noop \(\d+ ms\)$/),
     ]);

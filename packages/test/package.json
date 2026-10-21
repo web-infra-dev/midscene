@@ -61,6 +61,7 @@
     "http-server": "14.1.1",
     "js-yaml": "4.1.0",
     "lodash.merge": "4.6.2",
+    "string-width": "4.2.3",
     "tinyglobby": "0.2.15",
     "tsx": "^4.19.2",
     "yargs": "17.7.3",
