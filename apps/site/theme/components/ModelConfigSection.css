@@ -1,9 +1,8 @@
 .rp-doc details.model-config-section {
   margin: 1rem 0;
   padding: 0;
-  border: 1px solid var(--rp-c-divider);
-  border-radius: 12px;
-  background: var(--rp-c-bg);
+  border: 0;
+  background: transparent;
   scroll-margin-top: 96px;
 }
 
@@ -13,6 +12,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
+  border: 1px solid var(--rp-c-divider);
   border-radius: 12px;
   background: var(--rp-c-bg-soft);
   cursor: pointer;
@@ -94,7 +94,7 @@
 }
 
 .model-config-section-content {
-  padding: 4px 20px 16px;
+  padding: 4px 0 16px;
   min-width: 0;
 }
 
@@ -106,6 +106,6 @@
   }
 
   .model-config-section-content {
-    padding: 4px 16px 12px;
+    padding: 4px 0 12px;
   }
 }
