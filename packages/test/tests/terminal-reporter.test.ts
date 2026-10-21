@@ -1,4 +1,5 @@
 import { stripVTControlCharacters } from 'node:util';
+import type { TestRunReportDocumentPlan } from '@midscene/core';
 import type {
   CaseRunOutcome,
   StepExecutionInfo,
@@ -99,6 +100,29 @@ const projectResult = (
   collectionErrors: [],
 });
 
+const filePlan = (
+  sourcePath: string,
+  selected: boolean,
+): TestRunReportDocumentPlan => ({
+  documentId: sourcePath,
+  sourcePath,
+  retry: { scope: 'case', count: 0 },
+  beforeAll: [],
+  afterAll: [],
+  cases: [
+    {
+      caseId: sourcePath,
+      name: sourcePath,
+      caseIndex: 0,
+      selected,
+      tags: [],
+      beforeEach: [],
+      steps: [],
+      afterEach: [],
+    },
+  ],
+});
+
 const runResult = (
   projects: TestExecutionProjectRunResult[],
 ): TestProjectRunResult => ({
@@ -168,6 +192,160 @@ afterEach(() => {
 });
 
 describe('terminal reporter', () => {
+  it.each([
+    { projects: 1, files: 4, expected: '1 projects · 4 files' },
+    { projects: 3, files: 1, expected: '3 projects · 1 files' },
+    {
+      projects: null,
+      files: null,
+      expected: 'unlimited projects · unlimited files',
+    },
+  ])(
+    'shows the independent global concurrency limits: $expected',
+    ({ projects, files, expected }) => {
+      const io = { log: vi.fn(), error: vi.fn() };
+      const reporter = new TerminalReporter(io);
+      try {
+        reporter.event({
+          type: 'run-start',
+          projects: 3,
+          documents: 6,
+          cases: 9,
+          maxConcurrentProjects: projects,
+          maxConcurrentFiles: files,
+        });
+        const output = io.log.mock.calls.flat().join('\n');
+        expect(output).toContain('3 projects · 6 files · 9 cases');
+        expect(output).toContain(`Concurrency ${expected} (global limits)`);
+        expect(output).not.toContain('concurrent projects');
+      } finally {
+        reporter.dispose();
+      }
+    },
+  );
+
+  it('keeps a peer file and its request warning live while another file retries in the same Project', () => {
+    vi.useFakeTimers();
+    const { reporter, io } = fixture('default', true);
+    const parallelStep = (
+      id: string,
+      sourcePath: string,
+    ): StepExecutionInfo => ({
+      scope: 'case',
+      node: 'aiAct',
+      stepCount: 3,
+      case: {
+        ...outcome(id).run!,
+        name: 'checkout',
+        sourcePath,
+        phase: 'steps',
+        stepIndex: 1,
+      },
+    });
+    const first = parallelStep('first-case', 'first.yaml');
+    const second = parallelStep('second-case', 'second.yaml');
+    reporter.event({ type: 'step-start', projectName: 'web', info: first });
+    reporter.event({ type: 'step-start', projectName: 'web', info: second });
+    reporter.console({
+      type: 'warning',
+      topic: 'ai',
+      message: 'retry',
+      scope: {
+        projectName: 'web',
+        sourcePath: 'second.yaml',
+        caseId: 'second-case',
+        caseName: 'checkout',
+        runId: 'second-case',
+        phase: 'steps',
+        stepIndex: 1,
+      },
+      warning: {
+        kind: 'model-request-retry',
+        callId: 'peer-call',
+        modelName: 'model',
+        error: new Error('limited'),
+        attempt: 1,
+        maxAttempts: 2,
+        delayMs: 2000,
+      },
+    });
+    reporter.event({
+      type: 'document-retry',
+      maxAttempts: 2,
+      document: {
+        documentId: 'first-doc',
+        documentRunId: 'first-run',
+        projectId: 'web',
+        projectName: 'web',
+        sourcePath: 'first.yaml',
+        status: 'failed',
+        attemptIndex: 0,
+        startedAt: '',
+        endedAt: '',
+        durationMs: 100,
+        beforeAll: [],
+        afterAll: [],
+      },
+    });
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).toContain('❯ [web] second.yaml');
+    expect(frame(io)).toContain('⚠ model request retry');
+    expect(frame(io).match(/└─ checkout/g)).toHaveLength(1);
+    reporter.event({ type: 'step-end', projectName: 'web', info: second });
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).not.toContain('⚠ model request retry');
+    reporter.dispose();
+  });
+
+  it('excludes fully filtered file plans from completed results and file counts', () => {
+    const { reporter, io } = fixture();
+    const smoke = { ...outcome('smoke'), sourcePath: 'smoke.yaml' };
+    const project = projectResult('web', [smoke]);
+    project.sourceCount = 2;
+    project.filteredCaseCount = 1;
+    project.plans = [
+      filePlan('slow.yaml', false),
+      filePlan('smoke.yaml', true),
+    ];
+    const result = runResult([project]);
+    result.summary = { ...result.summary, total: 1, passed: 1, filtered: 1 };
+    reporter.finish(result);
+    reporter.summary(result);
+    expect(text(io)).toContain('✓ [web] smoke.yaml (1 cases)');
+    expect(text(io)).not.toContain('slow.yaml');
+    expect(text(io)).toContain('Test Files 1 passed (1)');
+    expect(text(io)).toContain('Cases 1 passed (1)');
+  });
+
+  it('never counts a selected file with no execution results as passed', () => {
+    const { reporter, io } = fixture();
+    const project = projectResult('web', []);
+    project.plans = [
+      filePlan('smoke.yaml', true),
+      filePlan('slow.yaml', false),
+    ];
+    const result = runResult([project]);
+    result.summary = { ...result.summary, total: 1, passed: 0, notRun: 1 };
+    reporter.finish(result);
+    reporter.summary(result);
+    expect(text(io)).toContain('– [web] smoke.yaml');
+    expect(text(io)).not.toContain('✓ [web]');
+    expect(text(io)).not.toContain('slow.yaml');
+    expect(text(io)).toContain('Test Files 0 passed | 1 not run (1)');
+  });
+
+  it('reports zero files when every collected Case is filtered out', () => {
+    const { reporter, io } = fixture();
+    const project = projectResult('web', []);
+    project.plans = [filePlan('slow.yaml', false)];
+    const result = runResult([project]);
+    result.summary = { ...result.summary, total: 0, passed: 0, filtered: 1 };
+    reporter.finish(result);
+    reporter.summary(result);
+    expect(text(io)).not.toContain('slow.yaml');
+    expect(text(io)).toContain('Test Files 0 passed (0)');
+  });
+
   it('uses a green run header and plain model names without blue accents', () => {
     vi.stubEnv('NO_COLOR', '');
     const io = { log: vi.fn(), error: vi.fn(), isTTY: true };
@@ -824,7 +1002,7 @@ describe('terminal reporter', () => {
     expect(
       io.log.mock.calls.flat().filter((line) => line.startsWith('WARN')),
     ).toEqual([
-      'WARN [web] › checkout › step[2] aiAct · model request retry 2/2 in 2s (model): 429 厂商资源池资源不足',
+      'WARN [web] › cases/shop.yaml › checkout › step[2] aiAct · model request retry 2/2 in 2s (model): 429 厂商资源池资源不足',
     ]);
     // Request counters from independently loaded SDKs must not hide another Case.
     reporter.console({

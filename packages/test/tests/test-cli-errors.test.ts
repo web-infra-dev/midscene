@@ -1,3 +1,7 @@
+import type {
+  TestRunReportDocumentPlan,
+  TestRunReportPlannedStep,
+} from '@midscene/core';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runCreateCommand } from '../src/cli/create-command';
@@ -100,11 +104,128 @@ const failedCase = (): CaseRunResult => ({
   afterEach: [],
 });
 
+const plannedSteps = (
+  phase: StepRunResult['phase'],
+  count = 3,
+): TestRunReportPlannedStep[] =>
+  Array.from({ length: count }, (_, stepIndex) => ({
+    id: `${phase}-${stepIndex}`,
+    phase,
+    stepIndex,
+    node: 'test.fail',
+    input: { value: {} },
+    inputMode: 'resolved',
+    continueOnError: false,
+  }));
+
+const documentPlan = (count = 3): TestRunReportDocumentPlan => ({
+  documentId: 'document',
+  sourcePath: 'flow.yaml',
+  retry: { scope: 'case', count: 0 },
+  beforeAll: plannedSteps('beforeAll', count),
+  afterAll: plannedSteps('afterAll', count),
+  cases: [
+    {
+      caseId: 'case',
+      name: 'checkout',
+      caseIndex: 0,
+      selected: true,
+      tags: [],
+      beforeEach: plannedSteps('beforeEach', count),
+      steps: plannedSteps('steps', count),
+      afterEach: plannedSteps('afterEach', count),
+    },
+  ],
+});
+
 const output = () => ({ log: vi.fn(), error: vi.fn() });
 
 beforeEach(() => vi.resetAllMocks());
 
 describe('Test CLI failure diagnostics', () => {
+  it.each([
+    'beforeEach',
+    'steps',
+    'afterEach',
+    'beforeAll',
+    'afterAll',
+  ] as const)(
+    'uses the declared %s Step count when the first Step fails',
+    async (phase) => {
+      const result = failedResult();
+      const document = failedDocument();
+      document.plan = documentPlan();
+      const step = failedStep(phase, failure('first Step failed'));
+      if (phase === 'beforeAll' || phase === 'afterAll') {
+        document[phase] = [step];
+      } else {
+        const run = failedCase();
+        run[phase] = [step];
+        result.cases = [{ ...run, documentId: document.documentId, run }];
+      }
+      result.documents = [document];
+      vi.mocked(runTestProject).mockResolvedValue(result);
+      const io = output();
+      expect(await runTestCli([], io)).toBe(1);
+      const diagnostic = io.error.mock.calls.flat().join('\n');
+      expect(diagnostic).toContain(
+        `Step     ${phase === 'steps' ? '' : `${phase} `}1/3 · test.fail`,
+      );
+      expect(diagnostic).not.toContain('1/1');
+    },
+  );
+
+  it('resolves the failed Case by id in the project plan when no document plan is attached', async () => {
+    const result = failedResult();
+    const run = failedCase();
+    run.caseIndex = 1;
+    run.steps = [failedStep('steps', failure('first Step failed'))];
+    const plan = documentPlan();
+    plan.cases[0].caseIndex = 1;
+    plan.cases.unshift({
+      ...plan.cases[0],
+      caseId: 'other-case',
+      caseIndex: 0,
+      selected: false,
+      steps: plannedSteps('steps', 5),
+    });
+    const cases = [{ ...run, documentId: 'document', run }];
+    result.cases = cases;
+    result.projects = [
+      {
+        projectId: 'project',
+        name: 'web',
+        status: 'failed',
+        retry: 0,
+        fileSelection: { include: ['**/*.yaml'] },
+        tagSelection: { include: [], exclude: [] },
+        sourceCount: 1,
+        selectedCaseCount: 1,
+        filteredCaseCount: 1,
+        cases,
+        documents: [],
+        collectionErrors: [],
+        plans: [plan],
+      },
+    ];
+    vi.mocked(runTestProject).mockResolvedValue(result);
+    const io = output();
+    expect(await runTestCli([], io)).toBe(1);
+    expect(io.error.mock.calls[0][0]).toContain('Step     1/3 · test.fail');
+  });
+
+  it('omits the total when a failure has no execution plan', async () => {
+    const result = failedResult();
+    const run = failedCase();
+    run.steps = [failedStep('steps', failure('first Step failed'))];
+    result.cases = [{ ...run, documentId: 'document', run }];
+    vi.mocked(runTestProject).mockResolvedValue(result);
+    const io = output();
+    expect(await runTestCli([], io)).toBe(1);
+    expect(io.error.mock.calls[0][0]).toContain('Step     1 · test.fail');
+    expect(io.error.mock.calls[0][0]).not.toContain('1/1');
+  });
+
   it('passes structured Case failure context to the default reporter', async () => {
     const result = failedResult();
     const run = failedCase();
@@ -129,6 +250,7 @@ describe('Test CLI failure diagnostics', () => {
       }),
     ).concat(step);
     result.cases = [{ ...run, documentId: 'document', run }];
+    result.documents = [{ ...failedDocument(), plan: documentPlan(7) }];
     vi.mocked(runTestProject).mockResolvedValue(result);
     const io = output();
     expect(await runTestCli([], io)).toBe(1);
@@ -155,7 +277,7 @@ describe('Test CLI failure diagnostics', () => {
       documentId: document.documentId,
       sourcePath: document.sourcePath,
       retry: { scope: 'document', count: 2 },
-      beforeAll: [],
+      beforeAll: plannedSteps('beforeAll', 1),
       cases: [],
       afterAll: [],
     };

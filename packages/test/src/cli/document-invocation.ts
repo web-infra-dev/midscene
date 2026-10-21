@@ -123,20 +123,37 @@ export async function executeDocumentInvocation(
   const documentRetry = invocation.retry.scope === 'document';
   const attempts: WorkflowDocumentExecutionResult[] = [];
   const fileSetup = invocation.bindings.documentSetup;
-  const documentSetup =
-    options.isProjectResourceFailure && fileSetup
-      ? {
-          ...fileSetup,
-          async setup(ctx: Parameters<typeof fileSetup.setup>[0]) {
+  const documentSetup = fileSetup
+    ? {
+        ...fileSetup,
+        setup(ctx: Parameters<typeof fileSetup.setup>[0]) {
+          const scope = {
+            projectName: project.name,
+            sourcePath: document.sourcePath,
+            runId: ctx.document.documentRunId,
+            phase: 'fileSetup',
+          };
+          return runWithConsoleLogScope(scope, async () => {
             try {
-              return await fileSetup.setup(ctx);
+              return await fileSetup.setup({
+                ...ctx,
+                onTeardown(teardown) {
+                  ctx.onTeardown(() =>
+                    runWithConsoleLogScope(
+                      { ...scope, phase: 'teardown' },
+                      teardown,
+                    ),
+                  );
+                },
+              });
             } catch (error) {
               if (isProjectResourceFailure(error)) options.markProjectFatal();
               throw error;
             }
-          },
-        }
-      : fileSetup;
+          });
+        },
+      }
+    : undefined;
 
   options.onEvent?.({
     type: 'document-start',

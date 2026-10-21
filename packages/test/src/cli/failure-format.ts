@@ -138,10 +138,12 @@ export function formatFailureDetails(
   const step = context.step;
   if (step) {
     const phase = step.phase === 'steps' ? '' : `${step.phase} `;
-    field(
-      'Step',
-      `${phase}${step.stepIndex + 1}/${Math.max(step.stepIndex + 1, context.stepCount ?? 0)} · ${oneLine(step.node)}`,
-    );
+    const index = step.stepIndex + 1;
+    const position =
+      context.stepCount === undefined
+        ? String(index)
+        : `${index}/${Math.max(index, context.stepCount)}`;
+    field('Step', `${phase}${position} · ${oneLine(step.node)}`);
   } else if (context.phase) field('Phase', oneLine(context.phase));
   if (context.sourcePath) {
     const location = step?.meta.sourceLocation;

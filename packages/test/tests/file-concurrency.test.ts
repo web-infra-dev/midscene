@@ -1,8 +1,14 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { stripVTControlCharacters } from 'node:util';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
+import { getDebug, runWithConsoleLogHandler } from '@midscene/shared/logger';
+import type { ConsoleLogEntry } from '@midscene/shared/logger';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { TestProjectRunOptions } from '../src/cli/execution-plan';
+import type { TestReporterEvent } from '../src/cli/reporter-events';
+import { TerminalReporter } from '../src/cli/terminal-reporter';
 import { runTestProject } from '../src/cli/test-project-runner';
 import type { TestProjectRunResult } from '../src/cli/types';
 import { FatalDeviceError, WorkflowError } from '../src/errors';
@@ -137,7 +143,13 @@ afterAll:
     };
   `,
   );
-  return { root, state, run: () => runTestProject({ projectRoot: root }) };
+  return {
+    root,
+    state,
+    run: (
+      options: Pick<TestProjectRunOptions, 'onEvent' | 'onProgress'> = {},
+    ) => runTestProject({ projectRoot: root, ...options }),
+  };
 };
 
 afterEach(() => {
@@ -154,6 +166,176 @@ const waitFor = (predicate: () => boolean) =>
   });
 
 describe('native file concurrency', () => {
+  it.each([false, true])(
+    'reports concurrent files independently with scoped lifecycle logs (TTY: %s)',
+    async (isTTY) => {
+      const { state, run } = fixture({ projectLimit: 1 });
+      const first = gate();
+      const second = gate();
+      const events: TestReporterEvent[] = [];
+      const entries: ConsoleLogEntry[] = [];
+      const progress: string[] = [];
+      const io = {
+        log: vi.fn(),
+        error: vi.fn(),
+        write: vi.fn(),
+        isTTY,
+        columns: 160,
+        rows: 40,
+      };
+      const reporter = new TerminalReporter(io);
+      const log = getDebug('test:concurrent-reporter', { console: true });
+      state.setup = async () => {
+        log('project setup');
+      };
+      state.projectCleanup = async () => {
+        log('project cleanup');
+      };
+      state.fileSetup = async (key) => {
+        log(`file setup ${key}`);
+      };
+      state.fileCleanup = async (key) => {
+        log(`file cleanup ${key}`);
+      };
+      state.node = async (phase, ctx) => {
+        if (phase !== 'step') return;
+        log(`node ${ctx.key}`);
+        await (ctx.key === 'web/1.yaml' ? first : second).promise;
+      };
+      const resultPromise = runWithConsoleLogHandler(
+        (entry) => {
+          entries.push(entry);
+          reporter.console(entry);
+        },
+        () =>
+          run({
+            onEvent(event) {
+              events.push(event);
+              reporter.event(event);
+            },
+            onProgress(message) {
+              progress.push(message);
+            },
+          }),
+      );
+      try {
+        await waitFor(
+          () =>
+            events.filter(
+              (event) =>
+                event.type === 'step-start' && event.info.node === 'step',
+            ).length === 2,
+        );
+        expect(events[0]).toMatchObject({
+          type: 'run-start',
+          maxConcurrentProjects: 1,
+          maxConcurrentFiles: 2,
+        });
+        const steps = events.filter(
+          (event) =>
+            event.type === 'step-start' &&
+            event.info.scope === 'case' &&
+            event.info.node === 'step',
+        );
+        expect(
+          new Set(
+            steps.map(
+              (event) =>
+                event.type === 'step-start' &&
+                event.info.scope === 'case' &&
+                event.info.case.caseId,
+            ),
+          ).size,
+        ).toBe(2);
+        const live = () =>
+          stripVTControlCharacters(io.write.mock.calls.at(-1)?.[0] ?? '');
+        if (isTTY) {
+          await waitFor(
+            () =>
+              live().includes('❯ [web] web/1.yaml') &&
+              live().includes('❯ [web] web/2.yaml'),
+          );
+          expect(live().match(/└─ one/g)).toHaveLength(2);
+        }
+        first.resolve();
+        await waitFor(() =>
+          events.some(
+            (event) =>
+              event.type === 'document-end' &&
+              event.document.sourcePath === 'web/1.yaml',
+          ),
+        );
+        expect(
+          events.filter((event) => event.type === 'document-end'),
+        ).toHaveLength(1);
+        if (isTTY)
+          await waitFor(
+            () =>
+              live().includes('❯ [web] web/2.yaml') &&
+              !live().includes('❯ [web] web/1.yaml'),
+          );
+        second.resolve();
+        const result = await resultPromise;
+        reporter.finish(result);
+        reporter.summary(result);
+        expect(result.status).toBe('success');
+        const output = stripVTControlCharacters(
+          (isTTY ? io.write : io.log).mock.calls.flat().join('\n'),
+        );
+        for (const path of ['web/1.yaml', 'web/2.yaml']) {
+          expect(
+            output.match(
+              new RegExp(`✓ \\[web\\] ${path.replace('.', '\\.')}`, 'g'),
+            ),
+          ).toHaveLength(1);
+          const setup = entries.find(
+            (entry) => entry.message === `file setup ${path}`,
+          )!;
+          const cleanup = entries.find(
+            (entry) => entry.message === `file cleanup ${path}`,
+          )!;
+          expect(setup.scope).toMatchObject({
+            projectName: 'web',
+            sourcePath: path,
+            phase: 'fileSetup',
+            runId: expect.any(String),
+          });
+          expect(cleanup.scope).toMatchObject({
+            projectName: 'web',
+            sourcePath: path,
+            phase: 'teardown',
+            runId: setup.scope!.runId,
+          });
+          expect(
+            entries.find((entry) => entry.message === `node ${path}`)?.scope,
+          ).toMatchObject({
+            sourcePath: path,
+            caseName: 'one',
+            phase: 'steps',
+            stepIndex: 0,
+          });
+          expect(progress).toContain(`[web] [${path}]      → step 1/1: step`);
+        }
+        expect(
+          entries.find((entry) => entry.message === 'project setup')?.scope,
+        ).toEqual({ projectName: 'web', phase: 'setup' });
+        expect(
+          entries.find((entry) => entry.message === 'project cleanup')?.scope,
+        ).toEqual({ projectName: 'web', phase: 'teardown' });
+        expect(output).toContain('Test Files 2 passed (2)');
+        if (!isTTY) {
+          expect(output).not.toContain('\u001b');
+          expect(io.write).not.toHaveBeenCalled();
+        }
+      } finally {
+        first.resolve();
+        second.resolve();
+        await resultPromise;
+        reporter.dispose();
+      }
+    },
+  );
+
   it('runs whole Projects and their files serially when both limits are omitted', async () => {
     const { state, run } = fixture({
       projects: ['web', 'android'],

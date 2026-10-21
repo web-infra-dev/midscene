@@ -16,7 +16,8 @@ export type TestReporterEvent =
       projectRoot?: string;
       configPath?: string;
       startedAt?: string;
-      concurrency?: number;
+      maxConcurrentProjects?: number | null;
+      maxConcurrentFiles?: number | null;
       configuredModels?: readonly {
         name: string;
         intents: readonly string[];

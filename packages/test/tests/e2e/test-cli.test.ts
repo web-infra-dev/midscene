@@ -106,6 +106,145 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
+  it.each(['default', 'verbose'])(
+    'reports concurrent files, scoped warnings and per-model usage through the %s CLI',
+    async (reporter) => {
+      const root = mkdtempSync(join(tmpdir(), 'cli-concurrent-reporting-'));
+      temporaryDirectories.push(root);
+      const resultDir = join(root, 'results');
+      const loggerUrl = pathToFileURL(
+        resolve(packageRoot, '../shared/dist/lib/logger.js'),
+      ).href;
+      writeFileSync(
+        join(root, 'midscene.config.mjs'),
+        `
+import { getDebug } from ${JSON.stringify(loggerUrl)};
+let starts = 0;
+let release;
+const bothStarted = new Promise((resolve) => { release = resolve; });
+export default {
+  projects: [{ name: 'web',
+    setup: { name: 'shared', setup() { return {}; } },
+    fileSetup: { name: 'isolated', setup({ file, onTeardown }) {
+      getDebug('demo:setup', { console: true })('setup ' + file.sourcePath);
+      onTeardown(() => getDebug('demo:cleanup', { console: true })('cleanup ' + file.sourcePath));
+      return { path: file.sourcePath };
+    } },
+  }],
+  test: { maxConcurrentProjects: 1, maxConcurrentFiles: 2 },
+  nodes: [{ name: 'demo.concurrent', async execute(ctx) {
+    const name = ctx.context.path === 'a.yaml' ? 'model-A' : 'model-B';
+    ctx.report.addTrace({ type: 'midscene-execution', executionId: ctx.context.path, metrics: {
+      modelCallCount: 1, modelTimeMs: 10, promptTokens: 100, completionTokens: 20, cachedInputTokens: 80, totalTokens: 120,
+      models: [{ modelName: name, callCount: 1, modelCallTimeMs: 10, promptTokens: 100, completionTokens: 20, cachedInputTokens: 80, totalTokens: 120 }],
+    } });
+    if (++starts === 2) release();
+    await bothStarted;
+    if (ctx.context.path === 'b.yaml') throw new Error('controlled file failure');
+  } }, { name: 'demo.noop', execute() {} }],
+};
+`,
+      );
+      for (const path of ['a.yaml', 'b.yaml'])
+        writeFileSync(
+          join(root, path),
+          'cases:\n  - name: checkout\n    steps:\n      - demo.concurrent: {}\n      - demo.noop: {}\n      - demo.noop: {}\n',
+        );
+      const execution = await runFailure([
+        root,
+        '--result-dir',
+        resultDir,
+        '--reporter',
+        reporter,
+      ]);
+      expect(execution.code).toBe(1);
+      expect(execution.stdout).toContain(
+        'Concurrency 1 projects · 2 files (global limits)',
+      );
+      expect(
+        execution.stdout.match(/✓ \[web\] a.yaml \(1 cases\)/g),
+      ).toHaveLength(1);
+      expect(
+        execution.stdout.match(/× \[web\] b.yaml \(1 cases \| 1 failed\)/g),
+      ).toHaveLength(1);
+      expect(execution.stdout).toContain('Test Files 1 failed | 1 passed (2)');
+      for (const path of ['a.yaml', 'b.yaml']) {
+        expect(execution.stdout).toContain(
+          `WARN [web] › ${path} › fileSetup · setup ${path}`,
+        );
+        expect(execution.stdout).toContain(
+          `WARN [web] › ${path} › teardown · cleanup ${path}`,
+        );
+        if (reporter === 'verbose')
+          expect(execution.stdout).toContain(
+            `[web] [${path}]      → step 1/3: demo.concurrent`,
+          );
+      }
+      expect(execution.stdout).toContain(
+        'model-A · 120 total · 100 input (80 cached) · 20 output',
+      );
+      expect(execution.stdout).toContain(
+        'model-B · 120 total · 100 input (80 cached) · 20 output',
+      );
+      expect(execution.stderr).toContain('controlled file failure');
+      if (reporter === 'default') {
+        expect(execution.stderr).toMatch(/Step\s+1\/3 · demo\.concurrent/);
+        expect(execution.stderr).toContain('b.yaml:4');
+      }
+      expect(execution.stdout + execution.stderr).not.toContain('\u001b');
+      const summary = JSON.parse(
+        readFileSync(summaryPathFor(resultDir), 'utf8'),
+      );
+      expect(summary.metrics).toMatchObject({
+        modelCallCount: 2,
+        totalTokens: 240,
+      });
+    },
+  );
+
+  it.each(['smoke', 'missing'])(
+    'counts only files selected by the %s tag in the completed CLI output',
+    async (tag) => {
+      const root = mkdtempSync(join(tmpdir(), 'cli-filtered-files-'));
+      temporaryDirectories.push(root);
+      const resultDir = join(root, 'results');
+      writeFileSync(
+        join(root, 'midscene.config.mjs'),
+        `export default {
+  projects: [{ name: 'web', tags: { include: [${JSON.stringify(tag)}] } }],
+  nodes: [{ name: 'test.record', execute({ input }) {
+    if (input.tag === 'slow') throw new Error('A filtered Case must not run');
+  } }],
+};\n`,
+      );
+      for (const name of ['smoke', 'slow'])
+        writeFileSync(
+          join(root, `${name}.yaml`),
+          `cases:\n  - name: ${name}\n    tags: [${name}]\n    steps:\n      - test.record:\n          tag: ${name}\n`,
+        );
+      const execution = await execFileAsync(
+        process.execPath,
+        [cliPath, root, '--result-dir', resultDir],
+        { cwd: packageRoot },
+      );
+      const selected = tag === 'smoke' ? 1 : 0;
+      expect(execution.stdout).toContain(
+        `1 projects · ${selected} files · ${selected} cases`,
+      );
+      expect(execution.stdout).toContain(
+        `Test Files ${selected} passed (${selected})`,
+      );
+      expect(execution.stdout).not.toContain('slow.yaml');
+      if (!selected) expect(execution.stdout).not.toContain('smoke.yaml');
+      const summary = JSON.parse(
+        readFileSync(summaryPathFor(resultDir), 'utf8'),
+      );
+      expect(summary.projects[0].sourceCount).toBe(2);
+      expect(summary.projects[0].selectedCaseCount).toBe(selected);
+      expect(summary.summary.filtered).toBe(2 - selected);
+    },
+  );
+
   it('publishes actual model usage across hooks and failed Case attempts without calling a model', async () => {
     const root = mkdtempSync(join(tmpdir(), 'cli-model-usage-'));
     temporaryDirectories.push(root);
@@ -194,13 +333,16 @@ export default {
         '          outcome: final-failure',
         '          caseLabel: Case A',
         '          password: private-secret',
+        '      - demo.outcome:',
+        '          outcome: success',
+        '          marker: unexecuted input marker',
         '',
       ].join('\n'),
     );
     const execution = await runFailure([root, '--result-dir', resultDir]);
     expect(execution.code).toBe(1);
     expect(execution.stderr).toContain('FAIL [headphones] Case A');
-    expect(execution.stderr).toContain('Step     2/2 · demo.outcome');
+    expect(execution.stderr).toContain('Step     2/3 · demo.outcome');
     expect(execution.stderr).toContain('Location cases.yaml:8');
     expect(execution.stderr).toContain('Attempt  2/2');
     expect(execution.stderr).toContain('Error: Expected 36, received 24.');
@@ -209,7 +351,7 @@ export default {
     expect(execution.stderr).toContain('password: [REDACTED]');
     expect(execution.stderr).toMatch(/at midscene\.config\.mjs:4:\d+/);
     expect(execution.stderr).not.toMatch(
-      /private-secret|unrelated input marker|node_modules|NodeExecutionError/,
+      /private-secret|unrelated input marker|unexecuted input marker|node_modules|NodeExecutionError/,
     );
     expect(execution.stderr).not.toContain('\u001b');
     const summary = JSON.parse(readFileSync(summaryPathFor(resultDir), 'utf8'));
@@ -218,6 +360,7 @@ export default {
       readFileSync(join(runDirFor(resultDir), attempt.resultFile), 'utf8'),
     );
     expect(saved.steps[1].meta.sourceLocation).toEqual({ line: 8, column: 9 });
+    expect(saved.steps).toHaveLength(2);
   });
 
   it('defaults to concise Case results without losing structured steps', async () => {

@@ -154,10 +154,8 @@ export async function runPreparedTestProject(
     projectRoot,
     configPath,
     startedAt: startedAt.toISOString(),
-    concurrency: Math.min(
-      definition.test.maxConcurrentProjects ?? Number.POSITIVE_INFINITY,
-      preparedProjects.length,
-    ),
+    maxConcurrentProjects: definition.test.maxConcurrentProjects,
+    maxConcurrentFiles: definition.test.maxConcurrentFiles,
     files: preparedProjects.flatMap((prepared) => [
       ...prepared.documents.map((document) => ({
         documentId: document.documentId,
@@ -324,7 +322,7 @@ export async function runPreparedTestProject(
       onProgress: (prepared, message) =>
         runInfrastructureCallback(() =>
           progress(
-            effectiveConcurrency > 1
+            preparedProjects.length > 1 || effectiveConcurrency > 1
               ? `[${prepared.project.name}]${message}`
               : message,
           ),

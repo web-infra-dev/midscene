@@ -10,13 +10,13 @@ import {
   waitForScopeOperations,
 } from '@midscene/core/internal/test-runner';
 import { runWithConsoleLogScope } from '@midscene/shared/logger';
-import type { TestReporterEvent } from './reporter-events';
 import { createProjectRuntime } from '../engine/project-runtime';
 import {
   executeDocumentInvocation,
   isSharedResourceFailure,
 } from './document-invocation';
 import type { PreparedExecutionProject } from './execution-plan';
+import type { TestReporterEvent } from './reporter-events';
 import type {
   TestExecutionProjectRunResult,
   TestProjectCaseRunResult,
@@ -231,7 +231,13 @@ export async function runPreparedFiles(
           );
         },
         addFailedCases: options.addFailedCases,
-        onProgress: (message) => options.onProgress(prepared, message),
+        onProgress: (message) =>
+          options.onProgress(
+            prepared,
+            options.maxConcurrentFiles > 1
+              ? ` [${invocation.document.sourcePath}]${message}`
+              : message,
+          ),
         sinks: state,
         onEvent: options.onEvent,
         isolatedContext: project.fileSetup !== undefined,

@@ -307,6 +307,7 @@ const reportTestProjectResult = (
       project?.plans?.find((plan) => plan.documentId === documentId);
     const fileIndex = document?.attemptIndex ?? 0;
     return {
+      plan,
       projectName,
       sourcePath,
       ...(plan?.retry.scope === 'document'
@@ -330,7 +331,7 @@ const reportTestProjectResult = (
     if (outcome.status !== 'failed' || !outcome.run) continue;
     const run = outcome.run;
     const source = `${run.projectName}/${run.sourcePath} / ${run.name}`;
-    const { caseAttempts, ...scope } = documentContext(
+    const { caseAttempts, plan, ...scope } = documentContext(
       run.projectName,
       outcome.documentId,
       run.sourcePath,
@@ -343,14 +344,19 @@ const reportTestProjectResult = (
         total: Math.max(caseAttempts, run.attemptIndex + 1),
       },
     };
-    for (const steps of [run.beforeEach, run.steps, run.afterEach]) {
+    const casePlan = plan?.cases.find((item) => item.caseId === outcome.caseId);
+    for (const [phase, steps] of [
+      ['beforeEach', run.beforeEach],
+      ['steps', run.steps],
+      ['afterEach', run.afterEach],
+    ] as const) {
       for (const step of steps) {
         if (step.error) {
           reportError(
             `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}${run.attemptIndex ? ` (failed after ${run.attemptIndex + 1} attempts)` : ''}`,
             step.error,
             run.sourcePath,
-            { ...context, step, stepCount: steps.length },
+            { ...context, step, stepCount: casePlan?.[phase].length },
           );
         }
       }
@@ -366,19 +372,26 @@ const reportTestProjectResult = (
   for (const document of finalDocuments.values()) {
     if (document.status !== 'failed') continue;
     const source = `${document.projectName}/${document.sourcePath}`;
-    const { caseAttempts: _, ...context } = documentContext(
+    const {
+      caseAttempts: _,
+      plan,
+      ...context
+    } = documentContext(
       document.projectName,
       document.documentId,
       document.sourcePath,
     );
-    for (const steps of [document.beforeAll, document.afterAll]) {
+    for (const [phase, steps] of [
+      ['beforeAll', document.beforeAll],
+      ['afterAll', document.afterAll],
+    ] as const) {
       for (const step of steps) {
         if (step.error) {
           reportError(
             `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
             step.error,
             document.sourcePath,
-            { ...context, step, stepCount: steps.length },
+            { ...context, step, stepCount: plan?.[phase].length },
           );
         }
       }

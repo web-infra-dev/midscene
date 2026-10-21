@@ -66,7 +66,7 @@ interface ActiveTask {
 
 // Document status describes its lifecycle; failed Cases must also fail the file.
 const fileStatus = (
-  status: 'success' | 'failed' | 'not-run',
+  status: FileState['status'],
   cases: readonly CaseRunOutcome[],
 ): FileState['status'] => {
   if (status === 'failed' || cases.some((item) => item.status === 'failed'))
@@ -74,7 +74,7 @@ const fileStatus = (
   if (cases.length && cases.every((item) => item.status === 'not-run'))
     return 'not-run';
   if (cases.some((item) => item.status === 'not-run')) return 'failed';
-  return status;
+  return status ?? (cases.length ? 'success' : 'not-run');
 };
 
 export class TerminalReporter {
@@ -213,8 +213,15 @@ export class TerminalReporter {
         `\n ${c.bgGreen.black.bold(' RUN ')} ${c.green(`midscene-test v${version}`)} ${c.dim(oneLine(event.projectRoot ?? process.cwd()))}`,
       );
       this.log(
-        ` ${c.dim(`${event.projects} projects · ${event.documents} files · ${event.cases} cases${event.concurrency ? ` · ${event.concurrency} concurrent projects` : ''}`)}`,
+        ` ${c.dim(`${event.projects} projects · ${event.documents} files · ${event.cases} cases`)}`,
       );
+      if (
+        event.maxConcurrentProjects !== undefined &&
+        event.maxConcurrentFiles !== undefined
+      )
+        this.log(
+          ` ${c.dim(`Concurrency ${event.maxConcurrentProjects ?? 'unlimited'} projects · ${event.maxConcurrentFiles ?? 'unlimited'} files (global limits)`)}`,
+        );
       if (event.configPath)
         this.log(` ${c.dim(`Config ${oneLine(event.configPath)}`)}`);
       for (const model of event.configuredModels ?? [])
@@ -516,9 +523,18 @@ export class TerminalReporter {
       const documents = new Map(
         project.documents.map((document) => [document.documentId, document]),
       );
-      // Plans retain collected file order; final outcomes replace earlier attempts.
-      for (const plan of project.plans ?? [])
-        this.file(project.name, plan.sourcePath);
+      const resultSources = new Set([
+        ...project.cases.map((outcome) => outcome.sourcePath),
+        ...project.documents.map((document) => document.sourcePath),
+        ...project.collectionErrors.map((error) => error.sourcePath),
+      ]);
+      // Preserve plan order for selected files and actual results, excluding
+      // files whose Cases were all filtered out before execution.
+      for (const plan of project.plans ?? []) {
+        const selected = plan.cases.filter((item) => item.selected).length;
+        if (selected || resultSources.has(plan.sourcePath))
+          this.file(project.name, plan.sourcePath, selected);
+      }
       for (const outcome of project.cases)
         this.file(project.name, outcome.sourcePath).outcomes.set(
           outcome.caseId,
@@ -537,7 +553,7 @@ export class TerminalReporter {
       for (const file of this.files.values())
         if (file.projectName === project.name) {
           const cases = [...file.outcomes.values()];
-          file.status = fileStatus(file.status ?? 'success', cases);
+          file.status = fileStatus(file.status, cases);
           this.printFile(file);
         }
     }

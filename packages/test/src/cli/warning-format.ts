@@ -7,8 +7,8 @@ const oneLine = (text: string): string =>
 export function formatWarningScope(scope?: ConsoleLogScope): string {
   if (!scope) return '';
   const parts = [`[${oneLine(scope.projectName)}]`];
-  if (scope.caseName || scope.sourcePath)
-    parts.push(oneLine(scope.caseName ?? scope.sourcePath!));
+  if (scope.sourcePath) parts.push(oneLine(scope.sourcePath));
+  if (scope.caseName) parts.push(oneLine(scope.caseName));
   if (scope.phase) {
     const phase = scope.phase === 'steps' ? 'step' : scope.phase;
     parts.push(

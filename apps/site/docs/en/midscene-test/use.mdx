@@ -420,26 +420,6 @@ Run YAML test cases from the project root:
 pnpm exec midscene-test
 ```
 
-The CLI starts with the package version, project directory, configuration file, and run totals. In an interactive terminal, a live tree groups active Cases and lifecycle Steps by Project and file. The footer updates Test Files, Cases, start time, and elapsed time. Yellow marks running tasks and retries, green marks the RUN header and passed results, red marks failures, and dim text indicates supporting details. Model names use the terminal's normal text color. Long rows are truncated, and an overflow indicator appears when the tree exceeds the terminal height.
-
-When a file finishes, its results appear above the live tree, with Cases in declaration order. Files appear in completion order. Whole-file retries settle before the final file tree is printed. At the end, failures are grouped into one section, followed by the final counts and report paths; completed result trees are not repeated.
-
-CI and redirected output use plain, append-only text without colors or cursor control. They retain completed file trees, concise warnings and retry notices, a low-frequency running reminder, and the final errors and summary. `--reporter verbose` uses append-only output in every environment.
-
-Default warnings show a short message with the Project, Case, and Step that emitted it. File lifecycle and Project setup/teardown warnings show their own scope instead of a Case. `model request retry` retries one model request inside a Step; `case retry` reruns the Case. In an interactive terminal, Case retries appear on the active Case branch as `attempt 2/2`, without a separate permanent event line. The counter includes the initial execution. CI retains a contextual `case retry · attempt 2/2` event, and verbose output retains detailed attempt history. Final Case results retain `passed after retry` or `failed after retries`. A recovered model request does not count as a retried Case. Full error objects, stacks, response headers, and request IDs remain in verbose output and debug logs.
-
-In an interactive terminal, warnings update the live area instead of appending permanent log lines. The current Step appears on the active Case row to reserve space for the statistics. A model request retry appears beneath that row and disappears when that Step settles. Other warnings appear in the fixed Warnings row. At the end, up to five concise warnings are shown with their scope; CI retains warnings as they occur. Verbose output preserves the full diagnostics.
-
-The startup `Models (env)` lines show configured environment models grouped by intent; an Agent can override these settings. The live footer's `Models:` group shows one row per observed model, combining its name with cumulative total, input, and output tokens from completed Steps. Additional model rows align beneath the first. The final statistics keep this layout, use the same aggregation as the HTML report, and include failed attempts, Case/file retries, and lifecycle Steps. Cached input appears in parentheses after input; it is already included in input and is not added again. Missing usage is shown as unavailable or partial, rather than zero. No-model runs report zero model usage.
-
-Default failure blocks show the Project and Case, failing Step and position, YAML source line, Case or file attempt count when retries are configured, and the first available application stack location. Only the failed Step’s resolved input is shown, limited to four fields and short values; credentials are redacted. Lifecycle and infrastructure errors retain their own scope. Use verbose output for full stacks and the saved results for complete inputs.
-
-Use `--reporter verbose` for detailed steps, intermediate Agent report paths, and full error stacks:
-
-```bash
-pnpm exec midscene-test --reporter verbose
-```
-
 ### Specify a test case directory or file
 
 Generated projects use `files.include` to select `.yaml` and `.yml` files under `cases/`. Without a `files` configuration, Midscene Test recursively searches the test directory for YAML files, ignoring `node_modules` and `.git`.
