@@ -14,6 +14,7 @@ import {
   writeAppUpdateYmlIntoResources,
   writeUpdateMetadataForArtifact,
 } from './build-update-metadata.mjs';
+import { runMacStapler } from './mac-stapler.mjs';
 import {
   assertPackagedExternalResourcesUnpacked,
   packagedAsarOptions,
@@ -2290,8 +2291,8 @@ export const buildStudioDmgArtifact = async ({
       `Submitting ${path.basename(dmgArtifactPath)} for notarization.`,
     );
     await notarize({ appPath: dmgArtifactPath, ...security.notarizeOptions });
-    await run('xcrun', ['stapler', 'staple', dmgArtifactPath]);
-    await run('xcrun', ['stapler', 'validate', dmgArtifactPath]);
+    await runMacStapler('staple', dmgArtifactPath);
+    await runMacStapler('validate', dmgArtifactPath);
   }
 
   return dmgArtifactPath;
@@ -2310,7 +2311,7 @@ export const notarizePackagedMacApp = async ({
     appPath,
     ...security.notarizeOptions,
   });
-  await run('xcrun', ['stapler', 'validate', appPath]);
+  await runMacStapler('validate', appPath);
   return true;
 };
 
