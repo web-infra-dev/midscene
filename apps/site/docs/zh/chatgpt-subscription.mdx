@@ -4,7 +4,7 @@ import { ModelConfigCard } from '@theme';
 
 你可以通过 [Sign in with ChatGPT（简称 SIWC）](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) 授权 Midscene，使用 ChatGPT 订阅额度调用 GPT 模型。本文介绍从登录授权到验证连接的完整步骤。
 
-使用 ChatGPT 订阅和[使用模型 API Key](./model-common-config)是两种接入方式，任选一种即可。已有模型 API Key 的用户可以选择后者。
+使用 ChatGPT 订阅和[使用模型 API Key](./model-api-setup)是两种接入方式，任选一种即可。已有模型 API Key 的用户可以选择后者。
 
 ## 登录授权
 
@@ -39,7 +39,7 @@ pnpm dlx @midscene/cli model siwc login
 
 SIWC 要求使用 Responses API 并开启流式返回，请保留示例中的 `openai-responses` 和 `stream` 配置。Midscene 默认设置 `store: false`，符合该流程的要求，详见 [OpenAI 官方说明](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)。
 
-可用模型以你的 ChatGPT 账号为准。其他 GPT 模型的名称、family 和使用注意事项，请参考[使用模型 API Key](./model-common-config#gpt)。
+可用模型以你的 ChatGPT 账号为准。其他 GPT 模型的名称、family 和使用注意事项，请参考[使用模型 API Key](./model-api-setup#gpt)。
 
 ## 加载配置
 
@@ -47,7 +47,7 @@ SIWC 要求使用 Responses API 并开启流式返回，请保留示例中的 `o
 
 - **Playground**：在设置页面粘贴配置文本。
 - **CLI**：在运行命令的目录中创建 `.env` 文件，粘贴配置文本，无需添加 `export`。CLI 会自动读取该文件。
-- **JavaScript SDK**：将配置加载到 Node.js 进程的环境变量中，具体方法见[设置环境变量](./model-common-config#设置环境变量)。
+- **JavaScript SDK**：将配置加载到 Node.js 进程的环境变量中，具体方法见[设置环境变量](./model-api-setup#设置环境变量)。
 
 登录命令保存的本地凭据不会自动填入上述模型配置，仍需手动设置 `MIDSCENE_MODEL_API_KEY`。
 

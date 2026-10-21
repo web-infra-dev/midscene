@@ -170,7 +170,7 @@ MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1"
 MIDSCENE_MODEL_PROTOCOL="openai-responses"
 ```
 
-Set the model name, API key, and family as shown in the [GPT configuration example](./model-common-config#gpt). Do not append `/responses` to the Base URL; the SDK adds it automatically.
+Set the model name, API key, and family as shown in the [GPT configuration example](./model-api-setup#gpt). Do not append `/responses` to the Base URL; the SDK adds it automatically.
 
 The Responses API is not restricted to the official OpenAI endpoint. Azure OpenAI and other compatible endpoints can also be used, but both the endpoint and the selected GPT model must support this protocol. Chat Completions compatibility alone does not imply Responses compatibility. See the [Azure OpenAI FAQ](./faq) for configuration and the verified coordinate-offset scenario.
 
@@ -226,7 +226,7 @@ If you see `MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI local
 
 Starting with version 1.0, Midscene recommends using `MIDSCENE_MODEL_FAMILY` to specify the multimodal model type. Legacy `MIDSCENE_USE_...` settings remain compatible but are deprecated.
 
-See [Use a model API key](./model-common-config) for the correct model family and a complete configuration example.
+See [Use a model API key](./model-api-setup) for the correct model family and a complete configuration example.
 
 **Base URL or model name is incorrect**
 

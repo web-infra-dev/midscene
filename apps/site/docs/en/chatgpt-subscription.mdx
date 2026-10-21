@@ -4,7 +4,7 @@ import { ModelConfigCard } from '@theme';
 
 Authorize Midscene through [Sign in with ChatGPT (SIWC)](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) to call GPT models using your ChatGPT subscription. This guide walks you through sign-in, configuration, and connection verification.
 
-Choose either a ChatGPT subscription or a [model API key](./model-common-config) to connect Midscene. You only need to complete one of these setup guides.
+Choose either a ChatGPT subscription or a [model API key](./model-api-setup) to connect Midscene. You only need to complete one of these setup guides.
 
 ## Sign in
 
@@ -39,7 +39,7 @@ The following example uses `gpt-6-sol`. Replace `<your-access-token>` with the t
 
 SIWC requires the Responses API with streaming enabled. Keep the `openai-responses` and `stream` settings in the example. Midscene sets `store: false` by default, as required by this flow. See the [official OpenAI documentation](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference).
 
-Available models depend on your ChatGPT account. For other GPT model names, families, and usage notes, see [Use a model API key](./model-common-config#gpt).
+Available models depend on your ChatGPT account. For other GPT model names, families, and usage notes, see [Use a model API key](./model-api-setup#gpt).
 
 ## Load the configuration
 
@@ -47,7 +47,7 @@ Load the complete configuration above according to how you use Midscene:
 
 - **Playground**: Paste the configuration text into the settings page.
 - **CLI**: Create a `.env` file in the directory where you run commands and paste the configuration without adding `export`. The CLI reads this file automatically.
-- **JavaScript SDK**: Load the configuration into the Node.js process environment. See [Set environment variables](./model-common-config#set-environment-variables) for instructions.
+- **JavaScript SDK**: Load the configuration into the Node.js process environment. See [Set environment variables](./model-api-setup#set-environment-variables) for instructions.
 
 The credentials saved by the sign-in command do not automatically populate these model settings. You still need to set `MIDSCENE_MODEL_API_KEY` manually.
 

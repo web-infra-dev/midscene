@@ -2,7 +2,7 @@
 
 这是参考 `midscene-example/computer/vitest-demo` TodoMVC 用例的 Computer 版 Midscene Test 项目。
 
-如果创建时跳过安装，执行 `{{INSTALL_COMMAND}}`。安装后会自动生成 `midscene-node-spec.computer.md`；若禁用了安装脚本，手动执行 `{{RUN_NODES_COMMAND}}`。复制 `.env.example` 为 `.env`，按[模型配置指南](https://midscenejs.com/model-common-config.html)配置模型。
+如果创建时跳过安装，执行 `{{INSTALL_COMMAND}}`。安装后会自动生成 `midscene-node-spec.computer.md`；若禁用了安装脚本，手动执行 `{{RUN_NODES_COMMAND}}`。复制 `.env.example` 为 `.env`，按[模型配置指南](https://midscenejs.com/model-api-setup.html)配置模型。
 
 配置后，在项目目录执行 `{{VERIFY_MODEL_COMMAND}}`，检查模型连接和 Midscene 兼容性。这一步不需要浏览器或设备；若检查失败，请先参考[模型调试与可观测性](https://midscenejs.com/model-debugging-observability.html)排查，再运行测试。
 

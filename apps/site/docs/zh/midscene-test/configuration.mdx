@@ -33,7 +33,7 @@ Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。�
 
 下面的完整配置展示了如何创建浏览器页面、接入 Midscene Agent，并将官方 Node 注册到执行项目中。通过脚手架创建项目后，可以参考这个示例理解和调整 `midscene.config.ts`。
 
-如果要在已有工程中手动接入，请先安装 `@midscene/test`、`@midscene/web` 和 `playwright`（`pnpm add -D @midscene/test @midscene/web playwright`），再执行 `pnpm exec playwright install chromium` 安装浏览器。运行测试前，还需按[模型配置](../model-config)设置 API Key 等环境变量。
+如果要在已有工程中手动接入，请先安装 `@midscene/test`、`@midscene/web` 和 `playwright`（`pnpm add -D @midscene/test @midscene/web playwright`），再执行 `pnpm exec playwright install chromium` 安装浏览器。运行测试前，还需按[模型配置](../model-api-setup)设置 API Key 等环境变量。
 
 ```ts filename=midscene.config.ts
 import {

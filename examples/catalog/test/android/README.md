@@ -4,7 +4,7 @@ A Midscene Test project for Android, based on the TodoMVC case in `midscene-exam
 
 If you skipped installation during creation, run `{{INSTALL_COMMAND}}`. The `postinstall` script automatically generates `midscene-node-spec.android.md` after each dependency installation. If lifecycle scripts are disabled, run `{{RUN_NODES_COMMAND}}` manually.
 
-Copy `.env.example` to `.env`, then choose and configure a model using the [supported models and setup guide](https://midscenejs.com/model-common-config.html). Do not commit `.env` to your repository; inject the model configuration as environment variables in CI.
+Copy `.env.example` to `.env`, then choose and configure a model using the [supported models and setup guide](https://midscenejs.com/model-api-setup.html). Do not commit `.env` to your repository; inject the model configuration as environment variables in CI.
 
 After configuring `.env`, run `{{VERIFY_MODEL_COMMAND}}` from the project directory to check model connectivity and Midscene compatibility. This check does not require a browser or device. If it fails, see [Model debugging and observability](https://midscenejs.com/model-debugging-observability.html) before running tests.
 

@@ -199,7 +199,7 @@ export default defineConfig(async () => {
           },
           {
             text: 'Use a model API key',
-            link: '/model-common-config',
+            link: '/model-api-setup',
           },
           {
             text: 'Use a ChatGPT subscription (Beta)',
@@ -387,7 +387,7 @@ export default defineConfig(async () => {
           },
           {
             text: '使用模型 API Key',
-            link: '/zh/model-common-config',
+            link: '/zh/model-api-setup',
           },
           {
             text: '使用 ChatGPT 订阅（Beta）',
@@ -624,6 +624,7 @@ export default defineConfig(async () => {
             ...[
               ['reporting', 'consume-report-file'],
               ['model-strategy', 'model-selection'],
+              ['model-common-config', 'model-api-setup'],
               [
                 'model-debugging-observability',
                 'model-config#verify-model-connectivity',
@@ -754,7 +755,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/choose-a-model(?:\\.html)?/?$',
-            to: '/model-common-config',
+            to: '/model-selection',
           },
           {
             from: '^/api-reference(?:\\.html)?/?$',
@@ -774,7 +775,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/model-provider(?:\\.html)?/?$',
-            to: '/model-common-config.html',
+            to: '/model-api-setup',
           },
           {
             from: '^/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
@@ -862,11 +863,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/choose-a-model(?:\\.html)?/?$',
-            to: '/zh/model-common-config',
+            to: '/zh/model-selection',
           },
           {
             from: '^/zh/model-provider(?:\\.html)?/?$',
-            to: '/zh/model-common-config.html',
+            to: '/zh/model-api-setup',
           },
           {
             from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',

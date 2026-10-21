@@ -170,7 +170,7 @@ MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1"
 MIDSCENE_MODEL_PROTOCOL="openai-responses"
 ```
 
-模型名称、API Key 和 family 仍需按[GPT 配置示例](./model-common-config#gpt)填写。Base URL 不要追加 `/responses`，SDK 会自动添加。
+模型名称、API Key 和 family 仍需按[GPT 配置示例](./model-api-setup#gpt)填写。Base URL 不要追加 `/responses`，SDK 会自动添加。
 
 Responses API 不限于 OpenAI 官方接入点，也可以用于提供兼容接口的 Azure OpenAI 或其他接入点，但需要确认接入点及所选 GPT 模型支持该协议；仅兼容 Chat Completions 并不代表兼容 Responses。Azure 的配置与已验证场景见[使用 Azure OpenAI 时点击坐标偏移](./faq#使用-azure-openai-时点击坐标偏移)。
 
@@ -226,7 +226,7 @@ Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳�
 
 从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 指定多模态模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容，但已经废弃。
 
-正确的模型 family 和完整配置示例请参考[使用模型 API Key](./model-common-config)。
+正确的模型 family 和完整配置示例请参考[使用模型 API Key](./model-api-setup)。
 
 **Base URL 或模型名称不正确**
 

@@ -30,7 +30,7 @@ Device 生命周期规范：
 推荐模型名称规范：
 
 - README、首页等面向用户的支持或推荐模型列表可以使用模型系列或版本名称，例如 `Qwen3.x`、`Doubao-Seed-2.1`，无需使用可直接配置的精确模型名称。
-- 只有环境变量中的模型配置项需要使用精确值，例如 `MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY`、`MIDSCENE_PLANNING_MODEL_NAME` 和 `MIDSCENE_INSIGHT_MODEL_NAME`。这些值必须与 `model-common-config.mdx` 保持一致。
+- 只有环境变量中的模型配置项需要使用精确值，例如 `MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY`、`MIDSCENE_PLANNING_MODEL_NAME` 和 `MIDSCENE_INSIGHT_MODEL_NAME`。这些值必须与 `model-api-setup.mdx` 保持一致。
 
 写作风格：
 
