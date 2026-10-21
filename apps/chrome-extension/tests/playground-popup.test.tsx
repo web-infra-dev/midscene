@@ -11,6 +11,7 @@ const setPopupTab = rs.fn();
 const getAgentRefs: Array<unknown> = [];
 const constructedAgentOptions: Array<unknown> = [];
 const verifyCallbacks: Array<unknown> = [];
+const modelActionSlots: Array<unknown> = [];
 const configProviderThemes: Array<unknown> = [];
 let sdkSyncEffectCount = 0;
 let prefersDarkMode = false;
@@ -24,9 +25,11 @@ rs.mock('@midscene/visualizer', () => ({
   NavActions: ({
     onAgentOptionsSave,
     onVerify,
+    modelConfigActions,
   }: {
     onAgentOptionsSave?: (options: Record<string, number>) => void;
     onVerify?: unknown;
+    modelConfigActions?: React.ReactNode;
   }) => (
     <>
       <button
@@ -41,7 +44,13 @@ rs.mock('@midscene/visualizer', () => ({
       >
         Save agent options
       </button>
-      <button onClick={() => verifyCallbacks.push(onVerify)} type="button">
+      <button
+        onClick={() => {
+          verifyCallbacks.push(onVerify);
+          modelActionSlots.push(modelConfigActions);
+        }}
+        type="button"
+      >
         Capture verify callback
       </button>
     </>
@@ -145,6 +154,7 @@ describe('PlaygroundPopup', () => {
     getAgentRefs.length = 0;
     constructedAgentOptions.length = 0;
     verifyCallbacks.length = 0;
+    modelActionSlots.length = 0;
     configProviderThemes.length = 0;
     sdkSyncEffectCount = 0;
     prefersDarkMode = false;
@@ -268,6 +278,9 @@ describe('PlaygroundPopup', () => {
     });
 
     expect(verifyCallbacks.at(-1)).toEqual(expect.any(Function));
+    const { SiwcLoginButton } = await import('../src/extension/siwc/button');
+    expect(modelActionSlots.at(-1)).toMatchObject({ type: SiwcLoginButton });
+    expect(container.textContent).not.toContain('Sign in with ChatGPT');
     await act(async () => {
       root.unmount();
     });

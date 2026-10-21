@@ -5,6 +5,7 @@
   "manifest_version": 3,
   "permissions": [
     "activeTab",
+    "webRequest",
     "tabs",
     "sidePanel",
     "debugger",

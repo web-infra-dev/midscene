@@ -43,7 +43,6 @@
     "@midscene/web": "workspace:*",
     "@rstest/core": "0.12.0",
     "http-server": "14.1.1",
-    "jose": "5.9.6",
     "lodash.merge": "4.6.2",
     "puppeteer": "24.6.0"
   },
@@ -59,6 +58,7 @@
     "dotenv": "^16.4.5",
     "execa": "9.3.0",
     "glob": "11.0.0",
+    "jose": "5.9.6",
     "js-yaml": "4.1.0",
     "p-limit": "6.2.0",
     "restore-cursor": "5.1.0",

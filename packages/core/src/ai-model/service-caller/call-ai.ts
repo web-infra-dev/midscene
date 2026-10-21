@@ -11,6 +11,11 @@ import { type PreparedOpenAIInput, callOpenAI } from './openai/call-openai';
 import { prepareChatCompletion } from './openai/chat-completion/chat-completion';
 import { prepareResponses } from './openai/responses/responses';
 import {
+  SiwcTokenExpiredError,
+  prepareSiwcCall,
+  siwcTokenManager,
+} from './openai/siwc';
+import {
   buildRequestAbortSignal,
   resolveEffectiveTimeoutMs,
   runWithAbortSignal,
@@ -36,11 +41,11 @@ const DEFAULT_MODEL_PROTOCOL = 'openai-chat';
 
 export async function callAI(
   messages: ModelCallMessages,
-  modelRuntime: ModelRuntime,
-  options?: CallAIOptions,
+  originalModelRuntime: ModelRuntime,
+  originalOptions?: CallAIOptions,
 ): Promise<AICallResult> {
-  options?.abortSignal?.throwIfAborted();
-  const isStreaming = options?.stream === true;
+  originalOptions?.abortSignal?.throwIfAborted();
+  const isStreaming = originalOptions?.stream === true;
   if (isStreaming) {
     // Explicit streaming is currently used only by recorder code generation.
     // Streaming can also be aggregated without onChunk, but then the caller
@@ -49,10 +54,16 @@ export async function callAI(
     // Once onChunk delivers a chunk, later errors are not retried to avoid
     // delivering duplicate content. Errors before the first chunk can retry.
     assert(
-      typeof options?.onChunk === 'function',
+      typeof originalOptions?.onChunk === 'function',
       'onChunk is required when stream: true is explicitly specified',
     );
   }
+
+  // Resolve authentication constraints before protocol selection and validation.
+  const { modelRuntime, options } = await prepareSiwcCall(
+    originalModelRuntime,
+    originalOptions,
+  );
 
   // Low-level callers without a TaskRunner still need a stable ID for the
   // lifetime of this model call (including its network retries).
@@ -202,6 +213,36 @@ async function callModelWithRetry(
       options?.abortSignal?.throwIfAborted();
       if (error instanceof NonRetryableModelCallError) {
         throw error.cause;
+      }
+      // A rejected SIWC token gets one authentication retry, independently of
+      // normal retryCount. Delivered chunks are rejected above before refreshing.
+      if (error instanceof SiwcTokenExpiredError) {
+        const refresh = async () => {
+          assert(config.openaiApiKey, 'Missing rejected SIWC access token');
+          await siwcTokenManager.refreshAccessToken(config.openaiApiKey);
+          return prepareSiwcCall(input.modelRuntime, options);
+        };
+        // Cancel only this caller's wait; other callers may share the refresh.
+        const refreshed = options?.abortSignal
+          ? await runWithAbortSignal(options.abortSignal, refresh)
+          : await refresh();
+        options?.abortSignal?.throwIfAborted();
+        try {
+          const result = await callModelOnce(
+            { ...input, ...refreshed },
+            attempt + 1,
+          );
+          return {
+            ...result,
+            totalTimeCost: Date.now() - startTime,
+            retryCount: attempt,
+          };
+        } catch (retryError) {
+          // Do not re-enter either retry path after the refreshed request fails.
+          throw retryError instanceof NonRetryableModelCallError
+            ? retryError.cause
+            : retryError;
+        }
       }
       const lastError = toError(error);
       attemptErrors.push({ attempt, error: lastError });

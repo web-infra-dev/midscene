@@ -245,6 +245,15 @@ export const parseOpenaiSdkConfig = ({
   return {
     socksProxy,
     httpProxy,
+    authMode: (() => {
+      const value = provider[keys.authMode]?.trim() ?? 'api-key';
+      if (value === 'api-key' || value === 'siwc') {
+        return value;
+      }
+      throw new Error(
+        `Invalid ${keys.authMode}: "${value}". Expected "api-key" or "siwc".`,
+      );
+    })(),
     openaiBaseURL,
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
@@ -368,7 +377,7 @@ export const decideModelConfigFromIntentConfig = (
   );
 
   assert(
-    finalResult.openaiBaseURL,
+    finalResult.authMode === 'siwc' || finalResult.openaiBaseURL,
     `failed to get base URL of model (intent=${intent}). See https://midscenejs.com/model-api-setup`,
   );
 

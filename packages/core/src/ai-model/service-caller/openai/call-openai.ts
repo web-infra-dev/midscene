@@ -8,6 +8,7 @@ import {
 import { createClient } from './openai-client';
 import { formatOpenAIAPIErrorDetails } from './openai-request-context';
 import { callResponses, type prepareResponses } from './responses/responses';
+import { SiwcTokenExpiredError } from './siwc';
 
 export type PreparedOpenAIInput =
   | {
@@ -114,7 +115,13 @@ export async function callOpenAI(
     if (error instanceof AIResponseParseError) {
       throw error;
     }
-    throw new Error(
+    const RequestError =
+      modelConfig.authMode === 'siwc' &&
+      error.status === 401 &&
+      error.code === 'token_expired'
+        ? SiwcTokenExpiredError
+        : Error;
+    throw new RequestError(
       `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${error.message}${formatOpenAIAPIErrorDetails(error, openAIRequestContext)}\nTrouble shooting: https://midscenejs.com/model-config#verify-model-connectivity`,
       { cause: error },
     );

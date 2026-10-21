@@ -18,6 +18,7 @@ export interface EnvConfigProps {
   mode?: 'icon' | 'text';
   playgroundSDK?: PlaygroundSDKLike | null;
   onVerify?: ConfigModalProps['onVerify'];
+  modelConfigActions?: ConfigModalProps['modelConfigActions'];
   agentOptions?: CommonAgentOptions;
   onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
   configModalClassName?: string;
@@ -33,6 +34,7 @@ export function EnvConfig({
   mode = 'icon',
   playgroundSDK,
   onVerify,
+  modelConfigActions,
   agentOptions,
   onAgentOptionsSave,
   configModalClassName,
@@ -103,6 +105,7 @@ export function EnvConfig({
         agentOptionsValue={agentOptions}
         className={configModalClassName}
         envTextareaAutoSize={envTextareaAutoSize}
+        modelConfigActions={modelConfigActions}
         envTextareaMinRows={envTextareaMinRows}
         width={configModalWidth}
         onClose={() => setIsModalOpen(false)}
