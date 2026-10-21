@@ -36,11 +36,17 @@ describe('extract', () => {
 
     // Remove the thought field since it's generated dynamically by AI
     // but keep data and errors fields
-    const snapshotResult = {
+    const extractionResult = {
       data: parseResult.data,
       errors: parseResult.errors || [],
     };
-    expect(snapshotResult).toMatchSnapshot();
+    expect(extractionResult).toStrictEqual({
+      data: [
+        { name: 'Very Tangerine Blast (Original)', price: '6.82' },
+        { name: 'Mango Grapefruit Pops', price: '6.54' },
+      ],
+      errors: [],
+    });
   });
 
   it('todo obj', async () => {
@@ -55,10 +61,19 @@ describe('extract', () => {
 
     // Remove the thought field since it's generated dynamically by AI
     // but keep data and errors fields
-    const snapshotResult = {
+    const extractionResult = {
       data: parseResult.data,
       errors: parseResult.errors || [],
     };
-    expect(snapshotResult).toMatchSnapshot();
+    // A timed-out model call can finish during the runner's retry. Exact
+    // expectations avoid sharing a numbered snapshot counter across attempts.
+    expect(extractionResult).toStrictEqual({
+      data: [
+        { checked: false, text: 'Learn Python' },
+        { checked: false, text: 'Learn Rust' },
+        { checked: false, text: 'Learn AI' },
+      ],
+      errors: [],
+    });
   });
 });
