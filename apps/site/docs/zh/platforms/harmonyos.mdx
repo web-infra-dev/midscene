@@ -73,7 +73,7 @@ Playground 是验证连接的最快方式。无需编写代码，即可体验 `a
 npx --yes @midscene/harmony-playground
 ```
 
-2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有模型配置，请参考[支持的模型与配置](../model-common-config)。
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有模型配置，请参考[使用模型 API Key](../model-api-setup)。
 
 ## 使用 JavaScript SDK
 
@@ -106,8 +106,9 @@ Promise.resolve(
     const device = new HarmonyDevice(devices[0].deviceId, {});
 
     const agent = new HarmonyAgent(device, {
-      aiActionContext:
-        '这是一台鸿蒙设备，系统语言为中文。如果出现弹窗，点击同意或关闭。',
+      aiContexts: {
+        aiAct: '这是一台鸿蒙设备，系统语言为中文。如果出现弹窗，点击同意或关闭。',
+      },
     });
     await device.connect();
 
@@ -129,6 +130,8 @@ Promise.resolve(
   })(),
 );
 ```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 ### 运行脚本
 

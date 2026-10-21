@@ -7,7 +7,7 @@ import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import { MODEL_FAMILY_VALUES, type TModelFamily } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
   jsonParser: parseModelResponseJson,
@@ -28,6 +28,44 @@ function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
 }
 
 describe('model adapter registry', () => {
+  it('keeps unsupported user config independent for each protocol', () => {
+    const adapter = new ResolvedModelAdapter(
+      {
+        chatCompletion: { unsupportedUserConfig: ['temperature'] },
+        responses: { unsupportedUserConfig: ['reasoningBudget'] },
+      },
+      'test',
+    );
+    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
+      'temperature',
+    ]);
+    expect(adapter.responses.unsupportedUserConfig).toEqual([
+      'reasoningBudget',
+    ]);
+    expect(
+      new ResolvedModelAdapter({}, 'test').responses.unsupportedUserConfig,
+    ).toEqual([]);
+  });
+
+  it('defaults to Chat Completions while keeping the Responses implementation', () => {
+    const adapter = new ResolvedModelAdapter({}, 'test');
+    expect(adapter.supportedProtocols).toEqual(['openai-chat']);
+    expect(adapter.responses.buildResponsesParams({}).config).toEqual({
+      temperature: 0,
+    });
+  });
+
+  it('allows declaring Responses support without a custom implementation', () => {
+    const adapter = new ResolvedModelAdapter(
+      { supportedProtocols: ['openai-responses'] },
+      'test',
+    );
+    expect(adapter.supportedProtocols).toEqual(['openai-responses']);
+    expect(adapter.responses.buildResponsesParams({}).config).toEqual({
+      temperature: 0,
+    });
+  });
+
   it('resolves the default adapter when modelFamily is not configured', () => {
     const adapter = getModelAdapter();
 
@@ -57,7 +95,7 @@ describe('model adapter registry', () => {
       }
       if (adapter.locate.kind === 'standard') {
         expect(adapter.locate.element.resultCodec.promptSpec).toBeTruthy();
-        expect(adapter.locate.element.resultCodec.toPixelBbox).toBeTruthy();
+        expect(adapter.locate.element.resultCodec.toPixelResult).toBeTruthy();
         expect(adapter.locate.element.protocol).toBeTruthy();
         if (adapter.locate.searchArea?.protocol) {
           expect(adapter.locate.searchArea?.resultCodec).toBeTruthy();
@@ -145,7 +183,7 @@ describe('ResolvedModelAdapter', () => {
     ).toEqual({
       config: { temperature: 0.7 },
     });
-    expect(adapter.chatCompletion.resolveImageDetail({})).toBeUndefined();
+    expect(adapter.resolveImageDetail({})).toBe('high');
     expect(adapter.imagePreprocess).toEqual({});
     expect(adapter.planning).toMatchObject({
       kind: 'standard',
@@ -168,6 +206,7 @@ describe('ResolvedModelAdapter', () => {
     if (adapter.locate.kind !== 'standard') {
       throw new Error('default adapter should use standard locate');
     }
+    expect(adapter.locate.userMessageContentOrder).toBe('image-first');
     expect(adapter.locate.element.protocol).toBeDefined();
     expect(adapter.locate.searchArea?.protocol).toBeDefined();
     expect(adapter.locate.searchArea?.resultCodec).toBeDefined();
@@ -177,7 +216,7 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('keeps custom planner and locate definitions while applying policy defaults', () => {
-    const locateFn = vi.fn();
+    const locateFn = rs.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
@@ -255,7 +294,7 @@ describe('ResolvedModelAdapter', () => {
           kind: 'custom',
           planningTapLocator: {
             buildSystemPrompt: () => 'locate system prompt',
-            getLocatedPixelBbox: () => [1, 2, 3, 4],
+            getLocatedPixelResult: () => ({ center: [2, 3] }),
           },
         },
       },
@@ -280,13 +319,13 @@ describe('ResolvedModelAdapter', () => {
           {
             planning: {
               kind: 'custom',
-              planFn: vi.fn(),
+              planFn: rs.fn(),
             },
             locate: {
               kind: 'custom',
               planningTapLocator: {
                 buildSystemPrompt: () => 'locate system prompt',
-                getLocatedPixelBbox: () => [1, 2, 3, 4],
+                getLocatedPixelResult: () => ({ center: [2, 3] }),
               },
             },
           },
@@ -354,7 +393,7 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('keeps custom planning functions as a fallback escape hatch', () => {
-    const planFn = vi.fn();
+    const planFn = rs.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {

@@ -25,23 +25,11 @@
       display: flex;
       align-items: center;
       gap: 6px;
-
-      .check-icon {
-        color: #28a745;
-        font-weight: bold;
-        font-size: 12px;
-      }
-
-      .header-text {
-        color: #24292f;
-        font-size: 13px;
-        font-weight: 400;
-      }
     }
 
     .arrow-icon {
       color: #656d76;
-      font-size: 10px;
+      font-size: 12px;
       transition: transform 0.2s ease;
       margin-left: 8px;
     }
@@ -165,10 +153,6 @@
 
         &.selected {
           background: #e3f2fd;
-
-          .option-check {
-            color: #00c851;
-          }
         }
 
         &.disabled {
@@ -178,14 +162,6 @@
           &:hover {
             background: transparent;
           }
-        }
-
-        .option-check {
-          color: #00c851;
-          font-weight: bold;
-          font-size: 12px;
-          width: 16px;
-          flex-shrink: 0;
         }
 
         .option-content {
@@ -217,16 +193,6 @@
       &:hover {
         background: rgba(255, 255, 255, 0.12);
         border-color: rgba(255, 255, 255, 0.18);
-      }
-
-      .header-content {
-        .check-icon {
-          color: #52c41a;
-        }
-
-        .header-text {
-          color: #f8fafd;
-        }
       }
 
       .arrow-icon {
@@ -280,20 +246,12 @@
 
           &.selected {
             background: rgba(24, 144, 255, 0.2);
-
-            .option-check {
-              color: #52c41a;
-            }
           }
 
           &.disabled {
             &:hover {
               background: transparent;
             }
-          }
-
-          .option-check {
-            color: #52c41a;
           }
 
           .option-content {

@@ -1,18 +1,14 @@
-import type { TUserPrompt } from '@/common';
 import type { PlanningAction } from '@/types';
 import type {
   LocateResultCodec,
   LocateResultCoordinates,
   ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
+import type { PreparedUserPrompt } from '../shared/multimodal-prompt';
 import type { PlanOptions } from '../workflows/planning/types';
 
 export interface CustomPlanningInput {
-  // Original prompt from aiAct. Multimodal images are extracted before planning
-  // and passed through PlanOptions.referenceImageMessages.
-  userInstruction: TUserPrompt;
-  // Text-only instruction used for prompt construction.
-  userInstructionText: string;
+  userInstruction: PreparedUserPrompt;
   options: PlanOptions;
   coordinateSystem?: ResolvedLocateResultCoordinates;
 }

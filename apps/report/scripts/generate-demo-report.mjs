@@ -1,7 +1,12 @@
 /**
  * Run real Midscene YAML tests to generate reports, then create demo files:
- * - demo.html: single report (passed case)
- * - demo-merged.html: merged report with both passed and failed cases
+ * - demo.html: canonical Test report produced by the legacy YAML command
+ * - demo-agent.html: Agent report fixture extracted from the same run
+ * - demo-merged.html: merged Agent report with both passed and failed cases
+ * - demo-midscene-test.html: Test Report hierarchy, retries, and embedded recording
+ * - demo-midscene-test-lifecycle.html: setup, blocked Case, and cleanup failures
+ * - demo-midscene-test-overview.html: Project / File / Case hierarchy and scope errors
+ * - demo-midscene-test-late-failure.html: automatic reveal of a late failed Step
  *
  * Usage: node scripts/generate-demo-report.mjs
  */
@@ -9,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { generateTestReportFixtures } from '../e2e/fixtures/test-report.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, '..');
@@ -103,6 +109,18 @@ function copyReportWithUniqueGroupId(sourcePath, targetPath, suffix) {
   fs.writeFileSync(targetPath, targetHtml);
 }
 
+function copyAsAgentReport(sourcePath, targetPath) {
+  const sourceHtml = fs.readFileSync(sourcePath, 'utf8');
+  const targetHtml = sourceHtml.replace(
+    /<script\b[^>]*\btype=["']midscene_test_run_dump["'][^>]*>[\s\S]*?<\/script>/g,
+    '',
+  );
+  if (targetHtml === sourceHtml) {
+    throw new Error(`No Test report dump found in ${sourcePath}.`);
+  }
+  fs.writeFileSync(targetPath, targetHtml);
+}
+
 // --- Generate reports ---
 
 console.log('=== Generating passed report ===');
@@ -119,11 +137,18 @@ const demoPath = path.join(distDir, 'demo.html');
 fs.copyFileSync(passedReport, demoPath);
 console.log(`Copied ${path.basename(passedReport)} -> dist/demo.html`);
 
+// Keep standalone Agent Report behavior covered without changing the canonical
+// legacy YAML report. Removing only the Test hierarchy lets the Report App use
+// the embedded Agent dumps through its existing fallback route.
+const demoAgentPath = path.join(distDir, 'demo-agent.html');
+copyAsAgentReport(passedReport, demoAgentPath);
+console.log('Created Agent report fixture -> dist/demo-agent.html');
+
 // A merged report identifies cases by each source report's group ID. Create a
 // second source with unique group IDs so the same model run can represent the
 // failed fixture without being collapsed into the passed case.
 const failedReportSource = path.join(distDir, '.failed-report-source.html');
-copyReportWithUniqueGroupId(passedReport, failedReportSource, 'failed');
+copyReportWithUniqueGroupId(demoAgentPath, failedReportSource, 'failed');
 
 // --- Merge reports into demo-merged.html ---
 // Import ReportMergingTool dynamically (it's CJS from @midscene/core dist)
@@ -135,11 +160,11 @@ const corePath = path.join(
   'lib',
   'report.js',
 );
-const { ReportMergingTool } = await import(corePath);
+const { ReportMergingTool, TestRunReportAssembler } = await import(corePath);
 
 const merger = new ReportMergingTool();
 merger.append({
-  reportFilePath: passedReport,
+  reportFilePath: demoAgentPath,
   reportAttributes: {
     testDuration: 30000,
     testStatus: 'passed',
@@ -170,3 +195,11 @@ if (!mergedPath) {
 const demoMergedPath = path.join(distDir, 'demo-merged.html');
 fs.copyFileSync(mergedPath, demoMergedPath);
 console.log('Copied merged report -> dist/demo-merged.html');
+
+for (const file of generateTestReportFixtures(
+  TestRunReportAssembler,
+  demoAgentPath,
+  distDir,
+)) {
+  console.log(`Created report E2E fixture -> ${file}`);
+}

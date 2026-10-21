@@ -1,4 +1,5 @@
 export {
+  encodedImageInfoOfBuffer,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   isValidJPEGImageBuffer,
@@ -16,6 +17,7 @@ export {
   zoomForGPT4o,
   saveBase64Image,
   paddingToMatchBlockByBase64,
+  padBase64ImageToMinimumSize,
   cropByRect,
   scaleImage,
   localImg2Base64,

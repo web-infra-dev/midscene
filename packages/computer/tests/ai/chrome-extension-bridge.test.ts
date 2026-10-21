@@ -163,7 +163,7 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
     'open side panel and switch to Bridge Mode',
     { timeout: 20 * 60 * 1000, retry: 0 },
     async () => {
-      await openExtensionSidePanel(agent);
+      await openExtensionSidePanel(agent, extId);
 
       await agent.aiAssert(
         'The browser shows a side panel on the right side containing Midscene or Playground UI',

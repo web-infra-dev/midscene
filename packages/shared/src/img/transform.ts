@@ -949,3 +949,70 @@ export async function scaleImage(
     imageBase64: base64,
   };
 }
+
+/** Pad the right and bottom edges with white without changing content coordinates. */
+export async function padBase64ImageToMinimumSize(
+  imageBase64: string,
+  minimum: number,
+) {
+  assert(
+    Number.isInteger(minimum) && minimum > 0,
+    'minimum must be a positive integer',
+  );
+  const { body } = parseBase64(imageBase64);
+  const buffer = Buffer.from(body, 'base64');
+  const size = encodedImageInfoOfBuffer(buffer);
+  const width = Math.max(minimum, size.width);
+  const height = Math.max(minimum, size.height);
+  if (width === size.width && height === size.height) {
+    return { imageBase64, width, height };
+  }
+  if (ifInNode) {
+    const Sharp = await getSharp();
+    const padded = await Sharp(buffer)
+      .extend({
+        right: width - size.width,
+        bottom: height - size.height,
+        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+    return {
+      imageBase64: createImgBase64ByFormat('jpeg', padded.toString('base64')),
+      width,
+      height,
+    };
+  }
+  const { padding_right, padding_bottom, Rgba } = await getPhoton();
+  const original = await photonFromBase64(imageBase64);
+  const right =
+    width > size.width
+      ? padding_right(
+          original,
+          width - size.width,
+          new Rgba(255, 255, 255, 255),
+        )
+      : original;
+  try {
+    const bottom =
+      height > size.height
+        ? padding_bottom(
+            right,
+            height - size.height,
+            new Rgba(255, 255, 255, 255),
+          )
+        : right;
+    try {
+      return { imageBase64: await photonToBase64(bottom), width, height };
+    } finally {
+      if (bottom !== right) {
+        bottom.free();
+      }
+    }
+  } finally {
+    if (right !== original) {
+      right.free();
+    }
+    original.free();
+  }
+}

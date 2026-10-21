@@ -3,13 +3,20 @@ import { AiLocateSection } from '@/ai-model/workflows/grounding';
 import { getTmpFile } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
-import { expect, test } from 'vitest';
+import { expect, test } from '@rstest/core';
 import { getContextFromFixture } from '../evaluation';
 
-const modelConfig = globalModelConfigManager.getModelConfig('default');
-const modelRuntime = getModelRuntime(modelConfig);
+const modelConfig = () => globalModelConfigManager.getModelConfig('default');
+const modelRuntime = () => getModelRuntime(modelConfig());
+const hasModelFamily = (() => {
+  try {
+    return Boolean(modelConfig().modelFamily);
+  } catch {
+    return false;
+  }
+})();
 
-test.skipIf(!modelConfig.modelFamily)(
+test.skipIf(!hasModelFamily)(
   'locate section',
   {
     timeout: 120 * 1000,
@@ -19,7 +26,7 @@ test.skipIf(!modelConfig.modelFamily)(
     const { searchAreaConfig } = await AiLocateSection({
       context,
       sectionDescription: 'the version info on the top right corner',
-      modelRuntime,
+      modelRuntime: modelRuntime(),
     });
     expect(searchAreaConfig?.sourceRect).toBeDefined();
     expect(searchAreaConfig?.image.imageBase64).toBeDefined();

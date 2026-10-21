@@ -13,6 +13,9 @@ const deepSeekRefBoxPattern =
 const deepSeekPointPattern =
   /^\s*<(?:｜｜|\|)point(?:｜｜|\|)>\s*([\s\S]*?)\s*<(?:｜｜|\|)\/point(?:｜｜|\|)>\s*$/;
 
+const deepSeekSearchAreaSystemPromptIntroduction = `## Role:
+You are a GUI grounding agent.`;
+
 const deepSeekElementSystemPromptIntroduction = `## Role:
 You are a GUI click grounding agent.
 
@@ -121,7 +124,7 @@ export const deepSeekElementLocateProtocol: StandardLocateProtocol = {
 };
 
 export const deepSeekSearchAreaProtocol: StandardLocateProtocol = {
-  systemPromptIntroduction: '',
+  systemPromptIntroduction: deepSeekSearchAreaSystemPromptIntroduction,
   buildResponseInstructions: buildDeepSeekSearchAreaResponseInstructions,
   buildUserPrompt: (sectionDescription) =>
     `Locate the target and the reference elements needed to distinguish it: ${sectionDescription}`,

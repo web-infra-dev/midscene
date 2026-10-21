@@ -42,11 +42,14 @@ export const buildPlanningActionSpaceDescription = ({
       locatePromptSpec,
     );
   const actionDescriptions = actionSpace.map((action) => {
-    const actionOutputExample = buildActionOutputExample(action, {
-      locatePromptSpec,
-      buildActionOutput:
-        planningProtocol.actionOutputProtocol.buildActionOutput,
-    });
+    const actionOutputExample = planningProtocol.actionSpaceProtocol
+      .includeActionOutputExample
+      ? buildActionOutputExample(action, {
+          locatePromptSpec,
+          buildActionOutput:
+            planningProtocol.actionOutputProtocol.buildActionOutput,
+        })
+      : undefined;
     return planningProtocol.actionSpaceProtocol.buildActionDescription({
       action,
       locateFieldDescription,

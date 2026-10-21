@@ -1,8 +1,9 @@
-import type { AIUsageInfo, PixelBbox, Rect, UIContext } from '@/types';
+import type { RawAssistantOutput } from '@/types';
+import type { AIUsageInfo, Rect, UIContext } from '@/types';
 import type { LocateResultElement } from '@midscene/shared/types';
-import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import type { TUserPrompt } from '../../../common';
 import type { ModelRuntime } from '../../models';
+import type { PixelLocateResult } from '../../shared/model-locate-result';
 
 /** Maps coordinates from a prepared search-area image back to the screenshot. */
 export interface SearchAreaImageMapping {
@@ -30,14 +31,13 @@ export interface LocateOptions {
   abortSignal?: AbortSignal;
 }
 
-export interface LocateRequestContext {
-  elementDescriptionText: string;
+export interface LocateRequest {
+  targetElementDescription: TUserPrompt;
   locateImage: {
     imageBase64: string;
     width: number;
     height: number;
   };
-  referenceImageMessages?: ChatCompletionUserMessageParam[];
   options: LocateOptions;
 }
 
@@ -46,24 +46,22 @@ export interface LocateResult {
     element?: LocateResultElement;
     errors?: string[];
   };
-  rect?: Rect;
   rawResponse: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
   reasoning_content?: string;
 }
 
 export interface LocateModelResponse {
-  locatedPixelBbox?: PixelBbox;
+  /** Target center and optional original bbox in locate-image pixels, before crop mapping. */
+  locatedPixelResult?: PixelLocateResult;
   rawResponse: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
   reasoningContent?: string;
   errors?: string[];
 }
 
 export type LocateFn = (
-  elementDescription: TUserPrompt,
-  options: LocateOptions,
-  locateRequest: LocateRequestContext,
+  locateRequest: LocateRequest,
 ) => Promise<LocateModelResponse>;

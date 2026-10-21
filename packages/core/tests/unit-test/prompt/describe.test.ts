@@ -1,9 +1,9 @@
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 describe('elementDescriberInstruction', () => {
-  vi.mock('@midscene/shared/env', () => ({
-    getPreferredLanguage: vi.fn().mockReturnValue('English'),
+  rs.mock('@midscene/shared/env', () => ({
+    getPreferredLanguage: rs.fn().mockReturnValue('English'),
   }));
 
   it('should return the correct instruction', () => {

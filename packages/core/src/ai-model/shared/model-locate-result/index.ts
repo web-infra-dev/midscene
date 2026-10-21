@@ -15,8 +15,10 @@ export {
   unwrapCoordinateListLikeInput,
 } from './parse';
 export type {
+  CoordinateRounding,
   LocateResultBbox,
   PixelBbox,
+  PixelLocateResult,
   RawLocateValue,
   LocateResultCodec,
   LocateResultFormatDefinition,

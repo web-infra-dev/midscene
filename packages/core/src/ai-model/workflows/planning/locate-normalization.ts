@@ -3,6 +3,11 @@ import type { DeviceAction } from '@/device';
 import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { ParsedPlanningLocateParameter } from '../../model-adapter/planning-protocol';
+import {
+  locateResultKeys,
+  readLocateResultField,
+} from '../../shared/model-locate-result/result-field';
 import type {
   LocateResultCodec,
   LocateResultContext,
@@ -14,16 +19,9 @@ export function normalizePlanningActionLocateFields(
   actions: PlanningAction[],
   {
     actionSpace,
-    includeLocateInPlanning,
-    locateResultCodec,
-    locateResultContext,
-    acceptBbox2dAlias = false,
-  }: {
+    ...options
+  }: PlanningLocateNormalizationOptions & {
     actionSpace: DeviceAction[];
-    includeLocateInPlanning: boolean;
-    locateResultCodec?: LocateResultCodec;
-    locateResultContext: LocateResultContext;
-    acceptBbox2dAlias?: boolean;
   },
 ): void {
   actions.forEach((action) => {
@@ -43,45 +41,61 @@ export function normalizePlanningActionLocateFields(
     debug('locateFields', locateFields);
 
     locateFields.forEach((field) => {
-      const locateResult = action.param?.[field];
-      if (!locateResult) {
+      const locateParameter = action.param?.[field];
+      if (!locateParameter) {
         return;
       }
 
-      if (!includeLocateInPlanning) {
-        if (typeof locateResult === 'object') {
-          // In prompt-only planning mode, ignore any accidental coordinates from the model.
-          action.param[field] = { prompt: locateResult.prompt };
-        }
-        return;
-      }
-
-      assert(
-        locateResultCodec,
-        'planning locate normalization requires a locate result codec',
+      action.param[field] = normalizePlanningLocateParameter(
+        locateParameter,
+        options,
       );
-      const rawLocateValue = (() => {
-        if (typeof locateResult !== 'object' || locateResult === null) {
-          return locateResult;
-        }
-
-        const locateResultRecord = locateResult as Record<string, unknown>;
-        const resultKey = locateResultCodec.promptSpec.resultKey;
-        if (locateResultRecord[resultKey] !== undefined) {
-          return locateResultRecord[resultKey];
-        }
-
-        return acceptBbox2dAlias && resultKey === 'bbox'
-          ? locateResultRecord.bbox_2d
-          : undefined;
-      })();
-      action.param[field] = {
-        ...locateResult,
-        locatedPixelBbox: locateResultCodec.toPixelBbox(
-          rawLocateValue,
-          locateResultContext,
-        ),
-      };
     });
   });
+}
+
+export type PlanningLocateNormalizationOptions = {
+  includeLocateInPlanning: boolean;
+  locateResultCodec?: LocateResultCodec;
+  locateResultContext: LocateResultContext;
+};
+
+export function normalizePlanningLocateParameter(
+  locateParameter: ParsedPlanningLocateParameter,
+  {
+    includeLocateInPlanning,
+    locateResultCodec,
+    locateResultContext,
+  }: PlanningLocateNormalizationOptions,
+): Record<string, unknown> {
+  if (!includeLocateInPlanning) {
+    // In prompt-only planning mode, ignore any accidental coordinates from the model.
+    return { prompt: locateParameter.prompt };
+  }
+
+  assert(
+    locateResultCodec,
+    'planning locate normalization requires a locate result codec',
+  );
+
+  const { promptSpec } = locateResultCodec;
+  const rawLocateValue = readLocateResultField(locateParameter, promptSpec);
+
+  // Remove primary and alias fields after converting the raw coordinates.
+  const rawCoordinateKeys = new Set(locateResultKeys(promptSpec));
+
+  const locateParamWithoutRawCoordinates = Object.fromEntries(
+    Object.entries(locateParameter).filter(
+      ([key]) => !rawCoordinateKeys.has(key),
+    ),
+  );
+
+  const result = locateResultCodec.toPixelResult(
+    rawLocateValue,
+    locateResultContext,
+  );
+  return {
+    ...locateParamWithoutRawCoordinates,
+    locatedPixelResult: result,
+  };
 }

@@ -1,8 +1,8 @@
-target:
-  serve: ./dist
-  url: demo.html?player-only=1&play-control=1&auto-play=1
-tasks:
-  - name: player-only mode shows only the replay player
-    flow:
-      - sleep: 5000
-      - aiAssert: The page shows only a video/replay player filling the view, with a playback progress bar and a time display at the bottom; there is no Midscene header, left task sidebar, or "Record" timeline section.
+beforeAll:
+  - report.open:
+      path: demo-agent.html?player-only=1&play-control=1&auto-play=1
+
+cases:
+  - name: player-only mode opens the replay without report navigation
+    steps:
+      - aiAssert: A replay player with playback controls is visible. The report header and task navigation are hidden.

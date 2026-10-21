@@ -1,21 +1,18 @@
 import type { DeviceAction } from '@/device';
+import type { RawAssistantOutput } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { z } from 'zod';
-import { type TUserPrompt, getMidsceneLocationSchema } from '../../../common';
+import { getMidsceneLocationSchema } from '../../../common';
 import { ScreenshotItem } from '../../../screenshot-item';
 import type { ResolvedCustomPlanningDefinition } from '../../model-adapter/custom-planning-types';
 import type { PlanningTapLocatorDefinition } from '../../model-adapter/types';
 import { AIResponseParseError } from '../../service-caller/index';
+import { prepareUserPrompt } from '../../shared/multimodal-prompt';
 import { ConversationHistory } from '../planning/conversation-history';
 import { runCustomPlanning } from '../planning/custom-planning';
 import type { PlanOptions } from '../planning/types';
-import type {
-  LocateFn,
-  LocateModelResponse,
-  LocateOptions,
-  LocateRequestContext,
-} from './types';
+import type { LocateFn, LocateModelResponse, LocateRequest } from './types';
 
 const debugGrounding = getDebug('ai:grounding');
 
@@ -31,7 +28,7 @@ const planningActionLocatorActionSpace: DeviceAction[] = [
 ];
 
 async function buildPlanningTapLocatorPlanOptions(
-  locateRequest: LocateRequestContext,
+  locateRequest: LocateRequest,
 ): Promise<PlanOptions> {
   const { options, locateImage } = locateRequest;
   const { context } = options;
@@ -53,7 +50,6 @@ async function buildPlanningTapLocatorPlanOptions(
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
     effort: 'balance',
-    referenceImageMessages: locateRequest.referenceImageMessages,
   };
 }
 
@@ -70,47 +66,47 @@ export function resolvePlanningTapLocator<TParsed>(
     },
   };
 
-  return async (
-    elementDescription: TUserPrompt,
-    options: LocateOptions,
-    locateRequest: LocateRequestContext,
-  ): Promise<LocateModelResponse> => {
-    assert(elementDescription, 'cannot find the target element description');
+  return async (locateRequest: LocateRequest): Promise<LocateModelResponse> => {
+    const { targetElementDescription } = locateRequest;
+    assert(
+      targetElementDescription,
+      'cannot find the target element description',
+    );
 
     let errors: string[] = [];
     let reasoningContent = '';
     let rawResponse = '';
-    let rawChoiceMessage: unknown;
+    let rawAssistantOutput: RawAssistantOutput | undefined;
     let usage: LocateModelResponse['usage'];
 
     try {
       const locatePlanOptions =
         await buildPlanningTapLocatorPlanOptions(locateRequest);
       const planningResponse = await runCustomPlanning(
-        elementDescription,
+        await prepareUserPrompt(targetElementDescription),
         locatePlanOptions,
         locatorPlanner,
       );
 
       rawResponse = planningResponse.rawResponse ?? '';
-      rawChoiceMessage = planningResponse.rawChoiceMessage;
+      rawAssistantOutput = planningResponse.rawAssistantOutput;
       usage = planningResponse.usage;
       reasoningContent = planningResponse.log;
 
       debugGrounding('planning-tap-locator rawResponse:', rawResponse);
 
-      const locatedPixelBbox = definition.getLocatedPixelBbox(
+      const locatedPixelResult = definition.getLocatedPixelResult(
         planningResponse.actions ?? [],
       );
 
-      if (!locatedPixelBbox) {
-        throw new Error('No locatedPixelBbox found in planner response');
+      if (!locatedPixelResult) {
+        throw new Error('No locatedPixelResult found in planner response');
       }
 
       return {
-        locatedPixelBbox,
+        locatedPixelResult,
         rawResponse,
-        rawChoiceMessage,
+        rawAssistantOutput,
         usage,
         reasoningContent,
       };
@@ -119,7 +115,7 @@ export function resolvePlanningTapLocator<TParsed>(
         error instanceof Error ? error.message : String(error);
       if (error instanceof AIResponseParseError) {
         rawResponse = error.rawResponse;
-        rawChoiceMessage = error.rawChoiceMessage;
+        rawAssistantOutput = error.rawAssistantOutput;
         usage = error.usage;
       }
       errors = [
@@ -130,7 +126,7 @@ export function resolvePlanningTapLocator<TParsed>(
 
     return {
       rawResponse,
-      rawChoiceMessage,
+      rawAssistantOutput,
       usage,
       reasoningContent,
       errors,

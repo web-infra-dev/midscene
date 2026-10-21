@@ -1,6 +1,7 @@
 {
   "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
+    "allowJs": false,
     "sourceMap": true,
     "paths": {
       "@/*": ["./src/*"]

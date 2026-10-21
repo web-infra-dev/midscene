@@ -1,0 +1,300 @@
+import { getDebug } from '@midscene/shared/logger';
+import { assert, uuid } from '@midscene/shared/utils';
+import type { ModelRuntime } from '../models';
+import { callCodex, prepareCodexCall } from './codex/call-codex';
+import { isCodexAppServerProvider } from './codex/codex-app-server';
+import {
+  isModelCallRecordingEnabled,
+  recordModelCallEvent,
+} from './model-call-recorder';
+import { type PreparedOpenAIInput, callOpenAI } from './openai/call-openai';
+import { prepareChatCompletion } from './openai/chat-completion/chat-completion';
+import { prepareResponses } from './openai/responses/responses';
+import {
+  buildRequestAbortSignal,
+  resolveEffectiveTimeoutMs,
+  runWithAbortSignal,
+  waitForRetry,
+} from './request-timeout';
+import { callSystemOne, prepareSystemOne } from './system-one';
+import type { ModelCallMessages } from './types';
+import type {
+  AICallResult,
+  CallAIOptions,
+  ModelCallContext,
+  ModelCallResult,
+} from './types';
+import {
+  appendAIRequestFailureSummary,
+  buildUsageInfo,
+  nextInternalCallId,
+  normalizeRetryCount,
+  toError,
+} from './utils';
+
+const DEFAULT_MODEL_PROTOCOL = 'openai-chat';
+
+export async function callAI(
+  messages: ModelCallMessages,
+  modelRuntime: ModelRuntime,
+  options?: CallAIOptions,
+): Promise<AICallResult> {
+  options?.abortSignal?.throwIfAborted();
+  const isStreaming = options?.stream === true;
+  if (isStreaming) {
+    // Explicit streaming is currently used only by recorder code generation.
+    // Streaming can also be aggregated without onChunk, but then the caller
+    // cannot consume incremental output, which is the purpose of this option.
+    // Environment-enabled streaming supports that aggregation-only use case.
+    // Once onChunk delivers a chunk, later errors are not retried to avoid
+    // delivering duplicate content. Errors before the first chunk can retry.
+    assert(
+      typeof options?.onChunk === 'function',
+      'onChunk is required when stream: true is explicitly specified',
+    );
+  }
+
+  // Low-level callers without a TaskRunner still need a stable ID for the
+  // lifetime of this model call (including its network retries).
+  const executionId = modelRuntime.executionId ?? `unscoped-${uuid()}`;
+
+  // Stable internal ID for this call, used by the agent to deduplicate usage
+  // across the onUsage callback and the task-dump-based collectUsageMetrics()
+  // path when the provider does not return a request_id.
+  const internalCallId = nextInternalCallId();
+
+  const { config: modelConfig } = modelRuntime;
+
+  const prepare = async (): Promise<PreparedModelInput> => {
+    if (options?.systemOneRequest) {
+      assert(
+        modelConfig.modelFamily === 'jev',
+        'System One requests require the Jev model family',
+      );
+      return {
+        protocol: 'system-one',
+        input: await prepareSystemOne(modelConfig, options.systemOneRequest),
+      };
+    }
+    const input = { messages, modelRuntime, options };
+    if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
+      return { protocol: 'codex', input: prepareCodexCall(input) };
+    }
+    const protocol = modelConfig.protocol ?? DEFAULT_MODEL_PROTOCOL;
+
+    assert(
+      modelRuntime.adapter.supportedProtocols.includes(protocol),
+      `Model adapter "${modelConfig.modelFamily ?? 'default'}" does not support protocol "${protocol}"`,
+    );
+    if (protocol === 'openai-responses') {
+      return { protocol: 'responses', input: await prepareResponses(input) };
+    }
+    return {
+      protocol: 'chat-completion',
+      input: await prepareChatCompletion(input),
+    };
+  };
+
+  const prepared = options?.abortSignal
+    ? await runWithAbortSignal(options.abortSignal, prepare)
+    : await prepare();
+
+  const result = await callModelWithRetry({
+    messages,
+    modelRuntime,
+    options,
+    executionId,
+    internalCallId,
+    prepared,
+  });
+
+  const {
+    rawUsage,
+    timeCost,
+    totalTimeCost,
+    retryCount,
+    requestId,
+    responseModelName,
+    ...response
+  } = result;
+
+  const rawUsageInfo = buildUsageInfo({
+    apiProtocol: prepared.protocol,
+    stream: response.isStreamed,
+    usageData: rawUsage,
+    timeCost,
+    totalTimeCost,
+    retryCount,
+    requestId,
+    responseModelName,
+    modelName: modelConfig.modelName,
+    modelDescription: modelConfig.modelDescription,
+    slot: modelConfig.slot,
+    internalCallId,
+  });
+
+  const usage = rawUsageInfo
+    ? { ...rawUsageInfo, modelRouting: modelRuntime.modelRouting }
+    : undefined;
+
+  const debugProfileStats = getDebug('ai:profile:stats');
+  const debugProfileDetail = getDebug('ai:profile:detail');
+  debugProfileStats(
+    `model, ${modelConfig.modelName}, mode, ${modelConfig.modelFamily || 'default'}, streaming, ${response.isStreamed}, prompt-tokens, ${usage?.prompt_tokens ?? ''}, completion-tokens, ${usage?.completion_tokens ?? ''}, total-tokens, ${usage?.total_tokens ?? ''}, cached-input, ${usage?.cached_input ?? ''}, cost-ms, ${timeCost ?? ''}, requestId, ${requestId ?? ''}, slot, ${modelConfig.slot}, configured-temperature, ${modelConfig.temperature ?? ''}`,
+  );
+  debugProfileDetail(`model usage detail: ${JSON.stringify(usage)}`);
+
+  if (usage && modelRuntime.onUsage) {
+    modelRuntime.onUsage(usage);
+  }
+  return { ...response, usage };
+}
+
+type PreparedModelInput =
+  | {
+      protocol: 'system-one';
+      input: Awaited<ReturnType<typeof prepareSystemOne>>;
+    }
+  | { protocol: 'codex'; input: ReturnType<typeof prepareCodexCall> }
+  | PreparedOpenAIInput;
+
+type ModelCallInput = {
+  messages: ModelCallMessages;
+  modelRuntime: ModelRuntime;
+  options?: CallAIOptions;
+  executionId: string;
+  internalCallId: string;
+  prepared: PreparedModelInput;
+};
+
+/** Carries the original failure across the retry boundary without replaying output. */
+class NonRetryableModelCallError extends Error {
+  readonly cause: Error;
+
+  constructor(cause: Error) {
+    super(cause.message, { cause });
+    this.cause = cause;
+  }
+}
+
+async function callModelWithRetry(
+  input: ModelCallInput,
+): Promise<ModelCallResult & { totalTimeCost: number; retryCount: number }> {
+  const startTime = Date.now();
+  const {
+    modelRuntime: { config },
+    options,
+  } = input;
+  const maxAttempts = normalizeRetryCount(config.retryCount) + 1;
+  const retryInterval = config.retryInterval ?? 2000;
+  const attemptErrors: Array<{ attempt: number; error: unknown }> = [];
+
+  for (let attempt = 1; ; attempt++) {
+    options?.abortSignal?.throwIfAborted();
+    try {
+      const result = await callModelOnce(input, attempt);
+      return {
+        ...result,
+        totalTimeCost: Date.now() - startTime,
+        retryCount: attempt - 1,
+      };
+    } catch (error) {
+      options?.abortSignal?.throwIfAborted();
+      if (error instanceof NonRetryableModelCallError) {
+        throw error.cause;
+      }
+      const lastError = toError(error);
+      attemptErrors.push({ attempt, error: lastError });
+      if (attempt === maxAttempts) {
+        throw appendAIRequestFailureSummary(
+          lastError,
+          attemptErrors,
+          maxAttempts,
+        );
+      }
+      getDebug('ai:call', { console: true })(
+        `AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
+      );
+    }
+    await waitForRetry(retryInterval, options?.abortSignal);
+  }
+}
+
+async function callModelOnce(
+  {
+    messages,
+    modelRuntime,
+    options,
+    executionId,
+    internalCallId,
+    prepared,
+  }: ModelCallInput,
+  attempt: number,
+): Promise<ModelCallResult> {
+  const { config: modelConfig } = modelRuntime;
+  const recordingEnabled = isModelCallRecordingEnabled();
+  const recordEvent =
+    recordingEnabled || modelRuntime.onRequest
+      ? (event: Record<string, unknown>) => {
+          if (event.type === 'request') {
+            const request = event.request as { url?: string } | undefined;
+            modelRuntime.onRequest?.(request?.url);
+          }
+          if (!recordingEnabled) return;
+          void recordModelCallEvent({
+            executionId,
+            callId: internalCallId,
+            semanticRetryAttempt: options?.semanticRetryAttempt,
+            slot: modelConfig.slot,
+            intent: modelConfig.intent,
+            modelFamily: modelConfig.modelFamily,
+            modelRouting: modelRuntime.modelRouting,
+            ...event,
+            attempt,
+          });
+        }
+      : undefined;
+  const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig.timeout);
+  const { signal: requestSignal, cleanup } = buildRequestAbortSignal(
+    effectiveTimeoutMs,
+    options?.abortSignal,
+  );
+  let deliveredChunk = false;
+  const onChunk = options?.onChunk;
+  const context: ModelCallContext = {
+    messages,
+    modelRuntime,
+    executionId,
+    recordEvent,
+    requestSignal,
+    effectiveTimeoutMs,
+    options: onChunk
+      ? {
+          ...options,
+          onChunk: (chunk) => {
+            requestSignal.throwIfAborted();
+            deliveredChunk = true;
+            onChunk(chunk);
+          },
+        }
+      : options,
+  };
+  try {
+    return await runWithAbortSignal(requestSignal, () =>
+      prepared.protocol === 'system-one'
+        ? callSystemOne(context, prepared.input)
+        : prepared.protocol === 'codex'
+          ? callCodex(context, prepared.input)
+          : callOpenAI(context, prepared),
+    );
+  } catch (error) {
+    options?.abortSignal?.throwIfAborted();
+    const lastError = toError(error);
+    if (deliveredChunk) {
+      throw new NonRetryableModelCallError(lastError);
+    }
+    throw lastError;
+  } finally {
+    cleanup();
+  }
+}

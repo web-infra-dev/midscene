@@ -73,7 +73,7 @@ Playground is the fastest way to validate the connection and try core capabiliti
 npx --yes @midscene/harmony-playground
 ```
 
-2. Click the gear button in the Playground window and paste your API Key configuration. See [Supported models and setup](../model-common-config) if you still need a model configuration.
+2. Click the gear button in the Playground window and paste your API Key configuration. See [Use a model API key](../model-api-setup) if you still need a model configuration.
 
 ## Use the JavaScript SDK
 
@@ -106,8 +106,9 @@ Promise.resolve(
     const device = new HarmonyDevice(devices[0].deviceId, {});
 
     const agent = new HarmonyAgent(device, {
-      aiActionContext:
-        'This is a HarmonyOS device. The system language is Chinese. If any popup appears, dismiss or agree to it.',
+      aiContexts: {
+        aiAct: 'This is a HarmonyOS device. The system language is Chinese. If any popup appears, dismiss or agree to it.',
+      },
     });
     await device.connect();
 
@@ -129,6 +130,8 @@ Promise.resolve(
   })(),
 );
 ```
+
+For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 ### Run the script
 

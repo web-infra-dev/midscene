@@ -10,6 +10,11 @@ on:
         description: 'Release Branch(confirm release branch)'
         required: true
         default: 'main'
+      notify_stable_release:
+        description: 'Send IM notifications when this is a stable release'
+        required: true
+        type: boolean
+        default: true
 
 # Add permissions for creating releases.
 # `id-token: write` is required for npm Trusted Publishers (OIDC) and for
@@ -46,6 +51,7 @@ jobs:
     - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
       with:
         ref: ${{ github.event.inputs.branch }}
+        fetch-depth: 0
     - name: Pushing to the protected branch 'protected'
       uses: zhoushaw/push-protected@f36ef70ae5f2e6bbd4f7b04da4f1fa3c11bc5a01 # v2
       with:
@@ -118,6 +124,7 @@ jobs:
       # Studio artifact packaging jobs.
       env:
         RELEASE_VERSION_INPUT: ${{ github.event.inputs.version }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         if [[ "$RELEASE_VERSION_INPUT" == pre* ]]; then
           export NPM_CONFIG_PROVENANCE=false
@@ -156,38 +163,9 @@ jobs:
         name: chrome_extension
         path: ${{ github.workspace }}/apps/chrome-extension/extension_output
 
-    - name: Generate ordered Release notes
+    - name: Verify archived Release notes
       if: ${{ steps.get_version.outputs.is_prerelease != 'true' }}
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        RELEASE_TARGET: ${{ github.event.inputs.branch }}
-        RELEASE_VERSION: ${{ steps.get_version.outputs.version }}
       run: |
-        REQUEST_BODY="$(
-          jq -cn \
-            --arg tag_name "$RELEASE_VERSION" \
-            --arg target_commitish "$RELEASE_TARGET" \
-            '{tag_name: $tag_name, target_commitish: $target_commitish}'
-        )"
-        curl \
-          --fail-with-body \
-          --silent \
-          --show-error \
-          --request POST \
-          --header 'Accept: application/vnd.github+json' \
-          --header "Authorization: Bearer ${GH_TOKEN}" \
-          --header 'Content-Type: application/json' \
-          --header 'X-GitHub-Api-Version: 2022-11-28' \
-          --data "$REQUEST_BODY" \
-          "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-          | jq -er '.body | strings | select(test("\\S"))' \
-          > "$RUNNER_TEMP/generated-release-notes.md"
-        node ./scripts/format-release-notes.mjs \
-          < "$RUNNER_TEMP/generated-release-notes.md" \
-          > "$RUNNER_TEMP/release-notes.md"
-        node ./scripts/format-release-notes.mjs --notification-json \
-          < "$RUNNER_TEMP/generated-release-notes.md" \
-          > "$RUNNER_TEMP/release-notification.json"
         test -s "$RUNNER_TEMP/release-notes.md"
         jq -e '
           .schemaVersion == 1
@@ -475,7 +453,7 @@ jobs:
     needs:
     - release
     - package_studio
-    if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    if: ${{ inputs.notify_stable_release && needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: read
@@ -659,7 +637,7 @@ jobs:
     needs:
     - release
     - package_studio
-    if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    if: ${{ inputs.notify_stable_release && needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: read

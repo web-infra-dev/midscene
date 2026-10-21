@@ -1,5 +1,5 @@
 import { getZodDefaultValue } from '@/ai-model/shared/action-schema';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { z } from 'zod';
 
 describe('getZodDefaultValue', () => {

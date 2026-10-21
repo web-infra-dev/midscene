@@ -1,17 +1,18 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import OpenAI from 'openai' with { rstest: 'importActual' };
 
-const mockCreate = vi.fn();
+const mockCreate = rs.fn();
 
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    chat: {
-      completions: {
-        create: mockCreate,
-      },
-    },
-  })),
-}));
+rs.mock('openai', () => {
+  return {
+    default: rs.fn().mockImplementation((options) => {
+      const client = new OpenAI(options);
+      client.chat.completions.create = mockCreate;
+      return client;
+    }),
+  };
+});
 
 const baseConfig = (overrides: Partial<IModelConfig> = {}): IModelConfig =>
   ({
@@ -27,7 +28,7 @@ const baseConfig = (overrides: Partial<IModelConfig> = {}): IModelConfig =>
 
 describe('service-caller request timeout', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('resolves default, custom and disabled timeout values', async () => {
@@ -35,10 +36,9 @@ describe('service-caller request timeout', () => {
       await import('@/ai-model/service-caller/request-timeout');
 
     expect(DEFAULT_AI_CALL_TIMEOUT_MS).toBe(180_000);
-    expect(resolveEffectiveTimeoutMs({})).toBe(180_000);
-    expect(resolveEffectiveTimeoutMs({ timeout: 12_345 })).toBe(12_345);
-    expect(resolveEffectiveTimeoutMs({ timeout: 0 })).toBeNull();
-    expect(resolveEffectiveTimeoutMs({ timeout: -1 })).toBeNull();
+    expect(resolveEffectiveTimeoutMs()).toBe(180_000);
+    expect(resolveEffectiveTimeoutMs(12_345)).toBe(12_345);
+    expect(resolveEffectiveTimeoutMs(0)).toBeNull();
   });
 
   it('identifies hard-timeout errors both directly and through cause chains', async () => {
@@ -164,10 +164,7 @@ describe('service-caller request timeout', () => {
         message: expect.stringMatching(/AI call hard timeout after 30ms/),
       });
       expect(isHardTimeoutError(err)).toBe(true);
-      expect((err as Error).cause).toMatchObject({
-        code: 'AI_CALL_HARD_TIMEOUT',
-        cause: { message: 'Request was aborted.' },
-      });
+      expect(err).toMatchObject({ code: 'AI_CALL_HARD_TIMEOUT' });
     }
   });
 
@@ -188,7 +185,7 @@ describe('service-caller request timeout', () => {
       callAI(
         [{ role: 'user', content: 'hello' }],
         getModelRuntime(baseConfig({ timeout: 30 })),
-        { stream: true, onChunk: vi.fn() },
+        { stream: true, onChunk: rs.fn() },
       ),
     ).rejects.toThrow(/AI call hard timeout after 30ms/);
   });
@@ -214,7 +211,7 @@ describe('service-caller request timeout', () => {
     );
 
     const OpenAI = (await import('openai')).default as unknown as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
     const lastCallOptions = OpenAI.mock.calls.at(-1)?.[0];
     expect(lastCallOptions?.timeout).toBe(180_000);
@@ -250,7 +247,7 @@ describe('service-caller request timeout', () => {
     await callAI([{ role: 'user', content: 'hello' }], modelRuntime);
 
     const OpenAI = (await import('openai')).default as unknown as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
     const defaultHeaders = OpenAI.mock.calls.at(-1)?.[0]?.defaultHeaders as
       | Record<string, string>
@@ -309,7 +306,7 @@ describe('service-caller request timeout', () => {
       /AI model request failed after 1 retry \(2\/2 attempts\)/,
     );
     await expect(promise).rejects.toThrow(/Previous AI call attempt errors/);
-    await expect(promise).rejects.toThrow(/Attempt 1: first failure/);
+    await expect(promise).rejects.toThrow(/Attempt 1: .*first failure/);
     expect(mockCreate).toHaveBeenCalledTimes(2);
   });
 
@@ -375,7 +372,7 @@ describe('service-caller request timeout', () => {
       '@/ai-model/service-caller/request-timeout'
     );
 
-    expect(resolveEffectiveTimeoutMs({ timeout: 0 })).toBeNull();
+    expect(resolveEffectiveTimeoutMs(0)).toBeNull();
 
     mockCreate.mockResolvedValue({
       choices: [{ message: { content: 'ok' } }],
@@ -389,7 +386,7 @@ describe('service-caller request timeout', () => {
     );
 
     const OpenAI = (await import('openai')).default as unknown as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
     const lastCallOptions = OpenAI.mock.calls.at(-1)?.[0];
     // When timeout is disabled we should NOT forward a timeout to the SDK.
@@ -426,3 +423,138 @@ describe('service-caller request timeout', () => {
     await expect(promise).rejects.toThrow(/user cancelled/);
   });
 });
+
+it('cancels request retry waiting without issuing another request', async () => {
+  rs.useFakeTimers();
+  try {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    mockCreate.mockReset();
+    mockCreate.mockRejectedValue(new Error('request failed'));
+    const controller = new AbortController();
+    const promise = callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig({ retryCount: 2, retryInterval: 60_000 })),
+      { abortSignal: controller.signal },
+    );
+    const assertion = expect(promise).rejects.toThrow('stop');
+    await rs.advanceTimersByTimeAsync(0);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    // Only the retry wait remains; the attempt's timeout has been cleaned up.
+    expect(rs.getTimerCount()).toBe(1);
+    controller.abort(new Error('stop'));
+    await assertion;
+    expect(rs.getTimerCount()).toBe(0);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  } finally {
+    rs.useRealTimers();
+  }
+});
+
+it('exposes a typed timeout reason directly from the abort race', async () => {
+  const { AIRequestTimeoutError, buildRequestAbortSignal, runWithAbortSignal } =
+    await import('@/ai-model/service-caller/request-timeout');
+  const { signal, cleanup } = buildRequestAbortSignal(10);
+  try {
+    const promise = runWithAbortSignal(
+      signal,
+      () => new Promise<never>(() => {}),
+    );
+    await expect(promise).rejects.toBeInstanceOf(AIRequestTimeoutError);
+    await expect(promise).rejects.toBe(signal.reason);
+    expect(signal.reason.timeoutMs).toBe(10);
+  } finally {
+    cleanup();
+  }
+});
+
+it('keeps a request failure that wins the race instead of relabelling it as timeout', async () => {
+  const { AIRequestTimeoutError, runWithAbortSignal } = await import(
+    '@/ai-model/service-caller/request-timeout'
+  );
+  const controller = new AbortController();
+  const failure = new Error('connection failed');
+  const promise = runWithAbortSignal(controller.signal, () => {
+    const rejected = Promise.reject(failure);
+    queueMicrotask(() => controller.abort(new AIRequestTimeoutError(10)));
+    return rejected;
+  });
+  await expect(promise).rejects.toBe(failure);
+  expect(controller.signal.aborted).toBe(true);
+});
+
+it('never retries external cancellation even when its reason is a timeout', async () => {
+  const { callAI } = await import('@/ai-model/service-caller');
+  const { getModelRuntime } = await import('@/ai-model/models');
+  const { AIRequestTimeoutError } = await import(
+    '@/ai-model/service-caller/request-timeout'
+  );
+  mockCreate.mockReset();
+  const controller = new AbortController();
+  const reason = new AIRequestTimeoutError(100);
+  mockCreate.mockImplementation(() => {
+    controller.abort(reason);
+    return new Promise<never>(() => {});
+  });
+  await expect(
+    callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig({ retryCount: 2, retryInterval: 0 })),
+      { abortSignal: controller.signal },
+    ),
+  ).rejects.toBe(reason);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+it.each([0, 2])(
+  'reports total duration and %i request retries while preserving successful-attempt usage',
+  async (retryCount) => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    rs.useFakeTimers();
+    try {
+      mockCreate.mockReset();
+      for (let attempt = 0; attempt < retryCount; attempt++) {
+        mockCreate.mockImplementationOnce(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return {
+            choices: [{ message: { content: '' } }],
+            usage: {
+              prompt_tokens: 100,
+              completion_tokens: 0,
+              total_tokens: 100,
+            },
+          };
+        });
+      }
+      mockCreate.mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return {
+          choices: [{ message: { content: 'success' } }],
+          usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+        };
+      });
+      const onUsage = rs.fn();
+      const promise = callAI([{ role: 'user', content: 'hello' }], {
+        ...getModelRuntime(baseConfig({ retryCount, retryInterval: 500 })),
+        onUsage,
+      });
+      const totalTimeCost = 1000 + retryCount * 1500;
+      await rs.advanceTimersByTimeAsync(totalTimeCost);
+      const result = await promise;
+      expect(result.usage).toMatchObject({
+        time_cost: 1000,
+        total_time_cost: totalTimeCost,
+        retry_count: retryCount,
+        prompt_tokens: 1,
+        completion_tokens: 2,
+        total_tokens: 3,
+      });
+      expect(onUsage).toHaveBeenCalledTimes(1);
+      expect(onUsage).toHaveBeenCalledWith(result.usage);
+      expect(mockCreate).toHaveBeenCalledTimes(retryCount + 1);
+    } finally {
+      rs.useRealTimers();
+    }
+  },
+);

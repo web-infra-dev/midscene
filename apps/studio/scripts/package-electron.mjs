@@ -14,6 +14,10 @@ import {
   writeAppUpdateYmlIntoResources,
   writeUpdateMetadataForArtifact,
 } from './build-update-metadata.mjs';
+import {
+  assertPackagedExternalResourcesUnpacked,
+  packagedAsarOptions,
+} from './packaged-asar-resources.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,19 +65,6 @@ const packagedIgnorePatterns = [
   // Source maps duplicate what `pruneSourceMapFiles` already removed.
   /\.js\.map$/,
 ];
-const packagedAsarUnpackDirs = [
-  'node_modules/@computer-use/libnut',
-  'node_modules/@ffmpeg-installer',
-  'node_modules/@img',
-  'node_modules/@midscene/android/bin',
-  'node_modules/@midscene/computer/bin',
-  'node_modules/@midscene/computer/native',
-  'node_modules/sharp',
-].map((relativePath) => relativePath.split('/').join(path.sep));
-export const packagedAsarOptions = {
-  unpack: '**/{.**,**}/**/*.{node,dll,dylib,so,exe}',
-  unpackDir: `{${packagedAsarUnpackDirs.join(',')}}`,
-};
 const defaultMacEntitlementsPath = path.join(
   studioBuildDir,
   'entitlements.mac.plist',
@@ -1563,7 +1554,7 @@ const findPackagedAppPayloadDir = async (packagedAppPath) => {
   return null;
 };
 
-const findPackagedResourcesDir = async (packagedAppPath) => {
+const resolvePackagedResourcesDir = async (packagedAppPath) => {
   const candidates = await buildPackagedResourcesCandidates(packagedAppPath);
 
   for (const candidatePath of candidates) {
@@ -1579,7 +1570,9 @@ const findPackagedResourcesDir = async (packagedAppPath) => {
     }
   }
 
-  return null;
+  throw new Error(
+    `Unable to locate the resources directory in packaged Midscene Studio app: ${packagedAppPath}`,
+  );
 };
 
 const findPackagedNodeModulesDir = async (packagedAppPath) => {
@@ -2402,8 +2395,12 @@ export const packageStudioElectronApp = async ({
 
   const packagedAppPath = packagedAppPaths[0];
   const artifactPath = path.join(artifactDir, `${baseName}.zip`);
+  const resourcesDir = await resolvePackagedResourcesDir(packagedAppPath);
 
-  await assertPortablePackagedNodeModules(packagedAppPath);
+  await Promise.all([
+    assertPortablePackagedNodeModules(packagedAppPath),
+    assertPackagedExternalResourcesUnpacked(resourcesDir),
+  ]);
   const packagedPayloadDir = await findPackagedAppPayloadDir(packagedAppPath);
   if (packagedPayloadDir) {
     await dedupePlaygroundStatic(path.join(packagedPayloadDir, 'node_modules'));
@@ -2414,10 +2411,7 @@ export const packageStudioElectronApp = async ({
   // at runtime to learn which provider / repo / cache dir to use. Must be
   // written before signing on macOS so it ends up inside the signed
   // bundle.
-  const resourcesDir = await findPackagedResourcesDir(packagedAppPath);
-  if (resourcesDir) {
-    await writeAppUpdateYmlIntoResources(resourcesDir);
-  }
+  await writeAppUpdateYmlIntoResources(resourcesDir);
 
   let dmgArtifactPath;
   if (platform === 'darwin') {

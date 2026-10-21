@@ -1,8 +1,13 @@
 import { parseModelResponseJson } from '../shared/json';
 import { resolveChatCompletion } from './chat-completion';
+import { buildDefaultCodexAppServerParams } from './codex-app-server';
+import { resolveInsight } from './insight';
+import type { InsightAdapter } from './insight-protocol';
 import { resolveLocate } from './locate';
 import { resolveCustomPlanningDefinition, resolvePlanning } from './planning';
+import { resolveResponses } from './responses';
 import type {
+  BuildCodexAppServerParams,
   ChatCompletionAdapter,
   ImagePreprocessPolicy,
   JsonParser,
@@ -10,7 +15,12 @@ import type {
   ModelAdapter,
   ModelAdapterDefinition,
   PlanningAdapter,
+  ResolveImageDetail,
+  ResponsesAdapter,
 } from './types';
+
+const defaultImageDetail: ResolveImageDetail = ({ imageDetail }) =>
+  imageDetail ?? 'high';
 
 function resolveJsonParser(
   jsonParser: ModelAdapterDefinition['jsonParser'],
@@ -35,31 +45,39 @@ function resolveImagePreprocess(
 }
 
 export class ResolvedModelAdapter implements ModelAdapter {
+  readonly supportedTasks: ModelAdapter['supportedTasks'];
+  readonly supportedProtocols: ModelAdapter['supportedProtocols'];
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
-  readonly acceptBbox2dAlias: boolean;
+  readonly resolveImageDetail: ResolveImageDetail;
+  readonly responses: ResponsesAdapter;
+  readonly buildCodexAppServerParams: BuildCodexAppServerParams;
   readonly imagePreprocess: ImagePreprocessPolicy;
+  readonly insight: InsightAdapter;
   readonly planning: PlanningAdapter;
   readonly locate: LocateAdapter;
 
   constructor(config: ModelAdapterDefinition, modelFamily: string) {
+    this.supportedTasks = config.supportedTasks;
+    this.supportedProtocols = config.supportedProtocols ?? ['openai-chat'];
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
-    this.acceptBbox2dAlias = config.acceptBbox2dAlias ?? false;
+    this.resolveImageDetail = config.resolveImageDetail ?? defaultImageDetail;
+    this.responses = resolveResponses(config.responses);
+    this.buildCodexAppServerParams =
+      config.buildCodexAppServerParams ?? buildDefaultCodexAppServerParams;
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
+    this.insight = resolveInsight(config.insight, {
+      jsonParser: this.jsonParser,
+    });
     const customPlanner =
       config.planning?.kind === 'custom' ? config.planning.planner : undefined;
     const resolvedCustomPlanner = customPlanner
       ? resolveCustomPlanningDefinition(customPlanner)
       : undefined;
-    this.locate = resolveLocate(
-      config.locate,
-      resolvedCustomPlanner,
-      {
-        jsonParser: this.jsonParser,
-      },
-      this.acceptBbox2dAlias,
-    );
+    this.locate = resolveLocate(config.locate, resolvedCustomPlanner, {
+      jsonParser: this.jsonParser,
+    });
     this.planning = resolvePlanning(
       config.planning,
       resolvedCustomPlanner,

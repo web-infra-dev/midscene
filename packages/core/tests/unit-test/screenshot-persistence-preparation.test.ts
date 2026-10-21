@@ -1,17 +1,17 @@
 import { prepareScreenshotForPersistence } from '@/agent/screenshot-preparation';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const imageMocks = vi.hoisted(() => ({
-  convertBase64ImageToJpeg: vi.fn(),
-  imageInfoOfBase64: vi.fn(),
-  resizeBase64ImageToJpeg: vi.fn(),
+const imageMocks = rs.hoisted(() => ({
+  convertBase64ImageToJpeg: rs.fn(),
+  imageInfoOfBase64: rs.fn(),
+  resizeBase64ImageToJpeg: rs.fn(),
 }));
 
-vi.mock('@midscene/shared/img', () => imageMocks);
+rs.mock('@midscene/shared/img', () => imageMocks);
 
 describe('prepareScreenshotForPersistence', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     imageMocks.convertBase64ImageToJpeg.mockResolvedValue(
       'data:image/jpeg;base64,prepared',
     );

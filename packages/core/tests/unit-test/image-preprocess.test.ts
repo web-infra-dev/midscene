@@ -5,18 +5,18 @@ import {
   paddingToMatchBlockByBase64,
   scaleImage,
 } from '@midscene/shared/img';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/shared/img', () => ({
-  compositeElementInfoImg: vi.fn(),
-  cropByRect: vi.fn(),
-  paddingToMatchBlockByBase64: vi.fn(),
-  scaleImage: vi.fn(),
+rs.mock('@midscene/shared/img', () => ({
+  compositeElementInfoImg: rs.fn(),
+  cropByRect: rs.fn(),
+  paddingToMatchBlockByBase64: rs.fn(),
+  scaleImage: rs.fn(),
 }));
 
 describe('prepareModelImage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('returns the original image and size when no padding policy is configured', async () => {
@@ -42,7 +42,7 @@ describe('prepareModelImage', () => {
   });
 
   it('keeps contentSize as the original size after padding the model image', async () => {
-    vi.mocked(paddingToMatchBlockByBase64).mockResolvedValue({
+    rs.mocked(paddingToMatchBlockByBase64).mockResolvedValue({
       imageBase64: 'padded-image',
       width: 112,
       height: 84,
@@ -77,12 +77,12 @@ describe('prepareModelImage', () => {
 
 describe('buildSearchAreaConfig', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('crops the expanded area, scales it, and records offset/scale mapping', async () => {
     const cropCalls: unknown[] = [];
-    vi.mocked(cropByRect).mockImplementation(async (_imageBase64, rect) => {
+    rs.mocked(cropByRect).mockImplementation(async (_imageBase64, rect) => {
       cropCalls.push({ ...rect });
       return {
         imageBase64: 'cropped-image',
@@ -90,7 +90,7 @@ describe('buildSearchAreaConfig', () => {
         height: 400,
       } as any;
     });
-    vi.mocked(scaleImage).mockResolvedValue({
+    rs.mocked(scaleImage).mockResolvedValue({
       imageBase64: 'scaled-image',
       width: 800,
       height: 800,

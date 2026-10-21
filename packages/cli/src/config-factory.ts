@@ -3,59 +3,39 @@ import { basename, dirname, extname, resolve } from 'node:path';
 import { cwd } from 'node:process';
 import type {
   MidsceneYamlConfig,
-  MidsceneYamlScriptAndroidEnv,
-  MidsceneYamlScriptIOSEnv,
-  MidsceneYamlScriptWebEnv,
+  MidsceneYamlTargetConfig,
 } from '@midscene/core';
 import { interpolateEnvVars, resolveWebTarget } from '@midscene/core/yaml';
 import { load as yamlLoad } from 'js-yaml';
 import merge from 'lodash.merge';
 import type { BatchRunnerConfig } from './batch-runner';
 import { matchYamlFiles } from './cli-utils';
+import { defaultConfig, pickYamlTargetConfig } from './config-options';
 
-export const defaultConfig = {
-  concurrent: 1,
-  continueOnError: false,
-  retry: 0,
-  shareBrowserContext: false,
-  headed: false,
-  keepWindow: false,
-  dotenvOverride: false,
-  dotenvDebug: false,
-};
+export { defaultConfig } from './config-options';
 
-export interface ConfigFactoryOptions {
+export type ConfigFactoryOptions = MidsceneYamlTargetConfig & {
   concurrent?: number;
   continueOnError?: boolean;
   retry?: number;
   summary?: string;
   shareBrowserContext?: boolean;
+  reusePage?: boolean;
   headed?: boolean;
   keepWindow?: boolean;
   dotenvOverride?: boolean;
   dotenvDebug?: boolean;
-  target?: Partial<MidsceneYamlScriptWebEnv>;
-  page?: Partial<MidsceneYamlScriptWebEnv>;
-  browser?: Partial<MidsceneYamlScriptWebEnv>;
-  web?: Partial<MidsceneYamlScriptWebEnv>;
-  android?: Partial<MidsceneYamlScriptAndroidEnv>;
-  ios?: Partial<MidsceneYamlScriptIOSEnv>;
   files?: string[];
   setup?: string;
-}
+};
 
-export interface ParsedConfig {
+export type ParsedConfig = MidsceneYamlTargetConfig & {
   concurrent: number;
   continueOnError: boolean;
   retry: number;
   summary: string;
   shareBrowserContext: boolean;
-  page?: MidsceneYamlScriptWebEnv;
-  browser?: MidsceneYamlScriptWebEnv;
-  web?: MidsceneYamlScriptWebEnv;
-  android?: MidsceneYamlScriptAndroidEnv;
-  ios?: MidsceneYamlScriptIOSEnv;
-  target?: MidsceneYamlScriptWebEnv;
+  reusePage: boolean;
   files: string[];
   setup?: string;
   patterns: string[]; // Keep patterns for reference
@@ -63,7 +43,7 @@ export interface ParsedConfig {
   keepWindow: boolean;
   dotenvOverride: boolean;
   dotenvDebug: boolean;
-}
+};
 
 async function expandFilePatterns(
   patterns: string[],
@@ -150,6 +130,7 @@ export async function parseConfigYaml(
 
   // Build parsed configuration from file only
   const config: ParsedConfig = {
+    ...pickYamlTargetConfig(configYaml),
     concurrent: configYaml.concurrent ?? defaultConfig.concurrent,
     continueOnError:
       configYaml.continueOnError ?? defaultConfig.continueOnError,
@@ -157,12 +138,7 @@ export async function parseConfigYaml(
     summary: configYaml.summary ?? defaultSummary,
     shareBrowserContext:
       configYaml.shareBrowserContext ?? defaultConfig.shareBrowserContext,
-    page: configYaml.page,
-    browser: configYaml.browser,
-    web: configYaml.web,
-    target: configYaml.target,
-    android: configYaml.android,
-    ios: configYaml.ios,
+    reusePage: configYaml.reusePage ?? defaultConfig.reusePage,
     patterns: configYaml.files,
     files,
     setup,
@@ -181,22 +157,8 @@ export async function createConfig(
 ): Promise<BatchRunnerConfig> {
   const parsedConfig = await parseConfigYaml(configYamlPath);
   const globalConfig = merge(
-    {
-      page: parsedConfig.page,
-      browser: parsedConfig.browser,
-      web: parsedConfig.web,
-      android: parsedConfig.android,
-      ios: parsedConfig.ios,
-      target: parsedConfig.target,
-    },
-    {
-      page: options?.page,
-      browser: options?.browser,
-      web: options?.web,
-      android: options?.android,
-      ios: options?.ios,
-      target: options?.target,
-    },
+    pickYamlTargetConfig(parsedConfig),
+    pickYamlTargetConfig(options ?? {}),
   );
 
   // Apply command line overrides with higher priority than file configuration
@@ -222,6 +184,7 @@ export async function createConfig(
 
   const shareBrowserContext =
     options?.shareBrowserContext ?? parsedConfig.shareBrowserContext;
+  const reusePage = options?.reusePage ?? parsedConfig.reusePage;
 
   return {
     files,
@@ -231,6 +194,7 @@ export async function createConfig(
     retry: options?.retry ?? parsedConfig.retry,
     summary: options?.summary ?? parsedConfig.summary,
     shareBrowserContext,
+    reusePage,
     headed: finalHeaded,
     keepWindow: keepWindow,
     dotenvOverride: options?.dotenvOverride ?? parsedConfig.dotenvOverride,
@@ -257,6 +221,7 @@ export async function createFilesConfig(
 
   const shareBrowserContext =
     options.shareBrowserContext ?? defaultConfig.shareBrowserContext;
+  const reusePage = options.reusePage ?? defaultConfig.reusePage;
 
   return {
     files,
@@ -266,17 +231,11 @@ export async function createFilesConfig(
     retry: options.retry ?? defaultConfig.retry,
     summary: options.summary ?? defaultSummary,
     shareBrowserContext,
+    reusePage,
     headed: finalHeaded,
     keepWindow: keepWindow,
     dotenvOverride: options.dotenvOverride ?? defaultConfig.dotenvOverride,
     dotenvDebug: options.dotenvDebug ?? defaultConfig.dotenvDebug,
-    globalConfig: {
-      page: options.page as MidsceneYamlScriptWebEnv | undefined,
-      browser: options.browser as MidsceneYamlScriptWebEnv | undefined,
-      web: options.web as MidsceneYamlScriptWebEnv | undefined,
-      target: options.target as MidsceneYamlScriptWebEnv | undefined,
-      android: options.android as MidsceneYamlScriptAndroidEnv | undefined,
-      ios: options.ios as MidsceneYamlScriptIOSEnv | undefined,
-    },
+    globalConfig: pickYamlTargetConfig(options),
   };
 }

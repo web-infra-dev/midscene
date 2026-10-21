@@ -1,5 +1,5 @@
 import { parseXMLPlanningResponse } from '@/ai-model/workflows/planning';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('parseXMLPlanningResponse', () => {
   it('extracts the continuous content between the protocol boundary tags', () => {

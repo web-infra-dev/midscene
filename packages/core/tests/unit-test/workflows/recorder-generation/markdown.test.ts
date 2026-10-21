@@ -1,7 +1,8 @@
+import assert from 'node:assert/strict';
 import type { IModelConfig } from '@midscene/shared/env';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { callAIWithStringResponse } from '../../../../src/ai-model/service-caller';
 import type { ChromeRecordedEvent } from '../../../../src/ai-model/workflows/recorder-generation/common';
 import {
@@ -9,24 +10,24 @@ import {
   generateRecorderMarkdownReplay,
 } from '../../../../src/ai-model/workflows/recorder-generation/markdown';
 
-const { mockDebugMarkdownReplay } = vi.hoisted(() => ({
-  mockDebugMarkdownReplay: vi.fn(),
+import * as loggerActual from '@midscene/shared/logger' with {
+  rstest: 'importActual',
+};
+
+const { mockDebugMarkdownReplay } = rs.hoisted(() => ({
+  mockDebugMarkdownReplay: rs.fn(),
 }));
 
-vi.mock('@midscene/shared/logger', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@midscene/shared/logger')>();
-  return {
-    ...actual,
-    getDebug: vi.fn(() => mockDebugMarkdownReplay),
-  };
-});
-
-vi.mock('../../../../src/ai-model/service-caller', () => ({
-  callAIWithStringResponse: vi.fn(),
+rs.mock('@midscene/shared/logger', () => ({
+  ...loggerActual,
+  getDebug: rs.fn(() => mockDebugMarkdownReplay),
 }));
 
-const mockCallAIWithStringResponse = vi.mocked(callAIWithStringResponse);
+rs.mock('../../../../src/ai-model/service-caller', () => ({
+  callAIWithStringResponse: rs.fn(),
+}));
+
+const mockCallAIWithStringResponse = rs.mocked(callAIWithStringResponse);
 
 const mockedModelConfig = {
   modelName: 'mock',
@@ -64,7 +65,7 @@ const mockEvents: ChromeRecordedEvent[] = [
 
 describe('markdown-generator', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('compresses oversized screenshots to JPEG before model generation', async () => {
@@ -108,16 +109,17 @@ describe('markdown-generator', () => {
     );
 
     const prompt = mockCallAIWithStringResponse.mock.calls[0][0];
+    assert('role' in prompt[1]);
     const userContent = Array.isArray(prompt[1].content)
       ? prompt[1].content
       : [];
-    const imagePart = userContent.find((part) => part.type === 'image_url');
-    expect(imagePart?.type).toBe('image_url');
-    if (imagePart?.type !== 'image_url') {
+    const imagePart = userContent.find((part) => part.type === 'image');
+    expect(imagePart?.type).toBe('image');
+    if (imagePart?.type !== 'image') {
       throw new Error('Expected a compressed screenshot in the prompt');
     }
-    expect(imagePart.image_url.url).toMatch(/^data:image\/jpeg;base64,/);
-    await expect(imageInfoOfBase64(imagePart.image_url.url)).resolves.toEqual({
+    expect(imagePart.url).toMatch(/^data:image\/jpeg;base64,/);
+    await expect(imageInfoOfBase64(imagePart.url)).resolves.toEqual({
       width: 768,
       height: 384,
     });
@@ -166,8 +168,7 @@ describe('markdown-generator', () => {
     const userMessage = prompt[1];
     const text = Array.isArray(userMessage.content)
       ? userMessage.content
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text)
+          .flatMap((part) => (part.type === 'text' ? [part.text] : []))
           .join('\n')
       : '';
 
@@ -269,8 +270,7 @@ describe('markdown-generator', () => {
     const userMessage = prompt[1];
     const text = Array.isArray(userMessage.content)
       ? userMessage.content
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text)
+          .flatMap((part) => (part.type === 'text' ? [part.text] : []))
           .join('\n')
       : '';
 
@@ -340,8 +340,7 @@ describe('markdown-generator', () => {
     const userMessage = prompt[1];
     const text = Array.isArray(userMessage.content)
       ? userMessage.content
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text)
+          .flatMap((part) => (part.type === 'text' ? [part.text] : []))
           .join('\n')
       : '';
 
@@ -399,8 +398,7 @@ describe('markdown-generator', () => {
     const userMessage = prompt[1];
     const text = Array.isArray(userMessage.content)
       ? userMessage.content
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text)
+          .flatMap((part) => (part.type === 'text' ? [part.text] : []))
           .join('\n')
       : '';
 
@@ -437,11 +435,10 @@ describe('markdown-generator', () => {
       ? userMessage.content
       : [];
     const text = content
-      .filter((part) => part.type === 'text')
-      .map((part) => part.text)
+      .flatMap((part) => (part.type === 'text' ? [part.text] : []))
       .join('\n');
 
-    expect(content.some((part) => part.type === 'image_url')).toBe(false);
+    expect(content.some((part) => part.type === 'image')).toBe(false);
     expect(text).not.toContain('./screenshots/event-001-navigation.png');
     expect(text).toContain('"hashId": "nav-oversized"');
   });
@@ -486,8 +483,7 @@ describe('markdown-generator', () => {
     const userMessage = prompt[1];
     const text = Array.isArray(userMessage.content)
       ? userMessage.content
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text)
+          .flatMap((part) => (part.type === 'text' ? [part.text] : []))
           .join('\n')
       : '';
 

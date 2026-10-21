@@ -49,10 +49,13 @@ All agents share these base options:
   - `strategy` — Cache strategy. Default: `'read-write'`.
   - `cacheDir` — Cache directory. When set, Midscene writes cache files here instead of `<MIDSCENE_RUN_DIR>/cache`. Relative paths are resolved from the current working directory, not from `MIDSCENE_RUN_DIR`. This lets you use separate cache, log, and report directories.
 - `cacheId: string | undefined` (deprecated) — Legacy cache ID for backward compatibility. Prefer `cache.id`.
-- `aiActContext: string` — Background context sent to the AI model with `agent.aiAct()` calls. For example: `'Close the cookie consent dialog first if it exists.'` Default: `undefined`. This option was previously named `aiActionContext`; the legacy name remains supported.
+- `aiContexts: { default?: string; [apiName]?: string }` — Agent-level AI guidance, such as business facts, decision or interaction rules, constraints, and output requirements. If configured, `default` is the shared fallback for all AI-powered APIs and is used only when neither the current call nor the matching API has its own context. Resolution uses `options.context ?? aiContexts[apiName] ?? aiContexts.default`; only the highest-priority defined value is used, with no automatic merging. An empty string explicitly clears lower-priority user context. Default: `undefined`.
+- `aiActContext: string` (deprecated) — Compatibility option for `aiContexts.aiAct`. `aiContexts.aiAct` takes precedence when both are provided; when it is absent, `aiActContext` behaves like `aiContexts.aiAct`. Use `aiContexts.aiAct` in new code. For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
+- `aiActionContext: string` (deprecated) — Older compatibility alias for `aiContexts.aiAct`. It remains supported and is used only when both `aiContexts.aiAct` and `aiActContext` are absent. Resolution uses `aiContexts.aiAct ?? aiActContext ?? aiActionContext`; an empty string takes precedence over lower-priority aliases. Use `aiContexts.aiAct` in new code.
 - `modelConfig: Record<string, string | number>` — Model configuration for this Agent. When provided, it replaces model-related system environment variables for this Agent. See the detailed configuration section below.
 - `replanningCycleLimit: number` — Maximum number of `aiAct` replanning cycles. Default: `20` for standard models, `40` for UI-TARS models, and `100` for AutoGLM models. Prefer this Agent option; `MIDSCENE_REPLANNING_CYCLE_LIMIT` remains available only for backward compatibility.
-- `waitAfterAction: number` — Delay in milliseconds after each action. This gives the UI time to settle before the next action. Default: `300`.
+- `waitForActionReady: (context: ActionReadyContext) => Promise<void>` — Customize [readiness after each action](#action-ready).
+- `waitAfterAction: number` — Fixed delay after each action, default `300` ms. See [Default waiting strategy](#default-waiting-strategy).
 - `useDeviceTime: boolean` — Whether task timestamps use the target device's local time. The target interface must implement `getDeviceLocalTimeString`; otherwise, Midscene logs a warning and uses the runtime system time. Default: `false`.
 - `onTaskStartTip: (tip: string) => void | Promise<void>` — Optional hook called before each task begins. It receives a human-readable task summary. Default: `undefined`.
 - `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>` — Optional factory for wrapping the OpenAI client with observability or custom middleware. See the detailed example below.
@@ -83,14 +86,57 @@ All agents share these base options:
 
 :::
 
-The device CLIs expose the same Agent behavior options for individual calls. Convert camelCase option names to kebab-case flags; for example, `waitAfterAction` becomes `--wait-after-action`. See [Skills](../skills) for platform-specific CLI entry points.
+The device CLIs expose serializable Agent behavior options for individual calls. Options containing functions, such as `waitForActionReady`, must be configured through the JavaScript/TypeScript SDK. Convert camelCase option names to kebab-case flags; for example, `waitAfterAction` becomes `--wait-after-action`. See [Skills](../skills) for platform-specific CLI entry points.
+
+<a id="action-ready"></a>
+
+**Readiness after each action**
+
+Configure `waitForActionReady` to decide when the next step can begin. It applies to each atomic action (`Input`, `Tap`, etc.), including `aiAct` substeps and cache replay. It does not run for initial page loading or read-only queries.
+
+The callback runs only after an action succeeds. Its context contains `action: { id, name, param }`: a new ID for each execution and the resolved action parameters, plus an optional `signal` for execution cancellation. The SDK awaits the callback before continuing.
+
+Here, `app.waitUntilReady` is your application's readiness check.
+
+```ts
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const agent = new PlaywrightAgent(page, {
+  waitForActionReady: async ({ action, signal }) => {
+    await app.waitUntilReady(action, { signal });
+  },
+});
+
+await agent.aiAct('Log in');
+```
+
+- After 5 seconds, the SDK logs one warning and keeps waiting. It does not impose a timeout or fall back to default waiting. Cancellation stops the SDK's wait even if the callback never settles; use `signal` inside the callback to stop your own polling, requests, or listeners.
+- If the action fails, the callback is not called. If the callback throws, the error stops the workflow without automatically replaying the action or falling back to planning.
+- Configuring this callback replaces generic action delays and platform post-action checks. Required driver timing (such as keyboard preparation and gesture duration) and lifecycle callbacks remain in effect. Return immediately from the async callback when no waiting is needed. Unconfigured Agents keep existing behavior.
+- The callback checks readiness after the action; it does not observe the action invocation. Use application state or underlying page/device APIs. One-time events may have already fired before the callback starts.
+
+All Agent platforms support this SDK option. `puppeteerAgentForTarget` accepts it in its second argument and keeps its initial network-idle wait.
+
+<a id="default-waiting-strategy"></a>
+
+**Default waiting strategy (advanced)**
+
+These options apply when `waitForActionReady` is not configured:
+
+| Option | Behavior |
+| --- | --- |
+| `waitAfterAction` | Fixed delay after an action, default `300` ms. Explicit device-action delays take precedence. |
+| `waitForNavigationTimeout` (Web) | Wait for `<html>` to be available, default `5000` ms. This does not guarantee navigation or rendering is complete. |
+| `waitForNetworkIdleTimeout` (Puppeteer only) | Post-action network-idle timeout, default `2000` ms. Requires at most two in-flight requests for `200` ms. |
+
+Set either Web timeout to `0` to skip its check. These checks warn and continue on timeout.
 
 **Custom model configuration**
 
 Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
 
 > If `modelConfig` is provided at agent initialization, **all system environment variables for model config are ignored**. Only the values in this object are used.
-> The supported keys and values are listed in [Model configuration](../model-config). See [Model strategy](../model-strategy) to understand the Default, Planning, and Insight model roles.
+> For basic configuration and provider-specific examples, see [Use a model API key](../model-api-setup). For advanced parameters, see [Model advanced configuration and debugging](../model-config). See [Model Selection Guide](../model-selection) to understand the Default, Planning, and Insight model roles.
 
 **Custom OpenAI client**
 
@@ -228,7 +274,7 @@ For optimal results, please provide clear and detailed instructions for `agent.a
 
 Related documentation:
 
-- [Model strategy](../model-strategy)
+- [Model Selection Guide](../model-selection)
 
 :::
 
@@ -541,10 +587,10 @@ function aiScroll(
 - Parameters:
 
   **Recommended usage:**
-  - `locate: string | object | undefined` — A natural language description of the scroll target, or [prompting with images](#prompting-with-images). When omitted, Midscene scrolls at the current pointer position.
+  - `locate: string | object | undefined` — A natural language description of the scroll target, or [prompting with images](#prompting-with-images). When omitted, mobile platforms use the default gesture described below; Web and desktop platforms scroll at the current pointer position.
   - `opt: object` — Configuration:
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` — Scroll behavior. Default: `'singleAction'`.
-    - `direction?: 'down' | 'up' | 'right' | 'left'` — Direction of content movement. Used only when `scrollType` is `'singleAction'`. For example, `'down'` reveals content below the current viewport. Default: `'down'`.
+    - `direction?: 'down' | 'up' | 'right' | 'left'` — Direction of the off-screen content to reveal, rather than the movement of currently visible content. Used only when `scrollType` is `'singleAction'`. For example, `'down'` reveals content below the current viewport. Default: `'down'`.
     - `distance?: number | null` — Scroll distance in pixels. Use `null` to let Midscene choose the distance.
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
@@ -576,6 +622,30 @@ await agent.aiScroll(
   'The form panel',
 );
 ```
+
+##### Mobile scrolling
+
+Android, iOS, and HarmonyOS use the same default gesture: move through the middle of the screen across its central 70%, taking about one second.
+
+The default aims to keep some content from the previous screen visible so you can continue reading. Finger travel is not the same as content displacement: lists may keep moving after release, and paged controls may snap to another page.
+
+| Scenario | Usage |
+| --- | --- |
+| Neither `locate` nor `distance` | Use the default gesture above. |
+| Only `distance` | Perform a scroll gesture of the specified distance. |
+| Only `locate` | Scroll at the specified location. The default distance is based on the screen size. |
+| Both `locate` and `distance` | Perform a scroll gesture of the specified distance at the specified location. |
+| Scroll to an edge | Use a type such as `scrollToTop`. Long lists may require multiple calls to reach the edge. |
+
+Choose a `distance` within the available screen space. An excessive distance may cause the gesture to fail.
+
+For a dialog or a smaller list, specify both `locate` and a suitable `distance`. For example:
+
+```typescript
+await agent.aiScroll('The list inside the dialog', { direction: 'down', distance: 100 });
+```
+
+For a quick gesture or specific endpoints, use `Swipe`. `Swipe` follows coordinates or a direction and accepts a `duration`; `Scroll` is intended for browsing content.
 
 :::note Signature update
 
@@ -767,7 +837,7 @@ await agent.aiRightClick('The file name at the top of the page', {
 
 Ask the AI model a question about the current page. The method returns the model's answer as a string.
 
-`aiAsk()` is fully equivalent to `aiString()`.
+`aiAsk()` has the same query and return behavior as `aiString()`. They can still use separate Agent-level contexts through `aiContexts.aiAsk` and `aiContexts.aiString`.
 
 - Type
 
@@ -913,7 +983,7 @@ const numberB = await agent.aiNumber(
 
 Extract a string value from the UI.
 
-`aiString()` is fully equivalent to `aiAsk()`.
+`aiString()` has the same query and return behavior as `aiAsk()`. They can still use separate Agent-level contexts through `aiContexts.aiString` and `aiContexts.aiAsk`.
 
 - Type
 
@@ -981,7 +1051,7 @@ function aiLocate(
   - `rect` usually represents the matched element boundary.
   - Some models only support point grounding rather than boundary grounding. In those cases, such as AutoGLM, `rect` will be a small `8x8` box containing the element center instead of the true element boundary.
   - Because `rect` can vary significantly depending on model capability, it is not recommended to rely too heavily on this field for strict boundary semantics.
-  - If you need a stable click target, prefer the `center` field.
+  - `center` is the target point derived from the model’s localization result, expressed in the screenshot’s physical pixel coordinates. For a more stable click target, prefer the `center` field.
   - `dpr` is a Web-only compatibility field. It is the ratio between physical screenshot pixels and logical CSS pixels. Other Agent types do not guarantee this field.
 
 - Examples:
@@ -1044,6 +1114,14 @@ expect(onesieItem.price).toBe(7.99);
 :::
 
 ### Observation and waiting {#observation-waiting}
+
+| Entry point | Purpose |
+| --- | --- |
+| [`agent.aiWaitFor(condition)`](#agentaiwaitfor) | Wait for a visible condition using AI at a script step. |
+| [`browserAgent.waitForNewPage(action)`](#playwright-browser-agent) | Listen before running `action`, then return the new page (Playwright/Puppeteer). |
+| [`waitForActionReady`](#action-ready) | Customize when to continue after each atomic action. |
+
+For other events, `await` the application's Promise or a browser/device API. Subscribe before triggering one-time events.
 
 #### `startObserving()` {#agentstartobserving}
 
@@ -1136,7 +1214,7 @@ await agent.aiWaitFor('The shopping cart icon shows a quantity of 2', {
 
 :::info
 
-Because each check calls an AI model, `.aiWaitFor()` can be slower and more expensive than a fixed delay. Use a simple sleep when you only need to wait for a known amount of time.
+Each `aiWaitFor()` check consumes model time and tokens. If the application exposes a readiness signal, await it directly.
 
 :::
 
@@ -1213,7 +1291,7 @@ function runGherkinScenario(
 
   - `scenarioText: string` — One Gherkin scenario, or a list of Gherkin steps without the `Scenario:` header.
   - `options?: object` — Optional runtime options.
-    - `context?: string` — Temporary context for this run.
+    - `context?: string` — Additional AI guidance applied to every step in this run. For each mapped API call, it overrides the Agent's API-specific context and `aiContexts.default`.
     - `abortSignal?: AbortSignal` — An optional signal for aborting the run.
     - `deepThink?: 'unset' | true | false` — Passed to `aiAct` for `Given` and `When` steps.
     - `deepLocate?: boolean` — Passed to `aiAct` for `Given` and `When` steps.
@@ -1235,9 +1313,36 @@ Scenario: Add a todo item
 
 For supported rules, limitations, cache behavior, and YAML usage, see [BDD-style scripts with Gherkin](../advanced/bdd-style-scripts-with-gherkin).
 
-#### `setAIActContext()` {#agentsetaiactcontext}
+#### `setAIContext()` {#agentsetaicontext}
 
-Set the context sent with subsequent `agent.aiAct()` or `agent.ai()` calls. This replaces any existing context.
+Set the Agent-level shared fallback context or the context for one API.
+
+- Type
+
+```typescript
+function setAIContext(
+  target: 'default' | AiApiName,
+  context: string | undefined,
+): void;
+```
+
+- Parameters:
+
+  - `target` — Use `'default'` for the shared fallback used by all AI-powered APIs, or an API name such as `'aiAct'`, `'aiTap'`, `'aiQuery'`, or `'aiAssert'`.
+  - `context` — Additional AI guidance, such as business facts, rules, constraints, or output requirements. For an API target, use `''` to block the shared default or `undefined` to remove the API override and fall back to `aiContexts.default` again if one is configured. For the `default` target, `undefined` removes the shared fallback.
+
+- Example:
+
+```typescript
+agent.setAIContext('default', 'Prices are displayed in USD.');
+agent.setAIContext('aiQuery', 'Return monetary values without currency symbols.');
+agent.setAIContext('aiQuery', ''); // Do not use aiContexts.default for aiQuery
+agent.setAIContext('aiQuery', undefined); // Inherit aiContexts.default again
+```
+
+#### `setAIActContext()` (deprecated) {#agentsetaiactcontext}
+
+Deprecated compatibility setter for the context sent with subsequent `agent.aiAct()` or `agent.ai()` calls. Use `agent.setAIContext('aiAct', context)` instead. It remains equivalent to that call and replaces any existing `aiContexts.aiAct` value.
 
 This setting does not affect instant-action APIs such as `aiTap()`.
 
@@ -1249,7 +1354,7 @@ function setAIActContext(aiActContext: string): void;
 
 - Parameters:
 
-  - `aiActContext: string` — The background knowledge that should be sent to the AI model. The deprecated `aiActionContext` name is still accepted.
+  - `aiActContext: string` — The background knowledge that should be sent to the AI model. For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 - Example:
 
@@ -1257,9 +1362,9 @@ function setAIActContext(aiActContext: string): void;
 await agent.setAIActContext('Close the cookie consent dialog first if it exists');
 ```
 
-:::note
+:::info
 
-`agent.setAIActionContext()` is deprecated. Please use `agent.setAIActContext()` instead. The deprecated method remains as an alias for compatibility.
+Both `agent.setAIActContext()` and the older `agent.setAIActionContext()` remain available for compatibility, but new code should use `agent.setAIContext('aiAct', context)`.
 
 :::
 
@@ -1550,20 +1655,30 @@ path.
 
 ## Per-call context
 
-Every `agent.ai*` method accepts an optional `context` string in its options. Use it to provide business knowledge, user state, terminology, or other background that is relevant to one request without changing the main prompt.
+A context is additional guidance for the AI, such as business facts, decision or interaction rules, constraints, and output requirements. It supplements the API's main prompt instead of replacing it.
+
+Use `aiContexts.default` as the shared fallback for every AI-powered API, `aiContexts[apiName]` to configure one API, and the optional per-call `options.context` for one request. If configured, `aiContexts.default` is selected only when neither of the more specific levels provides a value; it is not automatically merged with them.
 
 ```typescript
-await agent.aiAssert('The current page uses the new version styling', undefined, {
-  context:
-    'In the new version, the Tab bar is at the top and the page theme color is red. In the old version, the Tab bar is at the bottom and the page theme color is green. Treat the page as the new version only when both new-version conditions are met.',
+const defaultContext =
+  'A struck-through price is the original price, a regular price is the current price, and all prices are in USD.';
+const agent = new PlaywrightAgent(page, {
+  aiContexts: {
+    default: defaultContext,
+    aiAct: '', // Explicitly ignore the default context
+    aiQuery: 'When extracting an amount, return only the number without the currency symbol.',
+    aiBoolean: `${defaultContext}\n\nA product is on sale only when its current price is lower than its original price.`,
+  },
 });
+
+const isOnSale = await agent.aiBoolean('Is this product on sale?');
 ```
 
+The effective user context is `options.context ?? aiContexts[apiName] ?? aiContexts.default`. These layers override one another; they are not automatically merged. `''` is a defined value and clears lower-priority user context, while `undefined` or an omitted key continues to the next configured fallback. To combine context fragments, concatenate the strings explicitly as shown above.
 
-The context only applies to that method call. For `aiAct`, a per-call `context` takes precedence over the Agent-level `aiActContext` (including an explicitly empty string). Other AI methods do not automatically inherit `aiActContext`.
+Supported API keys are `aiAct`, `aiTap`, `aiRightClick`, `aiDoubleClick`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiPinch`, `aiLongPress`, `aiClearInput`, `aiLocate`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, `aiAsk`, `aiAssert`, and `aiWaitFor`. The `ai` and deprecated `aiAction` aliases use the `aiAct` context.
 
-
-### Shared types {#shared-types}
+## Shared types {#shared-types}
 
 <a id="deep-locate-deeplocate"></a>
 
@@ -1596,7 +1711,7 @@ To separate these two meanings, `deepThink` has been reserved for planning mode 
 
 <a id="prompting-with-images"></a>
 
-**Prompt input with images**
+## Prompt input with images
 
 Include reference images when text alone cannot identify the target clearly.
 
@@ -1667,7 +1782,7 @@ Follow your model provider's image size and dimension limits. Oversized or very 
 
 <a id="report-merging-tool"></a>
 
-### Report utilities {#reporting-utilities}
+## Report utilities {#reporting-utilities}
 
 Each automation workflow can generate its own report. `ReportMergingTool`
 combines those reports into one report so you can review all workflows
@@ -1933,8 +2048,7 @@ const agent = new PuppeteerPageAgent(page, {
 In addition to the base agent options, Puppeteer exposes:
 
 - `forceSameTabNavigation: boolean` — Whether to keep navigation in the current tab. Default: `true`.
-- `waitForNavigationTimeout: number` — Maximum time in milliseconds to wait when an action triggers navigation. Set to `0` to skip the wait. Default: `5000`.
-- `waitForNetworkIdleTimeout: number` — Maximum time in milliseconds to wait for network idle between actions. Set to `0` to skip the wait. Default: `2000`.
+- `waitForNavigationTimeout`, `waitForNetworkIdleTimeout` — Advanced options for the [default waiting strategy](#default-waiting-strategy).
 - `enableTouchEventsInActionSpace: boolean` — Whether to add touch gestures such as swipe to the action space. Default: `false`.
 - `keyboardTypeDelay: number` — Finite non-negative per-character delay in milliseconds. In `'legacy'` mode, Puppeteer's `page.keyboard.type` handles a positive delay. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Puppeteer's default.
 - `inputStrategy: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Use `'bulk'` to insert the complete value in one operation or `'sequential'` to force code-point-by-code-point input. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
@@ -1950,6 +2064,8 @@ In addition to the base agent options, Puppeteer exposes:
 - For the full list of interaction methods, see [Shared Agent APIs](#interaction-methods).
 
 :::
+
+<a id="puppeteer-browser-agent"></a>
 
 ### PuppeteerBrowserAgent
 
@@ -1970,7 +2086,10 @@ const agent = new PuppeteerBrowserAgent(browser, page, {
 - `pages()` — List pages from the bound browser.
 - `newPage()` — Create a new page and make it active.
 - `setActivePage(page: Page)` — Explicitly set which Puppeteer page the Browser Agent controls next.
-- `waitForNewPage(action?, options?)` — Wait for a newly opened page without implicitly switching the active page.
+- `waitForNewPage(action?, options?)` — Registers a listener before running `action`, then returns the new page without implicitly switching the active page. Pass `{ timeout: milliseconds }` to override `newPageTimeout` for this call.
+- `ListBrowserPages({ offset? })` — Lists eight tabs at a time, starting at offset 0. Pass `{ offset: 8 }` for the next group. List feedback shortens long titles and URLs separately; an out-of-range offset throws.
+- `GetBrowserPageInfo({ index })` — Returns a tab's complete title and URL without switching pages. Its planning feedback is untruncated; an invalid index throws.
+- `SetActivePage({ index?, title?, url? })` — Switches by index, title substring, or URL substring. Combined selectors must match the same tab. Only Browser Agent exposes these actions.
 
 <a id="web-quick-start"></a>
 <a id="web-connect-to-a-remote-puppeteer-browser"></a>
@@ -2002,8 +2121,7 @@ const agent = new PlaywrightPageAgent(page, {
 **Browser-specific options**
 
 - `forceSameTabNavigation: boolean` — Whether to keep navigation in the current tab. Default: `true`.
-- `waitForNavigationTimeout: number` — Maximum time in milliseconds to wait for navigation. Set to `0` to skip the wait. Default: `5000`.
-- `waitForNetworkIdleTimeout: number` — Maximum time in milliseconds to wait for network idle between actions. Set to `0` to skip the wait. Default: `2000`.
+- `waitForNavigationTimeout`, `waitForNetworkIdleTimeout` — Advanced options for the [default waiting strategy](#default-waiting-strategy).
 - `enableTouchEventsInActionSpace: boolean` — Whether to add touch gestures such as swipe to the action space. Default: `false`.
 - `keyboardTypeDelay: number` — Finite non-negative per-character delay in milliseconds. In `'legacy'` mode, Playwright's `page.keyboard.type` handles a positive delay. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Playwright's default.
 - `inputStrategy: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Use `'bulk'` to insert the complete value in one operation or `'sequential'` to force code-point-by-code-point input. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
@@ -2019,6 +2137,8 @@ const agent = new PlaywrightPageAgent(page, {
 - For the full list of interaction methods, see [Shared Agent APIs](#interaction-methods).
 
 :::
+
+<a id="playwright-browser-agent"></a>
 
 ### PlaywrightBrowserAgent
 
@@ -2039,7 +2159,10 @@ const agent = new PlaywrightBrowserAgent(context, page, {
 - `pages()` — List pages from the bound browser context.
 - `newPage()` — Create a new page and make it active.
 - `setActivePage(page: Page)` — Explicitly set which Playwright page the Browser Agent controls next.
-- `waitForNewPage(action?, options?)` — Wait for a newly opened page without implicitly switching the active page.
+- `waitForNewPage(action?, options?)` — Registers a listener before running `action`, then returns the new page without implicitly switching the active page. Pass `{ timeout: milliseconds }` to override `newPageTimeout` for this call.
+- `ListBrowserPages({ offset? })` — Lists eight tabs at a time, starting at offset 0. Pass `{ offset: 8 }` for the next group. List feedback shortens long titles and URLs separately; an out-of-range offset throws.
+- `GetBrowserPageInfo({ index })` — Returns a tab's complete title and URL without switching pages. Its planning feedback is untruncated; an invalid index throws.
+- `SetActivePage({ index?, title?, url? })` — Switches by index, title substring, or URL substring. Combined selectors must match the same tab. Only Browser Agent exposes these actions.
 
 <a id="web-playwright-quick-start"></a>
 <a id="web-extend-playwright-tests-with-midscene-fixtures"></a>
@@ -2151,6 +2274,7 @@ Use this section to configure Midscene's Android automation and review Android-s
 - `DoubleClick` — Double-tap an element.
 - `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard`, `keyboardTypeDelay`, and `inputStrategy` parameters.
 - `Scroll` — Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
+- `Swipe` — Touch-style swipe gesture.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specified key.
 - `LongPress` — Long-press a target element with optional duration.
@@ -2215,6 +2339,7 @@ const device = new AndroidDevice(deviceId, {
   - `maxSize?: number` — Maximum screenshot width or height in pixels. The same limit applies to ADB/yadb fallback screenshots while scrcpy is temporarily unavailable, preventing planning and report images from returning to full device resolution. Use a non-negative integer; `0` disables scaling. Default: `0`.
   - `videoBitRate?: number` — scrcpy H.264 encoding bitrate in bits per second. Default: `100000000`. Changing it trades encoded bandwidth against screenshot detail. Tune it only from independent transport measurements and validate recognition quality; a freshness-timeout warning alone is not a reason to change it.
   - `idleTimeoutMs?: number` — Idle time before disconnecting the scrcpy stream. `0` disables automatic disconnection. Default: `30000`.
+  - `videoResetFrameTimeoutMs?: number` — Time to wait for a fresh keyframe after scrcpy accepts an in-band video reset. Use a positive integer. Default: `800`. Increase it only for devices whose display capture pipeline has a slower restart tail.
 
 `device.getScrcpyStatus()` returns the current `enabled`, `connected`, `lastError`, and `retryAfter` state. `device.retryScrcpy()` immediately retries the scrcpy connection and returns `Promise<void>`.
 
@@ -2262,7 +2387,7 @@ const agent = new AndroidAgent(device, {
 **Android-specific options**
 
 - `appNameMapping?: Record<string, string>` — Map friendly app names to package names. When you pass an app name to `launch(target)`, the agent will look up the package name in this mapping. If no mapping is found, it will attempt to launch `target` as-is. User-provided mappings take precedence over default mappings.
-- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
+- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiContexts`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
 
@@ -2418,6 +2543,7 @@ Use this section to configure iOS device behavior, integrate Midscene with WebDr
 - `DoubleClick` — Double-tap an element.
 - `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard`, `keyboardTypeDelay`, and `inputStrategy` parameters.
 - `Scroll` — Scroll from an element or screen center in any direction, including scroll-to-top/bottom/left/right helpers.
+- `Swipe` — Touch-style swipe gesture.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specified key.
 - `LongPress` — Long-press a target element with optional duration.
@@ -2451,9 +2577,11 @@ const device = new IOSDevice({
 
 - `wdaPort?: number` — WebDriverAgent port. Default: `8100`.
 - `wdaHost?: string` — WebDriverAgent host. Default: `'localhost'`.
+- `wdaBaseUrl?: string` — Full HTTP(S) WDA API base URL, including a gateway path prefix. Cannot be combined with `wdaHost` or `wdaPort`.
 - `iOSDeviceClassOverride?: string` — Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
 - `sessionId?: string` — Existing WebDriverAgent session ID to reuse. When provided, Midscene skips creating a new WDA session. During cleanup, Midscene detaches from the externally supplied WebDriver session instead of deleting it.
 - `wdaMjpegPort?: number` — WDA MJPEG server port for real-time screen streaming. Default: `9100`.
+- `wdaMjpegUrl?: string` — Full HTTP(S) MJPEG stream URL, including any gateway path or query. Cannot be combined with `wdaMjpegPort`.
 - `wdaMjpegFrameSource?: { enabled?: boolean }` — Use WDA's MJPEG stream as the continuous frame source for `agent.startObserving()`. Disabled by default; when disabled, observers fall back to sequential `screenshotBase64()` capture.
 - `autoDismissKeyboard?: boolean` — Whether to hide the on-screen keyboard after text input. Default: `true`.
 - `keyboardTypeDelay?: number` — Finite non-negative delay in milliseconds between keystrokes. A positive value makes legacy input enter one Unicode code point at a time through WDA's `/wda/keys` endpoint. Use this option when an input field drops characters during fast input.
@@ -2464,6 +2592,8 @@ const device = new IOSDevice({
 
 - Ensure Developer Mode is enabled and WDA can reach the device; use `iproxy` when forwarding ports from a real device.
 - Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
+- Use `wdaBaseUrl` when a gateway routes WDA through a path prefix; all WDA API requests and readiness checks use that prefix.
+- Set `wdaMjpegUrl` separately when the native MJPEG stream is available through a gateway. The API base URL does not determine the stream URL.
 - For multi-device concurrency, use distinct `wdaPort` and `wdaMjpegPort` values for each device so WDA commands and MJPEG streams do not conflict.
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
@@ -2504,7 +2634,7 @@ const agent = new IOSAgent(device, {
 **iOS-specific options**
 
 - `appNameMapping?: Record<string, string>` — Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)` or `terminate(bundleId)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to use `target` as-is. User-provided mappings take precedence over default mappings.
-- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
+- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiContexts`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
 
@@ -2619,7 +2749,7 @@ const agent = await agentFromWebDriverAgent({
   wdaHost: 'localhost',
   wdaPort: 8100,
   iOSDeviceClassOverride: '@your-scope/ios-device',
-  aiActContext: 'Accept permission dialogs automatically.',
+  aiContexts: { aiAct: 'Accept permission dialogs automatically.' },
 });
 ```
 
@@ -2643,6 +2773,7 @@ Use this section to configure HarmonyOS device behavior, integrate Midscene with
 - `DoubleClick` — Double-tap an element.
 - `Input` — Enter text with `replace`, `typeOnly`, or `clear` mode.
 - `Scroll` — Scroll from an element or the screen center in any direction, including scroll-to-top, bottom, left, and right helpers.
+- `Swipe` — Touch-style swipe gesture.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specific key.
 - `LongPress` — Long-press a target element with an optional duration.
@@ -2728,7 +2859,7 @@ const agent = new HarmonyAgent(device, {
 **HarmonyOS-specific options**
 
 - `appNameMapping?: Record<string, string>` — Map friendly app names to bundle names or explicit `bundle/Ability` targets. Bundle-only values use bundle metadata to resolve the declared launch ability; explicit targets bypass that lookup. When you pass an app name to `launch(target)`, the Agent uses the mapped target when available; otherwise, it launches `target` as provided.
-- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
+- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiContexts`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
 
@@ -2860,6 +2991,23 @@ This section documents the desktop-specific APIs provided by `@midscene/computer
 
 For common APIs that work across all platforms, see [Common API reference](#common).
 
+### Action space
+
+`ComputerDevice` and `RDPDevice` provide the following actions to the Midscene Agent:
+
+- `Tap` — Left-click a target.
+- `DoubleClick` — Double-click a target.
+- `RightClick` — Right-click a target.
+- `Hover` — Move the pointer to a target and hover over it.
+- `DragAndDrop` — Drag from one location and drop at another.
+- `Input` — Enter text with `replace`, `typeOnly`, and `clear` modes (`append` is a deprecated alias for `typeOnly`).
+- `ClearInput` — Clear the contents of an input field.
+- `KeyboardPress` — Press a key or key combination, optionally focusing a target first.
+- `CursorMove` — Move the text cursor left or right within an input field or text area.
+- `Scroll` — Scroll the screen or a specific area, including helpers to reach the top, bottom, left, or right boundary.
+- `Swipe` — Press and continuously move the primary mouse button. Use a start point and endpoint, or a direction and distance, for direct gesture interactions such as sliders; use `Scroll` to browse off-screen content.
+- `ListDisplays` — List available displays. A local device returns connected displays; an RDP device returns the current remote session as one display.
+
 ### Agent factory functions
 
 `agentForComputer(opts?): Promise<ComputerAgent>`
@@ -2877,7 +3025,7 @@ Create an agent for remote Windows desktop automation over RDP.
 ```typescript
 interface BaseComputerAgentOpt {
   // Agent options (inherited from AgentOpt)
-  aiActContext?: string;
+  aiContexts?: AgentAIContexts;
   cache?: false | CacheConfig;
   // ... other AgentOpt properties
 
@@ -2890,6 +3038,8 @@ interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
   // Local desktop options
   displayId?: string;
   keyboardDriver?: 'applescript' | 'libnut';
+  keyboardModifierDelay?: number;
+  keyboardLayout?: 'en-US';
   headless?: boolean;
   xvfbResolution?: string;
 }
@@ -2914,6 +3064,8 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 - `displayId?: string` — Display to control. Use `ComputerDevice.listDisplays()` to list the available displays. Default: the primary display.
 - `customActions?: DeviceAction<any>[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 - `keyboardDriver?: 'applescript' | 'libnut'` — On macOS, keyboard event backend. Use `'applescript'` for the default, more compatible behavior or `'libnut'` for faster input when the target application supports it. Default: `'applescript'`.
+- `keyboardModifierDelay?: number` — Finite non-negative delay in milliseconds after each modifier transition and the primary key for the local libnut keyboard driver. It applies to shortcuts and to the implicit `Shift` used by uppercase letters during sequential text input. With `keyboardLayout: 'en-US'`, it also applies to shifted en-US punctuation. Default: `0`. This option has no effect on direct RDP input or the macOS AppleScript driver. See [Forward keyboard input through desktop clients](../faq#keyboard-input-through-desktop-clients).
+- `keyboardLayout?: 'en-US'` — Enables layout-dependent base-key mapping for shifted punctuation during sequential local libnut input. Uppercase Latin letters do not require it. Other layouts keep the backend's existing input behavior. This option has no effect on direct RDP input or the macOS AppleScript driver.
 - `headless?: boolean` — On Linux, set this to `true` to start a virtual display with [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml). This enables desktop automation on headless servers and in CI environments. You can also set the `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` environment variable. Default: `false`.
 - `xvfbResolution?: string` — Resolution of the Xvfb virtual display. Default: `'1920x1080x24'`.
 
@@ -2960,7 +3112,7 @@ import { agentForComputer } from '@midscene/computer';
 
 // Connect to primary display
 const agent = await agentForComputer({
-  aiActContext: 'You are automating a desktop application.',
+  aiContexts: { aiAct: 'You are automating a desktop application.' },
 });
 
 // Connect to specific display
@@ -2976,8 +3128,9 @@ const agent2 = await agentForComputer({
 import { agentForRDPComputer } from '@midscene/computer';
 
 const agent = await agentForRDPComputer({
-  aiActContext:
-    'You are controlling a remote Windows desktop over the RDP protocol.',
+  aiContexts: {
+    aiAct: 'You are controlling a remote Windows desktop over the RDP protocol.',
+  },
   host: '10.75.166.249',
   port: 3389,
   username: 'Admin',
@@ -3086,178 +3239,7 @@ method automatically. This applies to Agents returned by both
 
 ### ComputerAgent
 
-`ComputerAgent` extends `PageAgent<ComputerDevice>` and inherits the shared Agent methods described in [Shared Agent APIs](#common), including:
-
-- `aiAct(action: string)` — Perform an AI-planned action.
-- `aiQuery(query: string)` — Extract structured information.
-- `aiAssert(assertion: string)` — Assert a condition.
-- `aiWaitFor(condition: string)` — Wait for a condition.
-- `aiLocate(description: string)` — Locate an element.
-
-Instant actions provide direct control once Midscene locates an element:
-
-- `aiTap()`, `aiDoubleClick()`, `aiRightClick()`, and `aiHover()` — Mouse actions.
-- `aiInput()`, `aiClearInput()`, and `aiKeyboardPress()` — Keyboard actions.
-- `aiScroll()` — Scroll actions.
-
-### Action space
-
-`ComputerDevice` supports the following actions.
-
-**Mouse actions**
-
-<a id="desktop-tap-click"></a>
-
-**Tap (Click)**
-
-Single click at the target location.
-
-```typescript
-await agent.aiAct('click on the File menu');
-await agent.aiAct('click at center of screen');
-```
-
-<a id="desktop-doubleclick"></a>
-
-**DoubleClick**
-
-Double-click at the target location.
-
-```typescript
-await agent.aiAct('double-click on the desktop icon');
-```
-
-<a id="desktop-rightclick"></a>
-
-**RightClick**
-
-Right-click to open context menu.
-
-```typescript
-await agent.aiAct('right-click on the desktop');
-await agent.aiAct('right-click on the file');
-```
-
-<a id="desktop-mousemove-hover"></a>
-
-**MouseMove (Hover)**
-
-Move the pointer to an element, for example to reveal a hover menu or tooltip.
-
-```typescript
-// Natural-language form (move mouse / hover)
-await agent.aiAct('move mouse to the menu item');
-
-// Instant action: locate and hover in one call
-await agent.aiHover('the menu item "Products"');
-```
-
-<a id="desktop-draganddrop"></a>
-
-**DragAndDrop**
-
-Drag from one location and drop at another.
-
-```typescript
-await agent.aiAct('drag the file to the folder');
-```
-
-**Keyboard actions**
-
-<a id="desktop-keyboardpress"></a>
-
-**KeyboardPress**
-
-Press keyboard keys with optional modifiers.
-
-**Supported keys**
-
-- Regular keys: `a-z`, `0-9`, `Enter`, `Escape`, `Space`, `Tab`, etc.
-- Arrow keys: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`
-- Function keys: `F1`-`F12`
-- Modifiers: `Command`/`Cmd` (macOS), `Control`/`Ctrl`, `Alt`, `Shift`, `Win` (Windows)
-- Media keys: `VolumeUp`, `VolumeDown`, `Mute`, etc.
-
-**Examples**
-
-```typescript
-// Simple key press
-await agent.aiAct('press Enter');
-await agent.aiAct('press Escape');
-
-// Key combinations (platform-specific)
-if (process.platform === 'darwin') {
-  // macOS
-  await agent.aiAct('press Cmd+Space');  // Open Spotlight
-  await agent.aiAct('press Cmd+Tab');    // App switcher
-  await agent.aiAct('press Cmd+C');      // Copy
-  await agent.aiAct('press Cmd+V');      // Paste
-} else {
-  // Windows/Linux
-  await agent.aiAct('press Windows key'); // Start menu
-  await agent.aiAct('press Alt+Tab');     // App switcher
-  await agent.aiAct('press Ctrl+C');      // Copy
-  await agent.aiAct('press Ctrl+V');      // Paste
-}
-
-// Arrow keys
-await agent.aiAct('press ArrowDown');
-await agent.aiAct('press ArrowUp');
-
-// Function keys
-await agent.aiAct('press F5');  // Refresh
-```
-
-<a id="desktop-input"></a>
-
-**Input**
-
-Type text into an input field.
-
-```typescript
-await agent.aiAct('type "Hello World" in the search box');
-await agent.aiAct('type "my-document.txt"');
-```
-
-<a id="desktop-clearinput"></a>
-
-**ClearInput**
-
-Clear the content of an input field.
-
-```typescript
-await agent.aiAct('clear the text field');
-```
-
-**Scroll actions**
-
-Scroll the screen or a specific area.
-
-```typescript
-// Scroll directions
-await agent.aiAct('scroll down');
-await agent.aiAct('scroll up');
-await agent.aiAct('scroll left');
-await agent.aiAct('scroll right');
-
-// Scroll to positions
-await agent.aiAct('scroll to top');
-await agent.aiAct('scroll to bottom');
-```
-
-**Display actions**
-
-<a id="desktop-listdisplays"></a>
-
-**ListDisplays**
-
-Get information about all connected displays.
-
-```typescript
-const displays = await ComputerDevice.listDisplays();
-```
-
-With RDP, `ListDisplays` returns the current remote session as a single display.
+`ComputerAgent` inherits the [shared Agent interaction methods](#interaction-methods). See the desktop action space above for desktop-specific actions and limitations.
 
 ## Runtime configuration {#runtime-configuration}
 
@@ -3286,7 +3268,7 @@ Set `DEBUG` to one of the following selectors:
 
 Midscene saves logs under `<MIDSCENE_RUN_DIR>/log` even when `DEBUG` is unset. Debug logs may contain model inputs, outputs, or screenshots. Review them before sharing, and do not commit them to a source repository.
 
-For model connectivity checks, call recording, and Tracing integrations, see [Model debugging and observability](../model-debugging-observability).
+For model connectivity checks, call recording, and Tracing integrations, see [Model advanced configuration and debugging](../model-config).
 
 **See also**
 

@@ -58,6 +58,7 @@ interface SidebarProps {
   onCopyReportMarkdown?: () => void;
   onDownloadReportMarkdownZip?: () => void;
   onReportCaseChange?: () => void;
+  onOpenPlayer?: () => void;
 }
 
 const Sidebar = (props: SidebarProps = {}): JSX.Element => {
@@ -75,6 +76,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     onCopyReportMarkdown,
     onDownloadReportMarkdownZip,
     onReportCaseChange,
+    onOpenPlayer,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);
   const playwrightAttributes = useExecutionDump(
@@ -477,7 +479,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           {hasTaskTimestamps
             ? 'Total span from the first recorded task start to the last recorded task end, including model calls, actions, waits, and gaps.'
             : timing.wallTimeSource === 'fallback'
-              ? 'Total elapsed duration reported by the enclosing test runner because task timestamps were unavailable.'
+              ? 'Total elapsed duration reported by the test framework because task timestamps were unavailable.'
               : 'The total elapsed span is unavailable because the report has no recorded task timestamps.'}
         </span>
         {hasTaskTimestamps && (
@@ -672,8 +674,16 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                     setActiveTask(task);
                     setReplayAllMode?.(false);
                     setPlayingTaskId(null); // Clear playing state when user clicks a task
+                    onOpenPlayer?.();
                   }}
                   onMouseEnter={(event) => {
+                    if (
+                      window.matchMedia(
+                        '(max-width: 1024px), (pointer: coarse)',
+                      ).matches
+                    ) {
+                      return;
+                    }
                     const rect = event.currentTarget.getBoundingClientRect();
                     const x = rect.left + rect.width;
                     const y = rect.top;
@@ -856,7 +866,10 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
       <div className="agent-markdown-sidebar">
         <MarkdownSource
           markdown={reportMarkdownView.markdown}
-          onImageClick={onMarkdownImageClick}
+          onImageClick={(markdownPath) => {
+            onMarkdownImageClick?.(markdownPath);
+            onOpenPlayer?.();
+          }}
           scrollContainerRef={markdownScrollContainerRef}
         />
       </div>
@@ -910,6 +923,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           aria-label="Replay all tasks"
           onClick={() => {
             setReplayAllMode?.(true);
+            onOpenPlayer?.();
           }}
         >
           <PlayIcon />

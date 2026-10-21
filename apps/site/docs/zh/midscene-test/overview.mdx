@@ -1,0 +1,29 @@
+import TestPhilosophy from '../common/test-philosophy.mdx';
+import TestWorkflow from '../common/test-workflow.mdx';
+import TestCollaboration from '../common/test-collaboration.mdx';
+
+# Midscene Test 概览
+
+<div className="introduction-page">
+
+<TestPhilosophy />
+
+## AI 操作与业务操作写在同一个 YAML 里 {#ai-and-nodes}
+
+<TestWorkflow />
+
+## 让人和 AI 共同维护测试用例 {#nodes-and-spec}
+
+<TestCollaboration />
+
+## 下一步
+
+- [创建与运行测试工程](./use)：编写 YAML 用例并查看运行结果。
+- [开发自定义 Node](./extend)：实现可复用的业务操作。
+- [配置测试工程](./configuration)：管理运行资源和执行设置。
+
+:::info 从旧版 YAML 运行器迁移
+旧版 `tasks/flow` YAML 运行器已进入维护状态，只保留兼容更新和必要修复。新项目和新增用例推荐使用 Midscene Test。已有项目可以继续使用 `midscene` 命令；切换到 `midscene-test` 时，请参阅[迁移到 Midscene Test](../migrate-to-midscene-test)。
+:::
+
+</div>

@@ -1,7 +1,7 @@
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { buildCustomPlanningMessages } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 function createPlanOptions(
   conversationHistory = new ConversationHistory(),
@@ -33,15 +33,17 @@ function createPlanOptions(
 }
 
 describe('custom planning messages', () => {
-  it('consumes pending feedback in the latest screenshot message', () => {
+  it('consumes pending feedback in the latest screenshot message', async () => {
     const conversationHistory = new ConversationHistory();
     conversationHistory.pendingFeedbackMessage =
       'Current time: 2026-06-16 19:35:17 (YYYY-MM-DD HH:mm:ss)';
 
-    const messages = buildCustomPlanningMessages(
+    const messages = await buildCustomPlanningMessages(
       {
-        userInstruction: 'click save',
-        userInstructionText: 'click save',
+        userInstruction: {
+          text: 'click save',
+          referenceImages: [],
+        },
         options: createPlanOptions(conversationHistory),
       },
       {
@@ -52,8 +54,9 @@ describe('custom planning messages', () => {
     );
 
     expect(conversationHistory.pendingFeedbackMessage).toBe('');
-    expect(messages.at(-2)).toEqual(
-      expect.objectContaining({
+    expect(messages.at(-2)).toMatchObject({
+      type: 'input-message',
+      message: expect.objectContaining({
         role: 'user',
         content: [
           expect.objectContaining({
@@ -64,19 +67,18 @@ describe('custom planning messages', () => {
           }),
         ],
       }),
-    );
-    expect(messages.at(-1)).toEqual(
-      expect.objectContaining({
+    });
+    expect(messages.at(-1)).toMatchObject({
+      type: 'input-message',
+      message: expect.objectContaining({
         role: 'user',
         content: [
           expect.objectContaining({
-            type: 'image_url',
-            image_url: expect.objectContaining({
-              url: 'data:image/png;base64,SCREENSHOT==',
-            }),
+            type: 'image',
+            url: 'data:image/png;base64,SCREENSHOT==',
           }),
         ],
       }),
-    );
+    });
   });
 });

@@ -1,5 +1,3 @@
-import { Plus } from 'lucide-react';
-
 interface SectionDividerProps {
   className?: string;
 }
@@ -10,9 +8,16 @@ export function SectionDivider({ className = '' }: SectionDividerProps) {
       className={`home-section-divider ${className}`.trim()}
       aria-hidden="true"
     >
-      <Plus className="home-section-divider__plus" strokeWidth={1} />
-      <span className="home-section-divider__line" />
-      <Plus className="home-section-divider__plus" strokeWidth={1} />
+      <img
+        className="home-section-divider__asset home-section-divider__asset--light"
+        src="/images/backgrounds/section-divider-light.svg"
+        alt=""
+      />
+      <img
+        className="home-section-divider__asset home-section-divider__asset--dark"
+        src="/images/backgrounds/section-divider-dark.svg"
+        alt=""
+      />
     </div>
   );
 }

@@ -5,11 +5,14 @@ import {
   defineActionKeyboardPress,
 } from '@/device';
 import { ModelConfigManager } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
+import { installAgentReportManager } from './test-helpers/agent-report-manager';
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  (agent as any).callActionInActionSpace = vi.fn(async () => undefined);
+  installAgentReportManager(agent);
+  (agent as any).opts = {};
+  (agent as any).callActionInActionSpace = rs.fn(async () => undefined);
   return agent;
 };
 
@@ -24,7 +27,7 @@ describe('KeyboardPress Action', () => {
   });
 
   it('passes an undefined target to the keyboard primitive', async () => {
-    const keyboardPress = vi.fn(async () => undefined);
+    const keyboardPress = rs.fn(async () => undefined);
     const action = defineActionKeyboardPress(keyboardPress);
 
     await action.call({ keyName: 'Control+X' });
@@ -37,7 +40,7 @@ describe('KeyboardPress Action', () => {
   it('supports the recommended signature without a locate prompt', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await agent.aiKeyboardPress(undefined, { keyName: 'Control+X' });
@@ -50,6 +53,8 @@ describe('KeyboardPress Action', () => {
 
   it('validates model configuration before a targetless keyboard action', async () => {
     const agent = Object.create(Agent.prototype) as Agent<any>;
+    installAgentReportManager(agent);
+    (agent as any).opts = {};
     (agent as any).modelConfigManager = new ModelConfigManager({});
 
     await expect(
@@ -64,7 +69,7 @@ describe('KeyboardPress Action', () => {
   it('keeps the legacy key-only signature working', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await agent.aiKeyboardPress('Control+X');
@@ -78,7 +83,7 @@ describe('KeyboardPress Action', () => {
   it('still builds a locate parameter when a target is provided', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await agent.aiKeyboardPress('the search input', {

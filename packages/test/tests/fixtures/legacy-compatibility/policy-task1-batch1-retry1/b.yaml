@@ -1,0 +1,14 @@
+interface:
+  module: ${COMPAT_DEVICE}
+  param:
+    root: ${COMPAT_ROOT}
+    log: ${COMPAT_LOG}
+agent:
+  generateReport: false
+  autoPrintReportMsg: false
+config:
+  output: ${COMPAT_ROOT}/output.json
+tasks:
+  - name: following file
+    flow:
+      - javascript: "record('next-file')"

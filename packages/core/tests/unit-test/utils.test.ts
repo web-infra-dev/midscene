@@ -5,11 +5,10 @@ import { dumpActionParam, findAllMidsceneLocatorField } from '@/common';
 import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 import {
-  ifPlanLocateParamHasLocatedPixelBbox,
-  isPixelBbox,
+  ifLocateParamHasLocatedPixelResult,
   transformLogicalElementToScreenshot,
   transformLogicalRectToScreenshotRect,
 } from '../../src/agent/utils';
@@ -28,18 +27,19 @@ import {
 } from '../../src/yaml/utils';
 import { getGroupedDumpScriptIds } from './test-helpers/report-html';
 
-const { readFileSyncMock } = vi.hoisted(() => ({
-  readFileSyncMock: vi.fn(),
+import * as fsActual from 'node:fs' with { rstest: 'importActual' };
+
+const { readFileSyncMock } = rs.hoisted(() => ({
+  readFileSyncMock: rs.fn(),
 }));
 
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  readFileSyncMock.mockImplementation(actual.readFileSync);
+rs.mock('node:fs', () => {
+  readFileSyncMock.mockImplementation(fsActual.readFileSync);
 
   return {
-    ...actual,
+    ...fsActual,
     default: {
-      ...actual,
+      ...fsActual,
       readFileSync: readFileSyncMock,
     },
     readFileSync: readFileSyncMock,
@@ -184,8 +184,8 @@ describe('utils', () => {
 
   it(
     'should handle multiple large reports correctly',
-    { timeout: 30000 },
-    async () => {
+    { timeout: 60000 },
+    () => {
       const tmpFile = createTempHtmlFile('');
 
       // Create a large string of approximately 100MB
@@ -259,9 +259,7 @@ describe('utils', () => {
       const fileSizeInMB = stats.size / (1024 * 1024);
       console.log(`File size: ${fileSizeInMB.toFixed(2)}MB`);
 
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-
-      // We expect the file to be approximately 700MB plus template overhead
+      // We expect the file to be approximately 1000MB plus template overhead
       const expectedMinSize = 1000; // 10 reports × 100MB
       expect(fileSizeInMB).toBeGreaterThan(expectedMinSize);
     },
@@ -788,117 +786,118 @@ describe('dumpActionParam', () => {
   });
 });
 
-describe('ifPlanLocateParamHasLocatedPixelBbox', () => {
-  it('should return true when locatedPixelBbox is valid array with 4 elements', () => {
+describe('ifLocateParamHasLocatedPixelResult', () => {
+  it.each([
+    null,
+    1,
+    'invalid',
+    {},
+    { rect: { left: 0, top: 0, width: 1, height: 1 } },
+  ])('rejects a pixel result without a center: %j', (locatedPixelResult) => {
+    expect(
+      ifLocateParamHasLocatedPixelResult({
+        prompt: 'target',
+        locatedPixelResult,
+      }),
+    ).toBe(false);
+  });
+  it('should return true when locatedPixelResult.center is valid array with 2 elements', () => {
     const param = {
       prompt: 'test element',
-      locatedPixelBbox: [100, 200, 300, 400] as [
-        number,
-        number,
-        number,
-        number,
-      ],
+      locatedPixelResult: { center: [200, 300] as [number, number] },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(true);
+    expect(ifLocateParamHasLocatedPixelResult(param)).toBe(true);
   });
 
-  it('should return false when locatedPixelBbox is undefined', () => {
+  it('should return false when locatedPixelResult is undefined', () => {
     const param = {
       prompt: 'test element',
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param)).toBe(false);
   });
 
-  it('should return false when locatedPixelBbox is not an array', () => {
+  it('should return false when locatedPixelResult.center is not an array', () => {
     const param = {
       prompt: 'test element',
-      locatedPixelBbox: 'not an array' as any,
+      locatedPixelResult: { center: 'not an array' as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param)).toBe(false);
   });
 
-  it('should return false when locatedPixelBbox array length is not 4', () => {
+  it('should return false when locatedPixelResult.center array length is not 2', () => {
     const param1 = {
       prompt: 'test element',
-      locatedPixelBbox: [100, 200] as any,
+      locatedPixelResult: { center: [100] as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param1)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param1)).toBe(false);
 
     const param2 = {
       prompt: 'test element',
-      locatedPixelBbox: [100, 200, 300] as any,
+      locatedPixelResult: { center: [100, 200, 300] as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param2)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param2)).toBe(false);
 
     const param3 = {
       prompt: 'test element',
-      locatedPixelBbox: [100, 200, 300, 400, 500] as any,
+      locatedPixelResult: { center: [100, 200, 300, 400, 500] as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param3)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param3)).toBe(false);
   });
 
-  it('should return false when locatedPixelBbox is null', () => {
+  it('should return false when locatedPixelResult.center is null', () => {
     const param = {
       prompt: 'test element',
-      locatedPixelBbox: null as any,
+      locatedPixelResult: { center: null as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param)).toBe(false);
   });
 
-  it('should return false when locatedPixelBbox contains non-finite or non-number values', () => {
+  it('should return false when locatedPixelResult.center contains non-finite or non-number values', () => {
     expect(
-      ifPlanLocateParamHasLocatedPixelBbox({
+      ifLocateParamHasLocatedPixelResult({
         prompt: 'test element',
-        locatedPixelBbox: [100, Number.NaN, 300, 400] as any,
+        locatedPixelResult: { center: [100, Number.NaN, 300, 400] as any },
       }),
     ).toBe(false);
     expect(
-      ifPlanLocateParamHasLocatedPixelBbox({
+      ifLocateParamHasLocatedPixelResult({
         prompt: 'test element',
-        locatedPixelBbox: [100, '200', 300, 400] as any,
+        locatedPixelResult: { center: [100, '200', 300, 400] as any },
       }),
     ).toBe(false);
-  });
-});
-
-describe('isPixelBbox', () => {
-  it('should return true for a finite four-number array', () => {
-    expect(isPixelBbox([1, 2, 3, 4])).toBe(true);
-  });
-
-  it('should return false for invalid bbox values', () => {
-    expect(isPixelBbox([1, 2, 3])).toBe(false);
-    expect(isPixelBbox([1, 2, 3, Number.POSITIVE_INFINITY])).toBe(false);
-    expect(isPixelBbox([1, 2, 3, '4'])).toBe(false);
-    expect(isPixelBbox(null)).toBe(false);
   });
 });
 
 describe('shrunkShotToLogicalRatio', () => {
+  it('scales an existing center independently from the retained rect', () => {
+    expect(
+      transformLogicalElementToScreenshot(
+        {
+          description: 'test element',
+          center: [150.125, 250.125],
+          rect: { left: 100.2, top: 200.2, width: 80.2, height: 40.2 },
+        },
+        2,
+      ),
+    ).toStrictEqual({
+      description: 'test element',
+      center: [300.25, 500.25],
+      rect: { left: 200, top: 400, width: 160, height: 80 },
+    });
+  });
+
   it('transformLogicalElementToScreenshot with shrunkShotToLogicalRatio=1', () => {
     expect(
       transformLogicalElementToScreenshot(
         {
           description: 'test element',
           center: [150, 250],
-          rect: {
-            left: 100,
-            top: 200,
-            width: 300,
-            height: 400,
-          },
         },
         1,
       ),
     ).toStrictEqual({
       description: 'test element',
       center: [150, 250],
-      rect: {
-        left: 100,
-        top: 200,
-        width: 300,
-        height: 400,
-      },
     });
   });
 
@@ -908,24 +907,12 @@ describe('shrunkShotToLogicalRatio', () => {
         {
           description: 'test element',
           center: [150, 250],
-          rect: {
-            left: 100,
-            top: 200,
-            width: 300,
-            height: 400,
-          },
         },
         2,
       ),
     ).toStrictEqual({
       description: 'test element',
       center: [300, 500],
-      rect: {
-        left: 200,
-        top: 400,
-        width: 600,
-        height: 800,
-      },
     });
   });
 

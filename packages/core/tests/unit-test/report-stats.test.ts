@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { collectReportSummary } from '../../src/report-stats';
+import { collectTestRunReportMetrics } from '../../src/test-runner/reporting/metrics';
 import type {
   AIUsageInfo,
   ExecutionTask,
@@ -48,6 +49,93 @@ function createReport(
 }
 
 describe('collectReportSummary', () => {
+  it('distinguishes missing provider fields from actual zero usage', () => {
+    const missing = collectTestRunReportMetrics(
+      createReport([
+        createTask({ usage: createUsage({ model_name: 'model' }) }),
+      ]),
+    );
+    expect(missing.collection).toMatchObject({
+      status: 'partial',
+      fields: {
+        modelCallCount: 'complete',
+        modelTimeMs: 'unknown',
+        totalTokens: 'unknown',
+      },
+    });
+    const zero = collectTestRunReportMetrics(
+      createReport([
+        createTask({
+          usage: createUsage({
+            model_name: 'model',
+            total_tokens: 0,
+            time_cost: 0,
+          }),
+        }),
+      ]),
+    );
+    expect(zero).toMatchObject({
+      modelCallCount: 1,
+      modelTimeMs: 0,
+      totalTokens: 0,
+      collection: { status: 'complete' },
+    });
+    expect(
+      collectTestRunReportMetrics(createReport([createTask()])).collection
+        ?.status,
+    ).toBe('complete');
+  });
+
+  it('marks live and unrecorded model requests as incomplete without estimating usage', () => {
+    const unknown = collectTestRunReportMetrics(
+      createReport([
+        createTask({ status: 'failed', timing: { start: 1, callAiStart: 2 } }),
+      ]),
+    );
+    expect(unknown).toMatchObject({
+      modelCallCount: 0,
+      totalTokens: 0,
+      collection: { status: 'unknown' },
+    });
+    const partial = collectTestRunReportMetrics(
+      createReport([
+        createTask({
+          usage: createUsage({
+            model_name: 'model',
+            total_tokens: 7,
+            time_cost: 10,
+          }),
+        }),
+        createTask({ status: 'running', timing: { start: 0, callAiStart: 1 } }),
+      ]),
+    );
+    expect(partial).toMatchObject({
+      modelCallCount: 1,
+      totalTokens: 7,
+      collection: {
+        status: 'partial',
+        fields: {
+          modelCallCount: 'partial',
+          modelTimeMs: 'partial',
+          totalTokens: 'partial',
+        },
+      },
+    });
+  });
+  it('keeps usage complete for a pending device task with no model request', () => {
+    expect(
+      collectTestRunReportMetrics(
+        createReport([createTask({ status: 'running', type: 'Action' })]),
+      ).collection,
+    ).toMatchObject({
+      status: 'complete',
+      fields: {
+        modelCallCount: 'complete',
+        modelTimeMs: 'complete',
+        totalTokens: 'complete',
+      },
+    });
+  });
   it('aggregates elapsed time, model call time, and tokens with search-area calls attributed to their own models', () => {
     const report = createReport([
       createTask({

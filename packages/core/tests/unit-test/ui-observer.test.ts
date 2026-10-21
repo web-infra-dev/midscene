@@ -8,7 +8,7 @@ import type { UIContext } from '@/types';
 import { UIObservationRecordWriter } from '@midscene/shared/agent-tools/observation-record';
 import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const createdDirectories: string[] = [];
@@ -40,10 +40,10 @@ const fakeRepresentative = (): UIContext =>
 
 const makeFakeSource = () => {
   let current: DeviceFrameRef | null = null;
-  const decode = vi.fn(async (refs: DeviceFrameRef[]) =>
+  const decode = rs.fn(async (refs: DeviceFrameRef[]) =>
     refs.map(() => testPngDataUrl),
   );
-  const stop = vi.fn();
+  const stop = rs.fn();
   const source: DeviceFrameSource = {
     latest: () => current,
     decode,
@@ -60,20 +60,20 @@ const makeFakeSource = () => {
 };
 
 const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
-  const screenshot = vi.fn(async () => testPngDataUrl);
-  const onStopped = vi.fn();
+  const screenshot = rs.fn(async () => testPngDataUrl);
+  const onStopped = rs.fn();
   return {
     deps: {
       openFrameSource: async () => fake?.source ?? undefined,
       captureRawScreenshot: screenshot,
       capturePreparedRepresentative: async () => fakeRepresentative(),
       createInsight: () => ({
-        aiQuery: vi.fn(),
-        aiBoolean: vi.fn(),
-        aiNumber: vi.fn(),
-        aiString: vi.fn(),
-        aiAsk: vi.fn(),
-        aiAssert: vi.fn(),
+        aiQuery: rs.fn(),
+        aiBoolean: rs.fn(),
+        aiNumber: rs.fn(),
+        aiString: rs.fn(),
+        aiAsk: rs.fn(),
+        aiAssert: rs.fn(),
       }),
       onStopped,
       observationRecordWriter: recordWriter(),
@@ -107,7 +107,7 @@ function fixedRecord(): UIObservationRecord {
 
 describe('UIObserver', () => {
   afterEach(() => {
-    vi.useRealTimers();
+    rs.useRealTimers();
     for (const directory of createdDirectories.splice(0)) {
       rmSync(directory, { recursive: true, force: true });
     }
@@ -318,14 +318,14 @@ describe('UIObserver', () => {
   });
 
   it('rejects live DOM options before delegating an observation insight', async () => {
-    const aiBoolean = vi.fn();
+    const aiBoolean = rs.fn();
     const observation = new UIObservationImpl(fixedRecord(), {
-      aiQuery: vi.fn(),
+      aiQuery: rs.fn(),
       aiBoolean,
-      aiNumber: vi.fn(),
-      aiString: vi.fn(),
-      aiAsk: vi.fn(),
-      aiAssert: vi.fn(),
+      aiNumber: rs.fn(),
+      aiString: rs.fn(),
+      aiAsk: rs.fn(),
+      aiAssert: rs.fn(),
     });
 
     await expect(
@@ -337,22 +337,22 @@ describe('UIObserver', () => {
   });
 
   it('keeps failed observation cleanup retryable', async () => {
-    const disposeRecord = vi
+    const disposeRecord = rs
       .fn()
       .mockImplementationOnce(() => {
         throw new Error('directory is busy');
       })
       .mockImplementationOnce(() => undefined);
-    const onDisposed = vi.fn();
+    const onDisposed = rs.fn();
     const observation = new UIObservationImpl(
       fixedRecord(),
       {
-        aiQuery: vi.fn(),
-        aiBoolean: vi.fn(),
-        aiNumber: vi.fn(),
-        aiString: vi.fn(),
-        aiAsk: vi.fn(),
-        aiAssert: vi.fn(),
+        aiQuery: rs.fn(),
+        aiBoolean: rs.fn(),
+        aiNumber: rs.fn(),
+        aiString: rs.fn(),
+        aiAsk: rs.fn(),
+        aiAssert: rs.fn(),
       },
       disposeRecord,
       onDisposed,
@@ -366,7 +366,7 @@ describe('UIObserver', () => {
   });
 
   it('watchdog auto-stops and can also be disabled', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
     const first = makeDeps(fake);
@@ -375,8 +375,8 @@ describe('UIObserver', () => {
       options({ intervalMs: 200, watchdogMs: 5000 }),
     );
     await observer.start();
-    vi.advanceTimersByTime(5000);
-    await vi.runAllTimersAsync();
+    rs.advanceTimersByTime(5000);
+    await rs.runAllTimersAsync();
     await observer.stop();
     expect(first.onStopped).toHaveBeenCalledOnce();
 
@@ -388,7 +388,7 @@ describe('UIObserver', () => {
       options({ intervalMs: 200, watchdogMs: 0 }),
     );
     await disabled.start();
-    vi.advanceTimersByTime(60000);
+    rs.advanceTimersByTime(60000);
     await Promise.resolve();
     expect(second.onStopped).not.toHaveBeenCalled();
     await disabled.stop();
@@ -456,7 +456,7 @@ describe('UIObserver', () => {
   });
 
   it('falls back when opening the frame source throws', async () => {
-    const screenshot = vi.fn(async () => testPngDataUrl);
+    const screenshot = rs.fn(async () => testPngDataUrl);
     const observer = new UIObserverImpl(
       {
         openFrameSource: async () => {
@@ -465,12 +465,12 @@ describe('UIObserver', () => {
         captureRawScreenshot: screenshot,
         capturePreparedRepresentative: async () => fakeRepresentative(),
         createInsight: () => ({
-          aiQuery: vi.fn(),
-          aiBoolean: vi.fn(),
-          aiNumber: vi.fn(),
-          aiString: vi.fn(),
-          aiAsk: vi.fn(),
-          aiAssert: vi.fn(),
+          aiQuery: rs.fn(),
+          aiBoolean: rs.fn(),
+          aiNumber: rs.fn(),
+          aiString: rs.fn(),
+          aiAsk: rs.fn(),
+          aiAssert: rs.fn(),
         }),
         observationRecordWriter: recordWriter(),
       },

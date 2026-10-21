@@ -33,7 +33,7 @@ interface BridgeMessageRecord {
 }
 
 const BRIDGE_SERVER_URL_KEY = 'midscene-bridge-server-url';
-const DEFAULT_SERVER_URL = 'ws://localhost:3766';
+const DEFAULT_SERVER_URL = 'ws://127.0.0.1:3766';
 
 export default function Bridge() {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
@@ -403,7 +403,7 @@ export default function Bridge() {
                   <Input
                     value={serverUrl}
                     onChange={(e) => handleServerUrlChange(e.target.value)}
-                    placeholder="ws://localhost:3766"
+                    placeholder="ws://127.0.0.1:3766"
                     disabled={bridgeStatus !== 'closed'}
                     className="server-config-input"
                   />
@@ -411,7 +411,7 @@ export default function Bridge() {
                     {serverUrl && serverUrl !== DEFAULT_SERVER_URL ? (
                       <>Remote mode: Connect to {serverUrl}</>
                     ) : (
-                      <>Local mode (default): ws://localhost:3766</>
+                      <>Local mode (default): ws://127.0.0.1:3766</>
                     )}
                   </small>
                 </div>

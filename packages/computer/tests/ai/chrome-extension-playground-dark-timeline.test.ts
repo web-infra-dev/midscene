@@ -6,10 +6,11 @@
  */
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, rs } from '@rstest/core';
+import { beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   bringPageToFront,
+  evaluateViaWebSocket,
   findExtensionPageTarget,
   findPageTargetByUrlPrefix,
   injectExtensionConfig,
@@ -57,7 +58,7 @@ describe('chrome extension dark Playground timeline', () => {
   // Keep setup separate so the Bing execution and visual assertion receive
   // their own test timeout budget.
   it('opens the dark side panel and configures the extension', async () => {
-    await openExtensionSidePanel(agent);
+    await openExtensionSidePanel(agent, extId);
     await agent.aiAssert(
       'The browser shows a dark side panel on the right side containing Midscene Playground UI, and the Bing page is still visible on the left',
     );
@@ -83,8 +84,91 @@ describe('chrome extension dark Playground timeline', () => {
       'The Bing page on the left shows search results for "midscene.js"',
       { timeoutMs: 180000, checkIntervalMs: 10000 },
     );
+    const extensionTarget = await findExtensionPageTarget(extId);
+    if (!extensionTarget?.webSocketDebuggerUrl) {
+      throw new Error('Extension side-panel target not found');
+    }
+
+    const visualState = await evaluateViaWebSocket<{
+      connectorColors: string[];
+      connectorCount: number;
+      connectorHeights: number[];
+      clearButtonInsideViewport: boolean;
+      visibleProgressCount: number;
+    }>(
+      extensionTarget.webSocketDebuggerUrl,
+      `(async () => {
+        const timeline = document.querySelector('.info-list-container');
+        if (!timeline) throw new Error('Execution timeline not found');
+        const progressItems = Array.from(timeline.querySelectorAll('.list-item')).filter(
+          (item) => item.querySelector('.progress-row'),
+        );
+        if (!progressItems.length) throw new Error('Execution steps not found');
+        // The completed report auto-scrolls to its player below the steps.
+        // Scroll the list item because .progress-row uses display: contents.
+        progressItems[0].scrollIntoView({ block: 'start', behavior: 'instant' });
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const timelineRect = timeline.getBoundingClientRect();
+        const visibleProgressCount = progressItems.filter((item) => {
+          const rect = item.querySelector('.progress-row-copy')?.getBoundingClientRect();
+          return rect && rect.width > 0 && rect.height > 0 &&
+            rect.top >= Math.max(timelineRect.top, 0) &&
+            rect.bottom <= Math.min(timelineRect.bottom, window.innerHeight) &&
+            rect.left >= Math.max(timelineRect.left, 0) &&
+            rect.right <= Math.min(timelineRect.right, window.innerWidth);
+        }).length;
+        const connectorItems = progressItems.filter(
+          (item) => item.querySelector('.progress-row:not(.progress-row-last)'),
+        );
+        const connectorColors = Array.from(
+          new Set(
+            connectorItems.map(
+              (item) => getComputedStyle(item, '::after').backgroundColor,
+            ),
+          ),
+        );
+        const connectorHeights = connectorItems.map((item) => {
+          const style = getComputedStyle(item, '::after');
+          const rect = item.getBoundingClientRect();
+          return rect.height - parseFloat(style.top) - parseFloat(style.bottom);
+        });
+        const clearButton = document.querySelector('.clear-button');
+        const clearRect = clearButton?.getBoundingClientRect();
+        return {
+          connectorColors,
+          connectorCount: connectorItems.length,
+          connectorHeights,
+          visibleProgressCount,
+          clearButtonInsideViewport: Boolean(
+            clearRect &&
+              clearRect.left >= 0 &&
+              clearRect.right <= window.innerWidth &&
+              clearRect.top >= 0 &&
+              clearRect.bottom <= window.innerHeight
+          ),
+        };
+      })()`,
+    );
+
+    expect(visualState.connectorCount).toBeGreaterThan(2);
+    expect(visualState.connectorColors).toEqual(['rgb(217, 217, 217)']);
+    expect(Math.min(...visualState.connectorHeights)).toBeGreaterThan(0);
+    expect(visualState.clearButtonInsideViewport).toBe(true);
+    expect(visualState.visibleProgressCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it('reveals the completed execution timeline in dark mode', async () => {
+    // Completion auto-scrolls the history to Output and Report. Reveal the
+    // earlier steps before checking visibility; DOM presence alone is not proof.
+    // Keep a separate timeout budget from the model-driven Bing execution.
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, scroll upward within the execution history area above the Action input until multiple completed action steps and their descriptions are visible. Scroll the side-panel history, not the Bing results page or the Action text input.`,
+    );
+
+    // Keep visual dogfooding after revealing the actual user-visible steps.
     await agent.aiAssert(
-      `${SIDE_PANEL} shows the completed Playground execution timeline in dark mode. Each completed event is followed by its description, and consecutive event-description entries are joined by clearly visible, high-contrast light-gray connector lines. This includes short one-line Plan, Input, and KeyboardPress entries: their connector lines extend from the current icon to the next icon, rather than appearing as a dot. The connector lines must be visibly lighter than the dark background, not black or nearly black, and are not missing or clipped. The timeline clear control in the top-right is fully inside the side-panel edge, rather than being cut off by it.`,
+      `${SIDE_PANEL} is in dark mode and shows a Playground execution timeline with multiple visible action steps and descriptions`,
     );
   });
 });

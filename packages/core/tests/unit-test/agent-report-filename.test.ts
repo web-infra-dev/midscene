@@ -5,7 +5,7 @@ import {
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const modelConfig = {
   [MIDSCENE_MODEL_NAME]: 'test-model',

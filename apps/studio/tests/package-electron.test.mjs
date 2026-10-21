@@ -29,7 +29,6 @@ import {
   getStudioElectronVersion,
   loadAppDmg,
   normalizeReleaseVersion,
-  packagedAsarOptions,
   parseBooleanLike,
   pathContainsReportTemplatePlaceholder,
   pruneAntdUmdBundles,
@@ -49,6 +48,7 @@ import {
   shouldUseShellForCommand,
   slimStageNodeModules,
 } from '../scripts/package-electron.mjs';
+import { packagedAsarOptions } from '../scripts/packaged-asar-resources.mjs';
 
 const createThinMacMachOBuffer = (arch) => {
   const cpuTypes = {
@@ -294,21 +294,6 @@ describe('package-electron helpers', () => {
       platform: 'darwin',
       prune: false,
     });
-  });
-
-  it('keeps native modules and helper binaries outside app.asar', () => {
-    expect(packagedAsarOptions.unpack).toContain('*.{node,dll,dylib,so,exe}');
-    expect(packagedAsarOptions.unpackDir).toContain('node_modules/sharp');
-    expect(packagedAsarOptions.unpackDir).toContain('node_modules/@img');
-    expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@computer-use', 'libnut'),
-    );
-    expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@ffmpeg-installer'),
-    );
-    expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@midscene', 'computer', 'bin'),
-    );
   });
 
   it('copies the Inter OFL into the packaged app staging directory', async () => {

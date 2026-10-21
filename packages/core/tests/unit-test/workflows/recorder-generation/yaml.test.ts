@@ -1,5 +1,6 @@
+import assert from 'node:assert/strict';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import {
   callAI,
   callAIWithStringResponse,
@@ -12,13 +13,13 @@ import {
   generateYamlTestStream,
 } from '../../../../src/ai-model/workflows/recorder-generation/yaml';
 
-vi.mock('../../../../src/ai-model/service-caller', () => ({
-  callAI: vi.fn(),
-  callAIWithStringResponse: vi.fn(),
+rs.mock('../../../../src/ai-model/service-caller', () => ({
+  callAI: rs.fn(),
+  callAIWithStringResponse: rs.fn(),
 }));
 
-const mockCallAI = vi.mocked(callAI);
-const mockCallAIWithStringResponse = vi.mocked(callAIWithStringResponse);
+const mockCallAI = rs.mocked(callAI);
+const mockCallAIWithStringResponse = rs.mocked(callAIWithStringResponse);
 
 const mockEvents: ChromeRecordedEvent[] = [
   {
@@ -51,7 +52,7 @@ const mockedModelConfig = {
 
 describe('yaml-generator', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('adds a language instruction when generating YAML', async () => {
@@ -70,13 +71,15 @@ describe('yaml-generator', () => {
     );
 
     const prompt = mockCallAIWithStringResponse.mock.calls[0]?.[0];
-    expect(prompt?.[1]?.content).toContain(
+    const userMessage = prompt?.[1];
+    assert(userMessage && 'role' in userMessage);
+    expect(userMessage.content).toContain(
       'Write all human-readable YAML content in Chinese.',
     );
   });
 
   it('uses the same language instruction for streaming YAML generation', async () => {
-    const onChunk = vi.fn();
+    const onChunk = rs.fn();
     mockCallAI.mockResolvedValue({
       content: 'yaml-content',
       usage: undefined,
@@ -94,7 +97,9 @@ describe('yaml-generator', () => {
     );
 
     const prompt = mockCallAI.mock.calls[0]?.[0];
-    expect(prompt?.[1]?.content).toContain(
+    const userMessage = prompt?.[1];
+    assert(userMessage && 'role' in userMessage);
+    expect(userMessage.content).toContain(
       'Write all human-readable YAML content in English.',
     );
   });
@@ -135,11 +140,13 @@ describe('yaml-generator', () => {
     );
 
     const prompt = mockCallAIWithStringResponse.mock.calls[0]?.[0];
-    expect(prompt?.[1]?.content).toContain(
+    const userMessage = prompt?.[1];
+    assert(userMessage && 'role' in userMessage);
+    expect(userMessage.content).toContain(
       'Preserve this exact top-level target platform: computer',
     );
-    expect(prompt?.[1]?.content).toContain('computer:\n  displayId: "2"');
-    expect(prompt?.[1]?.content).toContain('Use documentation link');
+    expect(userMessage.content).toContain('computer:\n  displayId: "2"');
+    expect(userMessage.content).toContain('Use documentation link');
   });
 
   it('marks screenshot-event relationships in recorder YAML prompts', async () => {
@@ -187,14 +194,14 @@ describe('yaml-generator', () => {
 
     const prompt = mockCallAIWithStringResponse.mock.calls[0]?.[0];
     const promptText = prompt
-      ?.map((message) =>
-        Array.isArray(message.content)
+      ?.map((message) => {
+        assert('role' in message);
+        return Array.isArray(message.content)
           ? message.content
-              .filter((part) => part.type === 'text')
-              .map((part) => part.text)
+              .flatMap((part) => (part.type === 'text' ? [part.text] : []))
               .join('\n')
-          : message.content,
-      )
+          : message.content;
+      })
       .join('\n');
 
     expect(promptText).toContain('Screenshot assets:');
@@ -206,7 +213,7 @@ describe('yaml-generator', () => {
   });
 
   it('preserves platform-aware prompt for streaming recorder YAML generation', async () => {
-    const onChunk = vi.fn();
+    const onChunk = rs.fn();
     mockCallAI.mockResolvedValue({
       content: 'android:\n  deviceId: "emulator-5554"\n',
       usage: undefined,
@@ -240,10 +247,12 @@ describe('yaml-generator', () => {
     );
 
     const prompt = mockCallAI.mock.calls[0]?.[0];
-    expect(prompt?.[1]?.content).toContain(
+    const userMessage = prompt?.[1];
+    assert(userMessage && 'role' in userMessage);
+    expect(userMessage.content).toContain(
       'Preserve this exact top-level target platform: android',
     );
-    expect(prompt?.[1]?.content).toContain(
+    expect(userMessage.content).toContain(
       'android:\n  deviceId: "emulator-5554"',
     );
   });

@@ -1,79 +1,112 @@
+import type { IExecutionDump } from '@midscene/core';
+import {
+  type AgentTestRunnerNodeDefinition,
+  type AgentTestRunnerNodeProvider,
+  type CommonAgentTestRunnerApi,
+  aiActInputSchema,
+  aiActOptionsInputSchema,
+  aiAssertInputSchema,
+  aiAssertOptionsInputSchema,
+  aiTapInputSchema,
+  aiWaitForInputSchema,
+  aiWaitForOptionsInputSchema,
+  insightInputSchema,
+  insightOptionsInputSchema,
+  locateOptionsInputSchema,
+  promptImageInputSchema,
+  recordToReportInputSchema,
+  recordToReportOptionsInputSchema,
+  reportScreenshotInputSchema,
+  structuredUserPromptInputSchema,
+  userPromptInputSchema,
+} from '@midscene/core/agent/test';
+import {
+  type WorkflowReportSource,
+  admitResourceOperation,
+  collectTestRunReportMetrics,
+  hasPendingResourceOperation,
+  retainResourceForScope,
+  trackResourceOperation,
+} from '@midscene/core/internal/test-runner';
+import {
+  enterYamlAction,
+  enterYamlExecution,
+  runInYamlExecutionContext,
+} from '@midscene/core/internal/yaml-runtime';
+import { getDebug } from '@midscene/shared/logger';
 import { z } from 'zod/v4';
-import { createLaunchNode } from '../device/lifecycle';
-export type { LaunchNodeInput } from '../device/lifecycle';
-export { launchInputSchema } from '../device/lifecycle';
-import type { Awaitable, NodeHistoryEntry } from '../engine/types';
-import { NodeDefinitionError, NodeExecutionError } from '../errors';
+import type { Awaitable } from '../engine/types';
+import { NodeDefinitionError } from '../errors';
 import { defineNode } from '../node/define-node';
-import type {
-  NodeDefinition,
-  NodeExecutionContext,
-  NodeResult,
-} from '../node/types';
+import type { NodeDefinition, NodeExecutionContext } from '../node/types';
 
-export interface MidsceneAiActOptions {
-  cacheable?: boolean;
-  fileChooserAccept?: string | string[];
-  deepThink?: 'unset' | boolean;
-  deepLocate?: boolean;
-  context?: string;
-  abortSignal?: AbortSignal;
-}
+export type MidsceneUIAgent = CommonAgentTestRunnerApi & {
+  _prepareForTestRunner?(): void;
+  _createReportSource?(
+    scopeId: string,
+    executionIds?: readonly string[],
+  ): Promise<WorkflowReportSource | undefined>;
+  flushReport?(): Promise<string | undefined>;
+  addDumpUpdateListener?(
+    listener: (dump: string, execution?: MidsceneExecutionRef) => void,
+  ): () => void;
+};
 
-export interface MidsceneAiAssertOptions {
-  domIncluded?: boolean | 'visible-only';
-  screenshotIncluded?: boolean;
-  context?: string;
-  abortSignal?: AbortSignal;
-  keepRawResponse?: boolean;
-}
+export {
+  actionInputSchema,
+  aiDragAndDropInputSchema,
+  aiInputInputSchema,
+  aiKeyboardPressInputSchema,
+  aiLongPressInputSchema,
+  aiPinchInputSchema,
+  aiQueryInputSchema,
+  aiScrollInputSchema,
+  javascriptInputSchema,
+  runGherkinScenarioInputSchema,
+  setAIContextInputSchema,
+} from '@midscene/core/agent/test';
+export type {
+  ActionNodeInput,
+  AiDragAndDropNodeInput,
+  AiInputNodeInput,
+  AiKeyboardPressNodeInput,
+  AiLongPressNodeInput,
+  AiPinchNodeInput,
+  AiQueryNodeInput,
+  AiScrollNodeInput,
+  JavascriptNodeInput,
+  RunGherkinScenarioNodeInput,
+  SetAIContextNodeInput,
+} from '@midscene/core/agent/test';
 
-export interface MidscenePromptImage {
-  name: string;
-  url: string;
-}
+export {
+  aiActInputSchema,
+  aiActOptionsInputSchema,
+  aiAssertInputSchema,
+  aiAssertOptionsInputSchema,
+  aiWaitForInputSchema,
+  aiWaitForOptionsInputSchema,
+  aiTapInputSchema,
+  insightInputSchema,
+  insightOptionsInputSchema,
+  locateOptionsInputSchema,
+  promptImageInputSchema,
+  recordToReportInputSchema,
+  recordToReportOptionsInputSchema,
+  reportScreenshotInputSchema,
+  structuredUserPromptInputSchema,
+  userPromptInputSchema,
+};
 
-export type MidsceneUserPrompt =
-  | string
-  | {
-      prompt: string;
-      images?: MidscenePromptImage[];
-      convertHttpImage2Base64?: boolean;
-    };
-
-export interface MidsceneReportScreenshot {
-  base64: string;
-  description?: string;
-}
-
-export interface MidsceneRecordToReportOptions {
-  content?: string;
-  screenshotBase64?: string;
-  screenshots?: MidsceneReportScreenshot[];
-}
-
-export interface MidsceneUIAgent {
-  aiAct(
-    prompt: MidsceneUserPrompt,
-    options?: MidsceneAiActOptions,
-  ): Promise<string | undefined>;
-  aiAssert(
-    prompt: MidsceneUserPrompt,
-    message?: string,
-    options?: MidsceneAiAssertOptions,
-  ): Promise<unknown>;
-  recordToReport(
-    title?: string,
-    options?: MidsceneRecordToReportOptions,
-  ): Promise<unknown>;
-  /** Available on device Agents that support launching an app, URL, or URI. */
-  launch?(uri: string): Promise<void>;
+export interface MidsceneExecutionRef {
+  id?: string;
+  tasks?: IExecutionDump['tasks'];
 }
 
 export interface AgentProvider<TContext> {
   getAgent(
     runId: string,
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<MidsceneUIAgent>;
   // biome-ignore lint/suspicious/noConfusingVoidType: providers without a report intentionally return void.
   releaseAgent?(runId: string): Awaitable<AgentReleaseResult | void>;
@@ -85,135 +118,6 @@ export interface AgentReleaseResult {
   reportPath?: string;
 }
 
-export interface AgentExecutorInput<TContext> {
-  prompt: string;
-  history: readonly NodeHistoryEntry[];
-  context: TContext;
-  signal: AbortSignal;
-  execution:
-    | { scope: 'case'; runId: string }
-    | { scope: 'document'; runId: string };
-}
-
-export interface AgentExecutor<TContext> {
-  // biome-ignore lint/suspicious/noConfusingVoidType: executors may perform side effects without returning a summary.
-  execute(input: AgentExecutorInput<TContext>): Awaitable<NodeResult | void>;
-}
-
-const nonBlankPrompt = (description: string) =>
-  z
-    .string()
-    .regex(/\S/, 'prompt must contain a non-whitespace character')
-    .describe(description);
-
-const promptImagesInputSchema = z
-  .array(
-    z.strictObject({
-      name: nonBlankPrompt('The name used to identify this reference image.'),
-      url: nonBlankPrompt(
-        'The URL, data URL, or file path of this reference image.',
-      ),
-    }),
-  )
-  .min(1)
-  .optional();
-
-const promptImageConversionInputSchema = z
-  .boolean()
-  .optional()
-  .describe('Whether HTTP reference images are converted to base64 first.');
-
-const aiActOptionsInputSchema = z.strictObject({
-  cacheable: z
-    .boolean()
-    .optional()
-    .describe('Whether this action may use the Midscene cache.'),
-  fileChooserAccept: z
-    .union([z.string(), z.array(z.string())])
-    .optional()
-    .describe('Accepted file types for a file chooser.'),
-  deepThink: z
-    .union([z.literal('unset'), z.boolean()])
-    .optional()
-    .describe('Whether to enable deep thinking for this action.'),
-  deepLocate: z
-    .boolean()
-    .optional()
-    .describe('Whether to use deep element location.'),
-  context: z
-    .string()
-    .optional()
-    .describe('Additional context supplied to the UI Agent.'),
-});
-
-export const aiActInputSchema = z.strictObject({
-  prompt: nonBlankPrompt('The natural-language UI task to perform.'),
-  images: promptImagesInputSchema,
-  convertHttpImage2Base64: promptImageConversionInputSchema,
-  options: aiActOptionsInputSchema.optional(),
-});
-
-const aiAssertOptionsInputSchema = z.strictObject({
-  domIncluded: z
-    .union([z.boolean(), z.literal('visible-only')])
-    .optional()
-    .describe('How DOM information is included in the assertion.'),
-  screenshotIncluded: z
-    .boolean()
-    .optional()
-    .describe('Whether the assertion includes a screenshot.'),
-  context: z
-    .string()
-    .optional()
-    .describe('Additional context supplied to the UI Agent.'),
-});
-
-export const aiAssertInputSchema = z.strictObject({
-  prompt: nonBlankPrompt('The natural-language condition that must be true.'),
-  images: promptImagesInputSchema,
-  convertHttpImage2Base64: promptImageConversionInputSchema,
-  message: z.string().optional().describe('The assertion failure message.'),
-  options: aiAssertOptionsInputSchema.optional(),
-});
-
-const reportScreenshotInputSchema = z.strictObject({
-  base64: z.string().min(1).describe('A base64-encoded screenshot.'),
-  description: z.string().optional().describe('What the screenshot shows.'),
-});
-
-export const recordToReportInputSchema = z
-  .strictObject({
-    prompt: z.string().optional().describe('String shorthand for the title.'),
-    title: z.string().optional().describe('The report section title.'),
-    content: z.string().optional().describe('The report text content.'),
-    screenshotBase64: z
-      .string()
-      .optional()
-      .describe('One base64-encoded screenshot.'),
-    screenshots: z
-      .array(reportScreenshotInputSchema)
-      .min(1)
-      .optional()
-      .describe('Screenshots attached to the report section.'),
-  })
-  .superRefine((input, ctx) => {
-    if (input.prompt !== undefined && input.title !== undefined) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'prompt and title are mutually exclusive',
-      });
-    }
-    if (
-      input.screenshotBase64 !== undefined &&
-      input.screenshots !== undefined
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'screenshotBase64 and screenshots are mutually exclusive',
-      });
-    }
-  });
-
 export const waitInputSchema = z.strictObject({
   duration: z.number().positive().describe('How long to wait.'),
   unit: z
@@ -222,158 +126,23 @@ export const waitInputSchema = z.strictObject({
     .describe('Duration unit: milliseconds, seconds, or minutes.'),
 });
 
-export const agentInputSchema = z.strictObject({
-  prompt: nonBlankPrompt(
-    'A self-contained task, including allowed tools and success conditions.',
-  ),
-});
-
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
+export type AiWaitForNodeInput = z.infer<typeof aiWaitForInputSchema>;
+export type AiWaitForNodeOptions = z.infer<typeof aiWaitForOptionsInputSchema>;
+export type AiTapNodeInput = z.infer<typeof aiTapInputSchema>;
+export type InsightNodeInput = z.infer<typeof insightInputSchema>;
 export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
 export type WaitNodeInput = z.infer<typeof waitInputSchema>;
-export type AgentNodeInput = z.infer<typeof agentInputSchema>;
 
 export interface CreateMidsceneNodesOptions<TContext> {
   getAgent?(
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<MidsceneUIAgent>;
   agentProvider?: AgentProvider<TContext>;
-  /** Disable when a project registers its own platform-specific launch Node. */
-  includeLaunch?: boolean;
-  agentExecutor?: AgentExecutor<TContext>;
+  /** Agent class that declares the Agent-backed Nodes to register. */
+  agentClass: AgentTestRunnerNodeProvider;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const requireAgentMethod = <TMethod extends keyof MidsceneUIAgent>(
-  agent: MidsceneUIAgent,
-  method: TMethod,
-  node: string,
-): NonNullable<MidsceneUIAgent[TMethod]> => {
-  if (!isRecord(agent) || typeof agent[method] !== 'function') {
-    throw new NodeExecutionError(
-      node,
-      new TypeError(`getAgent() must return an Agent with ${method}().`),
-    );
-  }
-  return agent[method] as NonNullable<MidsceneUIAgent[TMethod]>;
-};
-
-const maxHistoryContextCharacters = 64_000;
-const maxHistoryValuePreviewCharacters = 8_000;
-const maxHistoryEntryCharacters = 24_000;
-const historyOmissionNoticeReserve = 256;
-
-const compactHistoryContextValue = (value: unknown): unknown => {
-  const serialized = JSON.stringify(value);
-  if (
-    serialized === undefined ||
-    serialized.length <= maxHistoryValuePreviewCharacters
-  ) {
-    return value;
-  }
-  return {
-    omittedFromContext: true,
-    originalCharacters: serialized.length,
-    preview:
-      typeof value === 'string'
-        ? value.slice(0, maxHistoryValuePreviewCharacters)
-        : serialized.slice(0, maxHistoryValuePreviewCharacters),
-  };
-};
-
-const serializeHistoryEntryForContext = (
-  entry: NodeHistoryEntry,
-  index: number,
-): string => {
-  const compacted = Object.fromEntries(
-    Object.entries({ index, ...entry }).map(([key, value]) => [
-      key,
-      compactHistoryContextValue(value),
-    ]),
-  );
-  const serialized = JSON.stringify(compacted);
-  if (serialized.length <= maxHistoryEntryCharacters) return serialized;
-
-  return JSON.stringify({
-    index,
-    scope: entry.scope,
-    phase: entry.phase,
-    stepIndex: entry.stepIndex,
-    node: entry.node,
-    status: entry.status,
-    ...(entry.summary === undefined
-      ? {}
-      : { summary: compactHistoryContextValue(entry.summary) }),
-    omittedFromContext: true,
-    compactedCharacters: serialized.length,
-  });
-};
-
-export const renderNodeHistory = (
-  history: readonly NodeHistoryEntry[],
-): string | undefined => {
-  if (history.length === 0) return undefined;
-
-  const heading = 'Previous workflow results (read-only):';
-  const availableCharacters =
-    maxHistoryContextCharacters - heading.length - historyOmissionNoticeReserve;
-  const renderedEntries: string[] = [];
-  let renderedCharacters = 0;
-
-  for (let index = history.length - 1; index >= 0; index -= 1) {
-    const rendered = serializeHistoryEntryForContext(history[index], index + 1);
-    const separatorCharacters = renderedEntries.length === 0 ? 0 : 1;
-    if (
-      renderedCharacters + separatorCharacters + rendered.length >
-      availableCharacters
-    ) {
-      break;
-    }
-    renderedEntries.unshift(rendered);
-    renderedCharacters += separatorCharacters + rendered.length;
-  }
-
-  const omittedEntries = history.length - renderedEntries.length;
-  return [
-    heading,
-    ...(omittedEntries === 0
-      ? []
-      : [
-          `${omittedEntries} earlier history entr${omittedEntries === 1 ? 'y was' : 'ies were'} omitted from Agent context to stay within the size limit. Complete results remain available in the Test Runner output.`,
-        ]),
-    ...renderedEntries,
-  ].join('\n');
-};
-
-const mergeContext = (
-  explicit: string | undefined,
-  history: readonly NodeHistoryEntry[],
-): string | undefined =>
-  [explicit, renderNodeHistory(history)].filter(Boolean).join('\n\n') ||
-  undefined;
-
-const toAgentPrompt = (input: {
-  prompt: string;
-  images?: MidscenePromptImage[];
-  convertHttpImage2Base64?: boolean;
-}): MidsceneUserPrompt => {
-  if (
-    input.images === undefined &&
-    input.convertHttpImage2Base64 === undefined
-  ) {
-    return input.prompt;
-  }
-  return {
-    prompt: input.prompt,
-    ...(input.images === undefined ? {} : { images: input.images }),
-    ...(input.convertHttpImage2Base64 === undefined
-      ? {}
-      : { convertHttpImage2Base64: input.convertHttpImage2Base64 }),
-  };
-};
 
 const waitFor = async (durationMs: number, signal: AbortSignal) => {
   if (signal.aborted) {
@@ -392,6 +161,169 @@ const waitFor = async (durationMs: number, signal: AbortSignal) => {
   });
 };
 
+/** Adapt Agent-owned descriptions to executable Midscene Test Nodes. */
+export const createAgentTestRunnerNodes = <TContext>(
+  definitions: readonly AgentTestRunnerNodeDefinition[],
+  getAgent: (
+    ctx: NodeExecutionContext<unknown, TContext>,
+  ) => Awaitable<unknown>,
+): readonly NodeDefinition<any, any, TContext>[] => {
+  const runAgentCall = async <T>(
+    node: string,
+    ctx: NodeExecutionContext<unknown, TContext>,
+    agent: MidsceneUIAgent,
+    call: () => Promise<T>,
+    captureExecutions = true,
+  ): Promise<T> =>
+    runInYamlExecutionContext(async () => {
+      const scopeId =
+        ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
+      const isCleanupOwner = admitResourceOperation(agent, ctx.signal);
+      if (captureExecutions) {
+        ctx.report.onSnapshot(async (signal, traces) => {
+          signal.throwIfAborted();
+          const partial = hasPendingResourceOperation(agent);
+          const capturedAt = new Date().toISOString();
+          let source = await agent._createReportSource?.(
+            scopeId,
+            traces.map((trace) => trace.executionId),
+          );
+          // External adapters may only expose HTML. Capture it independently
+          // of cleanup, while marking its mutable source as partial.
+          if (!source) {
+            const path = await agent.flushReport?.();
+            if (path)
+              source = {
+                sourcePath: path,
+                collection: {
+                  status: 'partial',
+                  capturedAt,
+                  reason:
+                    'This provider exposes live HTML without immutable snapshot support.',
+                },
+              };
+          }
+          signal.throwIfAborted();
+          if (!source)
+            throw new Error('Agent did not return a report snapshot.');
+          return {
+            ...source,
+            collection: {
+              status:
+                partial || source.collection?.status === 'partial'
+                  ? ('partial' as const)
+                  : ('complete' as const),
+              capturedAt: source.collection?.capturedAt ?? capturedAt,
+              ...(source.collection?.reason
+                ? { reason: source.collection.reason }
+                : partial
+                  ? {
+                      reason:
+                        'An Agent operation was still running at the snapshot cutoff.',
+                    }
+                  : {}),
+            },
+          };
+        });
+      }
+      // Native Steps own the root report. Any Agent.runYaml invoked underneath
+      // contributes to that Step instead of publishing another root snapshot.
+      const yamlBoundary = enterYamlExecution(agent, {
+        allowIndependentOverlap: isCleanupOwner,
+      });
+      const leaveYamlAction = enterYamlAction(agent, ctx.signal);
+      let removeListener: (() => void) | undefined;
+      let sawExecutionWithoutId = false;
+      const stopListening = () => {
+        const remove = removeListener;
+        removeListener = undefined;
+        remove?.();
+      };
+      const stopListeningOnAbort = () => stopListening();
+      try {
+        if (captureExecutions && agent.addDumpUpdateListener) {
+          removeListener = agent.addDumpUpdateListener((_dump, execution) => {
+            if (!execution) return;
+            if (!execution.id) {
+              sawExecutionWithoutId = true;
+              return;
+            }
+            ctx.report.addTrace({
+              type: 'midscene-execution',
+              executionId: execution.id,
+              ...(execution.tasks
+                ? {
+                    metrics: collectTestRunReportMetrics({
+                      executions: [
+                        {
+                          id: execution.id,
+                          name: node,
+                          logTime: 0,
+                          tasks: execution.tasks,
+                        },
+                      ],
+                    }),
+                  }
+                : {}),
+            });
+          });
+          if (ctx.signal.aborted) stopListening();
+          else {
+            ctx.signal.addEventListener('abort', stopListeningOnAbort, {
+              once: true,
+            });
+          }
+        }
+        return await trackResourceOperation(
+          agent,
+          Promise.resolve().then(call),
+          ctx.signal,
+        );
+      } finally {
+        leaveYamlAction();
+        yamlBoundary.finish();
+        ctx.signal.removeEventListener('abort', stopListeningOnAbort);
+        stopListening();
+        if (sawExecutionWithoutId) {
+          warnReportTrace(
+            `Skipped a report trace without a stable execution id for ${node} in scope ${scopeId}.`,
+          );
+        }
+      }
+    });
+
+  return definitions.map((definition) =>
+    defineNode({
+      name: definition.name,
+      ...(definition.title === undefined ? {} : { title: definition.title }),
+      ...(definition.description === undefined
+        ? {}
+        : { description: definition.description }),
+      ...(definition.stringInputKey === undefined
+        ? {}
+        : { stringInputKey: definition.stringInputKey }),
+      inputSchema: definition.inputSchema,
+      async execute(ctx) {
+        const agent = await getAgent(ctx);
+        ctx.signal.throwIfAborted();
+        const call = async () =>
+          definition.execute(agent, ctx.input, { signal: ctx.signal });
+        if (typeof agent !== 'object' || agent === null) return call();
+        return runAgentCall(
+          definition.name,
+          ctx,
+          agent as MidsceneUIAgent,
+          call,
+        );
+      },
+    }),
+  );
+};
+
+const warnReportTrace = getDebug('test-runner:report-trace', {
+  console: true,
+});
+
 export function createMidsceneNodes<TContext>(
   options: CreateMidsceneNodesOptions<TContext>,
 ): readonly NodeDefinition<any, any, TContext>[] {
@@ -408,142 +340,73 @@ export function createMidsceneNodes<TContext>(
       'createMidsceneNodes() requires getAgent or agentProvider.getAgent.',
     );
   }
+  if (
+    !options.agentClass ||
+    typeof options.agentClass.getTestRunnerNodeDefinitions !== 'function'
+  ) {
+    throw new NodeDefinitionError(
+      'createMidsceneNodes() requires agentClass.getTestRunnerNodeDefinitions().',
+    );
+  }
 
-  const registeredAgentScopes = new Set<string>();
-  const getExecutionId = (ctx: NodeExecutionContext<unknown, TContext>) =>
-    ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
+  const agentsByScope = new Map<string, Set<MidsceneUIAgent>>();
   const getAgent = async (
     ctx: NodeExecutionContext<unknown, TContext>,
   ): Promise<MidsceneUIAgent> => {
-    if (!options.agentProvider) return options.getAgent!(ctx);
-    const runId = getExecutionId(ctx);
-    if (
-      options.agentProvider.releaseAgent &&
-      !registeredAgentScopes.has(runId)
-    ) {
-      registeredAgentScopes.add(runId);
+    const runId =
+      ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
+    let agents = agentsByScope.get(runId);
+    if (!agents) {
+      agents = new Set();
+      agentsByScope.set(runId, agents);
       ctx.onTeardown(async () => {
         try {
-          const released = await options.agentProvider!.releaseAgent!(runId);
+          const released = await options.agentProvider?.releaseAgent?.(runId);
           return released?.reportPath
             ? { reportPaths: [released.reportPath] }
             : undefined;
         } finally {
-          registeredAgentScopes.delete(runId);
+          agentsByScope.delete(runId);
         }
       });
     }
-    return options.agentProvider.getAgent(runId, ctx);
+    const scopeAgents = agents;
+    // Acquisition can outlive cancellation. Teardown waits for actual settlement.
+    return trackResourceOperation(
+      {},
+      Promise.resolve().then(async () => {
+        const agent = options.agentProvider
+          ? await options.agentProvider.getAgent(runId, ctx)
+          : await options.getAgent!(ctx);
+        retainResourceForScope(agent, ctx.signal);
+        agent._prepareForTestRunner?.();
+        scopeAgents.add(agent);
+        return agent;
+      }),
+      ctx.signal,
+      'acquisition',
+    );
   };
 
+  const agentDefinitions = options.agentClass.getTestRunnerNodeDefinitions();
+
   return [
-    defineNode<typeof aiActInputSchema, unknown, TContext>({
-      name: 'aiAct',
-      description: 'Perform a natural-language task with a Midscene UI Agent.',
-      inputSchema: aiActInputSchema,
-      async execute(ctx) {
-        const agent = await getAgent(ctx);
-        const aiAct = requireAgentMethod(agent, 'aiAct', 'aiAct');
-        const output = await aiAct.call(agent, toAgentPrompt(ctx.input), {
-          ...ctx.input.options,
-          context: mergeContext(ctx.input.options?.context, ctx.history),
-          abortSignal: ctx.signal,
-        });
-        return output === undefined ? undefined : { summary: output };
-      },
-    }),
-    defineNode<typeof aiAssertInputSchema, unknown, TContext>({
-      name: 'aiAssert',
-      description:
-        'Assert a natural-language condition with a Midscene UI Agent.',
-      inputSchema: aiAssertInputSchema,
-      async execute(ctx) {
-        const agent = await getAgent(ctx);
-        const aiAssert = requireAgentMethod(agent, 'aiAssert', 'aiAssert');
-        await aiAssert.call(
-          agent,
-          toAgentPrompt(ctx.input),
-          ctx.input.message,
-          {
-            ...ctx.input.options,
-            context: mergeContext(ctx.input.options?.context, ctx.history),
-            abortSignal: ctx.signal,
-          },
-        );
-        return { summary: `Assertion passed: ${ctx.input.prompt}` };
-      },
-    }),
-    defineNode<typeof recordToReportInputSchema, unknown, TContext>({
-      name: 'recordToReport',
-      description: 'Add text or screenshots to the current Midscene report.',
-      inputSchema: recordToReportInputSchema,
-      async execute(ctx) {
-        const title = ctx.input.title ?? ctx.input.prompt;
-        const reportOptions: MidsceneRecordToReportOptions = {
-          ...(ctx.input.content === undefined
-            ? {}
-            : { content: ctx.input.content }),
-          ...(ctx.input.screenshotBase64 === undefined
-            ? {}
-            : { screenshotBase64: ctx.input.screenshotBase64 }),
-          ...(ctx.input.screenshots === undefined
-            ? {}
-            : { screenshots: ctx.input.screenshots }),
-        };
-        const agent = await getAgent(ctx);
-        const recordToReport = requireAgentMethod(
-          agent,
-          'recordToReport',
-          'recordToReport',
-        );
-        await recordToReport.call(agent, title, reportOptions);
-        return { summary: `Recorded to report: ${title ?? 'untitled'}` };
-      },
-    }),
-    ...(options.includeLaunch === false ? [] : [createLaunchNode(getAgent)]),
+    ...createAgentTestRunnerNodes(agentDefinitions, getAgent),
     defineNode<typeof waitInputSchema, unknown, TContext>({
       name: 'wait',
       description: 'Wait for a fixed duration while honoring cancellation.',
+      stringInputKey: false,
       inputSchema: waitInputSchema,
-      async execute(ctx) {
+      async execute(execution) {
         const multiplier =
-          ctx.input.unit === 'min'
+          execution.input.unit === 'min'
             ? 60_000
-            : ctx.input.unit === 's'
+            : execution.input.unit === 's'
               ? 1_000
               : 1;
-        const durationMs = ctx.input.duration * multiplier;
-        await waitFor(durationMs, ctx.signal);
+        const durationMs = execution.input.duration * multiplier;
+        await waitFor(durationMs, execution.signal);
         return { summary: `Waited ${durationMs}ms` };
-      },
-    }),
-    defineNode<typeof agentInputSchema, unknown, TContext>({
-      name: 'agent',
-      description:
-        'Execute one self-contained natural-language task with an injected Agent executor.',
-      inputSchema: agentInputSchema,
-      async execute(ctx) {
-        if (!options.agentExecutor) {
-          throw new NodeExecutionError(
-            'agent',
-            new TypeError('createMidsceneNodes() requires an agentExecutor.'),
-          );
-        }
-        const execution =
-          ctx.scope === 'case'
-            ? { scope: 'case' as const, runId: ctx.case.runId }
-            : {
-                scope: 'document' as const,
-                runId: ctx.document.documentRunId,
-              };
-        const result = await options.agentExecutor.execute({
-          prompt: ctx.input.prompt,
-          history: ctx.history,
-          context: ctx.context,
-          signal: ctx.signal,
-          execution,
-        });
-        return result ?? { summary: 'Agent task completed.' };
       },
     }),
   ];

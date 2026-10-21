@@ -3,19 +3,23 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import {
   createTestRunId,
   discoverTestConfig,
   discoverTestFiles,
   runTestProject,
 } from '../src/cli';
-import { parseTestCliArgs } from '../src/cli/test-command';
+import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
+import type { TestProjectRunResult } from '../src/cli/types';
 
 interface RunnerState {
   configLoads: number;
@@ -71,6 +75,133 @@ afterEach(() => {
 });
 
 describe('test project main-process runner', () => {
+  it('publishes a fixed snapshot and keeps appending the original node late outcome to its journal', async () => {
+    const root = createProject();
+    const pending = createDeferred();
+    const state = Object.assign(setRunnerState(join(root, 'results')), {
+      pending: pending.promise,
+      cleaned: false,
+    });
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      export default {
+        test: { teardownTimeout: 20 },
+        projects: [{ name: 'late', setup: {
+          name: 'late-cleanup', setup({ onTeardown }) {
+            onTeardown(() => { globalThis.__testProjectRunnerState.cleaned = true; });
+          },
+        } }],
+        nodes: [{ name: 'pending', execute() { return globalThis.__testProjectRunnerState.pending; } }],
+      };
+    `,
+    );
+    writeWorkflow(
+      root,
+      'case.yaml',
+      'cases:\n  - name: late outcome\n    steps:\n      - pending:\n          $:\n            timeout: 10\n',
+    );
+    const result = await runTestProject({
+      projectRoot: root,
+      resultDir: state.resultDir,
+    }).catch((error) => {
+      expect(error).toBeInstanceOf(WorkflowExecutionFailure);
+      return (error as WorkflowExecutionFailure<TestProjectRunResult>).result;
+    });
+    expect(result.collectionErrors).toEqual([]);
+    expect(result.cases).toHaveLength(1);
+    expect(result.cases[0].run?.steps[0].node).toBe('pending');
+    expect(result.status).toBe('failed');
+    const summaryBefore = readFileSync(result.summaryPath, 'utf8');
+    const summary = JSON.parse(summaryBefore);
+    expect(summary.operationLog.path).toBe('operations.jsonl');
+    const journalPath = result.operationLog!.path;
+    const before = readFileSync(journalPath, 'utf8');
+    const events = before
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    const returned = events.find((event) => event.kind === 'runner-returned');
+    expect(returned).toMatchObject({ pending: true, node: 'pending' });
+    pending.resolve();
+    await pending.promise;
+    await Promise.resolve();
+    await Promise.resolve();
+    const after = readFileSync(journalPath, 'utf8');
+    expect(after.startsWith(before)).toBe(true);
+    expect(
+      after
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line)),
+    ).toContainEqual(
+      expect.objectContaining({
+        kind: 'settled',
+        operationId: returned.operationId,
+        stepId: returned.stepId,
+        status: 'success',
+      }),
+    );
+    expect(readFileSync(result.summaryPath, 'utf8')).toBe(summaryBefore);
+    await vi.waitFor(() => expect(state.cleaned).toBe(true));
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+  it('persists the full safe plan before setup, including filtered cases and unresolved variables', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = Object.assign(setRunnerState(resultDir), {
+      planAtSetup: undefined as any,
+    });
+    const runtimeValue = 'runtime-secret-value';
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      import { readdirSync, readFileSync } from 'node:fs';
+      import { join } from 'node:path';
+      const state = globalThis.__testProjectRunnerState;
+      export default {
+        projects: [{ name: 'maps', tags: { include: ['smoke'] }, variables: { credential: '${runtimeValue}' }, setup: {
+          name: 'check-plan', setup() {
+            const run = readdirSync(state.resultDir)[0];
+            state.planAtSetup = JSON.parse(readFileSync(join(state.resultDir, run, 'plan.json'), 'utf8'));
+            throw new Error('setup stopped');
+          },
+        } }],
+        nodes: [{ name: 'body', stringInputKey: 'prompt', execute() { throw new Error('must not start'); } }],
+      };
+    `,
+    );
+    writeWorkflow(
+      root,
+      'map.yaml',
+      `cases:
+  - name: selected map
+    tags: [smoke]
+    steps: [{ body: "Use \${credential}" }]
+  - name: filtered map
+    tags: [slow]
+    steps: [{ body: hidden preview }]
+`,
+    );
+    const result = await runTestProject({ projectRoot: root, resultDir });
+    const plans = state.planAtSetup.projects[0].documents;
+    expect(plans[0].sourceYaml.value).toBe(
+      readFileSync(join(root, 'map.yaml'), 'utf8'),
+    );
+    expect(plans[0].cases.map((item: any) => item.selected)).toEqual([
+      true,
+      false,
+    ]);
+    expect(plans[0].cases[0].steps[0]).toMatchObject({
+      inputMode: 'template',
+      input: { value: { prompt: 'Use ${credential}' } },
+    });
+    expect(JSON.stringify(state.planAtSetup)).not.toContain(runtimeValue);
+    expect(result.summary).toMatchObject({ total: 1, notRun: 1, filtered: 1 });
+    expect(result.projects[0].plans).toEqual(plans);
+    expect(readdirSync(join(resultDir, result.runId))).toContain('plan.json');
+  });
+
   it('formats run ids with a local timestamp and UUID prefix', () => {
     expect(
       createTestRunId(
@@ -80,12 +211,36 @@ describe('test project main-process runner', () => {
     ).toBe('20260807090504-12345678');
   });
 
-  it('discovers only midscene.config.ts', () => {
+  it('discovers midscene.config.ts', () => {
     const root = createProject();
     const configPath = join(root, 'midscene.config.ts');
     writeFileSync(configPath, 'export default { nodes: [] };');
 
     expect(discoverTestConfig(root)).toBe(configPath);
+  });
+
+  it('discovers midscene.config.mjs', () => {
+    const root = createProject();
+    const configPath = join(root, 'midscene.config.mjs');
+    writeFileSync(configPath, 'export default { nodes: [] };');
+
+    expect(discoverTestConfig(root)).toBe(configPath);
+  });
+
+  it('requires an explicit config when both supported names exist', () => {
+    const root = createProject();
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      'export default { nodes: [] };',
+    );
+    writeFileSync(
+      join(root, 'midscene.config.mjs'),
+      'export default { nodes: [] };',
+    );
+
+    expect(() => discoverTestConfig(root)).toThrow(
+      'Pass --config <path> to select one explicitly.',
+    );
   });
 
   it.each(['js', 'cjs', 'mts', 'cts', 'tsx'])(
@@ -99,7 +254,7 @@ describe('test project main-process runner', () => {
       writeFileSync(join(root, `midscene.config.${extension}`), 'unsupported');
 
       expect(() => discoverTestConfig(root)).toThrow(
-        'Only midscene.config.ts is supported.',
+        'Only midscene.config.ts and midscene.config.mjs are supported.',
       );
     },
   );
@@ -150,7 +305,6 @@ describe('test project main-process runner', () => {
       `export default {
         projects: [{
           name: 'default',
-          platform: 'web',
           files: { include: ['missing/**/*.yaml'] },
         }],
         nodes: [],
@@ -158,6 +312,8 @@ describe('test project main-process runner', () => {
     );
 
     const result = await runTestProject({ cwd });
+
+    expect(result.projects[0]).not.toHaveProperty('platform');
 
     expect(result).toMatchObject({
       status: 'failed',
@@ -181,6 +337,13 @@ describe('test project main-process runner', () => {
       ],
     });
     const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(result.markdownPath).toBe(
+      join(dirname(result.summaryPath), 'result.md'),
+    );
+    expect(summary.markdown).toBe('result.md');
+    expect(readFileSync(result.markdownPath!, 'utf8')).toContain(
+      '## Midscene Test',
+    );
     expect(summary.projects[0]).toMatchObject({
       projectId: 'project-0',
       collectionErrors: [
@@ -215,7 +378,7 @@ describe('test project main-process runner', () => {
     writeFileSync(
       join(root, 'midscene.config.ts'),
       `export default {
-        nodes: [{ name: 'noop', execute() {} }],
+        nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
       };`,
     );
     writeWorkflow(
@@ -268,7 +431,10 @@ describe('test project main-process runner', () => {
     expect(existsSync(join(resultDir, 'documents'))).toBe(false);
     expect(existsSync(join(firstRunDir, 'documents'))).toBe(false);
     expect(existsSync(join(firstRunDir, 'project-0', 'documents'))).toBe(true);
-    expect(existsSync(join(root, 'midscene_run'))).toBe(false);
+    expect(existsSync(first.reportPath!)).toBe(true);
+    expect(first.reportPath).toBe(
+      join(root, 'midscene_run', 'report', `midscene-e2e-${first.runId}.html`),
+    );
 
     const second = await runTestProject({ projectRoot: root, resultDir });
     expect(second.runId).not.toBe(first.runId);
@@ -278,6 +444,74 @@ describe('test project main-process runner', () => {
     expect(JSON.parse(readFileSync(first.summaryPath, 'utf8')).runId).toBe(
       first.runId,
     );
+  });
+
+  it('rejects native report controls instead of silently disabling the report', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const reportDir = join(root, 'reports');
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `export default {
+        output: {
+          reportDir: './reports',
+          report: { enabled: false, fileName: 'disabled-report' },
+        },
+        nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+      };`,
+    );
+    writeWorkflow(
+      root,
+      'example.yaml',
+      'cases: [{ name: example, steps: [{ noop: run }] }]',
+    );
+
+    await expect(
+      runTestProject({ projectRoot: root, resultDir }),
+    ).rejects.toThrow('output.report is not supported');
+    expect(existsSync(join(reportDir, 'disabled-report.html'))).toBe(false);
+  });
+
+  it('does not admit compatibility setupFile/fileConcurrency in a native Project', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `const state = globalThis.__testProjectRunnerState;
+       export default {
+         projects: [{
+           name: 'with-setup',
+           setupFile: '00-setup.yaml',
+           fileConcurrency: 2,
+         }],
+         nodes: [{
+           name: 'record',
+           stringInputKey: 'value',
+           execute({ input }) { state.events.push(input.value); },
+         }],
+       };`,
+    );
+    writeWorkflow(
+      root,
+      '00-setup.yaml',
+      'cases: [{ name: setup, steps: [{ record: setup }] }]',
+    );
+    writeWorkflow(
+      root,
+      '01-first.yaml',
+      'cases: [{ name: first, steps: [{ record: first }] }]',
+    );
+    writeWorkflow(
+      root,
+      '02-second.yaml',
+      'cases: [{ name: second, steps: [{ record: second }] }]',
+    );
+
+    await expect(
+      runTestProject({ projectRoot: root, resultDir }),
+    ).rejects.toThrow('projects[0].setupFile is not supported');
+    expect(state.events).toEqual([]);
   });
 
   it('rejects the removed config root field', async () => {
@@ -305,13 +539,12 @@ describe('test project main-process runner', () => {
         export default {
           projects: [{
             name: 'web',
-            platform: 'web',
             files: {
               include: ['selected/**/*.yaml'],
               exclude: ['**/*.draft.yaml'],
             },
           }],
-          nodes: [{ name: 'noop', execute() {} }],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
     );
@@ -367,7 +600,7 @@ describe('test project main-process runner', () => {
       join(cwd, 'midscene.config.ts'),
       `
         export default {
-          nodes: [{ name: 'noop', execute() {} }],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
     );
@@ -401,7 +634,7 @@ describe('test project main-process runner', () => {
     writeFileSync(
       join(root, 'midscene.config.ts'),
       `export default {
-        nodes: [{ name: 'noop', execute() {} }],
+        nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
       };`,
     );
     writeWorkflow(
@@ -431,7 +664,7 @@ afterAll:
 
     expect(progress).toEqual([
       'midscene-test: preflighted 1 projects, 1 documents, 1 cases, 0 collection errors',
-      '[project 1/1] default (web)',
+      '[project 1/1] default',
       '  [document 1/1] progress.yaml',
       '    → beforeAll 1/1: noop',
       expect.stringMatching(/^ {4}✓ beforeAll 1\/1: noop \(\d+ ms\)$/),
@@ -461,6 +694,7 @@ afterAll:
         state.configLoads += 1;
         const node = {
           name: 'test.record',
+          stringInputKey: 'value',
           async execute({ input, context }) {
             if (context !== state.contexts.project) {
               throw new Error('case did not receive its Project context');
@@ -477,7 +711,6 @@ afterAll:
           nodes: [node],
           setup: {
             name: 'fixture',
-            platform: 'web',
             setup({ project, onTeardown }) {
               state.collectionCompletedBeforeSetup.push(
                 existsSync(join(state.resultDir, 'collection-errors')),
@@ -590,6 +823,174 @@ cases:
     });
   });
 
+  it('uses each Project schema and string shorthand throughout shared YAML lifecycles', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = Object.assign(setRunnerState(resultDir), {
+      schemas: {
+        android: z.strictObject({
+          androidText: z.string(),
+          owner: z.literal('android').default('android'),
+        }),
+        ios: z.strictObject({
+          iosText: z.string(),
+          owner: z.literal('ios').default('ios'),
+        }),
+      },
+    });
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        const setup = {
+          name: 'shared-mobile',
+          async setup({ project, onTeardown }) {
+            state.active += 1;
+            state.maxActive = Math.max(state.maxActive, state.active);
+            state.events.push('setup:' + project.name);
+            onTeardown(() => {
+              state.active -= 1;
+              state.events.push('teardown:' + project.name);
+            });
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            return { owner: project.name };
+          },
+        };
+        const localNode = (owner, key) => ({
+          name: 'test.local',
+          stringInputKey: key,
+          inputSchema: state.schemas[owner],
+          execute({ context, input, scope, case: caseContext, document }) {
+            if (context.owner !== owner || input.owner !== owner) {
+              throw new Error('Project Node or schema leaked into another Project');
+            }
+            const phase = scope === 'case' ? caseContext.phase : document.phase;
+            state.events.push(owner + ':' + phase + ':' + input[key]);
+          },
+        });
+        export default {
+          projects: [
+            { name: 'android', maxConcurrentFiles: 1, setup, nodes: [localNode('android', 'androidText')] },
+            { name: 'ios', maxConcurrentFiles: 1, setup, nodes: [localNode('ios', 'iosText')] },
+          ],
+          nodes: [
+            {
+              name: 'test.local',
+              stringInputKey: false,
+              execute() { throw new Error('Global override must not execute'); },
+            },
+            {
+              name: 'test.shared',
+              execute({ context }) { state.events.push(context.owner + ':inherited'); },
+            },
+          ],
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'shared.yaml',
+      `
+beforeAll:
+  - test.local: beforeAll
+beforeEach:
+  - test.local: beforeEach
+afterEach:
+  - test.local: afterEach
+afterAll:
+  - test.local: afterAll
+cases:
+  - name: shared case
+    steps:
+      - test.local: steps
+      - test.shared: {}
+`,
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(result).toMatchObject({
+      status: 'success',
+      exitCode: 0,
+      summary: { total: 2, passed: 2, collectionErrors: 0 },
+    });
+    expect(state.active).toBe(0);
+    expect(state.maxActive).toBe(2);
+    for (const owner of ['android', 'ios']) {
+      expect(
+        state.events.filter((event) => event.startsWith(`${owner}:`)),
+      ).toEqual([
+        `${owner}:beforeAll:beforeAll`,
+        `${owner}:beforeEach:beforeEach`,
+        `${owner}:steps:steps`,
+        `${owner}:inherited`,
+        `${owner}:afterEach:afterEach`,
+        `${owner}:afterAll:afterAll`,
+      ]);
+      expect(state.events).toContain(`setup:${owner}`);
+      expect(state.events).toContain(`teardown:${owner}`);
+    }
+  });
+
+  it('preflights Project-only Nodes without leaking them into sibling Projects', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        const setup = {
+          name: 'isolated',
+          setup({ project }) {
+            state.events.push('setup:' + project.name);
+            return { projectName: project.name };
+          },
+        };
+        export default {
+          projects: [
+            {
+              name: 'with-node', setup,
+              nodes: [{
+                name: 'project.only', stringInputKey: 'value',
+                execute({ context, input }) {
+                  state.events.push(context.projectName + ':' + input.value);
+                },
+              }],
+            },
+            { name: 'without-node', setup },
+          ],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'shared.yaml',
+      'cases: [{ name: shared, steps: [{ project.only: run }] }]',
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(result.projects[0]).toMatchObject({
+      name: 'with-node',
+      status: 'success',
+      cases: [{ status: 'success' }],
+    });
+    expect(result.projects[1]).toMatchObject({
+      name: 'without-node',
+      status: 'failed',
+      collectionErrors: [
+        {
+          error: {
+            message: expect.stringContaining('unknown node "project.only"'),
+          },
+        },
+      ],
+    });
+    expect(state.events).toEqual(['setup:with-node', 'with-node:run']);
+  });
+
   it('limits concurrent Project runtimes, keeps each Project serial, and preserves result order', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
@@ -651,7 +1052,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'concurrent-project',
-          platform: 'web',
           async setup({ project, onTeardown }) {
             state.onProjectStart(project.name);
             onTeardown(() => state.onProjectFinish(project.name));
@@ -661,13 +1061,14 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.record',
+            stringInputKey: 'value',
             async execute({ context }) {
               state.onCaseStart(context.projectName);
               try {
@@ -803,7 +1204,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'bail-project',
-          platform: 'web',
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.onProjectFinish(project.name));
@@ -812,11 +1212,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2, bail: 1 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2, bail: 1 },
           nodes: [{
             name: 'test.bail',
             async execute({ input, context }) {
@@ -910,7 +1310,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'interrupt-project',
-          platform: 'web',
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
@@ -919,11 +1318,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.interrupt',
             async execute({ input, context, signal }) {
@@ -1012,7 +1411,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'setup-failure-project',
-          platform: 'web',
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
@@ -1024,12 +1422,13 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.record',
+            stringInputKey: 'value',
             execute({ context }) {
               state.events.push('case:' + context.projectName);
             },
@@ -1087,6 +1486,176 @@ cases:
     ).toHaveLength(1);
   });
 
+  it.each([
+    'case',
+    'document',
+    'pending',
+    'recovery',
+    'document-recovery',
+  ] as const)(
+    'contains settled cleanup failures and stops new files for unresolved %s resources',
+    async (scope) => {
+      const root = createProject();
+      const resultDir = join(root, 'results');
+      const pending = createDeferred();
+      const state = Object.assign(setRunnerState(resultDir), {
+        pending: pending.promise,
+      });
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        `
+        const state = globalThis.__testProjectRunnerState;
+        export default {
+          test: { bail: 0, maxConcurrentFiles: 1, maxConcurrentProjects: 2, teardownTimeout: 20 },
+          projects: ['alpha', 'beta'].map(name => ({
+            name, retry: 2, maxConcurrentFiles: 1,
+            setup: { name: 'resources', setup({ onTeardown }) {
+              onTeardown(() => state.events.push('project-cleanup:' + name));
+              return { name };
+            } },
+          })),
+          nodes: [{ name: 'check', stringInputKey: 'phase',
+            execute({ input, context, onTeardown }) {
+              state.events.push(context.name + ':' + input.phase);
+              if (context.name === 'alpha' && input.phase === 'problem') {
+                if (['pending', 'recovery', 'document-recovery'].includes('${scope}')) {
+                  onTeardown(() => { state.events.push('node-cleanup:' + context.name); });
+                  return state.pending;
+                }
+                onTeardown(() => { throw new Error('resource cleanup failed'); });
+              }
+            },
+          }],
+        };
+      `,
+      );
+      writeWorkflow(
+        root,
+        'a-first.yaml',
+        scope === 'document' || scope === 'document-recovery'
+          ? `
+beforeAll:
+  - check:
+      phase: problem
+      $: { timeout: 10, continue-on-error: true }
+  - check: after-setup
+cases:
+  - name: first
+    steps: [{ check: first }]
+`
+          : `
+cases:
+  - name: first
+    steps:
+      - check:
+          phase: problem
+          $: { timeout: 10, continue-on-error: ${scope === 'recovery'} }
+      - check: after-problem
+  - name: second
+    steps: [{ check: second }]
+`,
+      );
+      writeWorkflow(
+        root,
+        'b-next.yaml',
+        `
+cases:
+  - name: next file
+    steps: [{ check: next-file }]
+`,
+      );
+      const unresolved = ['pending', 'recovery', 'document-recovery'].includes(
+        scope,
+      );
+      try {
+        const result = await runTestProject({
+          projectRoot: root,
+          resultDir,
+        }).catch((error) => {
+          expect(unresolved).toBe(true);
+          expect(error).toBeInstanceOf(WorkflowExecutionFailure);
+          return (error as WorkflowExecutionFailure<TestProjectRunResult>)
+            .result;
+        });
+        const [alpha, beta] = result.projects;
+        expect(result.status).toBe('failed');
+        if (unresolved) {
+          expect(result.errors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ code: 'UNRESOLVED_FILE_RESOURCES' }),
+            ]),
+          );
+        } else expect(result.errors).toBeUndefined();
+        expect(alpha.status).toBe('failed');
+        expect(alpha.cases.at(-1)).toMatchObject({
+          name: 'next file',
+          status: 'not-run',
+          notRunReason: unresolved ? 'interrupted' : 'fatal-error',
+        });
+        if (scope !== 'document-recovery')
+          expect(alpha.cases[0].attempts).toHaveLength(1);
+        const owner =
+          scope === 'document' || scope === 'document-recovery'
+            ? alpha.documents[0]
+            : alpha.cases[0].run!;
+        expect(owner.cleanup).toMatchObject({
+          status: ['pending', 'recovery', 'document-recovery'].includes(scope)
+            ? 'pending'
+            : 'failed',
+        });
+        if (scope === 'recovery' || scope === 'document-recovery') {
+          const steps =
+            scope === 'recovery'
+              ? alpha.cases[0].run!.steps
+              : alpha.documents[0].beforeAll;
+          expect(steps[0].error?.code).toBe('STEP_TIMEOUT');
+          expect(owner.executionErrors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                code: 'RESOURCE_RECOVERY_TIMEOUT',
+                details: expect.objectContaining({
+                  blockedByStepId: `${scope === 'recovery' ? alpha.cases[0].run!.runId : alpha.documents[0].documentRunId}:${scope === 'recovery' ? 'steps' : 'beforeAll'}:0`,
+                }),
+              }),
+            ]),
+          );
+          if (scope === 'recovery')
+            expect(alpha.cases[0].run!.retryDecision?.reason).toBe(
+              'cleanup-pending',
+            );
+          expect(state.events).not.toContain('alpha:after-problem');
+          expect(state.events).not.toContain('alpha:after-setup');
+        }
+        expect(beta.status).toBe(unresolved ? 'failed' : 'success');
+        expect(
+          beta.cases.every(
+            (item) => item.status === (unresolved ? 'not-run' : 'success'),
+          ),
+        ).toBe(true);
+        expect(
+          state.events.filter((event) => event === 'alpha:problem'),
+        ).toHaveLength(1);
+        expect(state.events).not.toContain('alpha:second');
+        expect(state.events).not.toContain('alpha:next-file');
+        if (unresolved) expect(state.events).not.toContain('beta:next-file');
+        else expect(state.events).toContain('beta:next-file');
+      } finally {
+        pending.resolve();
+        await pending.promise;
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+      expect(state.events).toEqual(
+        expect.arrayContaining([
+          'project-cleanup:alpha',
+          ...(unresolved ? [] : ['project-cleanup:beta']),
+        ]),
+      );
+      if (['pending', 'recovery', 'document-recovery'].includes(scope))
+        expect(state.events).toContain('node-cleanup:alpha');
+    },
+    60_000,
+  );
+
   it('contains fatal device errors within their owning Project', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
@@ -1097,7 +1666,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'fatal-device-project',
-          platform: 'web',
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
@@ -1106,11 +1674,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.device',
             execute({ input, context }) {
@@ -1178,17 +1746,16 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'document-fatal-project',
-          platform: 'web',
           setup({ project }) {
             return { projectName: project.name };
           },
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [
             {
               name: 'test.lifecycle',
@@ -1267,7 +1834,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'drain-project',
-          platform: 'web',
           async setup({ project, signal, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
@@ -1282,12 +1848,12 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
-          nodes: [{ name: 'noop', execute() {} }],
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
     );
@@ -1348,15 +1914,14 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'web-setup',
-          platform: 'web',
           setup() {
             state.events.push('project-setup');
             return {};
           },
         };
         export default {
-          projects: [{ name: 'web', platform: 'web', setup }],
-          nodes: [{ name: 'noop', execute() {} }],
+          projects: [{ name: 'web', setup }],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
     );
@@ -1383,6 +1948,66 @@ cases:
     });
   });
 
+  it('does not start any selected Project when a legacy file is mixed into a native run', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        const setup = {
+          name: 'must-not-start',
+          setup() {
+            state.events.push('project-setup');
+            return {};
+          },
+        };
+        export default {
+          projects: [
+            { name: 'native', setup, files: { include: ['native.yaml'] } },
+            { name: 'legacy', setup, files: { include: ['legacy.yaml'] } },
+          ],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'native.yaml',
+      'cases: [{ name: native, steps: [{ noop: run }] }]',
+    );
+    writeWorkflow(root, 'legacy.yaml', 'tasks: [{ name: old, flow: [] }]');
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(state.events).toEqual([]);
+    expect(result).toMatchObject({
+      status: 'failed',
+      summary: { total: 1, notRun: 1, collectionErrors: 1 },
+      projects: [
+        {
+          name: 'native',
+          cases: [
+            { status: 'not-run', notRunReason: 'project-preflight-failed' },
+          ],
+        },
+        {
+          name: 'legacy',
+          collectionErrors: [
+            {
+              error: {
+                message: expect.stringContaining(
+                  'Legacy tasks/flow YAML is not supported by midscene-test',
+                ),
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('runs projects in config order with setup once and full-case retry', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
@@ -1391,29 +2016,26 @@ cases:
       join(root, 'midscene.config.ts'),
       `
         const state = globalThis.__testProjectRunnerState;
-        const createSetup = (name, platform) => ({
+        const createSetup = (name) => ({
           name: 'setup-' + name,
-          platform,
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
-            return { projectName: project.name, platform };
+            return { projectName: project.name };
           },
         });
         export default {
           projects: [
             {
               name: 'android-smoke',
-              platform: 'android',
-              setup: createSetup('android', 'android'),
+              setup: createSetup('android'),
               tags: { include: ['android'], exclude: [] },
               retry: 1,
               variables: { value: 'android-value' },
             },
             {
               name: 'ios-regression',
-              platform: 'ios',
-              setup: createSetup('ios', 'ios'),
+              setup: createSetup('ios'),
               tags: { include: ['ios'], exclude: [] },
               retry: 0,
               variables: { value: 'ios-value' },
@@ -1499,11 +2121,20 @@ cases:
       total: 2,
       passed: 2,
       failed: 0,
+      notRun: 0,
+      passedAfterRetry: 1,
+      finalPassRate: 1,
+      firstPassRate: 0.5,
       filtered: 2,
       projectFailures: 0,
     });
 
     const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(summary.summary).toMatchObject({
+      passedAfterRetry: 1,
+      finalPassRate: 1,
+      firstPassRate: 0.5,
+    });
     expect(
       summary.projects.map((project: { name: string }) => project.name),
     ).toEqual(['android-smoke', 'ios-regression']);
@@ -1548,6 +2179,7 @@ cases:
         export default {
           nodes: [{
             name: 'report',
+            stringInputKey: 'prompt',
             execute({ case: caseContext, onTeardown }) {
               const reportPath = join(
                 state.resultDir,
@@ -1556,7 +2188,17 @@ cases:
               );
               onTeardown(() => {
                 mkdirSync(dirname(reportPath), { recursive: true });
-                writeFileSync(reportPath, '<html>report</html>');
+                writeFileSync(
+                  reportPath,
+                  '<html><script type="midscene_web_dump" data-group-id="test">' +
+                    JSON.stringify({
+                      sdkVersion: 'test',
+                      groupName: 'test',
+                      modelBriefs: [],
+                      executions: [],
+                    }) +
+                    '</script></html>',
+                );
                 return { reportPaths: [reportPath] };
               });
             },
@@ -1591,17 +2233,23 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         export default {
           nodes: [
-            { name: 'body', execute() { state.events.push('body'); } },
+            {
+              name: 'body',
+              stringInputKey: 'prompt',
+              execute() { state.events.push('body'); },
+            },
             {
               name: 'before.fail',
+              stringInputKey: 'prompt',
               execute({ onTeardown }) {
                 state.events.push('beforeAll');
-                onTeardown(() => state.events.push('node-teardown'));
+                onTeardown(() => { state.events.push('node-teardown'); });
                 throw new Error('beforeAll failed');
               },
             },
             {
               name: 'after',
+              stringInputKey: 'prompt',
               execute() { state.events.push('afterAll'); },
             },
           ],
@@ -1634,6 +2282,9 @@ afterAll:
       passed: 0,
       failed: 0,
       notRun: 2,
+      passedAfterRetry: 0,
+      finalPassRate: 0,
+      firstPassRate: 0,
       documentFailures: 1,
     });
     expect(result.cases).toEqual([
@@ -1659,8 +2310,10 @@ afterAll:
     for (const option of [
       '--parallel',
       '--max-concurrency',
-      '--retry',
       '--bail',
+      '--retry',
+      '--headed',
+      '--files',
     ]) {
       expect(() => parseTestCliArgs([option], '/workspace')).toThrow(
         `Unknown option: ${option}`,
@@ -1680,19 +2333,19 @@ afterAll:
     });
     expect(
       parseTestCliArgs(
-        ['describe-nodes', 'project', '--config', 'midscene.config.ts'],
+        ['nodes', 'project', '--config', 'midscene.config.ts'],
         '/workspace',
       ),
     ).toEqual({
-      command: 'describe-nodes',
+      command: 'nodes',
       cwd: '/workspace',
       projectRoot: '/workspace/project',
       configPath: 'midscene.config.ts',
       resultDir: undefined,
     });
     expect(() =>
-      parseTestCliArgs(['describe-nodes', '--result-dir', 'results']),
-    ).toThrow('--result-dir is not supported by describe-nodes');
+      parseTestCliArgs(['nodes', '--result-dir', 'results']),
+    ).toThrow('--result-dir is not supported by nodes');
     expect(
       parseTestCliArgs(
         ['project', '--project', 'ios', '--project', 'android'],
@@ -1705,8 +2358,22 @@ afterAll:
       resultDir: undefined,
       projectNames: ['ios', 'android'],
     });
+    expect(parseTestCliArgs(['nodes', '--project', 'ios'])).toMatchObject({
+      command: 'nodes',
+      projectNames: ['ios'],
+    });
     expect(() =>
-      parseTestCliArgs(['describe-nodes', '--project', 'ios']),
-    ).toThrow('--project is not supported by describe-nodes');
+      parseTestCliArgs(['nodes', '--project', 'ios', '--project', 'android']),
+    ).toThrow('nodes accepts only one --project name');
+  });
+
+  it('documents only the native Test command surface', async () => {
+    const io = { log: vi.fn(), error: vi.fn() };
+    expect(await runTestCli(['--help'], io)).toBe(0);
+    const help = io.log.mock.calls.flat().join('\n');
+    expect(help).toContain('native cases/steps Test projects');
+    expect(help).toContain('Legacy tasks/flow YAML');
+    expect(help).not.toContain('batch.yaml');
+    expect(help).not.toContain('Old YAML command options remain supported');
   });
 });

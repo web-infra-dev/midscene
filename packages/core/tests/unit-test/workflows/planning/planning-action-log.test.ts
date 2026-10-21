@@ -5,7 +5,7 @@ import {
   actionScrollParamSchema,
 } from '@/device';
 import type { DeviceAction, PlanningAction } from '@/types';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const actionDefinition = (
   name: string,
@@ -13,7 +13,7 @@ const actionDefinition = (
 ): DeviceAction => ({
   name,
   paramSchema,
-  call: vi.fn(),
+  call: rs.fn(),
 });
 
 describe('buildPlanningActionLog', () => {

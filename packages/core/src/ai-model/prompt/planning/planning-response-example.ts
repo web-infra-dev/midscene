@@ -21,7 +21,8 @@ type PlanningResponseCompleteExample = {
   actionOutputExample?: never;
 };
 
-type BuildPlanningResponseExampleInput = {
+export type BuildPlanningResponseExampleInput = {
+  prefix?: string;
   planning?: string;
   updateSubGoals?: PlanningSubGoalExample[];
   markSubGoalsDone?: number[];
@@ -31,9 +32,11 @@ type BuildPlanningResponseExampleInput = {
 export const buildPlanningResponseExample = (
   input: BuildPlanningResponseExampleInput,
 ) => {
-  const sections = input.planning
-    ? [`<planning>${input.planning}</planning>`]
-    : [];
+  const sections = input.prefix ? [input.prefix] : [];
+
+  if (input.planning) {
+    sections.push(`<planning>${input.planning}</planning>`);
+  }
 
   if (input.updateSubGoals?.length) {
     const subGoals = input.updateSubGoals

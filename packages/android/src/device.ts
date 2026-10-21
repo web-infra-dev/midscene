@@ -25,6 +25,7 @@ import {
   type ResolvedTextInputOptions,
   createDefaultMobileActions,
   defineAction,
+  resolveDefaultMobileScroll,
   resolveTextInputOptions,
   sendTextSequentially,
   shouldInputSequentially,
@@ -347,7 +348,7 @@ export class AndroidDevice implements AbstractInterface {
             `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
           );
         },
-        actionScroll: (param) => this.performActionScroll(param),
+        actionScroll: (param, opts) => this.performActionScroll(param, opts),
         back: () => this.backRaw(),
         home: () => this.homeRaw(),
         recentApps: () => this.recentAppsRaw(),
@@ -508,7 +509,10 @@ export class AndroidDevice implements AbstractInterface {
     }
   }
 
-  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+  private async performActionScroll(
+    param: ActionScrollParam,
+    opts?: { skipDefaultWait?: boolean },
+  ): Promise<void> {
     const element = param.locate;
     const startingPoint = element
       ? {
@@ -537,7 +541,7 @@ export class AndroidDevice implements AbstractInterface {
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
-      await sleep(500);
+      if (!opts?.skipDefaultWait) await sleep(500);
     } else {
       throw new Error(
         `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
@@ -1782,6 +1786,19 @@ ${Object.keys(size)
     await sleep(1000);
   }
 
+  // Keep default browsing gestures inside the screen and leave overlapping
+  // content between observations. Content displacement remains OS/control dependent.
+  private async scrollDefault(
+    direction: 'up' | 'down' | 'left' | 'right',
+  ): Promise<void> {
+    const { from, to } = resolveDefaultMobileScroll(
+      direction,
+      await this.size(),
+    );
+    const duration = defaultNormalScrollDuration;
+    await this.swipePoint(from, to, duration);
+  }
+
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     await this.visualActions.scrollUp(distance, startPoint);
   }
@@ -1790,6 +1807,9 @@ ${Object.keys(size)
     distance?: number,
     startPoint?: Point,
   ): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('up');
+    }
     const { height } = await this.size();
     const scrollDistance = Math.round(distance || height);
     const hasExplicitDistance = distance !== undefined;
@@ -1834,6 +1854,9 @@ ${Object.keys(size)
     distance?: number,
     startPoint?: Point,
   ): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('down');
+    }
     const { height } = await this.size();
     const scrollDistance = Math.round(distance || height);
     const hasExplicitDistance = distance !== undefined;
@@ -1878,6 +1901,9 @@ ${Object.keys(size)
     distance?: number,
     startPoint?: Point,
   ): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('left');
+    }
     const { width } = await this.size();
     const scrollDistance = Math.round(distance || width);
     const hasExplicitDistance = distance !== undefined;
@@ -1922,6 +1948,9 @@ ${Object.keys(size)
     distance?: number,
     startPoint?: Point,
   ): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('right');
+    }
     const { width } = await this.size();
     const scrollDistance = Math.round(distance || width);
     const hasExplicitDistance = distance !== undefined;
@@ -2236,9 +2265,19 @@ ${Object.keys(size)
     // Calculate the starting and ending points of the swipe
     const n = 4; // Divide the screen into n equal parts
 
-    // Set the starting point based on the swipe direction
-    const startX = Math.round(deltaX < 0 ? (n - 1) * (width / n) : width / n);
-    const startY = Math.round(deltaY < 0 ? (n - 1) * (height / n) : height / n);
+    // Set the starting point on the side the finger travels away from, so the
+    // gesture keeps (n-1)/n of the screen as usable travel. The end point is
+    // `start - delta`, so a positive delta moves the finger toward 0 and must
+    // start far from it. An axis with no delta contributes no travel, so it is
+    // centered: that coordinate only decides which scrollable container
+    // receives the gesture, and the center is the most likely to sit on the
+    // main content.
+    const axisStart = (delta: number, size: number) =>
+      delta === 0
+        ? Math.round(size / 2)
+        : Math.round(delta < 0 ? size / n : (n - 1) * (size / n));
+    const startX = axisStart(deltaX, width);
+    const startY = axisStart(deltaY, height);
 
     // Calculate the maximum swipeable range so end coordinates stay in bounds.
     // endX = startX - deltaX, endY = startY - deltaY
@@ -2278,10 +2317,9 @@ ${Object.keys(size)
       );
     }
 
-    // Calculate the end coordinates
-    // Note: For swipe, we need to reverse the delta direction
-    // because positive deltaY should scroll up (show top content),
-    // which requires swiping from bottom to top (decreasing Y)
+    // Calculate the end coordinates. The finger moves opposite to the delta:
+    // a positive deltaY (scroll down, reveal content below) drags the finger
+    // upward, which moves the content up and brings lower content into view.
     const endX = Math.round(startX - deltaX);
     const endY = Math.round(startY - deltaY);
 

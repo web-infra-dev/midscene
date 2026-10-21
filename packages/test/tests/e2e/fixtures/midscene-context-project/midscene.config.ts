@@ -1,4 +1,5 @@
 import { appendFileSync } from 'node:fs';
+import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import { defineNode } from '@midscene/test';
 import { defineTestProject } from '@midscene/test/config';
 import {
@@ -12,6 +13,10 @@ interface FixtureContext {
   uiAgent: MidsceneUIAgent;
 }
 
+const fixtureAgentClass = {
+  getTestRunnerNodeDefinitions: () => commonAgentTestRunnerNodeDefinitions,
+};
+
 const log = (value: string) => {
   const path = process.env.WORKFLOW_E2E_LOG;
   if (!path) throw new Error('WORKFLOW_E2E_LOG is required');
@@ -22,35 +27,37 @@ log(`config:${process.pid}`);
 
 const documentLifecycle = defineNode<unknown, unknown, FixtureContext>({
   name: 'document.lifecycle',
-  execute(ctx) {
-    if (ctx.scope !== 'document') {
+  stringInputKey: 'prompt',
+  execute(execution) {
+    if (execution.scope !== 'document') {
       throw new Error('document.lifecycle only supports document hooks.');
     }
-    log(`${ctx.document.phase}:${ctx.context.id}:${process.pid}`);
+    log(`${execution.document.phase}:${execution.context.id}:${process.pid}`);
   },
 });
 
 const startAttempt = defineNode<unknown, unknown, FixtureContext>({
   name: 'attempt.start',
-  execute(ctx) {
-    if (ctx.scope !== 'case') {
+  stringInputKey: 'prompt',
+  execute(execution) {
+    if (execution.scope !== 'case') {
       throw new Error('attempt.start only supports case hooks.');
     }
-    ctx.context.attempt += 1;
+    execution.context.attempt += 1;
     log(
-      `beforeEach:${ctx.context.id}:${ctx.context.attempt}:${ctx.case.runId}:${process.pid}`,
+      `beforeEach:${execution.context.id}:${execution.context.attempt}:${execution.case.runId}:${process.pid}`,
     );
   },
 });
 
 const midsceneNodes = createMidsceneNodes<FixtureContext>({
+  agentClass: fixtureAgentClass,
   getAgent: ({ context }) => context.uiAgent,
 });
 export default defineTestProject<FixtureContext>({
   nodes: [documentLifecycle, startAttempt, ...midsceneNodes],
   setup: {
     name: 'fixture',
-    platform: 'web',
     async setup({ onTeardown }) {
       const context: FixtureContext = {
         id: 1,
@@ -61,6 +68,21 @@ export default defineTestProject<FixtureContext>({
           },
           async aiAssert() {
             throw new Error('aiAssert is not used by this fixture.');
+          },
+          async aiTap() {
+            throw new Error('aiTap is not used by this fixture.');
+          },
+          async aiBoolean() {
+            throw new Error('aiBoolean is not used by this fixture.');
+          },
+          async aiNumber() {
+            throw new Error('aiNumber is not used by this fixture.');
+          },
+          async aiString() {
+            throw new Error('aiString is not used by this fixture.');
+          },
+          async aiAsk() {
+            throw new Error('aiAsk is not used by this fixture.');
           },
           async recordToReport(title, options) {
             log(

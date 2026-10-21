@@ -19,7 +19,7 @@ const createPlayer = (overrides: Record<string, any> = {}) => ({
   status: 'done',
   output: '/tmp/output.json',
   reportFile: '/tmp/report.html',
-  errorInSetup: undefined,
+  errorInSetup: undefined as Error | undefined,
   taskStatusList: [],
   run: rs.fn().mockResolvedValue(undefined),
   ...overrides,
@@ -160,6 +160,10 @@ describe('runYamlCase', () => {
         '  userAgent: file-agent',
         'android:',
         '  launch: file.app',
+        'harmony:',
+        '  launch: file.bundle/FileAbility',
+        '  autoDismissKeyboard: false',
+        '  hdcPath: /file/path/to/hdc',
         'tasks: []',
         '',
       ].join('\n'),
@@ -179,6 +183,11 @@ describe('runYamlCase', () => {
           android: {
             deviceId: 'global-device',
           },
+          harmony: {
+            deviceId: 'global-harmony-device',
+            launch: 'global.bundle/GlobalAbility',
+            autoDismissKeyboard: true,
+          },
           ios: {
             wdaHost: 'ios-wda-host',
           },
@@ -197,6 +206,12 @@ describe('runYamlCase', () => {
           android: {
             launch: 'file.app',
             deviceId: 'global-device',
+          },
+          harmony: {
+            launch: 'global.bundle/GlobalAbility',
+            autoDismissKeyboard: true,
+            hdcPath: '/file/path/to/hdc',
+            deviceId: 'global-harmony-device',
           },
           ios: {
             wdaHost: 'ios-wda-host',
@@ -221,6 +236,27 @@ describe('runYamlCase', () => {
     await expect(runYamlCase({ file: 'broken.yaml' })).rejects.toThrow(
       'setup failed',
     );
+  });
+
+  test('preserves report metadata when player cleanup rejects', async () => {
+    const cleanupError = new Error('cleanup failed');
+    const player = createPlayer();
+    player.run.mockImplementation(async () => {
+      player.status = 'error';
+      player.errorInSetup = cleanupError;
+      throw cleanupError;
+    });
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
+
+    const result = await runYamlCaseResult({ file: 'cleanup-failed.yaml' });
+
+    expect(result).toMatchObject({
+      success: false,
+      executed: true,
+      report: '/tmp/report.html',
+      resultType: 'failed',
+      error: 'cleanup failed',
+    });
   });
 
   test('throws task failures with report and output paths', async () => {

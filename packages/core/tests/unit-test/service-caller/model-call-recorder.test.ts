@@ -3,16 +3,20 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { setMidsceneRunDir } from '@midscene/shared/common';
 import { MIDSCENE_RECORD_MODEL_CALL } from '@midscene/shared/env/types';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { ModelCallRecorder } from '../../../src/ai-model/service-caller/model-call-recorder';
+
+import * as sharedCommonActual from '@midscene/shared/common' with {
+  rstest: 'importActual',
+};
 
 const runDirs: string[] = [];
 
 afterEach(async () => {
-  vi.unstubAllEnvs();
-  vi.unstubAllGlobals();
-  vi.unmock('node:fs/promises');
-  vi.unmock('@midscene/shared/common');
+  rs.unstubAllEnvs();
+  rs.unstubAllGlobals();
+  rs.unmock('node:fs/promises');
+  rs.unmock('@midscene/shared/common');
   setMidsceneRunDir(undefined);
   await Promise.all(
     runDirs.splice(0).map((dir) => rm(dir, { recursive: true })),
@@ -39,7 +43,7 @@ describe('model call recorder', () => {
   });
 
   it('uses one JSONL file when its first events are concurrent', async () => {
-    vi.stubEnv(MIDSCENE_RECORD_MODEL_CALL, 'true');
+    rs.stubEnv(MIDSCENE_RECORD_MODEL_CALL, 'true');
     const runDir = await createRunDir();
     const recorder = new ModelCallRecorder();
 
@@ -65,13 +69,13 @@ describe('model call recorder', () => {
   });
 
   it.each([
-    ['browser', () => vi.stubGlobal('window', {})],
-    ['worker', () => vi.stubGlobal('WorkerGlobalScope', class {})],
+    ['browser', () => rs.stubGlobal('window', {})],
+    ['worker', () => rs.stubGlobal('WorkerGlobalScope', class {})],
   ])('does not record in a %s runtime', async (_runtime, setupRuntime) => {
-    vi.stubEnv(MIDSCENE_RECORD_MODEL_CALL, 'true');
+    rs.stubEnv(MIDSCENE_RECORD_MODEL_CALL, 'true');
     const runDir = await createRunDir();
     setupRuntime();
-    vi.resetModules();
+    rs.resetModules();
     const { ModelCallRecorder: RuntimeRecorder } = await import(
       '../../../src/ai-model/service-caller/model-call-recorder'
     );
@@ -85,16 +89,16 @@ describe('model call recorder', () => {
   });
 
   it('continues recording after a write failure', async () => {
-    vi.stubEnv(MIDSCENE_RECORD_MODEL_CALL, 'true');
-    const appendFile = vi
+    rs.stubEnv(MIDSCENE_RECORD_MODEL_CALL, 'true');
+    const appendFile = rs
       .fn()
       .mockRejectedValueOnce(new Error('disk is full'))
       .mockResolvedValueOnce(undefined);
-    const mkdir = vi.fn().mockResolvedValue(undefined);
-    vi.resetModules();
-    vi.doMock('node:fs/promises', () => ({ appendFile, mkdir }));
-    vi.doMock('@midscene/shared/common', async (importOriginal) => ({
-      ...(await importOriginal<typeof import('@midscene/shared/common')>()),
+    const mkdir = rs.fn().mockResolvedValue(undefined);
+    rs.resetModules();
+    rs.doMock('node:fs/promises', () => ({ appendFile, mkdir }));
+    rs.doMock('@midscene/shared/common', () => ({
+      ...sharedCommonActual,
       getMidsceneRunBaseDir: () => '/tmp/midscene-model-record-test',
     }));
     const { ModelCallRecorder: RuntimeRecorder } = await import(

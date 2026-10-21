@@ -31,7 +31,7 @@ const mockState = rs.hoisted(() => ({
   reportFile: undefined as string | undefined,
 }));
 
-rs.mock('@/playwright/index', () => {
+rs.mock('@/playwright/agent', () => {
   class MockPlaywrightAgent {
     reportFile = mockState.reportFile;
 

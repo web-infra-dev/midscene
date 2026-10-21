@@ -3,24 +3,15 @@ import { resolve } from 'node:path';
 import type {
   MidsceneYamlConfigResult,
   MidsceneYamlScript,
-  MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptEnv,
-  MidsceneYamlScriptIOSEnv,
-  MidsceneYamlScriptWebEnv,
+  MidsceneYamlTargetConfig,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import merge from 'lodash.merge';
 import { createYamlPlayer } from '../create-yaml-player';
 
-export interface RunYamlCaseGlobalConfig {
-  page?: Partial<MidsceneYamlScriptWebEnv>;
-  browser?: Partial<MidsceneYamlScriptWebEnv>;
-  web?: Partial<MidsceneYamlScriptWebEnv>;
-  android?: Partial<MidsceneYamlScriptAndroidEnv>;
-  ios?: Partial<MidsceneYamlScriptIOSEnv>;
-  target?: Partial<MidsceneYamlScriptWebEnv>;
-}
+export type RunYamlCaseGlobalConfig = MidsceneYamlTargetConfig;
 
 export interface RunYamlCaseOptions {
   file: string;
@@ -56,6 +47,9 @@ const taskErrorMessage = (task: ScriptPlayerTaskStatus): string | undefined => {
 };
 
 const cloneJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+const errorMessageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 const normalizeTargetConfig = (
   config: MidsceneYamlScript | RunYamlCaseGlobalConfig,
@@ -185,13 +179,27 @@ const executeYamlCaseResult = async (
   };
 
   reportSnapshot();
+  let runError: unknown;
   try {
     await player.run();
+  } catch (error) {
+    // ScriptPlayer publishes its final execution record and report before
+    // surfacing cleanup/report failures. Preserve those artifacts in the
+    // structured result instead of replacing them with a generic worker error.
+    runError = error;
   } finally {
     reportSnapshot();
   }
 
-  return createYamlCaseResult(file, player, Date.now() - startTime);
+  const result = createYamlCaseResult(file, player, Date.now() - startTime);
+  if (runError === undefined) return result;
+
+  return {
+    ...result,
+    success: false,
+    resultType: 'failed',
+    error: result.error ?? errorMessageOf(runError),
+  };
 };
 
 /** @internal Used by the generated Rstest entry to observe player state. */

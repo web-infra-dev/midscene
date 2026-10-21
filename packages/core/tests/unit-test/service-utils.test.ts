@@ -1,5 +1,5 @@
 import { getDescribeDeepContextAreas, getRectInCrop } from '@/service/utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('service describe utils', () => {
   it('uses focused context for point targets on tall screenshots', () => {

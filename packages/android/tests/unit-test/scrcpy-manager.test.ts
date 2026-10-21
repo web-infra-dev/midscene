@@ -26,9 +26,67 @@ const dataPacket = (tag: number, pts: bigint) => ({
   data: idrFrame(tag),
   pts,
 });
+const jpegFrame = (width = 1, height = 1): Buffer =>
+  Buffer.from([
+    0xff,
+    0xd8,
+    0xff,
+    0xc0,
+    0x00,
+    0x11,
+    0x08,
+    (height >> 8) & 0xff,
+    height & 0xff,
+    (width >> 8) & 0xff,
+    width & 0xff,
+    0x03,
+    0x01,
+    0x11,
+    0x00,
+    0x02,
+    0x11,
+    0x00,
+    0x03,
+    0x11,
+    0x00,
+    0xff,
+    0xd9,
+  ]);
+
+const prepareCachedPlanningFrame = (
+  manager: ScrcpyScreenshotManager,
+  options: {
+    ptsUs?: bigint;
+    frameData?: string;
+    roundTripUs?: bigint;
+    resetVideo?: () => Promise<void>;
+  } = {},
+) => {
+  const internals = manager as any;
+  if (options.resetVideo) {
+    internals.scrcpyClient = {
+      controller: { resetVideo: options.resetVideo },
+    };
+  }
+  internals.spsHeader = Buffer.from('header');
+  internals.lastRawKeyframe = Buffer.from(options.frameData ?? 'fresh-frame');
+  internals.lastRawKeyframePtsUs = options.ptsUs ?? 2_000_000n;
+  internals.lastRawKeyframeAt = 2_000;
+  internals.lastRawKeyframeStreamEpoch = internals.streamEpoch;
+  internals.deviceClockCalibration = {
+    deviceUptimeUs: 2_000_000n,
+    hostMonotonicUs: 10_000_000n,
+    hostWallTimeMs: 2_000,
+    roundTripUs: options.roundTripUs ?? 1_544_554n,
+  };
+  rs.spyOn(internals, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+  rs.spyOn(manager, 'ensureConnected').mockResolvedValue();
+  rs.spyOn(internals, 'resetIdleTimer').mockImplementation(() => {});
+};
 
 describe('ScrcpyScreenshotManager', () => {
   afterEach(() => {
+    rs.useRealTimers();
     rs.restoreAllMocks();
   });
 
@@ -150,6 +208,9 @@ describe('ScrcpyScreenshotManager', () => {
       const secondOptions = await (manager as any).createScrcpyOptions();
 
       expect(firstOptions.value).toMatchObject({
+        control: true,
+        powerOn: false,
+        clipboardAutosync: false,
         tunnelForward: true,
         maxSize: 1024,
         videoBitRate: 8_000_000,
@@ -440,6 +501,17 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).frameFreshnessError).toBeNull();
     });
 
+    it('ignores packets delivered by an obsolete stream reader', () => {
+      const manager = createManager({} as any);
+      (manager as any).streamReaderEpoch = 2;
+
+      (manager as any).processFrame(spsPacket(), 1);
+      (manager as any).processFrame(dataPacket(0x01, 1_000_000n), 1);
+
+      expect((manager as any).spsHeader).toBeNull();
+      expect((manager as any).lastRawKeyframe).toBeNull();
+    });
+
     it('projects every barrier from one stream-epoch clock sample', async () => {
       const manager = createManager({} as any);
       const readClock = rs
@@ -511,7 +583,9 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('rejects a delayed first frame even while the new-stream startup window is active', async () => {
+      const resetVideo = rs.fn().mockResolvedValue(undefined);
       const manager = createManager({} as any);
+      (manager as any).scrcpyClient = { controller: { resetVideo } };
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('delayed-in-transport');
       (manager as any).lastRawKeyframePtsUs = 1_000_000n;
@@ -541,6 +615,7 @@ describe('ScrcpyScreenshotManager', () => {
       });
       expect(waitForNextKeyframe).toHaveBeenCalledOnce();
       expect(setBarrier).toHaveBeenCalledWith('stale planning frame');
+      expect(resetVideo).not.toHaveBeenCalled();
       expect(disconnect).toHaveBeenCalledOnce();
       expect(decode).not.toHaveBeenCalled();
     });
@@ -567,15 +642,14 @@ describe('ScrcpyScreenshotManager', () => {
           header: Buffer.from('header'),
           ptsUs: 2_000_000n,
           estimatedAgeMs: 0,
+          streamEpoch: (manager as any).streamEpoch,
           capturedAt: 2_000,
         });
       rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
-        Buffer.from('jpeg'),
+        jpegFrame(),
       );
 
-      await expect(manager.getScreenshotJpeg()).resolves.toEqual(
-        Buffer.from('jpeg'),
-      );
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
       const startupWaitMs = waitForNextKeyframe.mock.calls[0][0];
       expect(startupWaitMs).toBeGreaterThan(4_000);
       expect(startupWaitMs).toBeLessThanOrEqual(5_000);
@@ -751,6 +825,131 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).isFrameAgeAcceptable(1_000_000n)).toBe(false);
     });
 
+    it('recalibrates instead of resetting when only clock uncertainty makes a planning frame look stale', async () => {
+      const resetVideo = rs.fn().mockResolvedValue(undefined);
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, { resetVideo });
+      const readClock = rs
+        .spyOn(manager as any, 'readDeviceClockCalibration')
+        .mockResolvedValue({
+          deviceUptimeUs: 2_000_000n,
+          hostMonotonicUs: 10_000_000n,
+          hostWallTimeMs: 2_000,
+          roundTripUs: 20_000n,
+        });
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        jpegFrame(),
+      );
+
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
+
+      expect(readClock).toHaveBeenCalledTimes(1);
+      expect((manager as any).deviceClockCalibration.roundTripUs).toBe(20_000n);
+      expect(barrier).not.toHaveBeenCalled();
+      expect(resetVideo).not.toHaveBeenCalled();
+      expect(disconnect).not.toHaveBeenCalled();
+    });
+
+    it('retries a persistently uncertain clock only once per calibration lifetime', async () => {
+      const resetVideo = rs.fn().mockResolvedValue(undefined);
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, { resetVideo });
+      const readClock = rs
+        .spyOn(manager as any, 'readDeviceClockCalibration')
+        .mockResolvedValue({
+          deviceUptimeUs: 2_000_000n,
+          hostMonotonicUs: 10_000_000n,
+          hostWallTimeMs: 2_000,
+          roundTripUs: 1_600_000n,
+        });
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        jpegFrame(),
+      );
+
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
+
+      expect(readClock).toHaveBeenCalledTimes(1);
+      expect((manager as any).deviceClockCalibration.roundTripUs).toBe(
+        1_544_554n,
+      );
+      expect(barrier).not.toHaveBeenCalled();
+      expect(resetVideo).not.toHaveBeenCalled();
+      expect(disconnect).not.toHaveBeenCalled();
+    });
+
+    it('uses estimated age when the best-effort recalibration fails without changing epochs', async () => {
+      const resetVideo = rs.fn().mockResolvedValue(undefined);
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, { resetVideo });
+      const readClock = rs
+        .spyOn(manager as any, 'readDeviceClockCalibration')
+        .mockRejectedValue(new Error('ADB clock sample failed'));
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        jpegFrame(),
+      );
+
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
+
+      expect(readClock).toHaveBeenCalledOnce();
+      expect(barrier).not.toHaveBeenCalled();
+      expect(resetVideo).not.toHaveBeenCalled();
+      expect(disconnect).not.toHaveBeenCalled();
+    });
+
+    it('still rejects a genuinely stale planning frame when clock uncertainty is high', async () => {
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, {
+        ptsUs: 1_400_000n,
+        frameData: 'stale-frame',
+      });
+      const readClock = rs.spyOn(manager as any, 'readDeviceClockCalibration');
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      rs.spyOn(manager as any, 'waitForNextKeyframe').mockRejectedValue(
+        new Error('no fresh frame'),
+      );
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+
+      await expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
+        name: 'ScrcpyFreshFrameUnavailableError',
+        failureKind: 'freshness-target',
+      });
+
+      expect(readClock).not.toHaveBeenCalled();
+      expect(barrier).toHaveBeenCalledWith('stale planning frame');
+      expect(disconnect).toHaveBeenCalledOnce();
+    });
+
+    it('rejects an uncertainty-only candidate when its stream epoch changes during recalibration', async () => {
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, { frameData: 'obsolete-frame' });
+      rs.spyOn(manager as any, 'readDeviceClockCalibration').mockImplementation(
+        async () => {
+          (manager as any).advanceStreamEpoch();
+          (manager as any).deviceClockCalibration = null;
+          throw new Error('calibration invalidated');
+        },
+      );
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      const decode = rs.spyOn(manager as any, 'decodeH264ToJpeg');
+
+      await expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
+        name: 'ScrcpyFreshFrameUnavailableError',
+        message: expect.stringContaining(
+          'stream epoch changed while recalibrating',
+        ),
+      });
+
+      expect(decode).not.toHaveBeenCalled();
+      expect(disconnect).toHaveBeenCalledOnce();
+    });
+
     it('recalibrates the clock anchor when frame PTS moves backwards', async () => {
       const manager = createManager({} as any);
       (manager as any).deviceClockCalibration = {
@@ -834,11 +1033,9 @@ describe('ScrcpyScreenshotManager', () => {
       const setBarrier = rs.spyOn(manager, 'setFreshnessBarrier');
       const decode = rs
         .spyOn(manager as any, 'decodeH264ToJpeg')
-        .mockResolvedValue(Buffer.from('jpeg'));
+        .mockResolvedValue(jpegFrame());
 
-      await expect(manager.getScreenshotJpeg()).resolves.toEqual(
-        Buffer.from('jpeg'),
-      );
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
       expect(setBarrier).not.toHaveBeenCalled();
       expect(waitForNext).not.toHaveBeenCalled();
       expect(decode).toHaveBeenCalledWith(
@@ -874,11 +1071,9 @@ describe('ScrcpyScreenshotManager', () => {
       const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
       const decode = rs
         .spyOn(manager as any, 'decodeH264ToJpeg')
-        .mockResolvedValue(Buffer.from('jpeg'));
+        .mockResolvedValue(jpegFrame());
 
-      await expect(manager.getScreenshotJpeg()).resolves.toEqual(
-        Buffer.from('jpeg'),
-      );
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
       expect(barrier).toHaveBeenCalledWith('stale planning frame');
       expect((manager as any).frameFreshnessBarrierPtsUs).toBe(2_006_000n);
       expect(decode).toHaveBeenCalledWith(
@@ -912,12 +1107,10 @@ describe('ScrcpyScreenshotManager', () => {
       });
       const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
       rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
-        Buffer.from('jpeg'),
+        jpegFrame(),
       );
 
-      await expect(manager.getScreenshotJpeg()).resolves.toEqual(
-        Buffer.from('jpeg'),
-      );
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
       expect(barrier).toHaveBeenCalledWith('stale planning frame');
     });
 
@@ -957,6 +1150,82 @@ describe('ScrcpyScreenshotManager', () => {
       expect(warn).not.toHaveBeenCalled();
     });
 
+    it('updates capture state when a current deferred keyframe is decoded', async () => {
+      const manager = createManager({} as any);
+      const currentStreamEpoch = Symbol('current-stream');
+      (manager as any).streamEpoch = currentStreamEpoch;
+      (manager as any).videoResolution = { width: 1080, height: 1920 };
+      (manager as any).streamStartupWindow = {
+        deadlineAt: Date.now() + 5_000,
+      };
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        jpegFrame(1200, 2608),
+      );
+
+      await expect(
+        manager.decodeRawKeyframeToJpeg({
+          data: Buffer.from('frame'),
+          header: Buffer.from('header'),
+          streamEpoch: currentStreamEpoch,
+          capturedAt: Date.now(),
+        }),
+      ).resolves.toEqual(jpegFrame(1200, 2608));
+
+      expect(manager.getResolution()).toEqual({ width: 1200, height: 2608 });
+      expect((manager as any).hasEstablishedVideoFrame).toBe(true);
+      expect((manager as any).streamStartupWindow).toBeNull();
+    });
+
+    it('decodes an untagged keyframe without mutating current stream state', async () => {
+      const manager = createManager({} as any);
+      const startupWindow = { deadlineAt: Date.now() + 5_000 };
+      (manager as any).videoResolution = { width: 1080, height: 1920 };
+      (manager as any).streamStartupWindow = startupWindow;
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        jpegFrame(1200, 2608),
+      );
+
+      await expect(
+        manager.decodeRawKeyframeToJpeg({
+          data: Buffer.from('compatibility-frame'),
+          header: Buffer.from('header'),
+          capturedAt: Date.now(),
+        }),
+      ).resolves.toEqual(jpegFrame(1200, 2608));
+
+      expect(manager.getResolution()).toEqual({ width: 1080, height: 1920 });
+      expect((manager as any).hasEstablishedVideoFrame).toBe(false);
+      expect((manager as any).streamStartupWindow).toBe(startupWindow);
+    });
+
+    it('does not let a deferred keyframe from a replaced manager overwrite current state', async () => {
+      const oldManager = createManager({} as any);
+      const manager = createManager({} as any);
+      const startupWindow = { deadlineAt: Date.now() + 5_000 };
+      (oldManager as any).advanceStreamEpoch();
+      (manager as any).advanceStreamEpoch();
+      const oldStreamEpoch = (oldManager as any).streamEpoch;
+      expect((manager as any).streamEpoch).not.toBe(oldStreamEpoch);
+      (manager as any).videoResolution = { width: 1080, height: 1920 };
+      (manager as any).streamStartupWindow = startupWindow;
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        jpegFrame(1200, 2608),
+      );
+
+      await expect(
+        manager.decodeRawKeyframeToJpeg({
+          data: Buffer.from('old-frame'),
+          header: Buffer.from('old-header'),
+          streamEpoch: oldStreamEpoch,
+          capturedAt: Date.now(),
+        }),
+      ).resolves.toEqual(jpegFrame(1200, 2608));
+
+      expect(manager.getResolution()).toEqual({ width: 1080, height: 1920 });
+      expect((manager as any).hasEstablishedVideoFrame).toBe(false);
+      expect((manager as any).streamStartupWindow).toBe(startupWindow);
+    });
+
     it('rejects frames without PTS instead of treating arrival time as freshness', async () => {
       const manager = createManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
@@ -989,6 +1258,8 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).deviceClockCalibration = {};
       (manager as any).lastFramePtsUs = 456n;
       (manager as any).frameFreshnessError = new Error('stale');
+      (manager as any).hasEstablishedVideoFrame = true;
+      (manager as any).videoResetState = { frameAccepted: true };
       (manager as any).streamStartupWindow = {
         deadlineAt: Date.now() + 5_000,
       };
@@ -1006,6 +1277,8 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).deviceClockCalibration).toBeNull();
       expect((manager as any).lastFramePtsUs).toBeNull();
       expect((manager as any).frameFreshnessError).toBeNull();
+      expect((manager as any).hasEstablishedVideoFrame).toBe(false);
+      expect((manager as any).videoResetState).toBeNull();
       expect((manager as any).streamStartupWindow).toBeNull();
     });
 

@@ -9,6 +9,7 @@ on:
       - 'packages/computer/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - '.github/actions/ai-ci/**'
       - 'scripts/report-template-utils.mjs'
       - 'nx.json'
       - 'package.json'
@@ -21,6 +22,14 @@ on:
         required: false
         default: 'main'
         type: string
+      suite:
+        description: 'Jobs to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - drag-only
 
 permissions:
   contents: read
@@ -33,7 +42,46 @@ env:
   ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
 jobs:
+  headless-linux-drag-and-drop:
+    runs-on: ubuntu-22.04
+    env:
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
+      CI: "1"
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build computer projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache
+
+    - name: Run Linux drag-and-drop regression
+      # libnut keeps a process-wide X11 connection. Retrying after the test
+      # tears down Xvfb would terminate the worker before it can report the
+      # original assertion, so this live-display regression runs once.
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/linux-drag-and-drop.test.ts --retry 0
+      timeout-minutes: 10
+
   headless-linux-ai-todo:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -85,7 +133,9 @@ jobs:
         echo "DISPLAY=${DISPLAY:-(not set)}"
 
     - name: Run AI todo test with Xvfb
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
       timeout-minutes: 25
       id: test-ai
       continue-on-error: true
@@ -103,6 +153,7 @@ jobs:
       run: exit 1
 
   chrome-extension:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       # Env vars for computer agent (screenshot + AI actions)
@@ -144,7 +195,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Chrome extension test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
       timeout-minutes: 40
       id: test-ext
       continue-on-error: true
@@ -162,6 +215,7 @@ jobs:
       run: exit 1
 
   chrome-extension-bridge:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -201,7 +255,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Bridge mode start/stop test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
       timeout-minutes: 40
       id: test-bridge
       continue-on-error: true
@@ -219,6 +275,7 @@ jobs:
       run: exit 1
 
   chrome-extension-playground:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     strategy:
       fail-fast: false
@@ -266,7 +323,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Playground E2E test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/${{ matrix.test.file }}
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/${{ matrix.test.file }}
       timeout-minutes: 40
       id: test-playground
       continue-on-error: true
@@ -284,6 +343,7 @@ jobs:
       run: exit 1
 
   chrome-extension-recorder:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -323,7 +383,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Recorder mode tests
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-recorder.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-recorder.test.ts
       timeout-minutes: 40
       id: test-recorder
       continue-on-error: true
@@ -341,6 +403,7 @@ jobs:
       run: exit 1
 
   chrome-extension-settings:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -380,7 +443,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Settings and cross-mode tests
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-settings.test.ts
+      uses: ./.github/actions/ai-ci
+      with:
+        command: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-settings.test.ts
       timeout-minutes: 30
       id: test-settings
       continue-on-error: true

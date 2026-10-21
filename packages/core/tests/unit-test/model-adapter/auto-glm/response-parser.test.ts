@@ -2,7 +2,7 @@ import {
   extractValueAfter,
   parseAutoGLMResponse,
 } from '@/ai-model/models/auto-glm/parser';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('auto-glm response parser', () => {
   describe('extractValueAfter', () => {

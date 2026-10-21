@@ -47,7 +47,7 @@ describe('chrome extension recorder mode tests', () => {
   });
 
   it('open side panel and configure', async () => {
-    await openExtensionSidePanel(agent);
+    await openExtensionSidePanel(agent, extId);
     await agent.aiAssert(
       'The browser shows a side panel on the right side containing Midscene or Playground UI',
     );

@@ -27,17 +27,18 @@ export const buildPlanningMultiTurnExample = ({
   includeLog,
   locatePromptSpec,
   actionOutputProtocol,
+  prefix,
 }: {
   includeSubGoals: boolean;
   includeThought: boolean;
   includeLog: boolean;
   locatePromptSpec?: LocateResultPromptSpec;
   actionOutputProtocol: PlanningActionOutputProtocol;
+  prefix?: string;
 }) => {
   const buildActionOutput = actionOutputProtocol.buildActionOutput;
   const renderSubGoalsContent = (content: string, fallbackContent = '') =>
     includeSubGoals ? content : fallbackContent;
-
   const tapNameFieldActionOutputExample = buildActionOutputExample(
     createSampleTapAction('Name input field in the registration form'),
     {
@@ -80,6 +81,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Your response:**
 
 ${buildPlanningResponseExample({
+  prefix,
   planning: includeThought
     ? `The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. ${renderSubGoalsContent(
         "I'll break this down into sub-goals and start with the Name field.",
@@ -130,6 +132,7 @@ ${renderSubGoalsContent(
 **Your response:**
 
 ${buildPlanningResponseExample({
+  prefix,
   planning: includeThought
     ? `The Name field is now focused. I need to type 'John' into this field. ${renderSubGoalsContent(
         'Current sub-goal is running, will be completed after input.',
@@ -165,6 +168,7 @@ ${renderSubGoalsContent(
 **Your response:**
 
 ${buildPlanningResponseExample({
+  prefix,
   planning: includeThought
     ? `The Name field now shows 'John'. ${renderSubGoalsContent(
         'Sub-goal 1 is complete. Next, I need to fill the Email field for sub-goal 2.',
@@ -201,6 +205,7 @@ ${renderSubGoalsContent(
 **Your response:**
 
 ${buildPlanningResponseExample({
+  prefix,
   planning: includeThought
     ? `The Email field is now focused. I'll enter 'john@example.com'. ${renderSubGoalsContent(
         'After this, sub-goal 2 will be complete and my task will be done.',
@@ -236,6 +241,7 @@ ${renderSubGoalsContent(
 **Your response:**
 
 ${buildPlanningResponseExample({
+  prefix,
   planning: includeThought
     ? `Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. ${renderSubGoalsContent(
         "Sub-goal 2 is complete. The user asked me to return the filled email address, so I need to include 'john@example.com' in my response. All sub-goals are now finished.",

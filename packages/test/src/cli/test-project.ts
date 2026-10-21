@@ -1,38 +1,61 @@
 import { dirname, isAbsolute, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { require as tsxRequire } from 'tsx/cjs/api';
-import { tsImport } from 'tsx/esm/api';
 import { NodeRegistry } from '../engine/registry';
-import type { Awaitable } from '../engine/types';
-import type { WorkflowError } from '../errors';
 import type { NodeDefinition } from '../node/types';
 
-export type TestPlatform = 'web' | 'android' | 'ios' | 'computer';
+import type {
+  FileSetupDefinition,
+  JsonValue,
+  ProjectSetupDefinition,
+  ResolvedExecutionProject,
+  TestFileSelection,
+  TestTagSelection,
+} from '@midscene/core/internal/test-runner';
+export type {
+  FileSetupContext,
+  FileSetupDefinition,
+  JsonPrimitive,
+  JsonValue,
+  ProjectSetupContext,
+  ProjectSetupDefinition,
+  ProjectTeardown,
+  ProjectTeardownContext,
+  ResolvedExecutionProject,
+  TestFileSelection,
+  TestTagSelection,
+} from '@midscene/core/internal/test-runner';
+import type { ExecutionProjectDefinition as CoreExecutionProjectDefinition } from '@midscene/core/internal/test-runner';
 
-export type JsonPrimitive = string | number | boolean | null;
-export type JsonValue =
-  | JsonPrimitive
-  | readonly JsonValue[]
-  | { readonly [key: string]: JsonValue };
-
-export interface TestFileSelection {
-  include: readonly string[];
-  exclude?: readonly string[];
-}
-
-export interface TestTagSelection {
-  include?: readonly string[];
-  exclude?: readonly string[];
-}
+export type ExecutionProjectDefinition<
+  TContext = unknown,
+  TProjectContext = TContext,
+> = Omit<
+  CoreExecutionProjectDefinition<TProjectContext>,
+  'nodes' | 'fileSetup'
+> & {
+  fileSetup?: FileSetupDefinition<TContext, TProjectContext>;
+  nodes?: readonly NodeDefinition<any, any, TContext>[];
+};
 
 export interface TestOptions {
-  maxConcurrency?: number;
+  /** Global active files, including preparation and cleanup. Default 1; null is unlimited. */
+  maxConcurrentFiles?: number | null;
+  /** Projects from setup through completed cleanup. Default 1; null is unlimited. */
+  maxConcurrentProjects?: number | null;
+  /** Milliseconds for each Project setup/fileSetup, including device waits. */
+  setupTimeout?: number;
+  /** Milliseconds per cleanup scope; shared deadline during abnormal shutdown. */
+  teardownTimeout?: number;
   bail?: number;
   testTimeout?: number;
 }
 
 export interface ResolvedTestOptions {
-  maxConcurrency: number;
+  maxConcurrentFiles: number | null;
+  maxConcurrentProjects: number | null;
+  setupTimeout: number;
+  teardownTimeout: number;
   bail: number;
   testTimeout: number;
 }
@@ -45,63 +68,34 @@ export interface ResolvedTestOutputDefinition {
   reportDir: string;
 }
 
-export interface ExecutionProjectDefinition<TProjectContext = unknown> {
-  name: string;
-  platform: TestPlatform;
-  setup?: ProjectSetupDefinition<TProjectContext>;
-  files?: TestFileSelection;
-  tags?: TestTagSelection;
-  retry?: number;
-  variables?: Readonly<Record<string, JsonValue>>;
-}
-
-export interface ResolvedExecutionProject<TProjectContext = unknown> {
-  readonly projectId: string;
-  readonly name: string;
-  readonly platform: TestPlatform;
-  readonly setup?: ProjectSetupDefinition<TProjectContext>;
-  readonly files?: TestFileSelection;
-  readonly tags: Readonly<Required<TestTagSelection>>;
-  readonly retry: number;
-  readonly variables: Readonly<Record<string, JsonValue>>;
-}
-
 const projectIdFromIndex = (index: number): string => `project-${index}`;
 
-export interface ProjectSetupContext<TProjectContext = unknown> {
-  readonly project: ResolvedExecutionProject<TProjectContext>;
-  readonly env: Readonly<NodeJS.ProcessEnv>;
-  readonly signal: AbortSignal;
-  onTeardown(teardown: ProjectTeardown<TProjectContext>): void;
-}
-
-export interface ProjectTeardownContext<TProjectContext = unknown> {
-  readonly project: ResolvedExecutionProject<TProjectContext>;
-  readonly context: TProjectContext | undefined;
-  readonly status: 'success' | 'failed';
-  readonly setupError?: WorkflowError;
-}
-
-export type ProjectTeardown<TProjectContext = unknown> = (
-  ctx: ProjectTeardownContext<TProjectContext>,
-) => Awaitable<void>;
-
-export interface ProjectSetupDefinition<TProjectContext = unknown> {
-  name: string;
-  platform?: TestPlatform | readonly TestPlatform[];
-  setup(ctx: ProjectSetupContext<TProjectContext>): Awaitable<TProjectContext>;
-}
-
-export interface TestProjectDefinition<TContext = undefined> {
-  setup?: ProjectSetupDefinition<TContext>;
-  projects?: readonly ExecutionProjectDefinition<TContext>[];
+export interface TestProjectDefinition<
+  TContext = undefined,
+  TProjectContext = TContext,
+> {
+  setup?: ProjectSetupDefinition<TProjectContext>;
+  fileSetup?: FileSetupDefinition<TContext, TProjectContext>;
+  projects?: readonly ExecutionProjectDefinition<TContext, TProjectContext>[];
   test?: TestOptions;
   output?: TestOutputDefinition;
-  nodes: readonly NodeDefinition<any, any, TContext>[];
+  nodes?: readonly NodeDefinition<any, any, TContext>[];
 }
 
-export interface LoadedTestProject<TContext = undefined> {
-  projects: readonly ResolvedExecutionProject<TContext>[];
+export interface LoadedExecutionProject<
+  TContext = unknown,
+  TProjectContext = TContext,
+> extends ResolvedExecutionProject<TProjectContext> {
+  readonly fileSetup?: FileSetupDefinition<TContext, TProjectContext>;
+  /** Effective Nodes: globals plus project-local overrides. */
+  readonly nodes: NodeRegistry;
+}
+
+export interface LoadedTestProject<
+  TContext = undefined,
+  TProjectContext = TContext,
+> {
+  projects: readonly LoadedExecutionProject<TContext, TProjectContext>[];
   hasExplicitProjects: boolean;
   test: ResolvedTestOptions;
   output: ResolvedTestOutputDefinition;
@@ -109,13 +103,20 @@ export interface LoadedTestProject<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext> | undefined;
 }
 
-export const defineTestProject = <TContext = undefined>(
-  definition: TestProjectDefinition<TContext>,
-): TestProjectDefinition<TContext> => definition;
+export const defineTestProject = <
+  TContext = undefined,
+  TProjectContext = TContext,
+>(
+  definition: TestProjectDefinition<TContext, TProjectContext>,
+): TestProjectDefinition<TContext, TProjectContext> => definition;
 
 export const defineProjectSetup = <TProjectContext>(
   definition: ProjectSetupDefinition<TProjectContext>,
 ): ProjectSetupDefinition<TProjectContext> => definition;
+
+export const defineFileSetup = <TContext, TProjectContext = unknown>(
+  definition: FileSetupDefinition<TContext, TProjectContext>,
+): FileSetupDefinition<TContext, TProjectContext> => definition;
 
 const getDefaultExport = (loaded: unknown, absolutePath: string): unknown => {
   if (typeof loaded === 'object' && loaded !== null && 'default' in loaded) {
@@ -219,6 +220,7 @@ export const validateTestFileSelection = (
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
   }
+  rejectUnknownKeys(value, ['include', 'exclude'], label);
   const include = validatePatterns(value.include, 'include', label);
   const exclude =
     value.exclude === undefined
@@ -325,46 +327,22 @@ const validateVariables = (
   return deepFreezeJson(value as Record<string, JsonValue>);
 };
 
-const platforms = new Set<TestPlatform>(['web', 'android', 'ios', 'computer']);
-
-const validatePlatform = (value: unknown, label: string): TestPlatform => {
-  if (typeof value !== 'string' || !platforms.has(value as TestPlatform)) {
-    throw new TypeError(
-      `Midscene config ${label} must be one of web, android, ios, computer.`,
-    );
-  }
-  return value as TestPlatform;
-};
-
-const validateProjectSetup = <TProjectContext>(
+const validateSetup = <TSetup>(
   value: unknown,
-  projectPlatform: TestPlatform,
   label: string,
-): ProjectSetupDefinition<TProjectContext> | undefined => {
+): TSetup | undefined => {
   if (value === undefined) return undefined;
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
   }
+  rejectUnknownKeys(value, ['name', 'setup'], label);
   if (typeof value.name !== 'string' || value.name.trim().length === 0) {
     throw new TypeError(`Midscene config ${label}.name must be non-empty.`);
   }
   if (typeof value.setup !== 'function') {
     throw new TypeError(`Midscene config ${label}.setup must be a function.`);
   }
-  const supported =
-    value.platform === undefined
-      ? undefined
-      : Array.isArray(value.platform)
-        ? value.platform.map((item, index) =>
-            validatePlatform(item, `${label}.platform[${index}]`),
-          )
-        : [validatePlatform(value.platform, `${label}.platform`)];
-  if (supported && !supported.includes(projectPlatform)) {
-    throw new TypeError(
-      `Midscene config ${label} does not support project platform "${projectPlatform}".`,
-    );
-  }
-  return value as unknown as ProjectSetupDefinition<TProjectContext>;
+  return value as unknown as TSetup;
 };
 
 const validatePositiveInteger = (
@@ -393,49 +371,57 @@ const validateNonNegativeInteger = (
   return value as number;
 };
 
-const validateExecutionProjects = <TProjectContext>(
+const validateConcurrency = (value: unknown, label: string): number | null => {
+  if (value === null) return null;
+  return validatePositiveInteger(value, 1, label);
+};
+
+const validateFileConcurrency = (
+  maxConcurrentFiles: number,
+  fileSetup: unknown,
+  label: string,
+): void => {
+  if (maxConcurrentFiles > 1 && !fileSetup) {
+    throw new TypeError(
+      `Midscene config ${label}.fileSetup is required when the effective maxConcurrentFiles is greater than 1.`,
+    );
+  }
+};
+
+const validateExecutionProjects = <TContext, TProjectContext>(
   value: unknown,
   defaultSetup: unknown,
+  defaultFileSetup: unknown,
+  globalNodes: NodeRegistry,
+  test: ResolvedTestOptions,
 ): {
-  projects: readonly ResolvedExecutionProject<TProjectContext>[];
+  projects: readonly LoadedExecutionProject<TContext, TProjectContext>[];
   hasExplicitProjects: boolean;
 } => {
   if (value === undefined) {
-    let platform: TestPlatform = 'web';
-    if (defaultSetup !== undefined) {
-      if (!isRecord(defaultSetup)) {
-        throw new TypeError('Midscene config setup must be an object.');
-      }
-      if (Array.isArray(defaultSetup.platform)) {
-        if (defaultSetup.platform.length !== 1) {
-          throw new TypeError(
-            'Midscene config setup.platform must select exactly one platform when projects is omitted.',
-          );
-        }
-        platform = validatePlatform(
-          defaultSetup.platform[0],
-          'setup.platform[0]',
-        );
-      } else if (defaultSetup.platform !== undefined) {
-        platform = validatePlatform(defaultSetup.platform, 'setup.platform');
-      }
-    }
-    const setup = validateProjectSetup<TProjectContext>(
+    const setup = validateSetup<ProjectSetupDefinition<TProjectContext>>(
       defaultSetup,
-      platform,
       'setup',
     );
+    const fileSetup = validateSetup<
+      FileSetupDefinition<TContext, TProjectContext>
+    >(defaultFileSetup, 'fileSetup');
+    const maxConcurrentFiles =
+      test.maxConcurrentFiles ?? Number.POSITIVE_INFINITY;
+    validateFileConcurrency(maxConcurrentFiles, fileSetup, 'default');
     return {
       hasExplicitProjects: false,
       projects: Object.freeze([
         Object.freeze({
           projectId: projectIdFromIndex(0),
           name: 'default',
-          platform,
           ...(setup ? { setup } : {}),
+          ...(fileSetup ? { fileSetup } : {}),
+          maxConcurrentFiles,
           tags: Object.freeze({ include: [], exclude: [] }),
           retry: 0,
           variables: Object.freeze({}),
+          nodes: new NodeRegistry(globalNodes.definitions()),
         }),
       ]),
     };
@@ -443,6 +429,11 @@ const validateExecutionProjects = <TProjectContext>(
   if (defaultSetup !== undefined) {
     throw new TypeError(
       'Midscene config setup cannot be used together with projects. Move setup to projects[].setup.',
+    );
+  }
+  if (defaultFileSetup !== undefined) {
+    throw new TypeError(
+      'Midscene config fileSetup cannot be used together with projects. Move fileSetup to projects[].fileSetup.',
     );
   }
   if (!Array.isArray(value) || value.length === 0) {
@@ -458,7 +449,17 @@ const validateExecutionProjects = <TProjectContext>(
     }
     rejectUnknownKeys(
       candidate,
-      ['name', 'platform', 'setup', 'files', 'tags', 'retry', 'variables'],
+      [
+        'name',
+        'setup',
+        'fileSetup',
+        'maxConcurrentFiles',
+        'nodes',
+        'files',
+        'tags',
+        'retry',
+        'variables',
+      ],
       label,
     );
     if (
@@ -473,12 +474,36 @@ const validateExecutionProjects = <TProjectContext>(
       );
     }
     names.add(candidate.name);
-    const platform = validatePlatform(candidate.platform, `${label}.platform`);
     const files = validateTestFileSelection(candidate.files, `${label}.files`);
+    if (candidate.nodes !== undefined && !Array.isArray(candidate.nodes)) {
+      throw new TypeError(`Midscene config ${label}.nodes must be an array.`);
+    }
+    const localNodes = new NodeRegistry(
+      candidate.nodes as NodeDefinition[] | undefined,
+    );
+    const nodes = new NodeRegistry([
+      ...globalNodes.definitions().filter((node) => !localNodes.has(node.name)),
+      ...localNodes.definitions(),
+    ]);
+    const fileSetup = validateSetup<
+      FileSetupDefinition<TContext, TProjectContext>
+    >(candidate.fileSetup, `${label}.fileSetup`);
+    const globalFileLimit = test.maxConcurrentFiles ?? Number.POSITIVE_INFINITY;
+    const maxConcurrentFiles = Math.min(
+      globalFileLimit,
+      validatePositiveInteger(
+        candidate.maxConcurrentFiles,
+        globalFileLimit,
+        `${label}.maxConcurrentFiles`,
+      ),
+    );
+    validateFileConcurrency(maxConcurrentFiles, fileSetup, label);
     return Object.freeze({
       projectId: projectIdFromIndex(index),
       name: candidate.name,
-      platform,
+      nodes,
+      ...(fileSetup ? { fileSetup } : {}),
+      maxConcurrentFiles,
       ...(files ? { files } : {}),
       tags: validateTagSelection(candidate.tags, `${label}.tags`),
       retry: validateNonNegativeInteger(candidate.retry, 0, `${label}.retry`),
@@ -486,9 +511,8 @@ const validateExecutionProjects = <TProjectContext>(
       ...(candidate.setup === undefined
         ? {}
         : {
-            setup: validateProjectSetup<TProjectContext>(
+            setup: validateSetup<ProjectSetupDefinition<TProjectContext>>(
               candidate.setup,
-              platform,
               `${label}.setup`,
             )!,
           }),
@@ -497,16 +521,54 @@ const validateExecutionProjects = <TProjectContext>(
   return { projects: Object.freeze(projects), hasExplicitProjects: true };
 };
 
-const validateTestOptions = (value: unknown): ResolvedTestOptions => {
+const validateTestOptions = (
+  value: unknown,
+  hasExplicitProjects: boolean,
+): ResolvedTestOptions => {
   if (value !== undefined && !isRecord(value)) {
     throw new TypeError('Midscene config test must be an object.');
   }
-  const candidate = value ?? {};
+  const candidate = (value ?? {}) as Record<string, unknown>;
+  if (candidate.maxConcurrency !== undefined) {
+    const limit =
+      typeof candidate.maxConcurrency === 'number' &&
+      Number.isInteger(candidate.maxConcurrency) &&
+      candidate.maxConcurrency > 0
+        ? candidate.maxConcurrency
+        : 1;
+    throw new TypeError(
+      [
+        'Midscene config test.maxConcurrency is no longer supported.',
+        'It controlled project concurrency, not file concurrency. Remove it and use:',
+        `  test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${hasExplicitProjects ? limit : 1} }`,
+        hasExplicitProjects
+          ? '  Set projects[].maxConcurrentFiles to 1 to keep files sequential within each project.'
+          : '  The implicit default project keeps running files sequentially.',
+        hasExplicitProjects
+          ? 'For parallel files, configure fileSetup and raise both test.maxConcurrentFiles and projects[].maxConcurrentFiles.'
+          : 'For parallel files, configure fileSetup and raise test.maxConcurrentFiles.',
+        'Migration guide: https://midscenejs.com/midscene-test/configuration.html#existing-configurations',
+      ].join('\n'),
+    );
+  }
   return Object.freeze({
-    maxConcurrency: validatePositiveInteger(
-      (candidate as Record<string, unknown>).maxConcurrency,
-      1,
-      'test.maxConcurrency',
+    maxConcurrentFiles: validateConcurrency(
+      candidate.maxConcurrentFiles,
+      'test.maxConcurrentFiles',
+    ),
+    maxConcurrentProjects: validateConcurrency(
+      candidate.maxConcurrentProjects,
+      'test.maxConcurrentProjects',
+    ),
+    setupTimeout: validatePositiveInteger(
+      candidate.setupTimeout,
+      120_000,
+      'test.setupTimeout',
+    ),
+    teardownTimeout: validatePositiveInteger(
+      candidate.teardownTimeout,
+      30_000,
+      'test.teardownTimeout',
     ),
     bail: validateNonNegativeInteger(
       (candidate as Record<string, unknown>).bail,
@@ -548,17 +610,14 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
   });
 };
 
-const validateTestProjectDefinition = <TContext>(
+const validateTestProjectDefinition = <TContext, TProjectContext = TContext>(
   definition: unknown,
-): LoadedTestProject<TContext> => {
-  if (
-    !isRecord(definition) ||
-    !('nodes' in definition) ||
-    !Array.isArray(definition.nodes)
-  ) {
-    throw new TypeError(
-      'Midscene config must default export an object with a nodes array.',
-    );
+): LoadedTestProject<TContext, TProjectContext> => {
+  if (!isRecord(definition)) {
+    throw new TypeError('Midscene config must default export an object.');
+  }
+  if (definition.nodes !== undefined && !Array.isArray(definition.nodes)) {
+    throw new TypeError('Midscene config nodes must be an array.');
   }
   if ('setupWorkflow' in definition) {
     throw new TypeError(
@@ -587,17 +646,26 @@ const validateTestProjectDefinition = <TContext>(
   }
   rejectUnknownKeys(
     definition,
-    ['setup', 'projects', 'test', 'output', 'nodes'],
+    ['setup', 'fileSetup', 'projects', 'test', 'output', 'nodes'],
     'root',
   );
-  const resolvedProjects = validateExecutionProjects<TContext>(
+  const nodes = new NodeRegistry(
+    definition.nodes as NodeDefinition[] | undefined,
+  );
+  const test = validateTestOptions(
+    definition.test,
+    definition.projects !== undefined,
+  );
+  const resolvedProjects = validateExecutionProjects<TContext, TProjectContext>(
     definition.projects,
     definition.setup,
+    definition.fileSetup,
+    nodes,
+    test,
   );
-  const nodes = new NodeRegistry(definition.nodes as NodeDefinition[]);
   return {
     ...resolvedProjects,
-    test: validateTestOptions(definition.test),
+    test,
     output: validateOutput(definition.output),
     nodes,
     resolveNode: (name) =>
@@ -605,13 +673,14 @@ const validateTestProjectDefinition = <TContext>(
   };
 };
 
-const assertTypeScriptConfig = (absolutePath: string): void => {
-  if (!absolutePath.endsWith('.ts')) {
+const assertSupportedConfig = (absolutePath: string): '.ts' | '.mjs' => {
+  if (!absolutePath.endsWith('.ts') && !absolutePath.endsWith('.mjs')) {
     const extension = absolutePath.match(/(\.[^./\\]+)$/)?.[1] ?? '(none)';
     throw new TypeError(
-      `Unsupported Midscene config extension: ${extension}. Supported extension: .ts.`,
+      `Unsupported Midscene config extension: ${extension}. Supported extensions: .ts, .mjs.`,
     );
   }
+  return absolutePath.endsWith('.mjs') ? '.mjs' : '.ts';
 };
 
 const canRetryWithCjsLoader = (error: unknown): error is Error => {
@@ -626,26 +695,34 @@ const canRetryWithCjsLoader = (error: unknown): error is Error => {
   );
 };
 
-export async function loadTestProject<TContext = undefined>(
-  configPath?: string,
-): Promise<LoadedTestProject<TContext>> {
+export async function loadTestProject<
+  TContext = undefined,
+  TProjectContext = TContext,
+>(configPath?: string): Promise<LoadedTestProject<TContext, TProjectContext>> {
   if (!configPath) {
-    return validateTestProjectDefinition<TContext>({
+    return validateTestProjectDefinition<TContext, TProjectContext>({
       nodes: [],
     });
   }
 
   const absolutePath = resolve(configPath);
-  assertTypeScriptConfig(absolutePath);
+  const extension = assertSupportedConfig(absolutePath);
   let loaded: unknown;
   try {
-    loaded = await tsImport(pathToFileURL(absolutePath).href, {
-      parentURL: pathToFileURL(`${dirname(absolutePath)}${sep}`).href,
-      tsconfig: false,
-    });
+    if (extension === '.mjs') {
+      loaded = await import(pathToFileURL(absolutePath).href);
+    } else {
+      // Select tsx's ESM entry even when this loader is built as CommonJS.
+      // Its CommonJS entry can resolve the async loader relative to the wrong directory.
+      const { tsImport } = await import('tsx/esm/api');
+      loaded = await tsImport(pathToFileURL(absolutePath).href, {
+        parentURL: pathToFileURL(`${dirname(absolutePath)}${sep}`).href,
+        tsconfig: false,
+      });
+    }
   } catch (error) {
     try {
-      if (!canRetryWithCjsLoader(error)) throw error;
+      if (extension === '.mjs' || !canRetryWithCjsLoader(error)) throw error;
       loaded = tsxRequire(absolutePath, pathToFileURL(absolutePath));
     } catch (fallbackError) {
       const message =
@@ -657,7 +734,7 @@ export async function loadTestProject<TContext = undefined>(
     }
   }
 
-  return validateTestProjectDefinition<TContext>(
+  return validateTestProjectDefinition<TContext, TProjectContext>(
     getDefaultExport(loaded, absolutePath),
   );
 }

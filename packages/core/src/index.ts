@@ -17,6 +17,7 @@ export {
   type TUserPrompt,
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
+  type ConnectivityCheckResultItem,
 } from './ai-model/index';
 
 export {
@@ -51,6 +52,9 @@ export type {
   MidsceneYamlScriptWebEnv,
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptIOSEnv,
+  MidsceneYamlScriptHarmonyEnv,
+  MidsceneYamlTargetConfig,
+  MidsceneYamlTargetKey,
   MidsceneYamlScriptEnv,
   LocateOption,
   DetailedLocateParam,
@@ -111,9 +115,17 @@ export { ReportGenerator, nullReportGenerator } from './report-generator';
 export {
   collectDedupedExecutions,
   ReportMergingTool,
+  TestRunReportAssembler,
   dedupeExecutionsKeepLatest,
   splitReportHtmlByExecution,
 } from './report';
+export type * from './test-run-report';
+export { TEST_RUN_REPORT_SCRIPT_TYPE } from './test-run-report';
+export type * from './test-run-health';
+export {
+  calculateTestRunHealth,
+  classifyTestRunCase,
+} from './test-run-health';
 export {
   createReportCliCommands,
   reportFileToMarkdown,

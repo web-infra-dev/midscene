@@ -2,6 +2,7 @@ import {
   DEFAULT_MODEL_CONFIG_KEYS,
   type DEFAULT_MODEL_CONFIG_KEYS_LEGACY,
   INSIGHT_MODEL_CONFIG_KEYS,
+  LOCATE_MODEL_CONFIG_KEYS,
   PLANNING_MODEL_CONFIG_KEYS,
 } from './constants';
 import {
@@ -31,7 +32,7 @@ import { initDebugConfig } from './init-debug';
 
 declare const __VERSION__: string | undefined;
 
-const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-common-config.html';
+const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-api-setup.html';
 
 const getCurrentVersion = (): string => {
   if (typeof __VERSION__ !== 'undefined' && __VERSION__) {
@@ -45,12 +46,14 @@ const getInvalidModelFamilyMessage = (modelFamily: TModelFamily): string =>
   `Invalid MIDSCENE_MODEL_FAMILY value: ${modelFamily}. Current version v${getCurrentVersion()} accepts the following model families: ${MODEL_FAMILY_VALUES.join(', ')}. You can also visit ${MODEL_CONFIG_DOC_URL} for the latest configuration information.`;
 
 type TModelConfigKeys =
+  | typeof LOCATE_MODEL_CONFIG_KEYS
   | typeof INSIGHT_MODEL_CONFIG_KEYS
   | typeof PLANNING_MODEL_CONFIG_KEYS
   | typeof DEFAULT_MODEL_CONFIG_KEYS
   | typeof DEFAULT_MODEL_CONFIG_KEYS_LEGACY;
 
 const KEYS_MAP: Record<TIntent, TModelConfigKeys> = {
+  locate: LOCATE_MODEL_CONFIG_KEYS,
   insight: INSIGHT_MODEL_CONFIG_KEYS,
   planning: PLANNING_MODEL_CONFIG_KEYS,
   default: DEFAULT_MODEL_CONFIG_KEYS,
@@ -246,16 +249,47 @@ export const parseOpenaiSdkConfig = ({
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
+    protocol: (() => {
+      const value = provider[keys.protocol];
+      if (value === undefined) {
+        return undefined;
+      }
+      if (value === 'openai-chat' || value === 'openai-responses') {
+        return value;
+      }
+      throw new Error(
+        `${keys.protocol} must be one of: openai-chat, openai-responses. Got: ${value}`,
+      );
+    })(),
     modelFamily,
     uiTarsModelVersion,
     modelName: modelName!,
     modelDescription,
     intent: '-' as any,
     slot: '-' as any,
-    timeout: provider[keys.timeout]
-      ? Number(provider[keys.timeout])
-      : undefined,
+    timeout: (() => {
+      const value = provider[keys.timeout];
+      if (value === undefined) {
+        return undefined;
+      }
+      const timeout = Number(value);
+      if (value.trim() === '' || !Number.isFinite(timeout) || timeout < 0) {
+        throw new Error(
+          `${keys.timeout} must be a finite number greater than or equal to 0, got ${JSON.stringify(value)}`,
+        );
+      }
+      return timeout;
+    })(),
     temperature,
+    streamMode: (() => {
+      const mode = provider[keys.streamMode]?.trim() ?? 'non-stream';
+      if (mode === 'stream' || mode === 'non-stream') {
+        return mode;
+      }
+      throw new Error(
+        `Invalid ${keys.streamMode}: "${mode}". Expected "stream" or "non-stream".`,
+      );
+    })(),
     retryCount: (() => {
       if (!provider[keys.retryCount]) return 1;
       const val = Number(provider[keys.retryCount]);
@@ -335,12 +369,12 @@ export const decideModelConfigFromIntentConfig = (
 
   assert(
     finalResult.openaiBaseURL,
-    `failed to get base URL of model (intent=${intent}). See https://midscenejs.com/model-strategy`,
+    `failed to get base URL of model (intent=${intent}). See https://midscenejs.com/model-api-setup`,
   );
 
   if (!finalResult.modelName) {
     console.warn(
-      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://midscenejs.com/model-strategy`,
+      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://midscenejs.com/model-api-setup`,
     );
   }
 

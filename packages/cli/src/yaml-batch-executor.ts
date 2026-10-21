@@ -4,9 +4,7 @@ import type {
   MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
   MidsceneYamlScript,
-  MidsceneYamlScriptAndroidEnv,
-  MidsceneYamlScriptIOSEnv,
-  MidsceneYamlScriptWebEnv,
+  MidsceneYamlTargetConfig,
 } from '@midscene/core';
 import { parseYamlScript, resolveWebTarget } from '@midscene/core/yaml';
 import { getDebug } from '@midscene/shared/logger';
@@ -23,8 +21,12 @@ import puppeteer, {
   type Browser,
   type BrowserContext,
   type BrowserContextOptions,
+  type Page,
 } from 'puppeteer';
-import { createYamlPlayer } from './create-yaml-player';
+import {
+  type CreateYamlPlayerOptions,
+  createYamlPlayer,
+} from './create-yaml-player';
 import {
   createExecutedYamlResult,
   createNotExecutedYamlResult,
@@ -79,14 +81,9 @@ export interface BatchRunnerConfig {
   summary: string;
   /** Share one BrowserContext across Puppeteer Web yaml files. */
   shareBrowserContext: boolean;
-  globalConfig?: {
-    page?: Partial<MidsceneYamlScriptWebEnv>;
-    browser?: Partial<MidsceneYamlScriptWebEnv>;
-    web?: Partial<MidsceneYamlScriptWebEnv>;
-    android?: Partial<MidsceneYamlScriptAndroidEnv>;
-    ios?: Partial<MidsceneYamlScriptIOSEnv>;
-    target?: Partial<MidsceneYamlScriptWebEnv>;
-  };
+  /** Reuse one Page across sequential Puppeteer Web yaml files. */
+  reusePage?: boolean;
+  globalConfig?: MidsceneYamlTargetConfig;
   headed: boolean;
   keepWindow: boolean;
   dotenvOverride: boolean;
@@ -99,12 +96,7 @@ interface BatchFileContext {
   sourceConfig: MidsceneYamlScript;
   executionConfig: MidsceneYamlScript;
   outputPath?: string;
-  options: {
-    headed?: boolean;
-    keepWindow?: boolean;
-    browser?: Browser;
-    browserContext?: BrowserContext;
-  };
+  options: CreateYamlPlayerOptions;
 }
 
 type BatchRuntimeTarget =
@@ -229,16 +221,31 @@ export interface YamlBatchOccurrenceResult {
 
 interface SharedBrowserRuntime {
   browserContext: BrowserContext;
+  page?: Page;
 }
 
 const createSharedBrowserRuntime = async (
   browser: Browser,
   browserContextOptions?: BrowserContextOptions,
+  reusePage = false,
 ): Promise<SharedBrowserRuntime> => {
   const browserContext = await browser.createBrowserContext(
     browserContextOptions,
   );
-  return { browserContext };
+  try {
+    const page = reusePage ? await browserContext.newPage() : undefined;
+    return { browserContext, page };
+  } catch (error) {
+    try {
+      await browserContext.close();
+    } catch (cleanupError) {
+      batchWarning(
+        'failed to close the shared browser context after page creation failed; preserving the original error',
+        cleanupError,
+      );
+    }
+    throw error;
+  }
 };
 
 export interface RunYamlBatchOptions {
@@ -272,6 +279,12 @@ class YamlBatchExecutor {
     }
     if (new Set(this.caseIds).size !== this.caseIds.length) {
       throw new Error('Batch occurrence case IDs must be unique');
+    }
+    if (config.reusePage && !config.shareBrowserContext) {
+      throw new Error('reusePage requires shareBrowserContext: true');
+    }
+    if (config.reusePage && config.concurrent !== 1) {
+      throw new Error('reusePage requires concurrent: 1');
     }
   }
 
@@ -406,11 +419,15 @@ class YamlBatchExecutor {
           sharedRuntime.current = await createSharedBrowserRuntime(
             browser,
             browserContextOptions,
+            this.config.reusePage,
           );
           for (const context of allContexts) {
             context.options.browser = browser;
             context.options.browserContext =
               sharedRuntime.current.browserContext;
+            if (sharedRuntime.current.page) {
+              context.options.page = sharedRuntime.current.page;
+            }
           }
         };
 
@@ -490,7 +507,7 @@ class YamlBatchExecutor {
   private async createFileContext(
     file: string,
     fileConfig: MidsceneYamlScript,
-    options: { headed?: boolean; keepWindow?: boolean; browser?: Browser },
+    options: CreateYamlPlayerOptions,
     caseId: string,
   ): Promise<BatchFileContext> {
     const { globalConfig } = this.config;

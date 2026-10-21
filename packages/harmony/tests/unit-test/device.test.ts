@@ -1,4 +1,6 @@
 import * as fsActual from 'node:fs' with { rstest: 'importActual' };
+import type { ExecutorContext } from '@midscene/core';
+import * as CoreUtils from '@midscene/core/utils';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { HarmonyDeviceInputOpt } from '../../src/device';
 
@@ -67,6 +69,32 @@ describe('HarmonyDevice', () => {
   afterEach(async () => {
     if (device) {
       await device.destroy();
+    }
+  });
+
+  it('lets custom action readiness replace the extra scroll settling delay', async () => {
+    const scroll = rs
+      .spyOn(device as any, 'scrollDown')
+      .mockResolvedValue(undefined);
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Scroll')!;
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(scroll).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(500);
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {} } as ExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(500);
+    } finally {
+      scroll.mockRestore();
+      delay.mockRestore();
     }
   });
 
@@ -217,6 +245,21 @@ describe('HarmonyDevice', () => {
       await device.connect();
       await device.inputPrimitives.pointer.longPress({ x: 200, y: 400 });
       expect(mockHdc.longClick).toHaveBeenCalledWith(200, 400);
+    });
+  });
+
+  describe('swipe', () => {
+    it('should pass the converted speed to HDC for every repeat', async () => {
+      await device.connect();
+      await device.inputPrimitives.touch.swipe(
+        { x: 0, y: 0 },
+        { x: 300, y: 0 },
+        { duration: 300, repeat: 2 },
+      );
+
+      expect(mockHdc.swipe).toHaveBeenCalledTimes(2);
+      expect(mockHdc.swipe).toHaveBeenNthCalledWith(1, 0, 0, 300, 0, 1000);
+      expect(mockHdc.swipe).toHaveBeenNthCalledWith(2, 0, 0, 300, 0, 1000);
     });
   });
 
@@ -398,6 +441,18 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'hi');
       expect(mockHdc.keyEvent).not.toHaveBeenCalled();
       await d.destroy();
+    });
+
+    it('should dismiss keyboard by default from the Input action', async () => {
+      const inputAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Input') as any;
+      const param = inputAction.paramSchema.parse({ value: 'hi' });
+
+      await inputAction.call(param);
+
+      expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'hi');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
     });
   });
 
@@ -623,25 +678,65 @@ describe('HarmonyDevice', () => {
 
     it('should calculate fling for scroll down (positive deltaY)', async () => {
       await device.scroll(0, 500);
-      // For positive deltaY: startY = height/4 = 600, endY = 600 - 500 = 100
-      expect(mockHdc.fling).toHaveBeenCalledWith(300, 600, 300, 100, 2000);
+      // Positive delta starts near the bottom and moves the finger upward.
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1800, 600, 1300, 2000);
     });
 
     it('should calculate fling for scroll up (negative deltaY)', async () => {
       await device.scroll(0, -500);
-      // For negative deltaY: startY = 3/4 * 2400 = 1800, endY = 1800 + 500 = 2300
-      expect(mockHdc.fling).toHaveBeenCalledWith(300, 1800, 300, 2300, 2000);
+      // Negative delta starts near the top and moves the finger downward.
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 600, 600, 1100, 2000);
     });
 
     it('should accept custom speed', async () => {
       await device.scroll(0, 500, 1000);
-      expect(mockHdc.fling).toHaveBeenCalledWith(300, 600, 300, 100, 1000);
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1800, 600, 1300, 1000);
     });
 
     it('should clamp endpoint to screen edge margin', async () => {
-      // deltaY=9999 clamped to startY=600, endY would be 0 → clamped to 50
+      // Oversized travel ends at the edge margin.
       await device.scroll(0, 9999);
-      expect(mockHdc.fling).toHaveBeenCalledWith(300, 600, 300, 50, 2000);
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1800, 600, 50, 2000);
+    });
+  });
+
+  describe('default scroll coverage', () => {
+    it.each([
+      ['down', 1200, 2400, [600, 2040, 600, 360, 1680]],
+      ['up', 1200, 2400, [600, 360, 600, 2040, 1680]],
+      ['right', 1200, 2400, [1020, 1200, 180, 1200, 840]],
+      ['left', 1200, 2400, [180, 1200, 1020, 1200, 840]],
+      ['down', 2400, 1200, [1200, 1020, 1200, 180, 840]],
+      ['up', 2400, 1200, [1200, 180, 1200, 1020, 840]],
+      ['right', 2400, 1200, [2040, 600, 360, 600, 1680]],
+      ['left', 2400, 1200, [360, 600, 2040, 600, 1680]],
+    ] as const)(
+      '%s uses the central 70% on %ix%i',
+      async (direction, width, height, expected) => {
+        mockHdc.getScreenInfo.mockResolvedValue({ width, height });
+        await device.connect();
+        const action = device
+          .actionSpace()
+          .find((item) => item.name === 'Scroll')!;
+        await action.call({ direction, scrollType: 'singleAction' }, {
+          task: {},
+          skipDefaultWait: true,
+        } as ExecutorContext);
+        expect(mockHdc.fling).toHaveBeenCalledExactlyOnceWith(...expected);
+      },
+    );
+
+    it('keeps a located start and clamps travel at the screen margin', async () => {
+      mockHdc.getScreenInfo.mockResolvedValue({ width: 1200, height: 2400 });
+      await device.connect();
+      await device.scrollDown(undefined, { left: 400, top: 1000 });
+      expect(mockHdc.fling).toHaveBeenCalledExactlyOnceWith(
+        400,
+        1000,
+        400,
+        50,
+        2000,
+      );
     });
   });
 
@@ -660,13 +755,13 @@ describe('HarmonyDevice', () => {
 
     it('scrollDown without startPoint should call scroll', async () => {
       await device.scrollDown(500);
-      // delegates to scroll(0, 500) -> fling(300, 600, 300, 100, 2000)
+      // delegates to scroll(0, 500) -> fling(600, 1800, 600, 1300, 2000)
       expect(mockHdc.fling).toHaveBeenCalled();
     });
 
-    it('scrollDown without distance should use full height', async () => {
+    it('scrollDown without distance uses the central 70%', async () => {
       await device.scrollDown();
-      expect(mockHdc.fling).toHaveBeenCalled();
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 2040, 600, 360, 1680);
     });
 
     it('scrollUp with startPoint should fling from point downward', async () => {
@@ -717,16 +812,20 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 600, 50, 2000);
     });
 
-    it('scrollUntilTop without startPoint should use scroll', async () => {
-      await device.scrollUntilTop();
-      // Should call fling 10 times via scroll
-      expect(mockHdc.fling).toHaveBeenCalledTimes(10);
-    });
-
-    it('scrollUntilBottom without startPoint should use scroll', async () => {
-      await device.scrollUntilBottom();
-      expect(mockHdc.fling).toHaveBeenCalledTimes(10);
-    });
+    it.each([
+      ['scrollUntilTop', [600, 600, 600, 2350, 2000]],
+      ['scrollUntilBottom', [600, 1800, 600, 50, 2000]],
+      ['scrollUntilLeft', [300, 1200, 1150, 1200, 2000]],
+      ['scrollUntilRight', [900, 1200, 50, 1200, 2000]],
+    ] as const)(
+      '%s repeats the corrected boundary gesture',
+      async (method, expected) => {
+        await device[method]();
+        expect(mockHdc.fling).toHaveBeenCalledTimes(10);
+        for (const call of mockHdc.fling.mock.calls)
+          expect(call).toEqual(expected);
+      },
+    );
 
     it('scrollUntilLeft with startPoint should fling multiple times', async () => {
       await device.scrollUntilLeft({ left: 600, top: 1200 });

@@ -6,15 +6,14 @@ import {
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@/utils', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/utils')>();
-  return {
-    ...actual,
-    reportHTMLContent: vi.fn(() => '<html>report</html>'),
-  };
-});
+import * as utilsActual from '@/utils' with { rstest: 'importActual' };
+
+rs.mock('@/utils', () => ({
+  ...utilsActual,
+  reportHTMLContent: rs.fn(() => '<html>report</html>'),
+}));
 
 const modelConfig = {
   [MIDSCENE_MODEL_NAME]: 'test-model',

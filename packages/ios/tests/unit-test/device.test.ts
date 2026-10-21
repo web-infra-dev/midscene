@@ -1,4 +1,5 @@
 import type { DeviceAction, ExecutorContext } from '@midscene/core';
+import * as CoreUtils from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -42,6 +43,7 @@ describe('IOSDevice', () => {
       pinch: rs.fn().mockResolvedValue(undefined),
       typeText: rs.fn().mockResolvedValue(undefined),
       typeRawKeys: rs.fn().mockResolvedValue(undefined),
+      waitForInputFocus: rs.fn().mockResolvedValue(undefined),
       clearActiveElement: rs.fn().mockResolvedValue(true),
       pressKey: rs.fn().mockResolvedValue(undefined),
       pressHomeButton: rs.fn().mockResolvedValue(undefined),
@@ -90,6 +92,153 @@ describe('IOSDevice', () => {
     if (device) {
       await device.destroy();
     }
+  });
+
+  describe('default scroll coverage', () => {
+    it.each([
+      ['scrollDown', 375, 812, [188, 690, 188, 122, 1420]],
+      ['scrollUp', 375, 812, [188, 122, 188, 690, 1420]],
+      ['scrollRight', 375, 812, [319, 406, 56, 406, 1000]],
+      ['scrollLeft', 375, 812, [56, 406, 319, 406, 1000]],
+      ['scrollDown', 812, 375, [406, 319, 406, 56, 1000]],
+      ['scrollUp', 812, 375, [406, 56, 406, 319, 1000]],
+      ['scrollRight', 812, 375, [690, 188, 122, 188, 1420]],
+      ['scrollLeft', 812, 375, [122, 188, 690, 188, 1420]],
+    ] as const)(
+      '%s uses bounded endpoints and at least one second of distance-based timing on %ix%i',
+      async (method, width, height, expected) => {
+        mockWdaClient.getWindowSize.mockResolvedValue({ width, height });
+        await device[method]();
+        expect(mockWdaClient.swipe).toHaveBeenCalledWith(...expected);
+      },
+    );
+
+    it('preserves explicit distances and located starting points', async () => {
+      await device.scrollDown(100);
+      expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+        188,
+        406,
+        188,
+        306,
+        500,
+      );
+      await device.scrollDown(undefined, { left: 80, top: 300 });
+      expect(mockWdaClient.swipe).toHaveBeenLastCalledWith(
+        80,
+        300,
+        80,
+        29,
+        500,
+      );
+    });
+  });
+
+  it('lets custom action readiness replace the extra scroll settling delay', async () => {
+    const scroll = rs
+      .spyOn(device as any, 'scrollDown')
+      .mockResolvedValue(undefined);
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Scroll')!;
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(scroll).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(500);
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {} } as ExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(500);
+    } finally {
+      scroll.mockRestore();
+      delay.mockRestore();
+    }
+  });
+
+  it('skips post-input settling while preserving keyboard preparation', async () => {
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Input')!;
+      await action.call(
+        { value: 'account', mode: 'typeOnly', autoDismissKeyboard: false },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(mockWdaClient.typeText).toHaveBeenCalledWith('account');
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(300);
+      await action.call(
+        { value: 'password', mode: 'typeOnly', autoDismissKeyboard: false },
+        mockExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(300);
+    } finally {
+      delay.mockRestore();
+    }
+  });
+
+  describe('input readiness and replacement', () => {
+    it('waits before clearing a prefilled field and sends replacement text once', async () => {
+      let focused = false;
+      let text = 'old text';
+      const events: string[] = [];
+      mockWdaClient.waitForInputFocus.mockImplementation(async () => {
+        focused = true;
+        events.push('ready');
+      });
+      mockWdaClient.clearActiveElement.mockImplementation(async () => {
+        events.push('clear');
+        if (!focused) return false;
+        text = '';
+        return true;
+      });
+      mockWdaClient.typeText.mockImplementation(async (value: string) => {
+        events.push('type');
+        text += value;
+      });
+      await device.inputPrimitives.keyboard.typeText('new text', {
+        target: { center: [10, 20] },
+        replace: true,
+        autoDismissKeyboard: false,
+      });
+      expect(text).toBe('new text');
+      expect(events).toEqual(['ready', 'clear', 'ready', 'type']);
+      expect(mockWdaClient.typeText).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not type after an unconfirmed clear', async () => {
+      mockWdaClient.clearActiveElement.mockResolvedValue(false);
+      await expect(
+        device.inputPrimitives.keyboard.typeText('new text', {
+          target: { center: [10, 20] },
+          replace: true,
+        }),
+      ).rejects.toThrow('refusing to append text');
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+      expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
+    });
+
+    it.each([true, false])(
+      'does not send text when focus fails (replace=%s)',
+      async (replace) => {
+        mockWdaClient.waitForInputFocus.mockRejectedValue(
+          new Error('focus timed out'),
+        );
+        await expect(
+          device.inputPrimitives.keyboard.typeText('new text', {
+            target: { center: [10, 20] },
+            replace,
+          }),
+        ).rejects.toThrow('focus timed out');
+        expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
+        expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('Constructor', () => {
@@ -146,6 +295,36 @@ describe('IOSDevice', () => {
         host: 'custom-host',
         sessionId: 'external-session-id',
       });
+    });
+
+    it('passes the full WDA base URL to requests and readiness checks', () => {
+      new IOSDevice({
+        wdaBaseUrl: 'https://gateway.example/code/wda',
+      });
+      expect(MockedWdaClient).toHaveBeenCalledWith({
+        port: DEFAULT_WDA_PORT,
+        host: 'localhost',
+        baseUrl: 'https://gateway.example/code/wda',
+      });
+      expect(MockedWdaManager.getInstance).toHaveBeenCalledWith(
+        DEFAULT_WDA_PORT,
+        'localhost',
+        'https://gateway.example/code/wda',
+      );
+    });
+
+    it.each([
+      { wdaHost: 'localhost' },
+      { wdaPort: 8100 },
+      { wdaHost: 'localhost', wdaPort: 8100 },
+    ])('rejects a base URL combined with host or port: %j', (connection) => {
+      expect(
+        () =>
+          new IOSDevice({
+            wdaBaseUrl: 'https://gateway.example/code/wda',
+            ...connection,
+          }),
+      ).toThrow(/wdaBaseUrl cannot be used with wdaHost or wdaPort/);
     });
   });
 
@@ -760,13 +939,55 @@ describe('IOSDevice', () => {
       expect(mockBackend.swipe).not.toHaveBeenCalled();
     });
 
-    it('should reject input when auto-dismiss cannot hide the keyboard', async () => {
-      mockWdaClient.isKeyboardVisible = rs.fn().mockResolvedValue(true);
+    it('should continue input when auto-dismiss cannot hide the keyboard', async () => {
       mockWdaClient.dismissKeyboard = rs.fn().mockResolvedValue(false);
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
-      await expect(
-        getInternalTextInput(device).typeText('test text'),
-      ).rejects.toThrow('Failed to auto-dismiss the iOS keyboard');
+      try {
+        await expect(
+          device.inputPrimitives.keyboard.typeText('test text', {
+            target: { center: [30, 40] },
+            replace: false,
+          }),
+        ).resolves.toBeUndefined();
+        expect(mockWdaClient.typeText).toHaveBeenCalledWith('test text');
+        expect(warnSpy).toHaveBeenCalledWith(
+          '[Midscene]',
+          expect.stringContaining(
+            'Text input request completed, but the iOS keyboard could not be auto-dismissed',
+          ),
+        );
+
+        mockWdaClient.tap.mockClear();
+        await device.inputPrimitives.keyboard.keyboardPress('Enter');
+        expect(mockWdaClient.tap).not.toHaveBeenCalled();
+        expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it('should continue input when auto-dismiss throws', async () => {
+      const transportError = new Error('WDA transport failed');
+      mockWdaClient.dismissKeyboard = rs.fn().mockRejectedValue(transportError);
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+      try {
+        await expect(
+          getInternalTextInput(device).typeText('test text'),
+        ).resolves.toBeUndefined();
+        expect(mockWdaClient.typeText).toHaveBeenCalledWith('test text');
+        expect(warnSpy).toHaveBeenCalledWith(
+          '[Midscene]',
+          'Text input request completed, but auto-dismissing the iOS keyboard failed',
+          expect.any(Error),
+        );
+        expect(warnSpy.mock.calls[0][2]).toMatchObject({
+          cause: transportError,
+        });
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it('should preserve WDA dismissal errors', async () => {

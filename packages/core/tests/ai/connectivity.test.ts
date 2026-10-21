@@ -5,8 +5,8 @@ import { getModelRuntime } from '@/ai-model/models';
 import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
+import { beforeAll, describe, expect, it, rs } from '@rstest/core';
 import dotenv from 'dotenv';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { getFixture } from '../utils';
 
 dotenv.config({
@@ -14,7 +14,7 @@ dotenv.config({
   override: true,
 });
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 20 * 1000,
 });
 [
@@ -128,11 +128,9 @@ vi.setConfig({
                 text: 'Describe this image in one sentence.',
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: localImg2Base64(imagePath),
-                  detail: 'high',
-                },
+                type: 'image',
+                url: localImg2Base64(imagePath),
+                detail: 'high',
               },
             ],
           },

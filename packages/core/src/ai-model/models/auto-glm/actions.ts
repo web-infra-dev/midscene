@@ -4,7 +4,7 @@ import { getDebug } from '@midscene/shared/logger';
 import type {
   LocatePlanningAction,
   ScrollPlanningAction,
-} from '../../model-adapter/planning-action';
+} from '../../model-adapter/custom-planning-action';
 import type { CoordinateDistanceAxis } from '../../shared/model-locate-result';
 
 const debug = getDebug('auto-glm-actions');

@@ -41,7 +41,9 @@ export function parseAutoGLMPlanningAction(response: {
 
     if (trimmedResponse.startsWith('finish(message=')) {
       let message = extractValueAfter(trimmedResponse, 'finish(message="');
-      if (message.endsWith(')')) message = message.slice(0, -1);
+      if (!trimmedResponse.endsWith('")') && message.endsWith(')')) {
+        message = message.slice(0, -1);
+      }
       return {
         _metadata: 'finish',
         message,

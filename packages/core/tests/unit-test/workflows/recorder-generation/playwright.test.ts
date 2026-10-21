@@ -1,5 +1,6 @@
+import assert from 'node:assert/strict';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 import { callAIWithStringResponse } from '../../../../src/ai-model/service-caller';
 import {
   type ChromeRecordedEvent,
@@ -16,15 +17,15 @@ import {
 } from '../../../../src/ai-model/workflows/recorder-generation/playwright';
 
 // Mock the callAi function
-vi.mock('../../../../src/ai-model/service-caller', () => ({
-  callAIWithStringResponse: vi.fn(),
+rs.mock('../../../../src/ai-model/service-caller', () => ({
+  callAIWithStringResponse: rs.fn(),
 }));
 
-const mockCallAiWithStringResponse = vi.mocked(callAIWithStringResponse);
+const mockCallAiWithStringResponse = rs.mocked(callAIWithStringResponse);
 
 describe('playwright-generator', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   const mockEvents: ChromeRecordedEvent[] = [
@@ -277,10 +278,8 @@ describe('playwright-generator', () => {
         text: 'Test prompt',
       });
       expect(content[2]).toEqual({
-        type: 'image_url',
-        image_url: {
-          url: 'data:image/png;base64,screenshot1',
-        },
+        type: 'image',
+        url: 'data:image/png;base64,screenshot1',
       });
     });
   });
@@ -382,6 +381,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
+      assert('role' in userMessage);
       const messageContent = userMessage.content as any[];
 
       // Find the main prompt text (not the intro text about screenshots)
@@ -408,10 +408,11 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
+      assert('role' in userMessage);
       const messageContent = userMessage.content as any[];
 
       const imageMessages = messageContent.filter(
-        (msg) => msg.type === 'image_url',
+        (msg) => msg.type === 'image',
       );
       expect(imageMessages).toHaveLength(2);
     });

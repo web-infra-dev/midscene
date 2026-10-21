@@ -4,12 +4,17 @@ import type {
   HarmonyDeviceOpt,
   IOSDeviceOpt,
 } from './device';
+import type { WorkflowExecutionRecord } from './test-runner/execution-record';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
 export interface LocateOption extends Partial<TMultimodalPrompt> {
   prompt?: TUserPrompt;
-  /** Additional context for this AI request. */
+  /**
+   * Additional facts, rules, or constraints for this AI call. It overrides
+   * the matching API context and `aiContexts.default`; `''` disables inherited
+   * user context for this call.
+   */
   context?: string;
   deepLocate?: boolean; // only available in vl model
   /** @deprecated Use `deepLocate` instead. Kept for backward compatibility. */
@@ -21,7 +26,11 @@ export interface LocateOption extends Partial<TMultimodalPrompt> {
 }
 
 export interface ServiceExtractOption {
-  /** Additional context for this AI request. */
+  /**
+   * Additional facts, decision rules, constraints, or output requirements for
+   * this AI call. It overrides the matching API context and
+   * `aiContexts.default`; `''` disables inherited user context for this call.
+   */
   context?: string;
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
@@ -36,7 +45,7 @@ export interface DetailedLocateParam
   prompt: TUserPrompt;
   /** Original prompt text used for user-facing reports. */
   promptDisplay?: string;
-  /** Per-call business context used for user-facing reports. */
+  /** Per-call AI guidance recorded in user-facing reports. */
   context?: string;
 }
 
@@ -116,10 +125,12 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'groupName'
   | 'groupDescription'
   | 'generateReport'
+  | 'outputFormat'
   | 'persistExecutionDump'
   | 'autoPrintReportMsg'
   | 'reportFileName'
   | 'replanningCycleLimit'
+  | 'aiContexts'
   | 'aiActContext'
   | 'aiActionContext'
   | 'cache'
@@ -278,6 +289,41 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptHarmonyEnv
   | MidsceneYamlScriptComputerEnv;
 
+/** Target sections that can be supplied as batch-wide YAML overrides. */
+export type MidsceneYamlTargetKey = Exclude<
+  keyof MidsceneYamlScript,
+  'config' | 'agent' | 'tasks'
+>;
+
+const midsceneYamlTargetKeyMap = {
+  target: true,
+  page: true,
+  browser: true,
+  web: true,
+  android: true,
+  ios: true,
+  harmony: true,
+  computer: true,
+  interface: true,
+} as const satisfies Record<MidsceneYamlTargetKey, true>;
+
+export const midsceneYamlTargetKeys = Object.keys(
+  midsceneYamlTargetKeyMap,
+) as MidsceneYamlTargetKey[];
+
+/**
+ * Partial target settings applied to every script in a YAML batch.
+ *
+ * Batch settings are deep-merged over each script's target section, so every
+ * nested target field is optional here even when a standalone script requires
+ * it.
+ */
+export type MidsceneYamlTargetConfig = {
+  [Target in MidsceneYamlTargetKey]?: Partial<
+    NonNullable<MidsceneYamlScript[Target]>
+  >;
+};
+
 export interface MidsceneYamlFlowItemAIAction {
   // defined as aiAction for backward compatibility
   aiAction?: TUserPrompt | null;
@@ -343,29 +389,30 @@ export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
 export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 
 // Index YAML file types for batch execution
-export interface MidsceneYamlConfig {
+export interface MidsceneYamlConfig extends MidsceneYamlTargetConfig {
+  /** @deprecated Use `web`, `page`, or `browser` instead. */
+  target?: Partial<MidsceneYamlScriptWebEnv>;
   concurrent?: number;
   continueOnError?: boolean;
   /**
-   * Number of times to retry a failed yaml file before marking it as failed.
-   * A value of 2 means each failing case is re-executed up to 2 extra times
-   * (3 attempts in total). Only the cases that failed in the previous attempt
-   * are retried. Defaults to 0 (no retry).
+   * Number of times to retry the complete YAML file after an execution
+   * failure, including tasks that already passed. Defaults to 0 (no retry).
    */
   retry?: number;
   summary?: string;
   /**
-   * Share one BrowserContext and Page across Puppeteer Web yaml files. This is
-   * not supported by bridge mode or non-Web targets.
+   * Share one BrowserContext across Puppeteer Web YAML files. Each YAML file
+   * uses an independent Page unless `reusePage` is enabled. This is not
+   * supported by bridge mode or non-Web targets.
    */
   shareBrowserContext?: boolean;
-  /** @deprecated Use `web`, `page`, or `browser` instead. */
-  target?: MidsceneYamlScriptWebEnv;
-  page?: MidsceneYamlScriptWebEnv;
-  browser?: MidsceneYamlScriptWebEnv;
-  web?: MidsceneYamlScriptWebEnv;
-  android?: MidsceneYamlScriptAndroidEnv;
-  ios?: MidsceneYamlScriptIOSEnv;
+  /**
+   * Reuse the same Page object across sequential Puppeteer Web yaml files,
+   * preserving page-scoped state such as sessionStorage and window.name.
+   * Each file still navigates that Page to its configured URL. Requires
+   * `shareBrowserContext: true` and `concurrent: 1`. Defaults to false.
+   */
+  reusePage?: boolean;
   /**
    * A setup yaml file that runs before the main `files`. A setup failure aborts
    * the whole batch and the main files are marked as not executed. Puppeteer
@@ -399,6 +446,16 @@ export interface MidsceneYamlConfigAttempt {
   error?: string;
   duration?: number;
   resultType?: MidsceneYamlConfigResultType;
+  /** Complete execution facts, persisted separately from the legacy summary. */
+  executionRecordPath?: string;
+  /** @internal Complete facts retained when the sidecar could not be published. */
+  executionRecordFallback?: WorkflowExecutionRecord;
+  /** @internal Infrastructure failures, separate from legacy execution status. */
+  publicationErrors?: readonly unknown[];
+  /** @internal Entry observation failed; action success remains unchanged. */
+  observerErrors?: readonly unknown[];
+  /** @internal Agent report generation or cleanup failed after execution. */
+  infrastructureErrors?: readonly unknown[];
 }
 
 export interface MidsceneYamlConfigResult {
@@ -409,6 +466,15 @@ export interface MidsceneYamlConfigResult {
   report?: string | null;
   retryReport?: string | null;
   attempts?: MidsceneYamlConfigAttempt[];
+  executionRecordPath?: string;
+  /** @internal Complete facts retained when the sidecar could not be published. */
+  executionRecordFallback?: WorkflowExecutionRecord;
+  /** @internal Infrastructure failures, separate from legacy execution status. */
+  publicationErrors?: readonly unknown[];
+  /** @internal Entry observation failed; action success remains unchanged. */
+  observerErrors?: readonly unknown[];
+  /** @internal Agent report generation or cleanup failed after execution. */
+  infrastructureErrors?: readonly unknown[];
   error?: string;
   duration?: number;
   /**

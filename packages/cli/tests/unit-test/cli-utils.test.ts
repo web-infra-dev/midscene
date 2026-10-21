@@ -93,6 +93,7 @@ describe('parseProcessArgs', () => {
       '--keep-window',
       '--continue-on-error',
       '--share-browser-context',
+      '--reuse-page',
       '--dotenv-override',
       '--dotenv-debug',
       '--concurrent',
@@ -297,6 +298,46 @@ describe('parseProcessArgs', () => {
     });
   });
 
+  test('should parse HarmonyOS options in both key formats', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--harmony.device-id',
+      '127.0.0.1:5555',
+      '--harmony.hdc-path',
+      '/custom/path/to/hdc',
+      '--harmony.auto-dismiss-keyboard',
+      'false',
+    ];
+
+    const { options } = await parseProcessArgs();
+
+    expect(options.harmony).toEqual({
+      'device-id': '127.0.0.1:5555',
+      deviceId: '127.0.0.1:5555',
+      'hdc-path': '/custom/path/to/hdc',
+      hdcPath: '/custom/path/to/hdc',
+      'auto-dismiss-keyboard': false,
+      autoDismissKeyboard: false,
+    });
+  });
+
+  test('should parse camelCase HarmonyOS boolean options as booleans', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--harmony.autoDismissKeyboard',
+      'false',
+    ];
+
+    const { options } = await parseProcessArgs();
+
+    expect(options.harmony).toEqual({
+      'auto-dismiss-keyboard': false,
+      autoDismissKeyboard: false,
+    });
+  });
+
   test('should handle mixed web, android, and ios parameters', async () => {
     process.argv = [
       'node',
@@ -355,6 +396,7 @@ describe('parseProcessArgs', () => {
       '4',
       '--continue-on-error',
       '--share-browser-context',
+      '--reuse-page',
       '--summary',
       'summary.json',
       '--headed',
@@ -367,10 +409,14 @@ describe('parseProcessArgs', () => {
       '900',
       '--android.deviceId',
       'android-doc-device',
+      '--harmony.deviceId',
+      'harmony-doc-device',
       '--ios.wdaPort',
       '8100',
       '--ios.wdaHost',
       '127.0.0.1',
+      '--computer.displayId',
+      'main',
       '--dotenv-debug',
       '--dotenv-override',
     ];
@@ -384,6 +430,7 @@ describe('parseProcessArgs', () => {
       concurrent: 4,
       'continue-on-error': true,
       'share-browser-context': true,
+      'reuse-page': true,
       summary: 'summary.json',
       headed: true,
       'keep-window': true,
@@ -397,9 +444,15 @@ describe('parseProcessArgs', () => {
       android: {
         deviceId: 'android-doc-device',
       },
+      harmony: {
+        deviceId: 'harmony-doc-device',
+      },
       ios: {
         wdaPort: 8100,
         wdaHost: '127.0.0.1',
+      },
+      computer: {
+        displayId: 'main',
       },
     });
   });
@@ -439,7 +492,9 @@ describe('parseProcessArgs', () => {
     const { options } = await parseProcessArgs();
     expect(options.web).toBeUndefined();
     expect(options.android).toBeUndefined();
+    expect(options.harmony).toBeUndefined();
     expect(options.ios).toBeUndefined();
+    expect(options.computer).toBeUndefined();
   });
 });
 
@@ -450,7 +505,10 @@ describe('launch server', () => {
     expect(serverResult).toBeDefined();
 
     const serverAddress = serverResult.server.address();
-    const staticServerUrl = `http://${serverAddress?.address}:${serverAddress?.port}`;
+    if (!serverAddress || typeof serverAddress === 'string') {
+      throw new Error('Expected the static server to expose a TCP address.');
+    }
+    const staticServerUrl = `http://${serverAddress.address}:${serverAddress.port}`;
 
     const contents = await fetch(`${staticServerUrl}/index.html`);
     expect(contents.status).toBe(200);

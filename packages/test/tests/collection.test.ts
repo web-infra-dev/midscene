@@ -30,10 +30,76 @@ const createDocument = (content: string) => {
 };
 
 describe('workflow document collection', () => {
-  const node = defineNode({ name: 'test.record', execute() {} });
+  const node = defineNode({
+    name: 'test.record',
+    stringInputKey: 'prompt',
+    execute() {},
+  });
   const documentNode = defineNode({
     name: 'test.document',
+    stringInputKey: 'prompt',
     execute() {},
+  });
+
+  it('captures author YAML before variable resolution and file changes', () => {
+    const content =
+      '# Keep author comment\ncases:\n  - name: source\n    steps:\n      - test.record: $' +
+      '{keyword}\n';
+    const source = createDocument(content);
+    const document = collectWorkflowDocument(source, {
+      resolveNode: () => node,
+      variables: { keyword: 'resolved' },
+    });
+    writeFileSync(source.absolutePath, 'changed after collection');
+    expect(document.sourceYaml?.value).toBe(content);
+    expect(document.cases[0].definition.steps[0].input).toEqual({
+      prompt: 'resolved',
+    });
+  });
+
+  it('rejects compatibility-only Case controls in native documents', () => {
+    const source = createDocument(`
+cases:
+  - name: extract
+    onFailure: stop-document
+    steps:
+      - test.record:
+          prompt: price
+          $:
+            resultName: price
+            resultPath: /value
+`);
+    expect(() =>
+      collectWorkflowDocument(source, { resolveNode: () => node }),
+    ).toThrow('unsupported field "onFailure"');
+  });
+
+  it('rejects legacy and mixed document envelopes with command guidance', () => {
+    const legacy = createDocument('tasks:\n  - name: old\n    flow: []\n');
+    expect(() =>
+      collectWorkflowDocument(legacy, { resolveNode: () => node }),
+    ).toThrow(/Legacy tasks\/flow YAML.*midscene-test.*midscene/);
+
+    const mixed = createDocument(
+      'tasks: []\ncases:\n  - name: new\n    steps:\n      - test.record: run\n',
+    );
+    expect(() =>
+      collectWorkflowDocument(mixed, { resolveNode: () => node }),
+    ).toThrow(/cannot mix legacy tasks\/flow with native cases\/steps/);
+
+    const batch = createDocument('files: [flow.yaml]\nretry: 1\n');
+    expect(() =>
+      collectWorkflowDocument(batch, { resolveNode: () => node }),
+    ).toThrow(/Legacy YAML batch configuration.*midscene --config/);
+  });
+
+  it('rejects unknown Case failure policies before executing steps', () => {
+    const source = createDocument(
+      'cases:\n  - name: invalid\n    onFailure: stop-all\n    steps:\n      - test.record: value',
+    );
+    expect(() =>
+      collectWorkflowDocument(source, { resolveNode: () => node }),
+    ).toThrow('unsupported field "onFailure"');
   });
 
   it('collects and normalizes every case with stable positional ids', () => {

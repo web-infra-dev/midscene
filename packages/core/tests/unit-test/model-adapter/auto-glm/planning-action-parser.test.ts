@@ -11,7 +11,7 @@ import type {
   WaitAction,
 } from '@/ai-model/models/auto-glm/actions';
 import { parseAutoGLMPlanningAction } from '@/ai-model/models/auto-glm/parser';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('parseAutoGLMPlanningAction', () => {
   it('should parse Tap action', () => {
@@ -112,6 +112,14 @@ describe('parseAutoGLMPlanningAction', () => {
     const finishAction = action as FinishAction;
     expect(finishAction._metadata).toBe('finish');
     expect(finishAction.message).toBe('Task completed');
+  });
+
+  it('should keep a closing parenthesis at the end of the Finish message', () => {
+    const action = parseAutoGLMPlanningAction({
+      think: 'All done',
+      content: 'finish(message="Deleted 3 items (all done)")',
+    });
+    expect((action as FinishAction).message).toBe('Deleted 3 items (all done)');
   });
 
   it('should parse Interact action', () => {

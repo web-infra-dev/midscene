@@ -15,7 +15,7 @@ import {
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '@midscene/shared/env';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
@@ -38,17 +38,18 @@ const parseStandardPlanningResponse = (
   parseStandardPlanningResponseWithOptions(xmlString, {
     ...options,
     actionOutputProtocol: defaultMidscenePlanningProtocol.actionOutputProtocol,
+    actionSpace: options.logSource === 'action' ? options.actionSpace : [],
   });
 
 describe('llm planning - doubao', () => {
   beforeEach(() => {
-    vi.stubEnv(OPENAI_BASE_URL, 'http://mock');
-    vi.stubEnv(OPENAI_API_KEY, 'mock');
-    vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
+    rs.stubEnv(OPENAI_BASE_URL, 'http://mock');
+    rs.stubEnv(OPENAI_API_KEY, 'mock');
+    rs.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
   });
 
   it('adapts doubao locate result to pixel bbox', () => {
@@ -62,13 +63,18 @@ describe('llm planning - doubao', () => {
       bbox_2d: [123, 123, 923, 923] as [number, number, number, number],
     };
 
-    const locatedPixelBbox = locateAdapter.element.resultCodec.toPixelBbox(
+    const locatedPoint = locateAdapter.element.resultCodec.toPixelResult(
       locate.bbox_2d,
       {
         preparedSize: { width: 1000, height: 1000 },
       },
-    );
-    expect(locatedPixelBbox).toEqual([123, 123, 922, 922]);
+    ).rect;
+    expect(locatedPoint).toEqual({
+      left: 123,
+      top: 123,
+      width: 801,
+      height: 801,
+    });
   });
 
   it('throws when adapting an undefined locate value', () => {
@@ -76,10 +82,11 @@ describe('llm planning - doubao', () => {
     if (locateAdapter.kind !== 'standard') {
       throw new Error('glm-v should use standard locate adapter');
     }
-    expect(() =>
-      locateAdapter.element.resultCodec.toPixelBbox(undefined, {
-        preparedSize: { width: 1000, height: 2000 },
-      }),
+    expect(
+      () =>
+        locateAdapter.element.resultCodec.toPixelResult(undefined, {
+          preparedSize: { width: 1000, height: 2000 },
+        }).rect,
     ).toThrow(/invalid bbox data/);
   });
 
@@ -94,14 +101,44 @@ describe('llm planning - doubao', () => {
       bbox: [100, 200, 1000, 1000] as [number, number, number, number],
     };
 
-    const locatedPixelBbox = locateAdapter.element.resultCodec.toPixelBbox(
+    const locatedPoint = locateAdapter.element.resultCodec.toPixelResult(
       locate.bbox,
       {
         preparedSize: { width: 1200, height: 1400 },
         contentSize: { width: 1000, height: 1000 },
       },
-    );
-    expect(locatedPixelBbox).toEqual([120, 280, 999, 999]);
+    ).rect;
+    expect(locatedPoint).toEqual({
+      left: 120,
+      top: 280,
+      width: 880,
+      height: 720,
+    });
+  });
+});
+
+describe('llm planning - action parameters', () => {
+  it('rejects a primitive action parameter', () => {
+    expect(() =>
+      parseStandardPlanningResponse(`
+<action-type>CustomAction</action-type>
+<action-param-json>"hello world"</action-param-json>
+    `),
+    ).toThrow('Expected to be a JSON object, got string');
+  });
+
+  it('rejects an array returned by a custom JSON parser', () => {
+    const planningProtocol = createDefaultMidscenePlanningProtocol({
+      jsonParser: () => [{ custom: true }],
+    });
+
+    expect(() =>
+      planningProtocol.actionOutputProtocol.parseActionOutput(
+        `<action-type>CustomAction</action-type>
+<action-param-json>{custom syntax}</action-param-json>`,
+        [],
+      ),
+    ).toThrow('Expected to be a JSON object, got array');
   });
 });
 
@@ -511,7 +548,7 @@ describe('parseStandardPlanningResponse', () => {
         {
           name: 'Tap',
           paramSchema: actionTapParamSchema,
-          call: vi.fn(),
+          call: rs.fn(),
         },
       ],
     });
@@ -537,7 +574,7 @@ describe('parseStandardPlanningResponse', () => {
         {
           name: 'Input',
           paramSchema: actionInputParamSchema,
-          call: vi.fn(),
+          call: rs.fn(),
         },
       ],
     });

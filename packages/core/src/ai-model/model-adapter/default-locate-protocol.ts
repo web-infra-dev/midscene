@@ -1,9 +1,14 @@
 import { getPreferredLanguage } from '@midscene/shared/env';
-import type { JsonParser, JsonParserSource } from '../shared/json';
+import {
+  type JsonParser,
+  type JsonParserSource,
+  assertJsonObject,
+} from '../shared/json';
 import {
   type LocateResultPromptSpec,
   formatLocateExampleValue,
 } from '../shared/model-locate-result';
+import { readLocateResultField } from '../shared/model-locate-result/result-field';
 import type {
   ParsedLocateResponse,
   StandardLocateProtocol,
@@ -109,7 +114,6 @@ const buildSearchAreaUserPrompt = (sectionDescription: string) =>
 
 type ParseRawResponseOptions = {
   includeReferences: boolean;
-  acceptBbox2dAlias?: boolean;
 };
 
 const createParseRawResponse =
@@ -125,21 +129,16 @@ const createParseRawResponse =
     const parsedResponse = jsonParser(content, {
       source,
     });
-    if (!parsedResponse || typeof parsedResponse !== 'object') {
-      throw new Error(`Failed to parse JSON locate response: ${content}`);
-    }
-    const record = parsedResponse as Record<string, unknown>;
-    const target =
-      record[promptSpec.resultKey] !== undefined
-        ? record[promptSpec.resultKey]
-        : options.acceptBbox2dAlias && promptSpec.resultKey === 'bbox'
-          ? record.bbox_2d
-          : undefined;
+    assertJsonObject(parsedResponse);
+    const record = parsedResponse;
+    const target = readLocateResultField(record, promptSpec);
     const error = typeof record.error === 'string' ? record.error : undefined;
-    const hasTarget = Array.isArray(target)
-      ? target.length > 0
-      : target !== undefined;
-    if (!hasTarget) {
+    if (target === undefined) {
+      throw new Error(
+        `Missing required coordinate field "${promptSpec.resultKey}". Expected "${promptSpec.resultKey}": ${promptSpec.resultValueSchema}; use an empty array when no element is found.${error ? ` Model error: ${error}` : ''}`,
+      );
+    }
+    if (Array.isArray(target) && target.length === 0) {
       return { kind: 'not-found', ...(error ? { error } : {}) };
     }
 
@@ -147,7 +146,11 @@ const createParseRawResponse =
       return { kind: 'located', target, ...(error ? { error } : {}) };
     }
 
-    const rawReferences = record[`references_${promptSpec.resultKey}`];
+    const rawReferences = readLocateResultField(
+      record,
+      promptSpec,
+      'references_',
+    );
     const references =
       rawReferences === undefined || rawReferences === null
         ? undefined
@@ -162,34 +165,26 @@ const createParseRawResponse =
     };
   };
 
-type DefaultLocateProtocolOptions = {
-  acceptBbox2dAlias?: boolean;
-};
-
-export const createDefaultElementProtocol = (
-  { jsonParser }: StandardLocateProtocolContext,
-  options: DefaultLocateProtocolOptions = {},
-): StandardLocateProtocol => ({
+export const createDefaultElementProtocol = ({
+  jsonParser,
+}: StandardLocateProtocolContext): StandardLocateProtocol => ({
   systemPromptIntroduction: defaultLocateSystemPromptIntroduction,
   buildResponseInstructions,
   buildUserPrompt,
   expectedJsonObjectResponse: true,
   parseRawResponse: createParseRawResponse(jsonParser, 'locate', {
     includeReferences: false,
-    acceptBbox2dAlias: options.acceptBbox2dAlias,
   }),
 });
 
-export const createDefaultSearchAreaProtocol = (
-  { jsonParser }: StandardLocateProtocolContext,
-  options: DefaultLocateProtocolOptions = {},
-): StandardLocateProtocol => ({
+export const createDefaultSearchAreaProtocol = ({
+  jsonParser,
+}: StandardLocateProtocolContext): StandardLocateProtocol => ({
   systemPromptIntroduction: defaultSearchAreaSystemPromptIntroduction,
   buildResponseInstructions: buildSearchAreaResponseInstructions,
   buildUserPrompt: buildSearchAreaUserPrompt,
   expectedJsonObjectResponse: true,
   parseRawResponse: createParseRawResponse(jsonParser, 'section-locator', {
     includeReferences: true,
-    acceptBbox2dAlias: options.acceptBbox2dAlias,
   }),
 });

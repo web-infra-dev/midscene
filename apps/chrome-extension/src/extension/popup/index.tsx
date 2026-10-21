@@ -57,6 +57,7 @@ async function runChromeConnectivityTest(config: Record<string, string>) {
   const modelConfigManager = new ModelConfigManager(config as TModelConfig);
   return runConnectivityTest({
     defaultModelConfig: modelConfigManager.getModelConfig('default'),
+    locateModelConfig: modelConfigManager.getModelConfig('locate'),
     insightModelConfig: modelConfigManager.getModelConfig('insight'),
     planningModelConfig: modelConfigManager.getModelConfig('planning'),
   });

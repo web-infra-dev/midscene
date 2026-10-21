@@ -8,6 +8,7 @@ import type {
 import {
   type BridgeConnectTabOptions,
   BridgeEvent,
+  DefaultBridgeServerHost,
   DefaultBridgeServerPort,
   KeyboardEvent,
   MouseEvent,
@@ -101,7 +102,8 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
 
   private async setupBridgeClient() {
     const endpoint =
-      this.serverEndpoint || `ws://localhost:${DefaultBridgeServerPort}`;
+      this.serverEndpoint ||
+      `ws://${DefaultBridgeServerHost}:${DefaultBridgeServerPort}`;
 
     // Create confirmation gate BEFORE establishing connection,
     // so that any calls received immediately after connection are blocked

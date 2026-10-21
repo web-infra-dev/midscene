@@ -1,5 +1,9 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
-import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+import {
+  type AgentOpt,
+  type AgentTestRunnerNodeDefinition,
+  Agent as PageAgent,
+} from '@midscene/core/agent';
 import { MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { mergeAndNormalizeAppNameMapping } from '@midscene/shared/utils';
@@ -13,6 +17,8 @@ import {
   IOSDevice,
   type IOSDeviceOpt,
 } from './device';
+import { iosAgentTestRunnerNodeDefinitions } from './test-runner-nodes';
+import { assertWdaConnectionOptions } from './wda-options';
 
 const debugAgent = getDebug('ios:agent');
 type IOSDeviceClass = new (opts?: IOSDeviceOpt) => IOSDevice;
@@ -37,6 +43,13 @@ type WrappedAction<T extends DeviceAction> = (
 ) => Promise<ActionReturn<T>>;
 
 export class IOSAgent extends PageAgent<IOSDevice> {
+  static override getTestRunnerNodeDefinitions(): readonly AgentTestRunnerNodeDefinition[] {
+    return [
+      ...PageAgent.getTestRunnerNodeDefinitions(),
+      ...iosAgentTestRunnerNodeDefinitions,
+    ];
+  }
+
   /**
    * Execute WebDriverAgent API request directly
    * Type-safe wrapper around the RunWdaRequest action from actionSpace
@@ -110,6 +123,7 @@ export class IOSAgent extends PageAgent<IOSDevice> {
 export async function agentFromWebDriverAgent(
   opts?: IOSAgentOpt & IOSDeviceOpt,
 ) {
+  assertWdaConnectionOptions(opts);
   debugAgent('Creating iOS agent with WebDriverAgent');
 
   const overrideModule =

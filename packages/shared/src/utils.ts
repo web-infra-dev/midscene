@@ -12,6 +12,10 @@ export function uuid(): string {
   return generateUUID();
 }
 
+export function sha256Hex(value: string): string {
+  return sha256(value);
+}
+
 const hashMap: Record<string, string> = {}; // id - combined
 
 export function generateHashId(rect: any, content = ''): string {

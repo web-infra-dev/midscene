@@ -3,7 +3,7 @@ import {
   doubaoAdapters,
   parseDoubaoRawLocateValue,
 } from '@/ai-model/models/doubao';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const doubaoVisionAdapter = new ResolvedModelAdapter(
   doubaoAdapters['doubao-vision'],
@@ -240,18 +240,11 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result = locateAdapter.element.resultCodec.toPixelBbox(
+    const result = locateAdapter.element.resultCodec.toPixelResult(
       [100, 200, 300, 400],
       { preparedSize: { width: 1000, height: 2000 } },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        100,
-        400,
-        300,
-        800,
-      ]
-    `);
+    ).rect;
+    expect(result).toEqual({ left: 100, top: 400, width: 201, height: 401 });
   });
 
   it('normalizes doubao space-separated bbox string coordinates', () => {
@@ -262,21 +255,26 @@ describe('doubao model adapter', () => {
     }
 
     expect(
-      locateAdapter.element.resultCodec.toPixelBbox('100 200 300 400', {
+      locateAdapter.element.resultCodec.toPixelResult('100 200 300 400', {
         preparedSize: { width: 1000, height: 2000 },
-      }),
-    ).toEqual([100, 400, 300, 800]);
+      }).rect,
+    ).toEqual({ left: 100, top: 400, width: 201, height: 401 });
     expect(
-      locateAdapter.element.resultCodec.toPixelBbox('[336, 163, 717, 200]', {
+      locateAdapter.element.resultCodec.toPixelResult('[336, 163, 717, 200]', {
         preparedSize: { width: 1000, height: 2000 },
-      }),
-    ).toEqual([336, 326, 716, 400]);
+      }).rect,
+    ).toEqual({ left: 336, top: 326, width: 382, height: 75 });
   });
 
   it('parses valid raw Doubao locate values directly', () => {
     expect(parseDoubaoRawLocateValue([100, 200, 300, 400])).toEqual({
       coordinates: [100, 200, 300, 400],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      coordinatesMeta: {
+        shape: 'bbox',
+        order: 'xy',
+        normalizedBy: 1000,
+        rounding: 'round' as const,
+      },
     });
   });
 
@@ -286,7 +284,12 @@ describe('doubao model adapter', () => {
       input: '100 200 300 400',
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -294,7 +297,12 @@ describe('doubao model adapter', () => {
       input: ['100', '200', '300', '400'],
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -302,7 +310,12 @@ describe('doubao model adapter', () => {
       input: '100 200 300 400 ',
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -310,7 +323,12 @@ describe('doubao model adapter', () => {
       input: '[336, 163, 717, 200]',
       result: {
         coordinates: [336, 163, 717, 200],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -318,7 +336,12 @@ describe('doubao model adapter', () => {
       input: '336,163,717,200',
       result: {
         coordinates: [336, 163, 717, 200],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -326,7 +349,12 @@ describe('doubao model adapter', () => {
       input: [653, '277; 664 291;'],
       result: {
         coordinates: [653, 277, 664, 291],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -334,7 +362,12 @@ describe('doubao model adapter', () => {
       input: [653, '277, 664, 291,'],
       result: {
         coordinates: [653, 277, 664, 291],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -342,7 +375,12 @@ describe('doubao model adapter', () => {
       input: ['bbox', [782, 541, 815, 559]],
       result: {
         coordinates: [782, 541, 815, 559],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -350,7 +388,12 @@ describe('doubao model adapter', () => {
       input: ['bbox', '782, 541, 815, 559'],
       result: {
         coordinates: [782, 541, 815, 559],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -358,7 +401,12 @@ describe('doubao model adapter', () => {
       input: [410, 295, 885, '345<', '/bbox>,\n  "error": ""\n}'],
       result: {
         coordinates: [410, 295, 885, 345],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -366,7 +414,12 @@ describe('doubao model adapter', () => {
       input: ['bbox_859_773_923_808'],
       result: {
         coordinates: [859, 773, 923, 808],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -374,7 +427,12 @@ describe('doubao model adapter', () => {
       input: 'bbox_859_773_923_808',
       result: {
         coordinates: [859, 773, 923, 808],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -382,7 +440,12 @@ describe('doubao model adapter', () => {
       input: ['bbox_2d', [650, 700, 710, 730]],
       result: {
         coordinates: [650, 700, 710, 730],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -390,7 +453,12 @@ describe('doubao model adapter', () => {
       input: ['-100', 200, 300, 400],
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -398,7 +466,12 @@ describe('doubao model adapter', () => {
       input: ['100.5', 200, 300, 400],
       result: {
         coordinates: [100, 5, 200, 300],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -406,7 +479,12 @@ describe('doubao model adapter', () => {
       input: 'error: 500, 503; bbox_100_200_300_400',
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -417,7 +495,12 @@ describe('doubao model adapter', () => {
       ],
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -425,7 +508,12 @@ describe('doubao model adapter', () => {
       input: '100 200 300',
       result: {
         coordinates: [100, 200],
-        coordinatesMeta: { shape: 'point', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'point',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -433,7 +521,12 @@ describe('doubao model adapter', () => {
       input: '1 2 3 4 5 6 7 8',
       result: {
         coordinates: [1, 2, 5, 6],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
   ])('parses malformed raw Doubao locate value: $name', ({ input, result }) => {
@@ -458,10 +551,13 @@ describe('doubao model adapter', () => {
     }
 
     expect(
-      locateAdapter.element.resultCodec.toPixelBbox([100, 200, 300, 400, 999], {
-        preparedSize: { width: 1000, height: 2000 },
-      }),
-    ).toEqual([100, 400, 300, 800]);
+      locateAdapter.element.resultCodec.toPixelResult(
+        [100, 200, 300, 400, 999],
+        {
+          preparedSize: { width: 1000, height: 2000 },
+        },
+      ).rect,
+    ).toEqual({ left: 100, top: 400, width: 201, height: 401 });
   });
 
   it('normalizes doubao three-number point fallback', () => {
@@ -472,10 +568,10 @@ describe('doubao model adapter', () => {
     }
 
     expect(
-      locateAdapter.element.resultCodec.toPixelBbox([100, 200, 300], {
+      locateAdapter.element.resultCodec.toPixelResult([100, 200, 300], {
         preparedSize: { width: 1000, height: 2000 },
       }),
-    ).toEqual([90, 380, 110, 420]);
+    ).toEqual({ center: [100, 400] });
   });
 
   it('normalizes doubao point fallback', () => {
@@ -485,17 +581,10 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result = locateAdapter.element.resultCodec.toPixelBbox([100, 200], {
+    const result = locateAdapter.element.resultCodec.toPixelResult([100, 200], {
       preparedSize: { width: 1000, height: 2000 },
     });
-    expect(result).toMatchInlineSnapshot(`
-      [
-        90,
-        380,
-        110,
-        420,
-      ]
-    `);
+    expect(result).toEqual({ center: [100, 400] });
   });
 
   it('normalizes doubao bbox with space-separated point strings', () => {
@@ -505,18 +594,11 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result = locateAdapter.element.resultCodec.toPixelBbox(
+    const result = locateAdapter.element.resultCodec.toPixelResult(
       ['123 100', '789 222'],
       { preparedSize: { width: 1000, height: 2000 } },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        123,
-        200,
-        788,
-        444,
-      ]
-    `);
+    ).rect;
+    expect(result).toEqual({ left: 123, top: 200, width: 667, height: 245 });
   });
 
   it('normalizes doubao bbox with comma-separated point strings', () => {
@@ -526,18 +608,11 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result = locateAdapter.element.resultCodec.toPixelBbox(
+    const result = locateAdapter.element.resultCodec.toPixelResult(
       ['123,100', '789, 222'],
       { preparedSize: { width: 1000, height: 2000 } },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        123,
-        200,
-        788,
-        444,
-      ]
-    `);
+    ).rect;
+    expect(result).toEqual({ left: 123, top: 200, width: 667, height: 245 });
   });
 
   it('flattens single nested doubao bbox', () => {
@@ -547,18 +622,11 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result = locateAdapter.element.resultCodec.toPixelBbox(
+    const result = locateAdapter.element.resultCodec.toPixelResult(
       [[100, 200, 300, 400]],
       { preparedSize: { width: 400, height: 900 } },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        40,
-        180,
-        120,
-        360,
-      ]
-    `);
+    ).rect;
+    expect(result).toEqual({ left: 40, top: 180, width: 81, height: 181 });
   });
 
   it('flattens nested doubao bbox list by taking the first entry', () => {
@@ -568,21 +636,14 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result = locateAdapter.element.resultCodec.toPixelBbox(
+    const result = locateAdapter.element.resultCodec.toPixelResult(
       [
         [100, 200, 300, 400],
         [100, 200, 300, 400],
       ],
       { preparedSize: { width: 400, height: 900 } },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        40,
-        180,
-        120,
-        360,
-      ]
-    `);
+    ).rect;
+    expect(result).toEqual({ left: 40, top: 180, width: 81, height: 181 });
   });
 
   it('normalizes doubao malformed six-number point fallback', () => {
@@ -592,18 +653,11 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result = locateAdapter.element.resultCodec.toPixelBbox(
+    const result = locateAdapter.element.resultCodec.toPixelResult(
       [100, 200, 300, 400, 100, 200],
       { preparedSize: { width: 1000, height: 2000 } },
     );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        90,
-        380,
-        110,
-        420,
-      ]
-    `);
+    expect(result).toEqual({ center: [100, 400] });
   });
 
   it('normalizes doubao polygon bbox', () => {
@@ -613,18 +667,11 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result = locateAdapter.element.resultCodec.toPixelBbox(
+    const result = locateAdapter.element.resultCodec.toPixelResult(
       [100, 200, 300, 200, 300, 400, 100, 400],
       { preparedSize: { width: 1000, height: 2000 } },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        100,
-        400,
-        300,
-        800,
-      ]
-    `);
+    ).rect;
+    expect(result).toEqual({ left: 100, top: 400, width: 201, height: 401 });
   });
 
   it('throws on invalid doubao bbox data', () => {
@@ -634,10 +681,11 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    expect(() =>
-      locateAdapter.element.resultCodec.toPixelBbox([100], {
-        preparedSize: { width: 1000, height: 2000 },
-      }),
+    expect(
+      () =>
+        locateAdapter.element.resultCodec.toPixelResult([100], {
+          preparedSize: { width: 1000, height: 2000 },
+        }).rect,
     ).toThrow();
   });
 });

@@ -12,6 +12,7 @@ export default defineTestProject({
   nodes: [
     defineNode({
       name: 'before.fail',
+      stringInputKey: 'prompt',
       execute({ onTeardown }) {
         log('beforeAll');
         onTeardown(() => log('documentNodeTeardown'));
@@ -20,12 +21,14 @@ export default defineTestProject({
     }),
     defineNode({
       name: 'after.record',
+      stringInputKey: 'prompt',
       execute() {
         log('afterAll');
       },
     }),
     defineNode({
       name: 'body.record',
+      stringInputKey: 'prompt',
       execute() {
         log('steps');
       },

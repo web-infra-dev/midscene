@@ -5,7 +5,7 @@ import {
   sendTextSequentially,
   shouldInputSequentially,
 } from '@/device';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 describe('text input strategy', () => {
   it('defaults to legacy', () => {
@@ -82,8 +82,8 @@ describe('text input strategy', () => {
   });
 
   it('sends Unicode code points in order and waits only between them', async () => {
-    const sendCharacter = vi.fn();
-    const wait = vi.fn();
+    const sendCharacter = rs.fn();
+    const wait = rs.fn();
 
     await sendTextSequentially(
       'A😀B',
@@ -96,11 +96,11 @@ describe('text input strategy', () => {
   });
 
   it('can preserve a legacy trailing delay explicitly', async () => {
-    const wait = vi.fn();
+    const wait = rs.fn();
 
     await sendTextSequentially(
       'AB',
-      { sendCharacter: vi.fn(), wait },
+      { sendCharacter: rs.fn(), wait },
       { delayMs: 10, delayAfterLast: true },
     );
 

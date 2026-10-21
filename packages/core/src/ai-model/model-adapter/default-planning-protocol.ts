@@ -5,13 +5,14 @@ import {
 } from '@midscene/shared/zod-schema-utils';
 import type { z } from 'zod';
 import { getZodDefaultValue } from '../shared/action-schema';
-import type { JsonParser } from '../shared/json';
+import { type JsonParser, assertJsonObject } from '../shared/json';
 import {
   type LocateResultPromptSpec,
   formatLocateExampleValue,
 } from '../shared/model-locate-result';
 import { extractXMLTag } from '../shared/xml';
 import type {
+  ParsedPlanningLocateParameter,
   PlanningActionDescriptionBuildInput,
   PlanningActionOutputBuildInput,
   StandardPlanningProtocolFactory,
@@ -194,6 +195,7 @@ export const createMidscenePlanningActionOutputParser =
           preserveStringValueKeys:
             type.toLowerCase() === 'input' ? ['value'] : undefined,
         });
+        assertJsonObject(param);
       } catch (error) {
         throw new Error(`Failed to parse action-param-json: ${error}`);
       }
@@ -206,25 +208,33 @@ export const createMidscenePlanningActionOutputParser =
   };
 
 export const createDefaultMidscenePlanningProtocol: StandardPlanningProtocolFactory =
-  ({ jsonParser }) => ({
-    actionSpaceProtocol: {
-      title: 'Supporting actions list',
-      format: 'yaml',
-      buildLocateFieldDescription,
-      buildActionDescription,
-    },
-    actionOutputProtocol: {
-      actionOutputTagNames: ['action-type', 'action-param-json'],
-      actionOutputRules: [
-        '- Use the <action-type> and <action-param-json> tags to output the action to be executed.',
-        "- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.",
-        '- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.',
-      ].join('\n'),
-      actionOutputPlaceholder: [
-        '<action-type>...</action-type>',
-        '<action-param-json>...</action-param-json>',
-      ].join('\n'),
-      buildActionOutput: buildPlanningActionOutput,
-      parseActionOutput: createMidscenePlanningActionOutputParser(jsonParser),
-    },
-  });
+  ({ jsonParser }) => {
+    const parseActionOutput =
+      createMidscenePlanningActionOutputParser(jsonParser);
+
+    return {
+      actionSpaceProtocol: {
+        title: 'Supporting actions list',
+        format: 'yaml',
+        includeActionOutputExample: true,
+        buildLocateFieldDescription,
+        buildActionDescription,
+      },
+      actionOutputProtocol: {
+        actionOutputTagNames: ['action-type', 'action-param-json'],
+        actionOutputRules: [
+          '- Use the <action-type> and <action-param-json> tags to output the action to be executed.',
+          "- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.",
+          '- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.',
+        ].join('\n'),
+        actionOutputPlaceholder: [
+          '<action-type>...</action-type>',
+          '<action-param-json>...</action-param-json>',
+        ].join('\n'),
+        buildActionOutput: buildPlanningActionOutput,
+        parseActionOutput,
+        parseRawLocateParameter: (value) =>
+          value as ParsedPlanningLocateParameter,
+      },
+    };
+  };

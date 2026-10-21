@@ -1,5 +1,5 @@
 import { buildPlanningResponseExample } from '@/ai-model/prompt/planning';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('buildPlanningResponseExample', () => {
   it('builds a planning response with sub-goal state and an action', () => {
@@ -62,6 +62,18 @@ describe('buildPlanningResponseExample', () => {
   <sub-goal index="3" status="finished" />
 </mark-sub-goal-done>
 <complete success="true">john@example.com</complete>`);
+  });
+
+  it('prepends a response prefix', () => {
+    expect(
+      buildPlanningResponseExample({
+        prefix: '<response-prefix>reasoning</response-prefix>',
+        planning: 'Continue the task.',
+        actionOutputExample: '<custom-action />',
+      }),
+    ).toBe(`<response-prefix>reasoning</response-prefix>
+<planning>Continue the task.</planning>
+<custom-action />`);
   });
 
   it('throws when no action output example is provided', () => {

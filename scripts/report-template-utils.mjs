@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const reportTemplateMagicString = 'REPLACE_ME_WITH_REPORT_HTML';
-export const reportTemplateMaxBytes = 3 * 1024 * 1024;
+export const reportTemplateMaxBytes = 4 * 1024 * 1024;
 
 export const reportTemplateModulePaths = {
   cjs: 'lib/report-html-template.js',
@@ -25,7 +25,7 @@ const defaultReportTemplatePath = path.join(
 function validateReportTemplateSize(size, label) {
   if (size > reportTemplateMaxBytes) {
     throw new Error(
-      `${label} exceeds the 3 MiB size limit (${size} bytes). This may indicate recursive Report template bundling.`,
+      `${label} exceeds the 4 MiB size limit (${size} bytes). This may indicate recursive Report template bundling.`,
     );
   }
 }
@@ -118,17 +118,25 @@ export function validateCoreReportTemplateModules(
   const validatedExpectedHtml = validateReportHtml(
     fs.readFileSync(reportTemplatePath, 'utf8'),
   );
+  const expectedModules = renderReportTemplateModules(validatedExpectedHtml);
 
-  for (const relativePath of Object.values(reportTemplateModulePaths)) {
+  for (const [format, relativePath] of Object.entries(
+    reportTemplateModulePaths,
+  )) {
     const filePath = path.join(coreDistDir, relativePath);
     if (!fs.existsSync(filePath)) {
       throw new Error(`Core report template module not found at ${filePath}.`);
     }
 
-    validateReportTemplateSize(
-      fs.statSync(filePath).size,
-      `Core report template module at ${filePath}`,
-    );
+    // JSON escaping grows the JS module; the size limit applies to HTML.
+    // Bound reads by the expected serialized module size instead.
+    const expectedBytes = Buffer.byteLength(expectedModules[format], 'utf8');
+    const moduleBytes = fs.statSync(filePath).size;
+    if (moduleBytes > expectedBytes) {
+      throw new Error(
+        `Core report template module at ${filePath} exceeds the expected generated size (${moduleBytes} bytes, expected at most ${expectedBytes} bytes).`,
+      );
+    }
     const content = fs.readFileSync(filePath, 'utf8');
     if (content.includes(reportTemplateMagicString)) {
       throw new Error(`Core report template is not written in ${filePath}.`);

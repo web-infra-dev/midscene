@@ -61,7 +61,7 @@ Playground is the fastest way to validate the connection and try core capabiliti
 npx --yes @midscene/computer-playground
 ```
 
-2. Click the gear icon in the Playground window, then paste your API Key configuration. See [Supported models and setup](../model-common-config) if you still need a model configuration.
+2. Click the gear icon in the Playground window, then paste your API Key configuration. See [Use a model API key](../model-api-setup) if you still need a model configuration.
 
 ## Use the JavaScript SDK
 
@@ -85,7 +85,9 @@ import { agentForComputer } from '@midscene/computer';
 (async () => {
   // Create an agent
   const agent = await agentForComputer({
-    aiActionContext: 'You are controlling a desktop computer.',
+    aiContexts: {
+      aiAct: 'You are controlling a desktop computer.',
+    },
   });
 
   // Take a screenshot and query information
@@ -103,6 +105,8 @@ import { agentForComputer } from '@midscene/computer';
   console.log('Desktop automation completed!');
 })();
 ```
+
+For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 ### Run the script
 
@@ -157,8 +161,9 @@ await agent.aiAct('click the red button five times');
 import { agentForRDPComputer } from '@midscene/computer';
 
 const agent = await agentForRDPComputer({
-  aiActionContext:
-    'You are controlling a remote Windows desktop over the RDP protocol.',
+  aiContexts: {
+    aiAct: 'You are controlling a remote Windows desktop over the RDP protocol.',
+  },
   host: '10.75.166.249',
   port: 3389,
   username: 'Admin',
@@ -171,6 +176,8 @@ await agent.aiAct('Click the Windows Start button');
 await agent.aiAct('Open Settings');
 await agent.aiAssert('The Windows Settings window is visible');
 ```
+
+For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 ### Common RDP Options
 
@@ -298,7 +305,7 @@ If the cursor moves to the correct position but clicks or key presses do nothing
 
 Prefer lowering the target application's privilege level first, for example by launching it without "Run as Administrator" or disabling any setting that always starts it elevated. If the target app must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** so it matches the target app's privilege level, then try again. System-level shortcuts such as `Win+Tab` are handled by the shell and keep working even when this happens, which is why keyboard shortcuts may appear to work while in-app clicks do not.
 
-> The health check logged at connection time prints this troubleshooting link when Midscene is not running as Administrator on Windows.
+> Check administrator privileges only when the cursor reaches the correct position. Midscene runs a health check when it connects to Windows. If Midscene is not running as Administrator, the health-check log prints a link to this section.
 
 ### Linux: Screenshots or interactions fail on a headless server
 

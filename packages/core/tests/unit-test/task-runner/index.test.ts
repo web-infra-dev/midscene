@@ -10,26 +10,34 @@ import type {
 } from '@/index';
 import Service from '@/service';
 import { TaskExecutionError } from '@/task-runner';
-import { processError } from '@vitest/runner';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../../utils';
 
+const deferred = <T = void>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((yes) => {
+    resolve = yes;
+  });
+  return { promise, resolve };
+};
+
 // Mock AI service caller
-vi.mock('@/ai-model/service-caller/index', () => ({
-  callAI: vi.fn(),
+rs.mock('@/ai-model/service-caller/index', () => ({
+  callAI: rs.fn(),
   AIResponseParseError: class AIResponseParseError extends Error {},
 }));
 
 import { callAI } from '@/ai-model/service-caller/index';
 
 const insightFindTask = (shouldThrow?: boolean) => {
+  const locateParam = {
+    prompt: 'test',
+  };
   const insightFindTask: ExecutionTaskPlanningLocateApply = {
     type: 'Planning',
     subType: 'Locate',
-    param: {
-      prompt: 'test',
-    },
-    async executor(param, taskContext) {
+    param: locateParam,
+    async executor(taskContext) {
       if (shouldThrow) {
         const { task } = taskContext;
         task.output = 'error-output';
@@ -40,7 +48,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
       const service = new Service(context);
       const { element, dump: insightDump } = await service.locate(
         {
-          prompt: param.prompt,
+          prompt: locateParam.prompt,
         },
         {},
         getModelRuntime({
@@ -75,6 +83,72 @@ const fakeUIContextBuilder = async () => {
   } as unknown as UIContext;
 };
 
+describe('task-runner cancellation', () => {
+  it('does not start another queued task or screenshot after cancellation', async () => {
+    const controller = new AbortController();
+    const context = rs.fn(fakeUIContextBuilder);
+    const next = rs.fn();
+    const runner = new TaskRunner('cancel queued actions', context, {
+      abortSignal: controller.signal,
+      tasks: [
+        {
+          type: 'Action Space',
+          executor: async () => {
+            controller.abort(new Error('stop actions'));
+          },
+        },
+        { type: 'Action Space', executor: next },
+      ],
+    });
+    await expect(runner.flush()).rejects.toThrow('stop actions');
+    expect(next).not.toHaveBeenCalled();
+    expect(context).toHaveBeenCalledTimes(1);
+    expect(runner.tasks.map((task) => task.status)).toEqual([
+      'failed',
+      'cancelled',
+    ]);
+  });
+
+  it.each(['onTaskStart', 'context', 'post-task screenshot'] as const)(
+    'checks cancellation after awaiting %s',
+    async (boundary) => {
+      const controller = new AbortController();
+      const started = deferred();
+      const release = deferred();
+      const executor = rs.fn(async () => undefined);
+      let captures = 0;
+      const pause = async () => {
+        started.resolve();
+        await release.promise;
+      };
+      const context = rs.fn(async () => {
+        captures++;
+        if (
+          (boundary === 'context' && captures === 1) ||
+          (boundary === 'post-task screenshot' && captures === 2)
+        )
+          await pause();
+        return fakeUIContextBuilder();
+      });
+      const runner = new TaskRunner('cancel an async boundary', context, {
+        abortSignal: controller.signal,
+        onTaskStart: boundary === 'onTaskStart' ? pause : undefined,
+        tasks: [{ type: 'Planning', executor }],
+      });
+      const pending = runner.flush();
+      const rejected = expect(pending).rejects.toThrow('stop at boundary');
+      await started.promise;
+      controller.abort(new Error('stop at boundary'));
+      release.resolve();
+      await rejected;
+      expect(executor).toHaveBeenCalledTimes(
+        boundary === 'post-task screenshot' ? 1 : 0,
+      );
+      expect(runner.tasks[0].status).toBe('failed');
+    },
+  );
+});
+
 describe(
   'task-runner',
   {
@@ -83,7 +157,7 @@ describe(
   () => {
     beforeEach(() => {
       // Setup default mock implementation for AI calls
-      vi.mocked(callAI).mockResolvedValue({
+      rs.mocked(callAI).mockResolvedValue({
         content: JSON.stringify({
           bbox: [0, 0, 100, 100],
           errors: [],
@@ -99,7 +173,7 @@ describe(
         action: 'tap',
         anything: 'acceptable',
       };
-      const tapperFn = vi.fn();
+      const tapperFn = rs.fn();
       const actionTask: ExecutionTaskActionApply = {
         type: 'Action Space',
         param: taskParam,
@@ -135,8 +209,8 @@ describe(
       expect(tasks[0].hitBy?.from).not.toBe('Cache');
 
       expect(tapperFn).toBeCalledTimes(1);
-      expect(tapperFn.mock.calls[0][0]).toBe(taskParam);
-      expect(tapperFn.mock.calls[0][1].task).toBeTruthy();
+      expect(tapperFn.mock.calls[0][0].task).toBeTruthy();
+      expect(tasks[1].param).toBe(taskParam);
 
       const dump = runner.dump();
       expect(dump.logTime).toBeTruthy();
@@ -147,7 +221,7 @@ describe(
     it('insight - init and append', async () => {
       const initRunner = new TaskRunner('test', fakeUIContextBuilder);
       expect(initRunner.status).toBe('init');
-      const tapperFn = vi.fn();
+      const tapperFn = rs.fn();
 
       const insightTask1 = insightFindTask();
       const actionTask: ExecutionTaskActionApply = {
@@ -244,7 +318,7 @@ describe(
       await expect(runner.flush()).rejects.toThrowError();
       expect(runner.status).toBe('error');
 
-      const recoveryExecutor = vi.fn().mockResolvedValue({
+      const recoveryExecutor = rs.fn().mockResolvedValue({
         output: 'recovered',
       });
       const recoveryTask: ExecutionTaskApply<
@@ -269,8 +343,8 @@ describe(
     });
 
     it('reuses UI context before an action and invalidates it after the action settles', async () => {
-      const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
-      const uiContextBuilder = vi.fn(fakeUIContextBuilder);
+      const now = rs.spyOn(Date, 'now').mockReturnValue(1_000);
+      const uiContextBuilder = rs.fn(fakeUIContextBuilder);
       const tasks: ExecutionTaskApply[] = [
         {
           type: 'Planning',
@@ -307,8 +381,8 @@ describe(
     });
 
     it('invalidates UI context when an action throws', async () => {
-      const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
-      const uiContextBuilder = vi.fn(fakeUIContextBuilder);
+      const now = rs.spyOn(Date, 'now').mockReturnValue(1_000);
+      const uiContextBuilder = rs.fn(fakeUIContextBuilder);
       const failedAction: ExecutionTaskActionApply = {
         type: 'Action Space',
         executor: async () => {
@@ -460,7 +534,7 @@ describe(
         errorMessage: 'upstream failed',
       });
 
-      const serializedError = processError(caughtError);
+      const serializedError = caughtError!.toJSON();
       expect(serializedError).toMatchObject({
         name: 'TaskExecutionError',
         code: 'TASK_EXECUTION_FAILED',
@@ -515,7 +589,7 @@ describe(
       expect(caughtError).toBeInstanceOf(TaskExecutionError);
       expect(caughtError?.cause.stack).toContain('failInExecutor');
 
-      const serializedError = processError(caughtError);
+      const serializedError = caughtError!.toJSON();
       expect(serializedError.stack).toContain('TaskExecutionError');
       expect(serializedError.cause).toMatchObject({
         name: 'Error',
@@ -562,7 +636,7 @@ describe(
         'Error without a message',
       );
 
-      const serializedError = processError(caughtError);
+      const serializedError = caughtError!.toJSON();
       expect(serializedError).toMatchObject({
         name: 'TaskExecutionError',
         code: 'TASK_EXECUTION_FAILED',

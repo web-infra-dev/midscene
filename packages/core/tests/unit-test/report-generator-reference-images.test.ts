@@ -5,7 +5,7 @@ import {
   rmSync,
   statSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
   parseDumpScript,
   parseImageScripts,
@@ -14,7 +14,7 @@ import {
 import { restoreImageReferences } from '@/dump/screenshot-restoration';
 import { ReportGenerator } from '@/report-generator';
 import { ExecutionDump, type ExecutionTaskPlanningParam } from '@/types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import {
   defaultReportMeta,
   fakeBase64,
@@ -155,12 +155,21 @@ describe('ReportGenerator reference images', () => {
     ).toBe(true);
     expect(firstPlanningReferenceImageUrl(execution)).toBe(referenceImage);
 
-    const persistedDump = readFileSync(
-      join(temporaryDirectory, '1.execution.json'),
-      'utf-8',
+    const dumpPath = join(
+      temporaryDirectory,
+      '.execution-dumps',
+      'reference-image-dedup.html',
+      '1.execution.json',
     );
+    const persistedDump = readFileSync(dumpPath, 'utf-8');
     expect(persistedDump).not.toContain(referenceImage);
     expect(persistedDump).toContain('midscene_image_url_ref');
+    for (const ref of referenceImageRefsFromDump(JSON.parse(persistedDump))) {
+      expect(ref.storage).toBe('file');
+      expect(readFileSync(join(dirname(dumpPath), ref.path!))).toEqual(
+        Buffer.from(referenceImage.split(',')[1], 'base64'),
+      );
+    }
   });
 
   it('rewrites only descriptors located inside images arrays', async () => {
@@ -244,7 +253,12 @@ describe('ReportGenerator reference images', () => {
       }
       await generator.finalize();
 
-      const executionDumpPath = join(reportDirectory, '1.execution.json');
+      const executionDumpPath = join(
+        reportDirectory,
+        '.execution-dumps',
+        'index.html',
+        '1.execution.json',
+      );
       return {
         html: readFileSync(reportPath, 'utf-8'),
         htmlSize: statSync(reportPath).size,

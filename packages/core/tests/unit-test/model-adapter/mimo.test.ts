@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { mimoAdapters } from '@/ai-model/models/mimo';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const mimoAdapter = new ResolvedModelAdapter(
   mimoAdapters['xiaomi-mimo'],

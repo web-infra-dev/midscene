@@ -61,7 +61,7 @@ Playground 是验证连接的最快方式。无需编写代码，即可体验 `a
 npx --yes @midscene/computer-playground
 ```
 
-2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有模型配置，请参考[支持的模型与配置](../model-common-config)。
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有模型配置，请参考[使用模型 API Key](../model-api-setup)。
 
 ## 使用 JavaScript SDK
 
@@ -85,7 +85,9 @@ import { agentForComputer } from '@midscene/computer';
 (async () => {
   // 创建 agent
   const agent = await agentForComputer({
-    aiActionContext: '你正在控制一台桌面计算机。',
+    aiContexts: {
+      aiAct: '你正在控制一台桌面计算机。',
+    },
   });
 
   // 截图并查询信息
@@ -103,6 +105,8 @@ import { agentForComputer } from '@midscene/computer';
   console.log('桌面自动化完成！');
 })();
 ```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 ### 运行脚本
 
@@ -157,8 +161,9 @@ await agent.aiAct('click the red button five times');
 import { agentForRDPComputer } from '@midscene/computer';
 
 const agent = await agentForRDPComputer({
-  aiActionContext:
-    'You are controlling a remote Windows desktop over the RDP protocol.',
+  aiContexts: {
+    aiAct: 'You are controlling a remote Windows desktop over the RDP protocol.',
+  },
   host: '10.75.166.249',
   port: 3389,
   username: 'Admin',
@@ -171,6 +176,8 @@ await agent.aiAct('Click the Windows Start button');
 await agent.aiAct('Open Settings');
 await agent.aiAssert('The Windows Settings window is visible');
 ```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 ### 常用 RDP 选项
 
@@ -298,7 +305,7 @@ macOS 需要辅助功能权限才能控制键盘和鼠标。请前往 **系统�
 
 优先尝试降低目标程序的权限级别，例如不要使用“以管理员身份运行”启动它，或关闭总是提权启动的相关设置。如果目标程序必须保持提权状态，再**以管理员身份运行**启动 Midscene 的终端（或 Node.js），使其与目标程序处于相同的权限级别，然后重试。像 `Win+Tab` 这类系统级快捷键由 shell 处理，即使在这种情况下也照常生效——这也是为什么有时键盘快捷键看起来能用、但程序内的点击却不行。
 
-> 在 Windows 上，如果 Midscene 未以管理员身份运行，连接时的健康检查日志会打印这条排查文档链接。
+> 仅当光标已经到达正确位置时，才需要排查管理员权限。Midscene 连接 Windows 时会执行健康检查。如果 Midscene 未以管理员身份运行，健康检查日志会显示本节链接。
 
 ### Linux：在无头服务器上截图或交互失败
 

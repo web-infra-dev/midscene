@@ -8,6 +8,15 @@ export interface InlineStructuredFieldConfig {
   placeholder?: string;
 }
 
+export const findActionForType = (
+  actionSpace: DeviceAction<any>[] | undefined,
+  selectedType: string,
+): DeviceAction<any> | undefined =>
+  actionSpace?.find(
+    (action) =>
+      action.interfaceAlias === selectedType || action.name === selectedType,
+  );
+
 /**
  * Compute the list of action identifiers that should be offered in the prompt
  * input's action dropdown.
@@ -74,10 +83,7 @@ export const getInlineStructuredFieldConfig = (
     return null;
   }
 
-  const action = actionSpace.find(
-    (item) =>
-      item.interfaceAlias === selectedType || item.name === selectedType,
-  );
+  const action = findActionForType(actionSpace, selectedType);
 
   if (!action?.paramSchema || !isZodObjectSchema(action.paramSchema)) {
     return null;
@@ -127,10 +133,7 @@ export const shouldOffsetEmptyStateForPromptInput = (
     return false;
   }
 
-  const action = actionSpace.find(
-    (item) =>
-      item.interfaceAlias === selectedType || item.name === selectedType,
-  );
+  const action = findActionForType(actionSpace, selectedType);
 
   if (!action?.paramSchema || !isZodObjectSchema(action.paramSchema)) {
     return false;

@@ -1,14 +1,14 @@
 import type { IModelConfig } from '@midscene/shared/env';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/ai-model/service-caller/index', () => ({
-  callAI: vi.fn(),
+rs.mock('@/ai-model/service-caller/index', () => ({
+  callAI: rs.fn(),
 }));
 
-vi.mock('@/service', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    locate: vi.fn(),
+rs.mock('@/service', () => ({
+  default: rs.fn().mockImplementation(() => ({
+    locate: rs.fn(),
   })),
 }));
 
@@ -59,7 +59,7 @@ describe('runConnectivityTest', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('keeps the fixture shot size aligned with the embedded PNG', async () => {
@@ -68,12 +68,55 @@ describe('runConnectivityTest', () => {
     ).resolves.toEqual(CONNECTIVITY_FIXTURE_SHOT_SIZE);
   });
 
-  it('returns passed when all checks succeed', async () => {
-    vi.mocked(callAI)
-      .mockResolvedValueOnce({ content: 'CONNECTIVITY_OK' } as any)
-      .mockResolvedValueOnce({ content: 'What needs to be done?' } as any);
+  it('checks the dedicated Locate model instead of Default for localization', async () => {
+    rs.mocked(callAI).mockResolvedValue({ content: 'CONNECTIVITY_OK' } as any);
+    const locate = rs
+      .fn()
+      .mockResolvedValue({ element: { center: [300, 120] } });
+    rs.mocked(Service).mockImplementation(() => ({ locate }) as any);
+    const locateModelConfig: IModelConfig = {
+      ...defaultModelConfig,
+      modelName: 'locator',
+      intent: 'locate',
+      slot: 'locate',
+    };
+    const result = await runConnectivityTest({
+      defaultModelConfig,
+      planningModelConfig,
+      insightModelConfig,
+      locateModelConfig,
+    });
+    expect(result.passed).toBe(true);
+    expect(result.checks).toHaveLength(4);
+    expect(
+      result.checks.find((check) => check.intent === 'default'),
+    ).toMatchObject({
+      name: 'text',
+      modelName: 'test-model',
+      passed: true,
+    });
+    expect(locate.mock.calls[0][2].config).toMatchObject({
+      modelName: 'locator',
+      intent: 'locate',
+    });
+    expect(
+      result.checks.find((check) => check.name === 'aiLocate'),
+    ).toMatchObject({ intent: 'locate', modelName: 'locator' });
+  });
 
-    const locate = vi.fn().mockResolvedValue({
+  it('returns passed when all checks succeed', async () => {
+    rs.mocked(callAI)
+      .mockImplementationOnce(async (_messages, runtime) => {
+        runtime.onRequest?.('https://planning.example/v1/chat/completions');
+        return { content: 'CONNECTIVITY_OK' } as any;
+      })
+      .mockResolvedValueOnce({ content: 'What needs to be done?' } as any)
+      .mockImplementationOnce(async (_messages, runtime) => {
+        runtime.onRequest?.('https://default.example/v1/chat/completions');
+        return { content: 'Result: CONNECTIVITY_OK.' } as any;
+      });
+
+    const locate = rs.fn().mockResolvedValue({
       rect: { left: 120, top: 90, width: 360, height: 60 },
       element: {
         center: [300, 120],
@@ -81,7 +124,7 @@ describe('runConnectivityTest', () => {
         description: 'main todo input box',
       },
     });
-    vi.mocked(Service).mockImplementation(
+    rs.mocked(Service).mockImplementation(
       () =>
         ({
           locate,
@@ -96,6 +139,36 @@ describe('runConnectivityTest', () => {
 
     expect(result.passed).toBe(true);
     expect(result.message).toBeUndefined();
+    expect(result.requestCount).toBe(2);
+    expect(result.checks).toEqual([
+      expect.objectContaining({
+        name: 'text',
+        intent: 'planning',
+        passed: true,
+        requestCount: 1,
+        endpoints: ['https://planning.example/v1/chat/completions'],
+        durationMs: expect.any(Number),
+      }),
+      expect.objectContaining({
+        name: 'vision',
+        intent: 'insight',
+        passed: true,
+        requestCount: 0,
+      }),
+      expect.objectContaining({
+        name: 'aiLocate',
+        intent: 'default',
+        passed: true,
+        requestCount: 0,
+      }),
+      expect.objectContaining({
+        name: 'text',
+        intent: 'default',
+        passed: true,
+        requestCount: 1,
+        endpoints: ['https://default.example/v1/chat/completions'],
+      }),
+    ]);
     expect(locate).toHaveBeenCalledWith(
       { prompt: 'the main todo input box' },
       {},
@@ -106,7 +179,7 @@ describe('runConnectivityTest', () => {
         }),
       }),
     );
-    expect(vi.mocked(callAI).mock.calls[0]?.[1]).toEqual(
+    expect(rs.mocked(callAI).mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({
         config: expect.objectContaining({
           ...planningModelConfig,
@@ -114,7 +187,7 @@ describe('runConnectivityTest', () => {
         }),
       }),
     );
-    expect(vi.mocked(callAI).mock.calls[1]?.[1]).toEqual(
+    expect(rs.mocked(callAI).mock.calls[1]?.[1]).toEqual(
       expect.objectContaining({
         config: expect.objectContaining({
           ...insightModelConfig,
@@ -125,26 +198,28 @@ describe('runConnectivityTest', () => {
     expect(defaultModelConfig.retryCount).toBe(3);
     expect(planningModelConfig.retryCount).toBe(3);
     expect(insightModelConfig.retryCount).toBe(3);
-    const visionCall = vi.mocked(callAI).mock.calls[1]?.[0]?.[0];
+    const visionCall = rs.mocked(callAI).mock.calls[1]?.[0]?.[0];
     expect(visionCall).toMatchObject({
       role: 'user',
       content: expect.arrayContaining([
         expect.objectContaining({
-          type: 'image_url',
-          image_url: expect.objectContaining({
-            url: expect.stringMatching(/^data:image\/png;base64,/),
-          }),
+          type: 'image',
+          url: expect.stringMatching(/^data:image\/png;base64,/),
         }),
       ]),
     });
   });
 
   it('marks individual failures without throwing', async () => {
-    vi.mocked(callAI)
+    rs.mocked(callAI)
       .mockResolvedValueOnce({ content: 'wrong-token' } as any)
-      .mockRejectedValueOnce(new Error('vision failed'));
+      .mockImplementationOnce(async (_messages, runtime) => {
+        runtime.onRequest?.('https://vision.example/v1/responses');
+        throw new Error('vision failed');
+      })
+      .mockResolvedValueOnce({ content: 'wrong-default-token' } as any);
 
-    const locate = vi.fn().mockResolvedValue({
+    const locate = rs.fn().mockResolvedValue({
       rect: { left: 10, top: 10, width: 20, height: 20 },
       element: {
         center: [20, Number.NaN],
@@ -152,7 +227,7 @@ describe('runConnectivityTest', () => {
         description: 'wrong target',
       },
     });
-    vi.mocked(Service).mockImplementation(
+    rs.mocked(Service).mockImplementation(
       () =>
         ({
           locate,
@@ -166,8 +241,18 @@ describe('runConnectivityTest', () => {
     });
 
     expect(result.passed).toBe(false);
+    expect(result.requestCount).toBe(1);
+    expect(result.checks[1]).toMatchObject({
+      passed: false,
+      requestCount: 1,
+      endpoints: ['https://vision.example/v1/responses'],
+      message: 'vision failed',
+    });
     expect(result.message).toContain(
       '[Text check - test-planning-model (planning)]: Unexpected response: wrong-token',
+    );
+    expect(result.message).toContain(
+      '[Text check - test-model (default)]: Unexpected response: wrong-default-token',
     );
     expect(result.message).toContain(
       '[Vision check - test-insight-model (insight)]: vision failed',

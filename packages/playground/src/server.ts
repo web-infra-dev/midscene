@@ -40,7 +40,6 @@ import {
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
-import { generateElementByPoint } from '@midscene/shared/extractor';
 import { annotateRects, imageInfoOfBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type {
@@ -209,7 +208,7 @@ function createElementDescriberRuntime(
       ? getModelRuntime(modelConfigManager.getModelConfig('insight'))
       : missingModelRuntime,
     locateModelRuntime: modelConfigManager
-      ? getModelRuntime(modelConfigManager.getModelConfig('default'))
+      ? getModelRuntime(modelConfigManager.getModelConfig('locate'))
       : missingModelRuntime,
   };
 }
@@ -893,13 +892,13 @@ function locateFromPoint(
   fieldY: string,
   description: string,
 ) {
-  return generateElementByPoint(
-    [
+  return {
+    center: [
       Math.round(requireNumber(x, fieldX)),
       Math.round(requireNumber(y, fieldY)),
-    ],
-    description,
-  );
+    ] as [number, number],
+    description: description || '',
+  };
 }
 
 type InteractParamBuilder = (
@@ -3420,7 +3419,7 @@ class PlaygroundServer {
         type,
         prompt,
         params,
-        requestId,
+        requestId: providedRequestId,
         deepLocate,
         deepThink,
         screenshotIncluded,
@@ -3428,6 +3427,7 @@ class PlaygroundServer {
         deviceOptions,
         reportDisplay,
       } = req.body;
+      const requestId = providedRequestId || uuid();
 
       if (!type) {
         return res.status(400).json({
@@ -3508,8 +3508,11 @@ class PlaygroundServer {
       };
 
       const startTime = Date.now();
+      let reportStarted = false;
       try {
-        agent.resetDump?.();
+        await agent.resetDump();
+        reportStarted = true;
+        abortController?.signal.throwIfAborted();
         await this._activeConnection.executionHooks?.beforeExecute?.();
 
         // Get action space to check for dynamic actions
@@ -3549,7 +3552,7 @@ class PlaygroundServer {
         // blocks Electron's main event loop, including IPC and scrcpy. The
         // cancel response reads the incrementally persisted report instead.
         response.dump = null;
-      } else {
+      } else if (reportStarted) {
         try {
           // Snapshot updates await incremental report persistence before the
           // action resolves. Register that existing artifact instead of
@@ -3557,10 +3560,9 @@ class PlaygroundServer {
           // HTML report. Large Android runs otherwise starve Electron's main
           // event loop long enough for the scrcpy Socket.IO heartbeat to fail.
           const reportStartedAt = Date.now();
-          const reportFile = agent.reportFile;
+          const reportFile = await agent.finalizeReport();
           response.report = await this.registerReportFile(reportFile);
           response.dump = null;
-          agent.resetDump();
 
           debugReport(
             'registered persisted report: requestId=%s, duration=%dms, bytes=%d, file=%s',
@@ -3577,6 +3579,7 @@ class PlaygroundServer {
             requestId,
             errorMessage,
           );
+          response.error ??= errorMessage;
         }
       }
 
@@ -3641,7 +3644,18 @@ class PlaygroundServer {
           // a Timeline but have no report artifact to register.
           const latestExecutionDump = this.taskExecutionDumps[requestId];
           if (latestExecutionDump) {
-            agent.writeOutActionDumps?.(latestExecutionDump);
+            try {
+              agent.writeOutActionDumps?.(latestExecutionDump);
+            } catch (error) {
+              if ((error as { code?: string })?.code !== 'REPORT_FINALIZED')
+                throw error;
+              // Completion may already have sealed this report. Continue
+              // teardown and return its cached artifact instead of appending.
+              debugCancel(
+                'Could not persist a cancellation snapshot: %s',
+                error,
+              );
+            }
           }
 
           // Destroy and recreate agent to cancel the current task,
@@ -4180,6 +4194,7 @@ class PlaygroundServer {
         const modelConfigManager = new ModelConfigManager(req.body.config);
         const result = await runConnectivityTest({
           defaultModelConfig: modelConfigManager.getModelConfig('default'),
+          locateModelConfig: modelConfigManager.getModelConfig('locate'),
           planningModelConfig: modelConfigManager.getModelConfig('planning'),
           insightModelConfig: modelConfigManager.getModelConfig('insight'),
         });

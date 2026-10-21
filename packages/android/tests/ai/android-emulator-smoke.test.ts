@@ -276,12 +276,12 @@ async function waitForKeyboardState(
 function locate(bounds: Bounds, prompt: string) {
   return {
     prompt,
-    locatedPixelBbox: [
-      bounds.left,
-      bounds.top,
-      bounds.left + bounds.width,
-      bounds.top + bounds.height,
-    ] as [number, number, number, number],
+    locatedPixelResult: {
+      center: [
+        bounds.left + bounds.width / 2,
+        bounds.top + bounds.height / 2,
+      ] as [number, number],
+    },
   };
 }
 

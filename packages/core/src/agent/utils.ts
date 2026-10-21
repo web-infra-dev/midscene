@@ -1,15 +1,13 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { pixelBboxToRect } from '@/ai-model/workflows/grounding/locate-result-rect';
+import type { PixelLocateResult } from '@/ai-model/shared/model-locate-result';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type {
+  DetailedLocateParam,
   ElementCacheFeature,
   LocateResultElement,
-  PixelBbox,
-  PlanningLocateParam,
-  PlanningLocateParamWithLocatedPixelBbox,
   Rect,
   ScrollParam,
   Size,
@@ -18,21 +16,20 @@ import type {
 import { uploadTestInfoToServer } from '@/utils';
 import {
   MIDSCENE_REPORT_QUIET,
-  MIDSCENE_REPORT_TAG_NAME,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { generateElementByRect } from '@midscene/shared/extractor';
 import {
   createImgBase64ByFormat,
   imageInfoOfBase64,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
-import { assert, ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
-import dayjs from 'dayjs';
+import { assert, ifInBrowser, logMsg } from '@midscene/shared/utils';
 import { prepareRawScreenshot } from './screenshot-preparation';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
+
+export { getReportFileName } from './report-file-name';
 
 const agentDebug = getDebug('agent');
 const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
@@ -213,16 +210,6 @@ export async function createScreenshotBoundUIContext(
   };
 }
 
-export function getReportFileName(tag = 'web') {
-  const reportTagName = globalConfigManager.getEnvConfigValue(
-    MIDSCENE_REPORT_TAG_NAME,
-  );
-  const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
-  // ensure uniqueness at the same time
-  const uniqueId = uuid().substring(0, 8);
-  return `${reportTagName || tag}-${dateTimeInFileName}-${uniqueId}`;
-}
-
 export function printReportMsg(filepath: string) {
   if (globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET)) {
     return;
@@ -275,40 +262,45 @@ export function normalizeFilePaths(
   });
 }
 
-export function isPixelBbox(value: unknown): value is PixelBbox {
+type LocateParamWithMaybeLocatedPixelResult = DetailedLocateParam & {
+  locatedPixelResult?: unknown;
+};
+
+type LocateParamWithLocatedPixelResult = DetailedLocateParam & {
+  locatedPixelResult: PixelLocateResult;
+};
+
+export function ifLocateParamHasLocatedPixelResult(
+  planLocateParam: LocateParamWithMaybeLocatedPixelResult,
+): planLocateParam is LocateParamWithLocatedPixelResult {
+  const result = planLocateParam.locatedPixelResult;
+  if (!result || typeof result !== 'object' || !('center' in result)) {
+    return false;
+  }
+  const point = result.center;
   return (
-    Array.isArray(value) &&
-    value.length === 4 &&
-    value.every((item) => typeof item === 'number' && Number.isFinite(item))
+    Array.isArray(point) &&
+    point.length === 2 &&
+    point.every((v) => typeof v === 'number' && Number.isFinite(v))
   );
 }
 
-type PlanningLocateParamWithMaybeLocatedPixelBbox = PlanningLocateParam & {
-  locatedPixelBbox?: unknown;
-};
-
-export function ifPlanLocateParamHasLocatedPixelBbox(
-  planLocateParam: PlanningLocateParamWithMaybeLocatedPixelBbox,
-): planLocateParam is PlanningLocateParamWithLocatedPixelBbox {
-  return isPixelBbox(planLocateParam.locatedPixelBbox);
-}
-
 export function matchElementFromPlan(
-  planLocateParam: PlanningLocateParamWithLocatedPixelBbox,
+  planLocateParam: LocateParamWithLocatedPixelResult,
 ): LocateResultElement | undefined {
   if (!planLocateParam) {
     return undefined;
   }
 
-  const rect = pixelBboxToRect(planLocateParam.locatedPixelBbox);
-
-  const element = generateElementByRect(
-    rect,
-    typeof planLocateParam.prompt === 'string'
-      ? planLocateParam.prompt
-      : planLocateParam.prompt?.prompt || '',
-  );
-  return element;
+  const { center, rect } = planLocateParam.locatedPixelResult;
+  return {
+    center: [...center],
+    description:
+      typeof planLocateParam.prompt === 'string'
+        ? planLocateParam.prompt
+        : planLocateParam.prompt?.prompt || '',
+    ...(rect ? { rect } : {}),
+  };
 }
 
 export async function matchElementFromCache(
@@ -344,10 +336,7 @@ export async function matchElementFromCache(
     const rect =
       await context.interfaceInstance.rectMatchesCacheFeature(cacheEntry);
     const element: LocateResultElement = {
-      center: [
-        Math.round(rect.left + rect.width / 2),
-        Math.round(rect.top + rect.height / 2),
-      ],
+      center: [rect.left + rect.width / 2, rect.top + rect.height / 2],
       rect,
       description:
         typeof cachePrompt === 'string'
@@ -411,16 +400,17 @@ export const transformLogicalElementToScreenshot = (
   return {
     ...element,
     center: [
-      Math.round(element.center[0] * shrunkShotToLogicalRatio),
-      Math.round(element.center[1] * shrunkShotToLogicalRatio),
+      element.center[0] * shrunkShotToLogicalRatio,
+      element.center[1] * shrunkShotToLogicalRatio,
     ],
-    rect: {
-      ...element.rect,
-      left: Math.round(element.rect.left * shrunkShotToLogicalRatio),
-      top: Math.round(element.rect.top * shrunkShotToLogicalRatio),
-      width: Math.round(element.rect.width * shrunkShotToLogicalRatio),
-      height: Math.round(element.rect.height * shrunkShotToLogicalRatio),
-    },
+    ...(element.rect
+      ? {
+          rect: transformLogicalRectToScreenshotRect(
+            element.rect,
+            shrunkShotToLogicalRatio,
+          ),
+        }
+      : {}),
   };
 };
 

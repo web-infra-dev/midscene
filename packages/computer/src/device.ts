@@ -26,11 +26,28 @@ import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
+import { sendKeyViaAppleScript } from './apple-script-keyboard';
 import {
   ComputerInputDriver,
   type LibNut,
   type ScrollDirection,
 } from './input-driver';
+import {
+  US_SHIFTED_CHARACTER_KEYS,
+  resolveShiftedKey,
+} from './keyboard-layout';
+import { clampPointerPointToSize } from './pointer';
+import {
+  type WindowsDisplayGeometry,
+  readWindowsDisplayGeometries,
+  resolveWindowsDisplayGeometryFromList,
+} from './windows-display';
+import { runWindowsPhysicalPixelPowershell } from './windows-dpi';
+import {
+  WindowsPointerDriver,
+  windowsPointerDrift,
+  windowsPointerIsWithinTolerance,
+} from './windows-pointer';
 import type { XvfbInstance } from './xvfb';
 import {
   checkXvfbInstalled,
@@ -80,17 +97,25 @@ interface DarwinFrontmostApplication {
   name: string;
 }
 
-export interface DarwinDisplayGeometry {
+export interface DisplayBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface DisplayGeometry {
+  primary: boolean;
+  bounds: DisplayBounds;
+}
+
+export interface DarwinDisplayGeometry extends DisplayGeometry {
   screenIndex: number;
   cgDisplayId: number;
-  primary: boolean;
-  bounds: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
 }
+
+export type { WindowsDisplayGeometry } from './windows-display';
+export { resolveWindowsDisplayGeometryFromList } from './windows-display';
 
 export interface Point {
   x: number;
@@ -100,8 +125,10 @@ export interface Point {
 // Constants
 const SMOOTH_MOVE_STEPS_TAP = 8;
 const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
+const SMOOTH_MOVE_STEPS_DRAG = 20;
 const SMOOTH_MOVE_DELAY_TAP = 8;
 const SMOOTH_MOVE_DELAY_MOUSE_MOVE = 10;
+const SMOOTH_MOVE_DELAY_DRAG = 10;
 const MOUSE_MOVE_EFFECT_WAIT = 300;
 const CLICK_SETTLE_DELAY = 50;
 const CLICK_HOLD_DURATION = 100;
@@ -181,144 +208,17 @@ const EDGE_SCROLL_SPEC: Record<EdgeScrollType, EdgeScrollStrategy> = {
   scrollToRight: { direction: 'right', key: 'end', libnut: [1, 0] },
 };
 
-// macOS AppleScript key code mapping
-// Reference: https://eastmanreference.com/complete-list-of-applescript-key-codes
-const APPLESCRIPT_KEY_CODE_MAP: Record<string, number> = {
-  // Special keys
-  return: 36,
-  enter: 36,
-  tab: 48,
-  space: 49,
-  backspace: 51,
-  delete: 51,
-  escape: 53,
-  forwarddelete: 117,
-
-  // Arrow keys
-  left: 123,
-  right: 124,
-  down: 125,
-  up: 126,
-
-  // Navigation keys
-  home: 115,
-  end: 119,
-  pageup: 116,
-  pagedown: 121,
-
-  // Function keys
-  f1: 122,
-  f2: 120,
-  f3: 99,
-  f4: 118,
-  f5: 96,
-  f6: 97,
-  f7: 98,
-  f8: 100,
-  f9: 101,
-  f10: 109,
-  f11: 103,
-  f12: 111,
-};
-
-// Modifier key mapping for AppleScript
-const APPLESCRIPT_MODIFIER_MAP: Record<string, string> = {
-  command: 'command down',
-  cmd: 'command down',
-  control: 'control down',
-  ctrl: 'control down',
-  shift: 'shift down',
-  alt: 'option down',
-  option: 'option down',
-  meta: 'command down',
-};
-
-/**
- * Send a key press using AppleScript (macOS only)
- * More reliable than libnut for TUI applications like Bubble Tea
- */
-function sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
-  const lowerKey = key.toLowerCase();
-  const keyCode = APPLESCRIPT_KEY_CODE_MAP[lowerKey];
-
-  // Build modifier string
-  const modifierParts = modifiers
-    .map((m) => APPLESCRIPT_MODIFIER_MAP[m.toLowerCase()])
-    .filter(Boolean);
-  const modifierStr =
-    modifierParts.length > 0 ? ` using {${modifierParts.join(', ')}}` : '';
-
-  let script: string;
-
-  if (keyCode !== undefined) {
-    // Use key code for special keys
-    script = `tell application "System Events" to key code ${keyCode}${modifierStr}`;
-  } else {
-    const escapedKey = key.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    script = `tell application "System Events" to keystroke "${escapedKey}"${modifierStr}`;
-  }
-
-  debugDevice('sendKeyViaAppleScript', { key, modifiers, script });
-  execFileSync('osascript', ['-e', script]);
-}
-
-// Lazy load libnut with fallback
-const POWERSHELL_TIMEOUT_MS = 15_000;
-// CopyFromScreen output can be several MB once base64-encoded.
-const POWERSHELL_MAX_BUFFER = 64 * 1024 * 1024;
-
 function escapePowershellSingleQuoted(value: string): string {
   return value.replace(/'/g, "''");
 }
 
-/**
- * Run a PowerShell script and return its stdout. The script is passed via
- * `-EncodedCommand` (UTF-16LE base64) to avoid any shell quoting/escaping and
- * the Git Bash argument mangling that breaks screenshot-desktop (#2150).
- * `powershell.exe` (Windows PowerShell 5.x) is used because it ships with
- * System.Windows.Forms / System.Drawing out of the box.
- *
- * No `-ExecutionPolicy Bypass`: execution policy only gates `.ps1` script
- * files, not inline `-EncodedCommand`/`-Command` input, so it would be a
- * no-op here while making the invocation look more privileged to auditing.
- */
-function runPowershell(script: string): string {
-  // Suppress PowerShell progress output (CLIXML) that non-interactive
-  // child processes emit to stdout — it shows up as `#< CLIXML` XML noise
-  // in Midscene logs and wastes tokens in agent flows (#2751).
-  const prefixed = `$ProgressPreference = 'SilentlyContinue'\n${script}`;
-  const encoded = Buffer.from(prefixed, 'utf16le').toString('base64');
-  return execFileSync(
-    'powershell.exe',
-    ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
-    {
-      encoding: 'utf8',
-      timeout: POWERSHELL_TIMEOUT_MS,
-      maxBuffer: POWERSHELL_MAX_BUFFER,
-      windowsHide: true,
-    },
-  );
-}
-
-/** Enumerate Windows monitors via PowerShell (screenshot-desktop's .bat-based
- * listDisplays is broken under Claude Code — see #2150). */
-function listWindowsDisplays(): DisplayInfo[] {
-  const script = `
-Add-Type -AssemblyName System.Windows.Forms
-$s = [System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
-  [PSCustomObject]@{ id = $_.DeviceName; name = $_.DeviceName; primary = $_.Primary }
-}
-ConvertTo-Json @($s) -Compress
-`.trim();
-  const parsed = JSON.parse(runPowershell(script).trim()) as Array<{
-    id: string;
-    name?: string;
-    primary?: boolean;
-  }>;
-  return parsed.map((d) => ({
-    id: String(d.id),
-    name: d.name || String(d.id),
-    primary: d.primary || false,
+function listWindowsDisplays(
+  geometries = readWindowsDisplayGeometries(),
+): DisplayInfo[] {
+  return geometries.map((display) => ({
+    id: display.id,
+    name: display.name,
+    primary: display.primary,
   }));
 }
 
@@ -454,6 +354,19 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+function isDisplayBounds(value: unknown): value is DisplayBounds {
+  if (!value || typeof value !== 'object') return false;
+  const bounds = value as DisplayBounds;
+  return (
+    isFiniteNumber(bounds.x) &&
+    isFiniteNumber(bounds.y) &&
+    isFiniteNumber(bounds.width) &&
+    isFiniteNumber(bounds.height) &&
+    bounds.width > 0 &&
+    bounds.height > 0
+  );
+}
+
 function isDarwinDisplayGeometry(
   value: unknown,
 ): value is DarwinDisplayGeometry {
@@ -520,16 +433,16 @@ async function pressMouseAtGlobalPoint(
   inputDriver: ComputerInputDriver,
   targetX: number,
   targetY: number,
+  current: Point,
   holdDuration: number,
   reason: 'primary' | 'focus-follow-up',
 ): Promise<void> {
-  await inputDriver.delay(CLICK_SETTLE_DELAY);
-  const current = inputDriver.getMousePos();
+  const drift = { x: current.x - targetX, y: current.y - targetY };
   debugComputerInput('tap mouse moved %o', {
     reason,
     target: { x: targetX, y: targetY },
     current,
-    drift: { x: current.x - targetX, y: current.y - targetY },
+    drift,
   });
   await inputDriver.withMouseButton('left', async () => {
     debugComputerInput('tap mouse down %o', { reason });
@@ -563,20 +476,38 @@ export function resolveDarwinDisplayGeometryFromList(
   );
 }
 
+/** @internal exported for unit tests — do not consume from outside this package */
 function resolveDisplayGeometry(
   displayId: string | undefined,
-): DarwinDisplayGeometry | undefined {
-  if (process.platform !== 'darwin') return undefined;
-  return resolveDarwinDisplayGeometryFromList(
-    displayId,
-    readDarwinDisplayGeometries(),
-  );
+  windowsDisplays?: WindowsDisplayGeometry[],
+): DisplayGeometry | undefined {
+  if (process.platform === 'darwin') {
+    return resolveDarwinDisplayGeometryFromList(
+      displayId,
+      readDarwinDisplayGeometries(),
+    );
+  }
+  if (process.platform === 'win32') {
+    const geometry = resolveWindowsDisplayGeometryFromList(
+      displayId,
+      windowsDisplays ?? readWindowsDisplayGeometries(),
+    );
+    if (!geometry) {
+      throw new Error(
+        displayId
+          ? `Requested Windows display not found: ${displayId}`
+          : 'No Windows displays were detected',
+      );
+    }
+    return geometry;
+  }
+  return undefined;
 }
 
 /** @internal exported for unit tests — do not consume from outside this package */
 export function mapDisplayLocalPointToGlobal(
   point: Point,
-  geometry?: DarwinDisplayGeometry,
+  geometry?: DisplayGeometry,
 ): Point {
   if (!geometry) return point;
   return {
@@ -736,6 +667,25 @@ export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
    */
   keyboardDriver?: 'applescript' | 'libnut';
   /**
+   * Delay in milliseconds after each explicit modifier transition and the
+   * main key for local libnut keyboard events. A positive value changes
+   * modified shortcuts and shifted en-US text characters into separately
+   * observable modifier-down, main-key, and modifier-up phases. This can help
+   * foreground clients whose full-screen keyboard capture misses rapidly
+   * synthesized modifier state changes.
+   *
+   * Ignored by the macOS AppleScript driver and RDP mode.
+   * @default 0
+   */
+  keyboardModifierDelay?: number;
+  /**
+   * Keyboard layout used to resolve layout-dependent shifted characters
+   * during sequential local libnut input. Uppercase Latin letters do not
+   * require this option. Other characters keep using the backend's existing
+   * input behavior unless a supported layout is declared.
+   */
+  keyboardLayout?: 'en-US';
+  /**
    * Headless mode via Xvfb (Linux only).
    * - true: start Xvfb virtual display
    * - false/undefined: do not start Xvfb
@@ -760,7 +710,7 @@ export class ComputerDevice implements AbstractInterface {
   interfaceType: InterfaceType = 'computer';
   private options?: ComputerDeviceOpt;
   private displayId?: string;
-  private displayGeometry?: DarwinDisplayGeometry;
+  private displayGeometry?: DisplayGeometry;
   private description?: string;
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
@@ -772,6 +722,9 @@ export class ComputerDevice implements AbstractInterface {
     sendKeyViaAppleScript,
     runPhasedScroll,
     debug: (message) => debugDevice(message),
+  });
+  private readonly windowsPointerDriver = new WindowsPointerDriver({
+    runPhysicalPixelPowershell: runWindowsPhysicalPixelPowershell,
   });
   /**
    * On macOS, use AppleScript for keyboard operations by default
@@ -797,29 +750,26 @@ export class ComputerDevice implements AbstractInterface {
           global: { x: targetX, y: targetY },
           holdDuration,
           displayId: this.displayId,
-          displayGeometry: this.displayGeometry
-            ? {
-                screenIndex: this.displayGeometry.screenIndex,
-                cgDisplayId: this.displayGeometry.cgDisplayId,
-                bounds: this.displayGeometry.bounds,
-              }
-            : undefined,
+          displayGeometry: this.displayGeometry,
         });
 
         const frontmostBefore =
           process.platform === 'darwin'
             ? readDarwinFrontmostApplication()
             : undefined;
-        await this.inputDriver.smoothMoveMouse(
-          targetX,
-          targetY,
-          SMOOTH_MOVE_STEPS_TAP,
-          SMOOTH_MOVE_DELAY_TAP,
+        const current = await this.moveGlobalPointer(
+          { x: targetX, y: targetY },
+          'Mouse did not reach the tap target',
+          {
+            smoothSteps: SMOOTH_MOVE_STEPS_TAP,
+            smoothDelay: SMOOTH_MOVE_DELAY_TAP,
+          },
         );
         await pressMouseAtGlobalPoint(
           this.inputDriver,
           targetX,
           targetY,
+          current,
           holdDuration,
           'primary',
         );
@@ -835,11 +785,15 @@ export class ComputerDevice implements AbstractInterface {
             focusChanged,
           });
           if (focusChanged) {
-            this.inputDriver.moveMouse(targetX, targetY);
+            const followUpCurrent = await this.moveGlobalPointer(
+              { x: targetX, y: targetY },
+              'Mouse did not reach the focus follow-up target',
+            );
             await pressMouseAtGlobalPoint(
               this.inputDriver,
               targetX,
               targetY,
+              followUpCurrent,
               holdDuration,
               'focus-follow-up',
             );
@@ -847,40 +801,38 @@ export class ComputerDevice implements AbstractInterface {
         }
       },
       doubleClick: async ({ x, y }) => {
-        const target = this.toGlobalPoint({ x, y });
-        this.inputDriver.moveMouse(Math.round(target.x), Math.round(target.y));
+        await this.moveDisplayPointer(
+          { x, y },
+          'Mouse did not reach the double-click target',
+        );
         this.inputDriver.mouseClick('left', true);
       },
       rightClick: async ({ x, y }) => {
-        const target = this.toGlobalPoint({ x, y });
-        this.inputDriver.moveMouse(Math.round(target.x), Math.round(target.y));
+        await this.moveDisplayPointer(
+          { x, y },
+          'Mouse did not reach the right-click target',
+        );
         this.inputDriver.mouseClick('right');
       },
       hover: async ({ x, y }) => {
-        const target = this.toGlobalPoint({ x, y });
-        await this.inputDriver.smoothMoveMouse(
-          Math.round(target.x),
-          Math.round(target.y),
-          SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-          SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+        await this.moveDisplayPointer(
+          { x, y },
+          'Mouse did not reach the hover target',
+          {
+            smoothSteps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
+            smoothDelay: SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+          },
         );
         await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
-        const globalFrom = this.toGlobalPoint(from);
-        const globalTo = this.toGlobalPoint(to);
-        this.inputDriver.moveMouse(
-          Math.round(globalFrom.x),
-          Math.round(globalFrom.y),
-        );
-        await this.inputDriver.withMouseButton('left', async () => {
-          await this.inputDriver.delay(100);
-          this.inputDriver.moveMouse(
-            Math.round(globalTo.x),
-            Math.round(globalTo.y),
-          );
-          await this.inputDriver.delay(100);
-        });
+        await this.performPointerDrag(from, to);
+      },
+      swipe: async (from, to, opts) => {
+        const repeatCount = opts?.repeat ?? 1;
+        for (let index = 0; index < repeatCount; index++) {
+          await this.performPointerDrag(from, to, opts?.duration);
+        }
       },
     },
     keyboard: {
@@ -927,10 +879,106 @@ export class ComputerDevice implements AbstractInterface {
   };
 
   constructor(options?: ComputerDeviceOpt) {
+    if (
+      options?.keyboardModifierDelay !== undefined &&
+      (!Number.isFinite(options.keyboardModifierDelay) ||
+        options.keyboardModifierDelay < 0)
+    ) {
+      throw new Error(
+        'keyboardModifierDelay must be a finite non-negative number',
+      );
+    }
+    if (
+      options?.keyboardLayout !== undefined &&
+      options.keyboardLayout !== 'en-US'
+    ) {
+      throw new Error('keyboardLayout must be "en-US" when specified');
+    }
     this.options = options;
     this.displayId = options?.displayId;
     this.useAppleScript =
       process.platform === 'darwin' && options?.keyboardDriver !== 'libnut';
+  }
+
+  private async moveGlobalPointer(
+    point: Point,
+    context: string,
+    smooth?: { smoothSteps: number; smoothDelay: number },
+  ): Promise<Point> {
+    if (this.destroyed) {
+      throw new Error('ComputerDevice has been destroyed');
+    }
+    const target = {
+      x: Math.round(point.x),
+      y: Math.round(point.y),
+    };
+    if (process.platform === 'win32') {
+      const actual = this.windowsPointerDriver.moveTo(target, {
+        smoothSteps: smooth?.smoothSteps,
+        smoothDelayMs: smooth?.smoothDelay,
+      });
+      const drift = windowsPointerDrift(target, actual);
+      if (!windowsPointerIsWithinTolerance(drift)) {
+        throw new Error(
+          `${context}: expected (${target.x}, ${target.y}), got (${actual.x}, ${actual.y}), drift=(${drift.x}, ${drift.y})`,
+        );
+      }
+      await this.inputDriver.delay(CLICK_SETTLE_DELAY);
+      return actual;
+    }
+    if (smooth) {
+      await this.inputDriver.smoothMoveMouse(
+        target.x,
+        target.y,
+        smooth.smoothSteps,
+        smooth.smoothDelay,
+      );
+    } else {
+      this.inputDriver.moveMouse(target.x, target.y);
+    }
+    await this.inputDriver.delay(CLICK_SETTLE_DELAY);
+    return this.inputDriver.getMousePos();
+  }
+
+  private moveDisplayPointer(
+    point: Point,
+    context: string,
+    smooth?: { smoothSteps: number; smoothDelay: number },
+  ): Promise<Point> {
+    return this.moveGlobalPointer(this.toGlobalPoint(point), context, smooth);
+  }
+
+  private async performPointerDrag(
+    from: Point,
+    to: Point,
+    duration?: number,
+  ): Promise<void> {
+    const screenSize = await this.size();
+    const boundedFrom = clampPointerPointToSize(from, screenSize);
+    const boundedTo = clampPointerPointToSize(to, screenSize);
+    await this.moveDisplayPointer(
+      boundedFrom,
+      'Mouse did not reach the drag start target',
+    );
+    await this.inputDriver.withMouseButton('left', async () => {
+      await this.inputDriver.delay(100);
+      await this.moveDisplayPointer(
+        boundedTo,
+        'Mouse did not reach the drag end target',
+        {
+          // Native desktop toolkits commonly use the first motion beyond
+          // their threshold to enter drag mode. Keep emitting held-button
+          // motions so the drop target can observe the active drag before
+          // the button is released.
+          smoothSteps: SMOOTH_MOVE_STEPS_DRAG,
+          smoothDelay:
+            duration === undefined
+              ? SMOOTH_MOVE_DELAY_DRAG
+              : Math.max(0, Math.round(duration / SMOOTH_MOVE_STEPS_DRAG)),
+        },
+      );
+      await this.inputDriver.delay(100);
+    });
   }
 
   private async focusKeyboardTarget(
@@ -945,8 +993,10 @@ export class ComputerDevice implements AbstractInterface {
       // on hosted desktops, leaving subsequent AppleScript typing unfocused.
       await this.inputPrimitives.pointer.tap({ x, y });
     } else {
-      const point = this.toGlobalPoint({ x, y });
-      this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
+      await this.moveDisplayPointer(
+        { x, y },
+        'Mouse did not reach the keyboard focus target',
+      );
       this.inputDriver.mouseClick('left');
     }
     await this.inputDriver.delay(delayMs);
@@ -974,7 +1024,7 @@ export class ComputerDevice implements AbstractInterface {
       }));
     } catch (error) {
       debugDevice(`Failed to list displays: ${error}`);
-      return [];
+      throw new Error(`Failed to list displays: ${error}`);
     }
   }
 
@@ -1020,10 +1070,19 @@ export class ComputerDevice implements AbstractInterface {
 
       // Load libnut on first connect
       libnut = await getLibnut();
-      this.displayGeometry = resolveDisplayGeometry(this.displayId);
+      const windowsDisplayGeometries =
+        process.platform === 'win32'
+          ? readWindowsDisplayGeometries()
+          : undefined;
+      this.displayGeometry = resolveDisplayGeometry(
+        this.displayId,
+        windowsDisplayGeometries,
+      );
 
       const size = await this.size();
-      const displays = await ComputerDevice.listDisplays();
+      const displays = windowsDisplayGeometries
+        ? listWindowsDisplays(windowsDisplayGeometries)
+        : await ComputerDevice.listDisplays();
 
       const headlessInfo = this.xvfbInstance
         ? `\nHeadless: true (Xvfb on ${this.xvfbInstance.display})`
@@ -1038,7 +1097,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 `;
       debugDevice('Computer device connected', this.description);
       // Health check: verify screenshot and mouse control are working
-      await this.healthCheck();
+      await this.healthCheck(displays);
     } catch (error) {
       // Clean up Xvfb on connection failure
       if (this.xvfbInstance) {
@@ -1061,7 +1120,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     }
   }
 
-  private async healthCheck(): Promise<void> {
+  private async healthCheck(displays: DisplayInfo[]): Promise<void> {
     console.log('[HealthCheck] Starting health check...');
     console.log(`[HealthCheck] @midscene/computer v${__VERSION__}`);
 
@@ -1082,34 +1141,60 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     ]);
     console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
 
-    // Step 2: Move the mouse
-    console.log('[HealthCheck] Moving mouse...');
-    const startPos = this.inputDriver.getMousePos();
+    // Step 2: Verify pointer control. Windows capture, display enumeration,
+    // movement, and observation all use physical pixels.
+    console.log('[HealthCheck] Verifying mouse control...');
+    const startPos =
+      process.platform === 'win32'
+        ? this.windowsPointerDriver.getPosition()
+        : this.inputDriver.getMousePos();
     console.log(
       `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
     );
 
-    // Move the mouse by a small random offset, then move it back
-    const offsetX = Math.floor(Math.random() * 40) + 10;
-    const offsetY = Math.floor(Math.random() * 40) + 10;
-    const targetX = startPos.x + offsetX;
-    const targetY = startPos.y + offsetY;
-
-    console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
-    this.inputDriver.moveMouse(targetX, targetY);
-    await sleep(50);
-
-    const movedPos = this.inputDriver.getMousePos();
-    console.log(
-      `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
-    );
-
-    // Detect if moveMouse actually worked
-    const deltaX = Math.abs(movedPos.x - targetX);
-    const deltaY = Math.abs(movedPos.y - targetY);
-    if (deltaX > 5 || deltaY > 5) {
-      const msg = `[HealthCheck] WARNING: Mouse control may not be working. Expected (${targetX}, ${targetY}), got (${movedPos.x}, ${movedPos.y}), delta=(${deltaX}, ${deltaY})`;
-      warnDevice(msg);
+    if (process.platform === 'win32') {
+      if (!this.displayGeometry) {
+        throw new Error('Windows display geometry is unavailable');
+      }
+      const bounds = this.displayGeometry.bounds;
+      const target = {
+        x: Math.round(bounds.x + bounds.width / 2),
+        y: Math.round(bounds.y + bounds.height / 2),
+      };
+      try {
+        const actual = this.windowsPointerDriver.moveTo(target);
+        const drift = windowsPointerDrift(target, actual);
+        if (!windowsPointerIsWithinTolerance(drift)) {
+          throw new Error(
+            `Windows screenshot-space pointer verification: expected (${target.x}, ${target.y}), got (${actual.x}, ${actual.y}), drift=(${drift.x}, ${drift.y})`,
+          );
+        }
+      } finally {
+        this.windowsPointerDriver.moveTo(startPos);
+      }
+      console.log(
+        `[HealthCheck] Mouse verified in screenshot-space display bounds (${bounds.x}, ${bounds.y}, ${bounds.width}, ${bounds.height})`,
+      );
+    } else {
+      const offsetX = Math.floor(Math.random() * 40) + 10;
+      const offsetY = Math.floor(Math.random() * 40) + 10;
+      const targetX = startPos.x + offsetX;
+      const targetY = startPos.y + offsetY;
+      console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
+      try {
+        this.inputDriver.moveMouse(targetX, targetY);
+        await sleep(CLICK_SETTLE_DELAY);
+        this.inputDriver.assertMousePosition(
+          targetX,
+          targetY,
+          'Mouse health check failed',
+        );
+      } finally {
+        this.inputDriver.moveMouse(startPos.x, startPos.y);
+        console.log(
+          `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
+        );
+      }
     }
 
     // Windows UIPI advisory. This must NOT be gated on the moveMouse delta
@@ -1130,15 +1215,8 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       warnDevice(`[HealthCheck] ${hint}`);
     }
 
-    // Restore original position
-    this.inputDriver.moveMouse(startPos.x, startPos.y);
-    console.log(
-      `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
-    );
-
     // Step 3: List available monitors
     console.log('[HealthCheck] Listing monitors...');
-    const displays = await ComputerDevice.listDisplays();
     if (displays.length > 0) {
       console.log(`[HealthCheck] Found ${displays.length} monitor(s):`);
       for (const display of displays) {
@@ -1267,15 +1345,10 @@ Original error: ${lastRawMessage}`,
    * DeviceName and captures in virtual-desktop coordinates, so secondary
    * displays — including those at negative offsets — are supported.
    *
-   * Note: the process is left at its default (DPI-unaware) state on purpose.
-   * Making it DPI-aware would require a runtime `Add-Type` C# compile (csc) —
-   * the exact .NET-compiler dependency this PR removes by dropping
-   * screenshot-desktop's polyglot .bat — so it is intentionally avoided here.
-   * As a result, captures on a scaled display come back at logical (scaled)
-   * resolution. That is sufficient for the #2150 fix (the health check only
-   * needs a successful capture). Per-monitor DPI / coordinate accuracy is a
-   * separate Windows concern to be addressed in a follow-up with real-device
-   * verification.
+   * The PowerShell thread is switched to Per-Monitor V2 before WinForms is
+   * loaded. Screen.Bounds, CopyFromScreen, and pointer movement therefore use
+   * physical pixels even when Windows display scaling is enabled. The native
+   * declaration is emitted in memory, so this does not require csc.exe.
    */
   private screenshotViaPowershell(): string {
     const deviceName = this.displayId ? String(this.displayId) : '';
@@ -1289,7 +1362,6 @@ $screen = [System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.DeviceNa
 if (-not $screen) { throw "Requested display not found: $dn" }`
       : '$screen = [System.Windows.Forms.Screen]::PrimaryScreen';
     const script = `
-$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 ${selectScreen}
 $b = $screen.Bounds
@@ -1304,7 +1376,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
 
     let stdout: string;
     try {
-      stdout = runPowershell(script);
+      stdout = runWindowsPhysicalPixelPowershell(script);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to take screenshot on Windows: ${message}`);
@@ -1371,7 +1443,11 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
         this.inputDriver.sendKeyViaAppleScript('v', ['command']);
       } else {
         const modifier = process.platform === 'darwin' ? 'command' : 'control';
-        this.inputDriver.keyTap('v', [modifier]);
+        await this.inputDriver.keyTapWithModifierDelay(
+          'v',
+          [modifier],
+          this.options?.keyboardModifierDelay ?? 0,
+        );
       }
       await this.inputDriver.delay(100);
     } finally {
@@ -1409,15 +1485,32 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     await sendTextSequentially(
       text.replace(/\r\n?/g, '\n'),
       {
-        sendCharacter: (character) => {
+        sendCharacter: async (character) => {
+          const linuxShiftedKey =
+            process.platform === 'linux'
+              ? US_SHIFTED_CHARACTER_KEYS.get(character)
+              : undefined;
+          const pacedShiftedKey =
+            !this.useAppleScript &&
+            (this.options?.keyboardModifierDelay ?? 0) > 0
+              ? resolveShiftedKey(character, this.options?.keyboardLayout)
+              : undefined;
           if (character === '\n') {
-            this.inputDriver.sendKey('enter');
+            this.inputDriver.sendKey('return');
           } else if (character === '\t') {
             this.inputDriver.sendKey('tab');
           } else if (character === ' ') {
             this.inputDriver.sendKey('space');
           } else if (this.useAppleScript) {
             this.inputDriver.sendKeyViaAppleScript(character);
+          } else if (pacedShiftedKey !== undefined) {
+            await this.inputDriver.keyTapWithModifierDelay(
+              pacedShiftedKey,
+              ['shift'],
+              this.options?.keyboardModifierDelay ?? 0,
+            );
+          } else if (linuxShiftedKey !== undefined) {
+            this.inputDriver.keyTap(linuxShiftedKey, ['shift']);
           } else {
             this.inputDriver.typeString(character);
           }
@@ -1437,7 +1530,11 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     }
 
     const modifier = process.platform === 'darwin' ? 'command' : 'control';
-    this.inputDriver.keyTap('a', [modifier]);
+    await this.inputDriver.keyTapWithModifierDelay(
+      'a',
+      [modifier],
+      this.options?.keyboardModifierDelay ?? 0,
+    );
     await this.inputDriver.delay(50);
     this.inputDriver.keyTap('backspace');
   }
@@ -1454,17 +1551,40 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       driver: this.useAppleScript ? 'applescript' : 'libnut',
     });
 
+    if (
+      !this.useAppleScript &&
+      modifiers.length > 0 &&
+      (this.options?.keyboardModifierDelay ?? 0) > 0
+    ) {
+      await this.inputDriver.keyTapWithModifierDelay(
+        key,
+        modifiers,
+        this.options?.keyboardModifierDelay ?? 0,
+      );
+      return;
+    }
+
     this.inputDriver.sendKey(key, modifiers);
   }
 
   private resolveUntargetedScrollPoint(screenSize: Size): Point {
     if (process.platform === 'win32') {
-      const activeWindowRect = this.inputDriver.getActiveWindowRect();
+      const activeWindowRect = this.windowsPointerDriver.getActiveWindowRect();
       if (activeWindowRect) {
-        return {
+        const activeWindowCenter = {
           x: activeWindowRect.x + activeWindowRect.width / 2,
           y: activeWindowRect.y + activeWindowRect.height / 2,
         };
+        const bounds = this.displayGeometry?.bounds;
+        if (
+          !bounds ||
+          (activeWindowCenter.x >= bounds.x &&
+            activeWindowCenter.x < bounds.x + bounds.width &&
+            activeWindowCenter.y >= bounds.y &&
+            activeWindowCenter.y < bounds.y + bounds.height)
+        ) {
+          return activeWindowCenter;
+        }
       }
     }
 
@@ -1478,8 +1598,10 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     if (param.locate) {
       const element = param.locate as LocateResultElement;
       const [x, y] = element.center;
-      const point = this.toGlobalPoint({ x, y });
-      this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
+      await this.moveDisplayPointer(
+        { x, y },
+        'Mouse did not reach the scroll target',
+      );
       return undefined;
     }
 
@@ -1491,7 +1613,10 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       await this.inputDriver.delay(CLICK_FOCUS_SETTLE_DELAY);
     }
     const point = this.resolveUntargetedScrollPoint(screenSize);
-    this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
+    await this.moveGlobalPointer(
+      point,
+      'Mouse did not reach the scroll viewport',
+    );
     await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
     return screenSize;
   }
@@ -1604,7 +1729,9 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   actionSpace(): DeviceAction<any>[] {
     const defaultActions: DeviceAction<any>[] = [
-      ...defineActionsFromInputPrimitives(this.inputPrimitives),
+      ...defineActionsFromInputPrimitives(this.inputPrimitives, {
+        size: () => this.size(),
+      }),
     ];
 
     const platformActions = Object.values(createPlatformActions());

@@ -1,39 +1,40 @@
 import { Agent } from '@/agent';
 import { ScriptPlayer } from '@/yaml/player';
 import { interpolateEnvVars, parseYamlScript } from '@/yaml/utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 const createDocAgent = (overrides: Record<string, any> = {}) => {
   const agent = {
     reportFile: '/tmp/doc-report.html',
     dump: { executions: [] },
     onTaskStartTip: undefined,
-    aiAct: vi.fn(async () => undefined),
-    aiTap: vi.fn(async () => undefined),
-    aiScroll: vi.fn(async () => undefined),
-    aiQuery: vi.fn(async () => ({ id: 'SKU-123', title: 'doc item' })),
-    aiNumber: vi.fn(async () => 42),
-    aiString: vi.fn(async () => 'SKU-123'),
-    aiBoolean: vi.fn(async () => true),
-    aiAsk: vi.fn(async () => 'answer'),
-    aiLocate: vi.fn(async () => ({
+    aiAct: rs.fn(async () => undefined),
+    aiTap: rs.fn(async () => undefined),
+    aiScroll: rs.fn(async () => undefined),
+    aiQuery: rs.fn(async () => ({ id: 'SKU-123', title: 'doc item' })),
+    aiNumber: rs.fn(async () => 42),
+    aiString: rs.fn(async () => 'SKU-123'),
+    aiBoolean: rs.fn(async () => true),
+    aiAsk: rs.fn(async () => 'answer'),
+    aiLocate: rs.fn(async () => ({
       rect: { x: 1, y: 2, width: 3, height: 4 },
     })),
-    aiWaitFor: vi.fn(async () => undefined),
-    aiAssert: vi.fn(async () => ({
+    aiWaitFor: rs.fn(async () => undefined),
+    aiAssert: rs.fn(async () => ({
       pass: true,
       thought: 'ok',
       message: 'passed',
     })),
-    runGherkinScenario: vi.fn(async () => ({
+    runGherkinScenario: rs.fn(async () => ({
       steps: [],
     })),
-    evaluateJavaScript: vi.fn(async () => 'js-result'),
-    recordToReport: vi.fn(async () => undefined),
-    recordErrorToReport: vi.fn(async () => undefined),
-    runAdbShell: vi.fn(async () => 'adb-result'),
-    callActionInActionSpace: vi.fn(async () => 'action-result'),
-    getActionSpace: vi.fn(async () => [
+    evaluateJavaScript: rs.fn(async () => 'js-result'),
+    recordToReport: rs.fn(async () => undefined),
+    sleep: rs.fn(async () => undefined),
+    recordErrorToReport: rs.fn(async () => undefined),
+    runAdbShell: rs.fn(async () => 'adb-result'),
+    callActionInActionSpace: rs.fn(async () => 'action-result'),
+    getActionSpace: rs.fn(async () => [
       { name: 'Hover', interfaceAlias: 'aiHover' },
       { name: 'DoubleClick', interfaceAlias: 'aiDoubleClick' },
       { name: 'RightClick', interfaceAlias: 'aiRightClick' },
@@ -42,7 +43,7 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
       { name: 'RunAdbShell', interfaceAlias: 'runAdbShell' },
       { name: 'RunWdaRequest', interfaceAlias: 'runWdaRequest' },
     ]),
-    _unstableLogContent: vi.fn(() => ({ logs: [] })),
+    _unstableLogContent: rs.fn(() => ({ logs: [] })),
     ...overrides,
   };
 
@@ -51,7 +52,7 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
 
 describe('YAML docs usage coverage', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
     Reflect.deleteProperty(process.env, 'DOC_ENABLED');
     Reflect.deleteProperty(process.env, 'DOC_HOST');
     Reflect.deleteProperty(process.env, 'DOC_TOPIC');
@@ -69,7 +70,10 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
-  aiActContext: "If a consent dialog appears, click accept."
+  aiContexts:
+    default: "Prices are displayed in USD."
+    aiAct: "If a consent dialog appears, click accept."
+    aiQuery: "Return monetary values without currency symbols."
   cache:
     id: "checkout-cache"
     strategy: "read-write"
@@ -118,6 +122,11 @@ tasks:
       testId: 'checkout-test',
       reportFileName: 'checkout-report',
       replanningCycleLimit: 30,
+      aiContexts: {
+        default: 'Prices are displayed in USD.',
+        aiAct: 'If a consent dialog appears, click accept.',
+        aiQuery: 'Return monetary values without currency symbols.',
+      },
       cache: { id: 'checkout-cache', strategy: 'read-write' },
     });
     expect(script.web).toMatchObject({
@@ -241,7 +250,7 @@ tasks:
         ],
         convertHttpImage2Base64: true,
       },
-      {},
+      { abortSignal: expect.any(AbortSignal) },
     );
     expect(agent.aiTap).toHaveBeenCalledWith('Choose file button', {
       deepLocate: true,
@@ -268,6 +277,7 @@ tasks:
       content: 'Screenshot description',
     });
     expect(agent.aiWaitFor).toHaveBeenCalledWith('The page shows results', {
+      abortSignal: expect.any(AbortSignal),
       timeout: 1000,
       timeoutMs: 1000,
     });
@@ -280,8 +290,9 @@ tasks:
       },
       'Target image is not visible',
       {
-        convertHttpImage2Base64: true,
         keepRawResponse: true,
+        convertHttpImage2Base64: true,
+        abortSignal: expect.any(AbortSignal),
       },
     );
     expect(player.result).toMatchObject({
@@ -369,9 +380,7 @@ tasks:
     await player.run();
 
     expect(player.status).toBe('error');
-    expect(player.taskStatusList[0].error?.message).toContain(
-      '`observe` is not supported in YAML aiAssert',
-    );
+    expect(player.taskStatusList[0].error?.message).toContain('observe');
     expect(agent.aiAssert).not.toHaveBeenCalled();
   });
 
@@ -409,7 +418,7 @@ tasks:
     });
     expect(agent.aiQuery).toHaveBeenCalledWith(
       'Get search results after submitting product id ${product_id}',
-      {},
+      { abortSignal: expect.any(AbortSignal) },
     );
     expect(player.result.product_id).toBe('SKU-123');
     expect(player.result.search_result).toEqual({
@@ -445,6 +454,7 @@ tasks:
       expect.stringContaining('Scenario: Add a todo'),
       {
         cacheable: false,
+        abortSignal: expect.any(AbortSignal),
       },
     );
   });
@@ -464,7 +474,7 @@ tasks:
         name: title
 `);
     const agent = createDocAgent({
-      aiAssert: vi.fn(async () => ({
+      aiAssert: rs.fn(async () => ({
         pass: false,
         thought: 'failed',
         message: 'doc failure',
@@ -495,7 +505,7 @@ tasks:
         name: gate
 `);
     const agent = createDocAgent({
-      evaluateJavaScript: vi.fn(async () => {
+      evaluateJavaScript: rs.fn(async () => {
         throw error;
       }),
     });
@@ -530,7 +540,7 @@ tasks:
         name: gate
 `);
     const agent = createDocAgent({
-      aiAct: vi.fn(async () => {
+      aiAct: rs.fn(async () => {
         agent.dump.executions.push({
           id: 'recovered-agent-action',
           logTime: Date.now(),
@@ -546,7 +556,7 @@ tasks:
           ],
         });
       }),
-      evaluateJavaScript: vi.fn(async () => {
+      evaluateJavaScript: rs.fn(async () => {
         throw error;
       }),
     });
@@ -560,7 +570,7 @@ tasks:
     expect(player.status).toBe('error');
     expect(agent.aiAct).toHaveBeenCalledWith(
       'Try a flaky action that recovers',
-      {},
+      { abortSignal: expect.any(AbortSignal) },
     );
     expect(agent.recordErrorToReport).toHaveBeenCalledWith(
       'YAML task failed - Mixed failure task',
@@ -582,7 +592,7 @@ tasks:
       - aiAct: Click the broken button
 `);
     const agent = createDocAgent({
-      aiAct: vi.fn(async () => {
+      aiAct: rs.fn(async () => {
         agent.dump.executions.push({
           id: 'failed-agent-action',
           logTime: Date.now(),
@@ -608,6 +618,62 @@ tasks:
     await player.run();
 
     expect(player.status).toBe('error');
+    expect(agent.recordErrorToReport).not.toHaveBeenCalled();
+  });
+
+  it('does not duplicate assertion failures returned through keepRawResponse', async () => {
+    const failedAssertionResult = {
+      pass: false,
+      thought: 'the broken button is not visible',
+      message: 'Assertion failed: the broken button is not visible',
+    };
+    const script = parseYamlScript(`
+web:
+  url: about:blank
+tasks:
+  - name: Failed assertion
+    flow:
+      - aiAssert: The broken button is visible
+`);
+    const agent = createDocAgent({
+      aiAssert: rs.fn(async () => {
+        // Mirror Agent.aiAssert({ keepRawResponse: true }): the report task is
+        // recorded first, then the failed result is returned to the YAML layer.
+        agent.dump.executions.push({
+          id: 'failed-assertion',
+          logTime: Date.now(),
+          name: 'The broken button is visible',
+          tasks: [
+            {
+              taskId: 'failed-assertion-task',
+              type: 'Insight',
+              subType: 'Assert',
+              status: 'finished',
+              output: false,
+              executor: async () => {},
+            },
+          ],
+        });
+        return failedAssertionResult;
+      }),
+    });
+    const player = new ScriptPlayer(script, async () => ({
+      agent,
+      freeFn: [],
+    }));
+
+    await player.run();
+
+    expect(player.status).toBe('error');
+    expect(agent.aiAssert).toHaveBeenCalledWith(
+      'The broken button is visible',
+      undefined,
+      { keepRawResponse: true, abortSignal: expect.any(AbortSignal) },
+    );
+    expect(player.taskStatusList[0].error?.message).toBe(
+      failedAssertionResult.message,
+    );
+    expect(player.result[0]).toEqual(failedAssertionResult);
     expect(agent.recordErrorToReport).not.toHaveBeenCalled();
   });
 
@@ -760,8 +826,8 @@ tasks:
     });
 
     const agent = createDocAgent({
-      aiString: vi.fn(async () => 'RUNTIME-123'),
-      aiQuery: vi.fn(async () => 'search-result'),
+      aiString: rs.fn(async () => 'RUNTIME-123'),
+      aiQuery: rs.fn(async () => 'search-result'),
     });
     const player = new ScriptPlayer(
       script,
@@ -778,7 +844,9 @@ tasks:
       agent,
     );
 
-    expect(agent.aiQuery).toHaveBeenCalledWith('Search for ENV-123', {});
+    expect(agent.aiQuery).toHaveBeenCalledWith('Search for ENV-123', {
+      abortSignal: expect.any(AbortSignal),
+    });
   });
 
   it('preserves YAML scalar semantics when interpolating config environment variables', () => {
@@ -808,10 +876,27 @@ tasks:
   });
 
   it('keeps Agent.runYaml scoped to the provided tasks', async () => {
-    const agent = createDocAgent();
-    const runYaml = Agent.prototype.runYaml.bind(agent);
+    const agent = new Agent(
+      {
+        interfaceType: 'doc-test',
+        actionSpace: () => [],
+        destroy: async () => {},
+      } as any,
+      {
+        generateReport: false,
+        autoPrintReportMsg: false,
+        reportFileName: 'doc-report',
+        modelConfig: {
+          MIDSCENE_MODEL_NAME: 'test',
+          MIDSCENE_MODEL_API_KEY: 'test',
+        },
+      },
+    );
+    rs.spyOn(agent, 'aiAct').mockResolvedValue(undefined);
+    rs.spyOn(agent, 'aiString').mockResolvedValue('SKU-123');
 
-    const result = await runYaml(`
+    try {
+      const result = await agent.runYaml(`
 web:
   url: https://example.com/ignored-by-existing-agent
 agent:
@@ -824,7 +909,13 @@ tasks:
         name: value
 `);
 
-    expect(agent.aiAct).toHaveBeenCalledWith('Run the task', {});
-    expect(result.result.value).toBe('SKU-123');
+      expect(agent.aiAct).toHaveBeenCalledWith('Run the task', {
+        abortSignal: expect.any(AbortSignal),
+      });
+      expect(result.result.value).toBe('SKU-123');
+      expect(agent.reportFileName).toBe('doc-report');
+    } finally {
+      await agent.destroy();
+    }
   });
 });

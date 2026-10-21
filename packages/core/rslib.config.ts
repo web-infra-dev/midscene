@@ -61,6 +61,12 @@ export default defineConfig({
     },
   },
   output: {
+    externals: [
+      '#proxy-deps',
+      '#yaml-execution-context',
+      'undici',
+      'fetch-socks',
+    ],
     sourceMap: true,
   },
   plugins: [createTypeCheckPlugin(), writeExistingReportTemplate()],

@@ -1,8 +1,16 @@
-import { existsSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { renderNodeReference } from './node-reference';
+import { existsSync, statSync, writeFileSync } from 'node:fs';
+import { relative, resolve, sep } from 'node:path';
+import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
+import { version } from '../../package.json';
+import { formatCliError } from './error-format';
+import { renderNodeSpec, sortNodesForSpec } from './node-spec';
 import { loadTestProject } from './test-project';
-import { discoverTestConfig, runTestProject } from './test-project-runner';
+import {
+  DEFAULT_TEST_FILE_SELECTION,
+  discoverTestConfig,
+  runTestProject,
+} from './test-project-runner';
+import type { TestProjectRunResult } from './types';
 
 export interface TestCliIO {
   log(message: string): void;
@@ -11,7 +19,7 @@ export interface TestCliIO {
 }
 
 interface ParsedTestArgs {
-  command?: 'describe-nodes';
+  command?: 'nodes';
   cwd: string;
   projectRoot?: string;
   configPath?: string;
@@ -23,7 +31,7 @@ export const parseTestCliArgs = (
   args: string[],
   cwd = process.cwd(),
 ): ParsedTestArgs => {
-  const command = args[0] === 'describe-nodes' ? args[0] : undefined;
+  const command = args[0] === 'nodes' ? args[0] : undefined;
   const commandOffset = command ? 1 : 0;
   let projectRoot: string | undefined;
   let configPath: string | undefined;
@@ -31,7 +39,10 @@ export const parseTestCliArgs = (
   const projectNames: string[] = [];
 
   for (let index = commandOffset; index < args.length; index += 1) {
-    const arg = args[index];
+    const token = args[index];
+    const equal = token.startsWith('-') ? token.indexOf('=') : -1;
+    const arg = equal < 0 ? token : token.slice(0, equal);
+    const inlineValue = equal < 0 ? undefined : token.slice(equal + 1);
     if (!arg.startsWith('-')) {
       if (projectRoot)
         throw new Error('Only one test project directory is allowed.');
@@ -39,24 +50,24 @@ export const parseTestCliArgs = (
       continue;
     }
     if (arg === '--config' || arg === '--result-dir' || arg === '--project') {
-      const value = args[index + 1];
-      if (!value) throw new Error(`${arg} requires a value.`);
+      const value = inlineValue ?? args[index + 1];
+      if (!value || value.startsWith('--'))
+        throw new Error(`${arg} requires a value.`);
       if (arg === '--config') configPath = value;
       else if (arg === '--result-dir') resultDir = resolve(cwd, value);
       else projectNames.push(value);
-      index += 1;
+      if (inlineValue === undefined) index += 1;
     } else {
-      throw new Error(`Unknown option: ${arg}`);
+      throw new Error(`Unknown option: ${token}`);
     }
   }
 
-  if (command === 'describe-nodes' && resultDir) {
-    throw new Error('--result-dir is not supported by describe-nodes.');
+  if (command === 'nodes' && resultDir) {
+    throw new Error('--result-dir is not supported by nodes.');
   }
-  if (command === 'describe-nodes' && projectNames.length > 0) {
-    throw new Error('--project is not supported by describe-nodes.');
+  if (command === 'nodes' && projectNames.length > 1) {
+    throw new Error('nodes accepts only one --project name.');
   }
-
   return {
     ...(command ? { command } : {}),
     cwd,
@@ -73,13 +84,32 @@ const defaultCliIO: TestCliIO = {
   write: (message) => process.stdout.write(message),
 };
 
+const testCliHelp = `Midscene Test: run native cases/steps Test projects.
+
+Usage:
+  midscene-test [file.yaml | directory] [options]
+  midscene-test --config <midscene.config.ts> [options]
+  midscene-test nodes [directory] [--config midscene.config.ts]
+  midscene-test create --help
+  midscene-test model verify    Check model connectivity and Midscene compatibility
+
+Options:
+  --config <path>              Native TypeScript or JavaScript Test config
+  --project <name>             Select a native execution Project (repeatable)
+  --result-dir <path>          Store Test result files in this directory
+  --help, -h                  Show this help
+  --version                   Show the package version
+
+Legacy tasks/flow YAML and its CLI options belong to the midscene command.
+`;
+
 const assertDirectory = (path: string, label: string): void => {
   if (!existsSync(path) || !statSync(path).isDirectory()) {
     throw new Error(`${label} does not exist or is not a directory: ${path}`);
   }
 };
 
-const describeNodes = async (
+const runNodesCommand = async (
   options: ParsedTestArgs,
   io: TestCliIO,
 ): Promise<void> => {
@@ -94,17 +124,173 @@ const describeNodes = async (
   const configPath = options.configPath
     ? resolve(configSearchRoot, options.configPath)
     : discoverTestConfig(configSearchRoot);
+  if (options.configPath && /\.ya?ml$/i.test(configPath!)) {
+    throw new Error(
+      `midscene-test nodes --config only accepts a native TypeScript or JavaScript project config: ${configPath}.`,
+    );
+  }
   if (options.configPath && (!configPath || !existsSync(configPath))) {
     throw new Error(`Midscene config does not exist: ${configPath}`);
   }
 
   const project = await loadTestProject(configPath);
-  const document = renderNodeReference(project.nodes.definitions());
-  for (const warning of document.warnings) {
-    io.error(`midscene-test describe-nodes: ${warning}`);
+  const projectName = options.projectNames?.[0];
+  const selectedProjects = projectName
+    ? project.projects.filter((candidate) => candidate.name === projectName)
+    : project.projects;
+  if (selectedProjects.length === 0) {
+    throw new Error(`Unknown Midscene project: ${projectName}`);
   }
-  if (io.write) io.write(document.markdown);
-  else io.log(document.markdown.trimEnd());
+  // Check every Project before writing, including when only one is selected.
+  const filenames = new Map<string, string>();
+  const owners = new Map<string, string>();
+  for (const executionProject of project.projects) {
+    const safeName = executionProject.name
+      .normalize('NFC')
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: filenames cannot contain control characters.
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
+      .replace(/[. ]+$/g, '-');
+    const filename = project.hasExplicitProjects
+      ? `midscene-node-spec.${safeName}.md`
+      : 'midscene-node-spec.md';
+    const key = filename.toLowerCase();
+    const owner = owners.get(key);
+    if (owner !== undefined) {
+      throw new Error(
+        `Projects "${owner}" and "${executionProject.name}" generate the same Node Spec filename: ${filename}`,
+      );
+    }
+    owners.set(key, executionProject.name);
+    filenames.set(executionProject.name, filename);
+  }
+  const specs = selectedProjects.map((executionProject) => {
+    const nodes = sortNodesForSpec(executionProject.nodes.definitions());
+    const document = renderNodeSpec(nodes, {
+      configPath: configPath
+        ? relative(configSearchRoot, configPath).split(sep).join('/')
+        : undefined,
+      projects: [
+        {
+          name: executionProject.name,
+          files: executionProject.files ?? DEFAULT_TEST_FILE_SELECTION,
+        },
+      ],
+    });
+    return { executionProject, nodes, document };
+  });
+  for (const { executionProject, nodes, document } of specs) {
+    for (const warning of document.warnings) {
+      io.error(`midscene-test nodes: ${warning}`);
+    }
+    const specPath = resolve(
+      configSearchRoot,
+      filenames.get(executionProject.name)!,
+    );
+    writeFileSync(specPath, document.markdown);
+    if (project.hasExplicitProjects || projectName) {
+      io.log(`Execution Project: ${executionProject.name}`);
+    }
+    io.log(`Registered Nodes (${nodes.length}):`);
+    if (nodes.length === 0) {
+      io.log('No nodes are registered by the current Test Project.');
+    }
+    for (const node of nodes) {
+      io.log(
+        `- ${node.name}: ${node.description?.trim() || 'Description not declared.'}`,
+      );
+    }
+    io.log(`\nNode Spec generated: ${specPath}`);
+  }
+};
+
+const reportTestProjectResult = (
+  result: TestProjectRunResult,
+  io: TestCliIO,
+  infrastructureErrors: readonly unknown[] = result.errors ?? [],
+): number => {
+  const reportedErrors = new Set<Error>();
+  const reportError = (source: string, error: unknown): void => {
+    if (error instanceof Error && reportedErrors.has(error)) return;
+    io.error(`midscene-test: ${source}: ${formatCliError(error)}`);
+    // Infrastructure failures carry raw errors that can also be causes of
+    // the contextual errors already printed from the execution result.
+    const pending = [error];
+    while (pending.length > 0) {
+      const current = pending.pop();
+      if (!(current instanceof Error) || reportedErrors.has(current)) continue;
+      reportedErrors.add(current);
+      pending.push(current.cause);
+      if (current instanceof AggregateError) pending.push(...current.errors);
+    }
+  };
+  for (const failure of result.collectionErrors) {
+    reportError(`${failure.projectName}/${failure.sourcePath}`, failure.error);
+  }
+  const finalCases = new Map(
+    result.cases.map((outcome) => [outcome.caseId, outcome]),
+  );
+  for (const outcome of finalCases.values()) {
+    if (outcome.status !== 'failed' || !outcome.run) continue;
+    const run = outcome.run;
+    const source = `${run.projectName}/${run.sourcePath} / ${run.name}`;
+    for (const step of [...run.beforeEach, ...run.steps, ...run.afterEach]) {
+      if (step.error) {
+        reportError(
+          `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
+          step.error,
+        );
+      }
+    }
+    for (const error of [
+      ...(run.executionErrors ?? []),
+      ...(run.teardownErrors ?? []),
+    ]) {
+      reportError(source, error);
+    }
+  }
+  const finalDocuments = new Map(
+    result.documents.map((document) => [document.documentId, document]),
+  );
+  for (const document of finalDocuments.values()) {
+    if (document.status !== 'failed') continue;
+    const source = `${document.projectName}/${document.sourcePath}`;
+    for (const step of [...document.beforeAll, ...document.afterAll]) {
+      if (step.error) {
+        reportError(
+          `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
+          step.error,
+        );
+      }
+    }
+    for (const error of [
+      ...(document.executionErrors ?? []),
+      ...(document.teardownErrors ?? []),
+    ]) {
+      reportError(source, error);
+    }
+    for (const failure of document.hostErrors ?? []) {
+      reportError(`${source} / host ${failure.phase}`, failure.error);
+    }
+  }
+  for (const project of result.projects) {
+    if (project.lifecycle?.setupError) {
+      reportError(`${project.name} / setup`, project.lifecycle.setupError);
+    }
+    for (const error of project.lifecycle?.teardownErrors ?? []) {
+      reportError(`${project.name} / teardown`, error);
+    }
+  }
+  for (const error of infrastructureErrors) {
+    reportError('infrastructure', error);
+  }
+  io.log(
+    `midscene-test: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
+  );
+  io.log(`Results: ${result.resultDir}`);
+  io.log(`Summary: ${result.summaryPath}`);
+  if (result.markdownPath) io.log(`Markdown: ${result.markdownPath}`);
+  if (result.reportPath) io.log(`Report: ${result.reportPath}`);
+  return result.exitCode;
 };
 
 export async function runTestCli(
@@ -112,23 +298,45 @@ export async function runTestCli(
   io: TestCliIO = defaultCliIO,
 ): Promise<number> {
   try {
-    const options = parseTestCliArgs(args);
-    if (options.command === 'describe-nodes') {
-      await describeNodes(options, io);
+    if (args[0] === 'model') {
+      const { runModelCommand } = await import('./model-command');
+      return runModelCommand(args, undefined, {
+        stdout: io.log,
+        stderr: io.error,
+      });
+    }
+    if (args[0] === 'create') {
+      const { runCreateCommand } = await import('./create-command');
+      await runCreateCommand(args.slice(1), io);
       return 0;
     }
-    const result = await runTestProject({
-      ...options,
-      onProgress: (message) => io.log(message),
-    });
-    io.log(
-      `midscene-test: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
-    );
-    io.log(`Results: ${result.resultDir}`);
-    io.log(`Summary: ${result.summaryPath}`);
-    return result.exitCode;
+    if (args.includes('--help') || args.includes('-h')) {
+      io.log(testCliHelp);
+      return 0;
+    }
+    if (args.includes('--version')) {
+      io.log(version);
+      return 0;
+    }
+    const options = parseTestCliArgs(args);
+    if (options.command === 'nodes') {
+      await runNodesCommand(options, io);
+      return 0;
+    }
+    let result: TestProjectRunResult;
+    try {
+      result = await runTestProject({
+        ...options,
+        onProgress: (message) => io.log(message),
+      });
+    } catch (error) {
+      if (!(error instanceof WorkflowExecutionFailure)) throw error;
+      reportTestProjectResult(error.result, io, error.errors);
+      return 1;
+    }
+    return reportTestProjectResult(result, io);
   } catch (error) {
-    io.error(error instanceof Error ? error.message : String(error));
+    io.error(formatCliError(error));
     return 1;
   }
 }

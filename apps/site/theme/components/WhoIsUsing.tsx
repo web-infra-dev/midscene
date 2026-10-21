@@ -18,7 +18,7 @@ type IconText = {
 
 type Company = LogoOnly | IconText;
 
-export function WhoIsUsing() {
+export function WhoIsUsing({ hideHeading = false }: { hideHeading?: boolean }) {
   const t = useI18n();
 
   const companyList: Company[] = [
@@ -26,50 +26,8 @@ export function WhoIsUsing() {
       kind: 'iconText',
       name: 'ByteDance',
       url: 'https://www.bytedance.com',
-      icon: '/icon/bytedance-color.svg',
+      icon: '/images/icons/bytedance-color.svg',
       text: 'ByteDance',
-    },
-    {
-      kind: 'iconText',
-      name: t('userVolcengine'),
-      url: 'https://www.volcengine.com',
-      icon: '/images/users/volcengine.png',
-      text: t('userVolcengine'),
-    },
-    {
-      kind: 'iconText',
-      name: t('userDouyin'),
-      url: 'https://www.douyin.com',
-      icon: '/images/users/douyin-color.svg',
-      text: t('userDouyin'),
-    },
-    {
-      kind: 'iconText',
-      name: 'TikTok',
-      url: 'https://www.tiktok.com',
-      icon: '/images/users/tiktok-color.svg',
-      text: 'TikTok',
-    },
-    {
-      kind: 'iconText',
-      name: t('userLark'),
-      url: 'https://www.larksuite.com',
-      icon: '/images/users/lark-color.svg',
-      text: t('userLark'),
-    },
-    {
-      kind: 'iconText',
-      name: t('userSodaMusic'),
-      url: 'https://www.douyin.com/qishui',
-      icon: '/images/users/soda-music-color.svg',
-      text: t('userSodaMusic'),
-    },
-    {
-      kind: 'iconText',
-      name: t('userDoubao'),
-      url: 'https://www.doubao.com',
-      icon: '/images/users/doubao-color.png',
-      text: t('userDoubao'),
     },
     {
       kind: 'iconText',
@@ -121,6 +79,55 @@ export function WhoIsUsing() {
       logoWidth: 140,
     },
     {
+      kind: 'iconText',
+      name: 'Rome OS',
+      url: 'https://github.com/rome-os/rome',
+      icon: '/images/users/rome-os.svg',
+      text: 'Rome OS',
+    },
+    {
+      kind: 'iconText',
+      name: t('userVolcengine'),
+      url: 'https://www.volcengine.com',
+      icon: '/images/users/volcengine.png',
+      text: t('userVolcengine'),
+    },
+    {
+      kind: 'iconText',
+      name: t('userDouyin'),
+      url: 'https://www.douyin.com',
+      icon: '/images/users/douyin-color.svg',
+      text: t('userDouyin'),
+    },
+    {
+      kind: 'iconText',
+      name: 'TikTok',
+      url: 'https://www.tiktok.com',
+      icon: '/images/users/tiktok-color.svg',
+      text: 'TikTok',
+    },
+    {
+      kind: 'iconText',
+      name: t('userLark'),
+      url: 'https://www.larksuite.com',
+      icon: '/images/users/lark-color.svg',
+      text: t('userLark'),
+    },
+    {
+      kind: 'iconText',
+      name: t('userSodaMusic'),
+      url: 'https://www.douyin.com/qishui',
+      icon: '/images/users/soda-music-color.svg',
+      text: t('userSodaMusic'),
+    },
+    {
+      kind: 'iconText',
+      name: t('userDoubao'),
+      url: 'https://www.doubao.com',
+      icon: '/images/users/doubao-color.png',
+      text: t('userDoubao'),
+    },
+    {
       kind: 'logo',
       name: t('userDongchedi'),
       url: 'https://www.dongchedi.com',
@@ -132,13 +139,15 @@ export function WhoIsUsing() {
   return (
     <section id="who-is-using" className="home-users">
       <div className="home-users__inner">
-        <header className="home-users__header">
-          <span className="home-users__eyebrow">
-            <span aria-hidden="true">{'//'}</span>
-            <span>{t('whoIsUsingEyebrow')}</span>
-          </span>
-          <h2>{t('whoIsUsingTitle')}</h2>
-        </header>
+        {!hideHeading && (
+          <header className="home-users__header">
+            <span className="home-users__eyebrow">
+              <span aria-hidden="true">{'//'}</span>
+              <span>{t('whoIsUsingEyebrow')}</span>
+            </span>
+            <h2>{t('whoIsUsingTitle')}</h2>
+          </header>
+        )}
 
         <div className="home-users__list">
           {companyList.map((company) => (

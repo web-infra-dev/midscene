@@ -67,6 +67,8 @@ describe('ComputerMidsceneTools', () => {
         'display-id': 'display-2',
         headless: true,
         'keyboard-type-delay': 80,
+        'keyboard-modifier-delay': 50,
+        'keyboard-layout': 'en-US',
         'input-strategy': 'sequential',
       },
     });
@@ -75,6 +77,8 @@ describe('ComputerMidsceneTools', () => {
       displayId: 'display-2',
       headless: true,
       keyboardTypeDelay: 80,
+      keyboardModifierDelay: 50,
+      keyboardLayout: 'en-US',
       inputStrategy: 'sequential',
     });
   });
@@ -171,6 +175,8 @@ describe('ComputerMidsceneTools', () => {
         'computer.headless': expect.anything(),
         'computer.inputStrategy': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
+        'computer.keyboardModifierDelay': expect.anything(),
+        'computer.keyboardLayout': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.replanningCycleLimit': expect.anything(),
         'computer.screenshotShrinkFactor': expect.anything(),
@@ -183,6 +189,8 @@ describe('ComputerMidsceneTools', () => {
         'computer.host': expect.anything(),
         'computer.inputStrategy': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
+        'computer.keyboardModifierDelay': expect.anything(),
+        'computer.keyboardLayout': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.port': expect.anything(),
         'computer.username': expect.anything(),
@@ -213,6 +221,8 @@ describe('ComputerMidsceneTools', () => {
       'ignore-certificate': true,
       'input-strategy': 'sequential',
       'keyboard-type-delay': 80,
+      'keyboard-modifier-delay': 50,
+      'keyboard-layout': 'en-US',
     });
 
     expect(agentForRDPComputer).toHaveBeenCalledWith(
@@ -227,6 +237,12 @@ describe('ComputerMidsceneTools', () => {
         inputStrategy: 'sequential',
         keyboardTypeDelay: 80,
       }),
+    );
+    expect(rs.mocked(agentForRDPComputer).mock.calls[0][0]).not.toHaveProperty(
+      'keyboardModifierDelay',
+    );
+    expect(rs.mocked(agentForRDPComputer).mock.calls[0][0]).not.toHaveProperty(
+      'keyboardLayout',
     );
     expect(agentFromComputer).not.toHaveBeenCalled();
   });

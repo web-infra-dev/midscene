@@ -1,23 +1,41 @@
-import { ConversationHistory, standardPlan } from '@/ai-model';
+import {
+  ConversationHistory,
+  standardPlan as runPreparedStandardPlan,
+} from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import type { TUserPrompt } from '@/common';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../common';
 import { getContextFromFixture } from '../../evaluation';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,
 });
 
-const modelConfig = globalModelConfigManager.getModelConfig('default');
-const modelRuntime = getModelRuntime(modelConfig);
+const modelConfig = () => globalModelConfigManager.getModelConfig('default');
+const modelRuntime = () => getModelRuntime(modelConfig());
+const hasModelFamily = (() => {
+  try {
+    return Boolean(modelConfig().modelFamily);
+  } catch {
+    return false;
+  }
+})();
+
+const standardPlan = async (
+  userInstruction: TUserPrompt,
+  options: PlanOptions,
+) => runPreparedStandardPlan(await prepareUserPrompt(userInstruction), options);
 
 // These assertions check a deterministic next-action shape. In real
 // model-family runs, planning may choose a valid intermediate Tap before Input
 // or include a whole-page locate for page-level scroll, so keep this suite out
 // of AI CI until that prompt contract is tightened.
-describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
+describe.skipIf(hasModelFamily)('automation - llm planning', () => {
   it('basic run', async () => {
     const { context } = await getContextFromFixture('todo');
 
@@ -26,7 +44,7 @@ describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
         effort: 'balance',
@@ -46,7 +64,7 @@ describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
         effort: 'balance',
@@ -96,7 +114,7 @@ describe('planning', () => {
       const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
         effort: 'balance',
@@ -105,9 +123,7 @@ describe('planning', () => {
       // console.log(actions);
       expect(actions![0].param.locate).toBeTruthy();
       expect(actions![0].param.locate?.prompt).toBeTruthy();
-      expect(
-        actions![0].param.locate?.id || actions![0].param.locate?.bbox,
-      ).toBeTruthy();
+      expect(actions![0].param.locate?.locatedPixelResult?.center).toBeTruthy();
     });
   });
 
@@ -118,7 +134,7 @@ describe('planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
         effort: 'balance',
@@ -137,7 +153,7 @@ describe('planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
         effort: 'balance',
@@ -156,7 +172,7 @@ describe('planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime,
+        modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
         effort: 'balance',

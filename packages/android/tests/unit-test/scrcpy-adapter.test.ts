@@ -178,7 +178,30 @@ describe('ScrcpyDeviceAdapter', () => {
       const config = adapter.resolveConfig();
       expect(config.idleTimeoutMs).toBe(DEFAULT_SCRCPY_CONFIG.idleTimeoutMs);
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
+      expect(config.videoResetFrameTimeoutMs).toBe(
+        DEFAULT_SCRCPY_CONFIG.videoResetFrameTimeoutMs,
+      );
     });
+
+    it('should honor a custom video reset frame timeout', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', {
+        videoResetFrameTimeoutMs: 1200,
+      });
+
+      expect(adapter.resolveConfig().videoResetFrameTimeoutMs).toBe(1200);
+    });
+
+    it.each([0, -1, 1.5, Number.POSITIVE_INFINITY, Number.NaN])(
+      'should reject invalid videoResetFrameTimeoutMs %s',
+      (videoResetFrameTimeoutMs) => {
+        const adapter = new ScrcpyDeviceAdapter('device', {
+          videoResetFrameTimeoutMs,
+        });
+        expect(() => adapter.resolveConfig()).toThrow(
+          'Invalid scrcpyConfig.videoResetFrameTimeoutMs: expected a positive integer',
+        );
+      },
+    );
 
     it.each(['10.84.162.47:36967', '127.0.0.1:5555', 'device:5555'])(
       'should not infer videoBitRate from the device endpoint %s',
@@ -287,6 +310,21 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('ensureManager', () => {
+    it('should pass the resolved video reset timeout to the manager', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', {
+        enabled: true,
+        videoResetFrameTimeoutMs: 1200,
+      });
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      expect(rs.mocked(ScrcpyScreenshotManager).mock.calls[0][2]).toMatchObject(
+        {
+          videoResetFrameTimeoutMs: 1200,
+        },
+      );
+    });
+
     it('should use the local ADB server endpoint by default', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
 

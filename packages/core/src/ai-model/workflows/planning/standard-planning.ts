@@ -1,4 +1,4 @@
-import { type TUserPrompt, userPromptToString } from '@/common';
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -6,7 +6,6 @@ import type {
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
@@ -15,12 +14,17 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
+import type { ModelCallMessages } from '../../service-caller/types';
 import type {
   LocateResultCodec,
   LocateResultContext,
 } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
-import { normalizePlanningActionLocateFields } from './locate-normalization';
+import {
+  type PreparedUserPrompt,
+  preparedReferenceImagesToMessages,
+} from '../../shared/multimodal-prompt';
+import { parsePlanningActions } from './parse-planning-actions';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';
 
@@ -32,7 +36,7 @@ const noPreviousActionsText =
 type PlanningCallResponse = Awaited<ReturnType<typeof callAI>>;
 
 type CallAndParsePlanningResponseOptions = {
-  messages: ChatCompletionMessageParam[];
+  messages: ModelCallMessages;
   modelRuntime: PlanOptions['modelRuntime'];
   abortSignal?: AbortSignal;
   includeLocateInPlanning: boolean;
@@ -49,7 +53,6 @@ async function callAndParsePlanningResponse(
   response: PlanningCallResponse;
   planFromAI: RawResponsePlanningAIResponse;
   actions: PlanningAction[];
-  yamlFlow: ReturnType<typeof buildYamlFlowFromPlans>;
 }> {
   const {
     messages,
@@ -84,10 +87,18 @@ async function callAndParsePlanningResponse(
       const planFromAI = parseStandardPlanningResponse(response.content, {
         includeThought,
         actionOutputProtocol,
-        ...(includeLog
-          ? { logSource: 'model' }
-          : { logSource: 'action', actionSpace }),
+        actionSpace,
+        logSource: includeLog ? 'model' : 'action',
       });
+      if (
+        !planFromAI.action &&
+        planFromAI.finalizeSuccess === undefined &&
+        !planFromAI.error
+      ) {
+        throw new Error(
+          'Incomplete planning response: provide an action, <complete>, or <error>. A <planning> explanation alone is not sufficient.',
+        );
+      }
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
           'Planning response included both an action and <complete>; ignoring <complete> output.',
@@ -97,17 +108,14 @@ async function callAndParsePlanningResponse(
       }
 
       const actions = planFromAI.action ? [planFromAI.action] : [];
-      // Keep yamlFlow based on the model's original action params. Coordinate
-      // normalization adds runtime-only locatedPixelBbox fields afterwards.
-      const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
-      normalizePlanningActionLocateFields(actions, {
+      parsePlanningActions(actions, {
+        parseRawLocateParameter: actionOutputProtocol.parseRawLocateParameter,
         actionSpace,
         includeLocateInPlanning,
         locateResultCodec,
         locateResultContext,
-        acceptBbox2dAlias: modelRuntime.adapter.acceptBbox2dAlias,
       });
-      return { response, planFromAI, actions, yamlFlow };
+      return { response, planFromAI, actions };
     },
     toParseError: (parseError, response) => {
       const errorMessage =
@@ -116,7 +124,7 @@ async function callAndParsePlanningResponse(
         `XML parse error: ${errorMessage}`,
         response.content,
         response.usage,
-        response.rawChoiceMessage,
+        response.rawAssistantOutput,
         response.reasoning_content,
       );
     },
@@ -133,7 +141,7 @@ async function callAndParsePlanningResponse(
 }
 
 export async function standardPlan(
-  userInstruction: TUserPrompt,
+  userInstruction: PreparedUserPrompt,
   opts: PlanOptions,
 ): Promise<PlanningAIResponse> {
   const { context, conversationHistory } = opts;
@@ -190,26 +198,25 @@ export async function standardPlan(
   });
   const imagePayload = preparedImage.imageBase64;
 
-  const userInstructionText = userPromptToString(userInstruction);
-  const actionContext = opts.actionContext
-    ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
-    : '';
+  const actionContext = opts.actionContext ? `${opts.actionContext}\n` : '';
 
-  const referenceImageMessages = opts.referenceImageMessages ?? [];
-  const instruction: ChatCompletionMessageParam[] = [
+  const referenceImageMessages = preparedReferenceImagesToMessages(
+    userInstruction.referenceImages,
+  );
+  const instruction: ConversationMessage[] = [
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstructionText}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>`,
         },
       ],
     },
     ...referenceImageMessages,
   ];
 
-  let latestFeedbackMessage: ChatCompletionMessageParam;
+  let latestFeedbackMessage: ConversationMessage;
 
   // Build sub-goal status text to include in the message
   // In planning deep-think mode: show full sub-goals with logs
@@ -236,11 +243,8 @@ export async function standardPlan(
           text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${executionProgressSection}`,
         },
         {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
+          type: 'image',
+          url: imagePayload,
         },
       ],
     };
@@ -255,23 +259,20 @@ export async function standardPlan(
           text: `This is the current screenshot.${memoriesSection}${executionProgressSection}`,
         },
         {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
+          type: 'image',
+          url: imagePayload,
         },
       ],
     };
   }
-  conversationHistory.append(latestFeedbackMessage);
+  conversationHistory.appendMessage(latestFeedbackMessage);
 
   // Compress history if it exceeds the threshold to avoid context overflow
   conversationHistory.compressHistory(50, 20);
 
   const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
 
-  const msgs: ChatCompletionMessageParam[] = [
+  const msgs: ModelCallMessages = [
     { role: 'system', content: systemPrompt },
     ...instruction,
     ...historyLog,
@@ -282,11 +283,10 @@ export async function standardPlan(
       content: rawResponse,
       usage,
       reasoning_content,
-      rawChoiceMessage,
+      rawAssistantOutput,
     },
     planFromAI,
     actions,
-    yamlFlow,
   } = await callAndParsePlanningResponse({
     messages: msgs,
     modelRuntime,
@@ -301,6 +301,10 @@ export async function standardPlan(
     includeThought,
     includeLog,
   });
+
+  // YAML is derived from validated actions outside the model-response retry scope.
+  // dumpActionParam omits runtime-only locatedPixelResult fields.
+  const yamlFlow = buildYamlFlowFromPlans(actions, opts.actionSpace);
 
   let shouldContinuePlanning = true;
 
@@ -318,7 +322,7 @@ export async function standardPlan(
     ...planFromAI,
     actions,
     rawResponse,
-    rawChoiceMessage,
+    rawAssistantOutput,
     usage,
     reasoning_content,
     yamlFlow,
@@ -356,16 +360,20 @@ export async function standardPlan(
     conversationHistory.appendMemory(planFromAI.memory);
   }
 
-  // Some model providers require opaque assistant fields to be replayed
-  // verbatim in later turns. Keep this opt-in per model adapter so that an
-  // unverified provider does not receive non-standard response fields.
-  if (
-    modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
-    rawChoiceMessage
-  ) {
-    conversationHistory.append(rawChoiceMessage as ChatCompletionMessageParam);
+  const shouldReplayRawOutput =
+    (rawAssistantOutput?.type === 'responses' &&
+      modelRuntime.adapter.responses.replayRawAssistantOutput) ||
+    (rawAssistantOutput?.type === 'chat-completion' &&
+      modelRuntime.adapter.chatCompletion.replayRawAssistantMessage);
+  if (rawAssistantOutput && shouldReplayRawOutput) {
+    conversationHistory.appendModelOutput(rawAssistantOutput);
   } else {
-    conversationHistory.append({
+    if (!rawAssistantOutput) {
+      debug(
+        'Raw assistant output is unavailable; saving only response text in conversation history.',
+      );
+    }
+    conversationHistory.appendMessage({
       role: 'assistant',
       content: [
         {

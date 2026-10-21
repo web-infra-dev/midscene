@@ -17,6 +17,7 @@ import {
   type PointerPoint,
   createDefaultMobileActions,
   defineAction,
+  resolveDefaultMobileScroll,
   resolveTextInputOptions,
   sendTextSequentially,
   shouldInputSequentially,
@@ -32,6 +33,7 @@ import {
 } from '@midscene/shared/utils';
 import { HdcClient } from './hdc';
 import { resolveHarmonyKeyCodes } from './keycode';
+import { resolveSwipeSpeed } from './swipe';
 
 type KeyboardDismissStrategy = 'esc-first' | 'back-first';
 
@@ -108,22 +110,16 @@ export class HarmonyDevice implements AbstractInterface {
     },
     touch: {
       swipe: async (start, end, opts) => {
-        const duration = opts?.duration;
+        const speed = resolveSwipeSpeed(start, end, opts?.duration);
         const repeatCount = opts?.repeat ?? 1;
         const hdc = await this.getHdc();
         for (let i = 0; i < repeatCount; i++) {
-          await hdc.swipe(
-            start.x,
-            start.y,
-            end.x,
-            end.y,
-            duration ? Math.round(duration) : undefined,
-          );
+          await hdc.swipe(start.x, start.y, end.x, end.y, speed);
         }
       },
     },
     scroll: {
-      scroll: (param) => this.performActionScroll(param),
+      scroll: (param, opts) => this.performActionScroll(param, opts),
     },
   };
 
@@ -143,7 +139,10 @@ export class HarmonyDevice implements AbstractInterface {
     return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
-  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+  private async performActionScroll(
+    param: ActionScrollParam,
+    opts?: { skipDefaultWait?: boolean },
+  ): Promise<void> {
     const element = param.locate;
     const startingPoint = element
       ? {
@@ -172,7 +171,7 @@ export class HarmonyDevice implements AbstractInterface {
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
-      await sleep(500);
+      if (!opts?.skipDefaultWait) await sleep(500);
     } else {
       throw new Error(
         `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(param)}`,
@@ -512,8 +511,17 @@ export class HarmonyDevice implements AbstractInterface {
     const { width, height } = await this.size();
     const n = scrollQuadrantDivisions;
 
-    const startX = Math.round(deltaX < 0 ? (n - 1) * (width / n) : width / n);
-    const startY = Math.round(deltaY < 0 ? (n - 1) * (height / n) : height / n);
+    // end = start - delta: start opposite the direction of finger travel.
+    const axisStart = (delta: number, extent: number) =>
+      Math.round(
+        delta === 0
+          ? extent / 2
+          : delta < 0
+            ? extent / n
+            : ((n - 1) * extent) / n,
+      );
+    const startX = axisStart(deltaX, width);
+    const startY = axisStart(deltaY, height);
 
     const maxPositiveDeltaX = startX;
     const maxNegativeDeltaX = width - startX;
@@ -547,6 +555,21 @@ export class HarmonyDevice implements AbstractInterface {
   ): Promise<void> {
     const { width, height } = await this.size();
     const isVertical = direction === 'up' || direction === 'down';
+    if (distance === undefined && !startPoint) {
+      const { from, to } = resolveDefaultMobileScroll(direction, {
+        width,
+        height,
+      });
+      const hdc = await this.getHdc();
+      await hdc.fling(
+        from.x,
+        from.y,
+        to.x,
+        to.y,
+        resolveSwipeSpeed(from, to, 1000),
+      );
+      return;
+    }
     const scrollDistance = Math.round(
       distance ?? (isVertical ? height : width),
     );

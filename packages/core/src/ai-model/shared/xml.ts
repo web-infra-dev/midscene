@@ -52,3 +52,31 @@ export function extractXMLTag(
 
   return content.trim();
 }
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Extract raw XML from the first protocol tag through the last protocol tag. */
+export function extractRawXMLFragment(
+  content: string,
+  tagNames: readonly [string, ...string[]],
+): string {
+  const startTagName = tagNames[0];
+  const endTagName = tagNames.at(-1)!;
+  const startTagRegex = new RegExp(`<${escapeRegExp(startTagName)}>`, 'i');
+  const startTag = startTagRegex.exec(content);
+  if (startTag?.index === undefined) {
+    return '';
+  }
+
+  const contentFromStartTag = content.slice(startTag.index);
+  const endTagRegex = new RegExp(`</${escapeRegExp(endTagName)}>`, 'gi');
+  const endTags = [...contentFromStartTag.matchAll(endTagRegex)];
+  const lastEndTag = endTags.at(-1);
+  const end =
+    lastEndTag?.index !== undefined
+      ? lastEndTag.index + lastEndTag[0].length
+      : contentFromStartTag.length;
+
+  return contentFromStartTag.slice(0, end);
+}
