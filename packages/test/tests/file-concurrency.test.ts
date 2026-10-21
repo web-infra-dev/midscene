@@ -166,6 +166,159 @@ const waitFor = (predicate: () => boolean) =>
   });
 
 describe('native file concurrency', () => {
+  it('still cleans up a Project once when the teardown progress observer throws', async () => {
+    const { state, run } = fixture({ files: 1 });
+    const observerError = new Error('terminal output unavailable');
+    const result = await run({
+      onEvent(event) {
+        if (event.type === 'project-phase' && event.phase === 'teardown')
+          throw observerError;
+      },
+    }).catch((error: unknown) => {
+      expect(error).toBeInstanceOf(WorkflowExecutionFailure);
+      const failure = error as WorkflowExecutionFailure<TestProjectRunResult>;
+      expect(failure.errors).toContain(observerError);
+      return failure.result;
+    });
+    expect(result.status).toBe('failed');
+    expect(
+      state.events.filter((event) => event === 'project-cleanup:web'),
+    ).toHaveLength(1);
+    expect(
+      state.events.filter((event) => event === 'project-end:web'),
+    ).toHaveLength(1);
+    expect(result.projects[0].lifecycle).toBeDefined();
+  });
+
+  it.each([false, true])(
+    'seals a Project only after cleanup, while peers still run (cleanup fails: %s)',
+    async (cleanupFails) => {
+      const { state, run } = fixture({
+        projects: ['fast', 'slow'],
+        files: 1,
+        global: 2,
+        projectLimit: 2,
+        local: 1,
+        setupTimeout: 5000,
+        teardownTimeout: 5000,
+      });
+      const setup = gate();
+      const cleanup = gate();
+      const slow = gate();
+      const events: TestReporterEvent[] = [];
+      const io = {
+        log: vi.fn(),
+        error: vi.fn(),
+        write: vi.fn(),
+        isTTY: true,
+        columns: 160,
+        rows: 40,
+      };
+      const reporter = new TerminalReporter(io);
+      state.setup = async (project) => {
+        if (project === 'fast') await setup.promise;
+      };
+      state.node = async (phase, context) => {
+        if (phase === 'step' && context.key === 'slow/1.yaml')
+          await slow.promise;
+      };
+      state.projectCleanup = async (project) => {
+        if (project !== 'fast') return;
+        await cleanup.promise;
+        if (cleanupFails) throw new Error('controlled Project cleanup failure');
+      };
+      let finished = false;
+      const resultPromise = run({
+        onEvent(event) {
+          events.push(event);
+          reporter.event(event);
+        },
+      });
+      void resultPromise.then(() => {
+        finished = true;
+      });
+      try {
+        await waitFor(() => state.events.includes('setup:fast'));
+        await waitFor(() =>
+          stripVTControlCharacters(
+            io.write.mock.calls.at(-1)?.[0] ?? '',
+          ).includes('❯ fast · setting up'),
+        );
+        expect(
+          events.some(
+            (event) =>
+              event.type === 'document-start' && event.projectName === 'fast',
+          ),
+        ).toBe(false);
+        setup.resolve();
+        await waitFor(() => state.events.includes('project-cleanup:fast'));
+        expect(events.some((event) => event.type === 'project-end')).toBe(
+          false,
+        );
+        await waitFor(() =>
+          stripVTControlCharacters(
+            io.write.mock.calls.at(-1)?.[0] ?? '',
+          ).includes('❯ fast · cleaning up'),
+        );
+        expect(
+          stripVTControlCharacters(io.write.mock.calls.at(-1)?.[0] ?? ''),
+        ).toContain('fast/1.yaml 1/1 cases');
+        expect(
+          events
+            .filter(
+              (event) =>
+                event.type === 'project-phase' && event.projectName === 'fast',
+            )
+            .map((event) =>
+              event.type === 'project-phase' ? event.phase : undefined,
+            ),
+        ).toEqual(['setup', 'running', 'teardown']);
+        cleanup.resolve();
+        await waitFor(() =>
+          events.some(
+            (event) =>
+              event.type === 'project-end' && event.project.name === 'fast',
+          ),
+        );
+        const event = events.find(
+          (event) =>
+            event.type === 'project-end' && event.project.name === 'fast',
+        );
+        expect(event).toMatchObject({
+          type: 'project-end',
+          project: {
+            status: cleanupFails ? 'failed' : 'success',
+            lifecycle: { status: cleanupFails ? 'failed' : 'success' },
+          },
+        });
+        expect(finished).toBe(false);
+        const output = stripVTControlCharacters(
+          io.write.mock.calls.flat().join(''),
+        );
+        expect(output).toContain(`${cleanupFails ? '×' : '✓'} fast (1 file)`);
+        expect(output).not.toContain('slow (1 file)');
+        slow.resolve();
+        const result = await resultPromise;
+        reporter.finish(result);
+        const headers = stripVTControlCharacters(
+          io.write.mock.calls.flat().join(''),
+        );
+        expect(
+          headers.match(
+            new RegExp(`${cleanupFails ? '×' : '✓'} fast \\(1 file\\)`, 'g'),
+          ),
+        ).toHaveLength(1);
+        expect(headers.match(/✓ slow \(1 file\)/g)).toHaveLength(1);
+      } finally {
+        setup.resolve();
+        cleanup.resolve();
+        slow.resolve();
+        await resultPromise;
+        reporter.dispose();
+      }
+    },
+  );
+
   it.each([false, true])(
     'reports concurrent files independently with scoped lifecycle logs (TTY: %s)',
     async (isTTY) => {
@@ -252,8 +405,9 @@ describe('native file concurrency', () => {
         if (isTTY) {
           await waitFor(
             () =>
-              live().includes('❯ [web] web/1.yaml') &&
-              live().includes('❯ [web] web/2.yaml'),
+              live().includes('❯ web · 2 files running') &&
+              live().includes('├─ web/1.yaml 0/1 cases') &&
+              live().includes('└─ web/2.yaml 0/1 cases'),
           );
           expect(live().match(/└─ one/g)).toHaveLength(2);
         }
@@ -271,9 +425,18 @@ describe('native file concurrency', () => {
         if (isTTY)
           await waitFor(
             () =>
-              live().includes('❯ [web] web/2.yaml') &&
-              !live().includes('❯ [web] web/1.yaml'),
+              live().includes('❯ web · 1 file running · 1 completed') &&
+              live().includes('└─ web/2.yaml 0/1 cases') &&
+              live().includes('├─ ✓ web/1.yaml 1/1 cases') &&
+              live().includes('└─ ✓ one'),
           );
+        if (!isTTY)
+          expect(io.log.mock.calls.flat().join('\n')).toContain(
+            '└─ ✓ web/1.yaml',
+          );
+        expect(events.some((event) => event.type === 'project-end')).toBe(
+          false,
+        );
         second.resolve();
         const result = await resultPromise;
         reporter.finish(result);
@@ -282,11 +445,18 @@ describe('native file concurrency', () => {
         const output = stripVTControlCharacters(
           (isTTY ? io.write : io.log).mock.calls.flat().join('\n'),
         );
+        const permanent = isTTY
+          ? stripVTControlCharacters(
+              io.write.mock.calls
+                .flat()
+                .find((message) =>
+                  stripVTControlCharacters(message).includes('✓ web (2 files)'),
+                ) ?? '',
+            )
+          : output;
         for (const path of ['web/1.yaml', 'web/2.yaml']) {
           expect(
-            output.match(
-              new RegExp(`✓ \\[web\\] ${path.replace('.', '\\.')}`, 'g'),
-            ),
+            permanent.match(new RegExp(`─ ✓ ${path.replace('.', '\\.')}`, 'g')),
           ).toHaveLength(1);
           const setup = entries.find(
             (entry) => entry.message === `file setup ${path}`,

@@ -258,8 +258,13 @@ export async function executeDocumentInvocation(
                 });
             },
             onCaseOutcome: (outcome) => {
-              if (!documentRetry)
-                options.onEvent?.({ type: 'case-end', outcome });
+              if (documentRetry)
+                options.onEvent?.({
+                  type: 'case-progress',
+                  outcome,
+                  documentAttemptIndex,
+                });
+              else options.onEvent?.({ type: 'case-end', outcome });
               if (
                 outcome.attempts?.some(
                   (attempt) =>

@@ -329,6 +329,18 @@ export async function runPreparedTestProject(
         ),
       onEvent: (event) =>
         runInfrastructureCallback(() => plan.onEvent?.(event)),
+      onProjectEnd: (state) =>
+        runInfrastructureCallback(() =>
+          plan.onEvent?.({
+            type: 'project-end',
+            project: buildProjectResult(
+              state.prepared,
+              state.cases,
+              state.documents,
+              state.lifecycle,
+            ),
+          }),
+        ),
       onInfrastructureError: recordInfrastructureError,
     });
     states.forEach((state, index) => {

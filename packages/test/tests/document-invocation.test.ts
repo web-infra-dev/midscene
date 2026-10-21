@@ -130,6 +130,98 @@ describe('resource failure policy', () => {
 });
 
 describe('persisted retry decisions', () => {
+  it('publishes current file-attempt Case progress before the next Case starts, without sealing intermediate outcomes', async () => {
+    const runDir = mkdtempSync(
+      join(tmpdir(), 'midscene-document-live-progress-'),
+    );
+    try {
+      const events: TestReporterEvent[] = [];
+      const first = collectedDocument('first');
+      const document = {
+        ...first,
+        cases: [
+          ...first.cases,
+          {
+            ...first.cases[0],
+            caseId: 'second',
+            caseIndex: 1,
+            definition: { ...first.cases[0].definition, name: 'second' },
+          },
+        ],
+      };
+      let calls = 0;
+      await executeDocumentInvocation({
+        ...invocationOptions(runDir, 1),
+        onEvent: (event) => events.push(event),
+        invocation: {
+          document,
+          retry: { scope: 'document', count: 1 },
+          reportEnabled: false,
+          bindings: {
+            resolveNode: () =>
+              defineNode({
+                name: 'javascript',
+                execute() {
+                  calls++;
+                  if (calls % 2 === 0) {
+                    expect(
+                      events.filter((event) => event.type === 'case-end'),
+                    ).toHaveLength(0);
+                    expect(
+                      events
+                        .filter((event) => event.type === 'case-progress')
+                        .at(-1),
+                    ).toMatchObject({
+                      outcome: { name: 'first', status: 'success' },
+                      documentAttemptIndex: calls === 2 ? 0 : 1,
+                    });
+                  }
+                  if (calls === 2) throw new Error('retry the file');
+                },
+              }),
+          },
+        },
+      });
+      expect(calls).toBe(4);
+      expect(events.filter((event) => event.type === 'case-progress')).toEqual([
+        expect.objectContaining({
+          documentAttemptIndex: 0,
+          outcome: expect.objectContaining({ status: 'success' }),
+        }),
+        expect.objectContaining({
+          documentAttemptIndex: 0,
+          outcome: expect.objectContaining({ status: 'failed' }),
+        }),
+        expect.objectContaining({
+          documentAttemptIndex: 1,
+          outcome: expect.objectContaining({ status: 'success' }),
+        }),
+        expect.objectContaining({
+          documentAttemptIndex: 1,
+          outcome: expect.objectContaining({ status: 'success' }),
+        }),
+      ]);
+      expect(events.filter((event) => event.type === 'case-end')).toEqual([
+        expect.objectContaining({
+          outcome: expect.objectContaining({
+            name: 'first',
+            status: 'success',
+          }),
+          documentRetries: 1,
+        }),
+        expect.objectContaining({
+          outcome: expect.objectContaining({
+            name: 'second',
+            status: 'success',
+          }),
+          documentRetries: 1,
+        }),
+      ]);
+    } finally {
+      rmSync(runDir, { recursive: true, force: true });
+    }
+  });
+
   it('publishes final Case progress only after whole-document retries settle', async () => {
     const runDir = mkdtempSync(join(tmpdir(), 'midscene-document-progress-'));
     try {

@@ -161,13 +161,17 @@ export default {
       expect(execution.stdout).toContain(
         'Concurrency 1 projects · 2 files (global limits)',
       );
+      expect(execution.stdout.match(/└─ ✓ a.yaml \(1 cases\)/g)).toHaveLength(
+        1,
+      );
       expect(
-        execution.stdout.match(/✓ \[web\] a.yaml \(1 cases\)/g),
-      ).toHaveLength(1);
-      expect(
-        execution.stdout.match(/× \[web\] b.yaml \(1 cases \| 1 failed\)/g),
+        execution.stdout.match(/└─ × b.yaml \(1 cases \| 1 failed\)/g),
       ).toHaveLength(1);
       expect(execution.stdout).toContain('Test Files 1 failed | 1 passed (2)');
+      expect(
+        execution.stdout.split('\n').filter((line) => line.trim() === 'web'),
+      ).toHaveLength(2);
+      expect(execution.stdout).not.toMatch(/[✓×] web \(2 files\)/);
       for (const path of ['a.yaml', 'b.yaml']) {
         expect(execution.stdout).toContain(
           `WARN [web] › ${path} › fileSetup · setup ${path}`,
@@ -376,11 +380,12 @@ export default {
     );
     expect(execution.stdout).toContain('1 projects · 2 files · 3 cases');
     expect(execution.stdout).toContain('RUN');
-    expect(execution.stdout.match(/^ {3}✓ /gm)).toHaveLength(3);
-    expect(execution.stdout.match(/\[web\] flows\/first.yaml/g)).toHaveLength(
-      1,
-    );
-    expect(execution.stdout).toContain('[web] flows/nested/second.yml');
+    expect(
+      execution.stdout.match(/^(?: {3}│ {2}| {6})[├└]─ ✓ /gm),
+    ).toHaveLength(3);
+    expect(execution.stdout.match(/^ web$/gm)).toHaveLength(2);
+    expect(execution.stdout.match(/└─ ✓ flows\/first.yaml/g)).toHaveLength(1);
+    expect(execution.stdout).toContain('└─ ✓ flows/nested/second.yml');
     expect(execution.stdout.indexOf('first case')).toBeLessThan(
       execution.stdout.indexOf('second case'),
     );

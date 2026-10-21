@@ -14,7 +14,10 @@ import { type CliFailureContext, formatFailureDetails } from './failure-format';
 import { CliModelUsage, formatModelUsage } from './model-usage';
 import type { TestReporterEvent } from './reporter-events';
 import { TerminalProgress, truncateTerminalLine } from './terminal-progress';
-import type { TestProjectRunResult } from './types';
+import type {
+  TestExecutionProjectRunResult,
+  TestProjectRunResult,
+} from './types';
 import {
   formatWarning,
   formatWarningScope,
@@ -40,16 +43,20 @@ export const formatDuration = (ms: number): string => {
 };
 const identity = (project: string, path: string, name?: string) =>
   `[${oneLine(project)}] ${oneLine(path)}${name ? ` › ${oneLine(name)}` : ''}`;
+const projectPhaseLabel = (phase: 'setup' | 'teardown') =>
+  phase === 'setup' ? 'setting up' : 'cleaning up';
 interface FileState {
   projectName: string;
   sourcePath: string;
   total: number;
   outcomes: Map<string, CaseRunOutcome>;
+  attemptOutcomes: Map<string, CaseRunOutcome>;
   started: boolean;
   printed: boolean;
   status?: 'success' | 'failed' | 'not-run';
   durationMs: number;
   retries: number;
+  completionOrder: number;
 }
 interface ActiveTask {
   file: FileState;
@@ -61,8 +68,14 @@ interface ActiveTask {
   runId?: string;
   phase?: string;
   stepIndex?: number;
+  caseIndex?: number;
   warning?: string;
 }
+type LiveChild =
+  | { outcome: CaseRunOutcome }
+  | { task: ActiveTask }
+  | { summary: string; failed: boolean };
+type LiveMode = 'full' | 'recent' | 'compact' | 'active';
 
 // Document status describes its lifecycle; failed Cases must also fail the file.
 const fileStatus = (
@@ -79,6 +92,7 @@ const fileStatus = (
 
 export class TerminalReporter {
   private total = 0;
+  private completionOrder = 0;
   private totalFiles = 0;
   private files = new Map<string, FileState>();
   private warnings = new Map<string, { scope: string; message: string }>();
@@ -87,6 +101,10 @@ export class TerminalReporter {
   private finalMetrics?: TestRunReportMetrics;
   private attempts = new Map<string, { run: CaseRunResult; max: number }>();
   private active = new Map<string, ActiveTask>();
+  private projectPhases = new Map<
+    string,
+    { phase: 'setup' | 'teardown'; since: number }
+  >();
   private failures: {
     source: string;
     error: unknown;
@@ -188,10 +206,12 @@ export class TerminalReporter {
         sourcePath,
         total,
         outcomes: new Map(),
+        attemptOutcomes: new Map(),
         started: false,
         printed: false,
         durationMs: 0,
         retries: 0,
+        completionOrder: 0,
       };
       this.files.set(key, file);
     }
@@ -241,6 +261,18 @@ export class TerminalReporter {
           );
         this.renderProgress();
       }
+    } else if (event.type === 'project-end') {
+      this.completeProject(event.project);
+      this.schedule();
+    } else if (event.type === 'project-phase') {
+      if (event.phase === 'running')
+        this.projectPhases.delete(event.projectName);
+      else
+        this.projectPhases.set(event.projectName, {
+          phase: event.phase,
+          since: Date.now(),
+        });
+      this.schedule();
     } else if (event.type === 'document-start') {
       this.file(event.projectName, event.sourcePath, event.cases).started =
         true;
@@ -252,14 +284,17 @@ export class TerminalReporter {
         event.cases.length,
       );
       file.status = fileStatus(event.document.status, event.cases);
+      file.started = true;
+      file.completionOrder = ++this.completionOrder;
       file.durationMs = event.durationMs;
       file.retries = event.document.attemptIndex ?? 0;
       file.outcomes = new Map(
         event.cases.map((outcome) => [outcome.caseId, outcome]),
       );
+      file.attemptOutcomes.clear();
       for (const [key, task] of this.active)
         if (task.file === file) this.active.delete(key);
-      this.printFile(file);
+      if (!this.interactive) this.printFile(file);
       this.schedule();
     } else if (event.type === 'step-start') {
       this.startStep(event.projectName, event.info);
@@ -283,13 +318,19 @@ export class TerminalReporter {
         run: event.attempt,
         max: event.maxAttempts,
       });
-    } else if (event.type === 'case-end') {
+    } else if (event.type === 'case-end' || event.type === 'case-progress') {
       const file = this.file(
         event.outcome.projectName,
         event.outcome.sourcePath,
       );
-      file.outcomes.set(event.outcome.caseId, event.outcome);
-      file.retries = Math.max(file.retries, event.documentRetries ?? 0);
+      if (event.type === 'case-progress') {
+        file.attemptOutcomes.set(event.outcome.caseId, event.outcome);
+        file.retries = Math.max(file.retries, event.documentAttemptIndex);
+      } else {
+        file.attemptOutcomes.delete(event.outcome.caseId);
+        file.outcomes.set(event.outcome.caseId, event.outcome);
+        file.retries = Math.max(file.retries, event.documentRetries ?? 0);
+      }
       this.active.delete(event.outcome.caseId);
       this.schedule();
     } else if (event.type === 'document-retry') {
@@ -298,6 +339,9 @@ export class TerminalReporter {
         event.document.sourcePath,
       );
       file.outcomes.clear();
+      file.attemptOutcomes.clear();
+      file.status = undefined;
+      file.completionOrder = 0;
       for (const [key, task] of this.active)
         if (task.file === file) this.active.delete(key);
       this.log(
@@ -339,6 +383,7 @@ export class TerminalReporter {
         info.scope === 'case' ? info.case.runId : info.document.documentRunId,
       phase: position.phase,
       stepIndex: position.stepIndex,
+      caseIndex: info.scope === 'case' ? info.case.caseIndex : undefined,
     });
     this.schedule();
   }
@@ -400,8 +445,7 @@ export class TerminalReporter {
   }
   private renderProgress(render = true): void {
     if (!this.interactive || !this.timer) return;
-    const c = this.color;
-    const lines: string[] = [];
+    const projects = new Map<string, FileState[]>();
     const files = [...this.files.values()]
       .filter((file) => file.started && !file.printed)
       .sort(
@@ -410,41 +454,181 @@ export class TerminalReporter {
           a.sourcePath.localeCompare(b.sourcePath),
       );
     for (const file of files) {
+      const group = projects.get(file.projectName) ?? [];
+      group.push(file);
+      projects.set(file.projectName, group);
+    }
+    for (const projectName of this.projectPhases.keys())
+      if (!projects.has(projectName)) projects.set(projectName, []);
+    const footer = this.footer();
+    const budget = Math.max(0, (this.io.rows ?? 24) - 2 - footer.length - 1);
+    let lines = this.liveTree(projects, 'full');
+    if (lines.length > budget) lines = this.liveTree(projects, 'recent');
+    if (lines.length > budget) lines = this.liveTree(projects, 'compact');
+    if (lines.length > budget) lines = this.liveTree(projects, 'active');
+    if (lines.length) lines.push('');
+    if (render) this.progressView.render(lines, footer);
+    else this.progressView.update(lines, footer);
+  }
+
+  private liveTree(
+    projects: Map<string, FileState[]>,
+    mode: LiveMode,
+  ): string[] {
+    const c = this.color;
+    const lines: string[] = [];
+    const groups = [...projects];
+    const isActive = ([projectName, files]: [string, FileState[]]) =>
+      this.projectPhases.has(projectName) || files.some((file) => !file.status);
+    if (mode !== 'full')
+      groups.sort((a, b) => Number(isActive(b)) - Number(isActive(a)));
+    for (const [projectName, files] of groups) {
+      const phase = this.projectPhases.get(projectName);
+      const running = files.filter((file) => !file.status);
+      const completed = files.filter((file) => file.status);
+      const recent = [...completed]
+        .sort((a, b) => b.completionOrder - a.completionOrder)
+        .slice(0, mode === 'recent' ? 1 : 0);
+      const visible = mode === 'full' ? files : [...running, ...recent];
+      const hidden = completed.filter((file) => !visible.includes(file));
+      const hiddenFailures = hidden.filter(
+        (file) => file.status === 'failed',
+      ).length;
+      const details = [
+        phase
+          ? c.yellow(
+              `${projectPhaseLabel(phase.phase)} ${formatDuration(Date.now() - phase.since)}`,
+            )
+          : '',
+        c.yellow(
+          `${running.length} ${running.length === 1 ? 'file' : 'files'} running`,
+        ),
+        completed.length ? c.dim(`${completed.length} completed`) : '',
+        mode === 'active' && hiddenFailures
+          ? c.red(`${hiddenFailures} failed`)
+          : '',
+      ].filter(Boolean);
       lines.push(
         this.liveRow(
-          ` ${c.yellow('❯')} ${c.dim(`[${oneLine(file.projectName)}]`)} ${c.bold(oneLine(file.sourcePath))}`,
-          ` ${c.dim(`${file.outcomes.size}/${file.total}`)}`,
+          ` ${c.yellow('❯')} ${c.bold(oneLine(projectName))}`,
+          c.dim(' · ') + details.join(c.dim(' · ')),
         ),
       );
-      const tasks = [...this.active.values()].filter(
-        (task) => task.file === file,
-      );
-      for (const [index, task] of tasks.entries()) {
-        const branch = index === tasks.length - 1 ? '└─' : '├─';
-        const hint =
-          task.name && task.step
-            ? truncateTerminalLine(
-                ` · ${task.step}`,
-                Math.floor(Math.max(0, (this.io.columns ?? 100) - 1) / 2),
-              )
-            : '';
-        const retry = task.attempt
-          ? ` · attempt ${task.attempt + 1}${task.maxAttempts ? `/${task.maxAttempts}` : ''}`
-          : '';
+      for (const [fileIndex, file] of visible.entries()) {
+        const lastFile =
+          fileIndex === visible.length - 1 &&
+          (!hidden.length || mode === 'active');
+        const stem = lastFile ? '      ' : `   ${c.dim('│')}  `;
+        const outcomes = [
+          ...new Map([...file.attemptOutcomes, ...file.outcomes]).values(),
+        ].sort((a, b) => a.caseIndex - b.caseIndex);
+        const failedCases = outcomes.filter(
+          (outcome) => outcome.status === 'failed',
+        ).length;
         lines.push(
           this.liveRow(
-            `   ${c.yellow(branch)} ${oneLine(task.name ?? task.step ?? 'file lifecycle')}`,
-            `${c.dim(hint)} ${c.yellow(formatDuration(Date.now() - task.since))}${c.yellow(retry)}`,
+            `   ${c.dim(lastFile ? '└─' : '├─')} ${file.status ? `${this.statusSymbol(file.status)} ` : ''}${oneLine(file.sourcePath)}`,
+            ` ${c.dim(`${outcomes.length}/${file.total} cases`)}${file.status ? c.dim(` ${formatDuration(file.durationMs)}`) : ''}${mode === 'active' && failedCases ? c.red(` · ${failedCases} failed`) : ''}`,
           ),
         );
-        if (task.warning)
-          lines.push(c.yellow(this.liveRow(`      ⚠ ${task.warning}`, '')));
+        const tasks = [...this.active.values()].filter(
+          (task) => task.file === file,
+        );
+        const shown =
+          mode === 'full'
+            ? outcomes
+            : mode === 'recent'
+              ? outcomes.slice(-1)
+              : [];
+        const children: LiveChild[] = [
+          ...tasks.map((task) => ({ task })),
+          ...shown.map((outcome) => ({ outcome })),
+        ];
+        if (mode === 'full')
+          children.sort(
+            (a, b) => this.liveChildIndex(a) - this.liveChildIndex(b),
+          );
+        const hiddenCases = outcomes.filter(
+          (outcome) => !shown.includes(outcome),
+        );
+        if (hiddenCases.length && mode !== 'active') {
+          const failed = hiddenCases.filter(
+            (outcome) => outcome.status === 'failed',
+          ).length;
+          children.push({
+            summary: `… ${hiddenCases.length} completed ${hiddenCases.length === 1 ? 'case' : 'cases'}${failed ? ` · ${failed} failed` : ''}`,
+            failed: failed > 0,
+          });
+        }
+        for (const [index, child] of children.entries()) {
+          const last = index === children.length - 1;
+          const prefix = `${stem}${c.dim(last ? '└─' : '├─')} `;
+          if ('outcome' in child) {
+            lines.push(
+              this.liveRow(
+                `${prefix}${this.formatCaseResult(child.outcome, file.retries)}`,
+                '',
+              ),
+            );
+            continue;
+          }
+          if ('summary' in child) {
+            lines.push(
+              this.liveRow(
+                `${prefix}${child.failed ? c.red(child.summary) : c.dim(child.summary)}`,
+                '',
+              ),
+            );
+            continue;
+          }
+          const { task } = child;
+          const hint =
+            task.name && task.step
+              ? truncateTerminalLine(
+                  ` · ${task.step}`,
+                  Math.floor(Math.max(0, (this.io.columns ?? 100) - 1) / 2),
+                )
+              : '';
+          const retry = task.attempt
+            ? ` · attempt ${task.attempt + 1}${task.maxAttempts ? `/${task.maxAttempts}` : ''}`
+            : '';
+          lines.push(
+            this.liveRow(
+              `${prefix}${oneLine(task.name ?? task.step ?? 'file lifecycle')}`,
+              `${c.dim(hint)} ${c.yellow(formatDuration(Date.now() - task.since))}${c.yellow(retry)}`,
+            ),
+          );
+          if (task.warning)
+            lines.push(
+              this.liveRow(
+                `${stem}${last ? '   ' : `${c.dim('│')}  `}${c.dim('└─')} ${c.yellow(`⚠ ${task.warning}`)}`,
+                '',
+              ),
+            );
+        }
+      }
+      if (hidden.length && mode !== 'active') {
+        const summary = `… ${hidden.length} completed ${hidden.length === 1 ? 'file' : 'files'}${hiddenFailures ? ` · ${hiddenFailures} failed` : ''}`;
+        lines.push(
+          this.liveRow(
+            `   ${c.dim('└─')} ${hiddenFailures ? c.red(summary) : c.dim(summary)}`,
+            '',
+          ),
+        );
       }
     }
-    if (lines.length) lines.push('');
-    if (render) this.progressView.render(lines, this.footer());
-    else this.progressView.update(lines, this.footer());
+    return lines;
   }
+
+  private liveChildIndex(child: LiveChild): number {
+    if ('outcome' in child) return child.outcome.caseIndex;
+    if ('summary' in child) return Number.MAX_SAFE_INTEGER;
+    return (
+      child.task.caseIndex ??
+      (child.task.phase === 'beforeAll' ? -1 : Number.MAX_SAFE_INTEGER)
+    );
+  }
+
   private liveRow(label: string, suffix: string): string {
     const columns = Math.max(0, (this.io.columns ?? 100) - 1);
     const tail = truncateTerminalLine(suffix, columns);
@@ -455,9 +639,21 @@ export class TerminalReporter {
       this.renderProgress();
       return;
     }
-    if (this.active.size && Date.now() - this.lastOutput >= 30_000)
+    if (
+      (this.active.size || this.projectPhases.size) &&
+      Date.now() - this.lastOutput >= 30_000
+    )
       this.log(
-        `… Still running: ${[...this.active.values()].map((task) => `${identity(task.file.projectName, task.file.sourcePath, task.name)} · ${task.step ?? 'between steps'} (${formatDuration(Date.now() - task.since)})`).join(' | ')}`,
+        `… Still running: ${[
+          ...[...this.projectPhases].map(
+            ([projectName, phase]) =>
+              `[${oneLine(projectName)}] · ${projectPhaseLabel(phase.phase)} (${formatDuration(Date.now() - phase.since)})`,
+          ),
+          ...[...this.active.values()].map(
+            (task) =>
+              `${identity(task.file.projectName, task.file.sourcePath, task.name)} · ${task.step ?? 'between steps'} (${formatDuration(Date.now() - task.since)})`,
+          ),
+        ].join(' | ')}`,
       );
   }
 
@@ -484,79 +680,133 @@ export class TerminalReporter {
       outcome.status === 'not-run'
         ? c.dim(` · ${outcome.notRunReason ?? 'not run'}`)
         : ` ${c.dim(duration)}${retries ? c.yellow(` · ${outcome.status === 'success' ? 'passed after retry' : 'failed after retries'} (${retries + 1} attempts)`) : documentRetries ? c.yellow(` · file retried ${documentRetries}x`) : ''}`;
-    return `   ${symbol} ${oneLine(outcome.name)}${detail}`;
+    return `${symbol} ${oneLine(outcome.name)}${detail}`;
   }
-  private printFile(file: FileState): void {
-    if (file.printed) return;
-    file.printed = true;
+  private statusSymbol(status: FileState['status']): string {
+    return status === 'failed'
+      ? this.color.red('×')
+      : status === 'not-run'
+        ? this.color.yellow('–')
+        : this.color.green('✓');
+  }
+
+  private resultFileLines(file: FileState, lastFile: boolean): string[] {
     const c = this.color;
+    const stem = lastFile ? '      ' : `   ${c.dim('│')}  `;
     const cases = [...file.outcomes.values()].sort(
       (a, b) => a.caseIndex - b.caseIndex,
     );
     const failed = cases.filter((item) => item.status === 'failed').length;
     const notRun = cases.filter((item) => item.status === 'not-run').length;
-    const symbol =
-      file.status === 'failed' || failed
-        ? c.red('×')
-        : file.status === 'not-run'
-          ? c.yellow('–')
-          : c.green('✓');
     const stats = `(${cases.length} cases${failed ? ` | ${failed} failed` : ''}${notRun ? ` | ${notRun} not run` : ''})`;
+    return [
+      `   ${c.dim(lastFile ? '└─' : '├─')} ${this.statusSymbol(file.status)} ${c.bold(oneLine(file.sourcePath))} ${c.dim(stats)} ${c.dim(formatDuration(file.durationMs))}`,
+      ...cases.map(
+        (item, caseIndex) =>
+          `${stem}${c.dim(caseIndex === cases.length - 1 ? '└─' : '├─')} ${this.formatCaseResult(item, file.retries)}`,
+      ),
+    ];
+  }
+
+  private printFile(file: FileState): void {
+    if (file.printed) return;
+    file.printed = true;
     this.log(
       [
         '',
-        ` ${symbol} ${c.dim(`[${oneLine(file.projectName)}]`)} ${c.bold(oneLine(file.sourcePath))} ${c.dim(stats)} ${c.dim(formatDuration(file.durationMs))}`,
-        ...cases.map((item) => this.formatCaseResult(item, file.retries)),
+        ` ${this.color.bold(oneLine(file.projectName))}`,
+        ...this.resultFileLines(file, true),
       ].join('\n'),
     );
+  }
+
+  private printProject(
+    projectName: string,
+    files: readonly FileState[],
+    failed: boolean,
+  ): void {
+    if (!files.length || files.every((file) => file.printed)) return;
+    const c = this.color;
+    const status =
+      failed || files.some((file) => file.status === 'failed')
+        ? 'failed'
+        : files.every((file) => file.status === 'not-run')
+          ? 'not-run'
+          : files.some((file) => file.status === 'not-run')
+            ? 'failed'
+            : 'success';
+    const lines = [
+      '',
+      ` ${this.statusSymbol(status)} ${c.bold(oneLine(projectName))} ${c.dim(`(${files.length} ${files.length === 1 ? 'file' : 'files'})`)}`,
+    ];
+    for (const [index, file] of files.entries()) {
+      if (file.printed) continue;
+      file.printed = true;
+      lines.push(...this.resultFileLines(file, index === files.length - 1));
+    }
+    this.log(lines.join('\n'));
   }
 
   failure(source: string, error: unknown, context?: CliFailureContext): void {
     this.failures.push({ source, error, context });
   }
 
+  private completeProject(project: TestExecutionProjectRunResult): void {
+    this.projectPhases.delete(project.name);
+    const projectFiles = new Set<FileState>();
+    const documents = new Map(
+      project.documents.map((document) => [document.documentId, document]),
+    );
+    const resultSources = new Set([
+      ...project.cases.map((outcome) => outcome.sourcePath),
+      ...project.documents.map((document) => document.sourcePath),
+      ...project.collectionErrors.map((error) => error.sourcePath),
+    ]);
+    // Preserve plan order for selected files and actual results, excluding
+    // files whose Cases were all filtered out before execution.
+    for (const plan of project.plans ?? []) {
+      const selected = plan.cases.filter((item) => item.selected).length;
+      if (selected || resultSources.has(plan.sourcePath))
+        projectFiles.add(this.file(project.name, plan.sourcePath, selected));
+    }
+    for (const outcome of project.cases)
+      this.file(project.name, outcome.sourcePath).outcomes.set(
+        outcome.caseId,
+        outcome,
+      );
+    for (const document of documents.values()) {
+      const file = this.file(project.name, document.sourcePath);
+      file.status = document.status;
+      file.retries = document.attemptIndex ?? 0;
+      file.durationMs = project.documents
+        .filter((item) => item.documentId === document.documentId)
+        .reduce((sum, item) => sum + item.durationMs, 0);
+    }
+    for (const error of project.collectionErrors)
+      this.file(project.name, error.sourcePath).status = 'failed';
+    for (const file of this.files.values())
+      if (file.projectName === project.name) {
+        file.attemptOutcomes.clear();
+        const cases = [...file.outcomes.values()];
+        file.status = fileStatus(file.status, cases);
+        projectFiles.add(file);
+      }
+    for (const [key, task] of this.active)
+      if (task.file.projectName === project.name) this.active.delete(key);
+    if (this.interactive)
+      this.printProject(
+        project.name,
+        [...projectFiles],
+        project.status === 'failed',
+      );
+    else for (const file of projectFiles) this.printFile(file);
+  }
+
   finish(result: TestProjectRunResult): void {
     this.dispose();
     this.finalMetrics = result.metrics ?? this.usage.snapshot();
     if (result.startedAt) this.startedAt = Date.parse(result.startedAt);
-    for (const project of result.projects) {
-      const documents = new Map(
-        project.documents.map((document) => [document.documentId, document]),
-      );
-      const resultSources = new Set([
-        ...project.cases.map((outcome) => outcome.sourcePath),
-        ...project.documents.map((document) => document.sourcePath),
-        ...project.collectionErrors.map((error) => error.sourcePath),
-      ]);
-      // Preserve plan order for selected files and actual results, excluding
-      // files whose Cases were all filtered out before execution.
-      for (const plan of project.plans ?? []) {
-        const selected = plan.cases.filter((item) => item.selected).length;
-        if (selected || resultSources.has(plan.sourcePath))
-          this.file(project.name, plan.sourcePath, selected);
-      }
-      for (const outcome of project.cases)
-        this.file(project.name, outcome.sourcePath).outcomes.set(
-          outcome.caseId,
-          outcome,
-        );
-      for (const document of documents.values()) {
-        const file = this.file(project.name, document.sourcePath);
-        file.status = document.status;
-        file.retries = document.attemptIndex ?? 0;
-        file.durationMs = project.documents
-          .filter((item) => item.documentId === document.documentId)
-          .reduce((sum, item) => sum + item.durationMs, 0);
-      }
-      for (const error of project.collectionErrors)
-        this.file(project.name, error.sourcePath).status = 'failed';
-      for (const file of this.files.values())
-        if (file.projectName === project.name) {
-          const cases = [...file.outcomes.values()];
-          file.status = fileStatus(file.status, cases);
-          this.printFile(file);
-        }
-    }
+    for (const project of result.projects) this.completeProject(project);
     this.total = result.summary.total;
     this.totalFiles = this.files.size;
   }

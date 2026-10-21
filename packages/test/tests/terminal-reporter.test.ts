@@ -58,6 +58,7 @@ const fixture = (
   mode: 'default' | 'verbose' = 'default',
   isTTY = false,
   cases = 2,
+  start = true,
 ) => {
   let resize = () => {};
   const removeResizeListener = vi.fn();
@@ -74,7 +75,8 @@ const fixture = (
     }),
   };
   const reporter = new TerminalReporter(io, mode);
-  reporter.event({ type: 'run-start', projects: 2, documents: 2, cases });
+  if (start)
+    reporter.event({ type: 'run-start', projects: 2, documents: 2, cases });
   return { reporter, io, resize: () => resize(), removeResizeListener };
 };
 
@@ -164,17 +166,17 @@ const endFile = (
   cases: CaseRunOutcome[],
   status: 'success' | 'failed' = 'success',
   retries = 0,
+  file = { projectName: 'web', sourcePath: 'cases/shop.yaml' },
 ) => {
   reporter.event({
     type: 'document-end',
     cases,
     durationMs: 2400,
     document: {
-      documentId: 'shop',
-      documentRunId: 'shop-run',
-      projectId: 'web',
-      projectName: 'web',
-      sourcePath: 'cases/shop.yaml',
+      documentId: `${file.projectName}:${file.sourcePath}`,
+      documentRunId: `${file.projectName}:${file.sourcePath}:run`,
+      projectId: file.projectName,
+      ...file,
       status,
       attemptIndex: retries,
       startedAt: '',
@@ -192,6 +194,392 @@ afterEach(() => {
 });
 
 describe('terminal reporter', () => {
+  it('shows Project setup and cleanup even when no file is running', () => {
+    vi.useFakeTimers();
+    const { reporter, io, resize } = fixture('default', true);
+    reporter.event({
+      type: 'project-phase',
+      projectName: 'web',
+      phase: 'setup',
+    });
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).toContain('❯ web · setting up 100ms');
+    expect(frame(io)).not.toContain('cases/shop.yaml');
+    reporter.event({
+      type: 'project-phase',
+      projectName: 'web',
+      phase: 'running',
+    });
+    endFile(reporter, [outcome('finished')]);
+    reporter.event({
+      type: 'project-phase',
+      projectName: 'web',
+      phase: 'teardown',
+    });
+    vi.advanceTimersByTime(2100);
+    resize();
+    expect(frame(io)).toContain('❯ web · cleaning up 2.1s');
+    expect(frame(io)).toContain('0 files running · 1 completed');
+    expect(frame(io)).toContain('✓ finished 1.2s');
+    reporter.event({
+      type: 'project-end',
+      project: projectResult('web', [outcome('finished')]),
+    });
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).not.toContain('cleaning up');
+    reporter.dispose();
+  });
+
+  it.each(['setup', 'teardown'] as const)(
+    'emits noninteractive heartbeats during Project %s without active files',
+    (phase) => {
+      vi.useFakeTimers();
+      const { reporter, io } = fixture();
+      reporter.event({ type: 'project-phase', projectName: 'web', phase });
+      vi.advanceTimersByTime(30_000);
+      expect(text(io)).toContain(
+        `Still running: [web] · ${phase === 'setup' ? 'setting up' : 'cleaning up'} (30.0s)`,
+      );
+      reporter.event({
+        type: 'project-end',
+        project: projectResult('web', []),
+      });
+      const outputCount = io.log.mock.calls.length;
+      vi.advanceTimersByTime(30_000);
+      expect(io.log.mock.calls).toHaveLength(outputCount);
+      reporter.dispose();
+    },
+  );
+
+  it('keeps active work from every Project visible before completed summaries in a small viewport', () => {
+    vi.useFakeTimers();
+    const { reporter, io } = fixture('default', true, 6, false);
+    io.rows = 15;
+    reporter.event({ type: 'run-start', projects: 2, documents: 4, cases: 6 });
+    for (const projectName of ['alpha', 'beta']) {
+      const finished = {
+        ...outcome(
+          `${projectName}:finished`,
+          projectName === 'alpha' ? 'failed' : 'success',
+        ),
+        projectName,
+        sourcePath: 'old.yaml',
+      };
+      endFile(reporter, [finished], 'success', 0, finished);
+      const previous = {
+        ...outcome(`${projectName}:previous`),
+        projectName,
+        sourcePath: 'active.yaml',
+      };
+      reporter.event({
+        type: 'document-start',
+        documentId: `${projectName}:active`,
+        projectName,
+        sourcePath: 'active.yaml',
+        cases: 2,
+      });
+      reporter.event({ type: 'case-end', outcome: previous });
+      reporter.event({
+        type: 'step-start',
+        projectName,
+        info: {
+          scope: 'case',
+          node: 'aiAct',
+          stepCount: 3,
+          case: {
+            ...outcome(`${projectName}:running`).run!,
+            projectName,
+            sourcePath: 'active.yaml',
+            caseIndex: 1,
+            phase: 'steps',
+            stepIndex: 1,
+          },
+        },
+      });
+    }
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).toContain('alpha:running');
+    expect(frame(io)).toContain('beta:running');
+    expect(frame(io)).toContain('1 failed');
+    expect(frame(io)).not.toContain('more rows');
+    reporter.dispose();
+  });
+
+  it('retains completed results immediately, folding older results before hiding active work', () => {
+    vi.useFakeTimers();
+    const { reporter, io, resize } = fixture('default', true);
+    io.rows = 40;
+    reporter.event({
+      type: 'step-start',
+      projectName: 'web',
+      info: {
+        scope: 'case',
+        node: 'aiAct',
+        stepCount: 3,
+        case: {
+          ...outcome('running').run!,
+          sourcePath: 'c-active.yaml',
+          phase: 'steps',
+          stepIndex: 1,
+        },
+      },
+    });
+    for (const path of ['a-old.yaml', 'b-new.yaml']) {
+      const cases = [0, 1, 2].map((index) => ({
+        ...outcome(
+          `${path}:finished-${index}`,
+          path === 'a-old.yaml' && index === 0 ? 'failed' : 'success',
+        ),
+        sourcePath: path,
+        caseIndex: index,
+      }));
+      endFile(reporter, cases, 'success', 0, {
+        projectName: 'web',
+        sourcePath: path,
+      });
+    }
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).toContain('1 file running · 2 completed');
+    expect(frame(io)).toContain('× a-old.yaml:finished-0');
+    expect(frame(io)).toContain('✓ b-new.yaml:finished-2');
+    io.rows = 18;
+    resize();
+    expect(frame(io)).toContain('c-active.yaml');
+    expect(frame(io)).toContain('└─ running');
+    expect(frame(io)).toContain('b-new.yaml');
+    expect(frame(io)).not.toContain('a-old.yaml');
+    expect(frame(io)).toContain('1 completed file · 1 failed');
+    io.rows = 13;
+    resize();
+    expect(frame(io)).toContain('└─ running');
+    expect(frame(io)).toContain('2 completed files · 1 failed');
+    expect(frame(io)).not.toContain('b-new.yaml');
+    expect(frame(io).split('\n').filter(Boolean).length).toBeLessThanOrEqual(
+      11,
+    );
+    io.rows = 40;
+    resize();
+    expect(frame(io)).toContain('× a-old.yaml:finished-0');
+    expect(frame(io)).toContain('✓ b-new.yaml:finished-2');
+    reporter.dispose();
+  });
+
+  it('retains current file-attempt Case results without counting them as final, and resets them for file retry', () => {
+    vi.useFakeTimers();
+    const { reporter, io } = fixture('default', true);
+    const first = outcome('first');
+    const second = { ...outcome('second'), caseIndex: 1 };
+    reporter.event({
+      type: 'document-start',
+      documentId: 'shop',
+      projectName: 'web',
+      sourcePath: first.sourcePath,
+      cases: 2,
+    });
+    reporter.event({
+      type: 'step-start',
+      projectName: 'web',
+      info: step('first'),
+    });
+    reporter.event({
+      type: 'case-progress',
+      outcome: first,
+      documentAttemptIndex: 0,
+    });
+    reporter.event({
+      type: 'step-start',
+      projectName: 'web',
+      info: step('second'),
+    });
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).toContain('1/2 cases');
+    expect(frame(io)).toContain('✓ first 1.2s');
+    expect(frame(io)).toContain('second · step');
+    expect(frame(io)).toContain('Cases 0 passed (2)');
+    vi.advanceTimersByTime(2000);
+    expect(frame(io)).toContain('✓ first 1.2s');
+    expect(frame(io).match(/first/g)).toHaveLength(1);
+    reporter.event({
+      type: 'document-retry',
+      document: {
+        documentId: 'shop',
+        documentRunId: 'shop-run',
+        projectId: 'web',
+        projectName: 'web',
+        sourcePath: first.sourcePath,
+        status: 'failed',
+        attemptIndex: 0,
+        startedAt: '',
+        endedAt: '',
+        durationMs: 2400,
+        beforeAll: [],
+        afterAll: [],
+      },
+      maxAttempts: 2,
+    });
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).toContain('0/2 cases');
+    expect(frame(io)).not.toContain('✓ first');
+    reporter.event({
+      type: 'case-progress',
+      outcome: first,
+      documentAttemptIndex: 1,
+    });
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).toContain('1/2 cases');
+    expect(frame(io)).toContain('file retried 1x');
+    expect(frame(io)).toContain('Cases 0 passed (2)');
+    for (const item of [first, second])
+      reporter.event({ type: 'case-end', outcome: item, documentRetries: 1 });
+    endFile(reporter, [first, second], 'success', 1);
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).toContain('2/2 cases');
+    expect(frame(io)).toContain('Cases 2 passed (2)');
+    expect(frame(io).match(/✓ first/g)).toHaveLength(1);
+    reporter.dispose();
+  });
+
+  it('groups live Projects, files and Cases, updating counts independently of retries and completed files', () => {
+    vi.useFakeTimers();
+    const { reporter, io } = fixture('default', true, 10, false);
+    const paths = ['cases/a.yaml', 'cases/b.yaml'];
+    const fileOutcome = (projectName: string, sourcePath: string) => ({
+      ...outcome(`${projectName}:${sourcePath}`),
+      projectName,
+      sourcePath,
+      name: 'checkout',
+    });
+    const document = (projectName: string, sourcePath: string) => ({
+      documentId: `${projectName}:${sourcePath}`,
+      documentRunId: `${projectName}:${sourcePath}:run`,
+      projectId: projectName,
+      projectName,
+      sourcePath,
+      status: 'success' as const,
+      startedAt: '',
+      endedAt: '',
+      durationMs: 100,
+      beforeAll: [],
+      afterAll: [],
+    });
+    // Queued files must not appear in the live tree or running count.
+    reporter.event({
+      type: 'run-start',
+      projects: 2,
+      documents: 5,
+      cases: 10,
+      files: ['beta', 'alpha'].flatMap((projectName) =>
+        [
+          ...paths,
+          ...(projectName === 'beta' ? ['cases/queued.yaml'] : []),
+        ].map((sourcePath) => ({
+          documentId: `${projectName}:${sourcePath}`,
+          projectName,
+          sourcePath,
+          cases: 2,
+        })),
+      ),
+    });
+    for (const projectName of ['beta', 'alpha']) {
+      for (const sourcePath of paths) {
+        reporter.event({
+          type: 'document-start',
+          documentId: `${projectName}:${sourcePath}`,
+          projectName,
+          sourcePath,
+          cases: 2,
+        });
+        reporter.event({
+          type: 'step-start',
+          projectName,
+          info: {
+            scope: 'case',
+            node: 'aiAct',
+            stepCount: 3,
+            case: {
+              ...outcome(`${projectName}:${sourcePath}`).run!,
+              projectName,
+              sourcePath,
+              name: 'checkout',
+              phase: 'steps',
+              stepIndex: 1,
+            },
+          },
+        });
+      }
+    }
+    vi.advanceTimersByTime(100);
+    let current = frame(io);
+    expect(current.match(/❯ alpha · 2 files running/g)).toHaveLength(1);
+    expect(current.match(/❯ beta · 2 files running/g)).toHaveLength(1);
+    expect(current).not.toContain('queued.yaml');
+    const alphaTree = () =>
+      current.slice(current.indexOf('❯ alpha'), current.indexOf('❯ beta'));
+    expect(alphaTree()).toContain(
+      '   ├─ cases/a.yaml 0/2 cases\n   │  └─ checkout',
+    );
+    expect(alphaTree()).toContain(
+      '   └─ cases/b.yaml 0/2 cases\n      └─ checkout',
+    );
+    const completed = fileOutcome('alpha', paths[0]);
+    reporter.event({ type: 'case-end', outcome: completed });
+    reporter.event({ type: 'case-end', outcome: completed });
+    vi.advanceTimersByTime(100);
+    current = frame(io);
+    expect(alphaTree()).toContain('cases/a.yaml 1/2 cases');
+    expect(current).toContain('❯ alpha · 2 files running');
+    reporter.event({
+      type: 'document-retry',
+      document: { ...document('alpha', paths[0]), status: 'failed' },
+      maxAttempts: 2,
+    });
+    vi.advanceTimersByTime(100);
+    current = frame(io);
+    expect(alphaTree()).toContain('cases/a.yaml 0/2 cases');
+    expect(current).toContain('❯ alpha · 2 files running');
+    for (const sourcePath of paths) {
+      const first = fileOutcome('alpha', sourcePath);
+      reporter.event({
+        type: 'document-end',
+        document: document('alpha', sourcePath),
+        cases: [
+          first,
+          {
+            ...first,
+            caseId: `${first.caseId}:next`,
+            caseIndex: 1,
+            name: 'next Case',
+          },
+        ],
+        durationMs: 100,
+      });
+      vi.advanceTimersByTime(100);
+      current = frame(io);
+      expect(current).toContain('❯ beta · 2 files running');
+      if (sourcePath === paths[0]) {
+        expect(current).toContain('❯ alpha · 1 file running');
+        expect(alphaTree()).toContain('├─ ✓ cases/a.yaml 2/2 cases');
+        expect(alphaTree()).toContain('└─ ✓ next Case');
+        expect(alphaTree()).toContain('└─ cases/b.yaml 0/2 cases');
+      } else
+        expect(current).toContain('❯ alpha · 0 files running · 2 completed');
+    }
+    reporter.event({
+      type: 'project-end',
+      project: projectResult(
+        'alpha',
+        paths.map((path) => fileOutcome('alpha', path)),
+      ),
+    });
+    vi.advanceTimersByTime(100);
+    expect(frame(io)).not.toContain('❯ alpha');
+    expect(frame(io)).toContain('❯ beta');
+    expect(
+      stripVTControlCharacters(io.write.mock.calls.flat().join('')),
+    ).toContain('✓ alpha (2 files)');
+    reporter.dispose();
+  });
+
   it.each([
     { projects: 1, files: 4, expected: '1 projects · 4 files' },
     { projects: 3, files: 1, expected: '3 projects · 1 files' },
@@ -288,7 +676,8 @@ describe('terminal reporter', () => {
       },
     });
     vi.advanceTimersByTime(100);
-    expect(frame(io)).toContain('❯ [web] second.yaml');
+    expect(frame(io)).toContain('❯ web · 2 files running');
+    expect(frame(io)).toContain('└─ second.yaml');
     expect(frame(io)).toContain('⚠ model request retry');
     expect(frame(io).match(/└─ checkout/g)).toHaveLength(1);
     reporter.event({ type: 'step-end', projectName: 'web', info: second });
@@ -311,7 +700,7 @@ describe('terminal reporter', () => {
     result.summary = { ...result.summary, total: 1, passed: 1, filtered: 1 };
     reporter.finish(result);
     reporter.summary(result);
-    expect(text(io)).toContain('✓ [web] smoke.yaml (1 cases)');
+    expect(text(io)).toContain('└─ ✓ smoke.yaml (1 cases)');
     expect(text(io)).not.toContain('slow.yaml');
     expect(text(io)).toContain('Test Files 1 passed (1)');
     expect(text(io)).toContain('Cases 1 passed (1)');
@@ -328,8 +717,8 @@ describe('terminal reporter', () => {
     result.summary = { ...result.summary, total: 1, passed: 0, notRun: 1 };
     reporter.finish(result);
     reporter.summary(result);
-    expect(text(io)).toContain('– [web] smoke.yaml');
-    expect(text(io)).not.toContain('✓ [web]');
+    expect(text(io)).toContain('└─ – smoke.yaml');
+    expect(text(io)).not.toContain('✓ smoke.yaml');
     expect(text(io)).not.toContain('slow.yaml');
     expect(text(io)).toContain('Test Files 0 passed | 1 not run (1)');
   });
@@ -365,7 +754,7 @@ describe('terminal reporter', () => {
       expect(output).not.toContain(`\u001b[${code}m`);
   });
 
-  it('separates live events from completed file trees with one blank line between file groups', () => {
+  it('separates live events and completed Project trees with one blank line between groups', () => {
     const { reporter, io } = fixture();
     reporter.console({ type: 'warning', topic: 'test', message: 'live event' });
     endFile(reporter, [outcome('first Case')]);
@@ -375,9 +764,11 @@ describe('terminal reporter', () => {
         projectResult('mobile', [outcome('second Case')]),
       ]),
     );
-    expect(text(io)).toContain('WARN live event\n\n ✓ [web] cases/shop.yaml');
     expect(text(io)).toContain(
-      '✓ first Case 1.2s\n\n ✓ [mobile] cases/shop.yaml',
+      'WARN live event\n\n web\n   └─ ✓ cases/shop.yaml',
+    );
+    expect(text(io)).toContain(
+      '✓ first Case 1.2s\n\n mobile\n   └─ ✓ cases/shop.yaml',
     );
     expect(text(io)).not.toContain('1.2s\n\n\n');
   });
@@ -418,51 +809,125 @@ describe('terminal reporter', () => {
         output.indexOf('second declared'),
       );
       expect(output.match(/✓ first declared/g)).toHaveLength(1);
-      expect(output).toContain('[web] cases/shop.yaml (2 cases)');
+      expect(output).toContain('\n web\n');
+      expect(output).toContain('└─ ✓ cases/shop.yaml (2 cases)');
       expect(output).not.toContain('Final results');
       expect(io.write).not.toHaveBeenCalled();
     },
   );
 
-  it('orders completed files by completion, retaining Project identity and not repeating a final tree', () => {
-    const { reporter, io } = fixture();
-    const first = outcome('first');
-    const other = {
-      ...outcome('other'),
-      projectName: 'mobile',
-      sourcePath: 'other.yaml',
-    };
-    const document = {
-      documentId: 'other',
-      documentRunId: 'other',
-      projectId: 'mobile',
-      projectName: 'mobile',
-      sourcePath: 'other.yaml',
-      status: 'success' as const,
-      startedAt: '',
-      endedAt: '',
-      durationMs: 1,
-      beforeAll: [],
-      afterAll: [],
-    };
-    reporter.event({
-      type: 'document-end',
-      document,
-      cases: [other],
-      durationMs: 1,
+  it('groups interleaved completions into one tree per Project in plan order, retaining final outcomes once', () => {
+    vi.useFakeTimers();
+    const { reporter, io } = fixture('default', true);
+    const caseFor = (
+      projectName: string,
+      sourcePath: string,
+      failed = false,
+    ) => ({
+      ...outcome(`${projectName}:${sourcePath}`, failed ? 'failed' : 'success'),
+      projectName,
+      sourcePath,
     });
-    endFile(reporter, [first]);
-    reporter.finish(
-      runResult([
-        projectResult('web', [first]),
-        projectResult('mobile', [other]),
-      ]),
+    const alpha = [caseFor('alpha', 'z.yaml'), caseFor('alpha', 'a.yaml')];
+    const beta = [caseFor('beta', 'z.yaml'), caseFor('beta', 'a.yaml', true)];
+    beta[0].run = { ...beta[0].run!, attemptIndex: 1 };
+    beta[0].attempts = [
+      { ...beta[0].run, attemptIndex: 0, status: 'failed' },
+      beta[0].run,
+    ];
+    for (const item of [alpha[1], beta[0], alpha[0], beta[1], beta[1]])
+      endFile(reporter, [item], 'success', 0, item);
+    expect(text(io)).not.toContain('✓ alpha:');
+    const projects = [
+      projectResult('alpha', alpha),
+      projectResult('beta', beta),
+    ];
+    for (const project of projects)
+      project.plans = ['z.yaml', 'a.yaml'].map((path) => filePlan(path, true));
+    const result = runResult(projects);
+    for (const project of projects)
+      reporter.event({ type: 'project-end', project });
+    reporter.finish(result);
+    reporter.finish(result);
+    const output = io.write.mock.calls
+      .flat()
+      .map(stripVTControlCharacters)
+      .filter((message) => /^\n [✓×] (?:alpha|beta) \(2 files\)/.test(message))
+      .join('\n');
+    expect(output.match(/✓ alpha \(2 files\)/g)).toHaveLength(1);
+    expect(output.match(/× beta \(2 files\)/g)).toHaveLength(1);
+    const alphaTree = output.slice(
+      output.indexOf('✓ alpha (2 files)'),
+      output.indexOf('× beta (2 files)'),
     );
-    expect(text(io).indexOf('[mobile] other.yaml')).toBeLessThan(
-      text(io).indexOf('[web] cases/shop.yaml'),
+    expect(alphaTree.indexOf('z.yaml')).toBeLessThan(
+      alphaTree.indexOf('a.yaml'),
     );
-    expect(text(io).match(/✓ other /g)).toHaveLength(1);
+    expect(alphaTree).toContain('├─ ✓ z.yaml (1 cases)');
+    expect(alphaTree).toContain('│  └─ ✓ alpha:z.yaml');
+    expect(alphaTree).toContain('└─ ✓ a.yaml (1 cases)');
+    expect(alphaTree).not.toContain('beta:');
+    expect(output).toContain('└─ × a.yaml (1 cases | 1 failed)');
+    expect(output).toContain('└─ × beta:a.yaml');
+    expect(output).toContain('passed after retry (2 attempts)');
+    for (const item of [...alpha, ...beta])
+      expect(output.split(`${item.name} `)).toHaveLength(2);
   });
+
+  it.each(['default', 'verbose'] as const)(
+    'streams interleaved noninteractive files with Project context and no repeated results (%s)',
+    (mode) => {
+      const { reporter, io } = fixture(mode, false, 4);
+      const completed = [
+        ['alpha', 'a.yaml', 'success'],
+        ['beta', 'b.yaml', 'failed'],
+        ['alpha', 'b.yaml', 'success'],
+        ['beta', 'a.yaml', 'success'],
+      ].map(([projectName, sourcePath, status]) => ({
+        ...outcome(
+          `${projectName}:${sourcePath}`,
+          status as CaseRunOutcome['status'],
+        ),
+        projectName,
+        sourcePath,
+      }));
+      for (const item of completed) {
+        const count = io.log.mock.calls.length;
+        endFile(reporter, [item], 'success', 0, item);
+        expect(io.log.mock.calls).toHaveLength(count + 1);
+        const block = io.log.mock.calls.at(-1)![0];
+        expect(block).toContain(`\n ${item.projectName}\n`);
+        expect(block).toContain(`${item.sourcePath} (1 cases`);
+        expect(block).toContain(
+          `${item.status === 'failed' ? '×' : '✓'} ${item.name}`,
+        );
+      }
+      const output = text(io);
+      const projects = ['alpha', 'beta'].map((name) => {
+        const project = projectResult(
+          name,
+          completed.filter((item) => item.projectName === name),
+        );
+        project.plans = ['a.yaml', 'b.yaml'].map((path) =>
+          filePlan(path, true),
+        );
+        return project;
+      });
+      for (const project of projects)
+        reporter.event({ type: 'project-end', project });
+      reporter.finish(runResult(projects));
+      expect(text(io)).toBe(output);
+      expect(output.match(/\n alpha\n/g)).toHaveLength(2);
+      expect(output.match(/\n beta\n/g)).toHaveLength(2);
+      const positions = completed.map((item) => {
+        expect(output.split(`${item.name} `)).toHaveLength(2);
+        return output.indexOf(item.name);
+      });
+      expect(positions).toEqual([...positions].sort((a, b) => a - b));
+      expect(io.log.mock.calls.flat().join('')).not.toContain('\u001b');
+      expect(io.write).not.toHaveBeenCalled();
+    },
+  );
 
   it('flushes unexecuted files in collected order and retains final recovery and not-run reasons', () => {
     const { reporter, io } = fixture();
@@ -497,7 +962,8 @@ describe('terminal reporter', () => {
     );
     expect(text(io)).toContain('– blocked · bail');
     expect(text(io).match(/recovered/g)).toHaveLength(1);
-    expect(text(io)).not.toContain('×');
+    expect(text(io)).not.toContain('× recovered');
+    expect(text(io)).not.toContain('× z.yaml');
   });
 
   it('marks collection errors without Cases and afterAll errors after passed Cases as failed files', () => {
@@ -515,9 +981,9 @@ describe('terminal reporter', () => {
     const result = runResult([project]);
     reporter.finish(result);
     reporter.summary(result);
-    expect(text(io)).toContain('× [web] cases/shop.yaml');
+    expect(text(io)).toContain('× cases/shop.yaml');
     expect(text(io)).toContain('✓ checkout');
-    expect(text(io)).toContain('× [web] invalid.yaml (0 cases)');
+    expect(text(io)).toContain('× invalid.yaml (0 cases)');
   });
 
   it('counts a file as failed when its lifecycle passed but a Case failed', () => {
@@ -550,6 +1016,7 @@ describe('terminal reporter', () => {
     reporter.event({ type: 'case-end', outcome: recovered });
     reporter.event({ type: 'case-end', outcome: recovered });
     endFile(reporter, [recovered]);
+    reporter.finish(runResult([projectResult('web', [recovered])]));
     expect(text(io)).toContain(
       '[web] cases/shop.yaml › search · case retry · attempt 2/2',
     );
@@ -608,6 +1075,7 @@ describe('terminal reporter', () => {
       expect(frame(io)).toContain('attempt 2/2');
       expect(frame(io)).toContain('aiAssert');
       endFile(reporter, [other, retried], status);
+      reporter.finish(runResult([projectResult('web', [other, retried])]));
       const output = stripVTControlCharacters(
         io.write.mock.calls.flat().join(''),
       );
@@ -646,8 +1114,8 @@ describe('terminal reporter', () => {
     vi.advanceTimersByTime(100);
     expect(io.write).toHaveBeenCalledTimes(before + 1);
     const output = frame(io);
-    expect(output.indexOf('[first]')).toBeLessThan(output.indexOf('[second]'));
-    expect(output.indexOf('[second]')).toBeLessThan(output.indexOf('[third]'));
+    expect(output.indexOf('❯ first')).toBeLessThan(output.indexOf('❯ second'));
+    expect(output.indexOf('❯ second')).toBeLessThan(output.indexOf('❯ third'));
     expect(output).toContain('└─ first');
     expect(output).toContain('step 2/3 · aiAssert');
     expect(output).toContain('Test Files 0 passed (2)');
@@ -681,8 +1149,13 @@ describe('terminal reporter', () => {
     expect(output).toContain('\u001b[?2026h');
     expect(output).toContain('\u001b[?2026l');
     endFile(reporter, [outcome('first')]);
+    vi.advanceTimersByTime(100);
     expect(io.write.mock.calls.flat().join('')).toContain('first');
     expect(frame(io)).not.toContain('└─ first');
+    reporter.finish(runResult([projectResult('web', [outcome('first')])]));
+    expect(
+      stripVTControlCharacters(io.write.mock.calls.flat().join('')),
+    ).toContain('└─ ✓ first');
     reporter.dispose();
     const writes = io.write.mock.calls.length;
     vi.advanceTimersByTime(5000);
@@ -805,7 +1278,7 @@ describe('terminal reporter', () => {
     vi.advanceTimersByTime(1000);
     resize();
     const lines = frame(io).split('\n');
-    const active = lines.find((line) => line.includes('└─'))!;
+    const active = lines.find((line) => line.includes('step 2/3'))!;
     expect(active).toContain('…');
     expect(active).toContain('step 2/3');
     expect(active).toMatch(/1\.0s$/);
@@ -840,9 +1313,11 @@ describe('terminal reporter', () => {
       },
     });
     vi.advanceTimersByTime(100);
-    expect(frame(io)).toContain('[web] cases/shop.yaml');
+    expect(frame(io)).toContain('❯ web · 1 file running');
+    expect(frame(io)).toContain('└─ cases/shop.yaml');
     expect(frame(io)).toContain('└─ checkout');
-    expect(frame(io)).toContain('[mobile] cases/mobile.yaml');
+    expect(frame(io)).toContain('❯ mobile · 1 file running');
+    expect(frame(io)).toContain('└─ cases/mobile.yaml');
     expect(frame(io)).toContain('beforeAll 1/1 · app.open');
     reporter.dispose();
   });
@@ -855,6 +1330,7 @@ describe('terminal reporter', () => {
       info: step('checkout'),
     });
     endFile(reporter, [outcome('checkout')], 'success', 1);
+    reporter.finish(runResult([projectResult('web', [outcome('checkout')])]));
     expect(text(io)).toContain('file retried 1x');
     expect(text(io)).not.toContain('×');
     reporter.dispose();

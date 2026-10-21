@@ -5,9 +5,16 @@ import type {
   StepRunResult,
   WorkflowDocumentRunResult,
 } from '@midscene/core/internal/test-runner';
+import type { TestExecutionProjectRunResult } from './types';
 
 /** Structured presentation facts; execution and persistence do not depend on a reporter. */
 export type TestReporterEvent =
+  | { type: 'project-end'; project: TestExecutionProjectRunResult }
+  | {
+      type: 'project-phase';
+      projectName: string;
+      phase: 'setup' | 'running' | 'teardown';
+    }
   | {
       type: 'run-start';
       projects: number;
@@ -50,6 +57,11 @@ export type TestReporterEvent =
       result?: StepRunResult;
     }
   | { type: 'case-attempt-end'; attempt: CaseRunResult; maxAttempts: number }
+  | {
+      type: 'case-progress';
+      outcome: CaseRunOutcome;
+      documentAttemptIndex: number;
+    }
   | { type: 'case-end'; outcome: CaseRunOutcome; documentRetries?: number }
   | {
       type: 'document-retry';

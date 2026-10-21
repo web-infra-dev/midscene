@@ -51,6 +51,7 @@ interface FileSchedulerOptions {
   onProgress(project: PreparedExecutionProject, message: string): void;
   onInfrastructureError(error: unknown): void;
   onEvent?(event: TestReporterEvent): void;
+  onProjectEnd?(state: FileProjectState): void;
 }
 
 /** Round-robin files within global file and live Project limits. */
@@ -97,9 +98,58 @@ export async function runPreparedFiles(
       ),
     );
   };
+  const finalizeProject = (state: FileProjectState) => {
+    const { prepared } = state;
+    const completed = new Set(state.cases.map((item) => item.caseId));
+    const reason = invalid(state)
+      ? 'project-preflight-failed'
+      : state.setupFailed
+        ? 'project-setup-failed'
+        : options.signal.aborted
+          ? 'interrupted'
+          : state.fatal
+            ? 'fatal-error'
+            : 'bail';
+    for (const document of prepared.documents)
+      for (const item of document.cases) {
+        if (completed.has(item.caseId)) continue;
+        state.cases.push({
+          documentId: document.documentId,
+          caseId: item.caseId,
+          projectName: prepared.project.name,
+          name: item.definition.name,
+          sourcePath: item.sourcePath,
+          caseIndex: item.caseIndex,
+          status: 'not-run',
+          notRunReason: reason,
+        });
+      }
+    const order = new Map(
+      prepared.documents.map((document, i) => [document.documentId, i]),
+    );
+    const position = (id: string) => order.get(id) ?? Number.MAX_SAFE_INTEGER;
+    state.cases.sort(
+      (a, b) =>
+        position(a.documentId) - position(b.documentId) ||
+        a.caseIndex - b.caseIndex,
+    );
+    state.documents.sort(
+      (a, b) => position(a.documentId) - position(b.documentId),
+    );
+  };
   const finishProject = async (state: FileProjectState) => {
     if (!state.runtime || state.finished) return;
     state.finished = true;
+    try {
+      options.onEvent?.({
+        type: 'project-phase',
+        projectName: state.prepared.project.name,
+        phase: 'teardown',
+      });
+    } catch (error) {
+      // A presentation failure must not prevent releasing owned resources.
+      options.onInfrastructureError(error);
+    }
     const failed =
       state.fatal ||
       options.signal.aborted ||
@@ -126,7 +176,11 @@ export async function runPreparedFiles(
         options.onInfrastructureError(error);
         releaseProject();
       });
-    } else releaseProject();
+    } else {
+      releaseProject();
+      finalizeProject(state);
+      options.onProjectEnd?.(state);
+    }
   };
 
   const admit = () => {
@@ -194,10 +248,20 @@ export async function runPreparedFiles(
           state.runtime.signal,
         );
         options.announceProject(prepared, index);
+        options.onEvent?.({
+          type: 'project-phase',
+          projectName: project.name,
+          phase: 'setup',
+        });
         await runWithConsoleLogScope(
           { projectName: project.name, phase: 'setup' },
           () => state.runtime!.start(),
         );
+        options.onEvent?.({
+          type: 'project-phase',
+          projectName: project.name,
+          phase: 'running',
+        });
         state.initializing = false;
         if (!state.runtime.canRun) {
           state.fatal = true;
@@ -343,43 +407,7 @@ export async function runPreparedFiles(
     const { prepared } = state;
     if (!state.runtime)
       options.announceProject(prepared, states.indexOf(state));
-    const completed = new Set(state.cases.map((item) => item.caseId));
-    const reason = invalid(state)
-      ? 'project-preflight-failed'
-      : state.setupFailed
-        ? 'project-setup-failed'
-        : options.signal.aborted
-          ? 'interrupted'
-          : state.fatal
-            ? 'fatal-error'
-            : 'bail';
-    for (const document of prepared.documents) {
-      for (const item of document.cases) {
-        if (completed.has(item.caseId)) continue;
-        state.cases.push({
-          documentId: document.documentId,
-          caseId: item.caseId,
-          projectName: prepared.project.name,
-          name: item.definition.name,
-          sourcePath: item.sourcePath,
-          caseIndex: item.caseIndex,
-          status: 'not-run',
-          notRunReason: reason,
-        });
-      }
-    }
-    const order = new Map(
-      prepared.documents.map((document, i) => [document.documentId, i]),
-    );
-    const position = (id: string) => order.get(id) ?? Number.MAX_SAFE_INTEGER;
-    state.cases.sort(
-      (a, b) =>
-        position(a.documentId) - position(b.documentId) ||
-        a.caseIndex - b.caseIndex,
-    );
-    state.documents.sort(
-      (a, b) => position(a.documentId) - position(b.documentId),
-    );
+    finalizeProject(state);
   }
   return states;
 }
