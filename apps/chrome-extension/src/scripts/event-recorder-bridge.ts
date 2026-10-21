@@ -411,9 +411,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       initialScreenshot = captureScreenshot();
-      if (!window.recorder) {
-        initializeRecorder(message.sessionId!);
-      }
+      initializeRecorder(message.sessionId!);
 
       if (window.recorder) {
         window.recorder.start();
@@ -461,20 +459,24 @@ chrome.runtime.onMessage.addListener(
       }
     } else if (message.action === 'stop') {
       stopPageChangeMonitoring(); // Stop monitoring when recording stops
-      // biome-ignore lint/complexity/useOptionalChain: Preserving original logic
-      if (window.recorder && window.recorder.isActive()) {
-        window.recorder.stop();
+      const stoppedRecorder = window.recorder;
+      if (stoppedRecorder) {
+        if (stoppedRecorder.isActive()) stoppedRecorder.stop();
         const finalEventsCount = events.length;
-        window.recorder = null;
-        console.log(
-          '[EventRecorder Bridge] Recording stopped successfully with session ID:',
-          message.sessionId,
-          'with',
-          finalEventsCount,
-          'events',
-        );
         void sendEventsToExtension(events, true).then(
-          () => sendResponse({ success: true, eventsCount: finalEventsCount }),
+          () => {
+            // Keep failed stops retryable; an old acknowledgement must not
+            // discard a recorder created by a later start.
+            if (window.recorder === stoppedRecorder) window.recorder = null;
+            console.log(
+              '[EventRecorder Bridge] Recording stopped successfully with session ID:',
+              message.sessionId,
+              'with',
+              finalEventsCount,
+              'events',
+            );
+            sendResponse({ success: true, eventsCount: finalEventsCount });
+          },
           (error) => sendResponse({ success: false, error: String(error) }),
         );
       } else {

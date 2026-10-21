@@ -125,5 +125,6 @@ export async function prepareTestRun(
     reportEnabled: true,
     publications: [],
     onProgress: options.onProgress ?? (() => {}),
+    onEvent: options.onEvent,
   };
 }

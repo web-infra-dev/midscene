@@ -102,7 +102,7 @@ describe('section locate protocol', () => {
         {
           role: 'user',
           content: [
-            expect.objectContaining({ type: 'image_url' }),
+            expect.objectContaining({ type: 'image' }),
             {
               type: 'text',
               text: 'Custom search-area task: the row containing Peter',

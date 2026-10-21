@@ -9,6 +9,8 @@ on:
       - 'packages/webdriver/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - 'scripts/mobile-scroll-regression.mjs'
+      - '.github/actions/ai-ci/**'
       - 'scripts/report-template-utils.mjs'
       - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
@@ -135,18 +137,22 @@ jobs:
       - name: Run iOS unit tests
         id: unit-tests
         continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          pnpm exec nx test @midscene/ios --skip-nx-cache 2>&1 |
-            tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/unit-tests.log"
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: bash
+          command: |
+            set -o pipefail
+            pnpm exec nx test @midscene/ios --skip-nx-cache 2>&1 |
+              tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/unit-tests.log"
 
-      - name: Run iOS Simulator smoke, IOSAppSwitcher AI E2E, and TodoMVC tests
+      - name: Run iOS default scroll, smoke, IOSAppSwitcher AI E2E, and TodoMVC tests
         id: simulator-tests
         continue-on-error: true
         timeout-minutes: 50
-        shell: bash
-        run: bash packages/ios/scripts/run-simulator-ci-smokes.sh
+        uses: ./.github/actions/ai-ci
+        with:
+          shell: bash
+          command: bash packages/ios/scripts/run-simulator-ci-smokes.sh
 
       - name: Collect step outcomes
         if: always()

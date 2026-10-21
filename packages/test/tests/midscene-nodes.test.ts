@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import type { Agent } from '@midscene/core/agent';
 import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import { load } from 'js-yaml';
 import { describe, expect, it, vi } from 'vitest';
@@ -30,12 +31,13 @@ const collected = (
   definition: { name: 'midscene case', steps },
 });
 
-const commonAgent = (
-  overrides: Partial<MidsceneUIAgent> = {},
-): MidsceneUIAgent => ({
+type TestAgent = MidsceneUIAgent & Pick<Agent, 'aiWaitFor'>;
+
+const commonAgent = (overrides: Partial<TestAgent> = {}): TestAgent => ({
   aiAct: vi.fn(async () => undefined),
   aiTap: vi.fn(async () => undefined),
   aiAssert: vi.fn(async () => undefined),
+  aiWaitFor: vi.fn(async () => undefined),
   aiBoolean: vi.fn(async () => false),
   aiNumber: vi.fn(async () => 0),
   aiString: vi.fn(async () => ''),
@@ -49,6 +51,68 @@ const testAgentClass = {
 };
 
 describe('createMidsceneNodes', () => {
+  it('continues with the same Agent only after a timed out call has actually finished', async () => {
+    vi.useFakeTimers();
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const events: string[] = [];
+    const aiAct = vi.fn(
+      async (_prompt: unknown, options?: { abortSignal?: AbortSignal }) => {
+        await pending;
+        events.push('old finished');
+        options?.abortSignal?.throwIfAborted();
+        return undefined;
+      },
+    );
+    const aiAssert = vi.fn(async () => {
+      events.push('next started');
+      return undefined;
+    });
+    const agent = commonAgent({ aiAct, aiAssert });
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => agent,
+        agentClass: testAgentClass,
+      }),
+    );
+    const running = runCollectedCase(
+      collected([
+        {
+          node: 'aiAct',
+          input: { prompt: 'slow action' },
+          meta: { timeoutMs: 20, continueOnError: true },
+        },
+        {
+          node: 'aiAssert',
+          input: { prompt: 'next assertion' },
+          meta: { timeoutMs: 5, continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+    try {
+      await vi.advanceTimersByTimeAsync(120);
+      expect(aiAssert).not.toHaveBeenCalled();
+      release();
+      const result = await running;
+      expect(result.steps.map((step) => step.status)).toEqual([
+        'failed',
+        'success',
+      ]);
+      expect(result.steps[0].error?.code).toBe('STEP_TIMEOUT');
+      expect(result.steps[0].durationMs).toBe(20);
+      expect(events).toEqual(['old finished', 'next started']);
+      expect(result.teardownErrors).toBeUndefined();
+    } finally {
+      release();
+      await vi.advanceTimersByTimeAsync(1000);
+      await running;
+      vi.useRealTimers();
+    }
+  });
+
   it('runs setAIContext from YAML with text, empty text, and omitted context', async () => {
     const setAIContext = vi.fn();
     const agent = { ...commonAgent(), setAIContext };
@@ -151,8 +215,9 @@ describe('createMidsceneNodes', () => {
   it('maps case inputs to one Agent from setup context', async () => {
     const aiAct = vi.fn(async () => 'action completed');
     const aiAssert = vi.fn(async () => undefined);
+    const aiWaitFor = vi.fn(async () => undefined);
     const recordToReport = vi.fn(async () => undefined);
-    const agent = commonAgent({ aiAct, aiAssert, recordToReport });
+    const agent = commonAgent({ aiAct, aiAssert, aiWaitFor, recordToReport });
     const getAgent = vi.fn(
       ({ context }: { context: { uiAgent: MidsceneUIAgent } }) =>
         context.uiAgent,
@@ -180,6 +245,14 @@ describe('createMidsceneNodes', () => {
           meta: { continueOnError: false },
         },
         {
+          node: 'aiWaitFor',
+          input: {
+            prompt: 'The order status becomes paid',
+            options: { timeoutMs: 30_000, checkIntervalMs: 1_000 },
+          },
+          meta: { continueOnError: false },
+        },
+        {
           node: 'recordToReport',
           input: {
             title: 'Order created',
@@ -198,7 +271,7 @@ describe('createMidsceneNodes', () => {
       ...commonAgentTestRunnerNodeDefinitions.map((node) => node.name),
       'wait',
     ]);
-    expect(getAgent).toHaveBeenCalledTimes(3);
+    expect(getAgent).toHaveBeenCalledTimes(4);
     expect(aiAct).toHaveBeenCalledWith('Create an order', {
       deepThink: true,
       abortSignal: expect.any(AbortSignal),
@@ -212,12 +285,18 @@ describe('createMidsceneNodes', () => {
         abortSignal: expect.any(AbortSignal),
       },
     );
+    expect(aiWaitFor).toHaveBeenCalledWith('The order status becomes paid', {
+      timeoutMs: 30_000,
+      checkIntervalMs: 1_000,
+      abortSignal: expect.any(AbortSignal),
+    });
     expect(recordToReport).toHaveBeenCalledWith('Order created', {
       content: 'order-1',
     });
     expect(result.steps.map((step) => step.output?.summary)).toEqual([
       'action completed',
       'Assertion passed: The order is paid',
+      undefined,
       'Recorded to report: Order created',
     ]);
   });
@@ -902,7 +981,7 @@ describe('createMidsceneNodes', () => {
     expect(listeners.size).toBe(0);
   });
 
-  it('rejects overlapping Midscene Test scopes that share one Agent instance', async () => {
+  it('marks overlapping Midscene Test scopes as not started when they share one Agent instance', async () => {
     let resolveEntered!: () => void;
     const entered = new Promise<void>((resolve) => {
       resolveEntered = resolve;
@@ -947,12 +1026,10 @@ describe('createMidsceneNodes', () => {
 
     expect(firstResult.status).toBe('success');
     expect(secondResult.steps[0]).toMatchObject({
-      status: 'failed',
-      error: {
-        message: expect.stringContaining(
-          'same Agent instance cannot execute overlapping',
-        ),
-      },
+      status: 'not-run',
+      blockedBy: 'scope-first:steps:0',
+      error: { code: 'RESOURCE_OPERATION_PENDING' },
     });
+    expect(secondResult.steps[0].startedAt).toBeUndefined();
   });
 });

@@ -1,4 +1,5 @@
 import type { TUserPrompt } from '@/ai-model/index';
+import type { ModelTask } from '@/ai-model/model-adapter/types';
 import type { ModelRuntime } from '@/ai-model/models';
 import type {
   AgentAssertResult,
@@ -25,7 +26,7 @@ type InsightContextOptions = { context?: string };
 export class Insight implements InsightAPI {
   constructor(
     private readonly taskExecutor: InsightTaskExecutor,
-    private readonly resolveModelRuntime: () => ModelRuntime,
+    private readonly resolveModelRuntime: (task?: ModelTask) => ModelRuntime,
     private readonly resolveAgentContext: (
       apiName: AiApiName,
       callContext?: string,
@@ -75,7 +76,7 @@ export class Insight implements InsightAPI {
     demand: ServiceExtractParam,
     options: QueryOptions = defaultQueryOptions,
   ): Promise<ReturnType> {
-    const modelRuntime = this.resolveModelRuntime();
+    const modelRuntime = this.resolveModelRuntime('extract');
     const executionOptions = this.executionOptions();
     const serviceOptions = this.withContext('aiQuery', options);
     const { output } = executionOptions
@@ -135,7 +136,7 @@ export class Insight implements InsightAPI {
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       type,
       textPrompt,
-      this.resolveModelRuntime(),
+      this.resolveModelRuntime(type === 'Boolean' ? 'boolean' : 'extract'),
       serviceOptions,
       multimodalPrompt,
       this.executionOptions(),
@@ -166,7 +167,7 @@ export class Insight implements InsightAPI {
         await this.taskExecutor.createTypeQueryExecution<boolean>(
           'Assert',
           textPrompt,
-          this.resolveModelRuntime(),
+          this.resolveModelRuntime('boolean'),
           serviceOptions,
           multimodalPrompt,
           this.executionOptions(options, true),

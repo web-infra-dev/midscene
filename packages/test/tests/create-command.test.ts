@@ -127,6 +127,78 @@ describe('create arguments', () => {
 });
 
 describe('create installation confirmation and postinstall', () => {
+  it.skipIf(process.platform === 'win32').each([false, true])(
+    'avoids unescaped backslashes in POSIX directory guidance (skip install: %s)',
+    async (skipInstall) => {
+      const cwd = temp();
+      const directory = 'project\\tests';
+      const output = io();
+      await runCreateCommand(
+        [
+          directory,
+          '--platform',
+          'web',
+          '--package-manager',
+          'pnpm',
+          '--yes',
+          ...(skipInstall ? ['--skip-install'] : []),
+        ],
+        output,
+        services(cwd),
+      );
+      expect(existsSync(join(cwd, directory, 'package.json'))).toBe(true);
+      const summary = output.log.mock.calls.at(-1)![0] as string;
+      expect(summary).toContain('Open the project directory in your terminal.');
+      expect(summary).not.toContain('cd ');
+    },
+  );
+
+  it.each(['my-tests', 'project with spaces', 'project$HOME', '.'])(
+    'shows ordered next steps and safe directory guidance for %s',
+    async (directory) => {
+      const cwd = temp();
+      const output = io();
+      await runCreateCommand(
+        [directory, '--platform', 'web', '--package-manager', 'pnpm', '--yes'],
+        output,
+        services(cwd),
+      );
+      const summary = output.log.mock.calls.at(-1)![0] as string;
+      expect(summary).toContain('Project ready!');
+      expect(summary).toContain(
+        'Writing your own tests\n\n  midscene-node-spec.web.md',
+      );
+      expect(summary).toContain(
+        'Lists the test operations and parameters available in this project.',
+      );
+      expect(summary).toContain('share it with your AI coding agent.');
+      expect(summary.match(/midscene-node-spec\.web\.md/g)).toHaveLength(1);
+      expect(summary).not.toContain('generated after installation');
+      expect(summary.indexOf('Run your first test')).toBeLessThan(
+        summary.indexOf('Writing your own tests'),
+      );
+      expect(summary).not.toContain('Install dependencies');
+      expect(summary.indexOf('Configure your model')).toBeLessThan(
+        summary.indexOf('Verify the model connection'),
+      );
+      expect(summary.indexOf('Verify the model connection')).toBeLessThan(
+        summary.indexOf('Run your first test'),
+      );
+      if (directory === 'my-tests') {
+        expect(summary).toContain('1. Open the project\n     cd my-tests');
+        expect(summary).toContain('5. Run your first test\n     pnpm test');
+      } else if (directory === '.') {
+        expect(summary).toContain('1. Configure your model');
+        expect(summary).not.toContain('cd ');
+      } else {
+        expect(summary).toContain(
+          'Open the project directory in your terminal.',
+        );
+        expect(summary).not.toContain('cd ');
+      }
+    },
+  );
+
   it.each(['npm', 'pnpm'] as const)(
     'can decline %s installation after creating files',
     async (packageManager) => {
@@ -143,19 +215,31 @@ describe('create installation confirmation and postinstall', () => {
         output,
         runtime,
       );
+      expect(output.log).toHaveBeenLastCalledWith(
+        expect.stringContaining(
+          packageManager === 'npm'
+            ? 'npm exec -- midscene-test model verify'
+            : 'pnpm exec midscene-test model verify',
+        ),
+      );
       expect(runtime.confirmInstall).toHaveBeenCalledTimes(1);
       expect(runtime.runPackageManager).not.toHaveBeenCalled();
       expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
+      expect(output.log).toHaveBeenLastCalledWith(
+        expect.stringContaining(
+          'midscene-node-spec.web.md (generated after installation)',
+        ),
+      );
       const manifest = JSON.parse(
         readFileSync(join(cwd, 'package.json'), 'utf8'),
       );
       expect(manifest.scripts.postinstall).toBe('midscene-test nodes');
       expect(manifest.scripts.nodes).toBe(manifest.scripts.postinstall);
       expect(output.log).toHaveBeenLastCalledWith(
-        expect.stringContaining(`Next: run ${packageManager} install`),
+        expect.stringContaining(`${packageManager} install`),
       );
       expect(output.log.mock.calls.flat().join('\n')).not.toContain(
-        'Project ready:',
+        'Project ready!',
       );
     },
   );
@@ -238,7 +322,7 @@ describe('create installation confirmation and postinstall', () => {
     );
     expect(output.log).not.toHaveBeenCalledWith('Generating Node Spec...');
     expect(output.log).toHaveBeenLastCalledWith(
-      expect.stringContaining('Project ready:'),
+      expect.stringContaining('Project ready!'),
     );
   });
 
@@ -371,9 +455,7 @@ describe('create project', () => {
     expect(config).not.toContain('@midscene/test/playwright');
     expect(existsSync(join(root, '.env'))).toBe(false);
     const exampleEnv = readFileSync(join(root, '.env.example'), 'utf8');
-    expect(exampleEnv).toContain(
-      'https://midscenejs.com/model-common-config.html',
-    );
+    expect(exampleEnv).toContain('https://midscenejs.com/model-api-setup.html');
     expect(exampleEnv).toContain('https://midscenejs.com/model-config.html');
     expect(exampleEnv).toContain('MIDSCENE_MODEL_BASE_URL=');
     expect(exampleEnv).toContain('MIDSCENE_MODEL_API_KEY=');
@@ -388,7 +470,7 @@ describe('create project', () => {
     expect(readme).toContain(
       'inject the model configuration as environment variables in CI',
     );
-    expect(existsSync(join(root, 'README.zh.md'))).toBe(false);
+    expect(existsSync(join(root, 'README.zh.md'))).toBe(true);
   });
 
   it('prompts for a directory and selects a platform', async () => {
@@ -453,7 +535,7 @@ describe('create project', () => {
     'package-lock.json',
     'npm-shrinkwrap.json',
     '.gitignore',
-    'cases/example.yaml',
+    'cases/todo.yaml',
   ])('checks every conflict before writing any files: %s', async (filename) => {
     const cwd = temp();
     mkdirSync(join(cwd, 'cases'));
@@ -488,6 +570,31 @@ describe('create project', () => {
     expect(existsSync(join(cwd, 'package.json'))).toBe(true);
     expect(existsSync(join(cwd, 'midscene-node-spec.web.md'))).toBe(false);
   });
+
+  it.each(['install', 'describe'])(
+    'preserves the original cause when %s fails',
+    async (phase) => {
+      const cwd = temp();
+      const runtime = services(cwd);
+      const cause = new Error('original package manager failure', {
+        cause: new Error('underlying dependency failure'),
+      });
+      runtime.runPackageManager = vi.fn(async (_manager, args) => {
+        if (phase === 'install' || args[0] !== 'install') throw cause;
+        return '';
+      });
+
+      const error = await runCreateCommand(
+        ['.', '--platform', 'web'],
+        io(),
+        runtime,
+      ).catch((error: unknown) => error);
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).cause).toBe(cause);
+      expect(existsSync(join(cwd, 'package.json'))).toBe(true);
+    },
+  );
 
   it.each(['', 'partial output'])(
     'fails when the command returns %j without generating a spec',
@@ -551,15 +658,34 @@ describe('create package manager selection', () => {
         packageManager === 'npm'
           ? 'npm exec -- playwright install chromium'
           : 'pnpm exec playwright install chromium';
+      const verifyModel =
+        packageManager === 'npm'
+          ? 'npm exec -- midscene-test model verify'
+          : 'pnpm exec midscene-test model verify';
+      expect(readFileSync(join(cwd, '.env.example'), 'utf8')).toContain(
+        `# ${verifyModel}\n`,
+      );
+      expect(readme).toContain(verifyModel);
+      expect(readme.indexOf('Copy `.env.example`')).toBeLessThan(
+        readme.indexOf(verifyModel),
+      );
+      expect(readme.indexOf(verifyModel)).toBeLessThan(
+        readme.indexOf(chromium),
+      );
+      expect(output.log).toHaveBeenLastCalledWith(
+        expect.stringContaining(
+          `Verify the model connection\n     ${verifyModel}`,
+        ),
+      );
       expect(readme).toContain(chromium);
       expect(readme).toContain(`${packageManager} test`);
-      expect(readme).toContain('A Midscene Test project for web.');
+      expect(readme).toContain('A Midscene Test project for Web');
       expect(readme).toContain(`${packageManager} run nodes`);
       expect(output.log).toHaveBeenCalledWith(
         `Installing dependencies with ${packageManager}...`,
       );
       expect(output.log).toHaveBeenLastCalledWith(
-        expect.stringContaining(`Install Chromium: ${chromium}`),
+        expect.stringContaining(`Install Chromium\n     ${chromium}`),
       );
       expect(output.log).toHaveBeenLastCalledWith(
         expect.stringContaining(`${packageManager} test`),

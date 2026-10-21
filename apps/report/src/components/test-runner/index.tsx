@@ -1,7 +1,7 @@
 import './index.less';
 import type { TestRunReportDump } from '@midscene/core';
 import { globalThemeConfig, useGlobalPreference } from '@midscene/visualizer';
-import { Alert, App as AntdApp, ConfigProvider, theme } from 'antd';
+import { App as AntdApp, ConfigProvider, theme } from 'antd';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ThemeDarkIcon from '../../icons/theme-dark.svg?react';
@@ -11,22 +11,25 @@ import {
   type RunnerRoute,
   runnerHashForRoute,
 } from '../../utils/test-run-report';
-import { Logo } from '../logo';
+import reportLogoDark from './assets/test-report-logo-dark.png';
+import reportLogoLight from './assets/test-report-logo-light.png';
+import { CaseNavigation } from './case-navigation';
 import { CaseWorkspace } from './case-workspace';
+import { ErrorCards } from './error-card';
+import { collectReportIssues } from './issues';
 import {
   type RunnerCaseView,
   buildRunnerStepIndex,
   buildRunnerVisualIndex,
   flattenRunnerCases,
-  getDefaultExpandedProjectKeys,
   getRunnerHealth,
-  groupRunnerProjects,
 } from './model';
 import {
   type RunnerNavigationState,
   isSingleCaseReport,
   resolveRunnerNavigation,
 } from './navigation';
+import { buildOverviewProjects, createOverviewState } from './overview-model';
 import { RunOverview } from './run-overview';
 import { getSelectTheme } from './select';
 import type { RunnerCaseDisplayMode } from './view-primitives';
@@ -46,11 +49,12 @@ export default function TestRunnerReport({
 }: TestRunnerReportProps): JSX.Element {
   const { darkModeEnabled: isDarkMode, setDarkModeEnabled: setIsDarkMode } =
     useGlobalPreference();
+  const issues = useMemo(() => collectReportIssues(dump), [dump]);
   const cases = useMemo(() => flattenRunnerCases(dump), [dump]);
   const health = useMemo(() => getRunnerHealth(cases), [cases]);
   const projects = useMemo(
-    () => groupRunnerProjects(dump, cases),
-    [cases, dump],
+    () => buildOverviewProjects(dump, cases, issues),
+    [cases, dump, issues],
   );
   const stepIndex = useMemo(
     () => buildRunnerStepIndex(dump, cases),
@@ -59,11 +63,8 @@ export default function TestRunnerReport({
   const visualIndex = useMemo(() => buildRunnerVisualIndex(reports), [reports]);
   const [caseDisplayMode, setCaseDisplayMode] =
     useState<RunnerCaseDisplayMode>('compact');
-  const [expandedProjectKeys, setExpandedProjectKeys] = useState<Set<string>>(
-    () =>
-      getDefaultExpandedProjectKeys(
-        projects.map((item) => ({ item, cases: item.cases })),
-      ),
+  const [overviewState, setOverviewState] = useState(() =>
+    createOverviewState(projects),
   );
   const [navigation, setNavigation] = useState<RunnerNavigationState>(() =>
     resolveRunnerNavigation(window.location.hash, cases, projects, stepIndex),
@@ -73,7 +74,7 @@ export default function TestRunnerReport({
     scrollTop: number;
     caseKey?: string;
   }>({ scrollTop: 0 });
-  const { page, selectedCaseKey, deepLinkedStepId, unmatchedStepSelector } =
+  const { page, selectedCaseKey, deepLinkedStepId, navigationIssue } =
     navigation;
   const selectedCase = cases.find((item) => item.key === selectedCaseKey);
   const midsceneVersion = useMemo(() => {
@@ -130,9 +131,10 @@ export default function TestRunnerReport({
               main.querySelectorAll<HTMLElement>('[data-case-key]'),
             ).find((row) => row.dataset.caseKey === focusCaseKey)
           : undefined;
-        const focusTarget = caseRow?.querySelector(
-          '.runner-project-tree-case',
-        ) as HTMLElement | null | undefined;
+        const focusTarget = caseRow?.querySelector('.runner-case-open') as
+          | HTMLElement
+          | null
+          | undefined;
         (focusTarget ?? main).focus({ preventScroll: true });
       });
     });
@@ -151,10 +153,11 @@ export default function TestRunnerReport({
     restoreView(viewState);
   };
   const openCase = (item: RunnerCaseView, stepId?: string) => {
-    overviewReturnStateRef.current = {
-      scrollTop: mainRef.current?.scrollTop ?? 0,
-      caseKey: item.key,
-    };
+    if (page === 'overview')
+      overviewReturnStateRef.current = {
+        scrollTop: mainRef.current?.scrollTop ?? 0,
+        caseKey: item.key,
+      };
     navigate({
       page: 'case',
       caseKey: item.key,
@@ -189,14 +192,24 @@ export default function TestRunnerReport({
         <div
           className="test-runner-report"
           data-theme={isDarkMode ? 'dark' : 'light'}
+          data-page={page}
         >
           <header className="runner-header">
             <div className="runner-header-inner">
               <div className="runner-header-title">
-                <Logo />
-                <div>
-                  <strong>Test Report</strong>
-                </div>
+                <a
+                  href="https://midscenejs.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <img
+                    className="runner-report-logo"
+                    src={isDarkMode ? reportLogoDark : reportLogoLight}
+                    alt="Midscene.js Test Report"
+                    width={412}
+                    height={61}
+                  />
+                </a>
               </div>
               <div className="runner-header-actions">
                 {midsceneVersion ? (
@@ -223,37 +236,41 @@ export default function TestRunnerReport({
             tabIndex={-1}
             aria-label="Test report content"
           >
-            {unmatchedStepSelector ? (
-              <Alert
-                className="runner-step-selector-alert"
-                type="info"
-                showIcon
-                message={`No Step matches runner-step=${unmatchedStepSelector}.`}
-              />
+            {navigationIssue ? (
+              <ErrorCards label="Navigation issue" issues={[navigationIssue]} />
             ) : null}
             {page === 'case' && selectedCase ? (
               <CaseWorkspace
                 key={selectedCase.key}
                 backLabel="Overview"
                 item={selectedCase}
+                issues={issues}
                 standaloneRun={isSingleCaseReport(projects) ? dump : undefined}
                 visualIndex={visualIndex}
                 reports={reports}
                 initialStepId={deepLinkedStepId}
                 renderAgentReport={renderAgentReport}
                 onBack={backFromCase}
+                caseNavigation={
+                  <CaseNavigation
+                    projects={projects}
+                    currentCaseKey={selectedCase.key}
+                    onOpenCase={openCase}
+                  />
+                }
               />
             ) : (
               <RunOverview
                 visualIndex={visualIndex}
                 dump={dump}
+                issues={issues}
                 cases={cases}
                 health={health}
                 projects={projects}
                 caseDisplayMode={caseDisplayMode}
                 onCaseDisplayModeChange={setCaseDisplayMode}
-                expandedProjectKeys={expandedProjectKeys}
-                onExpandedProjectKeysChange={setExpandedProjectKeys}
+                state={overviewState}
+                onStateChange={setOverviewState}
                 onOpenCase={openCase}
               />
             )}

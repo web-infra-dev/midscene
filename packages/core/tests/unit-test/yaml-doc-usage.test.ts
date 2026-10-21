@@ -876,10 +876,27 @@ tasks:
   });
 
   it('keeps Agent.runYaml scoped to the provided tasks', async () => {
-    const agent = createDocAgent();
-    const runYaml = Agent.prototype.runYaml.bind(agent);
+    const agent = new Agent(
+      {
+        interfaceType: 'doc-test',
+        actionSpace: () => [],
+        destroy: async () => {},
+      } as any,
+      {
+        generateReport: false,
+        autoPrintReportMsg: false,
+        reportFileName: 'doc-report',
+        modelConfig: {
+          MIDSCENE_MODEL_NAME: 'test',
+          MIDSCENE_MODEL_API_KEY: 'test',
+        },
+      },
+    );
+    rs.spyOn(agent, 'aiAct').mockResolvedValue(undefined);
+    rs.spyOn(agent, 'aiString').mockResolvedValue('SKU-123');
 
-    const result = await runYaml(`
+    try {
+      const result = await agent.runYaml(`
 web:
   url: https://example.com/ignored-by-existing-agent
 agent:
@@ -892,9 +909,13 @@ tasks:
         name: value
 `);
 
-    expect(agent.aiAct).toHaveBeenCalledWith('Run the task', {
-      abortSignal: expect.any(AbortSignal),
-    });
-    expect(result.result.value).toBe('SKU-123');
+      expect(agent.aiAct).toHaveBeenCalledWith('Run the task', {
+        abortSignal: expect.any(AbortSignal),
+      });
+      expect(result.result.value).toBe('SKU-123');
+      expect(agent.reportFileName).toBe('doc-report');
+    } finally {
+      await agent.destroy();
+    }
   });
 });

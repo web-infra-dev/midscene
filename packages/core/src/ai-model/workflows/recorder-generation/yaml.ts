@@ -1,3 +1,4 @@
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import type {
   StreamingAIResponse,
   StreamingCodeGenerationOptions,
@@ -9,7 +10,6 @@ import {
   type MidsceneRecorderTarget,
   stringifyMidsceneRecorderTargetBlock,
 } from '@midscene/shared/recorder';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { getModelRuntime } from '../../models';
 import { callAI, callAIWithStringResponse } from '../../service-caller';
 import {
@@ -82,8 +82,8 @@ const createYamlPrompt = ({
   language?: string;
   targetBlock: string;
   target: MidsceneRecorderTarget;
-}): ChatCompletionMessageParam[] => {
-  const prompt: ChatCompletionMessageParam[] = [
+}): ConversationMessage[] => {
+  const prompt: ConversationMessage[] = [
     {
       role: 'system',
       content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following these rules: ${YAML_EXAMPLE_CODE}`,
@@ -144,10 +144,8 @@ Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdow
           text: `Screenshot asset for event #${asset.eventIndex + 1}: ${asset.relativePath}`,
         },
         {
-          type: 'image_url',
-          image_url: {
-            url: asset.dataUrl,
-          },
+          type: 'image',
+          url: asset.dataUrl,
         },
       ]),
     });
@@ -197,7 +195,7 @@ function createModelRuntime(modelConfig: IModelConfig) {
 
 function createRecorderYamlPrompt(
   input: RecorderYamlGenerationInput,
-): ChatCompletionMessageParam[] {
+): ConversationMessage[] {
   const { summary, screenshotAssets } = prepareRecorderGenerationContext(input);
   const yamlSummary = {
     ...summary,

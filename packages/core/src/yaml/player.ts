@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
+import { isActionReadinessError } from '@/agent/action-readiness';
 import type { Agent } from '@/agent/agent';
 import type {
   DeviceAction,
@@ -23,6 +24,7 @@ import {
   YamlExecutionOwnershipError,
   currentYamlSignal,
   enterYamlExecution,
+  hasActiveYamlExecution,
   runInYamlExecutionContext,
 } from './execution-session';
 import { createLegacyYamlExecutionRecord } from './legacy-yaml-execution-record';
@@ -72,6 +74,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     }>,
     public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
     scriptPath?: string,
+    private readonly abortSignal?: AbortSignal,
   ) {
     this.scriptPath = scriptPath;
     // Collection validates syntax but defers old task/Step errors until execution.
@@ -234,6 +237,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       taskStatus,
       taskIndex,
       {
+        signal: this.abortSignal ?? currentYamlSignal(agent),
         onStepStart: (info) => {
           if (info.scope === 'case' && info.case.phase === 'steps') {
             taskStatus.currentStep = info.case.stepIndex;
@@ -287,10 +291,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       );
       // Register ownership immediately: discovering actions can fail too.
       agent = newAgent;
-      agent._prepareForTestRunner?.();
-      freeFn = [...(newFreeFn || [])];
       session = enterYamlExecution(agent);
-      signal = currentYamlSignal(agent);
+      freeFn = [...(newFreeFn || [])];
+      agent._prepareForTestRunner?.();
+      signal = this.abortSignal ?? currentYamlSignal(agent);
       signal?.throwIfAborted();
       this.actionSpace = await agent.getActionSpace();
       const originalOnTaskStartTip = agent.onTaskStartTip;
@@ -355,7 +359,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const stoppedOnFailure = state.executionResult.cases.some(
           (outcome) =>
             outcome.status === 'failed' &&
-            !this.taskStatusList[outcome.caseIndex]?.continueOnError,
+            (!this.taskStatusList[outcome.caseIndex]?.continueOnError ||
+              isActionReadinessError(legacyYamlOutcomeError(outcome))),
         );
         this.setPlayerStatus(
           stoppedOnFailure || signal?.aborted ? 'error' : 'done',
@@ -443,6 +448,26 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       }
     }
     session?.finish(state.executionRecord);
+    // destroy() defers report finalization while YAML owns the Agent. Publish
+    // cleanup outcomes and source snapshots before releasing its executions.
+    if (agent?.destroyed && !hasActiveYamlExecution(agent)) {
+      try {
+        await agent.finalizeReport();
+      } catch (error) {
+        reportError = reportError
+          ? new AggregateError(
+              [reportError, error],
+              'YAML report publication failed',
+            )
+          : error;
+        this.setPlayerStatus('error', reportError as Error);
+        state.executionRecord = Object.freeze({
+          ...state.executionRecord,
+          status: 'failed',
+          reportError,
+        });
+      }
+    }
     if (reportError) {
       const errors = [
         setupError,

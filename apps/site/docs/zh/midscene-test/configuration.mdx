@@ -15,13 +15,14 @@ Midscene Test 支持以下配置文件：
 
 Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。如果两个文件同时存在，Midscene Test 会报告冲突，而不是静默选择其中一个；此时可以通过 `--config <路径>` 明确指定要使用的文件。
 
-在 `setup` 中创建浏览器或设备资源，并通过 `nodes` 注册对应 Agent 的 Node。这些资源和 Node 决定各执行项目可用的能力。
+在 `setup` 中准备项目共享资源，在 `fileSetup` 中准备每份文件独立使用的资源，并通过 `nodes` 注册对应 Agent 的 Node。
 
 | 字段 | 用途 |
 | --- | --- |
-| `setup` | 为隐式的默认执行项目创建共享资源。 |
+| `setup` | 准备项目共享的浏览器或设备资源。 |
+| `fileSetup` | 为每份 YAML 准备运行环境，串行和并发执行时都可使用。 |
 | `nodes` | 注册所有执行项目共享的 Node。 |
-| `projects` | 声明具名执行项目，分别配置 setup 和用例选择规则。使用此字段时，将 setup 放在各项目中，不再配置顶层 setup。 |
+| `projects` | 声明具名执行项目，分别配置资源和用例选择规则。声明后，`setup` 和 `fileSetup` 都放在各项目中；省略时，顶层配置用于默认项目。 |
 | `test` | 设置并发数、失败阈值和默认步骤超时。 |
 | `output` | 设置报告输出目录。 |
 
@@ -31,9 +32,9 @@ Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。�
 
 ### 完整示例：Playwright
 
-下面的完整配置展示了如何创建浏览器页面、接入 Midscene Agent，并将官方 Node 注册到执行项目中。通过脚手架创建项目后，可以参考这个示例理解和调整 `midscene.config.ts`。
+下面是只使用 `setup` 的串行配置：同一执行项目中的所有文件共用一个页面。需要每份文件使用独立环境时，添加 [`fileSetup`](#用-filesetup-隔离资源)，不必先开启并发。
 
-如果要在已有工程中手动接入，请先安装 `@midscene/test`、`@midscene/web` 和 `playwright`（`pnpm add -D @midscene/test @midscene/web playwright`），再执行 `pnpm exec playwright install chromium` 安装浏览器。运行测试前，还需按[模型配置](../model-config)设置 API Key 等环境变量。
+如果要在已有工程中手动接入，请先安装 `@midscene/test`、`@midscene/web` 和 `playwright`（`pnpm add -D @midscene/test @midscene/web playwright`），再执行 `pnpm exec playwright install chromium` 安装浏览器。运行测试前，还需按[模型配置](../model-api-setup)设置 API Key 等环境变量。
 
 ```ts filename=midscene.config.ts
 import {
@@ -96,7 +97,9 @@ export default defineTestProject<ProjectContext>({
 
 ### 使用 setup 创建和清理共享资源
 
-每个执行项目在执行 YAML 文件前运行一次 `setup`。`setup` 返回的 `context` 由该项目的所有 Node 共享。上面的示例将浏览器和页面保存在 `context` 中，Node 再通过 `getAgent` 回调获取所需资源。
+`defineProjectSetup()` 定义项目的准备工作，通过 `setup` 字段配置。测试运行时，每个执行项目调用一次其中的 `setup()`。上面的示例返回浏览器和页面，供该项目的 Node 共用。
+
+需要文件隔离时，用 `defineFileSetup()` 定义每份文件的准备工作，通过 `fileSetup` 字段配置。它接收项目 setup 的返回值，再为当前文件创建资源。两者的关系和示例见[用 fileSetup 隔离资源](#用-filesetup-隔离资源)。
 
 共享资源不会在每个用例开始时自动重建。需要重置页面、Cookie 或业务状态时，可以通过 YAML 的[生命周期钩子](./use#定义执行生命周期)调用相应 Node。自定义 Node 如何读写共享数据，见[跨 Node 共享上下文](./extend#跨-node-共享上下文)。
 
@@ -106,45 +109,66 @@ export default defineTestProject<ProjectContext>({
 
 ## 项目生命周期
 
+### setup、fileSetup 与 beforeAll
+
+三者按 `setup → fileSetup → beforeAll → 用例` 的顺序执行，未配置的部分会跳过。
+
+| 配置 | 位置 | 执行次数 | 用途 |
+| --- | --- | --- | --- |
+| `setup` | 项目配置 | 每个项目一次 | 准备共享资源，例如 Browser |
+| `fileSetup` | 项目配置 | 每份文件一次 | 创建独立页面、Agent，返回 Node 使用的 `context` |
+| `beforeAll` | YAML | 每份文件的用例开始前一次 | 使用 `context` 登录、准备测试数据等 |
+
+正常执行两份 YAML 时，`setup` 执行一次，`fileSetup` 和 `beforeAll` 各执行两次；并发数不改变执行次数。
+
+`fileSetup` 配置一次即可用于所有文件；`beforeAll` 由各文件声明。自定义 Node 也能在 `beforeAll` 中创建资源，但框架不会因此创建独立的文件 context。
+
 ### 项目、文件与用例的生命周期
 
-通过 CLI 或 `runTestProject()` 运行测试时，每个执行项目都有独立的生命周期。下面展示一个包含两个 YAML 文件的项目在正常执行时的顺序；未声明的 YAML 钩子会跳过：
+通过 CLI 或 `runTestProject()` 运行测试时，每个执行项目都有独立的生命周期。下面展示一个包含两个 YAML 文件的项目在顺序执行时的正常流程；未声明的 YAML 钩子会跳过：
 
 ```text
 执行项目开始
 ├─ setup → 返回项目共享的 context
 ├─ 文件 A
+│  ├─ fileSetup（配置时执行）→ 返回文件 context
 │  ├─ beforeAll
 │  ├─ 用例 1：beforeEach → steps → afterEach → 本次执行的 Node 清理
 │  ├─ 用例 2：beforeEach → steps → afterEach → 本次执行的 Node 清理
 │  ├─ afterAll
-│  └─ 文件级 Node 清理
+│  └─ 文件级 Node 清理 → fileSetup 中登记的清理
 ├─ 文件 B
 │  └─ 同样执行该文件的钩子、用例和清理
 └─ 项目清理：执行 setup 中注册的 onTeardown()
 ```
 
-`setup` 属于执行项目，在该项目的 YAML 文件开始执行前运行一次。`beforeAll` 和 `afterAll` 属于单个 YAML 文件，分别在该文件的用例开始前、结束后执行，不是整个项目的全局钩子。`beforeEach` 和 `afterEach` 则包围每个用例的每次执行。
+`beforeAll` 和 `afterAll` 每份 YAML 各执行一次；`beforeEach` 和 `afterEach` 包围每个用例的每次尝试。配置了文件并发后，不同文件可以同时推进，文件内部仍按图中顺序执行。
 
-用例失败后，如果还有重试次数，会先完成本次 `afterEach` 和 Node 清理，再重新执行 `beforeEach → steps → afterEach → Node 清理`。重试不会重新运行项目 `setup` 或文件 `beforeAll`。失败时的跳过与清理规则见[失败时如何执行](./use#失败时如何执行)。如果 `setup` 失败，该项目的 YAML 文件不会执行，但仍会尝试执行 setup 中已注册的清理函数。
+用例重试沿用原来的文件环境，只重复 `beforeEach → steps → afterEach → 本次执行的 Node 清理`。项目 `setup`、`fileSetup` 和 `beforeAll` 都不会重跑。重试条件和失败后的跳过规则见[失败时如何执行](./use#失败时如何执行)。
 
 `onTeardown()` 的清理范围取决于注册位置：
 
 | 注册位置 | 清理时机 |
 | --- | --- |
 | 项目 `setup` | 项目结束时，所有已执行文件的清理之后 |
+| `fileSetup` | 当前文件的 `afterAll` 与文件范围 Node 清理之后 |
 | `beforeAll`、`afterAll` 中的 Node | 当前文件的 `afterAll` 之后 |
 | `beforeEach`、`steps`、`afterEach` 中的 Node | 本次用例执行的 `afterEach` 之后，每次重试独立清理 |
 
-每个范围内的清理函数都按注册顺序的逆序执行。Node 清理的实现方式见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
+每个范围内的清理函数都按注册顺序的逆序执行。一个函数抛错后仍会尝试后续函数；函数尚未结束时，后续清理等待它结束。Node 清理的实现方式见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
 
 ### context 的共享范围
 
-`setup` 返回的 `context` 在当前执行项目内复用。所有 YAML 文件、生命周期钩子、用例和重试中的 Node 都接收同一个对象，框架不会在文件切换、用例切换或重试时复制、清空或重新创建它。
+Node 收到的 `context` 由配置决定：
 
-例如，某个 Node 将订单 ID 写入 `context.orderId` 后，后续 Node 都能读到这个值，包括下一条用例中的 Node。用例独有的数据需要在准备步骤中重置，或在清理时移除；重试也不会自动恢复 `context` 的初始状态。浏览器页面、登录状态等资源是否重置，同样取决于项目实现。
+| 配置方式 | `context` 的来源 | 共享范围 |
+| --- | --- | --- |
+| 只有项目 `setup` | `setup` 的返回值 | 当前项目中的所有文件 |
+| 配置了 `fileSetup` | 当前文件调用 `fileSetup` 的返回值 | 当前文件的钩子和用例，包括用例重试 |
 
-不同执行项目分别调用自己的 `setup`。即使它们引用同一个 setup 定义，也会分别调用它，因此应在 `setup` 函数内部创建资源和返回对象。不要从模块顶层返回同一个可变对象，否则会在项目之间共享状态。跨 Node 共享数据的完整示例见[跨 Node 共享上下文](./extend#跨-node-共享上下文)。
+同一共享范围内，Node 收到的是同一个对象。写入 `context.orderId` 后，后续用例也可能读到它。框架不会在用例切换或重试时重置 context、页面或登录状态；用例需要的初始状态应在 `beforeEach` 中恢复。
+
+在 `setup()` 函数内部创建资源和返回对象。多个项目或文件即使引用同一个定义，也会分别调用函数；如果返回模块顶层的同一个可变对象，仍会共享状态。数据传递示例见[跨 Node 共享上下文](./extend#跨-node-共享上下文)。
 
 ## 注册官方 Node
 
@@ -169,7 +193,7 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 });
 ```
 
-`createMidsceneNodes()` 不会直接修改全局注册表；只有把返回数组加入项目配置后，这些 Node 才会生效。`agentClass` 是 Agent Node 定义的唯一来源，`getAgent` 则说明执行期间如何从当前 context 取得 Agent 实例。如果该类没有提供 `getTestRunnerNodeDefinitions()`，工厂会在注册阶段抛出异常。传入 PlaywrightAgent、PlaywrightPageAgent、PlaywrightBrowserAgent、AndroidAgent、IOSAgent 或 HarmonyAgent 时，会同时获得通用 Node 定义和对应的平台 Node 定义。基础 Agent、其他 Web Agent 和 ComputerAgent 仅提供通用 Agent Node。
+`createMidsceneNodes()` 不会直接修改全局注册表；只有把返回数组加入项目配置后，这些 Node 才会生效。`agentClass` 是 Agent Node 定义的唯一来源，`getAgent` 则说明执行期间如何从当前 context 取得 Agent 实例。如果该类没有提供 `getTestRunnerNodeDefinitions()`，工厂会在注册阶段抛出异常。传入 PlaywrightAgent、PlaywrightPageAgent、PlaywrightBrowserAgent、PuppeteerAgent、PuppeteerPageAgent、PuppeteerBrowserAgent、AndroidAgent、IOSAgent 或 HarmonyAgent 时，会同时获得通用 Node 定义和对应的平台 Node 定义。基础 Agent 和 ComputerAgent 仅提供通用 Agent Node。
 
 Android/iOS 的注册示例见[配置多个执行项目](#配置多个执行项目)。
 
@@ -217,7 +241,32 @@ beforeEach:
       waitUntil: domcontentloaded
 ```
 
-导航参数和路径解析规则见[使用 gotoUrl 导航](./use#使用-gotourl-导航)。
+导航参数以[当前项目的 Node 说明书](./use#生成当前项目的-node-说明书)为准。
+
+### Puppeteer
+
+Puppeteer 提供同名的 `gotoUrl`、`setCookies`、`clearCookies` 和 `setViewportSize` Node。安装 `puppeteer` 同级依赖，并把 `PuppeteerAgent`（或 `PuppeteerBrowserAgent`）传给 `createMidsceneNodes()`：
+
+```bash
+pnpm add -D puppeteer
+```
+
+```ts
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PuppeteerAgent,
+  getAgent: ({ context }) => {
+    context.agent ??= new PuppeteerAgent(context.page, {
+      testRunner: { baseURL: 'https://example.com' },
+    });
+    return context.agent;
+  },
+});
+```
+
+Playwright 和 Puppeteer 使用同一套 Web Node Schema 和执行实现，浏览器相关代码只保留 Driver 适配层。为了让 YAML 可以跨浏览器运行，`gotoUrl.waitUntil` 应使用 `domcontentloaded`、`load` 或 `networkidle`；Puppeteer 适配器会把 `networkidle` 映射为 `networkidle0`。现有的浏览器专用值继续兼容：Playwright 支持 `commit`，Puppeteer 支持 `networkidle0` 和 `networkidle2`；把这些值用于另一种 Driver 时会返回明确错误。两种接入的 Cookie 引用和结果脱敏规则也保持一致。相对 URL 会先基于 `testRunner.baseURL` 解析；没有配置时，再基于当前 HTTP(S) 页面地址解析。
 
 ### Android
 
@@ -318,7 +367,7 @@ steps:
 
 脚手架生成的配置默认选择 `cases/**/*.{yaml,yml}`。未配置 `files` 时，Midscene Test 会在测试目录下按 `**/*.{yaml,yml}` 递归查找用例文件。
 
-选中的文件会去重并按路径排序。重试只重新执行失败 Case 的 `beforeEach → steps → afterEach`，不重跑项目 setup 或文件钩子。同一项目内文件顺序执行；需要并发时，使用持有独立资源的多个项目。
+选中的文件会去重并按路径排序。执行顺序和重试范围见[项目生命周期](#项目生命周期)，并发设置见[并发与资源隔离](#并发与资源隔离)。
 
 原生 Test 始终生成统一总报告。报告路径会在运行结束后由 CLI 输出，查看方式见[查看测试结果](./use#查看测试结果)。
 
@@ -372,7 +421,7 @@ export default defineTestProject<ProjectContext>({
     },
   ],
   test: {
-    maxConcurrency: 1, // 同时运行的执行项目数量上限
+    maxConcurrentProjects: 1, // 同时运行的执行项目数量上限
     bail: 0,           // 大于 0 时，失败用例数达到此值后停止调度新任务
     testTimeout: 120_000,
   },
@@ -384,37 +433,6 @@ export default defineTestProject<ProjectContext>({
 
 两个项目可以使用同一份 YAML 文件。收集用例、校验输入和执行测试时，`launch` 等平台 Node 都使用当前项目中生效的定义。一个项目的局部 Node 不会影响其他项目。
 
-### 并发与资源隔离
-
-并发调度的单位是执行项目，`test.maxConcurrency` 设置同时运行的项目数量上限，默认值为 `1`。单个项目内的 YAML 文件、用例和步骤顺序执行。只有一个执行项目时，增大此值也不会让该项目内的用例并发。
-
-需要让不同用例同时执行时，可以按目录或标签将用例分配到多个项目，并为每个项目创建独立资源。下面沿用前面 Playwright 示例中的 setup 和 Node 定义，替换其 `defineTestProject()` 配置，让下单与账号用例并发运行：
-
-```ts filename=midscene.config.ts
-export default defineTestProject<ProjectContext>({
-  nodes: midsceneNodes,
-  projects: [
-    {
-      name: 'checkout',
-      setup: playwrightSetup,
-      files: { include: ['cases/checkout/**/*.{yaml,yml}'] },
-    },
-    {
-      name: 'account',
-      setup: playwrightSetup,
-      files: { include: ['cases/account/**/*.{yaml,yml}'] },
-    },
-  ],
-  test: { maxConcurrency: 2 },
-});
-```
-
-两个项目分别调用 `playwrightSetup`，各自创建浏览器、页面和 `context`。`checkout` 项目内部顺序执行下单用例，`account` 项目内部顺序执行账号用例，两个项目可以同时推进。设备测试同理：并发项目应连接不同设备，避免同时操作同一个设备。
-
-框架不会自动把用例均分到不同项目。两个项目如果匹配同一个 YAML 文件，该文件会在两个项目中各运行一次，适合在不同平台或环境上重复验证。希望分批并发时，应使用互不重叠的 `files` 或 `tags` 选择规则。
-
-每个项目从开始初始化到完成清理，始终占用一个并发名额。名额释放后，调度器再启动下一个待运行项目。当前调度在同一个 Node.js 进程中异步执行，不会为项目创建独立进程；模块全局变量、外部账号和测试数据仍需由项目实现隔离。
-
 ### 为各项目生成 Node 说明书
 
 运行 `midscene-test nodes` 可以生成 Node 说明书，查看项目中可用的 Node。使用 `--project` 指定执行项目后，说明书会列出该项目合并全局和局部注册后实际生效的 Node：
@@ -423,19 +441,169 @@ export default defineTestProject<ProjectContext>({
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-未指定项目时，如果所有项目中生效的 Node 定义都相同，命令会生成一份共享说明书。如果定义不同，命令会报错，并提示你通过 `--project` 选择项目，避免混合不同项目中的同名定义。
+声明 `projects` 后，未指定 `--project` 时会为每个执行项目分别生成说明书，即使各项目的 Node 定义相同。
 
-说明书内容与通用命令参数见[生成当前项目的 Node 说明书](./use#生成当前项目的-node-说明书)。
+文件命名、输出规则、说明书内容与命令参数见[生成当前项目的 Node 说明书](./use#生成当前项目的-node-说明书)。
+
+## 并发与资源隔离
+
+两个上限同时生效：`maxConcurrentFiles` 控制整次运行同时推进的文件数，`maxConcurrentProjects` 控制已开始准备、尚未清理完的项目数。两者省略时各自默认为 `1`，不会根据另一个字段推导。`null` 表示不限制该项；数值必须是正整数。
+
+| `test` 配置 | 执行方式 |
+| --- | --- |
+| 省略 | 逐个项目完成，每个项目内逐个文件执行 |
+| `{ maxConcurrentFiles: 4 }` | 一次一个项目，项目内最多同时推进 4 份文件 |
+| `{ maxConcurrentProjects: 2 }` | 全局仍逐个文件执行，最多保留 2 个项目环境 |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: 1 }` | 逐个项目完成，不设全局文件上限 |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: null }` | 不设这两个全局上限，仍受项目文件上限和实际资源约束 |
+
+执行使用同一个 Node.js 进程内的异步并发。只提高项目上限，不会提高文件并发数。不限制并发也不一定更快，还要考虑浏览器容量、设备数量和模型服务限额。
+
+### 使用 maxConcurrentFiles 开启文件并发
+
+| 配置 | 含义 |
+| --- | --- |
+| `test.maxConcurrentFiles` | 所有项目合计的活动文件上限，默认 `1`，`null` 表示不限制 |
+| `test.maxConcurrentProjects` | 从开始准备到清理完成的项目数上限，默认 `1`，`null` 表示不限制 |
+| `projects[].maxConcurrentFiles` | 当前项目的文件上限，只接受正整数；省略时沿用全局文件上限，不能突破全局上限 |
+| `projects[].fileSetup` | 为每份文件准备独立环境；项目有效文件上限大于 `1`（包括不限制）时必填，即使只选中一份文件 |
+
+例如，设置 `test: { maxConcurrentFiles: 3, maxConcurrentProjects: 2 }`，Web 和 Android 的文件上限各为 `2`，可以同时运行两份 Web 加一份 Android，也可以一份 Web 加两份 Android。项目数不会与全局文件上限相乘。
+
+文件从开始准备到清理完成都占一个文件名额，包括等待设备和用例重试。启动新项目时，先同时取得项目名额和首份文件的名额，再执行 `setup`；同项目的其他文件等待初始化，不额外占文件名额。具备执行条件的项目轮流领取文件。
+
+项目在文件之间暂时空闲时，仍保留项目名额。最后一份文件保留文件名额完成项目清理，项目名额也等到实际清理结束才释放。因此，`maxConcurrentProjects: 1` 会等前一个项目全部清理完再启动下一个；只设置 `maxConcurrentFiles: 1`，则在项目上限允许时，不同项目的文件仍可交错执行。
+
+取消或 `bail` 后，已初始化但暂无活动文件的项目，也在全局文件上限内安排清理。准备和清理的时限见[超时与取消机制](#超时与取消机制)。
+
+### 用 fileSetup 隔离资源
+
+`setup` 准备项目共享资源，`fileSetup` 准备每份文件独享的资源。Web 测试可以共享一个 Browser，每份文件分别创建 BrowserContext、Page 和 Agent，隔离 Cookie 等浏览器状态。
+
+```ts filename=midscene.config.ts
+import {
+  defineFileSetup,
+  defineProjectSetup,
+  defineTestProject,
+} from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright/agent';
+import { chromium, type Browser } from 'playwright';
+
+type SharedContext = { browser: Browser };
+type FileContext = { agent: PlaywrightAgent };
+
+const setup = defineProjectSetup<SharedContext>({
+  name: 'browser',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+    return { browser };
+  },
+});
+
+const fileSetup = defineFileSetup<FileContext, SharedContext>({
+  name: 'page',
+  async setup({ projectContext, signal, onTeardown }) {
+    if (!projectContext) throw new Error('Browser setup did not complete');
+    const session = await projectContext.browser.newContext();
+    onTeardown(() => session.close());
+    signal.throwIfAborted();
+    const page = await session.newPage();
+    const agent = new PlaywrightAgent(page);
+    onTeardown(() => agent.destroy());
+    return { agent };
+  },
+});
+
+export default defineTestProject<FileContext, SharedContext>({
+  test: { maxConcurrentFiles: 3 },
+  projects: [
+    {
+      name: 'web',
+      setup,
+      fileSetup,
+      maxConcurrentFiles: 2,
+      files: { include: ['cases/web/**/*.yaml'] },
+    },
+  ],
+  nodes: createMidsceneNodes<FileContext>({
+    agentClass: PlaywrightAgent,
+    getAgent: ({ context }) => context.agent,
+  }),
+});
+```
+
+YAML 使用已准备好的 Agent，`beforeAll` 设置视口，`beforeEach` 为每个用例打开首页：
+
+```yaml filename=cases/web/search.yaml
+beforeAll:
+  - setViewportSize:
+      width: 1280
+      height: 720
+
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: 搜索商品
+    steps:
+      - aiAct: 搜索马克杯
+      - aiAssert: 搜索结果中包含马克杯
+```
+
+本例在 `fileSetup` 中创建 Agent。文件结束后依次销毁 Agent、关闭 BrowserContext；所有文件清理完成后关闭共享 Browser。
+
+`defineFileSetup<FileContext, SharedContext>` 的两个类型分别描述文件返回值和项目返回值。`fileSetup` 返回完整的文件 context，不会与 `projectContext` 自动合并；Node 需要的共享字段应显式返回。
+
+准备函数可以使用以下参数：
+
+| 参数 | 用途 |
+| --- | --- |
+| `projectContext` | 项目 `setup` 的返回值；未配置项目 setup 时为 `undefined` |
+| `project`、`file` | 当前项目配置，以及文件路径 `sourcePath` 和执行 ID |
+| `env`、`signal` | 环境变量和取消通知 |
+| `onTeardown()` | 登记文件结束时的清理函数 |
+
+只有一组配置时，可以省略 `projects`，把 `setup` 和 `fileSetup` 放在顶层。文件能自行准备全部资源时，也可以只配置 `fileSetup`。
+
+Android、iOS 等平台需要为每份并发文件独占分配设备，并创建独立的 Device/Agent。每个 Device 实例只归属于一个 Agent，`Agent.destroy()` 会销毁对应 Device；设备归还应安排在 Agent 销毁之后。设备池和业务状态重置由项目实现。只有一台手机或一个桌面时，将该项目上限设为 `1`；多个 Agent 操作同一设备仍会互相干扰。
+
+文件环境的共享范围和清理顺序见[项目生命周期](#项目生命周期)，准备失败后的处理见[失败时如何执行](./use#失败时如何执行)。
+
+共享资源故障需要由 Node 或 `fileSetup` 显式标记，不能根据 Browser 关闭的报错文案推断。报告方式见[异步操作、错误与取消](./extend#异步操作错误与取消)。
+
+### 现有配置
+
+`test.maxConcurrency` 已移除，加载旧配置会报错并给出迁移示例。旧值控制项目并发，不能只改名为 `maxConcurrentFiles`。例如，保留旧值 `2` 的行为，需要设置 `test: { maxConcurrentProjects: 2, maxConcurrentFiles: 2 }`，并把各项目的 `maxConcurrentFiles` 设为 `1`。未声明 `projects` 时，全局文件上限保持 `1`。
+
+`fileSetup`、项目文件上限和准备／清理超时都可以单独配置，不要求显式填写全局并发字段。项目有效文件上限为 `1` 时，`fileSetup` 可省略，文件可以共用 `setup` 返回的环境。
+
+项目不会自动均分用例。同一 YAML 被两个项目选中，就会分别执行一次；要分批运行，使用互不重叠的 `files` 或 `tags` 规则。
+
+旧 `tasks/flow` YAML 继续通过 `midscene` 执行。它的 `concurrent` / `--concurrent`、前置 setup 文件和浏览器复用行为保持不变；这些配置与原生 Test 的 `setup`、`fileSetup` 分别处理。迁移方式见[迁移到 Midscene Test](../migrate-to-midscene-test)。
 
 ## 超时与取消机制
 
-当步骤超时时，框架会通过该步骤的 `signal` 发出取消通知。通过 CLI 运行测试时，收到 `SIGINT`（例如按下 Ctrl+C）或 `SIGTERM` 会取消运行，并将取消信号传递给当前执行的步骤。
+### 超时配置
 
-Node 通过 `AbortSignal` 接收取消通知，内部的异步操作不会因此自动终止。自定义 Node 需要将 `signal` 传给支持取消的 API，或主动检查取消状态，具体用法见[异步操作、错误与取消](./extend#异步操作错误与取消)。
+| 配置 | 控制范围 | 默认值 |
+| --- | --- | --- |
+| `test.testTimeout` | 单个步骤，可由步骤中的 `$` 覆盖 | `120000` ms |
+| `test.setupTimeout` | 每次项目 `setup` 或 `fileSetup`，包括等待设备 | `120000` ms |
+| `test.teardownTimeout` | 每个清理范围，包括清理钩子、等待操作退出和清理函数 | `30000` ms |
 
-运行被中断后，框架仍会尝试执行 `afterEach`、`afterAll` 和通过 `onTeardown()` 注册的清理函数。执行 `afterEach` 和 `afterAll` 中的 Node 时，如果运行的 `signal` 已被取消，框架会换用新的、尚未取消的 `signal`，使清理操作能够继续执行。这些清理步骤仍受步骤超时配置约束。
+省略并发配置时，准备和清理时限仍然生效。取消或 `bail` 后，各清理范围共用一个基于 `teardownTimeout` 的收尾时限。
 
-通过 `onTeardown()` 注册的清理函数不会收到新的 `signal`。不要在这些函数中复用原步骤的 `signal`：它可能已因超时或运行中断而被取消，导致清理请求立即失败。
+### 取消与清理
+
+步骤超时会取消该步骤的 `signal`。CLI 收到 `SIGINT`（如 Ctrl+C）或 `SIGTERM` 时会取消运行。Node 需要把 `signal` 传给支持取消的 API，或主动检查状态；异步操作不会自动终止。用法见[异步操作、错误与取消](./extend#异步操作错误与取消)。
+
+运行中断后，框架仍会尝试执行清理。`afterEach` 和 `afterAll` 中的 Node 使用尚未取消的清理 signal，仍受步骤超时限制，也不能与同一 Agent 上尚未退出的旧操作重叠执行。清理 Node 应能处理准备步骤只完成一部分的情况。
+
+`onTeardown()` 注册的清理函数不会收到新的 signal。避免在其中复用原步骤的 signal，它可能已经取消。
+
+超时只限制等待结果的时间。操作或清理尚未结束时，框架记录 `cleanup pending`，继续跟踪资源，等操作实际结束后再释放。此时停止启动新文件。完整失败规则见[失败时如何执行](./use#失败时如何执行)。
 
 ## 编程式 API
 
@@ -454,3 +622,10 @@ import {
 * **`runTestProject()`**：异步发现、运行并汇总整个项目。
 * **`CaseRunner` / `createCaseRunner()`**：直接执行纯对象形式的单个用例（不含文件解析和生命周期控制）。
 * **`runWorkflowDocument()`**：执行单个文档的完整生命周期及内部全部 Case。
+
+## 使用注意事项
+
+- **按需配置。** 没有共享资源可只用 `fileSetup`；有效文件上限为 `1` 时可省略它，文件共用 `setup` 的返回值。
+- **并发需要隔离。** 有效文件上限大于 `1`（含不限制）时必须配置 `fileSetup`，即使只选中一份文件。各文件应使用独立页面、Agent 和设备，后端账号与数据也需自行隔离。
+- **重试不重做准备。** `setup`、`fileSetup`、`beforeAll` 不重跑；每次尝试需要的状态在 `beforeEach` 中重置。
+- **及时登记清理。** 创建资源后立即调用 `onTeardown()`。先清理文件资源，再清理项目共享资源；清理逻辑应能处理准备只完成一部分的情况。

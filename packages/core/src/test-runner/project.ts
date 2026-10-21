@@ -26,6 +26,8 @@ export interface TestTagSelection {
 export interface ExecutionProjectDefinition<TProjectContext = unknown> {
   name: string;
   setup?: ProjectSetupDefinition<TProjectContext>;
+  fileSetup?: FileSetupDefinition<unknown, TProjectContext>;
+  maxConcurrentFiles?: number;
   /** Project-local Nodes override global Nodes with the same name. */
   nodes?: readonly NodeDefinition<any, any, TProjectContext>[];
   files?: TestFileSelection;
@@ -38,6 +40,8 @@ export interface ResolvedExecutionProject<TProjectContext = unknown> {
   readonly projectId: string;
   readonly name: string;
   readonly setup?: ProjectSetupDefinition<TProjectContext>;
+  readonly fileSetup?: FileSetupDefinition<unknown, TProjectContext>;
+  readonly maxConcurrentFiles?: number;
   readonly files?: TestFileSelection;
   readonly tags: Readonly<Required<TestTagSelection>>;
   readonly retry: number;
@@ -71,6 +75,29 @@ export type ProjectTeardown<TProjectContext = unknown> = (
 export interface ProjectSetupDefinition<TProjectContext = unknown> {
   name: string;
   setup(ctx: ProjectSetupContext<TProjectContext>): Awaitable<TProjectContext>;
+}
+
+/** A fresh execution environment for one file, shared by its hooks and Cases. */
+export interface FileSetupContext<TProjectContext = unknown> {
+  readonly project: ResolvedExecutionProject<TProjectContext>;
+  readonly projectContext: TProjectContext | undefined;
+  readonly file: {
+    readonly documentId: string;
+    readonly documentRunId: string;
+    readonly sourcePath: string;
+  };
+  readonly env: Readonly<NodeJS.ProcessEnv>;
+  readonly signal: AbortSignal;
+  onTeardown(teardown: () => Awaitable<void>): void;
+}
+
+export interface FileSetupDefinition<
+  TContext = unknown,
+  TProjectContext = unknown,
+> {
+  name: string;
+  /** Complete file context; no automatic merge with projectContext. */
+  setup(ctx: FileSetupContext<TProjectContext>): Awaitable<TContext>;
 }
 
 export interface DocumentSetupContext<TContext = unknown> {

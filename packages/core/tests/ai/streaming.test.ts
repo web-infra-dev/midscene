@@ -108,11 +108,9 @@ describe(
                 text: 'Describe what you see in this image in detail.',
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: localImg2Base64(imagePath),
-                  detail: 'high',
-                },
+                type: 'image',
+                url: localImg2Base64(imagePath),
+                detail: 'high',
               },
             ],
           },

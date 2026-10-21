@@ -3,7 +3,12 @@ export type CreatePackageManager = (typeof createPackageManagers)[number];
 
 export const packageManagerCommands: Record<
   CreatePackageManager,
-  { install: string[]; describe: string[]; installChromium: string }
+  {
+    install: string[];
+    describe: string[];
+    installChromium: string;
+    verifyModel: string;
+  }
 > = {
   npm: {
     install: ['install', '--workspaces=false'],
@@ -15,11 +20,13 @@ export const packageManagerCommands: Record<
       'midscene-test',
       'nodes',
     ],
+    verifyModel: 'npm exec -- midscene-test model verify',
     installChromium: 'npm exec -- playwright install chromium',
   },
   pnpm: {
     install: ['install', '--ignore-workspace'],
     describe: ['exec', 'midscene-test', 'nodes'],
+    verifyModel: 'pnpm exec midscene-test model verify',
     installChromium: 'pnpm exec playwright install chromium',
   },
 };

@@ -9,12 +9,13 @@ import {
 import { describe, expect, it } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CaseWorkspace } from './case-workspace';
-import { CaseWorkspaceHeader } from './case-workspace-header';
+import { CaseExecutionToolbar } from './case-workspace-header';
 import {
   getCaseWorkspaceDocument,
   getCaseWorkspaceDocumentAttemptIndex,
   getCaseWorkspaceStepGroups,
 } from './case-workspace-model';
+import { collectReportIssues } from './issues';
 import {
   buildRunnerVisualIndex,
   flattenRunnerCases,
@@ -159,6 +160,43 @@ describe('whole-file retry report projection and viewer', () => {
     ).toBe('failed');
   });
 
+  it('shows only non-node issues from the selected file attempt', () => {
+    const dump = buildTestRunReportDump(retryInput('beforeAll'), index);
+    const [item] = flattenRunnerCases(dump);
+    item.document.attempts![0].hostErrors = [
+      {
+        phase: 'publication',
+        error: { name: 'Error', message: 'first file publication failed' },
+      },
+    ];
+    item.document.attempts![1].hostErrors = [
+      {
+        phase: 'observer',
+        error: { name: 'Error', message: 'second file observer failed' },
+      },
+    ];
+    const issues = collectReportIssues(dump);
+    const render = (initialStepId?: string) =>
+      renderToStaticMarkup(
+        <CaseWorkspace
+          item={item}
+          issues={issues}
+          initialStepId={initialStepId}
+          reports={[]}
+          visualIndex={buildRunnerVisualIndex([])}
+          renderAgentReport={() => null}
+          onBack={() => {}}
+          backLabel="Overview"
+        />,
+      );
+    const final = render();
+    expect(final).toContain('second file observer failed');
+    expect(final).not.toContain('first file publication failed');
+    const first = render(item.document.attempts![0].beforeAll[0].id);
+    expect(first).toContain('first file publication failed');
+    expect(first).not.toContain('second file observer failed');
+  });
+
   it.each(['beforeAll', 'steps', 'afterAll'] as const)(
     'counts one logical case and exposes the failed %s file attempt',
     (failure) => {
@@ -166,12 +204,15 @@ describe('whole-file retry report projection and viewer', () => {
       const cases = flattenRunnerCases(dump);
       expect(cases).toHaveLength(1);
       const item = cases[0];
-      expect(item).toMatchObject({ status: 'retry-passed', retryCount: 1 });
+      expect(item).toMatchObject({
+        status: 'passed',
+        retryCount: 1,
+      });
       expect(getRunnerHealth(cases)).toMatchObject({
         executed: 1,
         finalPassRate: 1,
-        firstPassRate: 0,
-        retryPassedCount: 1,
+        firstPassRate: failure === 'steps' ? 0 : 1,
+        retryPassedCount: failure === 'steps' ? 1 : 0,
       });
       const failedDocument = item.document.attempts![0];
       const failedAttempt = item.testCase.attempts.find(
@@ -217,11 +258,10 @@ describe('whole-file retry report projection and viewer', () => {
       expect(html).toContain(`${failure} failed`);
 
       const retryHeader = renderToStaticMarkup(
-        <CaseWorkspaceHeader
+        <CaseExecutionToolbar
+          viewSwitch={null}
           item={item}
           selectedDocumentAttemptIndex={1}
-          backLabel="Overview"
-          onBack={() => {}}
           onSelectAttempt={() => {}}
           onSelectDocumentAttempt={() => {}}
         />,

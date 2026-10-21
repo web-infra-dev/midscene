@@ -529,6 +529,32 @@ describe('AndroidDevice', () => {
   // Launch/Terminate on every mobile platform must expose the SAME `uri` field.
   // The shared tool-generator already rejects non-object schemas, but a future
   // author could still rename the field and silently break CLI ergonomics.
+  it('lets custom action readiness replace the extra scroll settling delay', async () => {
+    const scroll = rs
+      .spyOn(device as any, 'scrollDownRaw')
+      .mockResolvedValue(undefined);
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Scroll')!;
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(scroll).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(500);
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {} } as ExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(500);
+    } finally {
+      scroll.mockRestore();
+      delay.mockRestore();
+    }
+  });
+
   describe('actionSpace platform actions', () => {
     it('includes RunAdbShell by default', () => {
       const actionNames = device.actionSpace().map((action) => action.name);
@@ -2526,6 +2552,89 @@ Stdout:
       });
     });
 
+    describe('untargeted scroll gesture coordinates', () => {
+      beforeEach(() => {
+        rs.spyOn(device as any, 'adjustCoordinates').mockImplementation(
+          async (...args: unknown[]) => {
+            const [x, y] = args as [number, number];
+            return { x, y };
+          },
+        );
+        rs.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+
+      it.each([
+        ['scrollDown', 'input swipe 540 1632 540 288 1000'],
+        ['scrollUp', 'input swipe 540 288 540 1632 1000'],
+        ['scrollRight', 'input swipe 918 960 162 960 1000'],
+        ['scrollLeft', 'input swipe 162 960 918 960 1000'],
+      ] as const)(
+        '%s keeps the default gesture within the central seventy percent of the screen',
+        async (method, command) => {
+          await device[method]();
+
+          expect(mockAdb.shell).toHaveBeenCalledWith(command);
+          expect(console.warn).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['scrollUntilTop', 'input swipe 540 480 540 1920 100'],
+        ['scrollUntilBottom', 'input swipe 540 1440 540 0 100'],
+        ['scrollUntilLeft', 'input swipe 270 960 1080 960 100'],
+        ['scrollUntilRight', 'input swipe 810 960 0 960 100'],
+      ] as const)(
+        '%s repeats the corrected boundary gesture',
+        async (method, command) => {
+          await device[method]();
+          const swipes = mockAdb.shell.mock.calls.filter(([value]) =>
+            String(value).startsWith('input swipe'),
+          );
+          expect(swipes).toHaveLength(10);
+          for (const [value] of swipes) expect(value).toBe(command);
+        },
+      );
+
+      it.each([
+        ['scrollDown', 100, 'input swipe 540 1440 540 1340 1000'],
+        ['scrollUp', 100, 'input swipe 540 480 540 580 1000'],
+        ['scrollRight', 100, 'input swipe 810 960 710 960 1000'],
+        ['scrollLeft', 100, 'input swipe 270 960 370 960 1000'],
+        ['scrollDown', 600, 'input swipe 540 1440 540 840 1000'],
+        ['scrollUp', 600, 'input swipe 540 480 540 1080 1000'],
+        ['scrollRight', 600, 'input swipe 810 960 210 960 1000'],
+        ['scrollLeft', 600, 'input swipe 270 960 870 960 1000'],
+      ] as const)(
+        '%s preserves an explicit %ipx distance without clamping',
+        async (method, distance, command) => {
+          await device[method](distance);
+
+          expect(mockAdb.shell).toHaveBeenCalledWith(command);
+          expect(console.warn).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['scrollDown', 'input swipe 960 918 960 162 1000'],
+        ['scrollUp', 'input swipe 960 162 960 918 1000'],
+        ['scrollRight', 'input swipe 1632 540 288 540 1000'],
+        ['scrollLeft', 'input swipe 288 540 1632 540 1000'],
+      ] as const)(
+        '%s uses the current landscape dimensions for the default gesture',
+        async (method, command) => {
+          rs.spyOn(device, 'size').mockResolvedValue({
+            width: 1920,
+            height: 1080,
+          });
+
+          await device[method]();
+
+          expect(mockAdb.shell).toHaveBeenCalledWith(command);
+          expect(console.warn).not.toHaveBeenCalled();
+        },
+      );
+    });
+
     it('scrollUp should call scroll with negative Y delta', async () => {
       const wheelSpy = rs
         .spyOn(device as any, 'scrollRaw')
@@ -2597,8 +2706,8 @@ Stdout:
           -1,
         )?.[0] as string;
 
-        expect(rightSwipeCmd).toBe('input swipe 270 480 0 480 1000');
-        expect(leftSwipeCmd).toBe('input swipe 810 480 1080 480 1000');
+        expect(rightSwipeCmd).toBe('input swipe 810 960 0 960 1000');
+        expect(leftSwipeCmd).toBe('input swipe 270 960 1080 960 1000');
         expect(console.warn).not.toHaveBeenCalled();
 
         adjustCoordinatesSpy.mockRestore();
@@ -2628,7 +2737,7 @@ Stdout:
 
         expect(console.warn).toHaveBeenCalledWith(
           '[Midscene]',
-          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (9999999px) exceeds the maximum single swipe distance (480px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
+          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (9999999px) exceeds the maximum single swipe distance (1440px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
         );
       });
 

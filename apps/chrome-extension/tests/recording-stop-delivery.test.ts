@@ -158,3 +158,20 @@ it('keeps reception active and does not complete the session when stop delivery 
   expect(mocks.setIsRecording).not.toHaveBeenCalled();
   expect(updateSession).not.toHaveBeenCalled();
 });
+
+it('completes the session when stop succeeds on retry', async () => {
+  const { control, updateSession } = setup();
+  mocks.sendMessage.mockResolvedValueOnce({
+    success: false,
+    error: 'Disconnected',
+  });
+  await control.stopRecording();
+  expect(mocks.setIsRecording).not.toHaveBeenCalled();
+
+  await control.stopRecording();
+  expect(mocks.setIsRecording).toHaveBeenCalledExactlyOnceWith(false);
+  expect(updateSession).toHaveBeenCalledWith(
+    'session',
+    expect.objectContaining({ status: 'completed' }),
+  );
+});

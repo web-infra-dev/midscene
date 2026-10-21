@@ -41,6 +41,31 @@ const scopedConfig = `
 `;
 
 describe('Project-scoped Node Specs', () => {
+  it.each(['midscene.config.ts', 'midscene.config.mjs'])(
+    'reports a migration error for maxConcurrency in %s before writing a Node Spec',
+    async (filename) => {
+      const root = createConfig(
+        'export default { test: { maxConcurrency: 2 } };',
+        filename,
+      );
+      const errors: string[] = [];
+      expect(
+        await runTestCli(['nodes', root, '--config', filename], {
+          log() {},
+          error(message) {
+            errors.push(message);
+          },
+        }),
+      ).toBe(1);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain('test.maxConcurrency is no longer supported');
+      expect(errors[0]).toContain('maxConcurrentProjects: 2');
+      expect(errors[0]).toContain('maxConcurrentFiles: 1');
+      expect(errors[0]).toContain('implicit default project');
+      expect(existsSync(join(root, 'midscene-node-spec.md'))).toBe(false);
+    },
+  );
+
   it('loads a JavaScript ESM config through the CLI --config option', async () => {
     const root = createConfig(
       `export default {
@@ -150,7 +175,9 @@ describe('Project-scoped Node Specs', () => {
         error: (message) => errors.push(message),
       }),
     ).toBe(1);
-    expect(errors).toContain('Unknown Midscene project: unknown');
+    expect(errors).toEqual([
+      expect.stringContaining('Unknown Midscene project: unknown'),
+    ]);
     expect(readdirSync(root)).toEqual(['midscene.config.ts']);
   });
 

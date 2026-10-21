@@ -78,7 +78,14 @@ async function setupBridge(
   onMessage({ action: 'start', sessionId: 'session' }, {}, rs.fn());
   return {
     delivered,
+    recorder: () => page.recorder,
+    start: () => onMessage({ action: 'start', sessionId: 'next' }, {}, rs.fn()),
     emit: (event: RecordedEvent) => page.recorder!.emit(event),
+    requestStop: () => {
+      const respond = rs.fn();
+      onMessage({ action: 'stop', sessionId: 'session' }, {}, respond);
+      return respond;
+    },
     stop: async () => {
       const respond = rs.fn();
       onMessage({ action: 'stop', sessionId: 'session' }, {}, respond);
@@ -167,4 +174,79 @@ it('does not acknowledge stop when the worker rejects delivery', async () => {
     success: false,
     error: 'Error: No recording page',
   });
+});
+
+it('retries a failed final stop after recovery without resending acknowledged events', async () => {
+  let receiverReady = false;
+  const bridge = await setupBridge(async (message) => {
+    if (message.data?.hashId === 'second' && !receiverReady) {
+      return { success: false, error: 'No recording page' };
+    }
+    return { success: true };
+  });
+  bridge.emit(event('first'));
+  bridge.emit(event('second', 'final input'));
+
+  const failed = await bridge.stop();
+  expect(failed).toHaveBeenCalledWith({
+    success: false,
+    error: 'Error: No recording page',
+  });
+  expect(bridge.delivered.map(({ data }) => data?.hashId)).toEqual(['first']);
+
+  receiverReady = true;
+  const retried = await bridge.stop();
+  expect(retried).toHaveBeenCalledWith({ success: true, eventsCount: 2 });
+  expect(bridge.delivered.map(({ data }) => data?.hashId)).toEqual([
+    'first',
+    'second',
+  ]);
+  expect(bridge.recorder()).toBeNull();
+});
+
+it('does not discard a new stopped recorder when an earlier stop is acknowledged', async () => {
+  let finishFirst!: (value: { success: boolean }) => void;
+  let finishSecond!: (value: { success: boolean }) => void;
+  const bridge = await setupBridge(
+    (message) =>
+      new Promise((resolve) => {
+        if (message.data?.hashId === 'first') finishFirst = resolve;
+        else finishSecond = resolve;
+      }),
+  );
+  bridge.emit(event('first'));
+  const firstResponse = bridge.requestStop();
+  await rs.advanceTimersByTimeAsync(0);
+
+  const firstRecorder = bridge.recorder();
+  bridge.start();
+  expect(bridge.recorder()).not.toBe(firstRecorder);
+  bridge.emit(event('second'));
+  const secondResponse = bridge.requestStop();
+  await rs.advanceTimersByTimeAsync(0);
+
+  finishFirst({ success: true });
+  await rs.advanceTimersByTimeAsync(0);
+  expect(firstResponse).toHaveBeenCalledWith({ success: true, eventsCount: 1 });
+  expect(secondResponse).not.toHaveBeenCalled();
+  expect(bridge.recorder()).not.toBeNull();
+
+  finishSecond({ success: true });
+  await rs.runAllTimersAsync();
+  expect(secondResponse).toHaveBeenCalledWith({
+    success: true,
+    eventsCount: 1,
+  });
+  expect(bridge.recorder()).toBeNull();
+});
+
+it('acknowledges concurrent stop requests after one final delivery', async () => {
+  const bridge = await setupBridge();
+  bridge.emit(event('input', 'final'));
+  const first = bridge.requestStop();
+  const second = bridge.requestStop();
+  await rs.runAllTimersAsync();
+  expect(first).toHaveBeenCalledWith({ success: true, eventsCount: 1 });
+  expect(second).toHaveBeenCalledWith({ success: true, eventsCount: 1 });
+  expect(bridge.delivered).toHaveLength(1);
 });

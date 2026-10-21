@@ -1,4 +1,5 @@
 import type { Rect } from '@midscene/core';
+import type { MessageContent } from '@midscene/core/ai-model';
 import { type ModelRuntime, getModelRuntime } from '@midscene/core/ai-model';
 import type { IModelConfig } from '@midscene/shared/env';
 import type {
@@ -457,7 +458,7 @@ async function describeWithRetry(
       const afterScreenshot = getRecorderEventAfterScreenshot(event);
       const pageContext = getPageSemanticContext(event);
       const platformGuidance = getPlatformGuidance(target);
-      const userContent: any[] = [
+      const userContent: MessageContent[] = [
         {
           type: 'text',
           text: `Recorder event:
@@ -482,11 +483,8 @@ ${JSON.stringify(
 The target or region is highlighted in the screenshot below. Convert this event into semantic replay fields.`,
         },
         {
-          type: 'image_url',
-          image_url: {
-            url: highlightedScreenshot,
-            detail: 'high',
-          },
+          type: 'image',
+          url: highlightedScreenshot,
         },
       ];
       if (afterScreenshot) {
@@ -496,11 +494,8 @@ The target or region is highlighted in the screenshot below. Convert this event 
             text: 'Screenshot after the recorded action, for context only:',
           },
           {
-            type: 'image_url',
-            image_url: {
-              url: afterScreenshot,
-              detail: 'high',
-            },
+            type: 'image',
+            url: afterScreenshot,
           },
         );
       }

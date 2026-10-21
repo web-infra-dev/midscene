@@ -367,6 +367,17 @@ ios:
   # WebDriverAgent host address, optional, defaults to localhost.
   wdaHost: <host>
 
+  # For gateways with a path prefix, use wdaBaseUrl instead of wdaHost/wdaPort.
+  # Setting wdaBaseUrl together with either wdaHost or wdaPort causes an error.
+  # wdaBaseUrl: <url>
+
+  # Optional independent MJPEG stream URL, including a gateway path if needed.
+  # Cannot be combined with wdaMjpegPort.
+  # wdaMjpegUrl: <url>
+
+  # Local MJPEG stream port, optional. Use this or wdaMjpegUrl.
+  # wdaMjpegPort: <port>
+
   # Whether to auto dismiss keyboard, optional, defaults to false.
   autoDismissKeyboard: <boolean>
 
@@ -382,6 +393,16 @@ ios:
   # All other options supported by the IOSDevice constructor
   # See the IOSDevice constructor documentation for the complete list
 ```
+
+For a gateway with a path prefix, set `wdaBaseUrl` and leave `wdaHost` and `wdaPort` unset. The MJPEG stream can use a separate URL:
+
+```yaml
+ios:
+  wdaBaseUrl: ${WDA_BASE_URL}
+  wdaMjpegUrl: ${WDA_MJPEG_URL}
+```
+
+Set both environment variables before running the script. Studio Recorder exports use these references so gateway paths and access tokens stay out of the YAML file.
 
 :::info View Complete iOS Configuration Options
 

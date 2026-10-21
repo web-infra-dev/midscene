@@ -103,9 +103,11 @@ const studioBuildSourceTargets = [
 ];
 const reportBuildSourceTargets = [
   'src',
+  'e2e',
   'template',
   'package.json',
   'tsconfig.json',
+  'tsconfig.build.json',
   'rsbuild.config.ts',
 ];
 const playgroundAppBuildSourceTargets = [
@@ -863,7 +865,16 @@ const prepareReportBuildOutput = async () => {
 
   if (status.needsBuild) {
     console.log(`Building apps/report (${status.reason}).`);
-    await buildPackageDir(path.relative(workspaceRootDir, reportRootDir));
+    // Report's type check includes tests, so prepare its development workspace
+    // dependencies (including @midscene/test) through Nx before building it.
+    await run(
+      packageManagerCommand,
+      ['exec', 'nx', 'build', '@midscene/report'],
+      {
+        env: { ...process.env, NODE_ENV: 'production' },
+      },
+    );
+    await writeBuildMeta(reportRootDir, { nodeEnv: 'production' });
   } else {
     console.log(`Skipping apps/report build (${status.reason}).`);
   }

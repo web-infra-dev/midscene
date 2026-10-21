@@ -36,6 +36,8 @@ rs.mock('@/ai-model/workflows/insight', () => ({
 }));
 
 import { runConnectivityTest } from '@/ai-model/connectivity';
+import { getModelRuntime } from '@/ai-model/models';
+import Service from '@/service';
 
 function readImports(filePath: string): string[] {
   const source = readFileSync(filePath, 'utf-8');
@@ -93,7 +95,8 @@ describe('runConnectivityTest service load order', () => {
   it('runs the default locate check through the real Service constructor', async () => {
     mocks.callAI
       .mockResolvedValueOnce({ content: 'CONNECTIVITY_OK' })
-      .mockResolvedValueOnce({ content: 'What needs to be done?' });
+      .mockResolvedValueOnce({ content: 'What needs to be done?' })
+      .mockResolvedValueOnce({ content: 'CONNECTIVITY_OK' });
     mocks.AiLocateElement.mockResolvedValue({
       parseResult: {
         element: {
@@ -132,6 +135,26 @@ describe('runConnectivityTest service load order', () => {
     );
     expect(defaultModelConfig.retryCount).toBe(3);
   });
+
+  it.each(['default', 'locate'] as const)(
+    'reports the missing family for the %s slot',
+    async (slot) => {
+      const service = new Service({} as any);
+      const runtime = getModelRuntime({
+        ...defaultModelConfig,
+        modelFamily: undefined,
+        intent: 'locate',
+        slot,
+      });
+      await expect(
+        service.locate({ prompt: 'input' }, {}, runtime),
+      ).rejects.toThrow(
+        slot === 'locate'
+          ? 'Configure MIDSCENE_LOCATE_MODEL_FAMILY'
+          : 'Configure MIDSCENE_MODEL_FAMILY',
+      );
+    },
+  );
 
   it('keeps service independent from the ai-model barrel', () => {
     const serviceImports = readImports(

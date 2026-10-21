@@ -22,9 +22,9 @@ import {
   createImgBase64ByFormat,
   imageInfoOfBase64,
 } from '@midscene/shared/img';
-import { getDebug } from '@midscene/shared/logger';
+import { getDebug, logReport } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
-import { assert, ifInBrowser, logMsg } from '@midscene/shared/utils';
+import { assert, ifInBrowser } from '@midscene/shared/utils';
 import { prepareRawScreenshot } from './screenshot-preparation';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
@@ -214,7 +214,7 @@ export function printReportMsg(filepath: string) {
   if (globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET)) {
     return;
   }
-  logMsg(`Midscene - report file updated: ${filepath}`);
+  logReport(`Midscene - report file updated: ${filepath}`);
 }
 
 type NormalizeFilePathsOptions = {

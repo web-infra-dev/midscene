@@ -27,6 +27,196 @@ const createConfig = (
 
 describe('test project config', () => {
   it.each([
+    [1, false],
+    [3, false],
+    [1, true],
+    [3, true],
+  ] as const)(
+    'explains the removed limit %i with explicit projects=%s',
+    async (limit, hasExplicitProjects) => {
+      const projects = hasExplicitProjects
+        ? 'projects: [{ name: "web", maxConcurrentFiles: 1 }, { name: "android", maxConcurrentFiles: 1 }],'
+        : '';
+      const { path } = createConfig(`export default {
+        test: { maxConcurrency: ${limit} },
+        ${projects}
+      };`);
+      const error = await loadTestProject(path).catch((error) => error);
+      expect(error).toBeInstanceOf(TypeError);
+      expect(error.message).toContain(
+        'test.maxConcurrency is no longer supported',
+      );
+      expect(error.message).toContain(
+        'project concurrency, not file concurrency',
+      );
+      expect(error.message).toContain(`maxConcurrentProjects: ${limit}`);
+      const fileLimit = hasExplicitProjects ? limit : 1;
+      expect(error.message).toContain(`maxConcurrentFiles: ${fileLimit}`);
+      expect(error.message).toContain(
+        hasExplicitProjects
+          ? 'projects[].maxConcurrentFiles to 1'
+          : 'implicit default project keeps running files sequentially',
+      );
+      expect(error.message).toContain('fileSetup');
+      expect(error.message).toContain('https://midscenejs.com/');
+
+      const migrated = createConfig(`export default {
+        test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${fileLimit} },
+        ${projects}
+      };`);
+      const loaded = await loadTestProject(migrated.path);
+      expect(loaded.test.maxConcurrentProjects).toBe(limit);
+      expect(loaded.test.maxConcurrentFiles).toBe(fileLimit);
+      expect(
+        loaded.projects.map((project) => project.maxConcurrentFiles),
+      ).toEqual(hasExplicitProjects ? [1, 1] : [1]);
+      expect(loaded.projects.every((project) => !project.fileSetup)).toBe(true);
+    },
+  );
+
+  it.each([
+    [{}, 1, 1],
+    [{ maxConcurrentFiles: 4 }, 4, 1],
+    [{ maxConcurrentFiles: null }, null, 1],
+    [{ maxConcurrentProjects: 2 }, 1, 2],
+    [{ maxConcurrentProjects: null }, 1, null],
+    [{ maxConcurrentFiles: 3, maxConcurrentProjects: 2 }, 3, 2],
+    [{ maxConcurrentFiles: null, maxConcurrentProjects: null }, null, null],
+  ])(
+    'defaults the two limits independently: %j',
+    async (test, files, projects) => {
+      const { path } = createConfig(`export default {
+      test: ${JSON.stringify(test)},
+      fileSetup: { name: 'file', setup() {} },
+    };`);
+      expect((await loadTestProject(path)).test).toMatchObject({
+        maxConcurrentFiles: files,
+        maxConcurrentProjects: projects,
+      });
+    },
+  );
+
+  it('allows file setup, local limits and timeouts with default global limits', async () => {
+    const { path } = createConfig(`export default {
+      test: { setupTimeout: 100, teardownTimeout: 200 },
+      projects: [{
+        name: 'web', maxConcurrentFiles: 4,
+        fileSetup: { name: 'file', setup() {} },
+      }],
+    };`);
+    const loaded = await loadTestProject(path);
+    expect(loaded.test).toMatchObject({
+      maxConcurrentFiles: 1,
+      maxConcurrentProjects: 1,
+      setupTimeout: 100,
+      teardownTimeout: 200,
+    });
+    expect(loaded.projects[0].maxConcurrentFiles).toBe(1);
+  });
+
+  it('retains local device limits when the global file limit is removed', async () => {
+    const { path } = createConfig(`export default {
+      test: { maxConcurrentFiles: null },
+      projects: [
+        { name: 'web', fileSetup: { name: 'file', setup() {} } },
+        { name: 'android', maxConcurrentFiles: 1 },
+      ],
+    };`);
+    expect(
+      (await loadTestProject(path)).projects.map((p) => p.maxConcurrentFiles),
+    ).toEqual([Number.POSITIVE_INFINITY, 1]);
+  });
+
+  it('caps local file limits without executing setup', async () => {
+    const { path } = createConfig(`
+      const fileSetup = { name: 'file', setup() { throw new Error('must not run during validation'); } };
+      export default {
+        test: { maxConcurrentFiles: 3 },
+        projects: [
+          { name: 'inherited', fileSetup },
+          { name: 'capped', maxConcurrentFiles: 9, fileSetup },
+          { name: 'serial', maxConcurrentFiles: 1 },
+        ],
+      };
+    `);
+    const loaded = await loadTestProject(path);
+    expect(loaded.test).toMatchObject({
+      maxConcurrentFiles: 3,
+      setupTimeout: 120_000,
+      teardownTimeout: 30_000,
+    });
+    expect(
+      loaded.projects.map((project) => project.maxConcurrentFiles),
+    ).toEqual([3, 3, 1]);
+    expect(loaded.projects[0].fileSetup?.name).toBe('file');
+  });
+
+  it('supports file setup on the implicit Project and serial migration without it', async () => {
+    const implicit = createConfig(`export default {
+      test: { maxConcurrentFiles: 2, setupTimeout: 500, teardownTimeout: 200 },
+      fileSetup: { name: 'file', setup() { return {}; } },
+    };`);
+    expect((await loadTestProject(implicit.path)).projects[0]).toMatchObject({
+      name: 'default',
+      maxConcurrentFiles: 2,
+      fileSetup: { name: 'file' },
+    });
+    const serial = createConfig(
+      'export default { test: { maxConcurrentFiles: 1 } };',
+    );
+    expect(
+      (await loadTestProject(serial.path)).projects[0].fileSetup,
+    ).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'test: { maxConcurrentFiles: 1, maxConcurrency: 1 }',
+      'test.maxConcurrency is no longer supported',
+    ],
+    [
+      'test: { maxConcurrentFiles: 0 }',
+      'test.maxConcurrentFiles must be a positive integer',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1.5 }',
+      'test.maxConcurrentFiles must be a positive integer',
+    ],
+    [
+      "test: { maxConcurrentFiles: '3' }",
+      'test.maxConcurrentFiles must be a positive integer',
+    ],
+    ['test: { maxConcurrentFiles: 2 }', 'fileSetup is required'],
+    ['test: { maxConcurrentFiles: null }', 'fileSetup is required'],
+    [
+      'test: { maxConcurrentFiles: 2 }, projects: [{ name: "web", files: { include: ["one.yaml"] } }]',
+      'fileSetup is required',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1, setupTimeout: 0 }',
+      'test.setupTimeout must be a positive integer',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1, teardownTimeout: -1 }',
+      'test.teardownTimeout must be a positive integer',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1 }, projects: [{ name: "web", maxConcurrentFiles: 0 }]',
+      'projects[0].maxConcurrentFiles must be a positive integer',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1 }, fileSetup: { name: "file", setup() {} }, projects: [{ name: "web" }]',
+      'fileSetup cannot be used together with projects',
+    ],
+  ])(
+    'rejects invalid file concurrency configuration: %s',
+    async (source, message) => {
+      const { path } = createConfig(`export default { ${source} };`);
+      await expect(loadTestProject(path)).rejects.toThrow(message);
+    },
+  );
+
+  it.each([
     ['output: { report: { enabled: false } }', 'output.report'],
     ['output: { report: { fileName: "custom" } }', 'output.report'],
     ['output: { report: { overwrite: true } }', 'output.report'],
@@ -180,13 +370,15 @@ describe('test project config', () => {
       {
         projectId: 'project-0',
         name: 'default',
+        maxConcurrentFiles: 1,
         tags: { include: [], exclude: [] },
         retry: 0,
         variables: {},
         nodes: expect.any(NodeRegistry),
       },
     ]);
-    expect(loaded.test.maxConcurrency).toBe(1);
+    expect(loaded.test.maxConcurrentFiles).toBe(1);
+    expect(loaded.test.maxConcurrentProjects).toBe(1);
   });
 
   it('defaults omitted global and Project Nodes to empty registries', async () => {
@@ -351,7 +543,7 @@ describe('test project config', () => {
             files: { include: ['ios/**/*.yaml'], exclude: [] },
           },
         ],
-        test: { maxConcurrency: 2, bail: 2, testTimeout: 30000 },
+        test: { maxConcurrentProjects: 2, bail: 2, testTimeout: 30000 },
         output: {
           reportDir: './out/report',
         },
@@ -390,7 +582,10 @@ describe('test project config', () => {
       retry: 0,
     });
     expect(loaded.test).toEqual({
-      maxConcurrency: 2,
+      maxConcurrentFiles: 1,
+      maxConcurrentProjects: 2,
+      setupTimeout: 120_000,
+      teardownTimeout: 30_000,
       bail: 2,
       testTimeout: 30000,
     });
@@ -488,28 +683,28 @@ describe('test project config', () => {
     ],
     [
       'zero max concurrency',
-      'test: { maxConcurrency: 0 }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: 0 }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'negative max concurrency',
-      'test: { maxConcurrency: -1 }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: -1 }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'fractional max concurrency',
-      'test: { maxConcurrency: 1.5 }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: 1.5 }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'string max concurrency',
-      `test: { maxConcurrency: '2' }`,
-      'test.maxConcurrency must be a positive integer',
+      `test: { maxConcurrentProjects: '2' }`,
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'infinite max concurrency',
-      'test: { maxConcurrency: Infinity }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: Infinity }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'negative bail',

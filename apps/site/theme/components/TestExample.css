@@ -1,0 +1,20 @@
+.home-example .home-feature__header {
+  display: block;
+}
+
+.home-example .home-feature__heading-block h2 {
+  white-space: normal;
+}
+
+.home-example__code {
+  min-width: 0;
+}
+
+.home-example__code .rp-codeblock {
+  margin: 0;
+}
+
+.home-example__code pre {
+  font-size: 14px;
+  line-height: 1.8;
+}

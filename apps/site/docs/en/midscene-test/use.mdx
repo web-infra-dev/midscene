@@ -1,38 +1,68 @@
 # Create and use test projects
 
-This guide starts with project creation, then covers running an example, learning the available test operations, writing YAML cases, and inspecting results. If you already have a native Test project, start with [Understand available test operations](#understand-available-test-operations).
+This guide starts with project creation, then covers running an example, learning the available test operations, writing YAML cases, and inspecting results. If you already have a Midscene Test project, start with [Understand available test operations](#understand-available-test-operations).
 
 For the overall design, see [Midscene Test overview](./overview). To implement business operations, see [Develop custom Nodes](./extend). For runtime environments and execution settings, see [Configure test projects](./configuration).
-
-:::info Existing legacy YAML projects
-Here, “legacy YAML” specifically means `tasks/flow` cases and YAML batch configuration executed by `midscene`; it does not include native `cases/steps` Test files. The legacy path receives compatibility maintenance and necessary fixes only, with no new capabilities. Existing projects can continue to run, while new projects and cases should use Midscene Test. Both paths share the execution kernel and new report page. See [Migrate to Midscene Test](../migrate-to-midscene-test) for command boundaries and field mappings.
-:::
 
 ## Create a project
 
 ### 1. Generate the project and install dependencies
 
-Prepare Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm, then create a Web test project:
+Prepare Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm. For guided creation, run:
+
+```bash
+pnpm dlx @midscene/test create
+```
+
+The command prompts for a project directory, platform, package manager, and whether to install dependencies. You can also specify these options directly. For example, create a Web test project with pnpm:
 
 ```bash
 pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
 cd my-tests
 ```
 
-Follow the prompt to install dependencies. The command generates platform configuration, an example case, and a Node Spec. The main files are:
+The available arguments are:
+
+| Argument | Description |
+| --- | --- |
+| `[directory]` | Project directory, relative to the current directory or an absolute path. Use `.` for the current directory. If omitted, the command prompts for it. Existing files are not overwritten. |
+| `--platform <value>` | Platform: `web` (Playwright), `android`, `ios`, `harmony` (HarmonyOS), or `computer` (desktop). If omitted, the command prompts for it. |
+| `--package-manager <value>` | Package manager: `npm` or `pnpm`. If omitted, the command prompts in an interactive terminal; otherwise, it detects the invoking package manager and falls back to `npm`. |
+| `--yes`, `-y` | Disable prompts and install dependencies. You must supply the directory and `--platform`. Combine with `--skip-install` to generate files only. |
+| `--skip-install` | Generate files without installing dependencies or generating a Node Spec. Run the install command later to generate the Spec. |
+| `--help`, `-h` | Show command help and examples. |
+
+Each platform currently has one starter, selected with `--platform`. All starters use native `cases/steps` Test files. In a non-interactive environment such as CI, you must supply the directory and `--platform`; dependencies are installed unless `--skip-install` is set.
+
+Common examples:
+
+```bash
+# Create an iOS project and install dependencies without prompts
+pnpm dlx @midscene/test create my-ios-tests --platform ios --package-manager pnpm --yes
+
+# Generate Web project files only
+pnpm dlx @midscene/test create my-web-tests --platform web --package-manager pnpm --skip-install
+
+# Show all arguments
+pnpm dlx @midscene/test create --help
+```
+
+Follow the prompt to install dependencies. The command generates platform configuration and example cases; installation also generates the Node Spec. A Web project contains these main files:
 
 ```text
 my-tests/
-├── cases/example.yaml          # Example case
+├── cases/todo.yaml             # TodoMVC cases
+├── nodes/todo.ts               # Web custom Nodes for setup, checks, and capture
 ├── midscene.config.ts          # Platform configuration and Node registration
-├── midscene-node-spec.web.md  # Node Spec generated after installation
+├── midscene-node-spec.web.md    # Node Spec generated after installation
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
-└── README.md
+├── README.md
+└── README.zh.md
 ```
 
-Creation and spec generation do not run tests, so this step does not require a model API Key, browser, or device. For all arguments, run `pnpm dlx @midscene/test create --help`.
+The other platform starters define `todo.setup` in `midscene.config.ts` and do not include `nodes/todo.ts`, and their Spec filenames use the selected platform name, such as `midscene-node-spec.ios.md`. Creation and spec generation do not run tests, so this step does not require a model API Key, browser, or device. The generated README explains platform setup and how to run the example.
 
 :::info Installation recovery
 If installation was skipped or failed, enter the project directory and run `pnpm install`. To regenerate the Node Spec, run `pnpm run nodes`.
@@ -40,7 +70,16 @@ If installation was skipped or failed, enter the project directory and run `pnpm
 
 ### 2. Configure the model and runtime environment
 
-Copy `.env.example` to `.env` and follow [Model configuration](../model-config) to set your model name, service URL, and API Key.
+Copy `.env.example` to `.env` and follow [Model configuration](../model-api-setup) to set your model name, service URL, and API Key.
+
+Verify model connectivity and Midscene compatibility before running tests:
+
+```bash
+pnpm exec midscene-test model verify
+pnpm exec midscene-test model verify --help
+```
+
+The command reads `.env` from the current working directory and overrides existing shell environment variables. It does not require a browser or device. See [Model advanced configuration and debugging](../model-config#verify-model-connectivity) for details.
 
 For Web, also install Chromium:
 
@@ -53,7 +92,7 @@ For other platforms, change `--platform` when creating the project and complete 
 | Platform | Argument value | Runtime prerequisites | Environment setup guide |
 | --- | --- | --- | --- |
 | Android | `android` | Connect a device. Optionally select it with `ANDROID_DEVICE_ID`. | [Setup guide](../platforms/android) |
-| iOS | `ios` | Start WebDriverAgent and configure `WDA_HOST` and `WDA_PORT`. | [Setup guide](../platforms/ios) |
+| iOS | `ios` | Start WebDriverAgent. Use `WDA_HOST` and `WDA_PORT` for direct access, or `WDA_BASE_URL` for a gateway. Set `WDA_MJPEG_URL` for a remote video stream, or `WDA_MJPEG_PORT` for a direct connection. | [Setup guide](../platforms/ios) |
 | HarmonyOS | `harmony` | Check the connection with `hdc list targets`. Optionally set `HARMONY_DEVICE_ID`; set `HDC_HOME` if HDC is not on PATH. | [Setup guide](../platforms/harmonyos) |
 | Desktop | `computer` | Install dependencies and grant permissions. Optionally set `COMPUTER_DISPLAY_ID`. Headless Linux also requires Xvfb and `MIDSCENE_COMPUTER_HEADLESS_LINUX`. | [Setup guide](../platforms/desktop) |
 
@@ -63,9 +102,11 @@ For other platforms, change `--platform` when creating the project and complete 
 pnpm test
 ```
 
-The Web example opens `example.com` and checks the page heading. The desktop example inspects the current screen with `aiAsk`; mobile examples use `home` followed by `aiAsk`.
+All five starters use the public React TodoMVC page to demonstrate adding, deleting, and completing tasks. The page must be reachable from the browser or device used for the test.
 
-After the run finishes, view the test run report to inspect the results of each case and step. Then edit `cases/example.yaml` to write your own cases.
+Before each case, the Web starter runs `todo.setup` to open All view, clear page storage, reload, and verify an empty list through the DOM. `todo.seed` then creates three tasks. The first case checks the initial state; the second uses AI to delete and complete tasks, then checks the result. `todo.captureState` records the page state after each case. The Android, iOS, HarmonyOS, and desktop starters use AI to create three tasks, delete one, complete another, switch to the Completed filter, and check the result. Before changing tasks, those starters run `todo.setup` to open All view and wait for the input, then use `aiAssert` to check that the list is empty, including completed tasks, and no dialog covers the page. Existing tasks are left unchanged. If the check fails, select All and delete every task, or clear only TodoMVC website data; close blocking dialogs and rerun. For model or connection errors, resolve the reported cause first. The AI check can misjudge the page; inspect the report when it fails. All starters run serially and stop after the first failed case (`test.bail: 1`), while saving reports and releasing resources.
+
+After the run finishes, view the report in `midscene_run/report/` to inspect each case and step. Then edit `cases/todo.yaml` to write your own cases, using the generated Node Spec for available operations and their inputs.
 
 ## Understand available test operations
 
@@ -75,7 +116,7 @@ Midscene Test calls each capability you can invoke from YAML a **Node**.
 
 Nodes can be called from case `steps` or from [lifecycle hooks](#define-the-execution-lifecycle) such as `beforeEach` and `afterEach`, using the same syntax.
 
-All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, and `wait` pauses for a specified duration.
+All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, `aiWaitFor` waits for an observable condition, and `wait` pauses for a specified duration.
 
 Alongside these shared capabilities, Midscene provides platform-specific operations. For example:
 
@@ -251,9 +292,11 @@ steps:
 The following fields are supported:
 
 - `timeout`: Step timeout in milliseconds.
-- `continue-on-error`: when set to `true`, Midscene Test continues with subsequent Steps in the current phase even if this Step fails. The default is `false`.
+- `continue-on-error`: when set to `true`, allows subsequent Steps in the current phase to run after this Step fails. The default is `false`. Unfinished operations or resource cleanup problems still stop execution.
 
 `continue-on-error` controls only whether execution continues. If any Step fails, the Case's final status is `failed`.
+
+A timeout does not mean the underlying operation has stopped. Before continuing with subsequent Steps in the same phase, the framework waits for cancelled operations to finish, for up to 30 seconds by default. If they remain unfinished, later Steps do not start. This wait is recorded separately and does not consume the next Step's timeout budget. Once the operation finishes, the Agent can be used again, but the case must still verify or reset page and business state. See [Timeouts and cancellation](./configuration#timeouts-and-cancellation).
 
 ### Use Project variables and environment variables
 
@@ -290,7 +333,7 @@ Framework maintainers configure `tags.include` and `tags.exclude` for each Execu
 
 ## Define the execution lifecycle
 
-This section covers the lifecycle of a single YAML file. For the full relationship between project `setup`, file hooks, cases, and cleanup, see [Project, file, and case lifecycle](./configuration#project-file-and-case-lifecycle).
+`beforeAll` runs after `setup` and `fileSetup`, when configured, using the prepared `context`. See [Project lifecycle](./configuration#setup-filesetup-and-beforeall) for their roles. This section covers YAML hooks.
 
 ### Setup and cleanup steps
 
@@ -341,20 +384,33 @@ beforeAll
 afterAll
 ```
 
-When retries are configured, a failed case reruns `beforeEach → steps → afterEach` within the retry limit before execution continues to subsequent cases. A retry does not rerun `beforeAll`; `afterAll` still runs once at the end of the file.
+When retries are configured, a failed case reruns `beforeEach → steps → afterEach` within the retry limit after cleanup completes and no operations remain running, before execution continues to subsequent cases. A retry does not rerun `beforeAll`; `afterAll` still runs once at the end of the file. The retry count is an upper limit: unfinished operations, pending cleanup, or failed cleanup stop retries early.
 
 ### Handling failures
 
-- If `beforeEach` fails, the current case's `steps` are skipped, but `afterEach` still runs.
-- If the case's `steps` fail, `afterEach` still runs.
-- If `beforeAll` fails, the file's cases are marked `not-run`, but `afterAll` still runs.
-- Failures in `afterEach` or `afterAll` are recorded as failures; cleanup errors are not ignored.
+| Failure location | What happens next |
+| --- | --- |
+| Project `setup` | Skip the project's files and attempt registered project cleanup |
+| `fileSetup` | Skip the current file's hooks and cases, and attempt registered file cleanup |
+| `beforeAll` | Mark the file's cases as `not-run`, but still run `afterAll` |
+| `beforeEach` or case `steps` | Skip the current case's remaining body steps, but still run `afterEach` |
+| `afterEach` or `afterAll` | Record a failure; cleanup-step errors are not ignored |
 
-By default, a failed step stops the remaining steps in that phase. Set [`continue-on-error`](#configure-timeouts-and-error-handling) to continue with later steps in the same phase; this does not turn a failure into a success. Cleanup Nodes should handle partially completed setup.
+A failed step skips the remaining steps in its phase by default. Set [`continue-on-error`](#configure-timeouts-and-error-handling) to continue, while keeping the failed result. Cleanup Nodes should handle partially completed preparation.
 
-A failed Case does not prevent the next Case from running by default. Use `test.bail` to stop scheduling new work after a failed-case threshold. Put file-wide prerequisites in `beforeAll`; if they fail, the file's Cases do not run. Keep dependent business steps in a single Case rather than relying on another Case's success.
+A failed case does not prevent the next case from running by default. Set `test.bail` to skip later cases and retries after a failed-case threshold; the current attempt finishes before cleanup. Cancelling the run instead requests that running operations stop. Keep dependent business steps in the same case.
 
-Project setup manages browser and Agent resources; see [Create and clean up shared resources with setup](./configuration#create-and-clean-up-shared-resources-with-setup). For resources created inside a Node, see [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup).
+Resource failures or failed or unfinished registered cleanup stop retries and later cases in the current file. Whether other files continue depends on the sharing scope:
+
+| Situation | Affected scope |
+| --- | --- |
+| A file's exclusive device fails, and operations and cleanup have finished | With `fileSetup`, other independent files can continue, subject to `bail` |
+| An explicitly reported shared project resource failure | Stop other files in that project; without `fileSetup`, resource failures or cleanup problems also stop the project |
+| Operations or cleanup remain unfinished | Stop starting all new files |
+
+An ordinary `afterEach` step failure remains a case failure and can be retried after operations and registered cleanup finish. Run infrastructure errors, such as result publication failures, cancel the entire run.
+
+See [Create and clean up shared resources with setup](./configuration#create-and-clean-up-shared-resources-with-setup) for resource configuration, and [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup) for cleanup inside Nodes.
 
 ## Run tests
 
@@ -396,16 +452,7 @@ To generate the Node Spec for a specific Execution Project, also use `--project`
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-### Keep unmigrated legacy YAML on the legacy command
-
-Run top-level `tasks/flow` files and legacy YAML batch configuration with `midscene`:
-
-```bash
-pnpm exec midscene ./legacy-flow.yaml
-pnpm exec midscene --config ./legacy-batch.yaml
-```
-
-`midscene-test` does not auto-detect or execute these files, and it does not accept legacy batch configuration or legacy CLI options. Convert a complete file to `cases/steps` before running it with `midscene-test`. Both kinds of files may coexist in separate directories while a repository is being migrated, but one command invocation must select only one format. See [Migrate to Midscene Test](../migrate-to-midscene-test) for migration steps and field mappings.
+### Result output
 
 Use `--result-dir` to write structured run results to a specific directory:
 
@@ -418,6 +465,58 @@ The CLI exits with code `1` when a test case fails, a document cannot be parsed,
 ## View test results
 
 After each run, the CLI prints the results and a `Report:` path. Open the HTML report to inspect Projects, Cases, retry attempts, screenshots, Step input/output, errors, and associated Agent traces.
+
+The summary and result bar show final outcomes: **Passed**, **Failed**, and **Not run**. Passed includes Cases that recovered after earlier failed attempts. An outlined portion inside the green Passed segment represents those recovered Cases, with a **passed after retry** count in the legend. This is a subset of Passed and is never counted again as a separate outcome. Run metadata, Project counts, and File counts appear beside the summary.
+
+The **Test Report** overview shows **Project → File → Case**. The left navigation groups Projects in the order Failed, Passed, and Not run. Each group shows its Project count; the Projects heading has no count. Each Project lists its Case total and nonzero final outcome counts. Long names and summaries are truncated; hover to read the full text. Recovered Projects, Files, and Cases keep their green Passed status. An amber circular warning beside affected Project and Case names explains **passed after retry** on hover or keyboard focus. Whole-file retry history remains in File attention and the Project warning without marking every always-passing Case as recovered.
+
+Use the button beside the status filters to expand or collapse visible Files in the selected Project. Expansion for filtered-out Files and other Projects is preserved. Files with failures, scope errors, or recovered attempts start expanded. Empty and collection-failed Files remain visible. File errors appear beside their File, and Project setup or cleanup errors appear under the Project heading. Passing Cases do not override File or Project errors.
+
+**Compact** shows Case names, final results, attempt counts, and durations. **Detailed** adds screenshot timelines and a short failure or not-run summary. Earlier failures are identified as earlier attempts, without changing the final result. Opening a passed Case shows its final successful attempt; select another attempt to inspect its history. Clicking an earlier-failure summary opens the corresponding failed Step, and clicking a screenshot opens its Step.
+
+Search finds Projects, Files, Cases, and error details across the report. Only matching Projects remain in the navigation. The **All / Failed / Passed / Not run** checkboxes beside the selected Project heading filter that Project; multiple selections are combined with OR. **Clear filters** clears the search and restores All:
+
+- **Passed** includes every finally successful Case, whether or not an earlier attempt failed. Warning icons and attempt history provide diagnostic context, not another status category.
+- **Failed** includes final Case failures and keeps matching File or Project errors visible. A blocked, unexecuted Case remains Not run even when shown as context for a failed scope.
+- **Not run** selects Cases that were never executed, including those blocked by setup or scheduling failures.
+- A File cleanup failure can appear with all Cases passed and a 100% Case pass rate. Its error is still a File failure; it does not invent a failed Case.
+- Collection failures without collected Cases remain visible without fabricating a Case count or pass rate.
+
+In a multi-Case report, click the floating menu button on the left (**View all cases**) to open the Case directory. The panel opens below the button without dimming the report. It lists all Cases grouped by Project regardless of Overview filters, with each result and source file; the current Case is highlighted. Select another Case to navigate directly, including across Projects. Failed Cases open at their failed Step. Opening the directory focuses the current Case. Use Tab to move between controls and Escape to close it and return focus to the menu button. Click the menu button again or close the panel to keep the current Case. Returning to Overview restores the original filters, sort, expansion, and scroll position. Single-Case reports omit this button.
+
+In a Case, the **Execution** header groups **Visual / YAML**, the **Attempts** dropdown (when multiple attempts exist), and Step status counts. YAML view is available when the report includes a source YAML snapshot. Visual view places the screenshot timeline above a shared Step list and the selected Step's details. Lifecycle groups are separated by dividers in the list. On wide screens, drag the divider to resize the Step list, use arrow keys after focusing it, or double-click to reset it. Failed Steps in the displayed attempt or File scope are selected and brought into view. Earlier failed attempts remain available through Attempts and explicit failure links.
+
+The selected Step has **Information** and **Events** tabs, plus **Record** when recording or screenshot evidence is available:
+
+- **Record** shows the associated Agent execution or a captured screenshot. Hover over timeline thumbnails to preview them; click one to select its owning Step.
+- **Information** presents Input, Output, and Stable IDs as aligned rows. Configuration, planned input, and **Information captured at** appear when available. The capture time uses your browser's local time zone, includes milliseconds and a UTC offset, and is not necessarily the Step's end time. Hover over it for the original UTC timestamp and a reminder to check **Events** for later completion or cancellation.
+- **Events** shows Time, Operation, Event, and Status in a table. If detailed operation events are unavailable, Step start and end times are shown when known. Steps with no events show an empty state.
+
+The **Operation** column describes what is running. Hover over an operation or event label to see its original log name and an explanation. Operation hints also include the Operation ID for matching log entries.
+
+| Operation label | Original name | Meaning |
+| --- | --- | --- |
+| Run step | `node` | The entire Step, including any Agent operations. Applies to both built-in and custom Nodes. |
+| Get Agent | `acquisition` | Get the Agent used by this Step; an existing Agent may be reused. |
+| Run Agent operation | `resource` | Run an operation through the Agent, such as clicking, asserting, or recording a screenshot. |
+| Wait for app readiness | `readiness` | Wait for the configured readiness callback after an action. |
+| Clean up resources | `cleanup` | Run cleanup for resources used during execution. |
+
+These operations are not consecutive, non-overlapping stages. **Run step** includes its internal operations, so do not add their durations to the Step's total duration. For example, Runner's `wait` and custom Nodes that do not use the Agent adapter only have **Run step** events. An `aiAct` or `aiAssert` Step typically gets an Agent, then runs an Agent operation inside **Run step**. Planning, locating, and individual UI actions are shown in **Record**.
+
+| Event label | Original name | Meaning |
+| --- | --- | --- |
+| Started | `started` | The operation has started. |
+| Finished | `settled` | The operation has ended; check Status for its outcome. |
+| Result returned | `runner-returned` | The Runner has returned the Step result. The underlying operation may still be running. |
+| Cancellation requested | `cancel-requested` | Cancellation was requested; the operation may still be running. |
+| Cleanup postponed | `cleanup-deferred` | Cleanup was postponed while unfinished operations still use the resources. |
+
+**Execution still running** and a **pending** badge mean the operation had not ended when the Runner returned its result. This can happen on timeout or cancellation and does not describe its state after the report's capture boundary. A Status of `-` means the event has no outcome, not that it failed.
+
+Step errors appear above these tabs. Expand **details** to view the error type, code, and failed Node. Stacks share one scrollable panel: the original error stack appears first, followed by the wrapping errors and framework stack. Other diagnostics and related errors remain available below. Stacks are hidden while details are collapsed and are included when copying issue details. Sensitive values are redacted; diagnostics exceeding the report size or cause-depth limits are marked as truncated. Use **View all … issues** when several issues exist. Case and lifecycle cleanup errors remain above Execution. The header's theme button switches between light and dark themes.
+
+The report preserves the test plan captured before execution, executed and unexecuted Steps, reasons Steps did not run, and reasons retries stopped. Time spent waiting for an earlier operation is recorded separately from Step execution time. The report is a snapshot at publication: `cleanup pending` means cleanup was unfinished at that point and resources remain quarantined. Cleanup that completes later does not update the published HTML.
 
 Reports are saved to:
 

@@ -12,7 +12,15 @@ export type { WebElementInfo };
 
 export type WebPageAgentOpt = AgentOpt & WebPageOpt;
 export type WebPageOpt = {
+  /**
+   * Timeout for the built-in check that the page's html element is available.
+   * Default: 5000ms; 0 skips the check. Does not guarantee application readiness.
+   */
   waitForNavigationTimeout?: number;
+  /**
+   * Timeout for Puppeteer's default post-action network-idle check.
+   * Default: 2000ms; 0 skips the check. Ignored for Playwright.
+   */
   waitForNetworkIdleTimeout?: number;
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   enableTouchEventsInActionSpace?: boolean;
