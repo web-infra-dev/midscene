@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fixtureApi, scenario } from '../evaluation/fixtures.mjs';
 import { digest, policyDigest } from '../src/config.mjs';
 import { collectContext } from '../src/context.mjs';
 import { Controller } from '../src/controller.mjs';
@@ -9,6 +10,7 @@ import { inspectBundle } from '../src/inspect.mjs';
 import {
   extractRequirements,
   planFromContext,
+  planVerification,
   requestPlan,
   reviewAcceptancePlan,
   validatePlan,
@@ -529,5 +531,34 @@ test('visual assertions cannot rely on a previous assertion to define the expect
   assert.throws(() => validatePlan(draft, context, automatic), /independently/);
   draft.criteria[0].steps.at(-1).prompt =
     'The text Enter a note before saving is visible and the saved notes list is empty.';
+  assert.equal(validatePlan(draft, context, automatic).plan.status, 'ready');
+});
+
+test('missing concrete requirements produce clarification instead of a planner exception', async () => {
+  const fixture = scenario('ambiguous-demand');
+  const result = await planVerification({
+    ...fixtureApi(fixture.html, fixture.demand, sha),
+    policy: automatic,
+    requirementsComplete: async () => ({ raw: { requirements: [] } }),
+    complete: async () =>
+      assert.fail('Do not invent acceptance criteria without requirements'),
+  });
+  assert.equal(result.plan.status, 'needs-clarification');
+  assert.equal(result.plan.criteria.length, 0);
+  assert.deepEqual(
+    result.plan.unverified.map((item) => item.path),
+    ['index.html'],
+  );
+  assert.ok(result.plan.questions[0].includes('observable result'));
+});
+
+test('initial URL navigation is rejected while assertion-only page checks are valid', () => {
+  const draft = raw();
+  draft.criteria[0].steps[0] = {
+    type: 'aiAct',
+    prompt: 'Navigate to /profile and wait for loading.',
+  };
+  assert.throws(() => validatePlan(draft, context, automatic), /runner opens/);
+  draft.criteria[0].steps = [draft.criteria[0].steps.at(-1)];
   assert.equal(validatePlan(draft, context, automatic).plan.status, 'ready');
 });

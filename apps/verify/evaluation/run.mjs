@@ -222,12 +222,12 @@ export async function runEvaluation({
   const rows = run.observations
     .map(
       (item) =>
-        `| ${item.caseId} | ${corpus.cases.find((c) => c.id === item.caseId).truth} | ${item.outcome} | ${item.diagnosis} | [evidence](${item.evidence}) |`,
+        `| ${item.caseId} | ${corpus.cases.find((c) => c.id === item.caseId).truth} | ${item.outcome} | ${item.diagnosis} | [JSON](${item.evidence})${item.failure ? '' : ` · [Report](${item.caseId}/report.html)`} |`,
     )
     .join('\n');
   await writeFile(
     path.join(root, 'summary.md'),
-    `# Engine evaluation\n\nSynthetic fixtures; not business PR acceptance. First attempt only. Cost is not measured.\n\nEngine: ${engineSha}\n\nPlanner: ${plannerModel}; visual: ${visualModel}\n\n| Case | Ground truth | Observation | Diagnosis | Evidence |\n| --- | --- | --- | --- | --- |\n${rows}\n\nPassed: ${result.passed}. Correct: ${metrics.correct}/${metrics.totalCases}. False positives: ${metrics.falsePositive}; false negatives: ${metrics.falseNegative}; inconclusive: ${metrics.inconclusive}.\n`,
+    `# Engine evaluation\n\nSynthetic fixtures; not business PR acceptance. First attempt only. Cost is not measured.\n\nEngine: ${engineSha}\n\nPlanner: ${plannerModel}; visual: ${visualModel}\n\n| Case | Ground truth | Observation | Diagnosis | Evidence |\n| --- | --- | --- | --- | --- |\n${rows}\n\nPassed: ${result.passed}. Correct: ${metrics.correct}/${metrics.totalCases}. False positives: ${metrics.falsePositive}; false negatives: ${metrics.falseNegative}; inconclusive: ${metrics.inconclusive}.\n\nBoundary diagnosis mismatches: ${boundaryMismatches.join(', ') || 'none'}. Harness errors: ${harnessErrors.join(', ') || 'none'}.\n`,
     { flag: 'wx' },
   );
   return result;
