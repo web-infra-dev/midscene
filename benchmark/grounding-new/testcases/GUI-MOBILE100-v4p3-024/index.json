@@ -3,7 +3,7 @@
   "platform": "mobile",
   "category": {
     "item": "Basic Element",
-    "reason": "The 0.5x zoom value is explicitly visible and requires no functional inference; at a reference scale with the short side set to 360 pixels, the box is approximately 36×34 pixels, so it is classified as Element rather than Small."
+    "reason": "The 0.5x zoom value is explicitly visible and requires no functional inference; at a reference scale with the short side set to 360 pixels, the box is approximately 36×34 pixels, so it is classified as Basic Element rather than Small Target."
   },
   "instruction": {
     "en": "switch to 0.5x",

@@ -7,7 +7,7 @@
   },
   "instruction": {
     "en": "Select the top of the bar chart between 06:00 and 12:00",
-    "zh": "选择 06:00 与 12:00 之间柱状图的顶端。"
+    "zh": "选中06:00与12:00之间柱子的顶端。"
   },
   "instructionLanguage": "en",
   "groundTruth": [929.0, 508.0, 1007.0, 439.0],

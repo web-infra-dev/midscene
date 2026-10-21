@@ -3,7 +3,7 @@
   "platform": "mobile",
   "category": {
     "item": "Basic Element",
-    "reason": "The Feedback icon has an explicit application name and a complete appearance description; it is classified as Element, with purple only describing an icon of a distinct shape."
+    "reason": "The Feedback icon has an explicit application name and a complete appearance description; it is classified as Basic Element, with purple only describing an icon of a distinct shape."
   },
   "instruction": {
     "en": "A vibrant purple application icon featuring a white speech bubble with an exclamation mark, labeled 'Feedback' at the bottom",
