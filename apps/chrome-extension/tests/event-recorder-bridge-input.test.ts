@@ -105,16 +105,14 @@ const event = (
   element,
   timestamp: 1,
   hashId,
-  pageInfo: { url: 'https://example.com/', title: 'Example' },
+  pageInfo: { width: 800, height: 600 },
 });
 
 it('forwards every buffered event before acknowledging stop', async () => {
   const bridge = await setupBridge();
+  bridge.emit(event('first', 'first', { value: 'first' } as HTMLInputElement));
   bridge.emit(
-    event('first', 'first', { value: 'first' } as RecordedEvent['element']),
-  );
-  bridge.emit(
-    event('second', 'second', { value: 'second' } as RecordedEvent['element']),
+    event('second', 'second', { value: 'second' } as HTMLInputElement),
   );
   const response = await bridge.stop();
   expect(bridge.delivered.map(({ data }) => data?.value)).toEqual([
@@ -126,7 +124,7 @@ it('forwards every buffered event before acknowledging stop', async () => {
 
 it('resends an optimized input followed by a click and skips acknowledged versions on stop', async () => {
   const bridge = await setupBridge();
-  const element = { value: 'a' } as RecordedEvent['element'];
+  const element = { value: 'a' } as HTMLInputElement;
   bridge.emit(event('first', 'a', element));
   await rs.advanceTimersByTimeAsync(200);
   bridge.emit(event('updated', 'abc', element));
