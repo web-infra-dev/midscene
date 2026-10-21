@@ -1,0 +1,95 @@
+.rp-doc details.model-config-section {
+  margin: 1rem 0;
+  padding: 0;
+  border: 1px solid var(--rp-c-divider);
+  border-radius: 12px;
+  background: var(--rp-c-bg);
+  scroll-margin-top: 96px;
+}
+
+.rp-doc .model-config-section > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--rp-c-bg-soft);
+  cursor: pointer;
+  list-style: none;
+}
+
+.model-config-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.model-config-section > summary::marker {
+  content: "";
+}
+
+.model-config-section > summary:focus-visible {
+  outline: 2px solid var(--rp-c-brand);
+  outline-offset: 3px;
+}
+
+.rp-doc .model-config-section-heading h3 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 18px;
+}
+
+.model-config-section-heading {
+  min-width: 0;
+}
+
+.model-config-section-description {
+  display: block;
+  margin-top: 4px;
+  color: var(--rp-c-text-2);
+  font-size: 14px;
+}
+
+.model-config-section-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  color: var(--rp-c-brand);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.model-config-section > summary:hover .model-config-section-action {
+  text-decoration: underline;
+}
+
+.model-config-section-hide,
+.model-config-section[open] > summary .model-config-section-show {
+  display: none;
+}
+
+.model-config-section[open] > summary .model-config-section-hide {
+  display: inline;
+}
+
+.model-config-section[open] > summary .model-config-section-chevron {
+  transform: rotate(180deg);
+}
+
+.model-config-section-content {
+  padding: 4px 20px 16px;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .rp-doc .model-config-section > summary {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 16px;
+  }
+
+  .model-config-section-content {
+    padding: 4px 16px 12px;
+  }
+}
