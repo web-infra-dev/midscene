@@ -52,6 +52,7 @@ runs:
         key: midscene-node-toolcache-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.node-version }}
 
     - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: ${{ inputs.pnpm-version }}
+      shell: bash
+      env:
+        PNPM_VERSION: ${{ inputs.pnpm-version }}
+      run: bash "${{ github.action_path }}/setup-pnpm.sh"
