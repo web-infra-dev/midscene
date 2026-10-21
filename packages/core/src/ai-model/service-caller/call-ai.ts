@@ -10,7 +10,11 @@ import {
 import { type PreparedOpenAIInput, callOpenAI } from './openai/call-openai';
 import { prepareChatCompletion } from './openai/chat-completion/chat-completion';
 import { prepareResponses } from './openai/responses/responses';
-import { prepareSiwcCall } from './openai/siwc';
+import {
+  SiwcTokenExpiredError,
+  prepareSiwcCall,
+  siwcTokenManager,
+} from './openai/siwc';
 import {
   buildRequestAbortSignal,
   resolveEffectiveTimeoutMs,
@@ -209,6 +213,36 @@ async function callModelWithRetry(
       options?.abortSignal?.throwIfAborted();
       if (error instanceof NonRetryableModelCallError) {
         throw error.cause;
+      }
+      // A rejected SIWC token gets one authentication retry, independently of
+      // normal retryCount. Delivered chunks are rejected above before refreshing.
+      if (error instanceof SiwcTokenExpiredError) {
+        const refresh = async () => {
+          assert(config.openaiApiKey, 'Missing rejected SIWC access token');
+          await siwcTokenManager.refreshAccessToken(config.openaiApiKey);
+          return prepareSiwcCall(input.modelRuntime, options);
+        };
+        // Cancel only this caller's wait; other callers may share the refresh.
+        const refreshed = options?.abortSignal
+          ? await runWithAbortSignal(options.abortSignal, refresh)
+          : await refresh();
+        options?.abortSignal?.throwIfAborted();
+        try {
+          const result = await callModelOnce(
+            { ...input, ...refreshed },
+            attempt + 1,
+          );
+          return {
+            ...result,
+            totalTimeCost: Date.now() - startTime,
+            retryCount: attempt,
+          };
+        } catch (retryError) {
+          // Do not re-enter either retry path after the refreshed request fails.
+          throw retryError instanceof NonRetryableModelCallError
+            ? retryError.cause
+            : retryError;
+        }
       }
       const lastError = toError(error);
       attemptErrors.push({ attempt, error: lastError });

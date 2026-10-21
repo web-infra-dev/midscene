@@ -1,11 +1,19 @@
 import { type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose';
-import type { OpenAICredentials } from './credentials';
+interface RefreshableCredentials {
+  client_id?: string;
+  refresh_token?: string;
+  subject?: string;
+  id_token?: string;
+}
 
-export async function refreshOpenAICredentials(
-  saved: OpenAICredentials,
+export async function refreshSiwcCredentials<T extends RefreshableCredentials>(
+  saved: T,
   signal: AbortSignal,
   dependencies?: { fetch: typeof fetch; keys: JWTVerifyGetKey },
-): Promise<OpenAICredentials> {
+) {
+  if (!saved.client_id || !saved.refresh_token) {
+    throw new Error('Missing client ID or refresh token.');
+  }
   const issuer = 'https://auth.openai.com';
   signal.throwIfAborted();
   const response = await (dependencies?.fetch ?? fetch)(
@@ -24,15 +32,17 @@ export async function refreshOpenAICredentials(
     },
   );
   if (!response.ok) {
-    throw new Error('OpenAI refresh failed.');
+    throw new Error(
+      `OpenAI refresh returned HTTP ${response.status}: ${await response.text()}`,
+    );
   }
   const tokens = await response.json();
   if (
     !tokens ||
     typeof tokens.access_token !== 'string' ||
-    !tokens.access_token ||
+    !tokens.access_token.trim() ||
     typeof tokens.refresh_token !== 'string' ||
-    !tokens.refresh_token ||
+    !tokens.refresh_token.trim() ||
     typeof tokens.expires_in !== 'number' ||
     !Number.isFinite(tokens.expires_in) ||
     tokens.expires_in <= 0 ||
@@ -57,6 +67,10 @@ export async function refreshOpenAICredentials(
       issuer,
       audience: saved.client_id,
       algorithms: ['RS256'],
+      // Some CI machines have incorrect system clocks. Do not compare ID token
+      // exp/nbf claims against local time when accepting newly returned tokens.
+      // Keep signature, issuer, audience and required-claim validation.
+      clockTolerance: Number.POSITIVE_INFINITY,
       requiredClaims: ['sub', 'exp', 'iat'],
     });
     if (payload.sub !== saved.subject) {

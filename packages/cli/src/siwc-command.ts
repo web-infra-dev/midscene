@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { refreshSiwcCredentials } from '@midscene/core/ai-model';
 import chalk from 'chalk';
 import {
   defaultCredentialsPath,
@@ -9,7 +10,6 @@ import {
   saveRegistration,
 } from './openai/credentials';
 import { loginWithOpenAI } from './openai/login';
-import { refreshOpenAICredentials } from './openai/refresh';
 
 const USAGE = `Usage:
   midscene model siwc login [--no-open] [--port <port>]
@@ -104,7 +104,7 @@ export async function runSiwcCommand(
     const saved = await readRegistration(credentialsPath);
     const credentials = await (async () => {
       if (action === 'refresh') {
-        return refreshOpenAICredentials(
+        return refreshSiwcCredentials(
           requireCredentials(saved),
           controller.signal,
         );

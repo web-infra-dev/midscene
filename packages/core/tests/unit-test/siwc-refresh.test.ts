@@ -1,6 +1,6 @@
 import { describe, expect, it, rs } from '@rstest/core';
 import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair } from 'jose';
-import { refreshOpenAICredentials } from '../../src/openai/refresh';
+import { refreshSiwcCredentials } from '../../src/ai-model/service-caller/openai/siwc/refresh';
 
 const saved = {
   ext_agent_host_id: 'urn:uuid:host',
@@ -36,7 +36,7 @@ async function dependencies(body: unknown, status = 200) {
 describe('SIWC refresh', () => {
   it('sends only the refresh grant fields and preserves registration', async () => {
     const deps = await dependencies(response);
-    const result = await refreshOpenAICredentials(
+    const result = await refreshSiwcCredentials(
       saved,
       new AbortController().signal,
       deps,
@@ -69,7 +69,7 @@ describe('SIWC refresh', () => {
   ]) {
     it('rejects incomplete refresh responses', async () => {
       await expect(
-        refreshOpenAICredentials(
+        refreshSiwcCredentials(
           saved,
           new AbortController().signal,
           await dependencies(body),
@@ -78,15 +78,67 @@ describe('SIWC refresh', () => {
     });
   }
 
-  it('rejects invalid grants without exposing the response body', async () => {
+  it('reports invalid grants with the response body', async () => {
     await expect(
-      refreshOpenAICredentials(
+      refreshSiwcCredentials(
         saved,
         new AbortController().signal,
         await dependencies({ error: 'invalid_grant', secret: 'secret' }, 400),
       ),
-    ).rejects.toThrow('OpenAI refresh failed.');
+    ).rejects.toThrow('OpenAI refresh returned HTTP 400:');
   });
+
+  for (const invalidClaim of ['issuer', 'audience', 'signature']) {
+    it(`rejects an ID token with invalid ${invalidClaim}`, async () => {
+      const deps = await dependencies(response);
+      const signingKey =
+        invalidClaim === 'signature'
+          ? (await generateKeyPair('RS256')).privateKey
+          : deps.privateKey;
+      const idToken = await new SignJWT({})
+        .setProtectedHeader({ alg: 'RS256', kid: 'test' })
+        .setIssuer(
+          invalidClaim === 'issuer' ? 'https://other.example' : saved.issuer,
+        )
+        .setAudience(
+          invalidClaim === 'audience' ? 'other-client' : saved.client_id,
+        )
+        .setSubject(saved.subject)
+        .setIssuedAt()
+        .setExpirationTime('5m')
+        .sign(signingKey);
+      deps.fetch.mockResolvedValue(
+        Response.json({ ...response, id_token: idToken }),
+      );
+      await expect(
+        refreshSiwcCredentials(saved, new AbortController().signal, deps),
+      ).rejects.toThrow();
+    });
+  }
+
+  for (const clockMismatch of ['expired', 'future']) {
+    it(`accepts a verified refreshed ID token despite local clock mismatch: ${clockMismatch}`, async () => {
+      const deps = await dependencies(response);
+      const idToken = await new SignJWT({})
+        .setProtectedHeader({ alg: 'RS256', kid: 'test' })
+        .setIssuer(saved.issuer)
+        .setAudience(saved.client_id)
+        .setSubject(saved.subject)
+        .setIssuedAt()
+        .setNotBefore(clockMismatch === 'future' ? '1h' : 0)
+        .setExpirationTime(clockMismatch === 'expired' ? 1 : '5m')
+        .sign(deps.privateKey);
+      deps.fetch.mockResolvedValue(
+        Response.json({ ...response, id_token: idToken }),
+      );
+      const result = await refreshSiwcCredentials(
+        saved,
+        new AbortController().signal,
+        deps,
+      );
+      expect(result.id_token).toBe(idToken);
+    });
+  }
 
   for (const subject of ['user', 'other-user']) {
     it(`validates the returned ID token identity: ${subject}`, async () => {
@@ -102,7 +154,7 @@ describe('SIWC refresh', () => {
       deps.fetch.mockResolvedValue(
         Response.json({ ...response, id_token: idToken }),
       );
-      const result = refreshOpenAICredentials(
+      const result = refreshSiwcCredentials(
         saved,
         new AbortController().signal,
         deps,

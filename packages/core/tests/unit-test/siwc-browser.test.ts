@@ -1,6 +1,6 @@
 import {
   SIWC_AUTH_STORAGE_KEY,
-  readSiwcAccessToken,
+  siwcTokenManager,
 } from '@/ai-model/service-caller/openai/siwc';
 import { afterEach, expect, it, rs } from '@rstest/core';
 
@@ -26,14 +26,14 @@ it('reads Chrome extension storage in a browser without Node.js APIs', async () 
       },
     },
   });
-  expect(await readSiwcAccessToken()).toBe('extension-token');
+  expect(await siwcTokenManager.getAccessToken()).toBe('extension-token');
 });
 
 it.each([undefined, {}, { runtime: {} }])(
   'reports unsupported ordinary browser environments',
   async (chrome) => {
     rs.stubGlobal('chrome', chrome);
-    await expect(readSiwcAccessToken()).rejects.toThrow(
+    await expect(siwcTokenManager.getAccessToken()).rejects.toThrow(
       'Node.js or the Midscene Chrome extension',
     );
   },

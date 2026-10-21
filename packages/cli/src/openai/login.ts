@@ -1,12 +1,13 @@
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose';
-
-const ISSUER = 'https://auth.openai.com';
-const RESOURCE = 'https://api.openai.com/v1';
-const SCOPES =
-  'openid profile email offline_access resource.invoke chatgpt.tokens.use.direct';
+import {
+  type SiwcLoginAttempt,
+  createSiwcAuthorization,
+  exchangeSiwcCode,
+  parseSiwcCallback,
+} from '@midscene/core/ai-model';
+import type { JWTVerifyGetKey } from 'jose';
 
 interface LoginOptions {
   hostId?: string;
@@ -27,9 +28,7 @@ export async function loginWithOpenAI(
 ) {
   const hostId = options.hostId ?? `urn:uuid:${randomUUID()}`;
   const existingClientId = options.clientId;
-  const state = randomBytes(32).toString('base64url');
-  const nonce = randomBytes(32).toString('base64url');
-  const verifier = randomBytes(32).toString('base64url');
+  const context: { attempt?: SiwcLoginAttempt } = {};
   const signal = options.signal;
   signal.throwIfAborted();
   const server = createServer();
@@ -45,38 +44,38 @@ export async function loginWithOpenAI(
           response.writeHead(404).end('Not found');
           return;
         }
-        if (
-          url.searchParams.getAll('state').length !== 1 ||
-          url.searchParams.get('state') !== state
-        ) {
-          response
-            .writeHead(400)
-            .end('Invalid login state. Use the original authorization link.');
+        if (!context.attempt) {
+          response.writeHead(400).end('Authorization has not started.');
           return;
         }
         if (consumed.value) {
           response.writeHead(409).end('Authorization already received.');
           return;
         }
-        if (url.searchParams.has('error')) {
-          consumed.value = true;
-          response
-            .writeHead(400)
-            .end('Authorization was not granted. Return to the terminal.');
-          reject(new Error('OpenAI authorization was denied or failed.'));
-          return;
-        }
-        const code = url.searchParams.get('code');
-        const clientId = url.searchParams.get('client_id') || existingClientId;
-        if (
-          !code ||
-          !clientId ||
-          clientId === 'dynamic_agent_client' ||
-          (existingClientId && clientId !== existingClientId) ||
-          url.searchParams.getAll('code').length !== 1 ||
-          url.searchParams.getAll('client_id').length > 1
-        ) {
-          response.writeHead(400).end('Invalid authorization callback.');
+        const parsed = (() => {
+          try {
+            return parseSiwcCallback(
+              new URL(
+                request.url || '/',
+                context.attempt.redirectUri,
+              ).toString(),
+              context.attempt,
+            );
+          } catch (error) {
+            response.writeHead(400).end('Invalid authorization callback.');
+            if (url.searchParams.has('error')) {
+              consumed.value = true;
+              reject(error);
+            }
+            return undefined;
+          }
+        })();
+        if (!parsed) {
+          if (!response.writableEnded) {
+            response
+              .writeHead(400)
+              .end('Invalid login state. Use the original authorization link.');
+          }
           return;
         }
         consumed.value = true;
@@ -104,7 +103,7 @@ export async function loginWithOpenAI(
   </main>
 </body>
 </html>`);
-        resolve({ code, clientId });
+        resolve(parsed);
       });
       server.on('error', reject);
     },
@@ -124,91 +123,16 @@ export async function loginWithOpenAI(
     });
     signal.throwIfAborted();
     const redirectUri = `http://127.0.0.1:${(server.address() as AddressInfo).port}/auth/callback`;
-    const authorization = new URL(`${ISSUER}/api/accounts/authorize`);
-    authorization.search = new URLSearchParams({
-      client_id: existingClientId ?? 'dynamic_agent_client',
-      ...(existingClientId ? {} : { agent_name_hint: 'Midscene' }),
-      ext_agent_host_id: hostId,
-      response_type: 'code',
-      redirect_uri: redirectUri,
-      scope: SCOPES,
-      resource: RESOURCE,
-      state,
-      nonce,
-      code_challenge_method: 'S256',
-      code_challenge: createHash('sha256').update(verifier).digest('base64url'),
-    }).toString();
-    await options.onAuthorization(authorization.toString());
-    const { code, clientId } = await callback;
-    signal.throwIfAborted();
-    const request = dependencies?.fetch ?? fetch;
-    const result = await request(`${ISSUER}/api/accounts/oauth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: clientId,
-        code,
-        code_verifier: verifier,
-        redirect_uri: redirectUri,
-        resource: RESOURCE,
-      }),
-      signal,
-      redirect: 'error',
+    const { attempt, url } = await createSiwcAuthorization({
+      hostId,
+      clientId: existingClientId,
+      redirectUri,
+      agentName: 'Midscene',
     });
-    if (!result.ok) {
-      throw new Error(
-        `OpenAI token exchange failed (HTTP ${result.status}). Run midscene model siwc login again.`,
-      );
-    }
-    const tokens = (await result.json()) as Record<string, unknown>;
-    if (
-      !tokens ||
-      typeof tokens.access_token !== 'string' ||
-      !tokens.access_token ||
-      typeof tokens.refresh_token !== 'string' ||
-      !tokens.refresh_token ||
-      typeof tokens.id_token !== 'string' ||
-      typeof tokens.scope !== 'string' ||
-      typeof tokens.expires_in !== 'number' ||
-      !Number.isFinite(tokens.expires_in) ||
-      tokens.expires_in <= 0 ||
-      typeof tokens.token_type !== 'string' ||
-      tokens.token_type.toLowerCase() !== 'bearer'
-    ) {
-      throw new Error('OpenAI returned an invalid token response.');
-    }
-    const scopes = tokens.scope.split(/\s+/);
-    if (!scopes.includes('chatgpt.tokens.use.direct')) {
-      throw new Error(
-        'ChatGPT plan usage was not authorized. Run midscene model siwc login again and grant access.',
-      );
-    }
-    const keys =
-      dependencies?.keys ??
-      createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks.json`));
-    const { payload } = await jwtVerify(tokens.id_token, keys, {
-      issuer: ISSUER,
-      audience: clientId,
-      algorithms: ['RS256'],
-      requiredClaims: ['sub', 'exp', 'iat', 'nonce'],
-    });
-    if (payload.nonce !== nonce || !payload.sub) {
-      throw new Error('OpenAI login identity or nonce did not match.');
-    }
-    signal.throwIfAborted();
-    return {
-      ext_agent_host_id: hostId,
-      client_id: clientId,
-      subject: payload.sub,
-      issuer: ISSUER,
-      ...(typeof payload.email === 'string' ? { email: payload.email } : {}),
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      id_token: tokens.id_token,
-      scopes,
-      expires_at: Date.now() + tokens.expires_in * 1000,
-    };
+    context.attempt = attempt;
+    await options.onAuthorization(url);
+    const result = await callback;
+    return await exchangeSiwcCode(attempt, result, signal, dependencies);
   } finally {
     signal.removeEventListener('abort', abort);
     server.closeAllConnections();
