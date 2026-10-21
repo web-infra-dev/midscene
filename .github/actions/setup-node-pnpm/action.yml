@@ -11,9 +11,6 @@ inputs:
     description: pnpm version to install
     required: false
     default: 9.3.0
-  registry-url:
-    description: Optional package registry to configure for authentication
-    required: false
 
 outputs:
   node-cache-hit:
@@ -46,7 +43,6 @@ runs:
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: ${{ inputs.node-version }}
-        registry-url: ${{ inputs.registry-url }}
 
     - name: Save Node.js toolcache
       if: ${{ runner.environment == 'self-hosted' && steps.node-cache.outputs.cache-hit != 'true' }}
@@ -56,7 +52,6 @@ runs:
         key: midscene-node-toolcache-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.node-version }}
 
     - name: Setup pnpm
-      shell: bash
-      env:
-        PNPM_VERSION: ${{ inputs.pnpm-version }}
-      run: bash "${{ github.action_path }}/setup-pnpm.sh"
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+      with:
+        version: ${{ inputs.pnpm-version }}

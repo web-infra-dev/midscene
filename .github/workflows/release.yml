@@ -57,15 +57,19 @@ jobs:
       with:
         token: ${{ secrets.PUSH_TO_PROTECTED_BRANCH }}
         branch: ${{ github.event.inputs.branch }}
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+    - name: Setup pnpm
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
       with:
-        node-version: '24.13.0'
         # pnpm forwards publish auth to the bundled npm CLI so Trusted
         # Publisher OIDC exchange (npm 11.x) works without an NPM_TOKEN.
         # npm now generates provenance automatically for trusted publishing,
         # so the release script should not pass an explicit --provenance flag.
-        pnpm-version: 9.15.9
+        version: 9.15.9
+
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: '24.13.0'
         registry-url: 'https://registry.npmjs.org'
 
     - name: Cache pnpm store
@@ -268,11 +272,15 @@ jobs:
       if: ${{ needs.release.outputs.is_prerelease == 'true' }}
       with:
         ref: ${{ github.event.inputs.branch }}
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+    - name: Setup pnpm
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24.13.0'
-        pnpm-version: 9.3.0
 
     - name: Cache pnpm store
       id: pnpm-cache
