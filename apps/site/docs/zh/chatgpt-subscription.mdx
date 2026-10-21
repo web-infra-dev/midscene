@@ -57,7 +57,7 @@ pnpm dlx @midscene/cli model verify
 
 - 使用 SIWC 会消耗你的订阅额度。token 消耗与订阅额度的换算以 ChatGPT 官方为准；你可以在 Midscene 报告中查看每步任务的 token 消耗。
 - 命令行授权的凭据保存在 `~/.midscene/siwc.json`，插件授权的凭据保存在插件本地存储中。Midscene 不会收集你的凭据。
-- 使用 `MIDSCENE_MODEL_AUTH_MODE="siwc"` 时，Midscene 会在运行时自动刷新 access token，Node.js 和浏览器插件均支持。如果刷新失败，请重新授权。
+- 使用 `MIDSCENE_MODEL_AUTH_MODE="siwc"` 时，Midscene 会在运行时自动刷新 access token，无需手动维护。Node.js 和浏览器插件均支持。如果刷新失败，请重新授权。
 - 命令行和浏览器插件的凭据独立保存，通过命令行刷新 token 不会更新浏览器插件中的凭据。
 - 请遵守 OpenAI 的地区限制和使用条款，参见 [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/)。
 

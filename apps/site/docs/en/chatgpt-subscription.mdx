@@ -57,7 +57,7 @@ This command uses values from `.env` to override variables with the same names i
 
 - SIWC consumes your subscription usage. ChatGPT determines how token consumption translates into plan usage. Midscene reports show token consumption for each task step.
 - CLI credentials are saved to `~/.midscene/siwc.json`; extension credentials are saved in the extension's local storage. Midscene does not collect your credentials.
-- With `MIDSCENE_MODEL_AUTH_MODE="siwc"`, Midscene refreshes access tokens at runtime in both Node.js and the browser extension. If refreshing fails, authorize again.
+- With `MIDSCENE_MODEL_AUTH_MODE="siwc"`, Midscene automatically refreshes access tokens at runtime, so you do not need to manage them manually. This is supported in both Node.js and the browser extension. If refreshing fails, authorize again.
 - The CLI and browser extension store credentials independently. Refreshing tokens from the command line does not update the browser extension's credentials.
 - Follow OpenAI's regional restrictions and terms of use. See the [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/).
 

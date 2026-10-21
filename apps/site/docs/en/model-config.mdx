@@ -157,7 +157,7 @@ To configure a separate model for Planning, Locate, or Insight, use the correspo
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config. Use `defaultHeaders` for custom auth headers; `extra_headers` and `extraHeaders` are accepted as aliases |
 | `MIDSCENE_MODEL_EXTRA_BODY_JSON` | JSON blob merged into each model request body. Unlike `MIDSCENE_MODEL_INIT_CONFIG_JSON` (which configures the SDK client), this is spread into every protocol request sent to the model, e.g. enabling thinking mode in vLLM: `'{"chat_template_kwargs":{"enable_thinking":true}}'` |
 | `MIDSCENE_MODEL_PROTOCOL` | Model API protocol: `openai-chat` (default) or `openai-responses`. For Responses API support requirements, see [Use the Responses API](#model-api-type). |
-| `MIDSCENE_MODEL_AUTH_MODE` | Authentication mode: `api-key` (default) or `siwc`. For `siwc`, see [Use your ChatGPT subscription](./chatgpt-subscription). |
+| `MIDSCENE_MODEL_AUTH_MODE` | Authentication mode: `api-key` (default) uses the configured API Key; `siwc` uses credentials saved after ChatGPT authorization and automatically refreshes access tokens. For setup instructions, see [Use your ChatGPT subscription](./chatgpt-subscription). |
 | `MIDSCENE_MODEL_STREAM_MODE` | Defaults to non-streaming (`non-stream`). When set to `stream`, streamed results are aggregated into a complete result before parsing. |
 
 ### Use the Responses API {#model-api-type}
