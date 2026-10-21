@@ -1,4 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src", "e2e/midscene.config.ts"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.*", "src/**/*.spec.*"]
 }
