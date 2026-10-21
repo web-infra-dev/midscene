@@ -144,7 +144,13 @@ describe('extension SIWC authorization', () => {
           fetch: async () => new Response('diagnostic detail', { status: 400 }),
         },
       ),
-    ).rejects.toThrow('HTTP 400): diagnostic detail');
+    ).rejects.toMatchObject({
+      message:
+        'Stage: Token exchange\nHTTP status: 400\nResponse body: diagnostic detail',
+      cause: {
+        message: 'HTTP status: 400\nResponse body: diagnostic detail',
+      },
+    });
   });
 
   it('captures duplicate redirects only once and shows exchange errors on the result page', async () => {
