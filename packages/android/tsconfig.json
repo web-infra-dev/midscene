@@ -3,7 +3,11 @@
   "compilerOptions": {
     "rootDir": ".",
     "declarationDir": "dist/types",
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@midscene/android": ["./src/index.ts"]
+    }
   },
   "include": ["src", "tests", "scripts/*.mjs"],
   "references": [

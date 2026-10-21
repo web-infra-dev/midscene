@@ -672,7 +672,11 @@ describe('generated project integration', () => {
         join(packageRoot, 'node_modules/typescript/bin/tsc'),
         '-p',
         cwd,
-      ]);
+      ]).catch((error) => {
+        throw new Error(`${error.message}\n${error.stdout}\n${error.stderr}`, {
+          cause: error,
+        });
+      });
       if (platform === 'web') {
         for (const node of [
           'todo.setup',

@@ -17,6 +17,7 @@ import {
   parseCreateArgs,
   runCreateCommand,
 } from '../src/cli/create-command';
+import { createProjectFiles } from '../src/cli/create-template';
 import { renderNodeSpec } from '../src/cli/node-spec';
 import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
 
@@ -810,6 +811,25 @@ describe('create package manager selection', () => {
           'Project ready',
         );
       }
+    },
+  );
+});
+
+describe('mobile setup factory scaffolds', () => {
+  it.each([
+    ['android', 'createAdbAndroidSetup'],
+    ['ios', 'createWdaIOSSetup'],
+  ] as const)(
+    'keeps per-file resource ownership and uses the published %s factory',
+    (platform, factory) => {
+      const files = createProjectFiles('mobile-tests', platform, 'pnpm');
+      const config = files['midscene.config.ts'].toString();
+      expect(config).toContain(`from '@midscene/${platform}/test'`);
+      expect(config).toContain(`const fileSetup = ${factory}();`);
+      expect(config).toContain('maxConcurrentFiles: 1');
+      expect(config).toContain('return context.agent');
+      expect(config).not.toContain('agentFromAdbDevice');
+      expect(config).not.toContain('agentFromWebDriverAgent');
     },
   );
 });

@@ -7,7 +7,9 @@ const entries = [
   ['@midscene/core/agent/test', 'commonAgentTestRunnerNodeDefinitions'],
   ['@midscene/web/playwright/test', 'playwrightAgentTestRunnerNodeDefinitions'],
   ['@midscene/android/test', 'androidAgentTestRunnerNodeDefinitions'],
+  ['@midscene/android/test', 'createAdbAndroidSetup'],
   ['@midscene/ios/test', 'iosAgentTestRunnerNodeDefinitions'],
+  ['@midscene/ios/test', 'createWdaIOSSetup'],
   ['@midscene/harmony/test', 'harmonyAgentTestRunnerNodeDefinitions'],
 ] as const;
 

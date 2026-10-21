@@ -19,3 +19,5 @@ After changing Node registrations in `midscene.config.ts`, run `{{RUN_NODES_COMM
 Tests run serially and stop after the first failed case (`test.bail: 1`). Reports are saved and connections are released on failure. Reports are written to `midscene_run/report/`.
 
 Each test file creates its own Agent through `fileSetup` and releases it afterward. The Project is limited to one file at a time because this starter connects to a single device or desktop. Before increasing the Project limit, provide independent devices/displays through your resource allocator.
+
+The template uses `createAdbAndroidSetup()` from `@midscene/android/test`. It reads connection settings when `fileSetup` runs, returns `context.agent`, and cleans up failed connections as well as completed Agents. The same factory can be assigned to Project `setup` when files should share an Agent. See [setup factory options](https://midscenejs.com/midscene-test/configuration.html).

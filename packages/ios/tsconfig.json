@@ -4,7 +4,11 @@
     "rootDir": ".",
     "module": "ES2020",
     "declarationDir": "dist/types",
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@midscene/ios": ["./src/index.ts"]
+    }
   },
   "include": ["src", "tests"],
   "references": [
