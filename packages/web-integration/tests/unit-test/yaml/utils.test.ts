@@ -126,6 +126,88 @@ tasks:
       expect(result.android?.deviceId).toBe('0aacde222');
     });
 
+    test('preserves implicit scalar text for current aiInput values', () => {
+      const yamlContent = `
+web:
+  url: "https://example.com"
+  viewportWidth: 1440
+  forceSameTabNavigation: false
+tasks:
+  - name: preserve input text
+    flow:
+      - aiInput: teller number input
+        value: 00005
+      - aiInput: decimal input
+        value: 50000.50
+      - aiInput: hexadecimal-looking input
+        value: 0x10
+      - aiInput: boolean-looking input
+        value: false
+      - aiInput: null-looking input
+        value: null
+      - runWdaRequest:
+          data:
+            retryCount: 5
+            enabled: false
+`;
+
+      const result = parseYamlScript(yamlContent);
+
+      expect(result.web?.viewportWidth).toBe(1440);
+      expect(result.web?.forceSameTabNavigation).toBe(false);
+      expect(result.tasks[0].flow).toMatchObject([
+        { aiInput: 'teller number input', value: '00005' },
+        { aiInput: 'decimal input', value: '50000.50' },
+        { aiInput: 'hexadecimal-looking input', value: '0x10' },
+        { aiInput: 'boolean-looking input', value: 'false' },
+        { aiInput: 'null-looking input', value: 'null' },
+        {
+          runWdaRequest: {
+            data: { retryCount: 5, enabled: false },
+          },
+        },
+      ]);
+    });
+
+    test('preserves implicit scalar text for legacy aiInput values', () => {
+      const yamlContent = `
+web:
+  url: "https://example.com"
+tasks:
+  - name: preserve legacy input text
+    flow:
+      - aiInput: 00005
+        locate: teller number input
+`;
+
+      const result = parseYamlScript(yamlContent);
+
+      expect(result.tasks[0].flow[0]).toMatchObject({
+        aiInput: '00005',
+        locate: 'teller number input',
+      });
+    });
+
+    test('keeps explicit YAML tags compatible with JSON schema', () => {
+      const yamlContent = `
+web:
+  url: "https://example.com"
+  viewportWidth: !!int 1440
+  forceSameTabNavigation: !!bool false
+tasks:
+  - name: explicit tags
+    flow:
+      - aiInput: teller number input
+        value: !!str 00005
+`;
+
+      const result = parseYamlScript(yamlContent);
+
+      expect(result.web?.viewportWidth).toBe(1440);
+      expect(result.web?.forceSameTabNavigation).toBe(false);
+      expect(result.tasks[0].flow[0]).toMatchObject({ value: '00005' });
+    });
+
     test('aiRightClick', () => {
       const yamlContent = `
 target:
