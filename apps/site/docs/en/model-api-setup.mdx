@@ -17,7 +17,7 @@ For an overview of supported models and connection methods, see the [Model Selec
 
 Each configuration requires a Base URL, API key, model name, and `MIDSCENE_MODEL_FAMILY`. The model family (`MIDSCENE_MODEL_FAMILY`) selects the model adapter, which determines coordinate handling, supported API protocols, and how reasoning and output parameters are sent. Use the family listed for your model below.
 
-<ModelConfigSection description="Volcano Engine">
+<ModelConfigSection description="Doubao-Seed-2.1 Turbo">
 
 ### Doubao Seed Series {#doubao-seed-model}
 
@@ -52,7 +52,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Alibaba Cloud">
+<ModelConfigSection description="Qwen3.7 Plus">
 
 ### Qwen Series {#qwen}
 
@@ -89,7 +89,7 @@ Environment variable configuration example, using `qwen3.7-plus`:
 
 </ModelConfigSection>
 
-<ModelConfigSection description="DeepSeek">
+<ModelConfigSection description="DeepSeek V4.1 Flash">
 
 ### DeepSeek Series {#deepseek}
 
@@ -119,7 +119,7 @@ Environment variable configuration example, using `deepseek-flash`:
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Google Gemini">
+<ModelConfigSection description="Gemini 3.5 Flash">
 
 ### Google Gemini Series {#gemini}
 
@@ -147,7 +147,7 @@ Environment variable configuration example, using `gemini-3.5-flash`:
 
 </ModelConfigSection>
 
-<ModelConfigSection description="OpenAI">
+<ModelConfigSection description="GPT-6 Sol">
 
 ### OpenAI GPT Series {#gpt}
 
@@ -209,7 +209,7 @@ To reuse a Codex CLI session, see [Use Codex App Server](./chatgpt-subscription#
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Moonshot AI">
+<ModelConfigSection description="Kimi K3">
 
 ### Moonshot Kimi Series {#kimi}
 
@@ -241,7 +241,7 @@ Environment variable configuration example, using `kimi-k3`:
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Xiaomi MiMo">
+<ModelConfigSection description="MiMo V2.6 Pro">
 
 ### Xiaomi MiMo Series {#xiaomi-mimo}
 
@@ -269,7 +269,7 @@ Environment variable configuration example, using `mimo-v2.6-pro`:
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Z.AI · BigModel">
+<ModelConfigSection description="GLM-5V-Turbo">
 
 ### Zhipu GLM-V Series {#glm-v}
 
@@ -303,7 +303,7 @@ Environment variable configuration example, using `glm-5v-turbo`:
 
 </ModelConfigSection>
 
-<ModelConfigSection description="TypeSafe · Experimental">
+<ModelConfigSection description="Jev 1.14.0">
 
 ### Jev (experimental) {#jev}
 
@@ -383,7 +383,7 @@ The Midscene SDK reads model configuration from `process.env`. When writing test
 
 The following smaller models are also compatible with Midscene and designed for automation. They require less deployment hardware but may struggle with complex tasks or large screenshots. Evaluate them against your tasks and deployment constraints before choosing one.
 
-<ModelConfigSection description="Z.AI · BigModel">
+<ModelConfigSection description="AutoGLM-Phone-9B">
 
 ### Zhipu AutoGLM Series {#auto-glm}
 
@@ -419,7 +419,7 @@ AutoGLM is best suited for mobile interaction. APIs such as `aiAssert` and `aiQu
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Volcano Engine">
+<ModelConfigSection description="UI-TARS 1.5">
 
 ### UI-TARS Series {#ui-tars}
 

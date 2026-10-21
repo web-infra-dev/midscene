@@ -1,4 +1,5 @@
 import { useLang } from '@rspress/core/runtime';
+import { ChevronDown } from 'lucide-react';
 import { Children, type ReactNode, useEffect, useRef } from 'react';
 import { revealModelConfigSection } from './model-config-section-anchor';
 import './ModelConfigSection.css';
@@ -56,15 +57,19 @@ export function ModelConfigSection({
           </span>
         </div>
         <span className="model-config-section-action">
-          <span className="model-config-section-show">
-            {lang === 'zh' ? '查看配置' : 'View configuration'}
+          <span className="model-config-section-label">
+            <span className="model-config-section-show">
+              {lang === 'zh' ? '查看配置' : 'View configuration'}
+            </span>
+            <span className="model-config-section-hide">
+              {lang === 'zh' ? '收起配置' : 'Hide configuration'}
+            </span>
           </span>
-          <span className="model-config-section-hide">
-            {lang === 'zh' ? '收起配置' : 'Hide configuration'}
-          </span>
-          <span className="model-config-section-chevron" aria-hidden="true">
-            ⌄
-          </span>
+          <ChevronDown
+            className="model-config-section-chevron"
+            size={20}
+            aria-hidden="true"
+          />
         </span>
       </summary>
       <div className="model-config-section-content">{content}</div>

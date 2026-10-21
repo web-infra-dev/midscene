@@ -64,13 +64,29 @@
   text-decoration: underline;
 }
 
+.model-config-section-label {
+  display: grid;
+}
+
+.model-config-section-label > span {
+  grid-area: 1 / 1;
+}
+
+.model-config-section-chevron {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  transform-origin: center;
+}
+
 .model-config-section-hide,
 .model-config-section[open] > summary .model-config-section-show {
-  display: none;
+  visibility: hidden;
 }
 
 .model-config-section[open] > summary .model-config-section-hide {
-  display: inline;
+  visibility: visible;
 }
 
 .model-config-section[open] > summary .model-config-section-chevron {

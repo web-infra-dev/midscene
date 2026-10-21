@@ -17,7 +17,7 @@ import { ModelConfigCard, ModelConfigSection } from '@theme';
 
 每份配置都需要 Base URL、API Key、模型名称和 `MIDSCENE_MODEL_FAMILY`。`MIDSCENE_MODEL_FAMILY` 选择模型适配器，决定坐标处理方式、支持的 API 协议，以及思考和输出参数的发送方式。请使用下方对应模型列出的 family 值。
 
-<ModelConfigSection description="火山引擎">
+<ModelConfigSection description="Doubao-Seed-2.1 Turbo">
 
 ### 豆包 Seed 系列 {#doubao-seed-model}
 
@@ -52,7 +52,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 </ModelConfigSection>
 
-<ModelConfigSection description="阿里云">
+<ModelConfigSection description="Qwen3.7 Plus">
 
 ### 千问 Qwen 系列 {#qwen}
 
@@ -89,7 +89,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 </ModelConfigSection>
 
-<ModelConfigSection description="DeepSeek">
+<ModelConfigSection description="DeepSeek V4.1 Flash">
 
 ### 深度求索 DeepSeek 系列 {#deepseek}
 
@@ -119,7 +119,7 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Google Gemini">
+<ModelConfigSection description="Gemini 3.5 Flash">
 
 ### Google Gemini 系列 {#gemini}
 
@@ -147,7 +147,7 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 </ModelConfigSection>
 
-<ModelConfigSection description="OpenAI">
+<ModelConfigSection description="GPT-6 Sol">
 
 ### OpenAI GPT 系列 {#gpt}
 
@@ -209,7 +209,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Moonshot AI 开放平台">
+<ModelConfigSection description="Kimi K3">
 
 ### 月之暗面 Kimi 系列 {#kimi}
 
@@ -241,7 +241,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 </ModelConfigSection>
 
-<ModelConfigSection description="小米 MiMo 开放平台">
+<ModelConfigSection description="MiMo V2.6 Pro">
 
 ### 小米 MiMo 系列 {#xiaomi-mimo}
 
@@ -269,7 +269,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 </ModelConfigSection>
 
-<ModelConfigSection description="Z.AI · BigModel">
+<ModelConfigSection description="GLM-5V-Turbo">
 
 ### 智谱 GLM-V 系列 {#glm-v}
 
@@ -303,7 +303,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 </ModelConfigSection>
 
-<ModelConfigSection description="TypeSafe · 实验性">
+<ModelConfigSection description="Jev 1.14.0">
 
 ### Jev（实验性） {#jev}
 
@@ -383,7 +383,7 @@ Midscene SDK 从 `process.env` 读取模型配置。编写测试脚本时，可�
 
 以下小参数模型也与 Midscene 兼容，主要面向自动化场景。它们对部署硬件的要求较低，但处理复杂任务或大尺寸截图的能力可能受限。选择前，请结合实际任务和部署条件进行评估。
 
-<ModelConfigSection description="Z.AI · BigModel">
+<ModelConfigSection description="AutoGLM-Phone-9B">
 
 ### 智谱 AutoGLM 系列 {#auto-glm}
 
@@ -419,7 +419,7 @@ AutoGLM 更适合移动端交互。`aiAssert` 和 `aiQuery` 等 API 需要理解
 
 </ModelConfigSection>
 
-<ModelConfigSection description="火山引擎">
+<ModelConfigSection description="UI-TARS 1.5">
 
 ### UI-TARS 系列 {#ui-tars}
 
