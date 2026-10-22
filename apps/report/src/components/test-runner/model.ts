@@ -7,10 +7,14 @@ import type {
   TestRunReportProject,
   TestRunReportStep,
 } from '@midscene/core';
-import { calculateTestRunHealth, classifyTestRunCase } from '@midscene/core';
 import type { PlaywrightTasks } from '../../types';
+import { getReportDocuments } from './report-documents';
+import {
+  type TokenUsageSummary,
+  getStepsTokenUsage,
+} from './token-usage-model';
 
-export type RunnerCaseStatus = 'passed' | 'retry-passed' | 'failed' | 'not-run';
+export type RunnerCaseStatus = 'passed' | 'failed' | 'not-run';
 
 export interface RunnerCaseView {
   key: string;
@@ -72,51 +76,6 @@ export interface RunnerProjectView {
   durationMs?: number;
 }
 
-export type RunnerBreakdownStatus = 'all' | 'attention' | RunnerCaseStatus;
-
-export type RunnerBreakdownSort =
-  | 'name'
-  | 'case-count'
-  | 'passed-count'
-  | 'result'
-  | 'duration';
-
-export type RunnerBreakdownSortDirection = 'asc' | 'desc';
-
-export const defaultRunnerBreakdownSortDirection = (
-  sort: RunnerBreakdownSort,
-): RunnerBreakdownSortDirection =>
-  sort === 'name' || sort === 'result' ? 'asc' : 'desc';
-
-export interface RunnerProjectBreakdownView {
-  item: RunnerProjectView;
-  cases: RunnerCaseView[];
-}
-
-export const getDefaultExpandedProjectKeys = (
-  projects: readonly RunnerProjectBreakdownView[],
-): Set<string> =>
-  new Set(
-    projects
-      .filter(
-        ({ item }) => item.failedCount > 0 || item.project.status === 'failed',
-      )
-      .map(({ item }) => item.key),
-  );
-
-export const toggleAllRunnerProjectKeys = (
-  visibleKeys: readonly string[],
-  expandedKeys: ReadonlySet<string>,
-): Set<string> => {
-  const collapse = visibleKeys.every((key) => expandedKeys.has(key));
-  const next = new Set(expandedKeys);
-  for (const key of visibleKeys) {
-    if (collapse) next.delete(key);
-    else next.add(key);
-  }
-  return next;
-};
-
 interface ScreenshotLike {
   base64: string;
   capturedAt?: number;
@@ -164,21 +123,22 @@ export const flattenAttemptSteps = (
   ...attempt.afterEach,
 ];
 
+export const getCaseTokenSummary = (
+  testCase: TestRunReportCase,
+): TokenUsageSummary =>
+  getStepsTokenUsage(testCase.attempts.flatMap(flattenAttemptSteps));
+
 export const getCaseStatus = (testCase: TestRunReportCase): RunnerCaseStatus =>
-  classifyTestRunCase(testCase);
+  testCase.status === 'not-run'
+    ? 'not-run'
+    : testCase.status === 'failed'
+      ? 'failed'
+      : 'passed';
+
+export const caseRecoveredAfterFailure = (item: RunnerCaseView): boolean =>
+  item.status === 'passed' && !item.firstPass;
 
 const getCaseDuration = (testCase: TestRunReportCase): number => {
-  const firstAttempt = testCase.attempts[0];
-  const lastAttempt = testCase.attempts.at(-1);
-  const startedAt = timestamp(firstAttempt?.startedAt);
-  const endedAt = timestamp(lastAttempt?.endedAt);
-  if (
-    startedAt !== undefined &&
-    endedAt !== undefined &&
-    endedAt >= startedAt
-  ) {
-    return endedAt - startedAt;
-  }
   return testCase.attempts.reduce(
     (total, attempt) => total + attempt.durationMs,
     0,
@@ -190,7 +150,7 @@ export const flattenRunnerCases = (
 ): RunnerCaseView[] => {
   const result: RunnerCaseView[] = [];
   for (const project of dump.projects) {
-    for (const document of project.documents) {
+    for (const document of getReportDocuments(project)) {
       for (const testCase of document.cases) {
         const status = getCaseStatus(testCase);
         result.push({
@@ -200,7 +160,9 @@ export const flattenRunnerCases = (
           testCase,
           status,
           durationMs: getCaseDuration(testCase),
-          firstPass: status === 'passed',
+          firstPass:
+            status === 'passed' &&
+            !testCase.attempts.some((attempt) => attempt.status === 'failed'),
           retryCount: Math.max(
             0,
             testCase.attempts.length - 1,
@@ -301,13 +263,16 @@ export const resolveRunnerStepSelector = (
 export const getRunnerHealth = (
   cases: readonly RunnerCaseView[],
 ): RunnerHealthStats => {
-  const health = calculateTestRunHealth(cases.map((item) => item.testCase));
+  const executed = cases.filter((item) => item.status !== 'not-run').length;
+  const passed = cases.filter((item) => item.status === 'passed');
+  const firstPassCount = passed.filter((item) => item.firstPass).length;
+  const retryPassedCount = passed.filter(caseRecoveredAfterFailure).length;
   return {
-    executed: health.executed,
-    firstPassCount: health.firstPassed,
-    retryPassedCount: health.passedAfterRetry,
-    finalPassRate: health.finalPassRate,
-    firstPassRate: health.firstPassRate,
+    executed,
+    firstPassCount,
+    retryPassedCount,
+    finalPassRate: executed ? passed.length / executed : 0,
+    firstPassRate: executed ? firstPassCount / executed : 0,
   };
 };
 
@@ -325,19 +290,27 @@ export const groupRunnerProjects = (
       project,
       cases: projectCases,
       health,
-      passedCount: projectCases.filter(
-        (item) => item.status === 'passed' || item.status === 'retry-passed',
-      ).length,
+      passedCount: projectCases.filter((item) => item.status === 'passed')
+        .length,
       failedCount: projectCases.filter((item) => item.status === 'failed')
         .length,
-      retryPassedCount: projectCases.filter(
-        (item) => item.status === 'retry-passed',
-      ).length,
+      retryPassedCount: health.retryPassedCount,
       notRunCount: projectCases.filter((item) => item.status === 'not-run')
         .length,
       durationMs: project.lifecycle?.durationMs,
     };
   });
+
+export const isStepTimeout = (step: TestRunReportStep): boolean =>
+  step.status === 'failed' &&
+  Boolean(
+    step.error &&
+      /timeout|timed out/i.test(
+        [step.error.code, step.error.name, step.error.message]
+          .filter(Boolean)
+          .join(' '),
+      ),
+  );
 
 export const getStepDisplayName = (step: TestRunReportStep): string =>
   step.title?.trim() || step.output?.summary?.trim() || step.node;
@@ -345,13 +318,10 @@ export const getStepDisplayName = (step: TestRunReportStep): string =>
 export const getCaseFailure = (
   testCase: TestRunReportCase,
 ): TestRunReportStep | undefined => {
-  for (const attempt of [...testCase.attempts].reverse()) {
-    const failed = flattenAttemptSteps(attempt).find(
-      (step) => step.status === 'failed',
-    );
-    if (failed) return failed;
-  }
-  return undefined;
+  const attempt = testCase.attempts.at(-1);
+  return testCase.status === 'failed' && attempt
+    ? flattenAttemptSteps(attempt).find((step) => step.status === 'failed')
+    : undefined;
 };
 
 const searchableValue = (value: unknown): string => {
@@ -445,131 +415,6 @@ export const getCaseSearchMatch = (
     }
   }
   return undefined;
-};
-
-const matchesBreakdownStatus = (
-  item: RunnerCaseView,
-  status: RunnerBreakdownStatus,
-): boolean => {
-  if (status === 'all') return true;
-  if (status === 'attention') return item.status !== 'passed';
-  return item.status === status;
-};
-
-const breakdownCaseSorter = (
-  sort: RunnerBreakdownSort,
-  direction: RunnerBreakdownSortDirection,
-): ((a: RunnerCaseView, b: RunnerCaseView) => number) => {
-  const directionMultiplier = direction === 'asc' ? 1 : -1;
-  if (sort === 'duration') {
-    return (a, b) => directionMultiplier * (a.durationMs - b.durationMs);
-  }
-  if (sort === 'name') {
-    return (a, b) =>
-      directionMultiplier * a.testCase.name.localeCompare(b.testCase.name);
-  }
-  if (sort === 'result') {
-    return (a, b) =>
-      directionMultiplier *
-      (statusSortWeight[a.status] - statusSortWeight[b.status] ||
-        b.durationMs - a.durationMs);
-  }
-  return (a, b) =>
-    statusSortWeight[a.status] - statusSortWeight[b.status] ||
-    b.durationMs - a.durationMs;
-};
-
-const projectIssueCount = (item: RunnerProjectView): number =>
-  item.failedCount + item.retryPassedCount + item.notRunCount;
-
-/**
- * Build the compact Overview tree without mutating the full Project model.
- * Project health always reflects the whole run while the child Case list may
- * be narrowed by the user's status or search filters.
- */
-export const filterAndSortRunnerProjectBreakdown = (
-  projects: readonly RunnerProjectView[],
-  options: {
-    query: string;
-    status: RunnerBreakdownStatus;
-    sort: RunnerBreakdownSort;
-    direction: RunnerBreakdownSortDirection;
-  },
-): RunnerProjectBreakdownView[] => {
-  const normalizedQuery = options.query.trim().toLocaleLowerCase();
-  const caseSorter = breakdownCaseSorter(options.sort, options.direction);
-  const result = projects
-    .map((item) => {
-      const projectMatches = normalizedQuery
-        ? [item.project.name, item.project.projectId]
-            .join(' ')
-            .toLocaleLowerCase()
-            .includes(normalizedQuery)
-        : false;
-      const cases = item.cases
-        .filter((caseItem) => matchesBreakdownStatus(caseItem, options.status))
-        .filter(
-          (caseItem) =>
-            !normalizedQuery ||
-            projectMatches ||
-            Boolean(getCaseSearchMatch(caseItem, normalizedQuery)),
-        )
-        .sort(caseSorter);
-      const projectStatus = projectDisplayStatusForSort(item);
-      const projectMatchesStatus =
-        options.status === 'all' ||
-        (options.status === 'attention'
-          ? projectStatus !== 'passed'
-          : projectStatus === options.status);
-      return {
-        item,
-        cases,
-        projectMatches,
-        projectMatchesStatus,
-      };
-    })
-    .filter(({ item, cases, projectMatches, projectMatchesStatus }) => {
-      if (cases.length) return true;
-      return (
-        item.cases.length === 0 &&
-        projectMatchesStatus &&
-        (!normalizedQuery || projectMatches)
-      );
-    })
-    .map(({ item, cases }) => ({ item, cases }));
-
-  const directionMultiplier = options.direction === 'asc' ? 1 : -1;
-  return result.sort((a, b) => {
-    let comparison: number;
-    if (options.sort === 'name') {
-      comparison = a.item.project.name.localeCompare(b.item.project.name);
-    } else if (options.sort === 'case-count') {
-      comparison = a.item.cases.length - b.item.cases.length;
-    } else if (options.sort === 'passed-count') {
-      comparison = a.item.passedCount - b.item.passedCount;
-    } else if (options.sort === 'duration') {
-      comparison = (a.item.durationMs ?? 0) - (b.item.durationMs ?? 0);
-    } else {
-      comparison =
-        statusSortWeight[projectDisplayStatusForSort(a.item)] -
-          statusSortWeight[projectDisplayStatusForSort(b.item)] ||
-        projectIssueCount(b.item) - projectIssueCount(a.item) ||
-        (b.item.durationMs ?? 0) - (a.item.durationMs ?? 0);
-    }
-    return (
-      directionMultiplier * comparison ||
-      a.item.project.name.localeCompare(b.item.project.name)
-    );
-  });
-};
-
-const projectDisplayStatusForSort = (
-  item: RunnerProjectView,
-): RunnerCaseStatus => {
-  if (item.project.status === 'failed' || item.failedCount > 0) return 'failed';
-  if (item.retryPassedCount > 0) return 'retry-passed';
-  if (!item.cases.length || item.notRunCount > 0) return 'not-run';
-  return 'passed';
 };
 
 const asScreenshot = (value: unknown): ScreenshotLike | undefined => {
@@ -733,10 +578,12 @@ export const getDefaultVisualFrameForStep = (
   );
 
 export const positionAttemptVisualFrames = (
-  attempt: TestRunReportAttempt,
+  attempt: Pick<TestRunReportAttempt, 'startedAt' | 'endedAt' | 'durationMs'>,
   frames: readonly RunnerVisualFrame[],
+  steps: readonly TestRunReportStep[] = 'steps' in attempt
+    ? flattenAttemptSteps(attempt as TestRunReportAttempt)
+    : [],
 ): RunnerPositionedVisualFrame[] => {
-  const steps = flattenAttemptSteps(attempt);
   const attemptStartedAt = timestamp(attempt.startedAt);
   const attemptEndedAt = timestamp(attempt.endedAt);
   const measuredDurationMs =
@@ -802,11 +649,4 @@ export const positionAttemptVisualFrames = (
     .map(
       ({ sourceIndex: _sourceIndex, ...positionedFrame }) => positionedFrame,
     );
-};
-
-export const statusSortWeight: Record<RunnerCaseStatus, number> = {
-  failed: 0,
-  'retry-passed': 1,
-  'not-run': 2,
-  passed: 3,
 };

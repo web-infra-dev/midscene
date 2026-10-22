@@ -36,11 +36,8 @@ const imageMessage = [
     role: 'user' as const,
     content: [
       {
-        type: 'image_url' as const,
-        image_url: {
-          url: 'https://example.com/shot.png',
-          detail: 'high' as const,
-        },
+        type: 'image' as const,
+        url: 'https://example.com/shot.png',
       },
       {
         type: 'text' as const,
@@ -83,7 +80,9 @@ describe('GPT image detail handling', () => {
           getModelRuntime({ ...baseModelConfig, openaiBaseURL }),
           { stream: true },
         ),
-      ).rejects.toThrow('onChunk is required when stream is true');
+      ).rejects.toThrow(
+        'onChunk is required when stream: true is explicitly specified',
+      );
       expect(mockCreate).not.toHaveBeenCalled();
       expect(mockCodexCall).not.toHaveBeenCalled();
     },
@@ -122,21 +121,7 @@ describe('GPT image detail handling', () => {
         }),
       );
       expect(mockCodexCall).toHaveBeenCalledWith(
-        [
-          {
-            ...imageMessage[0],
-            content: [
-              {
-                ...imageMessage[0].content[0],
-                image_url: {
-                  ...imageMessage[0].content[0].image_url,
-                  detail: 'original',
-                },
-              },
-              ...imageMessage[0].content.slice(1),
-            ],
-          },
-        ],
+        imageMessage,
         expect.anything(),
         expect.objectContaining({
           params: { effort: reasoningEffort ?? 'medium' },
@@ -148,14 +133,24 @@ describe('GPT image detail handling', () => {
 
   it.each([
     {
+      intent: 'locate',
+      requiresOriginalImageDetail: false,
+      expected: 'original',
+    },
+    {
       intent: 'default',
       requiresOriginalImageDetail: false,
+      expected: 'high',
+    },
+    {
+      intent: 'default',
+      requiresOriginalImageDetail: true,
       expected: 'original',
     },
     {
       intent: 'planning',
       requiresOriginalImageDetail: false,
-      expected: undefined,
+      expected: 'high',
     },
     {
       intent: 'planning',
@@ -163,7 +158,7 @@ describe('GPT image detail handling', () => {
       expected: 'original',
     },
   ] as const)(
-    'resolves Codex image detail independently for %j',
+    'uses the model image detail policy for Codex with %j',
     async ({ intent, requiresOriginalImageDetail, expected }) => {
       for (const modelFamily of ['gpt-5', 'gpt-6'] as const) {
         const runtime = getModelRuntime({
@@ -172,26 +167,32 @@ describe('GPT image detail handling', () => {
           intent,
           openaiBaseURL: 'codex://app-server',
         });
-        const chatDetailSpy = rs.spyOn(
-          runtime.adapter.chatCompletion,
-          'resolveImageDetail',
-        );
+        const imageDetailSpy = rs.spyOn(runtime.adapter, 'resolveImageDetail');
         try {
           await callAI(imageMessage, runtime, { requiresOriginalImageDetail });
           expect(
-            mockCodexCall.mock.calls.at(-1)?.[0][0].content[0].image_url.detail,
-          ).toBe(expected ?? 'high');
-          expect(imageMessage[0].content[0].image_url?.detail).toBe('high');
-          expect(chatDetailSpy).not.toHaveBeenCalled();
+            mockCodexCall.mock.calls
+              .at(-1)?.[2]
+              ?.resolveImageDetail?.({ imageDetail: undefined }),
+          ).toBe(expected);
+          expect(imageMessage[0].content[0]).not.toHaveProperty('detail');
+          expect(imageDetailSpy).toHaveBeenCalledExactlyOnceWith({
+            imageDetail: undefined,
+            intent,
+            requiresOriginalImageDetail,
+          });
         } finally {
-          chatDetailSpy.mockRestore();
+          imageDetailSpy.mockRestore();
         }
       }
     },
   );
 
-  it('overrides image detail to original for gpt-5 default intent requests', async () => {
-    await callAI(imageMessage, getModelRuntime(baseModelConfig));
+  it('uses original detail for Locate even with the Default model slot', async () => {
+    await callAI(
+      imageMessage,
+      getModelRuntime({ ...baseModelConfig, intent: 'locate' }),
+    );
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -218,40 +219,43 @@ describe('GPT image detail handling', () => {
     );
   });
 
-  it('keeps the original image detail for non-default intents', async () => {
-    await callAI(
-      imageMessage,
-      getModelRuntime({
-        ...baseModelConfig,
-        intent: 'planning',
-        slot: 'planning',
-      }),
-    );
+  it.each(['default', 'planning', 'insight'] as const)(
+    'uses high detail for the %s intent',
+    async (intent) => {
+      await callAI(
+        imageMessage,
+        getModelRuntime({
+          ...baseModelConfig,
+          intent,
+          slot: intent,
+        }),
+      );
 
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: {
-                  url: 'https://example.com/shot.png',
-                  detail: 'high',
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: 'https://example.com/shot.png',
+                    detail: 'high',
+                  },
                 },
-              },
-              {
-                type: 'text',
-                text: 'Inspect this screenshot.',
-              },
-            ],
-          },
-        ],
-      }),
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
-  });
+                {
+                  type: 'text',
+                  text: 'Inspect this screenshot.',
+                },
+              ],
+            },
+          ],
+        }),
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    },
+  );
 
   it('overrides image detail to original when required by the caller and adapter', async () => {
     await callAI(
@@ -338,6 +342,6 @@ describe('GPT image detail handling', () => {
     expect(JSON.parse(JSON.stringify(request))).not.toHaveProperty(
       'temperature',
     );
-    expect(request.messages[0].content[0].image_url.detail).toBe('original');
+    expect(request.messages[0].content[0].image_url.detail).toBe('high');
   });
 });

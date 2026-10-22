@@ -94,8 +94,6 @@ export async function prepareTestRun(
   mkdirSync(resultDir, { recursive: true });
   mkdirSync(runDir);
   const projects: PreparedExecutionProject[] = [];
-  const files = input.singleFile ? [input.singleFile] : undefined;
-  const prepOptions = files ? { files } : undefined;
   for (const project of selectProjects(
     definition.projects,
     options.projectNames,
@@ -106,7 +104,7 @@ export async function prepareTestRun(
         projectRoot,
         runDir,
         definition.test.testTimeout,
-        prepOptions,
+        input.singleFile ? { files: [input.singleFile] } : undefined,
       ),
     );
   const hasFormatMismatch = projects.some((project) =>
@@ -125,9 +123,12 @@ export async function prepareTestRun(
     reportDir,
     definition,
     projects,
+    // A wrong-format file invalidates the complete command invocation. Other
+    // native collection failures retain the existing per-Project isolation.
     preflightScope: hasFormatMismatch ? 'run' : 'project',
     reportEnabled: true,
     publications: [],
     onProgress: options.onProgress ?? (() => {}),
+    onEvent: options.onEvent,
   };
 }

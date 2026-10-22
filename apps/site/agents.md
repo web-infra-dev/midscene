@@ -29,14 +29,21 @@ Device 生命周期规范：
 
 推荐模型名称规范：
 
-- README、introduction 等面向用户的支持或推荐模型列表可以使用模型系列或版本名称，例如 `Qwen3.x`、`Doubao-Seed-2.1`，无需使用可直接配置的精确模型名称。
-- 只有环境变量中的模型配置项需要使用精确值，例如 `MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY`、`MIDSCENE_PLANNING_MODEL_NAME` 和 `MIDSCENE_INSIGHT_MODEL_NAME`。这些值必须与 `model-common-config.mdx` 保持一致。
+- README、首页等面向用户的支持或推荐模型列表可以使用模型系列或版本名称，例如 `Qwen3.x`、`Doubao-Seed-2.1`，无需使用可直接配置的精确模型名称。
+- 只有环境变量中的模型配置项需要使用精确值，例如 `MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY`、`MIDSCENE_PLANNING_MODEL_NAME` 和 `MIDSCENE_INSIGHT_MODEL_NAME`。这些值必须与 `model-api-setup.mdx` 保持一致。
 
 写作风格：
 
 - 文档应当务实，有技术品味：用机制、约束和示例打动用户，不要用华丽的词强行拔高。
 - 避免营销腔和评价先行。程度副词（如「完美」「极致」「彻底」）和成语叠用（如「各司其职」「相辅相成」）如果只是在给架构打分、不增加信息，应删掉。
 - 句子负责陈述事实和对应关系，价值判断交给后文的设计说明。中英文同步修改时，英文同样避免 `perfectly`、`seamlessly`、`empowers` 这类空评价。
+
+目录大小写规范：
+
+- `rspress.config.ts` 中的英文导航标题和分组标题统一使用 sentence case：仅首词首字母大写，普通名词不使用标题式大写。例如 `The basics`、`Getting started`、`Model selection guide`。
+- 专有名词、缩写和项目术语保留约定写法，例如 `Midscene Test`、`GUI Agent`、`Skills`、`Node` / `Nodes`、`API Key`、`GitHub Actions`、`iOS` 和 `HarmonyOS`，不要机械转为小写。
+- `benchmark` 是普通名词，在 `AndroidWorld benchmark`、`MobileWorld benchmark` 和 `AppControlBench benchmark` 中使用小写；作为独立分组标题时写作 `Benchmark`。
+- 中文目录中出现的英文名称与英文目录保持相同大小写。修改目录时同时检查中英文配置。
 
 反例 1（`docs/zh/midscene-test/overview.mdx`）：
 
@@ -55,3 +62,7 @@ Device 生命周期规范：
 > Midscene 提供了开箱即用的内置原子能力（不仅包含 `aiAct`、`aiAssert` 等 AI 交互，还包括环境初始化、设备与浏览器配置等），支持零配置快速上手。
 > 
 > 为了应对复杂的业务场景，Midscene 支持通过 TypeScript 自定义原子节点（自定义 Node）。你可以将业务接口、数据准备或特定工具链进行封装，并在 YAML 用例中直接调用。这在保持 YAML 脚本简洁的同时，也使测试工程能够应对定制化的业务场景。
+
+模型职责的叙事顺序：
+
+- 文档中介绍多模型职责、场景、表格和配置示例时，统一先讲 Planning，再讲 Locate，最后讲 Insight；默认模型需要单列时放在它们之前。

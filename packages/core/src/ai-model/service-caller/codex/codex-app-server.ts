@@ -3,8 +3,11 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type OpenAI from 'openai';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import type { CodexAppServerParamsResult } from '../../model-adapter/types';
+import type {
+  CodexAppServerParamsResult,
+  ResolveImageDetail,
+} from '../../model-adapter/types';
+import type { ConversationMessage, ModelCallMessages } from '../types';
 
 const CODEX_PROVIDER_SCHEME = 'codex://';
 const CODEX_INTERRUPT_TIMEOUT_MS = 5_000;
@@ -153,14 +156,6 @@ const toNonEmptyString = (value: unknown): string | undefined => {
   return trimmed || undefined;
 };
 
-const toCodexImageDetail = (value: unknown): CodexImageDetail | undefined =>
-  value === 'auto' ||
-  value === 'low' ||
-  value === 'high' ||
-  value === 'original'
-    ? value
-    : undefined;
-
 export const normalizeCodexLocalImagePath = (
   imageUrl: string,
   platform: NodeJS.Platform = process.platform,
@@ -196,58 +191,36 @@ export const normalizeCodexLocalImagePath = (
   }
 };
 
-const extractTextFromMessage = (
-  message: ChatCompletionMessageParam,
-): string => {
-  const content = (message as any).content;
+const extractTextFromMessage = (message: ConversationMessage): string => {
+  const { content } = message;
   if (typeof content === 'string') {
     return content;
   }
-
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => {
-        if (!part || typeof part !== 'object') return '';
-
-        if (part.type === 'text' && typeof part.text === 'string') {
-          return part.text;
-        }
-
-        if (part.type === 'input_text' && typeof part.text === 'string') {
-          return part.text;
-        }
-
-        return '';
-      })
-      .filter(Boolean)
-      .join('\n');
-  }
-
-  return '';
+  return content
+    .map((part) => (part.type === 'text' ? part.text : ''))
+    .filter(Boolean)
+    .join('\n');
 };
 
 const extractImageInputs = (
-  message: ChatCompletionMessageParam,
+  message: ConversationMessage,
+  resolveImageDetail: ResolveImageDetail,
 ): Array<CodexImageInput | CodexLocalImageInput> => {
-  const content = (message as any).content;
-  if (!Array.isArray(content)) return [];
+  const { content } = message;
+  if (!Array.isArray(content)) {
+    return [];
+  }
 
   const inputs: Array<CodexImageInput | CodexLocalImageInput> = [];
   for (const part of content) {
-    if (!part || typeof part !== 'object') continue;
-
-    const partType = String(part.type || '');
-    const imageUrl =
-      partType === 'image_url'
-        ? toNonEmptyString(part.image_url?.url)
-        : partType === 'input_image'
-          ? toNonEmptyString(part.image_url || part.url)
-          : undefined;
-    const imageDetail = toCodexImageDetail(
-      partType === 'image_url' ? part.image_url?.detail : part.detail,
-    );
-
-    if (!imageUrl) continue;
+    if (part.type !== 'image') {
+      continue;
+    }
+    const imageUrl = toNonEmptyString(part.url);
+    const detail = resolveImageDetail({ imageDetail: part.detail });
+    if (!imageUrl) {
+      continue;
+    }
 
     if (
       imageUrl.startsWith('/') ||
@@ -262,7 +235,7 @@ const extractImageInputs = (
       inputs.push({
         type: 'localImage',
         path,
-        ...(imageDetail ? { detail: imageDetail } : {}),
+        detail,
       });
       continue;
     }
@@ -270,7 +243,7 @@ const extractImageInputs = (
     inputs.push({
       type: 'image',
       url: imageUrl,
-      ...(imageDetail ? { detail: imageDetail } : {}),
+      detail,
     });
   }
 
@@ -278,7 +251,8 @@ const extractImageInputs = (
 };
 
 export const buildCodexTurnPayloadFromMessages = (
-  messages: ChatCompletionMessageParam[],
+  messages: ModelCallMessages,
+  resolveImageDetail: ResolveImageDetail,
 ): {
   developerInstructions?: string;
   input: CodexTurnInput[];
@@ -287,8 +261,25 @@ export const buildCodexTurnPayloadFromMessages = (
   const transcriptParts: string[] = [];
   const imageInputs: Array<CodexImageInput | CodexLocalImageInput> = [];
 
-  for (const message of messages) {
-    const role = String((message as any).role || 'user');
+  for (const entry of messages) {
+    const message: ConversationMessage = (() => {
+      if ('role' in entry) {
+        return entry;
+      }
+      if (entry.type === 'input-message') {
+        return entry.message;
+      }
+      if (entry.output.type !== 'chat-completion') {
+        throw new Error(
+          'Cannot replay Responses output in a Codex conversation',
+        );
+      }
+      return {
+        role: 'assistant',
+        content: entry.output.rawValue.content ?? '',
+      };
+    })();
+    const { role } = message;
     const text = extractTextFromMessage(message);
 
     if (role === 'system') {
@@ -304,7 +295,7 @@ export const buildCodexTurnPayloadFromMessages = (
     }
 
     if (role === 'user') {
-      imageInputs.push(...extractImageInputs(message));
+      imageInputs.push(...extractImageInputs(message, resolveImageDetail));
     }
   }
 
@@ -387,6 +378,7 @@ class CodexAppServerConnection {
 
   async runTurn({
     messages,
+    resolveImageDetail,
     modelConfig,
     stream,
     onChunk,
@@ -394,7 +386,8 @@ class CodexAppServerConnection {
     abortSignal,
     onRecordEvent,
   }: {
-    messages: ChatCompletionMessageParam[];
+    messages: ModelCallMessages;
+    resolveImageDetail: ResolveImageDetail;
     modelConfig: IModelConfig;
     stream?: boolean;
     onChunk?: StreamingCallback;
@@ -404,8 +397,10 @@ class CodexAppServerConnection {
   }): Promise<CodexTurnResult> {
     const isStreaming = !!(stream && onChunk);
 
-    const { developerInstructions, input } =
-      buildCodexTurnPayloadFromMessages(messages);
+    const { developerInstructions, input } = buildCodexTurnPayloadFromMessages(
+      messages,
+      resolveImageDetail,
+    );
 
     let threadId: string | undefined;
     let turnId: string | undefined;
@@ -952,6 +947,7 @@ class CodexAppServerConnectionManager {
 
   async runTurn({
     messages,
+    resolveImageDetail,
     modelConfig,
     stream,
     onChunk,
@@ -959,7 +955,8 @@ class CodexAppServerConnectionManager {
     abortSignal,
     onRecordEvent,
   }: {
-    messages: ChatCompletionMessageParam[];
+    messages: ModelCallMessages;
+    resolveImageDetail: ResolveImageDetail;
     modelConfig: IModelConfig;
     stream?: boolean;
     onChunk?: StreamingCallback;
@@ -974,6 +971,7 @@ class CodexAppServerConnectionManager {
       try {
         return await connection.runTurn({
           messages,
+          resolveImageDetail,
           modelConfig,
           stream,
           onChunk,
@@ -1014,9 +1012,10 @@ class CodexAppServerConnectionManager {
 const codexConnectionManager = new CodexAppServerConnectionManager();
 
 export async function callAIWithCodexAppServer(
-  messages: ChatCompletionMessageParam[],
+  messages: ModelCallMessages,
   modelConfig: IModelConfig,
-  options?: {
+  options: {
+    resolveImageDetail: ResolveImageDetail;
     stream?: boolean;
     onChunk?: StreamingCallback;
     params?: CodexAppServerParamsResult['config'];
@@ -1033,6 +1032,7 @@ export async function callAIWithCodexAppServer(
   return codexConnectionManager.runTurn({
     messages,
     modelConfig,
+    resolveImageDetail: options.resolveImageDetail,
     stream: options?.stream,
     onChunk: options?.onChunk,
     params: options?.params,

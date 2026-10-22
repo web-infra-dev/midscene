@@ -2,6 +2,7 @@ import type {
   PlaygroundRuntimeInfo,
   PlaygroundSessionTarget,
 } from '@midscene/playground';
+import { sha256Hex } from '@midscene/shared/utils';
 import type {
   DiscoveredDevice,
   PlatformDiscoveryError,
@@ -47,6 +48,40 @@ function buildHostPortId(host: string, port: number): string {
   return `${host}:${port}`;
 }
 
+function iosFormValue(formValues: Record<string, unknown>, key: string) {
+  const value = formValues[`ios.${key}`] ?? formValues[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function normalizedGatewayUrl(value: string) {
+  const url = new URL(value);
+  return url.toString().replace(/\/+$/, '');
+}
+
+export function resolveSelectedIosGatewayId(
+  formValues: Record<string, unknown>,
+): string | undefined {
+  const baseUrl = iosFormValue(formValues, 'baseUrl');
+  if (!baseUrl) return undefined;
+  try {
+    const mjpegUrl = iosFormValue(formValues, 'mjpegUrl');
+    const sessionId = iosFormValue(formValues, 'sessionId');
+    const mjpegPort = normalizePort(
+      formValues['ios.mjpegPort'] ?? formValues.mjpegPort,
+    );
+    return `ios-gateway-${sha256Hex(
+      JSON.stringify({
+        baseUrl: normalizedGatewayUrl(baseUrl),
+        mjpegUrl: mjpegUrl ? new URL(mjpegUrl).toString() : undefined,
+        mjpegPort,
+        sessionId,
+      }),
+    )}`;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Map any incoming platform string (runtime metadata, form values, desktop
  * OS aliases like `macos`) to the canonical `StudioPlatformId`. Exported so
@@ -84,7 +119,7 @@ export function normalizeStudioPlatformId(
  * Platforms use different metadata keys for the device id:
  *   Android / Harmony → metadata.deviceId
  *   Computer          → metadata.displayId
- *   iOS               → metadata.wdaHost + metadata.wdaPort
+ *   iOS               → gateway URL digest, or metadata.wdaHost + metadata.wdaPort
  */
 export function resolveConnectedDeviceId(
   runtimeInfo: PlaygroundRuntimeInfo | null,
@@ -95,6 +130,9 @@ export function resolveConnectedDeviceId(
   }
   if (isString(metadata.displayId)) {
     return metadata.displayId;
+  }
+  if (isString(metadata.wdaGatewayId)) {
+    return metadata.wdaGatewayId;
   }
   if (isString(metadata.wdaHost)) {
     const wdaPort = normalizePort(metadata.wdaPort);
@@ -108,6 +146,7 @@ export function resolveConnectedDeviceId(
 function resolveConnectedSessionValues(
   runtimeInfo: PlaygroundRuntimeInfo | null,
   platformKey: StudioSidebarPlatformKey,
+  formValues: Record<string, unknown> = {},
 ): Record<string, StudioSessionValue> | undefined {
   const metadata = runtimeInfo?.metadata || {};
 
@@ -126,7 +165,20 @@ function resolveConnectedSessionValues(
           }
         : undefined;
     case 'ios': {
+      if (isString(metadata.wdaGatewayId)) {
+        return resolveSelectedIosGatewayId(formValues) === metadata.wdaGatewayId
+          ? resolveSelectedSessionValues('ios', formValues)
+          : undefined;
+      }
       const wdaPort = normalizePort(metadata.wdaPort);
+      if (
+        isString(metadata.wdaHost) &&
+        wdaPort !== undefined &&
+        resolveSelectedDeviceId({ ...formValues, platformId: 'ios' }) ===
+          buildHostPortId(metadata.wdaHost, wdaPort)
+      ) {
+        return resolveSelectedSessionValues('ios', formValues);
+      }
       return isString(metadata.wdaHost) && wdaPort !== undefined
         ? {
             host: metadata.wdaHost,
@@ -155,6 +207,9 @@ export function resolveConnectedDeviceLabel(
   }
   const deviceId = resolveConnectedDeviceId(runtimeInfo);
   if (deviceId) {
+    if (isString(metadata.wdaGatewayId) && isString(metadata.wdaHost)) {
+      return `${metadata.wdaHost} (WDA gateway)`;
+    }
     // "Display 1" reads better than a bare numeric id for computer.
     return isString(metadata.displayId) && !isString(metadata.deviceId)
       ? `Display ${deviceId}`
@@ -169,13 +224,11 @@ export function resolveConnectedDeviceLabel(
 function buildGenericConnectedDeviceItem(
   runtimeInfo: PlaygroundRuntimeInfo | null,
   platformKey: StudioSidebarPlatformKey,
+  formValues: Record<string, unknown>,
 ): StudioAndroidDeviceItem | null {
   const metadata = runtimeInfo?.metadata || {};
   const deviceId = resolveConnectedDeviceId(runtimeInfo);
-  const label = isString(metadata.sessionDisplayName)
-    ? metadata.sessionDisplayName
-    : deviceId ||
-      (isString(runtimeInfo?.title) ? runtimeInfo.title : undefined);
+  const label = resolveConnectedDeviceLabel(runtimeInfo, { emptyLabel: '' });
 
   if (!label) {
     return null;
@@ -184,10 +237,17 @@ function buildGenericConnectedDeviceItem(
   return {
     id: deviceId || `${platformKey}-connected`,
     label,
-    description: deviceId && deviceId !== label ? deviceId : undefined,
+    description:
+      deviceId && deviceId !== label && !isString(metadata.wdaGatewayId)
+        ? deviceId
+        : undefined,
     selected: true,
     status: 'active',
-    sessionValues: resolveConnectedSessionValues(runtimeInfo, platformKey),
+    sessionValues: resolveConnectedSessionValues(
+      runtimeInfo,
+      platformKey,
+      formValues,
+    ),
   };
 }
 
@@ -214,6 +274,8 @@ export function resolveSelectedDeviceId(
   const selectedPlatform = normalizeStudioPlatformId(formValues.platformId);
 
   if (selectedPlatform === 'ios') {
+    const gatewayId = resolveSelectedIosGatewayId(formValues);
+    if (gatewayId) return gatewayId;
     const host = isString(formValues['ios.host'])
       ? formValues['ios.host']
       : isString(formValues.host)
@@ -300,13 +362,35 @@ function resolveSelectedSessionValues(
           ? { deviceId: formValues.deviceId }
           : undefined;
     case 'ios': {
+      const baseUrl = iosFormValue(formValues, 'baseUrl');
+      const mjpegUrl = iosFormValue(formValues, 'mjpegUrl');
+      const sessionId = iosFormValue(formValues, 'sessionId');
+      const mjpegPort = normalizePort(
+        formValues['ios.mjpegPort'] ?? formValues.mjpegPort,
+      );
+      if (baseUrl) {
+        return {
+          baseUrl,
+          ...(mjpegUrl ? { mjpegUrl } : {}),
+          ...(mjpegPort !== undefined ? { mjpegPort } : {}),
+          ...(sessionId ? { sessionId } : {}),
+        };
+      }
       const host = isString(formValues['ios.host'])
         ? formValues['ios.host']
         : isString(formValues.host)
           ? formValues.host
           : undefined;
       const port = normalizePort(formValues['ios.port'] ?? formValues.port);
-      return host && port !== undefined ? { host, port } : undefined;
+      return host && port !== undefined
+        ? {
+            host,
+            port,
+            ...(mjpegUrl ? { mjpegUrl } : {}),
+            ...(mjpegPort !== undefined ? { mjpegPort } : {}),
+            ...(sessionId ? { sessionId } : {}),
+          }
+        : undefined;
     }
     default:
       return undefined;
@@ -316,8 +400,20 @@ function resolveSelectedSessionValues(
 export function buildDeviceSelectionFormValues(
   platform: StudioSidebarPlatformKey,
   device: Pick<StudioAndroidDeviceItem, 'id' | 'sessionValues'>,
-): Record<string, StudioSessionValue> {
+): Record<string, StudioSessionValue | null> {
   if (device.sessionValues) {
+    if (platform === 'ios') {
+      return {
+        platformId: platform,
+        'ios.host': null,
+        'ios.port': null,
+        'ios.baseUrl': null,
+        'ios.mjpegUrl': null,
+        'ios.mjpegPort': null,
+        'ios.sessionId': null,
+        ...prefixSessionValues(platform, device.sessionValues),
+      };
+    }
     return {
       platformId: platform,
       ...prefixSessionValues(platform, device.sessionValues),
@@ -505,6 +601,7 @@ export function buildStudioSidebarDeviceBuckets({
     const connectedItem = buildGenericConnectedDeviceItem(
       runtimeInfo,
       runtimePlatformKey,
+      formValues,
     );
 
     if (connectedItem) {

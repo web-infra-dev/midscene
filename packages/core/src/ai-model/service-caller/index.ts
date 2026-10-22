@@ -5,7 +5,6 @@ export {
   parseAIObjectResponse,
 } from './model-call';
 export { callAI } from './call-ai';
-export { createChatClient } from './openai/openai-client';
 export { AIResponseParseError, INTERNAL_CALL_ID_FIELD } from './utils';
 export {
   extractJSONFromCodeBlock,

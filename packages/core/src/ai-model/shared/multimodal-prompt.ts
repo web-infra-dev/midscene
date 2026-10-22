@@ -1,3 +1,4 @@
+import type { ConversationUserMessage } from '@/ai-model/service-caller/types';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -5,7 +6,6 @@ import {
   userPromptToString,
 } from '@/common';
 import { preProcessImageUrl } from '@midscene/shared/img';
-import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 
 export interface PreparedReferenceImage {
   name: string;
@@ -42,9 +42,9 @@ export const prepareUserPrompt = async (
   ),
 });
 
-export const preparedReferenceImagesToChatMessages = (
+export const preparedReferenceImagesToMessages = (
   referenceImages: PreparedReferenceImage[],
-): ChatCompletionUserMessageParam[] => {
+): ConversationUserMessage[] => {
   if (referenceImages.length === 0) {
     return [];
   }
@@ -59,7 +59,7 @@ export const preparedReferenceImagesToChatMessages = (
         },
       ],
     },
-    ...referenceImages.flatMap((image): ChatCompletionUserMessageParam[] => [
+    ...referenceImages.flatMap((image): ConversationUserMessage[] => [
       {
         role: 'user',
         content: [
@@ -73,11 +73,8 @@ export const preparedReferenceImagesToChatMessages = (
         role: 'user',
         content: [
           {
-            type: 'image_url',
-            image_url: {
-              url: image.url,
-              detail: 'high',
-            },
+            type: 'image',
+            url: image.url,
           },
         ],
       },
@@ -85,9 +82,9 @@ export const preparedReferenceImagesToChatMessages = (
   ];
 };
 
-export const multimodalPromptToChatMessages = async (
+export const multimodalPromptToMessages = async (
   multimodalPrompt?: TMultimodalPrompt,
-): Promise<ChatCompletionUserMessageParam[]> =>
-  preparedReferenceImagesToChatMessages(
+): Promise<ConversationUserMessage[]> =>
+  preparedReferenceImagesToMessages(
     await prepareReferenceImages(multimodalPrompt),
   );

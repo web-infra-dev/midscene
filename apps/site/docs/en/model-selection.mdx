@@ -1,0 +1,35 @@
+# Model Selection Guide
+
+This guide introduces the models supported by Midscene, two ways to connect them, and when to use one Default model or combine multiple models.
+
+## Supported models
+
+Midscene supports these multimodal models for operating user interfaces: [Doubao Seed](./model-api-setup#doubao-seed-model), [Qwen](./model-api-setup#qwen), [DeepSeek](./model-api-setup#deepseek), [Google Gemini](./model-api-setup#gemini), [OpenAI GPT](./model-api-setup#gpt), [Moonshot Kimi](./model-api-setup#kimi), [Xiaomi MiMo](./model-api-setup#xiaomi-mimo), [Zhipu GLM-V](./model-api-setup#glm-v), and [Jev (experimental)](./model-api-setup#jev), as well as the other compatible models [AutoGLM](./model-api-setup#auto-glm) and [UI-TARS](./model-api-setup#ui-tars).
+
+## Choose a connection method
+
+Midscene supports two ways to connect a model. Choose either one:
+
+- **Model API key**: Use an API key from a model provider to connect to the models listed above. See [Use a model API key](./model-api-setup).
+- **ChatGPT subscription**: Sign in and authorize Midscene to call GPT models using your ChatGPT subscription. Available models depend on your account. See [Use a ChatGPT subscription](./chatgpt-subscription).
+
+## Start with one Default model
+
+Configure one multimodal Default model for planning, localization, and insight. This works for most scenarios. See [Use a model API key](./model-api-setup) for supported models and configuration examples, or choose [Use a ChatGPT subscription](./chatgpt-subscription).
+
+## Use multi-model capabilities to handle complex scenarios {#multi-model-strategy}
+
+Midscene supports combining multiple models to handle complex scenarios. A single automation task may require multi-step planning, precise element localization, and data extraction or result evaluation. Different models have different strengths across these capabilities.
+
+Keep the Default model and add Planning, Locate, or Insight models to divide the work according to those strengths within the same task. For example, use a stronger planning model for long workflows with conditional branches, a localization model for difficult UI targets, or an insight model for complex assertions and structured data extraction.
+
+Configure each role independently; you do not need to add every specialized model at once. Any role without a dedicated model continues to use the Default model:
+
+| Model | Responsibility |
+| --- | --- |
+| Default model | Required base configuration providing all capabilities; any role without a specialized model uses it |
+| Planning model | Planning for complex goals, multiple steps, and branching scenarios |
+| Locate model | Independent element localization, including action targets and `deepLocate` |
+| Insight model | Data extraction, assertions, and page understanding |
+
+Combining models can increase latency and token usage. Use [Model advanced configuration and debugging](./model-config#verify-model-connectivity) to identify the problem, then [configure multiple models](./model-config#multi-model-combination-example) as needed.

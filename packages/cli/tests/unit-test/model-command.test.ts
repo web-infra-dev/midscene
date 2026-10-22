@@ -9,10 +9,13 @@ import {
   buildModelVerifyCurlCommands,
   runModelCommand,
 } from '../../src/model-command';
+import { runSiwcCommand } from '../../src/siwc-command';
 
 rs.mock('../../src/dotenv-loader', () => ({
   loadDotenvConfig: rs.fn(),
 }));
+
+rs.mock('../../src/siwc-command', () => ({ runSiwcCommand: rs.fn() }));
 
 rs.spyOn(globalModelConfigManager, 'getModelConfig');
 
@@ -38,6 +41,34 @@ function createIO() {
 }
 
 describe('model command', () => {
+  it('includes SIWC in model command help', async () => {
+    const io = createIO();
+    expect(await runModelCommand(['model', '--help'], {}, io)).toBe(0);
+    expect(io.stdout).toHaveBeenCalledWith(
+      expect.stringContaining('midscene model siwc <login|refresh> [options]'),
+    );
+  });
+
+  it('routes siwc options and output without loading model configuration', async () => {
+    const io = createIO();
+    const loadDotenv = rs.fn();
+    const getModelConfig = rs.fn();
+    rs.mocked(runSiwcCommand).mockResolvedValueOnce(0);
+    expect(
+      await runModelCommand(
+        ['model', 'siwc', 'login', '--no-open', '--port', '1455'],
+        { loadDotenv, getModelConfig },
+        io,
+      ),
+    ).toBe(0);
+    expect(runSiwcCommand).toHaveBeenCalledWith(
+      ['login', '--no-open', '--port', '1455'],
+      io,
+    );
+    expect(loadDotenv).not.toHaveBeenCalled();
+    expect(getModelConfig).not.toHaveBeenCalled();
+  });
+
   it('deduplicates curl commands by base URL, API key, and model name', () => {
     const commands = buildModelVerifyCurlCommands([
       {
@@ -92,11 +123,14 @@ describe('model command', () => {
     const loadDotenv = rs.fn();
     const configs: Record<TIntent, IModelConfig> = {
       default: createModelConfig({ intent: 'default', slot: 'default' }),
+      locate: createModelConfig({ intent: 'locate', slot: 'default' }),
       planning: createModelConfig({ intent: 'planning', slot: 'planning' }),
       insight: createModelConfig({ intent: 'insight', slot: 'insight' }),
     };
     const getModelConfig = rs.fn((intent: TIntent) => configs[intent]);
-    const verifyModel = rs.fn().mockResolvedValue({ passed: true });
+    const verifyModel = rs
+      .fn()
+      .mockResolvedValue({ checks: [], requestCount: 0, passed: true });
 
     const exitCode = await runModelCommand(
       ['model', 'verify'],
@@ -112,11 +146,12 @@ describe('model command', () => {
     expect(loadDotenv).toHaveBeenCalledOnce();
     expect(verifyModel).toHaveBeenCalledWith({
       defaultModelConfig: configs.default,
+      locateModelConfig: configs.locate,
       planningModelConfig: configs.planning,
       insightModelConfig: configs.insight,
     });
     expect(io.stdout).toHaveBeenCalledWith(
-      'Model verify started. This usually takes about 5 seconds.\n',
+      'Model verify started. This usually completes within 30 seconds.',
     );
     expect(io.stdout).toHaveBeenCalledWith('');
     expect(io.stdout).toHaveBeenCalledWith('✅ Model verify passed.');
@@ -143,6 +178,7 @@ describe('model command', () => {
     getModelConfig.mockImplementation((intent: TIntent) => {
       const configs: Record<TIntent, IModelConfig> = {
         default: defaultConfig,
+        locate: { ...defaultConfig, intent: 'locate' },
         planning: planningConfig,
         insight: insightConfig,
       };
@@ -152,7 +188,9 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        verifyModel: rs.fn().mockResolvedValue({ passed: true }),
+        verifyModel: rs
+          .fn()
+          .mockResolvedValue({ checks: [], requestCount: 0, passed: true }),
       },
       io,
     );
@@ -174,6 +212,13 @@ describe('model command', () => {
         openaiBaseURL: 'https://api.example.com/v1',
         openaiApiKey: 'sk-default',
         modelName: 'gpt-4o',
+      }),
+      locate: createModelConfig({
+        intent: 'locate',
+        slot: 'locate',
+        modelName: 'locator',
+        openaiBaseURL: 'https://locate.example/v1',
+        openaiApiKey: 'locate-key',
       }),
       planning: createModelConfig({
         intent: 'planning',
@@ -197,6 +242,8 @@ describe('model command', () => {
         loadDotenv: rs.fn(),
         getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
         verifyModel: rs.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: '[Vision check - ep-vision (insight)]: 404 Not Found',
         }),
@@ -222,7 +269,8 @@ describe('model command', () => {
     expect(output).toContain('# insight');
     expect(output).toContain('sk-default');
     expect(output).toContain('ark-key');
-    expect(output.match(/curl -X POST/g)).toHaveLength(2);
+    expect(output).toContain('https://locate.example/v1/chat/completions');
+    expect(output.match(/curl -X POST/g)).toHaveLength(3);
   });
 
   it('explains when a generated curl command uses the default base URL', async () => {
@@ -232,6 +280,13 @@ describe('model command', () => {
         intent: 'default',
         slot: 'default',
         openaiBaseURL: undefined,
+      }),
+      locate: createModelConfig({
+        intent: 'locate',
+        slot: 'locate',
+        modelName: 'locator',
+        openaiBaseURL: 'https://locate.example/v1',
+        openaiApiKey: 'locate-key',
       }),
       planning: createModelConfig({
         intent: 'planning',
@@ -251,6 +306,8 @@ describe('model command', () => {
         loadDotenv: rs.fn(),
         getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
         verifyModel: rs.fn().mockResolvedValue({
+          checks: [],
+          requestCount: 0,
           passed: false,
           message: 'failed',
         }),

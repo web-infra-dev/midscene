@@ -30,7 +30,7 @@ export async function makeWebDriverRequest(
   const url = `${baseUrl}${endpoint}`;
 
   debugRequest(
-    `${method} ${url}${data ? ` with data: ${JSON.stringify(data)}` : ''}`,
+    `${method} ${endpoint}${data ? ` with data: ${JSON.stringify(data)}` : ''}`,
   );
 
   const controller = new AbortController();

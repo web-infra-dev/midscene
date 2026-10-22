@@ -375,6 +375,8 @@ describe('RemoteExecutionAdapter', () => {
     it('should call the connectivity test endpoint', async () => {
       const mockResult = {
         passed: true,
+        checks: [],
+        requestCount: 0,
       };
       mockFetch.mockResolvedValueOnce({
         ok: true,

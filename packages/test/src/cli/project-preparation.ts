@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { CollectedWorkflowDocument } from '@midscene/core/internal/test-runner';
+import { buildTestRunReportPlan } from '@midscene/core/internal/test-runner';
 import { globSync } from 'tinyglobby';
 import { WorkflowError, WorkflowParseError } from '../errors';
 import { collectWorkflowDocument } from '../parser/collect';
@@ -101,6 +102,11 @@ const findConfigInDirectory = (root: string): string | undefined => {
   return supported[0] ? join(root, supported[0]) : undefined;
 };
 
+/**
+ * Find the nearest supported config from projectRoot through its ancestors.
+ * A package.json or .git marker includes that directory but stops further search.
+ * Throws for invalid directories and unsupported or ambiguous config candidates.
+ */
 export const discoverTestConfig = (projectRoot: string): string | undefined => {
   const root = resolve(projectRoot);
   if (!existsSync(root) || !statSync(root).isDirectory()) {
@@ -214,6 +220,7 @@ export async function prepareProject(
   });
   const collectionErrors: TestProjectCollectionError[] = [];
   const invocations: PreparedDocumentInvocation[] = [];
+  const plans: import('@midscene/core').TestRunReportDocumentPlan[] = [];
   let filteredCaseCount = 0;
 
   if (sources.length === 0) {
@@ -235,7 +242,14 @@ export async function prepareProject(
       const collected = await options.collectDocument?.(source, project);
       if (collected) {
         filteredCaseCount += collected.filteredCaseCount;
-        if (collected.invocation) invocations.push(collected.invocation);
+        if (collected.invocation) {
+          const plan = buildTestRunReportPlan(collected.invocation.document, {
+            defaultTimeoutMs: collected.invocation.defaultTimeoutMs,
+            retry: collected.invocation.retry,
+          });
+          invocations.push({ ...collected.invocation, plan });
+          plans.push(plan);
+        }
         continue;
       }
       const document = collectWorkflowDocument(source, {
@@ -247,14 +261,41 @@ export async function prepareProject(
         source.absolutePath === prerequisiteFile
           ? { document, filtered: 0 }
           : filterDocumentCases(document, project);
+      const plan = buildTestRunReportPlan(document, {
+        selectedCaseIds:
+          filtered.document?.cases.map((item) => item.caseId) ?? [],
+        defaultTimeoutMs,
+        retry: { scope: 'case', count: project.retry },
+      });
+      plans.push(plan);
       filteredCaseCount += filtered.filtered;
       if (filtered.document)
         invocations.push({
+          plan,
           document: filtered.document,
           retry: { scope: 'case', count: project.retry },
           defaultTimeoutMs,
           reportEnabled: true,
-          bindings: { resolveNode: project.nodes.require.bind(project.nodes) },
+          bindings: {
+            resolveNode: project.nodes.require.bind(project.nodes),
+            ...(project.fileSetup
+              ? {
+                  documentSetup: {
+                    name: project.fileSetup.name,
+                    setup({ projectContext, document, signal, onTeardown }) {
+                      return project.fileSetup!.setup({
+                        project,
+                        projectContext,
+                        file: document,
+                        env: Object.freeze({ ...process.env }),
+                        signal,
+                        onTeardown,
+                      });
+                    },
+                  },
+                }
+              : {}),
+          },
         });
     } catch (error) {
       const collectionError = asCollectionError(
@@ -286,6 +327,7 @@ export async function prepareProject(
     sources,
     documents,
     invocations,
+    plans,
     collectionErrors,
     selectedCaseCount: documents.reduce(
       (total, document) => total + document.cases.length,
