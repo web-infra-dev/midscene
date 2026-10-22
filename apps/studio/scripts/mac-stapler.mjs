@@ -8,6 +8,9 @@ const execFileAsync = promisify(execFile);
 const transientNetworkError =
   /(?:NSURLErrorDomain|kCFErrorDomainCFNetwork)\s+Code=-(?:1001|1003|1004|1005|1006|1009)\b/;
 
+export const isTransientMacNetworkError = (output) =>
+  transientNetworkError.test(output);
+
 const printOutput = ({ stdout, stderr }) => {
   if (stdout) process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);
@@ -31,7 +34,7 @@ export const runMacStapler = async (
       maxAttempts: 3,
       getDelayMs: (attempt) => getExponentialRetryDelayMs(attempt, 5000),
       shouldRetry: (error) =>
-        transientNetworkError.test(
+        isTransientMacNetworkError(
           `${error.stdout ?? ''}\n${error.stderr ?? ''}`,
         ),
       onRetry: ({ attempt, maxAttempts, delayMs }) => {

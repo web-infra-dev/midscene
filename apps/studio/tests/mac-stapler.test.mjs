@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { notarizeMacArtifact } from '../scripts/mac-notarization.mjs';
 import { runMacStapler } from '../scripts/mac-stapler.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -169,6 +170,103 @@ describe('macOS stapler retries', () => {
 
     expect(execute).toHaveBeenCalledTimes(1);
     expect(wait).not.toHaveBeenCalled();
+  });
+});
+
+describe('macOS notarization recovery', () => {
+  it.each(['Studio.app', 'Studio.dmg'])(
+    'validates %s after submission without stapling it twice',
+    async (appPath) => {
+      const options = {
+        appPath,
+        appleApiKey: '/tmp/fixture.p8',
+        appleApiKeyId: 'fixture',
+      };
+      const submit = vi.fn().mockResolvedValue(undefined);
+      const staple = vi.fn().mockResolvedValue(undefined);
+
+      await notarizeMacArtifact(options, { submit, staple });
+
+      expect(submit).toHaveBeenCalledExactlyOnceWith(options);
+      expect(staple.mock.calls).toEqual([['validate', appPath]]);
+    },
+  );
+
+  it.each(['Studio.app', 'Studio.dmg'])(
+    'recovers the library-internal network failure for %s without submitting again',
+    async (appPath) => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+      const error = new Error(
+        'Failed to staple your application with code: 68\n\nError Domain=NSURLErrorDomain Code=-1005 "The network connection was lost."',
+      );
+      const submit = vi.fn().mockRejectedValue(error);
+      const staple = vi.fn().mockResolvedValue(undefined);
+
+      await notarizeMacArtifact({ appPath }, { submit, staple });
+
+      expect(submit).toHaveBeenCalledTimes(1);
+      expect(staple.mock.calls).toEqual([
+        ['staple', appPath],
+        ['validate', appPath],
+      ]);
+      expect(console.error).toHaveBeenCalledWith(error.message);
+    },
+  );
+
+  it.each([
+    'notarytool submission failed: Error Domain=NSURLErrorDomain Code=-1005',
+    'Failed to staple your application with code: 68\nA ticket has not been stapled.',
+    'Failed to staple your application with code: 68\nError Domain=NSURLErrorDomain Code=-1200',
+    'Invalid notarization credentials',
+  ])(
+    'propagates failures outside the recoverable staple phase: %s',
+    async (message) => {
+      const error = new Error(message);
+      const submit = vi.fn().mockRejectedValue(error);
+      const staple = vi.fn();
+
+      await expect(
+        notarizeMacArtifact({ appPath: 'Studio.app' }, { submit, staple }),
+      ).rejects.toBe(error);
+
+      expect(submit).toHaveBeenCalledTimes(1);
+      expect(staple).not.toHaveBeenCalled();
+    },
+  );
+
+  it('propagates exhausted staple recovery without validating or resubmitting', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const submit = vi
+      .fn()
+      .mockRejectedValue(
+        new Error(
+          'Failed to staple your application with code: 68\nError Domain=NSURLErrorDomain Code=-1005',
+        ),
+      );
+    const finalError = new Error('stapler recovery exhausted');
+    const staple = vi.fn().mockRejectedValue(finalError);
+
+    await expect(
+      notarizeMacArtifact({ appPath: 'Studio.dmg' }, { submit, staple }),
+    ).rejects.toBe(finalError);
+
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(staple.mock.calls).toEqual([['staple', 'Studio.dmg']]);
+  });
+
+  it('propagates validation failures without repeating submission', async () => {
+    const error = new Error('validation failed');
+    const submit = vi.fn().mockResolvedValue(undefined);
+    const staple = vi.fn().mockRejectedValue(error);
+
+    await expect(
+      notarizeMacArtifact({ appPath: 'Studio.app' }, { submit, staple }),
+    ).rejects.toBe(error);
+
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(staple.mock.calls).toEqual([['validate', 'Studio.app']]);
   });
 });
 
