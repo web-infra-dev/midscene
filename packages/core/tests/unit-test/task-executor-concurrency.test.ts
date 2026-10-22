@@ -175,6 +175,82 @@ describe('TaskExecutor concurrency isolation', () => {
     },
   );
 
+  it.each([
+    { effort: 'balance' as const, differentKey: false, expected: true },
+    { effort: 'deepThink' as const, differentKey: false, expected: false },
+    { effort: 'balance' as const, differentKey: true, expected: true },
+    { effort: 'balance' as const, differentModel: true, expected: false },
+    { effort: 'balance' as const, differentBaseURL: true, expected: false },
+    { effort: 'balance' as const, differentFamily: true, expected: false },
+    { effort: 'balance' as const, generativeLocate: true, expected: false },
+  ])(
+    'combines matching Jev configurations: %j',
+    async ({
+      effort,
+      differentKey,
+      differentModel,
+      differentBaseURL,
+      differentFamily,
+      generativeLocate,
+      expected,
+    }) => {
+      const planFn = rs.fn().mockResolvedValue({
+        actions: [],
+        log: '',
+        shouldContinuePlanning: false,
+        finalizeSuccess: true,
+      });
+      const planning = getModelRuntime({
+        ...defaultModel().config,
+        modelFamily: 'jev',
+        modelName: 'jev-test',
+        openaiApiKey: 'planning-key',
+        openaiBaseURL: 'https://example.com/v1',
+        slot: 'planning',
+        intent: 'planning',
+      });
+      const locate = getModelRuntime({
+        ...planning.config,
+        openaiApiKey: differentKey ? 'other-key' : 'planning-key',
+        slot: 'locate',
+        intent: 'locate',
+      });
+      const locateRuntime = {
+        ...locate,
+        config: {
+          ...locate.config,
+          modelName: differentModel ? 'another-jev' : locate.config.modelName,
+          openaiBaseURL: differentBaseURL
+            ? 'https://other.example.com/v1'
+            : locate.config.openaiBaseURL,
+          modelFamily: differentFamily
+            ? defaultModel().config.modelFamily
+            : locate.config.modelFamily,
+        },
+        adapter: generativeLocate ? defaultModel().adapter : locate.adapter,
+      };
+      await taskExecutor.action(
+        'prompt',
+        {
+          ...planning,
+          adapter: {
+            ...planning.adapter,
+            planning: { ...planning.adapter.planning, kind: 'custom', planFn },
+          },
+        },
+        locateRuntime,
+        undefined,
+        undefined,
+        undefined,
+        effort,
+      );
+      expect(planFn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ includeLocateInPlanning: expected }),
+      );
+    },
+  );
+
   it('stores raw aiAct context while rendering it for the planning model', async () => {
     rs.mocked(standardPlan).mockResolvedValue({
       actions: [],

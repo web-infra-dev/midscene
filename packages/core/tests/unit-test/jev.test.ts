@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Insight } from '@/agent/insight';
 import { runConnectivityTest } from '@/ai-model/connectivity';
 import { getModelRuntime } from '@/ai-model/models';
@@ -181,6 +184,43 @@ describe('Jev requests and coordinates', () => {
     );
     expect(prepared.url).toBe(expectedURL);
   });
+  it.each(['jpg', 'jpeg'])(
+    'encodes a local .%s reference image without changing its bytes',
+    async (extension) => {
+      const directory = await mkdtemp(join(tmpdir(), 'midscene-jev-image-'));
+      try {
+        const bytes = await sharp({
+          create: {
+            width: 400,
+            height: 400,
+            channels: 3,
+            background: 'green',
+          },
+        })
+          .jpeg()
+          .toBuffer();
+        const path = join(directory, `reference.${extension}`);
+        await writeFile(path, bytes);
+        const image = await prepareJevImage(path);
+        const prepared = await prepareSystemOne(jevConfig, {
+          state: {},
+          images: { reference: image.imageBase64 },
+          questions: {
+            result: { type: 'noul', instructions: 'Is `reference` green?' },
+          },
+        });
+        const body = JSON.parse(prepared.body);
+        expect(body.assets[body.state.reference]).toEqual({
+          type: 'image',
+          format: 'jpg',
+          data_base64: bytes.toString('base64'),
+        });
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+
   it('batches presence and box in one recorded request and restores full-size coordinates', async () => {
     const fetchMock = rs
       .spyOn(globalThis, 'fetch')
@@ -604,6 +644,73 @@ describe('Jev planning', () => {
       effort: 'balance' as const,
     };
   }
+  it.each([true, false])(
+    'includes target coordinates only when enabled (%s)',
+    async (includeLocateInPlanning) => {
+      const fetchMock = rs.spyOn(globalThis, 'fetch').mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              answers: {
+                action: { type: 'choice', choice: 'action:Tap' },
+                target: goodResult.answers.target,
+              },
+            }),
+          ),
+      );
+      const opts = { ...(await options()), includeLocateInPlanning };
+      const result = await jevPlan(
+        { text: 'Submit the form', referenceImages: [] },
+        opts,
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+      expect(body.questions.target?.type).toBe(
+        includeLocateInPlanning ? 'box' : undefined,
+      );
+      expect(result.actions?.[0]?.param.locate.locatedPixelResult).toEqual(
+        includeLocateInPlanning
+          ? {
+              center: [400, expect.closeTo(150)],
+              rect: { left: 200, top: 100, width: 400, height: 100 },
+            }
+          : undefined,
+      );
+    },
+  );
+
+  it('ignores the returned target when the task is complete', async () => {
+    rs.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            answers: {
+              action: { type: 'choice', choice: 'control:complete' },
+              target: goodResult.answers.target,
+            },
+          }),
+        ),
+    );
+    const result = await jevPlan(
+      { text: 'Submit the form', referenceImages: [] },
+      { ...(await options()), includeLocateInPlanning: true },
+    );
+    expect(result.actions).toEqual([]);
+    expect(result.finalizeSuccess).toBe(true);
+  });
+
+  it('rejects a missing target for a direct single-target action', async () => {
+    rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+      planningResponse('Tap'),
+    );
+    await expect(
+      jevPlan(
+        { text: 'Submit the form', referenceImages: [] },
+        { ...(await options()), includeLocateInPlanning: true },
+      ),
+    ).rejects.toThrow('Missing or invalid Jev answer: target');
+  });
+
   it.each(['Tap', 'Complete'])(
     'plans %s without a general model',
     async (action) => {
@@ -796,6 +903,7 @@ describe('Jev planning', () => {
     const base = getModelRuntime(defaultConfig);
     const fallback = rs.fn(async () => ({
       actions: [],
+      log: 'Default planner completed the task',
       shouldContinuePlanning: false,
     }));
     await jevPlan(
@@ -870,6 +978,7 @@ describe('Jev planning', () => {
     const fallback = rs.fn(
       async (_instruction: unknown, _options: unknown) => ({
         actions: [],
+        log: 'Default planner completed the task',
         shouldContinuePlanning: false,
         finalizeSuccess: true,
         finalizeMessage: 'done',

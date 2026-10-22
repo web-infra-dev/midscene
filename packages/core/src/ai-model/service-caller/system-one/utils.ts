@@ -12,7 +12,7 @@ export function encodeSystemOneImages(
         return [name, { type: 'image_url', image_url: { url: dataURL } }];
       }
       const reference = uuid();
-      const match = /^data:image\/(png|jpeg);base64,(.+)$/.exec(dataURL);
+      const match = /^data:image\/(png|jpe?g);base64,(.+)$/.exec(dataURL);
       assert(match, 'System One images must be prepared PNG or JPEG data URLs');
       assets[reference] = {
         type: 'image',

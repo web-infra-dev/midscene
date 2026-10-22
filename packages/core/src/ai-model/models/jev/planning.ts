@@ -27,7 +27,7 @@ export const jevPlan: PlanFn = async (instruction, options) => {
       choice.action,
     );
   }
-  const actions = buildJevAction(decision, context, instruction);
+  const actions = buildJevAction(decision, context, instruction, options);
   const log = `Jev selected ${selected}`;
   const feedback = history.pendingFeedbackMessage;
   history.resetPendingFeedbackMessageIfExists();

@@ -1,3 +1,4 @@
+import { findAllMidsceneLocatorField } from '@/common';
 import type { DeviceAction } from '@/types';
 import { assert } from '@midscene/shared/utils';
 import { callSystemOneAI } from '../../service-caller';
@@ -31,15 +32,32 @@ export async function decideJevAction(
     choices.set(key, { kind, action });
     criteria[key] = `${action.name}: ${action.description ?? action.name}. ${
       kind === 'action'
-        ? 'Perform this action; its target will be located separately.'
+        ? 'Perform this action.'
         : 'Suggest this action and delegate the next planning step, including its parameters, to the default model.'
     }`;
   }
   assert(choices.size <= 255, 'Jev Choice supports at most 255 options');
+  const locateInPlanning =
+    options.includeLocateInPlanning &&
+    options.actionSpace.some(
+      (action) =>
+        action.supportedBySystemOne &&
+        action.paramSchema &&
+        findAllMidsceneLocatorField(action.paramSchema).length === 1,
+    );
   const response = await callSystemOneAI(
     {
       ...context,
       questions: {
+        ...(locateInPlanning
+          ? {
+              target: {
+                type: 'box' as const,
+                instructions:
+                  'Identify the single UI element to interact with in the NEXT step toward `goal`, using the current `screenshot`, context, history and feedback. Return its bounding box in `screenshot`. This is the target of the next direct action (such as Tap, DoubleClick, Hover or ClearInput), not the final goal of the entire task. Reference images describe targets, not the current page. If the next step needs no target or must be delegated, this box is unused.',
+              },
+            }
+          : {}),
         action: {
           type: 'choice',
           instructions:
@@ -58,7 +76,12 @@ export async function decideJevAction(
   const selected = answers.action.choice;
   const choice = choices.get(selected);
   assert(choice, `Unknown Jev planning choice: ${selected}`);
-  return { selected, choice, response };
+  return {
+    selected,
+    choice,
+    response,
+    target: locateInPlanning ? answers.target : undefined,
+  };
 }
 
 export type JevActionDecision = Awaited<ReturnType<typeof decideJevAction>>;

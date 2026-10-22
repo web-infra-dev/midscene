@@ -557,8 +557,19 @@ export class TaskExecutor {
     const noIndividualLocateModel =
       planningModel.config.slot === 'default' &&
       locateModel.config.slot === 'default';
+    const planningConfig = planningModel.config;
+    const locateConfig = locateModel.config;
+    const sameSystemOneModel =
+      planningModel.adapter.modelType === 'system-one' &&
+      locateModel.adapter.modelType === 'system-one' &&
+      planningConfig.modelName === locateConfig.modelName &&
+      planningConfig.openaiBaseURL === locateConfig.openaiBaseURL;
+    const bothJev =
+      planningConfig.modelFamily === 'jev' &&
+      locateConfig.modelFamily === 'jev';
     const includeLocateInPlanning =
-      effort !== 'deepThink' && noIndividualLocateModel;
+      effort !== 'deepThink' &&
+      (noIndividualLocateModel || (sameSystemOneModel && bothJev));
     const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
 
     debug('setting includeLocateInPlanning to', includeLocateInPlanning, {

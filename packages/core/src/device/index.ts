@@ -1174,6 +1174,7 @@ export interface MobileInputActionContext {
 
 export interface SystemInputActionConfig {
   name: string;
+  supportedBySystemOne?: boolean;
   description: string;
   interfaceAlias?: string;
   delayBeforeRunner?: number;
@@ -1200,6 +1201,7 @@ function defineSystemInputAction(
 ): DeviceAction<undefined, void> {
   return defineAction<undefined, undefined, void>({
     name: config.name,
+    supportedBySystemOne: config.supportedBySystemOne,
     description: config.description,
     interfaceAlias: config.interfaceAlias,
     delayBeforeRunner: config.delayBeforeRunner,

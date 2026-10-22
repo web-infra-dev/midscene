@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { getModelRuntime } from '@/ai-model/models';
+import type { ServiceExtractParam } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
@@ -51,7 +52,7 @@ describe('insight extraction prompt assembly', () => {
     } as any);
   });
 
-  it.each([
+  it.each<ServiceExtractParam>([
     'Read the page title',
     { title: 'Page title' },
     { Boolean: 'Read the Boolean field' },
