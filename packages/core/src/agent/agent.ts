@@ -1,6 +1,6 @@
-import type { ModelTask } from '@/ai-model/model-adapter/types';
+import type { ModelTaskType } from '@/ai-model/model-adapter/types';
 import type { ModelRuntime } from '@/ai-model/models';
-import { resolveModelForTask } from '@/ai-model/models/task-routing';
+import { resolveModelForTaskType } from '@/ai-model/models/model-fallback';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
@@ -381,16 +381,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     );
   }
 
-  private resolveModelRuntime(intent: TIntent, task?: ModelTask): ModelRuntime {
-    const runtime = resolveModelForTask(
+  private resolveModelRuntime(
+    intent: TIntent,
+    taskType: ModelTaskType,
+  ): ModelRuntime {
+    const runtime = resolveModelForTaskType(
       this.modelConfigManager,
       intent,
-      task ??
-        (intent === 'default'
-          ? 'text'
-          : intent === 'insight'
-            ? 'extract'
-            : intent),
+      taskType,
     );
     return {
       ...runtime,
@@ -415,7 +413,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
             this.taskExecutor.createTypeQueryExecution(...args),
           ),
       },
-      (task) => this.resolveModelRuntime('insight', task),
+      (taskType) => this.resolveModelRuntime('insight', taskType),
       (apiName, callContext) => this.resolveUserContext(apiName, callContext),
       getUIContext,
     );
@@ -491,7 +489,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
-      getDefaultModelRuntime: () => this.resolveModelRuntime('default'),
+      getDefaultModelRuntime: () =>
+        this.resolveModelRuntime('default', 'general'),
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
@@ -780,7 +779,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
     // Dedup key priority:
     // 1. request_id — provider-issued, stable across onUsage and task dump paths
-    // 2. INTERNAL_CALL_ID_FIELD — callAI-generated internal id, covers
+    // 2. INTERNAL_CALL_ID_FIELD — callGenerativeAI-generated internal id, covers
     //    providers that don't return a request_id
     // 3. caller-provided key (taskId:field or callai:counter)
     let dedupKey: string;
@@ -887,8 +886,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     );
 
     // assume all operation in action space is related to locating
-    const locateModel = this.resolveModelRuntime('locate');
-    const planningModel = this.resolveModelRuntime('planning');
+    const locateModel = this.resolveModelRuntime('locate', 'locate');
+    const planningModel = this.resolveModelRuntime('planning', 'planning');
 
     const { output } = await this.taskExecutor.runPlans(
       title,
@@ -1270,8 +1269,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     const runAiAct = async () => {
-      const planningModel = this.resolveModelRuntime('planning');
-      const locateModel = this.resolveModelRuntime('locate');
+      const planningModel = this.resolveModelRuntime('planning', 'planning');
+      const locateModel = this.resolveModelRuntime('locate', 'locate');
       const aiActContext = this.resolveUserContext('aiAct', opt?.context);
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
@@ -1540,8 +1539,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const locateModel = this.resolveModelRuntime('locate');
-    const planningModel = this.resolveModelRuntime('planning');
+    const locateModel = this.resolveModelRuntime('locate', 'locate');
+    const planningModel = this.resolveModelRuntime('planning', 'planning');
 
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),

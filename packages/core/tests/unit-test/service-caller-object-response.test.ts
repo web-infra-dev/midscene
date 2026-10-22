@@ -1,6 +1,9 @@
 import type { ModelRuntime } from '@/ai-model/model-adapter/types';
 import { getModelRuntime } from '@/ai-model/models';
-import { type callAI, parseAIObjectResponse } from '@/ai-model/service-caller';
+import {
+  type callGenerativeAI,
+  parseAIObjectResponse,
+} from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, rs } from '@rstest/core';
 
@@ -16,7 +19,7 @@ const modelConfig: IModelConfig = {
 const modelResponse = (content: string) =>
   ({
     content,
-  }) as Awaited<ReturnType<typeof callAI>>;
+  }) as Awaited<ReturnType<typeof callGenerativeAI>>;
 
 describe('parseAIObjectResponse', () => {
   it('rejects a top-level JSON array', () => {

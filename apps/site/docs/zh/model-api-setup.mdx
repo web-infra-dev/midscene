@@ -329,11 +329,27 @@ Midscene 对 Jev 的支持是实验性的。
   purposes={['planning', 'locate', 'insight']}
 />
 
+:::info Base URL 与 TypeSafe SDK 的区别
+
+在 Midscene 中，Base URL 应包含 API 版本路径，例如 `https://api.typesafe.ai/v1`，最终请求地址为 `https://api.typesafe.ai/v1/systemone`。
+
+TypeSafe SDK 与 OpenAI SDK 的 Base URL 约定不同：OpenAI SDK 通常将 `/v1` 包含在 Base URL 中；TypeSafe SDK 会自行追加 `/v1/systemone`。为了兼容不同供应商（例如 OpenRouter）的 System One API，Midscene 不会像 TypeSafe SDK 一样固定添加 `/v1` 版本前缀，而是仅追加 `/systemone`，因此需要将版本前缀包含在 Base URL 中。
+
+:::
+
+将相应模型职责配置为 Jev 后，各类任务的处理方式如下：
+
+- **定位**：由 Jev 执行元素定位。
+- **Insight**：`aiBoolean`、`aiAssert` 和 `aiWaitFor` 由 Jev 执行判断；`aiQuery`、`aiString`、`aiNumber` 和 `aiAsk` 由通用默认模型处理。
+- **任务规划**：`aiAct` 中，单击、双击、返回等简单动作由 Jev 规划；输入、滚动等复杂动作由默认模型规划。
+
+上述模型选择依据任务所需的能力。Jev 请求失败时，不会自动切换至默认模型。
+
 Jev 使用 TypeSafe 的 System One 协议，不使用 OpenAI 协议。OpenAI 的部分模型配置不适用于 Jev，包括温度、原生思考、响应格式和流式输出等。
 
 :::info 图像输入限制
 
-Jev 要求输入图像的最长边不超过 1568 像素，因此 Midscene 会对超出限制的图像进行等比缩放，并在定位后将结果映射回原图坐标。不足 280 像素的边会补白。该图像处理逻辑后续可能调整。
+目前 Jev 最新版本支持的图片最长边仅为 1568 像素，需要通过 Agent 的 `screenshotShrinkFactor` 参数控制截图尺寸。为避免多次缩放影响图片质量，并兼容 Jev 未来版本的图片尺寸要求，Midscene 不会按照 Jev 某个版本的尺寸要求自动缩放图片。
 
 :::
 

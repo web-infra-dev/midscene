@@ -688,7 +688,6 @@ export class TaskExecutor {
                 actionContext: renderAIContext(aiActContext),
                 actionSpace,
                 modelRuntime: planningModel,
-                locateModelRuntime: locateModel,
                 getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
                 includeLocateInPlanning,
@@ -1023,6 +1022,9 @@ export class TaskExecutor {
           extractResult = await this.service.extract<any>(
             demandInput,
             modelRuntime,
+            type === 'Boolean' || type === 'Assert' || type === 'WaitFor'
+              ? 'boolean'
+              : 'extract',
             opt,
             extraPageDescription,
             multimodalPrompt,

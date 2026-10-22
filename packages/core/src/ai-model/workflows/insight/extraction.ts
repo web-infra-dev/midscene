@@ -11,7 +11,10 @@ import {
   buildInsightSystemPrompt,
   extractDataQueryPrompt,
 } from '../../prompt/insight';
-import { AIResponseParseError, callAI } from '../../service-caller/index';
+import {
+  AIResponseParseError,
+  callGenerativeAI,
+} from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
@@ -25,6 +28,8 @@ type InsightAIArgs = [ConversationSystemMessage, ...ConversationUserMessage[]];
 const debugInsight = getDebug('ai:insight');
 
 export interface ExtractOptions {
+  /** Explicit task type; never infer from query keys. */
+  taskType: 'boolean' | 'extract';
   dataQuery: string | Record<string, string>;
   multimodalPrompt?: TMultimodalPrompt;
   context: UIContext;
@@ -35,7 +40,10 @@ export interface ExtractOptions {
 }
 
 export async function AiExtractElementInfo<T>(options: ExtractOptions) {
-  if (options.modelRuntime.adapter.insight.booleanFn) {
+  if (
+    options.taskType === 'boolean' &&
+    options.modelRuntime.adapter.insight.booleanFn
+  ) {
     return extractBoolean<T>(options);
   }
   const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
@@ -108,7 +116,7 @@ export async function AiExtractElementInfo<T>(options: ExtractOptions) {
 
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
-      callAI(
+      callGenerativeAI(
         withSemanticRetryFeedback(msgs, previousParseError),
         modelRuntime,
         {

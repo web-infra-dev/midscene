@@ -2,7 +2,10 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { runConnectivityTest } from '@/ai-model/connectivity';
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
+import {
+  callAIWithObjectResponse,
+  callGenerativeAI,
+} from '@/ai-model/service-caller';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
 import { beforeAll, describe, expect, it, rs } from '@rstest/core';
@@ -53,7 +56,7 @@ rs.setConfig({
     });
 
     it('text only', async () => {
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'system',
@@ -118,7 +121,7 @@ rs.setConfig({
 
     it('image input', async () => {
       const imagePath = getFixture('baidu.png');
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',

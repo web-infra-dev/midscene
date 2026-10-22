@@ -846,6 +846,7 @@ const createPlatformActions = (
     }),
     HarmonyBackButton: defineAction({
       name: 'HarmonyBackButton',
+      supportedBySystemOne: true,
       description: 'Trigger the system "back" operation on HarmonyOS devices',
       call: async () => {
         await device.back();
@@ -853,6 +854,7 @@ const createPlatformActions = (
     }),
     HarmonyHomeButton: defineAction({
       name: 'HarmonyHomeButton',
+      supportedBySystemOne: true,
       description: 'Trigger the system "home" operation on HarmonyOS devices',
       call: async () => {
         await device.home();
@@ -860,6 +862,7 @@ const createPlatformActions = (
     }),
     HarmonyRecentAppsButton: defineAction({
       name: 'HarmonyRecentAppsButton',
+      supportedBySystemOne: true,
       description:
         'Trigger the system "recent apps" operation on HarmonyOS devices',
       call: async () => {

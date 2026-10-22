@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller/index';
+import { callGenerativeAI } from '@/ai-model/service-caller/index';
 import {
   AiLocateElement,
   AiLocateSection,
@@ -17,7 +17,7 @@ import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
 
 rs.mock('@/ai-model/service-caller/index', () => ({
   ...serviceCallerActual,
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
 }));
 
 describe('grounding locate not-found parsing', () => {
@@ -33,7 +33,10 @@ describe('grounding locate not-found parsing', () => {
 
   beforeEach(() => {
     rs.clearAllMocks();
-    rs.mocked(callAI).mockResolvedValue({ content: '{}', isStreamed: false });
+    rs.mocked(callGenerativeAI).mockResolvedValue({
+      content: '{}',
+      isStreamed: false,
+    });
   });
 
   it.each([
@@ -41,7 +44,7 @@ describe('grounding locate not-found parsing', () => {
     '{"error":"target element is not found"}',
     '```json\n[{"bbox_1":920,"ymin":73,"xmax":964,"ymax":98}]\n```',
   ])('retries a response missing the coordinate field: %s', async (content) => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce({ content, isStreamed: false })
       .mockResolvedValueOnce({
         content: '{"bbox":[100,200,300,400]}',
@@ -54,12 +57,14 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime({ ...modelConfig, modelFamily: 'qwen3' }),
     });
 
-    expect(callAI).toHaveBeenCalledTimes(2);
-    expect(rs.mocked(callAI).mock.calls.map((call) => call[2])).toEqual([
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
+    expect(
+      rs.mocked(callGenerativeAI).mock.calls.map((call) => call[2]),
+    ).toEqual([
       expect.objectContaining({ semanticRetryAttempt: 0 }),
       expect.objectContaining({ semanticRetryAttempt: 1 }),
     ]);
-    const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    const retryFeedback = rs.mocked(callGenerativeAI).mock.calls[1][0].at(-1);
     assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback?.content).toContain(
       'Missing required coordinate field "bbox_2d"',
@@ -71,7 +76,10 @@ describe('grounding locate not-found parsing', () => {
 
   it('preserves the missing-field error and response after retries are exhausted', async () => {
     const content = '{"error":"target element is not found"}';
-    rs.mocked(callAI).mockResolvedValue({ content, isStreamed: false });
+    rs.mocked(callGenerativeAI).mockResolvedValue({
+      content,
+      isStreamed: false,
+    });
 
     const result = await AiLocateElement({
       context: createFakeContext(),
@@ -79,7 +87,7 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
     expect(result).not.toHaveProperty('rect');
     expect(result.parseResult.errors?.[0]).toContain(
       'Missing required coordinate field "bbox_2d"',
@@ -91,7 +99,7 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('skips coordinate parsing when result key is an empty array', async () => {
-    rs.mocked(callAI).mockResolvedValue({
+    rs.mocked(callGenerativeAI).mockResolvedValue({
       content: '{"bbox":[],"error":"target element is not found"}',
       isStreamed: false,
     });
@@ -102,7 +110,7 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(callAI).toHaveBeenCalledTimes(1);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(1);
     expect(result).not.toHaveProperty('rect');
     expect(result.parseResult).toEqual({
       element: undefined,
@@ -111,7 +119,7 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('retries once when result codec cannot map coordinates', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce({
         content:
           '{"bbox":[100,null,300,400],"error":"model returned invalid coordinates"}',
@@ -128,12 +136,14 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(callAI).toHaveBeenCalledTimes(2);
-    expect(rs.mocked(callAI).mock.calls.map((call) => call[2])).toEqual([
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
+    expect(
+      rs.mocked(callGenerativeAI).mock.calls.map((call) => call[2]),
+    ).toEqual([
       expect.objectContaining({ semanticRetryAttempt: 0 }),
       expect.objectContaining({ semanticRetryAttempt: 1 }),
     ]);
-    const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    const retryFeedback = rs.mocked(callGenerativeAI).mock.calls[1][0].at(-1);
     assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback).toMatchObject({ role: 'user' });
     expect(retryFeedback?.content).toEqual(
@@ -144,7 +154,7 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('includes model errors when coordinate parsing ultimately fails', async () => {
-    rs.mocked(callAI).mockResolvedValue({
+    rs.mocked(callGenerativeAI).mockResolvedValue({
       content:
         '{"bbox":[100,null,300,400],"error":"model returned invalid coordinates"}',
       isStreamed: false,
@@ -166,7 +176,7 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('retries JSON parsing through the same locate retry loop', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce({
         content: '```',
         isStreamed: false,
@@ -183,11 +193,11 @@ describe('grounding locate not-found parsing', () => {
     });
 
     expect(result.parseResult.element?.center).toBeDefined();
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
   });
 
   it('retries once when search-area result codec cannot map coordinates', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce({
         content: '{"bbox":[100,null,300,400]}',
         isStreamed: false,
@@ -203,8 +213,8 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(callAI).toHaveBeenCalledTimes(2);
-    const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
+    const retryFeedback = rs.mocked(callGenerativeAI).mock.calls[1][0].at(-1);
     assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback).toMatchObject({ role: 'user' });
     expect(retryFeedback?.content).toEqual(
@@ -291,7 +301,7 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('retries a search-area response missing the coordinate field', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce({
         content: '{"error":"target section is not found"}',
         isStreamed: false,
@@ -307,8 +317,8 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(callAI).toHaveBeenCalledTimes(2);
-    const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
+    const retryFeedback = rs.mocked(callGenerativeAI).mock.calls[1][0].at(-1);
     assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback?.content).toContain(
       'Missing required coordinate field "bbox_2d"',
@@ -317,7 +327,7 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('keeps section locate error without parsing coordinates when result key is an empty array', async () => {
-    rs.mocked(callAI).mockResolvedValue({
+    rs.mocked(callGenerativeAI).mockResolvedValue({
       content: '{"bbox":[],"error":"target section is not found"}',
       isStreamed: false,
     });
@@ -328,7 +338,7 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(callAI).toHaveBeenCalledTimes(1);
+    expect(callGenerativeAI).toHaveBeenCalledTimes(1);
     expect(result.searchAreaConfig).toBeUndefined();
     expect(result.error).toBe('target section is not found');
   });

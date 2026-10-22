@@ -21,7 +21,7 @@ describe('service-caller empty content handling', () => {
   it.each(['', '   '])(
     'does not report or attach usage when all attempts return unusable content %j',
     async (content) => {
-      const { callAI, AIResponseParseError } = await import(
+      const { callGenerativeAI, AIResponseParseError } = await import(
         '@/ai-model/service-caller'
       );
       const { getModelRuntime } = await import('@/ai-model/models');
@@ -54,7 +54,10 @@ describe('service-caller empty content handling', () => {
       const runtime = getModelRuntime(modelConfig);
       const onUsage = rs.fn();
       runtime.onUsage = onUsage;
-      const promise = callAI([{ role: 'user', content: 'hello' }], runtime);
+      const promise = callGenerativeAI(
+        [{ role: 'user', content: 'hello' }],
+        runtime,
+      );
 
       await expect(promise).rejects.toBeInstanceOf(AIResponseParseError);
 
@@ -74,7 +77,7 @@ describe('service-caller empty content handling', () => {
     },
   );
   it('reports only the successful attempt usage after an empty response', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     mockCreate
       .mockResolvedValueOnce({
@@ -98,7 +101,10 @@ describe('service-caller empty content handling', () => {
     });
     const onUsage = rs.fn();
     runtime.onUsage = onUsage;
-    const result = await callAI([{ role: 'user', content: 'hello' }], runtime);
+    const result = await callGenerativeAI(
+      [{ role: 'user', content: 'hello' }],
+      runtime,
+    );
     expect(mockCreate).toHaveBeenCalledTimes(2);
     expect(onUsage).toHaveBeenCalledTimes(1);
     expect(onUsage).toHaveBeenCalledWith(result.usage);

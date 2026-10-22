@@ -31,7 +31,7 @@ export class AIResponseParseError extends Error {
 }
 
 /**
- * Internal field name stamped onto every AIUsageInfo shaped by callAI().
+ * Internal field name stamped onto AIUsageInfo by the shared model call pipeline.
  * Used for cross-path dedup when the provider does not return a request_id.
  */
 export const INTERNAL_CALL_ID_FIELD = '_midscene_call_id';

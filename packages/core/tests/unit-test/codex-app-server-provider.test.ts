@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import {
   __shutdownCodexAppServerForTests,
   buildCodexTurnPayloadFromMessages,
@@ -433,7 +433,7 @@ describe('codex app-server provider helper', () => {
     expect(queuedEvents).not.toHaveBeenCalled();
   });
 
-  it('counts queue waiting against each callAI attempt timeout without sending expired turns', async () => {
+  it('counts queue waiting against each callGenerativeAI attempt timeout without sending expired turns', async () => {
     const { requestLog, releaseFile } = await setupCodexServer(true);
     const messages: ConversationMessage[] = [
       { role: 'user', content: 'hello' },
@@ -444,7 +444,7 @@ describe('codex app-server provider helper', () => {
       retryInterval: 0,
     };
     const onChunk = rs.fn();
-    const first = callAI(
+    const first = callGenerativeAI(
       messages,
       getModelRuntime({ ...config, timeout: 0, retryCount: 0 }),
       { stream: true, onChunk },
@@ -458,7 +458,7 @@ describe('codex app-server provider helper', () => {
       // Codex connection manager. Until then, queue waiting consumes each
       // attempt's timeout, including attempts that never start a server turn.
       await expect(
-        callAI(
+        callGenerativeAI(
           messages,
           getModelRuntime({ ...config, timeout: 50, retryCount: 1 }),
         ),
@@ -470,7 +470,7 @@ describe('codex app-server provider helper', () => {
     }
 
     // Drain both expired attempts before checking that neither was sent later.
-    const following = await callAI(
+    const following = await callGenerativeAI(
       messages,
       getModelRuntime({ ...config, timeout: 5000, retryCount: 0 }),
     );
@@ -538,7 +538,7 @@ describe('codex app-server provider helper', () => {
     const onUsage = rs.fn();
     runtime.onUsage = onUsage;
     const chunks: CodeGenerationChunk[] = [];
-    const enriched = await callAI(
+    const enriched = await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       runtime,
       { stream: true, onChunk: (chunk) => chunks.push(chunk) },

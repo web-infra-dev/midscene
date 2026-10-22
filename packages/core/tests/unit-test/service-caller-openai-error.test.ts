@@ -47,7 +47,7 @@ describe('service-caller OpenAI error handling', () => {
         isModelCallRecordingEnabled: () => false,
         recordModelCallEvent: record,
       }));
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
       const { getModelRuntime } = await import('@/ai-model/models');
       globalThis.fetch = rs.fn().mockResolvedValue(new Response('{}'));
       mockCreate.mockImplementation(async () => {
@@ -59,9 +59,13 @@ describe('service-caller OpenAI error handling', () => {
       });
       const runtime = getModelRuntime(baseConfig());
       runtime.onRequest = rs.fn();
-      const result = callAI([{ role: 'user', content: 'hello' }], runtime, {
-        stream: false,
-      });
+      const result = callGenerativeAI(
+        [{ role: 'user', content: 'hello' }],
+        runtime,
+        {
+          stream: false,
+        },
+      );
       if (fails) await expect(result).rejects.toThrow('Connection failed');
       else await expect(result).resolves.toMatchObject({ content: 'hello' });
       expect(runtime.onRequest).toHaveBeenCalledExactlyOnceWith(
@@ -150,7 +154,7 @@ describe('service-caller OpenAI error handling', () => {
   });
 
   it('uses x-model-request-id as usage request_id when x-request-id is absent', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     globalThis.fetch = rs.fn().mockResolvedValue(
       new Response(null, {
@@ -172,7 +176,7 @@ describe('service-caller OpenAI error handling', () => {
       };
     });
 
-    const response = await callAI(
+    const response = await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig()),
     );
@@ -181,7 +185,7 @@ describe('service-caller OpenAI error handling', () => {
   });
 
   it('prefers x-request-id over x-model-request-id', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     globalThis.fetch = rs.fn().mockResolvedValue(
       new Response(null, {
@@ -206,7 +210,7 @@ describe('service-caller OpenAI error handling', () => {
       };
     });
 
-    const response = await callAI(
+    const response = await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig()),
     );
@@ -215,7 +219,7 @@ describe('service-caller OpenAI error handling', () => {
   });
 
   it('prefers SDK request ID over response headers', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     globalThis.fetch = rs.fn().mockResolvedValue(
       new Response(null, {
@@ -240,7 +244,7 @@ describe('service-caller OpenAI error handling', () => {
       };
     });
 
-    const response = await callAI(
+    const response = await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig()),
     );
@@ -308,7 +312,7 @@ describe('service-caller OpenAI error handling', () => {
   });
 
   it('exposes raw body fields that a bare OpenAI APIError drops', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     const actualOpenAI =
       await rs.importActual<typeof import('openai')>('openai');
@@ -346,7 +350,7 @@ describe('service-caller OpenAI error handling', () => {
       throw bareOpenAIError;
     });
 
-    const promise = callAI(
+    const promise = callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig()),
     );
@@ -389,7 +393,7 @@ describe('service-caller OpenAI error handling', () => {
           events.push(event);
         },
       }));
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
       const { getModelRuntime } = await import('@/ai-model/models');
       const actualOpenAI =
         await rs.importActual<typeof import('openai')>('openai');
@@ -409,7 +413,7 @@ describe('service-caller OpenAI error handling', () => {
       );
 
       await expect(
-        callAI(
+        callGenerativeAI(
           [{ role: 'user', content: 'hello' }],
           getModelRuntime(baseConfig()),
         ),
@@ -443,7 +447,7 @@ describe('service-caller OpenAI error handling', () => {
         events.push(event);
       },
     }));
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     globalThis.fetch = rs
       .fn()
@@ -471,7 +475,7 @@ describe('service-caller OpenAI error handling', () => {
     await runWithConsoleLogHandler(
       (entry) => warnings.push(entry),
       () =>
-        callAI(
+        callGenerativeAI(
           [{ role: 'user', content: 'hello' }],
           getModelRuntime(baseConfig({ retryCount: 1, retryInterval: 0 })),
         ),
@@ -510,7 +514,7 @@ describe('service-caller OpenAI error handling', () => {
         events.push(event);
       },
     }));
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     globalThis.fetch = rs.fn().mockResolvedValue(
       new Response(null, {
@@ -546,7 +550,7 @@ describe('service-caller OpenAI error handling', () => {
       );
     });
 
-    await callAI(
+    await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig()),
       { stream: true, onChunk: rs.fn() },

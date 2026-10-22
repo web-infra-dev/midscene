@@ -66,10 +66,10 @@ export type AIUsageInfo = Record<string, any> & {
   /** Actual protocol used for the model call, resolved by Midscene. */
   api_protocol?: 'chat-completion' | 'responses' | 'codex' | 'system-one';
   /** Why a task uses the default model instead of its configured specialist. */
-  modelRouting?: {
+  modelFallback?: {
     requestedModel: string;
     requestedSlot: string;
-    task: string;
+    taskType: string;
     reason: string;
   };
   /** Whether the model call used streaming, after resolving call options. */
@@ -937,6 +937,12 @@ export interface StreamingAIResponse {
 }
 
 export interface DeviceAction<TParam = any, TReturn = any> {
+  /**
+   * Allow System One planners to construct this action directly.
+   * Only enable for actions with no parameters or locator-only parameters.
+   * Omitted/false actions are offered as delegation choices to the default model.
+   */
+  supportedBySystemOne?: boolean;
   name: string;
   description?: string;
   interfaceAlias?: string;
