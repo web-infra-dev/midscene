@@ -11,6 +11,7 @@ import {
 import { BridgeConnector, type BridgeStatus } from '../utils/bridgeConnector';
 import { registerAlarmListener, safeSetupKeepalive } from '../utils/keepalive';
 import { workerMessageTypes } from '../utils/workerMessageTypes';
+import { captureTabScreenshot } from './captureTabScreenshot';
 
 // save screenshot
 interface WorkerRequestSaveContext {
@@ -459,21 +460,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Handle screenshot capture request
   if (request.action === 'captureScreenshot') {
     if (sender.tab && sender.tab.id !== undefined) {
-      chrome.tabs.captureVisibleTab(
-        sender.tab.windowId,
-        { format: 'png' },
-        (dataUrl) => {
-          if (chrome.runtime.lastError) {
-            console.error(
-              '[ServiceWorker] Failed to capture screenshot:',
-              chrome.runtime.lastError,
-            );
-            sendResponse(null);
-          } else {
-            sendResponse(dataUrl);
-          }
-        },
-      );
+      captureTabScreenshot(sender.tab)
+        .then(sendResponse)
+        .catch((error) => {
+          console.error('[ServiceWorker] Failed to capture screenshot:', error);
+          sendResponse(null);
+        });
       return true; // Keep the message channel open for async response
     } else {
       console.error('[ServiceWorker] No valid tab for screenshot capture');
