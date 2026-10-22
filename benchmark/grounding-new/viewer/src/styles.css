@@ -230,7 +230,7 @@ select {
 }
 .model-card-metrics {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--line);
@@ -918,6 +918,12 @@ select {
 }
 .evaluation-snapshot .field-hint {
   margin: 12px 0 6px;
+}
+.evaluation-snapshot pre {
+  overflow: auto;
+  padding: 10px;
+  border-radius: 5px;
+  background: #f4f6f9;
 }
 .evaluation-json {
   display: inline-block;

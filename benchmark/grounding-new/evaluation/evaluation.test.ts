@@ -43,7 +43,7 @@ const testcases = readdirSync(testcasesDirectory, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
   .sort()
-  // .slice(0, 1)
+  // .slice(0, 10)
   .map(
     (name) =>
       JSON.parse(
@@ -51,92 +51,104 @@ const testcases = readdirSync(testcasesDirectory, { withFileTypes: true })
       ) as TestCase,
   );
 
-describe.each(models)('$MIDSCENE_MODEL_NAME', (modelConfig) => {
-  test.each(testcases)('$name', { timeout: 60 * 1000 }, async (testcase) => {
-    const modelName = modelConfig.MIDSCENE_MODEL_NAME;
-    const startedAt = Date.now();
-    const instruction = testcase.instruction[testcase.instructionLanguage];
-    const { prediction, executionError } = await (async () => {
-      try {
-        const image = await readFile(
-          path.join(
-            testcasesDirectory,
-            testcase.name,
-            `image.${testcase.reference.image.format === 'jpeg' ? 'jpg' : 'png'}`,
-          ),
-        );
-        const { width, height } = encodedImageInfoOfBuffer(image);
-        const agent = new Agent(
-          {
-            interfaceType: 'static',
-            actionSpace: () => [],
-            screenshotBase64: async () =>
-              `data:image/${testcase.reference.image.format};base64,${image.toString('base64')}`,
-            size: async () => ({ width, height }),
-          },
-          { generateReport: false, modelConfig },
-        );
-
+describe.each(models)(
+  '$MIDSCENE_MODEL_NAME',
+  { concurrent: true },
+  (modelConfig) => {
+    test.each(testcases)('$name', { timeout: 60 * 1000 }, async (testcase) => {
+      const modelName = modelConfig.MIDSCENE_MODEL_NAME;
+      const startedAt = Date.now();
+      const instruction = testcase.instruction[testcase.instructionLanguage];
+      const profiling = { durationMs: 0 };
+      const { prediction, executionError } = await (async () => {
         try {
-          return {
-            prediction: {
-              outcome: 'POINT' as const,
-              ...(await agent.aiLocate(instruction)),
+          const image = await readFile(
+            path.join(
+              testcasesDirectory,
+              testcase.name,
+              `image.${testcase.reference.image.format === 'jpeg' ? 'jpg' : 'png'}`,
+            ),
+          );
+          const { width, height } = encodedImageInfoOfBuffer(image);
+          const agent = new Agent(
+            {
+              interfaceType: 'static',
+              actionSpace: () => [],
+              screenshotBase64: async () =>
+                `data:image/${testcase.reference.image.format};base64,${image.toString('base64')}`,
+              size: async () => ({ width, height }),
             },
-            executionError: null,
-          };
-        } finally {
-          await agent.destroy();
-        }
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          'locateOutcome' in error &&
-          error.locateOutcome === 'not-found'
-        ) {
+            { generateReport: false, modelConfig },
+          );
+
+          try {
+            return {
+              prediction: {
+                type: 'POINT' as const,
+                ...(await agent.aiLocate(instruction)),
+              },
+              executionError: null,
+            };
+          } finally {
+            Object.assign(profiling, agent.metrics);
+            await agent.destroy();
+          }
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            'locateOutcome' in error &&
+            error.locateOutcome === 'not-found'
+          ) {
+            return {
+              prediction: { type: 'REFUSAL' as const },
+              executionError: null,
+            };
+          }
           return {
-            prediction: { outcome: 'REFUSAL' as const },
-            executionError: null,
+            prediction: { type: 'ERROR' as const },
+            executionError: error,
           };
         }
-        return {
-          prediction: { outcome: 'ERROR' as const },
-          executionError: error,
-        };
+      })();
+
+      const outputPath = path.join(
+        outputDirectory,
+        modelName.replace(/^\.+$|[^a-zA-Z0-9._-]/g, '_'),
+        `${testcase.name}.json`,
+      );
+      profiling.durationMs = Date.now() - startedAt;
+      const result = {
+        input: {
+          testcase: testcase.name,
+          platform: testcase.platform,
+          model: modelName,
+          instruction,
+          groundTruth: testcase.groundTruth,
+        },
+        output: {
+          correct:
+            testcase.groundTruth === 'REFUSAL'
+              ? prediction.type === 'REFUSAL'
+              : prediction.type === 'POINT' &&
+                !!prediction.center &&
+                prediction.center[0] >= testcase.groundTruth[3] &&
+                prediction.center[0] <= testcase.groundTruth[1] &&
+                prediction.center[1] >= testcase.groundTruth[0] &&
+                prediction.center[1] <= testcase.groundTruth[2],
+          ...prediction,
+          ...(executionError === null ? {} : { error: String(executionError) }),
+        },
+        profiling,
+      };
+      await mkdir(path.dirname(outputPath), { recursive: true });
+      await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
+
+      if (executionError !== null) {
+        throw executionError;
       }
-    })();
-
-    const outputPath = path.join(
-      outputDirectory,
-      modelName.replace(/^\.+$|[^a-zA-Z0-9._-]/g, '_'),
-      `${testcase.name}.json`,
-    );
-    const output = {
-      testcase: testcase.name,
-      platform: testcase.platform,
-      model: modelName,
-      instructionLanguage: testcase.instructionLanguage,
-      instruction,
-      groundTruth: testcase.groundTruth,
-      prediction,
-      correct:
-        testcase.groundTruth === 'REFUSAL'
-          ? prediction.outcome === 'REFUSAL'
-          : prediction.outcome === 'POINT' &&
-            !!prediction.center &&
-            prediction.center[0] >= testcase.groundTruth[3] &&
-            prediction.center[0] <= testcase.groundTruth[1] &&
-            prediction.center[1] >= testcase.groundTruth[0] &&
-            prediction.center[1] <= testcase.groundTruth[2],
-      durationMs: Date.now() - startedAt,
-      ...(executionError === null ? {} : { error: String(executionError) }),
-    };
-    await mkdir(path.dirname(outputPath), { recursive: true });
-    await writeFile(outputPath, `${JSON.stringify(output, null, 2)}\n`);
-
-    if (executionError !== null) {
-      throw executionError;
-    }
-    expect(output.correct, `Result written to ${outputPath}`).toBe(true);
-  });
-});
+      expect(result.output.correct, `Result written to ${outputPath}`).toBe(
+        true,
+      );
+    });
+  },
+);

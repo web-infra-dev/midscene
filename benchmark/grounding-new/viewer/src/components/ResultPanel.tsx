@@ -3,9 +3,9 @@ import type { EvaluationResult } from '../types';
 export function ResultStatus({ result }: { result?: EvaluationResult }) {
   const status = !result
     ? 'pending'
-    : result.prediction.outcome === 'ERROR'
+    : result.output.type === 'ERROR'
       ? 'error'
-      : result.correct
+      : result.output.correct
         ? 'passed'
         : 'failed';
   return (
@@ -29,7 +29,7 @@ export function ResultPanel({
   runId: string;
   result: EvaluationResult;
 }) {
-  const { prediction } = result;
+  const { input, output, profiling } = result;
 
   return (
     <section
@@ -43,7 +43,7 @@ export function ResultPanel({
       </div>
       <div className="evaluation-summary">
         <ResultStatus result={result} />
-        <span>{(result.durationMs / 1000).toFixed(2)} s</span>
+        <span>{(profiling.durationMs / 1000).toFixed(2)} s</span>
       </div>
       <dl className="reference-fields evaluation-metadata">
         <div>
@@ -52,56 +52,85 @@ export function ResultPanel({
         </div>
         <div>
           <dt>模型</dt>
-          <dd>{result.model}</dd>
+          <dd>{input.model}</dd>
         </div>
+        {profiling.totalTokens !== undefined && (
+          <div>
+            <dt>Tokens</dt>
+            <dd>{profiling.totalTokens.toLocaleString()}</dd>
+          </div>
+        )}
+        {profiling.totalCachedInput !== undefined && (
+          <div>
+            <dt>缓存输入</dt>
+            <dd>{profiling.totalCachedInput.toLocaleString()}</dd>
+          </div>
+        )}
+        {profiling.calls !== undefined && (
+          <div>
+            <dt>模型调用</dt>
+            <dd>{profiling.calls}</dd>
+          </div>
+        )}
+        {profiling.totalTimeCostMs !== undefined && (
+          <div>
+            <dt>模型耗时</dt>
+            <dd>{(profiling.totalTimeCostMs / 1000).toFixed(2)} s</dd>
+          </div>
+        )}
       </dl>
       <div className="prediction-value">
         <span className="field-hint">模型预测</span>
-        {prediction.outcome === 'POINT' ? (
+        {output.type === 'POINT' ? (
           <code>
-            {prediction.center
-              ? `[${prediction.center.join(', ')}]`
-              : '未返回预测坐标'}
+            {output.center ? `[${output.center.join(', ')}]` : '未返回预测坐标'}
           </code>
         ) : (
-          <strong>
-            {prediction.outcome === 'REFUSAL' ? '拒识' : '执行异常'}
-          </strong>
+          <strong>{output.type === 'REFUSAL' ? '拒识' : '执行异常'}</strong>
         )}
-        {prediction.outcome === 'POINT' && (
+        {output.type === 'POINT' && (
           <span className="field-hint">原图像素坐标 · [x, y]</span>
         )}
       </div>
-      {result.error && <pre className="evaluation-error">{result.error}</pre>}
+      {output.error && <pre className="evaluation-error">{output.error}</pre>}
       <details className="evaluation-snapshot">
         <summary>执行指令与标注</summary>
-        <p className="field-hint">
-          {result.instructionLanguage === 'en' ? 'English' : '中文'}
-        </p>
-        <p lang={result.instructionLanguage}>{result.instruction}</p>
+        <p>{input.instruction}</p>
         <p className="field-hint">
           运行时 Ground Truth · [top, right, bottom, left]
         </p>
         <code className="ground-truth">
-          {JSON.stringify(result.groundTruth)}
+          {JSON.stringify(input.groundTruth)}
         </code>
-        {prediction.outcome === 'POINT' && prediction.rect && (
+        {output.type === 'POINT' && output.rect && (
           <>
             <p className="field-hint">预测框 · [left, top, width, height]</p>
             <code className="ground-truth">
               {JSON.stringify([
-                prediction.rect.left,
-                prediction.rect.top,
-                prediction.rect.width,
-                prediction.rect.height,
+                output.rect.left,
+                output.rect.top,
+                output.rect.width,
+                output.rect.height,
               ])}
             </code>
           </>
         )}
-        {prediction.outcome === 'POINT' && prediction.dpr !== undefined && (
-          <p className="field-hint">DPR {prediction.dpr}</p>
+        {output.type === 'POINT' && output.dpr !== undefined && (
+          <p className="field-hint">DPR {output.dpr}</p>
         )}
       </details>
+      {(profiling.byIntent || profiling.byModel) && (
+        <details className="evaluation-snapshot">
+          <summary>模型调用明细</summary>
+          <pre>
+            {JSON.stringify(
+              { byIntent: profiling.byIntent, byModel: profiling.byModel },
+              null,
+              2,
+            )}
+          </pre>
+        </details>
+      )}
       <a
         className="evaluation-json"
         href={result.jsonUrl}

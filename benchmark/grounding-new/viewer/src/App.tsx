@@ -96,28 +96,57 @@ function App() {
     const names = new Set(filtered.map((testcase) => testcase.name));
     return results.filter(
       (result) =>
-        names.has(result.testcase) ||
-        (!casesByName.has(result.testcase) &&
+        names.has(result.input.testcase) ||
+        (!casesByName.has(result.input.testcase) &&
           !Object.values(filters).some(Boolean)),
     );
   }, [results, filtered, casesByName, filters]);
   const modelSummaries = useMemo(
     () =>
-      [...new Set(results.map((result) => result.model))]
+      [...new Set(results.map((result) => result.input.model))]
         .sort(compareNames)
         .map((model) => {
           const modelResults = results.filter(
-            (result) => result.model === model,
+            (result) => result.input.model === model,
           );
+          const tokens = modelResults.flatMap((result) =>
+            result.profiling.totalTokens !== undefined &&
+            result.profiling.totalTokens > 0
+              ? [result.profiling.totalTokens]
+              : [],
+          );
+          const durations = modelResults
+            .map((result) => result.profiling.durationMs)
+            .filter((duration) => duration > 0);
           return {
             model,
             count: modelResults.length,
-            passed: modelResults.filter((result) => result.correct).length,
-            averageMs:
-              modelResults.reduce(
-                (total, result) => total + result.durationMs,
-                0,
-              ) / modelResults.length,
+            passed: modelResults.filter((result) => result.output.correct)
+              .length,
+            geometricMeanTokens: tokens.length
+              ? Math.exp(
+                  tokens.reduce((total, value) => total + Math.log(value), 0) /
+                    tokens.length,
+                )
+              : null,
+            arithmeticMeanTokens: tokens.length
+              ? tokens.reduce((total, value) => total + value, 0) /
+                tokens.length
+              : null,
+            tokenCount: tokens.length,
+            geometricMeanMs: durations.length
+              ? Math.exp(
+                  durations.reduce(
+                    (total, value) => total + Math.log(value),
+                    0,
+                  ) / durations.length,
+                )
+              : null,
+            arithmeticMeanMs: durations.length
+              ? durations.reduce((total, value) => total + value, 0) /
+                durations.length
+              : null,
+            durationCount: durations.length,
             first: modelResults[0],
           };
         }),
@@ -127,7 +156,9 @@ function App() {
     ? results.find((result) => result.id === resultId)
     : undefined;
   const modelResults = selectedResult
-    ? results.filter((result) => result.model === selectedResult.model)
+    ? results.filter(
+        (result) => result.input.model === selectedResult.input.model,
+      )
     : [];
   const entries = isBenchmark
     ? filtered.map((testcase) => ({
@@ -138,18 +169,18 @@ function App() {
         href: `/benchmark/${encodeURIComponent(testcase.name)}`,
       }))
     : filteredResults
-        .filter((result) => result.model === selectedResult?.model)
+        .filter((result) => result.input.model === selectedResult?.input.model)
         .map((result) => ({
           id: result.id,
-          name: result.testcase,
-          testcase: casesByName.get(result.testcase),
+          name: result.input.testcase,
+          testcase: casesByName.get(result.input.testcase),
           result,
           href: `${runPath}/${encodeURIComponent(result.id)}`,
         }));
   const selectedId = isBenchmark ? (parts[1] ?? entries[0]?.id) : resultId;
   const selectedIndex = entries.findIndex((entry) => entry.id === selectedId);
   const selected = casesByName.get(
-    isBenchmark ? (selectedId ?? '') : (selectedResult?.testcase ?? ''),
+    isBenchmark ? (selectedId ?? '') : (selectedResult?.input.testcase ?? ''),
   );
   const loadingRun =
     isRuns && (runId ? runData?.runId !== runId : runs === null) && !runError;
@@ -266,8 +297,8 @@ function App() {
             runId,
             results: data.results.sort(
               (left, right) =>
-                compareNames(left.testcase, right.testcase) ||
-                compareNames(left.model, right.model) ||
+                compareNames(left.input.testcase, right.input.testcase) ||
+                compareNames(left.input.model, right.input.model) ||
                 compareNames(left.id, right.id),
             ),
           });
@@ -329,7 +360,7 @@ function App() {
   }, [isBenchmark, resultId, previousPath, nextPath, go]);
 
   useEffect(() => {
-    document.title = `${selectedResult ? `${selectedResult.testcase} · ${selectedResult.model} · ${runId}` : isBenchmark ? (selected?.name ?? 'Benchmark') : runId || '评测结果'} · Grounding`;
+    document.title = `${selectedResult ? `${selectedResult.input.testcase} · ${selectedResult.input.model} · ${runId}` : isBenchmark ? (selected?.name ?? 'Benchmark') : runId || '评测结果'} · Grounding`;
   }, [selected, selectedResult, isBenchmark, runId]);
 
   useEffect(() => {
@@ -349,12 +380,12 @@ function App() {
       );
     } else if (
       resultId &&
-      !matches.some((item) => item.name === selectedResult?.testcase)
+      !matches.some((item) => item.name === selectedResult?.input.testcase)
     ) {
       const next = results.find(
         (result) =>
-          result.model === selectedResult?.model &&
-          matches.some((testcase) => testcase.name === result.testcase),
+          result.input.model === selectedResult?.input.model &&
+          matches.some((testcase) => testcase.name === result.input.testcase),
       );
       go(next ? `${runPath}/${encodeURIComponent(next.id)}` : runPath, true);
     }
@@ -450,7 +481,18 @@ function App() {
             modelSummaries.length ? (
               <div className="model-grid">
                 {modelSummaries.map(
-                  ({ model, count, passed, averageMs, first }) => (
+                  ({
+                    model,
+                    count,
+                    passed,
+                    geometricMeanTokens,
+                    arithmeticMeanTokens,
+                    tokenCount,
+                    geometricMeanMs,
+                    arithmeticMeanMs,
+                    durationCount,
+                    first,
+                  }) => (
                     <a
                       key={model}
                       className="model-card"
@@ -472,9 +514,42 @@ function App() {
                           </small>
                         </div>
                         <div>
-                          <span>平均耗时</span>
-                          <strong>{(averageMs / 1000).toFixed(2)} s</strong>
-                          <small>{count} 条结果</small>
+                          <span>Token 消耗（几何平均）</span>
+                          <strong>
+                            {geometricMeanTokens === null
+                              ? '—'
+                              : geometricMeanTokens.toLocaleString(undefined, {
+                                  maximumFractionDigits: 1,
+                                })}
+                          </strong>
+                          <span>Token 消耗（算术平均）</span>
+                          <strong>
+                            {arithmeticMeanTokens === null
+                              ? '—'
+                              : arithmeticMeanTokens.toLocaleString(undefined, {
+                                  maximumFractionDigits: 1,
+                                })}
+                          </strong>
+                          <small title="仅统计大于 0 的 Token 消耗，零值和缺失值不参与计算">
+                            {tokenCount} / {count} 条有效记录
+                          </small>
+                        </div>
+                        <div>
+                          <span>耗时（几何平均）</span>
+                          <strong>
+                            {geometricMeanMs === null
+                              ? '—'
+                              : `${(geometricMeanMs / 1000).toFixed(2)} s`}
+                          </strong>
+                          <span>耗时（算术平均）</span>
+                          <strong>
+                            {arithmeticMeanMs === null
+                              ? '—'
+                              : `${(arithmeticMeanMs / 1000).toFixed(2)} s`}
+                          </strong>
+                          <small title="仅统计大于 0 的耗时，零值和缺失值不参与计算">
+                            {durationCount} / {count} 条有效记录
+                          </small>
                         </div>
                       </div>
                     </a>
@@ -514,7 +589,7 @@ function App() {
             aria-label={
               isBenchmark
                 ? '用例列表'
-                : `${selectedResult?.model ?? '模型'}评测结果`
+                : `${selectedResult?.input.model ?? '模型'}评测结果`
             }
           >
             <div className="sidebar-heading">
@@ -522,7 +597,9 @@ function App() {
                 {isBenchmark ? (
                   '测试用例'
                 ) : (
-                  <a href={runPath}>{selectedResult?.model ?? '本次运行'}</a>
+                  <a href={runPath}>
+                    {selectedResult?.input.model ?? '本次运行'}
+                  </a>
                 )}
               </h1>
               <output
@@ -555,10 +632,10 @@ function App() {
                       <span className="case-button-meta">
                         <span>
                           <span
-                            className={`platform-dot ${entry.result?.platform ?? entry.testcase?.platform}`}
+                            className={`platform-dot ${entry.result?.input.platform ?? entry.testcase?.platform}`}
                             aria-hidden="true"
                           />
-                          {(entry.result?.platform ??
+                          {(entry.result?.input.platform ??
                             entry.testcase?.platform) === 'web'
                             ? 'Web'
                             : 'Mobile'}
@@ -566,7 +643,7 @@ function App() {
                         <span>{entry.testcase?.category.item}</span>
                         {entry.result ? (
                           <>
-                            <span>{entry.result.model}</span>
+                            <span>{entry.result.input.model}</span>
                             <ResultStatus result={entry.result} />
                           </>
                         ) : (
@@ -600,7 +677,7 @@ function App() {
                         <>
                           <a href={runPath}>运行 {runId}</a>
                           <span className="eyebrow-dot">/</span>
-                          <span>{selectedResult.model}</span>
+                          <span>{selectedResult.input.model}</span>
                         </>
                       ) : (
                         <>
@@ -613,12 +690,12 @@ function App() {
                       )}
                     </div>
                     <h2 id="case-name">
-                      {selectedResult?.testcase ?? selected?.name}
+                      {selectedResult?.input.testcase ?? selected?.name}
                     </h2>
                     {selectedResult && (
                       <a
                         className="benchmark-link"
-                        href={`/benchmark/${encodeURIComponent(selectedResult.testcase)}`}
+                        href={`/benchmark/${encodeURIComponent(selectedResult.input.testcase)}`}
                       >
                         查看 Benchmark 用例 ↗
                       </a>

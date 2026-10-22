@@ -16,23 +16,48 @@ export type GroundTruth = [number, number, number, number] | 'REFUSAL';
 
 export interface EvaluationResult {
   id: string;
-  testcase: string;
-  platform: 'web' | 'mobile';
-  model: string;
-  instructionLanguage: 'en' | 'zh';
-  instruction: string;
-  groundTruth: GroundTruth;
-  prediction:
-    | {
-        outcome: 'POINT';
-        center?: [number, number];
-        rect?: { left: number; top: number; width: number; height: number };
-        dpr?: number;
+  input: {
+    testcase: string;
+    platform: 'web' | 'mobile';
+    model: string;
+    instruction: string;
+    groundTruth: GroundTruth;
+  };
+  output: {
+    correct: boolean;
+    type: 'POINT' | 'REFUSAL' | 'ERROR';
+    center?: [number, number];
+    rect?: { left: number; top: number; width: number; height: number };
+    dpr?: number;
+    error?: string;
+  };
+  profiling: {
+    durationMs: number;
+    totalPromptTokens?: number;
+    totalCompletionTokens?: number;
+    totalTokens?: number;
+    totalCachedInput?: number;
+    totalTimeCostMs?: number;
+    calls?: number;
+    byIntent?: Record<
+      string,
+      {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+        calls: number;
       }
-    | { outcome: 'REFUSAL' | 'ERROR' };
-  correct: boolean;
-  durationMs: number;
-  error?: string;
+    >;
+    byModel?: Record<
+      string,
+      {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+        calls: number;
+      }
+    >;
+  };
   jsonUrl: string;
 }
 

@@ -55,10 +55,10 @@ export function ScreenshotPanel({
   );
   const error = imageUrl ? imageError : '图片地址无效，无法加载原始截图。';
   const loaded = dimensions !== null && error === null;
-  const groundTruth = result?.groundTruth ?? testcase.groundTruth;
+  const groundTruth = result?.input.groundTruth ?? testcase.groundTruth;
   const refusal = groundTruth === 'REFUSAL';
   const prediction =
-    result?.prediction.outcome === 'POINT' ? result.prediction : undefined;
+    result?.output.type === 'POINT' ? result.output : undefined;
   const hasPrediction = !!(prediction?.center || prediction?.rect);
   const coordinateText =
     groundTruth === 'REFUSAL'
