@@ -192,37 +192,65 @@ select {
 .run-card time {
   color: var(--muted);
 }
-.results-table-wrap {
-  overflow-x: auto;
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 14px;
+}
+.model-card {
+  display: block;
+  min-width: 0;
+  padding: 20px 22px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+  color: inherit;
 }
-.results-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 12px;
+.model-card:hover {
+  border-color: #b8c8df;
+  text-decoration: none;
 }
-.results-table th,
-.results-table td {
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--line);
-  white-space: nowrap;
+.model-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
 }
-.results-table th {
-  background: #f8faff;
+.model-card-heading strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.model-card-heading span {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 11px;
+}
+.model-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.model-card-metrics > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+.model-card-metrics span,
+.model-card-metrics small {
   color: var(--muted);
-  font-weight: 500;
+  font-size: 11px;
 }
-.results-table tr:last-child td {
-  border-bottom: 0;
-}
-.results-table tbody tr:hover {
-  background: #f8faff;
-}
-.results-table td:first-child {
-  font-family: "SFMono-Regular", Consolas, monospace;
+.model-card-metrics strong {
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 .benchmark-link {
   display: inline-block;

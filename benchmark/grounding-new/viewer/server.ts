@@ -47,21 +47,29 @@ export async function createDatasetApp() {
   app.get('/api/runs/:runId', async (context) => {
     const runId = context.req.param('runId');
     const runRoot = path.join(outputRoot, runId);
-    const entries = await readdir(runRoot, { withFileTypes: true }).catch(
-      (error) => {
-        if (error.code !== 'ENOENT') throw error;
-        return null;
-      },
-    );
+    const entries = await readdir(runRoot, {
+      withFileTypes: true,
+      recursive: true,
+    }).catch((error) => {
+      if (error.code !== 'ENOENT') throw error;
+      return null;
+    });
     if (!entries) return context.notFound();
     const results: EvaluationResult[] = await Promise.all(
       entries
         .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
-        .map(async (entry) => ({
-          ...JSON.parse(await readFile(path.join(runRoot, entry.name), 'utf8')),
-          id: entry.name.slice(0, -5),
-          jsonUrl: `/results/${runId}/${encodeURIComponent(entry.name)}`,
-        })),
+        .map(async (entry) => {
+          const filename = path.join(entry.parentPath, entry.name);
+          const relativePath = path
+            .relative(runRoot, filename)
+            .split(path.sep)
+            .join('/');
+          return {
+            ...JSON.parse(await readFile(filename, 'utf8')),
+            id: relativePath.slice(0, -5),
+            jsonUrl: `/results/${encodeURIComponent(runId)}/${relativePath.split('/').map(encodeURIComponent).join('/')}`,
+          };
+        }),
     );
     return context.json({ results });
   });
@@ -76,6 +84,7 @@ export async function createDatasetApp() {
     '/results/*',
     serveStatic({
       root: outputRoot,
+      allowPercentInPath: true,
       rewriteRequestPath: (pathname) => pathname.replace('/results', ''),
     }),
   );

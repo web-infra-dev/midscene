@@ -101,6 +101,34 @@ function App() {
           !Object.values(filters).some(Boolean)),
     );
   }, [results, filtered, casesByName, filters]);
+  const modelSummaries = useMemo(
+    () =>
+      [...new Set(results.map((result) => result.model))]
+        .sort(compareNames)
+        .map((model) => {
+          const modelResults = results.filter(
+            (result) => result.model === model,
+          );
+          return {
+            model,
+            count: modelResults.length,
+            passed: modelResults.filter((result) => result.correct).length,
+            averageMs:
+              modelResults.reduce(
+                (total, result) => total + result.durationMs,
+                0,
+              ) / modelResults.length,
+            first: modelResults[0],
+          };
+        }),
+    [results],
+  );
+  const selectedResult = resultId
+    ? results.find((result) => result.id === resultId)
+    : undefined;
+  const modelResults = selectedResult
+    ? results.filter((result) => result.model === selectedResult.model)
+    : [];
   const entries = isBenchmark
     ? filtered.map((testcase) => ({
         id: testcase.name,
@@ -109,18 +137,17 @@ function App() {
         result: undefined as EvaluationResult | undefined,
         href: `/benchmark/${encodeURIComponent(testcase.name)}`,
       }))
-    : filteredResults.map((result) => ({
-        id: result.id,
-        name: result.testcase,
-        testcase: casesByName.get(result.testcase),
-        result,
-        href: `${runPath}/${encodeURIComponent(result.id)}`,
-      }));
+    : filteredResults
+        .filter((result) => result.model === selectedResult?.model)
+        .map((result) => ({
+          id: result.id,
+          name: result.testcase,
+          testcase: casesByName.get(result.testcase),
+          result,
+          href: `${runPath}/${encodeURIComponent(result.id)}`,
+        }));
   const selectedId = isBenchmark ? (parts[1] ?? entries[0]?.id) : resultId;
   const selectedIndex = entries.findIndex((entry) => entry.id === selectedId);
-  const selectedResult = resultId
-    ? results.find((result) => result.id === resultId)
-    : undefined;
   const selected = casesByName.get(
     isBenchmark ? (selectedId ?? '') : (selectedResult?.testcase ?? ''),
   );
@@ -324,7 +351,12 @@ function App() {
       resultId &&
       !matches.some((item) => item.name === selectedResult?.testcase)
     ) {
-      go(runPath, true);
+      const next = results.find(
+        (result) =>
+          result.model === selectedResult?.model &&
+          matches.some((testcase) => testcase.name === result.testcase),
+      );
+      go(next ? `${runPath}/${encodeURIComponent(next.id)}` : runPath, true);
     }
   }
 
@@ -361,7 +393,7 @@ function App() {
             评测结果
           </a>
         </nav>
-        {(isBenchmark || runId) && (
+        {(isBenchmark || resultId) && (
           <FilterBar
             testcases={testcases}
             filters={filters}
@@ -397,7 +429,7 @@ function App() {
               <h1>{runId ? `运行 ${runId}` : '评测结果'}</h1>
               <p>
                 {runId
-                  ? `${new Date(Number(runId)).toLocaleString()} · ${filteredResults.length} / ${results.length} 条结果`
+                  ? `${new Date(Number(runId)).toLocaleString()} · ${modelSummaries.length} 个模型 · ${results.length} 条结果`
                   : '按运行时间排列，选择一次运行查看结果。'}
               </p>
             </div>
@@ -415,43 +447,42 @@ function App() {
           {loadingRun ? (
             <p className="list-empty">正在加载…</p>
           ) : runError ? null : runId ? (
-            filteredResults.length ? (
-              <div className="results-table-wrap">
-                <table className="results-table">
-                  <thead>
-                    <tr>
-                      <th>Testcase</th>
-                      <th>Model</th>
-                      <th>Platform</th>
-                      <th>结果</th>
-                      <th>耗时</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredResults.map((result) => (
-                      <tr key={result.id}>
-                        <td>
-                          <a
-                            href={`${runPath}/${encodeURIComponent(result.id)}`}
-                          >
-                            {result.testcase}
-                          </a>
-                        </td>
-                        <td>{result.model}</td>
-                        <td>{result.platform === 'web' ? 'Web' : 'Mobile'}</td>
-                        <td>
-                          <ResultStatus result={result} />
-                        </td>
-                        <td>{(result.durationMs / 1000).toFixed(2)} s</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            modelSummaries.length ? (
+              <div className="model-grid">
+                {modelSummaries.map(
+                  ({ model, count, passed, averageMs, first }) => (
+                    <a
+                      key={model}
+                      className="model-card"
+                      href={`${runPath}/${encodeURIComponent(first.id)}`}
+                      onClick={() => setFilters(emptyFilters)}
+                    >
+                      <div className="model-card-heading">
+                        <strong>{model}</strong>
+                        <span>查看结果 →</span>
+                      </div>
+                      <div className="model-card-metrics">
+                        <div>
+                          <span>通过率</span>
+                          <strong>
+                            {((passed / count) * 100).toFixed(1)}%
+                          </strong>
+                          <small>
+                            {passed} / {count} 通过
+                          </small>
+                        </div>
+                        <div>
+                          <span>平均耗时</span>
+                          <strong>{(averageMs / 1000).toFixed(2)} s</strong>
+                          <small>{count} 条结果</small>
+                        </div>
+                      </div>
+                    </a>
+                  ),
+                )}
               </div>
             ) : (
-              <p className="list-empty">
-                {results.length ? '没有符合筛选条件的结果' : '本次运行暂无结果'}
-              </p>
+              <p className="list-empty">本次运行暂无结果</p>
             )
           ) : runs?.length ? (
             <ol className="run-list">
@@ -480,11 +511,19 @@ function App() {
         <div className="app-shell">
           <aside
             className="sidebar"
-            aria-label={isBenchmark ? '用例列表' : '本次运行结果'}
+            aria-label={
+              isBenchmark
+                ? '用例列表'
+                : `${selectedResult?.model ?? '模型'}评测结果`
+            }
           >
             <div className="sidebar-heading">
               <h1>
-                {isBenchmark ? '测试用例' : <a href={runPath}>本次运行</a>}
+                {isBenchmark ? (
+                  '测试用例'
+                ) : (
+                  <a href={runPath}>{selectedResult?.model ?? '本次运行'}</a>
+                )}
               </h1>
               <output
                 id="result-count"
@@ -493,7 +532,7 @@ function App() {
               >
                 {loadStatus === 'loading' || loadingRun
                   ? '正在加载…'
-                  : `${entries.length} / ${isBenchmark ? testcases.length : results.length} ${isBenchmark ? '个用例' : '条结果'}`}
+                  : `${entries.length} / ${isBenchmark ? testcases.length : modelResults.length} ${isBenchmark ? '个用例' : '条结果'}`}
               </output>
             </div>
             <nav

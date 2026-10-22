@@ -1,19 +1,18 @@
 {
   "name": "@midscene/grounding-evaluation",
-  "version": "0.0.0",
   "private": true,
   "type": "module",
   "engines": {
     "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
   },
   "scripts": {
-    "evaluate": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "evaluate": "vitest run"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "dotenv": "^18.0.8"
+    "dotenv": "^18.0.8",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

@@ -29,16 +29,16 @@ Benchmark browsing and evaluation results have separate pages:
 | `/benchmark` | Benchmark browser / 题库查看器 |
 | `/benchmark/:name` | One testcase / 单个测试用例 |
 | `/runs` | Evaluation runs / 评测运行列表 |
-| `/runs/:runId` | Results from one run / 单次运行的结果列表 |
-| `/runs/:runId/:id` | One evaluation result / 单个评测结果 |
+| `/runs/:runId` | Model summaries for one run / 单次运行的模型汇总 |
+| `/runs/:runId/:id` | One model's result detail / 单个模型的逐题结果 |
 
 Browse benchmark cases in lexicographic name order and filter by search text, platform, category, source dataset, or point/refusal outcome. Inspect both instruction languages, original screenshots, pixel TRBL ground truth, classification reasons, and all reference fields. The GT overlay follows the original image dimensions when zooming. `REFUSAL` cases have no box. Previous/next navigation follows the filtered list.
 
 题库按用例名称字典序展示，支持搜索、平台、分类、来源数据集和定位／拒识筛选。详情包含双语指令、原始截图、像素 TRBL 标注、分类依据和来源字段。GT 框随图片缩放，拒识用例没有目标框；上一题／下一题遵循筛选后的列表顺序。
 
-Runs are read from `../evaluation/output`. Open a run to browse its recorded results, then open a result to inspect its model, verdict, prediction, duration, executed instruction, saved ground truth, and original JSON. The screenshot compares the saved ground truth (red) with the predicted point and box (blue), in original image coordinates. Runs may contain only part of the benchmark; the benchmark pages always remain independent of evaluation coverage. The result `:id` is the exact result filename without `.json`.
+Runs are read recursively from `../evaluation/output/<run-id>/<model-name>/<testcase-name>.json`. Open a run to see each model's pass rate and average duration across its recorded results. Select a model to open its first testcase; the sidebar and previous/next navigation then show only that model's results. Each result includes its verdict, prediction, duration, executed instruction, saved ground truth, and original JSON. The screenshot compares the saved ground truth (red) with the predicted point and box (blue), in original image coordinates. Runs may contain only part of the benchmark; the benchmark pages always remain independent of evaluation coverage. The result `:id` is the path relative to the run directory without `.json`, URL-encoded as one route segment. For example, `model-a/case-001` appears as `model-a%2Fcase-001` in the result URL.
 
-运行列表读取 `../evaluation/output`。打开一次运行后可浏览其已有结果，再进入单个结果查看模型、判定、预测、耗时、执行指令、运行时标注和原始 JSON。截图按原图坐标叠加运行时 GT（红色）与预测点及预测框（蓝色）。运行可以只包含部分题目，题库页面不受评测覆盖范围影响。结果路径中的 `:id` 是去掉 `.json` 后缀后的完整文件名。
+运行列表递归读取 `../evaluation/output/<run-id>/<model-name>/<testcase-name>.json`。打开一次运行后，页面按模型展示已有结果的通过率和平均耗时。点击模型卡片进入该模型的第一道题，侧边栏与上一条／下一条只显示该模型的结果。每条结果可查看判定、预测、耗时、执行指令、运行时标注和原始 JSON。截图按原图坐标叠加运行时 GT（红色）与预测点及预测框（蓝色）。运行可以只包含部分题目，题库页面不受评测覆盖范围影响。结果路径中的 `:id` 是相对于运行目录的路径，去掉 `.json` 后缀后整体进行 URL 编码，作为一个路由片段。例如，`model-a/case-001` 在结果 URL 中表示为 `model-a%2Fcase-001`。
 
 The server binds to `127.0.0.1` and serves testcase records and original images without modifying their files.
 
