@@ -120,6 +120,23 @@ const mid = new PuppeteerBrowserAgent(browser, page, {
 
 当你要显式指定初始 active page 时，使用 `new PuppeteerBrowserAgent(browser, page, options)`。当你希望 Midscene 自动选择或创建初始 active page 时，使用 `PuppeteerBrowserAgent.create(browser, options)`；这个工厂会优先使用 `initialPage`，否则复用浏览器里的第一个页面，或者创建一个新页面。
 
+### 在其他浏览器控制器操作后同步视口
+
+当 Playwright、浏览器 skill 或其他 CDP 客户端调整共享桌面页面的视口时，Puppeteer 本地保存的视口配置和 Midscene 缓存的逻辑尺寸可能过期。在把控制权交回 Midscene 前，显式同步到页面当前的实际视口：
+
+```typescript
+// 两个控制器操作同一个页面，先等待外部操作完成。
+await playwrightPage.setViewportSize({ width: 800, height: 600 });
+const { changed, viewport } = await agent.interface.syncViewport();
+await agent.aiTap('提交');
+```
+
+`syncViewport()` 返回 `{ changed, viewport: { width, height, deviceScaleFactor } }`，原地采用当前实际尺寸和设备像素比，保留 Page、Agent、报告、监听器和持久化 XPath 缓存。对于 `PuppeteerBrowserAgent`，只同步当前 active page，保留原有页面管理范围。原生视口模式（`page.viewport() === null`）仍保持原生模式。 如果配置为 `deviceScaleFactor: 0`（系统默认值），首次调用会将其解析为当前实际 DPR，因为外部客户端可能已经覆盖系统值。
+
+该方法仅在显式调用时执行，不会给现有自动化增加逐动作检查。视口一致时，只读取一次实际指标，不调用 `setViewport()`。
+
+请在前一动作完成、其他控制器暂停操作时调用。它无法修复已在执行中的动作，也不会改写已冻结的截图上下文；如果需要恢复实时自动化，请先调用 `agent.unfreezePageContext()`。移动端或触摸模拟、双指缩放、重叠的同步调用，以及同步过程中检测到的页面或视口变化都会使方法抛出异常。可传入 `{ signal }` 在浏览器操作之间检查取消状态；已发出的浏览器命令仍可能完成。
+
 ### 浏览器支持说明
 
 Midscene 的部分 Web 自动化能力依赖 Chromium-based browser 提供的 Chrome DevTools Protocol（CDP），例如浏览器级事件、触摸手势，以及一些交互操作中使用的 CDP fallback 路径。
