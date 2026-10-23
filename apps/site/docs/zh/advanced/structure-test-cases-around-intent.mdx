@@ -1,0 +1,133 @@
+# 围绕意图和约束组织测试用例
+
+Midscene Test 的一个 Case 是一组按顺序执行的 Step。如果每个 Step 只描述当前界面上的一个操作，Case 记录的就只是测试*怎么做*，而没有记录它要确认*什么*。这会导致两类错误结果：
+
+- **功能正常，Case 却失败。** 像“优惠码输入框旁边的应用按钮”这样的一串 `aiTap` 目标，在按钮改名或输入框被收进折叠入口后就会失败，尽管购物者仍然可以正常使用优惠码。
+- **结果错误，Case 却通过。** 像“页面显示成功提示”这样的最终检查，在订单没有享受折扣时也会通过。
+
+本文介绍一种组织 Case 的方式：让预期结果明确且很少变化，让操作指令随界面一起调整。这种结构参考了 [CIGE 测试用例格式](https://www.amazon.science/publications/cige-an-agentic-ai-test-case-standard)（Context、Intent、Guardrails、Execution），并对应到 Midscene Test 的 YAML 写法。
+
+## Case 的四个部分
+
+| 部分 | 回答的问题 | 在 Midscene Test YAML 中的位置 |
+| --- | --- | --- |
+| **上下文（Context）** | Case 假定了哪个系统、哪个环境、什么初始状态？ | `beforeAll` 或 `beforeEach` 中的确定性 Node，例如 `gotoUrl` 或自定义的数据准备 Node。应用知识通过 `setAIContext` 提供。产品规格或构建版本的引用写在 YAML 注释中。 |
+| **意图（Intent）** | Case 通过时必须成立的结果是什么？ | Case 的 `name`，用一句话描述结果；以及 `steps` 中最后一个 `aiAssert`，把这个结果表述为可观察的状态。 |
+| **约束（Guardrails）** | Agent 不能做什么？Case 通过前必须确认哪些证据？ | 操作约束通过 `setAIContext` 提供。证据检查写成 `aiAssert` Step 或确定性的自定义 Node，放在最后的断言之前。 |
+| **执行（Execution）** | Agent 如何在当前界面上达成结果？ | `aiAct` Step。 |
+
+这四个部分的变化频率不同。意图只在产品需求变化时改变。约束很少变化，变化时通常是变得更严格。执行步骤会随界面变化而改变。把它们放在不同的位置后，界面变化只需要修改 `aiAct` Step，审阅者也可以从 diff 中确认预期结果没有被改动。
+
+:::info
+Midscene Test 的 Case 只支持 `name`、`tags` 和 `steps` 字段。规格文档、构建版本等引用信息可以写在 YAML 注释中；如果需要按这些信息筛选 Case，可以写成 `tags`。
+:::
+
+## 示例：使用优惠码完成结算
+
+产品需求：购物者在结算时使用优惠码 `SAVE10`，可以获得小计金额 10% 的折扣，税费按折扣后的小计计算，并生成一条已确认的订单记录。
+
+### 写成操作序列
+
+```yaml filename=cases/checkout.yaml
+beforeEach:
+  - gotoUrl: https://your-shop.example/cart
+
+cases:
+  - name: 结算测试
+    steps:
+      - aiTap: “去结算”按钮
+      - aiInput:
+          prompt: 优惠码输入框
+          value: SAVE10
+      - aiTap: 优惠码输入框旁边的“应用”按钮
+      - aiTap: “提交订单”按钮
+      - aiAssert: 页面显示成功提示
+```
+
+每个 Step 都指向一个具体元素，因此 Case 依赖当前的页面布局。如果优惠码输入框被收进“使用优惠码”链接后面，第三个 Step 就会失败，尽管需求仍然满足。最后的断言只检查成功提示，所以折扣没有生效时 Case 也会通过。
+
+### 围绕意图和约束组织
+
+```yaml filename=cases/checkout.yaml
+# 规格：https://your-wiki.example/checkout-discounts（需求 CHK-3）
+# 构建：被测构建版本的发布说明
+
+beforeAll:
+  # 上下文：所有 AI 操作共用的应用知识
+  - setAIContext:
+      target: default
+      context: |
+        测试账号已登录，并保存了一个收货地址。
+        优惠码在结算页输入，不在购物车页输入。
+  # 约束：操作约束
+  - setAIContext:
+      target: aiAct
+      context: |
+        只使用尾号 4242 的已保存测试卡付款，不要输入其他银行卡信息。
+        只在 your-shop.example 域名内操作。如果结算跳转到其他域名，立即停止。
+
+beforeEach:
+  # 上下文：确定性的初始状态
+  - cart.prepare:
+      sku: midscene-mug
+      quantity: 2
+  - gotoUrl: https://your-shop.example/cart
+
+cases:
+  - name: 购物者使用 SAVE10 完成结算后，订单金额包含折扣，且税费按折扣后的小计计算
+    tags: [checkout, discount]
+    steps:
+      # 执行：可调整的操作
+      - aiAct: 进入结算页并使用优惠码 SAVE10
+      - aiAct: 使用已保存的收货地址和已保存的测试卡提交订单
+      # 约束：Case 通过前必须确认的证据
+      - order.verifyLatest:
+          discountCode: SAVE10
+          status: confirmed
+      # 意图：可观察的结果
+      - aiAssert:
+          prompt: >-
+            订单确认页显示订单号、一条 SAVE10 折扣明细且金额等于小计的 10%，
+            税费按折扣后的小计计算。
+          message: 已确认订单的 SAVE10 折扣不正确。
+```
+
+`gotoUrl`、`setAIContext`、`aiAct` 和 `aiAssert` 是 Web 脚手架注册的官方 Node。`cart.prepare` 和 `order.verifyLatest` 是业务 Node，需要在项目中自行实现并注册，参见[编写自定义 Node](../midscene-test/extend)。
+
+与第一个版本相比：
+
+- Case 的 `name` 直接描述需求。人和 AI Agent 不需要阅读 Step 就能知道这个 Case 要确认什么。
+- `aiAct` Step 描述业务操作，而不是单个元素，Agent 可以应对按钮改名或多出的弹窗。如何编写这类指令，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
+- 最后的 `aiAssert` 检查需求中描述的结果，而不只是检查某个操作是否完成。
+- 初始状态由确定性 Node 准备，而不是由 AI 操作完成。
+
+## 两类约束
+
+约束包含两类不同的内容，应放在不同的位置。
+
+**操作约束** 限制 Agent 在执行操作时能做什么：使用哪种支付方式、只能在哪个域名内操作、哪些记录不能删除。把它们写在 `beforeAll` 中、`target` 为 `aiAct` 的 `setAIContext` 里，这样同一个 Agent 的每次 `aiAct` 调用都会使用这些约束。Step 自身的 `options.context` 会覆盖 Agent 级别的配置，两者不会拼接，因此使用单次调用 context 时，需要在其中重复这些约束。
+
+**证据检查** 规定 Case 通过前必须确认的内容。它们用于防止误报，也就是界面看起来正确、业务结果却不正确的情况。在示例中，只看订单确认页是不够的；`order.verifyLatest` 通过后端 API 读取订单，如果不存在使用了该优惠码的已确认订单，这个 Step 就会失败。如果没有可用的后端检查，可以增加一个 `aiAssert`，从另一个可观察的来源进行检查，例如订单历史页。
+
+把证据检查放在最后的 `aiAssert` 之前。默认情况下，失败的 Step 会停止当前 Case 的后续 Step，因此只有证据确认后，意图断言才会执行。
+
+## 界面变化时如何修改
+
+Case 失败时，打开报告中失败的 Step，例如使用 `#runner-step=first-error`（参见[链接到报告中的 Step](../midscene-test/use#链接到报告中的-step)），然后判断受影响的是 Case 的哪个部分：
+
+| 发生了什么 | 应修改什么 |
+| --- | --- |
+| 页面或流程变化了，手动检查时需求仍然满足。 | 修改 `aiAct` Step，或者通过 `setAIContext` 补充应用知识。不要修改 Case 的 `name` 和最后的 `aiAssert`。 |
+| Case 通过了，但结果实际上是错误的。 | 增加或收紧证据检查。不要删除已有的检查。 |
+| 需求本身变化了，并且规格已经更新。 | 按新需求修改 Case 的 `name` 和最后的 `aiAssert`，并像审阅其他预期行为变更一样审阅这次修改。 |
+| 环境没有准备好，例如测试账号缺失或服务不可达。 | 修复环境，或修改 `beforeAll`、`beforeEach` 中的 Node。不要修改 Case。 |
+
+按照这些规则，大多数界面变化产生的 diff 只涉及 `aiAct` Step。如果 diff 修改了 Case 的 `name`、最后的 `aiAssert`，或删除了证据检查，说明预期行为发生了变化，应对照规格进行审阅。
+
+每个 Step 都应独立描述自己的目标，不要使用“上一步”这类指代。最后的 `aiAssert` 应完整描述预期结果。参见[用例设计约定](../midscene-test/use#用例设计约定)。
+
+## 接下来
+
+- 阅读[创建和使用测试项目](../midscene-test/use)，了解完整的 YAML 语法和生命周期钩子。
+- 阅读[编写自定义 Node](../midscene-test/extend)，实现 `cart.prepare`、`order.verifyLatest` 等数据准备和证据检查 Node。
+- 阅读[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)，编写 Agent 能够稳定执行的 `aiAct` 指令和 Context。
