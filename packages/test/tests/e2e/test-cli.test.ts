@@ -8,6 +8,7 @@ import {
   readdirSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -95,10 +96,11 @@ const temporaryRun = (prefix: string) => {
 const runFailure = async (
   args: string[],
   env: NodeJS.ProcessEnv = process.env,
+  cwd = packageRoot,
 ): Promise<FailedExecution> => {
   try {
     await execFileAsync(process.execPath, [cliPath, ...args], {
-      cwd: packageRoot,
+      cwd,
       env,
     });
   } catch (error) {
@@ -108,6 +110,75 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
+  it.each([
+    ['execution', 'auto'],
+    ['collection', 'auto'],
+    ['publication', 'auto'],
+    ['execution', 'directory'],
+    ['execution', 'explicit'],
+    ['execution', 'alias'],
+  ])(
+    'annotates the selected YAML after %s failure with %s config selection',
+    async (failureKind, selection) => {
+      const root = realpathSync(
+        mkdtempSync(join(tmpdir(), 'cli-failure-root-')),
+      );
+      temporaryDirectories.push(root);
+      const sourcePath = 'cases/smoke/selected.yaml';
+      mkdirSync(join(root, 'cases', 'smoke'), { recursive: true });
+      writeFileSync(join(root, 'package.json'), '{"type":"module"}');
+      writeFileSync(
+        join(root, 'midscene.config.mjs'),
+        `export default {
+  output: { reportDir: 'reports' },
+  nodes: [{ name: 'fail', execute() { throw new Error('controlled failure'); } }],
+};`,
+      );
+      writeFileSync(
+        join(root, sourcePath),
+        `cases:\n  - name: selected\n    steps:\n      - ${failureKind === 'collection' ? 'missing' : 'fail'}: {}\n`,
+      );
+      if (failureKind === 'publication')
+        writeFileSync(join(root, 'reports'), 'Report publication must fail');
+      const args = selection === 'directory' ? ['.'] : [sourcePath];
+      if (selection === 'explicit')
+        args.push('--config', '../../midscene.config.mjs');
+      if (selection === 'alias') {
+        symlinkSync(root, join(root, 'alias'), 'junction');
+        args[0] = `alias/${sourcePath}`;
+      }
+      const execution = await runFailure(
+        args,
+        {
+          ...process.env,
+          GITHUB_ACTIONS: 'true',
+          GITHUB_WORKSPACE: root,
+          GITHUB_STEP_SUMMARY: join(root, 'github-summary.md'),
+        },
+        root,
+      );
+      expect(execution.code).toBe(1);
+      const annotations = execution.stdout
+        .split('\n')
+        .filter((line) => line.startsWith('::error file='));
+      expect(annotations).toHaveLength(1);
+      expect(annotations[0]).toContain(`file=${sourcePath},`);
+      expect(execution.stderr).toContain(
+        failureKind === 'collection'
+          ? 'unknown node "missing"'
+          : 'controlled failure',
+      );
+      if (failureKind !== 'collection')
+        expect(execution.stderr).toContain(
+          selection === 'explicit'
+            ? 'at ../../midscene.config.mjs:'
+            : 'at midscene.config.mjs:',
+        );
+      if (failureKind === 'publication')
+        expect(execution.stderr).toContain('write-report');
+    },
+  );
+
   it.each([
     ['mjs', 'root'],
     ['mjs', 'cases'],

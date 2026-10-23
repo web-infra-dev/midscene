@@ -1,5 +1,5 @@
 import { existsSync, realpathSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, relative, resolve, sep } from 'node:path';
+import { relative, resolve, sep } from 'node:path';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { runWithConsoleLogHandler } from '@midscene/shared/logger';
 import { version } from '../../package.json';
@@ -7,6 +7,8 @@ import { formatCliError, formatConciseError } from './error-format';
 import type { CliFailureContext } from './failure-format';
 import { githubFailureAnnotation, writeGitHubSummary } from './github-reporter';
 import { renderNodeSpec, sortNodesForSpec } from './node-spec';
+import { prepareTestRun } from './prepare-test-run';
+import { runPreparedTestProject } from './run-prepared-project';
 import { captureTerminalOutput } from './terminal-output';
 import {
   TerminalReporter,
@@ -16,7 +18,6 @@ import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
   discoverTestConfig,
-  runTestProject,
 } from './test-project-runner';
 import type { TestProjectRunResult } from './types';
 
@@ -478,24 +479,19 @@ export async function runTestCli(
             reporter.output(message, write),
           )
         : undefined;
-    const projectRoot = realpathSync(
-      options.projectRoot &&
-        existsSync(options.projectRoot) &&
-        statSync(options.projectRoot).isFile()
-        ? dirname(options.projectRoot)
-        : (options.projectRoot ?? options.cwd),
-    );
     try {
       return await runWithConsoleLogHandler(
         (entry) => reporter.console(entry),
         async () => {
+          const plan = await prepareTestRun({
+            ...options,
+            onProgress: (message) => reporter.progress(message),
+            onEvent: (event) => reporter.event(event),
+          });
+          const projectRoot = realpathSync(plan.projectRoot);
           let result: TestProjectRunResult;
           try {
-            result = await runTestProject({
-              ...options,
-              onProgress: (message) => reporter.progress(message),
-              onEvent: (event) => reporter.event(event),
-            });
+            result = await runPreparedTestProject(plan);
           } catch (error) {
             if (!(error instanceof WorkflowExecutionFailure)) throw error;
             reportTestProjectResult(

@@ -5,8 +5,10 @@ import type {
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runCreateCommand } from '../src/cli/create-command';
+import { prepareTestRun } from '../src/cli/prepare-test-run';
+import { runPreparedTestProject } from '../src/cli/run-prepared-project';
 import { runTestCli } from '../src/cli/test-command';
-import { runTestProject } from '../src/cli/test-project-runner';
+import { loadTestProject } from '../src/cli/test-project';
 import type { TestProjectRunResult } from '../src/cli/types';
 import type {
   CaseRunResult,
@@ -16,8 +18,11 @@ import type {
 import { WorkflowError } from '../src/errors';
 
 vi.mock('../src/cli/create-command', () => ({ runCreateCommand: vi.fn() }));
+vi.mock('../src/cli/prepare-test-run', () => ({ prepareTestRun: vi.fn() }));
+vi.mock('../src/cli/run-prepared-project', () => ({
+  runPreparedTestProject: vi.fn(),
+}));
 vi.mock('../src/cli/test-project-runner', () => ({
-  runTestProject: vi.fn(),
   discoverTestConfig: vi.fn(),
   DEFAULT_TEST_FILE_SELECTION: { include: ['**/*.{yaml,yml}'] },
 }));
@@ -140,7 +145,24 @@ const documentPlan = (count = 3): TestRunReportDocumentPlan => ({
 
 const output = () => ({ log: vi.fn(), error: vi.fn() });
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(async () => {
+  vi.resetAllMocks();
+  vi.mocked(prepareTestRun).mockResolvedValue({
+    startedAt: new Date(timing.startedAt),
+    runId: 'run',
+    projectRoot: process.cwd(),
+    resultDir: '/results',
+    runDir: '/results/run',
+    summaryPath: '/results/summary.json',
+    reportDir: '/results/report',
+    definition: await loadTestProject<unknown>(),
+    projects: [],
+    preflightScope: 'project',
+    reportEnabled: true,
+    publications: [],
+    onProgress: () => {},
+  });
+});
 
 describe('Test CLI failure diagnostics', () => {
   it.each([
@@ -164,7 +186,7 @@ describe('Test CLI failure diagnostics', () => {
         result.cases = [{ ...run, documentId: document.documentId, run }];
       }
       result.documents = [document];
-      vi.mocked(runTestProject).mockResolvedValue(result);
+      vi.mocked(runPreparedTestProject).mockResolvedValue(result);
       const io = output();
       expect(await runTestCli([], io)).toBe(1);
       const diagnostic = io.error.mock.calls.flat().join('\n');
@@ -208,7 +230,7 @@ describe('Test CLI failure diagnostics', () => {
         plans: [plan],
       },
     ];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    vi.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
     expect(await runTestCli([], io)).toBe(1);
     expect(io.error.mock.calls[0][0]).toContain('Step     1/3 · test.fail');
@@ -219,7 +241,7 @@ describe('Test CLI failure diagnostics', () => {
     const run = failedCase();
     run.steps = [failedStep('steps', failure('first Step failed'))];
     result.cases = [{ ...run, documentId: 'document', run }];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    vi.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
     expect(await runTestCli([], io)).toBe(1);
     expect(io.error.mock.calls[0][0]).toContain('Step     1 · test.fail');
@@ -251,7 +273,7 @@ describe('Test CLI failure diagnostics', () => {
     ).concat(step);
     result.cases = [{ ...run, documentId: 'document', run }];
     result.documents = [{ ...failedDocument(), plan: documentPlan(7) }];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    vi.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
     expect(await runTestCli([], io)).toBe(1);
     expect(io.error).toHaveBeenCalledTimes(1);
@@ -285,7 +307,7 @@ describe('Test CLI failure diagnostics', () => {
     step.meta.sourceLocation = { line: 3, column: 5 };
     document.beforeAll = [step];
     result.documents = [document];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    vi.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
     expect(await runTestCli([], io)).toBe(1);
     const diagnostic = io.error.mock.calls[0][0];
@@ -313,7 +335,7 @@ describe('Test CLI failure diagnostics', () => {
   it.each(['plain failure', null, { message: 'object failure' }])(
     'returns a failure exit code for non-Error rejection %j',
     async (error) => {
-      vi.mocked(runTestProject).mockRejectedValue(error);
+      vi.mocked(runPreparedTestProject).mockRejectedValue(error);
       const io = output();
 
       expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(1);
@@ -338,7 +360,7 @@ describe('Test CLI failure diagnostics', () => {
     run.executionErrors = [failure('case callback failed')];
     run.teardownErrors = [failure('case teardown failed')];
     result.cases = [{ ...run, documentId: 'document', run }];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    vi.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
 
     expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(1);
@@ -389,7 +411,7 @@ describe('Test CLI failure diagnostics', () => {
       },
     ];
     result.errors = [cleanup, failure('publication failed')];
-    vi.mocked(runTestProject).mockRejectedValue(
+    vi.mocked(runPreparedTestProject).mockRejectedValue(
       new WorkflowExecutionFailure(result, result.errors),
     );
     const io = output();
@@ -460,7 +482,7 @@ describe('Test CLI failure diagnostics', () => {
     ];
     const publication = failure('report publication failed');
     result.errors = [publication];
-    vi.mocked(runTestProject).mockRejectedValue(
+    vi.mocked(runPreparedTestProject).mockRejectedValue(
       new WorkflowExecutionFailure(result, [publication, publication]),
     );
     const io = output();
@@ -494,7 +516,7 @@ describe('Test CLI failure diagnostics', () => {
     result.errors = [
       new WorkflowError('execution failed', { cause: original }),
     ];
-    vi.mocked(runTestProject).mockRejectedValue(
+    vi.mocked(runPreparedTestProject).mockRejectedValue(
       new WorkflowExecutionFailure(result, [original]),
     );
     const io = output();
@@ -528,7 +550,7 @@ describe('Test CLI failure diagnostics', () => {
       { ...run, documentId: 'document', run },
       { ...run, documentId: 'document', status: 'success' },
     ];
-    vi.mocked(runTestProject).mockResolvedValue(result);
+    vi.mocked(runPreparedTestProject).mockResolvedValue(result);
     const io = output();
 
     expect(await runTestCli(['--reporter', 'verbose'], io)).toBe(0);
