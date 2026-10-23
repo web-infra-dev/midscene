@@ -523,6 +523,10 @@ export function createWebInputPrimitives(
             button: 'left',
           });
           await page.keyboard.press([{ key: 'End' }]);
+        } else if (!element && opts?.replace !== false && !opts?.focusOnly) {
+          // Replace within the current focus without a preliminary click or
+          // a separate empty input event that could trigger an autosave.
+          await page.selectAllInput();
         }
 
         if (opts?.focusOnly) {
