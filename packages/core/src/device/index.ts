@@ -367,6 +367,7 @@ function defineLocatedPointAction<
   TParam extends { locate: LocateResultElement },
 >(config: {
   name: string;
+  supportedBySystemOne?: boolean;
   description: string;
   interfaceAlias?: string;
   paramSchema: TSchema;
@@ -376,6 +377,7 @@ function defineLocatedPointAction<
 }): DeviceAction<TParam> {
   return defineAction<TSchema, TParam>({
     name: config.name,
+    supportedBySystemOne: config.supportedBySystemOne,
     description: config.description,
     interfaceAlias: config.interfaceAlias,
     paramSchema: config.paramSchema,
@@ -402,6 +404,7 @@ export const defineActionTap = (
 ): DeviceAction<ActionTapParam> => {
   return defineLocatedPointAction<typeof actionTapParamSchema, ActionTapParam>({
     name: 'Tap',
+    supportedBySystemOne: true,
     description: 'Tap the element',
     interfaceAlias: 'aiTap',
     paramSchema: actionTapParamSchema,
@@ -465,6 +468,7 @@ export const defineActionRightClick = (
     ActionRightClickParam
   >({
     name: 'RightClick',
+    supportedBySystemOne: true,
     description: 'Right click the element',
     interfaceAlias: 'aiRightClick',
     paramSchema: actionRightClickParamSchema,
@@ -496,6 +500,7 @@ export const defineActionDoubleClick = (
     ActionDoubleClickParam
   >({
     name: 'DoubleClick',
+    supportedBySystemOne: true,
     description: 'Double click the element',
     interfaceAlias: 'aiDoubleClick',
     paramSchema: actionDoubleClickParamSchema,
@@ -525,6 +530,7 @@ export const defineActionHover = (
     ActionHoverParam
   >({
     name: 'Hover',
+    supportedBySystemOne: true,
     description: 'Move the mouse to the element',
     interfaceAlias: 'aiHover',
     paramSchema: actionHoverParamSchema,
@@ -819,6 +825,7 @@ function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
       ),
     distance: z
       .number()
+      .finite()
       .positive()
       .optional()
       .describe(
@@ -831,13 +838,18 @@ function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
       ),
     duration: z
       .number()
+      .finite()
+      .positive()
       .default(300)
       .describe('Duration of the swipe gesture in milliseconds'),
     repeat: z
       .number()
+      .finite()
+      .int()
+      .nonnegative()
       .optional()
       .describe(
-        'The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)',
+        'The number of times to repeat the swipe gesture. 1 for default, 0 for continuous mode capped at 10 repeats',
       ),
   });
 }
@@ -867,6 +879,20 @@ export function normalizeSwipeParam(
   const { width, height } = screenSize;
   const { start, end } = param;
 
+  const duration = param.duration ?? 300;
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new Error('duration must be a positive finite number');
+  }
+
+  const repeatCount = param.repeat ?? 1;
+  if (
+    !Number.isFinite(repeatCount) ||
+    !Number.isInteger(repeatCount) ||
+    repeatCount < 0
+  ) {
+    throw new Error('repeat must be a non-negative finite integer');
+  }
+
   const startPoint = start
     ? { x: start.center[0], y: start.center[1] }
     : { x: width / 2, y: height / 2 };
@@ -888,7 +914,7 @@ export function normalizeSwipeParam(
       );
     }
 
-    if (param.distance <= 0) {
+    if (!Number.isFinite(param.distance) || param.distance <= 0) {
       throw new Error(
         'Invalid Swipe parameters: "distance" must be a positive number.',
       );
@@ -915,14 +941,12 @@ export function normalizeSwipeParam(
   endPoint.x = Math.max(0, Math.min(endPoint.x, width));
   endPoint.y = Math.max(0, Math.min(endPoint.y, height));
 
-  const duration = param.duration ?? 300;
-
-  let repeatCount = typeof param.repeat === 'number' ? param.repeat : 1;
-  if (repeatCount === 0) {
-    repeatCount = 10;
-  }
-
-  return { startPoint, endPoint, duration, repeatCount };
+  return {
+    startPoint,
+    endPoint,
+    duration,
+    repeatCount: repeatCount === 0 ? 10 : repeatCount,
+  };
 }
 
 /** @deprecated Use {@link normalizeSwipeParam} instead. */
@@ -977,6 +1001,7 @@ export const defineActionClearInput = (
     ActionClearInputParam
   >({
     name: 'ClearInput',
+    supportedBySystemOne: true,
     description: inputLocateDescription,
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
@@ -1149,6 +1174,7 @@ export interface MobileInputActionContext {
 
 export interface SystemInputActionConfig {
   name: string;
+  supportedBySystemOne?: boolean;
   description: string;
   interfaceAlias?: string;
   delayBeforeRunner?: number;
@@ -1175,6 +1201,7 @@ function defineSystemInputAction(
 ): DeviceAction<undefined, void> {
   return defineAction<undefined, undefined, void>({
     name: config.name,
+    supportedBySystemOne: config.supportedBySystemOne,
     description: config.description,
     interfaceAlias: config.interfaceAlias,
     delayBeforeRunner: config.delayBeforeRunner,

@@ -19,10 +19,10 @@ describe(
   () => {
     let server: PlaygroundServer | null = null;
     
-    afterEach(() => {
+    afterEach(async () => {
       // Clean up server if it exists
       if (server) {
-        server.close();
+        await server.close();
         server = null;
       }
     });
@@ -46,7 +46,7 @@ describe(
       const agent = new StaticPageAgent(page);
       server = new PlaygroundServer(agent);
 
-      await server.launch();
+      await server.launch(0);
 
       const port = server.port;
       if (!port) {

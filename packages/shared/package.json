@@ -1,11 +1,24 @@
 {
   "name": "@midscene/shared",
-  "version": "1.16.1",
+  "version": "1.17.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
+  "imports": {
+    "#console-context": {
+      "types": "./src/console-context.d.ts",
+      "node": {
+        "import": "./dist/es/console-context.node.mjs",
+        "require": "./dist/lib/console-context.node.js"
+      },
+      "default": {
+        "import": "./dist/es/console-context.stub.mjs",
+        "require": "./dist/lib/console-context.stub.js"
+      }
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",

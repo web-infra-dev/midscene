@@ -2,6 +2,105 @@
 
 {/* release-notes:start */}
 
+## v1.17.0
+
+### 亮点
+
+#### 使用 ChatGPT 订阅额度
+
+通过 Sign in with ChatGPT（SIWC）授权 Midscene，使用 ChatGPT 订阅额度调用 GPT 模型。下面的视频演示浏览器插件中的登录授权流程。接入方式详见[使用 ChatGPT 订阅](https://midscenejs.com/zh/chatgpt-subscription)。
+
+&lt;video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/siwc/siwc-chrome-auth.mp4" controls&gt;&lt;/video&gt;
+
+#### Jev 1.14 实验性支持
+
+Jev 可用于任务规划、定位和判断，并与通用默认模型协同完成输入等任务。接入方式及限制详见 [Jev 配置指南](https://midscenejs.com/zh/model-api-setup#jev)。
+
+以下数据来自演示中的单次运行，“单步”指一次模型调用，耗时不包含页面操作和等待。费用单位为美元，按 Jev 输入 $0.042 / 百万 Token、输出免费计算。
+
+##### 水果连连看：纯 Jev
+
+Jev 独立完成点击与定位，消除所有水果配对，直到剩余配对数为 0。[查看运行报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/fruits-tile-matching-report.html)。
+
+&lt;video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/fruits-tile-matching.mp4" controls&gt;&lt;/video&gt;
+
+- 单步模型耗时：平均 **0.887 秒**，P50 **0.774 秒**。
+- 输入消耗：平均每步 **6,761.4 Token**，总计 **101,421 Token**。
+- 模型费用：平均每步 **$0.000284**，总计 **$0.00426**。
+
+##### 注册表单：Jev + DeepSeek
+
+Jev 负责点击、定位、性别下拉框选择和完成判断；DeepSeek 生成邮箱、密码和用户名等输入内容，共同完成注册表单。[查看运行报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/register-form-report.html)。
+
+&lt;video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/register-form.mp4" controls&gt;&lt;/video&gt;
+
+以下数据**仅统计 Jev，不包含 DeepSeek**：
+
+- 单步模型耗时：平均 **0.583 秒**，P50 **0.559 秒**。
+- 输入消耗：平均每步 **5,265.8 Token**，总计 **68,455 Token**。
+- 模型费用：平均每步 **$0.000221**，总计 **$0.002875**。
+
+### 完整变更
+
+#### 问题修复 🐞
+* fix(chrome-extension): keep recorder screenshots on their source tab by @dakjdakd in https://github.com/web-infra-dev/midscene/pull/3194
+* fix(workflow): stabilize Studio notarization and unblock release notices by @quanru in https://github.com/web-infra-dev/midscene/pull/3294
+
+#### 重构 ♻️
+* refactor(core): restructure Jev integration and planning delegation by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3295
+
+#### 新贡献者
+* @dakjdakd made their first contribution in https://github.com/web-infra-dev/midscene/pull/3194
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.5...v1.17.0
+
+## v1.16.5
+
+### 完整变更
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.4...v1.16.5
+
+## v1.16.4
+
+### 完整变更
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.3...v1.16.4
+
+## v1.16.3
+
+### 完整变更
+
+#### 新特性 🎉
+* feat(core): add SIWC auth mode and Chrome extension sign-in by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3287
+
+#### 文档 📖
+* docs(site): make model configuration sections easier to discover by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3292
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.2...v1.16.3
+
+## v1.16.2
+
+### 完整变更
+
+#### 新特性 🎉
+* feat(test): redesign CLI reporting and model usage summaries by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3285
+
+#### 问题修复 🐞
+* fix(workflow): diagnose Chrome Web Store OAuth failures by @quanru in https://github.com/web-infra-dev/midscene/pull/3284
+* fix(core): keep trailing parenthesis in auto-glm finish message by @kwy404 in https://github.com/web-infra-dev/midscene/pull/3190
+* fix(core): validate locate coordinate types strictly by @linhongyu510 in https://github.com/web-infra-dev/midscene/pull/3068
+* fix(core): validate swipe action parameters by @linhongyu510 in https://github.com/web-infra-dev/midscene/pull/3069
+* fix(workflow): build report dependencies and stabilize AI checks by @quanru in https://github.com/web-infra-dev/midscene/pull/3290
+
+#### 文档 📖
+* docs(site): reorganize model setup and debugging guides by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3288
+* docs(site): standardize navigation capitalization by @ottomao in https://github.com/web-infra-dev/midscene/pull/3291
+
+#### 新贡献者
+* @kwy404 made their first contribution in https://github.com/web-infra-dev/midscene/pull/3190
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.1...v1.16.2
+
 ## v1.16.1
 
 ### 完整变更
@@ -38,7 +137,7 @@ Midscene 现已接入 Jev 1.4，继续沿着视觉理解的道路推进 UI 自�
 
 在下方 Demo 的连连看游戏测试中，共进行了 28 次模型调用，平均每次模型推理耗时 **393.57 ms（约 0.39 秒）**。平均每次输入 **5,025 Token**、输出 **67 Token**，模型调用费用约 **$0.000211/次**。费用按输入 $0.042 / 百万 Token 计算，输出免费。
 
-&lt;video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/tile-matching-jev.mp4" controls&gt;&lt;/video&gt;
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/tile-matching-jev.mp4" controls></video>
 
 ### 完整变更
 

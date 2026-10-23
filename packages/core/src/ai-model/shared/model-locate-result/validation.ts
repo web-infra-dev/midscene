@@ -40,6 +40,15 @@ export function assertLocateResultStructure(result: LocateResultValue): void {
     );
   }
 
+  if (
+    isBboxLocateResultValue(result) &&
+    result.coordinatesMeta.boundsType !== undefined &&
+    !['inclusive', 'edges'].includes(result.coordinatesMeta.boundsType)
+  ) {
+    throw new Error(
+      `invalid locate bbox boundsType: ${result.coordinatesMeta.boundsType}`,
+    );
+  }
   const { order, normalizedBy, rounding } = coordinatesMeta;
   if (!['round', 'trunc', 'none'].includes(rounding)) {
     throw new Error(`invalid locate coordinate rounding: ${rounding}`);

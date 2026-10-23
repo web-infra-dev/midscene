@@ -7,6 +7,7 @@ import {
 import { useEnvConfig } from '@midscene/visualizer';
 import { Empty } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
+import { SiwcLoginButton } from '../../extension/siwc/button';
 import { getExtensionVersion } from '../../utils/chrome';
 import './index.less';
 
@@ -153,6 +154,7 @@ export function BrowserExtensionPlayground({
       playgroundSDK={playgroundSDK}
       contextProvider={contextProvider}
       envConfigReminderProps={{
+        modelConfigActions: <SiwcLoginButton />,
         onVerify,
         agentOptions,
         onAgentOptionsSave,

@@ -1,9 +1,17 @@
-import { existsSync, statSync, writeFileSync } from 'node:fs';
-import { relative, resolve, sep } from 'node:path';
+import { existsSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, relative, resolve, sep } from 'node:path';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
+import { runWithConsoleLogHandler } from '@midscene/shared/logger';
 import { version } from '../../package.json';
-import { formatCliError } from './error-format';
+import { formatCliError, formatConciseError } from './error-format';
+import type { CliFailureContext } from './failure-format';
+import { githubFailureAnnotation, writeGitHubSummary } from './github-reporter';
 import { renderNodeSpec, sortNodesForSpec } from './node-spec';
+import { captureTerminalOutput } from './terminal-output';
+import {
+  TerminalReporter,
+  type TerminalReporterMode,
+} from './terminal-reporter';
 import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
@@ -16,6 +24,10 @@ export interface TestCliIO {
   log(message: string): void;
   error(message: string): void;
   write?(message: string): void;
+  isTTY?: boolean;
+  columns?: number;
+  rows?: number;
+  onResize?(listener: () => void): () => void;
 }
 
 interface ParsedTestArgs {
@@ -25,6 +37,7 @@ interface ParsedTestArgs {
   configPath?: string;
   resultDir?: string;
   projectNames?: string[];
+  reporter?: TerminalReporterMode;
 }
 
 export const parseTestCliArgs = (
@@ -37,6 +50,7 @@ export const parseTestCliArgs = (
   let configPath: string | undefined;
   let resultDir: string | undefined;
   const projectNames: string[] = [];
+  let reporter: TerminalReporterMode | undefined;
 
   for (let index = commandOffset; index < args.length; index += 1) {
     const token = args[index];
@@ -49,13 +63,25 @@ export const parseTestCliArgs = (
       projectRoot = resolve(cwd, arg);
       continue;
     }
-    if (arg === '--config' || arg === '--result-dir' || arg === '--project') {
+    if (
+      arg === '--config' ||
+      arg === '--result-dir' ||
+      arg === '--project' ||
+      arg === '--reporter'
+    ) {
       const value = inlineValue ?? args[index + 1];
       if (!value || value.startsWith('--'))
         throw new Error(`${arg} requires a value.`);
       if (arg === '--config') configPath = value;
       else if (arg === '--result-dir') resultDir = resolve(cwd, value);
-      else projectNames.push(value);
+      else if (arg === '--project') projectNames.push(value);
+      else {
+        if (value !== 'default' && value !== 'verbose')
+          throw new Error(
+            `Unknown reporter: ${value}. Expected default or verbose.`,
+          );
+        reporter = value;
+      }
       if (inlineValue === undefined) index += 1;
     } else {
       throw new Error(`Unknown option: ${token}`);
@@ -65,6 +91,8 @@ export const parseTestCliArgs = (
   if (command === 'nodes' && resultDir) {
     throw new Error('--result-dir is not supported by nodes.');
   }
+  if (command === 'nodes' && reporter)
+    throw new Error('--reporter is not supported by nodes.');
   if (command === 'nodes' && projectNames.length > 1) {
     throw new Error('nodes accepts only one --project name.');
   }
@@ -75,13 +103,25 @@ export const parseTestCliArgs = (
     configPath,
     resultDir,
     ...(projectNames.length > 0 ? { projectNames } : {}),
+    ...(reporter ? { reporter } : {}),
   };
 };
 
 const defaultCliIO: TestCliIO = {
   log: console.log,
   error: console.error,
-  write: (message) => process.stdout.write(message),
+  write: process.stdout.write.bind(process.stdout),
+  isTTY: Boolean(process.stdout.isTTY && !process.env.CI),
+  get columns() {
+    return process.stdout.columns;
+  },
+  get rows() {
+    return process.stdout.rows;
+  },
+  onResize(listener) {
+    process.stdout.on('resize', listener);
+    return () => process.stdout.off('resize', listener);
+  },
 };
 
 const testCliHelp = `Midscene Test: run native cases/steps Test projects.
@@ -97,6 +137,7 @@ Options:
   --config <path>              Native TypeScript or JavaScript Test config
   --project <name>             Select a native execution Project (repeatable)
   --result-dir <path>          Store Test result files in this directory
+  --reporter <default|verbose> Concise Case results or full step diagnostics
   --help, -h                  Show this help
   --version                   Show the package version
 
@@ -206,12 +247,26 @@ const runNodesCommand = async (
 const reportTestProjectResult = (
   result: TestProjectRunResult,
   io: TestCliIO,
+  reporter: TerminalReporter,
+  projectRoot: string,
   infrastructureErrors: readonly unknown[] = result.errors ?? [],
 ): number => {
+  reporter.finish(result);
   const reportedErrors = new Set<Error>();
-  const reportError = (source: string, error: unknown): void => {
+  const reportError = (
+    source: string,
+    error: unknown,
+    sourcePath?: string,
+    context?: CliFailureContext,
+  ): void => {
     if (error instanceof Error && reportedErrors.has(error)) return;
-    io.error(`midscene-test: ${source}: ${formatCliError(error)}`);
+    reporter.failure(source, error, { projectRoot, ...context });
+    const annotation = githubFailureAnnotation(
+      source,
+      formatConciseError(error),
+      sourcePath ? resolve(projectRoot, sourcePath) : undefined,
+    );
+    if (annotation) io.log(annotation);
     // Infrastructure failures carry raw errors that can also be causes of
     // the contextual errors already printed from the execution result.
     const pending = [error];
@@ -224,8 +279,51 @@ const reportTestProjectResult = (
     }
   };
   for (const failure of result.collectionErrors) {
-    reportError(`${failure.projectName}/${failure.sourcePath}`, failure.error);
+    reportError(
+      `${failure.projectName}/${failure.sourcePath}`,
+      failure.error,
+      failure.sourcePath,
+      {
+        projectName: failure.projectName,
+        sourcePath: failure.sourcePath,
+        phase: 'collection',
+      },
+    );
   }
+  const finalDocuments = new Map(
+    result.documents.map((document) => [document.documentId, document]),
+  );
+  const documentContext = (
+    projectName: string,
+    documentId: string,
+    sourcePath: string,
+  ) => {
+    const project = result.projects.find(
+      (project) => project.name === projectName,
+    );
+    const document = finalDocuments.get(documentId);
+    const plan =
+      document?.plan ??
+      project?.plans?.find((plan) => plan.documentId === documentId);
+    const fileIndex = document?.attemptIndex ?? 0;
+    return {
+      plan,
+      projectName,
+      sourcePath,
+      ...(plan?.retry.scope === 'document'
+        ? {
+            fileAttempt: {
+              index: fileIndex,
+              total: Math.max(fileIndex + 1, plan.retry.count + 1),
+            },
+          }
+        : {}),
+      caseAttempts:
+        plan?.retry.scope === 'document'
+          ? 1
+          : (plan?.retry.count ?? project?.retry ?? 0) + 1,
+    };
+  };
   const finalCases = new Map(
     result.cases.map((outcome) => [outcome.caseId, outcome]),
   );
@@ -233,63 +331,113 @@ const reportTestProjectResult = (
     if (outcome.status !== 'failed' || !outcome.run) continue;
     const run = outcome.run;
     const source = `${run.projectName}/${run.sourcePath} / ${run.name}`;
-    for (const step of [...run.beforeEach, ...run.steps, ...run.afterEach]) {
-      if (step.error) {
-        reportError(
-          `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
-          step.error,
-        );
+    const { caseAttempts, plan, ...scope } = documentContext(
+      run.projectName,
+      outcome.documentId,
+      run.sourcePath,
+    );
+    const context: CliFailureContext = {
+      ...scope,
+      caseName: run.name,
+      attempt: {
+        index: run.attemptIndex,
+        total: Math.max(caseAttempts, run.attemptIndex + 1),
+      },
+    };
+    const casePlan = plan?.cases.find((item) => item.caseId === outcome.caseId);
+    for (const [phase, steps] of [
+      ['beforeEach', run.beforeEach],
+      ['steps', run.steps],
+      ['afterEach', run.afterEach],
+    ] as const) {
+      for (const step of steps) {
+        if (step.error) {
+          reportError(
+            `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}${run.attemptIndex ? ` (failed after ${run.attemptIndex + 1} attempts)` : ''}`,
+            step.error,
+            run.sourcePath,
+            { ...context, step, stepCount: casePlan?.[phase].length },
+          );
+        }
       }
     }
-    for (const error of [
-      ...(run.executionErrors ?? []),
-      ...(run.teardownErrors ?? []),
-    ]) {
-      reportError(source, error);
+    for (const [phase, errors] of [
+      ['execution', run.executionErrors],
+      ['teardown', run.teardownErrors],
+    ] as const) {
+      for (const error of errors ?? [])
+        reportError(source, error, run.sourcePath, { ...context, phase });
     }
   }
-  const finalDocuments = new Map(
-    result.documents.map((document) => [document.documentId, document]),
-  );
   for (const document of finalDocuments.values()) {
     if (document.status !== 'failed') continue;
     const source = `${document.projectName}/${document.sourcePath}`;
-    for (const step of [...document.beforeAll, ...document.afterAll]) {
-      if (step.error) {
-        reportError(
-          `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
-          step.error,
-        );
+    const {
+      caseAttempts: _,
+      plan,
+      ...context
+    } = documentContext(
+      document.projectName,
+      document.documentId,
+      document.sourcePath,
+    );
+    for (const [phase, steps] of [
+      ['beforeAll', document.beforeAll],
+      ['afterAll', document.afterAll],
+    ] as const) {
+      for (const step of steps) {
+        if (step.error) {
+          reportError(
+            `${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}`,
+            step.error,
+            document.sourcePath,
+            { ...context, step, stepCount: plan?.[phase].length },
+          );
+        }
       }
     }
-    for (const error of [
-      ...(document.executionErrors ?? []),
-      ...(document.teardownErrors ?? []),
-    ]) {
-      reportError(source, error);
+    for (const [phase, errors] of [
+      ['execution', document.executionErrors],
+      ['teardown', document.teardownErrors],
+    ] as const) {
+      for (const error of errors ?? [])
+        reportError(source, error, document.sourcePath, { ...context, phase });
     }
     for (const failure of document.hostErrors ?? []) {
-      reportError(`${source} / host ${failure.phase}`, failure.error);
+      reportError(
+        `${source} / host ${failure.phase}`,
+        failure.error,
+        document.sourcePath,
+        { ...context, phase: `host ${failure.phase}` },
+      );
     }
   }
   for (const project of result.projects) {
     if (project.lifecycle?.setupError) {
-      reportError(`${project.name} / setup`, project.lifecycle.setupError);
+      reportError(
+        `${project.name} / setup`,
+        project.lifecycle.setupError,
+        undefined,
+        { projectName: project.name, phase: 'setup' },
+      );
     }
     for (const error of project.lifecycle?.teardownErrors ?? []) {
-      reportError(`${project.name} / teardown`, error);
+      reportError(`${project.name} / teardown`, error, undefined, {
+        projectName: project.name,
+        phase: 'teardown',
+      });
     }
   }
   for (const error of infrastructureErrors) {
     reportError('infrastructure', error);
   }
-  io.log(
-    `midscene-test: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
-  );
-  io.log(`Results: ${result.resultDir}`);
+  reporter.summary(result);
+  if (reporter.mode === 'verbose') io.log(`Results: ${result.resultDir}`);
   io.log(`Summary: ${result.summaryPath}`);
-  if (result.markdownPath) io.log(`Markdown: ${result.markdownPath}`);
+  if (result.markdownPath && reporter.mode === 'verbose')
+    io.log(`Markdown: ${result.markdownPath}`);
   if (result.reportPath) io.log(`Report: ${result.reportPath}`);
+  writeGitHubSummary(result);
   return result.exitCode;
 };
 
@@ -323,18 +471,52 @@ export async function runTestCli(
       await runNodesCommand(options, io);
       return 0;
     }
-    let result: TestProjectRunResult;
+    const reporter = new TerminalReporter(io, options.reporter);
+    const restoreOutput =
+      io === defaultCliIO && io.isTTY && options.reporter !== 'verbose'
+        ? captureTerminalOutput((message, write) =>
+            reporter.output(message, write),
+          )
+        : undefined;
+    const projectRoot = realpathSync(
+      options.projectRoot &&
+        existsSync(options.projectRoot) &&
+        statSync(options.projectRoot).isFile()
+        ? dirname(options.projectRoot)
+        : (options.projectRoot ?? options.cwd),
+    );
     try {
-      result = await runTestProject({
-        ...options,
-        onProgress: (message) => io.log(message),
-      });
-    } catch (error) {
-      if (!(error instanceof WorkflowExecutionFailure)) throw error;
-      reportTestProjectResult(error.result, io, error.errors);
-      return 1;
+      return await runWithConsoleLogHandler(
+        (entry) => reporter.console(entry),
+        async () => {
+          let result: TestProjectRunResult;
+          try {
+            result = await runTestProject({
+              ...options,
+              onProgress: (message) => reporter.progress(message),
+              onEvent: (event) => reporter.event(event),
+            });
+          } catch (error) {
+            if (!(error instanceof WorkflowExecutionFailure)) throw error;
+            reportTestProjectResult(
+              error.result,
+              io,
+              reporter,
+              projectRoot,
+              error.errors,
+            );
+            return 1;
+          }
+          return reportTestProjectResult(result, io, reporter, projectRoot);
+        },
+      );
+    } finally {
+      try {
+        reporter.dispose();
+      } finally {
+        restoreOutput?.();
+      }
     }
-    return reportTestProjectResult(result, io);
   } catch (error) {
     io.error(formatCliError(error));
     return 1;

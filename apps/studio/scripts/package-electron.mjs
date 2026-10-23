@@ -4,7 +4,6 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { notarize } from '@electron/notarize';
 import { packager } from '@electron/packager';
 import {
   reportTemplateMagicString,
@@ -14,6 +13,7 @@ import {
   writeAppUpdateYmlIntoResources,
   writeUpdateMetadataForArtifact,
 } from './build-update-metadata.mjs';
+import { notarizeMacArtifact } from './mac-notarization.mjs';
 import {
   assertPackagedExternalResourcesUnpacked,
   packagedAsarOptions,
@@ -103,9 +103,11 @@ const studioBuildSourceTargets = [
 ];
 const reportBuildSourceTargets = [
   'src',
+  'e2e',
   'template',
   'package.json',
   'tsconfig.json',
+  'tsconfig.build.json',
   'rsbuild.config.ts',
 ];
 const playgroundAppBuildSourceTargets = [
@@ -863,7 +865,16 @@ const prepareReportBuildOutput = async () => {
 
   if (status.needsBuild) {
     console.log(`Building apps/report (${status.reason}).`);
-    await buildPackageDir(path.relative(workspaceRootDir, reportRootDir));
+    // Report's type check includes tests, so prepare its development workspace
+    // dependencies (including @midscene/test) through Nx before building it.
+    await run(
+      packageManagerCommand,
+      ['exec', 'nx', 'build', '@midscene/report'],
+      {
+        env: { ...process.env, NODE_ENV: 'production' },
+      },
+    );
+    await writeBuildMeta(reportRootDir, { nodeEnv: 'production' });
   } else {
     console.log(`Skipping apps/report build (${status.reason}).`);
   }
@@ -2278,9 +2289,10 @@ export const buildStudioDmgArtifact = async ({
     console.log(
       `Submitting ${path.basename(dmgArtifactPath)} for notarization.`,
     );
-    await notarize({ appPath: dmgArtifactPath, ...security.notarizeOptions });
-    await run('xcrun', ['stapler', 'staple', dmgArtifactPath]);
-    await run('xcrun', ['stapler', 'validate', dmgArtifactPath]);
+    await notarizeMacArtifact({
+      appPath: dmgArtifactPath,
+      ...security.notarizeOptions,
+    });
   }
 
   return dmgArtifactPath;
@@ -2295,11 +2307,10 @@ export const notarizePackagedMacApp = async ({
   }
 
   console.log(`Submitting ${path.basename(appPath)} for notarization.`);
-  await notarize({
+  await notarizeMacArtifact({
     appPath,
     ...security.notarizeOptions,
   });
-  await run('xcrun', ['stapler', 'validate', appPath]);
   return true;
 };
 

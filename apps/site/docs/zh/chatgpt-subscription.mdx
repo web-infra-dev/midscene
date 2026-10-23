@@ -4,11 +4,30 @@ import { ModelConfigCard } from '@theme';
 
 你可以通过 [Sign in with ChatGPT（简称 SIWC）](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) 授权 Midscene，使用 ChatGPT 订阅额度调用 GPT 模型。本文介绍从登录授权到验证连接的完整步骤。
 
-使用 ChatGPT 订阅和[使用模型 API Key](./model-api-setup)是两种接入方式，任选一种即可。已有模型 API Key 的用户可以选择后者。
+使用 ChatGPT 订阅和[使用模型 API Key](./model-api-setup)是两种接入方式，根据你使用的模型付费方案任选一种即可。
 
-## 登录授权
+## 快速开始
 
-在终端运行：
+根据使用环境选择对应的小节。两种方式都使用 `MIDSCENE_MODEL_AUTH_MODE="siwc"`，由 Midscene 读取已保存的凭据并自动刷新 access token（访问令牌）。
+
+可用模型以你的 ChatGPT 账号为准，以下示例使用 `gpt-6-sol`。GPT 模型对应的 Family 和使用注意事项，与[使用模型 API Key](./model-api-setup#gpt) 时相同。
+
+### 浏览器插件
+
+1. 在插件的模型配置界面中点击 **Use your ChatGPT plan**，按照页面提示登录并授权使用订阅额度。
+2. 将以下配置填入同一界面：
+
+```bash
+MIDSCENE_MODEL_AUTH_MODE="siwc"
+MIDSCENE_MODEL_NAME="gpt-6-sol"
+MIDSCENE_MODEL_FAMILY="gpt-6"
+```
+
+3. 点击 **Verify** 验证连接。如果验证失败，请参考[模型高级配置与调试](./model-config#verify-model-connectivity)。
+
+### CLI / SDK
+
+首先，在终端运行：
 
 ```bash
 pnpm dlx @midscene/cli model siwc login
@@ -16,11 +35,45 @@ pnpm dlx @midscene/cli model siwc login
 
 按照终端提示，在浏览器中登录 ChatGPT 并授权使用订阅额度。授权时可以自行设置 Agent 名称；完成后，可在 ChatGPT 的使用情况页面查看已授权的 Agent。
 
-命令会打印 access token（访问令牌）和过期时间。复制 token，下一步将它填入 `MIDSCENE_MODEL_API_KEY`。
+命令会将凭据保存到 `~/.midscene/siwc.json`。首次使用前需要手动完成这一步登录。
 
-## 配置模型
+接着，将以下配置添加到 `.env` 文件中。如何加载到运行环境，请参考[模型配置文档](./model-api-setup)。
 
-以下以 `gpt-6-sol` 为例，将 `<your-access-token>` 替换为刚刚获取的 token：
+```bash
+MIDSCENE_MODEL_AUTH_MODE="siwc"
+MIDSCENE_MODEL_NAME="gpt-6-sol"
+MIDSCENE_MODEL_FAMILY="gpt-6"
+```
+
+最后，在保存 `.env` 的目录中运行：
+
+```bash
+pnpm dlx @midscene/cli model verify
+```
+
+该命令会使用 `.env` 中的值覆盖当前 Shell 中的同名变量。如果验证失败，请参考[模型高级配置与调试](./model-config#verify-model-connectivity)。
+
+## 额度与凭据
+
+- 使用 SIWC 会消耗你的订阅额度。token 消耗与订阅额度的换算以 ChatGPT 官方为准；你可以在 Midscene 报告中查看每步任务的 token 消耗。
+- 命令行授权的凭据保存在 `~/.midscene/siwc.json`，插件授权的凭据保存在插件本地存储中。Midscene 不会收集你的凭据。
+- 使用 `MIDSCENE_MODEL_AUTH_MODE="siwc"` 时，Midscene 会在运行时自动刷新 access token，无需手动维护。Node.js 和浏览器插件均支持。如果刷新失败，请重新授权。
+- 命令行和浏览器插件的凭据独立保存，通过命令行刷新 token 不会更新浏览器插件中的凭据。
+- 请遵守 OpenAI 的地区限制和使用条款，参见 [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/)。
+
+## 高级用法：手动管理 access token
+
+如果你希望自行管理 token，可以使用本节的方式。此时不要设置 `MIDSCENE_MODEL_AUTH_MODE="siwc"`。
+
+### 获取并配置 access token
+
+运行登录命令，并在浏览器中完成授权：
+
+```bash
+pnpm dlx @midscene/cli model siwc login
+```
+
+命令会将凭据保存到 `~/.midscene/siwc.json`，并打印 access token 和过期时间。将下面的 `<your-access-token>` 替换为该 token：
 
 <ModelConfigCard
   baseUrl="https://api.openai.com/v1"
@@ -37,51 +90,30 @@ pnpm dlx @midscene/cli model siwc login
   }}
 />
 
-SIWC 要求使用 Responses API 并开启流式返回，请保留示例中的 `openai-responses` 和 `stream` 配置。Midscene 默认设置 `store: false`，符合该流程的要求，详见 [OpenAI 官方说明](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)。
+SIWC 要求使用 Responses API 并开启流式返回，请保留示例中的 `openai-responses` 和 `stream` 配置。使用快速开始中的 SIWC 授权模式时，Midscene 会自动处理这两项设置。
 
-可用模型以你的 ChatGPT 账号为准。其他 GPT 模型的名称、family 和使用注意事项，请参考[使用模型 API Key](./model-api-setup#gpt)。
+按照[模型配置文档](./model-api-setup)将配置加载到运行环境，或填入插件的模型配置界面。在保存 `.env` 的目录中运行 `pnpm dlx @midscene/cli model verify`，或在插件中点击 **Verify**，验证连接。
 
-## 加载配置
+### 刷新 access token
 
-根据使用方式加载上面的完整配置：
+根据 OpenAI 的说明，access token 会在 1 小时后过期，需要使用 refresh token 获取新的 access token，详见 [OpenAI token 说明](https://developers.openai.com/siwc/token-sharing-open-source/token-reference)。
 
-- **Playground**：在设置页面粘贴配置文本。
-- **CLI**：在运行命令的目录中创建 `.env` 文件，粘贴配置文本，无需添加 `export`。CLI 会自动读取该文件。
-- **JavaScript SDK**：将配置加载到 Node.js 进程的环境变量中，具体方法见[设置环境变量](./model-api-setup#设置环境变量)。
-
-登录命令保存的本地凭据不会自动填入上述模型配置，仍需手动设置 `MIDSCENE_MODEL_API_KEY`。
-
-## 验证连接
-
-在保存 `.env` 的目录中运行：
-
-```bash
-pnpm dlx @midscene/cli model verify
-```
-
-该命令会使用 `.env` 中的值覆盖当前 Shell 中的同名变量。如果配置只保存在 Playground 中，请先将同一份配置保存为 `.env`，再运行命令。
-
-验证通过后，就可以继续[快速体验 GUI Agent](./quick-start)中的任务。如果验证失败，请参考[模型高级配置与调试](./model-config#verify-model-connectivity)。
-
-## 刷新 access token
-
-Access token 的有效期为 1 小时，详见 [OpenAI token 说明](https://developers.openai.com/siwc/token-sharing-open-source/token-reference)。到期前可以查看登录命令打印的过期时间，并运行以下命令更新 token：
+运行以下命令刷新 token：
 
 ```bash
 pnpm dlx @midscene/cli model siwc refresh
 ```
 
-命令会更新本地凭据，并打印新的 access token。请同步替换 Playground、`.env` 或环境变量中的 `MIDSCENE_MODEL_API_KEY`，重新加载配置后再运行任务。
+命令会更新本地凭据，并打印新的 access token。将 `MIDSCENE_MODEL_API_KEY` 替换为新的 token 后，重新加载配置。如果你将 token 填入了插件，也需要更新插件中的配置。
 
-## 额度与凭据
+## 旧方案：复用 Codex 登录 {#use-codex-app-server-oauth-no-api-key}
 
-- 使用 SIWC 会消耗你的订阅额度。token 消耗与订阅额度的换算以 ChatGPT 官方为准；你可以在 Midscene 报告中查看每步任务的 token 消耗。
-- 完整凭据保存在本地 `~/.midscene/siwc.json`，供后续刷新使用。Midscene 不会收集你的凭据。
-- 请遵守 OpenAI 的地区限制和使用条款，参见 [Sign in with ChatGPT Terms](https://openai.com/policies/sign-in-with-chatgpt-terms/)。
+此方案已弃用。新接入请使用上面的 SIWC 快速开始流程。
 
-## 复用 Codex Cli（不推荐） {#use-codex-app-server-oauth-no-api-key}
+<details>
+<summary>已有 Codex 登录的配置方式</summary>
 
-如果你已经通过 Codex Cli 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
+如果你已经通过 Codex CLI 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
 
 ```bash
 export MIDSCENE_MODEL_BASE_URL="codex://app-server"
@@ -96,3 +128,5 @@ export MIDSCENE_MODEL_FAMILY="gpt-6"
 - 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
 
 这种方案的不足在于：相比于直接调用 OpenAI 兼容 API，我们观察到它可能耗时更长、token 消耗更多，因此不推荐使用。
+
+</details>

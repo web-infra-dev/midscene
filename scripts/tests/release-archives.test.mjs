@@ -3,7 +3,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
-  markdownToMdx,
   notesEnd,
   notesStart,
   prepareReleaseNotes,
@@ -135,7 +134,7 @@ describe('release archives and site changelogs', () => {
         page.indexOf('## v1.9.0'),
       );
       expect(page).not.toContain('English details');
-      expect(page).toContain('&#123;limit&#125; &lt;value&gt;');
+      expect(page).toContain('{limit} <value>');
       expect(page).toContain('`Array<T>`');
       expect(page).not.toContain('Release notes generated');
       const archive = fs.readFileSync(
@@ -202,21 +201,39 @@ describe('release archives and site changelogs', () => {
     );
   });
 
-  it('keeps example code intact while making ordinary text safe for MDX', () => {
-    const code =
-      '```tsx\nconst value = <Widget prop={{ a: 1 }} />;\n## literal heading\n```';
-    expect(
-      markdownToMdx(`Use {value} and <name>, or \\{escaped\\}.\n${code}`),
-    ).toContain(code);
+  it('preserves MDX, Markdown syntax and code when rebuilding archived highlights', () => {
     const root = fixture();
-    const body = writeReleaseArchives({
+    const content = [
+      '<video src="https://example.com/demo.mp4" controls />',
+      '<iframe src="https://example.com/report.html"></iframe>',
+      '> Preview',
+      '`Array<T>` and `{ timeout: 1000 }`',
+      '```tsx\nconst value = <Widget prop={{ a: 1 }} />;\n## literal heading\n```',
+    ].join('\n\n');
+    writeReleaseArchives({
       root,
       version: '1.10.0',
-      highlights: { en: `## Example\n\n${code}`, zh: '说明' },
+      highlights: {
+        en: `## Example\n\n${content}`,
+        zh: `## 示例\n\n${content}`,
+      },
       rawNotes,
     });
-    expect(body).toContain('#### Example');
-    expect(body).toContain(code);
+    // A subsequent release must also preserve content loaded from older archives.
+    writeReleaseArchives({
+      root,
+      version: '1.10.1',
+      highlights: { en: '', zh: '' },
+      rawNotes,
+    });
+    for (const language of ['en', 'zh']) {
+      const page = fs.readFileSync(
+        path.join(root, 'apps/site/docs', language, 'changelog.mdx'),
+        'utf8',
+      );
+      expect(page).toContain(content);
+      expect(page).toContain(language === 'en' ? '#### Example' : '#### 示例');
+    }
   });
 });
 

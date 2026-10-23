@@ -1,5 +1,9 @@
 import type { ResolveImageDetail } from '../../model-adapter/types';
-import type { ModelCallContext, ModelCallResult } from '../types';
+import type {
+  ModelCallContext,
+  ModelCallMessages,
+  ModelCallResult,
+} from '../types';
 import {
   type CodexAppServerRecordEvent,
   callAIWithCodexAppServer,
@@ -9,7 +13,9 @@ export const prepareCodexCall = ({
   messages,
   modelRuntime,
   options,
-}: Pick<ModelCallContext, 'messages' | 'modelRuntime' | 'options'>) => {
+}: Pick<ModelCallContext, 'modelRuntime' | 'options'> & {
+  messages: ModelCallMessages;
+}) => {
   const { config: modelConfig, adapter } = modelRuntime;
   const { config } = adapter.buildCodexAppServerParams({
     intent: modelConfig.intent,

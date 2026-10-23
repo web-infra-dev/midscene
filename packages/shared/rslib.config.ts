@@ -40,5 +40,6 @@ export default defineConfig({
       __VERSION__: JSON.stringify(version),
     },
   },
+  output: { externals: ['#console-context'] },
   plugins: [createTypeCheckPlugin()],
 });

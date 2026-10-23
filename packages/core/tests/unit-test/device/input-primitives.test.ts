@@ -69,18 +69,21 @@ describe('defineActionsFromInputPrimitives', () => {
         systemActions: {
           backButton: {
             name: 'AndroidBackButton',
+            supportedBySystemOne: true,
             description: 'Trigger the system "back" operation',
             delayBeforeRunner: 0,
             delayAfterRunner: 0,
           },
           homeButton: {
             name: 'AndroidHomeButton',
+            supportedBySystemOne: true,
             description: 'Trigger the system "home" operation',
             delayBeforeRunner: 0,
             delayAfterRunner: 0,
           },
           recentAppsButton: {
             name: 'AndroidRecentAppsButton',
+            supportedBySystemOne: true,
             description: 'Trigger the system "recent apps" operation',
           },
         },
@@ -91,6 +94,11 @@ describe('defineActionsFromInputPrimitives', () => {
       'AndroidBackButton',
       'AndroidHomeButton',
       'AndroidRecentAppsButton',
+    ]);
+    expect(actions.map((action) => action.supportedBySystemOne)).toEqual([
+      true,
+      true,
+      true,
     ]);
     expect(actions[0].paramSchema).toBeUndefined();
     expect(actions[0].delayBeforeRunner).toBe(0);

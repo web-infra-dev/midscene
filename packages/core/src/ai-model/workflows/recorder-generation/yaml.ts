@@ -11,7 +11,10 @@ import {
   stringifyMidsceneRecorderTargetBlock,
 } from '@midscene/shared/recorder';
 import { getModelRuntime } from '../../models';
-import { callAI, callAIWithStringResponse } from '../../service-caller';
+import {
+  callAIWithStringResponse,
+  callGenerativeAI,
+} from '../../service-caller';
 import {
   type ChromeRecordedEvent,
   type EventCounts,
@@ -242,7 +245,7 @@ export const generateRecorderYamlTestStream = async (
     const prompt = createRecorderYamlPrompt(input);
     const modelRuntime = createModelRuntime(modelConfig);
     if (options.stream && options.onChunk) {
-      return await callAI(prompt, modelRuntime, {
+      return await callGenerativeAI(prompt, modelRuntime, {
         stream: true,
         onChunk: options.onChunk,
       });

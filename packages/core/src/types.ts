@@ -64,12 +64,12 @@ export type AIUsageInfo = Record<string, any> & {
   /** Request retries performed within this call; excludes semantic parse retries. */
   retry_count?: number;
   /** Actual protocol used for the model call, resolved by Midscene. */
-  api_protocol?: 'chat-completion' | 'responses' | 'codex' | 'system-one';
+  request_kind?: 'chat-completion' | 'responses' | 'codex' | 'system-one';
   /** Why a task uses the default model instead of its configured specialist. */
-  modelRouting?: {
+  modelFallback?: {
     requestedModel: string;
     requestedSlot: string;
-    task: string;
+    taskType: string;
     reason: string;
   };
   /** Whether the model call used streaming, after resolving call options. */
@@ -421,6 +421,11 @@ export interface RawResponsePlanningAIResponse {
 export interface PlanningAIResponse
   extends Omit<RawResponsePlanningAIResponse, 'action'> {
   actions?: PlanningAction[];
+  /** Request another planning cycle using the default model, without executing actions. */
+  delegation?: {
+    reason: string;
+    suggestedAction?: string;
+  };
   usage?: AIUsageInfo;
   /**
    * Adapter-extracted content used by Midscene for parsing. This is not the
@@ -937,6 +942,12 @@ export interface StreamingAIResponse {
 }
 
 export interface DeviceAction<TParam = any, TReturn = any> {
+  /**
+   * Allow System One planners to construct this action directly.
+   * Only enable for actions with no parameters or locator-only parameters.
+   * Omitted/false actions are offered as delegation choices to the default model.
+   */
+  supportedBySystemOne?: boolean;
   name: string;
   description?: string;
   interfaceAlias?: string;

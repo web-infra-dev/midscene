@@ -668,6 +668,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
 
     defineAction({
       name: 'Reload',
+      supportedBySystemOne: true,
       description: 'Reload the current page',
       call: async () => {
         if (!page.reload) {
@@ -682,6 +683,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
 
     defineAction({
       name: 'GoBack',
+      supportedBySystemOne: true,
       description: 'Navigate back in browser history',
       call: async () => {
         if (!page.goBack) {
@@ -695,6 +697,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     }),
     defineAction({
       name: 'GoForward',
+      supportedBySystemOne: true,
       description: 'Navigate forward in browser history',
       call: async () => {
         if (!page.goForward) {

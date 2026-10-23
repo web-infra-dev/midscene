@@ -121,6 +121,7 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -152,6 +153,7 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(planningConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -183,6 +185,7 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(insightConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -226,6 +229,7 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -257,6 +261,7 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(planningConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
@@ -288,6 +293,7 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(insightConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,

@@ -288,6 +288,7 @@ export class RDPDevice implements AbstractInterface {
       }),
       defineAction({
         name: 'ListDisplays',
+        supportedBySystemOne: true,
         description: 'List all available displays/monitors',
         call: async (): Promise<DisplayInfo[]> => {
           this.assertConnected();

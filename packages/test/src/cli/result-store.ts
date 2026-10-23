@@ -168,6 +168,7 @@ export const writeTestProjectRunResult = (
       ? { markdown: relativeToSummary(result.summaryPath, result.markdownPath) }
       : {}),
     summary: result.summary,
+    ...(result.metrics ? { metrics: result.metrics } : {}),
     projects: result.projects.map((project) => ({
       projectId: project.projectId,
       name: project.name,

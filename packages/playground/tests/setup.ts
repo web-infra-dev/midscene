@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import * as agentActual from '@midscene/core/agent' with {
   rstest: 'importActual',
 };
@@ -104,11 +105,16 @@ rs.mock('express', () => {
     listen: rs.fn((...args: any[]) => {
       const callback = args.find((a: any) => typeof a === 'function');
       setTimeout(() => callback?.(), 0);
-      return {
+      return Object.assign(new EventEmitter(), {
+        address: rs.fn(() => ({
+          address: '127.0.0.1',
+          family: 'IPv4',
+          port: args[0] === 0 ? 5801 : args[0],
+        })),
         close: rs.fn((callback?: () => void) => {
           setTimeout(() => callback?.(), 0);
         }),
-      };
+      });
     }),
   });
   mockExpress.static = rs.fn();
