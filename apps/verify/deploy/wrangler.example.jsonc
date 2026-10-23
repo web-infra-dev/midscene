@@ -1,0 +1,13 @@
+{
+  "name": "midscene-verify-live",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-18",
+  "workers_dev": true,
+  "kv_namespaces": [
+    { "binding": "DATA", "id": "REPLACE_WITH_EVIDENCE_NAMESPACE_ID" }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "COORDINATOR", "class_name": "Coordinator" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Coordinator"] }]
+}

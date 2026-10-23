@@ -1,0 +1,75 @@
+name: Verify Engine
+
+on:
+  pull_request:
+    paths:
+      - 'apps/verify/**'
+      - '.github/workflows/verify-engine.yml'
+      - '.github/actions/ai-ci/**'
+      - '.github/actions/verify-preview/**'
+      - '.github/actions/setup-puppeteer-browser/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-engine-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  protocol:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.13.0'
+      - run: node apps/verify/scripts/check.mjs
+      - run: node --test --test-concurrency=1 apps/verify/tests/*.test.mjs
+
+  real-model:
+    # Fork PRs receive protocol tests, but must not receive the repository model key.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/pnpm-cache/restore
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build browser integration and native report viewer
+        run: pnpm exec nx build @midscene/report --parallel=1
+      - uses: ./.github/actions/setup-puppeteer-browser
+        with:
+          package-directory: apps/verify
+      - name: Verify browser storage isolation between criteria
+        run: node apps/verify/scripts/isolation-smoke.mjs
+      - name: Verify passing and failing fixtures with the real model
+        uses: ./.github/actions/ai-ci
+        with:
+          command: pnpm --filter @midscene/verify test:browser
+          shell: bash
+        env:
+          MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+          MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+          MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+          MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+          MIDSCENE_MODEL_RETRY_COUNT: '0'
+          VERIFY_SMOKE_OUTPUT_DIR: ${{ runner.temp }}/verify-engine-evidence
+          VERIFY_WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - name: Upload engine evidence (not business PR verification)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: verify-engine-evidence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/verify-engine-evidence
+            !${{ runner.temp }}/verify-engine-evidence/**/runtime/**
+          if-no-files-found: warn
+          retention-days: 14
