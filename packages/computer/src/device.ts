@@ -28,6 +28,11 @@ import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
 import { sendKeyViaAppleScript } from './apple-script-keyboard';
 import {
+  desktopKeyboardPolicy,
+  desktopPointerPolicy,
+  resolveTapHoldDuration,
+} from './desktop-input-policy';
+import {
   ComputerInputDriver,
   type LibNut,
   type ScrollDirection,
@@ -122,19 +127,14 @@ export interface Point {
   y: number;
 }
 
+type PointerMoveOptions =
+  | { smoothSteps: number; smoothDelay: number; settleDelayMs?: number }
+  | { smoothSteps?: never; smoothDelay?: never; settleDelayMs: number };
+
 // Constants
-const SMOOTH_MOVE_STEPS_TAP = 8;
-const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
 const SMOOTH_MOVE_STEPS_DRAG = 20;
-const SMOOTH_MOVE_DELAY_TAP = 8;
-const SMOOTH_MOVE_DELAY_MOUSE_MOVE = 10;
 const SMOOTH_MOVE_DELAY_DRAG = 10;
-const MOUSE_MOVE_EFFECT_WAIT = 300;
-const CLICK_SETTLE_DELAY = 50;
-const CLICK_HOLD_DURATION = 100;
 const CLICK_FOCUS_SETTLE_DELAY = 120;
-const INPUT_FOCUS_DELAY = 300;
-const INPUT_CLEAR_DELAY = 150;
 const SCROLL_REPEAT_COUNT = 10;
 const SCROLL_STEP_DELAY = 100;
 const SCROLL_COMPLETE_DELAY = 500;
@@ -741,10 +741,7 @@ export class ComputerDevice implements AbstractInterface {
         const target = this.toGlobalPoint({ x, y });
         const targetX = Math.round(target.x);
         const targetY = Math.round(target.y);
-        const holdDuration = Math.max(
-          0,
-          Math.round(opts?.duration ?? CLICK_HOLD_DURATION),
-        );
+        const holdDuration = resolveTapHoldDuration(opts?.duration);
         debugComputerInput('tap start %o', {
           local: { x, y },
           global: { x: targetX, y: targetY },
@@ -761,8 +758,9 @@ export class ComputerDevice implements AbstractInterface {
           { x: targetX, y: targetY },
           'Mouse did not reach the tap target',
           {
-            smoothSteps: SMOOTH_MOVE_STEPS_TAP,
-            smoothDelay: SMOOTH_MOVE_DELAY_TAP,
+            smoothSteps: desktopPointerPolicy.tapMoveSteps,
+            smoothDelay: desktopPointerPolicy.tapMoveStepDelayMs,
+            settleDelayMs: desktopPointerPolicy.uiSettleMs,
           },
         );
         await pressMouseAtGlobalPoint(
@@ -788,6 +786,7 @@ export class ComputerDevice implements AbstractInterface {
             const followUpCurrent = await this.moveGlobalPointer(
               { x: targetX, y: targetY },
               'Mouse did not reach the focus follow-up target',
+              { settleDelayMs: desktopPointerPolicy.uiSettleMs },
             );
             await pressMouseAtGlobalPoint(
               this.inputDriver,
@@ -804,6 +803,7 @@ export class ComputerDevice implements AbstractInterface {
         await this.moveDisplayPointer(
           { x, y },
           'Mouse did not reach the double-click target',
+          { settleDelayMs: desktopPointerPolicy.uiSettleMs },
         );
         this.inputDriver.mouseClick('left', true);
       },
@@ -811,6 +811,7 @@ export class ComputerDevice implements AbstractInterface {
         await this.moveDisplayPointer(
           { x, y },
           'Mouse did not reach the right-click target',
+          { settleDelayMs: desktopPointerPolicy.uiSettleMs },
         );
         this.inputDriver.mouseClick('right');
       },
@@ -819,11 +820,11 @@ export class ComputerDevice implements AbstractInterface {
           { x, y },
           'Mouse did not reach the hover target',
           {
-            smoothSteps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-            smoothDelay: SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+            smoothSteps: desktopPointerPolicy.hoverMoveSteps,
+            smoothDelay: desktopPointerPolicy.hoverMoveStepDelayMs,
+            settleDelayMs: desktopPointerPolicy.uiSettleMs,
           },
         );
-        await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
         await this.performPointerDrag(from, to);
@@ -844,31 +845,47 @@ export class ComputerDevice implements AbstractInterface {
         const element = opts?.target as LocateResultElement | undefined;
 
         if (element) {
-          await this.focusKeyboardTarget(element, INPUT_FOCUS_DELAY);
+          await this.focusKeyboardTarget(
+            element,
+            desktopKeyboardPolicy.focusBeforeTypeMs,
+          );
+
+          if (opts?.focusOnly) {
+            return;
+          }
 
           if (opts?.replace !== false) {
             await this.selectAllAndDelete();
-            await this.inputDriver.delay(INPUT_CLEAR_DELAY);
+            await this.inputDriver.delay(desktopKeyboardPolicy.afterClearMs);
           }
         }
 
+        if (opts?.focusOnly || !value) {
+          return;
+        }
         await this.smartTypeString(value, resolvedInputOptions);
       },
       keyboardPress: async (keyName, opts) => {
         const target = opts?.target as LocateResultElement | undefined;
         if (target) {
-          await this.focusKeyboardTarget(target, 50);
+          await this.focusKeyboardTarget(
+            target,
+            desktopKeyboardPolicy.focusBeforeShortcutMs,
+          );
         }
 
         await this.pressKeyboardShortcut(keyName);
       },
       clearInput: async (target) => {
         if (target) {
-          await this.focusKeyboardTarget(target as LocateResultElement, 100);
+          await this.focusKeyboardTarget(
+            target as LocateResultElement,
+            desktopKeyboardPolicy.focusBeforeClearMs,
+          );
         }
 
         await this.selectAllAndDelete();
-        await this.inputDriver.delay(50);
+        await this.inputDriver.delay(desktopKeyboardPolicy.afterClearMs);
       },
     },
     scroll: {
@@ -903,7 +920,7 @@ export class ComputerDevice implements AbstractInterface {
   private async moveGlobalPointer(
     point: Point,
     context: string,
-    smooth?: { smoothSteps: number; smoothDelay: number },
+    options?: PointerMoveOptions,
   ): Promise<Point> {
     if (this.destroyed) {
       throw new Error('ComputerDevice has been destroyed');
@@ -914,8 +931,8 @@ export class ComputerDevice implements AbstractInterface {
     };
     if (process.platform === 'win32') {
       const actual = this.windowsPointerDriver.moveTo(target, {
-        smoothSteps: smooth?.smoothSteps,
-        smoothDelayMs: smooth?.smoothDelay,
+        smoothSteps: options?.smoothSteps,
+        smoothDelayMs: options?.smoothDelay,
       });
       const drift = windowsPointerDrift(target, actual);
       if (!windowsPointerIsWithinTolerance(drift)) {
@@ -923,29 +940,36 @@ export class ComputerDevice implements AbstractInterface {
           `${context}: expected (${target.x}, ${target.y}), got (${actual.x}, ${actual.y}), drift=(${drift.x}, ${drift.y})`,
         );
       }
-      await this.inputDriver.delay(CLICK_SETTLE_DELAY);
+      await this.inputDriver.delay(
+        options?.settleDelayMs ?? desktopPointerPolicy.moveSettleMs,
+      );
       return actual;
     }
-    if (smooth) {
+    if (
+      options?.smoothSteps !== undefined &&
+      options.smoothDelay !== undefined
+    ) {
       await this.inputDriver.smoothMoveMouse(
         target.x,
         target.y,
-        smooth.smoothSteps,
-        smooth.smoothDelay,
+        options.smoothSteps,
+        options.smoothDelay,
       );
     } else {
       this.inputDriver.moveMouse(target.x, target.y);
     }
-    await this.inputDriver.delay(CLICK_SETTLE_DELAY);
+    await this.inputDriver.delay(
+      options?.settleDelayMs ?? desktopPointerPolicy.moveSettleMs,
+    );
     return this.inputDriver.getMousePos();
   }
 
   private moveDisplayPointer(
     point: Point,
     context: string,
-    smooth?: { smoothSteps: number; smoothDelay: number },
+    options?: PointerMoveOptions,
   ): Promise<Point> {
-    return this.moveGlobalPointer(this.toGlobalPoint(point), context, smooth);
+    return this.moveGlobalPointer(this.toGlobalPoint(point), context, options);
   }
 
   private async performPointerDrag(
@@ -996,6 +1020,7 @@ export class ComputerDevice implements AbstractInterface {
       await this.moveDisplayPointer(
         { x, y },
         'Mouse did not reach the keyboard focus target',
+        { settleDelayMs: desktopPointerPolicy.uiSettleMs },
       );
       this.inputDriver.mouseClick('left');
     }
@@ -1183,7 +1208,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
       try {
         this.inputDriver.moveMouse(targetX, targetY);
-        await sleep(CLICK_SETTLE_DELAY);
+        await sleep(desktopPointerPolicy.moveSettleMs);
         this.inputDriver.assertMousePosition(
           targetX,
           targetY,
@@ -1616,8 +1641,8 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     await this.moveGlobalPointer(
       point,
       'Mouse did not reach the scroll viewport',
+      { settleDelayMs: desktopPointerPolicy.uiSettleMs },
     );
-    await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
     return screenSize;
   }
 
