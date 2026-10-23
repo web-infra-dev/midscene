@@ -1267,11 +1267,21 @@ export function recordAndReleaseScreenshotSequence(
     const recorderItems: ExecutionRecorderItem[] = [];
     for (let i = 0; i < reportFrames.length; i++) {
       const { screenshot, sourceFrameIndex, role } = reportFrames[i];
+      const measured = screenshot.timing;
+      const captureSummary =
+        i === 0 && uiContext?.observationTiming
+          ? `; dropped frames: ${uiContext.observationTiming.droppedFrames}; events: ${JSON.stringify(uiContext.observationTiming.events)}`
+          : '';
+      const timingCaption =
+        captureSummary +
+        (measured
+          ? `; ${measured.kind} [${measured.startMs}, ${measured.endMs}] ms @ ${measured.clockId}`
+          : '; device time unavailable');
       recorderItems.push({
         type: 'screenshot',
         ts: screenshot.capturedAt,
         screenshot,
-        description: `Observed ${role} — source frame ${sourceFrameIndex + 1}/${frames.length}`,
+        description: `Observed ${role} — source frame ${sourceFrameIndex + 1}/${frames.length}${timingCaption}`,
         timing: 'observed-frame',
       });
     }
@@ -1286,4 +1296,5 @@ export function recordAndReleaseScreenshotSequence(
   if (uiContext?.screenshotSequence) {
     uiContext.screenshotSequence = undefined;
   }
+  if (uiContext?.observationTiming) uiContext.observationTiming = undefined;
 }

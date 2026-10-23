@@ -1,7 +1,11 @@
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { UIObservationImpl, UIObserverImpl } from '@/agent/ui-observer';
+import {
+  UIObservationImpl,
+  UIObserverImpl,
+  uiContextFromObservationRecord,
+} from '@/agent/ui-observer';
 import type { DeviceFrameRef, DeviceFrameSource } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
@@ -209,7 +213,7 @@ describe('UIObserver', () => {
     }
   });
 
-  it('smart thinning preserves change points and temporal endpoints', () => {
+  it('keeps default sampled recording usable after thinning', async () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
     const observer = new UIObserverImpl(
@@ -244,6 +248,9 @@ describe('UIObserver', () => {
     );
     expect(frames[0].ref).toBe('a');
     expect(frames.at(-1)!.ref).toBe('c');
+    (observer as any).source = fake.source;
+    const record = await (await observer.stop()).exportRecord();
+    expect(record.droppedFrames).toBeGreaterThan(0);
   });
 
   it('enforces maxFrames even when every frame is a change point', () => {
@@ -292,6 +299,28 @@ describe('UIObserver', () => {
     );
     expect(retainedFrames).toHaveLength(2);
     expect(readdirSync(framesDirectory)).toHaveLength(2);
+  });
+
+  it('captures at a requested 20ms interval without clamping to 200ms', async () => {
+    rs.useFakeTimers();
+    const fake = makeFakeSource();
+    fake.setLatest('before', 0);
+    const { deps } = makeDeps(fake);
+    const observer = new UIObserverImpl(
+      deps,
+      options({ intervalMs: 20, maxFrames: 20 }),
+    );
+    await observer.start();
+    fake.setLatest('highlighted', 20);
+    await rs.advanceTimersByTimeAsync(25);
+    fake.setLatest('after', 40);
+    await rs.advanceTimersByTimeAsync(25);
+    const stopping = observer.stop();
+    await rs.advanceTimersByTimeAsync(20);
+    const record = await (await stopping).exportRecord();
+    expect(record.frames.some(({ capturedAt }) => capturedAt === 20)).toBe(
+      true,
+    );
   });
 
   it('disposes the file-backed record after it is no longer needed', async () => {
@@ -527,5 +556,162 @@ describe('UIObserver', () => {
       version: 1,
     });
     expect(onStopped).toHaveBeenCalledOnce();
+  });
+});
+
+describe('source cadence observation', () => {
+  it.each([0.5, 1])(
+    'keeps source pixels and coordinate metadata aligned at prepared ratio %s',
+    async (preparedRatio) => {
+      const fake = makeFakeSource();
+      fake.source.subscribe = () => () => {};
+      fake.setLatest('baseline', 1000);
+      fake.decode.mockResolvedValue([largeTestPngDataUrl]);
+      const { deps } = makeDeps(fake);
+      const representative: UIContext = {
+        screenshot: ScreenshotItem.create(shrunkTestJpegDataUrl, 2000),
+        shotSize: { width: 4, height: 3 },
+        shrunkShotToLogicalRatio: preparedRatio,
+      };
+      deps.capturePreparedRepresentative = async () => representative;
+      const observer = new UIObserverImpl(
+        { ...deps, screenshotShrinkFactor: 2 },
+        {
+          captureMode: 'source',
+          watchdogMs: 0,
+        },
+      );
+      try {
+        await observer.start();
+        const record = await (await observer.stop()).exportRecord();
+        expect(record.shotSize).toEqual({ width: 8, height: 6 });
+        expect(record.shrunkShotToLogicalRatio).toBe(preparedRatio * 2);
+        const restored = uiContextFromObservationRecord(record);
+        expect(await imageInfoOfBase64(restored.screenshot.base64)).toEqual(
+          record.shotSize,
+        );
+        expect(restored.shrunkShotToLogicalRatio).toBe(preparedRatio * 2);
+        expect(readFileSync(record.frames[0].path).toString('base64')).toBe(
+          largeTestPngDataUrl.split(',')[1],
+        );
+        // Aligning an observation must not partially mutate the Agent's cached context.
+        expect(representative.shotSize).toEqual({ width: 4, height: 3 });
+        expect(representative.screenshot.base64).toBe(shrunkTestJpegDataUrl);
+      } finally {
+        await observer.dispose();
+      }
+    },
+  );
+
+  it('blocks every AI insight when the target appears only after the frame cap', async () => {
+    const fake = makeFakeSource();
+    let emit: ((frame: DeviceFrameRef) => void) | undefined;
+    fake.source.subscribe = (listener) => {
+      emit = listener;
+      return () => {};
+    };
+    fake.setLatest('old-baseline', 1000);
+    const { deps } = makeDeps(fake);
+    const insight = deps.createInsight();
+    deps.createInsight = () => insight;
+    const observer = new UIObserverImpl(deps, {
+      captureMode: 'source',
+      maxFrames: 2,
+      watchdogMs: 0,
+    });
+    await observer.start();
+    emit!({ ref: 'still-old', capturedAt: 1010, frameId: '2' });
+    emit!({ ref: 'target-visible', capturedAt: 1020, frameId: '3' });
+    const observation = await observer.stop();
+    for (const method of [
+      'aiQuery',
+      'aiBoolean',
+      'aiNumber',
+      'aiString',
+      'aiAsk',
+      'aiAssert',
+    ] as const) {
+      await expect(
+        observation[method]('Is the target visible at the end?'),
+      ).rejects.toThrow('incomplete source observation');
+      expect(insight[method]).not.toHaveBeenCalled();
+    }
+    const record = await observation.exportRecord();
+    expect(record.frames).toHaveLength(2);
+    expect(record.frames.at(-1)?.frameId).toBe('2');
+    expect(record.droppedFrames).toBe(1);
+    await observation.dispose();
+  });
+  it('retains pushed frames without 200ms sampling and preserves events through export', async () => {
+    const fake = makeFakeSource();
+    let emit: ((frame: DeviceFrameRef) => void) | undefined;
+    const unsubscribe = rs.fn();
+    fake.source.subscribe = (listener) => {
+      emit = listener;
+      return unsubscribe;
+    };
+    fake.setLatest('baseline', 1000);
+    const { deps } = makeDeps(fake);
+    const observer = new UIObserverImpl(deps, {
+      captureMode: 'source',
+      maxFrames: 3,
+      watchdogMs: 0,
+    });
+    await observer.start();
+    const timing = {
+      clockId: 'guest:boot',
+      startMs: 470,
+      endMs: 470,
+      kind: 'compositor-frame' as const,
+    };
+    emit!({ ref: 'second', capturedAt: 640, timing, frameId: 'frame-2' });
+    emit!({
+      ref: 'second',
+      capturedAt: 650,
+      timing: { ...timing, startMs: 480, endMs: 480 },
+      frameId: 'frame-3',
+    });
+    emit!({
+      ref: 'fourth',
+      capturedAt: 660,
+      timing: { ...timing, startMs: 490, endMs: 490 },
+      frameId: 'frame-4',
+    });
+    observer.recordEvent({
+      name: 'keydown',
+      timing: { ...timing, startMs: 0, endMs: 0, kind: 'input-event' },
+    });
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
+    expect(record.frames).toHaveLength(3);
+    expect(record.frames[1]).toMatchObject({
+      capturedAt: 640,
+      timing,
+      frameId: 'frame-2',
+    });
+    expect(readFileSync(record.frames[1].path).toString('base64')).toBe(
+      testPngDataUrl.split(',')[1],
+    );
+    expect(record.frames[2]).toMatchObject({
+      frameId: 'frame-3',
+      timing: { startMs: 480 },
+    });
+    expect(record.droppedFrames).toBe(1);
+    expect(record.events?.[0].name).toBe('keydown');
+    record.frames[1].timing!.startMs = 999;
+    expect((await observation.exportRecord()).frames[1].timing!.startMs).toBe(
+      470,
+    );
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(() => observer.recordEvent({ name: 'late', timing })).toThrow(
+      'stopped',
+    );
+    await observer.dispose();
+  });
+  it('refuses silent screenshot fallback when native source is required', async () => {
+    const { deps, screenshot } = makeDeps(null);
+    const observer = new UIObserverImpl(deps, { captureMode: 'source' });
+    await expect(observer.start()).rejects.toThrow('push frame source');
+    expect(screenshot).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import type {
   ExecutorContext,
   LocateResultElement,
 } from '@/types';
+import type { UIObservationTiming } from '@midscene/shared/agent-tools/types';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
@@ -52,7 +53,10 @@ export interface MjpegStreamOptions {
  */
 export interface DeviceFrameRef {
   ref: unknown;
+  /** Wall-clock receipt/display time, not a device presentation timestamp. */
   capturedAt: number;
+  timing?: UIObservationTiming;
+  frameId?: string;
 }
 
 /**
@@ -62,6 +66,8 @@ export interface DeviceFrameRef {
  * cadence and pay any decode cost only once, for the frames they keep.
  */
 export interface DeviceFrameSource {
+  /** Native frame delivery without timer sampling. Handles must remain decodable until stop. */
+  subscribe?(onFrame: (frame: DeviceFrameRef) => void): () => void;
   /** Latest frame handle, near-zero cost. Null until the first frame arrives. */
   latest(): DeviceFrameRef | null;
   /**

@@ -125,14 +125,32 @@ export interface BaseAgentProgressEvent {
   data?: unknown;
 }
 
+/** Monotonic device/source time, in milliseconds, with explicit uncertainty. */
+export interface UIObservationTiming {
+  /** Identifies the machine, boot/session and clock; matching names assert alignment. */
+  clockId: string;
+  startMs: number;
+  endMs: number;
+  /** compositor-frame is not a physical monitor/page-flip timestamp. */
+  kind: 'capture-interval' | 'compositor-frame' | 'input-event';
+}
+
+export interface UIObservationEvent {
+  name: string;
+  timing: UIObservationTiming;
+}
+
 /** A single frame in a portable UI observation record. */
 export interface UIObservationFrame {
   /** Path to the captured image. Serialized manifests use relative paths. */
   path: string;
   /** MIME type of the captured image file. */
   mimeType: 'image/png' | 'image/jpeg';
-  /** Capture timestamp in milliseconds. */
+  /** Wall-clock display/receipt time only; use timing for latency measurements. */
   capturedAt: number;
+  timing?: UIObservationTiming;
+  /** Source identity is independent of pixel equality and file deduplication. */
+  frameId?: string;
 }
 
 /**
@@ -148,6 +166,10 @@ export interface UIObservationRecord {
   /** Time when the final representative frame was captured. */
   endedAt: number;
   frames: UIObservationFrame[];
+  events?: UIObservationEvent[];
+  captureMode?: 'sampled' | 'source';
+  /** A nonzero value invalidates claims of complete frame coverage. */
+  droppedFrames?: number;
   shotSize: {
     width: number;
     height: number;
@@ -180,9 +202,11 @@ export interface BaseUIObserver {
 
 /** Options for {@link BaseAgent.startObserving}. */
 export interface BaseUIObserverOptions {
-  /** Sampling interval in milliseconds. Defaults to 1000; minimum 200. */
+  /** Source mode records pushed native frames, requires subscribe(), and never silently falls back. */
+  captureMode?: 'sampled' | 'source';
+  /** Sampling interval in milliseconds. Defaults to 1000; minimum 20. Ignored in source mode. Actual cadence depends on the device. */
   intervalMs?: number;
-  /** Maximum number of buffered frames. Defaults to 30; minimum 2. */
+  /** Maximum number of buffered frames. Defaults to 30; minimum 2. Source mode records overflow and blocks AI judgment; sampled mode thins its buffer. */
   maxFrames?: number;
   /** Auto-stop timeout in milliseconds. Defaults to 300000; 0 disables it. */
   watchdogMs?: number;
