@@ -6,6 +6,34 @@ import puppeteer, { type Browser as PuppeteerBrowser } from 'puppeteer';
 
 const TIMEOUT = 120_000;
 
+// Only the shared fixture operations are required. Each adapter is checked
+// against this contract when the fixture is created, avoiding incompatible
+// Playwright/Puppeteer generic method overloads on a union of page objects.
+interface FixtureFrame {
+  evaluate<Result>(fn: () => Result): Promise<Awaited<Result>>;
+  evaluate<Result>(
+    fn: (arg: string) => Result,
+    arg: string,
+  ): Promise<Awaited<Result>>;
+  waitForSelector(selector: string): Promise<unknown>;
+}
+
+interface FixturePage extends FixtureFrame {
+  setContent(html: string): Promise<void>;
+  frames(): FixtureFrame[];
+  mainFrame(): FixtureFrame;
+  $eval<Result>(
+    selector: string,
+    fn: (element: Element) => Result,
+  ): Promise<Awaited<Result>>;
+  close(): Promise<void>;
+}
+
+interface Fixture {
+  page: FixturePage;
+  webPage: PlaywrightWebPage | PuppeteerWebPage;
+}
+
 function setupField(kind: string) {
   const field = document.createElement(
     kind === 'textarea'
@@ -70,6 +98,7 @@ function readField() {
 for (const adapter of ['Playwright', 'Puppeteer'] as const) {
   describe(`${adapter} focused Input replacement`, () => {
     let browser: PlaywrightBrowser | PuppeteerBrowser;
+    let newFixture: () => Promise<Fixture>;
 
     beforeAll(async () => {
       const options = {
@@ -77,10 +106,21 @@ for (const adapter of ['Playwright', 'Puppeteer'] as const) {
         executablePath: puppeteer.executablePath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       };
-      browser =
-        adapter === 'Playwright'
-          ? await chromium.launch(options)
-          : await puppeteer.launch(options);
+      if (adapter === 'Playwright') {
+        const playwrightBrowser = await chromium.launch(options);
+        browser = playwrightBrowser;
+        newFixture = async () => {
+          const page = await playwrightBrowser.newPage();
+          return { page, webPage: new PlaywrightWebPage(page) };
+        };
+      } else {
+        const puppeteerBrowser = await puppeteer.launch(options);
+        browser = puppeteerBrowser;
+        newFixture = async () => {
+          const page = await puppeteerBrowser.newPage();
+          return { page, webPage: new PuppeteerWebPage(page) };
+        };
+      }
     }, TIMEOUT);
 
     afterAll(async () => {
@@ -91,16 +131,12 @@ for (const adapter of ['Playwright', 'Puppeteer'] as const) {
       test.each(['input', 'textarea', 'shadow', 'contenteditable'])(
         `replaces the focused %s with ${strategy} without locate`,
         async (kind) => {
-          const page = await browser.newPage();
+          const { page, webPage } = await newFixture();
           try {
             await page.setContent(
               '<p>page text</p><input id="other" value="unchanged">',
             );
             await page.evaluate(setupField, kind);
-            const webPage =
-              adapter === 'Playwright'
-                ? new PlaywrightWebPage(page as any)
-                : new PuppeteerWebPage(page as any);
             await webPage
               .actionSpace()
               .find((action) => action.name === 'Input')!
@@ -127,7 +163,7 @@ for (const adapter of ['Playwright', 'Puppeteer'] as const) {
     test.each(['same-origin', 'cross-origin'])(
       'replaces a focused input inside a %s iframe',
       async (kind) => {
-        const page = await browser.newPage();
+        const { page, webPage } = await newFixture();
         try {
           const html = '<p>page text</p><input id="other" value="unchanged">';
           const source =
@@ -142,10 +178,6 @@ for (const adapter of ['Playwright', 'Puppeteer'] as const) {
             .find((candidate) => candidate !== page.mainFrame())!;
           await frame.waitForSelector('#other');
           await frame.evaluate(setupField, 'input');
-          const webPage =
-            adapter === 'Playwright'
-              ? new PlaywrightWebPage(page as any)
-              : new PuppeteerWebPage(page as any);
           await webPage
             .actionSpace()
             .find((action) => action.name === 'Input')!
@@ -180,7 +212,7 @@ for (const adapter of ['Playwright', 'Puppeteer'] as const) {
     test(
       'preserves a partial selection for typeOnly input',
       async () => {
-        const page = await browser.newPage();
+        const { page, webPage } = await newFixture();
         try {
           await page.setContent(
             '<p>page text</p><input id="other" value="unchanged">',
@@ -189,10 +221,6 @@ for (const adapter of ['Playwright', 'Puppeteer'] as const) {
           await page.evaluate(() =>
             (window as any).field.setSelectionRange(0, 3),
           );
-          const webPage =
-            adapter === 'Playwright'
-              ? new PlaywrightWebPage(page as any)
-              : new PuppeteerWebPage(page as any);
           await webPage
             .actionSpace()
             .find((action) => action.name === 'Input')!
@@ -211,15 +239,11 @@ for (const adapter of ['Playwright', 'Puppeteer'] as const) {
     test(
       'refuses targetless replacement when no editable field is focused',
       async () => {
-        const page = await browser.newPage();
+        const { page, webPage } = await newFixture();
         try {
           await page.setContent(
             '<p>page text</p><input id="other" value="unchanged">',
           );
-          const webPage =
-            adapter === 'Playwright'
-              ? new PlaywrightWebPage(page as any)
-              : new PuppeteerWebPage(page as any);
           await expect(
             webPage
               .actionSpace()

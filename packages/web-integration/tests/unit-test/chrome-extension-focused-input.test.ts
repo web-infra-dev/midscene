@@ -7,6 +7,11 @@ rs.mock('@midscene/shared/logger', () => ({
 
 import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
 
+// Test the debugger boundary without making a private transport method public.
+type DebuggerTransport = {
+  sendCommandToDebugger(command: string, params?: object): Promise<unknown>;
+};
+
 describe('Chrome extension focused input selection', () => {
   let page: ChromeExtensionProxyPage;
 
@@ -15,9 +20,11 @@ describe('Chrome extension focused input selection', () => {
   });
 
   it('selects the focused field without clicking or clearing', async () => {
-    const send = rs.spyOn(page, 'sendCommandToDebugger').mockResolvedValue({
-      result: { value: true },
-    });
+    const send = rs
+      .spyOn(page as unknown as DebuggerTransport, 'sendCommandToDebugger')
+      .mockResolvedValue({
+        result: { value: true },
+      });
     const click = rs.spyOn(page.mouse, 'click');
     await page.selectAllInput();
     expect(click).not.toHaveBeenCalled();
@@ -26,9 +33,11 @@ describe('Chrome extension focused input selection', () => {
   });
 
   it('refuses to select page content when no editable field is focused', async () => {
-    const send = rs.spyOn(page, 'sendCommandToDebugger').mockResolvedValue({
-      result: { value: false },
-    });
+    const send = rs
+      .spyOn(page as unknown as DebuggerTransport, 'sendCommandToDebugger')
+      .mockResolvedValue({
+        result: { value: false },
+      });
     await expect(page.selectAllInput()).rejects.toThrow(/focused editable/i);
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][0]).toBe('Runtime.evaluate');
