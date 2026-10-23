@@ -1,19 +1,37 @@
 # Platform environment setup
 
-Midscene can control existing browsers through Chrome Bridge, as well as mobile devices, HarmonyOS devices, and desktop applications. Choose a platform based on the target interface and its connection method.
+This section covers environment setup across all supported platforms. Before integrating with Midscene Test or the JavaScript SDK, select your target platform, connect your device or browser, and verify model and UI interactions in Playground.
 
-Midscene uses a multimodal visual model to understand screenshots, so automation works with the rendered interface instead of depending on the underlying UI structure. The same approach applies to native apps and cross-platform technology stacks.
+Midscene uses multimodal vision models to understand screenshots, operating directly on the rendered UI rather than relying on the underlying DOM or native view hierarchy. This allows the same interaction and assertion approach to work across native apps and cross-platform frameworks alike.
 
 ## Choose a platform
 
-| Platform | Package | Connection | Typical use |
+| Platform | npm package | Connection method | Typical use cases |
 | --- | --- | --- | --- |
-| [Chrome Bridge](../bridge-mode) | `@midscene/web` | Chrome extension | Reuse desktop Chrome sessions and tabs |
-| [Android](./android) | `@midscene/android` | adb | Android apps and system interfaces |
-| [iOS](./ios) | `@midscene/ios` | WebDriverAgent | iOS apps and system interfaces |
-| [HarmonyOS](./harmonyos) | `@midscene/harmony` | HDC | HarmonyOS NEXT apps and system interfaces |
-| [Desktop](./desktop) | `@midscene/computer` | Native input or RDP | Windows, macOS, and Linux applications |
+| [Web](./web) | `@midscene/web` | Chrome extension (Playground); Playwright / Puppeteer (SDK integration) | Web testing and browser automation |
+| [Chrome Bridge](../bridge-mode) | `@midscene/web` | Chrome extension | Reusing existing login sessions and tabs in desktop Chrome |
+| [Android](./android) | `@midscene/android` | `adb` | Android apps and system UI automation |
+| [iOS](./ios) | `@midscene/ios` | WebDriverAgent | iOS apps and system UI automation |
+| [HarmonyOS](./harmonyos) | `@midscene/harmony` | HDC | HarmonyOS NEXT apps and system UI automation |
+| [Desktop](./desktop) | `@midscene/computer` | Native mouse/keyboard or RDP | Windows, macOS, and Linux desktop application automation |
 
-Each guide covers environment preparation, connection troubleshooting, and a connection check or Playground experience. For JavaScript tests on mobile and desktop, we recommend [Vitest](../sdk/vitest). For workflows without a test framework, see [Standalone automation scripts](../sdk/standalone).
+## Validation workflow
 
-Use the [API reference](../reference/index.mdx) when you need constructor options, platform-specific methods, or shared Agent APIs.
+Every platform guide follows the same four-step workflow:
+
+1. **Install prerequisites**: Set up Node.js, model credentials, and the platform's connection tools and system permissions.
+2. **Connect and launch Playground**: Verify the device or browser connection, start Playground, and confirm that the live screen preview loads.
+3. **Run an action and an assertion**: Execute an `aiAct` instruction in Playground, verify the outcome with `aiAssert`, and inspect the execution steps and screenshots.
+4. **Integrate into your project**: Once validated, integrate with a test runner or standalone script.
+
+For Web, the Chrome extension Playground lets you quickly test model behavior and page interactions, while browsers launched by Playwright / Puppeteer and Node.js connections over Chrome Bridge are verified separately during project setup. For mobile and desktop platforms, Playground connects directly to your target device or display.
+
+## Next steps
+
+Once your environment and Playground are verified, choose how to integrate Midscene:
+
+- **Write YAML tests**: Initialize a project, run test cases, and inspect reports with [Midscene Test](../midscene-test/use).
+- **Integrate with existing JavaScript tests**: Use [Playwright Test](../integrate-with-playwright) for Web, or [Vitest](../sdk/vitest) for mobile and desktop.
+- **Write standalone automation scripts**: Follow [Write standalone automation scripts](../sdk/standalone) and pick the example for your platform.
+
+Note: Model credentials entered in the Playground UI are stored locally in the browser and are not automatically shared with test or script processes. Copy your verified settings into your project's `.env` file and load them as shown in the integration guides, while keeping the required device connection tools, services, and permissions active.

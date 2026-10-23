@@ -11,6 +11,12 @@ Chrome Bridge 通过 Midscene Chrome 插件，让 Node.js 脚本直接控制桌�
 1. 安装 [Midscene Chrome 插件](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)。安装后，插件默认会在后台自动监听本地连接请求，无需手动开启。
 2. （可选）如果脚本需要触发本地文件上传，请在浏览器地址栏访问 `chrome://extensions`，进入 Midscene 插件的「详情」页，开启**允许访问文件网址**（**Allow access to file URLs**）。配置完成后，请先切回目标 `http(s)://` 页面再发起连接。
 
+## 在 Playground 中验证模型和页面交互
+
+先按照 [Web 环境配置](./platforms/web#启动-playground) 打开插件侧边栏、保存模型配置，在 TodoMVC 中完成一次 `aiAct` 操作和 `aiAssert` 断言，并查看执行步骤和截图。
+
+插件 Playground 直接操作当前页面，不经过 Node.js Bridge Server。完成体验后，还需要执行下面的连接检查，确认脚本进程可以通过插件控制 Chrome。
+
 <a id="快速开始"></a>
 
 ## 验证连接 {#verify-connection}
@@ -18,6 +24,8 @@ Chrome Bridge 通过 Midscene Chrome 插件，让 Node.js 脚本直接控制桌�
 以下最小示例仅用于验证 Node.js 脚本与 Chrome 插件之间的通信链路，不调用任何 AI 方法，因此无需提前配置模型。
 
 ### 1. 安装依赖
+
+安装 Node.js（版本范围：`^20.19.0 || ^22.12.0 || >=24.0.0`），安装 pnpm，在项目目录执行 `pnpm init`（已有 `package.json` 时跳过），然后安装依赖：
 
 <PackageManagerTabs command="install @midscene/web tsx --save-dev" />
 
@@ -58,6 +66,20 @@ pnpm exec tsx bridge-check.ts
 <p align="center">
   <img src="/images/bridge_in_extension.png" alt="Chrome Bridge connection" width="400"/>
 </p>
+
+## 下一步
+
+环境和 Playground 验证通过后，根据使用方式继续：
+
+- **编写 YAML 测试**：通过 [Midscene Test](./midscene-test/use) 创建项目、运行用例并查看报告。
+- **编写自动化流程**：阅读[独立自动化脚本](./sdk/standalone)，选择 Chrome Bridge 示例。
+- **查询平台接口**：阅读 [Chrome Bridge SDK API 参考](./sdk/chrome-bridge)，了解构造参数、平台方法和资源清理。
+
+Playground 中保存的模型配置不会自动同步到测试或脚本进程。请将验证通过的配置写入项目的 `.env`，并按集成教程加载；设备连接工具、服务和权限仍需保持可用。
+
+Midscene Test 的 Web 模板默认使用 Playwright。若要使用 Bridge，创建项目后需按[配置测试工程](./midscene-test/configuration)管理 `AgentOverChromeBridge` 的连接与销毁，并通过 `createMidsceneNodes()` 注册 Agent；不能直接复用模板中的 Playwright 页面初始化。
+
+Chrome Bridge 不提供 Playwright 的 `Page` 对象。如果要接入 Playwright Test，请改走 [Web 环境配置](./platforms/web)。
 
 <a id="远程访问配置"></a>
 
@@ -114,7 +136,3 @@ const agent = new AgentOverChromeBridge({
 ### 模型环境变量应该配置在哪里？
 
 调用 `aiAct`、`aiAssert` 等 AI 方法时，需在运行脚本的 Node.js 环境中完成[模型配置](./model-api-setup)。插件 Playground 中填写的模型配置仅作用于 Playground 自身，不会同步给 Node.js 脚本。此外，上方的连接验证脚本仅测试桥接通信，连接成功不代表模型配置已就绪。
-
-<a id="在-yaml-自动化脚本中使用桥接模式"></a>
-
-完整的 SDK 构造参数与连接方法请参阅 [Chrome Bridge SDK](./sdk/chrome-bridge)；在 YAML 脚本中使用桥接模式请参阅 [YAML 中的 Chrome Bridge](./automate-with-scripts-in-yaml#chrome-bridge)。

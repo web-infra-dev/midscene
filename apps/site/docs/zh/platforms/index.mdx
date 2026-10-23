@@ -1,21 +1,37 @@
 # 平台环境配置
 
-Midscene 支持通过 Chrome Bridge 控制已有浏览器，也支持移动设备、HarmonyOS 设备和桌面应用。请根据目标界面和连接方式选择平台。
+本章节汇总了各平台的环境准备指南。在接入 Midscene Test 或 JavaScript SDK 之前，请先选择你的目标平台，完成设备或浏览器连接，并通过 Playground 验证模型与界面交互。
 
-Midscene 使用多模态视觉模型理解截图，因此自动化过程面向最终呈现的界面，不依赖底层 UI 结构。同一套方法可以适配原生应用和跨平台技术栈。
+Midscene 基于多模态视觉模型理解屏幕截图，直接面向最终渲染的视觉界面进行自动化操作，而不依赖底层的 DOM 或原生控件树。因此，同一套交互与断言方式可以通用于原生应用及各类跨平台技术栈。
 
 ## 选择平台
 
-| 平台 | npm 包 | 连接方式 | 典型用途 |
+| 平台 | npm 包 | 连接方式 | 典型场景 |
 | --- | --- | --- | --- |
-| [Chrome Bridge](../bridge-mode) | `@midscene/web` | Chrome 插件 | 复用桌面 Chrome 的登录状态与标签页 |
-| [Android](./android) | `@midscene/android` | adb | Android App 和系统界面 |
-| [iOS](./ios) | `@midscene/ios` | WebDriverAgent | iOS App 和系统界面 |
-| [HarmonyOS](./harmonyos) | `@midscene/harmony` | HDC | HarmonyOS NEXT App 和系统界面 |
-| [桌面端](./desktop) | `@midscene/computer` | 原生输入或 RDP | Windows、macOS 和 Linux 应用 |
+| [Web](./web) | `@midscene/web` | Chrome 插件（Playground 体验）；Playwright / Puppeteer（工程接入） | 网页测试与浏览器自动化 |
+| [Chrome Bridge](../bridge-mode) | `@midscene/web` | Chrome 插件 | 复用桌面 Chrome 已有的登录状态与标签页 |
+| [Android](./android) | `@midscene/android` | `adb` | Android 应用与系统界面自动化 |
+| [iOS](./ios) | `@midscene/ios` | WebDriverAgent | iOS 应用与系统界面自动化 |
+| [HarmonyOS](./harmonyos) | `@midscene/harmony` | HDC | HarmonyOS NEXT 应用与系统界面自动化 |
+| [桌面端](./desktop) | `@midscene/computer` | 原生键鼠控制或 RDP | Windows、macOS 和 Linux 桌面应用自动化 |
 
-平台指南介绍环境准备和连接故障排查，并提供连接验证或 Playground 体验。
+## 环境验证流程
 
-如果需要构造函数选项、平台专属方法或通用 Agent API，请阅读 [API 参考](../reference/index.mdx)。
+各平台的环境准备均遵循以下四步流程：
 
-移动端和桌面端的 JavaScript 测试推荐[接入 Vitest](../sdk/vitest)。不使用测试框架的流程请参阅[独立自动化脚本](../sdk/standalone)。
+1. **安装基础依赖**：准备 Node.js、模型配置，以及对应平台的连接工具与系统权限。
+2. **建立连接并启动 Playground**：验证设备或浏览器连通性，启动 Playground 并确认实时预览画面正常。
+3. **试跑操作与断言**：在 Playground 中执行一条 `aiAct` 指令，再用 `aiAssert` 校验界面结果，并查看执行步骤与截图。
+4. **接入测试或脚本**：环境验证通过后，按需接入测试框架或独立脚本。
+
+其中，Web 平台的 Chrome 插件 Playground 主要用于快速验证模型与页面交互；工程中由 Playwright / Puppeteer 启动的浏览器，以及通过 Chrome Bridge 建立的 Node.js 连接，仍需在对应工程中单独验证。移动端与桌面端的 Playground 则直接连接已就绪的目标设备或显示器。
+
+## 下一步
+
+完成环境与 Playground 验证后，可根据使用场景选择接入方式：
+
+- **编写 YAML 测试**：通过 [Midscene Test](../midscene-test/use) 初始化项目、运行测试用例并查看报告。
+- **接入现有 JavaScript 测试**：Web 场景推荐[接入 Playwright Test](../integrate-with-playwright)，移动端与桌面端推荐[接入 Vitest](../sdk/vitest)。
+- **编写独立自动化脚本**：阅读[编写独立自动化脚本](../sdk/standalone)，参考对应平台的完整代码示例。
+
+注意：在 Playground 界面中填写的模型配置仅保存在本地浏览器中，不会自动同步到测试或脚本进程。接入工程时，请将验证通过的模型配置写入项目的 `.env` 文件并按文档说明加载，同时保持设备连接工具、后台服务及相关系统权限处于可用状态。

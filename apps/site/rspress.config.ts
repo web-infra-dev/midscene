@@ -210,11 +210,15 @@ export default defineConfig(async () => {
             link: '/model-config',
           },
           {
-            sectionHeaderText: 'Platform integrations',
+            sectionHeaderText: 'Platform environment setup',
           },
           {
             text: 'Platform overview',
             link: '/platforms/',
+          },
+          {
+            text: 'Web',
+            link: '/platforms/web',
           },
           {
             text: 'Chrome Bridge',
@@ -435,11 +439,15 @@ export default defineConfig(async () => {
             link: '/zh/model-config',
           },
           {
-            sectionHeaderText: '平台集成',
+            sectionHeaderText: '平台环境配置',
           },
           {
             text: '平台概览',
             link: '/zh/platforms/',
+          },
+          {
+            text: 'Web',
+            link: '/zh/platforms/web',
           },
           {
             text: 'Chrome Bridge',

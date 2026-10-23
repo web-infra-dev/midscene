@@ -1,139 +1,124 @@
 # Desktop
 
-Midscene uses native keyboard and mouse controls to automate desktop applications on Windows, macOS, and Linux. It supports mouse and keyboard input, screenshots, and multiple displays.
+Midscene automates desktop applications across Windows, macOS, and Linux using native mouse and keyboard controls or Remote Desktop Protocol (RDP), with built-in multi-display support. It works with Electron, Qt, native desktop apps, and cross-application workflows.
 
-Use it to test Electron, Qt, and native applications, or to automate workflows across desktop applications.
-
-This guide covers environment preparation, device connection, and Playground. To write scripts, see the [Desktop JavaScript SDK guide](../sdk/desktop).
+This guide walks you through preparing your desktop environment and system permissions, and running an action and assertion in Playground before integrating with a test runner or the JavaScript SDK.
 
 ## See it in action
 
-**Prompt (macOS):** Open Safari and post a tweet announcing that Midscene supports AutoGLM. Use the AutoGLM video from the Downloads folder.
+**Prompt (macOS):** Open Safari and post a tweet announcing that Midscene supports AutoGLM. Use the AutoGLM video from the Downloads folder. ([Full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html))
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
 
-View the [full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html), or explore more [Midscene showcases](../showcases.mdx).
-
 ## Get started
+
+Install Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`), confirm that `node -v` and `npx --version` work in your terminal, and prepare your [model credentials](../model-api-setup) (you will enter them in Playground shortly).
 
 ### Prepare your desktop environment
 
-#### Node.js
+#### 1. Configure OS permissions and dependencies
 
-Node.js 18.19.0 or higher is required.
-
-#### Platform-specific dependencies
-
-**macOS**: Accessibility permissions are required for keyboard and mouse control. When you run the script for the first time, macOS will prompt you to grant access. Go to **System Settings > Privacy & Security > Accessibility** and enable permissions for the application running your script (e.g., Terminal, iTerm2, VS Code, WebStorm, or other IDEs). For more details, see [nut.js macOS setup](https://github.com/nut-tree/nut.js#macos).
-
-**Windows**: No extra setup is needed for ordinary apps. However, Windows isolates input across privilege levels (UIPI): a non-elevated process **cannot** send mouse or keyboard input to a window that runs **as Administrator** (elevated). The input is silently dropped — the cursor still moves to the right spot, but clicks and keystrokes have no effect. Prefer running the target application without Administrator privileges. If the target application must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** too, so both processes share the same privilege level. See [Windows: clicks have no effect on some apps](#windows-clicks-have-no-effect-on-some-apps).
-
-**Linux**: [ImageMagick](https://imagemagick.org/script/download.php) is required for screenshot functionality.
-
-**Headless Linux (CI)**: To run desktop automation on a headless Linux server (e.g. GitHub Actions), install Xvfb and its dependencies, then enable headless mode:
+- **macOS**: Grant two separate system permissions to the terminal or IDE that launches Playground or runs your scripts (such as Terminal, iTerm2, VS Code, Cursor, or WebStorm):
+  1. **Accessibility** (for mouse and keyboard control): Enable your terminal or IDE in **System Settings > Privacy & Security > Accessibility** (see [nut.js macOS setup](https://github.com/nut-tree/nut.js#macos)).
+  2. **Screen Recording** (for desktop screenshots): Enable your terminal or IDE in **System Settings > Privacy & Security > Screen Recording**. **After granting access, completely quit and relaunch the terminal or IDE** before starting Playground.
+- **Windows**: No extra setup is required for standard applications. However, Windows User Interface Privilege Isolation (UIPI) blocks non-elevated processes from injecting mouse clicks or keystrokes into windows running **as Administrator** (the cursor still moves to the target coordinates, but clicks and key presses are silently dropped). Prefer running the target app without Administrator privileges; if it must run elevated, launch the terminal or Node.js process running Midscene **as Administrator** as well (see [Windows: clicks have no effect on some apps](#windows-clicks-have-no-effect-on-some-apps)).
+- **Linux (desktop GUI)**: Install [ImageMagick](https://imagemagick.org/script/download.php) for screen capture support.
+- **Linux (headless server / CI)**: To run desktop automation on a headless Linux host (such as GitHub Actions), install Xvfb and ImageMagick, then enable headless mode to start a virtual display automatically:
 
 ```bash
 # Install dependencies
 sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+
+# Start Playground inside an Xvfb virtual display
+MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx --yes @midscene/computer-playground
 ```
 
-```typescript
-// Option 1: Pass headless option
-const agent = await agentForComputer({ headless: true });
+When using Xvfb, make sure the target application is started inside the same virtual display environment (not needed on machines with a physical display).
 
-// Option 2: Set environment variable
-// MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
-```
+#### 2. Remote Windows desktop (RDP, optional)
 
-Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](../sdk/desktop) for details.
+The Playground steps below verify your local desktop. To automate a remote Windows desktop over RDP, install FreeRDP on the machine running the script and ensure RDP is enabled on the target Windows host. After completing the local walkthrough, see [RDP options in the Computer JavaScript SDK](../sdk/desktop#rdp-options) to configure a remote Agent.
 
 ### Launch Playground
 
-Playground is the fastest way to validate the connection and try core capabilities such as `aiAct`, `aiQuery`, and `aiAssert` without writing code. It shares the same core as `@midscene/computer`, so anything that works here will behave the same once scripted.
+Use Playground to verify desktop screen capture, mouse/keyboard control, and model calls without writing any code:
 
-1. Launch the Playground CLI:
+1. Start the Desktop Playground CLI:
 
 ```bash
 npx --yes @midscene/computer-playground
 ```
 
-2. Click the gear icon in the Playground window, then paste your API Key configuration. See [Use a model API key](../model-api-setup) if you still need a model configuration.
+2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model API key configuration, and save (see [Configure a model API key](../model-api-setup) for format details).
+3. If your browser does not open automatically, visit the local Playground URL printed in the terminal, and keep the terminal process running.
+4. In the connection panel on the left, select the target **Display** to control, create the Agent, and place the target application window on that display.
+5. Confirm that the preview area shows the live screen of the selected display. If the preview is blank or fails to load, check the Screen Recording permission or Linux dependencies above.
 
-## Use the JavaScript SDK
+### Run an action and verify the result
 
-<a id="configure-the-model" />
-<a id="install-dependencies" />
-<a id="write-a-script" />
-<a id="run-the-script" />
+Open a browser window on the target display, navigate to [TodoMVC](https://todomvc.com/examples/react/dist/#/), and position the windows so that the Playground tab does not cover the TodoMVC page.
 
-See the [Desktop JavaScript SDK guide](../sdk/desktop#use-the-javascript-sdk).
+1. In Playground, select `aiAct`, enter the following instruction, and run it (avoid moving the mouse or typing while the action is running):
 
-## Custom actions
+```text
+Add a todo named "Try Midscene", then mark it as completed.
+```
 
-See the [Desktop JavaScript SDK guide](../sdk/desktop#custom-actions).
+2. Once the completed todo item appears on the page, switch to `aiAssert`, enter the following assertion, and run it:
 
-## Connect to a Remote Windows Desktop via RDP
+```text
+The list contains a todo named "Try Midscene", and it is marked as completed.
+```
 
-<a id="prerequisites" />
-<a id="example" />
-<a id="common-rdp-options" />
+3. Confirm that the assertion passes and inspect the step-by-step screenshots in the results panel. At this point, desktop screen capture, mouse/keyboard input, and model calls have all been verified together.
 
-See the [Desktop JavaScript SDK guide](../sdk/desktop#connect-to-a-remote-windows-desktop-via-rdp).
+If execution fails, check the failed step and error message: for missing screenshots or unresponsive mouse/keyboard input, see the [FAQ](#faq) below; for model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity).
 
-## Multi-Display Support
+## Next steps
 
-See the [Desktop JavaScript SDK guide](../sdk/desktop#multi-display-support).
+Once your environment and Playground are verified, choose how to integrate Midscene:
 
-## Example Usage
+- **Write YAML tests**: Initialize a project, run test cases, and inspect reports with [Midscene Test](../midscene-test/use).
+- **Integrate with existing JavaScript tests**: [Integrate with Vitest](../sdk/vitest).
+- **Write standalone automation scripts**: Follow [Write standalone automation scripts](../sdk/standalone) and pick the example for your platform.
+- **Look up platform SDK APIs**: See the [Computer JavaScript SDK](../sdk/desktop) for constructor options, multi-display management, and RDP connections.
 
-<a id="basic-mouse-operations" />
-<a id="keyboard-operations" />
-<a id="query-information" />
-<a id="complex-workflows" />
+Note: Model credentials entered in the Playground UI are stored locally in the browser and are not automatically shared with test or script processes. Copy your verified settings into your project's `.env` file and load them as shown in the integration guides, while ensuring the terminal or IDE running your tests has the same OS permissions.
 
-See the [Desktop JavaScript SDK guide](../sdk/desktop#example-usage).
+## FAQ {#faq}
 
-## Environment Check
+### macOS: Script cannot move the mouse or press keys
 
-See the [Desktop JavaScript SDK guide](../sdk/desktop#environment-check).
+Controlling the mouse and keyboard on macOS requires Accessibility permissions. Open **System Settings > Privacy & Security > Accessibility** and make sure the toggle is enabled for the terminal or IDE running your script (such as Terminal, iTerm2, VS Code, Cursor, or WebStorm).
 
-## FAQ
+If the toggle is already enabled but input still does not work, remove the app from the Accessibility list (using the `-` button), add it back, and restart the app—macOS occasionally caches stale permission signatures after app updates.
 
-### macOS: Script cannot control mouse or keyboard
+### Windows: Clicks have no effect on some apps
 
-macOS requires Accessibility permissions for keyboard and mouse control. Go to **System Settings > Privacy & Security > Accessibility** and enable the toggle for the application running your script (e.g., Terminal, iTerm2, VS Code, or WebStorm).
+If the mouse cursor moves to the right coordinates but clicks or keystrokes have no effect on a specific application window (while working normally in other apps like a browser or Notepad), check whether the target application is running **as Administrator** (elevated). Windows User Interface Privilege Isolation (UIPI) silently drops input events sent from a standard-privilege process to an elevated window without throwing an error.
 
-If you have already granted permission but it still doesn't work, try removing the app from the Accessibility list and re-adding it — macOS sometimes caches stale permissions.
+How to fix it:
+1. **Recommended**: Run the target application with standard user privileges (uncheck "Run this program as an administrator" in its shortcut or compatibility properties).
+2. **Alternative**: If the target application must run as Administrator, launch the terminal (such as PowerShell, Windows Terminal, or your IDE) running Midscene **as Administrator** as well so both processes share the same privilege level.
 
-### Windows: clicks have no effect on some apps
-
-If the cursor moves to the correct position but clicks or key presses do nothing on a particular application — while other apps work fine — check whether the target app is running **as Administrator** (elevated). Windows UIPI blocks input injected from a lower-privilege process into an elevated window and drops it silently, with no error.
-
-Prefer lowering the target application's privilege level first, for example by launching it without "Run as Administrator" or disabling any setting that always starts it elevated. If the target app must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** so it matches the target app's privilege level, then try again. System-level shortcuts such as `Win+Tab` are handled by the shell and keep working even when this happens, which is why keyboard shortcuts may appear to work while in-app clicks do not.
-
-> Check administrator privileges only when the cursor reaches the correct position. Midscene runs a health check when it connects to Windows. If Midscene is not running as Administrator, the health-check log prints a link to this section.
+> Note: System-level shortcuts such as `Win+Tab` are handled directly by the Windows shell and still work even when UIPI blocks in-window input, which is why global shortcuts may work while clicks inside the app do not. Whenever the cursor reaches the right spot but clicks do nothing, check for privilege elevation first.
 
 ### Linux: Screenshots or interactions fail on a headless server
 
-A headless Linux environment (e.g. CI) has no physical display. You need to install Xvfb and ImageMagick, and enable headless mode:
+Headless Linux environments (such as CI containers) have no physical display. Install Xvfb and ImageMagick, and enable `headless` mode when creating the Agent:
 
 ```bash
 sudo apt-get install -y xvfb x11-xserver-utils imagemagick
 ```
 
+Enable in code:
+
 ```typescript
 const agent = await agentForComputer({ headless: true });
 ```
 
-Or set the environment variable:
+Or enable via an environment variable:
 
 ```bash
 MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
-
-## More
-
-- [API Reference](../sdk/desktop)
-- [Use YAML format automation scripts](../automate-with-scripts-in-yaml)
-- [YAML script runner](../yaml-script-runner)
-- [Caching for efficiency](../caching)

@@ -11,6 +11,12 @@ Chrome Bridge enables Node.js scripts to control your desktop Chrome browser thr
 1. Install the [Midscene Chrome extension](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief). Once installed, it automatically listens for local connection requests in the background.
 2. (Optional) If your script needs to upload local files, open `chrome://extensions`, go to the Midscene extension details, and enable **Allow access to file URLs**. Switch back to your target `http(s)://` tab before connecting.
 
+## Validate model calls and page interactions in Playground
+
+Follow [Web environment setup](./platforms/web#launch-playground) to open the extension sidebar, save your model settings, run an `aiAct` action and `aiAssert` assertion in TodoMVC, and inspect the steps and screenshots.
+
+The extension Playground controls the current page without a Node.js Bridge Server. After trying it, run the connection check below to verify that a script process can control Chrome through the extension.
+
 <a id="get-started"></a>
 
 ## Verify the connection {#verify-connection}
@@ -18,6 +24,8 @@ Chrome Bridge enables Node.js scripts to control your desktop Chrome browser thr
 The minimal script below verifies the connection between your Node.js environment and the Chrome extension. It does not invoke any AI methods, so no model configuration is required.
 
 ### 1. Install dependencies
+
+Install Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`), install pnpm, and run `pnpm init` in your project directory (skip if `package.json` already exists). Then install the dependencies:
 
 <PackageManagerTabs command="install @midscene/web tsx --save-dev" />
 
@@ -58,6 +66,20 @@ Once connected, Chrome opens `example.com` in a new tab, and the terminal prints
 <p align="center">
   <img src="/images/bridge_in_extension.png" alt="Chrome Bridge connection" width="400"/>
 </p>
+
+## Next steps
+
+After validating the environment and Playground, choose how to continue:
+
+- **Write YAML tests**: create a project, run cases, and inspect reports with [Midscene Test](./midscene-test/use).
+- **Write automation workflows**: follow [Standalone automation scripts](./sdk/standalone) and select the Chrome Bridge example.
+- **Look up platform APIs**: see the [Chrome Bridge SDK API reference](./sdk/chrome-bridge) for constructor options, platform methods, and cleanup.
+
+Model settings saved in Playground are not automatically shared with test or script processes. Copy the validated settings into your project’s `.env` and load them as described in the integration guide. Keep the device connection tools, services, and permissions available.
+
+The Midscene Test Web template uses Playwright by default. To use Bridge, adapt [the project configuration](./midscene-test/configuration) to connect and destroy an `AgentOverChromeBridge` and register it with `createMidsceneNodes()`. Replace the template’s Playwright page initialization.
+
+Chrome Bridge does not expose a Playwright `Page`. To integrate with Playwright Test, follow [Web environment setup](./platforms/web).
 
 ## Remote access configuration {#remote-access-configuration}
 
@@ -112,7 +134,3 @@ Reset the saved permissions in the extension's Bridge Mode panel, then rerun the
 ### Where should I configure model credentials?
 
 When calling AI methods such as `aiAct` or `aiAssert`, [configure your model credentials](./model-api-setup) in the Node.js environment running the script. Model settings entered in the extension's Playground apply only to the Playground itself and are not shared with Node.js scripts. Also note that passing the connection check above only verifies bridge communication, not your model configuration.
-
-<a id="use-bridge-mode-in-yaml-script"></a>
-
-For full SDK constructor options and connection methods, see [Chrome Bridge SDK](./sdk/chrome-bridge); for YAML configuration, see [Chrome Bridge in YAML](./automate-with-scripts-in-yaml#chrome-bridge).

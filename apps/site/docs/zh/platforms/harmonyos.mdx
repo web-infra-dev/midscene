@@ -1,41 +1,41 @@
 # HarmonyOS
 
-Midscene 通过 HarmonyOS Device Connector（HDC）连接 HarmonyOS NEXT 设备，可自动化 App 和系统界面。
+Midscene 通过 HarmonyOS Device Connector（HDC）连接并控制 HarmonyOS NEXT 设备，支持对原生应用、元服务及系统界面进行自动化操作。
 
-本指南介绍环境准备、设备连接和 Playground 体验。编写脚本请参阅 [HarmonyOS JavaScript SDK 指南](../sdk/harmonyos)。
+本文将带你完成 HarmonyOS 环境准备与设备连接，并在 Playground 中试跑一次操作与断言，为后续接入测试框架或 JavaScript SDK 做好准备。
 
 ## 效果展示
 
-**提示词：** 打开设置，找到“关于手机”，查看设备信息。
+**提示词：** 打开设置，找到“关于手机”，查看设备信息。（[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html)）
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.png" height="300" controls />
 
-查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
-
 ## 快速开始
+
+请先安装 Node.js（版本要求 `^20.19.0 || ^22.12.0 || >=24.0.0`），确认终端中可执行 `node -v` 和 `npx --version`，并提前准备好[模型配置](../model-api-setup)（稍后将在 Playground 中填写）。
 
 ### 准备 HarmonyOS 设备
 
-在编写脚本前，先确认 HDC 能够连接设备且设备信任当前电脑。
+开始前，请确保本机 `hdc` 能够正常识别并连接目标 HarmonyOS 设备。
 
-#### 安装 HDC
+#### 1. 安装 HDC
 
-HDC（HarmonyOS Device Connector）是 HarmonyOS 提供的命令行工具，用于与 HarmonyOS 设备通信。安装方式：
+HDC（HarmonyOS Device Connector）是 HarmonyOS 官方提供的设备连接命令行工具，可通过以下任一方式安装：
 
 - 通过 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/) 安装（推荐）
-- 通过 [HarmonyOS 命令行工具](https://developer.huawei.com/consumer/cn/download/) 单独安装
+- 下载 [HarmonyOS 命令行工具（Command Line Tools）](https://developer.huawei.com/consumer/cn/download/)独立安装
 
-验证 HDC 是否安装成功：
+在终端验证 `hdc` 是否安装成功：
 
 ```bash
 hdc version
 ```
 
-出现版本号表示安装成功。
+终端输出版本号即表示安装成功。
 
 :::info 配置 HDC 路径
 
-如果 `hdc` 不在系统 PATH 中，你可以设置 `HDC_HOME` 环境变量指向 HDC 所在目录：
+如果 `hdc` 未加入系统 `PATH`，可以通过设置 `HDC_HOME` 环境变量指向 `hdc` 所在的目录：
 
 ```bash
 export HDC_HOME=/path/to/hdc/directory
@@ -43,17 +43,17 @@ export HDC_HOME=/path/to/hdc/directory
 
 :::
 
-#### 启用开发者模式并验证设备
+#### 2. 开启 USB 调试并验证连接
 
-在 HarmonyOS 设备的设置中进入 **开发者选项**，开启 **USB 调试**，然后用数据线连接设备。
+在 HarmonyOS 设备的系统设置中进入「系统 > 开发者选项」，开启 **USB 调试**，然后通过 USB 数据线将设备连接到电脑，并在设备弹窗中允许调试授权。
 
-验证连接：
+在终端运行以下命令验证设备连接：
 
 ```bash
 hdc list targets
 ```
 
-出现设备 ID 代表连接成功：
+终端输出设备序列号（Device ID）即表示连接成功：
 
 ```log
 0123456789ABCDEF
@@ -61,49 +61,62 @@ hdc list targets
 
 ### 启动 Playground
 
-Playground 是验证连接的最快方式。无需编写代码，即可体验 `aiAct`、`aiQuery` 和 `aiAssert` 等核心能力。它与 `@midscene/harmony` 共享相同的核心，因此在 Playground 中通过的流程，在脚本中运行会保持一致。
+无需编写代码，即可通过 Playground 快速验证设备截图、触控输入与模型调用是否正常：
 
-1. 启动 Playground CLI：
+1. 在终端运行以下命令启动 HarmonyOS Playground：
 
 ```bash
 npx --yes @midscene/harmony-playground
 ```
 
-2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有模型配置，请参考[使用模型 API Key](../model-api-setup)。
+2. 在自动打开的 Playground 页面中，点击右上角的齿轮图标，粘贴你的模型 API Key 配置并保存（配置格式见[配置模型 API Key](../model-api-setup)）。
+3. 若浏览器未自动打开，请手动访问终端打印的本地地址，并保持该终端窗口持续运行。
+4. 在左侧连接面板中选择目标 HDC 设备并创建 Agent（设备 ID 与 `hdc list targets` 的输出一致）。
+5. 确认预览区域已正常显示当前手机屏幕画面；若画面未显示，请先排查 HDC 连接与设备调试授权。
 
-## 使用 JavaScript SDK
+### 执行操作并验证结果
 
-<a id="配置模型" />
-<a id="安装依赖" />
-<a id="编写脚本" />
-<a id="运行脚本" />
+在目标设备上打开系统浏览器，跳过首次启动引导，访问 [TodoMVC](https://todomvc.com/examples/react/dist/#/)，并保持设备处于解锁亮屏状态且浏览器位于前台。
 
-请参阅 [HarmonyOS JavaScript SDK 指南](../sdk/harmonyos#使用-javascript-sdk)。
+1. 在 Playground 中选择 `aiAct`，输入以下指令并运行：
 
-## 进阶
+```text
+添加一个名为“体验 Midscene”的待办事项，然后将它标记为已完成。
+```
 
-<a id="扩展-harmonyos-上的-midscene" />
+2. 待页面中出现已勾选完成的待办事项后，切换到 `aiAssert`，输入以下断言并运行：
 
-请参阅 [HarmonyOS JavaScript SDK 指南](../sdk/harmonyos#进阶)。
+```text
+列表中存在名为“体验 Midscene”的待办事项，且它已被标记为完成。
+```
+
+3. 确认断言执行通过，并在结果面板中查看各步骤的截图与执行过程。至此，设备连接、屏幕截图、触控输入和模型调用均已验证完毕。
+
+如果执行失败，请结合报错信息排查：若无画面或无法操控设备，请查看下方的「常见问题」；若模型请求报错，请参考[模型连接检查](../model-config#verify-model-connectivity)。
+
+## 下一步
+
+完成环境与 Playground 验证后，可根据使用场景选择接入方式：
+
+- **编写 YAML 测试**：通过 [Midscene Test](../midscene-test/use) 初始化项目、运行测试用例并查看报告。
+- **接入现有 JavaScript 测试**：[接入 Vitest](../sdk/vitest)。
+- **编写独立自动化脚本**：阅读[编写独立自动化脚本](../sdk/standalone)，参考对应平台的完整代码示例。
+- **查阅平台 SDK 接口**：阅读 [HarmonyOS JavaScript SDK](../sdk/harmonyos)，了解构造参数、平台专属方法与生命周期管理。
+
+注意：在 Playground 界面中填写的模型配置仅保存在本地浏览器中，不会自动同步到测试或脚本进程。接入工程时，请将验证通过的模型配置写入项目的 `.env` 文件并按文档说明加载，同时保持 HDC 连接与设备调试权限处于可用状态。
 
 ## 常见问题
 
-### 输入后键盘没有隐藏，或页面发生返回
+### 输入文本后键盘未收起，或页面意外返回
 
-请参阅 [HarmonyOS JavaScript SDK 指南](../sdk/harmonyos#输入后键盘没有隐藏或页面发生返回)。
+请参阅 [HarmonyOS JavaScript SDK](../sdk/harmonyos#输入文本后键盘未收起或页面意外返回)。
 
-### 如何使用自定义的 HDC 路径？
+### 如何指定自定义的 HDC 路径？
 
-通过 `HDC_HOME` 环境变量指定 HDC 所在目录：
+可以通过 `HDC_HOME` 环境变量指定 `hdc` 所在的目录：
 
 ```bash
 export HDC_HOME=/path/to/hdc/directory
 ```
 
-构造函数配置请参阅 [HarmonyOS SDK 指南](../sdk/harmonyos#如何使用自定义的-hdc-路径)。
-
-## 更多
-
-- 查看所有 Agent 方法：[API 参考（通用）](../reference/index.mdx#interaction-methods)
-- HarmonyOS 专属参数与接口：[API 参考（HarmonyOS）](../sdk/harmonyos)
-- 使用 [YAML 自动化脚本和命令行工具](../automate-with-scripts-in-yaml)。
+通过代码参数传入的方式请参阅 [HarmonyOS JavaScript SDK](../sdk/harmonyos#如何指定自定义的-hdc-路径)。

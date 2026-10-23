@@ -1,41 +1,41 @@
 # HarmonyOS
 
-Midscene connects to HarmonyOS NEXT devices through HarmonyOS Device Connector (HDC) to automate apps and system interfaces.
+Midscene connects to and controls HarmonyOS NEXT devices through HarmonyOS Device Connector (HDC), supporting UI automation across native apps, atomic services, and system interfaces.
 
-This guide covers environment preparation, device connection, and Playground. To write scripts, see the [HarmonyOS JavaScript SDK guide](../sdk/harmonyos).
+This guide walks you through preparing your HarmonyOS environment, connecting a device, and running an action and assertion in Playground before integrating with a test runner or the JavaScript SDK.
 
 ## See it in action
 
-**Prompt:** Open Settings, find About phone, and view the device information.
+**Prompt:** Open Settings, find About phone, and view the device information. ([Full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html))
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.png" height="300" controls />
 
-View the [full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html), or explore more [Midscene showcases](../showcases.mdx).
-
 ## Get started
+
+Install Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`), confirm that `node -v` and `npx --version` work in your terminal, and prepare your [model credentials](../model-api-setup) (you will enter them in Playground shortly).
 
 ### Prepare your HarmonyOS device
 
-Before writing scripts, verify that HDC can connect to your device and the device trusts the current computer.
+Before running automation, make sure `hdc` on your computer can detect and communicate with your HarmonyOS device.
 
-#### Install HDC
+#### 1. Install HDC
 
-HDC (HarmonyOS Device Connector) is a command-line tool provided by HarmonyOS for communicating with devices. Installation options:
+HDC (HarmonyOS Device Connector) is the official command-line tool for communicating with HarmonyOS devices. Install it using either of the following methods:
 
 - Via [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) (recommended)
-- Via [HarmonyOS command-line tools](https://developer.huawei.com/consumer/en/download/) standalone installation
+- Via the standalone [HarmonyOS Command Line Tools](https://developer.huawei.com/consumer/en/download/)
 
-Verify HDC is installed:
+Verify that `hdc` is installed:
 
 ```bash
 hdc version
 ```
 
-A version number in the output confirms successful installation.
+A version number in the terminal output confirms a working installation.
 
-:::info Configuring HDC Path
+:::info Configuring the HDC path
 
-If `hdc` is not in your system PATH, set the `HDC_HOME` environment variable to the directory containing HDC:
+If `hdc` is not in your system `PATH`, set the `HDC_HOME` environment variable to the directory containing the `hdc` executable:
 
 ```bash
 export HDC_HOME=/path/to/hdc/directory
@@ -43,17 +43,17 @@ export HDC_HOME=/path/to/hdc/directory
 
 :::
 
-#### Enable Developer Mode and verify the device
+#### 2. Enable USB debugging and verify the connection
 
-In your HarmonyOS device settings, go to **Developer Options** and enable **USB Debugging**, then connect via USB cable.
+In your HarmonyOS device settings, go to **System > Developer options**, enable **USB debugging**, connect the device to your computer with a USB data cable, and approve the debugging authorization prompt on the device.
 
-Verify the connection:
+Run the following command to verify the connection:
 
 ```bash
 hdc list targets
 ```
 
-A device ID in the output confirms a successful connection:
+A device ID in the output confirms that the device is connected and ready:
 
 ```log
 0123456789ABCDEF
@@ -61,49 +61,62 @@ A device ID in the output confirms a successful connection:
 
 ### Launch Playground
 
-Playground is the fastest way to validate the connection and try core capabilities such as `aiAct`, `aiQuery`, and `aiAssert` without writing code. It shares the same core as `@midscene/harmony`, so anything that works here will behave the same once scripted.
+Use Playground to verify screen capture, touch input, and model calls without writing any code:
 
-1. Launch the Playground CLI:
+1. Start the HarmonyOS Playground CLI:
 
 ```bash
 npx --yes @midscene/harmony-playground
 ```
 
-2. Click the gear button in the Playground window and paste your API Key configuration. See [Use a model API key](../model-api-setup) if you still need a model configuration.
+2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model API key configuration, and save (see [Configure a model API key](../model-api-setup) for format details).
+3. If your browser does not open automatically, visit the local Playground URL printed in the terminal, and keep the terminal process running.
+4. In the connection panel on the left, select your target HDC device (matching the ID from `hdc list targets`) and create the Agent.
+5. Confirm that the preview area displays your device's current screen. If no screen appears, check the HDC connection and device debugging authorization first.
 
-## Use the JavaScript SDK
+### Run an action and verify the result
 
-<a id="configure-the-model" />
-<a id="install-dependencies" />
-<a id="write-a-script" />
-<a id="run-the-script" />
+On your HarmonyOS device, open the system browser, complete any first-run prompts, and navigate to [TodoMVC](https://todomvc.com/examples/react/dist/#/). Keep the device unlocked with the browser in the foreground.
 
-See the [HarmonyOS JavaScript SDK guide](../sdk/harmonyos#use-the-javascript-sdk).
+1. In Playground, select `aiAct`, enter the following instruction, and run it:
 
-## Advanced
+```text
+Add a todo named "Try Midscene", then mark it as completed.
+```
 
-<a id="extending-midscene-on-harmonyos" />
+2. Once the completed todo item appears on the page, switch to `aiAssert`, enter the following assertion, and run it:
 
-See the [HarmonyOS JavaScript SDK guide](../sdk/harmonyos#advanced).
+```text
+The list contains a todo named "Try Midscene", and it is marked as completed.
+```
 
-## FAQ
+3. Confirm that the assertion passes and inspect the step-by-step screenshots in the results panel. At this point, HDC connectivity, screen capture, touch input, and model calls have all been verified together.
 
-### Keyboard is not dismissed or the page goes back after typing
+If execution fails, check the failed step and error message: for missing screenshots or unresponsive touch input, see the [FAQ](#faq) below; for model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity).
 
-See the [HarmonyOS JavaScript SDK guide](../sdk/harmonyos#keyboard-is-not-dismissed-or-the-page-goes-back-after-typing).
+## Next steps
 
-### How to use a custom HDC path?
+Once your environment and Playground are verified, choose how to integrate Midscene:
 
-Set the `HDC_HOME` environment variable to point to the HDC directory:
+- **Write YAML tests**: Initialize a project, run test cases, and inspect reports with [Midscene Test](../midscene-test/use).
+- **Integrate with existing JavaScript tests**: [Integrate with Vitest](../sdk/vitest).
+- **Write standalone automation scripts**: Follow [Write standalone automation scripts](../sdk/standalone) and pick the example for your platform.
+- **Look up platform SDK APIs**: See the [HarmonyOS JavaScript SDK](../sdk/harmonyos) for constructor options, platform-specific methods, and lifecycle management.
+
+Note: Model credentials entered in the Playground UI are stored locally in the browser and are not automatically shared with test or script processes. Copy your verified settings into your project's `.env` file and load them as shown in the integration guides, while keeping HDC and device debugging permissions active.
+
+## FAQ {#faq}
+
+### Keyboard is not dismissed or the page navigates back after typing
+
+See the [HarmonyOS JavaScript SDK guide](../sdk/harmonyos#keyboard-is-not-dismissed-or-the-page-navigates-back-after-typing).
+
+### How do I specify a custom HDC path?
+
+Point the `HDC_HOME` environment variable to the directory containing the `hdc` executable:
 
 ```bash
 export HDC_HOME=/path/to/hdc/directory
 ```
 
-For constructor options, see the [HarmonyOS SDK guide](../sdk/harmonyos#how-to-use-a-custom-hdc-path).
-
-## More
-
-- View all Agent methods: [API Reference (Common)](../reference/index.mdx#interaction-methods)
-- HarmonyOS-specific parameters and interfaces: [API reference (HarmonyOS)](../sdk/harmonyos)
-- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
+For configuring the path via constructor options in code, see the [HarmonyOS JavaScript SDK guide](../sdk/harmonyos#how-do-i-specify-a-custom-hdc-path).
