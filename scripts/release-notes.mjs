@@ -59,7 +59,7 @@ export const readHighlights = (root, version, releaseType) => {
   return highlights;
 };
 
-// Keep fenced examples intact when changing headings or escaping MDX text.
+// Keep fenced examples intact when changing headings.
 const mapMarkdownLines = (markdown, transform) => {
   let fence;
   return markdown
@@ -90,24 +90,6 @@ const nestHeadings = (markdown, levels) =>
       /^(#{1,6}) /,
       (_, hashes) => `${'#'.repeat(Math.min(6, hashes.length + levels))} `,
     ),
-  );
-
-export const markdownToMdx = (markdown) =>
-  mapMarkdownLines(markdown, (line) =>
-    line
-      .split(/(`+[^`]*`+)/g)
-      .map((part) =>
-        part.startsWith('`')
-          ? part
-          : part.replace(
-              /[<>{}]/g,
-              (character) =>
-                ({ '<': '&lt;', '>': '&gt;', '{': '&#123;', '}': '&#125;' })[
-                  character
-                ],
-            ),
-      )
-      .join(''),
   );
 
 export const replaceGeneratedNotes = (existing, generated) => {
@@ -183,7 +165,7 @@ export const writeReleaseArchives = ({
   const pages = languages.map((language) => {
     const file = path.join(root, 'apps/site/docs', language, 'changelog.mdx');
     const content = ordered
-      .map(([, entry]) => markdownToMdx(entry[language].trim()))
+      .map(([, entry]) => entry[language].trim())
       .join('\n\n');
     return [
       file,
