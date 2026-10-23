@@ -222,7 +222,7 @@ select {
 }
 .model-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
   gap: 14px;
 }
 .model-card {
@@ -256,29 +256,71 @@ select {
   color: var(--accent);
   font-size: 11px;
 }
-.model-card-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-}
-.model-card-metrics > div {
+.model-card-pass-rate {
   display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 5px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
 }
-.model-card-metrics span,
-.model-card-metrics small {
+.model-card-pass-rate span,
+.model-card-pass-rate small {
   color: var(--muted);
   font-size: 11px;
 }
-.model-card-metrics strong {
+.model-card-pass-rate strong {
   font-size: 22px;
   font-weight: 650;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
+}
+.model-card-metrics {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.model-card-metrics th,
+.model-card-metrics td {
+  padding: 10px 4px;
+  border-top: 1px solid var(--line);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.model-card-metrics th {
+  font-size: 12px;
+  font-weight: 500;
+}
+.model-card-metrics th:first-child {
+  width: 40%;
+  text-align: left;
+  padding-left: 0;
+}
+.model-card-metrics thead,
+.model-card-metrics small {
+  color: var(--muted);
+}
+.model-card-metrics small {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 400;
+}
+.model-card-metrics td {
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.model-card-estimate-note {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.model-card-estimate-note p {
+  margin: 3px 0;
 }
 .benchmark-link {
   display: inline-block;

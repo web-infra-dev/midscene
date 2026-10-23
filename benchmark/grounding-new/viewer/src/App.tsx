@@ -11,6 +11,7 @@ import { DetailsPanel } from './components/DetailsPanel';
 import { Filters as FilterBar } from './components/Filters';
 import { ResultPanel, ResultStatus } from './components/ResultPanel';
 import { ScreenshotPanel } from './components/ScreenshotPanel';
+import { modelCosts } from './metadata/model-cost';
 import type { EvaluationResult, Filters, TestcaseView } from './types';
 import './styles.css';
 
@@ -47,6 +48,23 @@ function filterTestcases(testcases: TestcaseView[], filters: Filters) {
   });
 }
 
+function summarize(values: number[]) {
+  return {
+    geometricMean: values.length
+      ? values.includes(0)
+        ? 0
+        : Math.exp(
+            values.reduce((total, value) => total + Math.log(value), 0) /
+              values.length,
+          )
+      : null,
+    arithmeticMean: values.length
+      ? values.reduce((total, value) => total + value, 0) / values.length
+      : null,
+    count: values.length,
+  };
+}
+
 function ModelCards({
   runId,
   results,
@@ -67,44 +85,75 @@ function ModelCards({
                 compareNames(left.input.testcase, right.input.testcase) ||
                 compareNames(left.id, right.id),
             );
-          const tokens = modelResults.flatMap((result) =>
-            result.profiling.totalTokens !== undefined &&
-            result.profiling.totalTokens > 0
-              ? [result.profiling.totalTokens]
-              : [],
-          );
-          const durations = modelResults
-            .map((result) => result.profiling.durationMs)
-            .filter((duration) => duration > 0);
+          const reference = Object.entries(modelCosts).find(
+            ([name]) => name === model,
+          )?.[1];
+          const estimates = modelResults.flatMap(({ profiling }) => {
+            const {
+              totalPromptTokens: input,
+              totalCompletionTokens: output,
+              calls,
+            } = profiling;
+            if (
+              !reference ||
+              input === undefined ||
+              !Number.isFinite(input) ||
+              input <= 0 ||
+              output === undefined ||
+              !Number.isFinite(output) ||
+              output < 0 ||
+              calls === undefined ||
+              !Number.isInteger(calls) ||
+              calls <= 0 ||
+              (profiling.byModel &&
+                Object.keys(profiling.byModel).some((name) => name !== model))
+            ) {
+              return [];
+            }
+            const inputCost = input * reference.pricing.inputPerToken;
+            const outputCost = output * reference.pricing.outputPerToken;
+            return [
+              {
+                durationMs:
+                  calls * reference.performance.timeToFirstTokenMs +
+                  (1000 * Math.max(output - calls, 0)) /
+                    reference.performance.outputTokensPerSecond,
+                inputCost,
+                outputCost,
+                cost: inputCost + outputCost,
+              },
+            ];
+          });
           return {
             model,
+            reference,
             count: modelResults.length,
             passed: modelResults.filter((result) => result.output.correct)
               .length,
-            geometricMeanTokens: tokens.length
-              ? Math.exp(
-                  tokens.reduce((total, value) => total + Math.log(value), 0) /
-                    tokens.length,
-                )
-              : null,
-            arithmeticMeanTokens: tokens.length
-              ? tokens.reduce((total, value) => total + value, 0) /
-                tokens.length
-              : null,
-            tokenCount: tokens.length,
-            geometricMeanMs: durations.length
-              ? Math.exp(
-                  durations.reduce(
-                    (total, value) => total + Math.log(value),
-                    0,
-                  ) / durations.length,
-                )
-              : null,
-            arithmeticMeanMs: durations.length
-              ? durations.reduce((total, value) => total + value, 0) /
-                durations.length
-              : null,
-            durationCount: durations.length,
+            tokens: summarize(
+              modelResults.flatMap(({ profiling }) =>
+                profiling.totalTokens !== undefined &&
+                Number.isFinite(profiling.totalTokens) &&
+                profiling.totalTokens > 0
+                  ? [profiling.totalTokens]
+                  : [],
+              ),
+            ),
+            duration: summarize(
+              modelResults
+                .map(({ profiling }) => profiling.durationMs)
+                .filter((value) => Number.isFinite(value) && value > 0),
+            ),
+            estimatedDuration: summarize(
+              estimates.map(({ durationMs }) => durationMs),
+            ),
+            estimatedCost: summarize(estimates.map(({ cost }) => cost)),
+            estimatedInputCost: summarize(
+              estimates.map(({ inputCost }) => inputCost),
+            ),
+            estimatedOutputCost: summarize(
+              estimates.map(({ outputCost }) => outputCost),
+            ),
             first: modelResults[0],
           };
         }),
@@ -116,14 +165,15 @@ function ModelCards({
       {modelSummaries.map(
         ({
           model,
+          reference,
           count,
           passed,
-          geometricMeanTokens,
-          arithmeticMeanTokens,
-          tokenCount,
-          geometricMeanMs,
-          arithmeticMeanMs,
-          durationCount,
+          tokens,
+          duration,
+          estimatedDuration,
+          estimatedCost,
+          estimatedInputCost,
+          estimatedOutputCost,
           first,
         }) => (
           <a
@@ -135,52 +185,112 @@ function ModelCards({
               <strong>{model}</strong>
               <span>查看结果 →</span>
             </div>
-            <div className="model-card-metrics">
-              <div>
-                <span>通过率</span>
-                <strong>{((passed / count) * 100).toFixed(1)}%</strong>
-                <small>
-                  {passed} / {count} 通过
-                </small>
-              </div>
-              <div>
-                <span>Token 消耗（几何平均）</span>
-                <strong>
-                  {geometricMeanTokens === null
-                    ? '—'
-                    : geometricMeanTokens.toLocaleString(undefined, {
-                        maximumFractionDigits: 0,
-                      })}
-                </strong>
-                <span>Token 消耗（算术平均）</span>
-                <strong>
-                  {arithmeticMeanTokens === null
-                    ? '—'
-                    : arithmeticMeanTokens.toLocaleString(undefined, {
-                        maximumFractionDigits: 0,
-                      })}
-                </strong>
-                <small title="仅统计大于 0 的 Token 消耗，零值和缺失值不参与计算">
-                  {tokenCount} / {count} 条有效记录
-                </small>
-              </div>
-              <div>
-                <span>耗时（几何平均）</span>
-                <strong>
-                  {geometricMeanMs === null
-                    ? '—'
-                    : `${(geometricMeanMs / 1000).toFixed(2)} s`}
-                </strong>
-                <span>耗时（算术平均）</span>
-                <strong>
-                  {arithmeticMeanMs === null
-                    ? '—'
-                    : `${(arithmeticMeanMs / 1000).toFixed(2)} s`}
-                </strong>
-                <small title="仅统计大于 0 的耗时，零值和缺失值不参与计算">
-                  {durationCount} / {count} 条有效记录
-                </small>
-              </div>
+            <div className="model-card-pass-rate">
+              <span>通过率</span>
+              <strong>{((passed / count) * 100).toFixed(1)}%</strong>
+              <small>
+                {passed} / {count} 通过
+              </small>
+            </div>
+            <table className="model-card-metrics">
+              <thead>
+                <tr>
+                  <th scope="col">指标 / 每题</th>
+                  <th scope="col">几何平均</th>
+                  <th scope="col">算术平均</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  {
+                    label: 'Token 消耗',
+                    values: tokens,
+                    unit: 'tokens',
+                    note: '仅统计大于 0 的 Token 消耗',
+                  },
+                  {
+                    label: '实测耗时',
+                    values: duration,
+                    unit: 'seconds',
+                    note: '执行全过程耗时；仅统计大于 0 的记录',
+                  },
+                  {
+                    label: '估算耗时',
+                    values: estimatedDuration,
+                    unit: 'seconds',
+                    note: '调用次数 × TTFT + max(输出 Token − 调用次数, 0) ÷ 吞吐量；按串行调用粗估，缺少用量或模型参考数据时不计入',
+                  },
+                  {
+                    label: '估算输入费用（USD）',
+                    values: estimatedInputCost,
+                    unit: 'USD',
+                    note: '每题输入 Token × OpenRouter 页首输入单价；未计缓存折扣',
+                  },
+                  {
+                    label: '估算输出费用（USD）',
+                    values: estimatedOutputCost,
+                    unit: 'USD',
+                    note: '每题输出 Token × OpenRouter 页首输出单价',
+                  },
+                  {
+                    label: '估算总费用（USD）',
+                    values: estimatedCost,
+                    unit: 'USD',
+                    note: '逐题将输入费用与输出费用相加，再取平均；总费用的几何平均不等于两部分几何平均之和。缺少用量或模型报价时不计入',
+                  },
+                ].map(({ label, values, unit, note }) => (
+                  <tr key={label} title={note}>
+                    <th scope="row">
+                      {label}
+                      <small>
+                        {values.count} / {count} 条有效记录
+                      </small>
+                    </th>
+                    {[values.geometricMean, values.arithmeticMean].map(
+                      (value, index) => (
+                        <td key={index === 0 ? 'geometric' : 'arithmetic'}>
+                          {value === null
+                            ? '—'
+                            : unit === 'seconds'
+                              ? `${(value / 1000).toFixed(2)} s`
+                              : unit === 'USD'
+                                ? `$${value.toFixed(6)}`
+                                : value.toLocaleString(undefined, {
+                                    maximumFractionDigits: 0,
+                                  })}
+                        </td>
+                      ),
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="model-card-estimate-note">
+              {reference ? (
+                <>
+                  <p>
+                    耗时参考：{reference.source} P50 best · TTFT{' '}
+                    {(reference.performance.timeToFirstTokenMs / 1000).toFixed(
+                      2,
+                    )}{' '}
+                    s · {reference.performance.outputTokensPerSecond} token/s（
+                    {reference.observedAt.slice(0, 10)}）
+                  </p>
+                  <p>
+                    费用参考：OpenRouter 页首价格 · 输入 $
+                    {reference.pricing.inputPerToken * 1_000_000} / 输出 $
+                    {reference.pricing.outputPerToken * 1_000_000}（每百万
+                    Token）
+                  </p>
+                  <p>
+                    两项 P50 best
+                    分别取最优值，可能来自不同供应商。费用未计缓存折扣及长上下文加价；耗时按完整输出
+                    Token 粗估，推理部分可能与 TTFT 重叠。
+                  </p>
+                </>
+              ) : (
+                <p>暂无此模型的价格与性能参考数据。</p>
+              )}
             </div>
           </a>
         ),
