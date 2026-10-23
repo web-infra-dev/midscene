@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Midscene.js v1.17 Highlights</title>
+<title>Midscene.js v1.17.0 Highlights</title>
 <style>
 :root {
   --bg: #f6f7fa;
@@ -97,6 +97,11 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
 @keyframes blink { 50% { opacity: 0; } }
 .cursor { position: absolute; z-index: 20; width: 30px; transition: left .45s cubic-bezier(.4,0,.2,1), top .45s cubic-bezier(.4,0,.2,1), opacity .3s; opacity: 0; filter: drop-shadow(0 3px 6px rgb(0 0 0 / 30%)); pointer-events: none; }
 .cursor.in { opacity: 1; }
+.cursor.pressing { animation: arrow-press .22s ease-out; }
+@keyframes arrow-press { 50% { transform: scale(.8); } }
+/* Match the extension's water-flow.ts pointer, separate from the user's arrow. */
+.auto-pointer { position: absolute; z-index: 20; width: 30px; height: 30px; border-radius: 50%; background: rgba(0, 0, 255, 0.3); border: 1px solid rgba(0, 0, 255, 0.3); transform: translate(-50%, -50%); pointer-events: none; opacity: 0; transition: opacity .3s; }
+.auto-pointer.in { opacity: 1; }
 .ripple { position: absolute; z-index: 19; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; border: 3px solid #3b6cff; animation: ripple .6s ease-out forwards; pointer-events: none; }
 @keyframes ripple { to { transform: scale(4); opacity: 0; } }
 .bbox { position: absolute; z-index: 15; border: 3px solid var(--jev); border-radius: 10px; background: rgb(5 85 255 / 6%); opacity: 0; transform: scale(1.12); transition: opacity .25s, transform .3s cubic-bezier(.2,.8,.2,1); pointer-events: none; }
@@ -124,7 +129,25 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
 .lockup .links span.hi { color: var(--ai); border-color: rgb(5 85 255 / 45%); }
 
 /* ===================================================== SIWC */
-#s-siwc .bw { position: absolute; left: 120px; top: 270px; width: 1000px; height: 640px; display: flex; flex-direction: column; }
+#s-siwc .bw { position: absolute; left: 120px; top: 270px; width: 1000px; height: 700px; display: flex; flex-direction: column; }
+.b-tabs { height: 42px; flex: none; display: flex; align-items: end; gap: 5px; padding: 0 16px; background: #dfe3eb; }
+.b-tab { width: 250px; height: 35px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-radius: 10px 10px 0 0; color: #697386; font-size: 15px; }
+.b-tab.active { background: #fff; color: #172033; }
+.b-tab[hidden] { display: none; }
+.b-tab small { margin-left: auto; }
+.bw.auth-tab .b-body { grid-template-columns: 1fr; }
+.bw.auth-tab .b-side { display: none; }
+.bw.auth-tab .pg { padding-left: 190px; padding-right: 190px; }
+.demo-site-nav { display: flex; align-items: center; gap: 20px; font-size: 15px; color: var(--muted); margin-bottom: 22px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+.demo-site-nav b { margin-right: auto; color: var(--text); }
+.extension-nav { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 14px; font-size: 18px; }
+.extension-brand { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); }
+.extension-brand img { width: 20px; }
+.extension-tools { color: #6b7280; letter-spacing: 10px; }
+.siwc-runner { flex: 1; min-height: 0; }
+.siwc-api { display: flex; gap: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border); font: 500 15px/1.5 var(--mono); color: #8490a3; }
+.siwc-api b { color: #4338ca; border-bottom: 2px solid #4338ca; padding-bottom: 7px; }
+.siwc-runner .gbtn { border-radius: 9px; height: 42px; background: #5046e5; font-size: 17px; }
 .b-top { flex: none; height: 50px; display: flex; align-items: center; gap: 16px; padding: 0 18px; background: #eef1f6; border-bottom: 1px solid #e2e5eb; }
 .b-url { flex: 1; height: 32px; border-radius: 9px; background: #fff; border: 1px solid #e2e5eb; display: flex; align-items: center; padding: 0 14px; font: 500 16px/1 var(--mono); color: #5b6272; white-space: nowrap; overflow: hidden; }
 .b-body { position: relative; flex: 1; display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
@@ -133,6 +156,20 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
 .pg.on { opacity: 1; }
 .sk { border-radius: 8px; background: #eef0f4; height: 18px; margin-bottom: 14px; }
 .pg-site h3 { margin: 6px 0 24px; font-size: 40px; }
+.demo-setting { display: flex; align-items: center; justify-content: space-between; padding: 24px 0; border-bottom: 1px solid var(--border); font-size: 23px; }
+.demo-toggle { width: 60px; height: 34px; padding: 4px; border-radius: 20px; background: #cbd5e1; transition: background .3s; }
+.demo-toggle::after { content: ""; display: block; width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: transform .3s; }
+.demo-toggle.on { background: #10a37f; }
+.demo-toggle.on::after { transform: translateX(26px); }
+.demo-save { margin-top: 28px; }
+.demo-success { margin-top: 22px; color: var(--ok); font-size: 21px; opacity: 0; }
+.demo-success.in { opacity: 1; }
+.siwc-runner { display: flex; flex-direction: column; gap: 18px; padding-top: 12px; }
+.siwc-runner[hidden], .cfgdlg[hidden] { display: none; }
+.siwc-model { color: var(--ok); font: 600 15px/1.5 var(--mono); }
+.siwc-prompt { min-height: 110px; white-space: pre-wrap; font: 500 18px/1.6 var(--sans); }
+.siwc-status { white-space: pre-line; font: 500 17px/1.6 var(--sans); color: var(--muted); }
+.siwc-status.done { color: var(--ok); }
 .pg-gpt { align-items: center; text-align: center; }
 .gpt-logos { display: flex; gap: 14px; align-items: center; margin: 10px 0 18px; color: var(--faint); font-size: 22px; }
 .gpt-logos i { width: 64px; height: 64px; border-radius: 16px; border: 1px solid var(--border); display: grid; place-items: center; font-style: normal; font: 800 20px/1 var(--sans); background: #fff; }
@@ -154,13 +191,18 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
 .cfgdlg b { font-size: 18px; }
 .cfgdlg .hint { font-size: 15px; color: var(--muted); line-height: 1.45; }
 .planlink { font-size: 17px; color: #1d4ed8; font-weight: 600; border-radius: 6px; transition: background-color .3s, box-shadow .3s; align-self: flex-start; padding: 2px 4px; margin: -2px -4px; }
+.auth-confirm { position: absolute; inset: 77px 0 0; z-index: 18; background: rgb(15 23 42 / 30%); display: grid; place-items: center; }
+.auth-confirm[hidden] { display: none; }
+.auth-confirm-card { width: 520px; padding: 28px; border-radius: 16px; background: #fff; box-shadow: 0 18px 60px rgb(15 23 42 / 25%); }
+.auth-confirm-card h3 { margin: 0 0 18px; font-size: 25px; }
+.auth-confirm-card p { margin: 0 0 16px; font-size: 18px; line-height: 1.6; color: var(--muted); }
+.auth-confirm-actions { display: flex; justify-content: flex-end; align-items: center; gap: 24px; margin-top: 24px; font-size: 18px; }
+.auth-confirm-actions .gbtn { width: auto; padding: 0 22px; margin: 0; border-radius: 8px; }
 .planlink.flash { background: rgb(29 78 216 / 10%); box-shadow: 0 0 0 2px rgb(29 78 216 / 45%); }
 .ta { min-height: 128px; border: 1px solid var(--border-2); border-radius: 10px; padding: 10px 12px; font: 500 13.5px/1.7 var(--mono); color: #1e293b; white-space: pre; overflow: hidden; }
 .ta .ph { color: #b0b5c0; }
-.verify { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.config-actions { display: flex; justify-content: flex-end; }
 .vbtn { padding: 10px 16px; border: 1px solid var(--border-2); border-radius: 10px; font: 600 16px/1 var(--sans); }
-.vres { font: 700 16px/1 var(--sans); color: var(--ok); opacity: 0; transition: opacity .3s; }
-.vres.in { opacity: 1; }
 #s-siwc .cli { position: absolute; left: 1170px; top: 270px; width: 630px; background: #0f172a; border-color: #0f172a; }
 #s-siwc .cli .panel-bar { background: #1e293b; border-color: #1e293b; color: rgb(255 255 255 / 55%); }
 #s-siwc .cli .dots i { background: rgb(255 255 255 / 20%); }
@@ -217,10 +259,12 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
 .game .cnt { position: absolute; right: 36px; top: 30px; width: 130px; padding: 12px 0; border-radius: 16px; background: #fff; box-shadow: 0 6px 0 #e3b84b; text-align: center; }
 .game .cnt small { display: block; font-size: 15px; color: #9a5a10; }
 .game .cnt b { font: 900 44px/1.1 var(--sans); color: #e2462a; font-variant-numeric: tabular-nums; }
-.board { position: absolute; overflow: hidden; left: 36px; right: 36px; top: 150px; bottom: 30px; border-radius: 22px; background: #4fbfa8; box-shadow: inset 0 0 0 6px #3aa58f; padding: 26px; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 18px; }
+.board { position: absolute; overflow: hidden; left: 50%; transform: translateX(-50%); width: 540px; height: 540px; top: 150px; border-radius: 22px; background: #4fbfa8; box-shadow: inset 0 0 0 6px #3aa58f; padding: 26px; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 18px; }
 .tile { position: relative; border-radius: 16px; background: #fff7e8; box-shadow: 0 6px 0 #e3c48a; display: grid; place-items: center; font-size: 56px; transition: transform .25s, opacity .35s, box-shadow .25s; }
 .tile.sel { transform: translateY(-4px) scale(1.04); box-shadow: 0 0 0 4px #ffbe3d, 0 8px 0 #e3c48a; }
 .tile.gone { opacity: 0; transform: scale(.6); }
+.match-path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+.match-path polyline { fill: none; stroke: #fff4a3; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
 .cleared { position: absolute; inset: 0; display: grid; place-items: center; font: 900 52px/1 var(--sans); color: #fff; text-shadow: 0 4px 0 #2f8f7b; opacity: 0; transform: scale(.8); transition: opacity .4s, transform .5s cubic-bezier(.2,.8,.2,1.4); }
 .cleared.in { opacity: 1; transform: none; }
 .tile.slot { background: transparent; box-shadow: none; border: 3px dashed rgb(255 255 255 / 45%); }
@@ -248,13 +292,28 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
 .legend2 { position: absolute; left: 120px; top: 228px; display: flex; gap: 14px; align-items: center; font-size: 18px; color: var(--muted); }
 
 /* ===================================================== OUTRO */
-#s-outro .stats { position: absolute; left: 0; right: 0; top: 330px; display: flex; justify-content: center; gap: 30px; transition: transform 1s cubic-bezier(.2,.8,.2,1), opacity .8s; }
-#s-outro.final .stats { transform: translateY(-60px) scale(.94); opacity: 0; }
+#s-outro .outro-summary { position: absolute; top: 145px; left: 0; right: 0; margin: 0; text-align: center; font: 750 48px/1.3 var(--sans); color: var(--text); letter-spacing: -.02em; }
+#s-outro .stats { position: absolute; left: 0; right: 0; top: 280px; display: flex; justify-content: center; gap: 30px; }
 .stat { width: 520px; padding: 34px 36px; }
 .stat .t { font-size: 22px; color: var(--muted); font-weight: 600; }
 .stat .n { margin-top: 14px; font: 800 92px/1 var(--sans); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+#s-outro .stat .n { font-size: 58px; white-space: nowrap; }
 .stat .d { margin-top: 14px; font-size: 19px; color: var(--muted); line-height: 1.5; }
-#s-outro .lockup { position: absolute; left: 0; right: 0; top: 250px; }
+#s-outro .outro-links { position: absolute; left: 0; right: 0; top: 620px; text-align: center; }
+#s-outro .outro-links p { font-size: 32px; font-weight: 650; color: var(--text); margin: 0 0 26px; }
+#s-outro .browser-nav { width: 820px; margin: 0 auto; padding: 16px 20px; display: flex; align-items: center; gap: 20px; border: 1px solid #d8dce3; border-radius: 18px; background: #f1f3f5; box-shadow: 0 12px 36px rgb(15 23 42 / 9%); }
+#s-outro .nav-tools { display: flex; gap: 20px; font-size: 27px; color: #697386; }
+#s-outro .nav-tools .disabled { opacity: .35; }
+#s-outro .address-field { flex: 1; display: flex; align-items: center; gap: 14px; height: 58px; padding: 0 20px; border-radius: 30px; background: #fff; text-decoration: none; color: var(--text); text-align: left; box-shadow: inset 0 0 0 2px #b9c9e7; font: 500 28px/1 var(--sans); transition: box-shadow .3s; }
+#s-outro .address-field.opened { box-shadow: inset 0 0 0 1px #e0e4ea; }
+#s-outro .address-icon { width: 22px; height: 22px; color: #697386; }
+#s-outro .address-caret { display: inline-block; height: 28px; border-right: 2px solid #334155; vertical-align: middle; }
+#s-outro .address-field.opened .address-caret { display: none; }
+#s-outro .address-go { margin-left: auto; color: #697386; font-size: 24px; transition: transform .2s; }
+#s-outro .address-go.pressed { transform: scale(.8); }
+#s-outro .outro-credit { position: absolute; left: 0; right: 0; bottom: 90px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 20px; color: var(--muted); letter-spacing: .04em; }
+
+#s-outro .outro-credit img { width: 28px; height: 28px; object-fit: contain; }
 
 /* ---------- HUD ---------- */
 #hud { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100; padding: 10px 16px; display: flex; align-items: center; gap: 16px; font: 12px/1 var(--mono); color: rgb(255 255 255 / 80%); background: linear-gradient(transparent, rgb(0 0 0 / 55%)); transition: opacity .3s; }
@@ -271,7 +330,7 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
   <!-- ================================================= COVER (fully visible from frame 0) -->
   <section class="scene" id="s-cover" data-dur="5000" data-name="cover">
     <div class="lockup">
-      <div class="brand"><img src="midscene-icon.png" alt="" /><div class="nm">Midscene.js</div><span class="ver">v1.17</span></div>
+      <div class="brand"><img src="midscene-icon.png" alt="" /><div class="nm">Midscene.js</div><span class="ver">v1.17.0</span></div>
       <div class="slogan" data-t="cover.slogan"></div>
       <div class="duo"><div class="feat"><span class="no">01</span><div><strong data-t="hl.siwc"></strong><small data-t="hl.siwcd"></small></div></div><div class="feat"><span class="no">02</span><div><strong data-t="hl.jev"></strong><small data-t="hl.jevd"></small></div></div></div>
       <div class="links"><span class="hi">midscenejs.com/changelog</span></div>
@@ -279,17 +338,25 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
   </section>
 
   <!-- ================================================= SIWC -->
-  <section class="scene" id="s-siwc" data-dur="17000" data-name="chatgpt subscription">
+  <section class="scene" id="s-siwc" data-dur="34200" data-name="chatgpt subscription">
     <div class="head">
       <div class="eyebrow" data-at="100"><b>// 01</b><span data-t="siwc.eb"></span></div>
       <h2 class="h2" data-at="250" data-t="siwc.h2"></h2>
     </div>
     <div class="mode2" data-at="500" data-t="siwc.ext"></div>
     <div class="panel bw fx-left" data-at="500" id="bw">
-      <div class="b-top"><span class="dots"><i></i><i></i><i></i></span><div class="b-url" id="burl">https://midscenejs.com/quick-start</div></div>
+      <div class="b-tabs"><div class="b-tab active" id="taskTab">▧ Settings · Demo <small>×</small></div><div class="b-tab" id="authTab" hidden>◉ Sign in with ChatGPT <small>×</small></div><span>＋</span></div>
+      <div class="b-top"><span class="dots"><i></i><i></i><i></i></span><div class="b-url" id="burl">https://example.com/settings</div></div>
       <div class="b-body">
         <div class="b-page" id="bpage">
-          <div class="pg pg-site on" id="pgSite"><h3>Try the GUI Agent</h3><div class="sk" style="width:92%"></div><div class="sk" style="width:84%"></div><div class="sk" style="width:88%"></div><div class="sk" style="width:60%"></div><div class="sk" style="width:90%;margin-top:26px"></div><div class="sk" style="width:76%"></div></div>
+          <div class="auto-pointer" id="autoPointer" aria-hidden="true"></div>
+          <div class="pg pg-site on" id="pgSite">
+            <div class="demo-site-nav"><b>Acme</b><span>Overview</span><span>Settings</span><span>JD</span></div>
+            <h3 data-t="siwc.demoTitle"></h3>
+            <div class="demo-setting"><span data-t="siwc.notifications"></span><span class="demo-toggle" id="demoToggle"></span></div>
+            <div class="gbtn demo-save" id="demoSave" data-t="siwc.save"></div>
+            <div class="demo-success" id="demoSuccess" data-t="siwc.savedPage"></div>
+          </div>
           <div class="pg pg-gpt" id="pgGpt">
             <div class="gpt-logos"><i class="g">GPT</i>···<i><img src="midscene-icon.png" alt="" style="width:40px" /></i></div>
             <h4>Connect Midscene Chrome Extension<br>to ChatGPT</h4>
@@ -301,18 +368,34 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
             <h4><img src="midscene-icon.png" alt="" />✅ ChatGPT authorization successful</h4>
             <p data-t="siwc.okp"></p>
             <div class="envbox" id="okenv"></div>
-            <div class="copybtn">Copy configuration</div>
+            <div class="copybtn" id="copyConfig">Copy configuration</div>
           </div>
         </div>
         <div class="b-side" id="bside">
-          <div class="side-h"><img src="midscene-icon.png" alt="" />Midscene.js</div>
-          <div class="cfgdlg">
+          <div class="extension-nav"><b>☰ &nbsp;Playground</b><span class="extension-tools">⚙ ⋯</span></div>
+          <div class="extension-brand"><img src="midscene-icon.png" alt="" />Midscene.js Chrome Extension</div>
+          <div class="cfgdlg" id="configDialog">
             <b>Model Env Config</b>
             <div class="hint" data-t="siwc.hint"></div>
             <span class="planlink" id="planlink">Use your ChatGPT plan →</span>
             <div class="ta" id="ta"><span class="ph">MIDSCENE_MODEL_BASE_URL=…<br>MIDSCENE_MODEL_API_KEY=…<br>MIDSCENE_MODEL_NAME=…</span></div>
-            <div class="verify"><span class="vres" id="vres" data-t="siwc.vok"></span><span class="vbtn" id="vbtn">▷ Verify</span></div>
+            <div class="config-actions"><span class="vbtn" id="vbtn" data-t="siwc.save"></span></div>
           </div>
+          <div class="siwc-runner" id="siwcRunner" hidden>
+            <div class="siwc-model">GPT · gpt-6-sol · SIWC</div>
+            <div class="siwc-api"><b>aiAct</b><span>aiQuery</span><span>aiAssert</span></div>
+            <div class="ta siwc-prompt" id="siwcPrompt"></div>
+            <div class="gbtn" id="siwcRun" data-t="siwc.run"></div>
+            <div class="siwc-status" id="siwcStatus"></div>
+          </div>
+        </div>
+      </div>
+      <div class="auth-confirm" id="authConfirm" hidden>
+        <div class="auth-confirm-card" role="dialog" aria-labelledby="authConfirmTitle">
+          <h3 id="authConfirmTitle">Sign in with ChatGPT</h3>
+          <p data-t="siwc.confirmUsage"></p>
+          <p data-t="siwc.confirmTab"></p>
+          <div class="auth-confirm-actions"><span data-t="siwc.cancel"></span><div class="gbtn" id="confirmAuth" data-t="siwc.continue"></div></div>
         </div>
       </div>
       <svg class="cursor" id="cur1" viewBox="0 0 24 24"><path d="M4 2l16 9.5-7 1.6 4.2 7.3-3 1.7-4.2-7.3L4 20z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
@@ -323,13 +406,13 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
       <div class="term" id="term"></div>
     </div>
     <div class="perks">
-      <div class="perk fx-right" data-at="12600"><i>✓</i><div><b data-t="siwc.p1"></b><span data-t="siwc.p1d"></span></div></div>
-      <div class="perk fx-right" data-at="12900"><i>↻</i><div><b data-t="siwc.p2"></b><span data-t="siwc.p2d"></span></div></div>
+      <div class="perk fx-right" data-at="27200"><i>✓</i><div><b data-t="siwc.p1"></b><span data-t="siwc.p1d"></span></div></div>
+      <div class="perk fx-right" data-at="27500"><i>↻</i><div><b data-t="siwc.p2"></b><span data-t="siwc.p2d"></span></div></div>
     </div>
   </section>
 
   <!-- ================================================= JEV ROUTING -->
-  <section class="scene" id="s-jev" data-dur="14500" data-name="jev routing">
+  <section class="scene" id="s-jev" data-dur="20000" data-name="jev routing">
     <div class="head">
       <div class="eyebrow" data-at="100"><b>// 02</b><span data-t="jev.eb"></span></div>
       <h2 class="h2" data-at="250" data-t="jev.h2"></h2>
@@ -343,14 +426,14 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
       <div class="lane df fx-right" data-at="2700"><div class="lane-h"><strong data-t="jev.def"></strong><small data-t="jev.l2"></small></div><div id="laneD"></div></div>
     </div>
     <div class="limits">
-      <div class="lim fx-fade" data-at="10200"><b data-t="jev.m1"></b><span data-t="jev.m1d"></span></div>
-      <div class="lim fx-fade" data-at="10450"><b data-t="jev.m2"></b><span data-t="jev.m2d"></span></div>
-      <div class="lim fx-fade" data-at="10700"><b data-t="jev.m3"></b><span data-t="jev.m3d"></span></div>
+      <div class="lim" data-at="10200"><b data-t="jev.m1"></b><span data-t="jev.m1d"></span></div>
+      <div class="lim" data-at="11400"><b data-t="jev.m2"></b><span data-t="jev.m2d"></span></div>
+      <div class="lim" data-at="12600"><b data-t="jev.m3"></b><span data-t="jev.m3d"></span></div>
     </div>
   </section>
 
   <!-- ================================================= FRUIT -->
-  <section class="scene" id="s-fruit" data-dur="16500" data-name="demo: tile matching">
+  <section class="scene" id="s-fruit" data-dur="22000" data-name="demo: tile matching">
     <div class="head">
       <div class="eyebrow" data-at="100"><b>// 03</b><span data-t="fr.eb"></span></div>
       <h2 class="h2" data-at="250" data-t="fr.h2"></h2>
@@ -367,7 +450,7 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
   </section>
 
   <!-- ================================================= REGISTER -->
-  <section class="scene" id="s-reg" data-dur="17500" data-name="demo: register form">
+  <section class="scene" id="s-reg" data-dur="22000" data-name="demo: register form">
     <div class="head">
       <div class="eyebrow" data-at="100"><b>// 04</b><span data-t="rg.eb"></span></div>
       <h2 class="h2" data-at="250" data-t="rg.h2"></h2>
@@ -392,17 +475,24 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
   </section>
 
   <!-- ================================================= OUTRO -->
-  <section class="scene" id="s-outro" data-dur="10000" data-name="outro">
+  <section class="scene" id="s-outro" data-dur="12000" data-name="outro">
+    <h2 class="outro-summary" data-at="100" data-t="out.summary"></h2>
     <div class="stats">
-      <div class="panel stat" data-at="200"><div class="t" data-t="out.s1"></div><div class="n grad">&lt; 0.9s</div><div class="d" data-t="out.s1d"></div></div>
-      <div class="panel stat" data-at="450"><div class="t" data-t="out.s2"></div><div class="n grad">$0.00426</div><div class="d" data-t="out.s2d"></div></div>
+      <div class="panel stat" data-at="200"><div class="t" data-t="out.s1"></div><div class="n grad" data-t="out.latency"></div><div class="d" data-t="out.s1d"></div></div>
+      <div class="panel stat" data-at="1000"><div class="t" data-t="out.s2"></div><div class="n grad">$0.00426</div><div class="d" data-t="out.s2d"></div></div>
     </div>
-    <div class="lockup">
-      <div class="brand" data-at="4300"><img src="midscene-icon.png" alt="" /><div class="nm">Midscene.js</div><span class="ver">v1.17</span></div>
-      <div class="slogan" data-at="4700" data-t="cover.slogan"></div>
-      <div class="duo" data-at="5100"><div class="feat"><span class="no">01</span><div><strong data-t="hl.siwc"></strong><small data-t="hl.siwcd"></small></div></div><div class="feat"><span class="no">02</span><div><strong data-t="hl.jev"></strong><small data-t="hl.jevd"></small></div></div></div>
-      <div class="links" data-at="5500"><span class="hi">midscenejs.com/changelog</span></div>
+    <div class="outro-links" data-at="2600">
+      <p data-t="out.cta"></p>
+      <div class="browser-nav">
+        <div class="nav-tools" aria-hidden="true"><span>←</span><span class="disabled">→</span><span>↻</span></div>
+        <a class="address-field" id="outroAddress" href="https://midscenejs.com" target="_blank" rel="noopener noreferrer" aria-label="midscenejs.com">
+          <svg class="address-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>
+          <span><span id="outroUrl"></span><span class="address-caret" aria-hidden="true"></span></span>
+          <span class="address-go" id="outroGo" aria-hidden="true">↵</span>
+        </a>
+      </div>
     </div>
+    <div class="outro-credit fx-fade" data-at="5600"><img src="midscene-icon.png" alt="" /><span>Midscene.js · v1.17.0</span></div>
   </section>
 </div>
 
@@ -416,14 +506,29 @@ const I18N = {
     'cover.slogan': '本次更新亮点',
     'hl.siwc': '使用 ChatGPT 订阅额度',
     'hl.jev': 'Jev 1.14 实验性支持',
-    'hl.siwcd': '无需 API Key，直接调用 GPT 模型', 'hl.jevd': '快速、低成本的定位与判断',
+    'hl.siwcd': '无需购买 API Key，直接调用 GPT 模型', 'hl.jevd': '快速、低成本的定位与判断',
     'siwc.eb': 'Sign in with ChatGPT（SIWC）',
-    'siwc.h2': '无需 API Key，<em>用 ChatGPT 订阅额度调用 GPT 模型</em>',
+    'siwc.h2': '无需购买 API Key，<em>用 ChatGPT 订阅额度调用 GPT 模型</em>',
     'siwc.ext': '浏览器插件',
+    'siwc.confirmUsage': '是否使用 ChatGPT 订阅额度授权 Midscene？模型调用将计入你的 ChatGPT 订阅用量。',
+    'siwc.confirmTab': '将在新 Tab 中打开授权页面。授权完成后，请返回插件粘贴模型配置。',
+    'siwc.cancel': '取消',
+    'siwc.continue': '继续前往 ChatGPT',
     'siwc.plan': '允许 Midscene Chrome Extension 使用你的 ChatGPT 订阅额度',
     'siwc.okp': '凭据仅保存在本浏览器的 Midscene 插件中，Midscene 不会收集你的凭据。',
     'siwc.hint': '每行一个 KEY=VALUE，配置仅保存在本地浏览器中。',
     'siwc.vok': '✓ 连接成功',
+    'siwc.demoTitle': '通知设置',
+    'siwc.notifications': '邮件通知',
+    'siwc.save': '保存',
+    'siwc.savedPage': '✓ 通知设置已保存',
+    'siwc.run': '运行',
+    'siwc.prompt': '开启邮件通知，然后保存设置。',
+    'siwc.running': 'GPT 正在观察页面…',
+    'siwc.step1': '✓ 点击邮件通知开关',
+    'siwc.step2': '✓ 点击保存',
+    'siwc.done': '✓ 任务完成',
+    'siwc.copied': '✓ 已复制配置',
     'siwc.saved': '凭据已保存到 ~/.midscene/siwc.json',
     'siwc.p1': '插件与 CLI / SDK 都支持',
     'siwc.p1d': '插件内一键授权；命令行登录一次即可在脚本中使用',
@@ -438,26 +543,29 @@ const I18N = {
     'jev.tasks': [
       ['J', '元素定位', 'Locate'],
       ['J', '单击、双击、返回', 'aiAct · 简单动作规划'],
-      ['D', '输入、滚动', 'aiAct · 复杂动作规划'],
       ['J', '条件判断', 'aiAssert · aiBoolean · aiWaitFor'],
+      ['D', '输入、滚动', 'aiAct · 复杂动作规划'],
       ['D', '数据提取与问答', 'aiQuery · aiString · aiNumber · aiAsk'],
     ],
-    'jev.m1': '实验性支持', 'jev.m1d': '速度快、成本低，但不适用于需要复杂推理的任务',
-    'jev.m2': '失败不回退', 'jev.m2d': 'Jev 请求失败时，不会自动切换至默认模型',
-    'jev.m3': '图片尺寸', 'jev.m3d': '截图最长边需不超过 1568 像素，用 screenshotShrinkFactor 控制',
+    'jev.m1': '速度快、成本低', 'jev.m1d': '输入按 Token 收费，输出免费',
+    'jev.m2': '支持视觉定位', 'jev.m2d': '定位准确率有限，不适合复杂推理任务',
+    'jev.m3': 'Midscene 多模型协作', 'jev.m3d': 'Jev 处理简单动作与判断，默认模型处理复杂任务',
     'fr.eb': 'Demo · 纯 Jev',
     'fr.h2': '水果连连看：<em>Jev 独立完成点击与定位</em>',
-    'fr.title': '水果连连看', 'fr.sub': '点击两张相同的水果，消除所有配对', 'fr.left': '剩余配对',
+    'fr.title': '水果连连看', 'fr.sub': '连接相同水果，路径不超过两次转弯', 'fr.left': '剩余配对',
     'fr.box': 'Jev · 定位', 'fr.check': 'Jev · 判断：已全部消除', 'fr.cleared': '🎉 全部消除',
-    'fr.note': '数据来自演示中的单次运行。“单步”指一次模型调用，耗时不含页面操作和等待；按 Jev 输入 $0.042 / 百万 Token、输出免费计算。',
+    'fr.note': '数据来自演示中的单次运行。“单步”指一次模型调用，耗时不含页面操作和等待；Jev 费用按输入 $0.042／百万 Token、输出免费计算，单价来自 TypeSafe 官网。',
     'rg.eb': 'Demo · Jev + DeepSeek',
     'rg.h2': '注册表单：<em>Jev 负责操作，DeepSeek 生成输入</em>',
     'rg.lj': 'Jev · 点击、定位、下拉选择、完成判断', 'rg.ld': 'DeepSeek · 生成邮箱、密码、用户名',
     'rg.loc': 'Jev · 定位', 'rg.gen': 'DeepSeek · 生成输入', 'rg.pick': 'Jev · 选择',
     'rg.done': '完成判断：注册表单已提交',
-    'rg.note': '以下数据<b>仅统计 Jev，不包含 DeepSeek</b>。数据来自演示中的单次运行，按 Jev 输入 $0.042 / 百万 Token、输出免费计算。',
+    'rg.note': '以下数据<b>仅统计 Jev，不包含 DeepSeek</b>。数据来自演示中的单次运行。Jev 费用按输入 $0.042／百万 Token、输出免费计算，单价来自 TypeSafe 官网。',
     'm.calls': '次 Jev 调用', 'm.lat': '单步耗时', 'm.tok': '输入 Token', 'm.cost': '模型费用',
-    'm.avg': '平均', 'm.p50': 'P50', 'm.per': '平均每步', 'm.total': '总计',
+    'm.avg': '平均（秒）', 'm.p50': 'P50（秒）', 'm.per': '平均每步', 'm.total': '总计',
+    'out.summary': '更快响应、更低成本',
+    'out.cta': '立即体验',
+    'out.latency': '低于 0.9 秒',
     'out.s1': 'Jev 单步模型耗时（平均）', 'out.s1d': '水果连连看 0.887 秒 · 注册表单 0.583 秒',
     'out.s2': '一局水果连连看的 Jev 费用', 'out.s2d': '共 101,421 输入 Token，输出免费',
   },
@@ -466,14 +574,29 @@ const I18N = {
     'cover.slogan': 'Release highlights',
     'hl.siwc': 'Use your ChatGPT subscription',
     'hl.jev': 'Experimental Jev 1.14 support',
-    'hl.siwcd': 'Call GPT models without an API key', 'hl.jevd': 'Fast, low-cost localization and checks',
+    'hl.siwcd': 'Call GPT models without purchasing an API key', 'hl.jevd': 'Fast, low-cost localization and checks',
     'siwc.eb': 'Sign in with ChatGPT (SIWC)',
-    'siwc.h2': 'No API key. <em>Call GPT models with your ChatGPT plan.</em>',
+    'siwc.h2': 'No API key purchase required. <em>Call GPT models with your ChatGPT plan.</em>',
     'siwc.ext': 'Browser extension',
+    'siwc.confirmUsage': 'Authorize Midscene to use your ChatGPT plan? Model usage counts toward your plan allowance.',
+    'siwc.confirmTab': 'Authorization opens in a new tab. Afterwards, return to the extension and paste your model configuration.',
+    'siwc.cancel': 'Cancel',
+    'siwc.continue': 'Continue to ChatGPT',
     'siwc.plan': 'Allow Midscene Chrome Extension to consume usage from your ChatGPT plan’s limits',
     'siwc.okp': 'Credentials are saved locally in the Midscene extension on this browser. Midscene does not collect your credentials.',
     'siwc.hint': 'One KEY=VALUE per line, saved locally in your browser.',
     'siwc.vok': '✓ Connected',
+    'siwc.demoTitle': 'Notifications',
+    'siwc.notifications': 'Email notifications',
+    'siwc.save': 'Save',
+    'siwc.savedPage': '✓ Notification settings saved',
+    'siwc.run': 'Run',
+    'siwc.prompt': 'Enable email notifications, then save the settings.',
+    'siwc.running': 'GPT is observing the page…',
+    'siwc.step1': '✓ Click email notifications',
+    'siwc.step2': '✓ Click Save',
+    'siwc.done': '✓ Task completed',
+    'siwc.copied': '✓ Configuration copied',
     'siwc.saved': 'Credentials saved to ~/.midscene/siwc.json',
     'siwc.p1': 'Extension and CLI / SDK',
     'siwc.p1d': 'One-click authorization in the extension; sign in once from the CLI for scripts',
@@ -488,26 +611,29 @@ const I18N = {
     'jev.tasks': [
       ['J', 'Element localization', 'Locate'],
       ['J', 'Click, double-click, back', 'aiAct · simple actions'],
-      ['D', 'Typing, scrolling', 'aiAct · complex actions'],
       ['J', 'Condition checks', 'aiAssert · aiBoolean · aiWaitFor'],
+      ['D', 'Typing, scrolling', 'aiAct · complex actions'],
       ['D', 'Extraction and Q&A', 'aiQuery · aiString · aiNumber · aiAsk'],
     ],
-    'jev.m1': 'Experimental', 'jev.m1d': 'Fast and low-cost, but not suited to tasks that need complex reasoning',
-    'jev.m2': 'No fallback', 'jev.m2d': 'If a Jev request fails, Midscene does not switch to the default model',
-    'jev.m3': 'Image size', 'jev.m3d': 'Keep the screenshot’s longest edge within 1568 px via screenshotShrinkFactor',
+    'jev.m1': 'Fast and low-cost', 'jev.m1d': 'Input tokens are billed; output is free',
+    'jev.m2': 'Visual localization', 'jev.m2d': 'Limited localization accuracy; not suited to complex reasoning',
+    'jev.m3': 'Multi-model support in Midscene', 'jev.m3d': 'Jev handles simple actions and judgments; the default model handles complex tasks',
     'fr.eb': 'Demo · Jev only',
     'fr.h2': 'Fruit tile matching: <em>Jev clicks and locates on its own</em>',
-    'fr.title': 'Fruit Match', 'fr.sub': 'Tap two matching fruits to clear every pair', 'fr.left': 'Pairs left',
+    'fr.title': 'Fruit Match', 'fr.sub': 'Connect matching fruits with at most two turns', 'fr.left': 'Pairs left',
     'fr.box': 'Jev · locate', 'fr.check': 'Jev · check: all cleared', 'fr.cleared': '🎉 All cleared',
-    'fr.note': 'Measured from a single run of the demo. A step is one model call; latency excludes page actions and waits. Costs assume $0.042 per million Jev input tokens, with output free.',
+    'fr.note': 'Measured from a single run of the demo. A step is one model call; latency excludes page actions and waits. Jev costs are calculated at $0.042 per million input tokens, with free output. Unit pricing is from the official TypeSafe website.',
     'rg.eb': 'Demo · Jev + DeepSeek',
     'rg.h2': 'Registration form: <em>Jev acts, DeepSeek writes the inputs</em>',
     'rg.lj': 'Jev · clicks, locate, dropdown, completion check', 'rg.ld': 'DeepSeek · email, password, username',
     'rg.loc': 'Jev · locate', 'rg.gen': 'DeepSeek · input', 'rg.pick': 'Jev · select',
     'rg.done': 'Completion check: the form was submitted',
-    'rg.note': 'These numbers <b>cover Jev only and exclude DeepSeek</b>. Measured from a single run of the demo at $0.042 per million Jev input tokens, with output free.',
+    'rg.note': 'These numbers <b>cover Jev only and exclude DeepSeek</b>. Measured from a single run of the demo. Jev costs are calculated at $0.042 per million input tokens, with free output. Unit pricing is from the official TypeSafe website.',
     'm.calls': 'Jev calls', 'm.lat': 'Latency', 'm.tok': 'Input tokens', 'm.cost': 'Model cost',
-    'm.avg': 'avg', 'm.p50': 'P50', 'm.per': 'avg per call', 'm.total': 'total',
+    'm.avg': 'Average (seconds)', 'm.p50': 'P50 (seconds)', 'm.per': 'avg per call', 'm.total': 'total',
+    'out.summary': 'Faster responses, lower costs',
+    'out.cta': 'Try it now',
+    'out.latency': 'Under 0.9 s',
     'out.s1': 'Jev latency per call (avg)', 'out.s1d': 'Tile matching 0.887 s · registration form 0.583 s',
     'out.s2': 'Jev cost for a full tile-matching run', 'out.s2d': '101,421 input tokens in total, output free',
   },
@@ -633,7 +759,7 @@ const I18N = {
     void d.offsetWidth; d.classList.add('in');
     return d;
   }
-  function pointer(box, cursor) {
+  function pointer(box, cursor, { clickRipple = true } = {}) {
     return {
       move(el, dx = 0.5, dy = 0.55) {
         const r = rel(el, box);
@@ -642,6 +768,12 @@ const I18N = {
         cursor.style.top = `${r.y + r.h * dy}px`;
       },
       click() {
+        if (!clickRipple) {
+          cursor.classList.remove('pressing');
+          void cursor.offsetWidth;
+          cursor.classList.add('pressing');
+          return;
+        }
         const rp = document.createElement('div');
         rp.className = 'ripple';
         rp.style.left = cursor.style.left; rp.style.top = cursor.style.top;
@@ -675,12 +807,12 @@ const I18N = {
     return { line, type };
   }
 
-  // Metrics panel shared by both Jev demos; values come straight from the v1.17 highlight notes.
+  // Metrics panel shared by both Jev demos; values come straight from the v1.17.0 highlight notes.
   function metrics(root, panel, m, from, runMs, note) {
     panel.innerHTML = `
       <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span>Jev · jev-1.14.0</div>
       <div class="mt-calls"><b class="grad" id="mcalls">0</b><span>/ ${m.calls} ${tr('m.calls')}</span></div>
-      <div class="mrow"><span class="lbl">${tr('m.lat')}</span><span class="v"><span id="mLatA">–</span><small>${tr('m.avg')} · s</small></span><span class="v"><span id="mLatP">–</span><small>${tr('m.p50')} · s</small></span></div>
+      <div class="mrow"><span class="lbl">${tr('m.lat')}</span><span class="v"><span id="mLatA">–</span><small>${tr('m.avg')}</small></span><span class="v"><span id="mLatP">–</span><small>${tr('m.p50')}</small></span></div>
       <div class="mrow"><span class="lbl">${tr('m.tok')}</span><span class="v"><span id="mTokA">–</span><small>${tr('m.per')}</small></span><span class="v grad"><span id="mTokT">0</span><small style="color:var(--faint)">${tr('m.total')}</small></span></div>
       <div class="mrow"><span class="lbl">${tr('m.cost')}</span><span class="v"><span id="mCostA">–</span><small>${tr('m.per')}</small></span><span class="v grad"><span id="mCostT">$0</span><small style="color:var(--faint)">${tr('m.total')}</small></span></div>
       <div class="mnote">${note}</div>`;
@@ -703,22 +835,76 @@ const I18N = {
   /* ---------- scene scripts ---------- */
   const SCRIPTS = {
     's-siwc'(root) {
-      const bw = q(root, '#bw'), p = pointer(bw, q(root, '#cur1'));
+      const bw = q(root, '#bw'), p = pointer(bw, q(root, '#cur1'), { clickRipple: false });
+      const automaticPointer = pointer(q(root, '#bpage'), q(root, '#autoPointer'));
       const pages = { site: q(root, '#pgSite'), gpt: q(root, '#pgGpt'), ok: q(root, '#pgOk') };
-      const go = (name, url) => { Object.values(pages).forEach((x) => x.classList.remove('on')); pages[name].classList.add('on'); q(root, '#burl').textContent = url; };
+      const go = (name, url) => {
+        Object.values(pages).forEach((x) => x.classList.remove('on'));
+        pages[name].classList.add('on');
+        q(root, '#burl').textContent = url;
+        const isAuth = name !== 'site';
+        bw.classList.toggle('auth-tab', isAuth);
+        q(root, '#taskTab').classList.toggle('active', !isAuth);
+        q(root, '#authTab').classList.toggle('active', isAuth);
+        if (isAuth) {
+          q(root, '#authTab').hidden = false;
+        }
+      };
       const ENV = 'MIDSCENE_MODEL_AUTH_MODE="siwc"\nMIDSCENE_MODEL_NAME="gpt-6-sol"\nMIDSCENE_MODEL_FAMILY="gpt-6"';
-      // Browser extension: plan link → ChatGPT consent → success page → paste config → verify
-      at(1300, () => p.move(q(root, '#planlink'), 0.6, 0.6));
-      at(1900, () => { q(root, '#planlink').classList.add('flash'); p.click(); });
-      at(2300, () => go('gpt', 'https://auth.openai.com/sign-in-with-chatgpt/consent'));
-      at(2500, () => q(root, '#planlink').classList.remove('flash'));
-      at(3300, () => p.move(q(root, '#allow'), 0.5, 0.55));
-      at(3900, () => { p.click(); const b = q(root, '#allow'); b.classList.add('busy'); b.textContent = '…'; });
-      at(4700, () => go('ok', 'chrome-extension://…/siwc.html'));
-      [...ENV].forEach((ch, i) => at(4900 + i * 14, () => { q(root, '#okenv').textContent += ch; }));
-      at(6500, () => { const ta = q(root, '#ta'); ta.textContent = ENV; ta.style.background = 'rgb(16 163 127 / 6%)'; });
-      at(7000, () => p.move(q(root, '#vbtn'), 0.5, 0.6));
-      at(7600, () => { p.click(); show(q(root, '#vres')); });
+      // Animated walkthrough: authorize → copy/paste config → run a task → show page changes.
+      at(1500, () => p.move(q(root, '#planlink'), 0.6, 0.6));
+      at(2100, () => { q(root, '#planlink').classList.add('flash'); p.click(); });
+      at(2500, () => { q(root, '#authConfirm').hidden = false; });
+      at(3700, () => p.move(q(root, '#confirmAuth')));
+      at(4300, () => p.click());
+      at(5000, () => {
+        q(root, '#authConfirm').hidden = true;
+        go('gpt', 'https://auth.openai.com/sign-in-with-chatgpt/consent');
+      });
+      at(5200, () => q(root, '#planlink').classList.remove('flash'));
+      at(6500, () => p.move(q(root, '#allow'), 0.5, 0.55));
+      at(7100, () => { p.click(); const b = q(root, '#allow'); b.classList.add('busy'); b.textContent = '…'; });
+      at(8200, () => go('ok', 'chrome-extension://…/siwc.html'));
+      [...ENV].forEach((ch, i) => at(8500 + i * 14, () => { q(root, '#okenv').textContent += ch; }));
+      at(11200, () => p.move(q(root, '#copyConfig')));
+      at(11800, () => { p.click(); q(root, '#copyConfig').textContent = tr('siwc.copied'); });
+      at(12800, () => p.move(q(root, '#taskTab')));
+      at(13400, () => { p.click(); go('site', 'https://example.com/settings'); });
+      at(14200, () => p.move(q(root, '#ta'), 0.4, 0.4));
+      at(14800, () => { p.click(); const ta = q(root, '#ta'); ta.textContent = ENV; ta.style.background = 'rgb(16 163 127 / 6%)'; });
+      at(16100, () => p.move(q(root, '#vbtn')));
+      at(16700, () => {
+        p.click();
+        q(root, '#configDialog').hidden = true;
+        q(root, '#siwcRunner').hidden = false;
+        go('site', 'https://example.com/settings');
+      });
+      at(17500, () => p.move(q(root, '#siwcPrompt'), 0.3, 0.3));
+      at(18100, () => p.click());
+      const promptCharacters = [...tr('siwc.prompt')];
+      const promptEnd = 18400 + (promptCharacters.length - 1) * 40;
+      const runAt = promptEnd + 800;
+      promptCharacters.forEach((ch, i) => at(18400 + i * 40, () => { q(root, '#siwcPrompt').textContent += ch; }));
+      at(runAt - 500, () => p.move(q(root, '#siwcRun')));
+      at(runAt, () => { p.click(); q(root, '#siwcStatus').textContent = tr('siwc.running'); });
+      at(runAt + 1400, () => { bbox(bw, q(root, '#demoToggle'), 'GPT · Locate'); automaticPointer.move(q(root, '#demoToggle'), 0.5, 0.5); });
+      at(runAt + 2000, () => {
+        automaticPointer.click(); q(root, '#demoToggle').classList.add('on');
+        q(root, '#siwcStatus').textContent = tr('siwc.step1');
+        qa(bw, '.bbox').forEach((box) => box.remove());
+      });
+      at(runAt + 3200, () => { bbox(bw, q(root, '#demoSave'), 'GPT · Locate'); automaticPointer.move(q(root, '#demoSave'), 0.5, 0.5); });
+      at(runAt + 3800, () => {
+        automaticPointer.click(); show(q(root, '#demoSuccess'));
+        q(root, '#siwcStatus').textContent += '\n' + tr('siwc.step2');
+        qa(bw, '.bbox').forEach((box) => box.remove());
+      });
+      at(runAt + 5000, () => {
+        const status = q(root, '#siwcStatus');
+        status.textContent += '\n' + tr('siwc.done'); status.classList.add('done');
+        q(root, '#cur1').classList.remove('in');
+        q(root, '#autoPointer').classList.remove('in');
+      });
       // CLI / SDK: login once, then verify
       const { line, type } = terminal(q(root, '#term'));
       let tt = type('pnpm dlx @midscene/cli model siwc login', 1500, 32);
@@ -747,11 +933,38 @@ const I18N = {
     's-fruit'(root) {
       // 7 pairs in a 4x4 board; the remaining two cells are empty slots.
       const FRUITS = ['🍊', '🍎', '🍇', '🍋', '🍉', '🍑', '🍐'];
-      const layout = [0, 1, 2, 3, 4, 0, 5, -1, 6, 2, 1, 4, 3, -1, 5, 6];
+      const layout = [3, 6, 5, 2, 4, -1, 1, 5, 3, 0, -1, 2, 4, 6, 0, 1];
+      // Routes follow FRUITS order through empty cells (including the outer border).
+      // Coordinates are [row, column]; each route has at most two turns.
+      const routes = [
+        [[2, 1], [2, 2], [3, 2]],
+        [[1, 2], [3, 2], [3, 3]],
+        [[0, 3], [0, 4], [2, 4], [2, 3]],
+        [[0, 0], [0, -1], [2, -1], [2, 0]],
+        [[1, 0], [3, 0]],
+        [[0, 2], [0, 3], [1, 3]],
+        [[0, 1], [3, 1]],
+      ];
       const board = q(root, '#board');
       board.innerHTML = layout.map((f) => (f < 0 ? '<div class="tile slot"></div>' : `<div class="tile" data-f="${f}">${FRUITS[f]}</div>`)).join('') + `<div class="cleared" id="cleared">${tr('fr.cleared')}</div>`;
       const wrap = q(root, '#fwrap'), p = pointer(wrap, q(root, '#cur2'));
       const tiles = qa(board, '.tile[data-f]');
+      const cells = qa(board, '.tile');
+      const drawRoute = (route) => {
+        const bounds = rel(board, wrap);
+        const points = route.map(([row, col]) => {
+          const cell = rel(cells[row * 4 + Math.max(0, Math.min(3, col))], board);
+          const x = col < 0 ? 13 : col > 3 ? bounds.w - 13 : cell.x + cell.w / 2;
+          return `${x},${cell.y + cell.h / 2}`;
+        }).join(' ');
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.classList.add('match-path');
+        svg.setAttribute('viewBox', `0 0 ${bounds.w} ${bounds.h}`);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        line.setAttribute('points', points);
+        svg.appendChild(line);
+        board.appendChild(svg);
+      };
       const RUN0 = 1600, STEP = 640;
       let tt = RUN0, left = 7;
       FRUITS.forEach((_, f) => {
@@ -760,7 +973,8 @@ const I18N = {
           at(tt, () => { qa(wrap, '.bbox').forEach((b) => b.remove()); bbox(wrap, tile, tr('fr.box')); p.move(tile); });
           at(tt + 380, () => { p.click(); tile.classList.add('sel'); });
           if (k === 1) {
-            at(tt + 560, () => { pair.forEach((x) => x.classList.add('gone')); qa(wrap, '.bbox').forEach((b) => b.remove()); q(root, '#pairs').textContent = String(--left); });
+            at(tt + 380, () => drawRoute(routes[f]));
+            at(tt + 560, () => { pair.forEach((x) => x.classList.add('gone')); qa(board, '.match-path').forEach((line) => line.remove()); qa(wrap, '.bbox').forEach((b) => b.remove()); q(root, '#pairs').textContent = String(--left); });
           }
           tt += STEP;
         });
@@ -805,7 +1019,16 @@ const I18N = {
     },
 
     's-outro'(root) {
-      at(3600, () => root.classList.add('final'));
+      const address = q(root, '#outroAddress');
+      [...'midscenejs.com'].forEach((character, i) => at(3500 + i * 90, () => {
+        q(root, '#outroUrl').textContent += character;
+      }));
+      at(5000, () => q(root, '#outroGo').classList.add('pressed'));
+      at(5200, () => {
+        address.classList.add('opened');
+        q(root, '#outroGo').classList.remove('pressed');
+        q(root, '#outroGo').textContent = '☆';
+      });
     },
   };
 
