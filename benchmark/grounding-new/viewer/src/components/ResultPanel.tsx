@@ -12,10 +12,10 @@ export function ResultStatus({ result }: { result?: EvaluationResult }) {
     <span className={`evaluation-status ${status}`}>
       {
         {
-          pending: '暂无结果',
-          error: '执行出错',
-          passed: '通过',
-          failed: '未通过',
+          pending: 'No result',
+          error: 'Error',
+          passed: 'Passed',
+          failed: 'Failed',
         }[status]
       }
     </span>
@@ -23,10 +23,10 @@ export function ResultStatus({ result }: { result?: EvaluationResult }) {
 }
 
 export function ResultPanel({
-  runId,
+  evaluationId,
   result,
 }: {
-  runId: string;
+  evaluationId: string;
   result: EvaluationResult;
 }) {
   const { input, output, profiling } = result;
@@ -34,12 +34,10 @@ export function ResultPanel({
   return (
     <section
       className="detail-section evaluation-section"
-      aria-label="评测结果"
+      aria-label="Evaluation result"
     >
       <div className="evaluation-heading">
-        <h3>
-          评测结果 <span className="section-label">Evaluation</span>
-        </h3>
+        <h3>Evaluation result</h3>
       </div>
       <div className="evaluation-summary">
         <ResultStatus result={result} />
@@ -47,64 +45,68 @@ export function ResultPanel({
       </div>
       <dl className="reference-fields evaluation-metadata">
         <div>
-          <dt>Run</dt>
-          <dd>{runId}</dd>
+          <dt>Evaluation</dt>
+          <dd>{evaluationId}</dd>
         </div>
         <div>
-          <dt>模型</dt>
+          <dt>Model</dt>
           <dd>{input.model}</dd>
         </div>
         {profiling.totalTokens !== undefined && (
           <div>
-            <dt>Tokens</dt>
-            <dd>{profiling.totalTokens.toLocaleString()}</dd>
+            <dt>Total tokens</dt>
+            <dd>{profiling.totalTokens.toLocaleString('en-US')}</dd>
           </div>
         )}
         {profiling.totalCachedInput !== undefined && (
           <div>
-            <dt>缓存输入</dt>
-            <dd>{profiling.totalCachedInput.toLocaleString()}</dd>
+            <dt>Cached input tokens</dt>
+            <dd>{profiling.totalCachedInput.toLocaleString('en-US')}</dd>
           </div>
         )}
         {profiling.calls !== undefined && (
           <div>
-            <dt>模型调用</dt>
+            <dt>Model calls</dt>
             <dd>{profiling.calls}</dd>
           </div>
         )}
         {profiling.totalTimeCostMs !== undefined && (
           <div>
-            <dt>模型耗时</dt>
+            <dt>Model duration</dt>
             <dd>{(profiling.totalTimeCostMs / 1000).toFixed(2)} s</dd>
           </div>
         )}
       </dl>
       <div className="prediction-value">
-        <span className="field-hint">模型预测</span>
+        <span className="field-hint">Prediction</span>
         {output.type === 'POINT' ? (
           <code>
-            {output.center ? `[${output.center.join(', ')}]` : '未返回预测坐标'}
+            {output.center
+              ? `[${output.center.join(', ')}]`
+              : 'No prediction coordinates returned'}
           </code>
         ) : (
-          <strong>{output.type === 'REFUSAL' ? '拒识' : '执行异常'}</strong>
+          <strong>{output.type === 'REFUSAL' ? 'Refusal' : 'Error'}</strong>
         )}
         {output.type === 'POINT' && (
-          <span className="field-hint">原图像素坐标 · [x, y]</span>
+          <span className="field-hint">Original image pixels · [x, y]</span>
         )}
       </div>
       {output.error && <pre className="evaluation-error">{output.error}</pre>}
       <details className="evaluation-snapshot">
-        <summary>执行指令与标注</summary>
+        <summary>Instruction and ground truth</summary>
         <p>{input.instruction}</p>
         <p className="field-hint">
-          运行时 Ground Truth · [top, right, bottom, left]
+          Ground truth at evaluation time · [top, right, bottom, left]
         </p>
         <code className="ground-truth">
           {JSON.stringify(input.groundTruth)}
         </code>
         {output.type === 'POINT' && output.rect && (
           <>
-            <p className="field-hint">预测框 · [left, top, width, height]</p>
+            <p className="field-hint">
+              Prediction box · [left, top, width, height]
+            </p>
             <code className="ground-truth">
               {JSON.stringify([
                 output.rect.left,
@@ -121,7 +123,7 @@ export function ResultPanel({
       </details>
       {(profiling.byIntent || profiling.byModel) && (
         <details className="evaluation-snapshot">
-          <summary>模型调用明细</summary>
+          <summary>Model call details</summary>
           <pre>
             {JSON.stringify(
               { byIntent: profiling.byIntent, byModel: profiling.byModel },
@@ -137,7 +139,7 @@ export function ResultPanel({
         target="_blank"
         rel="noopener noreferrer"
       >
-        查看结果 JSON ↗
+        View result JSON ↗
       </a>
     </section>
   );

@@ -8,7 +8,7 @@
   --muted: #748195;
   --line: #e4e9f0;
   --accent: #2563eb;
-  --sidebar-width: 376px;
+  --sidebar-width: 352px;
 }
 
 * {
@@ -68,14 +68,17 @@ select {
 }
 .app-header {
   flex-shrink: 0;
-  height: 68px;
   background: #fff;
   border-bottom: 1px solid var(--line);
   padding: 0 25px;
+}
+.app-toolbar {
+  min-height: 68px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+}
+.app-header .filters {
+  margin-bottom: 8px;
 }
 .brand {
   flex-shrink: 0;
@@ -105,8 +108,8 @@ select {
 }
 .page-navigation {
   display: flex;
-  flex-shrink: 0;
   gap: 4px;
+  padding-bottom: 10px;
 }
 .page-navigation a {
   padding: 9px 11px;
@@ -120,9 +123,6 @@ select {
   background: #edf4ff;
   color: #1d4ed8;
   text-decoration: none;
-}
-.app-header:not(:has(.filters)) {
-  justify-content: flex-start;
 }
 .overview-page {
   flex: 1;
@@ -147,30 +147,22 @@ select {
   color: var(--muted);
   font-size: 12px;
 }
-.overview-actions {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 12px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.run-list {
+.evaluation-list {
   list-style: none;
   padding: 0;
   margin: 0;
   display: grid;
   gap: 12px;
 }
-.run-group {
+.evaluation-group {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
 }
-.run-group-heading {
+.evaluation-group-heading {
   margin: 0;
 }
-.run-toggle {
+.evaluation-toggle {
   display: flex;
   width: 100%;
   min-width: 0;
@@ -185,38 +177,38 @@ select {
   text-align: left;
   font-size: 12px;
 }
-.run-toggle:hover {
+.evaluation-toggle:hover {
   background: #f5f8fc;
 }
-.run-chevron {
+.evaluation-chevron {
   color: var(--muted);
   font-size: 24px;
   line-height: 1;
   transition: transform .15s;
 }
-.run-toggle[aria-expanded="true"] .run-chevron {
+.evaluation-toggle[aria-expanded="true"] .evaluation-chevron {
   transform: rotate(90deg);
 }
-.run-identity strong {
+.evaluation-identity strong {
   display: block;
   margin-bottom: 5px;
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 14px;
 }
-.run-identity time,
-.run-summary-meta {
+.evaluation-identity time,
+.evaluation-summary-meta {
   color: var(--muted);
 }
-.run-summary-meta {
+.evaluation-summary-meta {
   margin-left: auto;
 }
-.run-group-content {
+.evaluation-group-content {
   padding: 20px;
   border-top: 1px solid var(--line);
   border-radius: 0 0 8px 8px;
   background: #fafbfd;
 }
-.run-load-error {
+.evaluation-load-error {
   color: #b42318;
   font-size: 12px;
 }
@@ -291,7 +283,7 @@ select {
   font-weight: 500;
 }
 .model-card-metrics th:first-child {
-  width: 40%;
+  width: 60%;
   text-align: left;
   padding-left: 0;
 }
@@ -322,7 +314,7 @@ select {
 .model-card-estimate-note p {
   margin: 3px 0;
 }
-.benchmark-link {
+.testcase-link {
   display: inline-block;
   margin-top: 7px;
   font-size: 11px;
@@ -583,6 +575,11 @@ select {
   font-size: 12px;
 }
 .sidebar-footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border-top: 1px solid var(--line);
   padding: 12px 22px;
   color: #98a2b2;
@@ -878,11 +875,6 @@ select {
   font-weight: 650;
   margin: 0 0 15px;
 }
-.section-label {
-  color: #99a4b5;
-  font-size: 10px;
-  font-weight: 400;
-}
 .evaluation-section {
   background: #fcfdff;
 }
@@ -1170,7 +1162,7 @@ code,
 
 @media (min-width: 1750px) {
   :root {
-    --sidebar-width: 406px;
+    --sidebar-width: 382px;
   }
   .case-workspace {
     grid-template-columns: minmax(0, 1fr) 400px;
@@ -1181,7 +1173,7 @@ code,
 }
 @media (max-width: 1260px) {
   :root {
-    --sidebar-width: 332px;
+    --sidebar-width: 320px;
   }
   .case-workspace {
     grid-template-columns: minmax(0, 1fr) 300px;
@@ -1263,15 +1255,13 @@ code,
   }
   .app-header {
     padding: 0 17px;
-    height: auto;
+  }
+  .app-toolbar {
     min-height: 62px;
     flex-wrap: wrap;
     gap: 8px 16px;
     padding-top: 10px;
     padding-bottom: 10px;
-  }
-  .app-header .filters {
-    flex-basis: 100%;
   }
   .overview-page {
     padding: 24px 17px;
@@ -1301,9 +1291,6 @@ code,
   .case-navigation {
     max-height: 230px;
     min-height: 120px;
-  }
-  .sidebar-footer {
-    display: none;
   }
   .case-heading {
     padding: 20px 18px;

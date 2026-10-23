@@ -53,7 +53,9 @@ export function ScreenshotPanel({
     () => originalImageUrl(testcase.imageUrl),
     [testcase.imageUrl],
   );
-  const error = imageUrl ? imageError : '图片地址无效，无法加载原始截图。';
+  const error = imageUrl
+    ? imageError
+    : 'The screenshot could not be loaded because its URL is invalid.';
   const loaded = dimensions !== null && error === null;
   const groundTruth = result?.input.groundTruth ?? testcase.groundTruth;
   const refusal = groundTruth === 'REFUSAL';
@@ -123,7 +125,7 @@ export function ScreenshotPanel({
     const image = event.currentTarget;
     if (image !== imageRef.current) return;
     if (!image.naturalWidth || !image.naturalHeight) {
-      setImageError('原图加载失败，请重试。');
+      setImageError('Failed to load the screenshot. Please try again.');
       return;
     }
     setDimensions({
@@ -145,21 +147,24 @@ export function ScreenshotPanel({
   return (
     <section
       className="image-panel"
-      aria-label="原始截图、Ground Truth 与模型预测"
+      aria-label="Screenshot, ground truth, and prediction"
     >
-      <section className="image-toolbar" aria-label="截图工具">
+      <section className="image-toolbar" aria-label="Screenshot controls">
         <div className="image-caption">
-          <strong>原始截图</strong>
+          <strong>Screenshot</strong>
           <span id="image-dimensions" className="image-dimensions">
             {error
-              ? '加载失败'
+              ? 'Failed to load'
               : dimensions
                 ? `${dimensions.width} × ${dimensions.height} px`
-                : '加载中…'}
+                : 'Loading…'}
           </span>
         </div>
         <div className="image-actions">
-          <label className="gt-toggle" title="在截图上显示 Ground Truth 边界框">
+          <label
+            className="gt-toggle"
+            title="Show the ground truth box on the screenshot"
+          >
             <input
               id="show-gt"
               type="checkbox"
@@ -167,10 +172,13 @@ export function ScreenshotPanel({
               disabled={refusal}
               onChange={(event) => onShowGTChange(event.target.checked)}
             />
-            <span>显示 Ground Truth</span>
+            <span>Show ground truth</span>
           </label>
           {result && (
-            <label className="gt-toggle" title="在截图上显示模型预测位置">
+            <label
+              className="gt-toggle"
+              title="Show the prediction on the screenshot"
+            >
               <input
                 id="show-prediction"
                 type="checkbox"
@@ -180,24 +188,24 @@ export function ScreenshotPanel({
                   onShowPredictionChange(event.target.checked)
                 }
               />
-              <span>显示预测</span>
+              <span>Show prediction</span>
             </label>
           )}
-          <section className="zoom-controls" aria-label="截图缩放">
+          <section className="zoom-controls" aria-label="Screenshot zoom">
             <button
               id="zoom-fit"
               type="button"
               aria-pressed={zoom === 'fit'}
-              title="完整显示截图"
+              title="Fit the entire screenshot in view"
               onClick={() => onZoomChange('fit')}
             >
-              适应
+              Fit
             </button>
             <button
               id="zoom-actual"
               type="button"
               aria-pressed={zoom === 'actual'}
-              title="按原始像素显示截图"
+              title="Show the screenshot at its original size"
               onClick={() => onZoomChange('actual')}
             >
               100%
@@ -209,9 +217,9 @@ export function ScreenshotPanel({
             href={imageUrl ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
-            title="在新标签页打开原图"
+            title="Open the original image in a new tab"
           >
-            原图 ↗
+            Original image ↗
           </a>
         </div>
       </section>
@@ -222,7 +230,7 @@ export function ScreenshotPanel({
           aria-live="polite"
           hidden={loaded}
         >
-          <span id="image-state-message">{error ?? '正在加载原图…'}</span>
+          <span id="image-state-message">{error ?? 'Loading screenshot…'}</span>
           <button
             id="retry-image"
             className="button"
@@ -230,7 +238,7 @@ export function ScreenshotPanel({
             hidden={!error}
             onClick={retryImage}
           >
-            重试图片
+            Retry
           </button>
         </output>
         <section
@@ -240,7 +248,7 @@ export function ScreenshotPanel({
           // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to scroll the original image.
           tabIndex={0}
           data-zoom={zoom}
-          aria-label="截图，可在 100% 模式下滚动查看"
+          aria-label="Screenshot; scroll to explore at 100% zoom"
           hidden={!loaded}
         >
           <div className="image-centering">
@@ -262,12 +270,14 @@ export function ScreenshotPanel({
                   ref={imageRef}
                   className="screenshot"
                   src={imageUrl}
-                  alt={`${testcase.name} 原始截图`}
+                  alt={`Screenshot for ${testcase.name}`}
                   draggable={false}
                   onLoad={onImageLoad}
                   onError={(event) => {
                     if (event.currentTarget === imageRef.current) {
-                      setImageError('原图加载失败，请重试。');
+                      setImageError(
+                        'Failed to load the screenshot. Please try again.',
+                      );
                     }
                   }}
                 />
@@ -275,7 +285,7 @@ export function ScreenshotPanel({
               {groundTruthStyle && (
                 <div
                   className="gt-box"
-                  aria-label="Ground Truth 边界框"
+                  aria-label="Ground truth box"
                   style={groundTruthStyle}
                   hidden={!showGT}
                 >
@@ -287,20 +297,20 @@ export function ScreenshotPanel({
               {predictionBoxStyle && (
                 <div
                   className="prediction-box"
-                  aria-label="模型预测边界框"
+                  aria-label="Prediction box"
                   style={predictionBoxStyle}
                   hidden={!showPrediction}
                 >
                   <span className="prediction-box-label" aria-hidden="true">
-                    预测
+                    Prediction
                   </span>
                 </div>
               )}
               {predictionPointStyle && (
                 <div
                   className="prediction-point"
-                  aria-label="模型预测坐标"
-                  title={`预测坐标 [${prediction?.center?.join(', ')}]`}
+                  aria-label="Prediction coordinates"
+                  title={`Prediction coordinates [${prediction?.center?.join(', ')}]`}
                   style={predictionPointStyle}
                   hidden={!showPrediction}
                 />
@@ -311,8 +321,10 @@ export function ScreenshotPanel({
       </div>
       <div className="image-footer">
         <span id="image-ground-truth">
-          {result ? '运行时 ' : ''}
-          {refusal ? 'REFUSAL · 无目标框' : `GT ${coordinateText}`}
+          {result ? 'Evaluation snapshot · ' : ''}
+          {refusal
+            ? 'Refusal · No target box'
+            : `Ground truth ${coordinateText}`}
         </span>
         <span id="zoom-value">
           {loaded ? `${Math.round(scale * 100)}%` : ''}

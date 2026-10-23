@@ -33,7 +33,7 @@ export async function createDatasetApp() {
     context.header('Cache-Control', 'no-store');
     return context.json({ testcases });
   });
-  app.get('/api/runs', async (context) => {
+  app.get('/api/evaluations', async (context) => {
     const entries = await readdir(outputRoot, { withFileTypes: true }).catch(
       (error) => {
         if (error.code !== 'ENOENT') throw error;
@@ -41,16 +41,16 @@ export async function createDatasetApp() {
       },
     );
     return context.json({
-      runs: entries
+      evaluations: entries
         .filter((entry) => entry.isDirectory())
         .map((entry) => entry.name)
         .sort((left, right) => Number(right) - Number(left)),
     });
   });
-  app.get('/api/runs/:runId', async (context) => {
-    const runId = context.req.param('runId');
-    const runRoot = path.join(outputRoot, runId);
-    const entries = await readdir(runRoot, {
+  app.get('/api/evaluations/:evaluationId', async (context) => {
+    const evaluationId = context.req.param('evaluationId');
+    const evaluationRoot = path.join(outputRoot, evaluationId);
+    const entries = await readdir(evaluationRoot, {
       withFileTypes: true,
       recursive: true,
     }).catch((error) => {
@@ -64,13 +64,13 @@ export async function createDatasetApp() {
         .map(async (entry) => {
           const filename = path.join(entry.parentPath, entry.name);
           const relativePath = path
-            .relative(runRoot, filename)
+            .relative(evaluationRoot, filename)
             .split(path.sep)
             .join('/');
           return {
             ...JSON.parse(await readFile(filename, 'utf8')),
             id: relativePath.slice(0, -5),
-            jsonUrl: `/results/${encodeURIComponent(runId)}/${relativePath.split('/').map(encodeURIComponent).join('/')}`,
+            jsonUrl: `/results/${encodeURIComponent(evaluationId)}/${relativePath.split('/').map(encodeURIComponent).join('/')}`,
           };
         }),
     );
@@ -107,11 +107,11 @@ if (
   app.use('*', serveStatic({ root: distRoot }));
   for (const route of [
     '/',
-    '/benchmark',
-    '/benchmark/:name',
-    '/runs',
-    '/runs/:runId',
-    '/runs/:runId/:id',
+    '/testcases',
+    '/testcases/:name',
+    '/evaluations',
+    '/evaluations/:evaluationId',
+    '/evaluations/:evaluationId/:id',
   ]) {
     app.get(route, serveStatic({ path: path.join(distRoot, 'index.html') }));
   }

@@ -18,7 +18,7 @@ export default defineConfig(async (): Promise<RsbuildConfig> => {
       historyApiFallback: {
         rewrites: [
           {
-            from: /^\/(?:benchmark(?:\/[^/]+)?|runs(?:\/[^/]+){0,2})?\/?$/,
+            from: /^\/(?:testcases(?:\/[^/]+)?|evaluations(?:\/[^/]+){0,2})?\/?$/,
             to: '/index.html',
           },
           { from: /./, to: ({ parsedUrl }) => parsedUrl.pathname },

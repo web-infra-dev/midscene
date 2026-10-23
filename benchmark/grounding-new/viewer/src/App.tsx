@@ -48,31 +48,30 @@ function filterTestcases(testcases: TestcaseView[], filters: Filters) {
   });
 }
 
-function summarize(values: number[]) {
+function summarize(values: (number | undefined)[]) {
+  const samples = values.filter(
+    (value): value is number =>
+      value !== undefined && Number.isFinite(value) && value > 0,
+  );
   return {
-    geometricMean: values.length
-      ? values.includes(0)
-        ? 0
-        : Math.exp(
-            values.reduce((total, value) => total + Math.log(value), 0) /
-              values.length,
-          )
+    geometricMean: samples.length
+      ? Math.exp(
+          samples.reduce((total, value) => total + Math.log(value), 0) /
+            samples.length,
+        )
       : null,
-    arithmeticMean: values.length
-      ? values.reduce((total, value) => total + value, 0) / values.length
-      : null,
-    count: values.length,
+    count: samples.length,
   };
 }
 
 function ModelCards({
-  runId,
+  evaluationId,
   results,
 }: {
-  runId: string;
+  evaluationId: string;
   results: EvaluationResult[];
 }) {
-  const runPath = `/runs/${encodeURIComponent(runId)}`;
+  const evaluationPath = `/evaluations/${encodeURIComponent(evaluationId)}`;
   const modelSummaries = useMemo(
     () =>
       [...new Set(results.map((result) => result.input.model))]
@@ -118,8 +117,6 @@ function ModelCards({
                   calls * reference.performance.timeToFirstTokenMs +
                   (1000 * Math.max(output - calls, 0)) /
                     reference.performance.outputTokensPerSecond,
-                inputCost,
-                outputCost,
                 cost: inputCost + outputCost,
               },
             ];
@@ -130,30 +127,24 @@ function ModelCards({
             count: modelResults.length,
             passed: modelResults.filter((result) => result.output.correct)
               .length,
-            tokens: summarize(
-              modelResults.flatMap(({ profiling }) =>
-                profiling.totalTokens !== undefined &&
-                Number.isFinite(profiling.totalTokens) &&
-                profiling.totalTokens > 0
-                  ? [profiling.totalTokens]
-                  : [],
+            totalTokens: summarize(
+              modelResults.map(({ profiling }) => profiling.totalTokens),
+            ),
+            inputTokens: summarize(
+              modelResults.map(({ profiling }) => profiling.totalPromptTokens),
+            ),
+            outputTokens: summarize(
+              modelResults.map(
+                ({ profiling }) => profiling.totalCompletionTokens,
               ),
             ),
             duration: summarize(
-              modelResults
-                .map(({ profiling }) => profiling.durationMs)
-                .filter((value) => Number.isFinite(value) && value > 0),
+              modelResults.map(({ profiling }) => profiling.durationMs),
             ),
             estimatedDuration: summarize(
               estimates.map(({ durationMs }) => durationMs),
             ),
             estimatedCost: summarize(estimates.map(({ cost }) => cost)),
-            estimatedInputCost: summarize(
-              estimates.map(({ inputCost }) => inputCost),
-            ),
-            estimatedOutputCost: summarize(
-              estimates.map(({ outputCost }) => outputCost),
-            ),
             first: modelResults[0],
           };
         }),
@@ -168,128 +159,130 @@ function ModelCards({
           reference,
           count,
           passed,
-          tokens,
+          totalTokens,
+          inputTokens,
+          outputTokens,
           duration,
           estimatedDuration,
           estimatedCost,
-          estimatedInputCost,
-          estimatedOutputCost,
           first,
         }) => (
           <a
             key={model}
             className="model-card"
-            href={`${runPath}/${encodeURIComponent(first.id)}`}
+            href={`${evaluationPath}/${encodeURIComponent(first.id)}`}
           >
             <div className="model-card-heading">
               <strong>{model}</strong>
-              <span>查看结果 →</span>
+              <span>View details →</span>
             </div>
             <div className="model-card-pass-rate">
-              <span>通过率</span>
+              <span>Pass rate</span>
               <strong>{((passed / count) * 100).toFixed(1)}%</strong>
               <small>
-                {passed} / {count} 通过
+                {passed} / {count} passed
               </small>
             </div>
             <table className="model-card-metrics">
               <thead>
                 <tr>
-                  <th scope="col">指标 / 每题</th>
-                  <th scope="col">几何平均</th>
-                  <th scope="col">算术平均</th>
+                  <th scope="col">Metric</th>
+                  <th scope="col">Average</th>
                 </tr>
               </thead>
               <tbody>
                 {[
                   {
-                    label: 'Token 消耗',
-                    values: tokens,
+                    label: 'Total tokens',
+                    values: totalTokens,
                     unit: 'tokens',
-                    note: '仅统计大于 0 的 Token 消耗',
+                    note: 'Geometric mean of total tokens per test case, not the sum of the input and output token averages. Only positive values are included.',
                   },
                   {
-                    label: '实测耗时',
-                    values: duration,
-                    unit: 'seconds',
-                    note: '执行全过程耗时；仅统计大于 0 的记录',
+                    label: 'Input tokens',
+                    values: inputTokens,
+                    unit: 'tokens',
+                    note: 'Geometric mean of input tokens per test case. Only positive values are included.',
                   },
                   {
-                    label: '估算耗时',
+                    label: 'Output tokens',
+                    values: outputTokens,
+                    unit: 'tokens',
+                    note: 'Geometric mean of output tokens per test case. Only positive values are included.',
+                  },
+                  {
+                    label: 'Estimated duration',
                     values: estimatedDuration,
                     unit: 'seconds',
-                    note: '调用次数 × TTFT + max(输出 Token − 调用次数, 0) ÷ 吞吐量；按串行调用粗估，缺少用量或模型参考数据时不计入',
+                    note: 'Estimated from output tokens: calls × time to first token + max(output tokens − calls, 0) ÷ output throughput. Assumes sequential calls; excludes records with missing usage or model reference data.',
                   },
                   {
-                    label: '估算输入费用（USD）',
-                    values: estimatedInputCost,
-                    unit: 'USD',
-                    note: '每题输入 Token × OpenRouter 页首输入单价；未计缓存折扣',
-                  },
-                  {
-                    label: '估算输出费用（USD）',
-                    values: estimatedOutputCost,
-                    unit: 'USD',
-                    note: '每题输出 Token × OpenRouter 页首输出单价',
-                  },
-                  {
-                    label: '估算总费用（USD）',
+                    label: 'Estimated cost (USD)',
                     values: estimatedCost,
                     unit: 'USD',
-                    note: '逐题将输入费用与输出费用相加，再取平均；总费用的几何平均不等于两部分几何平均之和。缺少用量或模型报价时不计入',
+                    note: 'Input tokens × input price + output tokens × output price, calculated per test case before taking the geometric mean. Excludes cache discounts and records with missing usage or pricing.',
+                  },
+                  {
+                    label: 'Measured duration',
+                    values: duration,
+                    unit: 'seconds',
+                    note: 'Geometric mean of end-to-end execution time. Only positive values are included.',
                   },
                 ].map(({ label, values, unit, note }) => (
                   <tr key={label} title={note}>
                     <th scope="row">
                       {label}
                       <small>
-                        {values.count} / {count} 条有效记录
+                        {values.count} / {count} valid{' '}
+                        {count === 1 ? 'result' : 'results'}
                       </small>
                     </th>
-                    {[values.geometricMean, values.arithmeticMean].map(
-                      (value, index) => (
-                        <td key={index === 0 ? 'geometric' : 'arithmetic'}>
-                          {value === null
-                            ? '—'
-                            : unit === 'seconds'
-                              ? `${(value / 1000).toFixed(2)} s`
-                              : unit === 'USD'
-                                ? `$${value.toFixed(6)}`
-                                : value.toLocaleString(undefined, {
-                                    maximumFractionDigits: 0,
-                                  })}
-                        </td>
-                      ),
-                    )}
+                    <td>
+                      {values.geometricMean === null
+                        ? '—'
+                        : unit === 'seconds'
+                          ? `${(values.geometricMean / 1000).toFixed(2)} s`
+                          : unit === 'USD'
+                            ? `$${values.geometricMean.toFixed(6)}`
+                            : values.geometricMean.toLocaleString('en-US', {
+                                maximumFractionDigits: 0,
+                              })}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div className="model-card-estimate-note">
+              <p>
+                Averages use the geometric mean of finite, positive values.
+                Duration and cost estimates are calculated per test case before
+                averaging.
+              </p>
               {reference ? (
                 <>
                   <p>
-                    耗时参考：{reference.source} P50 best · TTFT{' '}
+                    Performance: {reference.source} best P50 · TTFT{' '}
                     {(reference.performance.timeToFirstTokenMs / 1000).toFixed(
                       2,
                     )}{' '}
-                    s · {reference.performance.outputTokensPerSecond} token/s（
-                    {reference.observedAt.slice(0, 10)}）
+                    s · {reference.performance.outputTokensPerSecond} tokens/s (
+                    {reference.observedAt.slice(0, 10)})
                   </p>
                   <p>
-                    费用参考：OpenRouter 页首价格 · 输入 $
-                    {reference.pricing.inputPerToken * 1_000_000} / 输出 $
-                    {reference.pricing.outputPerToken * 1_000_000}（每百万
-                    Token）
+                    Pricing: OpenRouter listed rates · Input $
+                    {reference.pricing.inputPerToken * 1_000_000} / Output $
+                    {reference.pricing.outputPerToken * 1_000_000} per million
+                    tokens
                   </p>
                   <p>
-                    两项 P50 best
-                    分别取最优值，可能来自不同供应商。费用未计缓存折扣及长上下文加价；耗时按完整输出
-                    Token 粗估，推理部分可能与 TTFT 重叠。
+                    Best P50 values are selected independently and may come from
+                    different providers. Costs exclude cache discounts and
+                    long-context surcharges. Duration estimates use all output
+                    tokens; reasoning time may overlap with time to first token.
                   </p>
                 </>
               ) : (
-                <p>暂无此模型的价格与性能参考数据。</p>
+                <p>No pricing or performance reference data for this model.</p>
               )}
             </div>
           </a>
@@ -297,15 +290,15 @@ function ModelCards({
       )}
     </div>
   ) : (
-    <p className="list-empty">本次运行暂无结果</p>
+    <p className="list-empty">No results for this evaluation yet.</p>
   );
 }
 
-function RunGroup({
-  runId,
+function EvaluationGroup({
+  evaluationId,
   revision,
 }: {
-  runId: string;
+  evaluationId: string;
   revision: number;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -316,19 +309,28 @@ function RunGroup({
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch(`/api/runs/${encodeURIComponent(runId)}`, {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `/api/evaluations/${encodeURIComponent(evaluationId)}`,
+          {
+            cache: 'no-store',
+            signal: controller.signal,
+          },
+        );
         if (!response.ok)
-          throw new Error(`运行 ${runId} 读取失败（HTTP ${response.status}）`);
+          throw new Error(
+            `Failed to load evaluation ${evaluationId} (HTTP ${response.status})`,
+          );
         const data: { results: EvaluationResult[] } = await response.json();
         if (controller.signal.aborted) return;
         setResults(data.results);
         setError('');
       } catch (error) {
         if (!controller.signal.aborted)
-          setError(error instanceof Error ? error.message : '评测结果读取失败');
+          setError(
+            error instanceof Error
+              ? error.message
+              : 'Failed to load evaluation results',
+          );
       }
     }
     void load();
@@ -337,50 +339,55 @@ function RunGroup({
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [runId, revision]);
+  }, [evaluationId, revision]);
+
+  const modelCount = new Set(results?.map((result) => result.input.model)).size;
 
   return (
-    <section className="run-group">
-      <h2 className="run-group-heading">
+    <section className="evaluation-group">
+      <h2 className="evaluation-group-heading">
         <button
           type="button"
-          className="run-toggle"
+          className="evaluation-toggle"
           aria-expanded={expanded}
-          aria-controls={`run-${runId}-models`}
+          aria-controls={`evaluation-${evaluationId}-models`}
           onClick={() => setExpanded((value) => !value)}
         >
-          <span className="run-chevron" aria-hidden="true">
+          <span className="evaluation-chevron" aria-hidden="true">
             ›
           </span>
-          <span className="run-identity">
-            <strong>{runId}</strong>
-            <time dateTime={new Date(Number(runId)).toISOString()}>
-              {new Date(Number(runId)).toLocaleString()}
+          <span className="evaluation-identity">
+            <strong>Evaluation {evaluationId}</strong>
+            <time dateTime={new Date(Number(evaluationId)).toISOString()}>
+              {new Date(Number(evaluationId)).toLocaleString('en-US', {
+                dateStyle: 'medium',
+                timeStyle: 'medium',
+              })}
             </time>
           </span>
-          <span className="run-summary-meta">
+          <span className="evaluation-summary-meta">
             {results
-              ? `${new Set(results.map((result) => result.input.model)).size} 个模型 · ${results.length} 条结果`
+              ? `${modelCount} ${modelCount === 1 ? 'model' : 'models'} · ${results.length} ${results.length === 1 ? 'result' : 'results'}`
               : error
-                ? '加载失败'
-                : '正在加载…'}
+                ? 'Failed to load'
+                : 'Loading…'}
           </span>
         </button>
       </h2>
       <div
-        id={`run-${runId}-models`}
-        className="run-group-content"
+        id={`evaluation-${evaluationId}-models`}
+        className="evaluation-group-content"
         hidden={!expanded}
       >
         {error && (
-          <p className="run-load-error" role="alert">
+          <p className="evaluation-load-error" role="alert">
             {error}
           </p>
         )}
         {results ? (
-          <ModelCards runId={runId} results={results} />
+          <ModelCards evaluationId={evaluationId} results={results} />
         ) : !error ? (
-          <p className="list-empty">正在加载…</p>
+          <p className="list-empty">Loading…</p>
         ) : null}
       </div>
     </section>
@@ -394,13 +401,12 @@ function App() {
   const [zoom, setZoom] = useState<'fit' | 'actual'>('fit');
   const [showGT, setShowGT] = useState(true);
   const [showPrediction, setShowPrediction] = useState(true);
-  const [runs, setRuns] = useState<string[] | null>(null);
-  const [runData, setRunData] = useState<{
-    runId: string;
+  const [evaluations, setEvaluations] = useState<string[] | null>(null);
+  const [evaluationData, setEvaluationData] = useState<{
+    evaluationId: string;
     results: EvaluationResult[];
   } | null>(null);
-  const [runError, setRunError] = useState('');
-  const [runRevision, setRunRevision] = useState(0);
+  const [evaluationError, setEvaluationError] = useState('');
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>(
     'loading',
   );
@@ -414,15 +420,19 @@ function App() {
       return [];
     }
   }, [pathname]);
-  const isBenchmark = parts[0] === 'benchmark' && parts.length <= 2;
-  const isRuns = parts[0] === 'runs' && parts.length <= 3;
-  const runId = isRuns && parts.length === 3 ? (parts[1] ?? '') : '';
-  const resultId = isRuns && parts.length === 3 ? parts[2] : undefined;
-  const scope = isBenchmark ? 'benchmark' : runId;
-  const runPath = `/runs/${encodeURIComponent(runId)}`;
+  const isTestcases = parts[0] === 'testcases' && parts.length <= 2;
+  const isEvaluations = parts[0] === 'evaluations' && parts.length <= 3;
+  const evaluationId =
+    isEvaluations && parts.length === 3 ? (parts[1] ?? '') : '';
+  const resultId = isEvaluations && parts.length === 3 ? parts[2] : undefined;
+  const scope = isTestcases ? 'testcases' : evaluationId;
+  const evaluationPath = `/evaluations/${encodeURIComponent(evaluationId)}`;
   const results = useMemo(
-    () => (runData?.runId === runId ? runData.results : []),
-    [runData, runId],
+    () =>
+      evaluationData?.evaluationId === evaluationId
+        ? evaluationData.results
+        : [],
+    [evaluationData, evaluationId],
   );
   const casesByName = useMemo(
     () => new Map(testcases.map((testcase) => [testcase.name, testcase])),
@@ -449,13 +459,13 @@ function App() {
         (result) => result.input.model === selectedResult.input.model,
       )
     : [];
-  const entries = isBenchmark
+  const entries = isTestcases
     ? filtered.map((testcase) => ({
         id: testcase.name,
         name: testcase.name,
         testcase,
         result: undefined as EvaluationResult | undefined,
-        href: `/benchmark/${encodeURIComponent(testcase.name)}`,
+        href: `/testcases/${encodeURIComponent(testcase.name)}`,
       }))
     : filteredResults
         .filter((result) => result.input.model === selectedResult?.input.model)
@@ -464,15 +474,20 @@ function App() {
           name: result.input.testcase,
           testcase: casesByName.get(result.input.testcase),
           result,
-          href: `${runPath}/${encodeURIComponent(result.id)}`,
+          href: `${evaluationPath}/${encodeURIComponent(result.id)}`,
         }));
-  const selectedId = isBenchmark ? (parts[1] ?? entries[0]?.id) : resultId;
+  const totalEntries = isTestcases ? testcases.length : modelResults.length;
+  const selectedId = isTestcases ? (parts[1] ?? entries[0]?.id) : resultId;
   const selectedIndex = entries.findIndex((entry) => entry.id === selectedId);
   const selected = casesByName.get(
-    isBenchmark ? (selectedId ?? '') : (selectedResult?.input.testcase ?? ''),
+    isTestcases ? (selectedId ?? '') : (selectedResult?.input.testcase ?? ''),
   );
-  const loadingRun =
-    isRuns && (runId ? runData?.runId !== runId : runs === null) && !runError;
+  const loadingEvaluation =
+    isEvaluations &&
+    (evaluationId
+      ? evaluationData?.evaluationId !== evaluationId
+      : evaluations === null) &&
+    !evaluationError;
 
   const go = useCallback((path: string, replace = false) => {
     window.history[replace ? 'replaceState' : 'pushState'](null, '', path);
@@ -480,9 +495,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (pathname === '/') go('/benchmark', true);
-    else if (isRuns && parts.length === 2) go('/runs', true);
-  }, [pathname, isRuns, parts.length, go]);
+    if (pathname === '/') go('/testcases', true);
+    else if (isEvaluations && parts.length === 2) go('/evaluations', true);
+  }, [pathname, isEvaluations, parts.length, go]);
 
   useEffect(() => {
     setFilters(emptyFilters);
@@ -510,7 +525,7 @@ function App() {
       const url = new URL(link.href);
       if (
         url.origin !== window.location.origin ||
-        !/^\/(benchmark|runs)(\/|$)/.test(url.pathname)
+        !/^\/(testcases|evaluations)(\/|$)/.test(url.pathname)
       )
         return;
       event.preventDefault();
@@ -526,11 +541,11 @@ function App() {
 
   useEffect(() => {
     if (
-      ((isBenchmark && selected) || (resultId && selectedResult)) &&
+      ((isTestcases && selected) || (resultId && selectedResult)) &&
       selectedIndex < 0
     )
       setFilters(emptyFilters);
-  }, [isBenchmark, selected, resultId, selectedResult, selectedIndex]);
+  }, [isTestcases, selected, resultId, selectedResult, selectedIndex]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -543,7 +558,9 @@ function App() {
           signal: controller.signal,
         });
         if (!response.ok)
-          throw new Error(`题库读取失败（HTTP ${response.status}）`);
+          throw new Error(
+            `Failed to load test cases (HTTP ${response.status})`,
+          );
         const data: { testcases: TestcaseView[] } = await response.json();
         if (controller.signal.aborted) return;
         setTestcases(
@@ -554,7 +571,9 @@ function App() {
         setLoadStatus('ready');
       } catch (error) {
         if (controller.signal.aborted) return;
-        setLoadError(error instanceof Error ? error.message : '题库加载失败');
+        setLoadError(
+          error instanceof Error ? error.message : 'Failed to load test cases',
+        );
         setLoadStatus('error');
       }
     }
@@ -563,13 +582,15 @@ function App() {
   }, [loadRevision]);
 
   useEffect(() => {
-    if (!isRuns) return;
+    if (!isEvaluations) return;
     const controller = new AbortController();
-    setRunError('');
+    setEvaluationError('');
     async function load() {
       try {
         const response = await fetch(
-          runId ? `/api/runs/${encodeURIComponent(runId)}` : '/api/runs',
+          evaluationId
+            ? `/api/evaluations/${encodeURIComponent(evaluationId)}`
+            : '/api/evaluations',
           {
             cache: 'no-store',
             signal: controller.signal,
@@ -578,14 +599,14 @@ function App() {
         if (!response.ok)
           throw new Error(
             response.status === 404
-              ? `未找到运行 ${runId}`
-              : `评测结果读取失败（HTTP ${response.status}）`,
+              ? `Evaluation ${evaluationId} not found`
+              : `Failed to load evaluation results (HTTP ${response.status})`,
           );
-        if (runId) {
+        if (evaluationId) {
           const data: { results: EvaluationResult[] } = await response.json();
           if (controller.signal.aborted) return;
-          setRunData({
-            runId,
+          setEvaluationData({
+            evaluationId,
             results: data.results.sort(
               (left, right) =>
                 compareNames(left.input.testcase, right.input.testcase) ||
@@ -594,15 +615,17 @@ function App() {
             ),
           });
         } else {
-          const data: { runs: string[] } = await response.json();
+          const data: { evaluations: string[] } = await response.json();
           if (controller.signal.aborted) return;
-          setRuns(data.runs);
+          setEvaluations(data.evaluations);
         }
-        setRunError('');
+        setEvaluationError('');
       } catch (error) {
         if (!controller.signal.aborted)
-          setRunError(
-            error instanceof Error ? error.message : '评测结果读取失败',
+          setEvaluationError(
+            error instanceof Error
+              ? error.message
+              : 'Failed to load evaluation results',
           );
       }
     }
@@ -612,13 +635,13 @@ function App() {
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [isRuns, runId, runRevision]);
+  }, [isEvaluations, evaluationId, loadRevision]);
 
   const previousPath = entries[selectedIndex - 1]?.href;
   const nextPath =
     selectedIndex >= 0 ? entries[selectedIndex + 1]?.href : undefined;
   useEffect(() => {
-    if (!isBenchmark && !resultId) return;
+    if (!isTestcases && !resultId) return;
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target;
       if (
@@ -648,25 +671,25 @@ function App() {
     }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isBenchmark, resultId, previousPath, nextPath, go]);
+  }, [isTestcases, resultId, previousPath, nextPath, go]);
 
   useEffect(() => {
-    document.title = `${selectedResult ? `${selectedResult.input.testcase} · ${selectedResult.input.model} · ${runId}` : isBenchmark ? (selected?.name ?? 'Benchmark') : runId || '评测结果'} · Grounding`;
-  }, [selected, selectedResult, isBenchmark, runId]);
+    document.title = `${selectedResult ? `${selectedResult.input.testcase} · ${selectedResult.input.model} · ${evaluationId}` : isTestcases ? (selected?.name ?? 'Testcases') : evaluationId || 'Evaluations'} · Midscene Grounding Benchmark`;
+  }, [selected, selectedResult, isTestcases, evaluationId]);
 
   useEffect(() => {
     if (selectedId)
       caseLinks.current.get(selectedId)?.scrollIntoView({ block: 'nearest' });
-  }, [selectedId, loadStatus, loadingRun]);
+  }, [selectedId, loadStatus, loadingEvaluation]);
 
   function updateFilters(values: Filters) {
     setFilters(values);
     const matches = filterTestcases(testcases, values);
-    if (isBenchmark && !matches.some((item) => item.name === selectedId)) {
+    if (isTestcases && !matches.some((item) => item.name === selectedId)) {
       go(
         matches[0]
-          ? `/benchmark/${encodeURIComponent(matches[0].name)}`
-          : '/benchmark',
+          ? `/testcases/${encodeURIComponent(matches[0].name)}`
+          : '/testcases',
         true,
       );
     } else if (
@@ -678,44 +701,54 @@ function App() {
           result.input.model === selectedResult?.input.model &&
           matches.some((testcase) => testcase.name === result.input.testcase),
       );
-      go(next ? `${runPath}/${encodeURIComponent(next.id)}` : '/runs', true);
+      go(
+        next
+          ? `${evaluationPath}/${encodeURIComponent(next.id)}`
+          : '/evaluations',
+        true,
+      );
     }
   }
 
-  const error = loadError || (isRuns ? runError : '');
+  const error = loadError || (isEvaluations ? evaluationError : '');
   const emptyTitle =
-    loadStatus === 'loading' || loadingRun
-      ? '正在加载…'
+    loadStatus === 'loading' || loadingEvaluation
+      ? 'Loading…'
       : error
-        ? '加载失败'
+        ? 'Failed to load'
         : resultId
-          ? '未找到链接对应的结果'
-          : isBenchmark && parts[1]
-            ? '未找到链接对应的用例'
-            : '没有符合条件的用例';
+          ? 'Result not found'
+          : isTestcases && parts[1]
+            ? 'Test case not found'
+            : 'No matching test cases';
 
   return (
     <>
       <header className="app-header">
-        <div className="brand">
-          <img
-            className="brand-logo"
-            src="https://midscenejs.com/favicon.png"
-            alt=""
-            width="33"
-            height="33"
-          />
-          <span>Grounding</span>
+        <div className="app-toolbar">
+          <div className="brand">
+            <img
+              className="brand-logo"
+              src="https://midscenejs.com/favicon.png"
+              alt=""
+              width="33"
+              height="33"
+            />
+            <span>Midscene Grounding Benchmark</span>
+          </div>
         </div>
-        <nav className="page-navigation" aria-label="查看器导航">
-          <a href="/benchmark" aria-current={isBenchmark ? 'page' : undefined}>
-            Benchmark
+        <nav className="page-navigation" aria-label="Main navigation">
+          <a href="/testcases" aria-current={isTestcases ? 'page' : undefined}>
+            Testcases
           </a>
-          <a href="/runs" aria-current={isRuns ? 'page' : undefined}>
-            评测结果
+          <a
+            href="/evaluations"
+            aria-current={isEvaluations ? 'page' : undefined}
+          >
+            Evaluations
           </a>
         </nav>
-        {(isBenchmark || resultId) && (
+        {(isTestcases || resultId) && (
           <FilterBar
             testcases={testcases}
             filters={filters}
@@ -730,80 +763,59 @@ function App() {
           <button
             type="button"
             className="button"
-            onClick={() => {
-              setLoadRevision((value) => value + 1);
-              setRunRevision((value) => value + 1);
-            }}
+            onClick={() => setLoadRevision((value) => value + 1)}
           >
-            重新加载
+            Retry
           </button>
         </div>
       )}
-      {isRuns && !resultId ? (
+      {isEvaluations && !resultId ? (
         <main className="overview-page">
           <header className="overview-heading">
             <div>
-              <h1>评测结果</h1>
-              <p>按运行时间倒序展示，点击运行标题可展开或收拢统计卡片。</p>
-            </div>
-            <div className="overview-actions">
-              <span>每 5 秒更新</span>
-              <button
-                type="button"
-                className="button"
-                onClick={() => setRunRevision((value) => value + 1)}
-              >
-                刷新结果
-              </button>
+              <h1>Evaluations</h1>
+              <p>
+                Newest evaluations first. Select an evaluation to expand or
+                collapse its model summaries.
+              </p>
             </div>
           </header>
-          {loadingRun ? (
-            <p className="list-empty">正在加载…</p>
-          ) : runs?.length ? (
-            <ol className="run-list">
-              {runs.map((id) => (
+          {loadingEvaluation ? (
+            <p className="list-empty">Loading…</p>
+          ) : evaluations?.length ? (
+            <ol className="evaluation-list">
+              {evaluations.map((id) => (
                 <li key={id}>
-                  <RunGroup runId={id} revision={runRevision} />
+                  <EvaluationGroup evaluationId={id} revision={loadRevision} />
                 </li>
               ))}
             </ol>
-          ) : runError ? null : (
-            <p className="list-empty">暂无评测运行</p>
+          ) : evaluationError ? null : (
+            <p className="list-empty">No evaluations yet.</p>
           )}
         </main>
-      ) : isBenchmark || resultId ? (
+      ) : isTestcases || resultId ? (
         <div className="app-shell">
           <aside
             className="sidebar"
             aria-label={
-              isBenchmark
-                ? '用例列表'
-                : `${selectedResult?.input.model ?? '模型'}评测结果`
+              isTestcases
+                ? 'Test cases'
+                : `${selectedResult?.input.model ?? 'Model'} results`
             }
           >
-            <div className="sidebar-heading">
-              <h1>
-                {isBenchmark ? (
-                  '测试用例'
-                ) : (
-                  <a href="/runs">
-                    {selectedResult?.input.model ?? '本次运行'}
+            {!isTestcases && (
+              <div className="sidebar-heading">
+                <h1>
+                  <a href="/evaluations">
+                    {selectedResult?.input.model ?? 'This evaluation'}
                   </a>
-                )}
-              </h1>
-              <output
-                id="result-count"
-                className="result-count"
-                aria-live="polite"
-              >
-                {loadStatus === 'loading' || loadingRun
-                  ? '正在加载…'
-                  : `${entries.length} / ${isBenchmark ? testcases.length : modelResults.length} ${isBenchmark ? '个用例' : '条结果'}`}
-              </output>
-            </div>
+                </h1>
+              </div>
+            )}
             <nav
               className="case-navigation"
-              aria-label={isBenchmark ? '测试用例列表' : '结果列表'}
+              aria-label={isTestcases ? 'Test cases' : 'Results'}
             >
               <ol id="case-list" className="case-list">
                 {entries.map((entry) => (
@@ -837,7 +849,7 @@ function App() {
                           </>
                         ) : (
                           entry.testcase?.groundTruth === 'REFUSAL' && (
-                            <span>REFUSAL</span>
+                            <span>Refusal</span>
                           )
                         )}
                       </span>
@@ -847,24 +859,37 @@ function App() {
               </ol>
               {!entries.length && (
                 <p className="list-empty">
-                  {loadingRun || loadStatus === 'loading'
-                    ? '正在加载…'
-                    : '没有符合筛选条件的记录'}
+                  {loadingEvaluation || loadStatus === 'loading'
+                    ? 'Loading…'
+                    : isTestcases
+                      ? 'No matching test cases'
+                      : 'No matching results'}
                 </p>
               )}
             </nav>
-            <div className="sidebar-footer">← / → 切换上一条、下一条</div>
+            <div className="sidebar-footer">
+              <span>← / → Previous / next</span>
+              <output
+                id="result-count"
+                className="result-count"
+                aria-live="polite"
+              >
+                {loadStatus === 'loading' || loadingEvaluation
+                  ? 'Loading…'
+                  : `${entries.length} / ${totalEntries} ${isTestcases ? 'test case' : 'result'}${totalEntries === 1 ? '' : 's'}`}
+              </output>
+            </div>
           </aside>
           <main id="main" className="main">
             {loadStatus === 'ready' &&
-            (isBenchmark ? selected : selectedResult) ? (
+            (isTestcases ? selected : selectedResult) ? (
               <div id="case-detail" className="case-detail">
                 <header className="case-heading">
                   <div className="case-heading-text">
                     <div className="case-eyebrow">
                       {selectedResult ? (
                         <>
-                          <a href="/runs">运行 {runId}</a>
+                          <a href="/evaluations">Evaluation {evaluationId}</a>
                           <span className="eyebrow-dot">/</span>
                           <span>{selectedResult.input.model}</span>
                         </>
@@ -883,14 +908,17 @@ function App() {
                     </h2>
                     {selectedResult && (
                       <a
-                        className="benchmark-link"
-                        href={`/benchmark/${encodeURIComponent(selectedResult.input.testcase)}`}
+                        className="testcase-link"
+                        href={`/testcases/${encodeURIComponent(selectedResult.input.testcase)}`}
                       >
-                        查看 Benchmark 用例 ↗
+                        View test case ↗
                       </a>
                     )}
                   </div>
-                  <div className="case-pagination" aria-label="记录切换">
+                  <div
+                    className="case-pagination"
+                    aria-label="Test case navigation"
+                  >
                     <span id="case-position" className="case-position">
                       {selectedIndex + 1} / {entries.length}
                     </span>
@@ -898,8 +926,8 @@ function App() {
                       id="previous-case"
                       className="icon-button"
                       type="button"
-                      aria-label="上一条"
-                      title="上一条（←）"
+                      aria-label="Previous"
+                      title="Previous (←)"
                       disabled={!previousPath}
                       onClick={() => previousPath && go(previousPath)}
                     >
@@ -909,8 +937,8 @@ function App() {
                       id="next-case"
                       className="icon-button"
                       type="button"
-                      aria-label="下一条"
-                      title="下一条（→）"
+                      aria-label="Next"
+                      title="Next (→)"
                       disabled={!nextPath}
                       onClick={() => nextPath && go(nextPath)}
                     >
@@ -933,15 +961,24 @@ function App() {
                     />
                     <DetailsPanel testcase={selected}>
                       {selectedResult && (
-                        <ResultPanel runId={runId} result={selectedResult} />
+                        <ResultPanel
+                          evaluationId={evaluationId}
+                          result={selectedResult}
+                        />
                       )}
                     </DetailsPanel>
                   </div>
                 ) : (
                   <div className="missing-testcase">
-                    <p>题库中未找到此用例，无法显示原始截图。</p>
+                    <p>
+                      This test case is missing from the dataset. Its screenshot
+                      is unavailable.
+                    </p>
                     {selectedResult && (
-                      <ResultPanel runId={runId} result={selectedResult} />
+                      <ResultPanel
+                        evaluationId={evaluationId}
+                        result={selectedResult}
+                      />
                     )}
                   </div>
                 )}
@@ -956,17 +993,17 @@ function App() {
                   ⌖
                 </span>
                 <h2>{emptyTitle}</h2>
-                <p>请从左侧列表选择记录，或调整筛选条件。</p>
+                <p>Select an item from the sidebar or adjust the filters.</p>
               </section>
             )}
           </main>
         </div>
       ) : (
         <main className="empty-state">
-          <h2>页面不存在</h2>
+          <h2>Page not found</h2>
           <p>
-            <a href="/benchmark">查看 Benchmark</a> ·{' '}
-            <a href="/runs">查看评测结果</a>
+            <a href="/testcases">Browse test cases</a> ·{' '}
+            <a href="/evaluations">View evaluations</a>
           </p>
         </main>
       )}

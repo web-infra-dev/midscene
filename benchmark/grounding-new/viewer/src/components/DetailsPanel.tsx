@@ -10,7 +10,7 @@ function safeExternalUrl(value: string): string | null {
   }
 }
 
-const collectedAtFormatter = new Intl.DateTimeFormat('zh-CN', {
+const collectedAtFormatter = new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium',
   timeStyle: 'long',
 });
@@ -29,12 +29,10 @@ export function DetailsPanel({
       : `[${testcase.groundTruth.map((value) => value.toFixed(1)).join(', ')}]`;
 
   return (
-    <aside className="details-panel" aria-label="用例详细信息">
+    <aside className="details-panel" aria-label="Test case details">
       {children}
       <section className="detail-section instructions-section">
-        <h3>
-          定位指令 <span className="section-label">Instruction</span>
-        </h3>
+        <h3>Instructions</h3>
         <div className="instruction-card">
           <div className="instruction-heading">
             <span>English</span>
@@ -45,7 +43,7 @@ export function DetailsPanel({
         </div>
         <div className="instruction-card">
           <div className="instruction-heading">
-            <span>中文</span>
+            <span>Chinese</span>
           </div>
           <p id="instruction-zh" lang="zh-CN">
             {testcase.instruction.zh}
@@ -53,26 +51,22 @@ export function DetailsPanel({
         </div>
       </section>
       <section className="detail-section">
-        <h3>
-          标准答案 <span className="section-label">Ground Truth</span>
-        </h3>
+        <h3>Ground truth</h3>
         <div id="gt-point" hidden={refusal}>
           <p className="field-hint">
-            原图像素坐标 · [top, right, bottom, left]
+            Original image pixels · [top, right, bottom, left]
           </p>
           <code id="ground-truth" className="ground-truth">
             {coordinateText}
           </code>
         </div>
         <div id="gt-refusal" className="refusal-box" hidden={!refusal}>
-          <strong>REFUSAL</strong>
-          <p>拒识用例：预期拒绝定位，没有目标框。</p>
+          <strong>Refusal</strong>
+          <p>The model should return a refusal instead of a target box.</p>
         </div>
       </section>
       <section className="detail-section">
-        <h3>
-          分类依据 <span className="section-label">Category</span>
-        </h3>
+        <h3>Category</h3>
         <span id="detail-category" className="category-badge">
           {testcase.category.item}
         </span>
@@ -81,12 +75,10 @@ export function DetailsPanel({
         </p>
       </section>
       <section className="detail-section reference-section">
-        <h3>
-          来源信息 <span className="section-label">Reference</span>
-        </h3>
+        <h3>Source</h3>
         <dl className="reference-fields">
           <div>
-            <dt>来源链接</dt>
+            <dt>Source URL</dt>
             <dd id="reference-url">
               {sourceLink ? (
                 <a href={sourceLink} target="_blank" rel="noopener noreferrer">
@@ -98,38 +90,38 @@ export function DetailsPanel({
             </dd>
           </div>
           <div>
-            <dt>数据集</dt>
+            <dt>Dataset</dt>
             <dd id="reference-dataset">{reference.dataset}</dd>
           </div>
           <div>
-            <dt>原始记录 ID</dt>
+            <dt>Original record ID</dt>
             <dd id="reference-id" className="monospace">
               {reference.recordId}
             </dd>
           </div>
           <div>
-            <dt>图片格式</dt>
+            <dt>Image format</dt>
             <dd id="reference-format" className="monospace">
               {reference.image.format}
             </dd>
           </div>
           <div>
-            <dt>图片 SHA-256</dt>
+            <dt>Image SHA-256</dt>
             <dd>
               <code id="reference-sha">{reference.image.sha256}</code>
             </dd>
           </div>
           <div>
-            <dt>修订记录</dt>
+            <dt>Revisions</dt>
             <dd
               id="reference-patch"
               className={reference.patch === null ? 'no-patch' : undefined}
             >
-              {reference.patch ?? '无修订'}
+              {reference.patch ?? 'No revisions'}
             </dd>
           </div>
           <div>
-            <dt>收录时间</dt>
+            <dt>Collected at</dt>
             <dd>
               <time id="collected-at" dateTime={collectedAt.toISOString()}>
                 {collectedAtFormatter.format(collectedAt)}

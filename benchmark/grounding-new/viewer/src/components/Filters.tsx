@@ -34,39 +34,39 @@ export function Filters({
       {
         key: 'platform' as const,
         id: 'platform-filter',
-        label: '平台 · Platform',
+        label: 'Platform',
         options: uniqueOptions(
           testcases.map((item) => item.platform),
-          '全部平台',
+          'All platforms',
           (value) => (value === 'web' ? 'Web' : 'Mobile'),
         ),
       },
       {
         key: 'category' as const,
         id: 'category-filter',
-        label: '类目 · Category',
+        label: 'Category',
         options: uniqueOptions(
           testcases.map((item) => item.category.item),
-          '全部类目',
+          'All categories',
         ),
       },
       {
         key: 'dataset' as const,
         id: 'dataset-filter',
-        label: '来源 · Dataset',
+        label: 'Dataset',
         options: uniqueOptions(
           testcases.map((item) => item.reference.dataset),
-          '全部来源',
+          'All datasets',
         ),
       },
       {
         key: 'outcome' as const,
         id: 'outcome-filter',
-        label: '预期结果',
+        label: 'Expected outcome',
         options: [
-          { value: '', text: '全部结果' },
-          { value: 'point', text: '定位' },
-          { value: 'refusal', text: '拒识' },
+          { value: '', text: 'All outcomes' },
+          { value: 'point', text: 'Target' },
+          { value: 'refusal', text: 'Refusal' },
         ],
       },
     ],
@@ -77,7 +77,7 @@ export function Filters({
     <form
       id="filters"
       className="filters"
-      aria-label="筛选用例"
+      aria-label="Filter test cases"
       onSubmit={(event) => event.preventDefault()}
     >
       {groups.map((group) => (
@@ -93,7 +93,7 @@ export function Filters({
         />
       ))}
       <label className="search-field" htmlFor="search">
-        <span className="visually-hidden">搜索名称或双语指令</span>
+        <span className="visually-hidden">Search test cases</span>
         <svg
           aria-hidden="true"
           width="16"
@@ -109,7 +109,7 @@ export function Filters({
         <input
           id="search"
           type="search"
-          placeholder="搜索名称或双语指令"
+          placeholder="Search names or instructions"
           autoComplete="off"
           value={filters.search}
           onChange={(event) =>
@@ -127,7 +127,7 @@ export function Filters({
           onClear();
         }}
       >
-        清空筛选
+        Clear filters
       </button>
     </form>
   );
