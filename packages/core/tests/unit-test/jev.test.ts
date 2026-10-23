@@ -763,7 +763,7 @@ describe('Jev planning', () => {
     },
   );
   it.each(['Delegate', 'Scroll', 'Sleep'])(
-    'delegates %s with the same goal and history',
+    'returns delegation for %s without calling the default planner',
     async (action) => {
       rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
         planningResponse(action),
@@ -788,41 +788,19 @@ describe('Jev planning', () => {
       });
       const instruction = { text: 'Type a greeting', referenceImages: [] };
       opts.conversationHistory.pendingFeedbackMessage = 'Input is empty';
-      const result = await jevPlan(instruction, {
+      const planOptions = {
         ...opts,
         planningAdvice: 'Old planning advice',
         getDefaultModelRuntime,
+      };
+      const decision = await jevPlan(instruction, planOptions);
+      expect(fallback).not.toHaveBeenCalled();
+      expect(decision.log).toContain('Jev selected');
+      expect(decision.actions).toEqual([]);
+      expect(decision.shouldContinuePlanning).toBe(true);
+      expect(decision.delegation).toMatchObject({
+        suggestedAction: action === 'Delegate' ? undefined : action,
       });
-      expect(result.log).toBe('default planning');
-      expect(fallback.mock.calls[0][1].planningAdvice).not.toBe(
-        'Old planning advice',
-      );
-      if (action === 'Delegate') {
-        expect(fallback.mock.calls[0][1].planningAdvice).toBeUndefined();
-      } else {
-        expect(fallback.mock.calls[0][1].planningAdvice).toContain(
-          `action "${action}"`,
-        );
-        expect(fallback.mock.calls[0][1].planningAdvice).toContain(
-          'advisory only',
-        );
-      }
-      expect(fallback).toHaveBeenCalledWith(
-        instruction,
-        expect.objectContaining({
-          conversationHistory: opts.conversationHistory,
-          includeLocateInPlanning: false,
-          modelRuntime: expect.objectContaining({
-            config: expect.objectContaining({
-              slot: 'default',
-              intent: 'planning',
-            }),
-            modelFallback: expect.objectContaining({
-              taskType: 'planning',
-            }),
-          }),
-        }),
-      );
       expect(opts.conversationHistory.pendingFeedbackMessage).toBe(
         'Input is empty',
       );
@@ -897,38 +875,25 @@ describe('Jev planning', () => {
     expect(getDefaultModelRuntime).not.toHaveBeenCalled();
   });
 
-  it('delegates oversized action spaces before sending a Jev request', async () => {
+  it('rejects oversized action spaces without calling either model', async () => {
     const fetchMock = rs.spyOn(globalThis, 'fetch');
     const opts = await options();
-    const base = getModelRuntime(defaultConfig);
-    const fallback = rs.fn(async () => ({
-      actions: [],
-      log: 'Default planner completed the task',
-      shouldContinuePlanning: false,
-    }));
-    await jevPlan(
-      { text: 'Continue', referenceImages: [] },
-      {
-        ...opts,
-        actionSpace: Array.from({ length: 254 }, (_, i) => ({
-          name: `Custom${i}`,
-          call: async () => {},
-        })),
-        getDefaultModelRuntime: () => ({
-          ...base,
-          adapter: {
-            ...base.adapter,
-            planning: {
-              ...base.adapter.planning,
-              kind: 'custom',
-              planFn: fallback,
-            },
-          },
-        }),
-      },
-    );
+    const getDefaultModelRuntime = rs.fn(() => getModelRuntime(defaultConfig));
+    await expect(
+      jevPlan(
+        { text: 'Continue', referenceImages: [] },
+        {
+          ...opts,
+          actionSpace: Array.from({ length: 254 }, (_, i) => ({
+            name: `Custom${i}`,
+            call: async () => {},
+          })),
+          getDefaultModelRuntime,
+        },
+      ),
+    ).rejects.toThrow('Jev planning supports at most 253 actions');
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(fallback).toHaveBeenCalledTimes(1);
+    expect(getDefaultModelRuntime).not.toHaveBeenCalled();
   });
 
   it('maps custom actions without colliding with control options', async () => {
@@ -969,7 +934,7 @@ describe('Jev planning', () => {
     expect(result.shouldContinuePlanning).toBe(true);
   });
 
-  it('keeps the full action space and advisory suggestion when delegating a custom action', async () => {
+  it('returns a custom action name as a delegation suggestion', async () => {
     rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
       planningResponse('delegate:CustomInput'),
     );
@@ -991,35 +956,28 @@ describe('Jev planning', () => {
         call: async () => {},
       },
     ];
-    const result = await jevPlan(
-      { text: 'Enter Hello World', referenceImages: [] },
-      {
-        ...opts,
-        actionSpace,
-        actionContext: 'Existing context',
-        getDefaultModelRuntime: () => ({
-          ...base,
-          adapter: {
-            ...base.adapter,
-            planning: {
-              ...base.adapter.planning,
-              kind: 'custom',
-              planFn: fallback,
-            },
-          },
-        }),
-      },
-    );
-    expect(fallback.mock.calls[0][1]).toMatchObject({
+    const instruction = { text: 'Enter Hello World', referenceImages: [] };
+    const planOptions = {
+      ...opts,
       actionSpace,
       actionContext: 'Existing context',
-      conversationHistory: opts.conversationHistory,
-    });
-    expect((fallback.mock.calls[0][1] as any).planningAdvice).toContain(
-      'NOT been executed',
-    );
-    expect(result.finalizeMessage).toBe('done');
-    expect(result.shouldContinuePlanning).toBe(false);
+      getDefaultModelRuntime: () => ({
+        ...base,
+        adapter: {
+          ...base.adapter,
+          planning: {
+            ...base.adapter.planning,
+            kind: 'custom' as const,
+            planFn: fallback,
+          },
+        },
+      }),
+    };
+    const decision = await jevPlan(instruction, planOptions);
+    expect(fallback).not.toHaveBeenCalled();
+    expect(decision.delegation?.suggestedAction).toBe('CustomInput');
+    expect(decision.actions).toEqual([]);
+    expect(decision.shouldContinuePlanning).toBe(true);
   });
 
   it('rejects an action outside the offered choices without delegation', async () => {

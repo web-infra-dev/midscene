@@ -421,6 +421,11 @@ export interface RawResponsePlanningAIResponse {
 export interface PlanningAIResponse
   extends Omit<RawResponsePlanningAIResponse, 'action'> {
   actions?: PlanningAction[];
+  /** Request another planning cycle using the default model, without executing actions. */
+  delegation?: {
+    reason: string;
+    suggestedAction?: string;
+  };
   usage?: AIUsageInfo;
   /**
    * Adapter-extracted content used by Midscene for parsing. This is not the

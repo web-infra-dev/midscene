@@ -106,6 +106,218 @@ describe('TaskExecutor concurrency isolation', () => {
   });
 
   it.each([
+    { fails: false, limit: 1 },
+    { fails: true, limit: 1 },
+    { fails: false, limit: 0 },
+  ])('records separate planning cycles: %j', async ({ fails, limit }) => {
+    const runners: import('@/task-runner').TaskRunner[] = [];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: () => ({
+        ...defaultModel(),
+        adapter: {
+          ...defaultModel().adapter,
+          planning: {
+            ...defaultModel().adapter.planning,
+            kind: 'custom',
+            planFn: fallback,
+          },
+        },
+      }),
+      replanningCycleLimit: limit,
+      actionSpace: emptyParamActionSpace,
+      hooks: {
+        onExecutionCreated: (runner) => {
+          runners.push(runner);
+        },
+      },
+    });
+    const convert = rs
+      .spyOn(executor, 'convertPlanToExecutable')
+      .mockResolvedValue({ tasks: [], yamlFlow: [] } as any);
+    const usageFields = {
+      prompt_tokens: undefined,
+      completion_tokens: undefined,
+      cached_input: undefined,
+      time_cost: undefined,
+      model_description: undefined,
+      response_model_name: undefined,
+      intent: undefined,
+      slot: undefined,
+      request_id: undefined,
+    };
+    const fallback = rs.fn(async () => {
+      if (fails) {
+        throw new Error('Default planner unavailable');
+      }
+      return {
+        actions: [],
+        log: 'Default planner finished',
+        rawResponse: 'default response',
+        usage: {
+          ...usageFields,
+          model_name: 'default-model',
+          total_tokens: 20,
+        },
+        shouldContinuePlanning: false,
+        finalizeSuccess: true,
+        finalizeMessage: 'done',
+      };
+    });
+    const base = planningModel();
+    const runtime = {
+      ...base,
+      adapter: {
+        ...base.adapter,
+        planning: {
+          ...base.adapter.planning,
+          kind: 'custom' as const,
+          planFn: async () => ({
+            actions: [],
+            log: 'Jev selected delegate:Input',
+            rawResponse: 'jev response',
+            usage: { ...usageFields, model_name: 'jev', total_tokens: 10 },
+            shouldContinuePlanning: true,
+            delegation: { reason: 'Input needs the default model' },
+          }),
+        },
+      },
+    };
+    const pending = executor.action('Fill the form', runtime, defaultModel());
+    if (limit === 0) {
+      await expect(pending).rejects.toThrow('planning cycle limit (0)');
+      expect(fallback).not.toHaveBeenCalled();
+      expect(convert).not.toHaveBeenCalled();
+      expect(
+        runners[0].tasks.filter((task) => task.subType === 'Plan'),
+      ).toHaveLength(1);
+      return;
+    }
+    if (fails) {
+      await expect(pending).rejects.toThrow('Default planner unavailable');
+      expect(convert).not.toHaveBeenCalled();
+    } else {
+      await pending;
+      expect(convert).toHaveBeenCalledTimes(1);
+    }
+    const plans = runners[0].tasks.filter((task) => task.subType === 'Plan');
+    expect(plans).toHaveLength(2);
+    expect(plans[0]).toMatchObject({
+      status: 'finished',
+      output: { actions: [], log: 'Jev selected delegate:Input' },
+      usage: { model_name: 'jev', total_tokens: 10, intent: 'planning' },
+      log: { rawResponse: 'jev response' },
+    });
+    expect(plans[1].status).toBe(fails ? 'failed' : 'finished');
+    if (!fails) {
+      expect(plans[1]).toMatchObject({
+        output: { log: 'Default planner finished', output: 'done' },
+        usage: { model_name: 'default-model', total_tokens: 20 },
+        log: { rawResponse: 'default response' },
+      });
+      expect(plans[0].timing?.callAiEnd).toBeLessThanOrEqual(
+        plans[1].timing?.callAiStart!,
+      );
+    }
+    expect(fallback).toHaveBeenCalledTimes(1);
+  });
+  it.each([false, true])(
+    'uses the normal planner entry and returns to the configured model (custom default: %s)',
+    async (customDefault) => {
+      const historySeen: unknown[] = [];
+      const fallback = rs.fn(async (_instruction, options) => {
+        expect(_instruction.text).toBe('Fill the form');
+        expect(options.actionSpace).toEqual(emptyParamActionSpace);
+        expect(options.includeLocateInPlanning).toBe(false);
+        expect(options.planningAdvice).toContain(
+          'action "Noop". This suggestion',
+        );
+        expect(options.planningAdvice).toContain('advisory only');
+        expect(options.modelRuntime).toMatchObject({
+          config: {
+            modelName: 'default-model',
+            slot: 'default',
+            intent: 'planning',
+          },
+          modelFallback: {
+            requestedModel: 'planning-model',
+            requestedSlot: 'planning',
+            taskType: 'planning',
+            reason: 'Generated input needed',
+          },
+        });
+        historySeen.push(options.conversationHistory);
+        expect(options.conversationHistory.pendingFeedbackMessage).toBe(
+          'Original feedback',
+        );
+        return {
+          actions: [],
+          log: 'Default step',
+          shouldContinuePlanning: true,
+        };
+      });
+      rs.mocked(standardPlan).mockImplementation(fallback);
+      const base = planningModel();
+      const planFn = rs
+        .fn()
+        .mockImplementationOnce(async (_instruction, options) => {
+          historySeen.push(options.conversationHistory);
+          options.conversationHistory.pendingFeedbackMessage =
+            'Original feedback';
+          return {
+            actions: [],
+            log: 'Delegate',
+            delegation: {
+              reason: 'Generated input needed',
+              suggestedAction: 'Noop',
+            },
+            shouldContinuePlanning: true,
+          };
+        })
+        .mockResolvedValueOnce({
+          actions: [],
+          log: 'Complete',
+          shouldContinuePlanning: false,
+        });
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: () => ({
+          ...defaultModel(),
+          adapter: {
+            ...base.adapter,
+            planning: customDefault
+              ? { ...base.adapter.planning, kind: 'custom', planFn: fallback }
+              : base.adapter.planning,
+          },
+        }),
+        replanningCycleLimit: 2,
+        actionSpace: emptyParamActionSpace,
+      });
+      rs.spyOn(executor, 'convertPlanToExecutable').mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+      const result = await executor.action(
+        'Fill the form',
+        {
+          ...base,
+          adapter: {
+            ...base.adapter,
+            planning: { ...base.adapter.planning, kind: 'custom', planFn },
+          },
+        },
+        defaultModel(),
+      );
+      expect(
+        result.runner.tasks
+          .filter((task) => task.subType === 'Plan')
+          .map((task) => task.output.log),
+      ).toEqual(['Delegate', 'Default step', 'Complete']);
+      expect(planFn).toHaveBeenCalledTimes(2);
+      expect(fallback).toHaveBeenCalledTimes(1);
+      expect(historySeen[0]).toBe(historySeen[1]);
+    },
+  );
+
+  it.each([
     {
       effort: 'balance' as const,
       useDefaultAsPlanning: true,

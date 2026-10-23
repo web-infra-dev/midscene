@@ -3,14 +3,11 @@ import type { PlanFn } from '../../workflows/planning/types';
 import { buildJevAction } from './planning-action';
 import { prepareJevPlanningContext } from './planning-context';
 import { decideJevAction } from './planning-decision';
-import { delegateJevPlanning } from './planning-fallback';
 
 export const jevPlan: PlanFn = async (instruction, options) => {
   if (options.actionSpace.length + 2 > 255) {
-    return delegateJevPlanning(
-      instruction,
-      options,
-      'The Action Space exceeds the Jev Choice option limit',
+    throw new Error(
+      'Jev planning supports at most 253 actions (255 choices including completion and delegation).',
     );
   }
   const history = options.conversationHistory;
@@ -18,14 +15,19 @@ export const jevPlan: PlanFn = async (instruction, options) => {
   const decision = await decideJevAction(context, options);
   const { selected, choice, response } = decision;
   if (choice.kind === 'delegate') {
-    return delegateJevPlanning(
-      instruction,
-      options,
-      choice.action
-        ? `The previous planner suggested ${choice.action.name}; delegating planning with this action as an advisory suggestion`
-        : 'The previous planner delegated planning of the next step',
-      choice.action,
-    );
+    return {
+      actions: [],
+      log: `Jev selected ${selected}`,
+      rawResponse: response.content,
+      usage: response.usage,
+      shouldContinuePlanning: true,
+      delegation: {
+        reason: choice.action
+          ? `The previous planner suggested ${choice.action.name}; delegating planning with this action as an advisory suggestion`
+          : 'The previous planner delegated planning of the next step',
+        suggestedAction: choice.action?.name,
+      },
+    };
   }
   const actions = buildJevAction(decision, context, instruction, options);
   const log = `Jev selected ${selected}`;
