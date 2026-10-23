@@ -73,7 +73,7 @@ export async function callGenerativeAI(
   return executeModelCall(modelRuntime, options, async () => {
     const input = { messages, modelRuntime, options };
     if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
-      return { protocol: 'codex', input: prepareCodexCall(input) };
+      return { kind: 'codex', input: prepareCodexCall(input) };
     }
     const protocol = modelConfig.protocol ?? DEFAULT_MODEL_PROTOCOL;
 
@@ -82,10 +82,10 @@ export async function callGenerativeAI(
       `Model adapter "${modelConfig.modelFamily ?? 'default'}" does not support protocol "${protocol}"`,
     );
     if (protocol === 'openai-responses') {
-      return { protocol: 'responses', input: await prepareResponses(input) };
+      return { kind: 'responses', input: await prepareResponses(input) };
     }
     return {
-      protocol: 'chat-completion',
+      kind: 'chat-completion',
       input: await prepareChatCompletion(input),
     };
   });
@@ -103,7 +103,7 @@ export async function callSystemOneAI(
     'System One currently only supports the Jev model family in Midscene',
   );
   return executeModelCall(modelRuntime, options, async () => ({
-    protocol: 'system-one',
+    kind: 'system-one',
     input: await prepareSystemOne(modelRuntime.config, request),
   }));
 }
@@ -141,7 +141,7 @@ async function executeModelCall(
   } = result;
 
   const rawUsageInfo = buildUsageInfo({
-    apiProtocol: prepared.protocol,
+    requestKind: prepared.kind,
     stream: response.isStreamed,
     usageData: rawUsage,
     timeCost,
@@ -174,10 +174,10 @@ async function executeModelCall(
 
 type PreparedModelInput =
   | {
-      protocol: 'system-one';
+      kind: 'system-one';
       input: Awaited<ReturnType<typeof prepareSystemOne>>;
     }
-  | { protocol: 'codex'; input: ReturnType<typeof prepareCodexCall> }
+  | { kind: 'codex'; input: ReturnType<typeof prepareCodexCall> }
   | PreparedOpenAIInput;
 
 type ModelCallInput = {
@@ -341,9 +341,9 @@ async function callModelOnce(
   };
   try {
     return await runWithAbortSignal(requestSignal, () =>
-      prepared.protocol === 'system-one'
+      prepared.kind === 'system-one'
         ? sendSystemOneRequest(context, prepared.input)
-        : prepared.protocol === 'codex'
+        : prepared.kind === 'codex'
           ? callCodex(context, prepared.input)
           : callOpenAI(context, prepared),
     );

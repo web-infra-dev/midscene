@@ -12,11 +12,11 @@ import { SiwcTokenExpiredError } from './siwc';
 
 export type PreparedOpenAIInput =
   | {
-      protocol: 'chat-completion';
+      kind: 'chat-completion';
       input: Awaited<ReturnType<typeof prepareChatCompletion>>;
     }
   | {
-      protocol: 'responses';
+      kind: 'responses';
       input: Awaited<ReturnType<typeof prepareResponses>>;
     };
 
@@ -54,7 +54,7 @@ export async function callOpenAI(
   try {
     const startTime = Date.now();
     const response =
-      prepared.protocol === 'responses'
+      prepared.kind === 'responses'
         ? await callResponses(
             {
               ...requestOptions,

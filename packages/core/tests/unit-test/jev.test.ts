@@ -255,7 +255,7 @@ describe('Jev requests and coordinates', () => {
     expect(runtime.onUsage).toHaveBeenCalledTimes(1);
     expect(runtime.onRequest).toHaveBeenCalledTimes(1);
     expect(result.usage).toMatchObject({
-      api_protocol: 'system-one',
+      request_kind: 'system-one',
       stream: false,
       total_tokens: 120,
       slot: 'locate',

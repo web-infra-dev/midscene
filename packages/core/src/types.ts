@@ -64,7 +64,7 @@ export type AIUsageInfo = Record<string, any> & {
   /** Request retries performed within this call; excludes semantic parse retries. */
   retry_count?: number;
   /** Actual protocol used for the model call, resolved by Midscene. */
-  api_protocol?: 'chat-completion' | 'responses' | 'codex' | 'system-one';
+  request_kind?: 'chat-completion' | 'responses' | 'codex' | 'system-one';
   /** Why a task uses the default model instead of its configured specialist. */
   modelFallback?: {
     requestedModel: string;

@@ -94,7 +94,7 @@ export function appendAIRequestFailureSummary<T extends Error>(
 }
 
 export const buildUsageInfo = ({
-  apiProtocol,
+  requestKind,
   stream,
   usageData,
   requestId,
@@ -107,7 +107,7 @@ export const buildUsageInfo = ({
   slot,
   internalCallId,
 }: {
-  apiProtocol: NonNullable<AIUsageInfo['api_protocol']>;
+  requestKind: NonNullable<AIUsageInfo['request_kind']>;
   stream: boolean;
   usageData?: OpenAI.CompletionUsage;
   requestId?: string | null;
@@ -128,7 +128,7 @@ export const buildUsageInfo = ({
 
   return {
     ...usageData,
-    api_protocol: apiProtocol,
+    request_kind: requestKind,
     stream,
     prompt_tokens: usageData.prompt_tokens ?? 0,
     completion_tokens: usageData.completion_tokens ?? 0,
