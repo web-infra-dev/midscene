@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Midscene Test · Natural-language cases, your own framework</title>
+<style>
+:root {
+  --bg: #f6f7fa;
+  --panel: #fff;
+  --panel-2: #f8f9fb;
+  --border: rgb(16 24 40 / 10%);
+  --border-2: rgb(16 24 40 / 16%);
+  --text: #0f172a;
+  --muted: rgb(15 23 42 / 62%);
+  --faint: rgb(15 23 42 / 40%);
+  --ai: #0555ff;
+  --ai-bg: rgb(5 85 255 / 8%);
+  --plat: #7c3aed;
+  --plat-bg: rgb(124 58 237 / 9%);
+  --node: #0b8a5a;
+  --node-bg: rgb(11 138 90 / 9%);
+  --fail: #e5484d;
+  --fail-bg: rgb(229 72 77 / 9%);
+  --pair: #f59e0b;
+  --pair-bg: rgb(245 158 11 / 14%);
+  --shadow: 0 24px 60px rgb(16 24 40 / 10%), 0 2px 6px rgb(16 24 40 / 5%);
+  --brand: linear-gradient(95deg, #3b6cff 0%, #9333ea 55%, #e1489a 100%);
+  --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  --sans: "Inter", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #e9ebf0; overflow: hidden; }
+body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+/* ---------- stage ---------- */
+#stage { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: center; background: var(--bg); overflow: hidden; }
+#stage::before {
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(rgb(16 24 40 / 6%) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgb(16 24 40 / 6%) 1px, transparent 1px) 0 0 / 48px 48px;
+  mask-image: radial-gradient(1500px 950px at 50% 45%, #000 35%, transparent 100%);
+}
+#stage::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(800px 520px at 8% 0%, rgb(59 108 255 / 10%), transparent 65%),
+    radial-gradient(760px 560px at 100% 100%, rgb(147 51 234 / 8%), transparent 65%);
+}
+.paused * { animation-play-state: paused !important; }
+.scene { position: absolute; inset: 0; z-index: 1; opacity: 0; visibility: hidden; transition: opacity 600ms ease, visibility 0s linear 600ms; }
+.scene.active { opacity: 1; visibility: visible; transition: opacity 600ms ease 120ms, visibility 0s; }
+.scene.instant { transition: none; }
+
+/* ---------- reveal primitives ---------- */
+[data-at] { opacity: 0; transform: translateY(24px); transition: opacity 650ms ease, transform 750ms cubic-bezier(.2,.8,.2,1); }
+[data-at].in { opacity: 1; transform: none; }
+[data-at].fx-fade { transform: none; }
+[data-at].fx-scale { transform: scale(.88); }
+[data-at].fx-left { transform: translateX(-36px); }
+[data-at].fx-right { transform: translateX(36px); }
+[data-at].fx-scale.in, [data-at].fx-left.in, [data-at].fx-right.in { transform: none; }
+
+/* ---------- shared typography ---------- */
+.head { position: absolute; left: 120px; top: 84px; right: 120px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 10px; font: 600 22px/1 var(--mono); letter-spacing: .02em; color: var(--muted); }
+.eyebrow b, .grad { color: transparent; background: var(--brand); -webkit-background-clip: text; background-clip: text; }
+.eyebrow .part { padding: 6px 12px; border-radius: 8px; font: 700 17px/1 var(--sans); color: var(--muted); background: rgb(16 24 40 / 6%); }
+.h2 { margin: 20px 0 0; font-size: 58px; line-height: 1.18; font-weight: 750; letter-spacing: -.01em; }
+.h2 em, h1 em { font-style: normal; color: transparent; background: var(--brand); -webkit-background-clip: text; background-clip: text; }
+.caption { position: absolute; left: 0; right: 0; bottom: 60px; text-align: center; font-size: 29px; line-height: 1.5; color: var(--muted); }
+.caption strong { color: var(--text); font-weight: 650; }
+
+/* ---------- panels & code ---------- */
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+.panel-bar { flex: none; display: flex; align-items: center; gap: 14px; height: 52px; padding: 0 22px; border-bottom: 1px solid var(--border); background: var(--panel-2); font: 500 19px/1 var(--mono); color: var(--muted); }
+.panel-bar .right { margin-left: auto; }
+.dots { display: inline-flex; gap: 8px; }
+.dots i { width: 13px; height: 13px; border-radius: 50%; background: rgb(16 24 40 / 12%); }
+.code { padding: 18px 0; font: 500 22px/1.72 var(--mono); white-space: pre; }
+.ln { display: flex; align-items: center; padding: 0 22px 0 0; opacity: 0; transition: opacity 250ms, background-color 300ms, filter 400ms; border-left: 4px solid transparent; }
+.ln.in { opacity: 1; }
+.ln .no { width: 58px; flex: none; text-align: right; padding-right: 20px; color: var(--faint); }
+.ln .tx { flex: 1; clip-path: inset(0 100% 0 0); transition: clip-path var(--d, 420ms) linear; }
+.ln.in .tx { clip-path: inset(0 -20px 0 0); }
+.ln.on { background: var(--ai-bg); border-left-color: var(--ai); }
+.ln.pair { background: var(--pair-bg); border-left-color: var(--pair); }
+.ln.biz { background: var(--node-bg); border-left-color: var(--node); }
+.k { color: #6d28d9; }
+.p { color: #94a3b8; }
+.s { color: #a14b00; }
+.c { color: #94a3b8; }
+.kw { color: #c026d3; }
+.fn { color: #2563eb; }
+.ai-k { color: var(--ai); font-weight: 700; }
+.pl-k { color: var(--plat); font-weight: 700; }
+.nd-k { color: var(--node); font-weight: 700; }
+.st { width: 32px; height: 32px; flex: none; margin-left: 12px; display: grid; place-items: center; border-radius: 50%; font: 800 18px/1 var(--sans); }
+.st.run { border: 3px solid rgb(5 85 255 / 18%); border-top-color: var(--ai); animation: spin .8s linear infinite; width: 26px; height: 26px; }
+.st.ok { background: var(--node-bg); color: var(--node); animation: pop .35s ease; }
+.st.bad { background: var(--fail-bg); color: var(--fail); animation: pop .35s ease; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } }
+@keyframes blink { 50% { opacity: 0; } }
+.tag { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 8px; font: 700 17px/1 var(--sans); letter-spacing: .02em; white-space: nowrap; }
+.tag.ai { color: var(--ai); background: var(--ai-bg); }
+.tag.plat { color: var(--plat); background: var(--plat-bg); }
+.tag.node { color: var(--node); background: var(--node-bg); }
+.run-chip { padding: 8px 14px; border-radius: 9px; background: #0f172a; color: #6ee7b7; font: 600 16px/1 var(--mono); }
+.av { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font: 700 16px/1 var(--sans); color: #fff; flex: none; }
+.av.qa { background: linear-gradient(135deg, #0ea5e9, #22c55e); }
+.av.agent { background: var(--brand); }
+.av.dev { background: #334155; }
+
+/* ===================================================== COVER */
+.lockup { display: flex; flex-direction: column; align-items: center; }
+#s-cover .lockup { position: absolute; inset: 0; justify-content: center; padding-bottom: 40px; }
+.lockup .brand { display: flex; align-items: center; gap: 34px; }
+.lockup .brand img { width: 140px; }
+.lockup .brand .nm { font-size: 104px; font-weight: 800; letter-spacing: -.03em; }
+.lockup .slogan { margin-top: 30px; font-size: 44px; font-weight: 650; line-height: 1.35; text-align: center; }
+.lockup .duo { margin-top: 30px; display: flex; gap: 16px; }
+.lockup .duo > span { padding: 12px 22px; border-radius: 12px; background: #fff; border: 1px solid var(--border); font-size: 23px; color: var(--muted); }
+.lockup .duo b { color: var(--text); }
+.lockup .links { margin-top: 40px; display: flex; gap: 20px; }
+.lockup .links span { padding: 14px 26px; border-radius: 999px; border: 1px solid var(--border-2); background: #fff; font: 500 26px/1 var(--mono); color: var(--muted); }
+.lockup .links span.hi { color: var(--ai); border-color: rgb(5 85 255 / 45%); }
+
+/* ===================================================== CHAPTER */
+.chapter .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.chapter .idx { position: relative; z-index: 1; font: 800 220px/1 var(--sans); letter-spacing: -.04em; background-size: 200% 100%; animation: gradmove 2.6s ease-in-out infinite alternate; }
+@keyframes gradmove { to { background-position: 100% 0; } }
+.chapter .idx[data-at] { transform: scale(2.8); filter: blur(28px); transition: opacity .5s ease, transform 1.15s cubic-bezier(.16,1,.3,1), filter 1s ease; }
+.chapter .idx.in { transform: none; filter: none; }
+.rings { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+.rings i { position: absolute; left: -150px; top: -150px; width: 300px; height: 300px; border-radius: 50%; border: 2px solid rgb(124 58 237 / 40%); opacity: 0; }
+.rings i:nth-child(2) { border-color: rgb(59 108 255 / 35%); }
+.rings i:nth-child(3) { border-color: rgb(225 72 154 / 30%); }
+.rings.in i { animation: ring 2.6s cubic-bezier(.2,.8,.2,1) forwards; }
+.rings.in i:nth-child(2) { animation-delay: .25s; }
+.rings.in i:nth-child(3) { animation-delay: .5s; }
+@keyframes ring { from { transform: scale(.3); opacity: .9; } to { transform: scale(4.2); opacity: 0; } }
+.chapter .ttl { perspective: 900px; }
+.chapter .ttl[data-at] { opacity: 1; transform: none; }
+.ttl .ch { display: inline-block; opacity: 0; transform: translateY(60%) rotateX(-90deg); filter: blur(8px); transform-origin: 50% 100%; transition: opacity .45s, transform .75s cubic-bezier(.2,.8,.2,1.15), filter .5s; transition-delay: calc(var(--i) * 45ms); }
+.ttl.in .ch { opacity: 1; transform: none; filter: none; }
+.chapter .kws[data-at] { opacity: 1; transform: none; }
+.chapter .kws span { opacity: 0; transform: translateY(24px) scale(.85); transition: opacity .4s, transform .6s cubic-bezier(.2,.8,.2,1.4); transition-delay: calc(var(--i) * 110ms); }
+.chapter .kws.in span { opacity: 1; transform: none; }
+/* exit: the number punches toward the camera while the rest dissolves */
+.chapter.exit .idx.in { transform: scale(7); opacity: 0; filter: blur(12px); transition: transform 1s cubic-bezier(.7,0,.3,1), opacity .6s ease .35s, filter 1s ease; }
+.chapter.exit .ttl .ch { opacity: 0; transform: translateY(-40%) scale(.9); filter: blur(10px); transition-duration: .4s; transition-delay: calc(var(--i) * 18ms); }
+.chapter.exit .sub.in { opacity: 0; transform: translateY(-20px); filter: blur(8px); }
+.chapter.exit .kws span { opacity: 0; transform: translateY(-16px) scale(.9); transition-delay: calc(var(--i) * 50ms); }
+
+/* chapter handoff: the next scene zooms in from depth while a light streak crosses the stage */
+.scene.zoomin { animation: zoomin .9s cubic-bezier(.16,1,.3,1) both; }
+@keyframes zoomin { from { opacity: 0; transform: scale(.9); filter: blur(14px); } }
+#streak { position: absolute; top: -20%; bottom: -20%; left: 0; width: 320px; z-index: 40; pointer-events: none; opacity: 0; background: linear-gradient(90deg, transparent, rgb(59 108 255 / 28%) 30%, rgb(147 51 234 / 34%) 50%, rgb(225 72 154 / 28%) 70%, transparent); filter: blur(18px); transform: translateX(-500px) skewX(-18deg); }
+#streak.go { animation: streak .95s cubic-bezier(.5,0,.3,1) forwards; }
+@keyframes streak { 0% { opacity: 0; transform: translateX(-500px) skewX(-18deg); } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateX(2200px) skewX(-18deg); } }
+.chapter .ttl { margin-top: 26px; font-size: 76px; font-weight: 800; letter-spacing: -.01em; }
+.chapter .sub { margin-top: 26px; font-size: 30px; color: var(--muted); }
+.chapter .kws { margin-top: 48px; display: flex; gap: 14px; }
+.chapter .kws span { padding: 12px 22px; border-radius: 999px; background: #fff; border: 1px solid var(--border); box-shadow: var(--shadow); font-size: 22px; color: var(--muted); }
+
+/* ===================================================== INTENT */
+#s-intent .doc { position: absolute; left: 120px; top: 300px; width: 700px; }
+.doc-body { padding: 10px 24px 22px; }
+.row { display: grid; grid-template-columns: 170px 1fr; gap: 18px; padding: 20px 18px; border-bottom: 1px dashed var(--border-2); border-radius: 12px; transition: background-color .4s, box-shadow .4s; }
+.row:last-child { border-bottom: 0; }
+.row .k2 { font-size: 21px; font-weight: 650; color: var(--faint); padding-top: 3px; }
+.row .v { font-size: 27px; line-height: 1.55; }
+.row.on { background: var(--pair-bg); box-shadow: inset 4px 0 0 var(--pair); }
+.row.done .k2::after { content: " ✓"; color: var(--node); }
+#s-intent .yaml { position: absolute; left: 960px; top: 300px; width: 840px; }
+#s-intent .yaml .code { font-size: 21px; }
+#s-intent .yaml .run-chip { margin-left: auto; opacity: 0; transition: opacity .3s; }
+#s-intent .yaml .run-chip.in { opacity: 1; }
+svg.wires { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; z-index: 3; }
+svg.wires path { fill: none; stroke: var(--pair); stroke-width: 3; stroke-linecap: round; stroke-dasharray: var(--len); stroke-dashoffset: var(--len); transition: stroke-dashoffset .6s ease, opacity .5s; }
+svg.wires path.in { stroke-dashoffset: 0; }
+svg.wires path.dim { opacity: .28; }
+.pass-badge { position: absolute; z-index: 6; padding: 16px 26px; border-radius: 14px; background: #0f172a; color: #fff; font-size: 22px; font-weight: 600; display: flex; gap: 12px; align-items: center; white-space: nowrap; }
+.pass-badge b { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #16a36a; }
+#s-intent .pass-badge { left: 960px; top: 720px; }
+
+/* ===================================================== SYNTAX */
+.grid4 { position: absolute; left: 120px; right: 120px; top: 284px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 330px 330px; gap: 28px; }
+.fcard { padding: 26px 30px; display: flex; flex-direction: column; transition: opacity .45s, border-color .45s, box-shadow .45s, transform .45s; }
+.grid4.focus .fcard { opacity: .38; }
+.grid4.focus .fcard.on { opacity: 1; border-color: rgb(5 85 255 / 45%); box-shadow: 0 30px 70px rgb(5 85 255 / 14%), 0 2px 6px rgb(16 24 40 / 5%); transform: translateY(-4px); }
+.fcard .fh { display: flex; align-items: center; gap: 14px; }
+.fcard .fn2 { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: #fff; font: 800 18px/1 var(--sans); flex: none; }
+.fcard strong { font-size: 32px; }
+.fcard .fd { margin-top: 10px; font-size: 20px; line-height: 1.5; color: var(--muted); }
+.fcard .demo { margin-top: auto; }
+.mini { border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); padding: 10px 0; font: 500 21px/1.7 var(--mono); white-space: pre; }
+.mini .ln .no { width: 44px; padding-right: 14px; }
+.mini .ln.bad { background: var(--fail-bg); border-left-color: var(--fail); }
+.mini .ln.bad .tx { text-decoration: line-through; text-decoration-color: transparent; transition: clip-path var(--d, 420ms) linear, text-decoration-color .4s; }
+.mini .ln.bad.x .tx { text-decoration-color: var(--fail); }
+.mini .ln.good { background: var(--node-bg); border-left-color: var(--node); }
+.flowline { display: flex; align-items: center; gap: 8px; position: relative; padding: 18px 0 8px; }
+.fstep { padding: 11px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font: 600 17px/1 var(--mono); white-space: nowrap; transition: background-color .3s, border-color .3s, color .3s; }
+.fstep.done { background: var(--node-bg); border-color: rgb(11 138 90 / 35%); color: var(--node); }
+.fstep.cur { background: var(--ai-bg); border-color: rgb(5 85 255 / 45%); color: var(--ai); }
+.farr { color: var(--faint); font-size: 18px; }
+.nobranch { margin-top: 14px; display: flex; gap: 10px; align-items: center; font-size: 19px; color: var(--muted); }
+.nobranch .x { white-space: nowrap; padding: 8px 14px; border-radius: 9px; border: 1px dashed rgb(229 72 77 / 50%); color: var(--fail); font: 600 17px/1 var(--mono); text-decoration: line-through; }
+
+/* ===================================================== SPEC */
+#s-spec .spec { position: absolute; left: 120px; top: 280px; width: 660px; }
+#s-spec .spec .code { font-size: 19px; line-height: 1.7; }
+#s-spec .spec .ln .tx { --d: 260ms; }
+#s-spec .spec .ln.read { background: var(--pair-bg); border-left-color: var(--pair); }
+#s-spec .chat { position: absolute; left: 830px; top: 280px; width: 970px; height: 712px; display: flex; flex-direction: column; }
+.chat-body { flex: 1; padding: 22px 26px; display: flex; flex-direction: column; gap: 14px; }
+.msg { display: flex; gap: 14px; align-items: flex-start; }
+.msg.user { flex-direction: row-reverse; }
+.bubble { padding: 14px 20px; border-radius: 16px; font-size: 22px; line-height: 1.5; background: var(--panel-2); border: 1px solid var(--border); }
+.msg.user .bubble { background: #0f172a; color: #fff; border-color: #0f172a; border-top-right-radius: 4px; }
+.agent-col { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tool { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2); font: 500 18px/1.2 var(--mono); color: var(--muted); }
+.tool .st { margin-left: auto; }
+.tool b { color: var(--text); font-weight: 600; }
+.gen { border-radius: 12px; border: 1px solid var(--border); padding: 8px 0; font: 500 18px/1.58 var(--mono); white-space: pre; }
+.gen .ln .no { width: 46px; padding-right: 14px; }
+.gen .ln .tx { --d: 260ms; }
+.hl { border-radius: 5px; transition: background-color .4s, box-shadow .4s; }
+#s-spec.link .hl { background: rgb(245 158 11 / 18%); box-shadow: 0 0 0 2px rgb(245 158 11 / 70%); }
+.review { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-radius: 14px; border: 1px solid rgb(11 138 90 / 35%); background: rgb(11 138 90 / 6%); font-size: 20px; }
+.review .apv { padding: 6px 12px; border-radius: 8px; background: #16a36a; color: #fff; font: 700 16px/1 var(--sans); }
+
+/* ===================================================== COMPOSE */
+#s-compose .cfg { position: absolute; left: 120px; top: 290px; width: 760px; }
+#s-compose .cfg .code { font-size: 23px; line-height: 1.85; }
+#s-compose .cfg.focus .ln { filter: opacity(.25); }
+#s-compose .cfg .ln.hot { filter: none; }
+#s-compose .cfg .ln.hot.ai { background: var(--ai-bg); border-left-color: var(--ai); }
+#s-compose .cfg .ln.hot.plat { background: var(--plat-bg); border-left-color: var(--plat); }
+#s-compose .cfg .ln.hot.biz { background: var(--node-bg); border-left-color: var(--node); }
+#s-compose .swap { display: inline-block; padding: 0 4px; margin: 0 -4px; border-radius: 6px; transition: background-color .3s, box-shadow .3s, transform .35s cubic-bezier(.2,.8,.2,1.6); }
+#s-compose .swap.flash { background: rgb(124 58 237 / 16%); box-shadow: 0 0 0 2px rgb(124 58 237 / 60%); transform: scale(1.12); }
+.sw-badge { margin-left: 14px; padding: 5px 10px; border-radius: 8px; background: var(--plat); color: #fff; font: 700 16px/1 var(--sans); opacity: 0; transform: translateX(-10px); display: inline-block; transition: opacity .3s, transform .4s cubic-bezier(.2,.8,.2,1.4); vertical-align: 3px; }
+.sw-badge.in { opacity: 1; transform: none; }
+svg.beams { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; z-index: 3; }
+svg.beams path { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: var(--len); stroke-dashoffset: var(--len); transition: stroke-dashoffset .55s cubic-bezier(.4,0,.2,1), opacity .4s; }
+svg.beams path.in { stroke-dashoffset: 0; }
+svg.beams circle { transform-box: fill-box; transform-origin: center; transform: scale(0); transition: transform .3s cubic-bezier(.2,.8,.2,1.6) .45s, opacity .4s; }
+svg.beams .in + circle, svg.beams circle.in { transform: none; }
+svg.beams .gone { opacity: 0; }
+svg.beams .ai { stroke: var(--ai); fill: var(--ai); }
+svg.beams .plat { stroke: var(--plat); fill: var(--plat); }
+svg.beams .biz { stroke: var(--node); fill: var(--node); }
+#s-compose .reg { position: absolute; left: 1000px; top: 290px; width: 800px; height: 600px; display: flex; flex-direction: column; }
+#s-compose .grp { margin: -10px -12px; padding: 10px 12px; border-radius: 14px; transition: opacity .4s, background-color .4s, box-shadow .4s; }
+#s-compose .grp.hot { background: rgb(16 24 40 / 3%); box-shadow: 0 0 0 2px rgb(16 24 40 / 8%); }
+.reg-body { position: relative; flex: 1; padding: 24px 28px; display: flex; flex-direction: column; gap: 22px; }
+.reg-empty { position: absolute; inset: 0; display: grid; place-items: center; font: 500 22px/1 var(--mono); color: var(--faint); transition: opacity .4s; }
+.reg-empty.gone { opacity: 0; }
+.grp { opacity: 0; transition: opacity .4s; }
+.grp.in { opacity: 1; }
+.grp-h { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 20px; font-weight: 650; color: var(--muted); }
+.grp-h code { font: 500 16px/1 var(--mono); color: var(--faint); }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; min-height: 48px; }
+.nchip { display: inline-flex; align-items: center; height: 46px; padding: 0 16px; border-radius: 11px; font: 600 19px/1 var(--mono); border: 1.5px solid; opacity: 0; transform: translateY(-14px) scale(.9); transition: opacity .35s, transform .45s cubic-bezier(.2,.8,.2,1.3); }
+.nchip.in { opacity: 1; transform: none; }
+.nchip.out { opacity: 0; transform: translateY(14px) scale(.9); }
+.nchip.ai { color: var(--ai); background: var(--ai-bg); border-color: rgb(5 85 255 / 30%); }
+.nchip.plat { color: var(--plat); background: var(--plat-bg); border-color: rgb(124 58 237 / 30%); }
+.nchip.biz { color: var(--node); background: var(--node-bg); border-color: rgb(11 138 90 / 30%); }
+.nchip.ping { animation: ping .9s ease; }
+@keyframes ping { 30% { box-shadow: 0 0 0 6px rgb(11 138 90 / 22%); transform: scale(1.06); } }
+.plat-row { display: flex; align-items: center; gap: 10px; }
+.plat-row .chips { flex: 1; position: relative; }
+
+/* ===================================================== DEFINE */
+#s-define .decl { position: absolute; left: 120px; top: 290px; width: 840px; }
+#s-define .decl .code { font-size: 20px; }
+#s-define .decl .ln.chk { background: var(--ai-bg); border-left-color: var(--ai); }
+#s-define .decl .ln.doc { background: var(--node-bg); border-left-color: var(--node); }
+.once { margin-left: auto; padding: 7px 14px; border-radius: 9px; background: var(--brand); color: #fff; font: 700 16px/1 var(--sans); }
+#s-define .decl .ln .tx { --d: 300ms; }
+#s-define .yml { position: absolute; left: 1010px; top: 290px; width: 790px; }
+#s-define .yml .code { font-size: 22px; }
+#s-define .yml .run-chip { margin-left: auto; }
+.fix { border-radius: 5px; transition: background-color .4s, box-shadow .4s; }
+.fix.bad { background: var(--fail-bg); box-shadow: 0 0 0 2px rgb(229 72 77 / 60%); }
+.fix.good { background: var(--node-bg); box-shadow: 0 0 0 2px rgb(11 138 90 / 55%); }
+.errbox { margin: 0 22px 20px; padding: 14px 18px; border-radius: 12px; background: var(--fail-bg); border: 1px solid rgb(229 72 77 / 25%); font: 500 18px/1.5 var(--mono); color: var(--fail); white-space: pre-wrap; max-height: 0; opacity: 0; overflow: hidden; transition: max-height .4s, opacity .4s, margin .4s, padding .4s; }
+.errbox.in { max-height: 140px; opacity: 1; }
+.errbox:not(.in) { padding-top: 0; padding-bottom: 0; margin-bottom: 0; }
+#s-define .gen-spec { position: absolute; left: 1010px; top: 690px; width: 790px; }
+#s-define .gen-spec .code { font-size: 19px; line-height: 1.65; }
+#s-define .gen-spec .ln .tx { --d: 260ms; }
+#s-define .notes { position: absolute; left: 120px; top: 800px; width: 840px; display: flex; flex-direction: column; gap: 12px; }
+.note { display: flex; gap: 14px; align-items: flex-start; font-size: 22px; line-height: 1.5; color: var(--muted); }
+.note i { margin-top: 2px; }
+.note i { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--node-bg); color: var(--node); font: 800 16px/1 var(--sans); font-style: normal; }
+.note b { color: var(--text); font-weight: 650; }
+
+/* ===================================================== FULL (batteries included) */
+#s-full .fcard .fd { font-size: 19px; }
+#s-full .lc { display: flex; align-items: center; gap: 8px; }
+#s-full .fstep { font-size: 16px; padding: 10px 11px; }
+#s-full .fstep.bad { background: var(--fail-bg); border-color: rgb(229 72 77 / 40%); color: var(--fail); }
+.loop { position: relative; display: flex; align-items: center; gap: 8px; padding: 10px; border: 2px dashed rgb(124 58 237 / 35%); border-radius: 12px; }
+.loop .rt { position: absolute; top: -15px; right: 12px; padding: 5px 9px; border-radius: 7px; background: var(--plat); color: #fff; font: 700 14px/1 var(--sans); opacity: 0; transform: scale(.7); transition: opacity .3s, transform .4s cubic-bezier(.2,.8,.2,1.6); }
+.loop .rt.in { opacity: 1; transform: none; }
+.lanes2 { display: flex; flex-direction: column; gap: 12px; }
+.ln2 { display: grid; grid-template-columns: 170px 1fr 30px; align-items: center; gap: 12px; font: 600 16px/1 var(--mono); }
+.trk { height: 14px; border-radius: 7px; background: rgb(16 24 40 / 6%); overflow: hidden; }
+.trk i { display: block; height: 100%; width: 0; border-radius: 7px; background: var(--brand); transition: width var(--d, 1.5s) linear; }
+.ln2.go .trk i { width: 100%; }
+.ln2 .ok2 { color: var(--node); font: 800 18px/1 var(--sans); opacity: 0; transition: opacity .3s; }
+.ln2.done .ok2 { opacity: 1; }
+.cfgline { margin-top: 6px; font: 500 15px/1 var(--mono); color: var(--muted); }
+.mrep { display: flex; flex-direction: column; gap: 12px; }
+.mrep .cnts { display: flex; gap: 26px; font-size: 16px; color: var(--muted); align-items: baseline; }
+.mrep .cnts b { font-size: 30px; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.mrep .cnts .g b { color: var(--node); } .mrep .cnts .r b { color: var(--fail); } .mrep .cnts .n b { color: var(--faint); }
+.mrep .note2 { margin-left: auto; font-size: 15px; color: #b45309; opacity: 0; transition: opacity .4s; }
+.mrep .note2.in { opacity: 1; }
+.mbar { height: 12px; border-radius: 6px; background: rgb(16 24 40 / 7%); display: flex; overflow: hidden; }
+.mbar i { display: block; height: 100%; width: 0; transition: width 1s cubic-bezier(.4,0,.2,1); }
+.mbar .bg { background: #16a36a; } .mbar .bh { background: repeating-linear-gradient(135deg, #16a36a 0 5px, #8fd8b6 5px 9px); } .mbar .br { background: var(--fail); }
+.thumbs2 { display: flex; gap: 10px; }
+.thumbs2 > i { flex: 1; height: 46px; border-radius: 7px; border: 1px solid var(--border); background: linear-gradient(#e3e6ec 0 8px, transparent 8px) 6px 6px / 60% 14px no-repeat, linear-gradient(90deg, #eef0f4 30%, transparent 30% 35%, #eef0f4 35% 65%, transparent 65% 70%, #eef0f4 70%) 6px 22px / calc(100% - 12px) 18px no-repeat, #fff; opacity: 0; transform: translateY(8px); transition: opacity .3s, transform .4s, box-shadow .3s; }
+.thumbs2 > i.in { opacity: 1; transform: none; }
+.thumbs2 > i.bad { box-shadow: 0 0 0 3px var(--fail); }
+#s-full .mini { font-size: 18px; }
+#s-full .mini .c { color: #16a36a; }
+
+/* ===================================================== OUTRO */
+#s-outro .term { position: absolute; left: 50%; top: 320px; width: 1160px; margin-left: -580px; background: #0f172a; border-color: #0f172a; transition: transform 1s cubic-bezier(.2,.8,.2,1), opacity 1s; }
+#s-outro .term .panel-bar { background: #1e293b; border-color: #1e293b; color: rgb(255 255 255 / 55%); }
+#s-outro .term .dots i { background: rgb(255 255 255 / 20%); }
+#s-outro.final .term { transform: translateY(-60px) scale(.92); opacity: 0; }
+#s-outro .term .code { font-size: 26px; line-height: 1.8; padding: 26px 34px; white-space: pre-wrap; min-height: 0; color: #e2e8f0; }
+#s-outro .prompt { color: #6ee7b7; }
+#s-outro .typing::after { content: "▍"; color: rgb(255 255 255 / 50%); animation: blink 1s steps(1) infinite; }
+#s-outro .out { color: rgb(226 232 240 / 65%); }
+#s-outro .out b { color: #6ee7b7; font-weight: 600; }
+#s-outro .lockup { position: absolute; left: 0; right: 0; top: 300px; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100; padding: 10px 16px; display: flex; align-items: center; gap: 16px; font: 12px/1 var(--mono); color: rgb(255 255 255 / 80%); background: linear-gradient(transparent, rgb(0 0 0 / 55%)); transition: opacity .3s; }
+#hud.hidden { opacity: 0; pointer-events: none; }
+#hud .pg { flex: 1; height: 3px; background: rgb(255 255 255 / 25%); border-radius: 2px; overflow: hidden; }
+#hud .pg i { display: block; height: 100%; width: 0; background: #7fa6ff; }
+#start { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 200; padding: 14px 24px; border-radius: 999px; background: #0f172a; color: #fff; font: 600 16px/1.4 var(--sans); text-align: center; cursor: pointer; box-shadow: 0 10px 30px rgb(0 0 0 / 25%); }
+#start small { display: block; font: 12px/1.6 var(--mono); color: rgb(255 255 255 / 55%); }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- ================================================= COVER (fully visible from frame 0) -->
+  <section class="scene" id="s-cover" data-dur="5500" data-name="cover">
+    <div class="lockup">
+      <div class="brand"><img src="midscene-icon.png" alt="" /><div class="nm">Midscene <span class="grad">Test</span></div></div>
+      <div class="slogan" data-t="outro.slogan"></div>
+      <div class="duo"><span><b>Aa</b>  <span data-t="cover.p1"></span></span><span><b>{ }</b>  <span data-t="cover.p2"></span></span></div>
+      <div class="links"><span class="hi">midscenejs.com/midscene-test/overview</span><span>@midscene/test</span></div>
+    </div>
+  </section>
+
+  <!-- ================================================= CHAPTER 1 -->
+  <section class="scene chapter" id="s-ch1" data-dur="3900" data-name="part 1">
+    <div class="center">
+      <div class="rings" data-at="250"><i></i><i></i><i></i></div>
+      <div class="idx grad" data-at="100">01</div>
+      <div class="ttl" data-at="650" data-t="ch1.t"></div>
+      <div class="sub" data-at="1300" data-t="ch1.s"></div>
+      <div class="kws" data-at="1650"><span data-t="ch1.k1"></span><span data-t="ch1.k2"></span><span data-t="ch1.k3"></span></div>
+    </div>
+  </section>
+
+  <!-- ================================================= INTENT -->
+  <section class="scene" id="s-intent" data-dur="13500" data-name="intent → yaml">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><span class="part">PART 1</span><b>// 01</b><span data-t="int.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="int.h2"></h2>
+    </div>
+    <svg class="wires" id="wires" viewBox="0 0 1920 1080"></svg>
+    <div class="panel doc fx-left" data-at="500">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span><span data-t="int.doc"></span></div>
+      <div class="doc-body">
+        <div class="row" id="r1"><div class="k2" data-t="int.k1"></div><div class="v" data-t="int.v1"></div></div>
+        <div class="row" id="r2"><div class="k2" data-t="int.k2"></div><div class="v" data-t="int.v2"></div></div>
+        <div class="row" id="r3"><div class="k2" data-t="int.k3"></div><div class="v" data-t="int.v3"></div></div>
+        <div class="row" id="r4"><div class="k2" data-t="int.k4"></div><div class="v" data-t="int.v4"></div></div>
+      </div>
+    </div>
+    <div class="panel yaml fx-right" data-at="800">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span>cases/cart.yaml<span class="run-chip" id="runchip">$ midscene-test</span></div>
+      <div class="code"><div class="ln" id="y1"><span class="no">1</span><span class="tx"><span class="k">beforeEach</span><span class="p">:</span></span></div><div class="ln" id="y2"><span class="no">2</span><span class="tx">  <span class="p">- </span><span class="pl-k">gotoUrl</span><span class="p">:</span> <span class="s">https://your-shop.example</span></span></div><div class="ln" id="y3"><span class="no">3</span><span class="tx"> </span></div><div class="ln" id="y4"><span class="no">4</span><span class="tx"><span class="k">cases</span><span class="p">:</span></span></div><div class="ln" id="y5"><span class="no">5</span><span class="tx">  <span class="p">- </span><span class="k">name</span><span class="p">:</span> <span class="s" data-t="int.v1"></span></span></div><div class="ln" id="y6"><span class="no">6</span><span class="tx">    <span class="k">steps</span><span class="p">:</span></span></div><div class="ln" id="y7" style="--d:700ms"><span class="no">7</span><span class="tx">      <span class="p">- </span><span class="ai-k">aiAct</span><span class="p">:</span> <span class="s" data-t="int.act"></span></span></div><div class="ln" id="y8" style="--d:600ms"><span class="no">8</span><span class="tx">      <span class="p">- </span><span class="ai-k">aiAssert</span><span class="p">:</span> <span class="s" data-t="int.v4"></span></span></div></div>
+    </div>
+    <div class="pass-badge fx-scale" data-at="10600"><b>✓</b><span data-t="int.pass"></span></div>
+    <div class="caption" data-at="7300" data-t="int.cap"></div>
+  </section>
+
+  <!-- ================================================= SYNTAX -->
+  <section class="scene" id="s-syntax" data-dur="13800" data-name="syntax">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><span class="part">PART 1</span><b>// 02</b><span data-t="syn.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="syn.h2"></h2>
+    </div>
+    <div class="grid4" id="grid4">
+      <div class="panel fcard" data-at="500">
+        <div class="fh"><span class="fn2">1</span><strong data-t="syn.a"></strong></div>
+        <div class="fd" data-t="syn.ad"></div>
+        <div class="demo mini"><div class="ln" id="a1"><span class="no">1</span><span class="tx"><span class="p">- </span><span class="ai-k">aiAct</span><span class="p">:</span> <span class="s" data-t="syn.a1"></span></span></div><div class="ln" id="a2"><span class="no">2</span><span class="tx"><span class="p">- </span><span class="ai-k">aiAssert</span><span class="p">:</span> <span class="s" data-t="syn.a2"></span></span></div></div>
+      </div>
+      <div class="panel fcard" data-at="650">
+        <div class="fh"><span class="fn2">2</span><strong data-t="syn.b"></strong></div>
+        <div class="fd" data-t="syn.bd"></div>
+        <div class="demo">
+          <div class="flowline" id="flow"><span class="fstep">beforeEach</span><span class="farr">→</span><span class="fstep">aiAct</span><span class="farr">→</span><span class="fstep">aiAssert</span><span class="farr">→</span><span class="fstep">order.check</span><span class="farr">→</span><span class="fstep">afterEach</span></div>
+          <div class="nobranch fx-fade" id="nob"><span class="x">if / else</span><span class="x">loop</span><span class="x">DAG</span><span data-t="syn.bn"></span></div>
+        </div>
+      </div>
+      <div class="panel fcard" data-at="800">
+        <div class="fh"><span class="fn2">3</span><strong data-t="syn.c"></strong></div>
+        <div class="fd" data-t="syn.cd"></div>
+        <div class="demo mini"><div class="ln bad" id="c1"><span class="no">✗</span><span class="tx"><span class="p">- </span><span class="ai-k">aiAssert</span><span class="p">:</span> <span class="s" data-t="syn.c1"></span></span></div><div class="ln good" id="c2" style="--d:600ms"><span class="no">✓</span><span class="tx"><span class="p">- </span><span class="ai-k">aiAssert</span><span class="p">:</span> <span class="s" data-t="syn.c2"></span></span></div></div>
+      </div>
+      <div class="panel fcard" data-at="950">
+        <div class="fh"><span class="fn2">4</span><strong data-t="syn.d"></strong></div>
+        <div class="fd" data-t="syn.dd"></div>
+        <div class="demo mini"><div class="ln" id="d1"><span class="no">1</span><span class="tx"><span class="p">- </span><span class="ai-k">setAIContext</span><span class="p">:</span></span></div><div class="ln" id="d2"><span class="no">2</span><span class="tx">    <span class="k">target</span><span class="p">:</span> <span class="s">aiAct</span></span></div><div class="ln" id="d3" style="--d:600ms"><span class="no">3</span><span class="tx">    <span class="k">context</span><span class="p">:</span> <span class="s" data-t="syn.d3"></span></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================= SPEC + AI -->
+  <section class="scene" id="s-spec" data-dur="14000" data-name="spec + agent">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><span class="part">PART 1</span><b>// 03</b><span data-t="spec.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="spec.h2"></h2>
+    </div>
+    <div class="panel spec fx-left" data-at="500">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span>midscene-node-spec.md</div>
+      <div class="code"><div class="ln" data-at="700"><span class="no">1</span><span class="tx"><span class="kw">## Available Nodes</span></span></div><div class="ln" data-at="820"><span class="no">2</span><span class="tx">- <span class="ai-k">aiAct</span> · <span class="ai-k">aiAssert</span> · <span class="ai-k">aiWaitFor</span></span></div><div class="ln" data-at="940"><span class="no">3</span><span class="tx">- <span class="pl-k">gotoUrl</span> · <span class="pl-k">clearCookies</span></span></div><div class="ln" id="sp4" data-at="1060"><span class="no">4</span><span class="tx">- <span class="nd-k hl">order.prepare</span> · <span class="nd-k hl">order.checkRefund</span></span></div><div class="ln" data-at="1180"><span class="no">5</span><span class="tx"> </span></div><div class="ln" data-at="1300"><span class="no">6</span><span class="tx"><span class="kw">## Node Details</span></span></div><div class="ln" id="sp7" data-at="1420"><span class="no">7</span><span class="tx"><span class="kw">### <span class="hl">order.prepare</span></span></span></div><div class="ln" id="sp8" data-at="1540"><span class="no">8</span><span class="tx"><span class="c" data-t="spec.d1"></span></span></div><div class="ln" id="sp9" data-at="1660"><span class="no">9</span><span class="tx">- <span class="hl">status</span>: <span class="s">"paid"</span></span></div><div class="ln" data-at="1780"><span class="no">10</span><span class="tx"> </span></div><div class="ln" id="sp11" data-at="1900"><span class="no">11</span><span class="tx"><span class="kw">### <span class="hl">order.checkRefund</span></span></span></div><div class="ln" id="sp12" data-at="2020"><span class="no">12</span><span class="tx"><span class="c" data-t="spec.d2"></span></span></div><div class="ln" id="sp13" data-at="2140"><span class="no">13</span><span class="tx">- <span class="hl">status</span>: <span class="s">"refunding" | "refunded"</span></span></div></div>
+    </div>
+    <div class="panel chat fx-right" data-at="900">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span><span data-t="spec.chat"></span></div>
+      <div class="chat-body">
+        <div class="msg user fx-fade" data-at="2400"><span class="av qa">QA</span><div class="bubble" data-t="spec.ask"></div></div>
+        <div class="msg fx-fade" data-at="3300"><span class="av agent">AI</span>
+          <div class="agent-col">
+            <div class="tool" id="tool1"><span>📄</span><span data-t="spec.read"></span><b>midscene-node-spec.md</b></div>
+            <div class="tool fx-fade" data-at="5900" id="tool2"><span>✍️</span><span data-t="spec.write"></span><b>cases/refund.yaml</b></div>
+            <div class="gen fx-fade" data-at="6100"><div class="ln" id="g1"><span class="no">1</span><span class="tx"><span class="k">beforeEach</span><span class="p">:</span></span></div><div class="ln" id="g2"><span class="no">2</span><span class="tx">  <span class="p">- </span><span class="nd-k hl">order.prepare</span><span class="p">:</span></span></div><div class="ln" id="g3"><span class="no">3</span><span class="tx">      <span class="k hl">status</span><span class="p">:</span> <span class="s">paid</span></span></div><div class="ln" id="g4"><span class="no">4</span><span class="tx"><span class="k">cases</span><span class="p">:</span></span></div><div class="ln" id="g5"><span class="no">5</span><span class="tx">  <span class="p">- </span><span class="k">name</span><span class="p">:</span> <span class="s" data-t="spec.name"></span></span></div><div class="ln" id="g6"><span class="no">6</span><span class="tx">    <span class="k">steps</span><span class="p">:</span></span></div><div class="ln" id="g7" style="--d:500ms"><span class="no">7</span><span class="tx">      <span class="p">- </span><span class="ai-k">aiAct</span><span class="p">:</span> <span class="s" data-t="spec.act"></span></span></div><div class="ln" id="g8" style="--d:400ms"><span class="no">8</span><span class="tx">      <span class="p">- </span><span class="ai-k">aiAssert</span><span class="p">:</span> <span class="s" data-t="spec.assert"></span></span></div><div class="ln" id="g9"><span class="no">9</span><span class="tx">      <span class="p">- </span><span class="nd-k hl">order.checkRefund</span><span class="p">:</span></span></div><div class="ln" id="g10"><span class="no">10</span><span class="tx">          <span class="k hl">status</span><span class="p">:</span> <span class="s">refunding</span></span></div></div>
+          </div>
+        </div>
+        <div class="review fx-fade" data-at="9700"><span class="av qa" style="width:38px;height:38px;font-size:14px">QA</span><span class="apv">✓ Approve</span><span data-t="spec.review"></span></div>
+      </div>
+    </div>
+    <div class="caption" data-at="10800" style="bottom:28px" data-t="spec.cap"></div>
+  </section>
+
+  <!-- ================================================= CHAPTER 2 -->
+  <section class="scene chapter" id="s-ch2" data-dur="3900" data-name="part 2">
+    <div class="center">
+      <div class="rings" data-at="250"><i></i><i></i><i></i></div>
+      <div class="idx grad" data-at="100">02</div>
+      <div class="ttl" data-at="650" data-t="ch2.t"></div>
+      <div class="sub" data-at="1300" data-t="ch2.s"></div>
+      <div class="kws" data-at="1650"><span>defineNode</span><span>createMidsceneNodes</span><span>Node Spec</span></div>
+    </div>
+  </section>
+
+  <!-- ================================================= DEFINE -->
+  <section class="scene" id="s-define" data-dur="12000" data-name="defineNode">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><span class="part">PART 2</span><b>// 04</b><span data-t="def.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="def.h2"></h2>
+    </div>
+    <svg class="beams" id="dbeams" viewBox="0 0 1920 1080"></svg>
+    <div class="panel decl fx-left" data-at="500" id="dnode">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span>nodes/user.ts<span class="once fx-scale" data-at="2300" data-t="def.once"></span></div>
+      <div class="code"><div class="ln" data-at="700"><span class="no">1</span><span class="tx"><span class="kw">export const</span> createUser = <span class="fn">defineNode</span>({</span></div><div class="ln" data-at="850"><span class="no">2</span><span class="tx">  name: <span class="s">'user.create'</span>,</span></div><div class="ln" id="n3" data-at="1000"><span class="no">3</span><span class="tx">  description: <span class="s">'<span data-t="def.desc"></span>'</span>,</span></div><div class="ln" id="n4" data-at="1150"><span class="no">4</span><span class="tx">  inputSchema: z.<span class="fn">strictObject</span>({</span></div><div class="ln" id="n5" data-at="1300"><span class="no">5</span><span class="tx">    name: z.<span class="fn">string</span>().<span class="fn">min</span>(1).<span class="fn">describe</span>(<span class="s">'<span data-t="def.f1"></span>'</span>),</span></div><div class="ln" id="n6" data-at="1450"><span class="no">6</span><span class="tx">    email: z.<span class="fn">string</span>().<span class="fn">email</span>().<span class="fn">describe</span>(<span class="s">'<span data-t="def.f2"></span>'</span>),</span></div><div class="ln" id="n7" data-at="1600"><span class="no">7</span><span class="tx">  }),</span></div><div class="ln" data-at="1750"><span class="no">8</span><span class="tx">  <span class="kw">async</span> <span class="fn">execute</span>({ input, context }) {</span></div><div class="ln" data-at="1900"><span class="no">9</span><span class="tx">    <span class="kw">await</span> context.users.<span class="fn">create</span>(input);</span></div><div class="ln" data-at="2050"><span class="no">10</span><span class="tx">  },</span></div><div class="ln" data-at="2200"><span class="no">11</span><span class="tx">});</span></div></div>
+    </div>
+    <div class="panel yml fx-right" data-at="2400">
+      <div class="panel-bar"><span class="tag ai" data-t="def.t1"></span>cases/user.yaml<span class="run-chip fx-fade" data-at="3700">$ midscene-test</span></div>
+      <div class="code"><div class="ln" data-at="2600"><span class="no">1</span><span class="tx"><span class="k">steps</span><span class="p">:</span></span></div><div class="ln" id="u2" data-at="2750"><span class="no">2</span><span class="tx">  <span class="p">- </span><span class="nd-k">user.create</span><span class="p">:</span></span></div><div class="ln" data-at="2900"><span class="no">3</span><span class="tx">      <span class="k">name</span><span class="p">:</span> <span class="s">Alice</span></span></div><div class="ln" data-at="3050"><span class="no">4</span><span class="tx">      <span class="k">email</span><span class="p">:</span> <span class="s fix" id="email">alice@example</span></span></div></div>
+      <div class="errbox" id="err">NodeInputValidationError · user.create
+  email: <span data-t="def.err"></span></div>
+    </div>
+    <div class="panel gen-spec fx-right" data-at="7400">
+      <div class="panel-bar"><span class="tag node" data-t="def.t2"></span>midscene-node-spec.md</div>
+      <div class="code"><div class="ln" data-at="7700"><span class="no">1</span><span class="tx"><span class="kw">### user.create</span></span></div><div class="ln" data-at="7850"><span class="no">2</span><span class="tx"><span class="c" data-t="def.desc"></span></span></div><div class="ln" data-at="8000"><span class="no">3</span><span class="tx">- name: string · <span class="c" data-t="def.f1"></span></span></div><div class="ln" data-at="8150"><span class="no">4</span><span class="tx">- email: string (email) · <span class="c" data-t="def.f2"></span></span></div></div>
+    </div>
+    <div class="notes">
+      <div class="note fx-left" data-at="4900"><i>1</i><span data-t="def.n1"></span></div>
+      <div class="note fx-left" data-at="9100"><i>2</i><span data-t="def.n2"></span></div>
+    </div>
+  </section>
+
+  <!-- ================================================= COMPOSE -->
+  <section class="scene" id="s-compose" data-dur="11500" data-name="SDK + business">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><span class="part">PART 2</span><b>// 05</b><span data-t="cmp.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="cmp.h2"></h2>
+    </div>
+    <svg class="beams" id="beams" viewBox="0 0 1920 1080"></svg>
+    <div class="panel cfg fx-left" data-at="500" id="cfg">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span>midscene.config.ts</div>
+      <div class="code"><div class="ln" data-at="700"><span class="no">1</span><span class="tx"><span class="kw">export default</span> <span class="fn">defineTestProject</span>({</span></div><div class="ln" data-at="790"><span class="no">2</span><span class="tx">  nodes: [</span></div><div class="ln" id="c3" data-at="880"><span class="no">3</span><span class="tx">    ...<span class="fn" id="tkSdk">createMidsceneNodes</span>({</span></div><div class="ln" id="c4" data-at="970"><span class="no">4</span><span class="tx">      agentClass: <span class="swap pl-k" id="agentcls">PlaywrightAgent</span>,<span class="sw-badge" id="swb" data-t="cmp.sw"></span></span></div><div class="ln" id="c5" data-at="1060"><span class="no">5</span><span class="tx">      getAgent,</span></div><div class="ln" id="c6" data-at="1150"><span class="no">6</span><span class="tx">    }),</span></div><div class="ln" id="c7" data-at="1240"><span class="no">7</span><span class="tx">    ...<span class="nd-k" id="tkB1">orderNodes</span>,</span></div><div class="ln" id="c8" data-at="1330"><span class="no">8</span><span class="tx">    ...<span class="nd-k" id="tkB2">userNodes</span>,</span></div><div class="ln" data-at="1420"><span class="no">9</span><span class="tx">  ],</span></div><div class="ln" data-at="1510"><span class="no">10</span><span class="tx">});</span></div></div>
+    </div>
+    <div class="panel reg fx-right" data-at="800">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span><span data-t="cmp.reg"></span></div>
+      <div class="reg-body">
+        <div class="reg-empty" id="empty" data-t="cmp.empty"></div>
+        <div class="grp" id="gAI"><div class="grp-h"><span class="tag ai" data-t="cmp.gai"></span></div><div class="chips"><span class="nchip ai">aiAct</span><span class="nchip ai">aiAssert</span><span class="nchip ai">aiTap</span><span class="nchip ai">aiWaitFor</span><span class="nchip ai">setAIContext</span><span class="nchip ai">wait</span></div></div>
+        <div class="grp" id="gPL"><div class="grp-h"><span class="tag plat" data-t="cmp.gpl"></span><code id="plname">PlaywrightAgent</code></div><div class="chips" id="plchips"></div></div>
+        <div class="grp" id="gBZ"><div class="grp-h"><span class="tag node" data-t="cmp.gbz"></span><code>defineNode</code></div><div class="chips"><span class="nchip biz">order.prepare</span><span class="nchip biz">order.checkRefund</span><span class="nchip biz">user.create</span><span class="nchip biz">user.login</span></div></div>
+      </div>
+    </div>
+    <div class="caption" data-at="9000" data-t="cmp.cap"></div>
+  </section>
+
+  <!-- ================================================= FULL -->
+  <section class="scene" id="s-full" data-dur="17000" data-name="batteries included">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><span class="part">PART 2</span><b>// 06</b><span data-t="full.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="full.h2"></h2>
+    </div>
+    <div class="grid4" id="fgrid">
+      <div class="panel fcard" data-at="500">
+        <div class="fh"><span class="fn2">1</span><strong data-t="full.a"></strong></div>
+        <div class="fd" data-t="full.ad"></div>
+        <div class="demo lc" id="lc"><span class="fstep">beforeAll</span><span class="farr">→</span><span class="loop"><span class="rt" id="rt" data-t="full.retry"></span><span class="fstep">beforeEach</span><span class="farr">→</span><span class="fstep" id="lcSteps">steps</span><span class="farr">→</span><span class="fstep">afterEach</span></span><span class="farr">→</span><span class="fstep">afterAll</span></div>
+      </div>
+      <div class="panel fcard" data-at="650">
+        <div class="fh"><span class="fn2">2</span><strong data-t="full.b"></strong></div>
+        <div class="fd" data-t="full.bd"></div>
+        <div class="demo lanes2"><div class="ln2" style="--d:1.6s"><span>web-smoke</span><span class="trk"><i></i></span><span class="ok2">✓</span></div><div class="ln2" style="--d:2.3s"><span>android-smoke</span><span class="trk"><i></i></span><span class="ok2">✓</span></div><div class="ln2" style="--d:1.2s"><span>ios-regression</span><span class="trk"><i></i></span><span class="ok2">✓</span></div><div class="cfgline">test: { maxConcurrentFiles: 4, maxConcurrentProjects: 2 }</div></div>
+      </div>
+      <div class="panel fcard" data-at="800">
+        <div class="fh"><span class="fn2">3</span><strong data-t="full.c"></strong></div>
+        <div class="fd" data-t="full.cd"></div>
+        <div class="demo mrep"><div class="cnts"><span class="g"><b id="np">0</b>Passed</span><span class="r"><b id="nf">0</b>Failed</span><span class="n"><b>0</b>Not run</span><span class="note2" id="note2">◐ 1 passed after retry</span></div><div class="mbar"><i class="bg" id="mbg"></i><i class="bh" id="mbh"></i><i class="br" id="mbr"></i></div><div class="thumbs2" id="thumbs2"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      </div>
+      <div class="panel fcard" data-at="950">
+        <div class="fh"><span class="fn2">4</span><strong data-t="full.d"></strong></div>
+        <div class="fd" data-t="full.dd"></div>
+        <div class="demo mini"><div class="ln" id="api1"><span class="no">1</span><span class="tx"><span class="kw">import</span> { runTestProject } <span class="kw">from</span> <span class="s">'@midscene/test/config'</span>;</span></div><div class="ln" id="api2"><span class="no">2</span><span class="tx"><span class="kw">const</span> { status, reportPath } =</span></div><div class="ln" id="api3"><span class="no">3</span><span class="tx">  <span class="kw">await</span> <span class="fn">runTestProject</span>({ projectNames: [<span class="s">'web-smoke'</span>] });</span></div><div class="ln" id="api4"><span class="no">4</span><span class="tx"><span class="c">// status: 'success' · reportPath: 'midscene_run/report/…'</span></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================= OUTRO -->
+  <section class="scene" id="s-outro" data-dur="10500" data-name="outro">
+    <div class="panel term" data-at="200">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span>Terminal</div>
+      <div class="code" id="term"></div>
+    </div>
+    <div class="lockup">
+      <div class="brand" data-at="6900"><img src="midscene-icon.png" alt="" /><div class="nm">Midscene <span class="grad">Test</span></div></div>
+      <div class="slogan" data-at="7300" data-t="outro.slogan"></div>
+      <div class="duo" data-at="7700"><span><b>Aa</b>  <span data-t="cover.p1"></span></span><span><b>{ }</b>  <span data-t="cover.p2"></span></span></div>
+      <div class="links" data-at="8100"><span class="hi">midscenejs.com/midscene-test/overview</span><span>@midscene/test</span></div>
+    </div>
+  </section>
+  <div id="streak"></div>
+</div>
+
+<div id="hud"><span id="hud-t"></span><div class="pg"><i id="hud-p"></i></div><span>Space · ←/→ · R · L (中/EN) · H</span></div>
+<div id="start"><span data-t="ui.start"></span><small>?lang=en · ?autoplay=1 · ?scene=3 · ?loop=1 · ?hud=0 · ?speed=1.2</small></div>
+
+<script>
+const I18N = {
+  zh: {
+    'ui.start': '点击或按空格开始播放',
+    'cover.p1': '更适配自然语言 E2E 用例',
+    'cover.p2': '定制自己的 E2E 测试框架',
+    'ch1.t': '更适配自然语言 E2E 用例',
+    'ch1.s': '用例的主角是测试意图，而不是选择器和胶水代码',
+    'ch1.k1': '意图即用例', 'ch1.k2': '线性可读的语法', 'ch1.k3': '人和 AI 共同维护',
+    'int.eb': '意图即用例',
+    'int.h2': 'E2E 用例本来就是自然语言，<em>现在可以直接运行</em>',
+    'int.doc': '测试用例 · TC-0423',
+    'int.k1': '用例名称', 'int.v1': '加购商品',
+    'int.k2': '前置条件', 'int.v2': '打开商城首页',
+    'int.k3': '操作步骤', 'int.v3': '1. 搜索“马克杯”<br>2. 将第一个商品加入购物车',
+    'int.k4': '预期结果', 'int.v4': '购物车中有一件马克杯',
+    'int.act': '搜索“马克杯”，将第一个商品加入购物车',
+    'int.pass': '1 passed · 和测试文档一一对应',
+    'int.cap': '前置条件 → <strong>beforeEach</strong>，操作步骤 → <strong>aiAct</strong>，预期结果 → <strong>aiAssert</strong>',
+    'syn.eb': '为自然语言设计的语法',
+    'syn.h2': '简洁、线性，<em>每一步单独读也成立</em>',
+    'syn.a': '一句话就是一步',
+    'syn.ad': '字符串简写：冒号后直接写句子；需要更多参数时再展开为对象。',
+    'syn.a1': '搜索马克杯，将第一个商品加入购物车',
+    'syn.a2': '购物车中有一件马克杯',
+    'syn.b': '按声明顺序执行',
+    'syn.bd': '步骤自上而下线性执行，读用例就像读测试文档。',
+    'syn.bn': '复杂编排交给上层生成明确的步骤序列',
+    'syn.c': '每一步独立描述',
+    'syn.cd': 'Node 无状态，不继承上一步的指令上下文，写清检查对象与预期。',
+    'syn.c1': '上一步的图标已经点亮',
+    'syn.c2': '商品详情页的收藏星标处于点亮状态',
+    'syn.d': '用自然语言补充背景',
+    'syn.dd': '账号、弹窗等业务知识写成一段话，对后续 AI 操作统一生效。',
+    'syn.d3': '如出现优惠券弹窗，关闭后继续',
+    'spec.eb': '人和 AI 共同维护',
+    'spec.h2': 'Node Spec：<em>人和 AI Agent 读同一份说明书</em>',
+    'spec.d1': '调用订单服务创建测试订单',
+    'spec.d2': '通过订单接口校验退款状态',
+    'spec.chat': 'AI 编程助手',
+    'spec.ask': '为“已支付订单可全额退款”补一条用例',
+    'spec.read': '读取',
+    'spec.write': '写入',
+    'spec.name': '已支付订单可全额退款',
+    'spec.act': '打开最新订单，申请全额退款并提交',
+    'spec.assert': '页面显示退款申请已提交',
+    'spec.review': '读起来就是测试意图，参数与说明书一致',
+    'spec.cap': '<strong>midscene-test nodes</strong> 根据已注册的 Node 生成说明书 · 人和 AI 依据<strong>同一份事实来源</strong>编写与审阅',
+    'ch2.t': '定制自己的 E2E 测试框架',
+    'ch2.s': '把 Midscene SDK 能力与你的业务能力组装在一起',
+    'cmp.eb': 'SDK × 业务能力',
+    'cmp.h2': 'SDK 能力 + 业务能力，<em>组装成你的专属 E2E 测试框架</em>',
+    'cmp.reg': '项目可用的 Node',
+    'cmp.empty': '一份配置，开始组装',
+    'cmp.gai': 'SDK · AI 操作', 'cmp.gpl': 'SDK · 平台操作', 'cmp.gbz': '业务 Node', 'cmp.sw': '⇄ 切换平台',
+    'cmp.cap': 'Midscene SDK 的视觉 AI 与平台操作，和团队沉淀的业务 Node <strong>在同一份配置里整合</strong> · 想测什么，就组装什么',
+    'def.once': '一次声明', 'def.t1': '运行时检查', 'def.t2': '自动生成',
+    'def.eb': 'defineNode · 一次声明',
+    'def.h2': '声明一次，<em>运行时检查与说明书自动就绪</em>',
+    'def.desc': '创建测试用户',
+    'def.f1': '测试用户姓名',
+    'def.f2': '测试用户邮箱',
+    'def.err': '不是合法的邮箱地址',
+    'def.n1': '<b>运行时检查输入</b>：确保用例的结构化质量与运行性能，不会因为随意的自然语言写法而变差',
+    'def.n2': '<b>Node Spec 自动生成</b>：人和 AI 编写用例的依据，无需另外维护文档',
+    'full.eb': '开箱即用',
+    'full.h2': '面向 AI 时代的 E2E 测试框架，<em>该有的都有</em>',
+    'full.a': '完整的流程控制', 'full.ad': '生命周期钩子、失败重试、超时、bail 与 continue-on-error，失败时清理照常执行',
+    'full.b': '并发控制', 'full.bd': '多项目、多文件并发执行，资源按项目与文件隔离',
+    'full.c': '可视化报告', 'full.cd': '统计通过率与重试，逐步回放截图与输入输出，快速回溯失败',
+    'full.d': '编程式 API', 'full.dd': '接入自研平台、流水线或本地测试面板，加载、运行与汇总都可编程',
+    'full.retry': '↻ 失败重试',
+    'outro.slogan': '用自然语言写 E2E 用例，用你的方式搭测试框架',
+  },
+  en: {
+    'ui.start': 'Click or press Space to play',
+    'cover.p1': 'Made for natural-language E2E cases',
+    'cover.p2': 'Build your own E2E test framework',
+    'ch1.t': 'Made for natural-language E2E cases',
+    'ch1.s': 'Cases are about test intent, not selectors and glue code',
+    'ch1.k1': 'Intent is the case', 'ch1.k2': 'Linear, readable syntax', 'ch1.k3': 'Maintained by people and AI',
+    'int.eb': 'Intent is the case',
+    'int.h2': 'E2E cases are already natural language. <em>Now they run.</em>',
+    'int.doc': 'Test case · TC-0423',
+    'int.k1': 'Name', 'int.v1': 'Add to cart',
+    'int.k2': 'Precondition', 'int.v2': 'Open the shop home page',
+    'int.k3': 'Steps', 'int.v3': '1. Search for "mug"<br>2. Add the first item to the cart',
+    'int.k4': 'Expected', 'int.v4': 'The cart contains one mug',
+    'int.act': 'Search "mug", add the first item to cart',
+    'int.pass': '1 passed · mirrors the test document',
+    'int.cap': 'Precondition → <strong>beforeEach</strong>, steps → <strong>aiAct</strong>, expected result → <strong>aiAssert</strong>',
+    'syn.eb': 'Syntax designed for natural language',
+    'syn.h2': 'Concise and linear, <em>every step stands on its own</em>',
+    'syn.a': 'One sentence, one step',
+    'syn.ad': 'String shorthand: write the sentence after the colon; expand to an object only when you need more options.',
+    'syn.a1': 'Search for a mug, add the first item to cart',
+    'syn.a2': 'The cart contains one mug',
+    'syn.b': 'Runs in declared order',
+    'syn.bd': 'Steps run top to bottom, so a case reads like a test document.',
+    'syn.bn': 'Generate explicit step sequences upstream for complex orchestration',
+    'syn.c': 'Each step is self-contained',
+    'syn.cd': 'Nodes are stateless and do not inherit the previous instruction. Name the target and the expected state.',
+    'syn.c1': 'The icon from the last step is lit',
+    'syn.c2': 'The product page favorite star is lit',
+    'syn.d': 'Add context in plain words',
+    'syn.dd': 'Describe accounts, pop-ups, and other domain knowledge once; later AI operations follow it.',
+    'syn.d3': 'If a coupon pop-up appears, close it',
+    'spec.eb': 'Maintained by people and AI',
+    'spec.h2': 'Node Spec: <em>one manual for people and AI agents</em>',
+    'spec.d1': 'Create a test order via the order service',
+    'spec.d2': 'Check the refund status via the order API',
+    'spec.chat': 'AI coding assistant',
+    'spec.ask': 'Add a case: a paid order can be fully refunded',
+    'spec.read': 'Read',
+    'spec.write': 'Write',
+    'spec.name': 'A paid order can be fully refunded',
+    'spec.act': 'Open the latest order, request a full refund',
+    'spec.assert': 'The page shows the refund was submitted',
+    'spec.review': 'Reads like the test intent; inputs match the Spec',
+    'spec.cap': '<strong>midscene-test nodes</strong> generates the Spec from registered Nodes · people and AI write and review from <strong>one source of truth</strong>',
+    'ch2.t': 'Build your own E2E test framework',
+    'ch2.s': 'Assemble Midscene SDK capabilities with your own business logic',
+    'cmp.eb': 'SDK × business',
+    'cmp.h2': 'SDK + business logic, <em>assembled into your E2E framework</em>',
+    'cmp.reg': 'Nodes available to this project',
+    'cmp.empty': 'One config to assemble everything',
+    'cmp.gai': 'SDK · AI operations', 'cmp.gpl': 'SDK · platform operations', 'cmp.gbz': 'Business Nodes', 'cmp.sw': '⇄ switch platform',
+    'cmp.cap': 'Midscene SDK’s vision AI and platform operations <strong>combine with your team’s business Nodes in one config</strong> · assemble what you need to test',
+    'def.once': 'Declared once', 'def.t1': 'Runtime check', 'def.t2': 'Generated',
+    'def.eb': 'defineNode · declare once',
+    'def.h2': 'Declare once. <em>Runtime checks and docs come for free.</em>',
+    'def.desc': 'Create a test user',
+    'def.f1': 'Test user name',
+    'def.f2': 'Test user email',
+    'def.err': 'not a valid email address',
+    'def.n1': '<b>Runtime input checks</b> keep cases well-structured and fast, however loosely the natural language is written',
+    'def.n2': '<b>Node Spec is generated</b> as the reference for people and AI, with no docs to maintain',
+    'full.eb': 'Batteries included',
+    'full.h2': 'An AI-era E2E test framework, <em>everything included</em>',
+    'full.a': 'Full lifecycle control', 'full.ad': 'Lifecycle hooks, retries, timeouts, bail, and continue-on-error, with cleanup that still runs on failure',
+    'full.b': 'Concurrency control', 'full.bd': 'Run projects and files concurrently, with resources isolated per project and file',
+    'full.c': 'Visual reports', 'full.cd': 'Track pass rates and retries, replay each step’s screenshots and I/O, and trace failures fast',
+    'full.d': 'Programmatic API', 'full.dd': 'Plug into your own platform, pipeline, or local test panel to load, run, and summarize',
+    'full.retry': '↻ retry',
+    'outro.slogan': 'Write E2E cases in natural language.<br>Build the framework your way.',
+  },
+};
+
+(() => {
+  const params = new URLSearchParams(location.search);
+  const SPEED = Number(params.get('speed')) || 1;
+  const LOOP = params.get('loop') === '1';
+  const stage = document.getElementById('stage');
+  const hud = document.getElementById('hud');
+  let lang = params.get('lang') === 'en' ? 'en' : 'zh';
+  let S = 1;
+  const tr = (key) => I18N[lang][key];
+
+  function fit() {
+    S = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = `translate(-50%, -50%) scale(${S})`;
+  }
+  addEventListener('resize', fit); fit();
+
+  /* ---------- i18n: scene templates are rendered per language ---------- */
+  const scenes = [...document.querySelectorAll('.scene')].map((el) => ({
+    el, dur: Number(el.dataset.dur), name: el.dataset.name, tpl: el.innerHTML, html: '',
+  }));
+  function localize(root) {
+    root.querySelectorAll('[data-t]').forEach((n) => { n.innerHTML = tr(n.dataset.t); });
+  }
+  function render() {
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+    const tmp = document.createElement('div');
+    scenes.forEach((s) => { tmp.innerHTML = s.tpl; localize(tmp); s.html = tmp.innerHTML; });
+    const startEl = document.getElementById('start');
+    if (startEl) localize(startEl);
+  }
+  render();
+
+  /* ---------- chapter handoff ---------- */
+  const streak = document.getElementById('streak');
+  let fromChapter = false;
+
+  /* ---------- pausable clock ---------- */
+  let cur = -1, t = 0, timers = [], paused = true, last = 0, done = false;
+  const at = (ms, fn) => timers.push({ t: ms, fn });
+
+  function enter(i, instant = false) {
+    cur = (i + scenes.length) % scenes.length;
+    t = 0; timers = []; done = false;
+    const s = scenes[cur];
+    // After a chapter card the next scene zooms in from depth instead of fading, with its
+    // timeline started slightly ahead so content is already entering during the zoom.
+    const afterChapter = fromChapter;
+    fromChapter = false;
+    if (afterChapter) instant = true;
+    scenes.forEach((x, j) => { if (j !== cur) x.el.classList.remove('active', 'instant'); });
+    s.el.innerHTML = s.html;
+    s.el.className = `scene${s.el.classList.contains('chapter') ? ' chapter' : ''} active${instant ? ' instant' : ''}`;
+    void s.el.offsetWidth;
+    s.el.querySelectorAll('[data-at]').forEach((e) => at(Number(e.dataset.at), () => e.classList.add('in')));
+    SCRIPTS[s.el.id]?.(s.el);
+    timers.sort((a, b) => a.t - b.t);
+    if (afterChapter) {
+      s.el.classList.add('zoomin');
+      t = 550;
+    }
+  }
+  function runDue() {
+    while (timers.length && timers[0].t <= t) { timers.shift().fn(); timers.sort((a, b) => a.t - b.t); }
+  }
+
+  function tick(now) {
+    const dt = last ? Math.min(now - last, 100) : 0;
+    last = now;
+    if (!paused && cur >= 0) {
+      t += dt * SPEED;
+      runDue();
+      const s = scenes[cur];
+      if (t >= s.dur && !done) {
+        if (cur < scenes.length - 1) enter(cur + 1);
+        else if (LOOP) enter(0);
+        else done = true;
+      }
+    }
+    if (cur >= 0) {
+      const s = scenes[cur];
+      document.getElementById('hud-p').style.width = `${(Math.min(t, s.dur) / s.dur) * 100}%`;
+      document.getElementById('hud-t').textContent = `${cur + 1}/${scenes.length} · ${s.name} · ${lang}`;
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function setPaused(p) { paused = p; stage.classList.toggle('paused', p); }
+  const firstScene = Math.max(0, (Number(params.get('scene')) || 1) - 1);
+  function start() {
+    document.getElementById('start')?.remove();
+    setPaused(false);
+  }
+  document.getElementById('start').addEventListener('click', start);
+  if (params.get('hud') === '0') hud.classList.add('hidden');
+
+  addEventListener('keydown', (e) => {
+    if (e.key === 'l' || e.key === 'L') { lang = lang === 'zh' ? 'en' : 'zh'; render(); enter(cur, true); return; }
+    if (document.getElementById('start')) { if (e.code === 'Space' || e.code === 'Enter') start(); return; }
+    if (e.code === 'Space') { e.preventDefault(); setPaused(!paused); }
+    else if (e.code === 'ArrowRight') enter(cur + 1);
+    else if (e.code === 'ArrowLeft') enter(cur - 1);
+    else if (e.key === 'r' || e.key === 'R') enter(0, true);
+    else if (e.key === 'h' || e.key === 'H') hud.classList.toggle('hidden');
+  });
+
+  // Debug hook for screenshot checks: jump to scene `i` and fast-forward its timeline to `ms`.
+  window.__seek = (i, ms, l) => {
+    if (l && l !== lang) { lang = l; render(); }
+    document.getElementById('start')?.remove();
+    setPaused(false);
+    enter(i, true);
+    t = ms; runDue();
+    paused = true;
+  };
+
+  /* ---------- helpers ---------- */
+  const q = (root, sel) => root.querySelector(sel);
+  const qa = (root, sel) => [...root.querySelectorAll(sel)];
+  function rel(el, box) {
+    const a = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+    return { x: (a.left - b.left) / S, y: (a.top - b.top) / S, w: a.width / S, h: a.height / S };
+  }
+  function status(line, kind) {
+    let st = line.querySelector(':scope > .st');
+    if (!st) { st = document.createElement('span'); line.appendChild(st); }
+    st.className = `st ${kind}`;
+    st.textContent = kind === 'ok' ? '✓' : kind === 'bad' ? '✗' : '';
+  }
+  function count(el, to, from, ms) {
+    const steps = 16;
+    for (let i = 1; i <= steps; i++) at(from + (ms / steps) * i, () => { el.textContent = Math.round((to * i) / steps); });
+  }
+  const show = (el) => el.classList.add('in');
+  // Draw a curved connector from the right edge of `edgeEl` (at the height of `fromEl`) to the left of `toEl`.
+  function drawBeam(root, svg, fromEl, edgeEl, toEl, cls) {
+    const a = rel(fromEl, root), box = rel(edgeEl, root), b = rel(toEl, root);
+    const sx = box.x + box.w - 2, sy = a.y + a.h / 2, ex = b.x - 16, ey = b.y + b.h / 2, mx = (sx + ex) / 2;
+    const ns = 'http://www.w3.org/2000/svg';
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', `M${sx} ${sy} C ${mx} ${sy}, ${mx} ${ey}, ${ex} ${ey}`);
+    p.setAttribute('class', cls);
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', ex); c.setAttribute('cy', ey); c.setAttribute('r', 7); c.setAttribute('class', cls);
+    svg.append(p, c);
+    p.style.setProperty('--len', p.getTotalLength());
+    void p.getBoundingClientRect();
+    p.classList.add('in');
+  }
+
+  /* ---------- scene scripts ---------- */
+  function chapter(root) {
+    const ttl = q(root, '.ttl');
+    ttl.innerHTML = [...ttl.textContent].map((ch, i) => `<span class="ch" style="--i:${i}">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('');
+    qa(root, '.kws span').forEach((k, i) => k.style.setProperty('--i', i));
+    const dur = Number(root.dataset.dur);
+    at(dur - 550, () => root.classList.add('exit'));
+    at(dur - 300, () => { streak.classList.remove('go'); void streak.offsetWidth; streak.classList.add('go'); });
+    at(dur - 1, () => { fromChapter = true; });
+  }
+
+  const SCRIPTS = {
+    's-ch1'(root) { chapter(root); },
+    's-ch2'(root) { chapter(root); },
+
+    's-intent'(root) {
+      const svg = q(root, '#wires');
+      const L = (n) => q(root, `#y${n}`);
+      // Each document row maps to YAML lines; the wire lands on the last line of the group.
+      const pairs = [['r1', [4, 5]], ['r2', [1, 2]], ['r3', [6, 7]], ['r4', [8]]];
+      at(1000, () => show(L(3)));
+      pairs.forEach(([rid, lines], i) => {
+        const base = 1500 + i * 1450;
+        const row = q(root, `#${rid}`);
+        at(base, () => {
+          row.classList.add('on');
+          const target = L(lines[lines.length - 1]);
+          const a = rel(row, root), b = rel(target, root);
+          const d = rel(q(root, '.doc'), root);
+          const sx = d.x + d.w + 6, sy = a.y + a.h / 2;
+          const ex = rel(q(root, '.yaml'), root).x - 6, ey = b.y + b.h / 2;
+          const mx = (sx + ex) / 2;
+          const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          p.setAttribute('d', `M${sx} ${sy} C ${mx} ${sy}, ${mx} ${ey}, ${ex} ${ey}`);
+          svg.appendChild(p);
+          p.style.setProperty('--len', p.getTotalLength());
+          void p.getBoundingClientRect();
+          p.classList.add('in');
+        });
+        lines.forEach((n, j) => at(base + 350 + j * 220, () => L(n).classList.add('in', 'pair')));
+        at(base + 1300, () => {
+          row.classList.remove('on'); row.classList.add('done');
+          lines.forEach((n) => L(n).classList.remove('pair'));
+          svg.lastChild?.classList.add('dim');
+        });
+      });
+      at(7800, () => q(root, '#runchip').classList.add('in'));
+      [[2, 8000], [7, 8700], [8, 9700]].forEach(([n, s]) => {
+        at(s, () => { L(n).classList.add('on'); status(L(n), 'run'); });
+        at(s + 650, () => { L(n).classList.remove('on'); status(L(n), 'ok'); });
+      });
+    },
+
+    's-syntax'(root) {
+      const grid = q(root, '#grid4');
+      const cards = qa(root, '.fcard');
+      const focus = (i) => { grid.classList.add('focus'); cards.forEach((c, j) => c.classList.toggle('on', i === j)); };
+      at(1500, () => focus(0));
+      at(1800, () => show(q(root, '#a1')));
+      at(2500, () => show(q(root, '#a2')));
+      at(4100, () => focus(1));
+      const steps = qa(root, '.fstep');
+      steps.forEach((s, i) => {
+        at(4400 + i * 380, () => { steps.forEach((x) => x.classList.remove('cur')); s.classList.add('cur'); if (i) steps[i - 1].classList.add('done'); });
+      });
+      at(4400 + steps.length * 380, () => { steps.forEach((x) => { x.classList.remove('cur'); x.classList.add('done'); }); });
+      at(6500, () => show(q(root, '#nob')));
+      at(7200, () => focus(2));
+      at(7400, () => show(q(root, '#c1')));
+      at(8300, () => q(root, '#c1').classList.add('x'));
+      at(8800, () => show(q(root, '#c2')));
+      at(10200, () => focus(3));
+      ['#d1', '#d2', '#d3'].forEach((id, i) => at(10400 + i * 380, () => show(q(root, id))));
+      at(12800, () => { grid.classList.remove('focus'); cards.forEach((c) => c.classList.remove('on')); });
+    },
+
+    's-spec'(root) {
+      const tool1 = q(root, '#tool1');
+      at(3400, () => status(tool1, 'run'));
+      const read = (ids, from, to) => {
+        at(from, () => ids.forEach((id) => q(root, id).classList.add('read')));
+        at(to, () => ids.forEach((id) => q(root, id).classList.remove('read')));
+      };
+      read(['#sp4'], 3700, 4400);
+      read(['#sp7', '#sp8', '#sp9'], 4400, 5100);
+      read(['#sp11', '#sp12', '#sp13'], 5100, 5800);
+      at(5800, () => status(tool1, 'ok'));
+      at(6000, () => status(q(root, '#tool2'), 'run'));
+      for (let i = 1; i <= 10; i++) at(6200 + (i - 1) * 260, () => show(q(root, `#g${i}`)));
+      at(8900, () => status(q(root, '#tool2'), 'ok'));
+      at(9000, () => root.classList.add('link'));
+    },
+
+    's-compose'(root) {
+      const cfg = q(root, '#cfg'), svg = q(root, '#beams');
+      const PLAT = {
+        PlaywrightAgent: ['gotoUrl', 'setCookies', 'clearCookies', 'setViewportSize'],
+        AndroidAgent: ['launch', 'back', 'home', 'runAdbShell'],
+      };
+      const plchips = q(root, '#plchips');
+      const fillPlat = (name, from) => {
+        plchips.innerHTML = PLAT[name].map((n) => `<span class="nchip plat">${n}</span>`).join('');
+        q(root, '#plname').textContent = name;
+        qa(plchips, '.nchip').forEach((c, i) => at(from + i * 110, () => show(c)));
+      };
+      // Connect a code token to the registry group it produces, so the eye can follow the change.
+      const beam = (fromSel, grpSel, cls) => {
+        drawBeam(root, svg, q(root, fromSel), cfg, q(root, `${grpSel} .tag`), cls);
+        q(root, grpSel).classList.add('hot');
+      };
+      const focus = (ids, cls) => {
+        cfg.classList.add('focus');
+        qa(cfg, '.ln').forEach((ln) => ln.classList.remove('hot', 'ai', 'plat', 'biz'));
+        ids.forEach((id) => q(root, id).classList.add('hot', cls));
+        qa(svg, 'path, circle').forEach((x) => x.classList.add('gone'));
+        qa(root, '.grp').forEach((g) => g.classList.remove('hot'));
+      };
+      const clear = () => {
+        cfg.classList.remove('focus');
+        qa(cfg, '.ln').forEach((ln) => ln.classList.remove('hot', 'ai', 'plat', 'biz'));
+        qa(svg, 'path, circle').forEach((x) => x.classList.add('gone'));
+        qa(root, '.grp').forEach((g) => g.classList.remove('hot'));
+      };
+      // 1. SDK capabilities from createMidsceneNodes
+      at(2000, () => focus(['#c3', '#c4', '#c5', '#c6'], 'ai'));
+      at(2200, () => { q(root, '#empty').classList.add('gone'); show(q(root, '#gAI')); show(q(root, '#gPL')); beam('#tkSdk', '#gAI', 'ai'); beam('#tkSdk', '#gPL', 'plat'); });
+      qa(root, '#gAI .nchip').forEach((c, i) => at(2600 + i * 100, () => show(c)));
+      at(3000, () => fillPlat('PlaywrightAgent', 3001));
+      // 2. one line switches the platform
+      at(4400, () => focus(['#c4'], 'plat'));
+      at(4600, () => { q(root, '#agentcls').classList.add('flash'); show(q(root, '#swb')); });
+      at(5000, () => { q(root, '#agentcls').textContent = 'AndroidAgent'; beam('#swb', '#gPL', 'plat'); qa(plchips, '.nchip').forEach((c) => c.classList.add('out')); });
+      at(5400, () => fillPlat('AndroidAgent', 5401));
+      at(6200, () => q(root, '#agentcls').classList.remove('flash'));
+      // 3. business Nodes join the same registry
+      at(6700, () => { focus(['#c7', '#c8'], 'biz'); q(root, '#swb').classList.remove('in'); });
+      at(6900, () => { show(q(root, '#gBZ')); beam('#tkB1', '#gBZ', 'biz'); beam('#tkB2', '#gBZ', 'biz'); });
+      qa(root, '#gBZ .nchip').forEach((c, i) => at(7300 + i * 150, () => show(c)));
+      at(8800, clear);
+    },
+
+    's-define'(root) {
+      const node = q(root, '#dnode'), svg = q(root, '#dbeams');
+      const u2 = q(root, '#u2'), email = q(root, '#email'), err = q(root, '#err');
+      const mark = (ids, cls, on) => ids.forEach((id) => q(root, id).classList.toggle(cls, on));
+      // 1. the schema in the declaration becomes a runtime input check
+      at(3300, () => { mark(['#n4', '#n5', '#n6', '#n7'], 'chk', true); drawBeam(root, svg, q(root, '#n5'), node, q(root, '.yml .tag'), 'ai'); });
+      at(3800, () => { u2.classList.add('on'); status(u2, 'run'); });
+      at(4500, () => { u2.classList.remove('on'); status(u2, 'bad'); email.classList.add('bad'); err.classList.add('in'); });
+      [...'.com'].forEach((ch, i) => at(6000 + i * 150, () => { email.textContent += ch; }));
+      at(6700, () => { email.classList.remove('bad'); email.classList.add('good'); err.classList.remove('in'); u2.classList.add('on'); status(u2, 'run'); });
+      at(7300, () => { u2.classList.remove('on'); status(u2, 'ok'); });
+      // 2. the same declaration generates the Node Spec
+      at(8300, () => {
+        mark(['#n4', '#n5', '#n6', '#n7'], 'chk', false);
+        qa(svg, 'path, circle').forEach((x) => x.classList.add('gone'));
+        mark(['#n3', '#n5', '#n6'], 'doc', true);
+        drawBeam(root, svg, q(root, '#n3'), node, q(root, '.gen-spec .tag'), 'biz');
+      });
+      at(10600, () => { mark(['#n3', '#n5', '#n6'], 'doc', false); qa(svg, 'path, circle').forEach((x) => x.classList.add('gone')); });
+    },
+
+    's-full'(root) {
+      const grid = q(root, '#fgrid');
+      const cards = qa(root, '.fcard');
+      const focus = (i) => { grid.classList.add('focus'); cards.forEach((c, j) => c.classList.toggle('on', i === j)); };
+      // 1. lifecycle with a retried case
+      at(1400, () => focus(0));
+      const st = qa(root, '#lc .fstep');
+      const lit = (i, cls) => { st.forEach((x) => x.classList.remove('cur')); st[i].classList.add(cls); };
+      [[0, 1700], [1, 2050], [2, 2400]].forEach(([i, ms]) => at(ms, () => { lit(i, 'cur'); if (i) st[i - 1].classList.replace('cur', 'done'); }));
+      at(2750, () => { st[2].classList.remove('cur'); st[2].classList.add('bad'); });
+      at(3000, () => { st[1].classList.replace('cur', 'done'); lit(3, 'cur'); });
+      at(3300, () => { st[3].classList.replace('cur', 'done'); show(q(root, '#rt')); [1, 2, 3].forEach((i) => st[i].classList.remove('done', 'bad')); });
+      [[1, 3600], [2, 3900], [3, 4200], [4, 4500]].forEach(([i, ms]) => at(ms, () => { st.forEach((x) => x.classList.replace('cur', 'done')); st[i].classList.add('cur'); }));
+      at(4800, () => st.forEach((x) => { x.classList.remove('cur'); x.classList.add('done'); }));
+      // 2. projects running concurrently
+      at(5100, () => focus(1));
+      const lanes = qa(root, '.ln2');
+      at(5300, () => lanes.forEach((l) => l.classList.add('go')));
+      // CSS transitions run in wall-clock time, so convert their duration to timeline time.
+      [1600, 2300, 1200].forEach((d, i) => at(5300 + d * SPEED + 50, () => lanes[i].classList.add('done')));
+      // 3. report statistics and step replay
+      at(7900, () => focus(2));
+      count(q(root, '#np'), 11, 8000, 700);
+      count(q(root, '#nf'), 1, 8000, 700);
+      at(8100, () => { q(root, '#mbg').style.width = `${(10 / 12) * 100}%`; q(root, '#mbh').style.width = `${(1 / 12) * 100}%`; q(root, '#mbr').style.width = `${(1 / 12) * 100}%`; });
+      at(8800, () => show(q(root, '#note2')));
+      qa(root, '#thumbs2 > i').forEach((t, i) => at(8600 + i * 110, () => show(t)));
+      at(9800, () => qa(root, '#thumbs2 > i')[4].classList.add('bad'));
+      // 4. programmatic API
+      at(10500, () => focus(3));
+      ['#api1', '#api2', '#api3', '#api4'].forEach((id, i) => at(10700 + i * 450, () => show(q(root, id))));
+      at(14300, () => { grid.classList.remove('focus'); cards.forEach((c) => c.classList.remove('on')); });
+    },
+
+    's-outro'(root) {
+      const term = q(root, '#term');
+      const line = (html, cls = '') => {
+        const d = document.createElement('div');
+        if (cls) d.className = cls;
+        d.innerHTML = html;
+        term.appendChild(d);
+        return d;
+      };
+      const type = (text, from, step) => {
+        let el;
+        at(from, () => { el = line('<span class="prompt">$ </span><span class="typing"></span>'); });
+        [...text].forEach((ch, i) => at(from + 80 + i * step, () => { el.lastChild.textContent += ch; }));
+        const end = from + 80 + text.length * step;
+        at(end + 250, () => el.lastChild.classList.remove('typing'));
+        return end + 250;
+      };
+      let tt = type('pnpm dlx @midscene/test create my-tests --platform web -y', 600, 30);
+      at(tt + 200, () => line('<b>✔</b> my-tests · cases/ · midscene.config.ts', 'out'));
+      tt = type('cd my-tests && pnpm test', tt + 800, 50);
+      at(tt + 450, () => line('<b>✔</b> 2 passed · Report: midscene_run/report/', 'out'));
+      at(tt + 1500, () => root.classList.add('final'));
+    },
+  };
+
+  // The cover is fully rendered at frame 0 (no build-up) so the first frame already carries the message.
+  enter(firstScene, true);
+  requestAnimationFrame(tick);
+  if (params.get('autoplay') === '1') start();
+})();
+</script>
+</body>
+</html>
