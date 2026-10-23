@@ -231,6 +231,14 @@ export const EN_US = {
   userDoubao: 'Doubao',
   userDongchedi: 'Dongchedi',
 
+  // SDK homepage
+  nextQuickStartTitle: 'Try the GUI Agent',
+  nextQuickStartDesc: 'Run natural-language actions and assertions in minutes.',
+  nextTestDesc: 'Scaffold a project and run YAML test cases.',
+  nextSkillsDesc: 'Let AI coding agents operate and verify your UI.',
+  nextBasicsTitle: 'The basics',
+  nextBasicsDesc: 'How the GUI Agent plans, locates, and checks results.',
+
   // Bottom CTA and Footer
   bottomCtaTitle: 'Write your first E2E test in natural language',
   bottomCtaStart: 'Get started',

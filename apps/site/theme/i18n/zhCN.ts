@@ -224,6 +224,14 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   userDoubao: '豆包',
   userDongchedi: '懂车帝',
 
+  // SDK homepage
+  nextQuickStartTitle: '体验 GUI Agent',
+  nextQuickStartDesc: '几分钟内运行自然语言操作与断言。',
+  nextTestDesc: '创建测试项目并运行 YAML 用例。',
+  nextSkillsDesc: '让 AI 编程 Agent 操作并验证界面。',
+  nextBasicsTitle: '基础概念',
+  nextBasicsDesc: '了解 GUI Agent 如何规划、定位和检查结果。',
+
   // Bottom CTA and Footer
   bottomCtaTitle: '用自然语言，写下你的第一个 E2E 测试',
   bottomCtaStart: '开始使用',

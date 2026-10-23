@@ -1,0 +1,268 @@
+/* Homepage blocks. Colors follow Rspress theme variables. */
+
+.home-sdk-page {
+  --home-sdk-border: var(--rp-c-divider-light);
+  --home-sdk-surface: var(--rp-c-bg-soft);
+  --home-sdk-muted: var(--rp-c-text-2);
+  --home-sdk-mono: "Chivo Mono", var(--rp-font-family-mono, monospace);
+}
+
+.home-sdk-card code {
+  font-family: var(--home-sdk-mono);
+}
+
+/* Homepage layout */
+
+.home-sdk-page {
+  max-width: 1040px;
+}
+
+.rp-doc:has(> .home-sdk-page) > h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.home-sdk-page > h2 {
+  margin-top: 72px;
+}
+
+.home-sdk-page .home-framework .home-framework__layout {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.home-sdk-page .home-framework__legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-sdk-page .home-framework__legend li,
+.home-sdk-page .home-framework__legend-item {
+  height: 100%;
+}
+
+/* Hero: the agent demo sits behind the title as part of the page canvas. */
+
+.rp-doc:has(> .home-sdk-page) {
+  position: relative;
+  isolation: isolate;
+}
+
+.rp-doc:has(> .home-sdk-page) > h1,
+.home-sdk-hero {
+  position: relative;
+  z-index: 1;
+}
+
+.home-sdk-backdrop {
+  --home-sdk-grid: rgb(16 24 40 / 6%);
+  position: absolute;
+  z-index: 0;
+  top: calc(-1 * var(--rp-content-padding-y));
+  right: calc(-1 * var(--rp-content-padding-x));
+  left: 0;
+  height: 760px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dark .home-sdk-backdrop {
+  --home-sdk-grid: rgb(255 255 255 / 5%);
+}
+
+/* Extend the demo's grid across the hero so the video has no visible edge. */
+.home-sdk-backdrop::before {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(var(--home-sdk-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--home-sdk-grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  content: "";
+  -webkit-mask-image: radial-gradient(
+    ellipse 70% 80% at 75% 45%,
+    #000 20%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(
+    ellipse 70% 80% at 75% 45%,
+    #000 20%,
+    transparent 75%
+  );
+}
+
+.home-sdk-backdrop .hero-demo {
+  position: absolute;
+  top: 72px;
+  right: 8px;
+  transform: perspective(1800px) rotateY(-14deg) rotateX(6deg);
+  transform-origin: right center;
+}
+
+.home-sdk-hero {
+  display: flex;
+  max-width: 560px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.home-sdk-hero__lead p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--home-sdk-muted);
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.home-sdk-hero__copy {
+  display: contents;
+}
+
+.home-sdk-hero__news,
+.home-sdk-page .home-sdk-hero .home-hero__stats {
+  background: color-mix(in srgb, var(--rp-c-bg) 72%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.home-sdk-hero__news {
+  padding: 8px 16px;
+  border: 1px solid var(--home-sdk-border);
+  border-radius: 8px;
+}
+
+.home-sdk-hero__news p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.home-sdk-page .home-sdk-hero .home-hero__stats {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--home-sdk-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.home-sdk-page .home-sdk-hero .home-hero__stat {
+  min-width: 0;
+  padding: 16px 20px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.home-sdk-page .home-sdk-hero .home-hero__stat + .home-hero__stat {
+  border-left: 1px solid var(--home-sdk-border);
+}
+
+.home-sdk-page .home-sdk-hero a.home-hero__stat:hover {
+  background: color-mix(in srgb, var(--home-sdk-surface) 80%, transparent);
+}
+
+.home-sdk-page .home-sdk-hero .home-hero__stat span {
+  white-space: normal;
+}
+
+.home-sdk-page .home-sdk-hero .home-hero__stat strong {
+  font-family: var(--home-sdk-mono);
+  font-weight: 500;
+}
+
+/* Cards */
+
+.home-sdk-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.home-sdk-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-sdk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--home-sdk-border);
+  border-radius: 10px;
+  color: var(--rp-c-text-1) !important;
+  text-decoration: none !important;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.home-sdk-card:hover {
+  border-color: var(--rp-c-brand);
+  background: var(--home-sdk-surface);
+}
+
+.home-sdk-card__package {
+  align-self: flex-start;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  color: var(--rp-c-brand) !important;
+  font-size: 13px !important;
+}
+
+.home-sdk-card strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.home-sdk-card strong svg {
+  transition: transform 0.2s;
+}
+
+.home-sdk-card:hover strong svg {
+  transform: translateX(3px);
+}
+
+.home-sdk-card > span {
+  color: var(--home-sdk-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1100px) {
+  .home-sdk-backdrop .hero-demo {
+    right: -80px;
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-sdk-backdrop {
+    height: 560px;
+  }
+
+  .home-sdk-backdrop .hero-demo {
+    top: 24px;
+    right: -180px;
+    opacity: 0.3;
+  }
+}
+
+@container (max-width: 480px) {
+  .home-sdk-page .home-framework__legend,
+  .home-sdk-grid--2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-sdk-page .home-sdk-hero .home-hero__stat {
+    padding: 12px;
+  }
+}

@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Midscene.js v1.17 Highlights</title>
+<style>
+:root {
+  --bg: #f6f7fa;
+  --panel: #fff;
+  --panel-2: #f8f9fb;
+  --border: rgb(16 24 40 / 10%);
+  --border-2: rgb(16 24 40 / 16%);
+  --text: #0f172a;
+  --muted: rgb(15 23 42 / 62%);
+  --faint: rgb(15 23 42 / 40%);
+  --ai: #0555ff;
+  --ai-bg: rgb(5 85 255 / 8%);
+  --jev: #0555ff;
+  --jev-bg: rgb(5 85 255 / 9%);
+  --ds: #7c3aed;
+  --ds-bg: rgb(124 58 237 / 10%);
+  --ok: #0b8a5a;
+  --ok-bg: rgb(11 138 90 / 9%);
+  --gpt: #10a37f;
+  --shadow: 0 24px 60px rgb(16 24 40 / 10%), 0 2px 6px rgb(16 24 40 / 5%);
+  --brand: linear-gradient(95deg, #3b6cff 0%, #9333ea 55%, #e1489a 100%);
+  --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  --sans: "Inter", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #e9ebf0; overflow: hidden; }
+body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+/* ---------- stage ---------- */
+#stage { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: center; background: var(--bg); overflow: hidden; }
+#stage::before {
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(rgb(16 24 40 / 6%) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgb(16 24 40 / 6%) 1px, transparent 1px) 0 0 / 48px 48px;
+  mask-image: radial-gradient(1500px 950px at 50% 45%, #000 35%, transparent 100%);
+}
+#stage::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(800px 520px at 8% 0%, rgb(59 108 255 / 10%), transparent 65%),
+    radial-gradient(760px 560px at 100% 100%, rgb(147 51 234 / 8%), transparent 65%);
+}
+.paused * { animation-play-state: paused !important; }
+.scene { position: absolute; inset: 0; z-index: 1; opacity: 0; visibility: hidden; transition: opacity 600ms ease, visibility 0s linear 600ms; }
+.scene.active { opacity: 1; visibility: visible; transition: opacity 600ms ease 120ms, visibility 0s; }
+.scene.instant { transition: none; }
+
+/* ---------- reveal primitives ---------- */
+[data-at] { opacity: 0; transform: translateY(24px); transition: opacity 650ms ease, transform 750ms cubic-bezier(.2,.8,.2,1); }
+[data-at].in { opacity: 1; transform: none; }
+[data-at].fx-fade { transform: none; }
+[data-at].fx-scale { transform: scale(.88); }
+[data-at].fx-left { transform: translateX(-36px); }
+[data-at].fx-right { transform: translateX(36px); }
+[data-at].fx-scale.in, [data-at].fx-left.in, [data-at].fx-right.in { transform: none; }
+
+/* ---------- shared typography ---------- */
+.head { position: absolute; left: 120px; top: 84px; right: 120px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 10px; font: 600 22px/1 var(--mono); letter-spacing: .02em; color: var(--muted); }
+.eyebrow b, .grad { color: transparent; background: var(--brand); -webkit-background-clip: text; background-clip: text; }
+.eyebrow .part { padding: 6px 12px; border-radius: 8px; font: 700 17px/1 var(--sans); color: var(--muted); background: rgb(16 24 40 / 6%); }
+.h2 { margin: 20px 0 0; font-size: 58px; line-height: 1.18; font-weight: 750; letter-spacing: -.01em; }
+.h2 em { font-style: normal; color: transparent; background: var(--brand); -webkit-background-clip: text; background-clip: text; }
+.caption { position: absolute; left: 0; right: 0; bottom: 56px; text-align: center; font-size: 27px; line-height: 1.5; color: var(--muted); }
+.caption strong { color: var(--text); font-weight: 650; }
+
+/* ---------- panels & code ---------- */
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+.panel-bar { flex: none; display: flex; align-items: center; gap: 14px; height: 52px; padding: 0 22px; border-bottom: 1px solid var(--border); background: var(--panel-2); font: 500 19px/1 var(--mono); color: var(--muted); }
+.panel-bar .right { margin-left: auto; }
+.dots { display: inline-flex; gap: 8px; }
+.dots i { width: 13px; height: 13px; border-radius: 50%; background: rgb(16 24 40 / 12%); }
+.code { padding: 16px 0; font: 500 19px/1.75 var(--mono); white-space: pre; }
+.ln { display: flex; align-items: center; padding: 0 22px 0 0; opacity: 0; transition: opacity 250ms, background-color 300ms, filter 400ms; border-left: 4px solid transparent; }
+.ln.in { opacity: 1; }
+.ln .no { width: 52px; flex: none; text-align: right; padding-right: 18px; color: var(--faint); }
+.ln .tx { flex: 1; clip-path: inset(0 100% 0 0); transition: clip-path var(--d, 380ms) linear; }
+.ln.in .tx { clip-path: inset(0 -20px 0 0); }
+.ln.hot { background: var(--jev-bg); border-left-color: var(--jev); }
+.c { color: #94a3b8; }
+.k { color: #6d28d9; }
+.s { color: #a14b00; }
+.kw { color: #c026d3; }
+.tag { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 8px; font: 700 16px/1 var(--sans); letter-spacing: .02em; white-space: nowrap; }
+.tag.jev { color: var(--jev); background: var(--jev-bg); }
+.tag.ds { color: var(--ds); background: var(--ds-bg); }
+.tag.def { color: var(--muted); background: rgb(16 24 40 / 6%); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } }
+@keyframes blink { 50% { opacity: 0; } }
+.cursor { position: absolute; z-index: 20; width: 30px; transition: left .45s cubic-bezier(.4,0,.2,1), top .45s cubic-bezier(.4,0,.2,1), opacity .3s; opacity: 0; filter: drop-shadow(0 3px 6px rgb(0 0 0 / 30%)); pointer-events: none; }
+.cursor.in { opacity: 1; }
+.ripple { position: absolute; z-index: 19; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; border: 3px solid #3b6cff; animation: ripple .6s ease-out forwards; pointer-events: none; }
+@keyframes ripple { to { transform: scale(4); opacity: 0; } }
+.bbox { position: absolute; z-index: 15; border: 3px solid var(--jev); border-radius: 10px; background: rgb(5 85 255 / 6%); opacity: 0; transform: scale(1.12); transition: opacity .25s, transform .3s cubic-bezier(.2,.8,.2,1); pointer-events: none; }
+.bbox.in { opacity: 1; transform: none; }
+.bbox span { position: absolute; left: -3px; top: -32px; padding: 6px 10px; border-radius: 8px 8px 8px 0; background: var(--jev); color: #fff; font: 700 15px/1 var(--sans); white-space: nowrap; }
+.bbox.ds { border-color: var(--ds); background: rgb(124 58 237 / 6%); }
+.bbox.ds span { background: var(--ds); }
+
+/* ===================================================== LOCKUP (cover + outro) */
+.lockup { display: flex; flex-direction: column; align-items: center; }
+#s-cover .lockup { position: absolute; inset: 0; justify-content: center; padding-bottom: 30px; }
+.lockup .brand { display: flex; align-items: center; gap: 30px; }
+.lockup .brand img { width: 130px; }
+.lockup .brand .nm { font-size: 100px; font-weight: 800; letter-spacing: -.03em; }
+.lockup .ver { margin-left: 8px; padding: 10px 22px; border-radius: 18px; background: var(--brand); color: #fff; font: 800 52px/1 var(--sans); letter-spacing: -.01em; }
+.lockup .slogan { margin-top: 34px; font-size: 44px; font-weight: 650; line-height: 1.35; text-align: center; }
+.lockup .duo { margin-top: 40px; display: flex; align-items: stretch; padding: 26px 0; border-radius: 22px; background: #fff; border: 1px solid var(--border); box-shadow: var(--shadow); }
+.lockup .feat { display: flex; align-items: center; gap: 22px; padding: 0 40px; }
+.lockup .feat + .feat { border-left: 1px solid var(--border-2); }
+.lockup .feat .no { font: 800 44px/1 var(--mono); letter-spacing: -.04em; color: transparent; background: var(--brand); -webkit-background-clip: text; background-clip: text; }
+.lockup .feat strong { display: block; font-size: 28px; font-weight: 750; letter-spacing: -.01em; }
+.lockup .feat small { display: block; margin-top: 8px; font-size: 18px; color: var(--muted); }
+.lockup .links { margin-top: 40px; display: flex; gap: 20px; }
+.lockup .links span { padding: 14px 26px; border-radius: 999px; border: 1px solid var(--border-2); background: #fff; font: 500 24px/1 var(--mono); color: var(--muted); }
+.lockup .links span.hi { color: var(--ai); border-color: rgb(5 85 255 / 45%); }
+
+/* ===================================================== SIWC */
+#s-siwc .bw { position: absolute; left: 120px; top: 270px; width: 1000px; height: 640px; display: flex; flex-direction: column; }
+.b-top { flex: none; height: 50px; display: flex; align-items: center; gap: 16px; padding: 0 18px; background: #eef1f6; border-bottom: 1px solid #e2e5eb; }
+.b-url { flex: 1; height: 32px; border-radius: 9px; background: #fff; border: 1px solid #e2e5eb; display: flex; align-items: center; padding: 0 14px; font: 500 16px/1 var(--mono); color: #5b6272; white-space: nowrap; overflow: hidden; }
+.b-body { position: relative; flex: 1; display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
+.b-page { position: relative; border-right: 1px solid #e2e5eb; overflow: hidden; }
+.pg { position: absolute; inset: 0; padding: 34px 40px; opacity: 0; transition: opacity .4s; display: flex; flex-direction: column; }
+.pg.on { opacity: 1; }
+.sk { border-radius: 8px; background: #eef0f4; height: 18px; margin-bottom: 14px; }
+.pg-site h3 { margin: 6px 0 24px; font-size: 40px; }
+.pg-gpt { align-items: center; text-align: center; }
+.gpt-logos { display: flex; gap: 14px; align-items: center; margin: 10px 0 18px; color: var(--faint); font-size: 22px; }
+.gpt-logos i { width: 64px; height: 64px; border-radius: 16px; border: 1px solid var(--border); display: grid; place-items: center; font-style: normal; font: 800 20px/1 var(--sans); background: #fff; }
+.gpt-logos i.g { color: #fff; background: #0f172a; }
+.pg-gpt h4 { margin: 0 0 22px; font-size: 30px; line-height: 1.25; font-weight: 600; }
+.gcard { width: 100%; text-align: left; padding: 16px 20px; border: 1px solid var(--border-2); border-radius: 14px; margin-bottom: 12px; font-size: 17px; color: var(--muted); line-height: 1.45; }
+.gcard b { display: block; color: var(--text); font-size: 19px; margin-bottom: 6px; }
+.gbtn { width: 100%; height: 54px; margin-top: 6px; border-radius: 999px; background: #0f172a; color: #fff; display: grid; place-items: center; font-size: 20px; font-weight: 600; transition: background-color .3s; }
+.gbtn.busy { background: #6b7280; }
+.pg-ok h4 { display: flex; align-items: center; gap: 14px; margin: 4px 0 12px; font-size: 30px; }
+.pg-ok h4 img { width: 54px; }
+.pg-ok p { margin: 0 0 18px; font-size: 18px; color: var(--muted); line-height: 1.5; }
+.envbox { padding: 16px 18px; border-radius: 12px; background: #eef2fb; font: 500 17px/1.75 var(--mono); color: #1e293b; white-space: pre; }
+.copybtn { align-self: flex-end; margin-top: 14px; padding: 12px 18px; border-radius: 10px; background: #1d4ed8; color: #fff; font: 600 17px/1 var(--sans); }
+.b-side { position: relative; background: #fff; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.side-h { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 700; }
+.side-h img { width: 28px; }
+.cfgdlg { margin-top: 6px; border: 1px solid var(--border-2); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 10px 30px rgb(16 24 40 / 8%); }
+.cfgdlg b { font-size: 18px; }
+.cfgdlg .hint { font-size: 15px; color: var(--muted); line-height: 1.45; }
+.planlink { font-size: 17px; color: #1d4ed8; font-weight: 600; border-radius: 6px; transition: background-color .3s, box-shadow .3s; align-self: flex-start; padding: 2px 4px; margin: -2px -4px; }
+.planlink.flash { background: rgb(29 78 216 / 10%); box-shadow: 0 0 0 2px rgb(29 78 216 / 45%); }
+.ta { min-height: 128px; border: 1px solid var(--border-2); border-radius: 10px; padding: 10px 12px; font: 500 13.5px/1.7 var(--mono); color: #1e293b; white-space: pre; overflow: hidden; }
+.ta .ph { color: #b0b5c0; }
+.verify { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.vbtn { padding: 10px 16px; border: 1px solid var(--border-2); border-radius: 10px; font: 600 16px/1 var(--sans); }
+.vres { font: 700 16px/1 var(--sans); color: var(--ok); opacity: 0; transition: opacity .3s; }
+.vres.in { opacity: 1; }
+#s-siwc .cli { position: absolute; left: 1170px; top: 270px; width: 630px; background: #0f172a; border-color: #0f172a; }
+#s-siwc .cli .panel-bar { background: #1e293b; border-color: #1e293b; color: rgb(255 255 255 / 55%); }
+#s-siwc .cli .dots i { background: rgb(255 255 255 / 20%); }
+#s-siwc .cli .term { padding: 20px 24px; min-height: 290px; font: 500 18px/1.75 var(--mono); color: #e2e8f0; white-space: pre-wrap; }
+.term .prompt { color: #6ee7b7; }
+.term .out { color: rgb(226 232 240 / 65%); }
+.term .out b { color: #6ee7b7; font-weight: 600; }
+.term .typing::after { content: "▍"; color: rgb(255 255 255 / 50%); animation: blink 1s steps(1) infinite; }
+#s-siwc .mode { position: absolute; left: 1170px; top: 228px; font: 650 19px/1 var(--sans); color: var(--muted); }
+#s-siwc .mode2 { position: absolute; left: 120px; top: 228px; font: 650 19px/1 var(--sans); color: var(--muted); }
+#s-siwc .perks { position: absolute; left: 1170px; top: 640px; width: 630px; display: flex; flex-direction: column; gap: 14px; }
+.perk { display: flex; gap: 16px; align-items: center; padding: 18px 22px; border-radius: 16px; background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); font-size: 22px; }
+.perk i { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; font-style: normal; color: #fff; background: var(--gpt); font: 800 18px/1 var(--sans); }
+.perk span { color: var(--muted); font-size: 18px; }
+.perk b { display: block; margin-bottom: 4px; }
+
+/* ===================================================== JEV ROUTING */
+#s-jev .envp { position: absolute; left: 120px; top: 290px; width: 790px; }
+#s-jev .envp .code { font-size: 18px; }
+#s-jev .route { position: absolute; left: 980px; top: 290px; width: 820px; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.lane { padding: 22px; border-radius: 18px; min-height: 430px; display: flex; flex-direction: column; gap: 12px; }
+.lane.jv { background: rgb(5 85 255 / 5%); border: 2px solid rgb(5 85 255 / 30%); }
+.lane.df { background: rgb(16 24 40 / 3%); border: 2px dashed rgb(16 24 40 / 18%); }
+.lane-h { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.lane-h strong { font-size: 30px; }
+.lane-h small { font-size: 17px; color: var(--muted); }
+.lane.jv .lane-h strong { color: var(--jev); }
+.task { padding: 14px 16px; border-radius: 12px; background: #fff; border: 1px solid var(--border); box-shadow: 0 6px 16px rgb(16 24 40 / 6%); font-size: 19px; opacity: 0; transform: translateY(-16px) scale(.94); transition: opacity .35s, transform .45s cubic-bezier(.2,.8,.2,1.3); }
+.task.in { opacity: 1; transform: none; }
+.task small { display: block; margin-top: 6px; font: 500 15px/1.4 var(--mono); color: var(--muted); }
+#s-jev .limits { position: absolute; left: 120px; right: 120px; top: 760px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.lim { padding: 20px 24px; border-radius: 16px; background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); font-size: 18px; color: var(--muted); line-height: 1.5; }
+.lim b { display: block; font-size: 23px; color: var(--text); margin-bottom: 6px; }
+
+/* ===================================================== DEMOS (shared) */
+.demo-wrap { position: absolute; left: 120px; top: 270px; width: 900px; height: 720px; }
+.metrics { position: absolute; left: 1070px; top: 270px; width: 730px; }
+.mt-calls { display: flex; align-items: baseline; gap: 14px; padding: 22px 26px 6px; }
+.mt-calls b { font: 800 64px/1 var(--sans); font-variant-numeric: tabular-nums; }
+.mt-calls span { font-size: 21px; color: var(--muted); }
+.mrow { margin: 14px 26px 0; padding: 18px 20px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); display: grid; grid-template-columns: 150px 1fr 1fr; align-items: end; gap: 12px; }
+.mrow .lbl { font-size: 19px; font-weight: 650; color: var(--muted); align-self: center; }
+.mrow .v { font: 800 34px/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -.01em; white-space: nowrap; }
+.mrow .v small { display: block; font: 500 15px/1.4 var(--sans); color: var(--faint); letter-spacing: 0; }
+.mrow .v.grad { color: transparent; }
+.mrow .v .dim { opacity: .25; }
+.mnote { margin: 16px 26px 22px; font-size: 16px; line-height: 1.55; color: var(--faint); }
+.mnote b { color: var(--ds); }
+
+/* ===================================================== FRUIT */
+.game { position: absolute; inset: 0; border-radius: 22px; overflow: hidden; background: linear-gradient(160deg, #fde7a7, #f8d26a); box-shadow: var(--shadow); padding: 30px 36px; }
+.game h3 { margin: 0; font-size: 48px; font-weight: 900; color: #7a3a00; letter-spacing: .02em; }
+.game p { margin: 6px 0 0; font-size: 19px; color: #9a5a10; }
+.game .cnt { position: absolute; right: 36px; top: 30px; width: 130px; padding: 12px 0; border-radius: 16px; background: #fff; box-shadow: 0 6px 0 #e3b84b; text-align: center; }
+.game .cnt small { display: block; font-size: 15px; color: #9a5a10; }
+.game .cnt b { font: 900 44px/1.1 var(--sans); color: #e2462a; font-variant-numeric: tabular-nums; }
+.board { position: absolute; overflow: hidden; left: 36px; right: 36px; top: 150px; bottom: 30px; border-radius: 22px; background: #4fbfa8; box-shadow: inset 0 0 0 6px #3aa58f; padding: 26px; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 18px; }
+.tile { position: relative; border-radius: 16px; background: #fff7e8; box-shadow: 0 6px 0 #e3c48a; display: grid; place-items: center; font-size: 56px; transition: transform .25s, opacity .35s, box-shadow .25s; }
+.tile.sel { transform: translateY(-4px) scale(1.04); box-shadow: 0 0 0 4px #ffbe3d, 0 8px 0 #e3c48a; }
+.tile.gone { opacity: 0; transform: scale(.6); }
+.cleared { position: absolute; inset: 0; display: grid; place-items: center; font: 900 52px/1 var(--sans); color: #fff; text-shadow: 0 4px 0 #2f8f7b; opacity: 0; transform: scale(.8); transition: opacity .4s, transform .5s cubic-bezier(.2,.8,.2,1.4); }
+.cleared.in { opacity: 1; transform: none; }
+.tile.slot { background: transparent; box-shadow: none; border: 3px dashed rgb(255 255 255 / 45%); }
+
+/* ===================================================== REGISTER */
+.form { position: absolute; inset: 0; border-radius: 22px; overflow: hidden; background: linear-gradient(160deg, #e8f3ec, #d9ecdf); box-shadow: var(--shadow); padding: 26px 0; }
+.fcard { width: 600px; margin: 0 auto; padding: 28px 34px; border-radius: 18px; background: #fff; box-shadow: 0 10px 30px rgb(16 24 40 / 8%); }
+.fcard .logo { text-align: center; font: 800 26px/1 var(--sans); color: #1f5133; margin-bottom: 14px; }
+.fcard h4 { margin: 0 0 18px; font-size: 32px; }
+.fld { margin-bottom: 14px; }
+.fld label { display: block; font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.inp { position: relative; height: 46px; border: 2px solid #d5dbe3; border-radius: 10px; display: flex; align-items: center; padding: 0 14px; font-size: 18px; transition: border-color .2s; }
+.inp.focus { border-color: #2f7d4f; }
+.inp .ph { color: #a2a8b5; }
+.inp .val { color: #111; }
+.sel2 { justify-content: space-between; }
+.opts { position: absolute; left: -2px; right: -2px; top: 46px; z-index: 5; border: 1px solid #d5dbe3; border-radius: 10px; background: #fff; box-shadow: 0 10px 24px rgb(16 24 40 / 12%); overflow: hidden; display: none; }
+.opts.open { display: block; }
+.opts div { padding: 10px 14px; font-size: 17px; }
+.opts div.hl { background: #e6f2ea; }
+.cta { margin-top: 18px; height: 50px; border-radius: 10px; background: #1f5133; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 19px; }
+.done-banner { position: absolute; left: 50%; bottom: 26px; z-index: 6; transform: translate(-50%, 20px); opacity: 0; padding: 14px 24px; border-radius: 14px; background: #0f172a; color: #fff; font-size: 20px; font-weight: 600; display: flex; gap: 12px; align-items: center; white-space: nowrap; transition: .45s cubic-bezier(.2,.8,.2,1); }
+.done-banner.in { opacity: 1; transform: translate(-50%, 0); }
+.done-banner b { padding: 5px 9px; border-radius: 7px; background: var(--jev); font: 700 14px/1 var(--sans); }
+.legend2 { position: absolute; left: 120px; top: 228px; display: flex; gap: 14px; align-items: center; font-size: 18px; color: var(--muted); }
+
+/* ===================================================== OUTRO */
+#s-outro .stats { position: absolute; left: 0; right: 0; top: 330px; display: flex; justify-content: center; gap: 30px; transition: transform 1s cubic-bezier(.2,.8,.2,1), opacity .8s; }
+#s-outro.final .stats { transform: translateY(-60px) scale(.94); opacity: 0; }
+.stat { width: 520px; padding: 34px 36px; }
+.stat .t { font-size: 22px; color: var(--muted); font-weight: 600; }
+.stat .n { margin-top: 14px; font: 800 92px/1 var(--sans); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.stat .d { margin-top: 14px; font-size: 19px; color: var(--muted); line-height: 1.5; }
+#s-outro .lockup { position: absolute; left: 0; right: 0; top: 250px; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100; padding: 10px 16px; display: flex; align-items: center; gap: 16px; font: 12px/1 var(--mono); color: rgb(255 255 255 / 80%); background: linear-gradient(transparent, rgb(0 0 0 / 55%)); transition: opacity .3s; }
+#hud.hidden { opacity: 0; pointer-events: none; }
+#hud .pg2 { flex: 1; height: 3px; background: rgb(255 255 255 / 25%); border-radius: 2px; overflow: hidden; }
+#hud .pg2 i { display: block; height: 100%; width: 0; background: #7fa6ff; }
+#start { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 200; padding: 14px 24px; border-radius: 999px; background: #0f172a; color: #fff; font: 600 16px/1.4 var(--sans); text-align: center; cursor: pointer; box-shadow: 0 10px 30px rgb(0 0 0 / 25%); }
+#start small { display: block; font: 12px/1.6 var(--mono); color: rgb(255 255 255 / 55%); }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- ================================================= COVER (fully visible from frame 0) -->
+  <section class="scene" id="s-cover" data-dur="5000" data-name="cover">
+    <div class="lockup">
+      <div class="brand"><img src="midscene-icon.png" alt="" /><div class="nm">Midscene.js</div><span class="ver">v1.17</span></div>
+      <div class="slogan" data-t="cover.slogan"></div>
+      <div class="duo"><div class="feat"><span class="no">01</span><div><strong data-t="hl.siwc"></strong><small data-t="hl.siwcd"></small></div></div><div class="feat"><span class="no">02</span><div><strong data-t="hl.jev"></strong><small data-t="hl.jevd"></small></div></div></div>
+      <div class="links"><span class="hi">midscenejs.com/changelog</span></div>
+    </div>
+  </section>
+
+  <!-- ================================================= SIWC -->
+  <section class="scene" id="s-siwc" data-dur="17000" data-name="chatgpt subscription">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><b>// 01</b><span data-t="siwc.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="siwc.h2"></h2>
+    </div>
+    <div class="mode2" data-at="500" data-t="siwc.ext"></div>
+    <div class="panel bw fx-left" data-at="500" id="bw">
+      <div class="b-top"><span class="dots"><i></i><i></i><i></i></span><div class="b-url" id="burl">https://midscenejs.com/quick-start</div></div>
+      <div class="b-body">
+        <div class="b-page" id="bpage">
+          <div class="pg pg-site on" id="pgSite"><h3>Try the GUI Agent</h3><div class="sk" style="width:92%"></div><div class="sk" style="width:84%"></div><div class="sk" style="width:88%"></div><div class="sk" style="width:60%"></div><div class="sk" style="width:90%;margin-top:26px"></div><div class="sk" style="width:76%"></div></div>
+          <div class="pg pg-gpt" id="pgGpt">
+            <div class="gpt-logos"><i class="g">GPT</i>···<i><img src="midscene-icon.png" alt="" style="width:40px" /></i></div>
+            <h4>Connect Midscene Chrome Extension<br>to ChatGPT</h4>
+            <div class="gcard"><b>Identity</b>you@example.com</div>
+            <div class="gcard"><b>ChatGPT plan</b><span data-t="siwc.plan"></span></div>
+            <div class="gbtn" id="allow">Allow</div>
+          </div>
+          <div class="pg pg-ok" id="pgOk">
+            <h4><img src="midscene-icon.png" alt="" />✅ ChatGPT authorization successful</h4>
+            <p data-t="siwc.okp"></p>
+            <div class="envbox" id="okenv"></div>
+            <div class="copybtn">Copy configuration</div>
+          </div>
+        </div>
+        <div class="b-side" id="bside">
+          <div class="side-h"><img src="midscene-icon.png" alt="" />Midscene.js</div>
+          <div class="cfgdlg">
+            <b>Model Env Config</b>
+            <div class="hint" data-t="siwc.hint"></div>
+            <span class="planlink" id="planlink">Use your ChatGPT plan →</span>
+            <div class="ta" id="ta"><span class="ph">MIDSCENE_MODEL_BASE_URL=…<br>MIDSCENE_MODEL_API_KEY=…<br>MIDSCENE_MODEL_NAME=…</span></div>
+            <div class="verify"><span class="vres" id="vres" data-t="siwc.vok"></span><span class="vbtn" id="vbtn">▷ Verify</span></div>
+          </div>
+        </div>
+      </div>
+      <svg class="cursor" id="cur1" viewBox="0 0 24 24"><path d="M4 2l16 9.5-7 1.6 4.2 7.3-3 1.7-4.2-7.3L4 20z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="mode" data-at="600">CLI / SDK</div>
+    <div class="panel cli fx-right" data-at="600">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span>Terminal</div>
+      <div class="term" id="term"></div>
+    </div>
+    <div class="perks">
+      <div class="perk fx-right" data-at="12600"><i>✓</i><div><b data-t="siwc.p1"></b><span data-t="siwc.p1d"></span></div></div>
+      <div class="perk fx-right" data-at="12900"><i>↻</i><div><b data-t="siwc.p2"></b><span data-t="siwc.p2d"></span></div></div>
+    </div>
+  </section>
+
+  <!-- ================================================= JEV ROUTING -->
+  <section class="scene" id="s-jev" data-dur="14500" data-name="jev routing">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><b>// 02</b><span data-t="jev.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="jev.h2"></h2>
+    </div>
+    <div class="panel envp fx-left" data-at="500">
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span>.env</div>
+      <div class="code"><div class="ln" data-at="700"><span class="no">1</span><span class="tx"><span class="c" data-t="jev.c1"></span></span></div><div class="ln" data-at="820"><span class="no">2</span><span class="tx"><span class="k">MIDSCENE_MODEL_NAME</span>=<span class="s" data-t="jev.yours"></span></span></div><div class="ln" data-at="940"><span class="no">3</span><span class="tx"> </span></div><div class="ln" data-at="1300" id="e4"><span class="no">4</span><span class="tx"><span class="c" data-t="jev.c2"></span></span></div><div class="ln" data-at="1450" id="e5"><span class="no">5</span><span class="tx"><span class="k">MIDSCENE_PLANNING_MODEL_NAME</span>=<span class="s">"jev-1.14.0"</span></span></div><div class="ln" data-at="1600" id="e6"><span class="no">6</span><span class="tx"><span class="k">MIDSCENE_LOCATE_MODEL_NAME</span>=<span class="s">"jev-1.14.0"</span></span></div><div class="ln" data-at="1750" id="e7"><span class="no">7</span><span class="tx"><span class="k">MIDSCENE_INSIGHT_MODEL_NAME</span>=<span class="s">"jev-1.14.0"</span></span></div><div class="ln" data-at="1900" id="e8"><span class="no">8</span><span class="tx"><span class="c"># *_MODEL_FAMILY="jev"</span></span></div><div class="ln" data-at="2050" id="e9"><span class="no">9</span><span class="tx"><span class="c"># *_MODEL_BASE_URL="https://api.typesafe.ai/v1"</span></span></div></div>
+    </div>
+    <div class="route">
+      <div class="lane jv fx-right" data-at="2500"><div class="lane-h"><strong>Jev</strong><small data-t="jev.l1"></small></div><div id="laneJ"></div></div>
+      <div class="lane df fx-right" data-at="2700"><div class="lane-h"><strong data-t="jev.def"></strong><small data-t="jev.l2"></small></div><div id="laneD"></div></div>
+    </div>
+    <div class="limits">
+      <div class="lim fx-fade" data-at="10200"><b data-t="jev.m1"></b><span data-t="jev.m1d"></span></div>
+      <div class="lim fx-fade" data-at="10450"><b data-t="jev.m2"></b><span data-t="jev.m2d"></span></div>
+      <div class="lim fx-fade" data-at="10700"><b data-t="jev.m3"></b><span data-t="jev.m3d"></span></div>
+    </div>
+  </section>
+
+  <!-- ================================================= FRUIT -->
+  <section class="scene" id="s-fruit" data-dur="16500" data-name="demo: tile matching">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><b>// 03</b><span data-t="fr.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="fr.h2"></h2>
+    </div>
+    <div class="demo-wrap fx-left" data-at="500" id="fwrap">
+      <div class="game">
+        <h3 data-t="fr.title"></h3><p data-t="fr.sub"></p>
+        <div class="cnt"><small data-t="fr.left"></small><b id="pairs">7</b></div>
+        <div class="board" id="board"></div>
+      </div>
+      <svg class="cursor" id="cur2" viewBox="0 0 24 24"><path d="M4 2l16 9.5-7 1.6 4.2 7.3-3 1.7-4.2-7.3L4 20z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="panel metrics fx-right" data-at="700" id="fm"></div>
+  </section>
+
+  <!-- ================================================= REGISTER -->
+  <section class="scene" id="s-reg" data-dur="17500" data-name="demo: register form">
+    <div class="head">
+      <div class="eyebrow" data-at="100"><b>// 04</b><span data-t="rg.eb"></span></div>
+      <h2 class="h2" data-at="250" data-t="rg.h2"></h2>
+    </div>
+    <div class="legend2" data-at="400"><span class="tag jev" data-t="rg.lj"></span><span class="tag ds" data-t="rg.ld"></span></div>
+    <div class="demo-wrap fx-left" data-at="500" id="rwrap">
+      <div class="form">
+        <div class="fcard">
+          <div class="logo">✳ bloom</div>
+          <h4>Create your account</h4>
+          <div class="fld"><label>Email address</label><div class="inp" id="iEmail"><span class="ph">user@example.com</span><span class="val"></span></div></div>
+          <div class="fld"><label>Password</label><div class="inp" id="iPwd"><span class="ph">••••••••</span><span class="val"></span></div></div>
+          <div class="fld"><label>Username</label><div class="inp" id="iUser"><span class="ph">johndoe123</span><span class="val"></span></div></div>
+          <div class="fld"><label>Gender</label><div class="inp sel2" id="iGender"><span><span class="ph">Select your gender</span><span class="val"></span></span><span>▾</span><div class="opts" id="opts"><div>Female</div><div>Male</div><div>Prefer not to say</div></div></div></div>
+          <div class="cta" id="iCta">Create account</div>
+        </div>
+      </div>
+      <div class="done-banner" id="rdone"><b>Jev</b><span data-t="rg.done"></span></div>
+      <svg class="cursor" id="cur3" viewBox="0 0 24 24"><path d="M4 2l16 9.5-7 1.6 4.2 7.3-3 1.7-4.2-7.3L4 20z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="panel metrics fx-right" data-at="700" id="rm"></div>
+  </section>
+
+  <!-- ================================================= OUTRO -->
+  <section class="scene" id="s-outro" data-dur="10000" data-name="outro">
+    <div class="stats">
+      <div class="panel stat" data-at="200"><div class="t" data-t="out.s1"></div><div class="n grad">&lt; 0.9s</div><div class="d" data-t="out.s1d"></div></div>
+      <div class="panel stat" data-at="450"><div class="t" data-t="out.s2"></div><div class="n grad">$0.00426</div><div class="d" data-t="out.s2d"></div></div>
+    </div>
+    <div class="lockup">
+      <div class="brand" data-at="4300"><img src="midscene-icon.png" alt="" /><div class="nm">Midscene.js</div><span class="ver">v1.17</span></div>
+      <div class="slogan" data-at="4700" data-t="cover.slogan"></div>
+      <div class="duo" data-at="5100"><div class="feat"><span class="no">01</span><div><strong data-t="hl.siwc"></strong><small data-t="hl.siwcd"></small></div></div><div class="feat"><span class="no">02</span><div><strong data-t="hl.jev"></strong><small data-t="hl.jevd"></small></div></div></div>
+      <div class="links" data-at="5500"><span class="hi">midscenejs.com/changelog</span></div>
+    </div>
+  </section>
+</div>
+
+<div id="hud"><span id="hud-t"></span><div class="pg2"><i id="hud-p"></i></div><span>Space · ←/→ · R · L (中/EN) · H</span></div>
+<div id="start"><span data-t="ui.start"></span><small>?lang=en · ?autoplay=1 · ?scene=3 · ?loop=1 · ?hud=0 · ?speed=1.2</small></div>
+
+<script>
+const I18N = {
+  zh: {
+    'ui.start': '点击或按空格开始播放',
+    'cover.slogan': '本次更新亮点',
+    'hl.siwc': '使用 ChatGPT 订阅额度',
+    'hl.jev': 'Jev 1.14 实验性支持',
+    'hl.siwcd': '无需 API Key，直接调用 GPT 模型', 'hl.jevd': '快速、低成本的定位与判断',
+    'siwc.eb': 'Sign in with ChatGPT（SIWC）',
+    'siwc.h2': '无需 API Key，<em>用 ChatGPT 订阅额度调用 GPT 模型</em>',
+    'siwc.ext': '浏览器插件',
+    'siwc.plan': '允许 Midscene Chrome Extension 使用你的 ChatGPT 订阅额度',
+    'siwc.okp': '凭据仅保存在本浏览器的 Midscene 插件中，Midscene 不会收集你的凭据。',
+    'siwc.hint': '每行一个 KEY=VALUE，配置仅保存在本地浏览器中。',
+    'siwc.vok': '✓ 连接成功',
+    'siwc.saved': '凭据已保存到 ~/.midscene/siwc.json',
+    'siwc.p1': '插件与 CLI / SDK 都支持',
+    'siwc.p1d': '插件内一键授权；命令行登录一次即可在脚本中使用',
+    'siwc.p2': '自动刷新 access token',
+    'siwc.p2d': 'Node.js 与浏览器插件都无需手动维护凭据',
+    'jev.eb': 'Jev 1.14 · 实验性支持',
+    'jev.h2': 'Jev 负责选择与判断，<em>通用模型兜住复杂任务</em>',
+    'jev.c1': '# 保留通用默认模型',
+    'jev.yours': '"&lt;你的通用模型&gt;"',
+    'jev.c2': '# 追加：Planning / Locate / Insight 交给 Jev',
+    'jev.l1': '快、成本低', 'jev.def': '默认模型', 'jev.l2': '通用能力',
+    'jev.tasks': [
+      ['J', '元素定位', 'Locate'],
+      ['J', '单击、双击、返回', 'aiAct · 简单动作规划'],
+      ['D', '输入、滚动', 'aiAct · 复杂动作规划'],
+      ['J', '条件判断', 'aiAssert · aiBoolean · aiWaitFor'],
+      ['D', '数据提取与问答', 'aiQuery · aiString · aiNumber · aiAsk'],
+    ],
+    'jev.m1': '实验性支持', 'jev.m1d': '速度快、成本低，但不适用于需要复杂推理的任务',
+    'jev.m2': '失败不回退', 'jev.m2d': 'Jev 请求失败时，不会自动切换至默认模型',
+    'jev.m3': '图片尺寸', 'jev.m3d': '截图最长边需不超过 1568 像素，用 screenshotShrinkFactor 控制',
+    'fr.eb': 'Demo · 纯 Jev',
+    'fr.h2': '水果连连看：<em>Jev 独立完成点击与定位</em>',
+    'fr.title': '水果连连看', 'fr.sub': '点击两张相同的水果，消除所有配对', 'fr.left': '剩余配对',
+    'fr.box': 'Jev · 定位', 'fr.check': 'Jev · 判断：已全部消除', 'fr.cleared': '🎉 全部消除',
+    'fr.note': '数据来自演示中的单次运行。“单步”指一次模型调用，耗时不含页面操作和等待；按 Jev 输入 $0.042 / 百万 Token、输出免费计算。',
+    'rg.eb': 'Demo · Jev + DeepSeek',
+    'rg.h2': '注册表单：<em>Jev 负责操作，DeepSeek 生成输入</em>',
+    'rg.lj': 'Jev · 点击、定位、下拉选择、完成判断', 'rg.ld': 'DeepSeek · 生成邮箱、密码、用户名',
+    'rg.loc': 'Jev · 定位', 'rg.gen': 'DeepSeek · 生成输入', 'rg.pick': 'Jev · 选择',
+    'rg.done': '完成判断：注册表单已提交',
+    'rg.note': '以下数据<b>仅统计 Jev，不包含 DeepSeek</b>。数据来自演示中的单次运行，按 Jev 输入 $0.042 / 百万 Token、输出免费计算。',
+    'm.calls': '次 Jev 调用', 'm.lat': '单步耗时', 'm.tok': '输入 Token', 'm.cost': '模型费用',
+    'm.avg': '平均', 'm.p50': 'P50', 'm.per': '平均每步', 'm.total': '总计',
+    'out.s1': 'Jev 单步模型耗时（平均）', 'out.s1d': '水果连连看 0.887 秒 · 注册表单 0.583 秒',
+    'out.s2': '一局水果连连看的 Jev 费用', 'out.s2d': '共 101,421 输入 Token，输出免费',
+  },
+  en: {
+    'ui.start': 'Click or press Space to play',
+    'cover.slogan': 'Release highlights',
+    'hl.siwc': 'Use your ChatGPT subscription',
+    'hl.jev': 'Experimental Jev 1.14 support',
+    'hl.siwcd': 'Call GPT models without an API key', 'hl.jevd': 'Fast, low-cost localization and checks',
+    'siwc.eb': 'Sign in with ChatGPT (SIWC)',
+    'siwc.h2': 'No API key. <em>Call GPT models with your ChatGPT plan.</em>',
+    'siwc.ext': 'Browser extension',
+    'siwc.plan': 'Allow Midscene Chrome Extension to consume usage from your ChatGPT plan’s limits',
+    'siwc.okp': 'Credentials are saved locally in the Midscene extension on this browser. Midscene does not collect your credentials.',
+    'siwc.hint': 'One KEY=VALUE per line, saved locally in your browser.',
+    'siwc.vok': '✓ Connected',
+    'siwc.saved': 'Credentials saved to ~/.midscene/siwc.json',
+    'siwc.p1': 'Extension and CLI / SDK',
+    'siwc.p1d': 'One-click authorization in the extension; sign in once from the CLI for scripts',
+    'siwc.p2': 'Access tokens refresh automatically',
+    'siwc.p2d': 'No manual credential upkeep in Node.js or the extension',
+    'jev.eb': 'Jev 1.14 · experimental',
+    'jev.h2': 'Jev picks and judges, <em>a general model handles the rest</em>',
+    'jev.c1': '# Keep a general default model',
+    'jev.yours': '"&lt;your general model&gt;"',
+    'jev.c2': '# Add: route Planning / Locate / Insight to Jev',
+    'jev.l1': 'fast and low-cost', 'jev.def': 'Default model', 'jev.l2': 'general-purpose',
+    'jev.tasks': [
+      ['J', 'Element localization', 'Locate'],
+      ['J', 'Click, double-click, back', 'aiAct · simple actions'],
+      ['D', 'Typing, scrolling', 'aiAct · complex actions'],
+      ['J', 'Condition checks', 'aiAssert · aiBoolean · aiWaitFor'],
+      ['D', 'Extraction and Q&A', 'aiQuery · aiString · aiNumber · aiAsk'],
+    ],
+    'jev.m1': 'Experimental', 'jev.m1d': 'Fast and low-cost, but not suited to tasks that need complex reasoning',
+    'jev.m2': 'No fallback', 'jev.m2d': 'If a Jev request fails, Midscene does not switch to the default model',
+    'jev.m3': 'Image size', 'jev.m3d': 'Keep the screenshot’s longest edge within 1568 px via screenshotShrinkFactor',
+    'fr.eb': 'Demo · Jev only',
+    'fr.h2': 'Fruit tile matching: <em>Jev clicks and locates on its own</em>',
+    'fr.title': 'Fruit Match', 'fr.sub': 'Tap two matching fruits to clear every pair', 'fr.left': 'Pairs left',
+    'fr.box': 'Jev · locate', 'fr.check': 'Jev · check: all cleared', 'fr.cleared': '🎉 All cleared',
+    'fr.note': 'Measured from a single run of the demo. A step is one model call; latency excludes page actions and waits. Costs assume $0.042 per million Jev input tokens, with output free.',
+    'rg.eb': 'Demo · Jev + DeepSeek',
+    'rg.h2': 'Registration form: <em>Jev acts, DeepSeek writes the inputs</em>',
+    'rg.lj': 'Jev · clicks, locate, dropdown, completion check', 'rg.ld': 'DeepSeek · email, password, username',
+    'rg.loc': 'Jev · locate', 'rg.gen': 'DeepSeek · input', 'rg.pick': 'Jev · select',
+    'rg.done': 'Completion check: the form was submitted',
+    'rg.note': 'These numbers <b>cover Jev only and exclude DeepSeek</b>. Measured from a single run of the demo at $0.042 per million Jev input tokens, with output free.',
+    'm.calls': 'Jev calls', 'm.lat': 'Latency', 'm.tok': 'Input tokens', 'm.cost': 'Model cost',
+    'm.avg': 'avg', 'm.p50': 'P50', 'm.per': 'avg per call', 'm.total': 'total',
+    'out.s1': 'Jev latency per call (avg)', 'out.s1d': 'Tile matching 0.887 s · registration form 0.583 s',
+    'out.s2': 'Jev cost for a full tile-matching run', 'out.s2d': '101,421 input tokens in total, output free',
+  },
+};
+
+(() => {
+  const params = new URLSearchParams(location.search);
+  const SPEED = Number(params.get('speed')) || 1;
+  const LOOP = params.get('loop') === '1';
+  const stage = document.getElementById('stage');
+  const hud = document.getElementById('hud');
+  let lang = params.get('lang') === 'en' ? 'en' : 'zh';
+  let S = 1;
+  const tr = (key) => I18N[lang][key];
+
+  function fit() {
+    S = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = `translate(-50%, -50%) scale(${S})`;
+  }
+  addEventListener('resize', fit); fit();
+
+  /* ---------- i18n: scene templates are rendered per language ---------- */
+  const scenes = [...document.querySelectorAll('.scene')].map((el) => ({
+    el, dur: Number(el.dataset.dur), name: el.dataset.name, tpl: el.innerHTML, html: '',
+  }));
+  function localize(root) {
+    root.querySelectorAll('[data-t]').forEach((n) => { n.innerHTML = tr(n.dataset.t); });
+  }
+  function render() {
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+    const tmp = document.createElement('div');
+    scenes.forEach((s) => { tmp.innerHTML = s.tpl; localize(tmp); s.html = tmp.innerHTML; });
+    const startEl = document.getElementById('start');
+    if (startEl) localize(startEl);
+  }
+  render();
+
+  /* ---------- pausable clock ---------- */
+  let cur = -1, t = 0, timers = [], paused = true, last = 0, done = false;
+  const at = (ms, fn) => timers.push({ t: ms, fn });
+
+  function enter(i, instant = false) {
+    cur = (i + scenes.length) % scenes.length;
+    t = 0; timers = []; done = false;
+    const s = scenes[cur];
+    scenes.forEach((x, j) => { if (j !== cur) x.el.classList.remove('active', 'instant'); });
+    s.el.innerHTML = s.html;
+    s.el.className = `scene active${instant ? ' instant' : ''}`;
+    void s.el.offsetWidth;
+    s.el.querySelectorAll('[data-at]').forEach((e) => at(Number(e.dataset.at), () => e.classList.add('in')));
+    SCRIPTS[s.el.id]?.(s.el);
+    timers.sort((a, b) => a.t - b.t);
+  }
+  function runDue() {
+    while (timers.length && timers[0].t <= t) { timers.shift().fn(); timers.sort((a, b) => a.t - b.t); }
+  }
+
+  function tick(now) {
+    const dt = last ? Math.min(now - last, 100) : 0;
+    last = now;
+    if (!paused && cur >= 0) {
+      t += dt * SPEED;
+      runDue();
+      const s = scenes[cur];
+      if (t >= s.dur && !done) {
+        if (cur < scenes.length - 1) enter(cur + 1);
+        else if (LOOP) enter(0);
+        else done = true;
+      }
+    }
+    if (cur >= 0) {
+      const s = scenes[cur];
+      document.getElementById('hud-p').style.width = `${(Math.min(t, s.dur) / s.dur) * 100}%`;
+      document.getElementById('hud-t').textContent = `${cur + 1}/${scenes.length} · ${s.name} · ${lang}`;
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function setPaused(p) { paused = p; stage.classList.toggle('paused', p); }
+  const firstScene = Math.max(0, (Number(params.get('scene')) || 1) - 1);
+  function start() {
+    document.getElementById('start')?.remove();
+    setPaused(false);
+  }
+  document.getElementById('start').addEventListener('click', start);
+  if (params.get('hud') === '0') hud.classList.add('hidden');
+
+  addEventListener('keydown', (e) => {
+    if (e.key === 'l' || e.key === 'L') { lang = lang === 'zh' ? 'en' : 'zh'; render(); enter(cur, true); return; }
+    if (document.getElementById('start')) { if (e.code === 'Space' || e.code === 'Enter') start(); return; }
+    if (e.code === 'Space') { e.preventDefault(); setPaused(!paused); }
+    else if (e.code === 'ArrowRight') enter(cur + 1);
+    else if (e.code === 'ArrowLeft') enter(cur - 1);
+    else if (e.key === 'r' || e.key === 'R') enter(0, true);
+    else if (e.key === 'h' || e.key === 'H') hud.classList.toggle('hidden');
+  });
+
+  // Debug hook for screenshot checks: jump to scene `i` and fast-forward its timeline to `ms`.
+  window.__seek = (i, ms, l) => {
+    if (l && l !== lang) { lang = l; render(); }
+    document.getElementById('start')?.remove();
+    setPaused(false);
+    enter(i, true);
+    t = ms; runDue();
+    paused = true;
+  };
+
+  /* ---------- helpers ---------- */
+  const q = (root, sel) => root.querySelector(sel);
+  const qa = (root, sel) => [...root.querySelectorAll(sel)];
+  const show = (el) => el.classList.add('in');
+  function rel(el, box) {
+    const a = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+    return { x: (a.left - b.left) / S, y: (a.top - b.top) / S, w: a.width / S, h: a.height / S };
+  }
+  function bbox(box, el, label, cls = '') {
+    const r = rel(el, box);
+    const d = document.createElement('div');
+    d.className = `bbox ${cls}`;
+    Object.assign(d.style, { left: `${r.x - 6}px`, top: `${r.y - 6}px`, width: `${r.w + 12}px`, height: `${r.h + 12}px` });
+    d.innerHTML = `<span>${label}</span>`;
+    box.appendChild(d);
+    void d.offsetWidth; d.classList.add('in');
+    return d;
+  }
+  function pointer(box, cursor) {
+    return {
+      move(el, dx = 0.5, dy = 0.55) {
+        const r = rel(el, box);
+        cursor.classList.add('in');
+        cursor.style.left = `${r.x + r.w * dx}px`;
+        cursor.style.top = `${r.y + r.h * dy}px`;
+      },
+      click() {
+        const rp = document.createElement('div');
+        rp.className = 'ripple';
+        rp.style.left = cursor.style.left; rp.style.top = cursor.style.top;
+        box.appendChild(rp);
+        setTimeout(() => rp.remove(), 700);
+      },
+    };
+  }
+  // Animate a number from 0 to `to`, formatted by `fmt`, ending exactly on `to`.
+  function count(el, to, from, ms, fmt) {
+    const steps = 20;
+    for (let i = 1; i <= steps; i++) at(from + (ms / steps) * i, () => { el.textContent = fmt(i === steps ? to : (to * i) / steps); });
+  }
+  const fmtN = (d) => (v) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  function terminal(term) {
+    const line = (html, cls = '') => {
+      const d = document.createElement('div');
+      if (cls) d.className = cls;
+      d.innerHTML = html;
+      term.appendChild(d);
+      return d;
+    };
+    const type = (text, from, step) => {
+      let el;
+      at(from, () => { el = line('<span class="prompt">$ </span><span class="typing"></span>'); });
+      [...text].forEach((ch, i) => at(from + 80 + i * step, () => { el.lastChild.textContent += ch; }));
+      const end = from + 80 + text.length * step;
+      at(end + 200, () => el.lastChild.classList.remove('typing'));
+      return end + 200;
+    };
+    return { line, type };
+  }
+
+  // Metrics panel shared by both Jev demos; values come straight from the v1.17 highlight notes.
+  function metrics(root, panel, m, from, runMs, note) {
+    panel.innerHTML = `
+      <div class="panel-bar"><span class="dots"><i></i><i></i><i></i></span>Jev · jev-1.14.0</div>
+      <div class="mt-calls"><b class="grad" id="mcalls">0</b><span>/ ${m.calls} ${tr('m.calls')}</span></div>
+      <div class="mrow"><span class="lbl">${tr('m.lat')}</span><span class="v"><span id="mLatA">–</span><small>${tr('m.avg')} · s</small></span><span class="v"><span id="mLatP">–</span><small>${tr('m.p50')} · s</small></span></div>
+      <div class="mrow"><span class="lbl">${tr('m.tok')}</span><span class="v"><span id="mTokA">–</span><small>${tr('m.per')}</small></span><span class="v grad"><span id="mTokT">0</span><small style="color:var(--faint)">${tr('m.total')}</small></span></div>
+      <div class="mrow"><span class="lbl">${tr('m.cost')}</span><span class="v"><span id="mCostA">–</span><small>${tr('m.per')}</small></span><span class="v grad"><span id="mCostT">$0</span><small style="color:var(--faint)">${tr('m.total')}</small></span></div>
+      <div class="mnote">${note}</div>`;
+    const calls = q(panel, '#mcalls');
+    for (let i = 1; i <= m.calls; i++) {
+      const ms = from + (runMs * i) / m.calls;
+      at(ms, () => {
+        calls.textContent = String(i);
+        q(panel, '#mTokT').textContent = fmtN(0)(i === m.calls ? m.tokT : (m.tokT * i) / m.calls);
+        q(panel, '#mCostT').textContent = `$${(i === m.calls ? m.costT : (m.costT * i) / m.calls).toFixed(i === m.calls ? m.costTd : 5)}`;
+      });
+    }
+    const end = from + runMs + 300;
+    count(q(panel, '#mLatA'), m.latA, end, 600, fmtN(3));
+    count(q(panel, '#mLatP'), m.latP, end + 150, 600, fmtN(3));
+    count(q(panel, '#mTokA'), m.tokA, end + 300, 600, fmtN(1));
+    count(q(panel, '#mCostA'), m.costA, end + 450, 600, (v) => `$${v.toFixed(6)}`);
+  }
+
+  /* ---------- scene scripts ---------- */
+  const SCRIPTS = {
+    's-siwc'(root) {
+      const bw = q(root, '#bw'), p = pointer(bw, q(root, '#cur1'));
+      const pages = { site: q(root, '#pgSite'), gpt: q(root, '#pgGpt'), ok: q(root, '#pgOk') };
+      const go = (name, url) => { Object.values(pages).forEach((x) => x.classList.remove('on')); pages[name].classList.add('on'); q(root, '#burl').textContent = url; };
+      const ENV = 'MIDSCENE_MODEL_AUTH_MODE="siwc"\nMIDSCENE_MODEL_NAME="gpt-6-sol"\nMIDSCENE_MODEL_FAMILY="gpt-6"';
+      // Browser extension: plan link → ChatGPT consent → success page → paste config → verify
+      at(1300, () => p.move(q(root, '#planlink'), 0.6, 0.6));
+      at(1900, () => { q(root, '#planlink').classList.add('flash'); p.click(); });
+      at(2300, () => go('gpt', 'https://auth.openai.com/sign-in-with-chatgpt/consent'));
+      at(2500, () => q(root, '#planlink').classList.remove('flash'));
+      at(3300, () => p.move(q(root, '#allow'), 0.5, 0.55));
+      at(3900, () => { p.click(); const b = q(root, '#allow'); b.classList.add('busy'); b.textContent = '…'; });
+      at(4700, () => go('ok', 'chrome-extension://…/siwc.html'));
+      [...ENV].forEach((ch, i) => at(4900 + i * 14, () => { q(root, '#okenv').textContent += ch; }));
+      at(6500, () => { const ta = q(root, '#ta'); ta.textContent = ENV; ta.style.background = 'rgb(16 163 127 / 6%)'; });
+      at(7000, () => p.move(q(root, '#vbtn'), 0.5, 0.6));
+      at(7600, () => { p.click(); show(q(root, '#vres')); });
+      // CLI / SDK: login once, then verify
+      const { line, type } = terminal(q(root, '#term'));
+      let tt = type('pnpm dlx @midscene/cli model siwc login', 1500, 32);
+      at(tt + 900, () => line(`<b>✔</b> ${tr('siwc.saved')}`, 'out'));
+      tt += 1500;
+      at(tt, () => line('<span class="out"># .env</span>'));
+      ['MIDSCENE_MODEL_AUTH_MODE="siwc"', 'MIDSCENE_MODEL_NAME="gpt-6-sol"', 'MIDSCENE_MODEL_FAMILY="gpt-6"'].forEach((l, i) => at(tt + 200 + i * 250, () => line(l, 'out')));
+      tt = type('pnpm dlx @midscene/cli model verify', tt + 1300, 32);
+      at(tt + 700, () => line(`<b>✔</b> ${tr('siwc.vok').replace('✓ ', '')}`, 'out'));
+    },
+
+    's-jev'(root) {
+      at(1300, () => qa(root, '#e4, #e5, #e6, #e7').forEach((l) => l.classList.add('hot')));
+      at(9800, () => qa(root, '.ln.hot').forEach((l) => l.classList.remove('hot')));
+      const lanes = { J: q(root, '#laneJ'), D: q(root, '#laneD') };
+      tr('jev.tasks').forEach(([who, title, sub], i) => {
+        const el = document.createElement('div');
+        el.className = 'task';
+        el.innerHTML = `${title}<small>${sub}</small>`;
+        el.style.marginBottom = '12px';
+        lanes[who].appendChild(el);
+        at(3300 + i * 1150, () => show(el));
+      });
+    },
+
+    's-fruit'(root) {
+      // 7 pairs in a 4x4 board; the remaining two cells are empty slots.
+      const FRUITS = ['🍊', '🍎', '🍇', '🍋', '🍉', '🍑', '🍐'];
+      const layout = [0, 1, 2, 3, 4, 0, 5, -1, 6, 2, 1, 4, 3, -1, 5, 6];
+      const board = q(root, '#board');
+      board.innerHTML = layout.map((f) => (f < 0 ? '<div class="tile slot"></div>' : `<div class="tile" data-f="${f}">${FRUITS[f]}</div>`)).join('') + `<div class="cleared" id="cleared">${tr('fr.cleared')}</div>`;
+      const wrap = q(root, '#fwrap'), p = pointer(wrap, q(root, '#cur2'));
+      const tiles = qa(board, '.tile[data-f]');
+      const RUN0 = 1600, STEP = 640;
+      let tt = RUN0, left = 7;
+      FRUITS.forEach((_, f) => {
+        const pair = tiles.filter((x) => Number(x.dataset.f) === f);
+        pair.forEach((tile, k) => {
+          at(tt, () => { qa(wrap, '.bbox').forEach((b) => b.remove()); bbox(wrap, tile, tr('fr.box')); p.move(tile); });
+          at(tt + 380, () => { p.click(); tile.classList.add('sel'); });
+          if (k === 1) {
+            at(tt + 560, () => { pair.forEach((x) => x.classList.add('gone')); qa(wrap, '.bbox').forEach((b) => b.remove()); q(root, '#pairs').textContent = String(--left); });
+          }
+          tt += STEP;
+        });
+      });
+      at(tt, () => show(q(root, '#cleared')));
+      at(tt + 200, () => { q(root, '#cur2').classList.remove('in'); bbox(wrap, q(root, '.cnt'), tr('fr.check')); });
+      metrics(root, q(root, '#fm'), {
+        calls: 15, latA: 0.887, latP: 0.774, tokA: 6761.4, tokT: 101421, costA: 0.000284, costT: 0.00426, costTd: 5,
+      }, RUN0, tt + 200 - RUN0, tr('fr.note'));
+    },
+
+    's-reg'(root) {
+      const wrap = q(root, '#rwrap'), p = pointer(wrap, q(root, '#cur3'));
+      const clear = () => qa(wrap, '.bbox').forEach((b) => b.remove());
+      const fill = (id, value, from, masked = false) => {
+        const inp = q(root, id);
+        at(from, () => { clear(); bbox(wrap, inp, tr('rg.loc')); p.move(inp, 0.3); });
+        at(from + 450, () => { p.click(); inp.classList.add('focus'); q(inp, '.ph').style.display = 'none'; });
+        at(from + 700, () => { clear(); bbox(wrap, inp, tr('rg.gen'), 'ds'); });
+        [...value].forEach((ch, i) => at(from + 900 + i * 55, () => { q(inp, '.val').textContent += masked ? '•' : ch; }));
+        const end = from + 900 + value.length * 55 + 250;
+        at(end, () => inp.classList.remove('focus'));
+        return end + 150;
+      };
+      const RUN0 = 1500;
+      let tt = fill('#iEmail', 'mia.chen@example.com', RUN0);
+      tt = fill('#iPwd', 'Bloom2026!pass', tt, true);
+      tt = fill('#iUser', 'miachen_bloom', tt);
+      const g = q(root, '#iGender'), opts = q(root, '#opts');
+      at(tt, () => { clear(); bbox(wrap, g, tr('rg.loc')); p.move(g, 0.3); });
+      at(tt + 450, () => { p.click(); opts.classList.add('open'); });
+      at(tt + 800, () => { clear(); const o = opts.children[0]; o.classList.add('hl'); bbox(wrap, o, tr('rg.pick')); p.move(o, 0.25); });
+      at(tt + 1300, () => { p.click(); opts.classList.remove('open'); clear(); q(g, '.ph').style.display = 'none'; q(g, '.val').textContent = 'Female'; });
+      tt += 1700;
+      const cta = q(root, '#iCta');
+      at(tt, () => { bbox(wrap, cta, tr('rg.loc')); p.move(cta, 0.5); });
+      at(tt + 450, () => p.click());
+      at(tt + 800, () => { clear(); q(root, '#cur3').classList.remove('in'); show(q(root, '#rdone')); });
+      metrics(root, q(root, '#rm'), {
+        calls: 13, latA: 0.583, latP: 0.559, tokA: 5265.8, tokT: 68455, costA: 0.000221, costT: 0.002875, costTd: 6,
+      }, RUN0, tt + 800 - RUN0, tr('rg.note'));
+    },
+
+    's-outro'(root) {
+      at(3600, () => root.classList.add('final'));
+    },
+  };
+
+  // The cover is fully rendered at frame 0 (no build-up) so the first frame already carries the message.
+  enter(firstScene, true);
+  requestAnimationFrame(tick);
+  if (params.get('autoplay') === '1') start();
+})();
+</script>
+</body>
+</html>

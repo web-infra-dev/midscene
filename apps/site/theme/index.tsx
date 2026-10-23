@@ -28,7 +28,8 @@ export { TestFramework } from './components/TestFramework';
 export { TestProject } from './components/TestProject';
 export { WhoIsUsing } from './components/WhoIsUsing';
 export { CTAButtons } from './components/CTAButtons';
+export { NextSteps } from './components/HomeSdk';
 
-export { AgentVisionDemo } from './components/AgentVisionDemo';
+export { HeroDeviceDemo } from './components/HeroDeviceDemo';
 
 export { ModelConfigSection } from './components/ModelConfigSection';

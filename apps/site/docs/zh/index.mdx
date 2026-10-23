@@ -1,26 +1,37 @@
 ---
-pageType: doc
+pageType: doc-wide
 sidebar: true
-outline: true
+outline: false
 footer: true
 title: Midscene.js — GUI Agent 与 E2E 测试框架
 ---
 
-import { HeroStats, TestExample, AgentVisionDemo, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
-import TestPhilosophy from './common/test-philosophy.mdx';
-import TestWorkflow from './common/test-workflow.mdx';
-import TestCollaboration from './common/test-collaboration.mdx';
+import { HeroStats, TestExample, HeroDeviceDemo, AgentModels, AgentPlatforms, TestFramework, TestProject, WhoIsUsing, NextSteps } from '@theme';
+
+<div className="rp-not-doc home-sdk-backdrop" aria-hidden="true">
+  <HeroDeviceDemo />
+</div>
 
 # 像人一样看懂界面<br />用自然语言完成 E2E 测试
 
-<div className="introduction-page">
+<div className="introduction-page home-sdk-page">
+
+<div className="home-sdk-hero">
+<div className="home-sdk-hero__copy">
+<div className="home-sdk-hero__lead">
 
 Midscene.js 提供基于视觉的 GUI Agent 和自然语言 E2E 测试框架，支持 Web、移动端和桌面应用。
 
+</div>
+<div className="home-sdk-hero__news">
+
 **🔥 最新动态** 从 v1.16 起，Midscene 支持使用 Jev 1.4 的视觉能力驱动 E2E 测试。[查看新特性](./changelog#v1160)
 
+</div>
 <div className="rp-not-doc">
   <HeroStats />
+</div>
+</div>
 </div>
 
 ## 用自然语言描述步骤与预期 {#test-intent}
@@ -37,16 +48,7 @@ Midscene 的 GUI Agent 为已有的 Playwright、Puppeteer 或 JavaScript 测试
 
 ### 像人一样观察、操作并验证结果 {#visual-capabilities}
 
-<div className="agent-vision-intro">
-<div>
-
 E2E 测试的初衷是从用户视角验证完整流程。Midscene 通过视觉模拟用户的操作方式：观察屏幕、找到目标、执行操作，再检查用户实际看到的结果。[查看实际案例](./showcases)
-
-</div>
-<div className="rp-not-doc">
-  <AgentVisionDemo />
-</div>
-</div>
 
 ### 一套 API，覆盖不同平台 {#platforms}
 
@@ -68,17 +70,25 @@ E2E 测试的初衷是从用户视角验证完整流程。Midscene 通过视觉�
 - **MobileWorld**：Pass@1 为 78.6%，完成 117 项任务中的 92 项。[查看评测报告](./mobile-world-benchmark-report)
 - **AppControlBench**：Pass@1 为 96.7%，通过 60 项任务中的 58 项。[查看评测报告](./app-control-bench-report)
 
-## 全新设计的自然语言 E2E 测试框架 {#midscene-test}
+## Midscene Test：全新的 E2E 测试框架 {#midscene-test}
 
-<TestPhilosophy />
+Midscene Test（`@midscene/test`）是为自然语言设计的 E2E 测试框架。用例用自然语言描述操作与预期，业务逻辑写在 TypeScript Node 中，数据准备、清理、重试和测试报告由框架统一管理。[开始使用](./midscene-test/use)
 
-### AI 操作与业务操作写在同一个 YAML 里 {#ai-and-nodes}
+### AI 操作与业务操作写在同一个用例里 {#ai-and-nodes}
 
-<TestWorkflow />
+每个 YAML 步骤调用一个 Node：AI 操作、平台操作或自定义业务操作。[框架概览](./midscene-test/overview)
 
-### 让人和 AI 共同维护测试用例 {#nodes-and-spec}
+<div className="rp-not-doc introduction-block">
+  <TestFramework hideHeading />
+</div>
 
-<TestCollaboration />
+### 自定义 Node 与 Node Spec {#nodes-and-spec}
+
+将业务操作注册为 TypeScript Node，Midscene Test 会据此生成 Markdown 格式的 Node Spec，供人和 AI Agent 编写用例时参考。[开发自定义 Node](./midscene-test/extend)
+
+<div className="rp-not-doc introduction-block">
+  <TestProject hideHeading />
+</div>
 
 ## 谁在使用 Midscene {#users}
 
@@ -88,10 +98,8 @@ E2E 测试的初衷是从用户视角验证完整流程。Midscene 通过视觉�
 
 ## 下一步 {#next-steps}
 
-- **了解基本概念**：阅读[基础概念](./basics)，了解 GUI Agent 的工作方式与核心能力
-- **体验视觉交互**：通过[快速开始](./quick-start)尝试自然语言操作与断言
-- **创建测试工程**：用 [Midscene Test](./midscene-test/use) 编写并运行 YAML 用例
-
-如果希望让 AI 编程 Agent 操作界面，可以了解 [Midscene Skills](./skills)。
+<div className="rp-not-doc">
+  <NextSteps />
+</div>
 
 </div>
