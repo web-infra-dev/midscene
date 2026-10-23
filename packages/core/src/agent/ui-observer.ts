@@ -10,6 +10,7 @@ import type {
   UIObservationFrame,
   UIObservationRecord,
 } from '@midscene/shared/agent-tools/types';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../common';
@@ -373,25 +374,39 @@ export class UIObserverImpl implements UIObserver {
         });
       }
       const representativePromise = this.deps.capturePreparedRepresentative();
-      const [, representative] = await Promise.all([
+      const [, preparedRepresentative] = await Promise.all([
         this.persistPromise,
         representativePromise,
       ]);
 
+      let representative = preparedRepresentative;
       const lastFrame = this.frames.at(-1);
       if (this.source && lastFrame?.persisted) {
         this.representativeFrame = {
           ...lastFrame.persisted,
           capturedAt: lastFrame.capturedAt,
         };
-        representative.screenshot = ScreenshotItem.fromFile(
+        const screenshot = ScreenshotItem.fromFile(
           this.writer.resolveFramePath(lastFrame.persisted),
           lastFrame.persisted.mimeType,
           lastFrame.capturedAt,
           lastFrame.timing,
           lastFrame.frameId,
         );
-        debug('representative screenshot aligned with last sampled frame');
+        const shotSize = await imageInfoOfBase64(screenshot.base64);
+        // Source pixels can differ from the separately prepared screenshot (for
+        // example when the Agent shrinks screenshots). Preserve the same logical
+        // width while replacing the entire image context, without mutating the
+        // Agent's cached representative.
+        representative = {
+          ...preparedRepresentative,
+          screenshot,
+          shotSize,
+          shrunkShotToLogicalRatio:
+            (shotSize.width * preparedRepresentative.shrunkShotToLogicalRatio) /
+            preparedRepresentative.shotSize.width,
+        };
+        debug('representative context aligned with last observed frame');
       }
       this.representative = representative;
       const endedAt = Date.now();

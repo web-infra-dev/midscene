@@ -1,7 +1,11 @@
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { UIObservationImpl, UIObserverImpl } from '@/agent/ui-observer';
+import {
+  UIObservationImpl,
+  UIObserverImpl,
+  uiContextFromObservationRecord,
+} from '@/agent/ui-observer';
 import type { DeviceFrameRef, DeviceFrameSource } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
@@ -556,6 +560,49 @@ describe('UIObserver', () => {
 });
 
 describe('source cadence observation', () => {
+  it.each([0.5, 1])(
+    'keeps source pixels and coordinate metadata aligned at prepared ratio %s',
+    async (preparedRatio) => {
+      const fake = makeFakeSource();
+      fake.source.subscribe = () => () => {};
+      fake.setLatest('baseline', 1000);
+      fake.decode.mockResolvedValue([largeTestPngDataUrl]);
+      const { deps } = makeDeps(fake);
+      const representative: UIContext = {
+        screenshot: ScreenshotItem.create(shrunkTestJpegDataUrl, 2000),
+        shotSize: { width: 4, height: 3 },
+        shrunkShotToLogicalRatio: preparedRatio,
+      };
+      deps.capturePreparedRepresentative = async () => representative;
+      const observer = new UIObserverImpl(
+        { ...deps, screenshotShrinkFactor: 2 },
+        {
+          captureMode: 'source',
+          watchdogMs: 0,
+        },
+      );
+      try {
+        await observer.start();
+        const record = await (await observer.stop()).exportRecord();
+        expect(record.shotSize).toEqual({ width: 8, height: 6 });
+        expect(record.shrunkShotToLogicalRatio).toBe(preparedRatio * 2);
+        const restored = uiContextFromObservationRecord(record);
+        expect(await imageInfoOfBase64(restored.screenshot.base64)).toEqual(
+          record.shotSize,
+        );
+        expect(restored.shrunkShotToLogicalRatio).toBe(preparedRatio * 2);
+        expect(readFileSync(record.frames[0].path).toString('base64')).toBe(
+          largeTestPngDataUrl.split(',')[1],
+        );
+        // Aligning an observation must not partially mutate the Agent's cached context.
+        expect(representative.shotSize).toEqual({ width: 4, height: 3 });
+        expect(representative.screenshot.base64).toBe(shrunkTestJpegDataUrl);
+      } finally {
+        await observer.dispose();
+      }
+    },
+  );
+
   it('blocks every AI insight when the target appears only after the frame cap', async () => {
     const fake = makeFakeSource();
     let emit: ((frame: DeviceFrameRef) => void) | undefined;
