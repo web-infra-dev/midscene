@@ -6,7 +6,7 @@ export default defineConfig({
   output: {
     // Keep @ffmpeg-installer/ffmpeg as external so it's loaded at runtime
     // This allows try-catch to properly handle missing optional dependency
-    externals: ['@ffmpeg-installer/ffmpeg'],
+    externals: ['@ffmpeg-installer/ffmpeg', '@midscene/android'],
   },
   lib: [
     {
@@ -25,7 +25,8 @@ export default defineConfig({
         },
       },
       dts: {
-        bundle: true,
+        // Share class declarations across the root and /test entry points.
+        bundle: false,
         distPath: 'dist/types',
       },
       format: 'esm',
@@ -37,7 +38,7 @@ export default defineConfig({
     entry: {
       index: './src/index.ts',
       cli: './src/cli.ts',
-      'test-runner': './src/test-runner-nodes.ts',
+      'test-runner': './src/test-runner.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),

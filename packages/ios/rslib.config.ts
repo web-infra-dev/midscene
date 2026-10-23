@@ -3,6 +3,7 @@ import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 import { version } from './package.json';
 
 export default defineConfig({
+  output: { externals: ['@midscene/ios'] },
   lib: [
     {
       output: {
@@ -20,7 +21,8 @@ export default defineConfig({
         },
       },
       dts: {
-        bundle: true,
+        // Share class declarations across the root and /test entry points.
+        bundle: false,
         distPath: 'dist/types',
       },
       format: 'esm',
@@ -33,7 +35,7 @@ export default defineConfig({
       index: './src/index.ts',
       bin: './src/bin.ts',
       cli: './src/cli.ts',
-      'test-runner': './src/test-runner-nodes.ts',
+      'test-runner': './src/test-runner.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),

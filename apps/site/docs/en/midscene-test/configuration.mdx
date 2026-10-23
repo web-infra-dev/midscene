@@ -107,6 +107,55 @@ After creating a browser, Agent, or other resource, immediately register its cle
 
 The `onTeardown()` callbacks registered here run when the project finishes. Cleanup functions registered inside Nodes have their own [execution scope](./extend#resource-lifecycle-and-cleanup).
 
+### Android ADB and iOS WDA setup factories
+
+`@midscene/android/test` exports `createAdbAndroidSetup()` and `AndroidSetupContext`; `@midscene/ios/test` exports `createWdaIOSSetup()` and `IOSSetupContext`. Both factories return `{ agent }` and can be assigned to either `setup` or `fileSetup`. Each invocation creates a fresh Device and Agent and registers cleanup in that scope. Creating the definition or loading the configuration does not connect to a device.
+
+Use `fileSetup` to create an Agent per YAML file:
+
+```ts filename=midscene.config.ts
+import { AndroidAgent } from '@midscene/android';
+import {
+  createAdbAndroidSetup,
+  type AndroidSetupContext,
+} from '@midscene/android/test';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+export default defineTestProject<AndroidSetupContext, undefined>({
+  projects: [{
+    name: 'android',
+    fileSetup: createAdbAndroidSetup(),
+    maxConcurrentFiles: 1,
+    files: { include: ['cases/**/*.yaml'] },
+  }],
+  nodes: createMidsceneNodes<AndroidSetupContext>({
+    agentClass: AndroidAgent,
+    getAgent: ({ context }) => context.agent,
+  }),
+});
+```
+
+Assign the same factory definition to `setup` instead when files intentionally share one Agent. Do not run concurrent files against the same device; allocate independent devices or WDA endpoints before increasing concurrency. The Android and iOS starter templates use these factories through `fileSetup` and keep `maxConcurrentFiles: 1`.
+
+| Factory | Target selection | SDK options |
+| --- | --- | --- |
+| `createAdbAndroidSetup(options?)` | Explicit `deviceId`, then setup-time `ANDROID_DEVICE_ID`, then the first connected ADB device. An explicitly empty ID is rejected. | Other Android Device and Agent options are forwarded, including `androidAdbPath`, remote ADB settings, model configuration, and app-name mappings. |
+| `createWdaIOSSetup(options?)` | An already reachable WDA endpoint, using explicit `wdaBaseUrl` or `wdaHost` / `wdaPort`; otherwise setup-time `WDA_BASE_URL` or `WDA_HOST` / `WDA_PORT` (default `localhost:8100`). | Native iOS Device and Agent options are forwarded, including `sessionId`, MJPEG settings, model configuration, and app-name mappings. Alternative Device class overrides require a custom setup. |
+
+For iOS, explicit WDA connection options replace the environment's entire WDA connection group. Explicit `wdaMjpegUrl` or `wdaMjpegPort` similarly replaces the MJPEG environment group (`WDA_MJPEG_URL` / `WDA_MJPEG_PORT`). Conflicting URL and host/port options are rejected, and ports must be integers from 1 to 65535. `sessionId` reuses an externally owned session; cleanup detaches from it without deleting it.
+
+```ts
+import { createWdaIOSSetup } from '@midscene/ios/test';
+
+const fileSetup = createWdaIOSSetup({ wdaHost: 'localhost', wdaPort: 8100 });
+// Or: createWdaIOSSetup({ wdaBaseUrl: 'https://gateway.example/device/wda' });
+```
+
+These factories select a transport, not a device provider: ADB can expose USB devices, emulators, and remote targets; WDA can be local or remote. Select an explicit ADB ID or WDA endpoint when device identity matters. Neither factory acquires cloud leases, installs Apps, resets device state, discovers iOS USB devices, or deploys WDA. Prepare WDA and any required forwarding before running the iOS setup.
+
+Cleanup is registered before connecting. If connection or Agent construction fails, the Device is still cleaned up. Once an Agent exists, its `destroy()` owns Device cleanup. Cancellation is checked before and after asynchronous preparation; it does not interrupt an in-flight SDK connection call.
+
 ## Project lifecycle
 
 ### setup, fileSetup, and beforeAll

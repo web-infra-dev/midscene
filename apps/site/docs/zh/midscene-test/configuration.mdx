@@ -107,6 +107,55 @@ export default defineTestProject<ProjectContext>({
 
 这里的 `onTeardown()` 在项目结束时执行。在 Node 内部注册的清理函数有独立的[执行范围](./extend#资源的生命周期与清理)。
 
+### Android ADB 与 iOS WDA setup 工厂
+
+`@midscene/android/test` 导出 `createAdbAndroidSetup()` 和 `AndroidSetupContext`；`@midscene/ios/test` 导出 `createWdaIOSSetup()` 和 `IOSSetupContext`。两个工厂都返回包含 `agent` 的 context，定义可赋给 `setup` 或 `fileSetup`。每次执行创建独立的 Device 和 Agent，并在当前作用域注册清理。创建定义或加载配置时不会连接设备。
+
+通过 `fileSetup` 为每份 YAML 创建 Agent：
+
+```ts filename=midscene.config.ts
+import { AndroidAgent } from '@midscene/android';
+import {
+  createAdbAndroidSetup,
+  type AndroidSetupContext,
+} from '@midscene/android/test';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+export default defineTestProject<AndroidSetupContext, undefined>({
+  projects: [{
+    name: 'android',
+    fileSetup: createAdbAndroidSetup(),
+    maxConcurrentFiles: 1,
+    files: { include: ['cases/**/*.yaml'] },
+  }],
+  nodes: createMidsceneNodes<AndroidSetupContext>({
+    agentClass: AndroidAgent,
+    getAgent: ({ context }) => context.agent,
+  }),
+});
+```
+
+需要让文件共享同一个 Agent 时，将相同工厂返回的定义赋给 `setup`。不要让并发文件操作同一设备；提高并发前，需要分配独立设备或 WDA 地址。Android 和 iOS 脚手架模板通过 `fileSetup` 使用这些工厂，并保留 `maxConcurrentFiles: 1`。
+
+| 工厂 | 目标选择 | SDK 参数 |
+| --- | --- | --- |
+| `createAdbAndroidSetup(options?)` | 优先使用显式 `deviceId`，其次使用执行 setup 时的 `ANDROID_DEVICE_ID`，均未设置时使用 ADB 列表第一台设备。显式空 ID 会报错。 | 其余 Android Device 与 Agent 参数透传，包括 `androidAdbPath`、远端 ADB 配置、模型配置与应用名映射。 |
+| `createWdaIOSSetup(options?)` | 连接已可访问的 WDA，使用显式 `wdaBaseUrl` 或 `wdaHost` / `wdaPort`；未指定时读取执行 setup 时的 `WDA_BASE_URL` 或 `WDA_HOST` / `WDA_PORT`，默认 `localhost:8100`。 | 原生 iOS Device 与 Agent 参数透传，包括 `sessionId`、MJPEG、模型配置与应用名映射。使用其他 Device 类时需自定义 setup。 |
+
+iOS 的显式 WDA 连接参数整体替代环境中的 WDA 连接参数组；显式 `wdaMjpegUrl` 或 `wdaMjpegPort` 同样整体替代 MJPEG 环境参数组（`WDA_MJPEG_URL` / `WDA_MJPEG_PORT`）。URL 与 host/port 冲突时报错，端口必须是 1 到 65535 的整数。`sessionId` 复用外部拥有的会话，清理时只断开使用，不删除外部会话。
+
+```ts
+import { createWdaIOSSetup } from '@midscene/ios/test';
+
+const fileSetup = createWdaIOSSetup({ wdaHost: 'localhost', wdaPort: 8100 });
+// 或 createWdaIOSSetup({ wdaBaseUrl: 'https://gateway.example/device/wda' });
+```
+
+这些工厂按连接协议选择目标，不代表设备提供方：ADB 可见设备可能是 USB 真机、模拟器或远端设备，WDA 地址也可能位于本地或远端。需要固定设备身份时，应显式指定 ADB ID 或 WDA 地址。工厂不申请云租约、不安装 App、不重置设备状态、不发现 iOS USB 设备，也不部署 WDA。iOS 运行前需准备好 WDA 及必要的端口转发。
+
+清理在连接前注册。连接或 Agent 构造失败时仍会清理 Device；Agent 创建成功后，由其 `destroy()` 负责 Device 清理。异步准备前后会检查取消信号，但不会中断已经发出的 SDK 连接调用。
+
 ## 项目生命周期
 
 ### setup、fileSetup 与 beforeAll

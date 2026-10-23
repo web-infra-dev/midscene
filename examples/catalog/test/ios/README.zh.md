@@ -11,3 +11,5 @@
 执行 `{{TEST_COMMAND}}` 运行测试。Node 列表见 `midscene-node-spec.ios.md`；修改配置中的 Node 后执行 `{{RUN_NODES_COMMAND}}` 刷新。用例串行运行，首次失败即停止后续用例（`test.bail: 1`）；失败时仍会保存报告并释放连接。报告位于 `midscene_run/report/`。
 
 每份测试文件通过 `fileSetup` 创建独立 Agent，结束后释放。此模板连接一台设备或一个桌面，因此 Project 的 `maxConcurrentFiles` 固定为 1；提高此上限前，需要通过资源分配脚本为并发文件提供独立设备或桌面。
+
+模板使用 `@midscene/ios/test` 的 `createWdaIOSSetup()`，在执行 `fileSetup` 时读取连接配置，返回 `context.agent`，并清理连接失败时的资源及已创建的 Agent。文件需要共享 Agent 时，同一工厂也可赋给项目 `setup`。参数说明见 [setup 工厂文档](https://midscenejs.com/zh/midscene-test/configuration.html)。

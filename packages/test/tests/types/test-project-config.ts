@@ -1,5 +1,9 @@
 import { AndroidAgent } from '@midscene/android';
-import { runAdbShellInputSchema } from '@midscene/android/test';
+import {
+  type AndroidSetupContext,
+  createAdbAndroidSetup,
+  runAdbShellInputSchema,
+} from '@midscene/android/test';
 import type {
   aiActOptionsInputSchema,
   locateOptionsInputSchema,
@@ -9,7 +13,9 @@ import { HarmonyAgent } from '@midscene/harmony';
 import { runHdcShellInputSchema } from '@midscene/harmony/test';
 import { IOSAgent } from '@midscene/ios';
 import {
+  type IOSSetupContext,
   type RunWdaRequestNodeInput,
+  createWdaIOSSetup,
   runWdaRequestInputSchema,
 } from '@midscene/ios/test';
 import {
@@ -489,3 +495,37 @@ defineTestProject({
     maxConcurrency: 2,
   },
 });
+
+// Platform setup factories work at both supported resource scopes.
+
+const adbSetup: ProjectSetupDefinition<AndroidSetupContext> =
+  createAdbAndroidSetup({
+    deviceId: 'usb-serial',
+    androidAdbPath: '/custom/adb',
+  });
+const wdaSetup: ProjectSetupDefinition<IOSSetupContext> = createWdaIOSSetup({
+  wdaHost: 'localhost',
+  wdaPort: 8100,
+  sessionId: 'existing-session',
+});
+defineTestProject<AndroidSetupContext>({ setup: adbSetup });
+defineTestProject<IOSSetupContext>({ setup: wdaSetup });
+defineTestProject<AndroidSetupContext, undefined>({
+  projects: [{ name: 'adb-file', fileSetup: createAdbAndroidSetup() }],
+});
+defineTestProject<IOSSetupContext, undefined>({
+  projects: [{ name: 'wda-file', fileSetup: createWdaIOSSetup() }],
+});
+defineFileSetup<AndroidSetupContext, { custom: string }>(
+  createAdbAndroidSetup(),
+);
+defineFileSetup<IOSSetupContext, { custom: string }>(createWdaIOSSetup());
+// @ts-expect-error WDA selection is by endpoint, not an Android-style device ID.
+createWdaIOSSetup({ deviceId: 'ios-udid' });
+// @ts-expect-error The standard WDA factory does not select an alternative driver.
+createWdaIOSSetup({ iOSDeviceClassOverride: 'another-driver' });
+
+// Factory contexts must preserve the public root Agent type identity.
+const adbAgentFromSetup = (context: AndroidSetupContext): AndroidAgent =>
+  context.agent;
+const iosAgentFromSetup = (context: IOSSetupContext): IOSAgent => context.agent;

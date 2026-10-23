@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'node:url';
-import { AndroidAgent, agentFromAdbDevice } from '@midscene/android';
+import { AndroidAgent } from '@midscene/android';
+import { createAdbAndroidSetup } from '@midscene/android/test';
 import { type NodeExecutionContext, defineNode, z } from '@midscene/test';
-import { defineFileSetup, defineTestProject } from '@midscene/test/config';
+import { defineTestProject } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 import { config as loadEnv } from 'dotenv';
 
@@ -15,14 +16,7 @@ const getAgent = ({ context }: NodeExecutionContext<unknown, FileContext>) => {
   return context.agent;
 };
 
-const fileSetup = defineFileSetup<FileContext, undefined>({
-  name: 'android',
-  async setup({ env, onTeardown }) {
-    const agent = await agentFromAdbDevice(env.ANDROID_DEVICE_ID || undefined);
-    onTeardown(() => agent.destroy());
-    return { agent };
-  },
-});
+const fileSetup = createAdbAndroidSetup();
 
 const todoSetupInputSchema = z.strictObject({});
 const todoSetup = defineNode<typeof todoSetupInputSchema, void, FileContext>({
