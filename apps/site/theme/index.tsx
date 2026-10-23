@@ -32,3 +32,11 @@ export { CTAButtons } from './components/CTAButtons';
 export { AgentVisionDemo } from './components/AgentVisionDemo';
 
 export { ModelConfigSection } from './components/ModelConfigSection';
+
+export {
+  SdkPlatformProvider,
+  SdkPlatformSelector,
+  SdkPlatformContent,
+} from './components/SdkPlatform';
+
+export { SdkPrerequisites } from './components/SdkPrerequisites';

@@ -1,37 +1,39 @@
-#### 安装 Node.js
-
-安装 [Node.js 18 或以上版本](https://nodejs.org/en/download/)。
-
 #### 配置 WebDriverAgent
 
-在开始之前，你需要先设置 iOS 开发环境：
+开始前，请先准备好以下 iOS 开发环境：
 
-- macOS（iOS 开发必需）
-- Xcode 和 Xcode 命令行工具
+- macOS（iOS 开发与真机调试必需）
+- Xcode 及 Xcode 命令行工具（Command Line Tools）
 - iOS 模拟器或真机设备
 
-**配置 WebDriverAgent**
+:::info 版本要求
 
-在使用 Midscene iOS 之前，需要先准备 WebDriverAgent 服务。
-
-:::note 版本要求
-
-WebDriverAgent 版本需要 **>= 7.0.0**
+WebDriverAgent 版本须 **>= 7.0.0**。
 
 :::
 
-请参考官方文档进行设置：
+请参考 Appium 官方文档完成 WebDriverAgent（WDA）的构建与配置：
 
 - **模拟器配置**：[Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/latest/guides/run-prebuilt-wda/)
 - **真机配置**：[Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/latest/getting-started/device-setup/)
 
-**验证 WebDriverAgent**
+**真机连接与端口转发**
 
-配置完成后，可以通过访问 WebDriverAgent 的状态接口来验证 服务是否启动：
+使用真机时，需先通过 USB 数据线将设备连接到 Mac、在设备上选择「信任此电脑」，并在系统设置中开启**开发者模式**与 **UI Automation**。按上方文档完成开发者证书签名并在真机上启动 WDA 后，使用 `iproxy`（可通过 `brew install libimobiledevice` 安装）将设备上的 `8100` 端口转发到 Mac 本机：
 
-**访问地址**：`http://localhost:8100/status`
+```bash
+iproxy 8100 8100 YOUR_DEVICE_ID
+```
 
-**正确响应示例**：
+请将 `YOUR_DEVICE_ID` 替换为真机的实际 UDID，并保持 WDA 与 `iproxy` 端口转发进程持续运行（iOS 模拟器无需运行 `iproxy`）。如果同时连接多台设备或使用了自定义端口，请为每台设备映射独立的本机端口，并在 Playground 连接面板中填写对应的端口号。
+
+**验证 WebDriverAgent 服务状态**
+
+启动完成后，可在浏览器或终端访问 WDA 的 `/status` 接口，验证服务是否就绪：
+
+- **访问地址**：`http://localhost:8100/status`
+- **正常响应示例**：
+
 ```json
 {
   "value": {
@@ -58,4 +60,4 @@ WebDriverAgent 版本需要 **>= 7.0.0**
 }
 ```
 
-如果能够正常访问该端点并返回类似上述的 JSON 响应，说明 WebDriverAgent 已经正确配置并运行。
+只要能正常访问该地址并收到类似上方的 JSON 响应（包含 `"ready": true`），即说明 WebDriverAgent 已正常启动。

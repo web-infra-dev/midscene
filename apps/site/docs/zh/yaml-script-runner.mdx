@@ -200,17 +200,7 @@ CDP 模式与桥接模式互斥，不可同时使用。CDP 模式下 Midscene �
 
 ### 使用桥接模式
 
-> 仅适用于 Web page 场景
-
-使用桥接模式可以让 YAML 脚本驱动现有的桌面浏览器，便于复用 Cookies、插件或已有状态。先安装 Chrome 扩展，然后在 `page` 配置中加入：
-
-```diff
-page:
-  url: https://www.bing.com
-+ bridgeMode: newTabWithUrl
-```
-
-更多细节请参阅 [通过 Chrome 插件桥接模式](./bridge-mode)。
+完成 [Chrome Bridge 环境配置](./bridge-mode)后，在 YAML 中选择当前标签页或新建标签页。配置字段、示例和不支持的选项见 [YAML 中的 Chrome Bridge](./automate-with-scripts-in-yaml#chrome-bridge)。
 
 ### 使用 JavaScript 运行 YAML 脚本
 

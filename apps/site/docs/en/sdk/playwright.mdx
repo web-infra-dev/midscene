@@ -1,0 +1,288 @@
+import GetCdpUrl from '../common/get-cdp-url.mdx';
+
+# Web / Playwright SDK
+
+`@midscene/web/playwright` provides Agents bound to a Playwright page or BrowserContext. Both inherit the base Agent’s [AI methods](../reference/#interaction-methods) and accept Web configuration options.
+
+## Imports and API overview
+
+```typescript
+import {
+  PlaywrightPageAgent,
+  PlaywrightAgent,
+  PlaywrightBrowserAgent,
+} from '@midscene/web/playwright';
+```
+
+| API | Scope | Purpose |
+| --- | --- | --- |
+| `PlaywrightPageAgent` | One `Page` | Operate on the same page throughout its lifetime |
+| `PlaywrightAgent` | One `Page` | Compatibility alias for `PlaywrightPageAgent`, with identical behavior |
+| `PlaywrightBrowserAgent` | One `BrowserContext` | Switch between pages; subsequent AI operations use the active page |
+
+In the signatures below, `Page` and `BrowserContext` come from `playwright`. Option types come from `@midscene/web/playwright`.
+
+<a id="about-opening-in-a-new-tab"></a>
+
+## `PlaywrightPageAgent` {#playwright-agent}
+
+```typescript
+new PlaywrightPageAgent(page: Page, options?: PlaywrightPageAgentOpt)
+```
+
+- `page`: required, an existing Playwright page. Throws when omitted.
+- `options`: optional, accepts [shared Agent options](../reference/#agent-options) and [Web options](#web-options).
+
+```typescript
+const agent = new PlaywrightPageAgent(page, {
+  forceSameTabNavigation: false,
+});
+await agent.aiAct('Click the login button');
+```
+
+The Agent stays bound to the supplied page. By default, `forceSameTabNavigation: true` intercepts `window.open` and links with `target="_blank"` to open them in the current page. Set it to `false` to preserve new tabs; the Agent will not automatically switch to them.
+
+## `PlaywrightBrowserAgent` {#playwright-browser-agent}
+
+```typescript
+new PlaywrightBrowserAgent(
+  context: BrowserContext,
+  initialPage: Page,
+  options?: PlaywrightBrowserAgentOpt,
+)
+```
+
+- `context`: required, the BrowserContext used to listen for, list, and create pages.
+- `initialPage`: required, the initial active page. Use a page from this context.
+- `options`: optional, accepts shared Agent options, Web options, and the dedicated options below.
+
+Throws when `context` or `initialPage` is omitted. Browser Agent does not accept `forceSameTabNavigation`; even passing `false` through JavaScript throws an error.
+
+### `PlaywrightBrowserAgent.create()`
+
+```typescript
+PlaywrightBrowserAgent.create(
+  context: BrowserContext,
+  options?: PlaywrightBrowserAgentCreateOpt,
+): Promise<PlaywrightBrowserAgent>
+```
+
+Creates an Agent asynchronously. The initial page is selected in this order: `options.initialPage` → `context.pages()[0]` → `await context.newPage()`.
+
+```typescript
+const agent = await PlaywrightBrowserAgent.create(context, {
+  autoFollowNewPage: true,
+});
+```
+
+### Dedicated options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `autoFollowNewPage` | `boolean` | `false` | Automatically make newly created context pages active |
+| `newPageTimeout` | `number` | `5000` | Default timeout for `waitForNewPage()`, in milliseconds |
+| `initialPage` | `Page` | Automatically selected | Initial active page; available only in `create()` |
+
+## Page management APIs {#page-management}
+
+These properties and methods belong only to `PlaywrightBrowserAgent`.
+
+### `activePage`
+
+```typescript
+agent.activePage: Page
+```
+
+Read-only property returning the Playwright page used by current AI operations. Use `setActivePage()` to switch pages.
+
+### `pages()`
+
+```typescript
+agent.pages(): Page[]
+```
+
+Returns the pages in the bound context without changing the active page.
+
+### `newPage()`
+
+```typescript
+agent.newPage(): Promise<Page>
+```
+
+Creates a page in the bound context, makes it active, and returns it.
+
+### `setActivePage()`
+
+```typescript
+agent.setActivePage(page: Page): Promise<void>
+```
+
+Makes the supplied page active and attempts to bring it to the foreground. Throws for an invalid or closed page. Supply a page from the bound context.
+
+<a id="waitfornewpage"></a>
+
+### `waitForNewPage()` {#wait-for-new-page}
+
+```typescript
+agent.waitForNewPage(
+  action?: () => Promise<unknown> | unknown,
+  options?: { timeout?: number },
+): Promise<Page>
+```
+
+Registers a context page listener before running the optional `action`, then returns the new page it observes. `options.timeout` overrides `newPageTimeout` for this call, in milliseconds. Throws on timeout or if `action` fails.
+
+This method does not itself switch the active page. With `autoFollowNewPage: true`, the independent page listener still switches automatically. Keep that option `false` to control switching explicitly:
+
+```typescript
+const agent = await PlaywrightBrowserAgent.create(context, {
+  autoFollowNewPage: false,
+});
+const newPage = await agent.waitForNewPage(
+  () => agent.aiTap('Open details'),
+  { timeout: 10000 },
+);
+await agent.setActivePage(newPage);
+await agent.aiAssert('The details page is open');
+```
+
+## Configuration options {#web-options}
+
+Both Agents also accept [shared Agent options](../reference/#agent-options), including model, report, and cache settings.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `forceSameTabNavigation` | `boolean` | `true` | Page Agent only; opens new-tab links in the current page |
+| `waitForNavigationTimeout` | `number` | `5000` | Timeout for waiting for the page’s `html` element, in milliseconds; `0` skips the check. Execution continues after timeout; this does not guarantee application readiness |
+| `waitForNetworkIdleTimeout` | `number` | — | Has no effect in Playwright |
+| `enableTouchEventsInActionSpace` | `boolean` | `false` | Adds touch gestures to the action space |
+| `keyboardTypeDelay` | `number` | Unset | Per-character input delay in milliseconds; must be finite and non-negative. In legacy mode, Playwright’s `page.keyboard.type` handles positive delays. When unset, uses the underlying driver’s default |
+| `inputStrategy` | `'legacy' \| 'sequential' \| 'bulk'` | `'legacy'` | Text input strategy; `sequential` sends individual Unicode code points, while `bulk` inserts the full text at once |
+| `forceChromeSelectRendering` | `boolean` | `true` | Injects `base-select` styling so native `select` options appear in screenshots; requires Playwright ≥ `1.52.0` and browser support for this styling |
+| `customActions` | `DeviceAction[]` | Unset | Adds [custom actions](../integrate-with-any-interface) to the planner |
+| `beforeInvokeAction` | `() => Promise<void>` | Unset | Callback before an action |
+| `afterInvokeAction` | `() => Promise<void>` | Unset | Callback after an action |
+| `testRunner` | `PlaywrightTestRunnerOptions` | Unset | Supplies base URL, cookie, and storage-state settings to Midscene Test’s Playwright Nodes; this is not Playwright Test fixture configuration |
+
+`inputStrategy: 'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`. Use `'sequential'` for delayed input. To wait for application readiness, use `aiWaitFor()` or Playwright’s own waiting APIs.
+
+## Lifecycle {#lifecycle}
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+Both Agents follow the [shared `destroy()` contract](../reference/#agentdestroy): it waits for associated operations, cleans up Agent-owned resources, calls the internal Device’s `destroy()`, and finishes report processing. Browser Agent also removes its automatic page-following listener.
+
+The Playwright Device’s `destroy()` does not close the supplied Page, BrowserContext, or Browser, or explicitly disconnect a remote browser. The caller manages these Playwright resources. Pages and browsers remain usable after the Agent is destroyed.
+
+```typescript
+try {
+  await agent.aiAct('Submit the form');
+} finally {
+  await agent.destroy();
+  // The caller closes page, context, or browser according to resource ownership.
+}
+```
+
+## Browser support and limitations
+
+Chromium is recommended. Some capabilities depend on CDP, including browser-level events, touch gestures, and fallback paths for some interactions. Firefox and WebKit may support basic Playwright operations, but CDP-dependent capabilities may fail.
+
+### Remote browsers
+
+Agents accept existing Playwright pages, with the same construction API as local browsers. For example, after connecting over CDP:
+
+```typescript
+import { chromium } from 'playwright';
+import { PlaywrightPageAgent } from '@midscene/web/playwright';
+
+const browser = await chromium.connectOverCDP(cdpWsUrl);
+const context = browser.contexts()[0];
+const page = context.pages()[0] ?? await context.newPage();
+const agent = new PlaywrightPageAgent(page);
+```
+
+The caller manages the connection, authentication, and browser closure.
+
+<GetCdpUrl />
+
+## FAQ
+
+### Playwright browser download takes too long
+
+Playwright does not download browser binaries during `pnpm install` by default. You need to run `pnpm exec playwright install` separately, and that step can be slow on limited networks.
+
+You can speed it up in two ways:
+
+1. Use a mirror, for example `npmmirror.com`
+
+```bash
+PLAYWRIGHT_DOWNLOAD_HOST="https://npmmirror.com/mirrors/playwright" pnpm exec playwright install
+```
+
+2. Download only the commonly used `chromium`
+
+```bash
+pnpm exec playwright install --with-deps chromium
+```
+
+### Cannot click the dropdown
+
+This usually happens when the page uses a native `select` element for the dropdown. In that case, the browser asks the operating system to render the expanded option list with a native control, so the dropdown is not actually rendered inside the webpage and cannot be captured by Playwright screenshots.
+
+First, check the screenshot in the report. If the dropdown options do not appear in the report screenshot after the click, this is very likely the cause.
+
+Midscene enables `forceChromeSelectRendering` by default, which forces Chrome to render the `select` dropdown so it appears in screenshots and can be recognized by Playwright. The dropdown style will look noticeably different from the operating system's default style. If you need the native rendering back, set `forceChromeSelectRendering: false`.
+
+### The webpage continues to flash when running in headed mode
+
+In the local visualization interface, continuous flashing is usually caused by a mismatch between the viewport's `deviceScaleFactor` and the system/browser's pixel ratio (common on high-resolution or Retina screens).
+
+This flashing does not affect Midscene's screenshots or automation execution, but it does affect the local preview experience. To resolve this, set `deviceScaleFactor` to match your browser's `window.devicePixelRatio`, or use Puppeteer's auto-adaptation feature.
+
+```typescript
+// Playwright: Playwright does not support using 0 for auto-adaptation like Puppeteer
+const page = await browser.newPage({
+  deviceScaleFactor: 2, // Replace the number 2 with your window.devicePixelRatio
+})
+```
+
+If you are unsure of your browser's pixel ratio, you can press F12 on any page to open the console and type `window.devicePixelRatio` to check; or paste the following into the Chrome address bar and press Enter to see the value in a popup:
+
+```plain
+data:text/html,<script>alert(`deviceScaleFactor of your browser: ${devicePixelRatio}`)</script>
+```
+
+### Customize the network timeout
+
+`waitForNetworkIdleTimeout` has no effect in Playwright. `waitForNavigationTimeout` only controls waiting for the page’s `html` element; it does not guarantee application readiness. See [Configuration options](#web-options).
+
+For Puppeteer, `waitForNetworkIdleTimeout` defaults to `2000` milliseconds; `0` disables the check. See the [default waiting strategy](../reference/#default-waiting-strategy).
+
+### `waiting for fonts to load` or `page.screenshot: Timeout ... exceeded` when taking screenshots
+
+If you see an error like this in a Playwright-based environment:
+
+```plain
+page.screenshot: Timeout 10000ms exceeded.
+Call log:
+- taking page screenshot
+- waiting for fonts to load...
+```
+
+This is usually not caused by Midscene itself. Playwright waits for fonts to finish loading before taking a screenshot. In some CI, container, or restricted network environments, font resources may load very slowly or never finish, which can eventually cause the screenshot to time out.
+
+You can work around it by setting this environment variable:
+
+```bash
+export PW_TEST_SCREENSHOT_NO_FONTS_READY=1
+```
+
+If you want to set it only for a single command, you can also write:
+
+```bash
+PW_TEST_SCREENSHOT_NO_FONTS_READY=1 <your-command>
+```
+
+For more background, see the Playwright issue: [[BUG] Page.screenshot method hangs indefinitely](https://github.com/microsoft/playwright/issues/28995).

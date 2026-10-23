@@ -210,22 +210,18 @@ export default defineConfig(async () => {
             link: '/model-config',
           },
           {
-            sectionHeaderText: 'Platform integrations',
+            sectionHeaderText: 'Platform environment setup',
           },
           {
             text: 'Platform overview',
             link: '/platforms/',
           },
           {
-            text: 'Integrate with Playwright',
-            link: '/integrate-with-playwright',
+            text: 'Web',
+            link: '/platforms/web',
           },
           {
-            text: 'Integrate with Puppeteer',
-            link: '/integrate-with-puppeteer',
-          },
-          {
-            text: 'Bridge to the desktop Chrome',
+            text: 'Chrome Bridge',
             link: '/bridge-mode',
           },
           {
@@ -268,26 +264,56 @@ export default defineConfig(async () => {
             link: '/midscene-test/github-actions',
           },
           {
-            sectionHeaderText: 'Legacy YAML automation',
+            sectionHeaderText: 'JavaScript SDK',
           },
           {
-            text: 'YAML script runner',
-            link: '/yaml-script-runner',
+            text: 'Integrate with Playwright Test',
+            link: '/integrate-with-playwright',
           },
           {
-            text: 'Workflow in YAML format',
-            link: '/automate-with-scripts-in-yaml',
+            text: 'Integrate with Vitest',
+            link: '/sdk/vitest',
           },
           {
-            text: 'Migrate to Midscene Test',
-            link: '/migrate-to-midscene-test',
+            text: 'Write standalone automation scripts',
+            link: '/sdk/standalone',
           },
           {
-            sectionHeaderText: 'Reference',
-          },
-          {
-            text: 'GUI Agent API',
-            link: '/reference/',
+            text: 'API reference',
+            items: [
+              {
+                text: 'Shared Agent APIs',
+                link: '/reference/',
+              },
+              {
+                text: 'Web / Playwright',
+                link: '/sdk/playwright',
+              },
+              {
+                text: 'Web / Puppeteer',
+                link: '/integrate-with-puppeteer',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/sdk/chrome-bridge',
+              },
+              {
+                text: 'Android',
+                link: '/sdk/android',
+              },
+              {
+                text: 'iOS',
+                link: '/sdk/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/sdk/harmonyos',
+              },
+              {
+                text: 'Desktop',
+                link: '/sdk/desktop',
+              },
+            ],
           },
           {
             sectionHeaderText: 'Advanced guides',
@@ -311,6 +337,21 @@ export default defineConfig(async () => {
           {
             text: 'Cache AI plans & DOM locators',
             link: '/caching',
+          },
+          {
+            sectionHeaderText: 'Legacy YAML automation',
+          },
+          {
+            text: 'YAML script runner',
+            link: '/yaml-script-runner',
+          },
+          {
+            text: 'Workflow in YAML format',
+            link: '/automate-with-scripts-in-yaml',
+          },
+          {
+            text: 'Migrate to Midscene Test',
+            link: '/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: 'Resources',
@@ -398,22 +439,18 @@ export default defineConfig(async () => {
             link: '/zh/model-config',
           },
           {
-            sectionHeaderText: '平台集成',
+            sectionHeaderText: '平台环境配置',
           },
           {
             text: '平台概览',
             link: '/zh/platforms/',
           },
           {
-            text: '集成到 Playwright',
-            link: '/zh/integrate-with-playwright',
+            text: 'Web',
+            link: '/zh/platforms/web',
           },
           {
-            text: '集成到 Puppeteer',
-            link: '/zh/integrate-with-puppeteer',
-          },
-          {
-            text: '桥接到桌面 Chrome',
+            text: 'Chrome Bridge',
             link: '/zh/bridge-mode',
           },
           {
@@ -456,26 +493,56 @@ export default defineConfig(async () => {
             link: '/zh/midscene-test/github-actions',
           },
           {
-            sectionHeaderText: '旧版 YAML 自动化',
+            sectionHeaderText: 'JavaScript SDK',
           },
           {
-            text: 'YAML 脚本运行器',
-            link: '/zh/yaml-script-runner',
+            text: '接入 Playwright Test',
+            link: '/zh/integrate-with-playwright',
           },
           {
-            text: 'YAML 格式的工作流',
-            link: '/zh/automate-with-scripts-in-yaml',
+            text: '接入 Vitest',
+            link: '/zh/sdk/vitest',
           },
           {
-            text: '迁移到 Midscene Test',
-            link: '/zh/migrate-to-midscene-test',
+            text: '编写独立自动化脚本',
+            link: '/zh/sdk/standalone',
           },
           {
-            sectionHeaderText: '参考文档',
-          },
-          {
-            text: 'GUI Agent API',
-            link: '/zh/reference/',
+            text: 'API reference',
+            items: [
+              {
+                text: '通用 Agent API',
+                link: '/zh/reference/',
+              },
+              {
+                text: 'Web / Playwright',
+                link: '/zh/sdk/playwright',
+              },
+              {
+                text: 'Web / Puppeteer',
+                link: '/zh/integrate-with-puppeteer',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/zh/sdk/chrome-bridge',
+              },
+              {
+                text: 'Android',
+                link: '/zh/sdk/android',
+              },
+              {
+                text: 'iOS',
+                link: '/zh/sdk/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/zh/sdk/harmonyos',
+              },
+              {
+                text: '桌面端',
+                link: '/zh/sdk/desktop',
+              },
+            ],
           },
           {
             sectionHeaderText: '进阶指南',
@@ -499,6 +566,21 @@ export default defineConfig(async () => {
           {
             text: '缓存 AI 规划与 DOM 定位',
             link: '/zh/caching',
+          },
+          {
+            sectionHeaderText: '旧版 YAML 自动化',
+          },
+          {
+            text: 'YAML 脚本运行器',
+            link: '/zh/yaml-script-runner',
+          },
+          {
+            text: 'YAML 格式的工作流',
+            link: '/zh/automate-with-scripts-in-yaml',
+          },
+          {
+            text: '迁移到 Midscene Test',
+            link: '/zh/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: '资源',
@@ -614,6 +696,10 @@ export default defineConfig(async () => {
           { from: '^/zh$', to: '/zh/' },
           ...['', '/zh'].flatMap((locale) => [
             {
+              from: `^${locale}/sdk(?:/index(?:\\.html)?|\\.html)?/?$`,
+              to: `${locale}/basics#choose-your-path`,
+            },
+            {
               from: `^${locale}/(?:introduction(?:\\.html)?/?|index\\.html)$`,
               to: `${locale}/`,
             },
@@ -655,7 +741,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/android-integration(?:\\.html)?/?$',
-            to: '/platforms/android',
+            to: '/sdk/android',
           },
           {
             from: '^/ios-(?:introduction|getting-started)(?:\\.html)?/?$',
@@ -735,15 +821,15 @@ export default defineConfig(async () => {
           },
           {
             from: '^/integrate-with-android(?:\\.html)?/?$',
-            to: '/platforms/android',
+            to: '/sdk/android',
           },
           {
             from: '^/integrate-with-ios(?:\\.html)?/?$',
-            to: '/platforms/ios',
+            to: '/sdk/ios',
           },
           {
             from: '^/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/platforms/harmonyos',
+            to: '/sdk/harmonyos',
           },
           {
             from: '^/android-playground(?:\\.html)?/?$',
@@ -827,15 +913,15 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/integrate-with-android(?:\\.html)?/?$',
-            to: '/zh/platforms/android',
+            to: '/zh/sdk/android',
           },
           {
             from: '^/zh/integrate-with-ios(?:\\.html)?/?$',
-            to: '/zh/platforms/ios',
+            to: '/zh/sdk/ios',
           },
           {
             from: '^/zh/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/zh/platforms/harmonyos',
+            to: '/zh/sdk/harmonyos',
           },
           {
             from: '^/zh/blog-support-android-automation(?:\\.html)?/?$',

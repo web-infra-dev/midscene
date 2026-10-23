@@ -1,0 +1,273 @@
+import GetCdpUrl from '../common/get-cdp-url.mdx';
+
+# Web / Playwright SDK
+
+`@midscene/web/playwright` 提供绑定 Playwright 页面或 BrowserContext 的 Agent。两种 Agent 都继承基础 Agent 的 [AI 方法](../reference/#interaction-methods)，并支持 Web 配置选项。
+
+## 导入与 API 概览
+
+```typescript
+import {
+  PlaywrightPageAgent,
+  PlaywrightAgent,
+  PlaywrightBrowserAgent,
+} from '@midscene/web/playwright';
+```
+
+| API | 作用范围 | 用途 |
+| --- | --- | --- |
+| `PlaywrightPageAgent` | 单个 `Page` | 始终操作同一个页面 |
+| `PlaywrightAgent` | 单个 `Page` | `PlaywrightPageAgent` 的兼容别名，行为相同 |
+| `PlaywrightBrowserAgent` | 一个 `BrowserContext` | 在多个页面之间切换，后续 AI 操作作用于当前 active page |
+
+以下签名中的 `Page`、`BrowserContext` 来自 `playwright`；配置类型来自 `@midscene/web/playwright`。
+
+<a id="关于在新标签页打开"></a>
+
+## `PlaywrightPageAgent` {#playwright-agent}
+
+```typescript
+new PlaywrightPageAgent(page: Page, options?: PlaywrightPageAgentOpt)
+```
+
+- `page`：必填，已有的 Playwright 页面。未传入时抛出错误。
+- `options`：可选，支持[通用 Agent 配置](../reference/#agent-options)和下方的 [Web 配置](#web-options)。
+
+```typescript
+const agent = new PlaywrightPageAgent(page, {
+  forceSameTabNavigation: false,
+});
+await agent.aiAct('点击登录按钮');
+```
+
+Agent 绑定传入的页面。默认 `forceSameTabNavigation: true`，会拦截 `window.open` 和 `target="_blank"` 链接，使其在当前页面打开。设为 `false` 后保留新标签页行为，但 Agent 不会自动切换到新页面。
+
+## `PlaywrightBrowserAgent` {#playwright-browser-agent}
+
+```typescript
+new PlaywrightBrowserAgent(
+  context: BrowserContext,
+  initialPage: Page,
+  options?: PlaywrightBrowserAgentOpt,
+)
+```
+
+- `context`：必填，用于监听页面创建事件、列出和创建页面的 BrowserContext。
+- `initialPage`：必填，初始 active page，应使用该 context 中的页面。
+- `options`：可选，支持通用 Agent 配置、Web 配置和下面的专属选项。
+
+未传入 `context` 或 `initialPage` 时抛出错误。Browser Agent 不接受 `forceSameTabNavigation`；即使通过 JavaScript 传入 `false` 也会报错。
+
+### `PlaywrightBrowserAgent.create()`
+
+```typescript
+PlaywrightBrowserAgent.create(
+  context: BrowserContext,
+  options?: PlaywrightBrowserAgentCreateOpt,
+): Promise<PlaywrightBrowserAgent>
+```
+
+异步创建 Agent。初始页面按以下顺序选择：`options.initialPage` → `context.pages()[0]` → `await context.newPage()`。
+
+```typescript
+const agent = await PlaywrightBrowserAgent.create(context, {
+  autoFollowNewPage: true,
+});
+```
+
+### 专属配置
+
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `autoFollowNewPage` | `boolean` | `false` | context 创建新页面时自动将其设为 active page |
+| `newPageTimeout` | `number` | `5000` | `waitForNewPage()` 默认等待时间，单位毫秒 |
+| `initialPage` | `Page` | 自动选择 | 仅用于 `create()`，指定初始 active page |
+
+## 页面管理 API {#page-management}
+
+以下属性和方法仅属于 `PlaywrightBrowserAgent`。
+
+### `activePage`
+
+```typescript
+agent.activePage: Page
+```
+
+只读属性，返回当前 AI 操作使用的 Playwright 页面。使用 `setActivePage()` 切换。
+
+### `pages()`
+
+```typescript
+agent.pages(): Page[]
+```
+
+返回绑定 context 中的页面，不改变 active page。
+
+### `newPage()`
+
+```typescript
+agent.newPage(): Promise<Page>
+```
+
+在绑定的 context 中创建页面，将其设为 active page，并返回该页面。
+
+### `setActivePage()`
+
+```typescript
+agent.setActivePage(page: Page): Promise<void>
+```
+
+将指定页面设为 active page，并尝试将其置于前台。传入无效或已关闭的页面时抛出错误。应传入绑定 context 中的页面。
+
+<a id="waitfornewpage"></a>
+
+### `waitForNewPage()` {#wait-for-new-page}
+
+```typescript
+agent.waitForNewPage(
+  action?: () => Promise<unknown> | unknown,
+  options?: { timeout?: number },
+): Promise<Page>
+```
+
+先监听 context 的新页面事件，再执行可选的 `action`，返回监听到的新页面。`options.timeout` 覆盖本次等待时间，单位毫秒；默认使用 `newPageTimeout`。超时或 `action` 失败时抛出错误。
+
+此方法本身不会切换 active page。若设置了 `autoFollowNewPage: true`，独立的新页面监听器仍会自动切换。需要显式控制切换时，保持该选项为 `false`：
+
+```typescript
+const agent = await PlaywrightBrowserAgent.create(context, {
+  autoFollowNewPage: false,
+});
+const newPage = await agent.waitForNewPage(
+  () => agent.aiTap('打开详情'),
+  { timeout: 10000 },
+);
+await agent.setActivePage(newPage);
+await agent.aiAssert('详情页面已打开');
+```
+
+## 配置选项 {#web-options}
+
+除下表外，两种 Agent 均接受[通用 Agent 配置](../reference/#agent-options)，例如模型、报告和缓存配置。
+
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `forceSameTabNavigation` | `boolean` | `true` | 仅 Page Agent 可用，强制在当前页面打开新标签页链接 |
+| `waitForNavigationTimeout` | `number` | `5000` | 等待页面 `html` 元素的超时，单位毫秒；`0` 跳过检查。超时后继续执行，不保证应用就绪 |
+| `waitForNetworkIdleTimeout` | `number` | — | 对 Playwright 不生效 |
+| `enableTouchEventsInActionSpace` | `boolean` | `false` | 向动作空间添加触摸手势 |
+| `keyboardTypeDelay` | `number` | 未设置 | 字符输入间隔，单位毫秒，必须是有限非负数；legacy 模式下由 Playwright 的 `page.keyboard.type` 处理正数延迟，未设置时使用底层驱动默认值 |
+| `inputStrategy` | `'legacy' \| 'sequential' \| 'bulk'` | `'legacy'` | 文本输入策略；`sequential` 逐个 Unicode 码点输入，`bulk` 一次插入完整文本 |
+| `forceChromeSelectRendering` | `boolean` | `true` | 注入 `base-select` 样式，使原生 `select` 的选项可被截图捕捉；要求 Playwright ≥ `1.52.0`，且浏览器支持该样式 |
+| `customActions` | `DeviceAction[]` | 未设置 | 向规划器添加[自定义动作](../integrate-with-any-interface) |
+| `beforeInvokeAction` | `() => Promise<void>` | 未设置 | 动作执行前的回调 |
+| `afterInvokeAction` | `() => Promise<void>` | 未设置 | 动作执行后的回调 |
+| `testRunner` | `PlaywrightTestRunnerOptions` | 未设置 | 为 Midscene Test 的 Playwright Nodes 提供 base URL、Cookie 和 storage state 等配置；不是 Playwright Test fixture 配置 |
+
+`inputStrategy: 'bulk'` 要求不设置 `keyboardTypeDelay` 或将其设为 `0`。需要延迟输入时使用 `'sequential'`。等待业务界面就绪时，使用 `aiWaitFor()` 或 Playwright 自身的等待 API。
+
+## 生命周期 {#lifecycle}
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+两种 Agent 都遵循[通用 `destroy()` 约定](../reference/#agentdestroy)：等待相关操作完成，清理 Agent 持有的资源、调用内部 Device 的 `destroy()`，并完成报告处理。Browser Agent 还会移除自动跟随新页面的监听器。
+
+Playwright Device 的 `destroy()` 不关闭传入的 Page、BrowserContext 或 Browser，也不主动断开远程浏览器连接。由调用方管理这些 Playwright 资源；销毁 Agent 后，页面和浏览器仍可继续使用。
+
+```typescript
+try {
+  await agent.aiAct('提交表单');
+} finally {
+  await agent.destroy();
+  // 按资源所有权，由调用方关闭 page、context 或 browser。
+}
+```
+
+## 浏览器支持与限制
+
+推荐使用 Chromium。部分能力依赖 CDP，包括浏览器级事件、触摸手势和部分交互的 fallback 路径。Firefox 和 WebKit 可能支持基础 Playwright 操作，但依赖 CDP 的能力可能报错。
+
+### 远程浏览器
+
+Agent 接受已有的 Playwright 页面，创建方式与本地浏览器一致。例如使用 CDP 连接后：
+
+```typescript
+import { chromium } from 'playwright';
+import { PlaywrightPageAgent } from '@midscene/web/playwright';
+
+const browser = await chromium.connectOverCDP(cdpWsUrl);
+const context = browser.contexts()[0];
+const page = context.pages()[0] ?? await context.newPage();
+const agent = new PlaywrightPageAgent(page);
+```
+
+连接、身份验证和浏览器关闭由调用方管理。
+
+<GetCdpUrl />
+
+## FAQ
+
+### Playwright 下载浏览器耗时太久
+
+Playwright 在 `pnpm install` 时默认不会下载浏览器镜像，需要单独执行 `pnpm exec playwright install`。网络较慢时，可以使用代理镜像，或只下载 Chromium：
+
+```bash
+PLAYWRIGHT_DOWNLOAD_HOST="https://npmmirror.com/mirrors/playwright" pnpm exec playwright install
+```
+
+```bash
+pnpm exec playwright install --with-deps chromium
+```
+
+### 下拉框点击不到
+
+原生 `select` 的选项可能由操作系统渲染，无法被 Playwright 截图捕捉。先检查报告截图中是否有下拉选项。
+
+默认开启的 `forceChromeSelectRendering` 会强制使用 Chrome 的 `base-select` 样式，使选项出现在截图中。样式可能与系统默认样式不同；设置为 `false` 可恢复原生渲染。
+
+### 浏览器界面持续闪动
+
+本地可视化界面持续闪烁，通常是因为 `deviceScaleFactor` 与系统或浏览器的像素比不匹配。该现象不影响 Midscene 截图或自动化运行，但会影响本地预览。
+
+将 `deviceScaleFactor` 设置为浏览器的 `window.devicePixelRatio`：
+
+```typescript
+const page = await browser.newPage({
+  deviceScaleFactor: 2, // 替换为实际的 window.devicePixelRatio
+});
+```
+
+Playwright 不支持像 Puppeteer 一样使用 `0` 自动适配。可在浏览器控制台输入 `window.devicePixelRatio` 查看实际值。
+
+### 自定义网络超时
+
+`waitForNetworkIdleTimeout` 对 Playwright 不生效。`waitForNavigationTimeout` 只控制页面 `html` 元素的等待时间，不保证应用就绪。具体行为见[配置选项](#web-options)。
+
+Puppeteer 的 `waitForNetworkIdleTimeout` 默认为 `2000` 毫秒，设为 `0` 可关闭检查。参阅[默认等待策略](../reference/#default-waiting-strategy)。
+
+### 截图时报 `waiting for fonts to load` 或 `page.screenshot: Timeout ... exceeded`
+
+Playwright 截图时默认等待字体加载。在 CI、容器或网络较慢的环境中，字体加载可能导致截图超时：
+
+```plain
+page.screenshot: Timeout 10000ms exceeded.
+Call log:
+- taking page screenshot
+- waiting for fonts to load...
+```
+
+可以通过环境变量跳过等待：
+
+```bash
+export PW_TEST_SCREENSHOT_NO_FONTS_READY=1
+```
+
+也可以只为当前命令设置：
+
+```bash
+PW_TEST_SCREENSHOT_NO_FONTS_READY=1 <你的命令>
+```
+
+相关说明见 [Playwright issue](https://github.com/microsoft/playwright/issues/28995)。
