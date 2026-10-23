@@ -1,0 +1,36 @@
+name: Register Midscene preview
+description: Register an existing PR preview for the Midscene Verify GitHub App.
+inputs:
+  pull-request:
+    description: Number of the open pull request.
+    required: true
+  head-sha:
+    description: Full commit SHA actually deployed; must equal the current PR head.
+    required: true
+  preview-url:
+    description: HTTPS preview URL without credentials or query parameters.
+    required: true
+  environment:
+    description: Deployment environment configured in the App's trusted policy.
+    required: true
+  token:
+    description: Token with Pull requests read and Deployments write permissions.
+    default: ${{ github.token }}
+    required: true
+outputs:
+  deployment-id:
+    description: GitHub deployment record ID (not a verification result).
+    value: ${{ steps.register.outputs.deployment-id }}
+runs:
+  using: composite
+  steps:
+    - id: register
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/../../../apps/verify/scripts/register-preview.mjs"
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        VERIFY_PR_NUMBER: ${{ inputs.pull-request }}
+        VERIFY_HEAD_SHA: ${{ inputs.head-sha }}
+        VERIFY_PREVIEW_URL: ${{ inputs.preview-url }}
+        VERIFY_ENVIRONMENT: ${{ inputs.environment }}

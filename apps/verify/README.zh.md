@@ -199,3 +199,45 @@ VERIFY_MODEL_ENV_FILE=/absolute/path/to/model.env \
 每个用例顺序执行一次，关闭模型重试。规划器已有的有限修复属于同一次运行，保留两版草稿。证据包含冻结计划、截图、原生 HTML 报告、执行记录和经过校验的文件哈希。Agent 可读取 `observations.json` 和 `result.json`，人可从 `summary.md` 打开各用例证据。中断后保留已完成的记录，但不算完整基线。执行器拒绝覆盖已有目录；结果不符合预期、执行器报错或边界错误分类不符时，返回非零退出码。模型服务故障不能算作正确识别了需求歧义。八个模拟用例用于回归检查，不能代表生产可靠性，暂不统计费用。更换引擎版本后重测时，保留旧版失败记录。
 
 如果需求提取未找到具体验收要求，App 会提出澄清问题，不自行编造检查。执行器先打开每个用例的批准路径，再执行步骤；页面初始状态可直接使用 `aiAssert` 检查。规划阶段会拒绝重复的 URL 导航操作。
+
+## 自动发现已有 PR 预览
+
+App 按 PR head 的完整 SHA 和配置的环境查询 GitHub Deployment，只读取最新部署的最新状态。尚无可用预览时，等待 `deployment_status` 事件。未发现、部署中、部署失败、已停用和 URL 未获准等状态会显示在 Check 中，不算产品测试失败。生产部署不会作为 PR 预览。PR 更新后，旧 head 尚在等待的 Check 会取消；执行或发布期间部署被替换，旧预览的结果也不会被接受。发布重试保留原始证据，不重复操作浏览器。
+
+部署必须提供 `environment_url`，且 URL 属于维护者批准的精确域名。浏览器仍会在测试前后读取构建生成的版本接口；Deployment 记录本身不能证明页面正在运行哪版代码。当前需要维护者一次性配置环境、域名和测试路径，尚不支持自动批准域名、多应用选择或登录配置。已完成的验证会保留；相同 SHA 重新部署后，通过 Check 的重新运行入口发起新验证。
+
+如果原有 CI 已生成符合要求的 Deployment，就不用添加上报步骤。否则，在现有部署成功且就绪检查通过后添加：
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: read
+  deployments: write
+
+steps:
+  # 这里保留项目已有的构建和部署步骤。
+  # 明确部署 PR head，避免默认 checkout 构建的是合成合并提交。
+  - uses: web-infra-dev/midscene/.github/actions/verify-preview@<full-reviewed-commit-sha>
+    with:
+      pull-request: ${{ github.event.pull_request.number }}
+      head-sha: ${{ github.event.pull_request.head.sha }}
+      preview-url: ${{ steps.deploy.outputs.preview-url }}
+      environment: Preview
+```
+
+将 revision 占位符换成包含此 Action、经过审阅的完整 SHA；URL 表达式换成实际部署步骤的输出。这个 composite Action 只需要 Node.js 20+、bash 和内置模块，不安装依赖，也不检出用户代码。它为已有预览登记临时、非生产 Deployment 和成功状态，关闭自动合并及其他预览的自动停用。App 收到状态事件后再独立验证页面。上报成功只代表“环境已登记”，不代表“功能验证通过”。登记使用 `midscene:preview` task，原有部署监听器应忽略不属于自身的 task。
+
+复用现有 workflow 的 token，不需要提供 App 私钥。Fork PR 的 token 可能没有部署写权限，应从已有可信部署流程上报，不向 PR 代码暴露凭据。上报工具会拒绝过期或已关闭的 PR，并在发布成功状态前再次检查 head。每次上报都会创建部署记录；部分失败后，先检查记录再重试。如果 App 本身通过 workflow 运行而非 webhook 服务，要考虑 GitHub 不会用 `GITHUB_TOKEN` 产生的事件继续触发其他 workflow；沿用已有的可信 App token 调度方式。
+
+也可直接调用 CLI，token 权限相同：
+
+```bash
+GITHUB_REPOSITORY=owner/repo \
+VERIFY_PR_NUMBER=123 \
+VERIFY_HEAD_SHA=<actual-full-deployed-sha> \
+VERIFY_PREVIEW_URL=https://preview.example.com \
+VERIFY_ENVIRONMENT=Preview \
+node apps/verify/scripts/register-preview.mjs
+```
+
+通过 CI 的密钥环境注入 `GITHUB_TOKEN`，不要放进命令参数。上报工具不会启动或部署应用。协议参考 GitHub 的 [Deployment API](https://docs.github.com/en/rest/deployments/deployments) 和 [Deployment Status API](https://docs.github.com/en/rest/deployments/statuses)。

@@ -6,6 +6,7 @@ on:
       - 'apps/verify/**'
       - '.github/workflows/verify-engine.yml'
       - '.github/actions/ai-ci/**'
+      - '.github/actions/verify-preview/**'
       - '.github/actions/setup-puppeteer-browser/**'
   workflow_dispatch:
 

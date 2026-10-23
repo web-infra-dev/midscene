@@ -169,3 +169,45 @@ Configure `VERIFY_PLANNER_MODEL` and `MIDSCENE_MODEL_NAME` plus their endpoint/k
 Each case runs once, sequentially, with model retries disabled. The production planner's bounded repair is part of that attempt and retains both drafts. Evidence includes frozen plans, screenshots, native HTML reports, execution records and verified bundle hashes. `observations.json` and `result.json` are machine-readable; `summary.md` links case evidence. Interrupted runs retain completed case records; they are not a complete baseline. The runner refuses an existing output directory and exits nonzero for wrong outcomes, harness errors or wrong boundary diagnoses. Provider failure cannot count as successful ambiguity detection. Eight synthetic cases are a regression baseline, not production reliability statistics; costs remain unmeasured. Keep failed runs when collecting a new engine revision.
 
 If requirement extraction finds no concrete acceptance requirement, the App asks for clarification and does not invent checks. The runner opens each approved criterion path before executing steps; initial-state checks can use `aiAssert` alone. Redundant URL navigation actions are rejected during planning.
+
+## Discover an existing PR preview
+
+The App reads GitHub Deployments for the exact PR head SHA and configured environment, then inspects only the newest deployment's latest status. It waits for `deployment_status` events when no successful preview is available. Missing, pending, failed, inactive and unapproved-URL states appear in the Check output; they do not count as product test failures. Production deployments are rejected. A new PR head cancels queued checks for older heads. Replacing a deployment during execution or publication cancels acceptance of the original preview; publication retries keep its original evidence and never replay browser actions.
+
+The deployment must provide `environment_url` on an operator-approved exact origin. The browser still checks the build-generated revision endpoint before and after testing. A deployment record alone does not prove which code the page serves. This prototype requires the operator to configure the environment, origin and test paths once; automatic domain approval, multi-app selection and login provisioning are not implemented. Already completed verifications are retained; use the Check's explicit rerequest to verify a redeployment of the same SHA.
+
+If your existing CI already creates suitable GitHub Deployment records, no reporting step is needed. Otherwise, add the following **after** its successful deployment and readiness check:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: read
+  deployments: write
+
+steps:
+  # Your existing build/deploy steps go here. Deploy the PR head explicitly;
+  # a pull_request checkout can otherwise build a synthetic merge commit.
+  - uses: web-infra-dev/midscene/.github/actions/verify-preview@<full-reviewed-commit-sha>
+    with:
+      pull-request: ${{ github.event.pull_request.number }}
+      head-sha: ${{ github.event.pull_request.head.sha }}
+      preview-url: ${{ steps.deploy.outputs.preview-url }}
+      environment: Preview
+```
+
+Replace the revision placeholder with a reviewed full SHA containing this action and the URL expression with your deploy step's actual output. The composite action uses Node.js (20+), bash and built-in modules only; it does not install dependencies or check out the user's code. It writes a transient, non-production GitHub Deployment and success status for the already deployed URL, with auto-merge and automatic deactivation of other previews disabled. The App receives the deployment status event and independently verifies the page. Registration success means **environment registered**, never **functional verification passed**. The custom deployment task is `midscene:preview`; existing deployment listeners should ignore tasks they do not own.
+
+Use the existing workflow's token; no App private key is required. Fork PR tokens may not have deployment-write permission: register from the existing trusted deployment workflow instead of exposing credentials to PR code. Registration rejects stale/closed PR heads and checks the head again before posting success. Each registration creates a deployment record; after a partial failure, inspect that record before retrying. If the App itself is hosted in a workflow rather than a webhook service, account for GitHub's suppression of workflows triggered by `GITHUB_TOKEN` events; use its existing trusted App-token dispatch mechanism.
+
+Standalone equivalent (same token permissions):
+
+```bash
+GITHUB_REPOSITORY=owner/repo \
+VERIFY_PR_NUMBER=123 \
+VERIFY_HEAD_SHA=<actual-full-deployed-sha> \
+VERIFY_PREVIEW_URL=https://preview.example.com \
+VERIFY_ENVIRONMENT=Preview \
+node apps/verify/scripts/register-preview.mjs
+```
+
+Provide `GITHUB_TOKEN` through the CI secret environment, not in command-line arguments. Registration never starts or deploys an application. See GitHub's [deployment API](https://docs.github.com/en/rest/deployments/deployments) and [deployment status API](https://docs.github.com/en/rest/deployments/statuses).

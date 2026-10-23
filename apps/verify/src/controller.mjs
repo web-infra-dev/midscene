@@ -1,8 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { allowedUrl, digest, policyDigest } from './config.mjs';
+import { digest, policyDigest } from './config.mjs';
 import { planVerification } from './planner.mjs';
 import { publishVerificationComment } from './pr-comment.mjs';
+import { discoverPreview, samePreview } from './preview.mjs';
 import { buildReport } from './report.mjs';
 
 export const checkName = 'Midscene / Functional Verification';
@@ -59,7 +60,6 @@ export class Controller {
       numbers = [payload.pull_request.number];
     } else if (
       event === 'deployment_status' &&
-      payload.deployment_status.state === 'success' &&
       payload.deployment.environment === policy.environment
     ) {
       if (!/^[a-f0-9]{40}$/.test(payload.deployment.sha))
@@ -100,6 +100,27 @@ export class Controller {
     if (pr.state !== 'open' || pr.draft) return;
     const sha = pr.head.sha;
     if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error('Invalid PR revision');
+    for (const pending of await this.store.list('runs')) {
+      if (
+        pending.state !== 'queued' ||
+        pending.subject.repository !== policy.repository ||
+        pending.subject.pullRequest !== number ||
+        pending.subject.headSha === sha
+      )
+        continue;
+      if (pending.checkId)
+        await api('PATCH', `/check-runs/${pending.checkId}`, {
+          status: 'completed',
+          conclusion: 'cancelled',
+          output: {
+            title: 'Superseded PR revision',
+            summary:
+              'A newer PR head is waiting for its own preview. No browser verification ran for this revision.',
+          },
+        });
+      pending.state = 'superseded';
+      await this.store.put('runs', pending.id, pending);
+    }
     const id = digest(
       JSON.stringify([
         policy.repository,
@@ -146,30 +167,35 @@ export class Controller {
       run.checkId = check.id;
       await this.store.put('runs', id, run);
     }
-    const deployments = await api(
-      'GET',
-      `/deployments?sha=${sha}&environment=${encodeURIComponent(policy.environment)}&per_page=100`,
-    );
-    // Only inspect the newest deployment. An older success must not mask a newer pending/failed deployment.
-    const deployment = deployments
-      .filter(
-        (item) => item.sha === sha && item.environment === policy.environment,
-      )
-      .sort((a, b) => b.id - a.id)[0];
-    if (!deployment) return;
-    const statuses = await api(
-      'GET',
-      `/deployments/${deployment.id}/statuses?per_page=1`,
-    );
-    const status = statuses[0];
-    if (status?.state !== 'success') return;
-    const previewUrl = allowedUrl(status.environment_url, policy).href;
+    // Publication retries retain the original subject and never execute again.
+    const preview =
+      (run.report || run.state === 'running') && run.preview
+        ? run.preview
+        : await discoverPreview(api, policy, sha);
+    if (preview.state !== 'ready') {
+      run.discovery = {
+        state: preview.state,
+        deploymentId: preview.deployment?.id ?? null,
+      };
+      await this.store.put('runs', id, run);
+      await api('PATCH', `/check-runs/${run.checkId}`, {
+        status: 'queued',
+        output: {
+          title: preview.title,
+          summary: `Commit: ${sha}\n\n${preview.summary}`,
+        },
+      });
+      return;
+    }
+    const { deployment, previewUrl } = preview;
+    run.preview = preview;
     run.subject = {
       ...run.subject,
       deploymentId: deployment.id,
       deploymentSha: deployment.sha,
       previewUrl,
     };
+    await this.store.put('runs', id, run);
     const directory = path.join(this.store.root, 'evidence', id);
     await mkdir(directory, { recursive: true, mode: 0o700 });
     const reportUrl = `${this.publicUrl}/verifications/${id}/report.html`;
@@ -259,14 +285,7 @@ export class Controller {
         }
       }
       const current = await api('GET', `/pulls/${number}`);
-      const latestStatuses = await api(
-        'GET',
-        `/deployments/${deployment.id}/statuses?per_page=1`,
-      );
-      if (
-        latestStatuses[0]?.state !== 'success' ||
-        latestStatuses[0]?.environment_url !== status.environment_url
-      ) {
+      if (!samePreview(preview, await discoverPreview(api, policy, sha))) {
         run.execution.status = 'deployment-changed';
       }
       run.report = await buildReport({
@@ -284,8 +303,10 @@ export class Controller {
       await this.store.put('runs', id, run);
     }
     await this.publishEvidence?.({ id, directory, report: run.report });
+    const latestPreview = await discoverPreview(api, policy, sha);
     const current = await api('GET', `/pulls/${number}`);
     const fresh =
+      samePreview(preview, latestPreview) &&
       current.state === 'open' &&
       current.head.sha === sha &&
       (!policy.planning ||
