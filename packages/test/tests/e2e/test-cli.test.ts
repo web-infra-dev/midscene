@@ -2,17 +2,14 @@ import { execFile } from 'node:child_process';
 import {
   cpSync,
   existsSync,
-  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
-  realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -96,11 +93,10 @@ const temporaryRun = (prefix: string) => {
 const runFailure = async (
   args: string[],
   env: NodeJS.ProcessEnv = process.env,
-  cwd = packageRoot,
 ): Promise<FailedExecution> => {
   try {
     await execFileAsync(process.execPath, [cliPath, ...args], {
-      cwd,
+      cwd: packageRoot,
       env,
     });
   } catch (error) {
@@ -110,144 +106,6 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
-  it.each([
-    ['execution', 'auto'],
-    ['collection', 'auto'],
-    ['publication', 'auto'],
-    ['execution', 'directory'],
-    ['execution', 'explicit'],
-    ['execution', 'alias'],
-  ])(
-    'annotates the selected YAML after %s failure with %s config selection',
-    async (failureKind, selection) => {
-      const root = realpathSync(
-        mkdtempSync(join(tmpdir(), 'cli-failure-root-')),
-      );
-      temporaryDirectories.push(root);
-      const sourcePath = 'cases/smoke/selected.yaml';
-      mkdirSync(join(root, 'cases', 'smoke'), { recursive: true });
-      writeFileSync(join(root, 'package.json'), '{"type":"module"}');
-      writeFileSync(
-        join(root, 'midscene.config.mjs'),
-        `export default {
-  output: { reportDir: 'reports' },
-  nodes: [{ name: 'fail', execute() { throw new Error('controlled failure'); } }],
-};`,
-      );
-      writeFileSync(
-        join(root, sourcePath),
-        `cases:\n  - name: selected\n    steps:\n      - ${failureKind === 'collection' ? 'missing' : 'fail'}: {}\n`,
-      );
-      if (failureKind === 'publication')
-        writeFileSync(join(root, 'reports'), 'Report publication must fail');
-      const args = selection === 'directory' ? ['.'] : [sourcePath];
-      if (selection === 'explicit')
-        args.push('--config', '../../midscene.config.mjs');
-      if (selection === 'alias') {
-        symlinkSync(root, join(root, 'alias'), 'junction');
-        args[0] = `alias/${sourcePath}`;
-      }
-      const execution = await runFailure(
-        args,
-        {
-          ...process.env,
-          GITHUB_ACTIONS: 'true',
-          GITHUB_WORKSPACE: root,
-          GITHUB_STEP_SUMMARY: join(root, 'github-summary.md'),
-        },
-        root,
-      );
-      expect(execution.code).toBe(1);
-      const annotations = execution.stdout
-        .split('\n')
-        .filter((line) => line.startsWith('::error file='));
-      expect(annotations).toHaveLength(1);
-      expect(annotations[0]).toContain(`file=${sourcePath},`);
-      expect(execution.stderr).toContain(
-        failureKind === 'collection'
-          ? 'unknown node "missing"'
-          : 'controlled failure',
-      );
-      if (failureKind !== 'collection')
-        expect(execution.stderr).toContain(
-          selection === 'explicit'
-            ? 'at ../../midscene.config.mjs:'
-            : 'at midscene.config.mjs:',
-        );
-      if (failureKind === 'publication')
-        expect(execution.stderr).toContain('write-report');
-    },
-  );
-
-  it.each([
-    ['mjs', 'root'],
-    ['mjs', 'cases'],
-    ['ts', 'outside'],
-  ])(
-    'runs only the selected YAML with an ancestor %s config from %s',
-    async (extension, location) => {
-      const root = realpathSync(
-        mkdtempSync(join(tmpdir(), 'cli-ancestor-config-')),
-      );
-      temporaryDirectories.push(root);
-      const selected = join(root, 'cases', 'smoke');
-      const outside = join(root, 'caller');
-      const executionLog = join(root, 'executed.log');
-      mkdirSync(selected, { recursive: true });
-      mkdirSync(outside);
-      writeFileSync(join(root, 'package.json'), '{"type":"module"}');
-      writeFileSync(
-        join(root, `midscene.config.${extension}`),
-        `import { appendFileSync } from 'node:fs';
-${extension === 'ts' ? "const label: string = 'selected';" : "const label = 'selected';"}
-export default {
-  projects: [{ name: 'smoke', files: { include: ['cases/**/*.yaml'] } }],
-  output: { reportDir: 'reports' },
-  nodes: [{ name: 'record', execute() { appendFileSync(${JSON.stringify(executionLog)}, label); } }],
-};`,
-      );
-      const file = join(selected, 'selected.yaml');
-      writeFileSync(
-        file,
-        'cases: [{ name: selected, steps: [{ record: {} }] }]',
-      );
-      writeFileSync(
-        join(selected, 'sibling.yaml'),
-        'invalid: must not collect',
-      );
-      const cwd =
-        location === 'root' ? root : location === 'cases' ? selected : outside;
-      const { stdout } = await execFileAsync(
-        process.execPath,
-        [cliPath, relative(cwd, file)],
-        { cwd },
-      );
-      expect(readFileSync(executionLog, 'utf8')).toBe('selected');
-      const summaryPath = summaryPathFor(
-        join(root, '.midscene', 'test-results'),
-      );
-      const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
-      expect(summary.projectRoot).toBe(root);
-      expect(summary.summary).toMatchObject({
-        total: 1,
-        passed: 1,
-        collectionErrors: 0,
-      });
-      expect(summary.projects[0].documents).toHaveLength(1);
-      expect(summary.projects[0].documents[0].sourcePath).toBe(
-        'cases/smoke/selected.yaml',
-      );
-      expect(resolve(dirname(summaryPath), summary.reportDir)).toBe(
-        join(root, 'reports'),
-      );
-      expect(existsSync(resolve(dirname(summaryPath), summary.report))).toBe(
-        true,
-      );
-      expect(stdout).toContain('selected');
-      expect(existsSync(join(selected, '.midscene'))).toBe(false);
-    },
-  );
-
   it.each(['default', 'verbose'])(
     'reports concurrent files, scoped warnings and per-model usage through the %s CLI',
     async (reporter) => {

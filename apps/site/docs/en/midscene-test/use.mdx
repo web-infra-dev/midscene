@@ -434,12 +434,6 @@ pnpm exec midscene-test ./cases/smoke
 pnpm exec midscene-test ./cases/order.yaml
 ```
 
-Without `--config`, configuration discovery starts in the selected directory, or the selected YAML file's directory, and walks upward to the nearest `midscene.config.ts` or `midscene.config.mjs`. It checks the directory containing `package.json` or `.git`, then stops; it also stops at the filesystem root. Conflicting or unsupported config files cause an error.
-
-For a single YAML file with an automatically discovered config, the config's directory becomes the project root for relative report paths and the default `.midscene/test-results` directory. Only the selected file runs. For a directory argument, that directory remains the root for file patterns and output paths, even when the config comes from an ancestor.
-
-An explicit `--config` keeps the selected directory as the project root, or the YAML file's directory for a file argument. Relative config paths resolve from that root. `--result-dir` always resolves from the current working directory.
-
 ### Filter execution targets and configuration files
 
 If a project defines multiple platforms or environments, select specific Execution Projects or specify a custom configuration file on the command line:

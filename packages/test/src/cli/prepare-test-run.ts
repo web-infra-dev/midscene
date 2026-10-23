@@ -80,17 +80,13 @@ export async function prepareTestRun(
   }
   if (options.configPath && !existsSync(configPath!))
     throw new Error(`Midscene config does not exist: ${configPath}`);
-  const projectRoot =
-    input.singleFile && !options.configPath && configPath
-      ? dirname(configPath)
-      : input.projectRoot;
   const definition = await loadTestProject<unknown>(configPath);
   const resultDir = options.resultDir
     ? resolve(input.cwd, options.resultDir)
-    : join(projectRoot, '.midscene', 'test-results');
+    : join(input.projectRoot, '.midscene', 'test-results');
   const runDir = join(resultDir, runId);
   const summaryPath = join(runDir, 'summary.json');
-  const reportDir = resolve(projectRoot, definition.output.reportDir);
+  const reportDir = resolve(input.projectRoot, definition.output.reportDir);
   mkdirSync(resultDir, { recursive: true });
   mkdirSync(runDir);
   const projects: PreparedExecutionProject[] = [];
@@ -101,7 +97,7 @@ export async function prepareTestRun(
     projects.push(
       await prepareProject(
         project,
-        projectRoot,
+        input.projectRoot,
         runDir,
         definition.test.testTimeout,
         input.singleFile ? { files: [input.singleFile] } : undefined,
@@ -115,7 +111,7 @@ export async function prepareTestRun(
   return {
     startedAt,
     runId,
-    projectRoot,
+    projectRoot: input.projectRoot,
     ...(configPath ? { configPath } : {}),
     resultDir,
     runDir,

@@ -434,12 +434,6 @@ pnpm exec midscene-test ./cases/smoke
 pnpm exec midscene-test ./cases/order.yaml
 ```
 
-未指定 `--config` 时，从选中的目录或 YAML 文件所在目录开始，逐级向上查找最近的 `midscene.config.ts` 或 `midscene.config.mjs`。包含 `package.json` 或 `.git` 的目录也会被检查，之后停止向上查找；到达文件系统根目录时同样停止。发现冲突或不支持的配置文件会报错。
-
-运行单个 YAML 且自动找到配置时，以配置所在目录为项目根目录，解析相对报告路径和默认的 `.midscene/test-results` 路径，只执行指定文件。传入目录时，仍以选中的目录解析文件匹配规则和输出路径，即使配置来自上级目录。
-
-显式指定 `--config` 时，项目根目录仍是选中的目录；传入 YAML 文件时则是文件所在目录。相对配置路径基于这个根目录解析。`--result-dir` 始终基于当前工作目录解析。
-
 ### 过滤运行目标与配置文件
 
 如果项目配置了多个运行平台或环境，你可以指定仅运行特定的执行项目，或者通过命令行指定自定义配置文件：
