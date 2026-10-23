@@ -47,68 +47,26 @@ function filterTestcases(testcases: TestcaseView[], filters: Filters) {
   });
 }
 
-function App() {
-  const [pathname, setPathname] = useState(window.location.pathname);
-  const [testcases, setTestcases] = useState<TestcaseView[]>([]);
-  const [filters, setFilters] = useState<Filters>(emptyFilters);
-  const [zoom, setZoom] = useState<'fit' | 'actual'>('fit');
-  const [showGT, setShowGT] = useState(true);
-  const [showPrediction, setShowPrediction] = useState(true);
-  const [runs, setRuns] = useState<string[] | null>(null);
-  const [runData, setRunData] = useState<{
-    runId: string;
-    results: EvaluationResult[];
-  } | null>(null);
-  const [runError, setRunError] = useState('');
-  const [runRevision, setRunRevision] = useState(0);
-  const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>(
-    'loading',
-  );
-  const [loadError, setLoadError] = useState('');
-  const [loadRevision, setLoadRevision] = useState(0);
-  const caseLinks = useRef(new Map<string, HTMLAnchorElement>());
-  const parts = useMemo(() => {
-    try {
-      return pathname.split('/').filter(Boolean).map(decodeURIComponent);
-    } catch {
-      return [];
-    }
-  }, [pathname]);
-  const isBenchmark = parts[0] === 'benchmark' && parts.length <= 2;
-  const isRuns = parts[0] === 'runs' && parts.length <= 3;
-  const runId = isRuns ? (parts[1] ?? '') : '';
-  const resultId = isRuns ? parts[2] : undefined;
-  const scope = isBenchmark ? 'benchmark' : runId;
+function ModelCards({
+  runId,
+  results,
+}: {
+  runId: string;
+  results: EvaluationResult[];
+}) {
   const runPath = `/runs/${encodeURIComponent(runId)}`;
-  const results = useMemo(
-    () => (runData?.runId === runId ? runData.results : []),
-    [runData, runId],
-  );
-  const casesByName = useMemo(
-    () => new Map(testcases.map((testcase) => [testcase.name, testcase])),
-    [testcases],
-  );
-  const filtered = useMemo(
-    () => filterTestcases(testcases, filters),
-    [testcases, filters],
-  );
-  const filteredResults = useMemo(() => {
-    const names = new Set(filtered.map((testcase) => testcase.name));
-    return results.filter(
-      (result) =>
-        names.has(result.input.testcase) ||
-        (!casesByName.has(result.input.testcase) &&
-          !Object.values(filters).some(Boolean)),
-    );
-  }, [results, filtered, casesByName, filters]);
   const modelSummaries = useMemo(
     () =>
       [...new Set(results.map((result) => result.input.model))]
         .sort(compareNames)
         .map((model) => {
-          const modelResults = results.filter(
-            (result) => result.input.model === model,
-          );
+          const modelResults = results
+            .filter((result) => result.input.model === model)
+            .sort(
+              (left, right) =>
+                compareNames(left.input.testcase, right.input.testcase) ||
+                compareNames(left.id, right.id),
+            );
           const tokens = modelResults.flatMap((result) =>
             result.profiling.totalTokens !== undefined &&
             result.profiling.totalTokens > 0
@@ -152,6 +110,227 @@ function App() {
         }),
     [results],
   );
+
+  return modelSummaries.length ? (
+    <div className="model-grid">
+      {modelSummaries.map(
+        ({
+          model,
+          count,
+          passed,
+          geometricMeanTokens,
+          arithmeticMeanTokens,
+          tokenCount,
+          geometricMeanMs,
+          arithmeticMeanMs,
+          durationCount,
+          first,
+        }) => (
+          <a
+            key={model}
+            className="model-card"
+            href={`${runPath}/${encodeURIComponent(first.id)}`}
+          >
+            <div className="model-card-heading">
+              <strong>{model}</strong>
+              <span>查看结果 →</span>
+            </div>
+            <div className="model-card-metrics">
+              <div>
+                <span>通过率</span>
+                <strong>{((passed / count) * 100).toFixed(1)}%</strong>
+                <small>
+                  {passed} / {count} 通过
+                </small>
+              </div>
+              <div>
+                <span>Token 消耗（几何平均）</span>
+                <strong>
+                  {geometricMeanTokens === null
+                    ? '—'
+                    : geometricMeanTokens.toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}
+                </strong>
+                <span>Token 消耗（算术平均）</span>
+                <strong>
+                  {arithmeticMeanTokens === null
+                    ? '—'
+                    : arithmeticMeanTokens.toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}
+                </strong>
+                <small title="仅统计大于 0 的 Token 消耗，零值和缺失值不参与计算">
+                  {tokenCount} / {count} 条有效记录
+                </small>
+              </div>
+              <div>
+                <span>耗时（几何平均）</span>
+                <strong>
+                  {geometricMeanMs === null
+                    ? '—'
+                    : `${(geometricMeanMs / 1000).toFixed(2)} s`}
+                </strong>
+                <span>耗时（算术平均）</span>
+                <strong>
+                  {arithmeticMeanMs === null
+                    ? '—'
+                    : `${(arithmeticMeanMs / 1000).toFixed(2)} s`}
+                </strong>
+                <small title="仅统计大于 0 的耗时，零值和缺失值不参与计算">
+                  {durationCount} / {count} 条有效记录
+                </small>
+              </div>
+            </div>
+          </a>
+        ),
+      )}
+    </div>
+  ) : (
+    <p className="list-empty">本次运行暂无结果</p>
+  );
+}
+
+function RunGroup({
+  runId,
+  revision,
+}: {
+  runId: string;
+  revision: number;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const [results, setResults] = useState<EvaluationResult[] | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function load() {
+      try {
+        const response = await fetch(`/api/runs/${encodeURIComponent(runId)}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!response.ok)
+          throw new Error(`运行 ${runId} 读取失败（HTTP ${response.status}）`);
+        const data: { results: EvaluationResult[] } = await response.json();
+        if (controller.signal.aborted) return;
+        setResults(data.results);
+        setError('');
+      } catch (error) {
+        if (!controller.signal.aborted)
+          setError(error instanceof Error ? error.message : '评测结果读取失败');
+      }
+    }
+    void load();
+    const timer = window.setInterval(() => void load(), 5000);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
+  }, [runId, revision]);
+
+  return (
+    <section className="run-group">
+      <h2 className="run-group-heading">
+        <button
+          type="button"
+          className="run-toggle"
+          aria-expanded={expanded}
+          aria-controls={`run-${runId}-models`}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          <span className="run-chevron" aria-hidden="true">
+            ›
+          </span>
+          <span className="run-identity">
+            <strong>{runId}</strong>
+            <time dateTime={new Date(Number(runId)).toISOString()}>
+              {new Date(Number(runId)).toLocaleString()}
+            </time>
+          </span>
+          <span className="run-summary-meta">
+            {results
+              ? `${new Set(results.map((result) => result.input.model)).size} 个模型 · ${results.length} 条结果`
+              : error
+                ? '加载失败'
+                : '正在加载…'}
+          </span>
+        </button>
+      </h2>
+      <div
+        id={`run-${runId}-models`}
+        className="run-group-content"
+        hidden={!expanded}
+      >
+        {error && (
+          <p className="run-load-error" role="alert">
+            {error}
+          </p>
+        )}
+        {results ? (
+          <ModelCards runId={runId} results={results} />
+        ) : !error ? (
+          <p className="list-empty">正在加载…</p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function App() {
+  const [pathname, setPathname] = useState(window.location.pathname);
+  const [testcases, setTestcases] = useState<TestcaseView[]>([]);
+  const [filters, setFilters] = useState<Filters>(emptyFilters);
+  const [zoom, setZoom] = useState<'fit' | 'actual'>('fit');
+  const [showGT, setShowGT] = useState(true);
+  const [showPrediction, setShowPrediction] = useState(true);
+  const [runs, setRuns] = useState<string[] | null>(null);
+  const [runData, setRunData] = useState<{
+    runId: string;
+    results: EvaluationResult[];
+  } | null>(null);
+  const [runError, setRunError] = useState('');
+  const [runRevision, setRunRevision] = useState(0);
+  const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  );
+  const [loadError, setLoadError] = useState('');
+  const [loadRevision, setLoadRevision] = useState(0);
+  const caseLinks = useRef(new Map<string, HTMLAnchorElement>());
+  const parts = useMemo(() => {
+    try {
+      return pathname.split('/').filter(Boolean).map(decodeURIComponent);
+    } catch {
+      return [];
+    }
+  }, [pathname]);
+  const isBenchmark = parts[0] === 'benchmark' && parts.length <= 2;
+  const isRuns = parts[0] === 'runs' && parts.length <= 3;
+  const runId = isRuns && parts.length === 3 ? (parts[1] ?? '') : '';
+  const resultId = isRuns && parts.length === 3 ? parts[2] : undefined;
+  const scope = isBenchmark ? 'benchmark' : runId;
+  const runPath = `/runs/${encodeURIComponent(runId)}`;
+  const results = useMemo(
+    () => (runData?.runId === runId ? runData.results : []),
+    [runData, runId],
+  );
+  const casesByName = useMemo(
+    () => new Map(testcases.map((testcase) => [testcase.name, testcase])),
+    [testcases],
+  );
+  const filtered = useMemo(
+    () => filterTestcases(testcases, filters),
+    [testcases, filters],
+  );
+  const filteredResults = useMemo(() => {
+    const names = new Set(filtered.map((testcase) => testcase.name));
+    return results.filter(
+      (result) =>
+        names.has(result.input.testcase) ||
+        (!casesByName.has(result.input.testcase) &&
+          !Object.values(filters).some(Boolean)),
+    );
+  }, [results, filtered, casesByName, filters]);
   const selectedResult = resultId
     ? results.find((result) => result.id === resultId)
     : undefined;
@@ -192,7 +371,8 @@ function App() {
 
   useEffect(() => {
     if (pathname === '/') go('/benchmark', true);
-  }, [pathname, go]);
+    else if (isRuns && parts.length === 2) go('/runs', true);
+  }, [pathname, isRuns, parts.length, go]);
 
   useEffect(() => {
     setFilters(emptyFilters);
@@ -249,6 +429,7 @@ function App() {
     async function load() {
       try {
         const response = await fetch('/api/testcases', {
+          cache: 'no-store',
           signal: controller.signal,
         });
         if (!response.ok)
@@ -387,7 +568,7 @@ function App() {
           result.input.model === selectedResult?.input.model &&
           matches.some((testcase) => testcase.name === result.input.testcase),
       );
-      go(next ? `${runPath}/${encodeURIComponent(next.id)}` : runPath, true);
+      go(next ? `${runPath}/${encodeURIComponent(next.id)}` : '/runs', true);
     }
   }
 
@@ -452,17 +633,8 @@ function App() {
         <main className="overview-page">
           <header className="overview-heading">
             <div>
-              {runId && (
-                <a className="back-link" href="/runs">
-                  ← 所有运行
-                </a>
-              )}
-              <h1>{runId ? `运行 ${runId}` : '评测结果'}</h1>
-              <p>
-                {runId
-                  ? `${new Date(Number(runId)).toLocaleString()} · ${modelSummaries.length} 个模型 · ${results.length} 条结果`
-                  : '按运行时间排列，选择一次运行查看结果。'}
-              </p>
+              <h1>评测结果</h1>
+              <p>按运行时间倒序展示，点击运行标题可展开或收拢统计卡片。</p>
             </div>
             <div className="overview-actions">
               <span>每 5 秒更新</span>
@@ -477,108 +649,15 @@ function App() {
           </header>
           {loadingRun ? (
             <p className="list-empty">正在加载…</p>
-          ) : runError ? null : runId ? (
-            modelSummaries.length ? (
-              <div className="model-grid">
-                {modelSummaries.map(
-                  ({
-                    model,
-                    count,
-                    passed,
-                    geometricMeanTokens,
-                    arithmeticMeanTokens,
-                    tokenCount,
-                    geometricMeanMs,
-                    arithmeticMeanMs,
-                    durationCount,
-                    first,
-                  }) => (
-                    <a
-                      key={model}
-                      className="model-card"
-                      href={`${runPath}/${encodeURIComponent(first.id)}`}
-                      onClick={() => setFilters(emptyFilters)}
-                    >
-                      <div className="model-card-heading">
-                        <strong>{model}</strong>
-                        <span>查看结果 →</span>
-                      </div>
-                      <div className="model-card-metrics">
-                        <div>
-                          <span>通过率</span>
-                          <strong>
-                            {((passed / count) * 100).toFixed(1)}%
-                          </strong>
-                          <small>
-                            {passed} / {count} 通过
-                          </small>
-                        </div>
-                        <div>
-                          <span>Token 消耗（几何平均）</span>
-                          <strong>
-                            {geometricMeanTokens === null
-                              ? '—'
-                              : geometricMeanTokens.toLocaleString(undefined, {
-                                  maximumFractionDigits: 1,
-                                })}
-                          </strong>
-                          <span>Token 消耗（算术平均）</span>
-                          <strong>
-                            {arithmeticMeanTokens === null
-                              ? '—'
-                              : arithmeticMeanTokens.toLocaleString(undefined, {
-                                  maximumFractionDigits: 1,
-                                })}
-                          </strong>
-                          <small title="仅统计大于 0 的 Token 消耗，零值和缺失值不参与计算">
-                            {tokenCount} / {count} 条有效记录
-                          </small>
-                        </div>
-                        <div>
-                          <span>耗时（几何平均）</span>
-                          <strong>
-                            {geometricMeanMs === null
-                              ? '—'
-                              : `${(geometricMeanMs / 1000).toFixed(2)} s`}
-                          </strong>
-                          <span>耗时（算术平均）</span>
-                          <strong>
-                            {arithmeticMeanMs === null
-                              ? '—'
-                              : `${(arithmeticMeanMs / 1000).toFixed(2)} s`}
-                          </strong>
-                          <small title="仅统计大于 0 的耗时，零值和缺失值不参与计算">
-                            {durationCount} / {count} 条有效记录
-                          </small>
-                        </div>
-                      </div>
-                    </a>
-                  ),
-                )}
-              </div>
-            ) : (
-              <p className="list-empty">本次运行暂无结果</p>
-            )
           ) : runs?.length ? (
             <ol className="run-list">
               {runs.map((id) => (
                 <li key={id}>
-                  <a
-                    className="run-card"
-                    href={`/runs/${encodeURIComponent(id)}`}
-                  >
-                    <span>
-                      <strong>{id}</strong>
-                      <time dateTime={new Date(Number(id)).toISOString()}>
-                        {new Date(Number(id)).toLocaleString()}
-                      </time>
-                    </span>
-                    <span>查看结果 →</span>
-                  </a>
+                  <RunGroup runId={id} revision={runRevision} />
                 </li>
               ))}
             </ol>
-          ) : (
+          ) : runError ? null : (
             <p className="list-empty">暂无评测运行</p>
           )}
         </main>
@@ -597,7 +676,7 @@ function App() {
                 {isBenchmark ? (
                   '测试用例'
                 ) : (
-                  <a href={runPath}>
+                  <a href="/runs">
                     {selectedResult?.input.model ?? '本次运行'}
                   </a>
                 )}
@@ -675,7 +754,7 @@ function App() {
                     <div className="case-eyebrow">
                       {selectedResult ? (
                         <>
-                          <a href={runPath}>运行 {runId}</a>
+                          <a href="/runs">运行 {runId}</a>
                           <span className="eyebrow-dot">/</span>
                           <span>{selectedResult.input.model}</span>
                         </>

@@ -13,23 +13,26 @@ const outputRoot = fileURLToPath(
 );
 
 export async function createDatasetApp() {
-  const entries = await readdir(testcasesRoot, { withFileTypes: true });
-  const names = entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
-  const testcases = await Promise.all(
-    names.map(async (name) => {
-      const record: Testcase = JSON.parse(
-        await readFile(path.join(testcasesRoot, name, 'index.json'), 'utf8'),
-      );
-      const image =
-        record.reference.image.format === 'png' ? 'image.png' : 'image.jpg';
-      return { ...record, imageUrl: `/images/${name}/${image}` };
-    }),
-  );
   const app = new Hono();
-  app.get('/api/testcases', (context) => context.json({ testcases }));
+  app.get('/api/testcases', async (context) => {
+    const entries = await readdir(testcasesRoot, { withFileTypes: true });
+    const names = entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+    const testcases = await Promise.all(
+      names.map(async (name) => {
+        const record: Testcase = JSON.parse(
+          await readFile(path.join(testcasesRoot, name, 'index.json'), 'utf8'),
+        );
+        const image =
+          record.reference.image.format === 'png' ? 'image.png' : 'image.jpg';
+        return { ...record, imageUrl: `/images/${name}/${image}` };
+      }),
+    );
+    context.header('Cache-Control', 'no-store');
+    return context.json({ testcases });
+  });
   app.get('/api/runs', async (context) => {
     const entries = await readdir(outputRoot, { withFileTypes: true }).catch(
       (error) => {

@@ -17,20 +17,21 @@ type TestCase = {
   reference: { image: { format: 'png' | 'jpeg' } };
 };
 
-const models = z
-  .array(
-    z.strictObject({
-      MIDSCENE_MODEL_BASE_URL: z.url(),
-      MIDSCENE_MODEL_API_KEY: z.string().trim().min(1),
-      MIDSCENE_MODEL_FAMILY: z.enum(MODEL_FAMILY_VALUES),
-      MIDSCENE_MODEL_NAME: z.string().trim().min(1),
-      MIDSCENE_MODEL_PROTOCOL: z
-        .enum(['openai-chat', 'openai-responses'])
-        .optional(),
-    }),
-  )
-  .min(1)
-  .parse(JSON.parse(process.env.MIDSCENE_MODELS ?? '[]'));
+const { models } = z
+  .strictObject({
+    models: z
+      .array(
+        z.strictObject({
+          baseUrl: z.url(),
+          apiKey: z.string().trim().min(1),
+          family: z.enum(MODEL_FAMILY_VALUES),
+          name: z.string().trim().min(1),
+          protocol: z.enum(['openai-chat', 'openai-responses']).optional(),
+        }),
+      )
+      .min(1),
+  })
+  .parse(JSON.parse(process.env.MIDSCENE_GROUNDING_EVALUATION_CONFIG ?? '{}'));
 
 const testcasesDirectory = fileURLToPath(
   new URL('../testcases/', import.meta.url),
@@ -52,11 +53,10 @@ const testcases = readdirSync(testcasesDirectory, { withFileTypes: true })
   );
 
 describe.each(models)(
-  '$MIDSCENE_MODEL_NAME',
+  '$name',
   { concurrent: true },
-  (modelConfig) => {
+  ({ baseUrl, apiKey, family, name: modelName, protocol }) => {
     test.each(testcases)('$name', { timeout: 60 * 1000 }, async (testcase) => {
-      const modelName = modelConfig.MIDSCENE_MODEL_NAME;
       const startedAt = Date.now();
       const instruction = testcase.instruction[testcase.instructionLanguage];
       const profiling = { durationMs: 0 };
@@ -78,7 +78,16 @@ describe.each(models)(
                 `data:image/${testcase.reference.image.format};base64,${image.toString('base64')}`,
               size: async () => ({ width, height }),
             },
-            { generateReport: false, modelConfig },
+            {
+              generateReport: false,
+              modelConfig: {
+                MIDSCENE_MODEL_BASE_URL: baseUrl,
+                MIDSCENE_MODEL_API_KEY: apiKey,
+                MIDSCENE_MODEL_FAMILY: family,
+                MIDSCENE_MODEL_NAME: modelName,
+                ...(protocol && { MIDSCENE_MODEL_PROTOCOL: protocol }),
+              },
+            },
           );
 
           try {
