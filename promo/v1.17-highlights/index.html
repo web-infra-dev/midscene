@@ -641,7 +641,8 @@ const I18N = {
 
 (() => {
   const params = new URLSearchParams(location.search);
-  const SPEED = Number(params.get('speed')) || 1;
+  const exportMode = params.get('export') === '1';
+  const SPEED = exportMode ? 1 : Number(params.get('speed')) || 1;
   const LOOP = params.get('loop') === '1';
   const stage = document.getElementById('stage');
   const hud = document.getElementById('hud');
@@ -713,7 +714,7 @@ const I18N = {
   }
 
   function setPaused(p) { paused = p; stage.classList.toggle('paused', p); }
-  const firstScene = Math.max(0, (Number(params.get('scene')) || 1) - 1);
+  const firstScene = exportMode ? 0 : Math.max(0, (Number(params.get('scene')) || 1) - 1);
   function start() {
     document.getElementById('start')?.remove();
     setPaused(false);
@@ -722,6 +723,9 @@ const I18N = {
   if (params.get('hud') === '0') hud.classList.add('hidden');
 
   addEventListener('keydown', (e) => {
+    if (exportMode) {
+      return;
+    }
     if (e.key === 'l' || e.key === 'L') { lang = lang === 'zh' ? 'en' : 'zh'; render(); enter(cur, true); return; }
     if (document.getElementById('start')) { if (e.code === 'Space' || e.code === 'Enter') start(); return; }
     if (e.code === 'Space') { e.preventDefault(); setPaused(!paused); }
@@ -778,7 +782,7 @@ const I18N = {
         rp.className = 'ripple';
         rp.style.left = cursor.style.left; rp.style.top = cursor.style.top;
         box.appendChild(rp);
-        setTimeout(() => rp.remove(), 700);
+        at(t + 700, () => rp.remove());
       },
     };
   }
@@ -1034,8 +1038,66 @@ const I18N = {
 
   // The cover is fully rendered at frame 0 (no build-up) so the first frame already carries the message.
   enter(firstScene, true);
-  requestAnimationFrame(tick);
-  if (params.get('autoplay') === '1') start();
+  if (exportMode) {
+    start();
+    hud.remove();
+    // Keep CSS transitions/animations and scheduled actions on the same virtual clock.
+    // Frames must advance monotonically; reload the page to restart an export.
+    const animationStarts = new WeakMap();
+    const state = { elapsed: 0, sceneStart: 0, revision: 0 };
+    const duration = scenes.reduce((sum, scene) => sum + scene.dur, 0);
+    const syncAnimations = (ms) => {
+      for (const animation of document.getAnimations()) {
+        if (!animationStarts.has(animation)) {
+          animationStarts.set(animation, ms);
+          animation.pause();
+        }
+        animation.currentTime = ms - animationStarts.get(animation);
+      }
+      // Flush styles before the next action reads geometry or retargets a transition.
+      void stage.offsetWidth;
+    };
+    syncAnimations(0);
+    window.__promoExport = {
+      duration,
+      width: 1920,
+      height: 1080,
+      renderFrame(ms) {
+        if (!Number.isFinite(ms) || ms < state.elapsed || ms > duration) {
+          throw new Error('Export time must advance monotonically within the timeline');
+        }
+        while (true) {
+          const actionAt = timers.length ? state.sceneStart + timers[0].t : Infinity;
+          const sceneEnd = cur < scenes.length - 1 ? state.sceneStart + scenes[cur].dur : Infinity;
+          const nextAt = Math.min(actionAt, sceneEnd);
+          if (nextAt > ms) {
+            break;
+          }
+          syncAnimations(nextAt);
+          t = nextAt - state.sceneStart;
+          if (sceneEnd <= actionAt) {
+            state.sceneStart = nextAt;
+            enter(cur + 1);
+          } else {
+            timers.shift().fn();
+            timers.sort((a, b) => a.t - b.t);
+          }
+          state.revision++;
+          syncAnimations(nextAt);
+        }
+        syncAnimations(ms);
+        t = ms - state.sceneStart;
+        state.elapsed = ms;
+        return { scene: cur, time: t, revision: state.revision, animations: document.getAnimations().length };
+      },
+    };
+    window.__promoExport.renderFrame(0);
+  } else {
+    requestAnimationFrame(tick);
+    if (params.get('autoplay') === '1') {
+      start();
+    }
+  }
 })();
 </script>
 </body>
