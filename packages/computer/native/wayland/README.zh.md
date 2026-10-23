@@ -16,7 +16,14 @@ sh packages/computer/native/wayland/build.sh /tmp/midscene-wayland
 
 编码默认使用无损 PNG filter NONE，避免自适应滤波搜索延迟；`--png-filter adaptive` 可用于受控基线对照。`--trace` 在标准错误输出逐帧 source/request/ready/encoded/emitted 纳秒值与字节数，以 frameId 关联；应限制诊断运行时长，并与 NDJSON 标准输出分开保存。±1微秒只覆盖数值转换，不是采样间隔、调度、复制过程、时钟同步或物理呈现的误差上界；仍须检查合成器源码及同一guest时钟。
 
-`benchmark-encoder.c` 直接包含实际编码器，可进行无模型调用的本地测量。用与 `build.sh` 相同的协议生成源码、头文件和库编译；参数为 `BGRA_FILE WIDTH HEIGHT STRIDE ADAPTIVE_FILTER OUTPUT_PNG`。预热五次后输出100行耗时纳秒/PNG字节数CSV，应解码PNG并逐像素比较RGB。这不是guest帧率测试。trace对同一frameId可能包含初始和完成两条记录；合并时保留已完成记录的emittedNs。
+`png-encoder.c` 接收明确的 BGRX/BGRA 图像参数：像素、尺寸、行跨度和垂直方向。采集程序与 `benchmark-encoder.c` 共用这个编码器，编码器本身不依赖 Wayland。只需 C 编译器、`pkg-config` 和 `libpng`，即可验证两种滤波模式、行填充、上下翻转的像素往返结果，并构建独立 benchmark：
+
+```sh
+sh packages/computer/native/wayland/test-encoder.sh /tmp/midscene-encoder
+/tmp/midscene-encoder/benchmark-encoder BGRA_FILE WIDTH HEIGHT STRIDE ADAPTIVE_FILTER OUTPUT_PNG
+```
+
+benchmark 预热五次后输出 100 行耗时纳秒/PNG 字节数 CSV。应解码 PNG 并逐像素比较 RGB；它不测量客户机帧率。trace 对同一 frameId 可能包含初始和完成两条记录，合并时保留已完成记录的 emittedNs。
 
 trace新增 `bufferReceivedNs`（buffer描述回调入口）、`bufferAllocatedNs`（SHM映射和
 wl_buffer创建完成）、`bufferDoneNs`（协议buffer_done回调入口）、`copySubmitNs`

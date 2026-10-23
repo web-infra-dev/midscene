@@ -16,7 +16,14 @@ For a 500ms requirement, compare verified same-clock input and old/new pixel bou
 
 The encoder uses lossless PNG filter NONE to avoid adaptive filter-search latency; `--png-filter adaptive` is available for a controlled baseline. `--trace` writes per-frame source/request/ready/encoded/emitted nanosecond values and byte counts to stderr, keyed by frameId. Redirect this bounded-duration diagnostic stream separately from NDJSON stdout. The ±1µs timestamp allowance covers numeric conversion only: it does not bound frame sampling gaps, scheduling, copy duration, clock synchronization uncertainty or physical presentation. Source review and same-guest clock checks are still required.
 
-`benchmark-encoder.c` includes the actual encoder for local, inference-free measurements. Compile it with the same generated protocol source, includes and libraries as `build.sh`. Its arguments are `BGRA_FILE WIDTH HEIGHT STRIDE ADAPTIVE_FILTER OUTPUT_PNG`; it emits 100 elapsed-nanoseconds/PNG-bytes CSV rows after five warmups. Decode the PNG and compare all RGB pixels to the input. This benchmark does not measure guest frame cadence. Trace may contain an initial and completed entry for one frameId; merge them, retaining the completed emittedNs when present.
+`png-encoder.c` accepts an explicit BGRX/BGRA image (bytes, dimensions, stride and vertical orientation). Both the capture helper and `benchmark-encoder.c` use it; the encoder has no Wayland dependency. Run pixel round-trip tests for both filter modes, row padding and vertical inversion, and build the standalone benchmark with only a C compiler, `pkg-config` and `libpng`:
+
+```sh
+sh packages/computer/native/wayland/test-encoder.sh /tmp/midscene-encoder
+/tmp/midscene-encoder/benchmark-encoder BGRA_FILE WIDTH HEIGHT STRIDE ADAPTIVE_FILTER OUTPUT_PNG
+```
+
+The benchmark emits 100 elapsed-nanoseconds/PNG-bytes CSV rows after five warmups. Decode the PNG and compare all RGB pixels to the input. This benchmark does not measure guest frame cadence. Trace may contain an initial and completed entry for one frameId; merge them, retaining the completed emittedNs when present.
 
 The trace also records `bufferReceivedNs` (buffer description callback entry),
 `bufferAllocatedNs` (SHM mapping and wl_buffer creation complete), `bufferDoneNs`

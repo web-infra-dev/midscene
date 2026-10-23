@@ -3,7 +3,7 @@
 // ready is a compositor capture/commit timestamp, NOT a physical page flip.
 #define _GNU_SOURCE
 #include <wayland-client.h>
-#include <png.h>
+#include "png-encoder.h"
 #include <sys/mman.h>
 #include <sys/syscall.h>
 #include <time.h>
@@ -33,13 +33,6 @@ static char boot[80], clock_id[160];
 static void fail(const char *s) { fprintf(stderr, "wayland-capture: %s\n", s); exit(1); }
 static uint64_t mono(void) { struct timespec t; if(clock_gettime(CLOCK_MONOTONIC,&t)) fail("clock_gettime"); return (uint64_t)t.tv_sec*1000000000+t.tv_nsec; }
 static void request_frame(void);
-struct bytes { unsigned char *data; size_t size, capacity; };
-static void png_write(png_structp p, png_bytep data, png_size_t size) {
-  struct bytes *b=png_get_io_ptr(p);
-  if(b->size+size > b->capacity) { b->capacity=(b->size+size)*2; void *n=realloc(b->data,b->capacity); if(!n) png_error(p,"allocation"); b->data=n; }
-  memcpy(b->data+b->size,data,size); b->size+=size;
-}
-static void png_flush(png_structp p) { (void)p; }
 static void base64(const unsigned char *p,size_t n) {
   static const char c[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   for(size_t i=0;i<n;i+=3) { uint32_t v=(uint32_t)p[i]<<16; if(i+1<n)v|=(uint32_t)p[i+1]<<8; if(i+2<n)v|=p[i+2];
@@ -57,21 +50,6 @@ static void on_buffer(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t fmt
   buffer=wl_shm_pool_create_buffer(pool,0,(int32_t)w,(int32_t)h,(int32_t)st,fmt);wl_shm_pool_destroy(pool);close(fd);buffer_allocated=mono();
 }
 static void on_flags(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t v) { (void)data;(void)f;flags=v; }
-static struct bytes encode_png(void) {
-  struct bytes b={0};png_structp p=png_create_write_struct(PNG_LIBPNG_VER_STRING,NULL,NULL,NULL);if(!p)fail("png allocation");
-  png_infop info=png_create_info_struct(p);if(!info)fail("png info");
-  if(setjmp(png_jmpbuf(p)))fail("PNG encoding failed");
-  png_set_write_fn(p,&b,png_write,png_flush);png_set_compression_level(p,1);
-  // Adaptive filter search dominates full-screen encoding and delays the next capture.
-  // NONE remains lossless; adaptive is retained only for controlled A/B measurements.
-  if(!adaptive_filter)png_set_filter(p,PNG_FILTER_TYPE_BASE,PNG_FILTER_NONE);
-  png_set_IHDR(p,info,width,height,8,PNG_COLOR_TYPE_RGB,PNG_INTERLACE_NONE,PNG_COMPRESSION_TYPE_DEFAULT,PNG_FILTER_TYPE_DEFAULT);png_write_info(p,info);
-  unsigned char *row=malloc((size_t)width*3);if(!row)fail("row allocation");
-  for(uint32_t y=0;y<height;y++) { uint32_t sy=(flags & ZWLR_SCREENCOPY_FRAME_V1_FLAGS_Y_INVERT)?height-1-y:y; unsigned char *src=(unsigned char*)pixels+(size_t)sy*stride;
-    for(uint32_t x=0;x<width;x++){row[x*3]=src[x*4+2];row[x*3+1]=src[x*4+1];row[x*3+2]=src[x*4];} png_write_row(p,row); }
-  free(row);png_write_end(p,NULL);png_destroy_write_struct(&p,&info);
-  return b;
-}
 static void on_ready(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t hi,uint32_t lo,uint32_t ns) {
   (void)data;
   uint64_t received=mono(),stamp=(((uint64_t)hi<<32)|lo)*1000000000+ns;
@@ -84,7 +62,12 @@ static void on_ready(void *data,struct zwlr_screencopy_frame_v1 *f,uint32_t hi,u
   if(!has_region && (width!=(uint32_t)output_width || height!=(uint32_t)output_height))fail("output geometry changed");
   if(!(requested<=buffer_received && buffer_received<=buffer_allocated && buffer_allocated<=buffer_done && buffer_done<=copy_submit && copy_submit<=received))fail("invalid capture phase order");
   if(verify_monotonic && copy_submit>stamp)fail("source timestamp preceded copy submission");
-  struct bytes b=encode_png();
+  const struct raw_image image = {
+    .data = pixels, .size = pixel_bytes, .width = width, .height = height,
+    .stride = stride, .y_inverted = !!(flags & ZWLR_SCREENCOPY_FRAME_V1_FLAGS_Y_INVERT),
+  };
+  struct png_bytes b;
+  if (encode_png(&image, adaptive_filter, &b)) fail("PNG encoding failed");
   uint64_t encoded=mono();
   ++sequence;
   // Persist source identity before emitting a frame, including when the consumer stops immediately.

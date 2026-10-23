@@ -10,6 +10,20 @@ export interface ObservationFrameProcessOptions {
   maxFrameBytes?: number;
 }
 
+function frameByteLimit(value = 32 * 1024 * 1024): number {
+  if (!Number.isSafeInteger(value) || value < 1)
+    throw new Error('Invalid frame byte limit');
+  return value;
+}
+
+/** Validate shared options before either factory creates a process it must own. */
+function spawnObservationProcess(options: ObservationFrameProcessOptions) {
+  frameByteLimit(options.maxFrameBytes);
+  return spawn(options.command, options.args ?? [], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+}
+
 /** Opt-in native NDJSON transport. Source times survive buffering and PNG decoding. */
 class NativeFrameTransport implements DeviceFrameSource {
   private current: DeviceFrameRef | null = null;
@@ -27,9 +41,7 @@ class NativeFrameTransport implements DeviceFrameSource {
     maxFrameBytes = 32 * 1024 * 1024,
     private readonly regionGeometry?: RegionGeometry,
   ) {
-    if (!Number.isInteger(maxFrameBytes) || maxFrameBytes < 1)
-      throw new Error('Invalid frame byte limit');
-    this.maxFrameBytes = maxFrameBytes;
+    this.maxFrameBytes = frameByteLimit(maxFrameBytes);
     child.stdout.on('data', (chunk: Buffer) => this.receive(chunk));
     child.on('error', (error) => this.fail(error));
     child.on('close', (code) => {
@@ -182,9 +194,7 @@ export class ObservationFrameSource extends NativeFrameTransport {
     options: ObservationFrameProcessOptions,
   ): ObservationFrameSource {
     return new ObservationFrameSource(
-      spawn(options.command, options.args ?? [], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      }),
+      spawnObservationProcess(options),
       options.maxFrameBytes,
     );
   }
@@ -250,16 +260,8 @@ export class RegionObservation {
       options.maxFrames < 1
     )
       throw new Error('Invalid region geometry or frame capacity');
-    if (
-      options.maxFrameBytes !== undefined &&
-      (!Number.isSafeInteger(options.maxFrameBytes) ||
-        options.maxFrameBytes < 1)
-    )
-      throw new Error('Invalid frame byte limit');
     this.source = new NativeFrameTransport(
-      spawn(options.command, options.args ?? [], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      }),
+      spawnObservationProcess(options),
       options.maxFrameBytes,
       geometry,
     );
