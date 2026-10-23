@@ -329,14 +329,6 @@ Copy the following configuration to use Jev for Planning, Locate, and Insight:
   purposes={['planning', 'locate', 'insight']}
 />
 
-:::info Base URL conventions: Midscene and the TypeSafe SDK
-
-In Midscene, the Base URL should include the API version path, such as `https://api.typesafe.ai/v1`. The resulting request URL is `https://api.typesafe.ai/v1/systemone`.
-
-The TypeSafe SDK uses a different Base URL convention from the OpenAI SDK. The OpenAI SDK typically includes `/v1` in the Base URL, whereas the TypeSafe SDK appends `/v1/systemone` itself. To support System One APIs from different providers (such as OpenRouter), Midscene does not add a fixed `/v1` version prefix as the TypeSafe SDK does. It only appends `/systemone`, so the version prefix must be included in the Base URL.
-
-:::
-
 When the corresponding model role is configured to use Jev, tasks are handled as follows:
 
 - **Locate**: Jev performs element localization.
@@ -347,9 +339,10 @@ Model selection is based on the capabilities required by each task. Failed Jev r
 
 Jev uses TypeSafe's System One protocol, not an OpenAI protocol. Some OpenAI model settings do not apply, such as temperature, native reasoning, response format, and streaming output.
 
-:::info Image input limits
+:::info Notes
 
-The latest version of Jev currently limits the longest edge of an image to 1568 pixels. Use the Agent's `screenshotShrinkFactor` option to control screenshot dimensions. To avoid image quality degradation from repeated resizing and accommodate image dimension requirements in future Jev versions, Midscene does not automatically resize images to match the limits of a specific Jev version.
+- **Base URL**: The Base URL must include `/v1`, for example `https://api.typesafe.ai/v1`.
+- **Image input limits**: The latest version of Jev currently limits the longest edge of an image to 1568 pixels. Use the Agent's `screenshotShrinkFactor` option to control screenshot dimensions. To avoid image quality degradation from repeated resizing and accommodate image dimension requirements in future Jev versions, Midscene does not automatically resize images to match the limits of a specific Jev version.
 
 :::
 
