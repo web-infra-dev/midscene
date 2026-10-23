@@ -340,7 +340,10 @@ export const useRecordStore = create<{
   initialize: () => Promise<void>;
   setIsRecording: (recording: boolean) => Promise<void>;
   updateEvent: (event: ChromeRecordedEvent) => Promise<void>;
-  addEvent: (event: ChromeRecordedEvent) => Promise<void>;
+  addEvent: (
+    event: ChromeRecordedEvent,
+    replacesHashId?: string,
+  ) => Promise<void>;
   setEvents: (events: ChromeRecordedEvent[]) => Promise<void>;
   clearEvents: () => Promise<void>;
   emergencySaveEvents: (events?: ChromeRecordedEvent[]) => Promise<void>;
@@ -382,9 +385,15 @@ export const useRecordStore = create<{
       console.error('Failed to set recording state:', error);
     }
   },
-  addEvent: async (event: ChromeRecordedEvent) => {
+  addEvent: async (event: ChromeRecordedEvent, replacesHashId?: string) => {
     const state = get();
-    const newEvents = [...state.events, event];
+    const existingIndex = state.events.findIndex(
+      (existing) =>
+        existing.hashId === event.hashId || existing.hashId === replacesHashId,
+    );
+    const newEvents = [...state.events];
+    if (existingIndex === -1) newEvents.push(event);
+    else newEvents[existingIndex] = event;
     set({ events: newEvents });
     if (state.isRecording) {
       // Debounce IndexedDB writes to avoid O(n²) IO.
@@ -397,7 +406,13 @@ export const useRecordStore = create<{
   },
   updateEvent: async (event: ChromeRecordedEvent) => {
     const state = get();
-    const newEvents = mergeEvents(state.events, [event]);
+    const index = state.events.findIndex(
+      (existing) => existing.hashId === event.hashId,
+    );
+    // Async descriptions for replaced events must not resurrect old input versions.
+    if (index === -1) return;
+    const newEvents = [...state.events];
+    newEvents[index] = event;
     set({ events: newEvents });
     if (state.isRecording) {
       const sessionId = useRecordingSessionStore.getState().currentSessionId;
