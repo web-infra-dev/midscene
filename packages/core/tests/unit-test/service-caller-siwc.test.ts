@@ -10,7 +10,7 @@ import { syncBuiltinESMExports } from 'node:module';
 import os from 'node:os' with { rstest: 'importActual' };
 import { join } from 'node:path';
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import {
   SIWC_AUTH_STORAGE_KEY,
   siwcTokenManager,
@@ -139,7 +139,7 @@ it.each(['file', 'extension'])(
         apiKey: 'also-unused',
       }),
     }).getModelConfig('default');
-    const result = await callAI(
+    const result = await callGenerativeAI(
       [{ role: 'user', content: 'Hello' }],
       getModelRuntime(config),
       { stream: false },
@@ -181,7 +181,10 @@ it('does not attempt token refresh after an authentication failure', async () =>
     MIDSCENE_MODEL_RETRY_COUNT: 0,
   }).getModelConfig('default');
   await expect(
-    callAI([{ role: 'user', content: 'Hello' }], getModelRuntime(config)),
+    callGenerativeAI(
+      [{ role: 'user', content: 'Hello' }],
+      getModelRuntime(config),
+    ),
   ).rejects.toThrow('Token expired');
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(await siwcTokenManager.getAccessToken()).toBe('expired-token');
@@ -421,9 +424,13 @@ it('refreshes on token_expired despite local expiry and streams the retried outp
     .mockResolvedValueOnce(Response.json(refreshedTokens))
     .mockResolvedValueOnce(successfulStream());
   const onChunk = rs.fn();
-  const result = await callAI([{ role: 'user', content: 'Hello' }], runtime, {
-    onChunk,
-  });
+  const result = await callGenerativeAI(
+    [{ role: 'user', content: 'Hello' }],
+    runtime,
+    {
+      onChunk,
+    },
+  );
   expect(result.content).toBe('OK');
   expect(fetchMock).toHaveBeenCalledTimes(3);
   expect(
@@ -448,9 +455,13 @@ it('cancels a caller waiting for refresh without cancelling the shared refresh',
       gate.signal = init?.signal;
       return response;
     });
-  const request = callAI([{ role: 'user', content: 'Hello' }], runtime, {
-    abortSignal: controller.signal,
-  });
+  const request = callGenerativeAI(
+    [{ role: 'user', content: 'Hello' }],
+    runtime,
+    {
+      abortSignal: controller.signal,
+    },
+  );
   const cancelled = expect(request).rejects.toThrow('Cancelled during refresh');
   await rs.waitFor(() => expect(gate.signal).toBeDefined());
   const otherCaller = siwcTokenManager.refreshAccessToken('old-access');
@@ -482,7 +493,7 @@ it.each([401, 500])(
           : Response.json({ error: { message: 'Unavailable' } }, { status }),
       );
     await expect(
-      callAI([{ role: 'user', content: 'Hello' }], runtime),
+      callGenerativeAI([{ role: 'user', content: 'Hello' }], runtime),
     ).rejects.toThrow();
     expect(fetchMock).toHaveBeenCalledTimes(3);
   },
@@ -498,7 +509,9 @@ it('does not replay output or refresh after onChunk has received content', async
     });
   });
   await expect(
-    callAI([{ role: 'user', content: 'Hello' }], runtime, { onChunk }),
+    callGenerativeAI([{ role: 'user', content: 'Hello' }], runtime, {
+      onChunk,
+    }),
   ).rejects.toThrow('Token expired after delivery');
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(onChunk).toHaveBeenCalledTimes(1);
@@ -526,7 +539,7 @@ it('stops if refreshing the rejected token fails', async () => {
     .mockResolvedValueOnce(tokenExpiredResponse())
     .mockResolvedValueOnce(new Response('invalid_grant', { status: 400 }));
   await expect(
-    callAI([{ role: 'user', content: 'Hello' }], runtime),
+    callGenerativeAI([{ role: 'user', content: 'Hello' }], runtime),
   ).rejects.toThrow('siwc login');
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });

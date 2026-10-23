@@ -1,5 +1,5 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import {
   type IModelConfig,
   MIDSCENE_MODEL_STREAM_MODE,
@@ -84,7 +84,7 @@ describe('model request stream mode', () => {
       );
       const runtime = getModelRuntime(config);
       runtime.onUsage = rs.fn();
-      const result = await callAI(messages, runtime);
+      const result = await callGenerativeAI(messages, runtime);
       expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).stream).toBe(
         true,
       );
@@ -111,7 +111,7 @@ describe('model request stream mode', () => {
             protocol === 'openai-responses' ? response : chatResponse,
           ),
         );
-        const result = await callAI(
+        const result = await callGenerativeAI(
           messages,
           getModelRuntime(config),
           mode === 'stream' ? { stream: false } : undefined,
@@ -150,7 +150,7 @@ describe('model request stream mode', () => {
         ),
       );
       const onChunk = rs.fn();
-      const result = await callAI(messages, getModelRuntime(config), {
+      const result = await callGenerativeAI(messages, getModelRuntime(config), {
         stream: true,
         onChunk,
       });
@@ -170,7 +170,7 @@ describe('model request stream mode', () => {
           protocol === 'openai-responses' ? response : chatResponse,
         ),
       );
-      const result = await callAI(messages, getModelRuntime(config));
+      const result = await callGenerativeAI(messages, getModelRuntime(config));
       expect(result.isStreamed).toBe(false);
       expect(result.content).toBe('Hello');
     });
@@ -180,7 +180,7 @@ describe('model request stream mode', () => {
       sse([{ type: 'response.output_text.delta', delta: 'partial' }]),
     );
     await expect(
-      callAI(
+      callGenerativeAI(
         messages,
         getModelRuntime({
           modelName: 'test',

@@ -329,11 +329,20 @@ Copy the following configuration to use Jev for Planning, Locate, and Insight:
   purposes={['planning', 'locate', 'insight']}
 />
 
+When the corresponding model role is configured to use Jev, tasks are handled as follows:
+
+- **Locate**: Jev performs element localization.
+- **Insight**: Jev evaluates `aiBoolean`, `aiAssert`, and `aiWaitFor`. The general-purpose default model handles `aiQuery`, `aiString`, `aiNumber`, and `aiAsk`.
+- **Planning**: In `aiAct`, Jev plans simple actions such as clicking, double-clicking, and going back. The default model plans complex actions such as input and scrolling.
+
+Model selection is based on the capabilities required by each task. Failed Jev requests do not automatically switch to the default model.
+
 Jev uses TypeSafe's System One protocol, not an OpenAI protocol. Some OpenAI model settings do not apply, such as temperature, native reasoning, response format, and streaming output.
 
-:::info Image input limits
+:::info Notes
 
-Jev requires the longest edge of an input image to be no more than 1568 pixels. Midscene therefore scales images that exceed this limit while preserving their aspect ratio, then maps localization results back to the original image coordinates. Edges shorter than 280 pixels are padded. This image processing behavior may change in future versions.
+- **Base URL**: The Base URL must include `/v1`, for example `https://api.typesafe.ai/v1`.
+- **Image input limits**: The latest version of Jev currently limits the longest edge of an image to 1568 pixels. Use the Agent's `screenshotShrinkFactor` option to control screenshot dimensions. To avoid image quality degradation from repeated resizing and accommodate image dimension requirements in future Jev versions, Midscene does not automatically resize images to match the limits of a specific Jev version.
 
 :::
 

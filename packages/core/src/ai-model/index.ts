@@ -2,7 +2,8 @@ export {
   AIResponseParseError,
   callAIWithStringResponse,
   callAIWithObjectResponse,
-  callAI,
+  callGenerativeAI,
+  callSystemOneAI,
 } from './service-caller/index';
 export { getModelRuntime, type ModelRuntime } from './models';
 export {

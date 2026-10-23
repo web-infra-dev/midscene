@@ -23,11 +23,11 @@ const deferred = <T = void>() => {
 
 // Mock AI service caller
 rs.mock('@/ai-model/service-caller/index', () => ({
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
   AIResponseParseError: class AIResponseParseError extends Error {},
 }));
 
-import { callAI } from '@/ai-model/service-caller/index';
+import { callGenerativeAI } from '@/ai-model/service-caller/index';
 
 const insightFindTask = (shouldThrow?: boolean) => {
   const locateParam = {
@@ -157,7 +157,7 @@ describe(
   () => {
     beforeEach(() => {
       // Setup default mock implementation for AI calls
-      rs.mocked(callAI).mockResolvedValue({
+      rs.mocked(callGenerativeAI).mockResolvedValue({
         content: JSON.stringify({
           bbox: [0, 0, 100, 100],
           errors: [],
