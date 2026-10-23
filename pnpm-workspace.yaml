@@ -2,5 +2,3 @@ packages:
   - apps/*
   - packages/*
   - benchmark/*
-  - benchmark/grounding-new/evaluation
-  - benchmark/grounding-new/viewer

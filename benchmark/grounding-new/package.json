@@ -1,0 +1,37 @@
+{
+  "name": "@midscene/grounding-benchmark",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "start": "rsbuild dev",
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "preview": "tsx viewer/server.ts",
+    "evaluate": "vitest run"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "dotenv": "^18.0.8",
+    "hono": "^4.13.13",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^2.2.14",
+    "@rsbuild/plugin-react": "^2.1.1",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

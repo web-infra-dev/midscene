@@ -1,15 +1,15 @@
 import { getRequestListener } from '@hono/node-server';
 import { type RsbuildConfig, defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
-import { createDatasetApp } from './server';
+import { createDatasetApp } from './viewer/server';
 
 export default defineConfig(async (): Promise<RsbuildConfig> => {
   const app = await createDatasetApp();
   const handleDatasetRequest = getRequestListener(app.fetch);
   return {
     plugins: [pluginReact()],
-    source: { entry: { index: './src/App.tsx' } },
-    html: { template: './index.html' },
+    source: { entry: { index: './viewer/src/App.tsx' } },
+    html: { template: './viewer/index.html' },
     server: {
       host: '127.0.0.1',
       port: 4319,

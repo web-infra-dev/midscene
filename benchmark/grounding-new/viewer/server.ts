@@ -102,7 +102,7 @@ if (
     options: { port: { type: 'string', default: '4319' } },
   });
   const port = Number(values.port);
-  const distRoot = fileURLToPath(new URL('./dist/', import.meta.url));
+  const distRoot = fileURLToPath(new URL('../dist/', import.meta.url));
   const app = await createDatasetApp();
   app.use('*', serveStatic({ root: distRoot }));
   for (const route of [

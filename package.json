@@ -20,7 +20,7 @@
     "e2e:visualizer": "nx run @midscene/visualizer:e2e --verbose  --exclude-task-dependencies",
     "test:ai:all": "npm run e2e && npm run e2e:cache && npm run e2e:report && npm run test:ai && npm run e2e:visualizer",
     "prepare": "husky && pnpm run build",
-    "check-dependency-version": "check-dependency-version-consistency . --ignore-path benchmark/grounding-new/evaluation --ignore-path benchmark/grounding-new/viewer",
+    "check-dependency-version": "check-dependency-version-consistency . --ignore-path benchmark/grounding-new",
     "check:references": "node scripts/check-tsconfig-references.mjs",
     "check:report-build-feedback-loop": "node scripts/check-report-build-feedback-loop.mjs",
     "lint": "npx biome check . --diagnostic-level=info --no-errors-on-unmatched --fix",

@@ -13,5 +13,10 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "server.ts", "rsbuild.config.ts"]
+  "include": [
+    "evaluation/**/*.ts",
+    "viewer",
+    "rsbuild.config.ts",
+    "vitest.config.ts"
+  ]
 }
