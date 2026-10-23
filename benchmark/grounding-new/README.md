@@ -22,9 +22,9 @@ grounding-new/
 └── dist/
 ```
 
-A read-only viewer for `testcases/`, implemented with TypeScript, React, Rsbuild, and Hono. It reads each case's `index.json` and original image directly, using only the current testcase schema. There are no review, comment, edit, or write APIs, and no UI component library.
+A read-only viewer for `testcases/`, implemented with TypeScript, React, Rsbuild, Hono, and Recharts. It reads each case's `index.json` and original image directly, using only the current testcase schema. There are no review, comment, edit, or write APIs, and no UI component library.
 
-查看器使用 TypeScript、React、Rsbuild 和 Hono，直接读取 `testcases/` 中的当前格式数据及原始图片，仅提供只读浏览与筛选。
+查看器使用 TypeScript、React、Rsbuild、Hono 和 Recharts，直接读取 `testcases/` 中的当前格式数据及原始图片，仅提供只读浏览与筛选。
 
 The interface uses English throughout. The header has the brand on the first row, Testcases and Evaluations navigation tabs on the second row, and filters below the tabs where available. Original testcase content, including both instruction languages, is displayed unchanged.
 
@@ -91,6 +91,10 @@ Evaluations are read recursively from `evaluation/output/<evaluation-id>/<model-
 Model cards also show geometric means of token-based estimated duration and total cost, calculated per testcase before averaging. Exact model references come from `viewer/src/metadata/model-cost.ts`: prices use the OpenRouter page header's IN / OUT PRICE, while throughput and TTFT use the two independent P50 best cards. The performance values may come from different providers; this comparison baseline is not one provider's invoice or service plan. Estimated duration is `calls × TTFT + max(completionTokens − calls, 0) / outputTokensPerSecond` (seconds). Input cost is `promptTokens × inputPerToken`; output cost is `completionTokens × outputPerToken`; total cost adds these two amounts per testcase before averaging. The geometric mean of total cost is not the sum of the two geometric means. Costs use USD with six decimals, without cache discounts, long-context premiums, or provider-specific adjustments. Missing usage, unknown models, and mixed-model records are excluded. Each estimate shows its sample count; all outcomes with valid usage are eligible, including recorded usage from failed attempts. Cards show the reference rates, performance values, and snapshot date. OpenRouter P50 values are traffic observations; completion tokens do not separate reasoning, so estimated duration may overlap reasoning already included in TTFT. These averages of estimates are not measured means or P50 latency.
 
 模型卡片还展示基于 Token 的估算耗时和总费用的几何平均，先逐题计算再求几何平均。按模型名称精确匹配 `viewer/src/metadata/model-cost.ts`：价格统一取 OpenRouter 页首 IN / OUT PRICE，吞吐量和 TTFT 分别取两个 P50 best 卡片，两项性能数据可能来自不同供应商，仅作为统一比较基准。估算耗时为 `调用次数 × TTFT + max(输出 Token − 调用次数, 0) / 输出吞吐量`（秒）。输入费用为 `输入 Token × 输入单价`，输出费用为 `输出 Token × 输出单价`，每题先将两部分相加得到总费用再求平均；总费用的几何平均不等于两部分几何平均之和。费用以 USD 保留六位小数，不计缓存折扣、长上下文加价和供应商差异。缺少用量、未知模型或混合模型调用不参与估算。各项估算分别显示有效样本数，所有结果类型的有效用量均参与，包括失败尝试已记录的用量。卡片标明参考单价、性能值和快照日期。OpenRouter P50 是流量观测值，输出 Token 未拆分推理部分，粗估耗时可能与 TTFT 中的推理时间重叠；这些估算值的平均不能视作实测平均或 P50 延时。
+
+Each expanded evaluation includes a model performance scatter plot above its model cards. Speed (pass/min) is `pass rate / average estimated duration in minutes`; cost efficiency (pass/$) is `pass rate / average estimated cost in USD`. Both use the cards' unrounded geometric means. Both axes count passed testcases, weighting by pass rate. Higher values are better on both axes. Models without valid duration or cost estimates are omitted, while a zero pass rate remains a valid point. The Recharts plot labels each model directly and shows exact values on hover. Use the legend buttons to show or hide models. Chart interactions never navigate away; open result details from the model cards below. Hiding a model preserves the axis scales and never changes any metrics. The chart updates with the evaluation every five seconds.
+
+每个展开的评测在模型卡片上方展示模型表现散点图。横轴 Speed（pass/min）为「通过率 ÷ 平均估算耗时（分钟）」，纵轴 Cost efficiency（pass/$）为「通过率 ÷ 平均估算费用（美元）」，均复用卡片中未四舍五入的几何平均值。两轴均按通过率加权，分别表示每分钟和每美元可通过的用例数，数值越大越好。缺少有效耗时或费用估算的模型不绘制，通过率为零的模型仍正常显示。Recharts 图表直接标注模型名称，悬浮时显示详细数值。图例按钮可显示或隐藏模型，图表内的交互不跳转页面；详情通过下方模型卡片打开。隐藏模型不改变坐标轴范围或任何统计数值。图表随评测数据每五秒自动更新。
 
 The server binds to `127.0.0.1` and serves testcase records and original images without modifying their files.
 

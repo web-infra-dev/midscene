@@ -9,6 +9,7 @@ import {
 import { createRoot } from 'react-dom/client';
 import { DetailsPanel } from './components/DetailsPanel';
 import { Filters as FilterBar } from './components/Filters';
+import { ModelPerformanceChart } from './components/ModelPerformanceChart';
 import { ResultPanel, ResultStatus } from './components/ResultPanel';
 import { ScreenshotPanel } from './components/ScreenshotPanel';
 import { modelCosts } from './metadata/model-cost';
@@ -151,144 +152,168 @@ function ModelCards({
     [results],
   );
 
+  const performancePoints = modelSummaries.flatMap(
+    ({ model, count, passed, estimatedDuration, estimatedCost }) =>
+      estimatedDuration.geometricMean !== null &&
+      estimatedCost.geometricMean !== null
+        ? [
+            {
+              model,
+              speed:
+                passed / count / (estimatedDuration.geometricMean / 60_000),
+              costEfficiency: passed / count / estimatedCost.geometricMean,
+            },
+          ]
+        : [],
+  );
+
   return modelSummaries.length ? (
-    <div className="model-grid">
-      {modelSummaries.map(
-        ({
-          model,
-          reference,
-          count,
-          passed,
-          totalTokens,
-          inputTokens,
-          outputTokens,
-          duration,
-          estimatedDuration,
-          estimatedCost,
-          first,
-        }) => (
-          <a
-            key={model}
-            className="model-card"
-            href={`${evaluationPath}/${encodeURIComponent(first.id)}`}
-          >
-            <div className="model-card-heading">
-              <strong>{model}</strong>
-              <span>View details →</span>
-            </div>
-            <div className="model-card-pass-rate">
-              <span>Pass rate</span>
-              <strong>{((passed / count) * 100).toFixed(1)}%</strong>
-              <small>
-                {passed} / {count} passed
-              </small>
-            </div>
-            <table className="model-card-metrics">
-              <thead>
-                <tr>
-                  <th scope="col">Metric</th>
-                  <th scope="col">Average</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  {
-                    label: 'Total tokens',
-                    values: totalTokens,
-                    unit: 'tokens',
-                    note: 'Geometric mean of total tokens per test case, not the sum of the input and output token averages. Only positive values are included.',
-                  },
-                  {
-                    label: 'Input tokens',
-                    values: inputTokens,
-                    unit: 'tokens',
-                    note: 'Geometric mean of input tokens per test case. Only positive values are included.',
-                  },
-                  {
-                    label: 'Output tokens',
-                    values: outputTokens,
-                    unit: 'tokens',
-                    note: 'Geometric mean of output tokens per test case. Only positive values are included.',
-                  },
-                  {
-                    label: 'Estimated duration',
-                    values: estimatedDuration,
-                    unit: 'seconds',
-                    note: 'Estimated from output tokens: calls × time to first token + max(output tokens − calls, 0) ÷ output throughput. Assumes sequential calls; excludes records with missing usage or model reference data.',
-                  },
-                  {
-                    label: 'Estimated cost (USD)',
-                    values: estimatedCost,
-                    unit: 'USD',
-                    note: 'Input tokens × input price + output tokens × output price, calculated per test case before taking the geometric mean. Excludes cache discounts and records with missing usage or pricing.',
-                  },
-                  {
-                    label: 'Measured duration',
-                    values: duration,
-                    unit: 'seconds',
-                    note: 'Geometric mean of end-to-end execution time. Only positive values are included.',
-                  },
-                ].map(({ label, values, unit, note }) => (
-                  <tr key={label} title={note}>
-                    <th scope="row">
-                      {label}
-                      <small>
-                        {values.count} / {count} valid{' '}
-                        {count === 1 ? 'result' : 'results'}
-                      </small>
-                    </th>
-                    <td>
-                      {values.geometricMean === null
-                        ? '—'
-                        : unit === 'seconds'
-                          ? `${(values.geometricMean / 1000).toFixed(2)} s`
-                          : unit === 'USD'
-                            ? `$${values.geometricMean.toFixed(6)}`
-                            : values.geometricMean.toLocaleString('en-US', {
-                                maximumFractionDigits: 0,
-                              })}
-                    </td>
+    <>
+      <ModelPerformanceChart
+        points={performancePoints}
+        modelCount={modelSummaries.length}
+      />
+      <div className="model-grid">
+        {modelSummaries.map(
+          ({
+            model,
+            reference,
+            count,
+            passed,
+            totalTokens,
+            inputTokens,
+            outputTokens,
+            duration,
+            estimatedDuration,
+            estimatedCost,
+            first,
+          }) => (
+            <a
+              key={model}
+              className="model-card"
+              href={`${evaluationPath}/${encodeURIComponent(first.id)}`}
+            >
+              <div className="model-card-heading">
+                <strong>{model}</strong>
+                <span>View details →</span>
+              </div>
+              <div className="model-card-pass-rate">
+                <span>Pass rate</span>
+                <strong>{((passed / count) * 100).toFixed(1)}%</strong>
+                <small>
+                  {passed} / {count} passed
+                </small>
+              </div>
+              <table className="model-card-metrics">
+                <thead>
+                  <tr>
+                    <th scope="col">Metric</th>
+                    <th scope="col">Average</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="model-card-estimate-note">
-              <p>
-                Averages use the geometric mean of finite, positive values.
-                Duration and cost estimates are calculated per test case before
-                averaging.
-              </p>
-              {reference ? (
-                <>
+                </thead>
+                <tbody>
+                  {[
+                    {
+                      label: 'Total tokens',
+                      values: totalTokens,
+                      unit: 'tokens',
+                      note: 'Geometric mean of total tokens per test case, not the sum of the input and output token averages. Only positive values are included.',
+                    },
+                    {
+                      label: 'Input tokens',
+                      values: inputTokens,
+                      unit: 'tokens',
+                      note: 'Geometric mean of input tokens per test case. Only positive values are included.',
+                    },
+                    {
+                      label: 'Output tokens',
+                      values: outputTokens,
+                      unit: 'tokens',
+                      note: 'Geometric mean of output tokens per test case. Only positive values are included.',
+                    },
+                    {
+                      label: 'Estimated duration',
+                      values: estimatedDuration,
+                      unit: 'seconds',
+                      note: 'Estimated from output tokens: calls × time to first token + max(output tokens − calls, 0) ÷ output throughput. Assumes sequential calls; excludes records with missing usage or model reference data.',
+                    },
+                    {
+                      label: 'Estimated cost (USD)',
+                      values: estimatedCost,
+                      unit: 'USD',
+                      note: 'Input tokens × input price + output tokens × output price, calculated per test case before taking the geometric mean. Excludes cache discounts and records with missing usage or pricing.',
+                    },
+                    {
+                      label: 'Measured duration',
+                      values: duration,
+                      unit: 'seconds',
+                      note: 'Geometric mean of end-to-end execution time. Only positive values are included.',
+                    },
+                  ].map(({ label, values, unit, note }) => (
+                    <tr key={label} title={note}>
+                      <th scope="row">
+                        {label}
+                        <small>
+                          {values.count} / {count} valid{' '}
+                          {count === 1 ? 'result' : 'results'}
+                        </small>
+                      </th>
+                      <td>
+                        {values.geometricMean === null
+                          ? '—'
+                          : unit === 'seconds'
+                            ? `${(values.geometricMean / 1000).toFixed(2)} s`
+                            : unit === 'USD'
+                              ? `$${values.geometricMean.toFixed(6)}`
+                              : values.geometricMean.toLocaleString('en-US', {
+                                  maximumFractionDigits: 0,
+                                })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="model-card-estimate-note">
+                <p>
+                  Averages use the geometric mean of finite, positive values.
+                  Duration and cost estimates are calculated per test case
+                  before averaging.
+                </p>
+                {reference ? (
+                  <>
+                    <p>
+                      Performance: {reference.source} best P50 · TTFT{' '}
+                      {(
+                        reference.performance.timeToFirstTokenMs / 1000
+                      ).toFixed(2)}{' '}
+                      s · {reference.performance.outputTokensPerSecond} tokens/s
+                      ({reference.observedAt.slice(0, 10)})
+                    </p>
+                    <p>
+                      Pricing: OpenRouter listed rates · Input $
+                      {reference.pricing.inputPerToken * 1_000_000} / Output $
+                      {reference.pricing.outputPerToken * 1_000_000} per million
+                      tokens
+                    </p>
+                    <p>
+                      Best P50 values are selected independently and may come
+                      from different providers. Costs exclude cache discounts
+                      and long-context surcharges. Duration estimates use all
+                      output tokens; reasoning time may overlap with time to
+                      first token.
+                    </p>
+                  </>
+                ) : (
                   <p>
-                    Performance: {reference.source} best P50 · TTFT{' '}
-                    {(reference.performance.timeToFirstTokenMs / 1000).toFixed(
-                      2,
-                    )}{' '}
-                    s · {reference.performance.outputTokensPerSecond} tokens/s (
-                    {reference.observedAt.slice(0, 10)})
+                    No pricing or performance reference data for this model.
                   </p>
-                  <p>
-                    Pricing: OpenRouter listed rates · Input $
-                    {reference.pricing.inputPerToken * 1_000_000} / Output $
-                    {reference.pricing.outputPerToken * 1_000_000} per million
-                    tokens
-                  </p>
-                  <p>
-                    Best P50 values are selected independently and may come from
-                    different providers. Costs exclude cache discounts and
-                    long-context surcharges. Duration estimates use all output
-                    tokens; reasoning time may overlap with time to first token.
-                  </p>
-                </>
-              ) : (
-                <p>No pricing or performance reference data for this model.</p>
-              )}
-            </div>
-          </a>
-        ),
-      )}
-    </div>
+                )}
+              </div>
+            </a>
+          ),
+        )}
+      </div>
+    </>
   ) : (
     <p className="list-empty">No results for this evaluation yet.</p>
   );
