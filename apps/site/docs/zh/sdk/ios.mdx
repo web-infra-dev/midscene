@@ -1,0 +1,241 @@
+# iOS JavaScript SDK
+
+`@midscene/ios` 通过 WebDriverAgent（WDA）控制 iOS 设备。`IOSAgent` 继承基础 `Agent` 的 [AI 方法](../reference/#interaction-methods)。
+
+## 导入与 API 概览
+
+```typescript
+import { IOSAgent, IOSDevice, agentFromWebDriverAgent } from '@midscene/ios';
+```
+
+日常使用推荐通过工厂函数 `agentFromWebDriverAgent()` 一步完成 Device 的创建与连接；如果需要分别管理 Device 和 Agent 的初始化过程，也可以显式构造 `IOSDevice` 与 `IOSAgent`。
+
+<a id="使用-javascript-sdk"></a>
+
+<a id="ios-快速开始"></a>
+
+<a id="ios-自定义-host-与端口"></a>
+
+## `agentFromWebDriverAgent()`
+
+```typescript
+agentFromWebDriverAgent(options?: IOSAgentOpt & IOSDeviceOpt): Promise<IOSAgent>
+```
+
+连接 WebDriverAgent 并返回绑定了该 Device 的 `IOSAgent`。`options` 同时接受 Agent 配置与 Device 配置。注意：`wdaBaseUrl` 不能与 `wdaHost` 或 `wdaPort` 同时传入。
+
+```typescript
+const agent = await agentFromWebDriverAgent({ wdaHost: 'localhost', wdaPort: 8100 });
+```
+
+<a id="agentfromwebdriveragent"></a>
+
+可通过 `MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE` 设置设备类覆盖模块。工厂函数中显式传入的 `iOSDeviceClassOverride` 优先于环境变量。
+
+<a id="iosdevice"></a>
+
+<a id="iosagent"></a>
+
+## `IOSDevice` / `IOSAgent`
+
+```typescript
+new IOSDevice(options?: IOSDeviceOpt)
+new IOSAgent(device: IOSDevice, options?: IOSAgentOpt)
+```
+
+显式实例化 `IOSDevice` 时，必须先调用 `await device.connect()` 完成连接，再将其传给 `IOSAgent`。每个 Device 实例只能归属于一个 Agent。
+
+```typescript
+const device = new IOSDevice({ wdaHost: 'localhost', wdaPort: 8100 });
+await device.connect();
+const agent = new IOSAgent(device);
+```
+
+<a id="自定义动作"></a>
+<a id="api-参考与更多资源"></a>
+
+## 配置选项
+
+### Agent 配置
+
+支持所有[通用 Agent 配置](../reference/#agent-options)，并额外提供以下平台配置：
+
+- `appNameMapping?: Record<string, string>` —— 将应用名称映射为对应的 iOS Bundle ID，方便在 `launch()`、`terminate()` 或自然语言指令中直接使用应用名称。用户传入的映射会覆盖内置映射。
+
+### Device 配置
+
+- `wdaPort?: number` —— WebDriverAgent 服务端口。默认值：`8100`。
+- `wdaHost?: string` —— WebDriverAgent 服务主机地址。默认值：`'localhost'`。
+- `wdaBaseUrl?: string` —— 完整的 HTTP(S) WDA API 基础地址（可包含网关路径前缀）。不能与 `wdaHost` 或 `wdaPort` 同时设置。
+- `iOSDeviceClassOverride?: string` —— 自定义 npm 模块路径，用于在调用 `agentFromWebDriverAgent()` 或启动 iOS Playground 时替换默认的 `IOSDevice` 实现。目标模块需导出同名类 `IOSDevice` 或默认导出（`default`）类。
+- `sessionId?: string` —— 复用已有的 WebDriverAgent session ID。传入后，Midscene 会跳过新建 WDA session；销毁时也仅与该外部 session 解绑，不会将其删除。
+- `wdaMjpegPort?: number` —— WDA MJPEG 实时画面流端口。默认值：`9100`。
+- `wdaMjpegUrl?: string` —— 完整的 HTTP(S) MJPEG 画面流地址（可包含网关路径或查询参数）。不能与 `wdaMjpegPort` 同时设置。
+- `wdaMjpegFrameSource?: { enabled?: boolean }` —— 是否将 WDA 的 MJPEG 画面流作为 `agent.startObserving()` 的连续帧源。默认关闭；关闭时，观察器会回退为按序调用 `screenshotBase64()` 截图。
+- `autoDismissKeyboard?: boolean` —— 文本输入完成后是否自动收起软键盘。默认值：`true`。
+- `keyboardTypeDelay?: number` —— 按键之间的延迟（单位：毫秒，须为有限非负数）。设为正数时，`'legacy'` 输入模式会通过 WDA 的 `/wda/keys` 接口逐个 Unicode 码点发送字符，适用于输入框因输入过快而丢字的场景。
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。默认值为 `'legacy'`：
+  - `'sequential'`：按每个 Unicode 码点调用一次 WDA 接口；如需配合 `keyboardTypeDelay` 延迟输入，请使用此策略。
+  - `'bulk'`：整段文本仅调用一次 WDA 文本接口；使用此策略时，不能设置 `keyboardTypeDelay`（或须将其设为 `0`）。
+- `customActions?: DeviceAction<any>[]` —— 注册自定义动作，供 Agent 在规划时调用。可传入 `IOSDevice` 构造函数或 `agentFromWebDriverAgent()`，定义方式请参阅[自定义动作](../integrate-with-any-interface)。
+
+## 平台方法
+
+<a id="ios-agentlaunch"></a>
+
+### `launch()`
+
+打开网页、启动原生应用或触发自定义 URL Scheme。
+
+```ts
+function launch(target: string): Promise<void>;
+```
+
+- `target: string` —— 网页 URL、应用的 Bundle ID、自定义 URL Scheme（如 `tel:`、`mailto:`），或应用名称。如果传入的应用名称存在于 `appNameMapping` 中，Midscene 会先将其解析为对应的 Bundle ID，否则直接按传入的 `target` 启动。
+
+```ts
+await agent.launch('https://www.apple.com');
+await agent.launch('com.apple.Preferences');
+await agent.launch('myapp://profile/user/123');
+await agent.launch('tel:+1234567890');
+```
+
+<a id="ios-agentterminate"></a>
+
+### `terminate()`
+
+根据 Bundle ID 关闭正在运行的 iOS 应用。
+
+```ts
+function terminate(bundleId: string): Promise<void>;
+```
+
+- `bundleId: string` —— 目标应用的 Bundle ID（如 `com.apple.Preferences`）或应用名称。如果传入的应用名称存在于 `appNameMapping` 中，Midscene 会将其解析为对应的 Bundle ID。
+
+```ts
+await agent.terminate('com.apple.Preferences');
+await agent.terminate('com.apple.mobilesafari');
+```
+
+<a id="ios-agentrunwdarequest"></a>
+
+### `runWdaRequest()`
+
+需要底层控制时，可直接向 WebDriverAgent REST 接口发送原始请求。
+
+```ts
+function runWdaRequest(params: {
+  method: 'GET' | 'POST' | 'DELETE' | 'PUT';
+  endpoint: string;
+  data?: Record<string, any>;
+}): Promise<any>;
+```
+
+- `params.method` —— HTTP 请求方法，支持 `'GET'`、`'POST'`、`'DELETE'` 和 `'PUT'`。
+- `params.endpoint` —— WebDriverAgent 接口路径。
+- `params.data` —— 可选的 JSON 请求体。
+
+```ts
+const screen = await agent.runWdaRequest({
+  method: 'GET',
+  endpoint: '/wda/screen',
+});
+```
+
+如果直接在 `IOSDevice` 实例上调用 `device.runWdaRequest()`，请使用位置参数形式：`runWdaRequest(method, endpoint, data?)`。
+
+<a id="ios-应用间导航"></a>
+
+### 系统导航
+
+- `agent.home(): Promise<void>` —— 返回主屏幕。
+- `agent.appSwitcher(): Promise<void>` —— 打开应用切换器（多任务界面）。
+
+<a id="隐藏键盘"></a>
+
+### `device.hideKeyboard()`
+
+```typescript
+device.hideKeyboard(keyNames?: string[]): Promise<boolean>
+```
+
+收起软键盘，并返回是否成功收起。显式调用此方法时，如果底层 WDA 请求失败，会直接抛出错误。
+
+默认情况下（`autoDismissKeyboard: true`），每次文本输入完成后，Midscene 都会尝试定位标准的 iOS 键盘辅助工具栏（Input Accessory Bar），点击其中的收起按钮，并等待 WebDriverAgent 确认键盘已隐藏。部分键盘（如 iPhone 数字键盘）本身没有提供收起按钮；如果未能安全识别工具栏、键盘仍处于可见状态或收起请求失败，Midscene 不会将本次文本输入判为失败，而是仅记录一条警告日志。
+
+如果自动收起键盘后紧接着执行 `Enter`、`Return` 或 `Tab` 按键动作，Midscene 会在发送按键前自动将焦点恢复到原输入框一次；若期间穿插了其他点击、触控、系统导航、自定义动作或新的文本输入，该待恢复焦点会被清除。
+
+:::warning
+应用自定义的键盘辅助工具栏上可能包含「保存」「提交」等业务按钮。为避免误触，Midscene 会拒绝点击不符合标准 iOS「左侧导航、右侧收起」布局的工具栏。如果目标应用使用了自定义工具栏，请将 `autoDismissKeyboard` 设为 `false`，并在输入完成后显式调用 `hideKeyboard()`，传入收起按钮稳定的无障碍名称（Accessibility Name）。
+:::
+
+```typescript
+const device = new IOSDevice({
+  autoDismissKeyboard: false,
+});
+await device.connect();
+
+// 输入完成后，显式点击自定义键盘上的收起按钮
+await device.hideKeyboard(['Close Keyboard']);
+```
+
+<a id="ios-device-destroy"></a>
+
+## 生命周期
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+调用 `agent.destroy()` 时，Agent 会等待进行中的操作结束，调用底层 Device 的 `destroy()`，并完成报告写入。切勿让多个 Agent 共用同一个 Device 实例，也不要在销毁后复用该 Device。
+
+在 iOS 平台上，`device.destroy()` 会停止 MJPEG 帧源，销毁由 Midscene 创建的 WDA session，并停止 WDA 管理器（通过 `sessionId` 传入的外部 session 仅做解绑，不会被删除）。Device 清理过程中的异常会记录到日志中。
+
+## 问题排查
+
+<a id="如何自定义-webdriveragent-的端口和-host"></a>
+
+### 如何自定义 WebDriverAgent 的端口和主机地址？
+
+可以通过 `agentFromWebDriverAgent()` 或 `IOSDevice` 构造函数指定自定义的 `wdaPort` 和 `wdaHost`：
+
+```typescript
+// 方式一：通过工厂函数传入（推荐）
+const agent = await agentFromWebDriverAgent({
+  wdaPort: 8100,            // 自定义端口
+  wdaHost: '192.168.1.100', // 自定义主机地址
+});
+
+// 方式二：通过 IOSDevice 构造函数传入
+const device = new IOSDevice({
+  wdaPort: 8100,
+  wdaHost: '192.168.1.100',
+});
+```
+
+连接真机或远程设备时，还需提前配置相应的端口转发：
+
+```bash
+iproxy 8100 8100 YOUR_DEVICE_ID
+```
+
+如果通过网关代理访问 WDA，且地址带有路径前缀，请改用 `wdaBaseUrl` 传入完整的 API 基础地址：
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+});
+```
+
+Midscene 会在该地址后拼接 `/status`、`/session` 等会话接口路径。`wdaBaseUrl` 与 `wdaHost` / `wdaPort` 只能二选一，同时设置会抛出错误。
+
+注意，`wdaBaseUrl` 仅作用于 WDA API 请求；MJPEG 画面流默认仍会连接 `http://localhost:9100`。如果网关同时也代理了画面流，请额外配置 `wdaMjpegUrl`：
+
+```typescript
+const agent = await agentFromWebDriverAgent({
+  wdaBaseUrl: 'https://gateway.example/device/wda',
+  wdaMjpegUrl: 'https://gateway.example/device/mjpeg',
+});
+```
+
+`wdaMjpegUrl` 需为完整的 HTTP(S) 地址（可包含独立的域名、端口、路径和查询参数，但不支持包含用户名密码或 URL hash 片段），且不能与 `wdaMjpegPort` 同时设置。若使用本地端口转发，保持 `wdaMjpegUrl` 为空并通过 `wdaMjpegPort`（默认 `9100`）指定端口即可。当 MJPEG 画面流不可用时，Playground 会自动回退为截图轮询模式。

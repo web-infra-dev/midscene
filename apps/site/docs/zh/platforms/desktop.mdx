@@ -1,14 +1,10 @@
-import SetupEnv from '../common/setup-env.mdx';
-
-import { PackageManagerTabs } from '@theme';
-
 # 桌面端
 
 Midscene 通过原生键盘和鼠标控制，在 Windows、macOS 和 Linux 上自动化桌面应用。它支持鼠标与键盘输入、屏幕截图和多显示器。
 
 它适用于测试 Electron、Qt 和原生应用，也可以自动化跨应用工作流。
 
-本指南介绍平台配置、模型配置、Playground 体验，以及 `@midscene/computer` 的 JavaScript SDK 集成。
+本指南介绍环境准备、设备连接和 Playground 体验。编写脚本请参阅 [桌面端 JavaScript SDK 指南](../sdk/desktop)。
 
 ## 效果展示
 
@@ -49,7 +45,7 @@ const agent = await agentForComputer({ headless: true });
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](../reference/#desktop)。
+Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](../sdk/desktop)。
 
 ### 启动 Playground
 
@@ -65,231 +61,41 @@ npx --yes @midscene/computer-playground
 
 ## 使用 JavaScript SDK
 
-当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
+<a id="配置模型" />
+<a id="安装依赖" />
+<a id="编写脚本" />
+<a id="运行脚本" />
 
-### 配置模型
-
-<SetupEnv />
-
-### 安装依赖
-
-<PackageManagerTabs command="install @midscene/computer" />
-
-### 编写脚本
-
-创建 `example.ts`：
-
-```typescript
-import { agentForComputer } from '@midscene/computer';
-
-(async () => {
-  // 创建 agent
-  const agent = await agentForComputer({
-    aiContexts: {
-      aiAct: '你正在控制一台桌面计算机。',
-    },
-  });
-
-  // 截图并查询信息
-  const screenInfo = await agent.aiQuery(
-    '{width: number, height: number}, 获取屏幕分辨率'
-  );
-  console.log('屏幕分辨率:', screenInfo);
-
-  // 移动鼠标到中心
-  await agent.aiAct('将鼠标移动到屏幕中心');
-
-  // 断言屏幕有内容
-  await agent.aiAssert('屏幕有可见内容');
-
-  console.log('桌面自动化完成！');
-})();
-```
-
-关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
-
-### 运行脚本
-
-```bash
-npx tsx example.ts
-```
-
-脚本运行结束后，你应该能在控制台看到 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开生成的 HTML 文件，即可回放每次交互、查询和断言。
+请参阅 [桌面端 JavaScript SDK 指南](../sdk/desktop#使用-javascript-sdk)。
 
 ## 自定义动作
 
-使用 `defineAction()` 定义自定义动作。使用 `agentForComputer()` 构造 Agent 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
-
-```typescript
-import { getMidsceneLocationSchema, z } from '@midscene/core';
-import { defineAction } from '@midscene/core/device';
-import { agentForComputer } from '@midscene/computer';
-
-const ContinuousClick = defineAction({
-  name: 'continuousClick',
-  description: 'Click the same target repeatedly',
-  paramSchema: z.object({
-    locate: getMidsceneLocationSchema(),
-    count: z.number().int().positive().describe('How many times to click'),
-  }),
-  async call(param) {
-    console.log('click target center', param.locate.center);
-    console.log('click count', param.count);
-    // Carry out your clicking logic using locate + count.
-  },
-});
-
-const agent = await agentForComputer({
-  customActions: [ContinuousClick],
-});
-
-await agent.aiAct('click the red button five times');
-```
+请参阅 [桌面端 JavaScript SDK 指南](../sdk/desktop#自定义动作)。
 
 ## 通过 RDP 连接远程 Windows 桌面
 
-`@midscene/computer` 也可以通过专用的 `agentForRDPComputer()` 工厂，直接经由 RDP 协议控制远程 Windows 桌面。
+<a id="前提条件" />
+<a id="示例" />
+<a id="常用-rdp-选项" />
 
-### 前提条件
-
-1. 一台已开启 RDP 且网络可达的 Windows 机器。
-2. 在运行脚本的机器上安装 [FreeRDP](https://www.freerdp.com/)。
-
-### 示例
-
-```typescript
-import { agentForRDPComputer } from '@midscene/computer';
-
-const agent = await agentForRDPComputer({
-  aiContexts: {
-    aiAct: 'You are controlling a remote Windows desktop over the RDP protocol.',
-  },
-  host: '10.75.166.249',
-  port: 3389,
-  username: 'Admin',
-  password: 'replace-with-your-password',
-  ignoreCertificate: true,
-});
-
-await agent.aiWaitFor('The remote Windows desktop is visible');
-await agent.aiAct('Click the Windows Start button');
-await agent.aiAct('Open Settings');
-await agent.aiAssert('The Windows Settings window is visible');
-```
-
-关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
-
-### 常用 RDP 选项
-
-- `host`：远程 Windows 主机名或 IP。
-- `port`：RDP 端口，默认是 `3389`。
-- `username` / `password`：远程会话使用的账号凭据。
-- `domain`：可选的 Windows 域。
-- `ignoreCertificate`：用于跳过自签名证书校验。
-- `desktopWidth` / `desktopHeight`：请求指定远程桌面分辨率。
-- `adminSession`：当服务端允许时，请求远程管理员会话。
-
-对于 Midscene 来说，一个 RDP 会话会被视为单个远程显示器。你仍然可以像本机桌面自动化一样，使用 `aiAct`、`aiQuery`、`aiAssert` 和报告能力。
+请参阅 [桌面端 JavaScript SDK 指南](../sdk/desktop#通过-rdp-连接远程-windows-桌面)。
 
 ## 多显示器支持
 
-如果您有多个显示器，可以控制特定的显示器：
-
-```typescript
-import { ComputerDevice, agentForComputer } from '@midscene/computer';
-
-// 列出所有显示器
-const displays = await ComputerDevice.listDisplays();
-console.log('可用显示器:', displays);
-
-// 连接到特定显示器
-const agent = await agentForComputer({
-  displayId: displays[0].id,
-});
-```
+请参阅 [桌面端 JavaScript SDK 指南](../sdk/desktop#多显示器支持)。
 
 ## 使用示例
 
-### 基本鼠标操作
+<a id="基本鼠标操作" />
+<a id="键盘操作" />
+<a id="查询信息" />
+<a id="复杂工作流" />
 
-```typescript
-// 在屏幕中心点击
-await agent.aiAct('在屏幕中心点击鼠标');
-
-// 移动鼠标到特定位置
-await agent.aiAct('将鼠标移动到左上角');
-
-// 双击
-await agent.aiAct('双击桌面图标');
-
-// 右键
-await agent.aiAct('右键打开上下文菜单');
-```
-
-### 键盘操作
-
-```typescript
-// 输入文本
-await agent.aiAct('输入 "你好世界"');
-
-// 按快捷键
-if (process.platform === 'darwin') {
-  await agent.aiAct('按 Cmd+Space 打开 Spotlight');
-  await agent.aiAct('输入 "计算器" 并按回车');
-} else {
-  await agent.aiAct('按 Windows 键');
-  await agent.aiAct('输入 "计算器" 并按回车');
-}
-
-// 按功能键
-await agent.aiAct('按 Escape');
-await agent.aiAct('按 Enter');
-```
-
-### 查询信息
-
-```typescript
-// 提取屏幕信息
-const info = await agent.aiQuery(
-  '{hasDesktop: boolean, visibleApps: string[]}, 检查桌面是否可见并列出可见应用'
-);
-
-// 定位元素
-const position = await agent.aiLocate('文件菜单');
-console.log('文件菜单位置:', position);
-```
-
-### 复杂工作流
-
-```typescript
-// 打开应用并与之交互
-await agent.aiAct('打开访达');
-await agent.aiWaitFor('访达窗口可见');
-
-await agent.aiAct('点击文稿文件夹');
-await agent.aiAct('按 Cmd+N 创建新文件夹');
-await agent.aiAct('输入 "我的项目"');
-await agent.aiAct('按回车');
-
-await agent.aiAssert('存在名为 "我的项目" 的文件夹');
-```
+请参阅 [桌面端 JavaScript SDK 指南](../sdk/desktop#使用示例)。
 
 ## 环境检查
 
-您可以检查系统是否正确配置：
-
-```typescript
-import { checkComputerEnvironment } from '@midscene/computer';
-
-const env = await checkComputerEnvironment();
-console.log('平台:', env.platform);
-console.log('可用:', env.available);
-console.log('显示器数量:', env.displays);
-
-if (!env.available) {
-  console.error('环境不可用:', env.error);
-}
-```
+请参阅 [桌面端 JavaScript SDK 指南](../sdk/desktop#环境检查)。
 
 ## 常见问题
 
@@ -327,12 +133,7 @@ MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 
 ## 更多
 
-- [API 参考](../reference/#desktop)
+- [API 参考](../sdk/desktop)
 - [使用 YAML 格式自动化脚本](../automate-with-scripts-in-yaml)
 - [YAML 脚本运行器](../yaml-script-runner)
 - [缓存提高效率](../caching)
-- 示例项目
-  - [JavaScript SDK 示例](https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo)
-  - [Vitest 示例](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
-  - [通过 RDP 控制远程 Windows 桌面](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
-  - [在无头 Linux CI 中测试 Obsidian](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)

@@ -1,14 +1,10 @@
-import SetupEnv from '../common/setup-env.mdx';
-
-import { PackageManagerTabs } from '@theme';
-
 # Desktop
 
 Midscene uses native keyboard and mouse controls to automate desktop applications on Windows, macOS, and Linux. It supports mouse and keyboard input, screenshots, and multiple displays.
 
 Use it to test Electron, Qt, and native applications, or to automate workflows across desktop applications.
 
-This guide covers platform setup, model configuration, Playground, and JavaScript SDK integration with `@midscene/computer`.
+This guide covers environment preparation, device connection, and Playground. To write scripts, see the [Desktop JavaScript SDK guide](../sdk/desktop).
 
 ## See it in action
 
@@ -49,7 +45,7 @@ const agent = await agentForComputer({ headless: true });
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](../reference/#desktop) for details.
+Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](../sdk/desktop) for details.
 
 ### Launch Playground
 
@@ -65,231 +61,41 @@ npx --yes @midscene/computer-playground
 
 ## Use the JavaScript SDK
 
-Once Playground works, move to a repeatable script with the JavaScript SDK.
+<a id="configure-the-model" />
+<a id="install-dependencies" />
+<a id="write-a-script" />
+<a id="run-the-script" />
 
-### Configure the model
-
-<SetupEnv />
-
-### Install dependencies
-
-<PackageManagerTabs command="install @midscene/computer" />
-
-### Write a script
-
-Create `example.ts`:
-
-```typescript
-import { agentForComputer } from '@midscene/computer';
-
-(async () => {
-  // Create an agent
-  const agent = await agentForComputer({
-    aiContexts: {
-      aiAct: 'You are controlling a desktop computer.',
-    },
-  });
-
-  // Take a screenshot and query information
-  const screenInfo = await agent.aiQuery(
-    '{width: number, height: number}, get screen resolution'
-  );
-  console.log('Screen resolution:', screenInfo);
-
-  // Move mouse to center
-  await agent.aiAct('move mouse to center of screen');
-
-  // Assert screen has content
-  await agent.aiAssert('The screen has visible content');
-
-  console.log('Desktop automation completed!');
-})();
-```
-
-For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
-
-### Run the script
-
-```bash
-npx tsx example.ts
-```
-
-After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
+See the [Desktop JavaScript SDK guide](../sdk/desktop#use-the-javascript-sdk).
 
 ## Custom actions
 
-Use `defineAction()` to define custom actions. When constructing the Agent with `agentForComputer()`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
-
-```typescript
-import { getMidsceneLocationSchema, z } from '@midscene/core';
-import { defineAction } from '@midscene/core/device';
-import { agentForComputer } from '@midscene/computer';
-
-const ContinuousClick = defineAction({
-  name: 'continuousClick',
-  description: 'Click the same target repeatedly',
-  paramSchema: z.object({
-    locate: getMidsceneLocationSchema(),
-    count: z.number().int().positive().describe('How many times to click'),
-  }),
-  async call(param) {
-    console.log('click target center', param.locate.center);
-    console.log('click count', param.count);
-    // Carry out your clicking logic using locate + count.
-  },
-});
-
-const agent = await agentForComputer({
-  customActions: [ContinuousClick],
-});
-
-await agent.aiAct('click the red button five times');
-```
+See the [Desktop JavaScript SDK guide](../sdk/desktop#custom-actions).
 
 ## Connect to a Remote Windows Desktop via RDP
 
-`@midscene/computer` can also drive a remote Windows desktop directly over the RDP protocol through the dedicated `agentForRDPComputer()` factory.
+<a id="prerequisites" />
+<a id="example" />
+<a id="common-rdp-options" />
 
-### Prerequisites
-
-1. A reachable Windows machine with RDP enabled.
-2. [FreeRDP](https://www.freerdp.com/) installed on the machine running your script.
-
-### Example
-
-```typescript
-import { agentForRDPComputer } from '@midscene/computer';
-
-const agent = await agentForRDPComputer({
-  aiContexts: {
-    aiAct: 'You are controlling a remote Windows desktop over the RDP protocol.',
-  },
-  host: '10.75.166.249',
-  port: 3389,
-  username: 'Admin',
-  password: 'replace-with-your-password',
-  ignoreCertificate: true,
-});
-
-await agent.aiWaitFor('The remote Windows desktop is visible');
-await agent.aiAct('Click the Windows Start button');
-await agent.aiAct('Open Settings');
-await agent.aiAssert('The Windows Settings window is visible');
-```
-
-For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
-
-### Common RDP Options
-
-- `host`: Remote Windows host or IP.
-- `port`: RDP port. Defaults to `3389`.
-- `username` / `password`: Account credentials for the remote session.
-- `domain`: Optional Windows domain.
-- `ignoreCertificate`: Skip certificate validation for self-signed setups.
-- `desktopWidth` / `desktopHeight`: Request a specific remote desktop resolution.
-- `adminSession`: Request the remote admin session when the server allows it.
-
-RDP sessions are exposed to Midscene as a single remote display. You can still use the same `aiAct`, `aiQuery`, `aiAssert`, and report features as local desktop automation.
+See the [Desktop JavaScript SDK guide](../sdk/desktop#connect-to-a-remote-windows-desktop-via-rdp).
 
 ## Multi-Display Support
 
-If you have multiple displays, you can control a specific one:
-
-```typescript
-import { ComputerDevice, agentForComputer } from '@midscene/computer';
-
-// List all displays
-const displays = await ComputerDevice.listDisplays();
-console.log('Available displays:', displays);
-
-// Connect to a specific display
-const agent = await agentForComputer({
-  displayId: displays[0].id,
-});
-```
+See the [Desktop JavaScript SDK guide](../sdk/desktop#multi-display-support).
 
 ## Example Usage
 
-### Basic Mouse Operations
+<a id="basic-mouse-operations" />
+<a id="keyboard-operations" />
+<a id="query-information" />
+<a id="complex-workflows" />
 
-```typescript
-// Click at center of screen
-await agent.aiAct('click mouse at center of screen');
-
-// Move mouse to a specific location
-await agent.aiAct('move mouse to top-left corner');
-
-// Double-click
-await agent.aiAct('double-click on the desktop icon');
-
-// Right-click
-await agent.aiAct('right-click to open context menu');
-```
-
-### Keyboard Operations
-
-```typescript
-// Type text
-await agent.aiAct('type "Hello World"');
-
-// Press keyboard shortcuts
-if (process.platform === 'darwin') {
-  await agent.aiAct('press Cmd+Space to open Spotlight');
-  await agent.aiAct('type "Calculator" and press Enter');
-} else {
-  await agent.aiAct('press Windows key');
-  await agent.aiAct('type "Calculator" and press Enter');
-}
-
-// Press function keys
-await agent.aiAct('press Escape');
-await agent.aiAct('press Enter');
-```
-
-### Query Information
-
-```typescript
-// Extract screen information
-const info = await agent.aiQuery(
-  '{hasDesktop: boolean, visibleApps: string[]}, check if desktop is visible and list visible apps'
-);
-
-// Locate elements
-const position = await agent.aiLocate('the File menu');
-console.log('File menu position:', position);
-```
-
-### Complex Workflows
-
-```typescript
-// Open an application and interact with it
-await agent.aiAct('open Finder');
-await agent.aiWaitFor('Finder window is visible');
-
-await agent.aiAct('click on Documents folder');
-await agent.aiAct('press Cmd+N to create new folder');
-await agent.aiAct('type "My Project"');
-await agent.aiAct('press Enter');
-
-await agent.aiAssert('A folder named "My Project" exists');
-```
+See the [Desktop JavaScript SDK guide](../sdk/desktop#example-usage).
 
 ## Environment Check
 
-You can check if your system is properly configured:
-
-```typescript
-import { checkComputerEnvironment } from '@midscene/computer';
-
-const env = await checkComputerEnvironment();
-console.log('Platform:', env.platform);
-console.log('Available:', env.available);
-console.log('Displays:', env.displays);
-
-if (!env.available) {
-  console.error('Environment not available:', env.error);
-}
-```
+See the [Desktop JavaScript SDK guide](../sdk/desktop#environment-check).
 
 ## FAQ
 
@@ -327,12 +133,7 @@ MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 
 ## More
 
-- [API Reference](../reference/#desktop)
+- [API Reference](../sdk/desktop)
 - [Use YAML format automation scripts](../automate-with-scripts-in-yaml)
 - [YAML script runner](../yaml-script-runner)
 - [Caching for efficiency](../caching)
-- Demo projects
-  - [JavaScript SDK demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo)
-  - [Vitest demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
-  - [Remote Windows desktop over RDP](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
-  - [Obsidian on headless Linux CI](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)

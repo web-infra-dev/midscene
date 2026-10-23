@@ -1,6 +1,6 @@
-# More platforms
+# Platform environment setup
 
-Midscene supports mobile devices, HarmonyOS devices, and desktop applications in addition to Web browsers. Choose a platform based on the target interface and its connection method.
+Midscene can control existing browsers through Chrome Bridge, as well as mobile devices, HarmonyOS devices, and desktop applications. Choose a platform based on the target interface and its connection method.
 
 Midscene uses a multimodal visual model to understand screenshots, so automation works with the rendered interface instead of depending on the underlying UI structure. The same approach applies to native apps and cross-platform technology stacks.
 
@@ -8,11 +8,12 @@ Midscene uses a multimodal visual model to understand screenshots, so automation
 
 | Platform | Package | Connection | Typical use |
 | --- | --- | --- | --- |
+| [Chrome Bridge](../bridge-mode) | `@midscene/web` | Chrome extension | Reuse desktop Chrome sessions and tabs |
 | [Android](./android) | `@midscene/android` | adb | Android apps and system interfaces |
 | [iOS](./ios) | `@midscene/ios` | WebDriverAgent | iOS apps and system interfaces |
 | [HarmonyOS](./harmonyos) | `@midscene/harmony` | HDC | HarmonyOS NEXT apps and system interfaces |
 | [Desktop](./desktop) | `@midscene/computer` | Native input or RDP | Windows, macOS, and Linux applications |
 
-Each guide covers platform capabilities, environment preparation, Playground, JavaScript integration, examples, and troubleshooting.
+Each guide covers environment preparation, connection troubleshooting, and a connection check or Playground experience. For JavaScript tests on mobile and desktop, we recommend [Vitest](../sdk/vitest). For workflows without a test framework, see [Standalone automation scripts](../sdk/standalone).
 
-Use the [API reference](../reference/) when you need constructor options, platform-specific methods, or shared Agent APIs.
+Use the [API reference](../reference/index.mdx) when you need constructor options, platform-specific methods, or shared Agent APIs.

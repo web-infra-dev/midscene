@@ -1,466 +1,166 @@
-import SetupEnv from './common/setup-env.mdx';
-import GetCdpUrl from './common/get-cdp-url.mdx';
-import { PackageManagerTabs } from '@theme';
+import SdkCommonMethods from './common/sdk-common-methods.mdx';
+import { SdkPrerequisites, PackageManagerTabs } from '@theme';
 
-# Integrate with Playwright
+# Integrate with Playwright Test
 
-[Playwright.js](https://playwright.com/) is an open-source automation library developed by Microsoft, mainly used for end-to-end testing and web scraping of web applications.
+With `PlaywrightAiFixture`, you can use Midscene's visual interaction and assertion capabilities directly in an existing Playwright Test project. Playwright Test organizes and runs the tests, while Midscene interacts with the page and generates execution reports.
 
-There are two ways to integrate with Playwright:
+## Before you begin
 
-- Directly integrate and call the Midscene Agent via script, suitable for quick prototyping, data scraping, and automation scripts.
-- Integrate Midscene into Playwright test cases, suitable for UI testing scenarios.
+<SdkPrerequisites lang="en" mode="playwright" />
 
-## Set up API keys for model
+## 1. Install dependencies and configure the project
 
-<SetupEnv />
+<PackageManagerTabs command="install @midscene/web dotenv --save-dev" />
 
-## Direct integration with Midscene agent
+Add the following configuration to your existing `playwright.config.ts`, while keeping your project's other settings and reporters:
 
-:::info Example Project
+```typescript title="playwright.config.ts"
+import 'dotenv/config';
+import { defineConfig } from '@playwright/test';
 
-You can find an example project of direct Playwright integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
-
-:::
-
-### Step 1: Install dependencies
-
-<PackageManagerTabs command="install @midscene/web playwright @playwright/test tsx --save-dev" />
-
-### Step 2: Write the script
-
-Save the following code as `./demo.ts`:
-
-```typescript
-import { chromium } from 'playwright';
-import { PlaywrightAgent } from '@midscene/web/playwright';
-import 'dotenv/config'; // read environment variables from .env file
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-Promise.resolve(
-  (async () => {
-    const browser = await chromium.launch({
-      headless: true, // 'true' means we can't see the browser window
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-
-    const page = await browser.newPage();
-    await page.setViewportSize({
-      width: 1280,
-      height: 768,
-    });
-    await page.goto('https://www.ebay.com');
-    await sleep(5000); // 👀 init Midscene agent
-    const agent = new PlaywrightAgent(page);
-
-    // 👀 type keywords, perform a search
-    await agent.aiAct('type "Headphones" in search box, hit Enter');
-
-    // 👀 wait for the loading
-    await agent.aiWaitFor('there is at least one headphone item on page');
-    // or you may use a plain sleep:
-    // await sleep(5000);
-
-    // 👀 understand the page content, find the items
-    const items = await agent.aiQuery(
-      '{itemTitle: string, price: Number}[], find item in list and corresponding price',
-    );
-    console.log('headphones in stock', items);
-
-    const isMoreThan1000 = await agent.aiBoolean(
-      'Is the price of the headphones more than 1000?',
-    );
-    console.log('isMoreThan1000', isMoreThan1000);
-
-    const price = await agent.aiNumber(
-      'What is the price of the first headphone?',
-    );
-    console.log('price', price);
-
-    const name = await agent.aiString(
-      'What is the name of the first headphone?',
-    );
-    console.log('name', name);
-
-    const location = await agent.aiLocate(
-      'What is the location of the first headphone?',
-    );
-    console.log('location', location);
-
-    // 👀 assert by AI
-    await agent.aiAssert('There is a category filter on the left');
-
-    // 👀 click on the first item
-    await agent.aiTap('the first item in the list');
-
-    await browser.close();
-  })(),
-);
-```
-
-For more Agent API details, please refer to [API Reference](./reference/#interaction-methods).
-
-### Step 3: Run the script
-
-Use `tsx` to run, and you will see the product information printed in the terminal:
-
-```bash
-# run
-npx tsx demo.ts
-
-# The terminal should output something like:
-#  [
-#   {
-#     itemTitle: 'JBL Tour Pro 2 - True wireless Noise Cancelling earbuds with Smart Charging Case',
-#     price: 551.21
-#   },
-#   {
-#     itemTitle: 'Soundcore Space One Wireless Headphones 40H ANC Playtime 2XStronger Voice',
-#     price: 543.94
-#   }
-# ]
-```
-
-### Step 4: View the run report
-
-After the above command executes successfully, it will output: `Midscene - report file updated: /path/to/report/some_id.html`. Open this file in your browser to view the report.
-
-## Integration in Playwright test cases
-
-Here we assume you already have a repository with Playwright integration.
-
-:::info Example Project
-
-You can find an example project of Playwright test integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
-
-:::
-
-### Step 1: Add dependencies and update configuration
-
-Add dependencies
-
-<PackageManagerTabs command="install @midscene/web --save-dev" />
-
-Update playwright.config.ts
-
-```diff
 export default defineConfig({
   testDir: './e2e',
-+ timeout: 90 * 1000,
-+ reporter: [["list"], ["@midscene/web/playwright-reporter", { type: "merged" }]], // type optional, default is "merged", means multiple test cases generate one report, optional value is "separate", means one report for each test case
+  timeout: 90_000,
+  use: { browserName: 'chromium' },
+  reporter: [
+    ['list'],
+    ['@midscene/web/playwright-reporter'],
+  ],
 });
 ```
 
-Reporter configuration options:
-- `type`: Report mode, can be `merged` (default) or `separate`. `merged` means multiple test cases generate one merged report, `separate` means each test case generates its own report.
-- `outputFormat`: Controls how the report is generated. `'single-html'` (default) embeds all screenshots as base64 in a single HTML file. `'html-and-external-assets'` saves screenshots as separate PNG files in a subdirectory, useful when report files are too large. **Note**: When using `'html-and-external-assets'`, reports must be served via HTTP server and cannot be opened directly using `file://` protocol (because browser CORS restrictions block loading local images via relative paths from the file protocol). Navigate to the report directory and run one of the following commands:
-  - Using Node.js: `npx serve`
-  - Using Python: `python -m http.server` or `python3 -m http.server`
+`dotenv/config` loads model settings from the project's `.env` file (settings in the Chrome extension Playground are not automatically shared with test runs). Because model calls take longer than standard DOM operations, increase `timeout` as needed for your tests.
 
-  Then access the report via `http://localhost:3000` (or the port shown in the terminal).
+## 2. Create a fixture {#step-2-extend-the-test-instance}
 
-### Step 2: Extend the `test` instance
+Create `e2e/fixture.ts` to extend Playwright's `test` with `PlaywrightAiFixture`:
 
-Save the following code as `./e2e/fixture.ts`:
-
-```typescript
+```typescript title="e2e/fixture.ts"
 import { test as base } from '@playwright/test';
-import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
-import { PlaywrightAiFixture } from '@midscene/web/playwright';
+import {
+  PlaywrightAiFixture,
+  type PlayWrightAiFixtureType,
+} from '@midscene/web/playwright';
 
 export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    waitForNetworkIdleTimeout: 2000, // optional, the timeout for waiting for network idle between each action, default is 2000ms
-    replanningCycleLimit: 30, // optional, override the default aiAct replanning cycle limit
-  }),
+  PlaywrightAiFixture(),
 );
 ```
 
-`PlaywrightAiFixture()` accepts all shared `PlaywrightAgent` options, so you can configure agent behavior like `replanningCycleLimit`, `waitAfterAction`, and `modelConfig` directly at fixture creation time. Fixture-managed metadata like `testId`, `reportFileName`, `groupName`, and `groupDescription` is still generated automatically.
+In tests that use Midscene, import `test` from `./fixture` while continuing to import `expect` from `@playwright/test`.
 
-### Step 3: Write test cases
+## 3. Write a test
 
-Review the full catalog of action, query, and utility methods in the [Agent API reference](./reference/#interaction-methods). When you need lower-level control, you can use `agentForPage` to obtain the underlying `PageAgent` instance and call any API directly:
-
-```typescript
-test('case demo', async ({ agentForPage, page }) => {
-  const agent = await agentForPage(page);
-
-  await agent.recordToReport();
-  const logContent = agent._unstableLogContent();
-  console.log(logContent);
-});
-```
-
-#### Example code
-
-```typescript title="./e2e/ebay-search.spec.ts"
+```typescript title="e2e/todo.spec.ts"
 import { expect } from '@playwright/test';
 import { test } from './fixture';
 
-test.beforeEach(async ({ page }) => {
-  page.setViewportSize({ width: 400, height: 905 });
-  await page.goto('https://www.ebay.com');
-  await page.waitForLoadState('networkidle');
-});
+test('add a todo', async ({ page, aiAct, aiAssert }) => {
+  await page.goto('https://todomvc.com/examples/react/dist/');
+  await expect(page).toHaveTitle(/TodoMVC/);
 
-test('search headphone on ebay', async ({
-  ai,
-  aiQuery,
-  aiAssert,
-  aiInput,
-  aiTap,
-  aiScroll,
-  aiWaitFor,
-  aiRightClick,
-  recordToReport,
-}) => {
-  // Use aiInput to enter search keyword
-  await aiInput('Headphones', 'search box');
-
-  // Use aiTap to click search button
-  await aiTap('search button');
-
-  // Wait for search results to load
-  await aiWaitFor('search results list loaded', { timeoutMs: 5000 });
-
-  // Use aiScroll to scroll to bottom
-  await aiScroll(
-    {
-      scrollType: 'untilBottom',
-    },
-    'search results list',
-  );
-
-  // Use aiQuery to get product information
-  const items = await aiQuery<Array<{ title: string; price: number }>>(
-    'get product titles and prices from search results',
-  );
-
-  console.log('headphones in stock', items);
-  expect(items?.length).toBeGreaterThan(0);
-
-  // Use aiAssert to verify filter functionality
-  await aiAssert('category filter exists on the left side');
-
-  // Use recordToReport to capture the current state
-  await recordToReport('Search Results', {
-    content: 'Final search results for headphones',
-  });
+  await aiAct('Add a todo named Try Midscene');
+  await aiAssert('The todo list contains Try Midscene');
 });
 ```
 
-For more Agent API details, please refer to [API Reference](./reference/#interaction-methods).
+You can combine Playwright's `page` and `expect` with Midscene's AI methods in the same test. In this example, Playwright opens the page and checks its title, while Midscene adds a todo item and asserts the result on the page. Beyond `aiAct` and `aiAssert`, the fixture also provides `aiTap`, `aiInput`, `aiQuery`, `aiWaitFor`, and more; see the [Agent API reference](./reference/index.mdx#interaction-methods).
 
-### Step 4. Run test cases
+## 4. Run the test and view the report
+
+(Optional) Verify your model configuration before running the test:
 
 ```bash
-npx playwright test ./e2e/ebay-search.spec.ts
+pnpm dlx @midscene/test@latest model verify
 ```
 
-### Step 5. View test report
+Run the test from the project directory:
 
-After the command executes successfully, it will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. Open this file in your browser to view the report.
-
-## Advanced
-
-### About opening in a new tab
-
-`PlaywrightAgent` is a page-level Agent: each instance is bound to a single page. To make debugging easier, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
-
-If you want to restore opening in a new tab while keeping the Agent on the original page, set `forceSameTabNavigation` to `false` and create a new Agent instance for each new tab yourself.
-
-If one Agent should manage page switching for the whole browser context, use `PlaywrightBrowserAgent`. Enable `autoFollowNewPage` when subsequent actions should automatically continue in the newly opened tab.
-
-```typescript
-const mid = new PlaywrightBrowserAgent(context, page, {
-  autoFollowNewPage: true,
-});
+```bash
+pnpm exec playwright test e2e/todo.spec.ts
 ```
 
-Use `new PlaywrightBrowserAgent(context, page, options)` when you explicitly choose the initial active page. Use `PlaywrightBrowserAgent.create(context, options)` when you want Midscene to choose or create the initial active page; the factory uses `initialPage` when provided, otherwise it reuses the first existing context page or creates a new page.
+After the test finishes, the Midscene reporter prints the report path in the terminal (saved under `midscene_run/report/` by default). Open the generated HTML file in a browser to inspect step-by-step screenshots, AI execution details, and assertion results.
 
-### Browser support
+## Common methods
 
-Some Midscene web automation features rely on Chrome DevTools Protocol (CDP), which is provided by Chromium-based browsers. These include browser-level events, touch gestures, and CDP fallback paths used by specific interactions.
+<SdkCommonMethods />
 
-When using Playwright, Chromium is the recommended browser engine. Firefox and WebKit may work for basic Playwright-native operations, but Midscene features that depend on CDP may report errors on those engines.
+## Further configuration
 
-### Connect Midscene Agent to a Remote Playwright Browser
+### Agent options {#agent-options}
 
-:::info Example Project
+Pass Agent options when creating the fixture:
 
-You can find an example project of remote Playwright integration here: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
+```typescript title="e2e/fixture.ts"
+import { test as base } from '@playwright/test';
+import {
+  PlaywrightAiFixture,
+  type PlayWrightAiFixtureType,
+} from '@midscene/web/playwright';
 
-:::
-
-Connect to a remote Playwright browser when you already run browsers in your own infra or vendor grid. This keeps the browser close to the target environment, avoids repeated launches, and still lets Midscene drive it with the same AI APIs.
-
-#### Prerequisites
-
-<PackageManagerTabs command="install playwright @playwright/test @midscene/web --save-dev" />
-
-<GetCdpUrl />
-
-#### Code example
-
-```typescript
-import { chromium } from 'playwright';
-import { PlaywrightAgent } from '@midscene/web/playwright';
-
-// CDP WebSocket URL from your remote browser service
-const cdpWsUrl = 'ws://your-remote-browser.com/devtools/browser/your-session-id';
-
-// Connect and pick a page
-const browser = await chromium.connectOverCDP(cdpWsUrl);
-const context = browser.contexts()[0];
-const page = context.pages()[0] || await context.newPage();
-
-// Create Midscene agent (usage matches any Playwright agent)
-const agent = new PlaywrightAgent(page);
-
-// Use AI methods as usual
-await agent.aiAct('navigate to https://example.com');
-await agent.aiAct('click the login button');
-const result = await agent.aiQuery('get page title: {title: string}');
-
-// Cleanup
-await agent.destroy();
-await browser.close();
-```
-
-Once connected, keep using `PlaywrightAgent` the same way you would with a locally launched browser.
-
-### Provide custom actions
-
-Use `defineAction()` to define custom actions. When constructing the Agent, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
-
-```typescript
-import { getMidsceneLocationSchema, z } from '@midscene/core';
-import { defineAction } from '@midscene/core/device';
-
-const ContinuousClick = defineAction({
-  name: 'continuousClick',
-  description: 'Click the same target repeatedly',
-  paramSchema: z.object({
-    locate: getMidsceneLocationSchema(),
-    count: z
-      .number()
-      .int()
-      .positive()
-      .describe('How many times to click'),
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    waitForNetworkIdleTimeout: 2000,
+    replanningCycleLimit: 30,
   }),
-  async call(param) {
-    const { locate, count } = param;
-    console.log('click target center', locate.center);
-    console.log('click count', count);
-    // carry out your clicking logic using locate + count
-  },
-});
-
-const agent = new PlaywrightAgent(page, {
-  customActions: [ContinuousClick],
-});
-
-await agent.aiAct('click the red button five times');
+);
 ```
 
-Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.
+You can also pass other Agent options such as `waitAfterAction` and `modelConfig`. Test and report metadata (`testId`, `reportFileName`, `groupName`, and `groupDescription`) are automatically derived from the current test info and do not need to be set manually. See [Playwright SDK configuration](./sdk/playwright#web-options) for platform options and [shared Agent options](./reference/#agent-options) for common settings.
 
-## FAQ
+### Work with a specific page
 
-### Playwright browser download takes too long
-
-Playwright does not download browser binaries during `npm install` by default. You need to run `npx playwright install` separately, and that step can be slow on limited networks.
-
-You can speed it up in two ways:
-
-1. Use a mirror, for example `npmmirror.com`
-
-```bash
-PLAYWRIGHT_DOWNLOAD_HOST="https://npmmirror.com/mirrors/playwright" npx playwright install
-```
-
-2. Download only the commonly used `chromium`
-
-```bash
-npx playwright install --with-deps chromium
-```
-
-### Cannot click the dropdown
-
-This usually happens when the page uses a native `select` element for the dropdown. In that case, the browser asks the operating system to render the expanded option list with a native control, so the dropdown is not actually rendered inside the webpage and cannot be captured by Playwright screenshots.
-
-First, check the screenshot in the report. If the dropdown options do not appear in the report screenshot after the click, this is very likely the cause.
-
-Midscene enables `forceChromeSelectRendering` by default, which forces Chrome to render the `select` dropdown so it appears in screenshots and can be recognized by Playwright. The dropdown style will look noticeably different from the operating system's default style. If you need the native rendering back, set `forceChromeSelectRendering: false`.
-
-### The webpage continues to flash when running in headed mode
-
-In the local visualization interface, continuous flashing is usually caused by a mismatch between the viewport's `deviceScaleFactor` and the system/browser's pixel ratio (common on high-resolution or Retina screens).
-
-This flashing does not affect Midscene's screenshots or automation execution, but it does affect the local preview experience. To resolve this, set `deviceScaleFactor` to match your browser's `window.devicePixelRatio`, or use Puppeteer's auto-adaptation feature.
+The AI methods injected by the fixture operate on Playwright's default `page` fixture. To interact with another `Page` instance in the same test (such as one created via `context.newPage()`), use `agentForPage` to get the corresponding Agent:
 
 ```typescript
-// Playwright: Playwright does not support using 0 for auto-adaptation like Puppeteer
-const page = await browser.newPage({
-  deviceScaleFactor: 2, // Replace the number 2 with your window.devicePixelRatio
-})
+import { test } from './fixture';
+
+test('inspect another page', async ({ context, agentForPage }) => {
+  const page = await context.newPage();
+  await page.goto('https://todomvc.com/examples/react/dist/');
+
+  const agent = await agentForPage(page);
+  await agent.aiAssert('The page contains a todo input');
+});
 ```
 
-If you are unsure of your browser's pixel ratio, you can press F12 on any page to open the console and type `window.devicePixelRatio` to check; or paste the following into the Chrome address bar and press Enter to see the value in a popup:
+For details on new tabs and navigation behavior, see [Web / Playwright SDK](./sdk/playwright#about-opening-in-a-new-tab).
 
-```plain
-data:text/html,<script>alert(`deviceScaleFactor of your browser: ${devicePixelRatio}`)</script>
+### Lifecycle
+
+Within a test, the fixture creates one Agent per `Page` and reuses it across AI calls. When a page closes or the test finishes, the fixture automatically calls `agent.destroy()` and collects the report, so you do not need to destroy fixture-managed Agents manually. Browser contexts and pages remain managed by Playwright.
+
+If you bypass the fixture and instantiate an Agent directly with `new PlaywrightAgent(page)`, you must call `agent.destroy()` yourself; see [Lifecycle and resource ownership](./sdk/standalone#lifecycle-and-resource-ownership).
+
+### Report options
+
+Pass options to the reporter in `playwright.config.ts`:
+
+```typescript
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: [
+    ['list'],
+    ['@midscene/web/playwright-reporter', {
+      type: 'merged',
+      outputFormat: 'single-html',
+    }],
+  ],
+});
 ```
 
-### Customize the network timeout
+- `type`: `'merged'` (default) combines all tests into a single report; `'separate'` generates a separate report for each test.
+- `outputFormat`: `'single-html'` (default) embeds screenshots into a single HTML file; `'html-and-external-assets'` saves screenshots as external files to reduce the HTML file size.
 
-When doing interaction or navigation on web page, Midscene automatically waits for the network to be idle. It's a strategy to ensure the stability of the automation. Nothing would happen if the waiting process is timeout.
-
-The default timeout is configured as follows:
-
-1. If it's a page navigation, the default wait timeout is 5000ms (the `waitForNavigationTimeout`)
-2. If it's a click, input, etc., the default wait timeout is 2000ms (the `waitForNetworkIdleTimeout`)
-
-You can also customize or disable the timeout by options:
-
-- Use `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/reference/#constructors).
-- Use `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml#the-web-part) or [PlaywrightAiFixture](/integrate-with-playwright#step-2-extend-the-test-instance).
-
-### `waiting for fonts to load` or `page.screenshot: Timeout ... exceeded` when taking screenshots
-
-If you see an error like this in a Playwright-based environment:
-
-```plain
-page.screenshot: Timeout 10000ms exceeded.
-Call log:
-- taking page screenshot
-- waiting for fonts to load...
-```
-
-This is usually not caused by Midscene itself. Playwright waits for fonts to finish loading before taking a screenshot. In some CI, container, or restricted network environments, font resources may load very slowly or never finish, which can eventually cause the screenshot to time out.
-
-You can work around it by setting this environment variable:
+When using `'html-and-external-assets'`, keep the HTML file and its asset directory in their relative paths, and preview the report through a local HTTP server (opening it directly via `file://` is not supported):
 
 ```bash
-export PW_TEST_SCREENSHOT_NO_FONTS_READY=1
+pnpm dlx serve midscene_run/report
 ```
 
-If you want to set it only for a single command, you can also write:
+Then open the URL printed in the terminal. When sharing or archiving the report, include both the HTML file and its asset directory.
 
-```bash
-PW_TEST_SCREENSHOT_NO_FONTS_READY=1 <your-command>
-```
-
-For more background, see the Playwright issue: [[BUG] Page.screenshot method hangs indefinitely](https://github.com/microsoft/playwright/issues/28995).
-
-## More
-
-- For all the methods on the Agent, please refer to [API Reference](./reference/#interaction-methods).
-- For the Playwright API reference, see [Playwright Agent API](./reference/#playwright-agent).
-- Demo projects
-  - Direct integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
-  - Playwright test integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
-  - Remote Playwright integration: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
+For a complete working project, see the [Playwright Test example](https://github.com/web-infra-dev/midscene-example/tree/main/playwright-testing-demo).
