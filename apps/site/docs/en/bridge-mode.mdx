@@ -43,24 +43,22 @@ If your Bridge mode script needs to upload local files, open `chrome://extension
 Write and save the following code as `./demo-new-tab.ts`.
 
 ```typescript
+import { setTimeout as sleep } from 'node:timers/promises';
 import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-Promise.resolve(
-  (async () => {
-    const agent = new AgentOverChromeBridge();
+(async () => {
+  const agent = new AgentOverChromeBridge();
 
-    // This will connect to a new tab on your desktop Chrome
-    await agent.connectNewTabWithUrl("https://www.bing.com");
+  // This will connect to a new tab on your desktop Chrome
+  await agent.connectNewTabWithUrl("https://www.bing.com");
 
-    // these are the same as normal Midscene agent
-    await agent.ai('type "AI 101" and hit Enter');
-    await sleep(3000);
+  // these are the same as normal Midscene agent
+  await agent.ai('type "AI 101" and hit Enter');
+  await sleep(3000);
 
-    await agent.aiAssert("there are some search results");
-    await agent.destroy();
-  })()
-);
+  await agent.aiAssert("there are some search results");
+  await agent.destroy();
+})();
 ```
 
 ### Step 4. Run the script

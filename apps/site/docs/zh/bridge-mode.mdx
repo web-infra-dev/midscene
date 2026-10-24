@@ -43,24 +43,22 @@ Midscene Chrome 插件的桥接模式允许你使用本地脚本来控制桌面�
 将以下代码保存为 `./demo-new-tab.ts`。
 
 ```typescript
+import { setTimeout as sleep } from 'node:timers/promises';
 import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-Promise.resolve(
-  (async () => {
-    const agent = new AgentOverChromeBridge();
+(async () => {
+  const agent = new AgentOverChromeBridge();
 
-    // 连接到桌面 Chrome 的新标签页
-    await agent.connectNewTabWithUrl("https://www.bing.com");
+  // 连接到桌面 Chrome 的新标签页
+  await agent.connectNewTabWithUrl("https://www.bing.com");
 
-    // 与普通 Midscene agent 的 API 相同
-    await agent.ai('type "AI 101" and hit Enter');
-    await sleep(3000);
+  // 与普通 Midscene agent 的 API 相同
+  await agent.ai('type "AI 101" and hit Enter');
+  await sleep(3000);
 
-    await agent.aiAssert("there are some search results");
-    await agent.destroy();
-  })()
-);
+  await agent.aiAssert("there are some search results");
+  await agent.destroy();
+})();
 ```
 
 ### 第四步：运行脚本

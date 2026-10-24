@@ -30,46 +30,44 @@ There is also a demo of Playwright with Vitest: [https://github.com/web-infra-de
 Write and save the following code as `./demo.ts`.
 
 ```typescript title="./demo.ts"
+import { setTimeout as sleep } from 'node:timers/promises';
 import 'dotenv/config'; // load Midscene environment variables from .env if present
 import puppeteer from "puppeteer";
 import { PuppeteerAgent } from "@midscene/web/puppeteer";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-Promise.resolve(
-  (async () => {
-    const browser = await puppeteer.launch({
-      headless: false, // here we use headed mode to help debug
-    });
+(async () => {
+  const browser = await puppeteer.launch({
+    headless: false, // here we use headed mode to help debug
+  });
 
-    const page = await browser.newPage();
-    await page.setViewport({
-      width: 1280,
-      height: 800,
-      deviceScaleFactor: 1,
-    });
+  const page = await browser.newPage();
+  await page.setViewport({
+    width: 1280,
+    height: 800,
+    deviceScaleFactor: 1,
+  });
 
-    await page.goto("https://www.ebay.com");
-    await sleep(5000);
+  await page.goto("https://www.ebay.com");
+  await sleep(5000);
 
-    // 👀 init Midscene agent
-    const agent = new PuppeteerAgent(page);
+  // 👀 init Midscene agent
+  const agent = new PuppeteerAgent(page);
 
-    // 👀 type keywords, perform a search
-    await agent.aiAct('type "Headphones" in search box, hit Enter');
-    await sleep(5000);
+  // 👀 type keywords, perform a search
+  await agent.aiAct('type "Headphones" in search box, hit Enter');
+  await sleep(5000);
 
-    // 👀 understand the page content, find the items
-    const items = await agent.aiQuery(
-      "{itemTitle: string, price: Number}[], find item in list and corresponding price"
-    );
-    console.log("headphones in stock", items);
+  // 👀 understand the page content, find the items
+  const items = await agent.aiQuery(
+    "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+  );
+  console.log("headphones in stock", items);
 
-    // 👀 assert by AI
-    await agent.aiAssert("There is a category filter on the left");
+  // 👀 assert by AI
+  await agent.aiAssert("There is a category filter on the left");
 
-    await browser.close();
-  })()
-);
+  await browser.close();
+})();
 ```
 
 
