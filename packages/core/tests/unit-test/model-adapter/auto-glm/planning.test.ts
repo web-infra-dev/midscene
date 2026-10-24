@@ -130,6 +130,28 @@ describe('createAutoGlmPlanner', () => {
     },
   );
 
+  it.each([0.5, 1, 1.5, 2, 3])(
+    'converts AutoGLM swipe distance to logical units at ratio %s',
+    async (ratio) => {
+      rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+        content:
+          '<think>Swipe left</think><answer>do(action="Swipe", start=[500,500], end=[200,500])</answer>',
+      });
+      const result = await runAutoGlmPlanning(
+        'swipe left',
+        createPlanOptions({
+          context: { ...context, shrunkShotToLogicalRatio: ratio },
+        }),
+      );
+      expect(result.actions).toMatchObject([
+        {
+          type: 'Scroll',
+          param: { distance: 300 / ratio, direction: 'right' },
+        },
+      ]);
+    },
+  );
+
   it('runs Auto-GLM custom planning and transforms tap coordinates', async () => {
     rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
