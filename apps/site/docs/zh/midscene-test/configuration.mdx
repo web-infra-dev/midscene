@@ -195,9 +195,9 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 
 `createMidsceneNodes()` 不会直接修改全局注册表；只有把返回数组加入项目配置后，这些 Node 才会生效。`agentClass` 是 Agent Node 定义的唯一来源，`getAgent` 则说明执行期间如何从当前 context 取得 Agent 实例。如果该类没有提供 `getTestRunnerNodeDefinitions()`，工厂会在注册阶段抛出异常。传入 PlaywrightAgent、PlaywrightPageAgent、PlaywrightBrowserAgent、PuppeteerAgent、PuppeteerPageAgent、PuppeteerBrowserAgent、AndroidAgent、IOSAgent 或 HarmonyAgent 时，会同时获得通用 Node 定义和对应的平台 Node 定义。基础 Agent 和 ComputerAgent 仅提供通用 Agent Node。
 
-#### 为多个 Agent 的 Node 命名
+#### 为多个 Midscene Agent 的 Node 命名
 
-同一个工作流使用多个 Agent 时，可以通过 `namespace` 为各组 Node 注册不同的名称。让 setup 在 context 中返回独立的 Agent 实例，再将两组 Node 注册到同一个 Project：
+同一个工作流使用多个 Midscene Agent 时，可以通过 `namespace` 为各组 Node 注册不同的名称。让 setup 在 context 中返回独立的 Midscene Agent 实例，再将两组 Node 注册到同一个 Project：
 
 ```ts
 import { Agent } from '@midscene/core/agent';
