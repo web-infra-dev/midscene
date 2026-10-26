@@ -1,27 +1,17 @@
-# Android
+# Android 环境配置
 
 Midscene 通过 `adb` 连接并控制 Android 设备，支持对原生应用、混合应用及系统界面进行自动化操作。
 
-本文将带你完成 Android 环境准备与设备连接，并在 Playground 中试跑一次操作与断言，为后续接入测试框架或 JavaScript SDK 做好准备。
+本文介绍运行 Midscene Test、JavaScript SDK 和 Playground 所需的 Android 环境配置。你可以先[通过 adb 连接设备](#connect-device)，再使用 [Playground](#verify-in-playground) 验证屏幕截图、触控输入与模型调用。
 
-## 效果展示
+## 通过 adb 连接设备 {#connect-device}
 
-**提示词：** 打开懂车帝，搜索 SU7 车型，查看参数配置。（[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/su7.html)）
+运行 Midscene 的电脑需要通过 `adb` 连接目标 Android 设备，支持 USB 和无线 `adb` 两种连接方式。如果已安装 `adb` 并连接好设备，可直接跳至[确认设备连接](#verify-device-connection)。
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/su72.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/su7.png" height="300" controls />
-
-## 快速开始
-
-请先安装 Node.js（版本要求 `^20.19.0 || ^22.12.0 || >=24.0.0`），确认终端中可执行 `node -v` 和 `npx --version`，并提前准备好[模型配置](../model-api-setup)（稍后将在 Playground 中填写）。
-
-### 准备 Android 设备
-
-开始前，请确保本机 `adb` 能够正常识别并连接目标 Android 设备。
-
-#### 1. 安装 `adb` 并配置 `ANDROID_HOME`
+### 1. 安装 adb
 
 - 通过 [Android Studio](https://developer.android.com/studio) 或独立的 [Android 命令行工具](https://developer.android.com/studio#command-line-tools-only)安装 `adb`。
-- 在终端验证 `adb` 是否安装成功：
+- 在终端运行以下命令，验证 `adb` 是否安装成功：
 
 ```bash
 adb --version
@@ -36,47 +26,61 @@ Installed as /usr/local/bin/adb
 Running on Darwin 24.3.0 (arm64)
 ```
 
-- 参考 [Android 环境变量文档](https://developer.android.com/tools/variables)配置 `ANDROID_HOME` 环境变量，并验证是否生效：
+- 参考 [Android 环境变量文档](https://developer.android.com/tools/variables)配置 `ANDROID_HOME` 环境变量，并检查是否生效：
 
 ```bash
 echo $ANDROID_HOME
 ```
 
-输出应指向实际安装的 Android SDK 目录，例如：
+输出应指向本机安装的 Android SDK 目录，例如：
 
 ```log
 /Users/your_username/Library/Android/sdk
 ```
 
-#### 2. 开启 USB 调试并验证连接
+### 2. 开启调试并连接设备
 
-在手机系统设置的「开发者选项」中开启 **USB 调试**（如果存在 **USB 调试（安全设置）**，也请一并开启），然后通过 USB 数据线将手机连接到电脑。
+以下以 USB 连接为例；如果设备已通过无线 `adb` 连接，可继续使用现有连接。
+
+1. 在手机系统设置的「开发者选项」中开启 **USB 调试**（若同时存在 **USB 调试（安全设置）**，请一并开启，以确保支持触控事件注入）。
+2. 使用支持数据传输的 USB 数据线将手机连接到电脑。
+3. 保持手机解锁亮屏，在手机弹出的授权窗口中勾选并允许 USB 调试。
 
 <p align="center">
   <img src="/images/android-usb-debug-en.png" alt="android usb debug" width="400"/>
 </p>
 
-在终端运行以下命令验证设备连接：
+### 3. 确认设备连接 {#verify-device-connection}
+
+在终端运行以下命令检查连接状态：
 
 ```bash
 adb devices -l
 ```
 
-输出类似以下内容即表示连接成功：
+输出中设备状态显示为 `device` 即表示连接就绪：
 
 ```log
 List of devices attached
 s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
 ```
 
-排查提示：
-- 若列表为空：请检查数据线是否支持数据传输、手机 USB 连接模式及开发者选项开关；
-- 若状态显示为 `unauthorized`：请解锁手机屏幕，在手机弹出的授权窗口中勾选并允许 USB 调试；
-- 若状态显示为 `offline`：请重新插拔数据线或重启 `adb`。只有当设备状态显示为 `device` 时，才可继续后续步骤。
+如果同时连接了多台设备，请记录目标设备所在行第一列的设备 ID（如上例中的 `s4ey59`），以便后续在 Playground 或项目配置中指定该设备。
+
+若未显示目标设备或状态不是 `device`，请按以下情况排查：
+- **列表为空**：USB 连接请检查数据线（需支持数据传输）、USB 连接模式和 **USB 调试**开关；无线连接请检查网络及 `adb connect` 连接状态。
+- **`unauthorized`**：请解锁手机屏幕，在手机弹出的授权窗口中勾选并允许 USB 调试。
+- **`offline`**：请重新建立 USB 或无线 `adb` 连接，必要时重启 `adb` 服务。请确认设备状态变为 `device` 后再继续后续步骤。
+
+## 在 Playground 中验证 {#verify-in-playground}
+
+借助 Playground，无需编写代码即可验证屏幕截图、触控输入与模型调用。
+
+开始前，请参照[使用模型 API Key](../model-api-setup)或[使用 ChatGPT 订阅](../chatgpt-subscription)准备好模型配置。
 
 ### 启动 Playground
 
-无需编写代码，即可通过 Playground 快速验证设备截图、触控输入与模型调用是否正常：
+请确保已安装 Node.js（版本要求 `^20.19.0 || ^22.12.0 || >=24.0.0`），且终端中可正常执行 `node -v` 和 `npx --version`。
 
 1. 在终端运行以下命令启动 Android Playground：
 
@@ -84,13 +88,13 @@ s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_
 npx --yes @midscene/android-playground
 ```
 
-2. 在自动打开的 Playground 页面中，点击右上角的齿轮图标，粘贴你的模型 API Key 配置并保存（配置格式见[配置模型 API Key](../model-api-setup)）。
+2. 在打开的 Playground 页面中，点击右上角的齿轮图标，粘贴模型配置并保存。
 
 ![](/images/android-set-env.png)
 
-3. 若浏览器未自动打开，请手动访问终端打印的本地地址，并保持该终端窗口持续运行。
+3. 若浏览器未自动打开，请手动访问终端打印的本地地址，并保持该终端进程持续运行。
 4. 在左侧连接面板中选择目标 **ADB device** 并创建 Agent（若连接了多台设备，可对照 `adb devices -l` 输出的设备 ID 进行选择）。
-5. 确认预览区域已正常显示当前手机屏幕画面；若画面未显示，请先排查设备连接与截屏权限。
+5. 确认预览区域已正常显示当前手机屏幕画面；若画面未显示，请先排查 `adb` 连接与截屏权限。
 
 ### 执行操作并验证结果
 
@@ -110,20 +114,40 @@ npx --yes @midscene/android-playground
 
 3. 确认断言执行通过，并在结果面板中查看各步骤的截图与执行过程。至此，设备连接、屏幕截图、触控输入和模型调用均已验证完毕。
 
-如果执行失败，请结合报错信息排查：若无画面或无法操控设备，请查看下方的「常见问题」；若模型请求报错，请参考[模型连接检查](../model-config#verify-model-connectivity)。
+如果执行失败，请结合报错信息排查：若无画面或无法操控设备，请查看下方的[常见问题](#常见问题)；若模型请求报错，请参考[模型连接检查](../model-config#verify-model-connectivity)。
 
-## 下一步
+### 清理体验数据
 
-完成环境与 Playground 验证后，可根据使用场景选择接入方式：
+验证结束后，请在 TodoMVC 页面中删除刚才创建的“体验 Midscene”待办事项。如果接下来要运行 Midscene Test 的 Android 示例，请切换到 **All** 视图并确认列表已完全清空（包括已完成事项），因为示例模板在运行前会校验初始列表为空，且不会主动覆盖已有数据。
 
-- **编写 YAML 测试**：通过 [Midscene Test](../midscene-test/use) 初始化项目、运行测试用例并查看报告。
-- **接入现有 JavaScript 测试**：[接入 Vitest](../sdk/vitest)。
-- **编写独立自动化脚本**：阅读[编写独立自动化脚本](../sdk/standalone)，参考对应平台的完整代码示例。
-- **查阅平台 SDK 接口**：阅读 [Android JavaScript SDK](../sdk/android)，了解构造参数、平台专属方法与生命周期管理。
+### 效果展示
 
-注意：在 Playground 界面中填写的模型配置仅保存在本地浏览器中，不会自动同步到测试或脚本进程。接入工程时，请将验证通过的模型配置写入项目的 `.env` 文件并按文档说明加载，同时保持 `adb` 连接与设备调试权限处于可用状态。
+**提示词：** 打开懂车帝，搜索 SU7 车型，查看参数配置。（[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/su7.html)）
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/su72.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/su7.png" height="300" controls />
+
+## 在测试或脚本中使用 {#use-in-project}
+
+完成设备连接与 Playground 验证后，即可将设备接入你的测试或脚本项目：
+
+| 已准备项 | 在项目中如何使用 |
+| --- | --- |
+| `adb` 连接与调试授权 | 保持设备连接、解锁亮屏，并保留 USB 调试授权。 |
+| 目标设备 ID | 在 Midscene Test 的 Android 模板中通过 `ANDROID_DEVICE_ID` 指定，或在代码中通过 [Android SDK](../sdk/android) 参数传入。 |
+| 模型配置 | 写入项目的 `.env` 文件并按集成文档加载。Playground 中的设置仅保存在本地浏览器内，不会自动同步到项目中。 |
+
+根据使用场景选择下一步：
+
+- **使用 Midscene Test**：前往[配置模型与运行环境](../midscene-test/use#2-配置模型与运行环境)，完成配置并运行示例（若尚未初始化项目，可先从该页的[创建项目](../midscene-test/use#创建项目)开始并选择 Android 平台）。
+- **接入 JavaScript 测试框架**：参阅[接入 Vitest](../sdk/vitest)。
+- **编写独立自动化脚本**：参阅[编写独立自动化脚本](../sdk/standalone)中的 Android 示例。
+- **查阅平台 SDK 接口**：阅读 [Android JavaScript SDK](../sdk/android)，了解设备选择、构造参数、平台专属方法与生命周期管理。
 
 ## 常见问题
+
+### 找不到设备，或设备显示为未授权、离线
+
+运行 `adb devices -l`，参照[确认设备连接](#verify-device-connection)中的排查说明检查数据线、USB 调试授权与连接状态。请先确保目标设备状态显示为 `device`，再排查截图或触控问题。
 
 ### 设备已连接，为什么仍然无法控制（报错 `INJECT_EVENTS`）？
 
@@ -146,15 +170,21 @@ java.lang.SecurityException: Injecting input events requires the caller (or the 
 
 ### 输入文本后，输入框内容被清空或消失
 
-请参阅 [Android JavaScript SDK](../sdk/android#输入文本后输入框内容被清空或消失)。
+如果文本已正常填入，但在软键盘收起时消失，通常是输入框响应了收起键盘时发送的 `ESC` 按键事件。你可以通过调整键盘收起策略解决该问题，具体参数与示例见 [Android JavaScript SDK](../sdk/android#输入文本后输入框内容被清空或消失)。
 
 ### 英文文本被 Android 输入法改写
 
-请参阅 [Android JavaScript SDK](../sdk/android#英文文本被-android-输入法改写)。
+请先对比执行报告中记录的输入内容与输入框内的实际文本。若报告中的参数无误，但实际输入出现字符乱序、漏字或被拼音输入法候选词截获，请检查手机当前输入法及自动纠错设置。有关输入通道的详细说明，请参阅 [Android JavaScript SDK](../sdk/android#英文文本被-android-输入法改写)。
 
 ### 安全页面（如密码输入框）截图黑屏
 
-请参阅 [Android JavaScript SDK](../sdk/android#安全页面如密码输入框截图黑屏)。
+请先切换到普通页面测试截图是否正常。如果仅在密码输入页或敏感信息页出现黑屏，通常是应用开启了系统截屏保护（`FLAG_SECURE`），并非 `adb` 连接断开。有关截图机制与限制说明，请参阅 [Android JavaScript SDK](../sdk/android#安全页面如密码输入框截图黑屏)。
+
+### 模型调用失败
+
+请查看失败步骤的报错信息，并核对 Playground 设置或项目 `.env` 文件中的模型配置。设备连接正常并不代表模型服务可用，可参照[模型连接检查](../model-config#verify-model-connectivity)排查 API Key、服务地址或网络问题。注意，命令行与项目运行不会读取浏览器中保存的 Playground 配置，需单独加载项目的环境变量。
+
+## 高级连接与调试
 
 ### 为什么 scrcpy 会回退到 ADB 截图？
 

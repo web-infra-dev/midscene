@@ -1,22 +1,14 @@
-# 桌面端
+# 桌面端环境配置
 
 Midscene 通过系统原生键鼠事件或远程桌面协议（RDP），支持在 Windows、macOS 和 Linux 上自动化操控各类桌面应用（如 Electron、Qt、原生客户端及跨应用工作流），并支持多显示器切换。
 
-本文将带你完成桌面端环境与权限准备，并在 Playground 中试跑一次操作与断言，为后续接入测试框架或 JavaScript SDK 做好准备。
+本文介绍运行 Midscene Test、JavaScript SDK 和 Playground 所需的桌面端环境配置。你可以先[配置桌面环境与系统权限](#connect-device)，再使用 [Playground](#verify-in-playground) 验证屏幕截图、键鼠输入与模型调用。
 
-## 效果展示
+## 配置桌面环境与系统权限 {#connect-device}
 
-**提示词（macOS）：** 打开 Safari，发布一条介绍 Midscene 支持 AutoGLM 的推文，并使用“下载”文件夹中的 AutoGLM 视频。（[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html)）
+运行 Midscene 需要具备目标桌面的屏幕截图与键鼠控制能力。请根据使用场景配置本机桌面或远程 Windows 桌面（RDP）；如果所需系统权限与依赖已配置妥当，可直接跳至[在 Playground 中验证](#verify-in-playground)。
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
-
-## 快速开始
-
-请先安装 Node.js（版本要求 `^20.19.0 || ^22.12.0 || >=24.0.0`），确认终端中可执行 `node -v` 和 `npx --version`，并提前准备好[模型配置](../model-api-setup)（稍后将在 Playground 中填写）。
-
-### 准备桌面环境
-
-#### 1. 配置操作系统权限与依赖
+### 1. 本机桌面权限与依赖
 
 - **macOS**：需要为启动 Playground 或运行脚本的终端 / IDE（如 Terminal、iTerm2、VS Code、Cursor、WebStorm 等）授予两项独立的系统权限：
   1. **辅助功能权限**（用于控制鼠标与键盘）：前往「系统设置 > 隐私与安全性 > 辅助功能」开启对应应用的开关（详见 [nut.js macOS 配置说明](https://github.com/nut-tree/nut.js#macos)）。
@@ -28,20 +20,25 @@ Midscene 通过系统原生键鼠事件或远程桌面协议（RDP），支持�
 ```bash
 # 安装依赖
 sudo apt-get install -y xvfb x11-xserver-utils imagemagick
-
-# 在虚拟显示器环境中启动 Playground
-MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx --yes @midscene/computer-playground
 ```
 
 使用 Xvfb 时，请确保被测应用同样启动在该虚拟显示器环境中（本机带有物理显示器时无需开启此项）。
 
-#### 2. 远程 Windows 桌面（RDP，可选）
+### 2. 远程 Windows 桌面（RDP，可选）
 
-下文的 Playground 步骤用于验证本机桌面。如果需要通过 RDP 控制远程 Windows 桌面，还需在运行脚本的宿主机上安装 FreeRDP，并在目标 Windows 机器上开启远程桌面服务。完成本机验证后，可参考[桌面端 JavaScript SDK 中的 RDP 选项](../sdk/desktop#rdp-选项)接入远程会话。
+如果需要通过 RDP 控制远程 Windows 桌面，请在运行 Midscene 的宿主机上安装 FreeRDP，并在目标 Windows 机器上开启远程桌面服务。
+
+注意：下文的 Playground 验证针对本机显示器；若需在代码中连接远程 Windows 会话，请参阅[桌面端 JavaScript SDK 的 RDP 选项](../sdk/desktop#rdp-选项)。
+
+## 在 Playground 中验证 {#verify-in-playground}
+
+借助 Playground，无需编写代码即可验证屏幕截图、键鼠输入与模型调用。
+
+开始前，请参照[使用模型 API Key](../model-api-setup)或[使用 ChatGPT 订阅](../chatgpt-subscription)准备好模型配置。
 
 ### 启动 Playground
 
-无需编写代码，即可通过 Playground 快速验证桌面截图、键鼠控制与模型调用是否正常：
+请确保已安装 Node.js（版本要求 `^20.19.0 || ^22.12.0 || >=24.0.0`），且终端中可正常执行 `node -v` 和 `npx --version`。
 
 1. 在终端运行以下命令启动桌面端 Playground：
 
@@ -49,8 +46,14 @@ MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx --yes @midscene/computer-playground
 npx --yes @midscene/computer-playground
 ```
 
-2. 在自动打开的 Playground 页面中，点击右上角的齿轮图标，粘贴你的模型 API Key 配置并保存（配置格式见[配置模型 API Key](../model-api-setup)）。
-3. 若浏览器未自动打开，请手动访问终端打印的本地地址，并保持该终端窗口持续运行。
+无头 Linux 环境请使用以下命令启动虚拟显示器，并确保目标应用也在同一虚拟显示器中运行：
+
+```bash
+MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx --yes @midscene/computer-playground
+```
+
+2. 在打开的 Playground 页面中，点击右上角的齿轮图标，粘贴模型配置并保存。
+3. 若浏览器未自动打开，请手动访问终端打印的本地地址，并保持该终端进程持续运行。
 4. 在左侧连接面板的 **Display** 下拉框中选择要控制的显示器并创建 Agent，同时将待操作的目标应用窗口移至该显示器上。
 5. 确认预览区域已正常显示所选显示器的实时桌面画面；若画面黑屏或报错，请先排查上方的系统屏幕录制权限或依赖项。
 
@@ -72,18 +75,34 @@ npx --yes @midscene/computer-playground
 
 3. 确认断言执行通过，并在结果面板中查看各步骤的截图与执行过程。至此，桌面截图、键鼠输入和模型调用均已验证完毕。
 
-如果执行失败，请结合报错信息排查：若无画面或无法操控鼠标键盘，请查看下方的「常见问题」；若模型请求报错，请参考[模型连接检查](../model-config#verify-model-connectivity)。
+如果执行失败，请结合报错信息排查：若无画面或无法操控鼠标键盘，请查看下方的[常见问题](#常见问题)；若模型请求报错，请参考[模型连接检查](../model-config#verify-model-connectivity)。
 
-## 下一步
+### 清理体验数据
 
-完成环境与 Playground 验证后，可根据使用场景选择接入方式：
+验证结束后，请在 TodoMVC 页面中删除刚才创建的“体验 Midscene”待办事项。如果接下来要运行 Midscene Test 的桌面端示例，请切换到 **All** 视图并确认列表已完全清空（包括已完成事项），因为示例模板在运行前会校验初始列表为空，且不会主动覆盖已有数据。
 
-- **编写 YAML 测试**：通过 [Midscene Test](../midscene-test/use) 初始化项目、运行测试用例并查看报告。
-- **接入现有 JavaScript 测试**：[接入 Vitest](../sdk/vitest)。
-- **编写独立自动化脚本**：阅读[编写独立自动化脚本](../sdk/standalone)，参考对应平台的完整代码示例。
-- **查阅平台 SDK 接口**：阅读[桌面端 JavaScript SDK](../sdk/desktop)，了解构造参数、多显示器管理与 RDP 远程连接。
+### 效果展示
 
-注意：在 Playground 界面中填写的模型配置仅保存在本地浏览器中，不会自动同步到测试或脚本进程。接入工程时，请将验证通过的模型配置写入项目的 `.env` 文件并按文档说明加载，同时确保运行测试的终端或 IDE 具备相同的系统权限。
+**提示词（macOS）：** 打开 Safari，发布一条介绍 Midscene 支持 AutoGLM 的推文，并使用“下载”文件夹中的 AutoGLM 视频。（[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html)）
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
+
+## 在测试或脚本中使用 {#use-in-project}
+
+完成桌面截图与键鼠输入验证后，即可将桌面环境接入你的测试或脚本项目：
+
+| 已准备项 | 在项目中如何使用 |
+| --- | --- |
+| 桌面权限与依赖 | 确保运行项目的终端或 IDE 具备屏幕录制与辅助功能权限；无头 Linux 环境需保持虚拟显示器配置。 |
+| 目标显示器 | 在 Midscene Test 的桌面端模板中通过 `COMPUTER_DISPLAY_ID` 指定显示器，或在代码中通过[桌面端 SDK](../sdk/desktop) 参数传入。 |
+| 模型配置 | 写入项目的 `.env` 文件并按集成文档加载。Playground 中的设置仅保存在本地浏览器内，不会自动同步到项目中。 |
+
+根据使用场景选择下一步：
+
+- **使用 Midscene Test**：前往[配置模型与运行环境](../midscene-test/use#2-配置模型与运行环境)，完成配置并运行示例（若尚未初始化项目，可先从该页的[创建项目](../midscene-test/use#创建项目)开始并选择桌面端平台）。
+- **接入 JavaScript 测试框架**：参阅[接入 Vitest](../sdk/vitest)。
+- **编写独立自动化脚本**：参阅[编写独立自动化脚本](../sdk/standalone)中的桌面端示例。
+- **查阅平台 SDK 接口**：阅读 [桌面端 JavaScript SDK](../sdk/desktop)，了解设备选择、构造参数、平台专属方法与生命周期管理。
 
 ## 常见问题
 
@@ -122,3 +141,7 @@ const agent = await agentForComputer({ headless: true });
 ```bash
 MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
+
+### 模型调用失败
+
+请查看失败步骤的报错信息，并核对 Playground 设置或项目 `.env` 文件中的模型配置。设备连接正常并不代表模型服务可用，可参照[模型连接检查](../model-config#verify-model-connectivity)排查 API Key、服务地址或网络问题。注意，命令行与项目运行不会读取浏览器中保存的 Playground 配置，需单独加载项目的环境变量。

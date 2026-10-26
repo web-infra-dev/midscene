@@ -1,22 +1,14 @@
-# Desktop
+# Desktop environment setup
 
 Midscene automates desktop applications across Windows, macOS, and Linux using native mouse and keyboard controls or Remote Desktop Protocol (RDP), with built-in multi-display support. It works with Electron, Qt, native desktop apps, and cross-application workflows.
 
-This guide walks you through preparing your desktop environment and system permissions, and running an action and assertion in Playground before integrating with a test runner or the JavaScript SDK.
+This guide walks you through setting up the desktop environment required by Midscene Test, the JavaScript SDK, and Playground. You will first [prepare the desktop environment and permissions](#connect-device), and then use [Playground](#verify-in-playground) to verify screen capture, mouse and keyboard input, and model calls.
 
-## See it in action
+## Prepare the desktop environment {#connect-device}
 
-**Prompt (macOS):** Open Safari and post a tweet announcing that Midscene supports AutoGLM. Use the AutoGLM video from the Downloads folder. ([Full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html))
+Midscene requires screen capture and mouse/keyboard control permissions on the target desktop. Configure local desktop control or remote Windows desktop (RDP) below; if the required permissions and dependencies are already configured, skip directly to [Verify in Playground](#verify-in-playground).
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
-
-## Get started
-
-Install Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`), confirm that `node -v` and `npx --version` work in your terminal, and prepare your [model credentials](../model-api-setup) (you will enter them in Playground shortly).
-
-### Prepare your desktop environment
-
-#### 1. Configure OS permissions and dependencies
+### 1. Local desktop permissions and dependencies
 
 - **macOS**: Grant two separate system permissions to the terminal or IDE that launches Playground or runs your scripts (such as Terminal, iTerm2, VS Code, Cursor, or WebStorm):
   1. **Accessibility** (for mouse and keyboard control): Enable your terminal or IDE in **System Settings > Privacy & Security > Accessibility** (see [nut.js macOS setup](https://github.com/nut-tree/nut.js#macos)).
@@ -28,20 +20,25 @@ Install Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`), confirm that `node -v` and
 ```bash
 # Install dependencies
 sudo apt-get install -y xvfb x11-xserver-utils imagemagick
-
-# Start Playground inside an Xvfb virtual display
-MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx --yes @midscene/computer-playground
 ```
 
 When using Xvfb, make sure the target application is started inside the same virtual display environment (not needed on machines with a physical display).
 
-#### 2. Remote Windows desktop (RDP, optional)
+### 2. Remote Windows desktop over RDP (optional)
 
-The Playground steps below verify your local desktop. To automate a remote Windows desktop over RDP, install FreeRDP on the machine running the script and ensure RDP is enabled on the target Windows host. After completing the local walkthrough, see [RDP options in the Computer JavaScript SDK](../sdk/desktop#rdp-options) to configure a remote Agent.
+To automate a remote Windows desktop over RDP, install FreeRDP on the machine running Midscene and enable Remote Desktop on the target Windows host.
+
+Note that the Playground walkthrough below verifies local displays. To connect to a remote Windows session in code, see [RDP options in the Desktop JavaScript SDK](../sdk/desktop#rdp-options).
+
+## Verify in Playground {#verify-in-playground}
+
+With Playground, you can verify screen capture, mouse and keyboard input, and model calls without writing code.
+
+Before starting, prepare your model configuration using [a model API key](../model-api-setup) or [a ChatGPT subscription](../chatgpt-subscription).
 
 ### Launch Playground
 
-Use Playground to verify desktop screen capture, mouse/keyboard control, and model calls without writing any code:
+Make sure Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`) is installed and both `node -v` and `npx --version` work in your terminal.
 
 1. Start the Desktop Playground CLI:
 
@@ -49,7 +46,13 @@ Use Playground to verify desktop screen capture, mouse/keyboard control, and mod
 npx --yes @midscene/computer-playground
 ```
 
-2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model API key configuration, and save (see [Configure a model API key](../model-api-setup) for format details).
+On headless Linux, enable a virtual display with the following command and run the target application in that same display:
+
+```bash
+MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx --yes @midscene/computer-playground
+```
+
+2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model configuration, and save.
 3. If your browser does not open automatically, visit the local Playground URL printed in the terminal, and keep the terminal process running.
 4. In the connection panel on the left, select the target **Display** to control, create the Agent, and place the target application window on that display.
 5. Confirm that the preview area shows the live screen of the selected display. If the preview is blank or fails to load, check the Screen Recording permission or Linux dependencies above.
@@ -74,16 +77,32 @@ The list contains a todo named "Try Midscene", and it is marked as completed.
 
 If execution fails, check the failed step and error message: for missing screenshots or unresponsive mouse/keyboard input, see the [FAQ](#faq) below; for model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity).
 
-## Next steps
+### Clean up the example data
 
-Once your environment and Playground are verified, choose how to integrate Midscene:
+After verification, delete the "Try Midscene" item in TodoMVC. If you plan to run the Midscene Test Desktop example next, switch to the **All** filter and make sure the list is completely empty (including completed items), as the example template checks for an empty list before running and does not overwrite existing items.
 
-- **Write YAML tests**: Initialize a project, run test cases, and inspect reports with [Midscene Test](../midscene-test/use).
-- **Integrate with existing JavaScript tests**: [Integrate with Vitest](../sdk/vitest).
-- **Write standalone automation scripts**: Follow [Write standalone automation scripts](../sdk/standalone) and pick the example for your platform.
-- **Look up platform SDK APIs**: See the [Computer JavaScript SDK](../sdk/desktop) for constructor options, multi-display management, and RDP connections.
+### See it in action
 
-Note: Model credentials entered in the Playground UI are stored locally in the browser and are not automatically shared with test or script processes. Copy your verified settings into your project's `.env` file and load them as shown in the integration guides, while ensuring the terminal or IDE running your tests has the same OS permissions.
+**Prompt (macOS):** Open Safari and post a tweet announcing that Midscene supports AutoGLM. Use the AutoGLM video from the Downloads folder. ([Full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html))
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
+
+## Use the desktop in tests or scripts {#use-in-project}
+
+Once screen capture and input are verified in Playground, you can integrate the desktop environment into your test or script project:
+
+| Prepared item | How to use it in your project |
+| --- | --- |
+| Desktop permissions and dependencies | Ensure the terminal or IDE running your project has screen capture and input permissions; keep virtual display settings enabled on headless Linux. |
+| Target display | Set `COMPUTER_DISPLAY_ID` in the Midscene Test Desktop template, or pass the display ID via [Desktop SDK](../sdk/desktop) options. |
+| Model configuration | Write your model settings to the project's `.env` file and load them as shown in the integration guide. Settings entered in Playground are stored only in the browser and are not automatically shared with your project. |
+
+Choose your next step based on how you use Midscene:
+
+- **Midscene Test**: Continue to [Configure the model and runtime environment](../midscene-test/use#2-configure-the-model-and-runtime-environment) and run the example (if you have not initialized a project yet, start from [Create a project](../midscene-test/use#create-a-project) and select the desktop platform).
+- **JavaScript test runner**: Continue with [Integrate with Vitest](../sdk/vitest).
+- **Standalone scripts**: Follow [Write standalone automation scripts](../sdk/standalone) and select the Desktop example.
+- **Platform SDK reference**: See the [Desktop JavaScript SDK](../sdk/desktop) for device selection, constructor options, platform-specific methods, and lifecycle management.
 
 ## FAQ {#faq}
 
@@ -122,3 +141,7 @@ Or enable via an environment variable:
 ```bash
 MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
+
+### Model calls fail
+
+Check the error message of the failed step and verify the model configuration in Playground settings or your project's `.env` file. Because device connectivity and model requests are independent, follow [Verify model connectivity](../model-config#verify-model-connectivity) to troubleshoot API key, endpoint, or network issues. Note that CLI and project checks read your project's environment variables rather than browser-stored Playground settings.
