@@ -144,6 +144,7 @@ export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 
 | 名称 | 描述 |
 |------|-------------|
+| `MIDSCENE_MODEL_ENDPOINT` | System One API 的完整请求 URL，仅支持 System One 模型（目前为 Jev）。优先于对应模型的 `BASE_URL`，直接使用，不追加路径；设置后无需配置 `BASE_URL`。例如 `https://api.typesafe.ai/v1/systemone`。未设置时，沿用在 Base URL 后追加 `/systemone` 的行为。 |
 | `MIDSCENE_MODEL_TIMEOUT` | 单次模型请求的超时时间，单位毫秒，默认 `180000`（180 秒），包含响应体读取时间。设为 `0` 禁用此超时限制。 |
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）。模型请求遇到 HTTP 错误，或模型返回值无法被结构化解析时，都会发起重试 |

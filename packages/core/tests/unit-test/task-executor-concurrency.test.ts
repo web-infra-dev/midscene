@@ -389,6 +389,17 @@ describe('TaskExecutor concurrency isolation', () => {
 
   it.each([
     { effort: 'balance' as const, differentKey: false, expected: true },
+    {
+      effort: 'balance' as const,
+      endpoint: 'https://example.com/v1/systemone',
+      differentBaseURL: true,
+      expected: true,
+    },
+    {
+      effort: 'balance' as const,
+      endpoint: 'https://example.com/v2/systemone',
+      expected: false,
+    },
     { effort: 'deepThink' as const, differentKey: false, expected: false },
     { effort: 'balance' as const, differentKey: true, expected: true },
     { effort: 'balance' as const, differentModel: true, expected: false },
@@ -404,6 +415,7 @@ describe('TaskExecutor concurrency isolation', () => {
       differentBaseURL,
       differentFamily,
       generativeLocate,
+      endpoint,
       expected,
     }) => {
       const planFn = rs.fn().mockResolvedValue({
@@ -431,6 +443,7 @@ describe('TaskExecutor concurrency isolation', () => {
         ...locate,
         config: {
           ...locate.config,
+          endpoint,
           modelName: differentModel ? 'another-jev' : locate.config.modelName,
           openaiBaseURL: differentBaseURL
             ? 'https://other.example.com/v1'

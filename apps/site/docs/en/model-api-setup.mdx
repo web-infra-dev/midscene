@@ -341,7 +341,7 @@ Jev uses TypeSafe's System One protocol, not an OpenAI protocol. Some OpenAI mod
 
 :::info Notes
 
-- **Base URL**: The Base URL must include `/v1`, for example `https://api.typesafe.ai/v1`.
+- **Request URL**: When using Base URL, include `/v1`, for example `https://api.typesafe.ai/v1`. Midscene automatically appends `/systemone`. If your endpoint does not use the `/systemone` path, set the full request URL through the model's Endpoint setting, for example `MIDSCENE_LOCATE_MODEL_ENDPOINT="https://example.com/custom/decision"`. Endpoint takes precedence over Base URL, and Midscene does not append any path.
 - **Image input limits**: The latest version of Jev currently limits the longest edge of an image to 1568 pixels. Use the Agent's `screenshotShrinkFactor` option to control screenshot dimensions. To avoid image quality degradation from repeated resizing and accommodate image dimension requirements in future Jev versions, Midscene does not automatically resize images to match the limits of a specific Jev version.
 
 :::

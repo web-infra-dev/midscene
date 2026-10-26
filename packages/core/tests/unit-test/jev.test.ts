@@ -165,6 +165,26 @@ describe('Jev model fallback', () => {
 });
 
 describe('Jev requests and coordinates', () => {
+  it.each([undefined, 'https://ignored.example/v1'])(
+    'uses the full endpoint without appending a path (base URL: %s)',
+    async (openaiBaseURL) => {
+      const prepared = await prepareSystemOne(
+        {
+          ...jevConfig,
+          openaiBaseURL,
+          endpoint: 'https://example.com/custom/decision?version=2',
+        },
+        {
+          state: {},
+          questions: { answer: { type: 'noul', instructions: 'True?' } },
+        },
+      );
+      expect(prepared.url).toBe(
+        'https://example.com/custom/decision?version=2',
+      );
+    },
+  );
+
   it.each([
     ['https://example.com/v2/', 'https://example.com/v2/systemone'],
     [
@@ -271,28 +291,36 @@ describe('Jev requests and coordinates', () => {
     });
     expect(JSON.stringify(recording.events)).not.toContain('test-key');
   });
-  it('preserves the OpenRouter System One image format', async () => {
-    const fetchMock = rs
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(response());
-    await AiLocateElement({
-      context: await context(500, 400),
-      targetElementDescription: 'button',
-      modelRuntime: getModelRuntime({
-        ...jevConfig,
-        openaiBaseURL: 'https://openrouter.ai/api/v1',
-      }),
-    });
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      'https://openrouter.ai/api/v1/systemone',
-    );
-    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
-    expect(body.assets).toBeUndefined();
-    expect(body.state.screenshot.type).toBe('image_url');
-    expect(body.state.screenshot.image_url.url).toMatch(
-      /^data:image\/png;base64,/,
-    );
-  });
+  it.each([false, true])(
+    'preserves the OpenRouter image format with endpoint=%s',
+    async (useEndpoint) => {
+      const fetchMock = rs
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(response());
+      await AiLocateElement({
+        context: await context(500, 400),
+        targetElementDescription: 'button',
+        modelRuntime: getModelRuntime({
+          ...jevConfig,
+          openaiBaseURL: useEndpoint
+            ? 'https://ignored.example/v1'
+            : 'https://openrouter.ai/api/v1',
+          endpoint: useEndpoint
+            ? 'https://openrouter.ai/api/v1/systemone'
+            : undefined,
+        }),
+      });
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        'https://openrouter.ai/api/v1/systemone',
+      );
+      const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+      expect(body.assets).toBeUndefined();
+      expect(body.state.screenshot.type).toBe('image_url');
+      expect(body.state.screenshot.image_url.url).toMatch(
+        /^data:image\/png;base64,/,
+      );
+    },
+  );
   it.each([
     [100, 50],
     [3000, 30],

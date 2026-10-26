@@ -9,6 +9,10 @@ export function encodeSystemOneImages(
   const imageState = Object.fromEntries(
     Object.entries(images ?? {}).map(([name, dataURL]) => {
       if (isOpenRouter) {
+        // OpenRouter currently silently ignores TypeSafe's top-level assets map,
+        // so a successful request may leave Jev unable to see the images.
+        // Send inline image_url parts instead of asset references.
+        // https://openrouter.ai/docs/guides/community/multimodal-decisions#image-part-format
         return [name, { type: 'image_url', image_url: { url: dataURL } }];
       }
       const reference = uuid();
