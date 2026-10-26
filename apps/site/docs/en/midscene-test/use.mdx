@@ -104,8 +104,6 @@ pnpm test
 
 All five starters use the public React TodoMVC page to demonstrate adding, deleting, and completing tasks. The page must be reachable from the browser or device used for the test.
 
-Before each case, the Web starter runs `todo.setup` to open All view, clear page storage, reload, and verify an empty list through the DOM. `todo.seed` then creates three tasks. The first case checks the initial state; the second uses AI to delete and complete tasks, then checks the result. `todo.captureState` records the page state after each case. The Android, iOS, HarmonyOS, and desktop starters use AI to create three tasks, delete one, complete another, switch to the Completed filter, and check the result. Before changing tasks, those starters run `todo.setup` to open All view and wait for the input, then use `aiAssert` to check that the list is empty, including completed tasks, and no dialog covers the page. Existing tasks are left unchanged. If the check fails, select All and delete every task, or clear only TodoMVC website data; close blocking dialogs and rerun. For model or connection errors, resolve the reported cause first. The AI check can misjudge the page; inspect the report when it fails. All starters run serially and stop after the first failed case (`test.bail: 1`), while saving reports and releasing resources.
-
 After the run finishes, view the report in `midscene_run/report/` to inspect each case and step. Then edit `cases/todo.yaml` to write your own cases, using the generated Node Spec for available operations and their inputs.
 
 ## Understand available test operations

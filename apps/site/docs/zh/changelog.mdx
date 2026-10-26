@@ -704,7 +704,7 @@ Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midsce
 
 - `1.9.8` 是最后一个包含 MCP 支持的 Midscene 版本。后续版本会下线 MCP server 包，改为推荐 Skills 与各平台 CLI。
 - 各平台 CLI 支持传入 agent behavior init args。
-- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./reference/#harmonyos)
+- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./sdk/harmonyos)
 - YAML Web config 支持自定义 HTTP headers。
 - YAML Web config 支持通过 `downloadPath` 指定浏览器下载目录。
 - YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
@@ -768,7 +768,7 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 
 ### YAML 工作流增强
 
-- **Android runAdbShell timeout**：在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./reference/#android)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
+- **Android runAdbShell timeout**：在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./sdk/android)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
 
 ### 新增交互 API
 
@@ -871,7 +871,7 @@ Chrome 扩展的录制设置中新增了 YAML 输出语言选项，支持 Englis
 
 ### Android / 鸿蒙端改进
 
-- Android 和鸿蒙端新增 `terminate` 操作，支持强制停止指定应用，方便在测试中重置应用状态。详见：[Android API](./reference/#android)、[鸿蒙 API](./reference/#harmonyos)
+- Android 和鸿蒙端新增 `terminate` 操作，支持强制停止指定应用，方便在测试中重置应用状态。详见：[Android API](./sdk/android)、[鸿蒙 API](./sdk/harmonyos)
 - 修复 Android 端在 X/Twitter 上输入时 placeholder 文本被意外保留的问题
 - 修复 Android Playground 局域网访问问题
 
@@ -923,7 +923,7 @@ v1.6 版本新增了 CDP 浏览器连接模式、跨平台双指缩放手势、G
 
 - **Skill CLI 自定义接口**：Skill CLI 支持自定义接口，开发者可以更灵活地扩展 Skill 能力。详见：[Skills 文档](./skills)
 - **统一 MCP 工具导出**：所有平台包（Web、Android、iOS 等）统一导出 MidsceneTools，在 MCP 场景下集成更简单。详见：[MCP 服务](./mcp)
-- **iOS 终止指定应用**：iOS 端支持通过 bundleId 终止指定应用，方便测试流程中重置应用状态。详见：[iOS API](./reference/#ios)
+- **iOS 终止指定应用**：iOS 端支持通过 bundleId 终止指定应用，方便测试流程中重置应用状态。详见：[iOS API](./sdk/ios)
 - **CLI 版本查看**：CLI 新增版本查看功能，健康检查中显示各包版本信息，便于排查环境问题
 
 ### 任务取消支持
@@ -1097,7 +1097,7 @@ Midscene 现在支持 PC 桌面自动化，在 Windows、macOS 和 Linux 上驱�
 
 开启 Scrcpy 截图模式后，截图耗时从原来的 500–2000ms 降低到 **100–200ms**，显著提升 Android 自动化的响应速度，特别适用于远程设备调试和高帧率场景。
 
-详见文档：[Scrcpy 截图模式](./reference/#scrcpy)
+详见文档：[Scrcpy 截图模式](./sdk/android#scrcpy)
 
 ### 深度思考模式增强
 
@@ -1461,7 +1461,7 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 - 为 Playwright fixture 补全所有 agent api，简化测试脚本编写，解决使用 agentForPage 无法生成报告的问题
 
 ### Android 自动化增强
-- 新增隐藏键盘策略（[keyboardDismissStrategy](./reference/#androiddevice)），允许指定自动隐藏键盘的方式
+- 新增隐藏键盘策略（[keyboardDismissStrategy](./sdk/android#androiddevice)），允许指定自动隐藏键盘的方式
 
 ### 报告功能优化
 - 报告内容引入懒解析，解决大体积报告的崩溃问题
@@ -1730,7 +1730,7 @@ const agent = await agentFromAdbDevice('s4ey59', {
 立即升级版本，体验这些强大新功能！
 
 * [自定义报告节点 API 文档](/zh/reference/#agentlogscreenshot)
-* [Android 更多配置项 API 文档](/zh/reference/#androiddevice)
+* [Android 更多配置项 API 文档](/zh/sdk/android#androiddevice)
 
 
 ## v0.17 - 让 AI 看见页面 DOM

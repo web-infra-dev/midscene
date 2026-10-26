@@ -1,0 +1,461 @@
+import SdkCommonMethods from '../common/sdk-common-methods.mdx';
+import { SdkPrerequisites, Tabs, Tab } from '@theme';
+
+# Write standalone automation scripts
+
+You can call the Midscene SDK directly from a Node.js script to operate apps, extract data, or automate everyday workflows without a test runner. Your script controls the execution order, branching logic, error handling, and resource cleanup.
+
+## Before you begin
+
+<SdkPrerequisites lang="en" mode="standalone" />
+
+## Run your first example
+
+Select your target platform from the tabs below, install the dependencies, save the script as `demo.ts`, and run the command. Each example is self-contained.
+
+The script opens the public React TodoMVC page, adds a todo item named `Try Midscene`, marks it as completed, and asserts the result. Make sure the browser or device can access that URL; on mobile, complete any first-run prompts in the default browser beforehand, and on desktop, ensure a browser is installed.
+
+<Tabs defaultValue="playwright">
+
+<Tab label="Web / Playwright" value="playwright">
+
+**1. Install dependencies**
+
+```bash
+pnpm add -D @midscene/web playwright dotenv tsx
+pnpm exec playwright install chromium
+```
+
+**2. Write the code**
+
+Save the following code as `demo.ts`, and make sure your verified model configuration is saved in a `.env` file in the same directory (loaded automatically via `dotenv/config`).
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+async function main() {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto('https://todomvc.com/examples/react/dist/#/');
+    const agent = new PlaywrightAgent(page);
+    try {
+      await agent.aiWaitFor('The TodoMVC input is visible');
+      await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+      await agent.aiAssert('A todo named Try Midscene is marked completed');
+    } finally {
+      await agent.destroy();
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. Run**
+
+(Optional) Verify your model configuration before running the script:
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+Run the script from the same directory:
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. Further reading**
+
+For browser connection options, platform capabilities, and limitations, see [Web / Playwright SDK](./playwright). To use Midscene in a test suite, see [Integrate with Playwright Test](../integrate-with-playwright).
+
+</Tab>
+
+<Tab label="Web / Puppeteer" value="puppeteer">
+
+**1. Install dependencies**
+
+```bash
+pnpm add -D @midscene/web puppeteer dotenv tsx
+```
+
+**2. Write the code**
+
+Save the following code as `demo.ts`, and make sure your verified model configuration is saved in a `.env` file in the same directory (loaded automatically via `dotenv/config`).
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+async function main() {
+  const browser = await puppeteer.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto('https://todomvc.com/examples/react/dist/#/');
+    const agent = new PuppeteerAgent(page);
+    try {
+      await agent.aiWaitFor('The TodoMVC input is visible');
+      await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+      await agent.aiAssert('A todo named Try Midscene is marked completed');
+    } finally {
+      await agent.destroy();
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. Run**
+
+(Optional) Verify your model configuration before running the script:
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+Run the script from the same directory:
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. Further reading**
+
+For connection settings, platform capabilities, and limitations, see the [Puppeteer integration guide](../integrate-with-puppeteer).
+
+</Tab>
+
+<Tab label="Chrome Bridge" value="bridge">
+
+**1. Install dependencies**
+
+```bash
+pnpm add -D @midscene/web dotenv tsx
+```
+
+**2. Write the code**
+
+Save the following code as `demo.ts`, and make sure your verified model configuration is saved in a `.env` file in the same directory (loaded automatically via `dotenv/config`).
+
+Keep Chrome open and approve the connection when prompted by the extension. When the script finishes, it automatically closes the tab it created.
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+async function main() {
+  const agent = new AgentOverChromeBridge({ closeNewTabsAfterDisconnect: true });
+  try {
+    await agent.connectNewTabWithUrl('https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. Run**
+
+(Optional) Verify your model configuration before running the script:
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+Run the script from the same directory:
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. Further reading**
+
+For connection settings, platform capabilities, and limitations, see the [Chrome Bridge SDK](./chrome-bridge).
+
+</Tab>
+
+<Tab label="Android" value="android">
+
+**1. Install dependencies**
+
+```bash
+pnpm add -D @midscene/android dotenv tsx
+```
+
+**2. Write the code**
+
+Save the following code as `demo.ts`, and make sure your verified model configuration is saved in a `.env` file in the same directory (loaded automatically via `dotenv/config`).
+
+By default, this connects to the first available device. If multiple devices are connected, pass a device ID from `adb devices` to `agentFromAdbDevice(deviceId)`.
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { agentFromAdbDevice } from '@midscene/android';
+
+async function main() {
+  const agent = await agentFromAdbDevice();
+  try {
+    await agent.launch('https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. Run**
+
+(Optional) Verify your model configuration before running the script:
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+Run the script from the same directory:
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. Further reading**
+
+For connection settings, platform capabilities, and limitations, see the [Android integration guide](./android).
+
+</Tab>
+
+<Tab label="iOS" value="ios">
+
+**1. Install dependencies**
+
+```bash
+pnpm add -D @midscene/ios dotenv tsx
+```
+
+**2. Write the code**
+
+Save the following code as `demo.ts`, and make sure your verified model configuration is saved in a `.env` file in the same directory (loaded automatically via `dotenv/config`).
+
+Replace `wdaHost` and `wdaPort` with your verified WebDriverAgent service endpoint.
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+async function main() {
+  const agent = await agentFromWebDriverAgent({
+    wdaHost: 'localhost',
+    wdaPort: 8100,
+  });
+  try {
+    await agent.launch('https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. Run**
+
+(Optional) Verify your model configuration before running the script:
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+Run the script from the same directory:
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. Further reading**
+
+For connection settings, platform capabilities, and limitations, see the [iOS integration guide](./ios).
+
+</Tab>
+
+<Tab label="HarmonyOS" value="harmonyos">
+
+**1. Install dependencies**
+
+```bash
+pnpm add -D @midscene/harmony dotenv tsx
+```
+
+**2. Write the code**
+
+Save the following code as `demo.ts`, and make sure your verified model configuration is saved in a `.env` file in the same directory (loaded automatically via `dotenv/config`).
+
+By default, this connects to the first available device. If multiple devices are connected, pass a device ID from `hdc list targets` to `agentFromHdcDevice(deviceId)`.
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { agentFromHdcDevice } from '@midscene/harmony';
+
+async function main() {
+  const agent = await agentFromHdcDevice();
+  try {
+    await agent.launch('https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. Run**
+
+(Optional) Verify your model configuration before running the script:
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+Run the script from the same directory:
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. Further reading**
+
+For connection settings, platform capabilities, and limitations, see the [HarmonyOS integration guide](./harmonyos).
+
+</Tab>
+
+<Tab label="Desktop" value="desktop">
+
+**1. Install dependencies**
+
+```bash
+pnpm add -D @midscene/computer dotenv tsx
+```
+
+**2. Write the code**
+
+Save the following code as `demo.ts`, and make sure your verified model configuration is saved in a `.env` file in the same directory (loaded automatically via `dotenv/config`).
+
+This script directly controls the browser on your active desktop. Avoid using the mouse or keyboard while it is running.
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { agentForComputer } from '@midscene/computer';
+
+async function main() {
+  const agent = await agentForComputer();
+  try {
+    await agent.aiAct('Open a browser and navigate to https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. Run**
+
+(Optional) Verify your model configuration before running the script:
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+Run the script from the same directory:
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. Further reading**
+
+For connection settings, platform capabilities, and limitations, see the [Desktop integration guide](./desktop).
+
+</Tab>
+
+</Tabs>
+
+## View the report
+
+By default, the SDK generates an HTML report under `midscene_run/report/` in your project and prints the file path in the terminal. Open the file in a browser to inspect step-by-step screenshots, AI execution details, and assertion results. If a script fails, locate the failed step in the report and compare its screenshots against the error message.
+
+These reports are designed for inspecting GUI Agent execution details; when integrated with a test runner, the runner still manages overall test results and pass/fail summaries. To merge or further process report files, see [Process report files](../consume-report-file).
+
+## Understand the Agent design
+
+### Device and Agent
+
+Working with the SDK involves two core concepts:
+
+- **Device**: Communicates with the underlying browser or device, providing low-level capabilities such as taking screenshots, clicking, and typing. For example, `AndroidDevice` connects to and controls an Android device over `adb`.
+- **Agent**: Combines a Device's low-level capabilities with an AI model to understand the UI and execute tasks. Your code primarily calls Agent methods such as `aiAct`, `aiAssert`, and `aiQuery`.
+
+You can instantiate a Device manually and pass it to the corresponding Agent, or use the SDK's convenience factory functions such as `agentFromAdbDevice()`, `agentFromWebDriverAgent()`, `agentFromHdcDevice()`, and `agentForComputer()`. These factories create and connect the Device internally and return a ready-to-use Agent.
+
+For Playwright and Puppeteer, pass an existing `Page` instance directly to `PlaywrightAgent` or `PuppeteerAgent`—no separate Device instantiation is required.
+
+### Lifecycle and resource ownership
+
+Each Device instance belongs to a single Agent. Calling `agent.destroy()` also cleans up the bound Device instance and its resources (exact cleanup behavior varies by platform; for example, Android cleanup does not disconnect the host's `adb` session from the device). Do not reuse a Device after its Agent is destroyed, and do not share a single Device instance across multiple Agents. Wrap your execution logic in `try / finally` to ensure resources are released even when an action or assertion fails.
+
+Manage the lifecycle of externally created resources separately. For example, the Web examples on this page launch their own browser instance, so they explicitly call `browser.close()` after destroying the Agent; the Chrome Bridge example sets `closeNewTabsAfterDisconnect` to close the tab it opened upon disconnecting. Do not assume that `agent.destroy()` will automatically close external browsers or target applications.
+
+### Common methods
+
+<SdkCommonMethods />
+
+### Cross-platform support
+
+Each platform-specific Agent inherits from the base `Agent` class and extends it with platform-specific capabilities. For example, Web Agents integrate with browser `Page` objects, Android Agents provide system navigation methods such as `back()` and `home()`, and iOS Agents communicate with devices through WebDriverAgent.
+
+As a result, core AI methods like `aiAct` and `aiAssert` work consistently across platforms, while device connections, system-level actions, and resource cleanup remain platform-specific. Refer to the respective platform guides for detailed configuration options and limitations.
