@@ -123,6 +123,7 @@ describe('Agent with custom OpenAI client', () => {
         {
           "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "default",
@@ -155,6 +156,7 @@ describe('Agent with custom OpenAI client', () => {
         {
           "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "planning",
@@ -187,6 +189,7 @@ describe('Agent with custom OpenAI client', () => {
         {
           "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "insight",
@@ -231,6 +234,7 @@ describe('Agent with custom OpenAI client', () => {
         {
           "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "default",
@@ -263,6 +267,7 @@ describe('Agent with custom OpenAI client', () => {
         {
           "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "planning",
@@ -295,6 +300,7 @@ describe('Agent with custom OpenAI client', () => {
         {
           "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "insight",
