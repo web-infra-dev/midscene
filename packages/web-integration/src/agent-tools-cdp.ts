@@ -10,7 +10,10 @@ import {
 } from '@midscene/shared/agent-tools/base-tools';
 import type { ToolDefinition } from '@midscene/shared/agent-tools/types';
 import { getDebug } from '@midscene/shared/logger';
-import type { Page as PuppeteerPage } from 'puppeteer';
+import type {
+  Browser as PuppeteerBrowser,
+  Page as PuppeteerPage,
+} from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
 import {
@@ -18,6 +21,11 @@ import {
   adaptWebCdpAgentInitArgs,
   webCdpAgentInitArgShape,
 } from './agent-init-args';
+import {
+  createPuppeteerTabTools,
+  getTargetId,
+  requireTargetId,
+} from './agent-tools-tabs';
 import { getProxyEndpoint } from './cdp-proxy-manager';
 import {
   cleanupTargetIdFile,
@@ -25,23 +33,13 @@ import {
   saveTargetId,
 } from './cdp-target-store';
 import { defaultStaticPageViewportSize } from './common/viewport';
-import { PuppeteerAgent } from './puppeteer';
+import { PuppeteerBrowserAgent } from './puppeteer';
 import { StaticPage } from './static';
 
 const debug = getDebug('agent-tools:cdp');
 
 /** CDP target discovery may need a brief moment after WebSocket open. */
 const CDP_TARGET_DISCOVERY_DELAY_MS = 500;
-
-/**
- * puppeteer-core does not expose a public method for the underlying CDP
- * target id, so we reach into `_targetId`. Centralised here so a future
- * puppeteer release exposing this properly only requires one change.
- * Callers must treat the result as optional.
- */
-function getTargetId(page: Page): string | undefined {
-  return (page.target() as unknown as { _targetId?: string })._targetId;
-}
 
 /**
  * Tools manager for Web CDP mode.
@@ -53,7 +51,7 @@ function getTargetId(page: Page): string | undefined {
  * when Chrome's settings-based remote debugging is used.
  */
 export class WebCdpMidsceneTools extends BaseMidsceneTools<
-  PuppeteerAgent,
+  PuppeteerBrowserAgent,
   WebCdpAgentInitArgs
 > {
   protected getCliReportSessionName() {
@@ -87,7 +85,7 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<
 
   protected async ensureAgent(
     initArgs?: WebCdpAgentInitArgs,
-  ): Promise<PuppeteerAgent> {
+  ): Promise<PuppeteerBrowserAgent> {
     const navigateToUrl = initArgs?.url;
     const nextSignature = getAgentInitArgsSignature(initArgs);
     const shouldNavigateToUrl = typeof navigateToUrl === 'string';
@@ -205,24 +203,39 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<
     }
 
     const reportOptions = this.readCliReportAgentOptions();
-    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
-      ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
-      ...(reportOptions ?? {}),
-    });
+    this.agent = new PuppeteerBrowserAgent(
+      browser as unknown as PuppeteerBrowser,
+      page as unknown as PuppeteerPage,
+      {
+        autoFollowNewPage: false,
+        ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
+        ...(reportOptions ?? {}),
+      },
+    );
     this.lastInitArgsSignature = nextSignature;
     return this.agent;
   }
 
   public async destroy(): Promise<void> {
-    await super.destroy();
-    if (this.activeBrowser) {
-      this.activeBrowser.disconnect();
-      this.activeBrowser = null;
+    try {
+      if (this.agent && !this.agent.activePage.isClosed()) {
+        saveTargetId(requireTargetId(this.agent.activePage));
+      }
+    } finally {
+      try {
+        await super.destroy();
+      } finally {
+        if (this.activeBrowser) {
+          this.activeBrowser.disconnect();
+          this.activeBrowser = null;
+        }
+      }
     }
   }
 
   protected preparePlatformTools(): ToolDefinition[] {
     return [
+      ...createPuppeteerTabTools(() => this.ensureAgent(), saveTargetId),
       {
         name: 'web_connect',
         description:
