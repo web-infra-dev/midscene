@@ -28,6 +28,44 @@ function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
 }
 
 describe('model adapter registry', () => {
+  it('keeps unsupported user config independent for each protocol', () => {
+    const adapter = new ResolvedModelAdapter(
+      {
+        chatCompletion: { unsupportedUserConfig: ['temperature'] },
+        responses: { unsupportedUserConfig: ['reasoningBudget'] },
+      },
+      'test',
+    );
+    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
+      'temperature',
+    ]);
+    expect(adapter.responses.unsupportedUserConfig).toEqual([
+      'reasoningBudget',
+    ]);
+    expect(
+      new ResolvedModelAdapter({}, 'test').responses.unsupportedUserConfig,
+    ).toEqual([]);
+  });
+
+  it('defaults to Chat Completions while keeping the Responses implementation', () => {
+    const adapter = new ResolvedModelAdapter({}, 'test');
+    expect(adapter.supportedProtocols).toEqual(['openai-chat']);
+    expect(adapter.responses.buildResponsesParams({}).config).toEqual({
+      temperature: 0,
+    });
+  });
+
+  it('allows declaring Responses support without a custom implementation', () => {
+    const adapter = new ResolvedModelAdapter(
+      { supportedProtocols: ['openai-responses'] },
+      'test',
+    );
+    expect(adapter.supportedProtocols).toEqual(['openai-responses']);
+    expect(adapter.responses.buildResponsesParams({}).config).toEqual({
+      temperature: 0,
+    });
+  });
+
   it('resolves the default adapter when modelFamily is not configured', () => {
     const adapter = getModelAdapter();
 
@@ -57,7 +95,7 @@ describe('model adapter registry', () => {
       }
       if (adapter.locate.kind === 'standard') {
         expect(adapter.locate.element.resultCodec.promptSpec).toBeTruthy();
-        expect(adapter.locate.element.resultCodec.toPixelBbox).toBeTruthy();
+        expect(adapter.locate.element.resultCodec.toPixelResult).toBeTruthy();
         expect(adapter.locate.element.protocol).toBeTruthy();
         if (adapter.locate.searchArea?.protocol) {
           expect(adapter.locate.searchArea?.resultCodec).toBeTruthy();
@@ -145,7 +183,7 @@ describe('ResolvedModelAdapter', () => {
     ).toEqual({
       config: { temperature: 0.7 },
     });
-    expect(adapter.chatCompletion.resolveImageDetail({})).toBeUndefined();
+    expect(adapter.resolveImageDetail({})).toBe('high');
     expect(adapter.imagePreprocess).toEqual({});
     expect(adapter.planning).toMatchObject({
       kind: 'standard',
@@ -256,7 +294,7 @@ describe('ResolvedModelAdapter', () => {
           kind: 'custom',
           planningTapLocator: {
             buildSystemPrompt: () => 'locate system prompt',
-            getLocatedPixelBbox: () => [1, 2, 3, 4],
+            getLocatedPixelResult: () => ({ center: [2, 3] }),
           },
         },
       },
@@ -287,7 +325,7 @@ describe('ResolvedModelAdapter', () => {
               kind: 'custom',
               planningTapLocator: {
                 buildSystemPrompt: () => 'locate system prompt',
-                getLocatedPixelBbox: () => [1, 2, 3, 4],
+                getLocatedPixelResult: () => ({ center: [2, 3] }),
               },
             },
           },

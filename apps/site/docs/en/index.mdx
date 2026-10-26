@@ -1,3 +1,99 @@
 ---
-pageType: home
+pageType: doc
+sidebar: true
+outline: true
+footer: true
+title: Midscene.js — GUI Agent and E2E Testing Framework
 ---
+
+import { HeroStats, TestExample, AgentVisionDemo, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
+import TestPhilosophy from './common/test-philosophy.mdx';
+import TestWorkflow from './common/test-workflow.mdx';
+import TestCollaboration from './common/test-collaboration.mdx';
+
+# See interfaces like a human<br />E2E testing in natural language
+
+<div className="introduction-page">
+
+Midscene.js provides a vision-based GUI Agent and a natural-language E2E testing framework for web, mobile, and desktop apps.
+
+**🔥 Latest news** Starting with v1.16, Midscene supports using Jev 1.4’s visual capabilities to drive E2E testing. [See what’s new](./changelog#v1160)
+
+<div className="rp-not-doc">
+  <HeroStats />
+</div>
+
+## Describe steps and expectations in natural language {#test-intent}
+
+Describe what a user wants to do and what they should see. Express the same intent in YAML or in your existing JavaScript tests.
+
+<div className="rp-not-doc introduction-block">
+  <TestExample hideHeading />
+</div>
+
+## A GUI Agent built for testing {#gui-agent}
+
+Midscene’s GUI Agent brings visual actions and assertions to your existing JavaScript tests. We recommend [Playwright Test](./integrate-with-playwright) for web apps and [Vitest](./sdk/vitest) for mobile and desktop apps.
+
+### See, act, and verify like a human {#visual-capabilities}
+
+<div className="agent-vision-intro">
+<div>
+
+E2E testing aims to verify complete workflows from the user’s perspective. Midscene uses vision to interact as a user would: observe the screen, find the target, act, and check what the user actually sees. [See real-world examples](./showcases)
+
+</div>
+<div className="rp-not-doc">
+  <AgentVisionDemo />
+</div>
+</div>
+
+### One API, across platforms {#platforms}
+
+Visual localization does not depend on a particular UI rendering stack. Platform adapters provide screenshots and actions, bringing the same approach to web, mobile, and desktop interfaces, including HTML canvas.
+
+<div className="rp-not-doc introduction-block">
+  <AgentPlatforms hideHeading />
+</div>
+
+### Model options and cost {#model-options}
+
+<div className="rp-not-doc introduction-block">
+  <AgentModels hideHeading />
+</div>
+
+### Benchmarks {#benchmarks}
+
+- **AndroidWorld**: Pass@1 of 93.1% and Pass@3 of 97.4%. [Read the benchmark report](./android-world-benchmark-report)
+- **MobileWorld**: Pass@1 of 78.6%, completing 92 of 117 tasks. [Read the benchmark report](./mobile-world-benchmark-report)
+- **AppControlBench**: Pass@1 of 96.7%, passing 58 of 60 tasks. [Read the benchmark report](./app-control-bench-report)
+
+## A new E2E testing framework designed for natural language {#midscene-test}
+
+<TestPhilosophy />
+
+### AI and business operations in one YAML file {#ai-and-nodes}
+
+<TestWorkflow />
+
+### Test cases maintained by people and AI {#nodes-and-spec}
+
+<TestCollaboration />
+
+## Who is using Midscene {#users}
+
+<div className="rp-not-doc introduction-block">
+  <WhoIsUsing hideHeading />
+</div>
+
+## Next steps {#next-steps}
+
+- **Understand the basics**: Learn how the GUI Agent works and explore its core capabilities in [The Basics](./basics)
+- **Try visual interaction**: Follow the [quick start](./quick-start) to try natural-language actions and assertions
+- **Create a test project**: Write and run YAML test cases with [Midscene Test](./midscene-test/use)
+- **Write tests with code**: Integrate with [Playwright Test](./integrate-with-playwright) for web apps or [Vitest](./sdk/vitest) for mobile and desktop apps
+- **Run standalone automation workflows**: [Write scripts with the JavaScript SDK](./sdk/standalone)
+
+To let AI coding agents operate your UI, explore [Midscene Skills](./skills).
+
+</div>

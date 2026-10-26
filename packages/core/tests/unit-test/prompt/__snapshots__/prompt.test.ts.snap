@@ -502,9 +502,27 @@ ONLY if the task is not complete: Think what the next action is according to the
 ### Action Guidelines
 
 
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
+- If Swipe is available in the current Action Space, for touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
+### Interpreting Scroll and Swipe Directions
+
+Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
+
+In the current Action Space, \`direction\` has the following meanings:
+
+- Scroll follows the traditional mouse-wheel convention (with natural scrolling disabled). Its direction refers to the off-screen content to reveal; under this convention, it matches the wheel movement direction and is opposite to the content movement direction.
+- Swipe follows the finger-movement convention. Its direction refers to finger movement; for controls where content follows the finger, it matches the content movement direction and is opposite to the direction from which off-screen content is revealed.
+
+Use the following priority order:
+
+1. Prioritize the user's goal or expected result, even when it conflicts with a direction word. For example, for "swipe the date picker down to increase the date", if dates increase from top to bottom, use Swipe up to move a larger date from below into the selected position.
+2. Otherwise, if the user specifies a moving object or movement path, follow that object's physical movement. For example, "swipe the finger to the left" means Swipe left; "move the page content from top to bottom" means moving content downward, corresponding to Swipe down on a page where content follows the finger.
+3. Otherwise, consider the interaction target and common usage in the user's language. For content browsing, such as pages and lists, scroll directions usually refer to the off-screen content the user wants to see. For directly manipulated controls, such as sliders and wheel pickers, swipe directions usually refer to the intended movement of the control's movable part. For example, the Chinese "往下滑一下页面" and English "scroll down the page" usually mean revealing content below, corresponding to Scroll down; the Chinese "向右滑动滑块" and English "slide the slider to the right" usually mean moving the slider right, corresponding to Swipe right if using Swipe.
+4. If the intent remains ambiguous, use the Scroll and Swipe direction definitions above.
+
+After interpreting the intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Some actions support start and end points instead of \`direction\`. When using \`direction\`, ensure its value achieves the intended result according to the selected Action's definition.
 
 ## Important Notes for Locating Elements:
 - First identify the target primitive from the user's description, then locate that primitive only. Treat labels, owners, rows, columns, and surrounding text as context unless the description says they are the target.
@@ -521,7 +539,7 @@ ONLY if the task is not complete: Think what the next action is according to the
   description: Tap the element
   param:
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The element to be tapped
 - type: Sleep
   description: Sleep for a period of time
@@ -536,7 +554,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       type: string
       description: The value to be input
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The input field to target
   sample: |-
@@ -546,7 +564,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "value": "test@example.com",
       "locate": {
         "prompt": "the email input field",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       }
     }
     </action-param-json>
@@ -557,7 +575,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       type: string
       description: The key to be pressed
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The element to target for key press
 - type: Scroll
@@ -567,7 +585,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       type: string
       description: The scroll direction or amount
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The element to scroll
   sample: |-
@@ -577,7 +595,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "value": "down",
       "locate": {
         "prompt": "the product list area",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       }
     }
     </action-param-json>
@@ -585,10 +603,10 @@ ONLY if the task is not complete: Think what the next action is according to the
   description: Drag an element to another position
   param:
     from:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The element to drag
     to:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The drop target
   sample: |-
     <action-type>DragAndDrop</action-type>
@@ -596,11 +614,11 @@ ONLY if the task is not complete: Think what the next action is according to the
     {
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       },
       "to": {
         "prompt": "the upload drop zone",
-        "bbox": [345, 442, 458, 483]
+        "bbox_2d": [345, 442, 458, 483]
       }
     }
     </action-param-json>
@@ -632,7 +650,7 @@ For example:
 {
   "locate": {
     "prompt": "Add to cart button for Sauce Labs Backpack",
-    "bbox": [345, 442, 458, 483]
+    "bbox_2d": [345, 442, 458, 483]
   }
 }
 </action-param-json>
@@ -694,7 +712,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 {
   "locate": {
     "prompt": "Name input field in the registration form",
-    "bbox": [120, 180, 380, 210]
+    "bbox_2d": [120, 180, 380, 210]
   }
 }
 </action-param-json>
@@ -737,7 +755,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 {
   "locate": {
     "prompt": "Email input field in the registration form",
-    "bbox": [120, 240, 380, 270]
+    "bbox_2d": [120, 240, 380, 270]
   }
 }
 </action-param-json>
@@ -886,9 +904,27 @@ ONLY if the task is not complete: Think what the next action is according to the
 ### Action Guidelines
 
 
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
+- If Swipe is available in the current Action Space, for touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
+### Interpreting Scroll and Swipe Directions
+
+Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
+
+In the current Action Space, \`direction\` has the following meanings:
+
+- Scroll follows the traditional mouse-wheel convention (with natural scrolling disabled). Its direction refers to the off-screen content to reveal; under this convention, it matches the wheel movement direction and is opposite to the content movement direction.
+- Swipe follows the finger-movement convention. Its direction refers to finger movement; for controls where content follows the finger, it matches the content movement direction and is opposite to the direction from which off-screen content is revealed.
+
+Use the following priority order:
+
+1. Prioritize the user's goal or expected result, even when it conflicts with a direction word. For example, for "swipe the date picker down to increase the date", if dates increase from top to bottom, use Swipe up to move a larger date from below into the selected position.
+2. Otherwise, if the user specifies a moving object or movement path, follow that object's physical movement. For example, "swipe the finger to the left" means Swipe left; "move the page content from top to bottom" means moving content downward, corresponding to Swipe down on a page where content follows the finger.
+3. Otherwise, consider the interaction target and common usage in the user's language. For content browsing, such as pages and lists, scroll directions usually refer to the off-screen content the user wants to see. For directly manipulated controls, such as sliders and wheel pickers, swipe directions usually refer to the intended movement of the control's movable part. For example, the Chinese "往下滑一下页面" and English "scroll down the page" usually mean revealing content below, corresponding to Scroll down; the Chinese "向右滑动滑块" and English "slide the slider to the right" usually mean moving the slider right, corresponding to Swipe right if using Swipe.
+4. If the intent remains ambiguous, use the Scroll and Swipe direction definitions above.
+
+After interpreting the intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Some actions support start and end points instead of \`direction\`. When using \`direction\`, ensure its value achieves the intended result according to the selected Action's definition.
 
 
 
@@ -1248,9 +1284,27 @@ ONLY if the task is not complete: Think what the next action is according to the
 ### Action Guidelines
 
 
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
+- If Swipe is available in the current Action Space, for touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
+### Interpreting Scroll and Swipe Directions
+
+Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
+
+In the current Action Space, \`direction\` has the following meanings:
+
+- Scroll follows the traditional mouse-wheel convention (with natural scrolling disabled). Its direction refers to the off-screen content to reveal; under this convention, it matches the wheel movement direction and is opposite to the content movement direction.
+- Swipe follows the finger-movement convention. Its direction refers to finger movement; for controls where content follows the finger, it matches the content movement direction and is opposite to the direction from which off-screen content is revealed.
+
+Use the following priority order:
+
+1. Prioritize the user's goal or expected result, even when it conflicts with a direction word. For example, for "swipe the date picker down to increase the date", if dates increase from top to bottom, use Swipe up to move a larger date from below into the selected position.
+2. Otherwise, if the user specifies a moving object or movement path, follow that object's physical movement. For example, "swipe the finger to the left" means Swipe left; "move the page content from top to bottom" means moving content downward, corresponding to Swipe down on a page where content follows the finger.
+3. Otherwise, consider the interaction target and common usage in the user's language. For content browsing, such as pages and lists, scroll directions usually refer to the off-screen content the user wants to see. For directly manipulated controls, such as sliders and wheel pickers, swipe directions usually refer to the intended movement of the control's movable part. For example, the Chinese "往下滑一下页面" and English "scroll down the page" usually mean revealing content below, corresponding to Scroll down; the Chinese "向右滑动滑块" and English "slide the slider to the right" usually mean moving the slider right, corresponding to Swipe right if using Swipe.
+4. If the intent remains ambiguous, use the Scroll and Swipe direction definitions above.
+
+After interpreting the intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Some actions support start and end points instead of \`direction\`. When using \`direction\`, ensure its value achieves the intended result according to the selected Action's definition.
 
 
 
@@ -1594,9 +1648,27 @@ ONLY if the task is not complete: Think what the next action is according to the
 ### Action Guidelines
 
 
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
+- If Swipe is available in the current Action Space, for touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
+### Interpreting Scroll and Swipe Directions
+
+Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
+
+In the current Action Space, \`direction\` has the following meanings:
+
+- Scroll follows the traditional mouse-wheel convention (with natural scrolling disabled). Its direction refers to the off-screen content to reveal; under this convention, it matches the wheel movement direction and is opposite to the content movement direction.
+- Swipe follows the finger-movement convention. Its direction refers to finger movement; for controls where content follows the finger, it matches the content movement direction and is opposite to the direction from which off-screen content is revealed.
+
+Use the following priority order:
+
+1. Prioritize the user's goal or expected result, even when it conflicts with a direction word. For example, for "swipe the date picker down to increase the date", if dates increase from top to bottom, use Swipe up to move a larger date from below into the selected position.
+2. Otherwise, if the user specifies a moving object or movement path, follow that object's physical movement. For example, "swipe the finger to the left" means Swipe left; "move the page content from top to bottom" means moving content downward, corresponding to Swipe down on a page where content follows the finger.
+3. Otherwise, consider the interaction target and common usage in the user's language. For content browsing, such as pages and lists, scroll directions usually refer to the off-screen content the user wants to see. For directly manipulated controls, such as sliders and wheel pickers, swipe directions usually refer to the intended movement of the control's movable part. For example, the Chinese "往下滑一下页面" and English "scroll down the page" usually mean revealing content below, corresponding to Scroll down; the Chinese "向右滑动滑块" and English "slide the slider to the right" usually mean moving the slider right, corresponding to Swipe right if using Swipe.
+4. If the intent remains ambiguous, use the Scroll and Swipe direction definitions above.
+
+After interpreting the intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Some actions support start and end points instead of \`direction\`. When using \`direction\`, ensure its value achieves the intended result according to the selected Action's definition.
 
 ## Important Notes for Locating Elements:
 - First identify the target primitive from the user's description, then locate that primitive only. Treat labels, owners, rows, columns, and surrounding text as context unless the description says they are the target.
@@ -2045,9 +2117,27 @@ ONLY if the task is not complete: Think what the next action is according to the
 ### Action Guidelines
 
 
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
+- If Swipe is available in the current Action Space, for touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
+### Interpreting Scroll and Swipe Directions
+
+Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
+
+In the current Action Space, \`direction\` has the following meanings:
+
+- Scroll follows the traditional mouse-wheel convention (with natural scrolling disabled). Its direction refers to the off-screen content to reveal; under this convention, it matches the wheel movement direction and is opposite to the content movement direction.
+- Swipe follows the finger-movement convention. Its direction refers to finger movement; for controls where content follows the finger, it matches the content movement direction and is opposite to the direction from which off-screen content is revealed.
+
+Use the following priority order:
+
+1. Prioritize the user's goal or expected result, even when it conflicts with a direction word. For example, for "swipe the date picker down to increase the date", if dates increase from top to bottom, use Swipe up to move a larger date from below into the selected position.
+2. Otherwise, if the user specifies a moving object or movement path, follow that object's physical movement. For example, "swipe the finger to the left" means Swipe left; "move the page content from top to bottom" means moving content downward, corresponding to Swipe down on a page where content follows the finger.
+3. Otherwise, consider the interaction target and common usage in the user's language. For content browsing, such as pages and lists, scroll directions usually refer to the off-screen content the user wants to see. For directly manipulated controls, such as sliders and wheel pickers, swipe directions usually refer to the intended movement of the control's movable part. For example, the Chinese "往下滑一下页面" and English "scroll down the page" usually mean revealing content below, corresponding to Scroll down; the Chinese "向右滑动滑块" and English "slide the slider to the right" usually mean moving the slider right, corresponding to Swipe right if using Swipe.
+4. If the intent remains ambiguous, use the Scroll and Swipe direction definitions above.
+
+After interpreting the intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Some actions support start and end points instead of \`direction\`. When using \`direction\`, ensure its value achieves the intended result according to the selected Action's definition.
 
 
 
@@ -2463,9 +2553,27 @@ ONLY if the task is not complete: Think what the next action is according to the
 ### Action Guidelines
 
 
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
+- If Swipe is available in the current Action Space, for touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
+### Interpreting Scroll and Swipe Directions
+
+Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
+
+In the current Action Space, \`direction\` has the following meanings:
+
+- Scroll follows the traditional mouse-wheel convention (with natural scrolling disabled). Its direction refers to the off-screen content to reveal; under this convention, it matches the wheel movement direction and is opposite to the content movement direction.
+- Swipe follows the finger-movement convention. Its direction refers to finger movement; for controls where content follows the finger, it matches the content movement direction and is opposite to the direction from which off-screen content is revealed.
+
+Use the following priority order:
+
+1. Prioritize the user's goal or expected result, even when it conflicts with a direction word. For example, for "swipe the date picker down to increase the date", if dates increase from top to bottom, use Swipe up to move a larger date from below into the selected position.
+2. Otherwise, if the user specifies a moving object or movement path, follow that object's physical movement. For example, "swipe the finger to the left" means Swipe left; "move the page content from top to bottom" means moving content downward, corresponding to Swipe down on a page where content follows the finger.
+3. Otherwise, consider the interaction target and common usage in the user's language. For content browsing, such as pages and lists, scroll directions usually refer to the off-screen content the user wants to see. For directly manipulated controls, such as sliders and wheel pickers, swipe directions usually refer to the intended movement of the control's movable part. For example, the Chinese "往下滑一下页面" and English "scroll down the page" usually mean revealing content below, corresponding to Scroll down; the Chinese "向右滑动滑块" and English "slide the slider to the right" usually mean moving the slider right, corresponding to Swipe right if using Swipe.
+4. If the intent remains ambiguous, use the Scroll and Swipe direction definitions above.
+
+After interpreting the intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Some actions support start and end points instead of \`direction\`. When using \`direction\`, ensure its value achieves the intended result according to the selected Action's definition.
 
 ## Important Notes for Locating Elements:
 - First identify the target primitive from the user's description, then locate that primitive only. Treat labels, owners, rows, columns, and surrounding text as context unless the description says they are the target.
@@ -2482,7 +2590,7 @@ ONLY if the task is not complete: Think what the next action is according to the
   description: Tap the element
   param:
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The element to be tapped
 - type: Sleep
   description: Sleep for a period of time
@@ -2497,7 +2605,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       type: string
       description: The value to be input
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The input field to target
   sample: |-
@@ -2507,7 +2615,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "value": "test@example.com",
       "locate": {
         "prompt": "the email input field",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       }
     }
     </action-param-json>
@@ -2518,7 +2626,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       type: string
       description: The key to be pressed
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The element to target for key press
 - type: Scroll
@@ -2528,7 +2636,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       type: string
       description: The scroll direction or amount
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The element to scroll
   sample: |-
@@ -2538,7 +2646,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "value": "down",
       "locate": {
         "prompt": "the product list area",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       }
     }
     </action-param-json>
@@ -2546,10 +2654,10 @@ ONLY if the task is not complete: Think what the next action is according to the
   description: Drag an element to another position
   param:
     from:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The element to drag
     to:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The drop target
   sample: |-
     <action-type>DragAndDrop</action-type>
@@ -2557,11 +2665,11 @@ ONLY if the task is not complete: Think what the next action is according to the
     {
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       },
       "to": {
         "prompt": "the upload drop zone",
-        "bbox": [345, 442, 458, 483]
+        "bbox_2d": [345, 442, 458, 483]
       }
     }
     </action-param-json>
@@ -2593,7 +2701,7 @@ For example:
 {
   "locate": {
     "prompt": "Add to cart button for Sauce Labs Backpack",
-    "bbox": [345, 442, 458, 483]
+    "bbox_2d": [345, 442, 458, 483]
   }
 }
 </action-param-json>
@@ -2655,7 +2763,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 {
   "locate": {
     "prompt": "Name input field in the registration form",
-    "bbox": [120, 180, 380, 210]
+    "bbox_2d": [120, 180, 380, 210]
   }
 }
 </action-param-json>
@@ -2698,7 +2806,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 {
   "locate": {
     "prompt": "Email input field in the registration form",
-    "bbox": [120, 240, 380, 270]
+    "bbox_2d": [120, 240, 380, 270]
   }
 }
 </action-param-json>
@@ -2847,9 +2955,27 @@ ONLY if the task is not complete: Think what the next action is according to the
 ### Action Guidelines
 
 
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
+- If Swipe is available in the current Action Space, for touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
+### Interpreting Scroll and Swipe Directions
+
+Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
+
+In the current Action Space, \`direction\` has the following meanings:
+
+- Scroll follows the traditional mouse-wheel convention (with natural scrolling disabled). Its direction refers to the off-screen content to reveal; under this convention, it matches the wheel movement direction and is opposite to the content movement direction.
+- Swipe follows the finger-movement convention. Its direction refers to finger movement; for controls where content follows the finger, it matches the content movement direction and is opposite to the direction from which off-screen content is revealed.
+
+Use the following priority order:
+
+1. Prioritize the user's goal or expected result, even when it conflicts with a direction word. For example, for "swipe the date picker down to increase the date", if dates increase from top to bottom, use Swipe up to move a larger date from below into the selected position.
+2. Otherwise, if the user specifies a moving object or movement path, follow that object's physical movement. For example, "swipe the finger to the left" means Swipe left; "move the page content from top to bottom" means moving content downward, corresponding to Swipe down on a page where content follows the finger.
+3. Otherwise, consider the interaction target and common usage in the user's language. For content browsing, such as pages and lists, scroll directions usually refer to the off-screen content the user wants to see. For directly manipulated controls, such as sliders and wheel pickers, swipe directions usually refer to the intended movement of the control's movable part. For example, the Chinese "往下滑一下页面" and English "scroll down the page" usually mean revealing content below, corresponding to Scroll down; the Chinese "向右滑动滑块" and English "slide the slider to the right" usually mean moving the slider right, corresponding to Swipe right if using Swipe.
+4. If the intent remains ambiguous, use the Scroll and Swipe direction definitions above.
+
+After interpreting the intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Some actions support start and end points instead of \`direction\`. When using \`direction\`, ensure its value achieves the intended result according to the selected Action's definition.
 
 
 
@@ -3158,8 +3284,8 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot.
-  "references_bbox"?: [
+  "bbox_2d": [number, number, number, number],  // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot.
+  "references_bbox_2d"?: [
     [number, number, number, number],
     ...
   ],
@@ -3168,16 +3294,16 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - bounding box of the section containing the target element
-* \`references_bbox\` - Optional array of bounding boxes of reference elements
+* \`bbox_2d\` - bounding box of the section containing the target element
+* \`references_bbox_2d\` - Optional array of bounding boxes of reference elements
 * \`error\` - Optional error message if the section cannot be found. Use English.
 
 Example:
 If the description is "delete button on the second row with title 'Peter'", return:
 \`\`\`json
 {
-  "bbox": [100, 100, 200, 200],
-  "references_bbox": [[100, 100, 200, 200]]
+  "bbox_2d": [100, 100, 200, 200],
+  "references_bbox_2d": [[100, 100, 200, 200]]
 }
 \`\`\`
 "

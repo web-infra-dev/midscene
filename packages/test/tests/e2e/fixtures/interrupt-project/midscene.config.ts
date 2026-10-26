@@ -12,6 +12,7 @@ export default defineTestProject({
   nodes: [
     defineNode({
       name: 'test.interrupt',
+      stringInputKey: 'prompt',
       execute() {
         log('interrupt');
         process.emit('SIGTERM');
@@ -26,7 +27,6 @@ export default defineTestProject({
   ],
   setup: {
     name: 'fixture',
-    platform: 'web',
     setup({ project, onTeardown }) {
       log(`setup:${project.name}`);
       onTeardown(() => log(`teardown:${project.name}`));

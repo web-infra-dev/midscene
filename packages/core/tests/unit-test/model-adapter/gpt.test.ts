@@ -3,6 +3,187 @@ import { gptAdapters } from '@/ai-model/models/gpt';
 import { describe, expect, it } from '@rstest/core';
 
 const gpt5Adapter = new ResolvedModelAdapter(gptAdapters['gpt-5'], 'gpt-5');
+const gpt6Adapter = new ResolvedModelAdapter(gptAdapters['gpt-6'], 'gpt-6');
+
+it.each(['gpt-5', 'gpt-6'] as const)(
+  '%s uses current-turn reasoning with text-only history',
+  (family) => {
+    const adapter = new ResolvedModelAdapter(gptAdapters[family], family);
+    expect(adapter.responses.replayRawAssistantOutput).toBe(false);
+    expect(adapter.chatCompletion.replayRawAssistantMessage).toBe(false);
+    expect(
+      adapter.responses.buildResponsesParams({ userConfig: {} }).config
+        .reasoning,
+    ).toMatchObject({ context: 'current_turn' });
+  },
+);
+
+describe.each(['gpt-5', 'gpt-6'] as const)(
+  '%s Responses JSON mode',
+  (family) => {
+    const adapter = new ResolvedModelAdapter(gptAdapters[family], family);
+
+    it.each([
+      {
+        responseFormat: undefined,
+        expectedJsonObjectResponse: true,
+        enabled: true,
+      },
+      {
+        responseFormat: 'auto',
+        expectedJsonObjectResponse: true,
+        enabled: true,
+      },
+      {
+        responseFormat: 'none',
+        expectedJsonObjectResponse: true,
+        enabled: false,
+      },
+      {
+        responseFormat: 'auto',
+        expectedJsonObjectResponse: false,
+        enabled: false,
+      },
+    ] as const)(
+      'handles %j',
+      ({ responseFormat, expectedJsonObjectResponse, enabled }) => {
+        const { config } = adapter.responses.buildResponsesParams({
+          userConfig: { responseFormat },
+          expectedJsonObjectResponse,
+        });
+        expect(config.text).toEqual(
+          enabled ? { format: { type: 'json_object' } } : undefined,
+        );
+        expect(config).not.toHaveProperty('response_format');
+      },
+    );
+  },
+);
+
+describe('GPT Codex App Server parameters', () => {
+  it.each([
+    {},
+    { reasoningEnabled: true },
+    { reasoningEnabled: false },
+    { reasoningEffort: 'max' },
+    { reasoningEnabled: true, reasoningEffort: 'high' },
+    { reasoningEnabled: false, reasoningEffort: 'max' },
+  ] as const)(
+    'shares reasoning policy across providers for %j',
+    (userConfig) => {
+      for (const adapter of [gpt5Adapter, gpt6Adapter]) {
+        expect(
+          adapter.buildCodexAppServerParams({ userConfig }).config,
+        ).toEqual({
+          effort: adapter.chatCompletion.buildChatCompletionParams({
+            userConfig,
+          }).config.reasoning_effort,
+        });
+      }
+    },
+  );
+});
+
+describe('GPT provider-default reasoning', () => {
+  it.each([undefined, 'high', 'max'])(
+    'omits reasoning controls even with effort %s',
+    (reasoningEffort) => {
+      for (const adapter of [gpt5Adapter, gpt6Adapter]) {
+        const input = {
+          userConfig: {
+            reasoningEnabled: 'default' as const,
+            reasoningEffort,
+            reasoningBudget: 1024,
+          },
+        };
+        const chatConfig =
+          adapter.chatCompletion.buildChatCompletionParams(input).config;
+        const codexConfig = adapter.buildCodexAppServerParams(input).config;
+        expect(JSON.parse(JSON.stringify(chatConfig))).not.toHaveProperty(
+          'reasoning_effort',
+        );
+        expect(JSON.parse(JSON.stringify(codexConfig))).not.toHaveProperty(
+          'effort',
+        );
+        expect(chatConfig).not.toHaveProperty('reasoning_budget');
+      }
+    },
+  );
+});
+
+describe('gpt-6 model adapter', () => {
+  it.each([undefined, false])(
+    'defaults reasoning to low when enabled=%s',
+    (reasoningEnabled) => {
+      expect(
+        gpt6Adapter.chatCompletion.buildChatCompletionParams({
+          userConfig: { reasoningEnabled },
+        }).config,
+      ).toEqual({ reasoning_effort: 'low' });
+    },
+  );
+
+  it('defaults enabled reasoning to medium', () => {
+    expect(
+      gpt6Adapter.chatCompletion.buildChatCompletionParams({
+        userConfig: { reasoningEnabled: true },
+      }).config.reasoning_effort,
+    ).toBe('medium');
+  });
+
+  it.each(['low', 'medium', 'high', 'xhigh', 'max'])(
+    'supports explicit effort %s',
+    (reasoningEffort) => {
+      expect(
+        gpt6Adapter.chatCompletion.buildChatCompletionParams({
+          userConfig: { reasoningEnabled: true, reasoningEffort },
+        }).config.reasoning_effort,
+      ).toBe(reasoningEffort);
+    },
+  );
+
+  it.each([undefined, false])(
+    'ignores explicit effort when enabled=%s',
+    (reasoningEnabled) => {
+      expect(
+        gpt6Adapter.chatCompletion.buildChatCompletionParams({
+          userConfig: { reasoningEnabled, reasoningEffort: 'high' },
+        }).config.reasoning_effort,
+      ).toBe('low');
+    },
+  );
+
+  it.each([0, 1])(
+    'omits temperature and reasoning budget on retry %s',
+    (semanticRetryAttempt) => {
+      expect(
+        gpt6Adapter.chatCompletion.buildChatCompletionParams({
+          userConfig: { temperature: 0.7, reasoningBudget: 1024 },
+          semanticRetryAttempt,
+        }).config,
+      ).toEqual({ reasoning_effort: 'low' });
+      expect(
+        gpt6Adapter.chatCompletion.buildChatCompletionParams({
+          semanticRetryAttempt,
+        }).config,
+      ).toEqual({ reasoning_effort: 'low' });
+    },
+  );
+
+  it('uses JSON mode only when requested and not disabled', () => {
+    expect(
+      gpt6Adapter.chatCompletion.buildChatCompletionParams({
+        expectedJsonObjectResponse: true,
+      }).config.response_format,
+    ).toEqual({ type: 'json_object' });
+    expect(
+      gpt6Adapter.chatCompletion.buildChatCompletionParams({
+        expectedJsonObjectResponse: true,
+        userConfig: { responseFormat: 'none' },
+      }).config.response_format,
+    ).toBeUndefined();
+  });
+});
 
 describe('gpt model adapter', () => {
   it('keeps GPT-5 image-detail policy in the adapter', () => {
@@ -20,21 +201,19 @@ describe('gpt model adapter', () => {
       'reasoningBudget',
     ]);
     expect(
-      gpt5Adapter.chatCompletion.resolveImageDetail({
-        intent: 'default',
-        userConfig: {},
+      gpt5Adapter.resolveImageDetail({
+        intent: 'locate',
       }),
     ).toBe('original');
     expect(
-      gpt5Adapter.chatCompletion.resolveImageDetail({
+      gpt5Adapter.resolveImageDetail({
         intent: 'planning',
-        userConfig: {},
       }),
-    ).toBeUndefined();
+    ).toBe('high');
+    expect(gpt5Adapter.resolveImageDetail({ intent: 'default' })).toBe('high');
     expect(
-      gpt5Adapter.chatCompletion.resolveImageDetail({
+      gpt5Adapter.resolveImageDetail({
         intent: 'planning',
-        userConfig: {},
         requiresOriginalImageDetail: true,
       }),
     ).toBe('original');
@@ -152,3 +331,15 @@ describe('gpt model adapter', () => {
     expect(result.config.response_format).toBeUndefined();
   });
 });
+
+it.each(['low', 'auto', 'high'] as const)(
+  'preserves per-image %s detail unless GPT requires original',
+  (imageDetail) => {
+    expect(
+      gpt5Adapter.resolveImageDetail({ intent: 'planning', imageDetail }),
+    ).toBe(imageDetail);
+    expect(
+      gpt5Adapter.resolveImageDetail({ intent: 'locate', imageDetail }),
+    ).toBe('original');
+  },
+);

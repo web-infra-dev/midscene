@@ -1,12 +1,15 @@
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import type {
   StreamingAIResponse,
   StreamingCodeGenerationOptions,
 } from '@/types';
 import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { IModelConfig } from '@midscene/shared/env';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { getModelRuntime } from '../../models';
-import { callAI, callAIWithStringResponse } from '../../service-caller';
+import {
+  callAIWithStringResponse,
+  callGenerativeAI,
+} from '../../service-caller';
 // Import shared utilities and types from yaml generation.
 import {
   type ChromeRecordedEvent,
@@ -122,7 +125,7 @@ Your task is to generate a complete, executable Playwright test using @midscene/
 ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   // Use LLM to generate the Playwright test code
-  const prompt: ChatCompletionMessageParam[] = [
+  const prompt: ConversationMessage[] = [
     {
       role: 'system',
       content: systemPrompt,
@@ -204,7 +207,7 @@ Your task is to generate a complete, executable Playwright test using @midscene/
 ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   // Use LLM to generate the Playwright test code with streaming
-  const prompt: ChatCompletionMessageParam[] = [
+  const prompt: ConversationMessage[] = [
     {
       role: 'system',
       content: systemPrompt,
@@ -217,7 +220,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   if (options.stream && options.onChunk) {
     // Use streaming
-    return await callAI(prompt, modelRuntime, {
+    return await callGenerativeAI(prompt, modelRuntime, {
       stream: true,
       onChunk: options.onChunk,
     });

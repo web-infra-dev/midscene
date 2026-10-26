@@ -86,7 +86,7 @@ git config user.email "SOME_EMAIL@example.com"
 - `packages/web-integration`: source for npm package `@midscene/web`;
   Playwright/Puppeteer integration and main web e2e coverage. The package name is `@midscene/web`.
 - `packages/shared`: shared utilities used across the monorepo. The package name is `@midscene/shared`.
-- `packages/test`: extensible YAML test runner and Node SDK. The package name is `@midscene/test`.
+- `packages/test`: Midscene Test, an extensible YAML testing framework and Node SDK. The package name is `@midscene/test`.
 - `packages/{android,ios,computer,harmony}`: platform runtimes. Matching
   `*-playground` packages live alongside them. The package names are `@midscene/android`, `@midscene/ios`, `@midscene/computer`, `@midscene/harmony`.
 - `packages/visualizer` and `apps/report`: report rendering and viewer UI.
@@ -222,6 +222,39 @@ OPENAI_API_KEY="your_token"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 ```
 
+### Report Development and Test Scope
+
+Prioritize Report's core user workflows and data correctness during development,
+review, and testing: loading reports, reading outcomes and metrics, filtering and
+sorting, navigating Cases and attempts, inspecting failures and evidence, and
+using replay and mobile navigation.
+
+Use final Report outcomes consistently: Passed, Failed and Not run. Recovery
+after an earlier failed attempt is diagnostic history within Passed, never a
+separate filter, navigation group or additional Case count. Keep earlier
+attempts and File/Project errors available for debugging.
+
+Keep e2e assertions concise and focused on observable functional outcomes. Use
+enough context to locate the intended control, while allowing the layout and
+visual design to evolve. Preserve AI interaction and assertion coverage; use
+JavaScript for deterministic browser integration such as history, focus, and
+value comparisons.
+
+Cosmetic details such as spacing, colors, borders, shadows, corner radii, icon
+appearance, and exact dimensions should not become default test or review gates.
+Do not replace brittle e2e style checks with equally brittle CSS or markup
+assertions in unit tests. Use unit tests for aggregation, serialization, state
+transitions, and other behavioral rules. Add targeted visual checks when an
+explicit design requirement calls for them.
+
+Treat content clipping, overlap, or scrolling and keyboard problems that hide
+important information or prevent an action as functional defects. Cover the
+affected workflow without locking in incidental styling.
+
+See the Report e2e guidelines in
+[English](./apps/report/e2e/README.md) or
+[中文](./apps/report/e2e/README.zh.md) for coverage and authoring guidance.
+
 
 ### Add New Tests
 
@@ -272,6 +305,29 @@ If you need to run E2E tests for adb:
 ```sh
 cd packages/web-integration && pnpm run test:ai -- adb
 ```
+
+### Run native default-scroll regression tests
+
+The Android Emulator and iOS Simulator workflows run a model-free scroll regression before their existing smoke and AI tests. Native lists and pagers measure content offsets while the built SDK executes the `Scroll` action. Each platform runs 32 cases covering both orientations, all four directions, stability at top/bottom boundaries, and scrolling from the middle to the top/bottom.
+
+Build the target package first (`pnpm exec nx build @midscene/android` or `pnpm exec nx build @midscene/ios`). Then run from the repository root:
+
+```sh
+# Requires a booted Android emulator, adb, an Android SDK, and a JDK.
+# The fixture build downloads checksum-pinned AndroidX dependencies.
+ANDROID_HOME=/path/to/android-sdk MIDSCENE_ANDROID_SERIAL=emulator-5554 \
+  node scripts/mobile-scroll-regression.mjs android
+
+# Requires a booted iOS simulator and WDA serving that simulator.
+MIDSCENE_IOS_SIMULATOR_UDID=<simulator-udid> MIDSCENE_IOS_WDA_PORT=8100 \
+  node scripts/mobile-scroll-regression.mjs ios
+```
+
+The runner installs the disposable `dev.midscene.scrollprobe` fixture. Android runs replace any previous installation of that fixture and temporarily set the emulator resolution and density. The runner restores the original resolution, density, or orientation when it finishes.
+
+Vertical content must move between 60% and 95% of the visible list height, preserving overlap. A horizontal gesture must move exactly one native page within a 3% measurement tolerance. Boundary gestures must settle within one coordinate unit of the original boundary. Separate `scrollToTop` and `scrollToBottom` cases start inside the list and must reach its measured native boundary. These checks validate this fixture's behavior, not identical displacement in every application.
+
+Before/after screenshots, native offset traces, the source commit, and assertion results are written under `midscene_run/<platform>-scroll/scroll`. CI uses the platform diagnostics directory and uploads these files with the existing diagnostics artifact. A failed assertion fails the simulator workflow even if the later smoke or AI tests pass.
 
 ---
 
@@ -373,8 +429,14 @@ Repository maintainers can publish a new version of all packages to npm.
 
 Here are the steps to publish (we generally use CI for releases and avoid publishing npm packages locally):
 
-1. [Run the release action](https://github.com/web-infra-dev/midscene/actions/workflows/release.yml).
-2. [Generate the release notes](https://github.com/web-infra-dev/midscene/releases).
+1. Prepare bilingual highlights for the target version in [.github/release-notes](./.github/release-notes/README.md).
+   The `major` and `minor` inputs require both English and Chinese highlights;
+   patch highlights are optional but must be supplied as a pair.
+2. [Run the release action](https://github.com/web-infra-dev/midscene/actions/workflows/release.yml).
+   Stable releases generate bilingual version archives and update the website's
+   changelogs before committing the version bump and pushing its tag. Historical
+   changelog content outside the generated regions is preserved.
+3. The workflow publishes those same notes to [GitHub Releases](https://github.com/web-infra-dev/midscene/releases).
 
 Stable releases also attempt to submit the packaged Chrome extension to the Chrome Web Store from CI. Configure these repository secrets before running a stable release:
 

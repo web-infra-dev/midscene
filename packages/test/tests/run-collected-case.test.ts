@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import { RESOURCE_CLEANUP_GRACE_MS } from '@midscene/core/internal/test-runner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type CollectedCase,
@@ -43,29 +44,15 @@ afterEach(() => {
 });
 
 describe('runCollectedCase', () => {
-  it('runs all attempt phases in order with one context and complete history', async () => {
+  it('runs all attempt phases in order with one shared context', async () => {
     const context = { marker: 'document-context' };
     const calls: string[] = [];
     const node = defineNode<unknown, unknown, typeof context>({
       name: 'record',
-      execute(ctx) {
-        if (ctx.scope !== 'case') throw new Error('case scope required');
-        calls.push(`${ctx.case.phase}:${ctx.case.stepIndex}`);
-        expect(ctx.context).toBe(context);
-        expect(Object.isFrozen(ctx.case.completedSteps)).toBe(true);
-        expect(Object.isFrozen(ctx.case.completedNodes)).toBe(true);
-        if (ctx.case.phase === 'beforeEach') {
-          expect(ctx.case.completedSteps).toEqual([]);
-          expect(ctx.case.completedNodes).toEqual([]);
-        }
-        if (ctx.case.phase === 'steps') {
-          expect(ctx.case.completedSteps).toEqual([]);
-          expect(ctx.case.completedNodes).toHaveLength(1);
-        }
-        if (ctx.case.phase === 'afterEach') {
-          expect(ctx.case.completedSteps).toHaveLength(1);
-          expect(ctx.case.completedNodes).toHaveLength(2);
-        }
+      execute(execution) {
+        if (execution.scope !== 'case') throw new Error('case scope required');
+        calls.push(`${execution.case.phase}:${execution.case.stepIndex}`);
+        expect(execution.context).toBe(context);
       },
     });
     const registry = new NodeRegistry([node]);
@@ -85,6 +72,26 @@ describe('runCollectedCase', () => {
       beforeEach: [{ phase: 'beforeEach', stepIndex: 0 }],
       steps: [{ phase: 'steps', stepIndex: 0 }],
       afterEach: [{ phase: 'afterEach', stepIndex: 0 }],
+    });
+  });
+
+  it('keeps API output intact before publication', async () => {
+    const registry = new NodeRegistry([
+      defineNode({
+        name: 'invalid-output',
+        execute() {
+          return { data: { missing: undefined } };
+        },
+      }),
+    ]);
+
+    const result = await runCollectedCase(collected([step('invalid-output')]), {
+      resolveNode: registry.require.bind(registry),
+    });
+
+    expect(result.steps[0]).toMatchObject({
+      status: 'success',
+      output: { data: { missing: undefined } },
     });
   });
 
@@ -240,7 +247,7 @@ describe('runCollectedCase', () => {
     ]);
   });
 
-  it('settles a non-cooperative running step on parent cancellation and runs cleanup', async () => {
+  it('runs afterEach on cancellation but defers teardown until the running node settles', async () => {
     vi.useFakeTimers();
     const calls: string[] = [];
     const controller = new AbortController();
@@ -250,6 +257,7 @@ describe('runCollectedCase', () => {
     );
     const cancellationReason = new Error('workflow interrupted');
     const started = createDeferred();
+    const nodeExecution = createDeferred();
     const registry = new NodeRegistry([
       defineNode({
         name: 'blocking',
@@ -259,7 +267,7 @@ describe('runCollectedCase', () => {
             calls.push('teardown');
           });
           started.resolve();
-          return new Promise<void>(() => {});
+          return nodeExecution.promise;
         },
       }),
       defineNode({
@@ -280,29 +288,36 @@ describe('runCollectedCase', () => {
     );
     await started.promise;
 
-    let result: Awaited<typeof execution> | undefined;
-    const settled = execution.then((value) => {
-      result = value;
-      return true;
-    });
-    controller.abort(cancellationReason);
-    const observed = Promise.race([
-      settled,
-      new Promise<false>((resolve) => setTimeout(() => resolve(false), 50)),
-    ]);
-    await vi.advanceTimersByTimeAsync(50);
+    try {
+      controller.abort(cancellationReason);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls).toEqual(['step', 'afterEach']);
 
-    expect(await observed).toBe(true);
-    expect(result?.steps[0].error).toMatchObject({
-      code: 'NODE_EXECUTION_ERROR',
-      cause: cancellationReason,
-    });
-    expect(calls).toEqual(['step', 'afterEach', 'teardown']);
-    expect(vi.getTimerCount()).toBe(0);
-    expect(removeAbortListener).toHaveBeenCalledWith(
-      'abort',
-      expect.any(Function),
-    );
+      await vi.advanceTimersByTimeAsync(RESOURCE_CLEANUP_GRACE_MS);
+      const result = await execution;
+      expect(result.steps[0].error).toMatchObject({
+        code: 'NODE_EXECUTION_ERROR',
+        cause: cancellationReason,
+      });
+      expect(result.cleanup?.status).toBe('pending');
+      expect(result.teardownErrors).toBeUndefined();
+      expect(calls).toEqual(['step', 'afterEach']);
+      expect(vi.getTimerCount()).toBe(0);
+      expect(removeAbortListener).toHaveBeenCalledWith(
+        'abort',
+        expect.any(Function),
+      );
+
+      const snapshot = JSON.stringify(result);
+      nodeExecution.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls).toEqual(['step', 'afterEach', 'teardown']);
+      expect(JSON.stringify(result)).toBe(snapshot);
+    } finally {
+      nodeExecution.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      await execution;
+    }
   });
 
   it('preserves a null parent cancellation reason', async () => {
@@ -374,10 +389,10 @@ describe('runCollectedCase', () => {
     let signal: AbortSignal | undefined;
     const node = defineNode({
       name: 'timed-cooperative',
-      execute(ctx) {
-        signal = ctx.signal;
+      execute(execution) {
+        signal = execution.signal;
         return new Promise<{ summary: string }>((resolve) => {
-          ctx.signal.addEventListener(
+          execution.signal.addEventListener(
             'abort',
             () => resolve({ summary: 'stopped after timeout' }),
             { once: true },
@@ -528,5 +543,83 @@ describe('runCollectedCase', () => {
       cause: cancellationReason,
     });
     expect(execute).not.toHaveBeenCalled();
+  });
+  it('collects and deduplicates report traces on successful and failed Steps', async () => {
+    const registry = new NodeRegistry([
+      defineNode({
+        name: 'trace.success',
+        execute({ report }) {
+          report.addTrace({
+            type: 'midscene-execution',
+            executionId: 'execution-success',
+          });
+          report.addTrace({
+            type: 'midscene-execution',
+            executionId: 'execution-success',
+          });
+        },
+      }),
+      defineNode({
+        name: 'trace.failure',
+        execute({ report }) {
+          report.addTrace({
+            type: 'midscene-execution',
+            executionId: 'execution-failure',
+          });
+          throw new Error('failed after creating an execution');
+        },
+      }),
+    ]);
+
+    const result = await runCollectedCase(
+      collected([step('trace.success'), step('trace.failure')]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.steps[0].report?.traces).toEqual([
+      {
+        type: 'midscene-execution',
+        executionId: 'execution-success',
+      },
+    ]);
+    expect(Object.isFrozen(result.steps[0].report?.traces)).toBe(true);
+    expect(result.steps[1]).toMatchObject({
+      status: 'failed',
+      report: {
+        traces: [
+          {
+            type: 'midscene-execution',
+            executionId: 'execution-failure',
+          },
+        ],
+      },
+    });
+  });
+
+  it('fails a Step that registers an invalid report trace', async () => {
+    const registry = new NodeRegistry([
+      defineNode({
+        name: 'trace.invalid',
+        execute({ report }) {
+          report.addTrace({
+            type: 'midscene-execution',
+            executionId: '   ',
+          });
+        },
+      }),
+    ]);
+
+    const result = await runCollectedCase(collected([step('trace.invalid')]), {
+      resolveNode: registry.require.bind(registry),
+    });
+
+    expect(result.steps[0]).toMatchObject({
+      status: 'failed',
+      error: {
+        message: expect.stringContaining(
+          'Report trace executionId must be non-empty',
+        ),
+      },
+    });
   });
 });

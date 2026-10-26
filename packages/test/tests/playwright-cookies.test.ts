@@ -1,10 +1,16 @@
+import { createRequire } from 'node:module';
+import { createMidsceneNodes } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
+const { PlaywrightAgent } = createRequire(import.meta.url)(
+  '@midscene/web/playwright/agent',
+);
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
-import { createPlaywrightNodes } from '../src/playwright';
+
 import {
   collected,
   createPage,
@@ -26,12 +32,18 @@ describe('Playwright cookie Nodes', () => {
   it('loads cookie secrets by reference without persisting their values', async () => {
     const { browserContext, page } = createPage();
     const registry = new NodeRegistry(
-      createPlaywrightNodes({
-        getPage: () => page,
-        getEnv: () => ({
-          E2E_COOKIES: JSON.stringify([
-            { name: 'session', value: 'top-secret-value' },
-          ]),
+      createMidsceneNodes({
+        agentClass: PlaywrightAgent,
+        getAgent: () => ({
+          ...createMockMidsceneAgent(),
+          interface: { underlyingPage: page },
+          testRunner: {
+            getEnv: () => ({
+              E2E_COOKIES: JSON.stringify([
+                { name: 'session', value: 'top-secret-value' },
+              ]),
+            }),
+          },
         }),
       }),
     );
@@ -64,15 +76,21 @@ describe('Playwright cookie Nodes', () => {
   it('does not persist cookie names or URL scopes from secret sources', async () => {
     const { browserContext, page } = createPage();
     const registry = new NodeRegistry(
-      createPlaywrightNodes({
-        getPage: () => page,
-        getCookieProfile: () => [
-          {
-            name: 'sensitive-cookie-name',
-            value: 'sensitive-cookie-value',
-            url: 'https://user:password@example.com/path?token=query-secret',
+      createMidsceneNodes({
+        agentClass: PlaywrightAgent,
+        getAgent: () => ({
+          ...createMockMidsceneAgent(),
+          interface: { underlyingPage: page },
+          testRunner: {
+            getCookieProfile: () => [
+              {
+                name: 'sensitive-cookie-name',
+                value: 'sensitive-cookie-value',
+                url: 'https://user:password@example.com/path?token=query-secret',
+              },
+            ],
           },
-        ],
+        }),
       }),
     );
 
@@ -97,11 +115,17 @@ describe('Playwright cookie Nodes', () => {
   it('redacts cookie environment resolver failures', async () => {
     const { page } = createPage();
     const registry = new NodeRegistry(
-      createPlaywrightNodes({
-        getPage: () => page,
-        getEnv: () => {
-          throw new Error('environment contains top-secret-value');
-        },
+      createMidsceneNodes({
+        agentClass: PlaywrightAgent,
+        getAgent: () => ({
+          ...createMockMidsceneAgent(),
+          interface: { underlyingPage: page },
+          testRunner: {
+            getEnv: () => {
+              throw new Error('environment contains top-secret-value');
+            },
+          },
+        }),
       }),
     );
 
@@ -125,10 +149,16 @@ describe('Playwright cookie Nodes', () => {
     const secret = 'malformed-env-secret';
     const { page } = createPage();
     const registry = new NodeRegistry(
-      createPlaywrightNodes({
-        getPage: () => page,
-        getEnv: () => ({
-          E2E_COOKIES: `[{"name":"session","value":"${secret}",}]`,
+      createMidsceneNodes({
+        agentClass: PlaywrightAgent,
+        getAgent: () => ({
+          ...createMockMidsceneAgent(),
+          interface: { underlyingPage: page },
+          testRunner: {
+            getEnv: () => ({
+              E2E_COOKIES: `[{"name":"session","value":"${secret}",}]`,
+            }),
+          },
         }),
       }),
     );
@@ -158,7 +188,13 @@ describe('Playwright cookie Nodes', () => {
     );
     const { page } = createPage();
     const registry = new NodeRegistry(
-      createPlaywrightNodes({ getPage: () => page }),
+      createMidsceneNodes({
+        agentClass: PlaywrightAgent,
+        getAgent: () => ({
+          ...createMockMidsceneAgent(),
+          interface: { underlyingPage: page },
+        }),
+      }),
     );
 
     const result = await runCollectedCase(
@@ -181,16 +217,22 @@ describe('Playwright cookie Nodes', () => {
       new Error('invalid cookie value: top-secret-value'),
     );
     const registry = new NodeRegistry(
-      createPlaywrightNodes({
-        getPage: () => page,
-        getEnv: () => ({
-          E2E_COOKIES: JSON.stringify([
-            {
-              name: 'session',
-              value: 'top-secret-value',
-              url: 'https://example.com',
-            },
-          ]),
+      createMidsceneNodes({
+        agentClass: PlaywrightAgent,
+        getAgent: () => ({
+          ...createMockMidsceneAgent(),
+          interface: { underlyingPage: page },
+          testRunner: {
+            getEnv: () => ({
+              E2E_COOKIES: JSON.stringify([
+                {
+                  name: 'session',
+                  value: 'top-secret-value',
+                  url: 'https://example.com',
+                },
+              ]),
+            }),
+          },
         }),
       }),
     );
@@ -214,11 +256,17 @@ describe('Playwright cookie Nodes', () => {
   it('redacts cookie profile resolution failures', async () => {
     const { page } = createPage();
     const registry = new NodeRegistry(
-      createPlaywrightNodes({
-        getPage: () => page,
-        getCookieProfile: () => {
-          throw new Error('profile contains top-secret-value');
-        },
+      createMidsceneNodes({
+        agentClass: PlaywrightAgent,
+        getAgent: () => ({
+          ...createMockMidsceneAgent(),
+          interface: { underlyingPage: page },
+          testRunner: {
+            getCookieProfile: () => {
+              throw new Error('profile contains top-secret-value');
+            },
+          },
+        }),
       }),
     );
 
@@ -257,19 +305,25 @@ describe('Playwright cookie Nodes', () => {
       }),
     );
     const registry = new NodeRegistry(
-      createPlaywrightNodes({
-        getPage: () => page,
-        getEnv: () => ({ COOKIE_HEADER: 'a=1; b=two; ' }),
-        getCookieProfile: ({ profile }) => [
-          {
-            name: profile,
-            value: 'profile-secret',
-            domain: '.example.com',
-            path: '/',
+      createMidsceneNodes({
+        agentClass: PlaywrightAgent,
+        getAgent: () => ({
+          ...createMockMidsceneAgent(),
+          interface: { underlyingPage: page },
+          testRunner: {
+            getEnv: () => ({ COOKIE_HEADER: 'a=1; b=two; ' }),
+            getCookieProfile: ({ profile }: { profile: string }) => [
+              {
+                name: profile,
+                value: 'profile-secret',
+                domain: '.example.com',
+                path: '/',
+              },
+            ],
+            resolveStorageStatePath: (path: string) =>
+              path === 'state.json' ? storageStatePath : path,
           },
-        ],
-        resolveStorageStatePath: (path) =>
-          path === 'state.json' ? storageStatePath : path,
+        }),
       }),
     );
 

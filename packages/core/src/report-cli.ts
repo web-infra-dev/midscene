@@ -7,7 +7,10 @@ import {
 } from 'node:fs';
 import * as path from 'node:path';
 import { z } from 'zod';
-import { extractAllDumpScriptsSync } from './dump/html-utils';
+import {
+  extractAllDumpScriptsSync,
+  extractTestRunReportDumpSync,
+} from './dump/html-utils';
 import { resolveScreenshotSource } from './dump/screenshot-store';
 import { deriveCaseStatus } from './dump/task-status';
 import {
@@ -17,6 +20,7 @@ import {
 } from './report';
 import { reportToMarkdown } from './report-markdown';
 import type { MarkdownAttachment } from './report-markdown';
+import { collectReportSummary } from './report-stats';
 import type { ReportFileAttributes, TestStatus } from './types';
 import { ReportActionDump } from './types';
 
@@ -249,18 +253,28 @@ function deriveReportAttributesFromHtml(
   index: number,
 ): ReportFileAttributes {
   const fallbackId = `${path.basename(path.dirname(htmlPath)) || path.basename(htmlPath, path.extname(htmlPath))}-${index + 1}`;
+  const runnerDump = extractTestRunReportDumpSync(htmlPath);
   try {
     const { baseDump, executions } = collectDedupedExecutions(htmlPath);
     // Prefer a status the source report already recorded (keeps Playwright's
     // precise timedOut/skipped/interrupted); otherwise infer it from the dump
     // so a failing case is not silently merged in as passed.
+    const recordedStatus = readSourceTestStatus(htmlPath);
     const testStatus =
-      readSourceTestStatus(htmlPath) ?? deriveCaseStatus(executions);
+      recordedStatus && FAILING_TEST_STATUSES.has(recordedStatus)
+        ? recordedStatus
+        : runnerDump?.status === 'failed'
+          ? 'failed'
+          : (recordedStatus ??
+            (runnerDump ? 'passed' : deriveCaseStatus(executions)));
     return {
       testId: fallbackId,
       testTitle: baseDump.groupName || fallbackId,
       testDescription: baseDump.groupDescription ?? '',
-      testDuration: 0,
+      testDuration:
+        runnerDump?.durationMs ??
+        collectReportSummary({ executions }).timing.wallTimeMs ??
+        0,
       testStatus,
     };
   } catch {
@@ -269,7 +283,7 @@ function deriveReportAttributesFromHtml(
       testTitle: fallbackId,
       testDescription: '',
       testDuration: 0,
-      testStatus: 'passed' as TestStatus,
+      testStatus: runnerDump?.status === 'failed' ? 'failed' : 'passed',
     };
   }
 }

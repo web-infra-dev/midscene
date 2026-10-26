@@ -164,6 +164,12 @@ if ((wda_ready == 0)); then
 fi
 
 set +e
+MIDSCENE_IOS_SIMULATOR_UDID="$simulator_udid" \
+MIDSCENE_IOS_WDA_PORT="$wda_port" \
+node scripts/mobile-scroll-regression.mjs ios 2>&1 |
+  tee "$diagnostics_dir/default-scroll.log"
+scroll_exit=${PIPESTATUS[0]}
+
 AI_TEST_TYPE=iOS \
 MIDSCENE_IOS_SIMULATOR_SMOKE=1 \
 pnpm exec nx test @midscene/ios --skip-nx-cache -- \
@@ -185,6 +191,7 @@ pnpm exec nx test @midscene/ios --skip-nx-cache -- \
 todo_exit=${PIPESTATUS[0]}
 set -e
 
+SCROLL_EXIT="$scroll_exit" \
 SMOKE_EXIT="$smoke_exit" \
 APP_SWITCHER_AI_EXIT="$app_switcher_ai_exit" \
 TODO_EXIT="$todo_exit" \
@@ -192,6 +199,7 @@ node -e '
   const fs = require("node:fs");
   const path = require("node:path");
   const outcomes = {
+    defaultScroll: Number(process.env.SCROLL_EXIT),
     deterministicSmoke: Number(process.env.SMOKE_EXIT),
     appSwitcherAiE2e: Number(process.env.APP_SWITCHER_AI_EXIT),
     todoMvc: Number(process.env.TODO_EXIT),
@@ -202,7 +210,7 @@ node -e '
   );
 '
 
-if ((smoke_exit != 0 || app_switcher_ai_exit != 0 || todo_exit != 0)); then
-  echo "iOS Simulator validation failed: smoke=$smoke_exit app-switcher-ai=$app_switcher_ai_exit todo=$todo_exit" >&2
+if ((scroll_exit != 0 || smoke_exit != 0 || app_switcher_ai_exit != 0 || todo_exit != 0)); then
+  echo "iOS Simulator validation failed: scroll=$scroll_exit smoke=$smoke_exit app-switcher-ai=$app_switcher_ai_exit todo=$todo_exit" >&2
   exit 1
 fi

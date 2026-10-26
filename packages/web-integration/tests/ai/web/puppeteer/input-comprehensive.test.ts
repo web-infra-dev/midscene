@@ -18,7 +18,7 @@ import {
 rs.setConfig({ testTimeout: 180_000 });
 
 type DirectLocate = {
-  locatedPixelBbox: [number, number, number, number];
+  locatedPixelResult: { center: [number, number] };
   prompt: string;
 };
 
@@ -45,7 +45,9 @@ async function locateTarget(
   const box = await element.boundingBox();
   if (!box) throw new Error(`Missing bounding box: ${target.selector}`);
   return {
-    locatedPixelBbox: [box.x, box.y, box.x + box.width, box.y + box.height],
+    locatedPixelResult: {
+      center: [box.x + box.width / 2, box.y + box.height / 2],
+    },
     prompt: description,
   };
 }

@@ -1,5 +1,10 @@
 'use client';
-import type { BaseElement, Rect, UIContext } from '@midscene/core';
+import type {
+  BaseElement,
+  LocateResultElement,
+  Rect,
+  UIContext,
+} from '@midscene/core';
 import React, { type ReactElement } from 'react';
 import { getCenterHighlightBox } from '../../utils/highlight-element';
 import { normalizeBlackboardHighlights } from './highlights';
@@ -7,11 +12,12 @@ import './index.less';
 
 export const Blackboard = (props: {
   uiContext: UIContext | undefined | null;
-  highlightElements?: BaseElement[];
+  highlightElements?: (BaseElement | LocateResultElement)[];
   highlightRect?: Rect;
   hideController?: boolean;
 }) => {
-  const highlightElements: BaseElement[] = props.highlightElements || [];
+  const highlightElements: (BaseElement | LocateResultElement)[] =
+    props.highlightElements || [];
   const highlightRect = props.highlightRect;
 
   const shotSize = props.uiContext?.shotSize;

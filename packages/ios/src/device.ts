@@ -18,6 +18,7 @@ import {
   type ResolvedTextInputOptions,
   createDefaultMobileActions,
   defineAction,
+  resolveDefaultMobileScroll,
   resolveTextInputOptions,
   sendTextSequentially,
   shouldInputSequentially,
@@ -31,6 +32,10 @@ import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
+import {
+  assertWdaConnectionOptions,
+  normalizeMjpegStreamUrl,
+} from './wda-options';
 
 // Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
@@ -148,7 +153,7 @@ export class IOSDevice implements AbstractInterface {
       },
     },
     scroll: {
-      scroll: (param) => this.performActionScroll(param),
+      scroll: (param, opts) => this.performActionScroll(param, opts),
     },
   };
 
@@ -262,18 +267,16 @@ export class IOSDevice implements AbstractInterface {
     this.invalidatePendingKeyboardFollowUp('clear input');
     if (point) {
       await this.tapPoint(point);
-      await sleep(100);
     }
 
+    await this.wdaBackend.waitForInputFocus();
     debugDevice('Attempting to clear input with WebDriver Clear API');
     const cleared = await this.wdaBackend.clearActiveElement();
-    if (cleared) {
-      debugDevice('Successfully cleared input with WebDriver Clear API');
-    } else {
-      debugDevice(
-        'WebDriver Clear API returned false (no active element or clear failed)',
-      );
-    }
+    assert(
+      cleared,
+      'Cannot verify that input was cleared; refusing to append text',
+    );
+    debugDevice('Successfully cleared input with WebDriver Clear API');
   }
 
   actionSpace(): DeviceAction<any>[] {
@@ -300,7 +303,10 @@ export class IOSDevice implements AbstractInterface {
     return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
-  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+  private async performActionScroll(
+    param: ActionScrollParam,
+    opts?: { skipDefaultWait?: boolean },
+  ): Promise<void> {
     const element = param.locate;
     const startingPoint = element
       ? {
@@ -329,7 +335,7 @@ export class IOSDevice implements AbstractInterface {
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
-      await sleep(500);
+      if (!opts?.skipDefaultWait) await sleep(500);
     } else {
       throw new Error(
         `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
@@ -340,6 +346,7 @@ export class IOSDevice implements AbstractInterface {
   }
 
   constructor(options?: IOSDeviceOpt) {
+    assertWdaConnectionOptions(options);
     // deviceId will be auto-detected from WebDriverAgent connection
     this.deviceId = 'pending-connection';
     this.options = options;
@@ -351,10 +358,20 @@ export class IOSDevice implements AbstractInterface {
     this.wdaBackend = new WebDriverAgentBackend({
       port: wdaPort,
       host: wdaHost,
+      ...(options?.wdaBaseUrl !== undefined
+        ? { baseUrl: options.wdaBaseUrl }
+        : {}),
       ...(options?.sessionId ? { sessionId: options.sessionId } : {}),
     });
-    this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
-    this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
+    this.wdaManager = WDAManager.getInstance(
+      wdaPort,
+      wdaHost,
+      options?.wdaBaseUrl,
+    );
+    this.mjpegStreamUrl =
+      options?.wdaMjpegUrl !== undefined
+        ? normalizeMjpegStreamUrl(options.wdaMjpegUrl)
+        : `http://${wdaHost}:${mjpegPort}`;
 
     // Opt-in (default off), mirroring Android scrcpy: only expose the MJPEG
     // frame-source capability when explicitly enabled. When off, UI observers
@@ -645,7 +662,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   private async typeText(
     text: string,
-    options?: IOSDeviceInputOpt,
+    options?: IOSDeviceInputOpt & { skipDefaultWait?: boolean },
     focusRestorePoint?: PointerPoint,
     resolvedInputOptions: ResolvedTextInputOptions = resolveTextInputOptions(
       options,
@@ -663,8 +680,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      // Wait a bit to ensure keyboard is ready
-      await sleep(200);
+      await this.wdaBackend.waitForInputFocus();
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.
@@ -686,7 +702,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         await this.wdaBackend.typeText(text);
       }
 
-      await sleep(300); // Give more time for text to appear
+      // Optional settling is owned by a custom action waiter when configured.
+      if (!options?.skipDefaultWait) await sleep(300);
     } catch (error) {
       debugDevice(`Failed to type text with WDA: ${error}`);
       throw error;
@@ -723,8 +740,31 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.wdaBackend.pressKey(key);
   }
 
+  // Keep default browsing gestures inside the screen and leave overlapping
+  // content between observations. Content displacement remains OS/control dependent.
+  private async scrollDefault(
+    direction: 'up' | 'down' | 'left' | 'right',
+  ): Promise<void> {
+    const { from, to } = resolveDefaultMobileScroll(
+      direction,
+      await this.size(),
+    );
+    // A fixed duration changes release velocity with screen size/orientation.
+    // Cap velocity at 400 points/second and keep short gestures at least 1s:
+    // faster short gestures can intermittently fling beyond the viewport.
+    // Swipe keeps its fast default.
+    const duration = Math.max(
+      1000,
+      Math.round(Math.hypot(to.x - from.x, to.y - from.y) / 0.4),
+    );
+    await this.swipePoint(from, to, duration);
+  }
+
   // Scroll methods
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('up');
+    }
     const { width, height } = await this.size();
     const start = startPoint
       ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
@@ -740,6 +780,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('down');
+    }
     const { width, height } = await this.size();
     const start = startPoint
       ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
@@ -755,6 +798,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('left');
+    }
     const { width, height } = await this.size();
     // scrollLeft: bring left content into view (swipe finger right)
     const start = startPoint
@@ -771,6 +817,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+    if (distance === undefined && !startPoint) {
+      return this.scrollDefault('right');
+    }
     const { width, height } = await this.size();
     // scrollRight: bring right content into view (swipe finger left)
     const start = startPoint
@@ -1280,6 +1329,7 @@ const createPlatformActions = (device: IOSDevice) => {
     }),
     IOSHomeButton: defineAction({
       name: 'IOSHomeButton',
+      supportedBySystemOne: true,
       description: 'Trigger the system "home" operation on iOS devices',
       call: async () => {
         await device.home();
@@ -1287,6 +1337,7 @@ const createPlatformActions = (device: IOSDevice) => {
     }),
     IOSAppSwitcher: defineAction({
       name: 'IOSAppSwitcher',
+      supportedBySystemOne: true,
       description: 'Trigger the system "app switcher" operation on iOS devices',
       call: async () => {
         await device.appSwitcher();

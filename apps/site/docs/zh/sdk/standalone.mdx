@@ -1,0 +1,461 @@
+import SdkCommonMethods from '../common/sdk-common-methods.mdx';
+import { SdkPrerequisites, Tabs, Tab } from '@theme';
+
+# 编写独立自动化脚本
+
+无需测试运行器，你也可以在 Node.js 脚本中直接调用 Midscene SDK，用于操作应用、提取数据或执行日常自动化流程。由脚本自身控制执行顺序、分支逻辑、错误处理和资源清理。
+
+## 使用前准备
+
+<SdkPrerequisites lang="zh" mode="standalone" />
+
+## 跑通第一个示例
+
+切换下方标签页选择目标平台，安装对应依赖，将代码保存为 `demo.ts` 并运行。各平台的示例均可独立运行。
+
+以下示例会打开公开的 React TodoMVC 页面，添加一条名为 `Try Midscene` 的待办事项并将其标记为已完成，最后断言执行结果。请确保运行环境中的浏览器或设备能够访问该页面；移动端请提前走完默认浏览器的首次启动引导，桌面端请提前安装好浏览器。
+
+<Tabs defaultValue="playwright">
+
+<Tab label="Web / Playwright" value="playwright">
+
+**1. 安装依赖**
+
+```bash
+pnpm add -D @midscene/web playwright dotenv tsx
+pnpm exec playwright install chromium
+```
+
+**2. 编写代码**
+
+将以下代码保存为 `demo.ts`，并确保同一目录下的 `.env` 文件中已包含验证通过的模型配置（脚本会通过 `dotenv/config` 自动加载）。
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+async function main() {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto('https://todomvc.com/examples/react/dist/#/');
+    const agent = new PlaywrightAgent(page);
+    try {
+      await agent.aiWaitFor('The TodoMVC input is visible');
+      await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+      await agent.aiAssert('A todo named Try Midscene is marked completed');
+    } finally {
+      await agent.destroy();
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. 运行**
+
+（可选）运行前可先验证模型配置是否可用：
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+在同一目录下运行脚本：
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. 更多文档**
+
+关于浏览器连接、平台特有能力与限制，请参阅 [Web / Playwright SDK](./playwright)；如需在测试用例中使用 Midscene，请参阅[接入 Playwright Test](../integrate-with-playwright)。
+
+</Tab>
+
+<Tab label="Web / Puppeteer" value="puppeteer">
+
+**1. 安装依赖**
+
+```bash
+pnpm add -D @midscene/web puppeteer dotenv tsx
+```
+
+**2. 编写代码**
+
+将以下代码保存为 `demo.ts`，并确保同一目录下的 `.env` 文件中已包含验证通过的模型配置（脚本会通过 `dotenv/config` 自动加载）。
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+async function main() {
+  const browser = await puppeteer.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto('https://todomvc.com/examples/react/dist/#/');
+    const agent = new PuppeteerAgent(page);
+    try {
+      await agent.aiWaitFor('The TodoMVC input is visible');
+      await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+      await agent.aiAssert('A todo named Try Midscene is marked completed');
+    } finally {
+      await agent.destroy();
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. 运行**
+
+（可选）运行前可先验证模型配置是否可用：
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+在同一目录下运行脚本：
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. 更多文档**
+
+关于连接配置、平台特有能力与限制，请参阅 [Puppeteer 接入指南](../integrate-with-puppeteer)。
+
+</Tab>
+
+<Tab label="Chrome Bridge" value="bridge">
+
+**1. 安装依赖**
+
+```bash
+pnpm add -D @midscene/web dotenv tsx
+```
+
+**2. 编写代码**
+
+将以下代码保存为 `demo.ts`，并确保同一目录下的 `.env` 文件中已包含验证通过的模型配置（脚本会通过 `dotenv/config` 自动加载）。
+
+运行前请保持 Chrome 处于打开状态，并在插件弹出提示时允许脚本连接。脚本执行结束后，会自动关闭其新建的标签页。
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+async function main() {
+  const agent = new AgentOverChromeBridge({ closeNewTabsAfterDisconnect: true });
+  try {
+    await agent.connectNewTabWithUrl('https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. 运行**
+
+（可选）运行前可先验证模型配置是否可用：
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+在同一目录下运行脚本：
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. 更多文档**
+
+关于连接配置、平台特有能力与限制，请参阅 [Chrome Bridge SDK](./chrome-bridge)。
+
+</Tab>
+
+<Tab label="Android" value="android">
+
+**1. 安装依赖**
+
+```bash
+pnpm add -D @midscene/android dotenv tsx
+```
+
+**2. 编写代码**
+
+将以下代码保存为 `demo.ts`，并确保同一目录下的 `.env` 文件中已包含验证通过的模型配置（脚本会通过 `dotenv/config` 自动加载）。
+
+默认连接第一台可用设备；如果连接了多台设备，请将 `adb devices` 列出的设备 ID 传给 `agentFromAdbDevice(deviceId)`。
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { agentFromAdbDevice } from '@midscene/android';
+
+async function main() {
+  const agent = await agentFromAdbDevice();
+  try {
+    await agent.launch('https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. 运行**
+
+（可选）运行前可先验证模型配置是否可用：
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+在同一目录下运行脚本：
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. 更多文档**
+
+关于连接配置、平台特有能力与限制，请参阅 [Android 接入指南](./android)。
+
+</Tab>
+
+<Tab label="iOS" value="ios">
+
+**1. 安装依赖**
+
+```bash
+pnpm add -D @midscene/ios dotenv tsx
+```
+
+**2. 编写代码**
+
+将以下代码保存为 `demo.ts`，并确保同一目录下的 `.env` 文件中已包含验证通过的模型配置（脚本会通过 `dotenv/config` 自动加载）。
+
+请将示例中的 `wdaHost` 和 `wdaPort` 替换为实际可用的 WebDriverAgent 服务地址。
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+async function main() {
+  const agent = await agentFromWebDriverAgent({
+    wdaHost: 'localhost',
+    wdaPort: 8100,
+  });
+  try {
+    await agent.launch('https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. 运行**
+
+（可选）运行前可先验证模型配置是否可用：
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+在同一目录下运行脚本：
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. 更多文档**
+
+关于连接配置、平台特有能力与限制，请参阅 [iOS 接入指南](./ios)。
+
+</Tab>
+
+<Tab label="HarmonyOS" value="harmonyos">
+
+**1. 安装依赖**
+
+```bash
+pnpm add -D @midscene/harmony dotenv tsx
+```
+
+**2. 编写代码**
+
+将以下代码保存为 `demo.ts`，并确保同一目录下的 `.env` 文件中已包含验证通过的模型配置（脚本会通过 `dotenv/config` 自动加载）。
+
+默认连接第一台可用设备；如果连接了多台设备，请将 `hdc list targets` 列出的设备 ID 传给 `agentFromHdcDevice(deviceId)`。
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { agentFromHdcDevice } from '@midscene/harmony';
+
+async function main() {
+  const agent = await agentFromHdcDevice();
+  try {
+    await agent.launch('https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. 运行**
+
+（可选）运行前可先验证模型配置是否可用：
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+在同一目录下运行脚本：
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. 更多文档**
+
+关于连接配置、平台特有能力与限制，请参阅 [HarmonyOS 接入指南](./harmonyos)。
+
+</Tab>
+
+<Tab label="桌面端" value="desktop">
+
+**1. 安装依赖**
+
+```bash
+pnpm add -D @midscene/computer dotenv tsx
+```
+
+**2. 编写代码**
+
+将以下代码保存为 `demo.ts`，并确保同一目录下的 `.env` 文件中已包含验证通过的模型配置（脚本会通过 `dotenv/config` 自动加载）。
+
+该脚本会直接操控当前桌面上的浏览器，运行期间请勿移动鼠标或操作键盘。
+
+```typescript title="demo.ts"
+import 'dotenv/config';
+import { agentForComputer } from '@midscene/computer';
+
+async function main() {
+  const agent = await agentForComputer();
+  try {
+    await agent.aiAct('Open a browser and navigate to https://todomvc.com/examples/react/dist/#/');
+    await agent.aiWaitFor('The TodoMVC input is visible');
+    await agent.aiAct('Add a todo named Try Midscene, then mark it completed');
+    await agent.aiAssert('A todo named Try Midscene is marked completed');
+  } finally {
+    await agent.destroy();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+**3. 运行**
+
+（可选）运行前可先验证模型配置是否可用：
+
+```bash
+pnpm dlx @midscene/test@latest model verify
+```
+
+在同一目录下运行脚本：
+
+```bash
+pnpm exec tsx demo.ts
+```
+
+**4. 更多文档**
+
+关于连接配置、平台特有能力与限制，请参阅[桌面端接入指南](./desktop)。
+
+</Tab>
+
+</Tabs>
+
+## 查看报告
+
+默认配置下，SDK 会在项目的 `midscene_run/report/` 目录下生成 HTML 报告，并在终端输出报告路径。在浏览器中打开该文件，即可查看各步骤的截图、AI 执行过程和断言结果。当脚本执行失败时，可以先在报告中定位失败的步骤，再结合截图与报错信息排查原因。
+
+该报告主要用于回溯 GUI Agent 的执行细节；如果接入了测试框架，测试用例的通过率与结果汇总仍由测试框架负责。如需合并或进一步处理报告文件，请参阅[处理报告文件](../consume-report-file)。
+
+## 理解 Agent 设计
+
+### Device 和 Agent
+
+使用 SDK 时，主要涉及两个核心概念：
+
+- **Device**：负责与底层浏览器或设备通信，提供截图、点击、输入等基础操作能力。例如，`AndroidDevice` 通过 `adb` 连接并控制 Android 设备。
+- **Agent**：基于 Device 提供的底层能力，结合 AI 模型理解界面并执行任务。业务代码主要调用 Agent 上的 `aiAct`、`aiAssert`、`aiQuery` 等方法。
+
+你可以先手动实例化 Device，再将其传给对应的 Agent；也可以直接使用 SDK 提供的快捷工厂函数，例如 `agentFromAdbDevice()`、`agentFromWebDriverAgent()`、`agentFromHdcDevice()` 和 `agentForComputer()`。这些工厂函数会在内部完成 Device 的创建与连接，直接返回可用的 Agent。
+
+对于 Playwright 和 Puppeteer，直接将已有的 `Page` 实例传给 `PlaywrightAgent` 或 `PuppeteerAgent` 即可，无需单独创建 Device。
+
+### 生命周期与资源所有权
+
+每个 Device 实例只能归属于一个 Agent。调用 `agent.destroy()` 时，会一并清理其绑定的 Device 实例及所持有的资源（具体清理行为因平台而异，例如 Android 平台不会断开宿主机与设备之间的 `adb` 连接）。切勿在 Agent 销毁后复用其 Device，也不要让多个 Agent 共用同一个 Device 实例。建议使用 `try / finally` 包裹执行逻辑，确保操作或断言失败时仍能正常释放资源。
+
+此外，由外部创建的资源需要单独管理其生命周期。例如，本文的 Web 示例由脚本自行启动浏览器，因此在销毁 Agent 后还需调用 `browser.close()`；Chrome Bridge 示例则通过 `closeNewTabsAfterDisconnect` 选项在断开连接时关闭由脚本新建的标签页。不要假设调用 `agent.destroy()` 会自动关闭外部浏览器或目标应用。
+
+### 常用方法
+
+<SdkCommonMethods />
+
+### 跨平台
+
+各平台的 Agent 均继承自基础 `Agent` 类，并在此之上扩展了平台特有的方法。例如，Web Agent 与浏览器的 `Page` 对象集成，Android Agent 额外提供 `back()`、`home()` 等系统按键操作，iOS Agent 则通过 WebDriverAgent 与设备通信。
+
+因此，`aiAct`、`aiAssert` 等核心 AI 方法的调用方式可以在不同平台间复用，而设备连接、系统级操作和资源清理则因平台而异。各平台的具体配置参数与限制，请查阅对应的平台接入指南。

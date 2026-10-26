@@ -1,3 +1,4 @@
+import { buildScrcpyVideoPacket } from '@/scrcpy-video-sender';
 import { describe, expect, it, rs } from '@rstest/core';
 import ScrcpyServer, {
   appendBoundedScrcpyOutput,
@@ -121,6 +122,32 @@ describe('ScrcpyServer', () => {
     ]);
   });
 
+  it('maps upstream keyframe metadata to the socket contract', () => {
+    const packet = {
+      type: 'data' as const,
+      data: new Uint8Array([1, 2, 3]),
+      keyframe: true,
+    };
+
+    expect(buildScrcpyVideoPacket(packet, 123)).toEqual({
+      data: packet.data,
+      type: 'data',
+      timestamp: 123,
+      keyFrame: true,
+    });
+    expect(
+      buildScrcpyVideoPacket(
+        { type: 'configuration', data: new Uint8Array([9]) },
+        456,
+      ),
+    ).toEqual({
+      data: new Uint8Array([9]),
+      type: 'configuration',
+      timestamp: 456,
+      keyFrame: undefined,
+    });
+  });
+
   it('can consume device list updates from an external discovery source', async () => {
     const unsubscribe = rs.fn();
     const getDevices = rs.fn().mockResolvedValue([
@@ -167,5 +194,53 @@ describe('ScrcpyServer', () => {
 
     server.close();
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Scrcpy listen address', () => {
+  it.each([undefined, '0.0.0.0'])(
+    'binds to the default loopback or explicit host %s',
+    async (host) => {
+      const server = new ScrcpyServer({
+        host,
+        deviceListSource: {
+          getDevices: async () => [],
+          subscribe: () => () => {},
+        },
+      });
+      try {
+        await server.launch(0);
+        expect((server.httpServer.address() as any).address).toBe(
+          host ?? '127.0.0.1',
+        );
+        const response = await fetch(
+          `http://127.0.0.1:${server.port}/api/devices`,
+        );
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          devices: [],
+          currentDeviceId: null,
+        });
+      } finally {
+        server.close();
+      }
+    },
+  );
+  it('rejects an occupied port instead of hanging', async () => {
+    const options = {
+      deviceListSource: {
+        getDevices: async () => [],
+        subscribe: () => () => {},
+      },
+    };
+    const first = new ScrcpyServer(options);
+    const second = new ScrcpyServer(options);
+    try {
+      await first.launch(0);
+      await expect(second.launch(first.port!)).rejects.toThrow();
+    } finally {
+      first.close();
+      second.close();
+    }
   });
 });

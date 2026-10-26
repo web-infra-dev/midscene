@@ -1,0 +1,191 @@
+# 桌面端 JavaScript SDK
+
+`@midscene/computer` 提供面向本机桌面（`ComputerDevice`）与远程 RDP 桌面（`RDPDevice`）的 Device 实现，以及继承基础 `Agent` [AI 方法](../reference/#interaction-methods)的 `ComputerAgent`。
+
+<a id="导入与-api-概览"></a>
+
+## 导入与 API 概览 {#imports-and-api-overview}
+
+```typescript
+import {
+  ComputerAgent,
+  ComputerDevice,
+  RDPDevice,
+  agentForComputer,
+  agentForRDPComputer,
+  checkComputerEnvironment,
+} from '@midscene/computer';
+```
+
+日常使用推荐通过工厂函数一步完成 Device 的创建与连接：本机桌面使用 `agentForComputer()`（底层基于 `ComputerDevice`），远程 Windows 桌面使用 `agentForRDPComputer()`（底层基于 `RDPDevice`）。如果需要分别管理 Device 和 Agent 的初始化过程，也可以显式构造。
+
+<a id="使用-javascript-sdk"></a>
+
+<a id="使用示例"></a>
+
+## `agentForComputer()`
+
+```typescript
+agentForComputer(options?: LocalComputerAgentOpt): Promise<ComputerAgent<ComputerDevice>>
+```
+
+连接本机桌面（默认控制主显示器），并返回绑定了 `ComputerDevice` 的 `ComputerAgent`。`options` 同时接受通用 Agent 配置与本机 Device 配置（`agentFromComputer` 为已废弃的旧版兼容别名）。
+
+```typescript
+const agent = await agentForComputer({ displayId: '0' });
+```
+
+<a id="通过-rdp-连接远程-windows-桌面"></a>
+
+## `agentForRDPComputer()`
+
+```typescript
+agentForRDPComputer(options: RDPComputerAgentOpt): Promise<ComputerAgent<RDPDevice>>
+```
+
+通过 RDP 协议连接远程 Windows 桌面，并返回绑定了 `RDPDevice` 的 `ComputerAgent`。`host` 为必填项，其余连接参数见下方的「RDP 选项」。默认后端要求运行脚本的宿主机已安装 [FreeRDP](https://www.freerdp.com/)，且目标远程主机已开启 RDP 服务并允许网络访问。每个 RDP 会话会被视为一个独立的远程显示器。
+
+```typescript
+const agent = await agentForRDPComputer({
+  host: 'windows.example.com',
+  username: process.env.RDP_USERNAME,
+  password: process.env.RDP_PASSWORD,
+});
+```
+
+## `ComputerDevice` / `RDPDevice` / `ComputerAgent`
+
+```typescript
+new ComputerDevice(options?: ComputerDeviceOpt)
+new RDPDevice(options: RDPDeviceOpt)
+new ComputerAgent(device, options?)
+```
+
+显式实例化 `ComputerDevice` 或 `RDPDevice` 时，必须先调用 `await device.connect()` 完成连接，再将其传给 `ComputerAgent`。此时设备相关配置传入 Device 构造函数，`ComputerAgent` 的第二个参数接受[通用 Agent 配置](../reference/#agent-options)。
+
+```typescript
+const device = new ComputerDevice({ displayId: '0' });
+await device.connect();
+const agent = new ComputerAgent(device);
+```
+
+<a id="自定义动作"></a>
+
+## 配置选项
+
+`agentForComputer()` 和 `agentForRDPComputer()` 均支持传入[通用 Agent 配置](../reference/#agent-options)。如需注册自定义动作，可将 `customActions` 传给工厂函数或 Device 构造函数，定义方式请参阅[自定义动作](../integrate-with-any-interface)。
+
+### 本机桌面选项
+
+- `displayId?: string` —— 指定要控制的显示器 ID。可通过 `ComputerDevice.listDisplays()` 查询当前可用的显示器列表。默认值：主显示器。
+- `customActions?: DeviceAction<any>[]` —— 注册自定义动作，供 Agent 在规划时调用。
+- `keyboardDriver?: 'applescript' | 'libnut'` —— macOS 下的键盘事件驱动后端。默认值：`'applescript'`（兼容性更好）；若目标应用支持，也可切换为输入速度更快的 `'libnut'`。
+- `keyboardModifierDelay?: number` —— 本机 `libnut` 键盘驱动在切换修饰键状态及发送主键后的等待延迟（单位：毫秒，须为有限非负数）。默认值：`0`。修饰键包含 `Control`、`Shift`、`Alt` 和 `Command`，因此该延迟同时作用于快捷键组合以及逐字输入大写字母时隐式按下的 `Shift`（当配置了 `keyboardLayout: 'en-US'` 时，同样作用于美式键盘上需配合 `Shift` 输入的标点符号）。该选项对直接 RDP 输入和 macOS `'applescript'` 驱动不生效。详见[通过桌面客户端转发键盘输入](../faq#keyboard-input-through-desktop-clients)。
+- `keyboardLayout?: 'en-US'` —— 在使用本机 `libnut` 驱动逐字输入时，启用美式键盘（`en-US`）下 `Shift` 标点符号的基础键位映射（大写拉丁字母无需开启此项）。其他键盘布局保持后端原有行为。该选项对直接 RDP 输入和 macOS `'applescript'` 驱动不生效。
+- `headless?: boolean` —— 在 Linux 下设为 `true` 时，会自动通过 [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml) 启动虚拟显示器，适用于无物理显示器的 Linux 服务器或 CI 环境（也可通过环境变量 `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` 开启）。默认值：`false`。
+- `xvfbResolution?: string` —— Xvfb 虚拟显示器的分辨率。默认值：`'1920x1080x24'`。
+
+### 键盘输入选项
+
+- `keyboardTypeDelay?: number` —— 按键之间的最小延迟（单位：毫秒，须为有限非负数）。默认值：`undefined`。在 `'legacy'` 模式下，设为正数会让本机和 RDP 的 Computer Agent 逐个 Unicode 码点发送字符（本机模式下会发送真实按键事件）；未设置或设为 `0` 时，本机 `'legacy'` 输入默认采用剪贴板整串粘贴，以避免受当前系统输入法干扰。调用 `aiInput()` 时传入的动作级 `keyboardTypeDelay` 会覆盖 Agent 级默认值（传入 `0` 可仅针对当前动作恢复剪贴板粘贴）。
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。默认值为 `'legacy'`：
+  - `'sequential'`：本机使用真实按键事件逐字输入，RDP 下按每个 Unicode 码点调用一次后端接口；如需配合 `keyboardTypeDelay` 延迟输入，请使用此策略。
+  - `'bulk'`：本机执行一次剪贴板粘贴，RDP 下整段文本仅调用一次后端接口；使用此策略时，不能设置 `keyboardTypeDelay`（或须将其设为 `0`）。
+
+在创建 Agent 时配置的输入选项同样会作用于 `agent.ai()` / `agent.aiAct()` 自动规划生成的 `Input` 动作，无需在代码中显式拆分为 `aiInput()`：
+
+```typescript
+const agent = await agentForComputer({ keyboardTypeDelay: 80 });
+
+await agent.aiAct('把账号信息填入表单');
+
+// 仅针对当前确定性输入动作覆盖默认配置，恢复整串粘贴
+await agent.aiInput('备注输入框', {
+  value: '整串粘贴的内容',
+  keyboardTypeDelay: 0,
+  inputStrategy: 'bulk',
+});
+```
+
+### RDP 选项
+
+- `host: string` —— 远程 Windows 主机名或 IP 地址（必填）。
+- `port?: number` —— RDP 端口。默认值：`3389`。
+- `username?: string` / `password?: string` —— 远程会话的登录用户名与密码。
+- `domain?: string` —— Windows 域名。默认值：`undefined`。
+- `localAddress?: string` —— 建立 RDP TCP 连接时绑定的本机源 IP 地址（适用于宿主机存在多条出站路由的场景）。默认值：`undefined`。
+- `adminSession?: boolean` —— 当远程服务端允许时，是否请求管理员会话（Admin Session）。默认值：`false`。
+- `ignoreCertificate?: boolean` —— 是否跳过证书校验（适用于自签名证书环境）。默认值：`false`。
+- `securityProtocol?: 'auto' | 'tls' | 'nla' | 'rdp'` —— RDP 安全协商协议。默认值：`'auto'`。
+- `desktopWidth?: number` / `desktopHeight?: number` —— 请求的远程桌面分辨率。省略时由 RDP 客户端与服务端自动协商会话尺寸。
+
+## 显示器与环境检查
+
+<a id="多显示器支持"></a>
+
+### `ComputerDevice.listDisplays()`
+
+```typescript
+ComputerDevice.listDisplays(): Promise<Array<{
+  id: string;
+  name: string;
+  primary?: boolean;
+}>>
+```
+
+列出当前本机连接的所有显示器。可将返回的 `id` 传给 `agentForComputer({ displayId })` 以指定目标显示器。
+
+```typescript
+const displays = await ComputerDevice.listDisplays();
+const display = displays.find((item) => item.primary) ?? displays[0];
+if (!display) throw new Error('No displays found');
+const agent = await agentForComputer({ displayId: display.id });
+```
+
+<a id="环境检查"></a>
+
+### `checkComputerEnvironment()`
+
+```typescript
+checkComputerEnvironment(): Promise<{
+  available: boolean;
+  error?: string;
+  platform: string;
+  displays: number;
+}>
+```
+
+检查当前本机桌面环境是否就绪，返回操作系统平台、显示器数量以及可用状态（`available`）。若不可用，可通过 `error` 字段查看具体原因。
+
+<a id="computer-device-destroy"></a>
+
+<a id="rdp-device-destroy"></a>
+
+## 生命周期
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+Agent 负责管理其绑定 Device 的清理与报告写入。每个 Device 实例只能归属于一个 Agent。
+
+| Device 类型 | `destroy()` 清理行为 |
+| --- | --- |
+| `ComputerDevice` | 释放本机输入驱动，并默认停止由该实例启动的 Xvfb 虚拟显示器；不会关闭本机常规桌面或已打开的应用 |
+| `RDPDevice` | 断开 RDP 连接并清理会话状态 |
+
+因此，销毁 `ComputerDevice` 后，本机桌面及应用仍保持原样；而由 Agent 创建的虚拟显示器和远程 RDP 会话则会被自动关闭。
+
+```typescript
+try {
+  await agent.aiAct('Open Settings');
+} finally {
+  await agent.destroy();
+}
+```
+
+## 平台支持与限制
+
+- 本机桌面自动化需要授予相应的屏幕录制、辅助功能（Accessibility）或显示服务权限，详见[桌面端环境准备](../platforms/desktop)。
+- `headless`（Xvfb）仅适用于 Linux。
+- `keyboardDriver` 仅适用于 macOS；`keyboardModifierDelay` 与 `keyboardLayout` 仅作用于本机 `libnut` 驱动，对直接 RDP 连接不生效。

@@ -5,7 +5,6 @@ import { createProjectRuntime } from '../src/engine/project-runtime';
 const project = (): ResolvedExecutionProject<{ lease: string }> => ({
   projectId: 'project-0',
   name: 'android-smoke',
-  platform: 'android',
   tags: { include: [], exclude: [] },
   retry: 0,
   variables: {},
@@ -26,7 +25,7 @@ describe('project runtime', () => {
     });
     const runtime = createProjectRuntime({
       project: project(),
-      setup: { name: 'dora-android', platform: 'android', setup },
+      setup: { name: 'dora-android', setup },
     });
 
     const started = await runtime.start();

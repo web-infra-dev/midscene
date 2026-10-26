@@ -176,6 +176,10 @@ jobs:
       - name: Build Studio and Nx dependencies
         run: npx nx build studio
 
+      - name: Prepare macOS notarization network
+        if: ${{ matrix.platform == 'darwin' }}
+        uses: ./.github/actions/macos-notarization-network
+
       - name: Package Midscene Studio
         run: pnpm --dir apps/studio run package:release -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --version=${{ env.STUDIO_PACKAGE_VALIDATION_VERSION }}
 

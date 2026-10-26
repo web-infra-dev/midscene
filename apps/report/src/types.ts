@@ -1,4 +1,4 @@
-import type { ReportActionDump } from '@midscene/core';
+import type { ReportActionDump, TestRunReportDump } from '@midscene/core';
 
 // Core visualization types
 export interface PlaywrightTaskAttributes {
@@ -18,6 +18,8 @@ export interface PlaywrightTaskAttributes {
 export interface PlaywrightTasks {
   get: () => ReportActionDump;
   attributes: PlaywrightTaskAttributes;
+  reportId?: string;
+  runnerScopeId?: string;
 }
 
 export type ReportViewMode = 'human' | 'markdown';
@@ -25,4 +27,10 @@ export type ReportViewMode = 'human' | 'markdown';
 export interface VisualizerProps {
   logoAction?: () => void;
   dumps?: PlaywrightTasks[];
+  embedded?: boolean;
+}
+
+export interface TestRunnerReportProps {
+  dump: TestRunReportDump;
+  reports: PlaywrightTasks[];
 }

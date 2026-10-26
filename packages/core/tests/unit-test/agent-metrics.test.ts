@@ -223,7 +223,7 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
       onLLMUsage,
     });
 
-    // Simulate what callAI() does: after a model call it invokes
+    // Simulate what callGenerativeAI() does: after a model call it invokes
     // modelRuntime.onUsage(usageInfo). The agent attaches this callback
     // to every ModelRuntime it resolves via resolveModelRuntime().
     const runtime = (agent as any).resolveModelRuntime('default');
@@ -262,9 +262,7 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
     const runtime = (agent as any).resolveModelRuntime('default');
     const u = usage({ total_tokens: 42, request_id: 'req-dedup-1' });
 
-    // Simulate the same model call being reported twice (e.g. streaming
-    // final-chunk + final-return both fire onUsage — guarded by
-    // usageReported flag in callAI, but test the dedup directly).
+    // Simulate the same model call being reported twice to test deduplication.
     runtime.onUsage(u);
     runtime.onUsage(u);
 
@@ -289,7 +287,7 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
       request_id: 'req-cross-path-1',
     });
 
-    // 1. Model call completes; callAI fires onUsage first.
+    // 1. Model call completes; callGenerativeAI fires onUsage first.
     const runtime = (agent as any).resolveModelRuntime('default');
     runtime.onUsage(sharedUsage);
 
@@ -319,7 +317,7 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
       onLLMUsage,
     });
 
-    // Simulate a provider that doesn't return request_id. callAI() stamps
+    // Simulate a provider that doesn't return request_id. callGenerativeAI() stamps
     // INTERNAL_CALL_ID_FIELD onto every usage it shapes.
     const sharedUsage = usage({
       total_tokens: 55,
@@ -329,7 +327,7 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
     });
     (sharedUsage as any)[INTERNAL_CALL_ID_FIELD] = 'call_42';
 
-    // 1. onUsage fires first (from callAI return path).
+    // 1. onUsage fires first (from callGenerativeAI return path).
     const runtime = (agent as any).resolveModelRuntime('default');
     runtime.onUsage(sharedUsage);
 
@@ -359,9 +357,9 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
 
     const runtime = (agent as any).resolveModelRuntime('default');
 
-    // Simulate AiJudgeOrderSensitive → callAIWithObjectResponse → callAI
+    // Simulate AiJudgeOrderSensitive → callAIWithObjectResponse → callGenerativeAI
     // firing onUsage. This usage never appears in any task dump, so
-    // without the callAI-level collector it would be invisible.
+    // without the callGenerativeAI-level collector it would be invisible.
     runtime.onUsage(
       usage({
         total_tokens: 15,

@@ -1,4 +1,5 @@
 import { Agent } from '@/agent';
+import { trackResourceOperation } from '@/test-runner';
 import type { ExecutionDump, ReportMeta } from '@/types';
 import {
   MIDSCENE_MODEL_API_KEY,
@@ -36,6 +37,27 @@ describe('Agent dump update screenshot serialization', () => {
     rs.clearAllMocks();
   });
 
+  it('waits for tracked Runner operations before destroying its interface', async () => {
+    let finish!: () => void;
+    const operation = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const destroy = rs.fn(async () => {});
+    const agent = new Agent(
+      { ...createMockInterface(), destroy },
+      { modelConfig, generateReport: false },
+    );
+    trackResourceOperation(agent, operation, new AbortController().signal);
+
+    const disposal = agent.destroy();
+    await Promise.resolve();
+    expect(destroy).not.toHaveBeenCalled();
+
+    finish();
+    await disposal;
+    expect(destroy).toHaveBeenCalledOnce();
+  });
+
   it('passes report attributes to report generator updates', async () => {
     const reportAttributes = { 'data-group-id': 'cli-session-report' };
     const agent = new Agent(createMockInterface(), {
@@ -51,7 +73,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportGenerator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     await agent.recordToReport('snapshot', { content: 'check attributes' });
 
@@ -81,7 +103,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportGenerator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     const listener = rs.fn();
     agent.onDumpUpdate = listener;
@@ -124,7 +146,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportGenerator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     const providedScreenshot =
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB';
@@ -160,7 +182,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportGenerator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     const beforeScreenshot = 'before';
     const afterScreenshot = 'data:image/jpg;base64,after';
@@ -285,7 +307,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportGenerator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     await expect(
       agent.recordToReport('empty screenshots', {
@@ -321,7 +343,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportGenerator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     await expect(
       agent.recordToReport('conflicting screenshots', {
@@ -351,7 +373,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportGenerator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     const error = {
       message: 'javascript gate failed',
@@ -414,7 +436,7 @@ describe('Agent dump update screenshot serialization', () => {
       getReportPath: rs.fn(() => undefined),
     };
 
-    (agent as any).reportGenerator = reportGeneratorStub;
+    (agent as any).reportManager.reportState.generator = reportGeneratorStub;
 
     let maxDumpLength = 0;
     let leakedBase64Count = 0;
@@ -468,7 +490,7 @@ describe('Agent dump update screenshot serialization', () => {
       },
     );
 
-    (agent as any).reportGenerator = {
+    (agent as any).reportManager.reportState.generator = {
       onExecutionUpdate: rs.fn(),
       flush: rs.fn(async () => {
         order.push('report.flush');

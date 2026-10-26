@@ -24,13 +24,6 @@ const locateTestOptions = {
   retry: 0,
 };
 
-function distance(
-  point1: { x: number; y: number },
-  point2: { x: number; y: number },
-) {
-  return Math.sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2);
-}
-
 describe.skipIf(!hasModelFamily)('service locate with deep think', () => {
   test('service locate with search area', locateTestOptions, async () => {
     const { context } = await getContextFromFixture('taobao');
@@ -56,7 +49,7 @@ describe.skipIf(!hasModelFamily)('service locate with deep think', () => {
       const { context } = await getContextFromFixture('taobao');
 
       const service = new Service(context);
-      const { element, rect } = await service.locate(
+      const { element, dump } = await service.locate(
         {
           prompt: '顶部购物车 icon',
           deepLocate: true,
@@ -65,19 +58,16 @@ describe.skipIf(!hasModelFamily)('service locate with deep think', () => {
         modelRuntime(),
       );
       expect(element).toBeDefined();
-      expect(rect).toBeDefined();
-      expect(
-        distance(
-          {
-            x: element!.rect.left,
-            y: element!.rect.top,
-          },
-          {
-            x: rect!.left,
-            y: rect!.top,
-          },
-        ),
-      ).toBeLessThan(100);
+      const searchArea = dump.taskInfo?.searchArea;
+      expect(searchArea).toBeDefined();
+      expect(element!.center[0]).toBeGreaterThanOrEqual(searchArea!.left);
+      expect(element!.center[0]).toBeLessThan(
+        searchArea!.left + searchArea!.width,
+      );
+      expect(element!.center[1]).toBeGreaterThanOrEqual(searchArea!.top);
+      expect(element!.center[1]).toBeLessThan(
+        searchArea!.top + searchArea!.height,
+      );
       await sleep(3000);
     },
   );
@@ -87,7 +77,7 @@ test.skip('service locate with search area', async () => {
   const { context } = await getContextFromFixture('image-only');
 
   const service = new Service(context);
-  const { element, rect } = await service.locate(
+  const { element, dump } = await service.locate(
     {
       prompt: '-',
       deepLocate: true,
@@ -95,7 +85,7 @@ test.skip('service locate with search area', async () => {
     {},
     modelRuntime(),
   );
-  console.log(element, rect);
+  console.log(element, dump);
   await sleep(3000);
 });
 

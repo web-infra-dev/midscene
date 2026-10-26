@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { accessSync, constants as fsConstants } from 'node:fs';
 import { promisify } from 'node:util';
 import { getDebug } from '@midscene/shared/logger';
+import { uiInputSpeedRange } from './hdc-constraints';
 
 const execFileAsync = promisify(execFile);
 const debugHdc = getDebug('harmony:hdc');
@@ -9,8 +10,6 @@ const supportedStringKeyEvents = new Set(['Back', 'Home', 'Power']);
 const numericKeyEventPattern = /^\d+$/;
 const uiInputErrorPattern =
   /(?:(?:Invalid parameters|Missing parameter|Too many parameters)\.?|Please confirm that the coordinate values are correct\.?)/i;
-const minUiInputSpeed = 200;
-const maxUiInputSpeed = 40000;
 
 type UiInputOperation =
   | 'click'
@@ -39,11 +38,11 @@ function roundUiInputSpeed(
 ): number {
   if (
     !Number.isFinite(value) ||
-    value < minUiInputSpeed ||
-    value > maxUiInputSpeed
+    value < uiInputSpeedRange.min ||
+    value > uiInputSpeedRange.max
   ) {
     throw new Error(
-      `HDC ${operation} speed must be a finite number between ${minUiInputSpeed} and ${maxUiInputSpeed}`,
+      `HDC ${operation} speed must be a finite number between ${uiInputSpeedRange.min} and ${uiInputSpeedRange.max}`,
     );
   }
   return Math.round(value);

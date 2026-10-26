@@ -143,6 +143,7 @@ describe('bbox locate cache fix', () => {
 
     // Create task builder
     taskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: () => mockModelRuntime,
       interfaceInstance: mockInterface,
       service: mockService,
       taskCache,
@@ -164,6 +165,43 @@ describe('bbox locate cache fix', () => {
     );
   };
 
+  it('uses Default for cache judgments while locating with a dedicated model', async () => {
+    const locateModel = getModelRuntime({
+      ...mockModelConfig,
+      modelName: 'dedicated-locator',
+      intent: 'locate',
+      slot: 'locate',
+    });
+    locateModel.executionId = 'locate-execution';
+    const { tasks } = await taskBuilder.build(
+      [{ type: 'Locate', param: { prompt: 'the first input' } }],
+      mockModelRuntime,
+      locateModel,
+      { cacheable: true },
+    );
+    const task = tasks.find((task) => task.subType === 'Locate')!;
+    await task.executor({
+      task: createRuntimeTask(task),
+      uiContext: await createMockUIContext(validBase64Image),
+    });
+    expect(mockService.locate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      locateModel,
+      undefined,
+    );
+    expect(mockInterface.cacheFeatureForPoint).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        targetDescription: 'the first input',
+        modelRuntime: expect.objectContaining({
+          config: mockModelRuntime.config,
+          executionId: 'locate-execution',
+        }),
+      }),
+    );
+  });
+
   describe('when planning returns actions with bbox', () => {
     it('should write locate cache even when bbox is used for positioning', async () => {
       // Mock planning result with bbox (simulates includeLocateInPlanning=true)
@@ -173,12 +211,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'search input box',
-              locatedPixelBbox: [450, 280, 550, 320] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [500, 300] as [number, number] },
             },
           },
           thought: 'tap the search box',
@@ -228,12 +261,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'submit button',
-              locatedPixelBbox: [100, 200, 200, 250] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 225] as [number, number] },
             },
           },
           thought: 'tap submit',
@@ -264,12 +292,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'submit button',
-              locatedPixelBbox: [100, 200, 200, 250] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 225] as [number, number] },
               deepLocate: true,
             },
           },
@@ -294,17 +317,12 @@ describe('bbox locate cache fix', () => {
       expect(mockService.locate).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: 'submit button',
-          locatedPixelBbox: [100, 200, 200, 250],
+          locatedPixelResult: { center: [150, 225] },
           deepLocate: true,
         }),
         expect.objectContaining({
           planLocatedElement: expect.objectContaining({
-            rect: {
-              left: 100,
-              top: 200,
-              width: 101,
-              height: 51,
-            },
+            center: [150, 225],
           }),
         }),
         expect.objectContaining({
@@ -337,6 +355,7 @@ describe('bbox locate cache fix', () => {
 
       // Create new task builder with pre-populated cache
       const taskBuilderWithCache = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: prePopulatedTaskCache,
@@ -349,12 +368,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'existing element',
-              locatedPixelBbox: [100, 100, 200, 150] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 125] as [number, number] },
             },
           },
           thought: 'tap existing element',
@@ -382,7 +396,7 @@ describe('bbox locate cache fix', () => {
     });
   });
 
-  it('should annotate AI locate usage with default intent while preserving raw slot', async () => {
+  it('should annotate AI locate usage with locate intent while preserving raw slot', async () => {
     rs.mocked(mockService.locate).mockResolvedValueOnce({
       element: {
         id: 'element-id',
@@ -433,7 +447,7 @@ describe('bbox locate cache fix', () => {
     });
 
     expect(runtimeTask.usage).toMatchObject({
-      intent: 'default',
+      intent: 'locate',
       slot: 'default',
     });
     expect(runtimeTask.log?.dump?.taskInfo?.usage).toMatchObject({
@@ -443,6 +457,61 @@ describe('bbox locate cache fix', () => {
   });
 
   describe('cache hit on second execution', () => {
+    it.each(['xpath', 'cache'])(
+      'retains the DOM rect on a %s hit and scales the center independently',
+      async (source) => {
+        const internal = getTaskCacheInternal(taskCache);
+        internal.cache.caches.push({
+          type: 'locate',
+          prompt: 'login button',
+          cache: { xpaths: ['/html/body/button[1]'] },
+        });
+        internal.cacheOriginalLength = 1;
+        rs.mocked(mockInterface.rectMatchesCacheFeature!).mockResolvedValue({
+          left: 100.125,
+          top: 200.125,
+          width: 81,
+          height: 41,
+        });
+
+        const { tasks } = await taskBuilder.build(
+          [
+            {
+              type: 'Tap',
+              param: {
+                locate: {
+                  prompt: 'login button',
+                  ...(source === 'xpath'
+                    ? { xpath: '/html/body/button[1]' }
+                    : {}),
+                },
+              },
+              thought: 'tap login',
+            },
+          ],
+          mockModelRuntime,
+          mockModelRuntime,
+        );
+        const locateTask = tasks.find((task) => task.subType === 'Locate');
+        const result = await locateTask!.executor({
+          task: createRuntimeTask(locateTask!),
+          uiContext: {
+            ...(await createMockUIContext(validBase64Image)),
+            shrunkShotToLogicalRatio: 2,
+          },
+        });
+
+        expect(result!.hitBy?.from).toBe(
+          source === 'xpath' ? 'User expected path' : 'Cache',
+        );
+        expect(result!.output.element).toMatchObject({
+          center: [281.25, 441.25],
+          rect: { left: 200, top: 400, width: 162, height: 82 },
+        });
+        expect(mockService.locate).not.toHaveBeenCalled();
+      },
+    );
+
     it('should hit locate cache on second execution without bbox', async () => {
       // Create cache with proper initialization for cache reading
       const cacheId = uuid();
@@ -462,6 +531,7 @@ describe('bbox locate cache fix', () => {
 
       // Create task builder with this cache
       const taskBuilderWithCache = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: testCache,
@@ -519,12 +589,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: '',
-              locatedPixelBbox: [100, 100, 200, 150] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 125] as [number, number] },
             },
           },
           thought: 'tap element',
@@ -556,12 +621,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'no cache element',
-              locatedPixelBbox: [100, 100, 200, 150] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 125] as [number, number] },
             },
           },
           thought: 'tap without cache',
@@ -603,12 +663,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'element with no cache features',
-              locatedPixelBbox: [100, 100, 200, 150] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 125] as [number, number] },
             },
           },
           thought: 'tap element',
@@ -671,7 +726,6 @@ describe('bbox locate cache fix', () => {
         element: {
           description: 'new-element',
           center: [600, 400],
-          rect: { left: 550, top: 380, width: 100, height: 40 },
         },
         dump: mockServiceDump,
       });
@@ -684,6 +738,7 @@ describe('bbox locate cache fix', () => {
 
       // 5. Create taskBuilder with pre-populated cache
       const taskBuilderWithCache = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: testCache,
@@ -767,7 +822,6 @@ describe('bbox locate cache fix', () => {
         element: {
           description: 'submit-btn',
           center: [500, 300],
-          rect: { left: 450, top: 280, width: 100, height: 40 },
         },
         dump: mockServiceDump,
       });
@@ -778,6 +832,7 @@ describe('bbox locate cache fix', () => {
       });
 
       const taskBuilderWithCache = new TaskBuilder({
+        getDefaultModelRuntime: () => mockModelRuntime,
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: testCache,

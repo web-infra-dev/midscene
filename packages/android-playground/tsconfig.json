@@ -2,6 +2,7 @@
   "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
     "rootDir": ".",
+    "paths": { "@/*": ["./src/*"] },
     "declarationDir": "dist/types",
     "types": ["node"]
   },

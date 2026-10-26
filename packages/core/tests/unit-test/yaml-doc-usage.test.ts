@@ -30,6 +30,7 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
     })),
     evaluateJavaScript: rs.fn(async () => 'js-result'),
     recordToReport: rs.fn(async () => undefined),
+    sleep: rs.fn(async () => undefined),
     recordErrorToReport: rs.fn(async () => undefined),
     runAdbShell: rs.fn(async () => 'adb-result'),
     callActionInActionSpace: rs.fn(async () => 'action-result'),
@@ -69,7 +70,10 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
-  aiActContext: "If a consent dialog appears, click accept."
+  aiContexts:
+    default: "Prices are displayed in USD."
+    aiAct: "If a consent dialog appears, click accept."
+    aiQuery: "Return monetary values without currency symbols."
   cache:
     id: "checkout-cache"
     strategy: "read-write"
@@ -118,6 +122,11 @@ tasks:
       testId: 'checkout-test',
       reportFileName: 'checkout-report',
       replanningCycleLimit: 30,
+      aiContexts: {
+        default: 'Prices are displayed in USD.',
+        aiAct: 'If a consent dialog appears, click accept.',
+        aiQuery: 'Return monetary values without currency symbols.',
+      },
       cache: { id: 'checkout-cache', strategy: 'read-write' },
     });
     expect(script.web).toMatchObject({
@@ -241,7 +250,7 @@ tasks:
         ],
         convertHttpImage2Base64: true,
       },
-      {},
+      { abortSignal: expect.any(AbortSignal) },
     );
     expect(agent.aiTap).toHaveBeenCalledWith('Choose file button', {
       deepLocate: true,
@@ -268,6 +277,7 @@ tasks:
       content: 'Screenshot description',
     });
     expect(agent.aiWaitFor).toHaveBeenCalledWith('The page shows results', {
+      abortSignal: expect.any(AbortSignal),
       timeout: 1000,
       timeoutMs: 1000,
     });
@@ -280,8 +290,9 @@ tasks:
       },
       'Target image is not visible',
       {
-        convertHttpImage2Base64: true,
         keepRawResponse: true,
+        convertHttpImage2Base64: true,
+        abortSignal: expect.any(AbortSignal),
       },
     );
     expect(player.result).toMatchObject({
@@ -369,9 +380,7 @@ tasks:
     await player.run();
 
     expect(player.status).toBe('error');
-    expect(player.taskStatusList[0].error?.message).toContain(
-      '`observe` is not supported in YAML aiAssert',
-    );
+    expect(player.taskStatusList[0].error?.message).toContain('observe');
     expect(agent.aiAssert).not.toHaveBeenCalled();
   });
 
@@ -409,7 +418,7 @@ tasks:
     });
     expect(agent.aiQuery).toHaveBeenCalledWith(
       'Get search results after submitting product id ${product_id}',
-      {},
+      { abortSignal: expect.any(AbortSignal) },
     );
     expect(player.result.product_id).toBe('SKU-123');
     expect(player.result.search_result).toEqual({
@@ -445,6 +454,7 @@ tasks:
       expect.stringContaining('Scenario: Add a todo'),
       {
         cacheable: false,
+        abortSignal: expect.any(AbortSignal),
       },
     );
   });
@@ -560,7 +570,7 @@ tasks:
     expect(player.status).toBe('error');
     expect(agent.aiAct).toHaveBeenCalledWith(
       'Try a flaky action that recovers',
-      {},
+      { abortSignal: expect.any(AbortSignal) },
     );
     expect(agent.recordErrorToReport).toHaveBeenCalledWith(
       'YAML task failed - Mixed failure task',
@@ -658,7 +668,7 @@ tasks:
     expect(agent.aiAssert).toHaveBeenCalledWith(
       'The broken button is visible',
       undefined,
-      { keepRawResponse: true },
+      { keepRawResponse: true, abortSignal: expect.any(AbortSignal) },
     );
     expect(player.taskStatusList[0].error?.message).toBe(
       failedAssertionResult.message,
@@ -834,7 +844,9 @@ tasks:
       agent,
     );
 
-    expect(agent.aiQuery).toHaveBeenCalledWith('Search for ENV-123', {});
+    expect(agent.aiQuery).toHaveBeenCalledWith('Search for ENV-123', {
+      abortSignal: expect.any(AbortSignal),
+    });
   });
 
   it('preserves YAML scalar semantics when interpolating config environment variables', () => {
@@ -864,10 +876,27 @@ tasks:
   });
 
   it('keeps Agent.runYaml scoped to the provided tasks', async () => {
-    const agent = createDocAgent();
-    const runYaml = Agent.prototype.runYaml.bind(agent);
+    const agent = new Agent(
+      {
+        interfaceType: 'doc-test',
+        actionSpace: () => [],
+        destroy: async () => {},
+      } as any,
+      {
+        generateReport: false,
+        autoPrintReportMsg: false,
+        reportFileName: 'doc-report',
+        modelConfig: {
+          MIDSCENE_MODEL_NAME: 'test',
+          MIDSCENE_MODEL_API_KEY: 'test',
+        },
+      },
+    );
+    rs.spyOn(agent, 'aiAct').mockResolvedValue(undefined);
+    rs.spyOn(agent, 'aiString').mockResolvedValue('SKU-123');
 
-    const result = await runYaml(`
+    try {
+      const result = await agent.runYaml(`
 web:
   url: https://example.com/ignored-by-existing-agent
 agent:
@@ -880,7 +909,13 @@ tasks:
         name: value
 `);
 
-    expect(agent.aiAct).toHaveBeenCalledWith('Run the task', {});
-    expect(result.result.value).toBe('SKU-123');
+      expect(agent.aiAct).toHaveBeenCalledWith('Run the task', {
+        abortSignal: expect.any(AbortSignal),
+      });
+      expect(result.result.value).toBe('SKU-123');
+      expect(agent.reportFileName).toBe('doc-report');
+    } finally {
+      await agent.destroy();
+    }
   });
 });

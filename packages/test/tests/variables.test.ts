@@ -95,7 +95,7 @@ describe('workflow variables', () => {
     ).toThrow('must be a primitive when embedded in a string');
   });
 
-  it('resolves only node input and leaves normalized engine metadata intact', () => {
+  it('resolves node input while preserving its template and normalized engine metadata', () => {
     const directory = mkdtempSync(join(tmpdir(), 'workflow-variables-'));
     directories.push(directory);
     const absolutePath = join(directory, 'case.yaml');
@@ -132,7 +132,12 @@ cases:
     expect(document.cases[0].definition.steps[0]).toEqual({
       node: 'inspect',
       input: { count: 2, nested: { value: 'secret' } },
-      meta: { timeoutMs: 1234, continueOnError: true },
+      templateInput: { count: '${count}', nested: { value: '${{TOKEN}}' } },
+      meta: {
+        timeoutMs: 1234,
+        continueOnError: true,
+        sourceLocation: { line: 5, column: 9 },
+      },
     });
   });
 
@@ -155,7 +160,9 @@ cases:
         },
         {
           resolveNode: (name) =>
-            name === 'inspect' ? { name, execute() {} } : undefined,
+            name === 'inspect'
+              ? { name, stringInputKey: 'prompt', execute() {} }
+              : undefined,
           variables: {},
           env: {},
         },

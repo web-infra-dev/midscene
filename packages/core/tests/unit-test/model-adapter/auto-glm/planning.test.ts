@@ -15,19 +15,19 @@ const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
     rawResponse?: string;
     usage?: unknown;
-    rawChoiceMessage?: unknown;
+    rawAssistantOutput?: unknown;
 
     constructor(
       message: string,
       rawResponse?: string,
       usage?: unknown,
-      rawChoiceMessage?: unknown,
+      rawAssistantOutput?: unknown,
     ) {
       super(message);
       this.name = 'AIResponseParseError';
       this.rawResponse = rawResponse;
       this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
+      this.rawAssistantOutput = rawAssistantOutput;
     }
   }
 
@@ -99,6 +99,37 @@ describe('createAutoGlmPlanner', () => {
     rs.mocked(callAIWithStringResponse).mockReset();
   });
 
+  it.each([
+    { rounding: 'round', center: [38, 41], distance: 38 },
+    { rounding: 'trunc', center: [37, 40], distance: 37 },
+    { rounding: 'none', center: [37.875, 40.5], distance: 37.875 },
+  ] as const)(
+    'passes adapter rounding=$rounding to both swipe position and distance',
+    async ({ rounding, center, distance }) => {
+      rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+        content:
+          '<think>Swipe left</think><answer>do(action="Swipe", start=[375,500], end=[0,500])</answer>',
+      });
+      const planner = createAutoGlmPlanner(false);
+      const result = await runCustomPlanning(
+        await prepareUserPrompt('swipe left'),
+        createPlanOptions({
+          context: { ...context, shotSize: { width: 101, height: 81 } },
+        }),
+        resolveCustomPlanningDefinition({
+          ...planner,
+          coordinates: { ...planner.coordinates, rounding },
+        }),
+      );
+      expect(result.actions).toMatchObject([
+        {
+          type: 'Scroll',
+          param: { locate: { locatedPixelResult: { center } }, distance },
+        },
+      ]);
+    },
+  );
+
   it('runs Auto-GLM custom planning and transforms tap coordinates', async () => {
     rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
@@ -126,7 +157,7 @@ describe('createAutoGlmPlanner', () => {
         type: 'Tap',
         param: {
           locate: {
-            locatedPixelBbox: [490, 392, 509, 407],
+            locatedPixelResult: { center: [500, 400] },
           },
         },
       },

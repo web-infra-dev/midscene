@@ -1,6 +1,7 @@
 import type { Agent } from '@/agent/agent';
 import { runFreeFnCleanup } from '@/yaml/cleanup';
 import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
 import { describe, expect, rstest as rs, test } from '@rstest/core';
 
 describe('YAML resource cleanup', () => {
@@ -51,5 +52,74 @@ describe('YAML resource cleanup', () => {
     }));
 
     await expect(player.run()).rejects.toBe(cleanupError);
+    expect(player.status).toBe('error');
+    expect(
+      getLegacyYamlPlayerState(player).executionResult?.document.status,
+    ).toBe('success');
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
+      status: 'failed',
+      cleanupErrors: [cleanupError],
+    });
+  });
+
+  test('records setup failure even when the kernel cannot start', async () => {
+    const failure = new Error('setup failed');
+    const player = new ScriptPlayer({ tasks: [] }, async () => {
+      throw failure;
+    });
+    await player.run();
+    expect(player.errorInSetup).toBe(failure);
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
+      status: 'failed',
+      setupError: failure,
+    });
+    expect(
+      getLegacyYamlPlayerState(player).executionRecord?.execution,
+    ).toBeUndefined();
+  });
+
+  test('cleans up an acquired Agent if discovering its actions fails', async () => {
+    const failure = new Error('actions unavailable');
+    const cleanup = rs.fn();
+    const player = new ScriptPlayer({ tasks: [] }, async () => ({
+      agent: {
+        getActionSpace: async () => {
+          throw failure;
+        },
+      } as any,
+      freeFn: [{ name: 'agent', fn: cleanup }],
+    }));
+    await player.run();
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
+      status: 'failed',
+      setupError: failure,
+    });
+  });
+
+  test('retains both setup and cleanup errors', async () => {
+    const setupError = new Error('actions unavailable');
+    const cleanupError = new Error('cleanup failed');
+    const player = new ScriptPlayer({ tasks: [] }, async () => ({
+      agent: {
+        getActionSpace: async () => {
+          throw setupError;
+        },
+      } as any,
+      freeFn: [
+        {
+          name: 'agent',
+          fn: async () => {
+            throw cleanupError;
+          },
+        },
+      ],
+    }));
+    await expect(player.run()).rejects.toBe(cleanupError);
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
+      status: 'failed',
+      setupError,
+      cleanupErrors: [cleanupError],
+    });
   });
 });

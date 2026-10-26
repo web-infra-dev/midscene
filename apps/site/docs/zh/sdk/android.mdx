@@ -1,0 +1,327 @@
+# Android JavaScript SDK
+
+`@midscene/android` 通过 `adb` 控制 Android 设备。`AndroidAgent` 继承基础 `Agent` 的 [AI 方法](../reference/#interaction-methods)。
+
+## 导入与 API 概览
+
+```typescript
+import { AndroidAgent, AndroidDevice, agentFromAdbDevice, getConnectedDevices } from '@midscene/android';
+```
+
+日常使用推荐通过工厂函数 `agentFromAdbDevice()` 一步完成 Device 的创建与连接；如果需要分别管理 Device 和 Agent 的初始化过程，也可以显式构造 `AndroidDevice` 与 `AndroidAgent`。
+
+<a id="使用-javascript-sdk"></a>
+
+<a id="android-agentfromadbdevice"></a>
+
+<a id="android-快速开始"></a>
+
+<a id="android-启动原生-app"></a>
+
+## `agentFromAdbDevice()`
+
+```typescript
+agentFromAdbDevice(
+  deviceId?: string,
+  options?: AndroidAgentOpt & AndroidDeviceOpt,
+): Promise<AndroidAgent>
+```
+
+连接指定的 Android 设备并返回绑定了该 Device 的 `AndroidAgent`。`deviceId` 可选；省略时默认连接第一台可用设备，若未发现任何已连接设备则抛出错误。`options` 同时接受 Agent 配置与 Device 配置（设备发现过程同样会使用其中的 `adb` 连接配置）。
+
+```typescript
+const agent = await agentFromAdbDevice('device-id');
+```
+
+<a id="androiddevice"></a>
+
+<a id="androidagent"></a>
+
+## `AndroidDevice` / `AndroidAgent`
+
+```typescript
+new AndroidDevice(deviceId: string, options?: AndroidDeviceOpt)
+new AndroidAgent(device: AndroidDevice, options?: AndroidAgentOpt)
+```
+
+显式实例化 `AndroidDevice` 时，必须先调用 `await device.connect()` 完成连接，再将其传给 `AndroidAgent`。每个 Device 实例只能归属于一个 Agent。
+
+```typescript
+const device = new AndroidDevice('device-id');
+await device.connect();
+const agent = new AndroidAgent(device);
+```
+
+<a id="进阶"></a>
+
+## 配置选项
+
+### Agent 配置
+
+支持所有[通用 Agent 配置](../reference/#agent-options)，并额外提供以下平台配置：
+
+- `appNameMapping?: Record<string, string>` —— 将应用名称映射为对应的 Android 包名（Package Name），方便在 `launch()`、`terminate()` 或自然语言指令中直接使用应用名称。用户传入的映射会覆盖内置映射。
+
+### Device 配置
+
+- `autoDismissKeyboard?: boolean` —— 文本输入完成后是否自动收起软键盘。默认值：`true`。
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 自动收起软键盘时发送按键的优先级顺序。默认值：`'esc-first'`。
+- `keyboardTypeDelay?: number` —— 按键之间的延迟（单位：毫秒，须为有限非负数）。在 `'legacy'` 模式下，设为正数会让原生 `adb input text` 路径逐个 Unicode 码点发送字符；为保持向后兼容，yadb 路径在 `'legacy'` 模式下仍会忽略该选项。如需对 yadb 输入也启用逐字延迟，请将 `inputStrategy` 设为 `'sequential'`。
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。默认值为 `'legacy'`：
+  - `'sequential'`：按每个 Unicode 码点调用一次 `adb` 或 yadb；如需配合 `keyboardTypeDelay` 延迟输入，请使用此策略。
+  - `'bulk'`：在当前输入方式支持的情况下，整段文本仅调用一次底层输入接口；使用此策略时，不能设置 `keyboardTypeDelay`（或须将其设为 `0`）。
+- `androidAdbPath?: string` —— `adb` 可执行文件的自定义路径。
+- `remoteAdbHost?: string` / `remoteAdbPort?: number` —— 远程 `adb` 服务的地址与端口。
+- `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` —— 控制何时调用 [yadb](https://github.com/ysbing/yadb) 进行文本输入。默认值：`'yadb-for-non-ascii'`：
+  - `'yadb-for-non-ascii'`（默认）：对非 ASCII 字符（含带重音符号的拉丁字母如 `ö`、`é`、`ñ`，以及中文、日文等）和格式化占位符（如 `%s`、`%d`）使用 yadb；对纯 ASCII 文本则使用速度更快的原生 `adb input text`。
+  - `'always-yadb'`：所有文本输入均使用 yadb。兼容性最好，但输入纯 ASCII 文本时速度略慢。
+- `screenshotStrategy?: 'auto' | 'always-yadb'` —— 控制截图方式。默认值：`'auto'`：
+  - `'auto'`（默认）：依次尝试 `adb.takeScreenshot` 和 shell `screencap`，若 `screencap` 执行失败则回退到 yadb（若开启了 `scrcpyConfig.enabled`，则会最先尝试 scrcpy）。注意：该策略不会检查截图画面内容——即使某种方法截出的是黑屏图片，只要命令执行成功就不会自动切换到下一种方法。
+  - `'always-yadb'`：跳过默认的 `'auto'` 流程，直接通过 [yadb](https://github.com/ysbing/yadb) 截图。适用于目标页面设置了 `FLAG_SECURE`（导致 `screencap` 截出黑屏）但 yadb 能够正常截取的场景（实际效果取决于 Android 版本、ROM、Root/Hook 环境及设备配置，请以真机实测为准）。yadb 仅支持截取默认屏幕（`displayId=0`），若同时配置了非零 `displayId` 会抛出错误。也可通过环境变量 `MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb` 配置。
+- `displayId?: number` —— 当设备存在多个屏幕或虚拟显示器时，指定要操作的目标屏幕 ID。
+- `exposeRunAdbShellAction?: boolean` —— 是否在动作空间中暴露内置的 `RunAdbShell` 动作。默认值：`true`。设为 `false` 后，AI 规划器、YAML 脚本以及 `agent.runAdbShell()` 均无法执行 `adb shell` 命令。
+- `customActions?: DeviceAction[]` —— 注册自定义动作，供 Agent 在规划时调用。可传入 `AndroidDevice` 构造函数或 `agentFromAdbDevice()`，定义方式请参阅[自定义动作](../integrate-with-any-interface)。
+- `screenshotResizeScale?: number` —— **已废弃**（该选项已移除且不再生效）。如需调整发送给 AI 模型的截图缩放比例，请改用 `AgentOpt` 中的 `screenshotShrinkFactor`。
+- `minScreenshotBufferSize?: number` —— 有效截图数据的最小字节数阈值，小于该值的截图会被判定为采集失败或数据损坏。默认值：`1024`（1 KB）。设为 `0` 可跳过此大小校验（但仍会拦截空数据和无效图片格式）。
+- `alwaysRefreshScreenInfo?: boolean` —— 是否在每个执行步骤前重新查询屏幕旋转方向与分辨率。默认值：`false`。
+
+<a id="scrcpy"></a>
+
+**scrcpy 配置与状态方法**
+
+- `scrcpyConfig?: object` —— 高性能 scrcpy 截图配置（默认关闭）：
+  - `enabled?: boolean` —— 是否启用 scrcpy 截图。默认值：`false`。
+  - `maxSize?: number` —— 截图长边的最大像素尺寸（须为非负整数；默认值为 `0`，表示不缩放）。当 scrcpy 暂时不可用并回退到 `adb` / yadb 截图时，该尺寸限制同样生效，防止规划与报告中的截图突然恢复为设备原始分辨率。
+  - `videoBitRate?: number` —— scrcpy H.264 视频编码码率（单位：bps）。默认值：`100000000`。调整该值会在传输带宽与画面细节之间进行权衡；仅在独立链路测试表明确有必要时再作调整，并在调整后验证模型识别效果（切勿仅因出现帧新鲜度超时警告就盲目调参）。
+  - `idleTimeoutMs?: number` —— 视频流空闲自动断开的等待时间（单位：毫秒；设为 `0` 则禁用自动断开）。默认值：`30000`。
+  - `videoResetFrameTimeoutMs?: number` —— scrcpy 触发流内视频重置后，等待新关键帧的超时时间（单位：毫秒，须为正整数）。默认值：`800`。仅当设备的画面采集管线重启耗时较长时才需调大。
+- `device.getScrcpyStatus()` —— 返回当前 scrcpy 状态（包含 `enabled`、`connected`、`lastError` 和 `retryAfter`）。
+- `device.retryScrcpy(): Promise<void>` —— 跳过冷却等待，立即重试建立 scrcpy 连接。
+
+## 平台方法
+
+<a id="android-agentlaunch"></a>
+
+### `launch()`
+
+打开网页，或启动指定的 Android 应用包名 / Activity。
+
+```ts
+function launch(target: string): Promise<void>;
+```
+
+- `target: string` —— 网页 URL、`package/.Activity` 格式的组件名（如 `com.android.settings/.Settings`）、应用包名，或应用名称。如果传入的应用名称存在于 `appNameMapping` 中，Midscene 会先将其解析为对应的包名，否则直接按传入的 `target` 启动。
+
+<a id="android-agentrunadbshell"></a>
+
+### `runAdbShell()`
+
+在当前连接的设备上执行原始 `adb shell` 命令。传入的参数只需包含 shell 命令本身，无需携带 `adb shell` 前缀。
+
+```ts
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
+```
+
+- `command: string` —— 原样传给 `adb shell` 的命令字符串（例如传入 `'input tap 100 200'`，而非 `'adb shell input tap 100 200'`）。
+- `opt.timeout?: number` —— 命令执行超时时间（单位：毫秒）。
+
+该方法底层依赖 `RunAdbShell` 动作；如果创建 `AndroidDevice` 时将 `exposeRunAdbShellAction` 设为了 `false`，则无法调用此方法。
+
+```ts
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
+console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
+```
+
+<a id="android-agentterminate"></a>
+
+### `terminate()`
+
+强制停止正在运行的 Android 应用。
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 应用包名、`appNameMapping` 中注册的应用名称，或 `package/.Activity`（仅取斜杠前的包名部分）。
+
+```ts
+await agent.terminate('com.android.settings');
+```
+
+<a id="android-导航辅助"></a>
+
+### 系统导航
+
+- `agent.back(): Promise<void>` —— 触发系统返回键。
+- `agent.home(): Promise<void>` —— 返回系统桌面。
+- `agent.recentApps(): Promise<void>` —— 打开最近任务（多任务）界面。
+
+<a id="android-getconnecteddevices"></a>
+
+## 设备发现
+
+```typescript
+getConnectedDevices(options?: AndroidDeviceOpt): Promise<
+  Array<{ udid: string; state: string; port?: number }>
+>
+```
+
+返回当前已连接设备的 ID（`udid`）与连接状态。另一个导出函数 `getConnectedDevicesWithDetails(options?)` 会额外查询设备的型号（`model`）、品牌（`brand`）、分辨率（`resolution`）及屏幕密度（`density`），无法获取的字段返回 `undefined`。这两个函数均可从 `@midscene/android` 直接导入。
+
+<a id="android-getconnecteddeviceswithdetails"></a>
+
+### `getConnectedDevicesWithDetails()`
+
+```typescript
+getConnectedDevicesWithDetails(options?: AndroidDeviceOpt): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+  model?: string;
+  brand?: string;
+  resolution?: string;
+  density?: number;
+}>>
+```
+
+<a id="android-device-destroy"></a>
+
+## 生命周期
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+调用 `agent.destroy()` 时，Agent 会等待进行中的操作结束，调用底层 Device 的 `destroy()`，并完成报告写入。切勿让多个 Agent 共用同一个 Device 实例，也不要在销毁后复用该 Device。
+
+在 Android 平台上，`device.destroy()` 会清理屏幕缓存和 `adb` 客户端状态，并断开当前活跃的 scrcpy 连接，但不会断开宿主机 `adb` 服务与物理设备的连接，也不会关闭设备上的应用。
+
+## 问题排查
+
+### 输入文本后，输入框内容被清空或消失
+
+Midscene 在输入文本后默认会自动收起软键盘，默认策略是发送 **ESC 按键事件**。但部分输入框（尤其是 WebView 内的输入框）会监听 ESC 按键，从而引发以下副作用：
+
+- 刚输入的文本被清空
+- 包含该输入框的弹窗或浮层被关闭
+- 页面发生意外跳转或返回
+
+可按先后顺序尝试以下两种解决方式：
+
+**方案一：改用 Android 返回键（BACK）收起键盘**
+
+将 `keyboardDismissStrategy` 设为 `'back-first'`，改用系统返回键替代 ESC 键来收起软键盘：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+**方案二：关闭自动收起键盘**
+
+如果目标输入框对返回键同样存在副作用，可以将 `autoDismissKeyboard` 设为 `false`，交由后续的 AI 操作自行处理键盘状态：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+关闭自动收起后，软键盘会一直停留在屏幕上，可能会遮挡下半屏内容。你可以通过以下方式处理：
+
+- 调用 `aiAct` 手动收起键盘，例如 `await agent.aiAct('点击键盘上的收起按钮')`；
+- 在设备上安装并切换至 [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard)——这是一个几乎不占屏幕空间的极简虚拟键盘，即使保持常驻也不会遮挡页面元素。
+
+### 英文文本被 Android 输入法改写
+
+如果报告中记录的输入参数无误，但输入框实际收到的是乱序字符、缺字或中文拼音候选词，通常是因为当前激活的系统输入法拦截并改写了输入内容（当纯 ASCII 文本走原生 `adb input text` 路径，且设备当前处于中文输入法或开启了自动纠错时容易触发）。
+
+此时可通过 `imeStrategy: 'always-yadb'` 强制所有文本输入均走 yadb 通道：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  imeStrategy: 'always-yadb',
+});
+```
+
+在 YAML 脚本中配置：
+
+```yaml
+android:
+  imeStrategy: always-yadb
+```
+
+或通过环境变量配置：
+
+```bash
+export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
+```
+
+注意：此问题与「输入后文本被清空」不同。如果是文本已经正常出现在输入框中、但在键盘收起瞬间消失，请排查上方的 `keyboardDismissStrategy` 或 `autoDismissKeyboard`。
+
+### 安全页面（如密码输入框）截图黑屏
+
+银行、支付类应用中的密码输入页或安全键盘通常会设置 `FLAG_SECURE` 标志位以禁止截屏，导致 `screencap` 截出的图像中安全区域呈现全黑。
+
+yadb 工具通过 `SurfaceControl.createDisplay` 的 `secure` 参数创建虚拟显示层，在部分系统环境下能够正常截取安全页面（具体能否生效取决于 Android 版本、ROM、Root / Magisk Hook 环境及设备配置，请以真机实测为准）。
+
+可通过 `screenshotStrategy: 'always-yadb'` 强制使用 yadb 截图：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  screenshotStrategy: 'always-yadb',
+});
+```
+
+在 YAML 脚本中配置：
+
+```yaml
+android:
+  screenshotStrategy: always-yadb
+```
+
+或通过环境变量配置：
+
+```bash
+export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
+```
+
+默认的 `'auto'` 策略会依次尝试 `adb.takeScreenshot` 和 shell `screencap`（开启 `scrcpyConfig.enabled` 时会优先尝试 scrcpy），仅在这些命令执行报错时才会回退到 yadb；由于 `'auto'` 不会检测图像是否全黑，面对返回全黑图像的 `FLAG_SECURE` 页面时，必须显式指定 `'always-yadb'` 以跳过默认截图链路。注意：yadb 仅支持截取默认屏幕（`displayId=0`），与非零 `displayId` 同时配置会抛出错误。
+
+### 如何配置 scrcpy 视频码率？
+
+使用 Android CLI 时，可通过 `--scrcpy-video-bit-rate <bits-per-second>`（或 `--scrcpyVideoBitRate`）指定编码码率。传入该参数会自动启用 scrcpy，无需再额外传入 `--use-scrcpy`：
+
+```bash
+midscene-android tap \
+  --device-id <device-id> \
+  --locate '{"prompt":"目标元素"}' \
+  --scrcpy-video-bit-rate <bits-per-second>
+```
+
+由于每次执行 CLI 命令都是独立进程，需要覆盖默认码率的每条命令都需带上该参数。而在 JavaScript SDK 或 YAML 脚本中，只需在设备配置里设置一次 `scrcpyConfig.videoBitRate` 即可。调整码率会在传输带宽与画面细节之间取舍，建议仅在链路测试表明确有必要时调优，并在调整后验证截图清晰度与模型识别率。默认值及相关参数说明请参阅上方的 [scrcpy 配置](#scrcpy)。
+
+<a id="如何使用自定义的-adb-路径或远程-adb-服务器"></a>
+
+### 如何使用自定义的 adb 路径或连接远程 adb 服务？ {#adb-connection-options}
+
+可以通过环境变量配置：
+
+```bash
+export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+也可以在构造 `AndroidDevice`（或调用 `agentFromAdbDevice`）时通过参数传入：
+
+```typescript
+const device = new AndroidDevice('s4ey59', {
+  androidAdbPath: '/path/to/adb',
+  remoteAdbHost: '192.168.1.100',
+  remoteAdbPort: 5037,
+});
+```

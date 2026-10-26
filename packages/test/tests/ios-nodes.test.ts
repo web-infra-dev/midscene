@@ -1,7 +1,18 @@
+import type { IOSAgent as PlatformAgent } from '@midscene/ios';
+import type { MidsceneUIAgent } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
+type IOSRunnerAgent = MidsceneUIAgent &
+  Pick<
+    PlatformAgent,
+    'launch' | 'terminate' | 'runWdaRequest' | 'home' | 'appSwitcher'
+  >;
+import { createRequire } from 'node:module';
+import { createMidsceneNodes } from '../src/midscene';
+const { IOSAgent } = createRequire(import.meta.url)('@midscene/ios');
 import { describe, expect, it, vi } from 'vitest';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
-import { createIOSNodes } from '../src/ios';
+
 import type { CollectedCase } from '../src/parser/types';
 
 const collected = (
@@ -14,27 +25,46 @@ const collected = (
   definition: { name: 'ios nodes', steps },
 });
 
-describe('createIOSNodes', () => {
+const iosAgent = (overrides: Partial<IOSRunnerAgent> = {}): IOSRunnerAgent => ({
+  ...createMockMidsceneAgent(),
+  launch: vi.fn(async () => undefined),
+  terminate: vi.fn(async () => undefined),
+  runWdaRequest: vi.fn(async () => undefined),
+  home: vi.fn(async () => undefined),
+  appSwitcher: vi.fn(async () => undefined),
+  ...overrides,
+});
+
+describe('IOSAgent Nodes', () => {
   it('runs WDA requests and returns their structured response', async () => {
     const runWdaRequest = vi.fn(async () => ({ value: { scale: 3 } }));
     const registry = new NodeRegistry(
-      createIOSNodes({
-        getAgent: () => ({
-          launch: vi.fn(async () => undefined),
-          terminate: vi.fn(async () => undefined),
-          runWdaRequest,
-        }),
+      createMidsceneNodes({
+        agentClass: IOSAgent,
+        getAgent: () => iosAgent({ runWdaRequest }),
       }),
     );
-    expect(registry.names()).toEqual(['launch', 'terminate', 'runWdaRequest']);
+    expect(registry.names()).toEqual(
+      expect.arrayContaining([
+        'aiAct',
+        'wait',
+        'launch',
+        'terminate',
+        'runWdaRequest',
+        'home',
+        'appSwitcher',
+      ]),
+    );
     const result = await runCollectedCase(
       collected([
         {
           node: 'runWdaRequest',
           input: {
-            method: 'POST',
-            endpoint: '/wda/pressButton',
-            data: { name: 'home' },
+            request: {
+              method: 'POST',
+              endpoint: '/wda/pressButton',
+              data: { name: 'home' },
+            },
           },
           meta: { continueOnError: false },
         },
@@ -55,12 +85,9 @@ describe('createIOSNodes', () => {
     const launch = vi.fn(async () => undefined);
     const terminate = vi.fn(async () => undefined);
     const registry = new NodeRegistry(
-      createIOSNodes({
-        getAgent: () => ({
-          launch,
-          terminate,
-          runWdaRequest: vi.fn(async () => undefined),
-        }),
+      createMidsceneNodes({
+        agentClass: IOSAgent,
+        getAgent: () => iosAgent({ launch, terminate }),
       }),
     );
     const result = await runCollectedCase(
@@ -72,7 +99,7 @@ describe('createIOSNodes', () => {
         },
         {
           node: 'terminate',
-          input: { prompt: 'com.example.app' },
+          input: { uri: 'com.example.app' },
           meta: { continueOnError: false },
         },
       ]),
@@ -86,13 +113,16 @@ describe('createIOSNodes', () => {
 
   it('rejects unsupported methods and missing Agent capability', async () => {
     const registry = new NodeRegistry(
-      createIOSNodes({ getAgent: () => ({}) as never }),
+      createMidsceneNodes({
+        agentClass: IOSAgent,
+        getAgent: () => ({}) as never,
+      }),
     );
     const invalidMethod = await runCollectedCase(
       collected([
         {
           node: 'runWdaRequest',
-          input: { method: 'PATCH', endpoint: '/status' },
+          input: { request: { method: 'PATCH', endpoint: '/status' } },
           meta: { continueOnError: false },
         },
       ]),
@@ -106,7 +136,7 @@ describe('createIOSNodes', () => {
       collected([
         {
           node: 'runWdaRequest',
-          input: { method: 'GET', endpoint: '/status' },
+          input: { request: { method: 'GET', endpoint: '/status' } },
           meta: { continueOnError: false },
         },
       ]),
@@ -128,12 +158,6 @@ describe('createIOSNodes', () => {
     );
     expect(lifecycleResult.steps[0].error?.message).toContain(
       'iOS Agent with terminate()',
-    );
-  });
-
-  it('validates factory options', () => {
-    expect(() => createIOSNodes({} as never)).toThrow(
-      'createIOSNodes() requires getAgent()',
     );
   });
 });

@@ -1,6 +1,7 @@
 import { Agent } from '@/agent';
 import { ScriptPlayer } from '@/yaml/player';
 import { describe, expect, it, rs } from '@rstest/core';
+import { installAgentReportManager } from './test-helpers/agent-report-manager';
 
 const referenceImages = [
   {
@@ -22,6 +23,8 @@ const expectedLocateParam = {
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
+  installAgentReportManager(agent);
+  (agent as any).opts = {};
   (agent as any).callActionInActionSpace = rs.fn(async () => undefined);
   return agent;
 };

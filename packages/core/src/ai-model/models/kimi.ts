@@ -14,15 +14,17 @@ const kimiNormalizedPointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
   normalizedBy: 1,
+  rounding: 'round',
 } as const;
 const kimiPixelPointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
+  rounding: 'round',
 } as const;
 
 function parseKimiRawLocateValue(input: unknown): LocateResultValue {
   const point = parseCoordinateList(input, 'point');
-  if (point.length < 2) {
+  if (point.length !== 2) {
     throw new Error(`invalid point data: ${JSON.stringify(input)} `);
   }
   const [x, y] = point;

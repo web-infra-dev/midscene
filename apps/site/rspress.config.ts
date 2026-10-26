@@ -10,6 +10,8 @@ import { getGitHubStars } from './scripts/github-stars';
 
 const SITE_URL = 'https://midscenejs.com';
 const FAVICON_URL = `${SITE_URL}/favicon.png`;
+// Bump this version when browsers need to refresh their cached site icon.
+const FAVICON_LINK_URL = `${FAVICON_URL}?v=20260929`;
 const OG_IMAGE_URL = `${SITE_URL}/og-image.png`;
 
 const SEARCH_IDENTITY_JSON_LD = JSON.stringify({
@@ -47,12 +49,13 @@ export default defineConfig(async () => {
   });
   return {
     root: path.join(__dirname, 'docs'),
-    title: 'Midscene - Vision-Driven UI Automation',
-    description: 'AI-powered, vision-driven UI automation for every platform.',
-    icon: '/favicon.png',
+    title: 'Midscene.js - AI UI Automation and E2E Testing',
+    description:
+      'Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.',
+    icon: FAVICON_LINK_URL,
     logo: {
-      light: '/midscene_with_text_light.png',
-      dark: '/midscene_with_text_dark.png',
+      light: '/images/brand/midscene_with_text_light.png',
+      dark: '/images/brand/midscene_with_text_dark.png',
     },
     head: [
       [
@@ -61,14 +64,14 @@ export default defineConfig(async () => {
           rel: 'icon',
           type: 'image/png',
           sizes: '600x600',
-          href: FAVICON_URL,
+          href: FAVICON_LINK_URL,
         },
       ],
       [
         'link',
         {
           rel: 'apple-touch-icon',
-          href: FAVICON_URL,
+          href: FAVICON_LINK_URL,
         },
       ],
       // Open Graph
@@ -158,60 +161,68 @@ export default defineConfig(async () => {
       sidebar: {
         '/': [
           {
-            sectionHeaderText: 'Introduction',
+            sectionHeaderText: 'Discover Midscene',
           },
           {
             text: 'Introduction',
-            link: '/introduction',
+            link: '/',
           },
           {
-            text: 'The Basics',
+            text: 'The basics',
             link: '/basics',
-          },
-          {
-            text: 'Model strategy',
-            link: '/model-strategy',
           },
           {
             text: 'Showcases',
             link: '/showcases',
           },
           {
-            sectionHeaderText: 'Getting Started',
+            sectionHeaderText: 'Getting started',
           },
           {
-            text: 'Quick start',
+            text: 'Try the GUI Agent',
             link: '/quick-start',
           },
           {
-            text: 'Supported models & setup',
-            link: '/model-common-config',
+            text: 'Create a test project',
+            link: '/midscene-test/use',
           },
           {
             text: 'Control any platform with Skills',
             link: '/skills',
           },
           {
-            sectionHeaderText: 'Web browser',
+            sectionHeaderText: 'Models',
           },
           {
-            text: 'Integrate with Playwright',
-            link: '/integrate-with-playwright',
+            text: 'Model selection guide',
+            link: '/model-selection',
           },
           {
-            text: 'Integrate with Puppeteer',
-            link: '/integrate-with-puppeteer',
+            text: 'Use a model API Key',
+            link: '/model-api-setup',
           },
           {
-            text: 'Bridge to the desktop Chrome',
-            link: '/bridge-mode',
+            text: 'Use a ChatGPT subscription',
+            link: '/chatgpt-subscription',
           },
           {
-            sectionHeaderText: 'More platforms',
+            text: 'Advanced configuration & debugging',
+            link: '/model-config',
+          },
+          {
+            sectionHeaderText: 'Platform environment setup',
           },
           {
             text: 'Platform overview',
             link: '/platforms/',
+          },
+          {
+            text: 'Web',
+            link: '/platforms/web',
+          },
+          {
+            text: 'Chrome Bridge',
+            link: '/bridge-mode',
           },
           {
             text: 'Android',
@@ -230,33 +241,86 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
-            sectionHeaderText: 'YAML automation',
+            sectionHeaderText: 'Midscene Test',
           },
           {
-            text: 'YAML script runner',
-            link: '/yaml-script-runner',
+            text: 'Framework overview',
+            link: '/midscene-test/overview',
           },
           {
-            text: 'Workflow in YAML format',
-            link: '/automate-with-scripts-in-yaml',
+            text: 'Create and run test projects',
+            link: '/midscene-test/use',
           },
           {
-            sectionHeaderText: 'Reference',
+            text: 'Configure test projects',
+            link: '/midscene-test/configuration',
+          },
+          {
+            text: 'Develop custom Nodes',
+            link: '/midscene-test/extend',
+          },
+          {
+            text: 'Run in GitHub Actions',
+            link: '/midscene-test/github-actions',
+          },
+          {
+            sectionHeaderText: 'JavaScript SDK',
+          },
+          {
+            text: 'Integrate with Playwright Test',
+            link: '/integrate-with-playwright',
+          },
+          {
+            text: 'Integrate with Vitest',
+            link: '/sdk/vitest',
+          },
+          {
+            text: 'Write standalone automation scripts',
+            link: '/sdk/standalone',
           },
           {
             text: 'API reference',
-            link: '/reference/',
-          },
-          {
-            text: 'Model configuration',
-            link: '/model-config',
+            items: [
+              {
+                text: 'Shared Agent APIs',
+                link: '/reference/',
+              },
+              {
+                text: 'Web / Playwright',
+                link: '/sdk/playwright',
+              },
+              {
+                text: 'Web / Puppeteer',
+                link: '/integrate-with-puppeteer',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/sdk/chrome-bridge',
+              },
+              {
+                text: 'Android',
+                link: '/sdk/android',
+              },
+              {
+                text: 'iOS',
+                link: '/sdk/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/sdk/harmonyos',
+              },
+              {
+                text: 'Desktop',
+                link: '/sdk/desktop',
+              },
+            ],
           },
           {
             sectionHeaderText: 'Advanced guides',
           },
           {
-            text: 'Model debugging & observability',
-            link: '/model-debugging-observability',
+            text: 'Provide application knowledge to a GUI Agent',
+            link: '/provide-application-knowledge-to-gui-agent',
           },
           {
             text: 'Process report files',
@@ -275,19 +339,19 @@ export default defineConfig(async () => {
             link: '/caching',
           },
           {
-            sectionHeaderText: 'Test Runner (Beta)',
+            sectionHeaderText: 'Legacy YAML automation',
           },
           {
-            text: 'Test Runner overview',
-            link: '/test-runner-overview',
+            text: 'YAML script runner',
+            link: '/yaml-script-runner',
           },
           {
-            text: 'Extend and maintain Test Runner',
-            link: '/extend-test-runner',
+            text: 'Workflow in YAML format',
+            link: '/automate-with-scripts-in-yaml',
           },
           {
-            text: 'Write and run test cases',
-            link: '/use-test-runner',
+            text: 'Migrate to Midscene Test',
+            link: '/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: 'Resources',
@@ -312,33 +376,29 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Benchmark',
           },
           {
-            text: 'AndroidWorld Benchmark',
+            text: 'AndroidWorld benchmark',
             link: '/android-world-benchmark-report',
           },
           {
-            text: 'MobileWorld Benchmark',
+            text: 'MobileWorld benchmark',
             link: '/mobile-world-benchmark-report',
           },
           {
-            text: 'AppControlBench Benchmark',
+            text: 'AppControlBench benchmark',
             link: '/app-control-bench-report',
           },
         ],
         '/zh': [
           {
-            sectionHeaderText: '介绍',
+            sectionHeaderText: '了解 Midscene',
           },
           {
             text: '介绍',
-            link: '/zh/introduction',
+            link: '/zh/',
           },
           {
             text: '基本概念',
             link: '/zh/basics',
-          },
-          {
-            text: '模型策略',
-            link: '/zh/model-strategy',
           },
           {
             text: '案例展示',
@@ -348,38 +408,50 @@ export default defineConfig(async () => {
             sectionHeaderText: '开始使用',
           },
           {
-            text: '快速开始',
+            text: '快速体验 GUI Agent',
             link: '/zh/quick-start',
           },
           {
-            text: '支持的模型与配置',
-            link: '/zh/model-common-config',
+            text: '创建测试项目',
+            link: '/zh/midscene-test/use',
           },
           {
             text: '使用 Skills 控制任意平台',
             link: '/zh/skills',
           },
           {
-            sectionHeaderText: 'Web 浏览器',
+            sectionHeaderText: '模型',
           },
           {
-            text: '集成到 Playwright',
-            link: '/zh/integrate-with-playwright',
+            text: '模型选择指南',
+            link: '/zh/model-selection',
           },
           {
-            text: '集成到 Puppeteer',
-            link: '/zh/integrate-with-puppeteer',
+            text: '使用模型 API Key',
+            link: '/zh/model-api-setup',
           },
           {
-            text: '桥接到桌面 Chrome',
-            link: '/zh/bridge-mode',
+            text: '使用 ChatGPT 订阅',
+            link: '/zh/chatgpt-subscription',
           },
           {
-            sectionHeaderText: '更多平台',
+            text: '高级配置与调试',
+            link: '/zh/model-config',
+          },
+          {
+            sectionHeaderText: '平台环境配置',
           },
           {
             text: '平台概览',
             link: '/zh/platforms/',
+          },
+          {
+            text: 'Web',
+            link: '/zh/platforms/web',
+          },
+          {
+            text: 'Chrome Bridge',
+            link: '/zh/bridge-mode',
           },
           {
             text: 'Android',
@@ -398,33 +470,86 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
-            sectionHeaderText: 'YAML 自动化',
+            sectionHeaderText: 'Midscene Test',
           },
           {
-            text: 'YAML 脚本运行器',
-            link: '/zh/yaml-script-runner',
+            text: '框架概览',
+            link: '/zh/midscene-test/overview',
           },
           {
-            text: 'YAML 格式的工作流',
-            link: '/zh/automate-with-scripts-in-yaml',
+            text: '创建与运行测试工程',
+            link: '/zh/midscene-test/use',
           },
           {
-            sectionHeaderText: '参考文档',
+            text: '配置测试工程',
+            link: '/zh/midscene-test/configuration',
           },
           {
-            text: 'API 参考',
-            link: '/zh/reference/',
+            text: '开发自定义 Node',
+            link: '/zh/midscene-test/extend',
           },
           {
-            text: '模型配置',
-            link: '/zh/model-config',
+            text: '在 GitHub Actions 中运行',
+            link: '/zh/midscene-test/github-actions',
+          },
+          {
+            sectionHeaderText: 'JavaScript SDK',
+          },
+          {
+            text: '接入 Playwright Test',
+            link: '/zh/integrate-with-playwright',
+          },
+          {
+            text: '接入 Vitest',
+            link: '/zh/sdk/vitest',
+          },
+          {
+            text: '编写独立自动化脚本',
+            link: '/zh/sdk/standalone',
+          },
+          {
+            text: 'API reference',
+            items: [
+              {
+                text: '通用 Agent API',
+                link: '/zh/reference/',
+              },
+              {
+                text: 'Web / Playwright',
+                link: '/zh/sdk/playwright',
+              },
+              {
+                text: 'Web / Puppeteer',
+                link: '/zh/integrate-with-puppeteer',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/zh/sdk/chrome-bridge',
+              },
+              {
+                text: 'Android',
+                link: '/zh/sdk/android',
+              },
+              {
+                text: 'iOS',
+                link: '/zh/sdk/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/zh/sdk/harmonyos',
+              },
+              {
+                text: '桌面端',
+                link: '/zh/sdk/desktop',
+              },
+            ],
           },
           {
             sectionHeaderText: '进阶指南',
           },
           {
-            text: '模型调试与可观测性',
-            link: '/zh/model-debugging-observability',
+            text: '为 GUI Agent 补充应用知识',
+            link: '/zh/provide-application-knowledge-to-gui-agent',
           },
           {
             text: '处理报告文件',
@@ -443,19 +568,19 @@ export default defineConfig(async () => {
             link: '/zh/caching',
           },
           {
-            sectionHeaderText: 'Test Runner (Beta)',
+            sectionHeaderText: '旧版 YAML 自动化',
           },
           {
-            text: 'Test Runner 概览',
-            link: '/zh/test-runner-overview',
+            text: 'YAML 脚本运行器',
+            link: '/zh/yaml-script-runner',
           },
           {
-            text: '扩展和维护 Test Runner',
-            link: '/zh/extend-test-runner',
+            text: 'YAML 格式的工作流',
+            link: '/zh/automate-with-scripts-in-yaml',
           },
           {
-            text: '编写和运行测试用例',
-            link: '/zh/use-test-runner',
+            text: '迁移到 Midscene Test',
+            link: '/zh/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: '资源',
@@ -480,15 +605,15 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Benchmark',
           },
           {
-            text: 'AndroidWorld Benchmark',
+            text: 'AndroidWorld benchmark',
             link: '/zh/android-world-benchmark-report',
           },
           {
-            text: 'MobileWorld Benchmark',
+            text: 'MobileWorld benchmark',
             link: '/zh/mobile-world-benchmark-report',
           },
           {
-            text: 'AppControlBench Benchmark',
+            text: 'AppControlBench benchmark',
             link: '/zh/app-control-bench-report',
           },
         ],
@@ -499,16 +624,16 @@ export default defineConfig(async () => {
       {
         lang: 'en',
         label: 'English',
-        title: 'Midscene.js - (AI UI Automation, AI Testing)',
+        title: 'Midscene.js - AI UI Automation and E2E Testing',
         description:
-          'Midscene.js - (AI driven UI automation framework, Computer Use, Browser Use, Android Use)',
+          'Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.',
       },
       {
         lang: 'zh',
         label: '简体中文',
-        title: 'Midscene.js - (AI UI 自动化，AI 测试)',
+        title: 'Midscene.js - AI UI 自动化与 E2E 测试',
         description:
-          'Midscene.js - (AI 驱动的 UI 自动化框架，Computer Use, Browser Use, Android Use)',
+          '将 AI 视觉引入 E2E 测试，配套全新设计的测试框架，支持 Web、移动端和桌面应用。',
       },
     ],
     builderConfig: {
@@ -568,9 +693,55 @@ export default defineConfig(async () => {
       }),
       pluginClientRedirects({
         redirects: [
+          { from: '^/zh$', to: '/zh/' },
+          ...['', '/zh'].flatMap((locale) => [
+            {
+              from: `^${locale}/sdk(?:/index(?:\\.html)?|\\.html)?/?$`,
+              to: `${locale}/basics#choose-your-path`,
+            },
+            {
+              from: `^${locale}/(?:introduction(?:\\.html)?/?|index\\.html)$`,
+              to: `${locale}/`,
+            },
+            {
+              from: `^${locale}/reference\\.html/?$`,
+              to: `${locale}/reference/`,
+            },
+            ...[
+              ['reporting', 'consume-report-file'],
+              ['model-strategy', 'model-selection'],
+              ['model-common-config', 'model-api-setup'],
+              [
+                'model-debugging-observability',
+                'model-config#verify-model-connectivity',
+              ],
+              ['cli', 'yaml-script-runner'],
+              [
+                'blog-programming-practice-using-structured-api',
+                'basics#javascript-orchestration',
+              ],
+            ].map(([previous, current]) => ({
+              from: `^${locale}/${previous}(?:\\.html)?/?$`,
+              to: `${locale}/${current}`,
+            })),
+          ]),
+          ...['', '/zh'].flatMap((locale) =>
+            [
+              ['test-runner-overview', 'overview'],
+              ['extend-test-runner', 'extend'],
+              ['use-test-runner', 'use'],
+            ].map(([previous, current]) => ({
+              from: `^${locale}/${previous}(?:\\.html)?/?$`,
+              to: `${locale}/midscene-test/${current}`,
+            })),
+          ),
           {
             from: '^/android-(?:introduction|getting-started)(?:\\.html)?/?$',
             to: '/platforms/android',
+          },
+          {
+            from: '^/android-integration(?:\\.html)?/?$',
+            to: '/sdk/android',
           },
           {
             from: '^/ios-(?:introduction|getting-started)(?:\\.html)?/?$',
@@ -650,15 +821,15 @@ export default defineConfig(async () => {
           },
           {
             from: '^/integrate-with-android(?:\\.html)?/?$',
-            to: '/platforms/android',
+            to: '/sdk/android',
           },
           {
             from: '^/integrate-with-ios(?:\\.html)?/?$',
-            to: '/platforms/ios',
+            to: '/sdk/ios',
           },
           {
             from: '^/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/platforms/harmonyos',
+            to: '/sdk/harmonyos',
           },
           {
             from: '^/android-playground(?:\\.html)?/?$',
@@ -670,11 +841,27 @@ export default defineConfig(async () => {
           },
           {
             from: '^/choose-a-model(?:\\.html)?/?$',
-            to: '/model-common-config',
+            to: '/model-selection',
+          },
+          {
+            from: '^/api-reference(?:\\.html)?/?$',
+            to: '/reference/',
+          },
+          {
+            from: '^/report(?:\\.html)?/?$',
+            to: '/consume-report-file',
+          },
+          {
+            from: '^/benchmark(?:\\.html)?/?$',
+            to: '/',
+          },
+          {
+            from: '^/integrate-with-yaml(?:\\.html)?/?$',
+            to: '/automate-with-scripts-in-yaml',
           },
           {
             from: '^/model-provider(?:\\.html)?/?$',
-            to: '/model-common-config.html',
+            to: '/model-api-setup',
           },
           {
             from: '^/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
@@ -726,15 +913,15 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/integrate-with-android(?:\\.html)?/?$',
-            to: '/zh/platforms/android',
+            to: '/zh/sdk/android',
           },
           {
             from: '^/zh/integrate-with-ios(?:\\.html)?/?$',
-            to: '/zh/platforms/ios',
+            to: '/zh/sdk/ios',
           },
           {
             from: '^/zh/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/zh/platforms/harmonyos',
+            to: '/zh/sdk/harmonyos',
           },
           {
             from: '^/zh/blog-support-android-automation(?:\\.html)?/?$',
@@ -749,6 +936,10 @@ export default defineConfig(async () => {
             to: '/zh/quick-start#chrome-extension',
           },
           {
+            from: '^/zh/batch-yaml(?:\\.html)?/?$',
+            to: '/zh/yaml-script-runner',
+          },
+          {
             from: '^/zh/quick-experience-with-android(?:\\.html)?/?$',
             to: '/zh/platforms/android',
           },
@@ -758,11 +949,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/choose-a-model(?:\\.html)?/?$',
-            to: '/zh/model-common-config',
+            to: '/zh/model-selection',
           },
           {
             from: '^/zh/model-provider(?:\\.html)?/?$',
-            to: '/zh/model-common-config.html',
+            to: '/zh/model-api-setup',
           },
           {
             from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',

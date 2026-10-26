@@ -123,7 +123,7 @@ describe('planning', () => {
       // console.log(actions);
       expect(actions![0].param.locate).toBeTruthy();
       expect(actions![0].param.locate?.prompt).toBeTruthy();
-      expect(actions![0].param.locate?.locatedPixelBbox).toBeTruthy();
+      expect(actions![0].param.locate?.locatedPixelResult?.center).toBeTruthy();
     });
   });
 

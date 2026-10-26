@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "1.12.3",
+  "version": "1.17.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -50,10 +50,20 @@
       "require": "./dist/lib/puppeteer/agent-launcher.js",
       "import": "./dist/es/puppeteer/agent-launcher.mjs"
     },
+    "./puppeteer/test": {
+      "types": "./dist/types/puppeteer/test-runner/index.d.ts",
+      "require": "./dist/lib/puppeteer/test-runner/index.js",
+      "import": "./dist/es/puppeteer/test-runner/index.mjs"
+    },
     "./playwright": {
       "types": "./dist/types/playwright/index.d.ts",
       "require": "./dist/lib/playwright/index.js",
       "import": "./dist/es/playwright/index.mjs"
+    },
+    "./playwright/agent": {
+      "types": "./dist/types/playwright/agent.d.ts",
+      "require": "./dist/lib/playwright/agent.js",
+      "import": "./dist/es/playwright/agent.mjs"
     },
     "./playwright-report": {
       "types": "./dist/types/playwright/reporter/index.d.ts",
@@ -84,6 +94,11 @@
       "types": "./dist/types/static/index.d.ts",
       "require": "./dist/lib/static/index.js",
       "import": "./dist/es/static/index.mjs"
+    },
+    "./playwright/test": {
+      "types": "./dist/types/playwright/test-runner/index.d.ts",
+      "require": "./dist/lib/playwright/test-runner/index.js",
+      "import": "./dist/es/playwright/test-runner/index.mjs"
     }
   },
   "scripts": {
@@ -118,12 +133,13 @@
     "semver": "7.5.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "4.8.1",
-    "ws": "^8.18.1"
+    "ws": "^8.18.1",
+    "zod": "^3.25.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
     "@rslib/core": "^0.18.3",
-    "@rstest/core": "0.11.5",
+    "@rstest/core": "0.12.0",
     "@types/chrome": "0.0.279",
     "@types/cors": "^2.8.17",
     "@types/http-server": "^0.12.4",

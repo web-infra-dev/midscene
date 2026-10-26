@@ -1,0 +1,10 @@
+concurrent: 1
+continueOnError: false
+shareBrowserContext: true
+reusePage: true
+
+setup: 01-login.yaml
+
+files:
+  - 02-check-page.yaml
+  - 03-check-continuity.yaml

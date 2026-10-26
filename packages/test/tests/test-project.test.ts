@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loadTestProject } from '../src/cli/test-project';
+import { NodeRegistry } from '../src/engine/registry';
 
 const directories: string[] = [];
 
@@ -25,12 +26,251 @@ const createConfig = (
 };
 
 describe('test project config', () => {
+  it.each([
+    [1, false],
+    [3, false],
+    [1, true],
+    [3, true],
+  ] as const)(
+    'explains the removed limit %i with explicit projects=%s',
+    async (limit, hasExplicitProjects) => {
+      const projects = hasExplicitProjects
+        ? 'projects: [{ name: "web", maxConcurrentFiles: 1 }, { name: "android", maxConcurrentFiles: 1 }],'
+        : '';
+      const { path } = createConfig(`export default {
+        test: { maxConcurrency: ${limit} },
+        ${projects}
+      };`);
+      const error = await loadTestProject(path).catch((error) => error);
+      expect(error).toBeInstanceOf(TypeError);
+      expect(error.message).toContain(
+        'test.maxConcurrency is no longer supported',
+      );
+      expect(error.message).toContain(
+        'project concurrency, not file concurrency',
+      );
+      expect(error.message).toContain(`maxConcurrentProjects: ${limit}`);
+      const fileLimit = hasExplicitProjects ? limit : 1;
+      expect(error.message).toContain(`maxConcurrentFiles: ${fileLimit}`);
+      expect(error.message).toContain(
+        hasExplicitProjects
+          ? 'projects[].maxConcurrentFiles to 1'
+          : 'implicit default project keeps running files sequentially',
+      );
+      expect(error.message).toContain('fileSetup');
+      expect(error.message).toContain('https://midscenejs.com/');
+
+      const migrated = createConfig(`export default {
+        test: { maxConcurrentProjects: ${limit}, maxConcurrentFiles: ${fileLimit} },
+        ${projects}
+      };`);
+      const loaded = await loadTestProject(migrated.path);
+      expect(loaded.test.maxConcurrentProjects).toBe(limit);
+      expect(loaded.test.maxConcurrentFiles).toBe(fileLimit);
+      expect(
+        loaded.projects.map((project) => project.maxConcurrentFiles),
+      ).toEqual(hasExplicitProjects ? [1, 1] : [1]);
+      expect(loaded.projects.every((project) => !project.fileSetup)).toBe(true);
+    },
+  );
+
+  it.each([
+    [{}, 1, 1],
+    [{ maxConcurrentFiles: 4 }, 4, 1],
+    [{ maxConcurrentFiles: null }, null, 1],
+    [{ maxConcurrentProjects: 2 }, 1, 2],
+    [{ maxConcurrentProjects: null }, 1, null],
+    [{ maxConcurrentFiles: 3, maxConcurrentProjects: 2 }, 3, 2],
+    [{ maxConcurrentFiles: null, maxConcurrentProjects: null }, null, null],
+  ])(
+    'defaults the two limits independently: %j',
+    async (test, files, projects) => {
+      const { path } = createConfig(`export default {
+      test: ${JSON.stringify(test)},
+      fileSetup: { name: 'file', setup() {} },
+    };`);
+      expect((await loadTestProject(path)).test).toMatchObject({
+        maxConcurrentFiles: files,
+        maxConcurrentProjects: projects,
+      });
+    },
+  );
+
+  it('allows file setup, local limits and timeouts with default global limits', async () => {
+    const { path } = createConfig(`export default {
+      test: { setupTimeout: 100, teardownTimeout: 200 },
+      projects: [{
+        name: 'web', maxConcurrentFiles: 4,
+        fileSetup: { name: 'file', setup() {} },
+      }],
+    };`);
+    const loaded = await loadTestProject(path);
+    expect(loaded.test).toMatchObject({
+      maxConcurrentFiles: 1,
+      maxConcurrentProjects: 1,
+      setupTimeout: 100,
+      teardownTimeout: 200,
+    });
+    expect(loaded.projects[0].maxConcurrentFiles).toBe(1);
+  });
+
+  it('retains local device limits when the global file limit is removed', async () => {
+    const { path } = createConfig(`export default {
+      test: { maxConcurrentFiles: null },
+      projects: [
+        { name: 'web', fileSetup: { name: 'file', setup() {} } },
+        { name: 'android', maxConcurrentFiles: 1 },
+      ],
+    };`);
+    expect(
+      (await loadTestProject(path)).projects.map((p) => p.maxConcurrentFiles),
+    ).toEqual([Number.POSITIVE_INFINITY, 1]);
+  });
+
+  it('caps local file limits without executing setup', async () => {
+    const { path } = createConfig(`
+      const fileSetup = { name: 'file', setup() { throw new Error('must not run during validation'); } };
+      export default {
+        test: { maxConcurrentFiles: 3 },
+        projects: [
+          { name: 'inherited', fileSetup },
+          { name: 'capped', maxConcurrentFiles: 9, fileSetup },
+          { name: 'serial', maxConcurrentFiles: 1 },
+        ],
+      };
+    `);
+    const loaded = await loadTestProject(path);
+    expect(loaded.test).toMatchObject({
+      maxConcurrentFiles: 3,
+      setupTimeout: 120_000,
+      teardownTimeout: 30_000,
+    });
+    expect(
+      loaded.projects.map((project) => project.maxConcurrentFiles),
+    ).toEqual([3, 3, 1]);
+    expect(loaded.projects[0].fileSetup?.name).toBe('file');
+  });
+
+  it('supports file setup on the implicit Project and serial migration without it', async () => {
+    const implicit = createConfig(`export default {
+      test: { maxConcurrentFiles: 2, setupTimeout: 500, teardownTimeout: 200 },
+      fileSetup: { name: 'file', setup() { return {}; } },
+    };`);
+    expect((await loadTestProject(implicit.path)).projects[0]).toMatchObject({
+      name: 'default',
+      maxConcurrentFiles: 2,
+      fileSetup: { name: 'file' },
+    });
+    const serial = createConfig(
+      'export default { test: { maxConcurrentFiles: 1 } };',
+    );
+    expect(
+      (await loadTestProject(serial.path)).projects[0].fileSetup,
+    ).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'test: { maxConcurrentFiles: 1, maxConcurrency: 1 }',
+      'test.maxConcurrency is no longer supported',
+    ],
+    [
+      'test: { maxConcurrentFiles: 0 }',
+      'test.maxConcurrentFiles must be a positive integer',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1.5 }',
+      'test.maxConcurrentFiles must be a positive integer',
+    ],
+    [
+      "test: { maxConcurrentFiles: '3' }",
+      'test.maxConcurrentFiles must be a positive integer',
+    ],
+    ['test: { maxConcurrentFiles: 2 }', 'fileSetup is required'],
+    ['test: { maxConcurrentFiles: null }', 'fileSetup is required'],
+    [
+      'test: { maxConcurrentFiles: 2 }, projects: [{ name: "web", files: { include: ["one.yaml"] } }]',
+      'fileSetup is required',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1, setupTimeout: 0 }',
+      'test.setupTimeout must be a positive integer',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1, teardownTimeout: -1 }',
+      'test.teardownTimeout must be a positive integer',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1 }, projects: [{ name: "web", maxConcurrentFiles: 0 }]',
+      'projects[0].maxConcurrentFiles must be a positive integer',
+    ],
+    [
+      'test: { maxConcurrentFiles: 1 }, fileSetup: { name: "file", setup() {} }, projects: [{ name: "web" }]',
+      'fileSetup cannot be used together with projects',
+    ],
+  ])(
+    'rejects invalid file concurrency configuration: %s',
+    async (source, message) => {
+      const { path } = createConfig(`export default { ${source} };`);
+      await expect(loadTestProject(path)).rejects.toThrow(message);
+    },
+  );
+
+  it.each([
+    ['output: { report: { enabled: false } }', 'output.report'],
+    ['output: { report: { fileName: "custom" } }', 'output.report'],
+    ['output: { report: { overwrite: true } }', 'output.report'],
+    ['documentSetup: { name: "yaml", setup() {} }', 'root.documentSetup'],
+    ['legacy: { getOptions() {} }', 'root.legacy'],
+    [
+      'setup: { name: "setup", setup() {}, onDocumentResult() {} }',
+      'setup.onDocumentResult',
+    ],
+    [
+      'projects: [{ name: "native", retryScope: "document" }]',
+      'projects[0].retryScope',
+    ],
+    [
+      'projects: [{ name: "native", fileConcurrency: 2 }]',
+      'projects[0].fileConcurrency',
+    ],
+    [
+      'projects: [{ name: "native", setupFile: "setup.yaml" }]',
+      'projects[0].setupFile',
+    ],
+    [
+      'projects: [{ name: "native", documentSetup: { name: "yaml", setup() {} } }]',
+      'projects[0].documentSetup',
+    ],
+    [
+      'projects: [{ name: "native", files: { include: ["cases/*.yaml"], order: "listed" } }]',
+      'projects[0].files.order',
+    ],
+  ])(
+    'rejects compatibility controls in native configuration: %s',
+    async (field, key) => {
+      const { path } = createConfig(`export default { ${field} };`);
+      await expect(loadTestProject(path)).rejects.toThrow(
+        `${key} is not supported`,
+      );
+    },
+  );
+  it.each([
+    '{}',
+    '{ getOptions: 42 }',
+    '{ getOptions() {}, unsupported: true }',
+  ])('rejects an invalid legacy host adapter: %s', async (legacy) => {
+    const { path } = createConfig(
+      `export default { nodes: [], legacy: ${legacy} };`,
+    );
+    await expect(loadTestProject(path)).rejects.toThrow(/legacy/);
+  });
+
   it('loads TypeScript syntax and Project file selection', async () => {
     const { path } = createConfig(`
       interface Config {
         projects: Array<{
           name: string;
-          platform: 'web';
           files: { include: string[]; exclude: string[] };
         }>;
         nodes: unknown[];
@@ -38,7 +278,6 @@ describe('test project config', () => {
       const config: Config = {
         projects: [{
           name: 'web',
-          platform: 'web',
           files: {
             include: ['workflows/**/*.{yaml,yml}'],
             exclude: ['workflows/**/*.draft.yaml'],
@@ -91,7 +330,6 @@ describe('test project config', () => {
         nodes: [],
         setup: {
           name: 'android',
-          platform: 'android',
           setup() {
             globalThis.__testSetupMarker();
             return { ready: true };
@@ -106,8 +344,7 @@ describe('test project config', () => {
     expect(project.projects[0]).toMatchObject({
       projectId: 'project-0',
       name: 'default',
-      platform: 'android',
-      setup: { name: 'android', platform: 'android' },
+      setup: { name: 'android' },
     });
     expect(await project.projects[0].setup?.setup({} as never)).toEqual({
       ready: true,
@@ -119,7 +356,7 @@ describe('test project config', () => {
     const { path } = createConfig('export const config = { nodes: [] };');
 
     await expect(loadTestProject(path)).rejects.toThrow(
-      /must (?:have a default export|default export an object with a nodes array)/,
+      /must have a default export|root\.config is not supported/,
     );
   });
 
@@ -133,14 +370,146 @@ describe('test project config', () => {
       {
         projectId: 'project-0',
         name: 'default',
-        platform: 'web',
+        maxConcurrentFiles: 1,
         tags: { include: [], exclude: [] },
         retry: 0,
         variables: {},
+        nodes: expect.any(NodeRegistry),
       },
     ]);
-    expect(loaded.test.maxConcurrency).toBe(1);
+    expect(loaded.test.maxConcurrentFiles).toBe(1);
+    expect(loaded.test.maxConcurrentProjects).toBe(1);
   });
+
+  it('defaults omitted global and Project Nodes to empty registries', async () => {
+    const implicit = createConfig('export default {};');
+    const explicit = createConfig(`export default {
+      projects: [{ name: 'web' }],
+    };`);
+
+    for (const { path } of [implicit, explicit]) {
+      const loaded = await loadTestProject(path);
+      expect(loaded.nodes.names()).toEqual([]);
+      expect(loaded.projects[0].nodes.names()).toEqual([]);
+      expect(loaded.resolveNode('missing')).toBeUndefined();
+    }
+  });
+
+  it('inherits root-only Nodes without changing the global resolver', async () => {
+    const { path } = createConfig(`export default {
+      nodes: [{ name: 'shared', execute() {} }],
+      projects: [
+        { name: 'android' },
+        { name: 'ios' },
+      ],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    const shared = loaded.resolveNode('shared');
+    expect(shared).toBeDefined();
+    expect(loaded.nodes.get('shared')).toBe(shared);
+    for (const project of loaded.projects) {
+      expect(project.nodes.names()).toEqual(['shared']);
+      expect(project.nodes.get('shared')).toBe(shared);
+    }
+  });
+
+  it('supports Project-only Nodes without adding them to the global resolver', async () => {
+    const { path } = createConfig(`export default {
+      projects: [{
+        name: 'android',
+        nodes: [{ name: 'launch', execute() {} }],
+      }],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    expect(loaded.nodes.names()).toEqual([]);
+    expect(loaded.resolveNode('launch')).toBeUndefined();
+    expect(loaded.projects[0].nodes.names()).toEqual(['launch']);
+  });
+
+  it('overrides global Nodes by name and isolates each Project registry', async () => {
+    const { path } = createConfig(`export default {
+      nodes: [
+        { name: 'shared', execute() {} },
+        { name: 'launch', description: 'global', execute() {} },
+      ],
+      projects: [
+        {
+          name: 'android',
+          nodes: [
+            { name: 'launch', description: 'android', execute() {} },
+            { name: 'android.only', execute() {} },
+          ],
+        },
+        {
+          name: 'ios',
+          nodes: [{ name: 'launch', description: 'ios', execute() {} }],
+        },
+        { name: 'web' },
+      ],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    const [android, ios, web] = loaded.projects;
+    expect(loaded.resolveNode('launch')?.description).toBe('global');
+    expect(android.nodes.get('launch')?.description).toBe('android');
+    expect(ios.nodes.get('launch')?.description).toBe('ios');
+    expect(web.nodes.get('launch')).toBe(loaded.resolveNode('launch'));
+    for (const project of loaded.projects) {
+      expect(project.nodes.get('shared')).toBe(loaded.resolveNode('shared'));
+    }
+    expect(ios.nodes.has('android.only')).toBe(false);
+    expect(web.nodes.has('android.only')).toBe(false);
+    expect(loaded.resolveNode('android.only')).toBeUndefined();
+
+    android.nodes.register({ name: 'android.later', execute() {} });
+    expect(ios.nodes.has('android.later')).toBe(false);
+    expect(web.nodes.has('android.later')).toBe(false);
+    expect(loaded.nodes.has('android.later')).toBe(false);
+  });
+
+  it.each(['global', 'Project'])(
+    'rejects duplicate Node names within the %s layer',
+    async (layer) => {
+      const duplicateNodes = `[
+        { name: 'duplicate', execute() {} },
+        { name: 'duplicate', execute() {} },
+      ]`;
+      const { path } = createConfig(
+        layer === 'global'
+          ? `export default {
+              nodes: ${duplicateNodes},
+              projects: [{ name: 'web', nodes: [{ name: 'duplicate', execute() {} }] }],
+            };`
+          : `export default {
+              nodes: [{ name: 'duplicate', execute() {} }],
+              projects: [{ name: 'web', nodes: ${duplicateNodes} }],
+            };`,
+      );
+
+      await expect(loadTestProject(path)).rejects.toThrow(
+        'Node "duplicate" is already registered.',
+      );
+    },
+  );
+
+  it.each(['null', '{}', '"invalid"'])(
+    'rejects non-array global and Project Nodes: %s',
+    async (value) => {
+      const root = createConfig(`export default { nodes: ${value} };`);
+      const project = createConfig(`export default {
+        projects: [{ name: 'web', nodes: ${value} }],
+      };`);
+
+      await expect(loadTestProject(root.path)).rejects.toThrow(
+        'nodes must be an array',
+      );
+      await expect(loadTestProject(project.path)).rejects.toThrow(
+        'projects[0].nodes must be an array',
+      );
+    },
+  );
 
   it('resolves Project selectors, setup binding, test options, and output', async () => {
     const setupMarker = vi.fn();
@@ -148,7 +517,6 @@ describe('test project config', () => {
     const { path } = createConfig(`
       const androidSetup = {
         name: 'dora-android',
-        platform: ['android'],
         setup() {
           globalThis.__testSetupMarker();
           return { connected: true };
@@ -158,7 +526,6 @@ describe('test project config', () => {
         projects: [
           {
             name: 'android-smoke',
-            platform: 'android',
             setup: androidSetup,
             files: {
               include: ['cases/**/*.{yaml,yml}'],
@@ -173,12 +540,13 @@ describe('test project config', () => {
           },
           {
             name: 'ios-regression',
-            platform: 'ios',
             files: { include: ['ios/**/*.yaml'], exclude: [] },
           },
         ],
-        test: { maxConcurrency: 2, bail: 2, testTimeout: 30000 },
-        output: { reportDir: './out/report' },
+        test: { maxConcurrentProjects: 2, bail: 2, testTimeout: 30000 },
+        output: {
+          reportDir: './out/report',
+        },
         nodes: [],
       };
     `);
@@ -190,7 +558,6 @@ describe('test project config', () => {
     expect(loaded.projects[0]).toMatchObject({
       projectId: 'project-0',
       name: 'android-smoke',
-      platform: 'android',
       files: {
         include: ['cases/**/*.{yaml,yml}'],
         exclude: ['cases/**/*.draft.yaml'],
@@ -201,7 +568,7 @@ describe('test project config', () => {
         appName: 'Aweme',
         launch: { reinstall: false },
       },
-      setup: { name: 'dora-android', platform: ['android'] },
+      setup: { name: 'dora-android' },
     });
     expect(Object.isFrozen(loaded.projects[0].variables)).toBe(true);
     expect(Object.isFrozen(loaded.projects[0].variables.launch)).toBe(true);
@@ -215,11 +582,16 @@ describe('test project config', () => {
       retry: 0,
     });
     expect(loaded.test).toEqual({
-      maxConcurrency: 2,
+      maxConcurrentFiles: 1,
+      maxConcurrentProjects: 2,
+      setupTimeout: 120_000,
+      teardownTimeout: 30_000,
       bail: 2,
       testTimeout: 30000,
     });
-    expect(loaded.output).toEqual({ reportDir: './out/report' });
+    expect(loaded.output).toEqual({
+      reportDir: './out/report',
+    });
   });
 
   it.each([
@@ -227,57 +599,52 @@ describe('test project config', () => {
     [
       'duplicate project names',
       `projects: [
-        { name: 'same', platform: 'web' },
-        { name: 'same', platform: 'ios' },
+        { name: 'same' },
+        { name: 'same' },
       ]`,
       'project name "same" must be unique',
     ],
     [
-      'unknown platform',
+      'removed project platform',
       `projects: [{ name: 'bad', platform: 'desktop' }]`,
-      'must be one of web, android, ios, computer',
+      'projects[0].platform is not supported',
     ],
     [
-      'setup platform mismatch',
+      'removed project setup platform',
       `projects: [{
         name: 'ios',
-        platform: 'ios',
-        setup: { name: 'android', platform: 'android', setup() {} },
+        setup: { name: 'device', platform: 'ios', setup() {} },
       }]`,
-      'does not support project platform "ios"',
+      'projects[0].setup.platform is not supported',
     ],
     [
       'root setup with explicit projects',
-      `setup: { name: 'web', platform: 'web', setup() {} },
-       projects: [{ name: 'web', platform: 'web' }]`,
+      `setup: { name: 'web', setup() {} },
+       projects: [{ name: 'web' }]`,
       'setup cannot be used together with projects',
     ],
     [
-      'ambiguous root setup platform',
-      `setup: {
-        name: 'mobile',
-        platform: ['android', 'ios'],
-        setup() {},
-      }`,
-      'setup.platform must select exactly one platform',
+      'removed root setup platform',
+      `setup: { name: 'mobile', platform: ['android', 'ios'], setup() {} }`,
+      'setup.platform is not supported',
     ],
     [
       'empty project include',
       `projects: [{
-        name: 'web', platform: 'web', files: { include: [] },
+        name: 'web', files: { include: [] },
       }]`,
       'projects[0].files.include must be a non-empty array',
     ],
     [
       'invalid tags',
       `projects: [{
-        name: 'web', platform: 'web', tags: { include: 'smoke' },
+        name: 'web', tags: { include: 'smoke' },
       }]`,
       'projects[0].tags.include must be an array',
     ],
     [
       'unknown Project field',
-      `projects: [{ name: 'web', platform: 'web', unknown: true }]`,
+      `projects: [{ name: 'web', unknown: true }]`,
       'projects[0].unknown is not supported',
     ],
     [
@@ -286,48 +653,58 @@ describe('test project config', () => {
       'output.summary is not supported',
     ],
     [
+      'invalid report switch',
+      `output: { report: { enabled: 'yes' } }`,
+      'output.report is not supported',
+    ],
+    [
+      'invalid report file name',
+      `output: { report: { fileName: '' } }`,
+      'output.report is not supported',
+    ],
+    [
       'negative retry',
-      `projects: [{ name: 'web', platform: 'web', retry: -1 }]`,
+      `projects: [{ name: 'web', retry: -1 }]`,
       'projects[0].retry must be a non-negative integer',
     ],
     [
       'non-JSON variable',
       `projects: [{
-        name: 'web', platform: 'web', variables: { bad() {} },
+        name: 'web', variables: { bad() {} },
       }]`,
       'projects[0].variables.bad must be JSON-compatible',
     ],
     [
       'non-plain variable',
       `projects: [{
-        name: 'web', platform: 'web', variables: { bad: new Date() },
+        name: 'web', variables: { bad: new Date() },
       }]`,
       'projects[0].variables.bad must be JSON-compatible',
     ],
     [
       'zero max concurrency',
-      'test: { maxConcurrency: 0 }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: 0 }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'negative max concurrency',
-      'test: { maxConcurrency: -1 }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: -1 }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'fractional max concurrency',
-      'test: { maxConcurrency: 1.5 }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: 1.5 }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'string max concurrency',
-      `test: { maxConcurrency: '2' }`,
-      'test.maxConcurrency must be a positive integer',
+      `test: { maxConcurrentProjects: '2' }`,
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'infinite max concurrency',
-      'test: { maxConcurrency: Infinity }',
-      'test.maxConcurrency must be a positive integer',
+      'test: { maxConcurrentProjects: Infinity }',
+      'test.maxConcurrentProjects must be a positive integer',
     ],
     [
       'negative bail',
@@ -339,6 +716,44 @@ describe('test project config', () => {
     await expect(loadTestProject(path)).rejects.toThrow(message);
   });
 
+  it('loads a JavaScript ESM config', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(
+      path,
+      `
+        const configUrl = import.meta.url;
+        await Promise.resolve();
+        export default {
+          nodes: [],
+          projects: [{ name: 'esm', variables: { configUrl } }],
+        };
+      `,
+    );
+
+    await expect(loadTestProject(path)).resolves.toMatchObject({
+      projects: [{ name: 'esm' }],
+    });
+  });
+
+  it('does not transform TypeScript syntax in a JavaScript ESM config', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(
+      path,
+      'const config: { nodes: unknown[] } = { nodes: [] }; export default config;',
+    );
+
+    const error = await loadTestProject(path).catch((cause) => cause);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
+    expect(error.cause).toBeInstanceOf(Error);
+    expect(error.cause.message).toMatch(
+      /Expected a semicolon|Unexpected token/,
+    );
+  });
+
   it.each(['.js', '.cjs', '.mts', '.cts', '.tsx', '.json'])(
     'rejects the %s extension',
     async (extension) => {
@@ -347,7 +762,7 @@ describe('test project config', () => {
       writeFileSync(path, 'export default { nodes: [] };');
 
       await expect(loadTestProject(path)).rejects.toThrow(
-        `Unsupported Midscene config extension: ${extension}. Supported extension: .ts.`,
+        `Unsupported Midscene config extension: ${extension}. Supported extensions: .ts, .mjs.`,
       );
     },
   );
@@ -468,47 +883,47 @@ describe('test project config', () => {
     ],
     [
       'Project files',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: [] }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: [] }] };',
       'projects[0].files must be an object',
     ],
     [
       'missing include',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: {} }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: {} }] };',
       'projects[0].files.include must be an array',
     ],
     [
       'empty include',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: [] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: [] } }] };',
       'projects[0].files.include must be a non-empty array',
     ],
     [
       'absolute pattern',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["/outside/*.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["/outside/*.yaml"] } }] };',
       'must be relative to the project root',
     ],
     [
       'parent pattern',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["../outside/*.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["../outside/*.yaml"] } }] };',
       'must not contain a ".." path segment',
     ],
     [
       'negated include',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["!draft.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["!draft.yaml"] } }] };',
       'Use files.exclude instead',
     ],
     [
       'negated exclude',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["*.yaml"], exclude: ["!keep.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["*.yaml"], exclude: ["!keep.yaml"] } }] };',
       'projects[0].files.exclude[0] must not be a negated pattern',
     ],
     [
       'non-POSIX separator',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["flows\\\\*.yaml"] } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["flows\\\\*.yaml"] } }] };',
       'must use POSIX path separators',
     ],
     [
       'invalid exclude',
-      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["*.yaml"], exclude: true } }] };',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["*.yaml"], exclude: true } }] };',
       'projects[0].files.exclude must be an array',
     ],
   ])('rejects invalid %s config', async (_name, source, message) => {

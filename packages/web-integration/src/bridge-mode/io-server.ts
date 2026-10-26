@@ -17,6 +17,7 @@ import {
   BridgeErrorCodeNoClientConnected,
   BridgeEvent,
   BridgeSignalKill,
+  DefaultBridgeServerHost,
   DefaultBridgeServerPort,
 } from './common';
 
@@ -39,7 +40,10 @@ function isTrustedOrigin(origin: string | undefined): boolean {
   return false;
 }
 
-export const killRunningServer = async (port?: number, host = 'localhost') => {
+export const killRunningServer = async (
+  port?: number,
+  host = DefaultBridgeServerHost,
+) => {
   try {
     const client = ClientIO(`ws://${host}:${port || DefaultBridgeServerPort}`, {
       query: {
@@ -126,14 +130,8 @@ export class BridgeServer {
         reject(new Error(`Bridge Listening Error: ${err.message}`));
       });
 
-      // Start listening BEFORE creating Socket.IO Server
-      // When host is 127.0.0.1 (default), don't specify host to listen on all local interfaces (IPv4 + IPv6)
-      // This ensures localhost resolves correctly in both IPv4 and IPv6 environments
-      if (this.host === '127.0.0.1') {
-        httpServer.listen(this.port);
-      } else {
-        httpServer.listen(this.port, this.host);
-      }
+      // Always honor the configured interface, including the loopback default.
+      httpServer.listen(this.port, this.host);
 
       // Now create Socket.IO Server attached to the already-listening HTTP server
       this.io = new Server(httpServer, {

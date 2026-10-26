@@ -1,5 +1,5 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import type { CodeGenerationChunk } from '@/types';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
@@ -30,7 +30,7 @@ describe(
       let chunkCount = 0;
       let totalContent = '';
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'system',
@@ -89,14 +89,16 @@ describe(
       const finalChunk = chunks[chunks.length - 1];
       expect(finalChunk.isComplete).toBe(true);
       expect(finalChunk.accumulated).toBe(result.content);
-      expect(finalChunk.usage).toEqual(result.usage);
+      expect(finalChunk.usage).toBeDefined();
+      // The result adds Midscene metadata to the raw usage from the final chunk.
+      expect(result.usage).toMatchObject(finalChunk.usage!);
     });
 
     it('should handle streaming with image input', async () => {
       const chunks: CodeGenerationChunk[] = [];
       const imagePath = getFixture('baidu.png');
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',
@@ -106,11 +108,9 @@ describe(
                 text: 'Describe what you see in this image in detail.',
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: localImg2Base64(imagePath),
-                  detail: 'high',
-                },
+                type: 'image',
+                url: localImg2Base64(imagePath),
+                detail: 'high',
               },
             ],
           },
@@ -146,7 +146,7 @@ describe(
       const chunks: CodeGenerationChunk[] = [];
       let hasReasoningContent = false;
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'system',
@@ -182,7 +182,7 @@ describe(
     it('should accumulate content correctly across all chunks', async () => {
       const chunks: CodeGenerationChunk[] = [];
 
-      await callAI(
+      await callGenerativeAI(
         [
           {
             role: 'user',
@@ -218,7 +218,7 @@ describe(
     it('should handle empty chunks gracefully', async () => {
       const chunks: CodeGenerationChunk[] = [];
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',
@@ -252,7 +252,7 @@ describe(
       let firstChunkTime: number | undefined;
       let lastChunkTime: number | undefined;
 
-      const result = await callAI(
+      const result = await callGenerativeAI(
         [
           {
             role: 'user',
@@ -269,13 +269,6 @@ describe(
               firstChunkTime = currentTime;
             }
             lastChunkTime = currentTime;
-
-            if (chunk.isComplete && chunk.usage) {
-              expect(chunk.usage.time_cost).toBeGreaterThan(0);
-              expect(chunk.usage.time_cost).toBeLessThanOrEqual(
-                currentTime - startTime + 1000,
-              ); // Allow some buffer
-            }
           },
         },
       );
@@ -287,29 +280,10 @@ describe(
 
       if (result.usage) {
         expect(result.usage.time_cost).toBeGreaterThan(0);
+        expect(result.usage.time_cost).toBeLessThanOrEqual(
+          Date.now() - startTime + 1000,
+        ); // Allow some buffer
       }
-    });
-
-    it('should fallback to non-streaming when onChunk is missing', async () => {
-      const result = await callAI(
-        [
-          {
-            role: 'user',
-            content: 'What is programming?',
-          },
-        ],
-        defaultModelRuntime(),
-        {
-          stream: true,
-          // onChunk is intentionally omitted
-        },
-      );
-
-      // Should fallback to non-streaming mode
-      expect(result.isStreamed).toBe(false);
-      expect(result.content).toBeDefined();
-      expect(result.content.length).toBeGreaterThan(0);
-      expect(result.usage).toBeDefined();
     });
   },
 );

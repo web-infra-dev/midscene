@@ -58,11 +58,13 @@ describe('deepseek model adapter', () => {
       shape: 'point',
       order: 'yx',
       normalizedBy: 2000,
+      rounding: 'round',
     });
     const bboxPromptSpec = createLocateResultPromptSpec({
       shape: 'bbox',
       order: 'yx',
       normalizedBy: 2000,
+      rounding: 'round',
     });
     const elementInstructions =
       deepSeekElementLocateProtocol.buildResponseInstructions(pointPromptSpec);
@@ -94,10 +96,10 @@ describe('deepseek model adapter', () => {
       throw new Error('DeepSeek response should contain a location');
     }
     expect(
-      locateAdapter.element.resultCodec.toPixelBbox(rawResult.target, {
+      locateAdapter.element.resultCodec.toPixelResult(rawResult.target, {
         preparedSize: { width: 1000, height: 1000 },
       }),
-    ).toEqual([917, 769, 937, 789]);
+    ).toEqual({ center: [928, 780] });
   });
 
   it('uses ref-box tokens and bbox coordinates for deepLocate search area', () => {
@@ -156,13 +158,14 @@ describe('deepseek model adapter', () => {
     }
     const context = { preparedSize: { width: 1000, height: 1000 } };
     expect(
-      searchAreaResultCodec.toPixelBbox(rawResult.target, context),
-    ).toEqual([844, 390, 874, 430]);
+      searchAreaResultCodec.toPixelResult(rawResult.target, context).rect,
+    ).toEqual({ left: 845, top: 390, width: 31, height: 41 });
     expect(
-      rawResult.references?.map((reference) =>
-        searchAreaResultCodec.toPixelBbox(reference, context),
+      rawResult.references?.map(
+        (reference) =>
+          searchAreaResultCodec.toPixelResult(reference, context).rect,
       ),
-    ).toEqual([[150, 390, 230, 430]]);
+    ).toEqual([{ left: 150, top: 390, width: 81, height: 41 }]);
   });
 
   it('accepts ASCII ref-box delimiters when no reference is needed', () => {
@@ -184,10 +187,11 @@ describe('deepseek model adapter', () => {
       throw new Error('DeepSeek response should contain a raw location');
     }
 
-    expect(() =>
-      locateAdapter.resultCodec.toPixelBbox(rawResult.target, {
-        preparedSize: { width: 1000, height: 1000 },
-      }),
+    expect(
+      () =>
+        locateAdapter.resultCodec.toPixelResult(rawResult.target, {
+          preparedSize: { width: 1000, height: 1000 },
+        }).rect,
     ).toThrow('must contain exactly 2 positive integers');
   });
 
@@ -221,10 +225,11 @@ describe('deepseek model adapter', () => {
       throw new Error('DeepSeek response should contain a raw location');
     }
 
-    expect(() =>
-      locateAdapter.resultCodec.toPixelBbox(rawResult.target, {
-        preparedSize: { width: 1000, height: 1000 },
-      }),
+    expect(
+      () =>
+        locateAdapter.resultCodec.toPixelResult(rawResult.target, {
+          preparedSize: { width: 1000, height: 1000 },
+        }).rect,
     ).toThrow('must contain exactly 2 positive integers');
   });
 
@@ -243,10 +248,10 @@ describe('deepseek model adapter', () => {
     }
 
     expect(
-      locateAdapter.resultCodec.toPixelBbox(rawResult.target, {
+      locateAdapter.resultCodec.toPixelResult(rawResult.target, {
         preparedSize: { width: 1000, height: 1000 },
       }),
-    ).toEqual([917, 769, 937, 789]);
+    ).toEqual({ center: [928, 780] });
   });
 
   it('maps DeepSeek reasoning controls and provider defaults', () => {

@@ -10,7 +10,7 @@ import {
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '@/common';
-import type { AbstractInterface } from '@/device';
+import { type AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/service';
 import type {
   ExecutionReferenceImage,
@@ -42,6 +42,10 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import {
+  type ActionReadiness,
+  isActionReadinessError,
+} from './action-readiness';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
 import {
@@ -49,6 +53,7 @@ import {
   createAiActActionReporter,
   errorMessageForAiAct,
 } from './progress';
+import { renderAIContext } from './prompt-context';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -65,6 +70,7 @@ interface ExecutionResult<OutputType = any> {
 }
 
 interface TaskExecutorHooks {
+  onExecutionCreated?: (runner: TaskRunner) => void;
   onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
@@ -83,19 +89,28 @@ const debug = getDebug('device-task-executor');
 const warnLog = getDebug('device-task-executor', { console: true });
 const maxErrorCountAllowedInOnePlanningLoop = 5;
 
-// Cap each task's planning feedback so a large action output (e.g. a long adb
-// shell stdout) cannot blow up the next planning request's context. This is the
-// single place that truncates feedback before it is sent to the model; action
-// implementations should hand over the untruncated value.
+// Cap planning feedback by default so a large action output (e.g. a long adb
+// shell stdout) cannot blow up the next planning request's context. Actions
+// that require lossless structured feedback can explicitly choose their limit.
 const maxPlanningFeedbackLength = 500;
 
-function truncatePlanningFeedback(feedback: string): string {
-  if (feedback.length <= maxPlanningFeedbackLength) {
+function truncatePlanningFeedback(
+  feedback: string,
+  requestedLimit?: number | 'unlimited',
+): string {
+  if (requestedLimit === 'unlimited') {
+    return feedback;
+  }
+  const limit =
+    requestedLimit && Number.isFinite(requestedLimit) && requestedLimit > 0
+      ? Math.floor(requestedLimit)
+      : maxPlanningFeedbackLength;
+  if (feedback.length <= limit) {
     return feedback;
   }
 
-  return `${feedback.slice(0, maxPlanningFeedbackLength)}
-...[truncated, ${feedback.length - maxPlanningFeedbackLength} more characters]`;
+  return `${feedback.slice(0, limit)}
+...[truncated, ${feedback.length - limit} more characters]`;
 }
 
 export { TaskExecutionError };
@@ -108,6 +123,7 @@ export class TaskExecutor {
 
   taskCache?: TaskCache;
 
+  private readonly getDefaultModelRuntime: () => ModelRuntime;
   private readonly providedActionSpace: DeviceAction[];
 
   private readonly taskBuilder: TaskBuilder;
@@ -115,6 +131,7 @@ export class TaskExecutor {
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
   private readonly hooks?: TaskExecutorHooks;
+  private readonly getAbortSignal?: () => AbortSignal | undefined;
 
   replanningCycleLimit?: number;
 
@@ -132,14 +149,19 @@ export class TaskExecutor {
     service: Service,
     opts: {
       taskCache?: TaskCache;
+      getDefaultModelRuntime: () => ModelRuntime;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       waitAfterAction?: number;
+      actionReadiness?: ActionReadiness;
       useDeviceTime?: boolean;
       hooks?: TaskExecutorHooks;
+      getAbortSignal?: () => AbortSignal | undefined;
+      operationResource?: object;
       actionSpace: DeviceAction[];
     },
   ) {
+    this.getDefaultModelRuntime = opts.getDefaultModelRuntime;
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = opts.taskCache;
@@ -148,13 +170,17 @@ export class TaskExecutor {
     this.waitAfterAction = opts.waitAfterAction;
     this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
+    this.getAbortSignal = opts.getAbortSignal;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
+      getDefaultModelRuntime: opts.getDefaultModelRuntime,
       interfaceInstance,
       service,
       taskCache: opts.taskCache,
       actionSpace: this.getActionSpace(),
       waitAfterAction: opts.waitAfterAction,
+      actionReadiness: opts.actionReadiness,
+      operationResource: opts.operationResource,
     });
   }
 
@@ -162,6 +188,7 @@ export class TaskExecutor {
     title: string,
     options?: {
       tasks?: ExecutionTaskApply[];
+      abortSignal?: AbortSignal;
       uiContext?: UIContext;
       referenceImages?: readonly ExecutionReferenceImage[];
       onSnapshotChange?: (
@@ -171,13 +198,14 @@ export class TaskExecutor {
       onTaskEvent?: (event: TaskRunnerEvent) => Promise<void> | void;
     },
   ) {
-    return new ExecutionSession(
+    const session = new ExecutionSession(
       title,
-      () =>
+      (signal) =>
         options?.uiContext
           ? Promise.resolve(options.uiContext)
-          : Promise.resolve(this.service.contextRetrieverFn()),
+          : Promise.resolve(this.service.contextRetrieverFn(signal)),
       {
+        abortSignal: options?.abortSignal ?? this.getAbortSignal?.(),
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
         referenceImages: options?.referenceImages,
@@ -188,6 +216,8 @@ export class TaskExecutor {
         ...(options?.onTaskEvent ? { onTaskEvent: options.onTaskEvent } : {}),
       },
     );
+    this.hooks?.onExecutionCreated?.(session.getRunner());
+    return session;
   }
 
   private getActionSpace(): DeviceAction[] {
@@ -242,8 +272,16 @@ export class TaskExecutor {
    * Returns undefined when no task reported feedback.
    */
   private collectPlanningFeedback(tasks: ExecutionTask[]): string | undefined {
-    const feedbackMessages = tasks.flatMap(({ planningFeedback }) =>
-      planningFeedback ? [truncatePlanningFeedback(planningFeedback)] : [],
+    const feedbackMessages = tasks.flatMap(
+      ({ planningFeedback, planningFeedbackMaxLength }) =>
+        planningFeedback
+          ? [
+              truncatePlanningFeedback(
+                planningFeedback,
+                planningFeedbackMaxLength,
+              ),
+            ]
+          : [],
     );
     return feedbackMessages.length > 0
       ? feedbackMessages.join('\n\n')
@@ -280,14 +318,15 @@ export class TaskExecutor {
   public async convertPlanToExecutable(
     plans: PlanningAction[],
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     options?: {
       cacheable?: boolean;
+      multimodalPrompt?: TMultimodalPrompt;
       deepLocate?: boolean;
       abortSignal?: AbortSignal;
     },
   ) {
-    return this.taskBuilder.build(plans, planningModel, defaultModel, options);
+    return this.taskBuilder.build(plans, planningModel, locateModel, options);
   }
 
   async loadYamlFlowAsPlanning(
@@ -344,21 +383,49 @@ export class TaskExecutor {
     };
   }
 
+  async sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
+    abortSignal ??= this.getAbortSignal?.();
+    const session = this.createExecutionSession('Sleep', { abortSignal });
+    const action = defineActionSleep(abortSignal);
+    await session.appendAndRun({
+      type: 'Action Space',
+      subType: action.name,
+      param: { timeMs: ms },
+      executor: async ({ task }) => {
+        assert(
+          Number.isFinite(ms) && ms > 0,
+          `ms for sleep must be a finite number greater than 0, but got ${ms}`,
+        );
+        setTimingFieldOnce(task.timing, 'callActionStart');
+        try {
+          await action.call({ timeMs: ms });
+        } finally {
+          setTimingFieldOnce(task.timing, 'callActionEnd');
+        }
+      },
+    });
+  }
+
   async runPlans(
     title: string,
     plans: PlanningAction[],
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
-    options?: { uiContext?: UIContext },
+    locateModel: ModelRuntime,
+    options?: { uiContext?: UIContext; abortSignal?: AbortSignal },
   ): Promise<ExecutionResult> {
-    const session = this.createExecutionSession(title, options);
+    const abortSignal = options?.abortSignal ?? this.getAbortSignal?.();
+    const session = this.createExecutionSession(title, {
+      ...options,
+      abortSignal,
+    });
     const runner = session.getRunner();
     const executionPlanningModel = { ...planningModel, executionId: runner.id };
-    const executionDefaultModel = { ...defaultModel, executionId: runner.id };
+    const executionLocateModel = { ...locateModel, executionId: runner.id };
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       executionPlanningModel,
-      executionDefaultModel,
+      executionLocateModel,
+      { abortSignal },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -371,7 +438,7 @@ export class TaskExecutor {
   async action(
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -389,11 +456,12 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    abortSignal?.throwIfAborted();
     return withFileChooser(this.interface, fileChooserAccept, async () => {
       return this.runAction(
         userPrompt,
         planningModel,
-        defaultModel,
+        locateModel,
         aiActContext,
         cacheable,
         replanningCycleLimitOverride,
@@ -442,7 +510,7 @@ export class TaskExecutor {
   private async runAction(
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    locateModel: ModelRuntime,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -459,6 +527,7 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    abortSignal ??= this.getAbortSignal?.();
     const conversationHistory = new ConversationHistory();
     const promptDisplay =
       reportOptions?.prompt || userPromptToString(userPrompt);
@@ -474,6 +543,7 @@ export class TaskExecutor {
     const session = this.createExecutionSession(
       taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
       {
+        abortSignal,
         referenceImages: userPromptToMultimodalPrompt(userPrompt)?.images,
         onTaskEvent: async (event) => {
           await activeActionReporter?.(event);
@@ -482,11 +552,24 @@ export class TaskExecutor {
     );
     const runner = session.getRunner();
     planningModel = { ...planningModel, executionId: runner.id };
-    defaultModel = { ...defaultModel, executionId: runner.id };
+    locateModel = { ...locateModel, executionId: runner.id };
 
-    const noIndividualLocateModel = planningModel.config.slot === 'default';
+    const noIndividualLocateModel =
+      planningModel.config.slot === 'default' &&
+      locateModel.config.slot === 'default';
+    const planningConfig = planningModel.config;
+    const locateConfig = locateModel.config;
+    const sameSystemOneModel =
+      planningModel.adapter.modelType === 'system-one' &&
+      locateModel.adapter.modelType === 'system-one' &&
+      planningConfig.modelName === locateConfig.modelName &&
+      planningConfig.openaiBaseURL === locateConfig.openaiBaseURL;
+    const bothJev =
+      planningConfig.modelFamily === 'jev' &&
+      locateConfig.modelFamily === 'jev';
     const includeLocateInPlanning =
-      effort !== 'deepThink' && noIndividualLocateModel;
+      effort !== 'deepThink' &&
+      (noIndividualLocateModel || (sameSystemOneModel && bothJev));
     const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
 
     debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
@@ -545,6 +628,7 @@ export class TaskExecutor {
 
     // Main planning loop - unified plan/replan logic
     while (true) {
+      const delegation = latestPlanResult?.delegation;
       const planIndex = replanCount + 1;
       latestPlanIndex = planIndex;
 
@@ -601,9 +685,38 @@ export class TaskExecutor {
               );
             }
 
+            const modelRuntime: ModelRuntime = (() => {
+              if (!delegation) {
+                return planningModel;
+              }
+              // For delegated planning, build a default-model runtime for this cycle.
+              const base = this.getDefaultModelRuntime();
+              assert(
+                base.config.modelFamily !== 'jev',
+                'The default planner cannot use the Jev model family',
+              );
+              return {
+                ...base,
+                config: { ...base.config, intent: 'planning' },
+                executionId: planningModel.executionId,
+                onUsage: base.onUsage
+                  ? (usage) => base.onUsage?.({ ...usage, intent: 'planning' })
+                  : undefined,
+                modelFallback: {
+                  requestedModel: planningModel.config.modelName,
+                  requestedSlot: planningModel.config.slot,
+                  taskType: 'planning',
+                  reason: delegation.reason,
+                },
+              };
+            })();
+            const suggestedAction = delegation?.suggestedAction;
+            const planningAdvice = suggestedAction
+              ? `The preceding planner suggested that the next step may require action ${JSON.stringify(suggestedAction)}. This suggestion has NOT been executed and is advisory only. Independently determine the next step from the original goal, current screenshot, history and execution feedback. You may choose a different action or finish the task.`
+              : undefined;
             const planImpl =
-              planningModel.adapter.planning.kind === 'custom'
-                ? planningModel.adapter.planning.planFn
+              modelRuntime.adapter.planning.kind === 'custom'
+                ? modelRuntime.adapter.planning.planFn
                 : standardPlan;
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
@@ -613,11 +726,13 @@ export class TaskExecutor {
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
                 context: planningUiContext,
-                actionContext: aiActContext,
+                actionContext: renderAIContext(aiActContext),
                 actionSpace,
-                modelRuntime: planningModel,
+                modelRuntime,
+                planningAdvice,
+                getDefaultModelRuntime: this.getDefaultModelRuntime,
                 conversationHistory,
-                includeLocateInPlanning,
+                includeLocateInPlanning: !delegation && includeLocateInPlanning,
                 imagesIncludeCount,
                 effort,
                 abortSignal,
@@ -632,7 +747,7 @@ export class TaskExecutor {
                 executorContext.task.log = {
                   ...(executorContext.task.log || {}),
                   rawResponse: planError.rawResponse,
-                  rawChoiceMessage: planError.rawChoiceMessage,
+                  rawAssistantOutput: planError.rawAssistantOutput,
                 };
               }
               await this.emitAiActProgress('plan_failed', {
@@ -654,7 +769,7 @@ export class TaskExecutor {
               error,
               usage,
               rawResponse,
-              rawChoiceMessage,
+              rawAssistantOutput,
               reasoning_content,
               finalizeSuccess,
               finalizeMessage,
@@ -666,12 +781,13 @@ export class TaskExecutor {
             executorContext.task.log = {
               ...(executorContext.task.log || {}),
               rawResponse,
-              rawChoiceMessage,
+              rawAssistantOutput,
             };
             executorContext.task.usage = withUsageIntent(usage, 'planning');
             executorContext.task.reasoning_content = reasoning_content;
             executorContext.task.output = {
               actions: actions || [],
+              delegation: planResult.delegation,
               log,
               thought,
               memory,
@@ -732,113 +848,127 @@ export class TaskExecutor {
       const planResult = result?.output as PlanningAIResponse | undefined;
       latestPlanResult = planResult;
 
-      // Execute planned actions
-      const plans = planResult?.actions || [];
-      yamlFlow.push(...(planResult?.yamlFlow || []));
+      if (!planResult?.delegation) {
+        // Execute planned actions
+        const plans = planResult?.actions || [];
+        yamlFlow.push(...(planResult?.yamlFlow || []));
 
-      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
-      try {
-        executables = await this.convertPlanToExecutable(
-          plans,
-          planningModel,
-          defaultModel,
-          {
-            cacheable,
-            deepLocate,
-            abortSignal,
-          },
-        );
-      } catch (error) {
-        return appendFailedPlan(
-          `Error converting plans to executable tasks: ${errorMessageForAiAct(error)}, plans: ${JSON.stringify(
+        let executables: Awaited<
+          ReturnType<typeof this.convertPlanToExecutable>
+        >;
+        try {
+          executables = await this.convertPlanToExecutable(
             plans,
-          )}`,
+            planningModel,
+            locateModel,
+            {
+              cacheable,
+              multimodalPrompt: userPromptToMultimodalPrompt(userPrompt),
+              deepLocate,
+              abortSignal,
+            },
+          );
+        } catch (error) {
+          return appendFailedPlan(
+            `Error converting plans to executable tasks: ${errorMessageForAiAct(error)}, plans: ${JSON.stringify(
+              plans,
+            )}`,
+            planIndex,
+          );
+        }
+        if (conversationHistory.pendingFeedbackMessage) {
+          console.warn(
+            'unconsumed pending feedback message detected, this may lead to unexpected planning result:',
+            conversationHistory.pendingFeedbackMessage,
+          );
+        }
+
+        // Capture the time context for the next planning call before running.
+        const initialTimeString = await this.getTimeString();
+
+        const taskCountBeforeRun = runner.tasks.length;
+        // Scope a reporter to this replanning round so native task events from the
+        // runner are mapped to aiAct progress with the right plan context; cleared
+        // in `finally` so events fired between batches are ignored.
+        activeActionReporter = createAiActActionReporter(
           planIndex,
+          replanningCycleLimit,
+          (phase, data) => this.emitAiActProgress(phase, data),
         );
-      }
-      if (conversationHistory.pendingFeedbackMessage) {
-        console.warn(
-          'unconsumed pending feedback message detected, this may lead to unexpected planning result:',
-          conversationHistory.pendingFeedbackMessage,
-        );
-      }
+        try {
+          await session.appendAndRun(executables.tasks);
+          this.setPendingFeedbackMessage(
+            conversationHistory,
+            initialTimeString,
+            this.collectPlanningFeedback(
+              runner.tasks.slice(taskCountBeforeRun),
+            ),
+          );
+        } catch (error: any) {
+          // A completed action must not be replayed because readiness failed.
+          if (isActionReadinessError(error)) throw error;
+          // errorFlag = true;
+          errorCountInOnePlanningLoop++;
+          const timeString = await this.getTimeString();
+          this.setPendingFeedbackMessage(
+            conversationHistory,
+            timeString,
+            `Error executing running tasks: ${error?.message || String(error)}`,
+          );
+          debug(
+            'error when executing running tasks, but continue to run if it is not too many errors:',
+            error instanceof Error ? error.message : String(error),
+            'current error count in one planning loop:',
+            errorCountInOnePlanningLoop,
+          );
+        } finally {
+          activeActionReporter = undefined;
+        }
 
-      // Capture the time context for the next planning call before running.
-      const initialTimeString = await this.getTimeString();
+        if (
+          errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop
+        ) {
+          return appendFailedPlan(
+            'Too many errors in one planning loop',
+            planIndex,
+          );
+        }
 
-      const taskCountBeforeRun = runner.tasks.length;
-      // Scope a reporter to this replanning round so native task events from the
-      // runner are mapped to aiAct progress with the right plan context; cleared
-      // in `finally` so events fired between batches are ignored.
-      activeActionReporter = createAiActActionReporter(
-        planIndex,
-        replanningCycleLimit,
-        (phase, data) => this.emitAiActProgress(phase, data),
-      );
-      try {
-        await session.appendAndRun(executables.tasks);
-        this.setPendingFeedbackMessage(
-          conversationHistory,
-          initialTimeString,
-          this.collectPlanningFeedback(runner.tasks.slice(taskCountBeforeRun)),
-        );
-      } catch (error: any) {
-        // errorFlag = true;
-        errorCountInOnePlanningLoop++;
-        const timeString = await this.getTimeString();
-        this.setPendingFeedbackMessage(
-          conversationHistory,
-          timeString,
-          `Error executing running tasks: ${error?.message || String(error)}`,
-        );
-        debug(
-          'error when executing running tasks, but continue to run if it is not too many errors:',
-          error instanceof Error ? error.message : String(error),
-          'current error count in one planning loop:',
-          errorCountInOnePlanningLoop,
-        );
-      } finally {
-        activeActionReporter = undefined;
+        // Check abort signal after executing actions
+        if (abortSignal?.aborted) {
+          return appendFailedPlan(
+            `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
+            planIndex,
+          );
+        }
+
+        // // Check if task is complete
+        if (!planResult?.shouldContinuePlanning) {
+          break;
+        }
+
+        // We are about to replan, which means the batch we just ran did not finish
+        // the task. Any locate task in that batch that was served from cache
+        // produced an element that failed to complete the step (the action threw,
+        // or it clicked the wrong element and the goal was not reached). Mark those
+        // cache entries stale so the re-locate of the same prompt replaces them in
+        // place instead of appending a poisoning duplicate that would be matched
+        // first on the next run (#2529).
+        this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
       }
-
-      if (errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop) {
-        return appendFailedPlan(
-          'Too many errors in one planning loop',
-          planIndex,
-        );
-      }
-
-      // Check abort signal after executing actions
-      if (abortSignal?.aborted) {
-        return appendFailedPlan(
-          `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
-          planIndex,
-        );
-      }
-
-      // // Check if task is complete
-      if (!planResult?.shouldContinuePlanning) {
-        break;
-      }
-
-      // We are about to replan, which means the batch we just ran did not finish
-      // the task. Any locate task in that batch that was served from cache
-      // produced an element that failed to complete the step (the action threw,
-      // or it clicked the wrong element and the goal was not reached). Mark those
-      // cache entries stale so the re-locate of the same prompt replaces them in
-      // place instead of appending a poisoning duplicate that would be matched
-      // first on the next run (#2529).
-      this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
 
       // Increment replan count for next iteration
       ++replanCount;
 
       if (replanCount > replanningCycleLimit) {
-        const errorMsg = `Replanned ${replanningCycleLimit} times, exceeding the limit. Please configure a larger value for replanningCycleLimit (or use MIDSCENE_REPLANNING_CYCLE_LIMIT) to handle more complex tasks.`;
+        const errorMsg = `Task stopped: the planning cycle limit (${replanningCycleLimit}) has been reached. This limit prevents the model from getting stuck in an endless planning loop. If your task requires more planning cycles, increase replanningCycleLimit or set the environment variable MIDSCENE_REPLANNING_CYCLE_LIMIT to a higher value. See https://midscenejs.com/zh/reference/#common for details.`;
         return appendFailedPlan(errorMsg, planIndex);
       }
 
-      if (!conversationHistory.pendingFeedbackMessage) {
+      if (
+        !planResult?.delegation &&
+        !conversationHistory.pendingFeedbackMessage
+      ) {
         const timeString = await this.getTimeString();
         conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, I have finished the action previously planned.`;
       }
@@ -899,7 +1029,7 @@ export class TaskExecutor {
           task.log = {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
-            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+            rawAssistantOutput: dump.taskInfo?.rawAssistantOutput,
             searchAreaRawChoiceMessage:
               dump.taskInfo?.searchAreaRawChoiceMessage,
           };
@@ -946,11 +1076,17 @@ export class TaskExecutor {
           extractResult = await this.service.extract<any>(
             demandInput,
             modelRuntime,
+            type === 'Boolean' || type === 'Assert' || type === 'WaitFor'
+              ? 'boolean'
+              : 'extract',
             opt,
             extraPageDescription,
             multimodalPrompt,
             uiContext,
-            executionOptions,
+            {
+              ...executionOptions,
+              abortSignal: executionOptions?.abortSignal ?? taskContext.signal,
+            },
           );
         } catch (error) {
           if (error instanceof ServiceError) {
@@ -1018,6 +1154,9 @@ export class TaskExecutor {
       uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
+    const abortSignal =
+      executionOptions?.abortSignal ?? this.getAbortSignal?.();
+    abortSignal?.throwIfAborted();
     const session = this.createExecutionSession(
       taskTitleStr(
         type,
@@ -1028,6 +1167,7 @@ export class TaskExecutor {
           ? { uiContext: executionOptions.uiContext }
           : {}),
         referenceImages: multimodalPrompt?.images,
+        abortSignal,
       },
     );
 
@@ -1039,7 +1179,7 @@ export class TaskExecutor {
       executionModelRuntime,
       opt,
       multimodalPrompt,
-      executionOptions,
+      { ...executionOptions, abortSignal },
     );
 
     const result = await session.appendAndRun(queryTask);
@@ -1064,12 +1204,13 @@ export class TaskExecutor {
     opt: PlanningActionParamWaitFor,
     modelRuntime: ModelRuntime,
   ): Promise<ExecutionResult<void>> {
+    const abortSignal = this.getAbortSignal?.();
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
     const description = `waitFor: ${textPrompt}`;
     const session = this.createExecutionSession(
       taskTitleStr('WaitFor', description),
-      { referenceImages: multimodalPrompt?.images },
+      { referenceImages: multimodalPrompt?.images, abortSignal },
     );
     const runner = session.getRunner();
     const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
@@ -1102,12 +1243,14 @@ export class TaskExecutor {
     while (lastCheckStart - overallStartTime <= timeoutMs) {
       const currentCheckStart = Date.now();
       lastCheckStart = currentCheckStart;
+      abortSignal?.throwIfAborted();
       const queryTask = await this.createTypeQueryTask(
         'WaitFor',
         textPrompt,
         executionModelRuntime,
         serviceExtractOpt,
         multimodalPrompt,
+        { abortSignal },
       );
 
       const result = (await session.appendAndRun(queryTask)) as
@@ -1137,6 +1280,7 @@ export class TaskExecutor {
           [{ type: 'Sleep', param: { timeMs: timeRemaining }, thought }],
           modelRuntime,
           modelRuntime,
+          { abortSignal },
         );
         if (sleepTasks[0]) {
           await session.appendAndRun(sleepTasks[0]);

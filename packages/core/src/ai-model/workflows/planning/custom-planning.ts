@@ -1,5 +1,4 @@
 import type { PlanningAIResponse, PlanningAction } from '@/types';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { ScreenshotItem } from '../../../screenshot-item';
 import type {
   CustomPlanningInput,
@@ -7,37 +6,32 @@ import type {
   ResolvedCustomPlanningDefinition,
 } from '../../model-adapter/custom-planning-types';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
-import type { ParsedPlanningLocateParameter } from '../../model-adapter/planning-protocol';
 import {
   AIResponseParseError,
   callAIWithStringResponse,
 } from '../../service-caller/index';
+import type { ModelCallMessages } from '../../service-caller/types';
 import {
   type PreparedUserPrompt,
-  preparedReferenceImagesToChatMessages,
+  preparedReferenceImagesToMessages,
 } from '../../shared/multimodal-prompt';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
 import type { PlanOptions } from './types';
 
-function appendHighPriorityKnowledge(
+function appendActionContext(
   systemPrompt: string,
   actionContext?: string,
 ): string {
-  return (
-    systemPrompt +
-    (actionContext
-      ? `<high_priority_knowledge>${actionContext}</high_priority_knowledge>\n`
-      : '')
-  );
+  return systemPrompt + (actionContext ? `${actionContext}\n` : '');
 }
 
 export function buildCustomPlanningMessages<TParsed>(
   input: CustomPlanningInput,
   config: CustomPlanningMessageConfig<TParsed>,
-): ChatCompletionMessageParam[] {
+): ModelCallMessages {
   const { options } = input;
   const { conversationHistory, context, actionContext } = options;
-  const systemPrompt = appendHighPriorityKnowledge(
+  const systemPrompt = appendActionContext(
     config.buildSystemPrompt(),
     actionContext,
   );
@@ -45,12 +39,12 @@ export function buildCustomPlanningMessages<TParsed>(
   const userInstruction = config.buildUserInstruction
     ? config.buildUserInstruction(userInstructionText)
     : userInstructionText;
-  const referenceImageMessages = preparedReferenceImagesToChatMessages(
+  const referenceImageMessages = preparedReferenceImagesToMessages(
     input.userInstruction.referenceImages,
   );
 
   if (conversationHistory.pendingFeedbackMessage) {
-    conversationHistory.append({
+    conversationHistory.appendMessage({
       role: 'user',
       content: [
         {
@@ -62,12 +56,12 @@ export function buildCustomPlanningMessages<TParsed>(
     conversationHistory.resetPendingFeedbackMessageIfExists();
   }
 
-  conversationHistory.append({
+  conversationHistory.appendMessage({
     role: 'user',
     content: [
       {
-        type: 'image_url',
-        image_url: { url: context.screenshot.base64 },
+        type: 'image',
+        url: context.screenshot.base64,
       },
     ],
   });
@@ -124,7 +118,7 @@ export async function runCustomPlanning<TParsed>(
   };
 
   const messages = buildCustomPlanningMessages(input, config.messages);
-  const { content, usage, rawChoiceMessage } = await callAIWithStringResponse(
+  const { content, usage, rawAssistantOutput } = await callAIWithStringResponse(
     messages,
     preparedOptions.modelRuntime,
     {
@@ -148,9 +142,6 @@ export async function runCustomPlanning<TParsed>(
         preparedSize: preparedImage.preparedSize,
         contentSize: preparedImage.contentSize,
       },
-      acceptBbox2dAlias: preparedOptions.modelRuntime.adapter.acceptBbox2dAlias,
-      parseRawLocateParameter: (value) =>
-        value as ParsedPlanningLocateParameter,
     });
     shouldContinuePlanning = config.shouldContinuePlanning(parsed, actions);
   } catch (parseError) {
@@ -161,7 +152,7 @@ export async function runCustomPlanning<TParsed>(
       errorMessage,
       JSON.stringify(content, undefined, 2),
       usage,
-      rawChoiceMessage,
+      rawAssistantOutput,
     );
   }
 
@@ -171,8 +162,13 @@ export async function runCustomPlanning<TParsed>(
     input,
   );
   // UI-TARS and Auto-GLM define their own assistant history format.
-  if (assistantContent) {
-    options.conversationHistory.append({
+  if (
+    rawAssistantOutput?.type === 'responses' &&
+    options.modelRuntime.adapter.responses.replayRawAssistantOutput
+  ) {
+    options.conversationHistory.appendModelOutput(rawAssistantOutput);
+  } else if (assistantContent) {
+    options.conversationHistory.appendMessage({
       role: 'assistant',
       content: assistantContent,
     });
@@ -184,6 +180,6 @@ export async function runCustomPlanning<TParsed>(
     usage,
     shouldContinuePlanning,
     rawResponse: JSON.stringify(content, undefined, 2),
-    rawChoiceMessage,
+    rawAssistantOutput,
   };
 }

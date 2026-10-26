@@ -93,6 +93,7 @@ describe('parseProcessArgs', () => {
       '--keep-window',
       '--continue-on-error',
       '--share-browser-context',
+      '--reuse-page',
       '--dotenv-override',
       '--dotenv-debug',
       '--concurrent',
@@ -395,6 +396,7 @@ describe('parseProcessArgs', () => {
       '4',
       '--continue-on-error',
       '--share-browser-context',
+      '--reuse-page',
       '--summary',
       'summary.json',
       '--headed',
@@ -428,6 +430,7 @@ describe('parseProcessArgs', () => {
       concurrent: 4,
       'continue-on-error': true,
       'share-browser-context': true,
+      'reuse-page': true,
       summary: 'summary.json',
       headed: true,
       'keep-window': true,
@@ -502,7 +505,10 @@ describe('launch server', () => {
     expect(serverResult).toBeDefined();
 
     const serverAddress = serverResult.server.address();
-    const staticServerUrl = `http://${serverAddress?.address}:${serverAddress?.port}`;
+    if (!serverAddress || typeof serverAddress === 'string') {
+      throw new Error('Expected the static server to expose a TCP address.');
+    }
+    const staticServerUrl = `http://${serverAddress.address}:${serverAddress.port}`;
 
     const contents = await fetch(`${staticServerUrl}/index.html`);
     expect(contents.status).toBe(200);

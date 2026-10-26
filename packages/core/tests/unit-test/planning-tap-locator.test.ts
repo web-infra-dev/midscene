@@ -1,5 +1,6 @@
 import type { ResolvedCustomPlanningDefinition } from '@/ai-model/model-adapter/custom-planning-types';
 import { AIResponseParseError } from '@/ai-model/service-caller';
+import type { PixelLocateResult } from '@/ai-model/shared/model-locate-result';
 import { resolvePlanningTapLocator } from '@/ai-model/workflows/grounding/planning-action-locate';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import { ScreenshotItem } from '@/screenshot-item';
@@ -19,6 +20,7 @@ function createPlanner(): ResolvedCustomPlanningDefinition<null> {
       shape: 'point',
       order: 'xy',
       normalizedBy: 1000,
+      rounding: 'round',
     },
     coordinateNormalizer: {} as any,
     parseResponse: () => null,
@@ -72,24 +74,29 @@ describe('resolvePlanningTapLocator', () => {
     rs.mocked(runCustomPlanning).mockReset();
   });
 
-  it('runs the resolved planner once with tap locate options and returns the configured bbox', async () => {
+  it('runs the resolved planner once with tap locate options and returns the complete configured pixel result', async () => {
     const actions = [{ type: 'Tap', param: {} }];
     rs.mocked(runCustomPlanning).mockResolvedValueOnce({
       actions,
       shouldContinuePlanning: false,
       rawResponse: 'raw planning response',
-      rawChoiceMessage: { role: 'assistant' },
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: null, refusal: null },
+      },
       usage: { total_tokens: 3 } as any,
       log: 'planner reasoning',
     });
 
-    const getLocatedPixelBbox = rs.fn((): [number, number, number, number] => [
-      1, 2, 3, 4,
-    ]);
+    const locatedPixelResult: PixelLocateResult = {
+      center: [2, 3],
+      rect: { left: 1, top: 2, width: 3, height: 3 },
+    };
+    const getLocatedPixelResult = rs.fn(() => locatedPixelResult);
     const locate = resolvePlanningTapLocator(
       {
         buildSystemPrompt: () => 'locate system prompt',
-        getLocatedPixelBbox,
+        getLocatedPixelResult,
       },
       createPlanner(),
     );
@@ -117,17 +124,20 @@ describe('resolvePlanningTapLocator', () => {
     expect(
       locatorPlanner.messages.buildUserInstruction?.('submit button'),
     ).toBe('Tap: submit button');
-    expect(getLocatedPixelBbox).toHaveBeenCalledWith(actions);
+    expect(getLocatedPixelResult).toHaveBeenCalledWith(actions);
     expect(result).toEqual({
-      locatedPixelBbox: [1, 2, 3, 4],
+      locatedPixelResult,
       rawResponse: 'raw planning response',
-      rawChoiceMessage: { role: 'assistant' },
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: null, refusal: null },
+      },
       usage: { total_tokens: 3 },
       reasoningContent: 'planner reasoning',
     });
   });
 
-  it('returns an error when the planner actions do not contain a tap bbox', async () => {
+  it('returns an error when the planner actions do not contain a tap point', async () => {
     rs.mocked(runCustomPlanning).mockResolvedValueOnce({
       actions: [{ type: 'Scroll', param: {} }],
       shouldContinuePlanning: false,
@@ -138,7 +148,7 @@ describe('resolvePlanningTapLocator', () => {
     const locate = resolvePlanningTapLocator(
       {
         buildSystemPrompt: () => 'locate system prompt',
-        getLocatedPixelBbox: () => undefined,
+        getLocatedPixelResult: () => undefined,
       },
       createPlanner(),
     );
@@ -147,29 +157,36 @@ describe('resolvePlanningTapLocator', () => {
 
     expect(result).toEqual({
       rawResponse: 'raw planning response',
-      rawChoiceMessage: undefined,
+      rawAssistantOutput: undefined,
       usage: undefined,
       reasoningContent: 'planner reasoning',
-      errors: ['No locatedPixelBbox found in planner response'],
+      errors: ['No locatedPixelResult found in planner response'],
     });
   });
 
   it('preserves raw response metadata from planner parse errors', async () => {
-    const rawChoiceMessage = { role: 'assistant', content: 'bad response' };
+    const rawAssistantOutput = {
+      type: 'chat-completion' as const,
+      rawValue: {
+        role: 'assistant' as const,
+        content: 'bad response',
+        refusal: null,
+      },
+    };
     const usage = { total_tokens: 5 } as any;
     rs.mocked(runCustomPlanning).mockRejectedValueOnce(
       new AIResponseParseError(
         'Parse error: malformed response',
         'raw malformed response',
         usage,
-        rawChoiceMessage,
+        rawAssistantOutput,
       ),
     );
 
     const locate = resolvePlanningTapLocator(
       {
         buildSystemPrompt: () => 'locate system prompt',
-        getLocatedPixelBbox: () => undefined,
+        getLocatedPixelResult: () => undefined,
       },
       createPlanner(),
     );
@@ -178,7 +195,7 @@ describe('resolvePlanningTapLocator', () => {
 
     expect(result).toEqual({
       rawResponse: 'raw malformed response',
-      rawChoiceMessage,
+      rawAssistantOutput,
       usage,
       reasoningContent: '',
       errors: ['Parse error: malformed response'],

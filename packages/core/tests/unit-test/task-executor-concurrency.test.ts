@@ -19,6 +19,7 @@ rs.mock('@midscene/shared/img', () => ({
 }));
 
 import { TaskExecutor } from '@/agent/tasks';
+import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
@@ -88,6 +89,7 @@ describe('TaskExecutor concurrency isolation', () => {
     } as unknown as Service;
 
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: emptyParamActionSpace,
     });
@@ -102,6 +104,218 @@ describe('TaskExecutor concurrency isolation', () => {
     rs.restoreAllMocks();
     rs.useRealTimers();
   });
+
+  it.each([
+    { fails: false, limit: 1 },
+    { fails: true, limit: 1 },
+    { fails: false, limit: 0 },
+  ])('records separate planning cycles: %j', async ({ fails, limit }) => {
+    const runners: import('@/task-runner').TaskRunner[] = [];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: () => ({
+        ...defaultModel(),
+        adapter: {
+          ...defaultModel().adapter,
+          planning: {
+            ...defaultModel().adapter.planning,
+            kind: 'custom',
+            planFn: fallback,
+          },
+        },
+      }),
+      replanningCycleLimit: limit,
+      actionSpace: emptyParamActionSpace,
+      hooks: {
+        onExecutionCreated: (runner) => {
+          runners.push(runner);
+        },
+      },
+    });
+    const convert = rs
+      .spyOn(executor, 'convertPlanToExecutable')
+      .mockResolvedValue({ tasks: [], yamlFlow: [] } as any);
+    const usageFields = {
+      prompt_tokens: undefined,
+      completion_tokens: undefined,
+      cached_input: undefined,
+      time_cost: undefined,
+      model_description: undefined,
+      response_model_name: undefined,
+      intent: undefined,
+      slot: undefined,
+      request_id: undefined,
+    };
+    const fallback = rs.fn(async () => {
+      if (fails) {
+        throw new Error('Default planner unavailable');
+      }
+      return {
+        actions: [],
+        log: 'Default planner finished',
+        rawResponse: 'default response',
+        usage: {
+          ...usageFields,
+          model_name: 'default-model',
+          total_tokens: 20,
+        },
+        shouldContinuePlanning: false,
+        finalizeSuccess: true,
+        finalizeMessage: 'done',
+      };
+    });
+    const base = planningModel();
+    const runtime = {
+      ...base,
+      adapter: {
+        ...base.adapter,
+        planning: {
+          ...base.adapter.planning,
+          kind: 'custom' as const,
+          planFn: async () => ({
+            actions: [],
+            log: 'Jev selected delegate:Input',
+            rawResponse: 'jev response',
+            usage: { ...usageFields, model_name: 'jev', total_tokens: 10 },
+            shouldContinuePlanning: true,
+            delegation: { reason: 'Input needs the default model' },
+          }),
+        },
+      },
+    };
+    const pending = executor.action('Fill the form', runtime, defaultModel());
+    if (limit === 0) {
+      await expect(pending).rejects.toThrow('planning cycle limit (0)');
+      expect(fallback).not.toHaveBeenCalled();
+      expect(convert).not.toHaveBeenCalled();
+      expect(
+        runners[0].tasks.filter((task) => task.subType === 'Plan'),
+      ).toHaveLength(1);
+      return;
+    }
+    if (fails) {
+      await expect(pending).rejects.toThrow('Default planner unavailable');
+      expect(convert).not.toHaveBeenCalled();
+    } else {
+      await pending;
+      expect(convert).toHaveBeenCalledTimes(1);
+    }
+    const plans = runners[0].tasks.filter((task) => task.subType === 'Plan');
+    expect(plans).toHaveLength(2);
+    expect(plans[0]).toMatchObject({
+      status: 'finished',
+      output: { actions: [], log: 'Jev selected delegate:Input' },
+      usage: { model_name: 'jev', total_tokens: 10, intent: 'planning' },
+      log: { rawResponse: 'jev response' },
+    });
+    expect(plans[1].status).toBe(fails ? 'failed' : 'finished');
+    if (!fails) {
+      expect(plans[1]).toMatchObject({
+        output: { log: 'Default planner finished', output: 'done' },
+        usage: { model_name: 'default-model', total_tokens: 20 },
+        log: { rawResponse: 'default response' },
+      });
+      expect(plans[0].timing?.callAiEnd).toBeLessThanOrEqual(
+        plans[1].timing?.callAiStart!,
+      );
+    }
+    expect(fallback).toHaveBeenCalledTimes(1);
+  });
+  it.each([false, true])(
+    'uses the normal planner entry and returns to the configured model (custom default: %s)',
+    async (customDefault) => {
+      const historySeen: unknown[] = [];
+      const fallback = rs.fn(async (_instruction, options) => {
+        expect(_instruction.text).toBe('Fill the form');
+        expect(options.actionSpace).toEqual(emptyParamActionSpace);
+        expect(options.includeLocateInPlanning).toBe(false);
+        expect(options.planningAdvice).toContain(
+          'action "Noop". This suggestion',
+        );
+        expect(options.planningAdvice).toContain('advisory only');
+        expect(options.modelRuntime).toMatchObject({
+          config: {
+            modelName: 'default-model',
+            slot: 'default',
+            intent: 'planning',
+          },
+          modelFallback: {
+            requestedModel: 'planning-model',
+            requestedSlot: 'planning',
+            taskType: 'planning',
+            reason: 'Generated input needed',
+          },
+        });
+        historySeen.push(options.conversationHistory);
+        expect(options.conversationHistory.pendingFeedbackMessage).toBe(
+          'Original feedback',
+        );
+        return {
+          actions: [],
+          log: 'Default step',
+          shouldContinuePlanning: true,
+        };
+      });
+      rs.mocked(standardPlan).mockImplementation(fallback);
+      const base = planningModel();
+      const planFn = rs
+        .fn()
+        .mockImplementationOnce(async (_instruction, options) => {
+          historySeen.push(options.conversationHistory);
+          options.conversationHistory.pendingFeedbackMessage =
+            'Original feedback';
+          return {
+            actions: [],
+            log: 'Delegate',
+            delegation: {
+              reason: 'Generated input needed',
+              suggestedAction: 'Noop',
+            },
+            shouldContinuePlanning: true,
+          };
+        })
+        .mockResolvedValueOnce({
+          actions: [],
+          log: 'Complete',
+          shouldContinuePlanning: false,
+        });
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: () => ({
+          ...defaultModel(),
+          adapter: {
+            ...base.adapter,
+            planning: customDefault
+              ? { ...base.adapter.planning, kind: 'custom', planFn: fallback }
+              : base.adapter.planning,
+          },
+        }),
+        replanningCycleLimit: 2,
+        actionSpace: emptyParamActionSpace,
+      });
+      rs.spyOn(executor, 'convertPlanToExecutable').mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+      const result = await executor.action(
+        'Fill the form',
+        {
+          ...base,
+          adapter: {
+            ...base.adapter,
+            planning: { ...base.adapter.planning, kind: 'custom', planFn },
+          },
+        },
+        defaultModel(),
+      );
+      expect(
+        result.runner.tasks
+          .filter((task) => task.subType === 'Plan')
+          .map((task) => task.output.log),
+      ).toEqual(['Delegate', 'Default step', 'Complete']);
+      expect(planFn).toHaveBeenCalledTimes(2);
+      expect(fallback).toHaveBeenCalledTimes(1);
+      expect(historySeen[0]).toBe(historySeen[1]);
+    },
+  );
 
   it.each([
     {
@@ -173,6 +387,111 @@ describe('TaskExecutor concurrency isolation', () => {
     },
   );
 
+  it.each([
+    { effort: 'balance' as const, differentKey: false, expected: true },
+    { effort: 'deepThink' as const, differentKey: false, expected: false },
+    { effort: 'balance' as const, differentKey: true, expected: true },
+    { effort: 'balance' as const, differentModel: true, expected: false },
+    { effort: 'balance' as const, differentBaseURL: true, expected: false },
+    { effort: 'balance' as const, differentFamily: true, expected: false },
+    { effort: 'balance' as const, generativeLocate: true, expected: false },
+  ])(
+    'combines matching Jev configurations: %j',
+    async ({
+      effort,
+      differentKey,
+      differentModel,
+      differentBaseURL,
+      differentFamily,
+      generativeLocate,
+      expected,
+    }) => {
+      const planFn = rs.fn().mockResolvedValue({
+        actions: [],
+        log: '',
+        shouldContinuePlanning: false,
+        finalizeSuccess: true,
+      });
+      const planning = getModelRuntime({
+        ...defaultModel().config,
+        modelFamily: 'jev',
+        modelName: 'jev-test',
+        openaiApiKey: 'planning-key',
+        openaiBaseURL: 'https://example.com/v1',
+        slot: 'planning',
+        intent: 'planning',
+      });
+      const locate = getModelRuntime({
+        ...planning.config,
+        openaiApiKey: differentKey ? 'other-key' : 'planning-key',
+        slot: 'locate',
+        intent: 'locate',
+      });
+      const locateRuntime = {
+        ...locate,
+        config: {
+          ...locate.config,
+          modelName: differentModel ? 'another-jev' : locate.config.modelName,
+          openaiBaseURL: differentBaseURL
+            ? 'https://other.example.com/v1'
+            : locate.config.openaiBaseURL,
+          modelFamily: differentFamily
+            ? defaultModel().config.modelFamily
+            : locate.config.modelFamily,
+        },
+        adapter: generativeLocate ? defaultModel().adapter : locate.adapter,
+      };
+      await taskExecutor.action(
+        'prompt',
+        {
+          ...planning,
+          adapter: {
+            ...planning.adapter,
+            planning: { ...planning.adapter.planning, kind: 'custom', planFn },
+          },
+        },
+        locateRuntime,
+        undefined,
+        undefined,
+        undefined,
+        effort,
+      );
+      expect(planFn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ includeLocateInPlanning: expected }),
+      );
+    },
+  );
+
+  it('stores raw aiAct context while rendering it for the planning model', async () => {
+    rs.mocked(standardPlan).mockResolvedValue({
+      actions: [],
+      yamlFlow: [],
+      shouldContinuePlanning: false,
+      log: '',
+      rawResponse: '',
+      finalizeSuccess: true,
+      finalizeMessage: 'done',
+    });
+
+    const result = await taskExecutor.action(
+      'prompt',
+      planningModel(),
+      defaultModel(),
+      'Use checkout rules.',
+    );
+
+    expect(standardPlan).toHaveBeenCalledWith(
+      { text: 'prompt', referenceImages: [] },
+      expect.objectContaining({
+        actionContext: '<CONTEXT>\nUse checkout rules.\n</CONTEXT>',
+      }),
+    );
+    expect(result.runner.tasks[0].param).toEqual(
+      expect.objectContaining({ aiActContext: 'Use checkout rules.' }),
+    );
+  });
+
   it('registers aiAct reference images when the execution is created', async () => {
     rs.mocked(standardPlan).mockResolvedValue({
       actions: [],
@@ -197,6 +516,73 @@ describe('TaskExecutor concurrency isolation', () => {
       validBase64Image,
     ]);
   });
+
+  it.each(['balance', 'deepThink'] as const)(
+    'passes aiAct reference images to independent locating with %s effort',
+    async (effort) => {
+      const tap = {
+        name: 'Tap',
+        description: 'tap target',
+        paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+        delayBeforeRunner: 0,
+        delayAfterRunner: 0,
+        call: rs.fn(),
+      };
+      const locate = rs.fn().mockResolvedValue({
+        element: {
+          center: [50, 50],
+          rect: { left: 40, top: 40, width: 20, height: 20 },
+          description: 'target icon',
+        },
+      });
+      mockService.locate = locate;
+      rs.mocked(mockInterface.actionSpace).mockReturnValue([tap]);
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: defaultModel,
+        replanningCycleLimit: 1,
+        actionSpace: [tap],
+      });
+      rs.mocked(standardPlan).mockResolvedValue({
+        actions: [
+          { type: 'Tap', param: { locate: { prompt: 'target icon' } } },
+        ],
+        yamlFlow: [],
+        shouldContinuePlanning: false,
+        log: '',
+        rawResponse: '',
+      });
+      const images = [{ name: 'target', url: 'https://example.com/icon.png' }];
+
+      await executor.action(
+        {
+          prompt: 'Click the matching icon',
+          images,
+          convertHttpImage2Base64: true,
+        },
+        effort === 'deepThink' ? defaultModel() : planningModel(),
+        defaultModel(),
+        undefined,
+        undefined,
+        undefined,
+        effort,
+      );
+
+      expect(locate).toHaveBeenCalledTimes(1);
+      expect(locate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: {
+            prompt: 'target icon',
+            images,
+            convertHttpImage2Base64: true,
+          },
+        }),
+        expect.any(Object),
+        expect.any(Object),
+        undefined,
+      );
+      expect(tap.call).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('prepares aiAct reference images once across replanning cycles', async () => {
     rs.mocked(standardPlan)
@@ -307,6 +693,7 @@ describe('TaskExecutor concurrency isolation', () => {
     }> = [];
 
     const taskExecutorLocal = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: emptyParamActionSpace,
       hooks: {
@@ -418,6 +805,7 @@ describe('TaskExecutor concurrency isolation', () => {
     const progressEvents: string[] = [];
     const progressScopes = new Set<string>();
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 3,
       actionSpace: emptyParamActionSpace,
       hooks: {
@@ -497,6 +885,7 @@ describe('TaskExecutor concurrency isolation', () => {
       .fn()
       .mockResolvedValue('2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)');
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: emptyParamActionSpace,
       useDeviceTime: true,
@@ -622,9 +1011,11 @@ Stdout:
     expect(seenPendingFeedback[1]).toContain(planningFeedback);
   });
 
-  it('should truncate oversized planning feedback before the next planning request', async () => {
+  it('should use the default feedback limit unless a task requests a larger limit', async () => {
     const seenPendingFeedback: string[] = [];
     const longFeedback = 'x'.repeat(600);
+    const structuredFeedback = 'y'.repeat(11_000);
+    const boundedFeedback = 'z'.repeat(800);
 
     rs.spyOn(taskExecutor, 'convertPlanToExecutable')
       .mockResolvedValueOnce({
@@ -637,6 +1028,30 @@ Stdout:
               context.task.planningFeedback = longFeedback;
               return {
                 output: longFeedback,
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'BoundedFeedback',
+            param: {},
+            planningFeedbackMaxLength: 700,
+            executor: async (context: ExecutorContext) => {
+              context.task.planningFeedback = boundedFeedback;
+              return {
+                output: boundedFeedback,
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'StructuredFeedback',
+            param: {},
+            planningFeedbackMaxLength: 'unlimited',
+            executor: async (context: ExecutorContext) => {
+              context.task.planningFeedback = structuredFeedback;
+              return {
+                output: structuredFeedback,
               };
             },
           },
@@ -695,6 +1110,9 @@ Stdout:
     expect(seenPendingFeedback[1]).toContain(
       '...[truncated, 100 more characters]',
     );
+    expect(seenPendingFeedback[1]).toContain(structuredFeedback);
+    expect(seenPendingFeedback[1]).toContain('z'.repeat(700));
+    expect(seenPendingFeedback[1]).not.toContain(boundedFeedback);
   });
 
   it('should collect all planning feedback instead of the final task output', async () => {
@@ -836,6 +1254,7 @@ ${thirdPlanningFeedback}`);
   it('should not pass empty planning feedback into the next planning request', async () => {
     const seenPendingFeedback: string[] = [];
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: [],
     });
@@ -912,6 +1331,7 @@ ${thirdPlanningFeedback}`);
 
     const seenPendingFeedback: string[] = [];
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
       replanningCycleLimit: 1,
       actionSpace: emptyParamActionSpace,
       useDeviceTime: true,

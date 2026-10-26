@@ -33,6 +33,7 @@ export default defineConfig({
       source: {
         entry: {
           index: './src/index.tsx',
+          siwc: './src/extension/siwc/index.tsx',
           popup: './src/extension/popup/index.tsx',
           confirm: './src/extension/confirm/index.tsx',
         },
