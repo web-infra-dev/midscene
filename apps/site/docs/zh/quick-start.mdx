@@ -6,7 +6,7 @@ import ShowcaseWeb from './showcases-web.mdx';
 
 通过 Chrome Extension，你可以在浏览器的 Playground 中体验 GUI Agent，无需搭建测试项目。本指南带你配置模型、执行一条自然语言指令、验证结果并查看执行过程。
 
-如果你要直接编写 YAML 测试，可以前往 [Midscene Test](./midscene-test/use)。移动端和桌面端的 Playground 入口见[其他平台](#在其他平台使用-midscene)。
+如果你要直接编写 YAML 测试，可以前往 [Midscene Test](./midscene-test/use)。
 
 ## 配置模型
 
@@ -77,17 +77,6 @@ Agent 会观察页面，找到输入框，添加待办事项并勾选它。执�
 - **编写移动端和桌面端测试**：通过[接入 Vitest](./sdk/vitest)，组织用例并管理 Agent 生命周期。
 - **执行日常自动化流程**：阅读[编写独立自动化脚本](./sdk/standalone)，无需测试运行器即可调用 SDK。
 - **让 AI 编程助手操作应用**：安装 [Midscene Skills](./skills)。
-
-## 在其他平台使用 Midscene
-
-Midscene 在 Android、iOS、HarmonyOS 和桌面端也提供完整的自动化能力，并为每个平台提供对应的 Playground。使用前，需要先完成该平台的设备环境准备。例如，Android 平台需要安装并配置 adb。所有平台的准备路径见[平台环境配置](./platforms/)。具体要求、Playground 启动方法和故障排查，请参考以下文档。
-
-| 平台 | 平台指南 |
-| --- | --- |
-| Android | [Android](./platforms/android) |
-| iOS | [iOS](./platforms/ios) |
-| HarmonyOS | [HarmonyOS](./platforms/harmonyos) |
-| 桌面端 | [Windows、macOS 和 Linux](./platforms/desktop) |
 
 ## 常见问题
 
