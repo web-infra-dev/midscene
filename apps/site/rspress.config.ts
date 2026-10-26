@@ -757,23 +757,23 @@ export default defineConfig(async () => {
           },
           {
             from: '^/(?:android-api-reference|reference/android)(?:\\.html)?/?$',
-            to: '/reference/#android',
+            to: '/sdk/android',
           },
           {
             from: '^/(?:ios-api-reference|reference/ios)(?:\\.html)?/?$',
-            to: '/reference/#ios',
+            to: '/sdk/ios',
           },
           {
             from: '^/(?:harmony-api-reference|reference/harmonyos)(?:\\.html)?/?$',
-            to: '/reference/#harmonyos',
+            to: '/sdk/harmonyos',
           },
           {
             from: '^/(?:computer-api-reference|reference/desktop)(?:\\.html)?/?$',
-            to: '/reference/#desktop',
+            to: '/sdk/desktop',
           },
           {
             from: '^/(?:web-api-reference|reference/web)(?:\\.html)?/?$',
-            to: '/reference/#web',
+            to: '/sdk/playwright',
           },
           {
             from: '^/(?:api|reference/common)(?:\\.html)?/?$',
@@ -797,23 +797,23 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/(?:android-api-reference|reference/android)(?:\\.html)?/?$',
-            to: '/zh/reference/#android',
+            to: '/zh/sdk/android',
           },
           {
             from: '^/zh/(?:ios-api-reference|reference/ios)(?:\\.html)?/?$',
-            to: '/zh/reference/#ios',
+            to: '/zh/sdk/ios',
           },
           {
             from: '^/zh/(?:harmony-api-reference|reference/harmonyos)(?:\\.html)?/?$',
-            to: '/zh/reference/#harmonyos',
+            to: '/zh/sdk/harmonyos',
           },
           {
             from: '^/zh/(?:computer-api-reference|reference/desktop)(?:\\.html)?/?$',
-            to: '/zh/reference/#desktop',
+            to: '/zh/sdk/desktop',
           },
           {
             from: '^/zh/(?:web-api-reference|reference/web)(?:\\.html)?/?$',
-            to: '/zh/reference/#web',
+            to: '/zh/sdk/playwright',
           },
           {
             from: '^/zh/(?:api|reference/common)(?:\\.html)?/?$',

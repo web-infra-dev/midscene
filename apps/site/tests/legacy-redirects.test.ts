@@ -38,7 +38,7 @@ describe('legacy HTTP redirects', () => {
 
   it('redirects reported missing documentation URLs to their replacements', () => {
     const expected = {
-      '/android-integration': '/platforms/android',
+      '/android-integration': '/sdk/android',
       '/zh/quick-experience.html': '/zh/quick-start#chrome-extension',
       '/zh/batch-yaml.html': '/zh/yaml-script-runner',
       '/zh/test-runner-overview': '/zh/midscene-test/overview',
@@ -81,7 +81,9 @@ describe('legacy HTTP redirects', () => {
         ['cli', 'yaml-script-runner'],
         ['computer-introduction', 'platforms/desktop'],
         ['android-introduction', 'platforms/android'],
-        ['ios-api-reference', 'reference/#ios'],
+        ['integrate-with-android', 'sdk/android'],
+        ['web-api-reference', 'sdk/playwright'],
+        ['ios-api-reference', 'sdk/ios'],
         [
           'blog-programming-practice-using-structured-api',
           'basics#javascript-orchestration',
@@ -121,7 +123,14 @@ describe('legacy HTTP redirects', () => {
         .find((candidate) => existsSync(candidate));
       expect(target, `${from} -> ${to}`).toBeDefined();
       if (fragment) {
-        expect(readFileSync(target!, 'utf8')).toContain(`{#${fragment}}`);
+        const content = readFileSync(target!, 'utf8');
+        const anchors = Array.from(
+          content.matchAll(
+            /\{#([^}]+)\}|<a\b[^>]*\sid=["']([^"']+)["'][^>]*>/g,
+          ),
+          (match) => match[1] ?? match[2],
+        );
+        expect(anchors, `${from} -> ${to}`).toContain(fragment);
       }
     }
   });
@@ -150,6 +159,28 @@ describe('legacy HTTP redirects', () => {
         new RegExp(rule.from).test(from),
       );
       expect(match?.to, from).toBe(to);
+    }
+    for (const locale of ['', '/zh']) {
+      for (const [legacy, reference, sdk] of [
+        ['web', 'web', 'playwright'],
+        ['android', 'android', 'android'],
+        ['ios', 'ios', 'ios'],
+        ['harmony', 'harmonyos', 'harmonyos'],
+        ['computer', 'desktop', 'desktop'],
+      ]) {
+        for (const previous of [
+          `${legacy}-api-reference`,
+          `reference/${reference}`,
+        ]) {
+          for (const suffix of ['', '.html', '/']) {
+            const from = `${locale}/${previous}${suffix}`;
+            const match = options.redirects.find((rule) =>
+              new RegExp(rule.from).test(from),
+            );
+            expect(match?.to, from).toBe(`${locale}/sdk/${sdk}`);
+          }
+        }
+      }
     }
   });
 

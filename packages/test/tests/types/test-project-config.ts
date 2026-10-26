@@ -437,6 +437,17 @@ declare const iosRunnerInput: RunWdaRequestNodeInput;
 createMidsceneNodes({ agentClass: AndroidAgent, getAgent: () => androidAgent });
 createMidsceneNodes({ agentClass: IOSAgent, getAgent: () => iosAgent });
 createMidsceneNodes({ agentClass: HarmonyAgent, getAgent: () => harmonyAgent });
+createMidsceneNodes({
+  namespace: 'mobile',
+  agentClass: AndroidAgent,
+  getAgent: () => androidAgent,
+});
+createMidsceneNodes({
+  // @ts-expect-error Namespace names must be strings.
+  namespace: 123,
+  agentClass: AndroidAgent,
+  getAgent: () => androidAgent,
+});
 iosAgentInput satisfies RunWdaRequestNodeInput['request'];
 iosRunnerInput.request satisfies Parameters<IOSAgent['runWdaRequest']>[0];
 
