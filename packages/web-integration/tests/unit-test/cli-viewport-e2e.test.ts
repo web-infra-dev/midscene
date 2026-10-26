@@ -108,9 +108,9 @@ describe('midscene-web CLI viewport e2e', () => {
     const readSelectedPageUrl = async () => {
       const tools = new InspectableTools(undefined, { persistence });
       try {
-        return await (await tools.connectAgent()).page.evaluate(
-          'window.location.href',
-        );
+        return await (
+          await tools.connectAgent()
+        ).page.evaluateJavaScript<string>('window.location.href');
       } finally {
         await tools.destroy();
       }
