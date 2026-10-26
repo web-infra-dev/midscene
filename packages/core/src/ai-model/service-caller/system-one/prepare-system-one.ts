@@ -1,5 +1,6 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
+import { getVersion } from '../../../utils';
 import { createProxyAgentIfNeeded } from '../proxy';
 import { resolveSystemOneEndpoint } from './resolve-endpoint';
 import type { SystemOneRequest } from './schema';
@@ -43,6 +44,7 @@ export async function prepareSystemOne(
       Authorization: `Bearer ${config.openaiApiKey}`,
       'Content-Type': 'application/json',
       'TypeSafe-Danger-Zone-Images': 'true',
+      'x-midscene-version': getVersion(),
     },
     dispatcher: await createProxyAgentIfNeeded({
       socksProxy: config.socksProxy,

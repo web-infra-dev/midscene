@@ -19,6 +19,7 @@ import {
 } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
+import { getVersion } from '@/utils';
 import { type IModelConfig, ModelConfigManager } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
@@ -165,6 +166,30 @@ describe('Jev model fallback', () => {
 });
 
 describe('Jev requests and coordinates', () => {
+  it.each([undefined, 'custom-version'])(
+    'sends the Midscene version regardless of a custom version header (%s)',
+    async (version) => {
+      const prepared = await prepareSystemOne(
+        {
+          ...jevConfig,
+          openaiExtraConfig: {
+            defaultHeaders: {
+              ...(version ? { 'x-midscene-version': version } : {}),
+              'x-custom-header': 'preserved',
+            },
+          },
+        },
+        {
+          state: {},
+          questions: { answer: { type: 'noul', instructions: 'True?' } },
+        },
+      );
+      expect(prepared.headers['x-midscene-version']).toBe(getVersion());
+      expect(new Headers(prepared.headers).get('x-custom-header')).toBe(
+        'preserved',
+      );
+    },
+  );
   it.each([undefined, 'https://ignored.example/v1'])(
     'uses the full endpoint without appending a path (base URL: %s)',
     async (openaiBaseURL) => {
@@ -266,6 +291,9 @@ describe('Jev requests and coordinates', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://api.typesafe.ai/v1/systemone');
+    expect(new Headers(init?.headers).get('x-midscene-version')).toBe(
+      getVersion(),
+    );
     expect(new Headers(init?.headers).get('TypeSafe-Danger-Zone-Images')).toBe(
       'true',
     );
