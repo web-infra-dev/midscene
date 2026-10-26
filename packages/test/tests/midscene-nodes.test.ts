@@ -204,6 +204,7 @@ describe('createMidsceneNodes', () => {
             listener('', { id: 'mobile-execution' });
           }
           if (fail) throw new Error('Mobile action failed');
+          return undefined;
         },
         addDumpUpdateListener(listener) {
           mobileListeners.add(listener);
