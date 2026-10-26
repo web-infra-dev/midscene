@@ -195,6 +195,50 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 
 `createMidsceneNodes()` 不会直接修改全局注册表；只有把返回数组加入项目配置后，这些 Node 才会生效。`agentClass` 是 Agent Node 定义的唯一来源，`getAgent` 则说明执行期间如何从当前 context 取得 Agent 实例。如果该类没有提供 `getTestRunnerNodeDefinitions()`，工厂会在注册阶段抛出异常。传入 PlaywrightAgent、PlaywrightPageAgent、PlaywrightBrowserAgent、PuppeteerAgent、PuppeteerPageAgent、PuppeteerBrowserAgent、AndroidAgent、IOSAgent 或 HarmonyAgent 时，会同时获得通用 Node 定义和对应的平台 Node 定义。基础 Agent 和 ComputerAgent 仅提供通用 Agent Node。
 
+#### 为多个 Agent 的 Node 命名
+
+同一个工作流使用多个 Agent 时，可以通过 `namespace` 为各组 Node 注册不同的名称。让 setup 在 context 中返回独立的 Agent 实例，再将两组 Node 注册到同一个 Project：
+
+```ts
+import { Agent } from '@midscene/core/agent';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+interface MultiAgentContext {
+  mobile: Agent;
+  web: Agent;
+}
+
+const nodes = [
+  ...createMidsceneNodes<MultiAgentContext>({
+    namespace: 'mobile',
+    agentClass: Agent,
+    getAgent: ({ context }) => context.mobile,
+  }),
+  ...createMidsceneNodes<MultiAgentContext>({
+    namespace: 'web',
+    agentClass: Agent,
+    getAgent: ({ context }) => context.web,
+  }),
+];
+```
+
+将 `nodes` 加入项目配置后，YAML 使用注册后的名称调用：
+
+```yaml
+cases:
+  - name: 跨设备完成一个 Todo
+    steps:
+      - mobile.aiAct: 创建一个标题为“Buy milk”的 Todo。
+      - web.aiWaitFor: 列表中显示标题为“Buy milk”的 Todo。
+      - web.aiTap: “Buy milk”旁边的复选框
+```
+
+namespace 会给返回的每个 Node 加上前缀，包括通用 AI 操作、平台操作和 `wait`。例如，上述注册提供 `mobile.aiAct` 和 `mobile.wait`，不会同时注册不带前缀的名称。不传 `namespace` 时保留原有名称。
+
+namespace 必须是非空字符串，不能包含空白字符、首尾的点或空的分段；支持 `checkout.mobile` 这样的嵌套名称。无效值会在注册阶段报错，此时尚未获取 Agent。
+
+namespace 只改变 Node 名称。运行时仍由 `getAgent` 或 `agentProvider.getAgent` 选择 Agent，执行记录仍关联到对应 Step。namespace 不创建资源，也不提供并发隔离。不同 Project 可以分别注册相同的 Node 名称，无需添加 namespace。
+
 Android/iOS 的注册示例见[配置多个执行项目](#配置多个执行项目)。
 
 在 Android、iOS 等设备平台接入 Agent 时，需注意资源的所有权。每个 Device 实例只归属于一个 Agent，`Agent.destroy()` 也会销毁对应 Device。每个执行项目应创建独立的资源，不要在 Agent 销毁后复用它的 Device。

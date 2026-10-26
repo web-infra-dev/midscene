@@ -195,6 +195,50 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 
 `createMidsceneNodes()` does not mutate a global registry; its Nodes become available only after the returned array is included in project configuration. `agentClass` is the sole source of Agent-backed Node definitions, while `getAgent` describes how execution obtains an Agent instance from the current context. The factory throws during registration if the class does not expose `getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, PuppeteerAgent, PuppeteerPageAgent, PuppeteerBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent provide common and platform Node definitions together. The base Agent and ComputerAgent only provide common Agent Nodes.
 
+#### Name Nodes for multiple Agents
+
+When one workflow uses multiple Agents, set `namespace` to register their Nodes under different names. Have your setup return separate Agent instances in the context, then register both sets in the same Project:
+
+```ts
+import { Agent } from '@midscene/core/agent';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+interface MultiAgentContext {
+  mobile: Agent;
+  web: Agent;
+}
+
+const nodes = [
+  ...createMidsceneNodes<MultiAgentContext>({
+    namespace: 'mobile',
+    agentClass: Agent,
+    getAgent: ({ context }) => context.mobile,
+  }),
+  ...createMidsceneNodes<MultiAgentContext>({
+    namespace: 'web',
+    agentClass: Agent,
+    getAgent: ({ context }) => context.web,
+  }),
+];
+```
+
+Add `nodes` to your Project configuration. YAML calls the registered names:
+
+```yaml
+cases:
+  - name: Complete a Todo across devices
+    steps:
+      - mobile.aiAct: Create a Todo titled "Buy milk".
+      - web.aiWaitFor: The Todo "Buy milk" is visible.
+      - web.aiTap: the checkbox beside "Buy milk"
+```
+
+The namespace prefixes every returned Node, including common AI operations, platform operations, and `wait`. For example, this registration provides `mobile.aiAct` and `mobile.wait`; it does not also register the unprefixed names. Omit `namespace` to keep the original names.
+
+A namespace must be a non-empty string without whitespace, leading or trailing dots, or empty dot-separated segments. Nested namespaces such as `checkout.mobile` are supported. Invalid values fail during registration, before an Agent is acquired.
+
+Namespaces only change Node names. `getAgent` or `agentProvider.getAgent` still selects the runtime Agent, and execution traces remain associated with the corresponding Steps. Namespaces do not create resources or provide concurrency isolation. Separate Projects can register the same Node names without a namespace.
+
 For an Android/iOS registration example, see [Configure multiple execution projects](#configure-multiple-execution-projects).
 
 When integrating an Agent on device platforms such as Android or iOS, observe resource ownership. Each device instance belongs to one Agent. `Agent.destroy()` also destroys its device. Create separate resources for each execution project, and do not reuse a device after its Agent is destroyed.
