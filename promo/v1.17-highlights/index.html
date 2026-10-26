@@ -152,8 +152,8 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
 .b-url { flex: 1; height: 32px; border-radius: 9px; background: #fff; border: 1px solid #e2e5eb; display: flex; align-items: center; padding: 0 14px; font: 500 16px/1 var(--mono); color: #5b6272; white-space: nowrap; overflow: hidden; }
 .b-body { position: relative; flex: 1; display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
 .b-page { position: relative; border-right: 1px solid #e2e5eb; overflow: hidden; }
-.pg { position: absolute; inset: 0; padding: 34px 40px; opacity: 0; transition: opacity .4s; display: flex; flex-direction: column; }
-.pg.on { opacity: 1; }
+.pg { position: absolute; inset: 0; padding: 34px 40px; opacity: 0; visibility: hidden; display: flex; flex-direction: column; }
+.pg.on { opacity: 1; visibility: visible; }
 .sk { border-radius: 8px; background: #eef0f4; height: 18px; margin-bottom: 14px; }
 .pg-site h3 { margin: 6px 0 24px; font-size: 40px; }
 .demo-setting { display: flex; align-items: center; justify-content: space-between; padding: 24px 0; border-bottom: 1px solid var(--border); font-size: 23px; }
@@ -328,7 +328,7 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
 <div id="stage">
 
   <!-- ================================================= COVER (fully visible from frame 0) -->
-  <section class="scene" id="s-cover" data-dur="5000" data-name="cover">
+  <section class="scene" id="s-cover" data-dur="600" data-name="cover">
     <div class="lockup">
       <div class="brand"><img src="midscene-icon.png" alt="" /><div class="nm">Midscene.js</div><span class="ver">v1.17.0</span></div>
       <div class="slogan" data-t="cover.slogan"></div>
@@ -338,7 +338,7 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
   </section>
 
   <!-- ================================================= SIWC -->
-  <section class="scene" id="s-siwc" data-dur="34200" data-name="chatgpt subscription">
+  <section class="scene" id="s-siwc" data-dur="18450" data-name="chatgpt subscription">
     <div class="head">
       <div class="eyebrow" data-at="100"><b>// 01</b><span data-t="siwc.eb"></span></div>
       <h2 class="h2" data-at="250" data-t="siwc.h2"></h2>
@@ -406,13 +406,13 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
       <div class="term" id="term"></div>
     </div>
     <div class="perks">
-      <div class="perk fx-right" data-at="27200"><i>✓</i><div><b data-t="siwc.p1"></b><span data-t="siwc.p1d"></span></div></div>
-      <div class="perk fx-right" data-at="27500"><i>↻</i><div><b data-t="siwc.p2"></b><span data-t="siwc.p2d"></span></div></div>
+      <div class="perk fx-right" data-at="16400"><i>✓</i><div><b data-t="siwc.p1"></b><span data-t="siwc.p1d"></span></div></div>
+      <div class="perk fx-right" data-at="16700"><i>↻</i><div><b data-t="siwc.p2"></b><span data-t="siwc.p2d"></span></div></div>
     </div>
   </section>
 
   <!-- ================================================= JEV ROUTING -->
-  <section class="scene" id="s-jev" data-dur="20000" data-name="jev routing">
+  <section class="scene" id="s-jev" data-dur="10400" data-name="jev routing">
     <div class="head">
       <div class="eyebrow" data-at="100"><b>// 02</b><span data-t="jev.eb"></span></div>
       <h2 class="h2" data-at="250" data-t="jev.h2"></h2>
@@ -426,14 +426,14 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
       <div class="lane df fx-right" data-at="2700"><div class="lane-h"><strong data-t="jev.def"></strong><small data-t="jev.l2"></small></div><div id="laneD"></div></div>
     </div>
     <div class="limits">
-      <div class="lim" data-at="10200"><b data-t="jev.m1"></b><span data-t="jev.m1d"></span></div>
-      <div class="lim" data-at="11400"><b data-t="jev.m2"></b><span data-t="jev.m2d"></span></div>
-      <div class="lim" data-at="12600"><b data-t="jev.m3"></b><span data-t="jev.m3d"></span></div>
+      <div class="lim" data-at="7050"><b data-t="jev.m1"></b><span data-t="jev.m1d"></span></div>
+      <div class="lim" data-at="7850"><b data-t="jev.m2"></b><span data-t="jev.m2d"></span></div>
+      <div class="lim" data-at="8650"><b data-t="jev.m3"></b><span data-t="jev.m3d"></span></div>
     </div>
   </section>
 
   <!-- ================================================= FRUIT -->
-  <section class="scene" id="s-fruit" data-dur="22000" data-name="demo: tile matching">
+  <section class="scene" id="s-fruit" data-dur="13110" data-name="demo: tile matching">
     <div class="head">
       <div class="eyebrow" data-at="100"><b>// 03</b><span data-t="fr.eb"></span></div>
       <h2 class="h2" data-at="250" data-t="fr.h2"></h2>
@@ -450,7 +450,7 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
   </section>
 
   <!-- ================================================= REGISTER -->
-  <section class="scene" id="s-reg" data-dur="22000" data-name="demo: register form">
+  <section class="scene" id="s-reg" data-dur="12835" data-name="demo: register form">
     <div class="head">
       <div class="eyebrow" data-at="100"><b>// 04</b><span data-t="rg.eb"></span></div>
       <h2 class="h2" data-at="250" data-t="rg.h2"></h2>
@@ -475,13 +475,13 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
   </section>
 
   <!-- ================================================= OUTRO -->
-  <section class="scene" id="s-outro" data-dur="12000" data-name="outro">
+  <section class="scene" id="s-outro" data-dur="4850" data-name="outro">
     <h2 class="outro-summary" data-at="100" data-t="out.summary"></h2>
     <div class="stats">
       <div class="panel stat" data-at="200"><div class="t" data-t="out.s1"></div><div class="n grad" data-t="out.latency"></div><div class="d" data-t="out.s1d"></div></div>
-      <div class="panel stat" data-at="1000"><div class="t" data-t="out.s2"></div><div class="n grad">$0.00426</div><div class="d" data-t="out.s2d"></div></div>
+      <div class="panel stat" data-at="700"><div class="t" data-t="out.s2"></div><div class="n grad">$0.00426</div><div class="d" data-t="out.s2d"></div></div>
     </div>
-    <div class="outro-links" data-at="2600">
+    <div class="outro-links" data-at="1700">
       <p data-t="out.cta"></p>
       <div class="browser-nav">
         <div class="nav-tools" aria-hidden="true"><span>←</span><span class="disabled">→</span><span>↻</span></div>
@@ -492,10 +492,11 @@ body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: ant
         </a>
       </div>
     </div>
-    <div class="outro-credit fx-fade" data-at="5600"><img src="midscene-icon.png" alt="" /><span>Midscene.js · v1.17.0</span></div>
+    <div class="outro-credit fx-fade" data-at="4200"><img src="midscene-icon.png" alt="" /><span>Midscene.js · v1.17.0</span></div>
   </section>
 </div>
 
+<audio id="soundtrack" src="background-music.mp3" preload="auto"></audio>
 <div id="hud"><span id="hud-t"></span><div class="pg2"><i id="hud-p"></i></div><span>Space · ←/→ · R · L (中/EN) · H</span></div>
 <div id="start"><span data-t="ui.start"></span><small>?lang=en · ?autoplay=1 · ?scene=3 · ?loop=1 · ?hud=0 · ?speed=1.2</small></div>
 
@@ -646,6 +647,9 @@ const I18N = {
   const LOOP = params.get('loop') === '1';
   const stage = document.getElementById('stage');
   const hud = document.getElementById('hud');
+  const soundtrack = document.getElementById('soundtrack');
+  soundtrack.volume = 0.65;
+  soundtrack.playbackRate = SPEED;
   let lang = params.get('lang') === 'en' ? 'en' : 'zh';
   let S = 1;
   const tr = (key) => I18N[lang][key];
@@ -676,6 +680,32 @@ const I18N = {
   let cur = -1, t = 0, timers = [], paused = true, last = 0, done = false;
   const at = (ms, fn) => timers.push({ t: ms, fn });
 
+  function syncSoundtrack() {
+    if (exportMode || cur < 0) {
+      return;
+    }
+    const position = (scenes.slice(0, cur).reduce((sum, scene) => sum + scene.dur, 0) + Math.min(t, scenes[cur].dur)) / 1000;
+    if (Math.abs(soundtrack.currentTime - position) > 0.25 && (!Number.isFinite(soundtrack.duration) || position < soundtrack.duration)) {
+      soundtrack.currentTime = position;
+    }
+    if (paused || done) {
+      soundtrack.pause();
+    } else if (soundtrack.paused && !soundtrack.ended) {
+      soundtrack.play().catch((error) => {
+        // Autoplay may require a user gesture; clicking the page retries playback.
+        if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') {
+          console.error('Background music playback failed', error);
+        }
+      });
+    }
+  }
+  document.addEventListener('pointerdown', () => {
+    if (!paused) {
+      syncSoundtrack();
+    }
+  });
+
+
   function enter(i, instant = false) {
     cur = (i + scenes.length) % scenes.length;
     t = 0; timers = []; done = false;
@@ -687,6 +717,7 @@ const I18N = {
     s.el.querySelectorAll('[data-at]').forEach((e) => at(Number(e.dataset.at), () => e.classList.add('in')));
     SCRIPTS[s.el.id]?.(s.el);
     timers.sort((a, b) => a.t - b.t);
+    syncSoundtrack();
   }
   function runDue() {
     while (timers.length && timers[0].t <= t) { timers.shift().fn(); timers.sort((a, b) => a.t - b.t); }
@@ -702,7 +733,7 @@ const I18N = {
       if (t >= s.dur && !done) {
         if (cur < scenes.length - 1) enter(cur + 1);
         else if (LOOP) enter(0);
-        else done = true;
+        else { done = true; syncSoundtrack(); }
       }
     }
     if (cur >= 0) {
@@ -713,7 +744,7 @@ const I18N = {
     requestAnimationFrame(tick);
   }
 
-  function setPaused(p) { paused = p; stage.classList.toggle('paused', p); }
+  function setPaused(p) { paused = p; stage.classList.toggle('paused', p); syncSoundtrack(); }
   const firstScene = exportMode ? 0 : Math.max(0, (Number(params.get('scene')) || 1) - 1);
   function start() {
     document.getElementById('start')?.remove();
@@ -742,7 +773,7 @@ const I18N = {
     setPaused(false);
     enter(i, true);
     t = ms; runDue();
-    paused = true;
+    setPaused(true);
   };
 
   /* ---------- helpers ---------- */
@@ -856,54 +887,53 @@ const I18N = {
       };
       const ENV = 'MIDSCENE_MODEL_AUTH_MODE="siwc"\nMIDSCENE_MODEL_NAME="gpt-6-sol"\nMIDSCENE_MODEL_FAMILY="gpt-6"';
       // Animated walkthrough: authorize → copy/paste config → run a task → show page changes.
-      at(1500, () => p.move(q(root, '#planlink'), 0.6, 0.6));
-      at(2100, () => { q(root, '#planlink').classList.add('flash'); p.click(); });
-      at(2500, () => { q(root, '#authConfirm').hidden = false; });
-      at(3700, () => p.move(q(root, '#confirmAuth')));
-      at(4300, () => p.click());
-      at(5000, () => {
+      at(1200, () => p.move(q(root, '#planlink'), 0.6, 0.6));
+      at(1800, () => { q(root, '#planlink').classList.add('flash'); p.click(); });
+      at(2100, () => { q(root, '#authConfirm').hidden = false; });
+      at(2400, () => p.move(q(root, '#confirmAuth')));
+      at(3000, () => p.click());
+      at(3700, () => {
         q(root, '#authConfirm').hidden = true;
         go('gpt', 'https://auth.openai.com/sign-in-with-chatgpt/consent');
       });
-      at(5200, () => q(root, '#planlink').classList.remove('flash'));
-      at(6500, () => p.move(q(root, '#allow'), 0.5, 0.55));
-      at(7100, () => { p.click(); const b = q(root, '#allow'); b.classList.add('busy'); b.textContent = '…'; });
-      at(8200, () => go('ok', 'chrome-extension://…/siwc.html'));
-      [...ENV].forEach((ch, i) => at(8500 + i * 14, () => { q(root, '#okenv').textContent += ch; }));
-      at(11200, () => p.move(q(root, '#copyConfig')));
-      at(11800, () => { p.click(); q(root, '#copyConfig').textContent = tr('siwc.copied'); });
-      at(12800, () => p.move(q(root, '#taskTab')));
-      at(13400, () => { p.click(); go('site', 'https://example.com/settings'); });
-      at(14200, () => p.move(q(root, '#ta'), 0.4, 0.4));
-      at(14800, () => { p.click(); const ta = q(root, '#ta'); ta.textContent = ENV; ta.style.background = 'rgb(16 163 127 / 6%)'; });
-      at(16100, () => p.move(q(root, '#vbtn')));
-      at(16700, () => {
+      at(3900, () => q(root, '#planlink').classList.remove('flash'));
+      at(4400, () => p.move(q(root, '#allow'), 0.5, 0.55));
+      at(5000, () => { p.click(); const b = q(root, '#allow'); b.classList.add('busy'); b.textContent = '…'; });
+      at(5700, () => go('ok', 'chrome-extension://…/siwc.html'));
+      [...ENV].forEach((ch, i) => at(6000 + i * 14, () => { q(root, '#okenv').textContent += ch; }));
+      at(7500, () => p.move(q(root, '#copyConfig')));
+      at(8100, () => { p.click(); q(root, '#copyConfig').textContent = tr('siwc.copied'); });
+      at(8400, () => p.move(q(root, '#taskTab')));
+      at(9000, () => { p.click(); go('site', 'https://example.com/settings'); });
+      at(9400, () => p.move(q(root, '#ta'), 0.4, 0.4));
+      at(10000, () => { p.click(); const ta = q(root, '#ta'); ta.textContent = ENV; ta.style.background = 'rgb(16 163 127 / 6%)'; });
+      at(10400, () => p.move(q(root, '#vbtn')));
+      at(11000, () => {
         p.click();
         q(root, '#configDialog').hidden = true;
         q(root, '#siwcRunner').hidden = false;
         go('site', 'https://example.com/settings');
       });
-      at(17500, () => p.move(q(root, '#siwcPrompt'), 0.3, 0.3));
-      at(18100, () => p.click());
-      const promptCharacters = [...tr('siwc.prompt')];
-      const promptEnd = 18400 + (promptCharacters.length - 1) * 40;
-      const runAt = promptEnd + 800;
-      promptCharacters.forEach((ch, i) => at(18400 + i * 40, () => { q(root, '#siwcPrompt').textContent += ch; }));
+      at(11400, () => p.move(q(root, '#siwcPrompt'), 0.3, 0.3));
+      at(12000, () => p.click());
+      const promptStart = 12300;
+      const runAt = promptStart + 600;
+      at(promptStart, () => { q(root, '#siwcPrompt').textContent = tr('siwc.prompt'); });
       at(runAt - 500, () => p.move(q(root, '#siwcRun')));
       at(runAt, () => { p.click(); q(root, '#siwcStatus').textContent = tr('siwc.running'); });
-      at(runAt + 1400, () => { bbox(bw, q(root, '#demoToggle'), 'GPT · Locate'); automaticPointer.move(q(root, '#demoToggle'), 0.5, 0.5); });
-      at(runAt + 2000, () => {
+      at(runAt + 700, () => { bbox(bw, q(root, '#demoToggle'), 'GPT · Locate'); automaticPointer.move(q(root, '#demoToggle'), 0.5, 0.5); });
+      at(runAt + 1300, () => {
         automaticPointer.click(); q(root, '#demoToggle').classList.add('on');
         q(root, '#siwcStatus').textContent = tr('siwc.step1');
         qa(bw, '.bbox').forEach((box) => box.remove());
       });
-      at(runAt + 3200, () => { bbox(bw, q(root, '#demoSave'), 'GPT · Locate'); automaticPointer.move(q(root, '#demoSave'), 0.5, 0.5); });
-      at(runAt + 3800, () => {
+      at(runAt + 1900, () => { bbox(bw, q(root, '#demoSave'), 'GPT · Locate'); automaticPointer.move(q(root, '#demoSave'), 0.5, 0.5); });
+      at(runAt + 2500, () => {
         automaticPointer.click(); show(q(root, '#demoSuccess'));
         q(root, '#siwcStatus').textContent += '\n' + tr('siwc.step2');
         qa(bw, '.bbox').forEach((box) => box.remove());
       });
-      at(runAt + 5000, () => {
+      at(runAt + 3200, () => {
         const status = q(root, '#siwcStatus');
         status.textContent += '\n' + tr('siwc.done'); status.classList.add('done');
         q(root, '#cur1').classList.remove('in');
@@ -922,7 +952,7 @@ const I18N = {
 
     's-jev'(root) {
       at(1300, () => qa(root, '#e4, #e5, #e6, #e7').forEach((l) => l.classList.add('hot')));
-      at(9800, () => qa(root, '.ln.hot').forEach((l) => l.classList.remove('hot')));
+      at(6750, () => qa(root, '.ln.hot').forEach((l) => l.classList.remove('hot')));
       const lanes = { J: q(root, '#laneJ'), D: q(root, '#laneD') };
       tr('jev.tasks').forEach(([who, title, sub], i) => {
         const el = document.createElement('div');
@@ -930,7 +960,7 @@ const I18N = {
         el.innerHTML = `${title}<small>${sub}</small>`;
         el.style.marginBottom = '12px';
         lanes[who].appendChild(el);
-        at(3300 + i * 1150, () => show(el));
+        at(3300 + i * 750, () => show(el));
       });
     },
 
@@ -1024,11 +1054,11 @@ const I18N = {
 
     's-outro'(root) {
       const address = q(root, '#outroAddress');
-      [...'midscenejs.com'].forEach((character, i) => at(3500 + i * 90, () => {
+      [...'midscenejs.com'].forEach((character, i) => at(2600 + i * 90, () => {
         q(root, '#outroUrl').textContent += character;
       }));
-      at(5000, () => q(root, '#outroGo').classList.add('pressed'));
-      at(5200, () => {
+      at(4000, () => q(root, '#outroGo').classList.add('pressed'));
+      at(4200, () => {
         address.classList.add('opened');
         q(root, '#outroGo').classList.remove('pressed');
         q(root, '#outroGo').textContent = '☆';
