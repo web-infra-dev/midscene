@@ -2,7 +2,7 @@
 
 Custom Nodes turn business operations into steps that test authors can call from YAML. This guide covers defining and validating inputs, sharing data between Nodes, and handling execution and cleanup.
 
-Start with [Create and use test projects](./use) if you do not have a test project yet. For platform setup, Agent integration, and execution settings, see [Configure test projects](./configuration).
+Start with [Create a test project](./use) if you do not have a test project yet. For platform setup, Agent integration, and execution settings, see [Configure test projects](./configuration).
 
 - [Register a Node](#register-custom-business-nodes): define an operation, call it from YAML, and verify registration through the generated Node Spec.
 - [Node execution arguments](#node-execution-arguments): distinguish business inputs from framework step settings.
@@ -80,7 +80,29 @@ The command loads the project configuration and writes `midscene-node-spec.md` t
 - The description “Create a test user fixture.”
 - The `name` and `email` input fields and their descriptions.
 
-This verifies that the Node is registered and its input schema can be exported; it does not execute the Node or create user data. After changing Node definitions or registrations, you can regenerate the Spec for case authors and AI Agents to consult. For complete usage, see [Generate the current Project's Node Spec](./use#generate-the-current-projects-node-spec).
+This verifies that the Node is registered and its input schema can be exported; it does not execute the Node or create user data. After changing Node definitions or registrations, you can regenerate the Spec for case authors and AI Agents to consult. For complete usage, see [Generate the current Project's Node Spec](./writing#generate-the-current-projects-node-spec).
+
+### Declare string shorthand
+
+Set `stringInputKey` to the input field populated by a string value. Other required fields must still satisfy the schema, so shorthand works well for a single required string input:
+
+```ts
+const logMessage = defineNode({
+  name: 'message.log',
+  stringInputKey: 'message',
+  inputSchema: z.strictObject({ message: z.string() }),
+  execute({ input }) {
+    return { summary: input.message };
+  },
+});
+```
+
+```yaml
+steps:
+  - message.log: Checkout started
+```
+
+Register `logMessage` in `nodes` and regenerate the Spec. Omitting `stringInputKey` or setting it to `false` disables shorthand; callers must use object inputs.
 
 ## Node execution arguments
 
@@ -111,7 +133,7 @@ $.timeoutMs; // 30000
 $.continueOnError; // true
 ```
 
-`inputSchema` only needs to declare `name` and `email`; `$` is not included in `input`. The framework enforces the timeout and continuation policy. `continue-on-error` allows later steps in the current phase to run after a failure, subject to [resource safety checks](./use#handling-failures), but the failed step still makes the case fail.
+`inputSchema` only needs to declare `name` and `email`; `$` is not included in `input`. The framework enforces the timeout and continuation policy. `continue-on-error` allows later steps in the current phase to run after a failure, subject to [resource safety checks](./execution#handling-failures), but the failed step still makes the case fail.
 
 ### Available execution fields
 
@@ -287,7 +309,7 @@ Midscene Test passes an `AbortSignal` as `signal` when executing a Node. Pass it
 
 With file concurrency, a Node or `fileSetup` that confirms a shared project resource has failed must explicitly report `PROJECT_RESOURCE_ERROR` to stop other files in that project. Throw `WorkflowError` from `@midscene/test` with this `code`, either directly or nested in `cause` or `AggregateError.errors`.
 
-A Browser can belong to one file or be shared by the project; the framework does not infer ownership from closure messages. Unclassified Browser errors are treated as file errors. See [Handling failures](./use#handling-failures) for the affected scope.
+A Browser can belong to one file or be shared by the project; the framework does not infer ownership from closure messages. Unclassified Browser errors are treated as file errors. See [Handling failures](./execution#handling-failures) for the affected scope.
 
 ### Resource lifecycle and cleanup
 
@@ -300,8 +322,8 @@ Cleanup has these lifetimes:
 
 Within each scope, cleanup functions run in reverse registration order, or LIFO (last in, first out). Nodes can use them to release resources they created or finalize reports. Registering cleanup does not automatically create a new Agent or reset caches; those behaviors depend on the project implementation.
 
-If a Node times out but has not stopped, registered resource cleanup is deferred to avoid disposing of resources still in use. If a cleanup callback throws, remaining callbacks are still attempted; if a callback does not finish, subsequent callbacks wait for it. The framework bounds the wait for cleanup results and returns a `pending` snapshot if the limit is exceeded. Resources remain quarantined rather than being treated as cleaned up. See [Timeouts and cancellation](./configuration#timeouts-and-cancellation) for the waiting limits.
+If a Node times out but has not stopped, registered resource cleanup is deferred to avoid disposing of resources still in use. If a cleanup callback throws, remaining callbacks are still attempted; if a callback does not finish, subsequent callbacks wait for it. The framework bounds the wait for cleanup results and returns a `pending` snapshot if the limit is exceeded. Resources remain quarantined rather than being treated as cleaned up. See [Timeouts and cancellation](./execution#timeouts-and-cancellation) for the waiting limits.
 
-When a test run is interrupted, the framework still attempts to run `afterEach`, `afterAll`, and cleanup functions registered with `onTeardown()`. See [Timeouts and cancellation](./configuration#timeouts-and-cancellation) for details.
+When a test run is interrupted, the framework still attempts to run `afterEach`, `afterAll`, and cleanup functions registered with `onTeardown()`. See [Timeouts and cancellation](./execution#timeouts-and-cancellation) for details.
 
 Project-level browser and Agent cleanup is covered in [Create and clean up shared resources with setup](./configuration#create-and-clean-up-shared-resources-with-setup).

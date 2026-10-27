@@ -6,6 +6,34 @@ Midscene provides [midscene-action](https://github.com/marketplace/actions/midsc
 - Save HTML reports and test data as **artifacts** for download.
 - Optionally publish reports to **Cloudflare Workers** for online previews.
 
-If you do not have a test project yet, start with [Create and use test projects](./use).
+If you do not have a test project yet, start with [Create a test project](./use).
 
 For setup instructions, configuration parameters, and complete examples, see [midscene-action on GitHub Marketplace](https://github.com/marketplace/actions/midscene-action).
+
+## Connect an existing test project
+
+Complete [Create a test project](./use) locally and commit the project and pnpm lockfile. In your GitHub Actions workflow, prepare compatible Node.js and pnpm versions, then install dependencies in the test directory:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm exec playwright install --with-deps chromium
+```
+
+The browser command applies to the Web starter. Mobile and desktop tests need a runner with device or desktop access; see [Platforms](../platforms/). Start your application and wait for readiness when testing your own service.
+
+Supply the API Key through repository Secrets and model settings through Variables or workflow environment variables, matching your verified local setup. Do not commit a real `.env`. Add this to workflow `steps`:
+
+```yaml
+- name: Run Midscene tests
+  uses: web-infra-dev/midscene-action@v1
+  env:
+    MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+    MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+    MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+    MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+  with:
+    working-directory: tests/midscene
+    command: pnpm test
+```
+
+Replace `tests/midscene` with your test directory. Inspect the workflow Summary and download reports after the run; see [Read reports and diagnose failures](./reporting). Refer to the linked Action documentation for publishing, artifact retention, and other inputs.

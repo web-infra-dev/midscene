@@ -1,11 +1,39 @@
 # 在 GitHub Actions 中运行
 
-Midscene 提供了 [midscene-action](https://github.com/marketplace/actions/midscene-action)，用于在 GitHub Actions 中运行 Midscene Test。
+Midscene 提供了官方的 [midscene-action](https://github.com/marketplace/actions/midscene-action)，用于在 GitHub Actions 中运行 Midscene Test 并管理测试产物：
 
-- 自动将测试结果汇总到工作流的 **Summary**。
-- 将 HTML 报告和测试数据保存为 **Artifacts**，供下载查看。
-- 按需将报告发布到 **Cloudflare Workers**，通过链接在线预览。
+- 自动将测试执行结果汇总到 GitHub Actions 工作流的 **Summary** 页面。
+- 将 HTML 测试报告与结果数据打包保存为 **Artifacts**，方便下载排查。
+- 支持按需将测试报告发布到 **Cloudflare Workers**，生成在线预览链接。
 
-尚未创建测试项目时，请先阅读[创建和使用测试项目](./use)。
+关于完整的配置参数与进阶用法，请参阅 [GitHub Marketplace 上的 midscene-action 文档](https://github.com/marketplace/actions/midscene-action)。
 
-接入步骤、配置参数和完整示例，请参阅 [GitHub Marketplace 上的 midscene-action](https://github.com/marketplace/actions/midscene-action)。
+## 接入已有测试工程
+
+如果你还没有创建测试工程，请先在本地完成[创建测试项目](./use)，并将项目文件与 `pnpm-lock.yaml` 提交到代码仓库。
+
+在 GitHub Actions 工作流中，先配置满足项目版本要求的 Node.js 和 `pnpm`，随后在测试工程目录下安装依赖：
+
+```bash
+pnpm install --frozen-lockfile
+pnpm exec playwright install --with-deps chromium
+```
+
+上面的 Chromium 安装命令适用于 Web 测试项目。如果测试的是移动端或桌面端应用，需要确保 GitHub Actions Runner 能够访问对应的测试设备或桌面环境，具体环境要求请参阅[平台概览](../platforms/)。如果测试目标是当前仓库的业务服务，还需在运行测试前先启动服务并等待其就绪。
+
+接下来，在 GitHub 仓库的 **Secrets** 中配置 `MIDSCENE_MODEL_API_KEY`，并在 **Variables**（或工作流环境变量）中配置模型名称、服务地址和模型系列（请与本地验证通过的模型配置保持一致，切勿将包含真实密钥的 `.env` 文件提交到仓库）。最后在工作流的 `steps` 中调用 `midscene-action`：
+
+```yaml
+- name: Run Midscene tests
+  uses: web-infra-dev/midscene-action@v1
+  env:
+    MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+    MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+    MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+    MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+  with:
+    working-directory: tests/midscene
+    command: pnpm test
+```
+
+请将示例中的 `tests/midscene` 替换为你的实际测试工程目录。工作流运行结束后，可以在工作流的 **Summary** 页面查看结果概览，或在 **Artifacts** 中下载 HTML 报告。报告的查看与问题排查方式请参阅[查看报告](./reporting)。关于报告在线预览、产物保留时长及其他 Action 参数，请查阅 [midscene-action 文档](https://github.com/marketplace/actions/midscene-action)。

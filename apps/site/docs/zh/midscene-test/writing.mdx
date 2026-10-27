@@ -1,0 +1,318 @@
+# 编写 YAML 用例
+
+如果你还没有创建测试项目，请先完成[创建测试项目](./use)。
+
+## 了解可用的测试操作
+
+### 官方操作与按需扩展
+
+Midscene Test 将每一种可在 YAML 中调用的能力称为 **Node（节点）**。
+
+Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afterEach` 等[生命周期钩子](#定义执行生命周期)中调用，语法完全一致。
+
+所有平台都提供以下通用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 验证预期结果，`aiWaitFor` 等待界面出现指定状态，`wait` 等待指定时长。
+
+在这些通用能力之外，Midscene 还为各个平台预置了专用操作。例如：
+
+- **Web**：`gotoUrl` 打开网页、`setCookies` 设置 Cookie、`setViewportSize` 调整浏览器视口大小。
+- **Android**：`launch` 启动应用、`back` 返回上一页、`home` 返回主屏幕、`runAdbShell` 执行 ADB 命令。
+
+使用脚手架创建项目时，模板会根据所选平台显式注册对应的官方 Node。如果从零手写 `midscene.config.ts`，框架不会默认注册任何 Node，需要手动引入并配置。此外，你也可以按需扩展自定义能力（例如调用业务接口准备测试订单），详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
+
+### 生成当前项目的 Node 说明书
+
+不同平台、执行项目（Project）和依赖版本实际注册的 Node 可能有所不同。编写用例时，请勿仅凭其他项目的示例推测当前项目的可用能力。运行 `midscene-test nodes` 可以根据项目最终生效的注册结果生成 Node 说明书——它准确记录了当前项目可用的 Node 名称、输入参数与字符串简写规则，人和 AI Agent 都应以这份说明书为依据来编写 YAML 用例。
+
+脚手架在安装依赖后会自动生成 Node 说明书。当你修改了 `agentClass`、顶层 `nodes`、`projects[].nodes`、Node 的参数 Schema，或升级了 Midscene 相关依赖包后，都应重新运行以下命令更新说明书：
+
+```bash
+pnpm run nodes
+```
+
+你也可以直接调用 CLI 命令，并按需指定测试目录、配置文件或执行项目：
+
+```bash
+pnpm exec midscene-test nodes ./e2e --config ../config/midscene.config.ts
+pnpm exec midscene-test nodes --project android-smoke
+```
+
+说明书的文件名与输出位置遵循以下规则：
+
+- **未配置 `projects` 时**：默认生成单个 `midscene-node-spec.md`。
+- **配置了 `projects` 时**：默认按执行项目分别生成 `midscene-node-spec.<project-name>.md`（即使各项目的 Node 定义完全相同）；传入 `--project <name>` 可仅生成指定项目的说明书。若存在重名的 Project，或转换后的文件名发生冲突（含大小写差异），命令会在写入文件前直接报错。
+- **输出目录**：文件写入命令指定的目录；未指定目录时写入当前工作目录。
+
+生成命令仅加载项目配置与 Node 定义，不会执行 `setup`、测试用例或 `getAgent`，因此无需启动浏览器、连接设备或调用大模型。Node 说明书属于自动生成的文件，请勿手动编辑；配置变更后重新运行生成命令即可。
+
+生成的说明书包含以下内容：
+
+- **Available Nodes**：列出所有可调用的 Node（`aiAct` 与 `aiAssert` 固定排在最前，其余按名称排序）。
+- **Node Details**：展示每个 Node 的功能说明、字符串简写规则以及输入参数结构（由 Zod `inputSchema` 自动转换为标准 JSON Schema）。
+- **文件路径信息**：列出用例文件的匹配规则（`Case files`，对应各执行项目的 `files.include` 与 `files.exclude`）以及配置文件路径（`Config file`），路径均相对于说明书所在目录。
+
+## 编写 YAML 测试用例
+
+### 一个典型的 YAML 文件
+
+一份 YAML 文件可以包含多个测试用例，以及用例执行前后的准备和清理步骤。下面以商城搜索为例：每次运行用例前先打开首页，再搜索商品并验证结果（实际使用时请将网址和商品名称替换为你的业务内容）：
+
+```yaml filename=cases/search.yaml
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: 搜索商品
+    steps:
+      - aiAct: 在搜索框输入“马克杯”，点击搜索按钮
+      - aiAssert: 搜索结果中包含马克杯
+```
+
+文件中各部分的含义如下：
+
+- `beforeEach`：每个用例执行前运行的步骤（可选），适合打开页面、重置状态等准备工作。其他生命周期钩子详见[定义执行生命周期](#定义执行生命周期)。
+- `cases`：测试用例列表，至少包含一条用例。如需新增用例，在列表中添加新的 `name` 和 `steps` 即可。
+- `name`：用例名称，用于在运行结果和测试报告中标识该用例。
+- `steps`：按顺序执行的步骤列表，至少包含一个步骤。每个步骤只调用一个 Node，冒号后填写调用参数。
+
+在本文档中，我们将整份 YAML 文件称为 **Workflow Document（工作流文档）**，单条测试用例称为 **Case（用例）**，一次 Node 调用称为 **Step（步骤）**。
+
+上面的示例使用了字符串简写形式：`gotoUrl` 后的字符串会作为 `url` 参数传入，`aiAct` 和 `aiAssert` 后的字符串会作为 `prompt` 参数传入。如果需要传入更多参数，可以使用下文介绍的对象写法。某个 Node 是否支持字符串简写，以项目的 Node 说明书为准。
+
+### 关键 Node：操作与断言
+
+日常编写用例时，主要使用 `aiAct` 描述操作，使用 `aiAssert` 验证结果：
+
+| Node | 用途 | 编写方式 |
+| --- | --- | --- |
+| `aiAct` | 根据自然语言完成界面操作，可包含连续的多个动作。 | 描述要执行的操作，例如“搜索马克杯，将第一个商品加入购物车”。 |
+| `aiAssert` | 检查界面是否符合预期；若不符合，则该步骤失败。 | 描述界面上可观察到的预期结果，例如“购物车中有一件马克杯”。 |
+| `aiTap` | 点击指定的界面元素。 | 描述要点击的目标元素，例如“页面右上角的购物车图标”。 |
+
+界面操作执行完成并不代表测试通过，应在关键节点使用 `aiAssert` 明确验证预期结果。如果需要自定义断言失败时的报错提示，可以将参数展开为对象形式：
+
+```yaml
+steps:
+  - aiAct: 搜索马克杯，将第一个商品加入购物车
+  - aiTap: 页面右上角的购物车图标
+  - aiAssert:
+      prompt: 购物车中有一件马克杯
+      message: 加购后购物车内容不符合预期
+```
+
+`aiAct` 支持可选的 `options.effort` 参数，用于控制规划时的思考深度，可选值为 `fast`、`balance` 或 `deepThink`。省略时沿用 Agent 的默认设置；若同时传入了 `options.deepThink`，则以 `effort` 为准。例如：
+
+```yaml
+steps:
+  - aiAct:
+      prompt: 完成结算
+      options:
+        effort: deepThink
+```
+
+### 设置 AI 上下文
+
+推荐在 `beforeAll` 中调用 `setAIContext`，在当前文件的所有用例开始前统一配置背景知识；只要后续步骤复用同一个 Agent 实例，该配置就会对相关的 AI 操作持续生效。你也可以在 `beforeEach` 或用例的 `steps` 中按需设置或清除上下文，修改会从调用处开始生效。
+
+其参数结构与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default`，也可以是 `aiAct`、`aiTap`、`aiAssert` 等具体的 AI API 名称。
+
+**设置上下文**：传入 `context` 字符串，为指定 API 补充背景说明；若将 `target` 设为 `default`，则会设置所有 AI API 共用的默认上下文。
+
+```yaml
+beforeAll:
+  - setAIContext:
+      target: aiAct
+      context: |
+        整个流程使用测试账号。
+        如出现优惠券弹窗，关闭后继续。
+```
+
+**清除上下文**：省略 `context` 字段（等同于传入 `undefined`），即可移除 `target` 对应的上下文配置。
+
+```yaml
+beforeAll:
+  - setAIContext:
+      target: aiAct
+```
+
+清除特定 API 的上下文后，该 API 会回退使用 `default` 上下文；清除 `default` 则会移除全局默认上下文。如果想禁止某个 API 继承 `default` 上下文，可以将其 `context` 显式设为空字符串 `""`。
+
+单次步骤调用中传入的 `options.context` 优先级高于 Agent 级别的上下文配置（两者直接覆盖，不会拼接）。此外，上下文绑定在具体的 Agent 实例上，因此 `beforeAll` 与用例必须共享同一个 Agent 实例，配置才會跨阶段保持生效，直到被覆盖或清除。
+
+### 其他 Node 的调用模式
+
+平台内置操作与自定义业务 Node 采用相同的调用结构：**在 Node 名称下方以键值对形式填写参数**。下面展示含多个参数与无参数两种常见写法：
+
+```yaml
+steps:
+  - setViewportSize:
+      width: 1440
+      height: 900
+  - clearCookies: {}
+```
+
+其中 `setViewportSize` 接收一个参数对象，而 `clearCookies` 不需要参数，传入空对象 `{}` 即可。这两个 Node 均由 Web 平台预设提供；移动端、桌面端及团队自定义 Node 的可用列表与参数结构，请查阅当前项目的 Node 说明书。
+
+例如，当团队在项目中实现并注册了用于创建测试订单的自定义 Node `order.create` 后，即可在 YAML 中这样调用：
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      quantity: 2
+```
+
+参数值同样支持嵌套对象或数组。例如向 `aiAct` 传入参考图片时，文本和图片列表共同构成 `prompt` 对象，而 `options` 作为同级字段单独配置：
+
+```yaml
+steps:
+  - aiAct:
+      prompt:
+        prompt: 按照参考图完成设置
+        images:
+          - name: 目标状态
+            url: ./fixtures/target.png
+      options:
+        deepLocate: true
+```
+
+### 设置超时和错误处理
+
+步骤中的 `$` 字段用于配置框架级的步骤控制参数（如超时时间与容错策略）。这些参数由 Midscene Test 处理，不会传递给 Node 的 `input`。
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      quantity: 1
+      $:
+        timeout: 30000
+        continue-on-error: true
+```
+
+`$` 支持以下两个字段：
+
+- `timeout`：当前步骤的超时时间，单位为毫秒。
+- `continue-on-error`：设为 `true` 时，若当前步骤执行失败，允许继续执行当前阶段的后续步骤（默认值为 `false`）。但如果底层操作未能正常退出或资源清理出现异常，执行仍会中止。
+
+注意，`continue-on-error` 仅控制当前阶段是否继续往下走；只要用例中有任何一个步骤失败，该用例的最终状态仍为 `failed`。
+
+步骤超时并不意味着底层的异步操作已立即终止。在进入当前阶段的下一个步骤前，框架会等待已超时的操作彻底退出（默认最多等待 30 秒，独立计时，不占用下一步的超时时间）；若等待超时后仍未退出，则会停止执行后续步骤。底层操作退出后虽然可以继续使用 Agent，但页面或业务状态可能已处于中间态，仍需在后续步骤中确认或重置，详见[超时与取消机制](./execution#超时与取消机制)。
+
+### 使用项目变量与环境变量
+
+Midscene Test 会在步骤执行前递归解析 Node 输入参数中的变量占位符：
+
+```yaml
+steps:
+  - launch:
+      uri: ${appUri}
+  - api.createOrder:
+      baseURL: ${{TEST_API_BASE_URL}}
+      payload:
+        count: ${orderCount}
+```
+
+变量解析遵循以下规则：
+
+- `${name}`：读取当前执行项目的 `variables` 配置。若整个字段值仅由 `${name}` 构成（未与其他文本拼接），则会保留变量的原始 JSON 类型（如数字、布尔值、对象或数组）；对象或数组变量只能作为完整字段值使用，不支持嵌入到字符串中拼接。
+- `${{ENV_NAME}}`：读取环境变量，解析结果始终为字符串。
+- 引用未定义的变量会在用例收集阶段直接报错。变量替换仅作用于 Node 的输入参数，不作用于 `$` 控制字段。
+
+YAML 用例不支持 `set`、`saveAs` 或跨步骤输出引用语法。每个步骤独立运行，不会自动接收前序步骤的返回值；如需在不同步骤间共享数据，请通过自定义 Node 读写执行项目的 `context`。
+
+### 使用 tags 筛选 Case
+
+你可以为用例添加 `tags` 标签，以便按场景或平台筛选运行：
+
+```yaml
+cases:
+  - name: Android 冒烟下单
+    tags: [smoke, android]
+    steps:
+      - aiAct: 完成下单
+```
+
+工程维护者可以在各个执行项目（Project）中配置 `tags.include` 与 `tags.exclude`：排除规则（`exclude`）始终优先；当包含规则（`include`）非空时，用例只需命中其中任意一个标签即会被选中执行。
+
+## 用例设计约定
+
+Midscene Test 采用顺序执行与显式状态共享的设计，使每个 Node 的输入参数、执行上下文和依赖关系保持清晰：
+
+* **按声明顺序线性执行**：YAML 仅描述线性的测试步骤，不引入 DAG、条件分支或循环语法。如果遇到需要复杂动态编排的场景，建议在外部通过代码生成确定的线性 YAML 步骤序列，再交由 Midscene Test 执行。
+* **步骤之间不隐式传递输出**：每次 Node 调用仅依赖当前声明的输入参数与项目显式提供的 `context`，不会自动继承前序步骤的输出结果。如果多个步骤之间需要共享业务状态，应在自定义 Node 中通过读写项目 `context` 来实现。
+
+基于这一约定，每个 AI 步骤的自然语言指令也应当独立完整。例如，下面的断言使用“上一步的图标”来指代检查目标，依赖前一步的指令文本，属于错误写法：
+
+```yaml
+steps:
+  - aiAct: 点击商品详情页的收藏星标，将其点亮
+  # 错误：断言不会继承前一步的指令上下文，无法通过“上一步的图标”明确识别目标。
+  - aiAssert: 上一步的图标已经点亮
+```
+
+正确的做法是在断言中直接写明检查对象与预期状态，使该步骤本身就能表达完整的检查条件：
+
+```yaml
+steps:
+  - aiAct: 点击商品详情页的收藏星标，将其点亮
+  - aiAssert: 商品详情页的收藏星标处于点亮状态
+```
+
+简言之，虽然界面本身会保留前一步操作后的画面，但每条自然语言指令都应明确写出目标元素，避免使用“上一步”“刚才那个”等指代词。
+
+## 定义执行生命周期
+
+YAML 中的 `beforeAll` 会在项目级 `setup` 和文件级 `fileSetup`（如有配置）执行完毕后运行，并直接使用它们准备好的 `context`。三者的职责划分详见[项目生命周期](./execution#setupfilesetup-与-beforeall)；本节主要介绍 YAML 文件内生命周期钩子的写法。
+
+### 准备与清理步骤
+
+生命周期钩子用于在用例执行前后准备环境、重置状态或清理数据。四个钩子均为可选配置，与 `cases` 处于同一层级，内部步骤的写法与用例 `steps` 完全相同：
+
+| 钩子 | 执行时机 | 常见用途 |
+| --- | --- | --- |
+| `beforeAll` | 当前 YAML 文件的所有用例开始前执行一次 | 准备当前文件所有用例共用的测试数据 |
+| `beforeEach` | 每条用例每次执行前运行（包括重试） | 打开起始页面、重置界面或业务状态 |
+| `afterEach` | 每条用例每次执行后运行（无论成败或重试） | 清理当次用例执行产生的数据或状态 |
+| `afterAll` | 当前 YAML 文件的所有用例结束后执行一次 | 清理当前文件共用的测试数据 |
+
+在下面的 Web 示例中，每条用例开始前都会打开商城首页，结束后清除 Cookie。其中 `data.prepare` 和 `data.cleanup` 是团队自行实现并注册的自定义 Node，分别用于准备和清理测试商品；`gotoUrl`、`clearCookies`、`aiAct` 和 `aiAssert` 则是 Web 脚手架默认注册的官方 Node（实际使用时请替换示例网址和商品名称）：
+
+```yaml filename=cases/search.yaml
+beforeAll:
+  - data.prepare: 准备马克杯和水壶两种测试商品
+
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: 搜索马克杯
+    steps:
+      - aiAct: 搜索马克杯
+      - aiAssert: 搜索结果中包含马克杯
+
+  - name: 搜索水壶
+    steps:
+      - aiAct: 搜索水壶
+      - aiAssert: 搜索结果中包含水壶
+
+afterEach:
+  - clearCookies: {}
+
+afterAll:
+  - data.cleanup: 删除本文件准备的测试商品
+```
+
+### 执行顺序与重试
+
+在没有步骤失败或重试的情况下，上述文件的执行顺序如下：
+
+```text
+beforeAll
+  用例 1：beforeEach → steps → afterEach
+  用例 2：beforeEach → steps → afterEach
+afterAll
+```
+
+如果配置了失败重试，当某条用例执行失败时，框架会先等待当前操作彻底退出并完成本次 `afterEach` 清理，随后在重试次数上限内重新执行 `beforeEach → steps → afterEach`，结束后再继续执行下一条用例。重试期间不会重复运行 `beforeAll`，`afterAll` 也依然只在文件末尾运行一次。注意，重试次数只是上限——如果底层操作未能及时退出或清理步骤执行失败，框架会提前终止重试。
+
+关于失败后的跳过、重试与清理规则，请参阅[生命周期与并发](./execution)。关于如何指定运行目标与排查结果，请参阅[运行测试](./running)和[查看报告](./reporting)。

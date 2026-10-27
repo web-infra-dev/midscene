@@ -357,9 +357,9 @@ export MIDSCENE_MODEL_FAMILY="替换为你的模型对应的 family"
 
 ### 通过 `.env` 文件配置
 
-Midscene Test（`@midscene/test`）和[旧版 YAML 脚本运行器](./yaml-script-runner)（`@midscene/cli`）会自动读取 `.env` 文件中的配置。
+Midscene Test 的脚手架配置会加载配置文件旁的 `.env`，默认保留已有环境变量。手写配置需要显式加载文件或由 Shell / CI 提供环境变量，详见[环境变量加载](./midscene-test/running#环境变量加载)。[旧版 YAML 脚本运行器](./yaml-script-runner)（`@midscene/cli`）会自动读取工作目录中的 `.env`。
 
-使用 Midscene Test 时，在生成的测试项目目录中将 `.env.example` 复制为 `.env`，填入模型配置后运行 `pnpm test`，详见[创建与使用测试项目](./midscene-test/use)。使用旧版 YAML 脚本运行器时，在运行 `midscene` 命令的目录中创建 `.env`。
+使用 Midscene Test 时，在生成的测试项目目录中将 `.env.example` 复制为 `.env`，填入模型配置后运行 `pnpm test`，详见[创建测试项目](./midscene-test/use)。使用旧版 YAML 脚本运行器时，在运行 `midscene` 命令的目录中创建 `.env`。
 
 `.env` 文件内容示例：
 

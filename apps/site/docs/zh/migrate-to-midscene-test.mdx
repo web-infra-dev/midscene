@@ -183,7 +183,7 @@ cases:
 
 ### 脚本和 Agent 配置映射
 
-`midscene` 会继续读取旧 YAML 顶层配置。迁移为原生 Test 时，这些字段不再放在 Case YAML 中，而是进入 `midscene.config.ts`、`setup` / `fileSetup` 或 Node。共享资源放入 `setup`，每份文件独立使用的资源放入 `fileSetup`，业务前置步骤放入 YAML 钩子。三者的区别见[setup、fileSetup 与 beforeAll](./midscene-test/configuration#setupfilesetup-与-beforeall)。
+`midscene` 会继续读取旧 YAML 顶层配置。迁移为原生 Test 时，这些字段不再放在 Case YAML 中，而是进入 `midscene.config.ts`、`setup` / `fileSetup` 或 Node。共享资源放入 `setup`，每份文件独立使用的资源放入 `fileSetup`，业务前置步骤放入 YAML 钩子。三者的区别见[setup、fileSetup 与 beforeAll](./midscene-test/execution#setupfilesetup-与-beforeall)。
 
 | 旧版脚本字段 | 原生 Test 配置或机制 | 说明 |
 | --- | --- | --- |
@@ -262,7 +262,7 @@ export default defineTestProject({
 | `dotenvOverride`、`dotenvDebug` | 项目的环境变量加载方式 | 原生读取 `process.env`；依赖 `.env` 文件时，在配置文件或启动脚本中显式加载，并在那里设置优先级和调试行为。 |
 | `web`、`android`、`ios`、`harmony`、`computer`、`interface` | `setup` / `fileSetup`、`variables` 和平台注册 Node | 按共享范围准备资源；可序列化的环境差异放入 `variables`。 |
 
-上面的原生示例迁移了文件选择、用例重试和失败阈值，未保留旧版的前置文件和文件并发。需要并发时，按[文件并发配置](./midscene-test/configuration#使用-maxconcurrentfiles-开启文件并发)补充 `test.maxConcurrentFiles` 和 `fileSetup`。保留原用例和批配置时，继续使用 `midscene`；旧 `concurrent` / `--concurrent` 和前置文件行为不变。
+上面的原生示例迁移了文件选择、用例重试和失败阈值，未保留旧版的前置文件和文件并发。需要并发时，按[文件并发配置](./midscene-test/execution#使用-maxconcurrentfiles-开启文件并发)补充 `test.maxConcurrentFiles` 和 `fileSetup`。保留原用例和批配置时，继续使用 `midscene`；旧 `concurrent` / `--concurrent` 和前置文件行为不变。
 
 `midscene` 保留旧输出命名规则：显式 flow `name`、未命名提取结果的数字键，以及重复名称的覆盖规则均保留。
 

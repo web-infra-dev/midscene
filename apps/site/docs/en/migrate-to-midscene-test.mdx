@@ -183,7 +183,7 @@ This example changes the input structure without changing business execution ord
 
 ### Script and Agent configuration mapping
 
-`midscene` continues to read top-level legacy YAML configuration. In a native migration, move these fields out of Case YAML and into `midscene.config.ts`, `setup` / `fileSetup`, or Nodes. Use `setup` for shared resources, `fileSetup` for each file's resources, and YAML hooks for business prerequisites. See [setup, fileSetup, and beforeAll](./midscene-test/configuration#setup-filesetup-and-beforeall).
+`midscene` continues to read top-level legacy YAML configuration. In a native migration, move these fields out of Case YAML and into `midscene.config.ts`, `setup` / `fileSetup`, or Nodes. Use `setup` for shared resources, `fileSetup` for each file's resources, and YAML hooks for business prerequisites. See [setup, fileSetup, and beforeAll](./midscene-test/execution#setup-filesetup-and-beforeall).
 
 | Legacy script field | Native Test configuration or mechanism | Notes |
 | --- | --- | --- |
@@ -262,7 +262,7 @@ export default defineTestProject({
 | `dotenvOverride`, `dotenvDebug` | Project environment-loading policy | Native Test reads `process.env`. If you rely on an `.env` file, load it explicitly in the config or launch script and configure precedence and debugging there. |
 | `web`, `android`, `ios`, `harmony`, `computer`, `interface` | `setup` / `fileSetup`, `variables`, and registered platform Nodes | Prepare resources according to sharing scope; keep serializable environment differences in `variables`. |
 
-The native example above migrates file selection, case retries, and the failure threshold; it does not preserve legacy setup-file behavior or file concurrency. For concurrency, add `test.maxConcurrentFiles` and `fileSetup` as shown in [File concurrency](./midscene-test/configuration#file-concurrency-with-maxconcurrentfiles). To keep existing cases and batch configuration, continue using `midscene`; legacy `concurrent` / `--concurrent` and setup-file behavior remain unchanged.
+The native example above migrates file selection, case retries, and the failure threshold; it does not preserve legacy setup-file behavior or file concurrency. For concurrency, add `test.maxConcurrentFiles` and `fileSetup` as shown in [File concurrency](./midscene-test/execution#file-concurrency-with-maxconcurrentfiles). To keep existing cases and batch configuration, continue using `midscene`; legacy `concurrent` / `--concurrent` and setup-file behavior remain unchanged.
 
 The `midscene` entry preserves legacy output naming: explicit flow `name` values, numeric keys for unnamed extracted results, and the existing overwrite behavior for duplicate names.
 

@@ -1,0 +1,85 @@
+# Read reports and diagnose failures
+
+Open the `Report:` path printed after a run. Reports default to `midscene_run/report/`; change this with `output.reportDir`. See [Run tests](./running) for structured results and exit codes.
+
+## Determine the overall outcome
+
+Test Report organizes results as **Project → File → Case**. Final Case states are **Passed**, **Failed**, and **Not run**. A Case that passes after retry belongs to Passed; `passed after retry` highlights earlier failures without adding another case count.
+
+Check failed Cases, then File and Project errors. Initialization, collection, and cleanup can fail outside cases: even with every Case passing and a 100% pass rate, the run can fail. Files that collected no Cases still show their errors without inventing failed Cases.
+
+## Find the failed case and step
+
+1. Search project, file, case names, or error text in the overview, and use the project's **Failed** filter.
+2. Open a Case and inspect the failed Step's error, inputs, and outputs. **Detailed** adds screenshots and short failure reasons; **Compact** helps scan many cases.
+3. Use **Attempts** to inspect failed attempts. Passed Cases open the last successful attempt by default; historical errors do not change the final state.
+4. Inspect screenshots and Agent execution in **Record**, then check Input, Output, and relevant settings in **Information**.
+5. Expand error **details** for codes, the failed Node, and stacks. Use **Events** when investigating timeouts or cleanup.
+
+**Not run** means the case never executed, for example because preparation failed or scheduling stopped. Check the owning File / Project first. See [Execution lifecycle and concurrency](./execution) for failure scope.
+
+Search covers the whole report; status filters apply to the current project. **Clear filters** restores the full list. **View all cases** switches between cases in multi-case reports. The **YAML** view is available when the report includes a source YAML snapshot.
+
+## Investigate timeouts, cancellation, and cleanup
+
+Reports preserve the execution plan, executed and unexecuted steps, reasons for skipping, and reasons retries stopped. They are snapshots, not live views of resources.
+
+`cleanup pending` means cleanup was unfinished when the report was generated. **Execution still running** / **pending** means an underlying operation had not exited when the runner returned. Later cleanup does not rewrite the generated HTML.
+
+**Information captured at** is the observation time, which may precede step completion. Use **Events** to inspect later completion or cancellation. Waiting for an old operation to exit is recorded separately from step execution. A `-` with no result status in Events does not indicate failure.
+
+### Events reference
+
+**Operation** column describes what is running. Hover over an operation or event label to see its original log name and an explanation. Operation hints also include the Operation ID for matching log entries.
+
+| Operation label | Original name | Meaning |
+| --- | --- | --- |
+| Run step | `node` | The entire Step, including any Agent operations. Applies to both built-in and custom Nodes. |
+| Get Agent | `acquisition` | Get the Agent used by this Step; an existing Agent may be reused. |
+| Run Agent operation | `resource` | Run an operation through the Agent, such as clicking, asserting, or recording a screenshot. |
+| Wait for app readiness | `readiness` | Wait for the configured readiness callback after an action. |
+| Clean up resources | `cleanup` | Run cleanup for resources used during execution. |
+
+These operations are not consecutive, non-overlapping stages. **Run step** includes its internal operations, so do not add their durations to the Step's total duration. For example, Runner's `wait` and custom Nodes that do not use the Agent adapter only have **Run step** events. An `aiAct` or `aiAssert` Step typically gets an Agent, then runs an Agent operation inside **Run step**. Planning, locating, and individual UI actions are shown in **Record**.
+
+| Event label | Original name | Meaning |
+| --- | --- | --- |
+| Started | `started` | The operation has started. |
+| Finished | `settled` | The operation has ended; check Status for its outcome. |
+| Result returned | `runner-returned` | The Runner has returned the Step result. The underlying operation may still be running. |
+| Cancellation requested | `cancel-requested` | Cancellation was requested; the operation may still be running. |
+| Cleanup postponed | `cleanup-deferred` | Cleanup was postponed while unfinished operations still use the resources. |
+
+**Execution still running** and a **pending** badge mean the operation had not ended when the Runner returned its result. This can happen on timeout or cancellation and does not describe its state after the report's capture boundary. A Status of `-` means the event has no outcome, not that it failed.
+
+## Save and share reports
+
+The default report path is `midscene_run/report/midscene-e2e-<runId>.html`. With external screenshots, the report consists of `index.html` and `screenshots/`; preserve the entire directory when copying or uploading. See [Run in GitHub Actions](./github-actions) for CI artifacts.
+
+Step diagnostics may contain redaction or truncation markers; truncation does not mean no error details exist. For extraction from individual Agent reports, see [Process report files](../consume-report-file); that serves a different purpose from Test `summary.json`.
+
+### Link to a report Step
+
+Use the `runner-step` URL hash parameter to open a report at a specific Step. In addition to a concrete Step ID, reports accept portable selectors that do not depend on generated run IDs:
+
+| Selector | Target |
+| --- | --- |
+| `first` | Earliest started Step |
+| `last` | Most recently completed Step |
+| `first-error` | Earliest started failed Step, including failed retry attempts |
+| `last-error` | Most recently completed failed Step, including failed retry attempts |
+
+Without an explicit Case route, selectors search the complete report. When the URL includes `runner-page=case`, `runner-project`, and `runner-case`, the selector searches only that Case. If no Step matches, the report shows an informational message and does not open an unrelated Agent trace.
+
+For example, this URL opens the last failed Step in a report:
+
+```text
+https://example.com/report/index.html#runner-step=last-error
+```
+
+Add `runner-trace=page` to open the Step's Agent trace as a full page when the Step has associated Agent details:
+
+```text
+https://example.com/report/index.html#runner-step=last-error&runner-trace=page
+```
+

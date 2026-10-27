@@ -1,0 +1,72 @@
+# Run tests and CLI reference
+
+If you have not created a project, start with [Create a test project](./use).
+
+## Run tests
+
+Run YAML test cases from the project root:
+
+```bash
+pnpm exec midscene-test
+```
+
+### Specify a test case directory or file
+
+Generated projects use `files.include` to select `.yaml` and `.yml` files under `cases/`. Without a `files` configuration, Midscene Test recursively searches the test directory for YAML files, ignoring `node_modules` and `.git`.
+
+A directory argument changes the test root. Configuration is discovered only in that directory, without searching parent directories. For a file argument, the test root is its containing directory. `--config` and `files.include` / `exclude` resolve relative to the test root; `--result-dir` resolves relative to the shell working directory.
+
+If configuration lives in the project root, explicitly select it when running a single file:
+
+```bash
+pnpm exec midscene-test ./cases/order.yaml --config ../midscene.config.ts
+```
+
+A single-file input selects that file directly, bypassing `files.include` / `exclude`; tag filtering still applies. To select a subdirectory, keep running from the project root and set `files.include` to `cases/smoke/**/*.{yaml,yml}` instead of changing the path base.
+
+### Filter execution targets and configuration files
+
+If a project defines multiple platforms or environments, select specific Execution Projects or specify a custom configuration file on the command line:
+
+```bash
+# Run only the android-smoke and ios-regression Execution Projects
+pnpm exec midscene-test --project android-smoke --project ios-regression
+
+# Run tests with a specific configuration file
+pnpm exec midscene-test --config ./config/midscene.config.ts
+```
+
+To generate the Node Spec for a specific Execution Project, also use `--project`:
+
+```bash
+pnpm exec midscene-test nodes --project android-smoke
+```
+
+### Result output
+
+Use `--result-dir` to write structured run results to a specific directory:
+
+```bash
+pnpm exec midscene-test --result-dir ./test-results
+```
+
+The CLI exits with code `1` when a test case fails, a document cannot be parsed, or an error occurs during collection.
+
+### Diagnostics and result files
+
+Default terminal output summarizes cases. For full step diagnostics, run:
+
+```bash
+pnpm exec midscene-test --reporter verbose
+pnpm exec midscene-test --help
+```
+
+Structured results default to `.midscene/test-results/<runId>/` under the test root, including `summary.json` and readable `result.md`. `--result-dir` changes the results root; each run still gets a separate subdirectory. `output.reportDir` controls HTML reports independently. Use the printed `Summary:` and `Report:` paths.
+
+Use the exit code for the overall outcome: `0` for success, `1` for failures in cases, collection, or project/file lifecycle operations. Cleanup errors can fail a run even when every case passes. Result structures evolve with versions; integrations should use the actual output of their installed version.
+
+### Environment loading
+
+Scaffolded configuration uses `dotenv` to load `.env` beside the configuration file, preserving existing shell variables by default. A normal `midscene-test` run does not automatically load `.env` for handwritten configuration; load it in your configuration or supply variables through the shell or CI. In contrast, `model verify` reads `.env` from the working directory and overrides matching shell variables. Ensure both commands use the intended model settings.
+
+To call the framework from code, see [Programmatic APIs](./configuration#programmatic-apis). For scaffolding options, see [Create command reference](./use#create-command-reference).

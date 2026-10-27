@@ -217,28 +217,42 @@ export default defineConfig(async () => {
             link: '/platforms/',
           },
           {
-            text: 'Integrate with Playwright',
-            link: '/integrate-with-playwright',
+            text: 'Web',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: 'Playwright',
+                link: '/integrate-with-playwright',
+              },
+              {
+                text: 'Puppeteer',
+                link: '/integrate-with-puppeteer',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/bridge-mode',
+              },
+            ],
           },
           {
-            text: 'Integrate with Puppeteer',
-            link: '/integrate-with-puppeteer',
-          },
-          {
-            text: 'Bridge to the desktop Chrome',
-            link: '/bridge-mode',
-          },
-          {
-            text: 'Android',
-            link: '/platforms/android',
-          },
-          {
-            text: 'iOS',
-            link: '/platforms/ios',
-          },
-          {
-            text: 'HarmonyOS',
-            link: '/platforms/harmonyos',
+            text: 'Mobile',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: 'Android',
+                link: '/platforms/android',
+              },
+              {
+                text: 'iOS',
+                link: '/platforms/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/platforms/harmonyos',
+              },
+            ],
           },
           {
             text: 'Desktop',
@@ -252,20 +266,50 @@ export default defineConfig(async () => {
             link: '/midscene-test/overview',
           },
           {
-            text: 'Create and run test projects',
+            text: 'Create a test project',
             link: '/midscene-test/use',
           },
           {
-            text: 'Configure test projects',
-            link: '/midscene-test/configuration',
+            text: 'Write YAML cases',
+            link: '/midscene-test/writing',
           },
           {
-            text: 'Develop custom Nodes',
-            link: '/midscene-test/extend',
+            text: 'Run and troubleshoot',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: 'Run tests',
+                link: '/midscene-test/running',
+              },
+              {
+                text: 'View reports',
+                link: '/midscene-test/reporting',
+              },
+              {
+                text: 'GitHub Actions',
+                link: '/midscene-test/github-actions',
+              },
+            ],
           },
           {
-            text: 'Run in GitHub Actions',
-            link: '/midscene-test/github-actions',
+            text: 'Configure and extend',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: 'Configure test projects',
+                link: '/midscene-test/configuration',
+              },
+              {
+                text: 'Develop custom Nodes',
+                link: '/midscene-test/extend',
+              },
+              {
+                text: 'Lifecycle and concurrency',
+                link: '/midscene-test/execution',
+              },
+            ],
           },
           {
             sectionHeaderText: 'Legacy YAML automation',
@@ -405,28 +449,42 @@ export default defineConfig(async () => {
             link: '/zh/platforms/',
           },
           {
-            text: '集成到 Playwright',
-            link: '/zh/integrate-with-playwright',
+            text: 'Web',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: 'Playwright',
+                link: '/zh/integrate-with-playwright',
+              },
+              {
+                text: 'Puppeteer',
+                link: '/zh/integrate-with-puppeteer',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/zh/bridge-mode',
+              },
+            ],
           },
           {
-            text: '集成到 Puppeteer',
-            link: '/zh/integrate-with-puppeteer',
-          },
-          {
-            text: '桥接到桌面 Chrome',
-            link: '/zh/bridge-mode',
-          },
-          {
-            text: 'Android',
-            link: '/zh/platforms/android',
-          },
-          {
-            text: 'iOS',
-            link: '/zh/platforms/ios',
-          },
-          {
-            text: 'HarmonyOS',
-            link: '/zh/platforms/harmonyos',
+            text: '移动端',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: 'Android',
+                link: '/zh/platforms/android',
+              },
+              {
+                text: 'iOS',
+                link: '/zh/platforms/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/zh/platforms/harmonyos',
+              },
+            ],
           },
           {
             text: '桌面端',
@@ -440,20 +498,50 @@ export default defineConfig(async () => {
             link: '/zh/midscene-test/overview',
           },
           {
-            text: '创建与运行测试工程',
+            text: '创建测试项目',
             link: '/zh/midscene-test/use',
           },
           {
-            text: '配置测试工程',
-            link: '/zh/midscene-test/configuration',
+            text: '编写 YAML 用例',
+            link: '/zh/midscene-test/writing',
           },
           {
-            text: '开发自定义 Node',
-            link: '/zh/midscene-test/extend',
+            text: '运行与排查',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: '运行测试',
+                link: '/zh/midscene-test/running',
+              },
+              {
+                text: '查看报告',
+                link: '/zh/midscene-test/reporting',
+              },
+              {
+                text: 'GitHub Actions',
+                link: '/zh/midscene-test/github-actions',
+              },
+            ],
           },
           {
-            text: '在 GitHub Actions 中运行',
-            link: '/zh/midscene-test/github-actions',
+            text: '配置与扩展',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: '配置测试工程',
+                link: '/zh/midscene-test/configuration',
+              },
+              {
+                text: '开发自定义 Node',
+                link: '/zh/midscene-test/extend',
+              },
+              {
+                text: '生命周期与并发',
+                link: '/zh/midscene-test/execution',
+              },
+            ],
           },
           {
             sectionHeaderText: '旧版 YAML 自动化',

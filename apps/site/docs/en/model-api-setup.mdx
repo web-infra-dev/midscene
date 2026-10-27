@@ -357,9 +357,9 @@ export MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
 
 ### Configure through a `.env` file
 
-Midscene Test (`@midscene/test`) and the [legacy YAML script runner](./yaml-script-runner) (`@midscene/cli`) automatically load configuration from `.env`.
+Scaffolded Midscene Test configuration loads `.env` beside the configuration file, preserving existing environment variables by default. Handwritten configuration must load it explicitly or use shell/CI variables; see [Environment loading](./midscene-test/running#environment-loading). The [legacy YAML script runner](./yaml-script-runner) (`@midscene/cli`) automatically loads `.env` from the working directory.
 
-For Midscene Test, copy `.env.example` to `.env` in the generated test project directory, fill in the model configuration, then run `pnpm test`. See [Create and use test projects](./midscene-test/use) for details. For the legacy YAML script runner, create `.env` in the directory where you run `midscene`.
+For Midscene Test, copy `.env.example` to `.env` in the generated test project directory, fill in the model configuration, then run `pnpm test`. See [Create a test project](./midscene-test/use) for details. For the legacy YAML script runner, create `.env` in the directory where you run `midscene`.
 
 Example `.env` contents:
 

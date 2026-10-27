@@ -1,0 +1,87 @@
+# 查看报告
+
+测试运行结束后，可以在浏览器中打开终端输出的 `Report:` 路径查看 HTML 报告。报告默认生成在 `midscene_run/report/` 目录下，可通过配置文件中的 `output.reportDir` 修改输出位置。关于结构化结果文件与 CLI 退出码，请参阅[运行测试](./running)。
+
+## 判断整次运行的结果
+
+测试报告按 **Project → File → Case** 的层级组织结果。每条用例（Case）的最终状态为 **Passed**、**Failed** 或 **Not run**。重试后通过的用例归为 **Passed**，报告中的 `passed after retry` 标签仅用于提示该用例曾发生过失败重试，不会重复计入用例总数。
+
+排查问题时，建议先查看失败的 Case，再检查 File 和 Project 级别的报错。需要注意的是，环境初始化、用例收集或资源清理阶段的报错发生在具体用例之外——因此，即使所有已执行的 Case 均显示通过（通过率为 100%），整次测试运行仍可能因为生命周期报错而失败。如果某个 YAML 文件在收集阶段就发生错误（尚未解析出任何 Case），错误会直接记录在该 File 下，不会凭空生成一条失败的虚拟 Case。
+
+## 定位失败的用例与步骤
+
+1. 在报告总览页搜索项目、文件、用例名称或报错文本，或使用项目内的 **Failed** 状态筛选器快速定位失败项。
+2. 点击进入目标 Case，查看失败步骤（Step）的报错信息与输入输出。你可以使用 **Detailed** 视图查看界面截图与简要失败原因，或切换到 **Compact** 视图快速浏览多条用例。
+3. 如果用例经过了多次重试，可通过 **Attempts** 切换查看历次失败记录。最终通过的用例默认展示最后一次成功执行的记录。
+4. 在步骤详情的 **Record** 面板中查看界面截图与 Agent 执行回放，核对界面的实际状态；在 **Information** 面板中检查该步骤的 Input、Output 及相关配置。
+5. 展开报错区域的 **details**，查看错误码、失败的 Node 名称和调用堆栈。如果需要进一步分析步骤超时或资源清理过程，可查看 **Events** 面板。
+
+状态为 **Not run** 表示该用例未被执行（例如因前置准备步骤失败或后续调度中止而跳过），此时应先检查其所属 File 或 Project 级别的报错信息。关于失败后的跳过与调度规则，请参阅[生命周期与并发](./execution)。
+
+提示：搜索框作用于整份报告，而状态筛选器仅作用于当前选中的 Project；点击 **Clear filters** 可恢复完整列表。在包含多条用例的报告中，可通过 **View all cases** 切换用例；若报告保存了源 YAML 快照，还可切换到 **YAML** 视图对照源码与执行步骤。
+
+## 分析超时、取消和清理
+
+HTML 报告记录的是生成时刻的执行快照（包含执行计划、已执行与未执行的步骤、跳过原因以及重试终止原因），生成后不会随底层运行资源的后续变化而实时刷新。
+
+在查看超时或取消相关的状态标记时，请注意以下几点：
+
+- `cleanup pending`：表示生成报告时资源清理尚未完成。后续即使清理完成，也不会回写到已生成的静态 HTML 报告中。
+- **Execution still running** / **pending**：表示 Runner 返回步骤结果时，底层的异步操作尚未退出（常见于步骤超时或取消场景），不代表查看报告当下的实时状态。
+- **Information captured at**：代表该步骤信息的采集时间，可能早于底层操作真正结束的时间。
+- **Events** 面板可用于核对操作后续的完成或取消时间线；等待超时操作退出的耗时与步骤本身的执行耗时是分开记录的。
+
+### Events 参考
+
+在 **Events** 面板中，**Operation** 列表示当前正在执行的动作层级。将鼠标悬停在 Operation 或 Event 文案上，可以查看对应的内部原始名称、说明以及 Operation ID（便于对照终端或日志文件排查）：
+
+| Operation 文案 | 原始名称 | 含义 |
+| --- | --- | --- |
+| Run step | `node` | 执行整个 Step（包含其内部的 Agent 操作）；内置 Node 和自定义 Node 均包含这一层。 |
+| Get Agent | `acquisition` | 获取当前 Step 使用的 Agent 实例（可能复用已有实例）。 |
+| Run Agent operation | `resource` | 通过 Agent 执行具体操作，例如点击、断言或采集截图。 |
+| Wait for app readiness | `readiness` | 动作完成后，等待已配置的应用就绪回调。 |
+| Clean up resources | `cleanup` | 清理执行过程中分配的资源。 |
+
+注意，上述 Operation 是父子包含关系，而非先后并列的阶段。**Run step** 已经包含了其内部子操作的耗时，因此不要将内部子操作的耗时重复累加到 Step 总耗时上。例如，内置的 `wait` 以及不经过 Agent 的自定义 Node 只有 **Run step** 事件；而 `aiAct`、`aiAssert` 通常会在 **Run step** 内依次触发 **Get Agent** 和 **Run Agent operation**。关于 AI 规划、视觉定位及具体界面动作的细节，请在 **Record** 面板中查看。
+
+| Event 文案 | 原始名称 | 含义 |
+| --- | --- | --- |
+| Started | `started` | 操作开始。 |
+| Finished | `settled` | 操作已结束（成功或失败取决于 Status 列）。 |
+| Result returned | `runner-returned` | Runner 已返回 Step 结果，但底层操作可能仍在运行。 |
+| Cancellation requested | `cancel-requested` | 已发出取消请求，但底层操作可能尚未退出。 |
+| Cleanup postponed | `cleanup-deferred` | 尚未退出的操作仍占用着资源，清理动作被推迟。 |
+
+事件列表中 **Status** 列显示为 `-` 仅代表该事件属于过程通知（无成功/失败状态），不代表执行失败。
+
+## 保存和分享报告
+
+报告默认生成在 `midscene_run/report/midscene-e2e-<runId>.html`。如果报告采用外置截图模式，产物目录中会包含 `index.html` 和 `screenshots/` 文件夹，复制或上传时请保留整个目录。在 CI 中归档报告产物的方法请参阅[在 GitHub Actions 中运行](./github-actions)。
+
+为避免报告体积过大或泄露敏感信息，部分超长字段或敏感内容会带有截断或脱敏标记，排查时请勿将截断标记误认为缺少错误详情。此外，如果你需要用程序提取单个 Agent 报告中的数据，请参阅[处理报告文件](../consume-report-file)（该机制与 Midscene Test 生成的 `summary.json` 用途不同）。
+
+### 链接到报告中的指定步骤
+
+你可以通过 URL Hash 参数 `runner-step` 直接定位并打开报告中的指定 Step。除了传入具体的 Step ID 外，报告还支持以下不依赖运行 ID 的通用选择器：
+
+| 选择器 | 定位目标 |
+| --- | --- |
+| `first` | 最早开始执行的 Step |
+| `last` | 最晚执行完成的 Step |
+| `first-error` | 最早开始执行的失败 Step（包含失败的重试记录） |
+| `last-error` | 最晚执行完成的失败 Step（包含失败的重试记录） |
+
+当 URL 中未指定具体 Case 路由时，选择器会在整份报告范围内查找；当 URL 同时包含 `runner-page=case`、`runner-project` 和 `runner-case` 时，选择器仅在该 Case 内部查找。若未找到匹配的 Step，报告会显示提示信息，不会打开无关的 Agent 执行详情。
+
+例如，以下 URL 会直接定位到报告中最后一个失败的步骤：
+
+```text
+https://example.com/report/index.html#runner-step=last-error
+```
+
+如果该步骤关联了 Agent 执行回放，还可以追加 `runner-trace=page`，直接以全屏页面方式展开 Agent 执行详情：
+
+```text
+https://example.com/report/index.html#runner-step=last-error&runner-trace=page
+```

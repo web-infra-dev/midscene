@@ -1,0 +1,84 @@
+# 运行测试
+
+如果你还没有创建测试项目，请先完成[创建测试项目](./use)。
+
+## 基本用法
+
+在项目根目录下运行以下命令，即可执行项目中的 YAML 测试用例：
+
+```bash
+pnpm exec midscene-test
+```
+
+### 指定用例目录或文件
+
+脚手架生成的项目默认通过 `files.include` 匹配 `cases/` 目录下的 `.yaml` 和 `.yml` 文件。如果配置文件中未声明 `files`，Midscene Test 会递归查找测试根目录下的所有 YAML 文件（自动忽略 `node_modules` 和 `.git`）。
+
+在命令行中传入目录或文件路径时，请留意**测试根目录（Test Root）**的变化及其对路径解析的影响：
+
+- **测试根目录的确定**：未传路径参数时，测试根目录为当前工作目录；传入目录参数时，测试根目录变为该目录；传入单个文件时，测试根目录变为该文件所在的目录。
+- **相对于测试根目录解析**：默认配置文件查找（仅在测试根目录下查找，不会向上级目录回溯）、`--config` 参数路径，以及配置中的 `files.include` / `files.exclude`。
+- **相对于当前工作目录解析**：`--result-dir` 参数路径。
+
+因此，当 `midscene.config.ts` 位于项目根目录、而你只想运行 `cases/` 子目录下的单个文件时，需要显式传入 `--config`（注意它相对于目标文件所在的 `cases/` 目录解析）：
+
+```bash
+pnpm exec midscene-test ./cases/order.yaml --config ../midscene.config.ts
+```
+
+直接指定单个文件时，该文件不受 `files.include` / `files.exclude` 规则限制，但 `tags` 标签筛选依然生效。如果你想只运行某个子目录（如 `cases/smoke`），建议仍在项目根目录下运行命令，并通过将配置中的 `files.include` 设为 `cases/smoke/**/*.{yaml,yml}` 来限定范围，避免改变测试根目录。
+
+### 过滤执行项目与指定配置文件
+
+如果工程中配置了多个平台或运行环境，可以通过 `--project` 指定只运行特定的执行项目（Project），或通过 `--config` 指定自定义配置文件：
+
+```bash
+# 仅运行名为 android-smoke 和 ios-regression 的执行项目
+pnpm exec midscene-test --project android-smoke --project ios-regression
+
+# 使用指定的配置文件运行测试
+pnpm exec midscene-test --config ./config/midscene.config.ts
+```
+
+为特定执行项目生成 Node 说明书时，同样可以使用 `--project` 参数：
+
+```bash
+pnpm exec midscene-test nodes --project android-smoke
+```
+
+## 输出与退出码
+
+### 终端输出模式
+
+默认情况下，终端按用例（Case）维度汇总打印执行结果。如果需要查看每个步骤的详细诊断信息，可以启用 `verbose` 模式：
+
+```bash
+pnpm exec midscene-test --reporter verbose
+pnpm exec midscene-test --help
+```
+
+### 结果文件与报告路径
+
+每次运行都会生成两类产物，具体路径以终端末尾打印的 `Summary:` 和 `Report:` 为准：
+
+- **结构化结果文件**：默认写入测试根目录下的 `.midscene/test-results/<runId>/`，包含供程序读取的 `summary.json` 和便于阅读的 `result.md`。你可以通过 `--result-dir` 修改结果根目录（每次运行仍会在其下创建独立的 `<runId>` 子目录）：
+  ```bash
+  pnpm exec midscene-test --result-dir ./test-results
+  ```
+  注意：`summary.json` 的字段结构可能随版本演进，外部工具消费时请以当前版本的实际输出为准。
+- **HTML 可视化报告**：输出目录由配置文件中的 `output.reportDir` 控制，与结构化结果目录相互独立。
+
+### 退出码
+
+你可以根据 CLI 退出码判断整次测试运行是否成功：
+
+- `0`：所有选中用例及生命周期钩子均执行成功。
+- `1`：运行过程中出现错误（包括用例步骤失败、YAML 解析或收集阶段报错、项目级/文件级生命周期报错等）。即使所有用例步骤均通过，若清理阶段发生异常，退出码同样为 `1`。
+
+## 环境变量加载
+
+`midscene-test` 命令本身不会自动加载 `.env` 文件。脚手架生成的项目之所以能直接读取 `.env`，是因为生成的 `midscene.config.ts` 在文件顶部显式调用了 `dotenv`（默认保留终端中已有的同名环境变量，不作覆盖）。如果你使用手写的配置文件，请在配置中自行引入 `dotenv`，或者由 Shell / CI 环境直接注入所需的环境变量。
+
+注意：`midscene-test model verify` 命令会直接读取当前工作目录下的 `.env` 并覆盖同名 Shell 环境变量，排查问题时请确保两处的模型配置保持一致。
+
+如需在代码中以编程方式调用测试框架，请参阅[编程式 API](./configuration#编程式-api)；脚手架的完整创建参数请参阅[创建命令参考](./use#创建命令参考)。
