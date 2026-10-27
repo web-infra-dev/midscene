@@ -95,7 +95,7 @@ The configuration connects these parts:
 - `nodes` registers common AI operations and Playwright operations for YAML cases to call.
 - `projects` declares an execution project named `chromium`, connecting its `setup` to the YAML files under `cases/`.
 
-You can now [write YAML test cases](./writing#write-yaml-test-cases) and [run tests](./running#run-tests). The next section explains how these resources are shared and cleaned up.
+You can now [write YAML test cases](./writing) and [run tests](./running#run-tests). The next section explains how these resources are shared and cleaned up.
 
 ### Create and clean up shared resources with setup
 
@@ -103,7 +103,7 @@ You can now [write YAML test cases](./writing#write-yaml-test-cases) and [run te
 
 For file isolation, define per-file preparation with `defineFileSetup()` and assign it through `fileSetup`. It receives the project setup's return value and creates resources for the current file. See [Isolate resources with fileSetup](#isolate-resources-with-filesetup) for the relationship and an example.
 
-Shared resources are not automatically recreated before each case. To reset pages, cookies, or business state, call the appropriate Nodes through YAML [lifecycle hooks](./writing#define-the-execution-lifecycle). For reading and updating shared data in custom Nodes, see [Share context across Nodes](./extend#share-context-across-nodes).
+Shared resources are not automatically recreated before each case. To reset pages, cookies, or business state, call the appropriate Nodes through YAML [lifecycle hooks](./execution#yaml-lifecycle-hooks). For reading and updating shared data in custom Nodes, see [Share context across Nodes](./extend#share-context-across-nodes).
 
 After creating a browser, Agent, or other resource, immediately register its cleanup function with `onTeardown()`. The framework attempts the registered cleanup functions when the project finishes, even if setup or test execution fails. Cleanup runs in reverse registration order: in the Playwright example above, the Agent is destroyed before the browser closes.
 
@@ -411,7 +411,7 @@ The scaffold generates a configuration that selects `cases/**/*.{yaml,yml}` by d
 
 Selected files are deduplicated and sorted by path. See [Project lifecycle](./execution#project-lifecycle) for execution order and retry scope, and [Concurrency and isolation](./execution#concurrency-and-isolation) for concurrency settings.
 
-Native Test always generates a combined report. The CLI prints its path after the run. See [View test results](./reporting) for how to open it.
+Native Test always generates a combined report. The CLI prints its path after the run. See [Run tests](./running) for report outputs and archiving.
 
 ### Configure multiple execution projects
 

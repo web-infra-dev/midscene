@@ -277,23 +277,8 @@ export default defineConfig(async () => {
             link: '/midscene-test/writing',
           },
           {
-            text: 'Run and troubleshoot',
-            collapsible: true,
-            collapsed: true,
-            items: [
-              {
-                text: 'Run tests',
-                link: '/midscene-test/running',
-              },
-              {
-                text: 'View reports',
-                link: '/midscene-test/reporting',
-              },
-              {
-                text: 'GitHub Actions',
-                link: '/midscene-test/github-actions',
-              },
-            ],
+            text: 'Run tests',
+            link: '/midscene-test/running',
           },
           {
             text: 'Configure and extend',
@@ -509,23 +494,8 @@ export default defineConfig(async () => {
             link: '/zh/midscene-test/writing',
           },
           {
-            text: '运行与排查',
-            collapsible: true,
-            collapsed: true,
-            items: [
-              {
-                text: '运行测试',
-                link: '/zh/midscene-test/running',
-              },
-              {
-                text: '查看报告',
-                link: '/zh/midscene-test/reporting',
-              },
-              {
-                text: 'GitHub Actions',
-                link: '/zh/midscene-test/github-actions',
-              },
-            ],
+            text: '运行测试',
+            link: '/zh/midscene-test/running',
           },
           {
             text: '配置与扩展',

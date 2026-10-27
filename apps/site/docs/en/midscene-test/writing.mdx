@@ -1,12 +1,8 @@
 # Author YAML cases
 
-If you have not created a project, start with [Create a test project](./use).
+## A typical YAML file
 
-## Write YAML test cases
-
-### A typical YAML file
-
-A YAML file (referred to as a **Workflow Document**) can contain multiple test cases (**Cases**), along with setup or cleanup steps (**Hooks**). 
+A YAML file can contain multiple test cases, along with setup or cleanup steps.
 
 Here is a typical example of a store search workflow: it opens the home page before each Case, searches for a product, and verifies the results. Replace the URL and product name with your actual application details:
 
@@ -29,36 +25,66 @@ In Midscene Test, we follow these terminology definitions:
 
 This example uses string shorthand: text after `gotoUrl` becomes `url`, while text after `aiAct` and `aiAssert` becomes `prompt`. To supply additional parameters, use the object form shown below. Check the project Node Spec for shorthand support.
 
-### Key Nodes: actions and assertions
+## Test case design conventions {#test-case-design-conventions}
 
-Most test steps rely on `aiAct` to perform actions, `aiAssert` to check expected outcomes, and `aiTap` to click specific interface elements:
+Midscene Test uses sequential execution and explicit state sharing to make each Node's inputs, execution context, and dependencies clear. YAML cases follow these design choices:
+
+- **Execute in declaration order**: YAML describes a linear sequence of test steps, without DAG, branch, or loop syntax. For scenarios that require complex orchestration, we recommend building YAML script generation at a higher layer. That layer resolves the orchestration into an explicit sequence of steps for Midscene Test to execute.
+- **Each statement (step) is stateless and independent**: Each step is a fully self-contained Node invocation, without any implicit state or output propagation between steps (there is no syntax to reference previous step outputs in YAML). Each step relies solely on its declared inputs and the project-level `context`. If you need to share data explicitly across steps, implement custom Nodes that read and write to the project's shared `context`.
+
+For example, the following assertion incorrectly refers to "the icon from the previous step", relying on the previous instruction to identify its target:
+
+```yaml
+steps:
+  - aiAct: Click the favorite star on the product details page to activate it
+  # ❌ Incorrect: the assertion does not inherit the previous instruction's context, so "the icon from the previous step" does not identify its target.
+  - aiAssert: The icon from the previous step is active
+```
+
+Name the target and its expected state explicitly so the assertion expresses the complete check on its own:
+
+```yaml
+steps:
+  - aiAct: Click the favorite star on the product details page to activate it
+  - aiAssert: The favorite star on the product details page is active
+```
+
+The interface retains the effects of previous actions, but each Node's instruction should describe its target independently, without references such as "the previous step" or "that item".
+
+## Use Nodes
+
+Midscene Test calls each capability you can invoke from YAML a **Node**.
+
+Nodes can be called from Case `steps` or from [lifecycle hooks](./execution#yaml-lifecycle-hooks) such as `beforeEach` and `afterEach`, using the same syntax.
+
+Midscene Test injects capabilities from the Midscene GUI Agent: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, and `aiWaitFor` waits for an observable condition; it also includes the framework-provided `wait` to pause for a specified duration.
+
+Alongside these GUI Agent capabilities, Midscene provides platform-specific operations. For example:
+- **Web**: `gotoUrl` opens a page, `setCookies` sets cookies, and `setViewportSize` adjusts the browser viewport.
+- **Android**: `launch` starts an app, `back` goes back, `home` returns to the home screen, and `runAdbShell` executes an ADB shell command.
+
+The project scaffold explicitly registers the official Nodes for the selected platform. A handwritten `midscene.config.ts` does not register any Nodes implicitly. Developers can also add custom operations, such as preparing a test order through a business API. See [Register custom business Nodes](./extend#register-custom-business-nodes).
+
+### Common Nodes
+
+Most test steps rely on `aiAct` to perform actions and `aiAssert` to check expected outcomes:
 
 | Node | Purpose | What to write |
 | --- | --- | --- |
 | `aiAct` | Perform interface operations from natural language, including multiple actions. | Describe what to do, such as "Search for mugs and add the first product to the cart". |
 | `aiAssert` | Check whether the interface matches an expectation; fail the step if it does not. | Describe an observable result, such as "The cart contains one mug". |
-| `aiTap` | Click a specific target. | Describe the element, such as "The cart icon at the top right of the page". |
 
 Completing an action does not establish that the test passed. Always use `aiAssert` to check the expected result explicitly. To provide a custom assertion failure message, expand the parameters into an object:
 
 ```yaml
 steps:
   - aiAct: Search for mugs and add the first product to the cart
-  - aiTap: The cart icon at the top right of the page
   - aiAssert:
       prompt: The cart contains one mug
       message: The cart contents do not match the expected result
 ```
 
-For `aiAct`, the optional `options.effort` parameter controls the planning thinking depth: `fast`, `balance`, or `deepThink`. Omitting it retains the Agent's default behavior. When both `effort` and `deepThink` are provided, `effort` takes precedence. This is an action capability, not a test scheduling option:
-
-```yaml
-steps:
-  - aiAct:
-      prompt: Complete checkout
-      options:
-        effort: deepThink
-```
+If you need to supply background knowledge or guidelines (such as test account rules or dialog dismissals) for subsequent AI operations, call `setAIContext` to set or clear context.
 
 ### Calling other Nodes
 
@@ -97,27 +123,54 @@ steps:
         deepLocate: true
 ```
 
-## Understand available test operations
+### Generate the current Project's Node Spec {#generate-the-current-projects-node-spec}
 
-### What is a Node?
+The Nodes registered by different platforms, Execution Projects, and package versions can differ. Do not infer the current project's capabilities from another project's examples.
 
-Midscene Test calls each capability you can invoke from YAML a **Node**. 
+`midscene-test nodes` generates Node Specs from the effective registry. The Spec lists available Nodes, their JSON Schema inputs (converted from Zod), string shorthand rules, and matching case files, serving as the source of truth for both people and AI Agents when writing YAML cases.
 
-Nodes can be called from Case `steps` or from [lifecycle hooks](#define-the-execution-lifecycle) such as `beforeEach` and `afterEach`, using the same syntax.
+<details>
+<summary>Show an example excerpt of a generated Node Spec</summary>
 
-All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, `aiWaitFor` waits for an observable condition, and `wait` pauses for a specified duration.
+````markdown filename=midscene-node-spec.md
+# Midscene Test Node Spec
 
-Alongside these shared capabilities, Midscene provides platform-specific operations. For example:
-- **Web**: `gotoUrl` opens a page, `setCookies` sets cookies, and `setViewportSize` adjusts the browser viewport.
-- **Android**: `launch` starts an app, `back` goes back, `home` returns to the home screen, and `runAdbShell` executes an ADB shell command.
+## Available Nodes
 
-The project scaffold explicitly registers the official Nodes for the selected platform. A handwritten `midscene.config.ts` does not register any Nodes implicitly. Developers can also add custom operations, such as preparing a test order through a business API. See [Register custom business Nodes](./extend#register-custom-business-nodes).
+| Node | Description |
+| --- | --- |
+| aiAct | Perform interface operations from natural language. |
+| aiAssert | Check whether the interface matches an expectation. |
+| gotoUrl | Navigate the current browser Page to an absolute HTTP(S) URL or a relative path. |
 
-### Generate the current Project's Node Spec
+## Node Details
 
-The Nodes registered by different platforms, Execution Projects, and package versions can differ. Do not infer the current project's capabilities from another project's examples. 
+### `gotoUrl`
 
-`midscene-test nodes` generates Node Specs from the effective registry. This Node Spec is the source of truth for the current Project's Node names, input fields, and string shorthand. Both people and AI Agents should use it when writing YAML cases.
+Navigate the current browser Page to an absolute HTTP(S) URL or a path relative to testRunner.baseURL or the current page URL.
+
+**String shorthand:** Maps to `{ url: value }`.
+
+#### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "Navigation URL target."
+    }
+  },
+  "required": [
+    "url"
+  ]
+}
+```
+````
+
+</details>
 
 The scaffold generates the Spec after dependency installation. Regenerate it after changing `agentClass`, top-level `nodes`, `projects[].nodes`, or a Node schema, and after upgrading relevant Midscene packages:
 
@@ -132,13 +185,7 @@ pnpm exec midscene-test nodes ./e2e --config ../config/midscene.config.ts
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-When `projects` is declared, `midscene-test nodes` generates one Spec per Execution Project by default, even when their Node definitions are identical. Files are named `midscene-node-spec.<project-name>.md`. Use `--project <name>` to generate only that Project’s Spec with the same filename. Without an explicit `projects` configuration, the filename remains `midscene-node-spec.md`. Files are written to the specified directory, or the current directory when omitted; run the command alongside `package.json` to keep the Specs there. Duplicate Project names or names that map to the same filename (including case differences) cause an error before any files are written.
-
 The command loads project configuration and Node definitions only. It does not run setup or cases and does not call `getAgent`, so it does not need to start a browser, connect a device, or call a model. The Spec is generated output; do not edit it manually. Regenerate it after configuration changes.
-
-The Spec has two sections: Available Nodes lists the Nodes you can use, and Node Details provides each Node's description, string shorthand, and input schema. Input schemas are converted from Zod `inputSchema` to standard JSON Schema. Both the Spec and terminal output list `aiAct` and `aiAssert` first, followed by the remaining Nodes in name order.
-
-The Spec also lists case file patterns (`Case files`) and the configuration file path (`Config file`) to help case authors locate their files. `Case files` corresponds to each execution project's `files.include` and `files.exclude`. Both sets of paths are relative to the Spec's directory.
 
 ## Case configuration and parameters
 
@@ -183,36 +230,7 @@ steps:
 - An object or array variable can be used as a complete value, but it cannot be embedded in a longer string.
 - An undefined variable fails during collection. Variables are resolved only in Node input, not in `$`.
 
-Workflow YAML does not provide `set`, `saveAs`, or Step output expressions. Each Step runs independently and does not automatically receive previous Step results. To share required values explicitly, provide them through the Execution Project's `context`.
-
-### Setting AI context
-
-We recommend calling `setAIContext` in `beforeAll` so context is configured before the current document's cases run and applies to all subsequent relevant AI operations on the same Agent. You can also call it in `beforeEach` or a case's `steps` to set or clear context as needed; changes take effect from that point onward.
-
-Its parameters match `agent.setAIContext(target, context)`: `target` is `default` or an AI API name such as `aiAct`, `aiTap`, or `aiAssert`.
-
-**Set context**: provide a `context` string to configure guidance for the selected API. Use `target: default` to configure the shared fallback for all AI APIs.
-
-```yaml
-beforeAll:
-  - setAIContext:
-      target: aiAct
-      context: |
-        Use the test account throughout the flow.
-        Dismiss coupon dialogs before continuing.
-```
-
-**Clear context**: omit `context` to pass `undefined` and remove the configuration for the selected `target`.
-
-```yaml
-beforeAll:
-  - setAIContext:
-      target: aiAct
-```
-
-Clearing an API's context lets that API fall back to `default`; clearing `default` removes the shared fallback. To disable inherited context for an API, set its `context` to an empty string, `""`.
-
-A call's `options.context` overrides the Agent-level value; values are not concatenated. Configuration belongs to the Agent instance: `beforeAll` and the cases must use the same Agent, and changes remain in effect until replaced or cleared.
+See [Test case design conventions](#test-case-design-conventions) for details on stateless and independent step execution.
 
 ### Filter Cases with tags
 
@@ -226,85 +244,8 @@ cases:
 
 Framework maintainers configure `tags.include` and `tags.exclude` for each Execution Project. Exclusions always take precedence. When the include list is not empty, a Case is selected if it matches any included tag.
 
-## Test case design conventions
+## Next steps
 
-Midscene Test uses sequential execution and explicit state sharing to make each Node's inputs, execution context, and dependencies clear. YAML cases follow these design choices:
-
-- **Execute in declaration order**: YAML describes a linear sequence of test steps, without DAG, branch, or loop syntax. For scenarios that require complex orchestration, we recommend building YAML script generation at a higher layer. That layer resolves the orchestration into an explicit sequence of steps for Midscene Test to execute.
-- **Outputs are not automatically passed between steps**: each Node invocation relies on its declared inputs and the context explicitly provided by the project, without automatically inheriting outputs from previous Steps. YAML provides no syntax for referencing outputs across steps or cases; when business state needs to be shared, implement the corresponding business logic in custom Nodes that read and update the project `context`.
-
-For example, the following assertion incorrectly refers to "the icon from the previous step", relying on the previous instruction to identify its target:
-
-```yaml
-steps:
-  - aiAct: Click the favorite star on the product details page to activate it
-  # Incorrect: the assertion does not inherit the previous instruction's context, so "the icon from the previous step" does not identify its target.
-  - aiAssert: The icon from the previous step is active
-```
-
-Name the target and its expected state explicitly so the assertion expresses the complete check on its own:
-
-```yaml
-steps:
-  - aiAct: Click the favorite star on the product details page to activate it
-  - aiAssert: The favorite star on the product details page is active
-```
-
-The interface retains the effects of previous actions, but each Node's instruction should describe its target independently, without references such as "the previous step" or "that item".
-
-## Define the execution lifecycle
-
-`beforeAll` runs after `setup` and `fileSetup`, when configured, using the prepared `context`. See [Project lifecycle](./execution#setup-filesetup-and-beforeall) for their roles. This section covers YAML hooks.
-
-### Setup and cleanup steps
-
-Lifecycle hooks prepare the environment, reset state, or clean up data around test cases. All four hooks are optional and appear at the same level as `cases`. Their steps use the same Node call syntax as case `steps`.
-
-| Hook | When it runs | Common uses |
-| --- | --- | --- |
-| `beforeAll` | Once before all cases in the current YAML file | Prepare data shared by the file's cases |
-| `beforeEach` | Before every execution of a case, including retries | Open a page or reset case state |
-| `afterEach` | After every execution of a case, including failures and retries | Clean up data created during that execution |
-| `afterAll` | Once after all cases in the current YAML file | Clean up data shared by the file's cases |
-
-This Web example opens the store home page before each case and clears cookies afterward. `data.prepare` and `data.cleanup` are custom Nodes your project must implement and register to prepare and remove test products. `gotoUrl`, `clearCookies`, `aiAct`, and `aiAssert` are official Nodes registered by the Web scaffold. Replace the example URL and product names with your application details.
-
-```yaml filename=cases/search.yaml
-beforeAll:
-  - data.prepare: Prepare mug and kettle test products
-
-beforeEach:
-  - gotoUrl: https://your-shop.example
-
-cases:
-  - name: Search for mugs
-    steps:
-      - aiAct: Search for mugs
-      - aiAssert: The search results include mugs
-
-  - name: Search for kettles
-    steps:
-      - aiAct: Search for kettles
-      - aiAssert: The search results include kettles
-
-afterEach:
-  - clearCookies: {}
-
-afterAll:
-  - data.cleanup: Delete the test products prepared for this file
-```
-
-### Execution order and retries
-
-Without failures or retries, the file runs in this order:
-
-```text
-beforeAll
-  Case 1: beforeEach → steps → afterEach
-  Case 2: beforeEach → steps → afterEach
-afterAll
-```
-
-When retries are configured, a failed case reruns `beforeEach → steps → afterEach` within the retry limit after cleanup completes and no operations remain running, before execution continues to subsequent cases. A retry does not rerun `beforeAll`; `afterAll` still runs once at the end of the file. The retry count is an upper limit: unfinished operations, pending cleanup, or failed cleanup stop retries early.
-
-For skipping, retries, and cleanup after failures, see [Execution lifecycle and concurrency](./execution). See [Run tests](./running) for target selection and [Read reports](./reporting) for inspecting results.
+- [Execution lifecycle and concurrency](./execution): understand the complete execution mechanism of `beforeAll` and `beforeEach`, retry rules, and concurrency strategies.
+- [Develop custom Nodes](./extend): encapsulate reusable business operations.
+- [Run tests](./running): execute cases, inspect diagnostic output, and share reports.

@@ -1,8 +1,6 @@
-# Run tests and CLI reference
+# Run tests
 
-If you have not created a project, start with [Create a test project](./use).
-
-## Run tests
+## Basic usage {#run-tests}
 
 Run YAML test cases from the project root:
 
@@ -12,21 +10,25 @@ pnpm exec midscene-test
 
 ### Specify a test case directory or file
 
-Generated projects use `files.include` to select `.yaml` and `.yml` files under `cases/`. Without a `files` configuration, Midscene Test recursively searches the test directory for YAML files, ignoring `node_modules` and `.git`.
+Projects generated from templates use `files.include` to match `.yaml` and `.yml` files under `cases/` by default. If `files` is not declared in the configuration, Midscene Test recursively searches for all YAML files under the test root directory (automatically ignoring `node_modules` and `.git`).
 
-A directory argument changes the test root. Configuration is discovered only in that directory, without searching parent directories. For a file argument, the test root is its containing directory. `--config` and `files.include` / `exclude` resolve relative to the test root; `--result-dir` resolves relative to the shell working directory.
+When passing a directory or file path on the command line, be aware of how the **test root** changes and affects path resolution:
 
-If configuration lives in the project root, explicitly select it when running a single file:
+- **Determining the test root**: Without path arguments, the test root is the current working directory. With a directory argument, the test root becomes that directory. With a single file argument, the test root becomes the file's containing directory.
+- **Resolved relative to the test root**: Default configuration file discovery (searches only within the test root, without traversing parent directories), the `--config` parameter path, and `files.include` / `files.exclude` patterns in the configuration.
+- **Resolved relative to the current working directory**: The `--result-dir` parameter path.
+
+Therefore, when `midscene.config.ts` lives in the project root and you only want to run a single file in the `cases/` subdirectory, you need to explicitly pass `--config` (note that it resolves relative to the `cases/` directory where the target file is located):
 
 ```bash
 pnpm exec midscene-test ./cases/order.yaml --config ../midscene.config.ts
 ```
 
-A single-file input selects that file directly, bypassing `files.include` / `exclude`; tag filtering still applies. To select a subdirectory, keep running from the project root and set `files.include` to `cases/smoke/**/*.{yaml,yml}` instead of changing the path base.
+When targeting a single file directly, that file is not restricted by `files.include` / `files.exclude` rules, but `tags` filtering still applies. If you want to run only a specific subdirectory (such as `cases/smoke`), it is recommended to run the command from the project root and restrict the scope by setting `files.include` to `cases/smoke/**/*.{yaml,yml}` in the configuration, avoiding changes to the test root.
 
 ### Filter execution targets and configuration files
 
-If a project defines multiple platforms or environments, select specific Execution Projects or specify a custom configuration file on the command line:
+If a project defines multiple platforms or environments, you can use `--project` to run specific Execution Projects, or use `--config` to specify a custom configuration file:
 
 ```bash
 # Run only the android-smoke and ios-regression Execution Projects
@@ -36,37 +38,103 @@ pnpm exec midscene-test --project android-smoke --project ios-regression
 pnpm exec midscene-test --config ./config/midscene.config.ts
 ```
 
-To generate the Node Spec for a specific Execution Project, also use `--project`:
+When generating the Node Spec for a specific Execution Project, you can also use `--project`:
 
 ```bash
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-### Result output
+## Output and exit codes
 
-Use `--result-dir` to write structured run results to a specific directory:
+### Terminal output mode
 
-```bash
-pnpm exec midscene-test --result-dir ./test-results
-```
-
-The CLI exits with code `1` when a test case fails, a document cannot be parsed, or an error occurs during collection.
-
-### Diagnostics and result files
-
-Default terminal output summarizes cases. For full step diagnostics, run:
+By default, the terminal prints summarized execution results grouped by Case. To view detailed step diagnostics, use the `verbose` reporter. Run `--help` to view all supported CLI options:
 
 ```bash
+# Show detailed step diagnostics
 pnpm exec midscene-test --reporter verbose
+
+# View all CLI options
 pnpm exec midscene-test --help
 ```
 
-Structured results default to `.midscene/test-results/<runId>/` under the test root, including `summary.json` and readable `result.md`. `--result-dir` changes the results root; each run still gets a separate subdirectory. `output.reportDir` controls HTML reports independently. Use the printed `Summary:` and `Report:` paths.
+### Result files and report paths
 
-Use the exit code for the overall outcome: `0` for success, `1` for failures in cases, collection, or project/file lifecycle operations. Cleanup errors can fail a run even when every case passes. Result structures evolve with versions; integrations should use the actual output of their installed version.
+Each run generates two types of output artifacts. Their exact paths are printed at the end of the terminal output as `Summary:` and `Report:`:
 
-### Environment loading
+- **Structured result files**: By default written to `.midscene/test-results/<runId>/` under the test root, containing machine-readable `summary.json` and human-readable `result.md`. You can customize the root results directory with `--result-dir` (each run will still create an isolated `<runId>` subdirectory underneath):
+  ```bash
+  pnpm exec midscene-test --result-dir ./test-results
+  ```
+  Note: The schema of `summary.json` may evolve across versions; external tools consuming this file should align with the actual output of the installed version.
+- **HTML visual report**: Can be opened directly in a browser after tests finish. It provides a complete log of case outcomes, screenshots for each step, input/output arguments, error traces, and Agent visual replay to help diagnose issues quickly. The output directory is controlled by `output.reportDir` in the configuration file (defaults to `midscene_run/report/`), independent of the structured results directory.
 
-Scaffolded configuration uses `dotenv` to load `.env` beside the configuration file, preserving existing shell variables by default. A normal `midscene-test` run does not automatically load `.env` for handwritten configuration; load it in your configuration or supply variables through the shell or CI. In contrast, `model verify` reads `.env` from the working directory and overrides matching shell variables. Ensure both commands use the intended model settings.
+### Exit codes
 
-To call the framework from code, see [Programmatic APIs](./configuration#programmatic-apis). For scaffolding options, see [Create command reference](./use#create-command-reference).
+You can determine the overall outcome of a test run from the CLI exit code:
+
+- `0`: All selected cases and lifecycle hooks executed successfully.
+- `1`: An error occurred during execution (including case step failures, YAML parsing or collection errors, and project-level or file-level lifecycle errors). Even if all case steps pass, the exit code is still `1` if an exception occurs during the cleanup phase.
+
+## Report archiving and URL deep links
+
+### Report archiving
+
+Reports default to a single HTML file: `midscene_run/report/midscene-e2e-<runId>.html`. When external screenshot mode is enabled, the report directory contains `index.html` and a `screenshots/` directory; preserve the entire directory when archiving or uploading artifacts. See [Run in GitHub Actions](#run-in-github-actions) for CI artifact configuration.
+
+### Link to a specific step (URL hash)
+
+When sharing reports in CI notifications, chat bots, or PR comments, use the `runner-step` URL hash parameter to jump directly to a target Step. Beyond explicit Step IDs, reports support portable selectors:
+
+| Selector | Target |
+| --- | --- |
+| `first` | Earliest started Step |
+| `last` | Most recently completed Step |
+| `first-error` | Earliest started failed Step, including failed retry attempts |
+| `last-error` | Most recently completed failed Step, including failed retry attempts |
+
+Example: Jump directly to the last failed Step in a report:
+
+```text
+https://example.com/report/index.html#runner-step=last-error
+```
+
+If the Step includes Agent visual replay, append `runner-trace=page` to open the Agent trace in full-screen view:
+
+```text
+https://example.com/report/index.html#runner-step=last-error&runner-trace=page
+```
+
+To limit selection to a specific case, combine with `runner-page=case`, `runner-project=<projectName>`, and `runner-case=<caseName>`.
+
+## Environment loading {#environment-loading}
+
+Midscene Test reads model configurations and runtime parameters from system environment variables (`process.env`). You can provide environment variables based on your workflow:
+
+### Local development with .env files
+
+- **Scaffolded projects (ready out of the box)**: Projects created via `midscene-test create` already load the `.env` file from the configuration directory in `midscene.config.ts`. Simply create a `.env` file in the project root to get started.
+- **Handwritten configuration**: When writing a configuration file manually, import `dotenv` at the top of `midscene.config.ts`:
+  ```ts
+  import 'dotenv/config';
+  ```
+
+When loaded through `dotenv`, existing environment variables in your shell take precedence over values in the `.env` file by default.
+
+### CI / CD environments
+
+In continuous integration (such as GitHub Actions) or automated pipelines, you do not need a `.env` file. Simply inject API keys or credentials directly as pipeline environment variables.
+
+### Model connectivity check (model verify)
+
+When running `midscene-test model verify` to test model connectivity, the command automatically reads `.env` from the current working directory. To facilitate quick local checks, it prioritizes values in `.env` over matching shell environment variables. When troubleshooting, ensure the settings in `.env` match the model configuration used during test runs.
+
+## Run in GitHub Actions
+
+Midscene provides [midscene-action](https://github.com/marketplace/actions/midscene-action) to run Midscene Test in GitHub Actions.
+
+- Automatically add test results to the workflow **Summary**.
+- Save HTML reports and test data as **artifacts** for download.
+- Optionally publish reports to **Cloudflare Workers** for online previews.
+
+For setup instructions, configuration parameters, and complete examples, see [midscene-action on GitHub Marketplace](https://github.com/marketplace/actions/midscene-action).

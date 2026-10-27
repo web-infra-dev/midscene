@@ -1,7 +1,5 @@
 # 生命周期与并发
 
-如果你还没有创建测试项目，请先完成[创建测试项目](./use)。
-
 ## 项目生命周期
 
 ### setup、fileSetup 与 beforeAll
@@ -17,6 +15,44 @@
 例如，当一个执行项目包含两份 YAML 文件时，`setup` 只会执行 1 次，而 `fileSetup` 和 `beforeAll` 会各执行 2 次（开启并发不会改变它们的执行次数）。
 
 `fileSetup` 只需在项目配置中声明一次，即可自动作用于该项目下的所有 YAML 文件；而 `beforeAll` 则由各 YAML 文件按需声明。虽然自定义 Node 也可以在 `beforeAll` 中创建资源并写入 `context`，但框架不会为 `beforeAll` 自动隔离出独立的文件级 `context`（若未配置 `fileSetup`，该项目下的所有文件仍会共用 `setup` 返回的同一个 `context` 对象）。
+
+### YAML 中的生命周期钩子 {#yaml-中的生命周期钩子}
+
+生命周期钩子用于在用例执行前后准备环境、重置状态或清理数据。四个钩子均为可选配置，与 `cases` 处于同一层级，内部步骤的写法与用例 `steps` 完全相同：
+
+| 钩子 | 执行时机 | 常见用途 |
+| --- | --- | --- |
+| `beforeAll` | 当前 YAML 文件的所有用例开始前执行一次 | 准备当前文件所有用例共用的测试数据 |
+| `beforeEach` | 每条用例每次执行前运行（包括重试） | 打开起始页面、重置界面或业务状态 |
+| `afterEach` | 每条用例每次执行后运行（无论成败或重试） | 清理当次用例执行产生的数据或状态 |
+| `afterAll` | 当前 YAML 文件的所有用例结束后执行一次 | 清理当前文件所有用例共用的测试数据 |
+
+在下面的 Web 示例中，每条用例开始前都会打开商城首页，结束后清除 Cookie。其中 `data.prepare` 和 `data.cleanup` 是团队自行实现并注册的自定义 Node，分别用于准备和清理测试商品；`gotoUrl`、`clearCookies`、`aiAct` 和 `aiAssert` 则是 Web 脚手架默认注册的官方 Node：
+
+```yaml filename=cases/search.yaml
+beforeAll:
+  - data.prepare: 准备马克杯和水壶两种测试商品
+
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: 搜索马克杯
+    steps:
+      - aiAct: 搜索马克杯
+      - aiAssert: 搜索结果中包含马克杯
+
+  - name: 搜索水壶
+    steps:
+      - aiAct: 搜索水壶
+      - aiAssert: 搜索结果中包含水壶
+
+afterEach:
+  - clearCookies: {}
+
+afterAll:
+  - data.cleanup: 删除本文件准备的测试商品
+```
 
 ### 项目、文件与用例的生命周期
 

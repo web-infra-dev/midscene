@@ -39,7 +39,7 @@ pnpm add -D @midscene/test @midscene/web playwright
 pnpm exec playwright install chromium
 ```
 
-运行测试前，还需按照[使用模型 API Key](../model-api-setup)配置模型环境变量。如果你将模型配置保存在 `.env` 文件中，手写 `midscene.config.ts` 时需要自行加载（例如安装 `dotenv` 并在配置文件顶部引入 `import 'dotenv/config'`），或者直接通过 Shell / CI 注入环境变量，详见[环境变量加载](./running#环境变量加载)。
+运行测试前，还需按照[使用模型 API Key](../model-api-setup)配置模型环境变量。如果你将模型配置保存在 `.env` 文件中，手写 `midscene.config.ts` 时需要自行加载（例如安装 `dotenv` 并在配置文件顶部引入 `import 'dotenv/config'`），或者直接通过 Shell / CI 注入环境变量，详见[加载环境变量](./running#加载环境变量)。
 
 ```ts filename=midscene.config.ts
 import {
@@ -98,7 +98,7 @@ export default defineTestProject<ProjectContext>({
 - `nodes`：注册通用 AI 操作和 Playwright 平台操作，供 YAML 用例调用。
 - `projects`：声明名为 `chromium` 的执行项目，将 `playwrightSetup` 与 `cases/` 目录下的 YAML 用例关联起来。
 
-完成上述配置后，即可开始[编写 YAML 用例](./writing#编写-yaml-测试用例)并[运行测试](./running)。下面进一步说明如何管理资源的共享与隔离。
+完成上述配置后，即可开始[编写 YAML 用例](./writing)并[运行测试](./running)。下面进一步说明如何管理资源的共享与隔离。
 
 ### 使用 setup 创建和清理共享资源
 
@@ -106,7 +106,7 @@ export default defineTestProject<ProjectContext>({
 
 如果你希望每个 YAML 文件拥有独立的运行环境，可以使用 `defineFileSetup()` 定义文件级初始化逻辑，并挂载到 `fileSetup` 字段上。`fileSetup` 会接收项目级 `setup` 的返回值，在此基础上为当前文件创建独立资源，详见下一节[用 fileSetup 隔离资源](#用-filesetup-隔离资源)。
 
-注意，`setup` 创建的共享资源不会在每条用例开始前自动重置。如需在用例间重置页面、Cookie 或业务状态，请在 YAML 的[生命周期钩子](./writing#定义执行生命周期)中调用相应的 Node；自定义 Node 之间读写共享数据的方式请参阅[跨 Node 共享上下文](./extend#跨-node-共享上下文)。
+注意，`setup` 创建的共享资源不会在每条用例开始前自动重置。如需在用例间重置页面、Cookie 或业务状态，请在 YAML 的[生命周期钩子](./execution#yaml-中的生命周期钩子)中调用相应的 Node；自定义 Node 之间读写共享数据的方式请参阅[跨 Node 共享上下文](./extend#跨-node-共享上下文)。
 
 创建 Browser、Agent 等资源后，应立即通过 `onTeardown()` 注册清理函数。即便 `setup` 过程或用例执行失败，框架也会在执行项目结束时逆序（后进先出）调用已注册的清理函数——例如在上面的 Playwright 示例中，会先销毁 `agent`，再关闭 `browser`。注意，在 `setup` 中注册的 `onTeardown()` 仅在整个执行项目结束时触发；而在自定义 Node 内部注册的 `onTeardown()` 则具有独立的[清理时机](./extend#资源的生命周期与清理)。
 
@@ -387,7 +387,7 @@ steps:
 
 脚手架生成的配置默认匹配 `cases/**/*.{yaml,yml}`；如果未配置 `files`，Midscene Test 会按 `**/*.{yaml,yml}` 在测试根目录下递归查找用例文件，自动去重并按路径排序。
 
-关于如何通过命令行筛选运行目标，请参阅[运行测试](./running)；单个步骤的超时与容错配置请参阅[设置超时和错误处理](./writing#设置超时和错误处理)；执行顺序、重试与并发规则请参阅[生命周期与并发](./execution)。所有执行项目的运行结果最终都会汇总生成一份统一的 HTML 报告，查看方式见[查看报告](./reporting)。
+关于如何通过命令行筛选运行目标，请参阅[运行测试](./running)；单个步骤的超时与容错配置请参阅[设置超时和错误处理](./writing#设置超时和错误处理)；执行顺序、重试与并发规则请参阅[生命周期与并发](./execution)。所有执行项目的运行结果最终都会汇总生成一份统一的 HTML 报告，查看与归档方式见[运行测试](./running)。
 
 ### 配置多个执行项目
 
@@ -501,4 +501,4 @@ try {
 ## 下一步
 
 - [生命周期与并发](./execution)：了解资源共享范围、重试机制、并发调度、超时与取消规则。
-- [运行测试](./running)：了解命令行参数、路径解析规则与环境变量加载方式。
+- [运行测试](./running)：了解命令行参数、路径解析规则与加载环境变量方式。

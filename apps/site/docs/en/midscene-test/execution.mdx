@@ -1,7 +1,5 @@
 # Execution lifecycle and concurrency
 
-If you have not created a project, start with [Create a test project](./use).
-
 ## Project lifecycle
 
 ### setup, fileSetup, and beforeAll
@@ -17,6 +15,44 @@ They run in the order `setup → fileSetup → beforeAll → cases`. Unconfigure
 In a normal run of two YAML files, `setup` runs once, while `fileSetup` and `beforeAll` each run twice. Concurrency limits do not change these counts.
 
 Configure `fileSetup` once for all files; declare `beforeAll` in each file. Custom Nodes in `beforeAll` can also create resources, but this does not make the framework create an independent file context.
+
+### YAML lifecycle hooks {#yaml-lifecycle-hooks}
+
+Lifecycle hooks prepare the environment, reset state, or clean up data around test cases. All four hooks are optional and appear at the same level as `cases`. Their steps use the same Node call syntax as case `steps`.
+
+| Hook | When it runs | Common uses |
+| --- | --- | --- |
+| `beforeAll` | Once before all cases in the current YAML file | Prepare data shared by the file's cases |
+| `beforeEach` | Before every execution of a case, including retries | Open a page or reset case state |
+| `afterEach` | After every execution of a case, including failures and retries | Clean up data created during that execution |
+| `afterAll` | Once after all cases in the current YAML file | Clean up data shared by the file's cases |
+
+This Web example opens the store home page before each case and clears cookies afterward. `data.prepare` and `data.cleanup` are custom Nodes your project must implement and register to prepare and remove test products. `gotoUrl`, `clearCookies`, `aiAct`, and `aiAssert` are official Nodes registered by the Web scaffold:
+
+```yaml filename=cases/search.yaml
+beforeAll:
+  - data.prepare: Prepare mug and kettle test products
+
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: Search for mugs
+    steps:
+      - aiAct: Search for mugs
+      - aiAssert: The search results include mugs
+
+  - name: Search for kettles
+    steps:
+      - aiAct: Search for kettles
+      - aiAssert: The search results include kettles
+
+afterEach:
+  - clearCookies: {}
+
+afterAll:
+  - data.cleanup: Delete the test products prepared for this file
+```
 
 ### Project, file, and case lifecycle
 

@@ -22,8 +22,8 @@ import TestCollaboration from '../common/test-collaboration.mdx';
 - [编写 YAML 用例](./writing)：日常编写与维护用例。
 - [配置测试工程](./configuration)：管理环境变量、用例文件和执行项目。
 - [开发自定义 Node](./extend)：封装可复用的业务操作。
-- [运行测试](./running)、[生命周期与并发](./execution)与[查看报告](./reporting)：控制执行方式、并发策略，并通过报告排查失败原因。
-- [在 GitHub Actions 中运行](./github-actions)：接入 CI 流程。
+- [运行测试](./running)与[生命周期与并发](./execution)：控制执行方式、并发策略，并获取测试报告与诊断结果。
+- [在 GitHub Actions 中运行](./running#在-github-actions-中运行)：接入 CI 流程。
 
 :::info 从旧版 YAML 运行器迁移
 旧版 `tasks/flow` YAML 运行器已进入维护状态，仅保留兼容更新和必要修复。新项目和新增用例推荐使用 Midscene Test。已有项目可以继续使用 `midscene` 命令；如需迁移到 `midscene-test`，请参阅[迁移到 Midscene Test](../migrate-to-midscene-test)。
