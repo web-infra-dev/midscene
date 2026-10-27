@@ -1,60 +1,14 @@
-# 编写 YAML 用例
+# 编写与设计 YAML 用例
 
 如果你还没有创建测试项目，请先完成[创建测试项目](./use)。
-
-## 了解可用的测试操作
-
-### 官方操作与按需扩展
-
-Midscene Test 将每一种可在 YAML 中调用的能力称为 **Node（节点）**。
-
-Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afterEach` 等[生命周期钩子](#定义执行生命周期)中调用，语法完全一致。
-
-所有平台都提供以下通用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 验证预期结果，`aiWaitFor` 等待界面出现指定状态，`wait` 等待指定时长。
-
-在这些通用能力之外，Midscene 还为各个平台预置了专用操作。例如：
-
-- **Web**：`gotoUrl` 打开网页、`setCookies` 设置 Cookie、`setViewportSize` 调整浏览器视口大小。
-- **Android**：`launch` 启动应用、`back` 返回上一页、`home` 返回主屏幕、`runAdbShell` 执行 ADB 命令。
-
-使用脚手架创建项目时，模板会根据所选平台显式注册对应的官方 Node。如果从零手写 `midscene.config.ts`，框架不会默认注册任何 Node，需要手动引入并配置。此外，你也可以按需扩展自定义能力（例如调用业务接口准备测试订单），详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
-
-### 生成当前项目的 Node 说明书
-
-不同平台、执行项目（Project）和依赖版本实际注册的 Node 可能有所不同。编写用例时，请勿仅凭其他项目的示例推测当前项目的可用能力。运行 `midscene-test nodes` 可以根据项目最终生效的注册结果生成 Node 说明书——它准确记录了当前项目可用的 Node 名称、输入参数与字符串简写规则，人和 AI Agent 都应以这份说明书为依据来编写 YAML 用例。
-
-脚手架在安装依赖后会自动生成 Node 说明书。当你修改了 `agentClass`、顶层 `nodes`、`projects[].nodes`、Node 的参数 Schema，或升级了 Midscene 相关依赖包后，都应重新运行以下命令更新说明书：
-
-```bash
-pnpm run nodes
-```
-
-你也可以直接调用 CLI 命令，并按需指定测试目录、配置文件或执行项目：
-
-```bash
-pnpm exec midscene-test nodes ./e2e --config ../config/midscene.config.ts
-pnpm exec midscene-test nodes --project android-smoke
-```
-
-说明书的文件名与输出位置遵循以下规则：
-
-- **未配置 `projects` 时**：默认生成单个 `midscene-node-spec.md`。
-- **配置了 `projects` 时**：默认按执行项目分别生成 `midscene-node-spec.<project-name>.md`（即使各项目的 Node 定义完全相同）；传入 `--project <name>` 可仅生成指定项目的说明书。若存在重名的 Project，或转换后的文件名发生冲突（含大小写差异），命令会在写入文件前直接报错。
-- **输出目录**：文件写入命令指定的目录；未指定目录时写入当前工作目录。
-
-生成命令仅加载项目配置与 Node 定义，不会执行 `setup`、测试用例或 `getAgent`，因此无需启动浏览器、连接设备或调用大模型。Node 说明书属于自动生成的文件，请勿手动编辑；配置变更后重新运行生成命令即可。
-
-生成的说明书包含以下内容：
-
-- **Available Nodes**：列出所有可调用的 Node（`aiAct` 与 `aiAssert` 固定排在最前，其余按名称排序）。
-- **Node Details**：展示每个 Node 的功能说明、字符串简写规则以及输入参数结构（由 Zod `inputSchema` 自动转换为标准 JSON Schema）。
-- **文件路径信息**：列出用例文件的匹配规则（`Case files`，对应各执行项目的 `files.include` 与 `files.exclude`）以及配置文件路径（`Config file`），路径均相对于说明书所在目录。
 
 ## 编写 YAML 测试用例
 
 ### 一个典型的 YAML 文件
 
-一份 YAML 文件可以包含多个测试用例，以及用例执行前后的准备和清理步骤。下面以商城搜索为例：每次运行用例前先打开首页，再搜索商品并验证结果（实际使用时请将网址和商品名称替换为你的业务内容）：
+一份 YAML 文件（在本文档中称为 **Workflow Document（工作流文档）**）可以包含多个测试用例（**Cases（用例）**），以及用例执行前后的准备和清理步骤（**Hooks（生命周期钩子）**）。
+
+下面以商城搜索为例：每次运行用例前先打开首页，再搜索商品并验证结果（实际使用时请将网址和商品名称替换为你的业务内容）：
 
 ```yaml filename=cases/search.yaml
 beforeEach:
@@ -67,14 +21,11 @@ cases:
       - aiAssert: 搜索结果中包含马克杯
 ```
 
-文件中各部分的含义如下：
-
-- `beforeEach`：每个用例执行前运行的步骤（可选），适合打开页面、重置状态等准备工作。其他生命周期钩子详见[定义执行生命周期](#定义执行生命周期)。
-- `cases`：测试用例列表，至少包含一条用例。如需新增用例，在列表中添加新的 `name` 和 `steps` 即可。
-- `name`：用例名称，用于在运行结果和测试报告中标识该用例。
-- `steps`：按顺序执行的步骤列表，至少包含一个步骤。每个步骤只调用一个 Node，冒号后填写调用参数。
-
-在本文档中，我们将整份 YAML 文件称为 **Workflow Document（工作流文档）**，单条测试用例称为 **Case（用例）**，一次 Node 调用称为 **Step（步骤）**。
+在 Midscene Test 中，我们遵循以下术语定义：
+- **Workflow Document（工作流文档）**：整份 YAML 文件。
+- **Case（用例）**：`cases` 列表下的单条测试用例。
+- **Step（步骤）**：`steps` 列表下（或生命周期钩子内）的单次 Node 调用，每个步骤只调用一个 Node。
+- **Hook（生命周期钩子）**：在用例执行前后运行的准备与清理步骤（如 `beforeAll`、`beforeEach`、`afterEach`、`afterAll`）。
 
 上面的示例使用了字符串简写形式：`gotoUrl` 后的字符串会作为 `url` 参数传入，`aiAct` 和 `aiAssert` 后的字符串会作为 `prompt` 参数传入。如果需要传入更多参数，可以使用下文介绍的对象写法。某个 Node 是否支持字符串简写，以项目的 Node 说明书为准。
 
@@ -108,35 +59,6 @@ steps:
       options:
         effort: deepThink
 ```
-
-### 设置 AI 上下文
-
-推荐在 `beforeAll` 中调用 `setAIContext`，在当前文件的所有用例开始前统一配置背景知识；只要后续步骤复用同一个 Agent 实例，该配置就会对相关的 AI 操作持续生效。你也可以在 `beforeEach` 或用例的 `steps` 中按需设置或清除上下文，修改会从调用处开始生效。
-
-其参数结构与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default`，也可以是 `aiAct`、`aiTap`、`aiAssert` 等具体的 AI API 名称。
-
-**设置上下文**：传入 `context` 字符串，为指定 API 补充背景说明；若将 `target` 设为 `default`，则会设置所有 AI API 共用的默认上下文。
-
-```yaml
-beforeAll:
-  - setAIContext:
-      target: aiAct
-      context: |
-        整个流程使用测试账号。
-        如出现优惠券弹窗，关闭后继续。
-```
-
-**清除上下文**：省略 `context` 字段（等同于传入 `undefined`），即可移除 `target` 对应的上下文配置。
-
-```yaml
-beforeAll:
-  - setAIContext:
-      target: aiAct
-```
-
-清除特定 API 的上下文后，该 API 会回退使用 `default` 上下文；清除 `default` 则会移除全局默认上下文。如果想禁止某个 API 继承 `default` 上下文，可以将其 `context` 显式设为空字符串 `""`。
-
-单次步骤调用中传入的 `options.context` 优先级高于 Agent 级别的上下文配置（两者直接覆盖，不会拼接）。此外，上下文绑定在具体的 Agent 实例上，因此 `beforeAll` 与用例必须共享同一个 Agent 实例，配置才會跨阶段保持生效，直到被覆盖或清除。
 
 ### 其他 Node 的调用模式
 
@@ -175,6 +97,55 @@ steps:
         deepLocate: true
 ```
 
+## 了解可用的测试操作
+
+### 什么是 Node？
+
+Midscene Test 将每一种可在 YAML 中调用的能力称为 **Node（节点）**。
+
+Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afterEach` 等[生命周期钩子](#定义执行生命周期)中调用，语法完全一致。
+
+所有平台都提供以下通用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 验证预期结果，`aiWaitFor` 等待界面出现指定状态，`wait` 等待指定时长。
+
+在这些通用能力之外，Midscene 还为各个平台预置了专用操作。例如：
+- **Web**：`gotoUrl` 打开网页、`setCookies` 设置 Cookie、`setViewportSize` 调整浏览器视口大小。
+- **Android**：`launch` 启动应用、`back` 返回上一页、`home` 返回主屏幕、`runAdbShell` 执行 ADB 命令。
+
+使用脚手架创建项目时，模板会根据所选平台显式注册对应的官方 Node。如果从零手写 `midscene.config.ts`，框架不会默认注册任何 Node，需要手动引入并配置。此外，你也可以按需扩展自定义能力（例如调用业务接口准备测试订单），详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
+
+### 生成当前项目的 Node 说明书
+
+不同平台、执行项目（Project）和依赖版本实际注册的 Node 可能有所不同。编写用例时，请勿仅凭其他项目的示例推测当前项目的可用能力。
+
+运行 `midscene-test nodes` 可以根据项目最终生效的注册结果生成 Node 说明书——它准确记录了当前项目可用的 Node 名称、输入参数与字符串简写规则，人和 AI Agent 都应以这份说明书为依据来编写 YAML 用例。
+
+脚手架在安装依赖后会自动生成 Node 说明书。当你修改了 `agentClass`、顶层 `nodes`、`projects[].nodes`、Node 的参数 Schema，或升级了 Midscene 相关依赖包后，都应重新运行以下命令更新说明书：
+
+```bash
+pnpm run nodes
+```
+
+你也可以直接调用 CLI 命令，并按需指定测试目录、配置文件或执行项目：
+
+```bash
+pnpm exec midscene-test nodes ./e2e --config ../config/midscene.config.ts
+pnpm exec midscene-test nodes --project android-smoke
+```
+
+说明书的文件名与输出位置遵循以下规则：
+- **未配置 `projects` 时**：默认生成单个 `midscene-node-spec.md`。
+- **配置了 `projects` 时**：默认按执行项目分别生成 `midscene-node-spec.<project-name>.md`（即使各项目的 Node 定义完全相同）；传入 `--project <name>` 可仅生成指定项目的说明书。若存在重名的 Project，或转换后的文件名发生冲突（含大小写差异），命令会在写入文件前直接报错。
+- **输出目录**：文件写入命令指定的目录；未指定目录时写入当前工作目录。
+
+生成命令仅加载项目配置与 Node 定义，不会执行 `setup`、测试用例或 `getAgent`，因此无需启动浏览器、连接设备或调用大模型。Node 说明书属于自动生成的文件，请勿手动编辑；配置变更后重新运行生成命令即可。
+
+生成的说明书包含以下内容：
+- **Available Nodes**：列出所有可调用的 Node（`aiAct` 与 `aiAssert` 固定排在最前，其余按名称排序）。
+- **Node Details**：展示每个 Node 的功能说明、字符串简写规则以及输入参数结构（由 Zod `inputSchema` 自动转换为标准 JSON Schema）。
+- **文件路径信息**：列出用例文件的匹配规则（`Case files`，对应各执行项目的 `files.include` 与 `files.exclude`）以及配置文件路径（`Config file`），路径均相对于说明书所在目录。
+
+## 控制参数与高级配置
+
 ### 设置超时和错误处理
 
 步骤中的 `$` 字段用于配置框架级的步骤控制参数（如超时时间与容错策略）。这些参数由 Midscene Test 处理，不会传递给 Node 的 `input`。
@@ -190,7 +161,6 @@ steps:
 ```
 
 `$` 支持以下两个字段：
-
 - `timeout`：当前步骤的超时时间，单位为毫秒。
 - `continue-on-error`：设为 `true` 时，若当前步骤执行失败，允许继续执行当前阶段的后续步骤（默认值为 `false`）。但如果底层操作未能正常退出或资源清理出现异常，执行仍会中止。
 
@@ -213,12 +183,40 @@ steps:
 ```
 
 变量解析遵循以下规则：
-
 - `${name}`：读取当前执行项目的 `variables` 配置。若整个字段值仅由 `${name}` 构成（未与其他文本拼接），则会保留变量的原始 JSON 类型（如数字、布尔值、对象或数组）；对象或数组变量只能作为完整字段值使用，不支持嵌入到字符串中拼接。
 - `${{ENV_NAME}}`：读取环境变量，解析结果始终为字符串。
 - 引用未定义的变量会在用例收集阶段直接报错。变量替换仅作用于 Node 的输入参数，不作用于 `$` 控制字段。
 
 YAML 用例不支持 `set`、`saveAs` 或跨步骤输出引用语法。每个步骤独立运行，不会自动接收前序步骤的返回值；如需在不同步骤间共享数据，请通过自定义 Node 读写执行项目的 `context`。
+
+### 设置 AI 上下文
+
+推荐在 `beforeAll` 中调用 `setAIContext`，在当前文件的所有用例开始前统一配置背景知识；只要后续步骤复用同一个 Agent 实例，该配置就会对相关的 AI 操作持续生效。你也可以在 `beforeEach` 或用例的 `steps` 中按需设置或清除上下文，修改会从调用处开始生效。
+
+其参数结构与 `agent.setAIContext(target, context)` 一致：`target` 可以是 `default`，也可以是 `aiAct`、`aiTap`、`aiAssert` 等具体的 AI API 名称。
+
+**设置上下文**：传入 `context` 字符串，为指定 API 补充背景说明；若将 `target` 设为 `default`，则会设置所有 AI API 共用的默认上下文。
+
+```yaml
+beforeAll:
+  - setAIContext:
+      target: aiAct
+      context: |
+        整个流程使用测试账号。
+        如出现优惠券弹窗，关闭后继续。
+```
+
+**清除上下文**：省略 `context` 字段（等同于传入 `undefined`），即可移除 `target` 对应的上下文配置。
+
+```yaml
+beforeAll:
+  - setAIContext:
+      target: aiAct
+```
+
+清除特定 API 的上下文后，该 API 会回退使用 `default` 上下文；清除 `default` 则会移除全局默认上下文。如果想禁止某个 API 继承 `default` 上下文，可以将其 `context` 显式设为空字符串 `""`。
+
+单次步骤调用中传入的 `options.context` 优先级高于 Agent 级别的上下文配置（两者直接覆盖，不会拼接）。此外，上下文绑定 in 具体的 Agent 实例上，因此 `beforeAll` 与用例必须共享同一个 Agent 实例，配置才会跨阶段保持生效，直到被覆盖或清除。
 
 ### 使用 tags 筛选 Case
 

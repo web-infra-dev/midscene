@@ -49,6 +49,9 @@ export default defineConfig(async () => {
   });
   return {
     root: path.join(__dirname, 'docs'),
+    route: {
+      cleanUrls: true,
+    },
     title: 'Midscene.js - AI UI Automation and E2E Testing',
     description:
       'Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.',
