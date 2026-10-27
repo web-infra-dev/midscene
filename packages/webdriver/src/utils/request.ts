@@ -20,17 +20,6 @@ export class WebDriverRequestError extends Error {
   }
 }
 
-/**
- * The HTTP request exceeded its timeout, including reading the response body.
- * Remains a WebDriverRequestError for callers that catch transport failures.
- */
-export class WebDriverRequestTimeoutError extends WebDriverRequestError {
-  constructor(timeout: number) {
-    super(`Request timeout after ${timeout}ms`);
-    this.name = 'WebDriverRequestTimeoutError';
-  }
-}
-
 export async function makeWebDriverRequest(
   baseUrl: string,
   method: string,
@@ -58,6 +47,8 @@ export async function makeWebDriverRequest(
       signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     let responseData;
     const contentType = response.headers.get('content-type');
 
@@ -82,17 +73,17 @@ export async function makeWebDriverRequest(
 
     return responseData;
   } catch (error) {
+    clearTimeout(timeoutId);
+
     if (error instanceof WebDriverRequestError) {
       throw error;
     }
 
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new WebDriverRequestTimeoutError(timeout);
+      throw new WebDriverRequestError(`Request timeout after ${timeout}ms`);
     }
 
     debugRequest(`Request failed: ${error}`);
     throw new WebDriverRequestError(`Request failed: ${error}`);
-  } finally {
-    clearTimeout(timeoutId);
   }
 }

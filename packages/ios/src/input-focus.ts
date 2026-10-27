@@ -1,7 +1,4 @@
-import {
-  WebDriverRequestError,
-  WebDriverRequestTimeoutError,
-} from '@midscene/webdriver';
+import { WebDriverRequestError } from '@midscene/webdriver';
 
 /** Session-relative WDA transport, shared by input discovery and recovery. */
 export type InputRequest = (
@@ -48,69 +45,16 @@ async function activeInput(
   }
 }
 
-/** WDA did not expose an accessible focus owner within the readiness budget. */
-export class InputFocusTimeoutError extends Error {
-  constructor(cause?: unknown) {
-    super(
-      'Timed out waiting for iOS input focus after 3000ms: WDA could not identify the focused input; refusing to clear an unknown target',
-      { cause },
-    );
-    this.name = 'InputFocusTimeoutError';
-  }
-}
-
-/** Clearing requires a concrete element; a visible keyboard is not sufficient. */
+/** Wait for a focus owner before clearing or synthesizing text events. */
 export async function waitForInputFocus(request: InputRequest): Promise<void> {
-  await waitForReadiness(request, 'active-element');
-}
-
-/** Typing can also use a visible keyboard when the responder is not accessible. */
-export async function waitForKeyboardReady(
-  request: InputRequest,
-): Promise<void> {
-  await waitForReadiness(request, 'keyboard');
-}
-
-async function waitForReadiness(
-  request: InputRequest,
-  requirement: 'active-element' | 'keyboard',
-): Promise<void> {
   const deadline = Date.now() + 3000;
-  const timeoutError = (cause?: unknown) =>
-    requirement === 'active-element'
-      ? new InputFocusTimeoutError(cause)
-      : new Error('Timed out waiting for iOS keyboard readiness after 3000ms', {
-          cause,
-        });
   while (Date.now() < deadline) {
-    try {
-      // Also supports hardware keyboards, where no software keyboard is visible.
-      if (await activeInput(request, Math.max(1, deadline - Date.now())))
-        return;
-      const remaining = deadline - Date.now();
-      if (requirement === 'keyboard' && remaining > 0) {
-        const { value } = await request(
-          'POST',
-          '/elements',
-          {
-            using: 'predicate string',
-            value: 'type == "XCUIElementTypeKeyboard" AND visible == 1',
-          },
-          { timeout: remaining },
-        );
-        if (!Array.isArray(value))
-          throw new Error('Invalid WDA keyboard response');
-        // Validate successful responses instead of treating malformed data as readiness.
-        if (value.map(elementId).length > 0) return;
-      }
-    } catch (error) {
-      if (
-        error instanceof WebDriverRequestTimeoutError &&
-        Date.now() >= deadline
-      )
-        throw timeoutError(error);
-      throw error;
-    }
+    const target = await activeInput(
+      request,
+      Math.max(1, deadline - Date.now()),
+    );
+    if (Date.now() >= deadline) break;
+    if (target) return;
     const remaining = deadline - Date.now();
     if (remaining > 0) {
       await new Promise((resolve) =>
@@ -118,7 +62,7 @@ async function waitForReadiness(
       );
     }
   }
-  throw timeoutError();
+  throw new Error('Timed out waiting for iOS input focus after 3000ms');
 }
 
 async function identifiedInputs(

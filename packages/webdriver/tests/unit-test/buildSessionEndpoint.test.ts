@@ -1,9 +1,5 @@
 import { describe, expect, it, rs } from '@rstest/core';
 import { WebDriverClient } from '../../src/clients/WebDriverClient';
-import {
-  WebDriverRequestError,
-  WebDriverRequestTimeoutError,
-} from '../../src/utils/request';
 
 // Expose protected method for testing
 class TestableWebDriverClient extends WebDriverClient {
@@ -99,10 +95,6 @@ describe('WebDriverClient per-request timeout', () => {
 
       await rs.advanceTimersByTimeAsync(25);
       await assertion;
-      await expect(request).rejects.toBeInstanceOf(
-        WebDriverRequestTimeoutError,
-      );
-      await expect(request).rejects.toBeInstanceOf(WebDriverRequestError);
     } finally {
       globalThis.fetch = originalFetch;
       rs.useRealTimers();
