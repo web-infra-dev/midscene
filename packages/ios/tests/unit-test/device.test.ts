@@ -4,6 +4,7 @@ import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSDevice } from '../../src/device';
+import { InputFocusTimeoutError } from '../../src/input-focus';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
 // Mock dependencies
@@ -183,6 +184,145 @@ describe('IOSDevice', () => {
   });
 
   describe('input readiness and replacement', () => {
+    it.each([true, false])(
+      'reacquires the explicit target after a missed tap (replace=%s)',
+      async (replace) => {
+        let text = 'old text';
+        const events: string[] = [];
+        mockWdaClient.tap.mockImplementation(async () => events.push('tap'));
+        mockWdaClient.waitForInputFocus
+          .mockImplementationOnce(async () => {
+            events.push('timeout');
+            throw new InputFocusTimeoutError();
+          })
+          .mockImplementation(async () => events.push('ready'));
+        mockWdaClient.clearActiveElement.mockImplementation(async () => {
+          events.push('clear');
+          text = '';
+          return true;
+        });
+        mockWdaClient.typeText.mockImplementation(async (value: string) => {
+          events.push('type');
+          text += value;
+        });
+        await device.inputPrimitives.keyboard.typeText('new text', {
+          target: { center: [10, 20] },
+          replace,
+          autoDismissKeyboard: false,
+        });
+        expect(text).toBe(replace ? 'new text' : 'old textnew text');
+        expect(events).toEqual([
+          'tap',
+          'timeout',
+          'tap',
+          'ready',
+          ...(replace ? ['clear'] : []),
+          'ready',
+          'type',
+        ]);
+        expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 10, 20);
+        expect(mockWdaClient.typeText).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it.each([true, false])(
+      'stops after one unsuccessful focus recovery (replace=%s)',
+      async (replace) => {
+        mockWdaClient.waitForInputFocus.mockRejectedValue(
+          new InputFocusTimeoutError(),
+        );
+        await expect(
+          device.inputPrimitives.keyboard.typeText('new text', {
+            target: { center: [10, 20] },
+            replace,
+          }),
+        ).rejects.toBeInstanceOf(InputFocusTimeoutError);
+        expect(mockWdaClient.tap).toHaveBeenCalledTimes(2);
+        expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledTimes(2);
+        expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
+        expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+        expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not re-tap stale coordinates after clearing the original field', async () => {
+      let active = 'original';
+      const fields: Record<string, string> = {
+        original: 'old text',
+        other: 'unrelated text',
+      };
+      mockWdaClient.tap.mockImplementation(async () => {
+        if (fields.original === '') active = 'other';
+      });
+      mockWdaClient.waitForInputFocus
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new InputFocusTimeoutError());
+      mockWdaClient.clearActiveElement.mockImplementation(async () => {
+        fields.original = '';
+        return true;
+      });
+      mockWdaClient.typeText.mockImplementation(async (text: string) => {
+        fields[active] += text;
+      });
+      await expect(
+        device.inputPrimitives.keyboard.typeText('replacement', {
+          target: { center: [10, 20] },
+          replace: true,
+          autoDismissKeyboard: false,
+        }),
+      ).rejects.toBeInstanceOf(InputFocusTimeoutError);
+      expect(mockWdaClient.tap).toHaveBeenCalledOnce();
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+      expect(mockWdaClient.typeRawKeys).not.toHaveBeenCalled();
+      expect(fields).toEqual({ original: '', other: 'unrelated text' });
+    });
+
+    it('propagates a recovery tap failure without clearing or typing', async () => {
+      const error = new Error('tap connection lost');
+      mockWdaClient.waitForInputFocus.mockRejectedValueOnce(
+        new InputFocusTimeoutError(),
+      );
+      mockWdaClient.tap
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(error);
+      await expect(
+        device.inputPrimitives.keyboard.typeText('replacement', {
+          target: { center: [10, 20] },
+          replace: true,
+        }),
+      ).rejects.toBe(error);
+      expect(mockWdaClient.tap).toHaveBeenCalledTimes(2);
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
+      expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+    });
+
+    it('never retries text dispatch after a send failure', async () => {
+      const error = new Error('send connection lost');
+      mockWdaClient.typeText.mockRejectedValue(error);
+      await expect(
+        device.inputPrimitives.keyboard.typeText('replacement', {
+          target: { center: [10, 20] },
+          replace: true,
+        }),
+      ).rejects.toBe(error);
+      expect(mockWdaClient.typeText).toHaveBeenCalledOnce();
+      expect(mockWdaClient.tap).toHaveBeenCalledOnce();
+      expect(mockWdaClient.clearActiveElement).toHaveBeenCalledOnce();
+    });
+
+    it('does not retry focus without an explicit target', async () => {
+      mockWdaClient.waitForInputFocus.mockRejectedValue(
+        new InputFocusTimeoutError(),
+      );
+      await expect(
+        device.inputPrimitives.keyboard.typeText('new text'),
+      ).rejects.toBeInstanceOf(InputFocusTimeoutError);
+      expect(mockWdaClient.tap).not.toHaveBeenCalled();
+      expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+    });
+
     it('waits before clearing a prefilled field and sends replacement text once', async () => {
       let focused = false;
       let text = 'old text';
@@ -237,6 +377,8 @@ describe('IOSDevice', () => {
         ).rejects.toThrow('focus timed out');
         expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
         expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+        expect(mockWdaClient.tap).toHaveBeenCalledOnce();
+        expect(mockWdaClient.waitForInputFocus).toHaveBeenCalledOnce();
       },
     );
   });

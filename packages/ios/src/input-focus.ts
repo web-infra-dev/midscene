@@ -1,4 +1,7 @@
-import { WebDriverRequestError } from '@midscene/webdriver';
+import {
+  WebDriverRequestError,
+  WebDriverRequestTimeoutError,
+} from '@midscene/webdriver';
 
 /** Session-relative WDA transport, shared by input discovery and recovery. */
 export type InputRequest = (
@@ -45,15 +48,33 @@ async function activeInput(
   }
 }
 
+/** No focus was observed within the input readiness budget. */
+export class InputFocusTimeoutError extends Error {
+  constructor(cause?: unknown) {
+    super('Timed out waiting for iOS input focus after 3000ms', { cause });
+    this.name = 'InputFocusTimeoutError';
+  }
+}
+
 /** Wait for a focus owner before clearing or synthesizing text events. */
 export async function waitForInputFocus(request: InputRequest): Promise<void> {
   const deadline = Date.now() + 3000;
   while (Date.now() < deadline) {
-    const target = await activeInput(
-      request,
-      Math.max(1, deadline - Date.now()),
-    );
-    if (Date.now() >= deadline) break;
+    let target: string | undefined;
+    try {
+      target = await activeInput(request, Math.max(1, deadline - Date.now()));
+    } catch (error) {
+      // The last request uses the remaining focus budget. Its transport timer
+      // may expire before the loop gets to report the focus deadline itself.
+      if (
+        error instanceof WebDriverRequestTimeoutError &&
+        Date.now() >= deadline
+      )
+        throw new InputFocusTimeoutError(error);
+      throw error;
+    }
+    // A successful observation remains valid if scheduling resumed at the
+    // deadline. Do not turn established focus into a coordinate retry.
     if (target) return;
     const remaining = deadline - Date.now();
     if (remaining > 0) {
@@ -62,7 +83,7 @@ export async function waitForInputFocus(request: InputRequest): Promise<void> {
       );
     }
   }
-  throw new Error('Timed out waiting for iOS input focus after 3000ms');
+  throw new InputFocusTimeoutError();
 }
 
 async function identifiedInputs(

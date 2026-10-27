@@ -1,5 +1,9 @@
-import { WebDriverRequestError } from '@midscene/webdriver';
+import {
+  WebDriverRequestError,
+  WebDriverRequestTimeoutError,
+} from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
+import { InputFocusTimeoutError } from '../../src/input-focus';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
 const noFocus = () =>
@@ -77,7 +81,9 @@ describe('iOS input focus readiness', () => {
       return now;
     });
     request.mockRejectedValue(noFocus());
-    await expect(client.waitForInputFocus()).rejects.toThrow('3000ms');
+    await expect(client.waitForInputFocus()).rejects.toBeInstanceOf(
+      InputFocusTimeoutError,
+    );
     expect(request.mock.calls.length).toBeGreaterThan(0);
     for (const [method, , , options] of request.mock.calls) {
       expect(method).toBe('GET');
@@ -92,4 +98,54 @@ describe('iOS input focus readiness', () => {
       expect(options.timeout).toBeLessThanOrEqual(3000);
     }
   });
+
+  it('accepts focus observed at the deadline without triggering recovery', async () => {
+    let now = 0;
+    rs.spyOn(Date, 'now').mockImplementation(() => now);
+    request.mockImplementation(async () => {
+      now = 3000;
+      return { value: { ELEMENT: 'input' } };
+    });
+    await client.waitForInputFocus();
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it('reports focus timeout when the last request exhausts its budget', async () => {
+    let now = 0;
+    rs.spyOn(Date, 'now').mockImplementation(() => now);
+    const cause = new WebDriverRequestTimeoutError(3000);
+    request.mockImplementation(async () => {
+      now = 3000;
+      throw cause;
+    });
+    await expect(client.waitForInputFocus()).rejects.toMatchObject({
+      name: 'InputFocusTimeoutError',
+      message: 'Timed out waiting for iOS input focus after 3000ms',
+      cause,
+    });
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [new WebDriverRequestTimeoutError(25), 25],
+    [new WebDriverRequestError('Connection lost'), 3000],
+    [
+      new WebDriverRequestError('Session gone', 404, {
+        value: { error: 'invalid session id' },
+      }),
+      3000,
+    ],
+  ] as const)(
+    'preserves errors that are not the focus deadline: %s',
+    async (error, elapsed) => {
+      let now = 0;
+      rs.spyOn(Date, 'now').mockImplementation(() => now);
+      request.mockImplementation(async () => {
+        now = elapsed;
+        throw error;
+      });
+      await expect(client.waitForInputFocus()).rejects.toBe(error);
+      expect(request).toHaveBeenCalledOnce();
+    },
+  );
 });
