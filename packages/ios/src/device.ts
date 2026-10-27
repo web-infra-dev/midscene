@@ -30,7 +30,6 @@ import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
-import { InputFocusTimeoutError } from './input-focus';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
 import {
@@ -111,10 +110,11 @@ export class IOSDevice implements AbstractInterface {
         if (target && opts?.replace !== false) {
           await this.clearInput(target);
         } else if (focusRestorePoint) {
-          await this.focusInputAt(focusRestorePoint);
+          await this.tapPoint(focusRestorePoint);
         }
 
         if (opts?.focusOnly) {
+          await this.wdaBackend.waitForKeyboardReady();
           return;
         }
 
@@ -264,29 +264,12 @@ export class IOSDevice implements AbstractInterface {
     );
   }
 
-  private async focusInputAt(point: PointerPoint): Promise<void> {
-    await this.tapPoint(point);
-    try {
-      await this.wdaBackend.waitForInputFocus();
-    } catch (error) {
-      if (!(error instanceof InputFocusTimeoutError)) throw error;
-      // A tap during a transition may not acquire focus. Retry the explicit
-      // target once, before any text mutation; never retry typing itself.
-      debugDeviceWarning(
-        'Input focus timed out; tapping the input target once more',
-      );
-      await this.tapPoint(point);
-      await this.wdaBackend.waitForInputFocus();
-    }
-  }
-
   private async clearInputAt(point?: PointerPoint): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('clear input');
     if (point) {
-      await this.focusInputAt(point);
-    } else {
-      await this.wdaBackend.waitForInputFocus();
+      await this.tapPoint(point);
     }
+    await this.wdaBackend.waitForInputFocus();
 
     debugDevice('Attempting to clear input with WebDriver Clear API');
     const cleared = await this.wdaBackend.clearActiveElement();
@@ -698,9 +681,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`Typing text: "${text}"`);
 
     try {
-      // After a verified clear, the original coordinates may no longer identify
-      // the same input. Fail closed rather than re-tapping before text dispatch.
-      await this.wdaBackend.waitForInputFocus();
+      // A responder may accept keys without appearing in the accessibility tree.
+      // Check readiness without re-tapping coordinates or retrying text dispatch.
+      await this.wdaBackend.waitForKeyboardReady();
 
       if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.

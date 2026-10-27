@@ -4,6 +4,7 @@ import {
   type InputRequest,
   clearInputWithFocus,
   waitForInputFocus,
+  waitForKeyboardReady,
 } from './input-focus';
 import {
   type KeyboardAccessoryButton,
@@ -305,9 +306,18 @@ export class IOSWebDriverClient extends WebDriverClient {
     return clearInputWithFocus(this.requestInput);
   }
 
-  /** Wait for keyboard focus before attempting to clear or type text. */
+  /** Wait for an accessible focus owner before clearing text. */
   async waitForInputFocus(): Promise<void> {
     await waitForInputFocus(this.requestInput);
+  }
+
+  /**
+   * Wait up to 3 seconds for an active element or a visible software keyboard.
+   * This establishes typing readiness, not the identity of a clear target.
+   * @throws if readiness cannot be observed or the WDA request fails
+   */
+  async waitForKeyboardReady(): Promise<void> {
+    await waitForKeyboardReady(this.requestInput);
   }
 
   private requestInput: InputRequest = (method, path, data, options) => {

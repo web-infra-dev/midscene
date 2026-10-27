@@ -120,7 +120,9 @@ describe('iOS input focus readiness', () => {
     });
     await expect(client.waitForInputFocus()).rejects.toMatchObject({
       name: 'InputFocusTimeoutError',
-      message: 'Timed out waiting for iOS input focus after 3000ms',
+      message: expect.stringContaining(
+        'Timed out waiting for iOS input focus after 3000ms',
+      ),
       cause,
     });
     expect(request).toHaveBeenCalledOnce();
@@ -148,4 +150,107 @@ describe('iOS input focus readiness', () => {
       expect(request).toHaveBeenCalledOnce();
     },
   );
+  it('accepts a visible keyboard when the responder is inaccessible', async () => {
+    request
+      .mockRejectedValueOnce(noFocus())
+      .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard' }] });
+    await client.waitForKeyboardReady();
+    expect(request).toHaveBeenLastCalledWith(
+      'POST',
+      '/session/session/elements',
+      {
+        using: 'predicate string',
+        value: 'type == "XCUIElementTypeKeyboard" AND visible == 1',
+      },
+      { timeout: expect.any(Number) },
+    );
+  });
+
+  it('accepts an active element without querying a software keyboard', async () => {
+    request.mockResolvedValueOnce({
+      value: { ELEMENT: 'hardware-keyboard-input' },
+    });
+    await client.waitForKeyboardReady();
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it('never uses a keyboard as a substitute for a clear target', async () => {
+    let now = 0;
+    rs.spyOn(Date, 'now').mockImplementation(() => now);
+    request.mockImplementation(async () => {
+      now = 3000;
+      throw noFocus();
+    });
+    await expect(client.waitForInputFocus()).rejects.toThrow(
+      'refusing to clear an unknown target',
+    );
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it('waits for a delayed keyboard instead of re-tapping', async () => {
+    request
+      .mockRejectedValueOnce(noFocus())
+      .mockResolvedValueOnce({ value: [] })
+      .mockRejectedValueOnce(noFocus())
+      .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard' }] });
+    await client.waitForKeyboardReady();
+    expect(request).toHaveBeenCalledTimes(4);
+    expect(
+      request.mock.calls.every(
+        ([, path]) =>
+          path.endsWith('/element/active') || path.endsWith('/elements'),
+      ),
+    ).toBe(true);
+  });
+
+  it('bounds keyboard discovery by the remaining readiness budget', async () => {
+    let now = 0;
+    rs.spyOn(Date, 'now').mockImplementation(() => now);
+    const cause = new WebDriverRequestTimeoutError(2500);
+    request
+      .mockImplementationOnce(async () => {
+        now = 500;
+        throw noFocus();
+      })
+      .mockImplementationOnce(async () => {
+        now = 3000;
+        throw cause;
+      });
+    await expect(client.waitForKeyboardReady()).rejects.toMatchObject({
+      message: 'Timed out waiting for iOS keyboard readiness after 3000ms',
+      cause,
+    });
+    expect(request.mock.calls[1][3]).toEqual({ timeout: 2500 });
+  });
+
+  it('does not accept missing focus and an absent keyboard', async () => {
+    let now = 0;
+    rs.spyOn(Date, 'now').mockImplementation(() => now);
+    request
+      .mockRejectedValueOnce(noFocus())
+      .mockImplementationOnce(async () => {
+        now = 3000;
+        return { value: [] };
+      });
+    await expect(client.waitForKeyboardReady()).rejects.toThrow(
+      'keyboard readiness',
+    );
+  });
+
+  it.each([{ value: null }, { value: [{}] }])(
+    'rejects malformed keyboard responses',
+    async (response) => {
+      request.mockRejectedValueOnce(noFocus()).mockResolvedValueOnce(response);
+      await expect(client.waitForKeyboardReady()).rejects.toThrow();
+    },
+  );
+
+  it('does not hide session errors behind keyboard discovery', async () => {
+    const error = new WebDriverRequestError('Session gone', 404, {
+      value: { error: 'invalid session id' },
+    });
+    request.mockRejectedValueOnce(error);
+    await expect(client.waitForKeyboardReady()).rejects.toBe(error);
+    expect(request).toHaveBeenCalledOnce();
+  });
 });
