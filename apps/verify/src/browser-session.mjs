@@ -1,14 +1,26 @@
 import { allowedUrl } from './config.mjs';
 
+// Restrict blob resources to the same operator-approved origins as network
+// requests. A blob URL embeds the origin of the creator. Allow data: resources
+// for inline assets in existing previews, but never treat arbitrary blob:
+// origins as inherently safe.
+export function allowedBrowserRequestUrl(value, policy) {
+  const url = new URL(value);
+  if (url.protocol === 'data:') return url;
+  if (url.protocol === 'blob:') {
+    const embedded = value.slice('blob:'.length);
+    return allowedUrl(embedded, policy);
+  }
+  return allowedUrl(value, policy);
+}
+
 export async function configurePage(page, policy) {
   await page.setViewport({ width: 1280, height: 900 });
   await page.setBypassServiceWorker(true);
   await page.setRequestInterception(true);
   page.on('request', (request) => {
     try {
-      const url = request.url();
-      if (!url.startsWith('data:') && !url.startsWith('blob:'))
-        allowedUrl(url, policy);
+      allowedBrowserRequestUrl(request.url(), policy);
       void request.continue().catch(() => {});
     } catch {
       void request.abort().catch(() => {});
