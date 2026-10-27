@@ -221,6 +221,7 @@ export const parseOpenaiSdkConfig = ({
     provider[keys.openaiApiKey] || legacyAPIKey;
   const openaiBaseURL: string | undefined =
     provider[keys.openaiBaseURL] || legacyBaseURL;
+  const endpoint = provider[keys.endpoint] || undefined;
   const socksProxy: string | undefined =
     provider[keys.socksProxy] || legacySocksProxy;
   const httpProxy: string | undefined =
@@ -238,6 +239,10 @@ export const parseOpenaiSdkConfig = ({
 
   const modelFamily = modelFamilyRaw as unknown as TModelFamily;
   validateModelFamily(modelFamily);
+  assert(
+    !endpoint || modelFamily === 'jev',
+    `${keys.endpoint} is only supported for System One models (currently Jev)`,
+  );
   const uiTarsModelVersion = getUITarsModelVersion(modelFamily);
 
   const modelDescription = getModelDescription(modelFamily, uiTarsModelVersion);
@@ -255,6 +260,7 @@ export const parseOpenaiSdkConfig = ({
       );
     })(),
     openaiBaseURL,
+    endpoint,
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
@@ -377,8 +383,10 @@ export const decideModelConfigFromIntentConfig = (
   );
 
   assert(
-    finalResult.authMode === 'siwc' || finalResult.openaiBaseURL,
-    `failed to get base URL of model (intent=${intent}). See https://midscenejs.com/model-api-setup`,
+    finalResult.authMode === 'siwc' ||
+      finalResult.endpoint ||
+      finalResult.openaiBaseURL,
+    `failed to get base URL or System One endpoint of model (intent=${intent}). See https://midscenejs.com/model-api-setup`,
   );
 
   if (!finalResult.modelName) {

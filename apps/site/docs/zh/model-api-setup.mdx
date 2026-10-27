@@ -341,7 +341,7 @@ Jev 使用 TypeSafe 的 System One 协议，不使用 OpenAI 协议。OpenAI 的
 
 :::info 注意事项
 
-- **Base URL**：Base URL 需要包含 `/v1`，例如 `https://api.typesafe.ai/v1`。
+- **请求地址**：使用 Base URL 时，需要包含 `/v1`，例如 `https://api.typesafe.ai/v1`，Midscene 会自动追加 `/systemone`。如果你的接入点未使用 `/systemone` 路径，可以通过对应模型的 Endpoint 配置完整请求地址，例如 `MIDSCENE_LOCATE_MODEL_ENDPOINT="https://example.com/custom/decision"`。Endpoint 优先于 Base URL，Midscene 不会再追加路径。
 - **图像输入限制**：目前 Jev 最新版本支持的图片最长边仅为 1568 像素，需要通过 Agent 的 `screenshotShrinkFactor` 参数控制截图尺寸。为避免多次缩放影响图片质量，并兼容 Jev 未来版本的图片尺寸要求，Midscene 不会按照 Jev 某个版本的尺寸要求自动缩放图片。
 
 :::
