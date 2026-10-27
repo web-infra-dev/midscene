@@ -122,17 +122,50 @@ describe('Jev model fallback', () => {
       });
     },
   );
-  it('rejects Jev as the default model', () => {
-    const configs = new ModelConfigManager({
+  const createJevOnlyConfig = () =>
+    new ModelConfigManager({
       MIDSCENE_MODEL_NAME: 'jev',
       MIDSCENE_MODEL_FAMILY: 'jev',
-      MIDSCENE_MODEL_BASE_URL: 'https://api.typesafe.ai',
+      MIDSCENE_MODEL_BASE_URL: 'https://api.typesafe.ai/v1',
       MIDSCENE_MODEL_API_KEY: 'test-key',
     });
-    expect(() => configs.getModelConfig('default')).toThrow(
-      'Jev cannot be the default model',
-    );
-  });
+
+  it.each(['boolean', 'locate', 'planning'] as const)(
+    'allows default Jev for supported %s tasks',
+    (taskType) => {
+      const configs = createJevOnlyConfig();
+      const runtime = resolveModelForTaskType(
+        configs,
+        taskType === 'boolean' ? 'insight' : taskType,
+        taskType,
+      );
+      expect(runtime.config).toMatchObject({
+        modelFamily: 'jev',
+        slot: 'default',
+      });
+      expect(runtime.modelFallback).toBeUndefined();
+    },
+  );
+
+  it.each(['extract', 'general'] as const)(
+    'rejects default Jev only when an unsupported %s task is requested',
+    (taskType) => {
+      const configs = createJevOnlyConfig();
+      expect(configs.getModelConfig('default').modelFamily).toBe('jev');
+      expect(() =>
+        resolveModelForTaskType(
+          configs,
+          taskType === 'extract' ? 'insight' : 'default',
+          taskType,
+        ),
+      ).toThrow(
+        `The default model cannot perform ${taskType}. Configure a general-purpose default model.`,
+      );
+      expect(
+        resolveModelForTaskType(configs, 'locate', 'locate').config.modelFamily,
+      ).toBe('jev');
+    },
+  );
   it('passes explicit task types for insight APIs', async () => {
     const execute = rs.fn().mockResolvedValue({ output: true });
     const resolve = rs.fn((taskType) =>
