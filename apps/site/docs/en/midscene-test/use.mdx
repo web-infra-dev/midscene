@@ -30,7 +30,7 @@ my-tests/
 └── README.zh.md
 ```
 
-The other platform starters define `todo.setup` in `midscene.config.ts` and do not include `nodes/todo.ts`, and their Spec filenames use the selected platform name, such as `midscene-node-spec.ios.md`. Creation and spec generation do not run tests, so this step does not require a model API Key, browser, or device. The generated README explains platform setup and how to run the example.
+This step only generates project files and the spec file without running any tests, so you do not need a model API Key, browser, or device yet. The generated README in the project folder provides more details on platform-specific setup.
 
 ### 2. Configure the model and runtime environment
 
@@ -51,7 +51,7 @@ For Web, also install Chromium:
 pnpm exec playwright install chromium
 ```
 
-For other platforms, change `--platform` when creating the project and complete the corresponding setup:
+If you targeted a platform other than Web during project creation, please complete its respective runtime prerequisites below before running your tests:
 
 | Platform | Argument value | Runtime prerequisites | Environment setup guide |
 | --- | --- | --- | --- |
