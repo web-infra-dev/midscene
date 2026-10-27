@@ -218,12 +218,6 @@ describe('gemini model adapter', () => {
         '<thought>I should locate the add button.</thought>```json\n' +
         '{"bbox":[128,284,151,298]}\n' +
         '```',
-      extra_content: {
-        google: {
-          thought: true,
-          thought_signature: 'signature',
-        },
-      },
     });
 
     expect(result).toEqual({
@@ -235,58 +229,30 @@ describe('gemini model adapter', () => {
     });
   });
 
-  it('extracts thought parts into reasoning_content', () => {
-    const result = extractGeminiContentAndReasoning({
-      content: [
-        {
-          text: 'I need to locate the add button.',
-          thought: true,
-        },
-        {
-          text: '{"bbox":[124,281,157,302]}',
-        },
-      ],
-    });
-
-    expect(result).toEqual({
-      content: '{"bbox":[124,281,157,302]}',
-      reasoning_content: 'I need to locate the add button.',
-    });
-  });
-
-  it('combines thought parts with provider reasoning_content', () => {
-    const result = extractGeminiContentAndReasoning({
-      content: [
-        {
-          text: 'I need to locate the add button.',
-          thought: true,
-        },
-        {
-          text: '{"bbox":[124,281,157,302]}',
-        },
-      ],
+  it.each([
+    'Answer: <thought>quoted thought</thought>',
+    'Answer:\n<thought>quoted thought</thought>',
+  ])('does not extract thought tags after visible content: %s', (content) => {
+    expect(
+      extractGeminiContentAndReasoning({
+        content,
+        reasoning_content: 'provider reasoning',
+      }),
+    ).toEqual({
+      content,
       reasoning_content: 'provider reasoning',
     });
-
-    expect(result).toEqual({
-      content: '{"bbox":[124,281,157,302]}',
-      reasoning_content:
-        'thoughtParts：I need to locate the add button.; reasoning_content：provider reasoning',
-    });
   });
 
-  it('keeps visible content when Gemini parts do not include thought summaries', () => {
-    const result = extractGeminiContentAndReasoning({
-      content: [
-        {
-          text: '{"bbox":[124,281,157,302]}',
-        },
-      ],
-    });
-
-    expect(result).toEqual({
+  it('preserves plain content and provider reasoning_content', () => {
+    expect(
+      extractGeminiContentAndReasoning({
+        content: '{"bbox":[124,281,157,302]}',
+        reasoning_content: 'provider reasoning',
+      }),
+    ).toEqual({
       content: '{"bbox":[124,281,157,302]}',
-      reasoning_content: '',
+      reasoning_content: 'provider reasoning',
     });
   });
 
@@ -305,7 +271,7 @@ describe('gemini model adapter', () => {
         '{"bbox":[128,284,151,298]}\n' +
         '```',
       reasoning_content:
-        'thoughtParts：I should locate the add button.; reasoning_content：provider reasoning',
+        'inlineThought：I should locate the add button.; reasoning_content：provider reasoning',
     });
   });
 
