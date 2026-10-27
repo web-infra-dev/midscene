@@ -1781,6 +1781,7 @@ function createPlatformActions() {
   return {
     ListDisplays: defineAction({
       name: 'ListDisplays',
+      supportedBySystemOne: true,
       description: 'List all available displays/monitors',
       call: async () => {
         return await ComputerDevice.listDisplays();

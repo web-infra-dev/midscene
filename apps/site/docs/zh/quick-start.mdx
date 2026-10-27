@@ -6,11 +6,11 @@ import ShowcaseWeb from './showcases-web.mdx';
 
 通过 Chrome Extension，你可以在浏览器的 Playground 中体验 GUI Agent，无需搭建测试项目。本指南带你配置模型、执行一条自然语言指令、验证结果并查看执行过程。
 
-如果你要直接编写 YAML 测试，可以前往 [Midscene Test](./midscene-test/use)。移动端和桌面端的 Playground 入口见[其他平台](#在其他平台使用-midscene)。
+如果你要直接编写 YAML 测试，可以前往 [Midscene Test](./midscene-test/use)。
 
 ## 配置模型
 
-使用 Chrome Extension 前，需要先准备一个具备 UI 定位能力的多模态模型。
+使用 Chrome Extension 前，需要先准备一个具备 UI 定位能力的多模态模型。如果尚未确定模型或接入方式，请先阅读[模型选择指南](./model-selection)。
 
 <SetupEnv />
 
@@ -63,7 +63,7 @@ Agent 会观察页面，找到输入框，添加待办事项并勾选它。执�
 
 ## 查看执行过程
 
-运行后，在 Playground 的结果区域查看执行步骤和截图，将操作过程与页面的最终状态对照。如果执行失败，先查看失败步骤和错误信息；模型连接问题可参考[模型调试与可观测性](./model-debugging-observability)。
+运行后，在 Playground 的结果区域查看执行步骤和截图，将操作过程与页面的最终状态对照。如果执行失败，先查看失败步骤和错误信息；模型连接问题可参考[模型高级配置与调试](./model-config#verify-model-connectivity)。
 
 下面是另一段完整示例：用 Chrome Extension 填写 GitHub 注册表单。视频下方的报告链接可以用于体验执行回放。
 
@@ -73,19 +73,10 @@ Agent 会观察页面，找到输入框，添加待办事项并勾选它。执�
 
 - **了解关键 API**：阅读[基本概念](./basics)。
 - **编写 YAML 测试**：通过 [Midscene Test](./midscene-test/use) 创建项目、运行用例并查看报告。
-- **接入已有测试工程**：阅读[集成到 Playwright](./integrate-with-playwright)或[集成到 Puppeteer](./integrate-with-puppeteer)，创建 Agent 后即可调用 `aiAct`、`aiAssert` 等 API。
+- **编写 Web 测试**：通过[接入 Playwright Test](./integrate-with-playwright)，在测试中使用视觉交互与断言。
+- **编写移动端和桌面端测试**：通过[接入 Vitest](./sdk/vitest)，组织用例并管理 Agent 生命周期。
+- **执行日常自动化流程**：阅读[编写独立自动化脚本](./sdk/standalone)，无需测试运行器即可调用 SDK。
 - **让 AI 编程助手操作应用**：安装 [Midscene Skills](./skills)。
-
-## 在其他平台使用 Midscene
-
-Midscene 在 Android、iOS、HarmonyOS 和桌面端也提供完整的自动化能力，并为每个平台提供对应的 Playground。使用前，需要先完成该平台的设备环境准备。例如，Android 平台需要安装并配置 adb。具体要求、Playground 启动方法和故障排查，请参考以下文档。
-
-| 平台 | 平台指南 |
-| --- | --- |
-| Android | [Android](./platforms/android) |
-| iOS | [iOS](./platforms/ios) |
-| HarmonyOS | [HarmonyOS](./platforms/harmonyos) |
-| 桌面端 | [Windows、macOS 和 Linux](./platforms/desktop) |
 
 ## 常见问题
 

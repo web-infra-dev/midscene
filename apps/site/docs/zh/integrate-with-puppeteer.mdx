@@ -1,235 +1,214 @@
-import SetupEnv from './common/setup-env.mdx';
 import GetCdpUrl from './common/get-cdp-url.mdx';
 
-# 集成到 Puppeteer
+# Web / Puppeteer SDK
 
-import { PackageManagerTabs } from '@theme';
+`@midscene/web/puppeteer` 提供绑定 Puppeteer 页面或 Browser 的 Agent。两种 Agent 都继承基础 Agent 的 [AI 方法](./reference/#interaction-methods)，并支持 Web 配置选项。
 
-[Puppeteer](https://pptr.dev/) 是一个 Node.js 库，它通过 DevTools 协议或 WebDriver BiDi 提供控制 Chrome 或 Firefox 的高级 API。Puppeteer 默认在无界面模式（headless）下运行，但可以配置为在可见的浏览器模式（headed）中运行。
-
-:::info 样例项目
-
-你可以在这里看到向 Puppeteer 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo)
-
-这里还有一个 Playwright 和 Vitest 结合的样例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/playwright-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/playwright-with-vitest-demo)
-
-:::
-
-## 配置 AI 模型服务
-
-<SetupEnv />
-
-## 集成 Midscene Agent
-
-### 第一步：安装依赖
-
-<PackageManagerTabs command="install @midscene/web puppeteer tsx dotenv --save-dev" />
-
-### 第二步：编写脚本
-
-编写下方代码，保存为 `./demo.ts`
-
-```typescript title="./demo.ts"
-import 'dotenv/config'; // 通过 dotenv/config 自动加载 .env 文件中的环境变量
-import puppeteer from "puppeteer";
-import { PuppeteerAgent } from "@midscene/web/puppeteer";
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-Promise.resolve(
-  (async () => {
-    const browser = await puppeteer.launch({
-      headless: false, // here we use headed mode to help debug
-    });
-
-    const page = await browser.newPage();
-    await page.setViewport({
-      width: 1280,
-      height: 800,
-      deviceScaleFactor: 1,
-    });
-
-    await page.goto("https://www.ebay.com");
-    await sleep(5000);
-
-    // 👀 初始化 Midscene agent 
-    const agent = new PuppeteerAgent(page);
-
-    // 👀 执行搜索
-    // 注：尽管这是一个英文页面，你也可以用中文指令控制它
-    await agent.aiAct('在搜索框输入 "Headphones"，敲回车');
-    await sleep(5000);
-
-    // 👀 理解页面，提取数据
-    const items = await agent.aiQuery(
-      '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格',
-    );
-    console.log("耳机商品信息", items);
-
-    // 👀 用 AI 断言
-    await agent.aiAssert("界面左侧有类目筛选功能");
-
-    await browser.close();
-  })()
-);
-```
-
-### 第三步：运行
-
-使用 `tsx` 来运行，你会看到命令行打印出了耳机的商品信息：
-
-```bash
-# run
-npx tsx demo.ts
-
-# 命令行应该有如下输出
-#  [
-#   {
-#     itemTitle: 'Beats by Dr. Dre Studio Buds Totally Wireless Noise Cancelling In Ear + OPEN BOX',
-#     price: 505.15
-#   },
-#   {
-#     itemTitle: 'Skullcandy Indy Truly Wireless Earbuds-Headphones Green Mint',
-#     price: 186.69
-#   }
-# ]
-```
-
-更多 Agent 的 API 讲解请参考 [API 参考](./reference/#interaction-methods)。
-
-### 第四步：查看运行报告
-
-当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`，通过浏览器打开该文件即可看到报告。
-
-<a id="puppeteeragent"></a>
-
-## Advanced
-
-### 关于在新标签页打开
-
-`PuppeteerAgent` 是 page-level Agent：每个实例都与对应的页面唯一绑定。为了方便开发者调试，Midscene 默认拦截了新 tab 的页面（如点击一个带有 `target="_blank"` 属性的链接），将其改为在当前页面打开。
-
-如果你想恢复在新标签页打开的行为，同时让当前 Agent 仍留在原页面，可以设置 `forceSameTabNavigation` 为 `false`，并自行为每个新标签页创建新的 Agent 实例。
-
-如果一个 Agent 需要管理整个 browser 内的页面切换，请使用 `PuppeteerBrowserAgent`。如果后续操作要自动继续在新打开的标签页中执行，请开启 `autoFollowNewPage`。
+## 导入与 API 概览
 
 ```typescript
-const mid = new PuppeteerBrowserAgent(browser, page, {
+import {
+  PuppeteerPageAgent,
+  PuppeteerAgent,
+  PuppeteerBrowserAgent,
+} from '@midscene/web/puppeteer';
+```
+
+| API | 作用范围 | 用途 |
+| --- | --- | --- |
+| `PuppeteerPageAgent` | 单个 `Page` | 始终操作同一个页面 |
+| `PuppeteerAgent` | 单个 `Page` | `PuppeteerPageAgent` 的兼容别名，行为相同 |
+| `PuppeteerBrowserAgent` | 一个 `Browser` | 在浏览器的多个页面之间切换，后续 AI 操作作用于当前 active page |
+
+以下签名中的 `Page`、`Browser` 来自 `puppeteer`；配置类型来自 `@midscene/web/puppeteer`。
+
+<a id="关于在新标签页打开"></a>
+
+<a id="web-快速上手"></a>
+
+<a id="web-连接远程-puppeteer-浏览器"></a>
+
+## `PuppeteerPageAgent` {#puppeteer-agent}
+
+```typescript
+new PuppeteerPageAgent(page: Page, options?: PuppeteerPageAgentOpt)
+```
+
+- `page`：必填，已有的 Puppeteer 页面。未传入时抛出错误。
+- `options`：可选，支持[通用 Agent 配置](./reference/#agent-options)和下方的 [Web 配置](#web-options)。
+
+```typescript
+const agent = new PuppeteerPageAgent(page, {
+  forceSameTabNavigation: false,
+});
+await agent.aiAct('点击登录按钮');
+```
+
+Agent 绑定传入的页面。默认 `forceSameTabNavigation: true`，会拦截 `window.open` 和 `target="_blank"` 链接，使其在当前页面打开。设为 `false` 后保留新标签页行为，但 Agent 不会自动切换到新页面。
+
+## `PuppeteerBrowserAgent` {#puppeteer-browser-agent}
+
+```typescript
+new PuppeteerBrowserAgent(
+  browser: Browser,
+  initialPage: Page,
+  options?: PuppeteerBrowserAgentOpt,
+)
+```
+
+- `browser`：必填，用于监听页面创建事件、列出和创建页面的 Browser。
+- `initialPage`：必填，初始 active page，应使用该 browser 中的页面。
+- `options`：可选，支持通用 Agent 配置、Web 配置和下面的专属选项。
+
+未传入 `browser` 或 `initialPage` 时抛出错误。Browser Agent 不接受 `forceSameTabNavigation`；即使通过 JavaScript 传入 `false` 也会报错。
+
+### `PuppeteerBrowserAgent.create()`
+
+```typescript
+PuppeteerBrowserAgent.create(
+  browser: Browser,
+  options?: PuppeteerBrowserAgentCreateOpt,
+): Promise<PuppeteerBrowserAgent>
+```
+
+异步创建 Agent。初始页面按以下顺序选择：`options.initialPage` → `(await browser.pages())[0]` → `await browser.newPage()`。
+
+```typescript
+const agent = await PuppeteerBrowserAgent.create(browser, {
   autoFollowNewPage: true,
 });
 ```
 
-当你要显式指定初始 active page 时，使用 `new PuppeteerBrowserAgent(browser, page, options)`。当你希望 Midscene 自动选择或创建初始 active page 时，使用 `PuppeteerBrowserAgent.create(browser, options)`；这个工厂会优先使用 `initialPage`，否则复用浏览器里的第一个页面，或者创建一个新页面。
+### 专属配置
 
-### 在其他浏览器控制器操作后同步视口
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `autoFollowNewPage` | `boolean` | `false` | browser 创建新页面时自动将其设为 active page |
+| `newPageTimeout` | `number` | `5000` | `waitForNewPage()` 默认等待时间，单位毫秒 |
+| `initialPage` | `Page` | 自动选择 | 仅用于 `create()`，指定初始 active page |
 
-当 Playwright、浏览器 skill 或其他 CDP 客户端调整共享桌面页面的视口时，Puppeteer 本地保存的视口配置和 Midscene 缓存的逻辑尺寸可能过期。在把控制权交回 Midscene 前，显式同步到页面当前的实际视口：
+<a id="页面管理-api"></a>
+
+## 页面管理 API {#page-management-api}
+
+以下属性和方法仅属于 `PuppeteerBrowserAgent`。
+
+### `activePage`
 
 ```typescript
-// 两个控制器操作同一个页面，先等待外部操作完成。
-await playwrightPage.setViewportSize({ width: 800, height: 600 });
-const { changed, viewport } = await agent.interface.syncViewport();
-await agent.aiTap('提交');
+agent.activePage: Page
 ```
 
-`syncViewport()` 返回 `{ changed, viewport: { width, height, deviceScaleFactor } }`，原地采用当前实际尺寸和设备像素比，保留 Page、Agent、报告、监听器和持久化 XPath 缓存。对于 `PuppeteerBrowserAgent`，只同步当前 active page，保留原有页面管理范围。原生视口模式（`page.viewport() === null`）仍保持原生模式。 如果配置为 `deviceScaleFactor: 0`（系统默认值），首次调用会将其解析为当前实际 DPR，因为外部客户端可能已经覆盖系统值。
+只读属性，返回当前 AI 操作使用的 Puppeteer 页面。使用 `setActivePage()` 切换。
 
-该方法仅在显式调用时执行，不会给现有自动化增加逐动作检查。视口一致时，只读取一次实际指标，不调用 `setViewport()`。
+### `pages()`
 
-请在前一动作完成、其他控制器暂停操作时调用。它无法修复已在执行中的动作，也不会改写已冻结的截图上下文；如果需要恢复实时自动化，请先调用 `agent.unfreezePageContext()`。移动端或触摸模拟、双指缩放、重叠的同步调用，以及同步过程中检测到的页面或视口变化都会使方法抛出异常。可传入 `{ signal }` 在浏览器操作之间检查取消状态；已发出的浏览器命令仍可能完成。
+```typescript
+agent.pages(): Promise<Page[]>
+```
 
-### 浏览器支持说明
+返回绑定 browser 中的页面，不改变 active page。
 
-Midscene 的部分 Web 自动化能力依赖 Chromium-based browser 提供的 Chrome DevTools Protocol（CDP），例如浏览器级事件、触摸手势，以及一些交互操作中使用的 CDP fallback 路径。
+### `newPage()`
 
-使用 Puppeteer 时，推荐使用 Chrome、Chromium 或其他 Chromium-based browser。不提供兼容 CDP 能力的浏览器，可能会在 Midscene 使用 CDP-backed features 时报错。
+```typescript
+agent.newPage(): Promise<Page>
+```
 
-### 连接远程 Puppeteer 浏览器并接入 Midscene Agent
+在绑定浏览器的默认 BrowserContext 中创建页面，将其设为 active page，并返回该页面。
 
-:::info 示例项目
+### `setActivePage()`
 
-你可以在这里找到远程 Puppeteer 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo)
+```typescript
+agent.setActivePage(page: Page): Promise<void>
+```
 
-:::
+将指定页面设为 active page，并尝试将其置于前台。传入无效或已关闭的页面时抛出错误。应传入绑定 browser 中的页面。
 
-当你想复用已有的远程浏览器（例如云端常驻的 worker、第三方浏览器网格或本地内网桌面）时，可以通过此流程把 Midscene 接到远程 Puppeteer 实例上。这样做能让浏览器靠近目标环境、降低重复启动成本，并统一管理浏览器资源，同时保持一致的 AI 自动化能力。
+### `waitForNewPage()`
 
-实践中你需要手动：
-1. 从远程浏览器服务获取 CDP WebSocket URL
-2. 使用 Puppeteer 连接到远程浏览器
-3. 创建 Midscene Agent 进行 AI 驱动的自动化
+```typescript
+agent.waitForNewPage(
+  action?: () => Promise<unknown> | unknown,
+  options?: { timeout?: number },
+): Promise<Page>
+```
 
-#### 前置依赖
+先监听 browser 的 `targetcreated` 事件（仅处理页面类型的 target），再执行可选的 `action`，返回监听到的新页面。`options.timeout` 覆盖本次等待时间，单位毫秒；默认使用 `newPageTimeout`。超时或 `action` 失败时抛出错误。
 
-<PackageManagerTabs command="install puppeteer @midscene/web --save-dev" />
+此方法本身不会切换 active page。若设置了 `autoFollowNewPage: true`，独立的新页面监听器仍会自动切换。需要显式控制切换时，保持该选项为 `false`：
 
-<GetCdpUrl />
+```typescript
+const agent = await PuppeteerBrowserAgent.create(browser, {
+  autoFollowNewPage: false,
+});
+const newPage = await agent.waitForNewPage(
+  () => agent.aiTap('打开详情'),
+  { timeout: 10000 },
+);
+await agent.setActivePage(newPage);
+await agent.aiAssert('详情页面已打开');
+```
 
-#### 基础示例
+## 配置选项 {#web-options}
+
+除下表外，两种 Agent 均接受[通用 Agent 配置](./reference/#agent-options)，例如模型、报告和缓存配置。
+
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `forceSameTabNavigation` | `boolean` | `true` | 仅 Page Agent 可用，强制在当前页面打开新标签页链接 |
+| `waitForNavigationTimeout` | `number` | `5000` | 等待页面 `html` 元素的超时，单位毫秒；`0` 跳过检查。超时后继续执行，不保证应用就绪 |
+| `waitForNetworkIdleTimeout` | `number` | `2000` | 动作后等待网络空闲的超时，单位毫秒；要求连续 `200` 毫秒最多有两个进行中的请求。`0` 跳过检查，超时后继续执行 |
+| `enableTouchEventsInActionSpace` | `boolean` | `false` | 向动作空间添加触摸手势 |
+| `keyboardTypeDelay` | `number` | 未设置 | 字符输入间隔，单位毫秒，必须是有限非负数；legacy 模式下由 Puppeteer 的 `page.keyboard.type` 处理正数延迟，未设置时使用底层驱动默认值 |
+| `inputStrategy` | `'legacy' \| 'sequential' \| 'bulk'` | `'legacy'` | 文本输入策略；`sequential` 逐个 Unicode 码点输入，`bulk` 一次插入完整文本 |
+| `forceChromeSelectRendering` | `boolean` | `true` | 注入 `base-select` 样式，使原生 `select` 的选项可被截图捕捉；要求 Puppeteer ≥ `24.6.0`，且浏览器支持该样式 |
+| `customActions` | `DeviceAction[]` | 未设置 | 向规划器添加[自定义动作](./integrate-with-any-interface) |
+| `beforeInvokeAction` | `() => Promise<void>` | 未设置 | 动作执行前的回调 |
+| `afterInvokeAction` | `() => Promise<void>` | 未设置 | 动作执行后的回调 |
+| `testRunner` | `PuppeteerPageAgentOpt['testRunner']` | 未设置 | 为 Midscene Test 的 Puppeteer Nodes 提供 base URL 和 Cookie 等配置 |
+
+`inputStrategy: 'bulk'` 要求不设置 `keyboardTypeDelay` 或将其设为 `0`。需要延迟输入时使用 `'sequential'`。等待业务界面就绪时，使用 `aiWaitFor()` 或 Puppeteer 自身的等待 API。
+
+## 生命周期 {#lifecycle}
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+两种 Agent 都支持 `destroy()`：等待相关操作完成，清理 Agent 持有的资源、调用内部 Device 的 `destroy()`，并完成报告处理。Browser Agent 还会移除用于自动跟随新页面的 `targetcreated` 监听器。
+
+Puppeteer Device 的 `destroy()` 不关闭传入的 Page、BrowserContext 或 Browser，也不主动断开远程浏览器连接。由调用方管理这些 Puppeteer 资源；销毁 Agent 后，页面和浏览器仍可继续使用。
+
+```typescript
+try {
+  await agent.aiAct('提交表单');
+} finally {
+  await agent.destroy();
+  // 按资源所有权，由调用方关闭 page、context 或 browser。
+}
+```
+
+## 浏览器支持与限制
+
+推荐使用 Chrome / Chromium。Midscene 的 Puppeteer 集成依赖 CDP，包括触摸手势和部分交互操作。不要将 Puppeteer 自身支持的其他浏览器或协议视为 Midscene 的支持范围。
+
+### 远程浏览器
+
+Agent 接受已有的 Puppeteer 页面，创建方式与本地浏览器一致。例如使用 CDP 连接后：
 
 ```typescript
 import puppeteer from 'puppeteer';
-import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { PuppeteerPageAgent } from '@midscene/web/puppeteer';
 
-// 假设你已经有了一个 CDP WebSocket URL
-const cdpWsUrl = 'ws://your-remote-browser.com/devtools/browser/your-session-id';
-
-// 连接到远程浏览器
-const browser = await puppeteer.connect({
-  browserWSEndpoint: cdpWsUrl
-});
-
-// 获取或创建页面
-const pages = await browser.pages();
-const page = pages[0] || await browser.newPage();
-
-// 创建 Midscene Agent
-const agent = new PuppeteerAgent(page);
-
-// 使用 AI 方法
-await agent.aiAction('跳转到 https://example.com');
-await agent.aiAction('点击登录按钮');
-const result = await agent.aiQuery('获取页面标题: {title: string}');
-
-// 清理
-await agent.destroy();
-await browser.disconnect();
+const browser = await puppeteer.connect({ browserWSEndpoint: cdpWsUrl });
+const page = (await browser.pages())[0] ?? await browser.newPage();
+const agent = new PuppeteerPageAgent(page);
 ```
 
-### 提供自定义动作
+连接和身份验证由调用方管理。远程浏览器使用完毕后，可调用 `browser.disconnect()` 断开 Puppeteer 连接并保留浏览器进程；`browser.close()` 会关闭浏览器。
 
-使用 `defineAction()` 定义自定义动作。构造 Agent 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
-
-```typescript
-import { getMidsceneLocationSchema, z } from '@midscene/core';
-import { defineAction } from '@midscene/core/device';
-
-const ContinuousClick = defineAction({
-  name: 'continuousClick',
-  description: 'Click the same target repeatedly',
-  paramSchema: z.object({
-    locate: getMidsceneLocationSchema(),
-    count: z
-      .number()
-      .int()
-      .positive()
-      .describe('How many times to click'),
-  }),
-  async call(param) {
-    const { locate, count } = param;
-    console.log('click target center', locate.center);
-    console.log('click count', count);
-    // 在这里结合 locate + count 实现自定义点击逻辑
-  },
-});
-
-const agent = new PuppeteerAgent(page, {
-  customActions: [ContinuousClick],
-});
-
-await agent.aiAct('点击红色按钮五次');
-```
-
-更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。
+<GetCdpUrl />
 
 ## FAQ
 
@@ -239,18 +218,18 @@ Puppeteer 会在安装时通过 `postinstall` 自动下载浏览器镜像。下�
 
 ```bash
 # 先跳过浏览器下载，让依赖安装完成
-PUPPETEER_SKIP_DOWNLOAD=true npm install
+PUPPETEER_SKIP_DOWNLOAD=true pnpm install
 
 # 再单独从镜像站下载 Chrome
 # 下面以 https://registry.npmmirror.com 为例，不同镜像平台的 base-url 规则可能不同
-npx puppeteer browsers install chrome --base-url="https://registry.npmmirror.com/-/binary/chrome-for-testing"
+pnpm exec puppeteer browsers install chrome --base-url="https://registry.npmmirror.com/-/binary/chrome-for-testing"
 ```
 
 ### 下拉框点击不到
 
 如果点击下拉框后，报告中的截图没有出现下拉选项，通常是页面使用了原生 `select` 标签，导致展开后的下拉面板由操作系统原生控件渲染，没有真正出现在浏览器页面里。
 
-Midscene 默认开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来渲染下拉框；如需关闭可将其设为 `false`。详细原因、判断方式和效果说明，请参考 [Playwright FAQ — 下拉框点击不到](./integrate-with-playwright#下拉框点击不到)。
+Midscene 默认开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来渲染下拉框；如需关闭可将其设为 `false`。详细原因、判断方式和效果说明，请参考 [Playwright FAQ — 下拉框点击不到](./sdk/playwright#下拉框点击不到)。
 
 ### 浏览器界面持续闪动
 
@@ -258,20 +237,14 @@ Midscene 默认开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来
 
 ```typescript
 await page.setViewport({
+  width: 1280,
+  height: 720,
   deviceScaleFactor: 0,
 });
 ```
 
-更多详情请参考 [Playwright FAQ — 浏览器界面持续闪动](./integrate-with-playwright#浏览器界面持续闪动)。
+更多详情请参考 [Playwright FAQ — 浏览器界面持续闪动](./sdk/playwright#浏览器界面持续闪动)。
 
 ### 自定义网络超时
 
-Midscene 在执行操作后会自动等待网络空闲，你可以自定义或关闭超时时间——详见 [Playwright FAQ — 自定义网络超时](./integrate-with-playwright#自定义网络超时)。
-
-## 更多
-
-- 更多 Agent 的 API 文档请参考 [API 参考](./reference/#interaction-methods)。
-- Puppeteer 的 API 文档请参考 [Puppeteer Agent API](./reference/#puppeteer-agent)。
-- 样例项目
-  - Puppeteer：[https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo)
-  - Playwright + Vitest：[https://github.com/web-infra-dev/midscene-example/tree/main/playwright-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/playwright-with-vitest-demo)
+通过 `waitForNavigationTimeout` 和 `waitForNetworkIdleTimeout` 调整或关闭内置检查，详见[配置选项](#web-options)。

@@ -32,7 +32,7 @@ import { initDebugConfig } from './init-debug';
 
 declare const __VERSION__: string | undefined;
 
-const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-common-config.html';
+const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-api-setup.html';
 
 const getCurrentVersion = (): string => {
   if (typeof __VERSION__ !== 'undefined' && __VERSION__) {
@@ -245,6 +245,15 @@ export const parseOpenaiSdkConfig = ({
   return {
     socksProxy,
     httpProxy,
+    authMode: (() => {
+      const value = provider[keys.authMode]?.trim() ?? 'api-key';
+      if (value === 'api-key' || value === 'siwc') {
+        return value;
+      }
+      throw new Error(
+        `Invalid ${keys.authMode}: "${value}". Expected "api-key" or "siwc".`,
+      );
+    })(),
     openaiBaseURL,
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
@@ -368,13 +377,13 @@ export const decideModelConfigFromIntentConfig = (
   );
 
   assert(
-    finalResult.openaiBaseURL,
-    `failed to get base URL of model (intent=${intent}). See https://midscenejs.com/model-strategy`,
+    finalResult.authMode === 'siwc' || finalResult.openaiBaseURL,
+    `failed to get base URL of model (intent=${intent}). See https://midscenejs.com/model-api-setup`,
   );
 
   if (!finalResult.modelName) {
     console.warn(
-      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://midscenejs.com/model-strategy`,
+      `modelName is not set for intent ${intent}, this may cause unexpected behavior. See https://midscenejs.com/model-api-setup`,
     );
   }
 

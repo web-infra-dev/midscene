@@ -507,26 +507,32 @@ export function mergeTestRunReportDumps(
       ),
     ],
     fields: Object.fromEntries(
-      (['modelCallCount', 'modelTimeMs', 'totalTokens'] as const).map(
-        (field) => {
-          const states = [
-            ...collections.map(
-              (value) => value?.fields?.[field] ?? value?.status ?? 'unknown',
-            ),
-            ...(metrics.collection?.fields
-              ? [metrics.collection.fields[field]]
-              : []),
-          ];
-          return [
-            field,
-            states.every((state) => state === 'complete')
-              ? 'complete'
-              : states.every((state) => state === 'unknown')
-                ? 'unknown'
-                : 'partial',
-          ];
-        },
-      ),
+      (
+        [
+          'modelCallCount',
+          'modelTimeMs',
+          'totalTokens',
+          'promptTokens',
+          'completionTokens',
+        ] as const
+      ).map((field) => {
+        const states = [
+          ...collections.map(
+            (value) => value?.fields?.[field] ?? value?.status ?? 'unknown',
+          ),
+          ...(metrics.collection?.fields
+            ? [metrics.collection.fields[field]]
+            : []),
+        ];
+        return [
+          field,
+          states.every((state) => state === 'complete')
+            ? 'complete'
+            : states.every((state) => state === 'unknown')
+              ? 'unknown'
+              : 'partial',
+        ];
+      }),
     ) as NonNullable<NonNullable<TestRunReportMetrics['collection']>['fields']>,
   };
   return {

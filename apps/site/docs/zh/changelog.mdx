@@ -2,6 +2,147 @@
 
 {/* release-notes:start */}
 
+## v1.17.1
+
+### 完整变更
+
+#### 新特性 🎉
+* feat(test): support namespaces for Midscene Nodes by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3300
+
+#### 问题修复 🐞
+* fix(workflow): preserve MDX in release highlights by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3298
+* fix(site): restore v1.17 changelog videos by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3299
+
+#### 文档 📖
+* docs(site): sdk docs restructure by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3297
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.17.0...v1.17.1
+
+## v1.17.0
+
+### 亮点
+
+#### 使用 ChatGPT 订阅额度
+
+通过 Sign in with ChatGPT（SIWC）授权 Midscene，使用 ChatGPT 订阅额度调用 GPT 模型。下面的视频演示浏览器插件中的登录授权流程。接入方式详见[使用 ChatGPT 订阅](https://midscenejs.com/zh/chatgpt-subscription)。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/siwc/siwc-chrome-auth.mp4" controls></video>
+
+#### Jev 1.14 实验性支持
+
+Jev 可用于任务规划、定位和判断，并与通用默认模型协同完成输入等任务。接入方式及限制详见 [Jev 配置指南](https://midscenejs.com/zh/model-api-setup#jev)。
+
+以下数据来自演示中的单次运行，“单步”指一次模型调用，耗时不包含页面操作和等待。费用单位为美元，按 Jev 输入 $0.042 / 百万 Token、输出免费计算。
+
+##### 水果连连看：纯 Jev
+
+Jev 独立完成点击与定位，消除所有水果配对，直到剩余配对数为 0。[查看运行报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/fruits-tile-matching-report.html)。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/fruits-tile-matching.mp4" controls></video>
+
+- 单步模型耗时：平均 **0.887 秒**，P50 **0.774 秒**。
+- 输入消耗：平均每步 **6,761.4 Token**，总计 **101,421 Token**。
+- 模型费用：平均每步 **$0.000284**，总计 **$0.00426**。
+
+##### 注册表单：Jev + DeepSeek
+
+Jev 负责点击、定位、性别下拉框选择和完成判断；DeepSeek 生成邮箱、密码和用户名等输入内容，共同完成注册表单。[查看运行报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/register-form-report.html)。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/register-form.mp4" controls></video>
+
+以下数据**仅统计 Jev，不包含 DeepSeek**：
+
+- 单步模型耗时：平均 **0.583 秒**，P50 **0.559 秒**。
+- 输入消耗：平均每步 **5,265.8 Token**，总计 **68,455 Token**。
+- 模型费用：平均每步 **$0.000221**，总计 **$0.002875**。
+
+### 完整变更
+
+#### 问题修复 🐞
+* fix(chrome-extension): keep recorder screenshots on their source tab by @dakjdakd in https://github.com/web-infra-dev/midscene/pull/3194
+* fix(workflow): stabilize Studio notarization and unblock release notices by @quanru in https://github.com/web-infra-dev/midscene/pull/3294
+
+#### 重构 ♻️
+* refactor(core): restructure Jev integration and planning delegation by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3295
+
+#### 新贡献者
+* @dakjdakd made their first contribution in https://github.com/web-infra-dev/midscene/pull/3194
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.5...v1.17.0
+
+## v1.16.5
+
+### 完整变更
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.4...v1.16.5
+
+## v1.16.4
+
+### 完整变更
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.3...v1.16.4
+
+## v1.16.3
+
+### 完整变更
+
+#### 新特性 🎉
+* feat(core): add SIWC auth mode and Chrome extension sign-in by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3287
+
+#### 文档 📖
+* docs(site): make model configuration sections easier to discover by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3292
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.2...v1.16.3
+
+## v1.16.2
+
+### 完整变更
+
+#### 新特性 🎉
+* feat(test): redesign CLI reporting and model usage summaries by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3285
+
+#### 问题修复 🐞
+* fix(workflow): diagnose Chrome Web Store OAuth failures by @quanru in https://github.com/web-infra-dev/midscene/pull/3284
+* fix(core): keep trailing parenthesis in auto-glm finish message by @kwy404 in https://github.com/web-infra-dev/midscene/pull/3190
+* fix(core): validate locate coordinate types strictly by @linhongyu510 in https://github.com/web-infra-dev/midscene/pull/3068
+* fix(core): validate swipe action parameters by @linhongyu510 in https://github.com/web-infra-dev/midscene/pull/3069
+* fix(workflow): build report dependencies and stabilize AI checks by @quanru in https://github.com/web-infra-dev/midscene/pull/3290
+
+#### 文档 📖
+* docs(site): reorganize model setup and debugging guides by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3288
+* docs(site): standardize navigation capitalization by @ottomao in https://github.com/web-infra-dev/midscene/pull/3291
+
+#### 新贡献者
+* @kwy404 made their first contribution in https://github.com/web-infra-dev/midscene/pull/3190
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.1...v1.16.2
+
+## v1.16.1
+
+### 完整变更
+
+#### 新特性 🎉
+* feat(test): add file concurrency with maxConcurrentFiles by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3259
+
+#### 问题修复 🐞
+* fix(playground): isolate reports between executions by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3252
+
+#### 文档 📖
+* docs(site): add GitHub Actions guide for Midscene Test by @await-ovo in https://github.com/web-infra-dev/midscene/pull/3263
+* docs(site): simplify GitHub Actions docs and link to Marketplace by @await-ovo in https://github.com/web-infra-dev/midscene/pull/3276
+* docs(site): clarify Jev setup with combined model configuration by @ottomao in https://github.com/web-infra-dev/midscene/pull/3277
+* docs(site): update introduction of GUI Agent by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3278
+* docs(site): clarify Midscene Test terminology and release status by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3279
+* docs(site): migrate introduction to the homepage by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3282
+
+#### 测试 🧪
+* test(report): migrate report app e2e tests to midscene-test and publish CI reports by @await-ovo in https://github.com/web-infra-dev/midscene/pull/3275
+
+#### 新贡献者
+* @await-ovo made their first contribution in https://github.com/web-infra-dev/midscene/pull/3263
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.0...v1.16.1
+
 ## v1.16.0
 
 ### 亮点
@@ -12,7 +153,7 @@ Midscene 现已接入 Jev 1.4，继续沿着视觉理解的道路推进 UI 自�
 
 在下方 Demo 的连连看游戏测试中，共进行了 28 次模型调用，平均每次模型推理耗时 **393.57 ms（约 0.39 秒）**。平均每次输入 **5,025 Token**、输出 **67 Token**，模型调用费用约 **$0.000211/次**。费用按输入 $0.042 / 百万 Token 计算，输出免费。
 
-&lt;video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/tile-matching-jev.mp4" controls&gt;&lt;/video&gt;
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/tile-matching-jev.mp4" controls></video>
 
 ### 完整变更
 
@@ -502,7 +643,7 @@ v1.12 支持 DeepSeek V4 视觉模型，推出Midscene Test（Beta），并为�
 
 ### DeepSeek V4 视觉模型支持
 
-- 支持 `deepseek-v4-flash-vision-exp`。配置方法参见[常用模型配置](./model-common-config#deepseek)，更多信息参见[Midscene 1.12 支持 DeepSeek V4 Flash Vision Exp](https://mp.weixin.qq.com/s/FDAPd1WrNP6Sb8SRJUen6w)。
+- 支持 `deepseek-v4-flash-vision-exp`。配置方法参见[常用模型配置](./model-api-setup#deepseek)，更多信息参见[Midscene 1.12 支持 DeepSeek V4 Flash Vision Exp](https://mp.weixin.qq.com/s/FDAPd1WrNP6Sb8SRJUen6w)。
 
 ### Midscene Test（Beta）
 
@@ -540,7 +681,7 @@ v1.10 新增 BDD 风格的 Gherkin 脚本执行能力，升级推荐模型到 Do
 ### 新增模型支持
 
 - 推荐并支持 `Doubao-Seed-2.1-turbo`，在当前私有测评集中具备很快的定位速度和良好的定位效果。
-- 豆包 Seed 系列统一使用 `MIDSCENE_MODEL_FAMILY="doubao-seed"`，同时继续兼容旧的 `doubao-vision` family。详见：[常用模型配置](./model-common-config#doubao-seed-model)、[模型策略](./model-selection)
+- 豆包 Seed 系列统一使用 `MIDSCENE_MODEL_FAMILY="doubao-seed"`，同时继续兼容旧的 `doubao-vision` family。详见：[常用模型配置](./model-api-setup#doubao-seed-model)、[模型策略](./model-selection)
 
 ### MCP 下线
 
@@ -558,7 +699,7 @@ Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midsce
 
 ### 新增模型支持
 
-- 新增 Kimi 和 Xiaomi MiMo 模型支持。详见：[常用模型配置](./model-common-config)
+- 新增 Kimi 和 Xiaomi MiMo 模型支持。详见：[常用模型配置](./model-api-setup)
 
 ### 模型与规划更新
 
@@ -579,7 +720,7 @@ Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midsce
 
 - `1.9.8` 是最后一个包含 MCP 支持的 Midscene 版本。后续版本会下线 MCP server 包，改为推荐 Skills 与各平台 CLI。
 - 各平台 CLI 支持传入 agent behavior init args。
-- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./reference/#harmonyos)
+- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./sdk/harmonyos)
 - YAML Web config 支持自定义 HTTP headers。
 - YAML Web config 支持通过 `downloadPath` 指定浏览器下载目录。
 - YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
@@ -643,7 +784,7 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 
 ### YAML 工作流增强
 
-- **Android runAdbShell timeout**：在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./reference/#android)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
+- **Android runAdbShell timeout**：在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./sdk/android)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
 
 ### 新增交互 API
 
@@ -662,8 +803,8 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 
 - **使用意图与配置槽位分离**：模型使用意图与实际解析到的配置槽位分离，多模型 Planning、定位和报告展示更清晰
 - **默认关闭原生思考**：对于已支持的模型系列，Midscene 默认关闭模型原生思考，以提升执行速度和稳定性。详见：[模型原生的思考模式](./model-config#model-native-reasoning)
-- **豆包低延迟模式**：支持豆包低延迟模式配置方式，可通过 `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}` 开启。详见：[常用模型配置](./model-common-config)
-- **GLM-5V-Turbo 支持**：新增智谱 GLM-5V-Turbo 模型支持。详见：[常用模型配置](./model-common-config)
+- **豆包低延迟模式**：支持豆包低延迟模式配置方式，可通过 `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}` 开启。详见：[常用模型配置](./model-api-setup)
+- **GLM-5V-Turbo 支持**：新增智谱 GLM-5V-Turbo 模型支持。详见：[常用模型配置](./model-api-setup)
 - **滚动选择规划优化**：优化滚动选择（scrollable select）的规划流程，提升复杂下拉与滚轮选择场景的成功率
 
 ### MCP 与平台 CLI
@@ -746,7 +887,7 @@ Chrome 扩展的录制设置中新增了 YAML 输出语言选项，支持 Englis
 
 ### Android / 鸿蒙端改进
 
-- Android 和鸿蒙端新增 `terminate` 操作，支持强制停止指定应用，方便在测试中重置应用状态。详见：[Android API](./reference/#android)、[鸿蒙 API](./reference/#harmonyos)
+- Android 和鸿蒙端新增 `terminate` 操作，支持强制停止指定应用，方便在测试中重置应用状态。详见：[Android API](./sdk/android)、[鸿蒙 API](./sdk/harmonyos)
 - 修复 Android 端在 X/Twitter 上输入时 placeholder 文本被意外保留的问题
 - 修复 Android Playground 局域网访问问题
 
@@ -798,7 +939,7 @@ v1.6 版本新增了 CDP 浏览器连接模式、跨平台双指缩放手势、G
 
 - **Skill CLI 自定义接口**：Skill CLI 支持自定义接口，开发者可以更灵活地扩展 Skill 能力。详见：[Skills 文档](./skills)
 - **统一 MCP 工具导出**：所有平台包（Web、Android、iOS 等）统一导出 MidsceneTools，在 MCP 场景下集成更简单。详见：[MCP 服务](./mcp)
-- **iOS 终止指定应用**：iOS 端支持通过 bundleId 终止指定应用，方便测试流程中重置应用状态。详见：[iOS API](./reference/#ios)
+- **iOS 终止指定应用**：iOS 端支持通过 bundleId 终止指定应用，方便测试流程中重置应用状态。详见：[iOS API](./sdk/ios)
 - **CLI 版本查看**：CLI 新增版本查看功能，健康检查中显示各包版本信息，便于排查环境问题
 
 ### 任务取消支持
@@ -972,7 +1113,7 @@ Midscene 现在支持 PC 桌面自动化，在 Windows、macOS 和 Linux 上驱�
 
 开启 Scrcpy 截图模式后，截图耗时从原来的 500–2000ms 降低到 **100–200ms**，显著提升 Android 自动化的响应速度，特别适用于远程设备调试和高帧率场景。
 
-详见文档：[Scrcpy 截图模式](./reference/#scrcpy)
+详见文档：[Scrcpy 截图模式](./sdk/android#scrcpy)
 
 ### 深度思考模式增强
 
@@ -1017,11 +1158,11 @@ v1.2 版本中我们加入了对智谱 AI 开源模型的支持，新增了文�
 
 #### 智谱 GLM-V 视觉模型
 - 智谱 GLM-V 系列模型是智谱 AI 推出的开源视觉模型，有多种参数的版本，支持云端部署和本地部署。
-- 详见：[GLM-V 模型配置](./model-common-config.mdx#glm-v)
+- 详见：[GLM-V 模型配置](./model-api-setup.mdx#glm-v)
 
 #### 智谱 AutoGLM 移动端自动化模型
 - 智谱 AutoGLM 是智谱 AI 推出的开源移动端自动化模型，能够根据自然语言指令理解手机屏幕内容，并结合智能规划能力生成操作流程完成用户需求。
-- 详见：[AutoGLM 模型配置](./model-common-config.mdx#auto-glm)
+- 详见：[AutoGLM 模型配置](./model-api-setup.mdx#auto-glm)
 
 ### 文件上传功能上线
 
@@ -1336,7 +1477,7 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 - 为 Playwright fixture 补全所有 agent api，简化测试脚本编写，解决使用 agentForPage 无法生成报告的问题
 
 ### Android 自动化增强
-- 新增隐藏键盘策略（[keyboardDismissStrategy](./reference/#androiddevice)），允许指定自动隐藏键盘的方式
+- 新增隐藏键盘策略（[keyboardDismissStrategy](./sdk/android#androiddevice)），允许指定自动隐藏键盘的方式
 
 ### 报告功能优化
 - 报告内容引入懒解析，解决大体积报告的崩溃问题
@@ -1605,7 +1746,7 @@ const agent = await agentFromAdbDevice('s4ey59', {
 立即升级版本，体验这些强大新功能！
 
 * [自定义报告节点 API 文档](/zh/reference/#agentlogscreenshot)
-* [Android 更多配置项 API 文档](/zh/reference/#androiddevice)
+* [Android 更多配置项 API 文档](/zh/sdk/android#androiddevice)
 
 
 ## v0.17 - 让 AI 看见页面 DOM

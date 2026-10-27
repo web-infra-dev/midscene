@@ -6,11 +6,11 @@ import ShowcaseWeb from './showcases-web.mdx';
 
 Use the Chrome extension to try the GUI Agent in a browser Playground without setting up a test project. This guide walks you through model configuration, running a natural-language instruction, checking its result, and reviewing execution.
 
-To write YAML tests directly, go to [Midscene Test](./midscene-test/use). For mobile and desktop Playgrounds, see [other platforms](#use-midscene-on-other-platforms).
+To write YAML tests directly, go to [Midscene Test](./midscene-test/use).
 
 ## Configure a model
 
-Before using the Chrome extension, prepare a multimodal model with UI localization capabilities.
+Before using the Chrome extension, prepare a multimodal model with UI localization capabilities. If you have not chosen a model or connection method, start with the [Model Selection Guide](./model-selection).
 
 <SetupEnv />
 
@@ -63,7 +63,7 @@ The result contains todo names and completion states. The same interface can be 
 
 ## Review execution
 
-After running an instruction, inspect the steps and screenshots in the Playground's result area and compare them with the final page state. If execution fails, inspect the failed step and error first. For model connection issues, see [Model debugging and observability](./model-debugging-observability).
+After running an instruction, inspect the steps and screenshots in the Playground's result area and compare them with the final page state. If execution fails, inspect the failed step and error first. For model connection issues, see [Model advanced configuration and debugging](./model-config#verify-model-connectivity).
 
 Here is another complete example: filling out a GitHub sign-up form with the Chrome extension. Use the report link below the video to explore execution replay.
 
@@ -73,19 +73,10 @@ Here is another complete example: filling out a GitHub sign-up form with the Chr
 
 - **Understand key APIs**: Read [The Basics](./basics).
 - **Write YAML tests**: Create a project, run cases, and view reports with [Midscene Test](./midscene-test/use).
-- **Integrate into existing tests**: Follow [Integrate with Playwright](./integrate-with-playwright) or [Integrate with Puppeteer](./integrate-with-puppeteer) to create an Agent and call APIs such as `aiAct` and `aiAssert`.
+- **Write web tests**: [Integrate with Playwright Test](./integrate-with-playwright) to add visual interaction and assertions.
+- **Write mobile and desktop tests**: [Integrate with Vitest](./sdk/vitest) to organize cases and manage Agent lifecycles.
+- **Run everyday automation workflows**: [Write standalone automation scripts](./sdk/standalone) without a test runner.
 - **Let an AI coding agent operate apps**: Install [Midscene Skills](./skills).
-
-## Use Midscene on other platforms
-
-Midscene provides the same complete automation capabilities on Android, iOS, HarmonyOS, and desktop, with a dedicated Playground for each platform. Before using a Playground, prepare the device environment for that platform. For example, Android requires adb to be installed and configured. See the following guides for platform requirements, Playground launch instructions, and troubleshooting.
-
-| Platform | Platform guide |
-| --- | --- |
-| Android | [Android](./platforms/android) |
-| iOS | [iOS](./platforms/ios) |
-| HarmonyOS | [HarmonyOS](./platforms/harmonyos) |
-| Desktop | [Windows, macOS, and Linux](./platforms/desktop) |
 
 ## Troubleshooting
 

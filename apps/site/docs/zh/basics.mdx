@@ -11,11 +11,11 @@ Midscene 根据截图理解界面、定位目标并执行操作，再观察结�
 - **与主流模型路线一致**：[Gemini Computer Use](https://ai.google.dev/gemini-api/docs/computer-use) 和 [UI-TARS](https://github.com/bytedance/UI-TARS) 都采用截图驱动的交互方式。Midscene 通过模型适配，让用户在统一 API 下选择模型，并受益于模型能力的进步。
 - **成本可承受**：在 [AppControlBench 评测](./app-control-bench-report)中，豆包 Seed 2.1 Turbo 执行 60 项任务、通过 58 项，模型调用总费用约 $0.59。实际费用随模型、任务和缓存命中情况变化。
 
-视觉路线需要模型具备 UI 定位能力，支持的模型见[使用模型 API Key](./model-common-config)。数据提取和页面理解仍可按需附带 DOM 信息，详见 [API 参考](./reference/#extraction-location-assertion)。
+视觉路线需要模型具备 UI 定位能力，支持的模型见[模型选择指南](./model-selection)。数据提取和页面理解仍可按需附带 DOM 信息，详见 [API 参考](./reference/#extraction-location-assertion)。
 
 ## 选择适合你的使用方式 {#choose-your-path}
 
-Midscene 提供了一个跨平台 GUI Agent，支持 Web、移动端和桌面应用。它能根据自然语言指令操作界面、检查结果和提取数据，也可以集成到 Vitest、Playwright 等已有项目中，为测试工程增加视觉操作与断言能力。
+Midscene 提供了一个跨平台 GUI Agent，支持 Web、移动端和桌面应用。它能根据自然语言指令操作界面、检查结果和提取数据，也可以集成到已有测试工程中，增加视觉操作与断言能力。Web 测试推荐使用 Playwright Test，移动端和桌面端测试推荐使用 Vitest。
 
 Midscene 还提供了完整的 E2E 测试框架 **Midscene Test**。它在集成 GUI Agent 的基础上，提供测试用例组织与执行管理能力。你可以用 YAML 描述测试步骤和预期结果，用 TypeScript 扩展业务操作，并由框架统一管理数据准备、清理、重试和执行报告。
 
@@ -23,7 +23,9 @@ Midscene 还提供了完整的 E2E 测试框架 **Midscene Test**。它在集成
 | --- | --- |
 | 先体验自然语言操作与断言 | [快速体验 GUI Agent：Playground](./quick-start) |
 | 新建 YAML 测试工程 | [创建和使用 Midscene Test 项目](./midscene-test/use) |
-| 接入已有浏览器测试工程 | [Playwright](./integrate-with-playwright) 或 [Puppeteer](./integrate-with-puppeteer) |
+| 接入 Web 测试工程 | [Playwright Test](./integrate-with-playwright) |
+| 编写移动端或桌面端测试 | [Vitest](./sdk/vitest) |
+| 执行独立自动化流程 | [独立脚本](./sdk/standalone) |
 | 让 AI 编程助手操作应用 | [Midscene Skills](./skills) |
 
 ## 关键 API {#javascript-orchestration}

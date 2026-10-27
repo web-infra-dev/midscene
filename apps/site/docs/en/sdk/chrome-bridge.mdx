@@ -1,0 +1,124 @@
+# Chrome Bridge SDK
+
+`AgentOverChromeBridge` controls desktop Chrome through the Midscene Chrome extension and inherits all [AI methods](../reference/#interaction-methods) from the base `Agent`. Complete the [Chrome Bridge environment setup](../bridge-mode) before connecting.
+
+## Import and construction {#constructor}
+
+```typescript
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge({
+  closeNewTabsAfterDisconnect: false,
+});
+```
+
+Instantiating `AgentOverChromeBridge` starts a local Bridge Server in the Node.js process and waits for the Chrome extension to connect. Each Agent instance binds to a single tab; call one of the connection methods below to attach to a target tab before invoking AI methods.
+
+## Configuration options
+
+In addition to [shared Agent options](../reference/#agent-options), the constructor accepts:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `allowRemoteAccess` | `boolean` | `false` | When `true`, listens on `0.0.0.0`; defaults to local connections only (`127.0.0.1`) |
+| `host` | `string` | `'127.0.0.1'` | Explicit listening address; takes precedence over `allowRemoteAccess` |
+| `port` | `number` | `3766` | Bridge Server listening port |
+| `serverListeningTimeout` | `number \| false` | `30000` | Timeout in milliseconds while waiting for the extension to connect; `false` disables the timeout |
+| `closeConflictServer` | `boolean` | `false` | Whether to close an existing Bridge Server bound to the same address and port before starting |
+| `closeNewTabsAfterDisconnect` | `boolean` | `false` | Whether to automatically close tabs created by this Agent instance upon destruction |
+| `enableWaterFlowAnimation` | `boolean` | `true` | Whether to display the blue animated border and pointer indicator during operations |
+| `keyboardTypeDelay` | `number` | `—` | Delay in milliseconds between keystrokes (must be a finite non-negative number). Ignored in `'legacy'` mode; set `inputStrategy` to `'sequential'` for delayed input |
+| `inputStrategy` | `'legacy' \| 'sequential' \| 'bulk'` | `'legacy'` | Default text input strategy: `'sequential'` sends one Unicode code point at a time; `'bulk'` sends the full string at once (requires `keyboardTypeDelay` to be omitted or `0`) |
+
+For cross-machine setups, see [Remote access configuration](../bridge-mode#remote-access-configuration) to configure both the server and the extension. Note that model settings are loaded from the Node.js process running the script, not from the extension's Playground.
+
+## Connection methods
+
+### `connectCurrentTab()`
+
+```typescript
+agent.connectCurrentTab(options?: {
+  timeout?: number;
+  forceSameTabNavigation?: boolean;
+}): Promise<void>
+```
+
+Connects to the currently active tab in Chrome's frontmost window. Once bound, the Agent continues operating on that tab even if the user later switches to another tab.
+
+```typescript
+await agent.connectCurrentTab({ timeout: 60000 });
+await agent.aiAssert('The account page is visible');
+```
+
+### `connectNewTabWithUrl()`
+
+```typescript
+agent.connectNewTabWithUrl(url: string, options?: {
+  activateTab?: boolean;
+  timeout?: number;
+  forceSameTabNavigation?: boolean;
+}): Promise<void>
+```
+
+Opens `url` in a new tab and binds the Agent to it. `activateTab` defaults to `true` (brings the new tab to the foreground); set it to `false` to open the tab in the background.
+
+```typescript
+await agent.connectNewTabWithUrl('https://example.com', {
+  activateTab: false,
+  timeout: 60000,
+});
+```
+
+### Connection behavior and limitations
+
+- `timeout` sets the timeout for the connection call itself (default: `30000` ms) and is independent of the constructor's `serverListeningTimeout`. Exceeding this timeout throws an error.
+- `forceSameTabNavigation` defaults to `true` to intercept new-tab navigations and open them in the current tab. Note that in the current implementation, passing `false` does not remove previously injected interception—do not rely on it to restore native new-tab behavior.
+- Once an Agent is bound to a tab, calling a connection method or `setActiveTabId()` again throws an error. To operate on another tab, destroy the current Agent with `agent.destroy()` and create a new instance.
+
+## Tab APIs
+
+### `getBrowserTabList()`
+
+```typescript
+agent.getBrowserTabList(): Promise<Array<{
+  id: string;
+  title: string;
+  url: string;
+  currentActiveTab: boolean;
+}>>
+```
+
+Returns the list of tabs in Chrome's current window (excluding entries missing an ID, title, or URL). `currentActiveTab` indicates whether the tab is currently active in the Chrome window, not whether it is the tab bound to the Agent.
+
+### `setActiveTabId()`
+
+```typescript
+agent.setActiveTabId(tabId: string): Promise<void>
+```
+
+Before the Agent is bound to any tab, activates and binds a specific tab using its string `id` from `getBrowserTabList()`. This method is for initial binding only and cannot be used to switch tabs at runtime; calling it after a tab is already bound throws an error.
+
+## Lifecycle
+
+```typescript
+agent.destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>
+```
+
+Performs shared Agent cleanup and report finalization, instructs the Chrome extension to detach from the page, and shuts down the local Bridge Server.
+
+- By default, Chrome and all tabs remain open after disconnecting.
+- Pass `true` to override the constructor setting and close tabs created by this bridge instance, or `false` to keep them open.
+- Existing tabs attached via `connectCurrentTab()` were not created by the bridge instance and are never closed by this option.
+
+```typescript
+try {
+  await agent.connectNewTabWithUrl('https://example.com');
+  await agent.aiAssert('The page is visible');
+} finally {
+  await agent.destroy(true);
+}
+```
+
+## Platform limitations
+
+Chrome Bridge reuses your desktop Chrome session directly, so it does not expose Playwright or Puppeteer `Browser` / `Page` objects or support multi-tab switching like `PlaywrightBrowserAgent`. For local file upload permissions, connection authorization, and remote network setup, see [Chrome Bridge environment setup](../bridge-mode); for YAML-specific options, see [Chrome Bridge in YAML](../automate-with-scripts-in-yaml#chrome-bridge).

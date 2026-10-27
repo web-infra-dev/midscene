@@ -1,5 +1,5 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
-import { callAI } from '@/ai-model/service-caller/index';
+import { callGenerativeAI } from '@/ai-model/service-caller/index';
 import { AiLocateSection } from '@/ai-model/workflows/grounding';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -11,7 +11,7 @@ import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
 
 rs.mock('@/ai-model/service-caller/index', () => ({
   ...serviceCallerActual,
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
 }));
 
 describe('section locate protocol', () => {
@@ -26,7 +26,7 @@ describe('section locate protocol', () => {
 
   beforeEach(() => {
     rs.clearAllMocks();
-    rs.mocked(callAI).mockResolvedValue({
+    rs.mocked(callGenerativeAI).mockResolvedValue({
       content: 'custom section response',
       isStreamed: false,
     });
@@ -88,10 +88,10 @@ describe('section locate protocol', () => {
       'custom section response',
       adapter.locate.searchArea?.resultCodec.promptSpec,
     );
-    expect(rs.mocked(callAI).mock.calls[0][0][0]).toMatchObject({
+    expect(rs.mocked(callGenerativeAI).mock.calls[0][0][0]).toMatchObject({
       content: expect.stringContaining('Custom search-area introduction'),
     });
-    expect(callAI).toHaveBeenCalledWith(
+    expect(callGenerativeAI).toHaveBeenCalledWith(
       [
         {
           role: 'system',

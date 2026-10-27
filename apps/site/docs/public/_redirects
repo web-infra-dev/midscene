@@ -1,13 +1,24 @@
-# The introduction page is the canonical landing page.
-/ /introduction 302
-/index.html /introduction 302
-/zh/ /zh/introduction 302
-/zh/index.html /zh/introduction 302
+# The root pages are the canonical landing pages.
+/index.html / 301
+/zh /zh/ 301
+/zh/index.html /zh/ 301
+/introduction / 301
+/introduction.html / 301
+/introduction/ / 301
+/zh/introduction /zh/ 301
+/zh/introduction.html /zh/ 301
+/zh/introduction/ /zh/ 301
 # HTTP compatibility for retired pages; Rspress client redirects run after the response.
 # Keep document destinations aligned with rspress.config.ts.
-/android-integration /platforms/android 301
-/android-integration.html /platforms/android 301
-/android-integration/ /platforms/android 301
+/model-debugging-observability /model-config#verify-model-connectivity 301
+/model-debugging-observability.html /model-config#verify-model-connectivity 301
+/model-debugging-observability/ /model-config#verify-model-connectivity 301
+/zh/model-debugging-observability /zh/model-config#verify-model-connectivity 301
+/zh/model-debugging-observability.html /zh/model-config#verify-model-connectivity 301
+/zh/model-debugging-observability/ /zh/model-config#verify-model-connectivity 301
+/android-integration /sdk/android 301
+/android-integration.html /sdk/android 301
+/android-integration/ /sdk/android 301
 /zh/quick-experience /zh/quick-start#chrome-extension 301
 /zh/quick-experience.html /zh/quick-start#chrome-extension 301
 /zh/quick-experience/ /zh/quick-start#chrome-extension 301
@@ -21,21 +32,21 @@
 /report /consume-report-file 301
 /report.html /consume-report-file 301
 /report/ /consume-report-file 301
-/benchmark /introduction 301
-/benchmark.html /introduction 301
-/benchmark/ /introduction 301
+/benchmark / 301
+/benchmark.html / 301
+/benchmark/ / 301
 /api-reference /reference/ 301
 /api-reference.html /reference/ 301
 /api-reference/ /reference/ 301
-/choose-a-model /model-common-config 301
-/choose-a-model.html /model-common-config 301
-/choose-a-model/ /model-common-config 301
+/choose-a-model /model-selection 301
+/choose-a-model.html /model-selection 301
+/choose-a-model/ /model-selection 301
 /integrate-with-yaml /automate-with-scripts-in-yaml 301
 /integrate-with-yaml.html /automate-with-scripts-in-yaml 301
 /integrate-with-yaml/ /automate-with-scripts-in-yaml 301
-/web-api-reference /reference/#web 301
-/web-api-reference.html /reference/#web 301
-/web-api-reference/ /reference/#web 301
+/web-api-reference /sdk/playwright 301
+/web-api-reference.html /sdk/playwright 301
+/web-api-reference/ /sdk/playwright 301
 /api /reference/#common 301
 /api.html /reference/#common 301
 /api/ /reference/#common 301
@@ -45,9 +56,9 @@
 /android-getting-started /platforms/android 301
 /android-getting-started.html /platforms/android 301
 /android-getting-started/ /platforms/android 301
-/zh/web-api-reference /zh/reference/#web 301
-/zh/web-api-reference.html /zh/reference/#web 301
-/zh/web-api-reference/ /zh/reference/#web 301
+/zh/web-api-reference /zh/sdk/playwright 301
+/zh/web-api-reference.html /zh/sdk/playwright 301
+/zh/web-api-reference/ /zh/sdk/playwright 301
 /zh/api /zh/reference/#common 301
 /zh/api.html /zh/reference/#common 301
 /zh/api/ /zh/reference/#common 301
@@ -58,18 +69,18 @@
 /zh/android-getting-started.html /zh/platforms/android 301
 /zh/android-getting-started/ /zh/platforms/android 301
 
-/model-provider /model-common-config.html 301
-/model-provider.html /model-common-config.html 301
-/model-provider/ /model-common-config.html 301
-/integrate-with-android /platforms/android 301
-/integrate-with-android.html /platforms/android 301
-/integrate-with-android/ /platforms/android 301
-/zh/model-provider /zh/model-common-config.html 301
-/zh/model-provider.html /zh/model-common-config.html 301
-/zh/model-provider/ /zh/model-common-config.html 301
-/zh/integrate-with-android /zh/platforms/android 301
-/zh/integrate-with-android.html /zh/platforms/android 301
-/zh/integrate-with-android/ /zh/platforms/android 301
+/model-provider /model-api-setup 301
+/model-provider.html /model-api-setup 301
+/model-provider/ /model-api-setup 301
+/integrate-with-android /sdk/android 301
+/integrate-with-android.html /sdk/android 301
+/integrate-with-android/ /sdk/android 301
+/zh/model-provider /zh/model-api-setup 301
+/zh/model-provider.html /zh/model-api-setup 301
+/zh/model-provider/ /zh/model-api-setup 301
+/zh/integrate-with-android /zh/sdk/android 301
+/zh/integrate-with-android.html /zh/sdk/android 301
+/zh/integrate-with-android/ /zh/sdk/android 301
 
 # Historical documentation URLs reported as missing by Cloudflare.
 /reporting /consume-report-file 301
@@ -90,9 +101,9 @@
 /android-introduction /platforms/android 301
 /android-introduction.html /platforms/android 301
 /android-introduction/ /platforms/android 301
-/ios-api-reference /reference/#ios 301
-/ios-api-reference.html /reference/#ios 301
-/ios-api-reference/ /reference/#ios 301
+/ios-api-reference /sdk/ios 301
+/ios-api-reference.html /sdk/ios 301
+/ios-api-reference/ /sdk/ios 301
 /zh/reference.html /zh/reference/ 301
 /zh/reporting /zh/consume-report-file 301
 /zh/reporting.html /zh/consume-report-file 301
@@ -112,9 +123,9 @@
 /zh/android-introduction /zh/platforms/android 301
 /zh/android-introduction.html /zh/platforms/android 301
 /zh/android-introduction/ /zh/platforms/android 301
-/zh/ios-api-reference /zh/reference/#ios 301
-/zh/ios-api-reference.html /zh/reference/#ios 301
-/zh/ios-api-reference/ /zh/reference/#ios 301
+/zh/ios-api-reference /zh/sdk/ios 301
+/zh/ios-api-reference.html /zh/sdk/ios 301
+/zh/ios-api-reference/ /zh/sdk/ios 301
 
 # Serve favicon aliases internally to avoid a loop with the existing geo redirect.
 # The geo rule must still exclude root metadata files and shared asset directories.
@@ -138,3 +149,12 @@
 /zh/model-strategy /zh/model-selection 301
 /zh/model-strategy.html /zh/model-selection 301
 /zh/model-strategy/ /zh/model-selection 301
+/model-common-config /model-api-setup 301
+/model-common-config.html /model-api-setup 301
+/model-common-config/ /model-api-setup 301
+/zh/model-common-config /zh/model-api-setup 301
+/zh/choose-a-model /zh/model-selection 301
+/zh/model-common-config.html /zh/model-api-setup 301
+/zh/choose-a-model.html /zh/model-selection 301
+/zh/model-common-config/ /zh/model-api-setup 301
+/zh/choose-a-model/ /zh/model-selection 301

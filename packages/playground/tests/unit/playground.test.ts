@@ -64,7 +64,8 @@ describe('Playground Integration Tests', () => {
         dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
-        resetDump: () => {},
+        resetDump: async () => undefined,
+        finalizeReport: async () => undefined,
       } as unknown as PlaygroundAgent;
 
       const config: PlaygroundConfig = {
@@ -221,7 +222,8 @@ describe('Playground Integration Tests', () => {
         dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
-        resetDump: () => {},
+        resetDump: async () => undefined,
+        finalizeReport: async () => undefined,
       } as unknown as PlaygroundAgent;
 
       adapter = new LocalExecutionAdapter(mockAgent);

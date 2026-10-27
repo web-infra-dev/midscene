@@ -172,6 +172,65 @@ describe('Puppeteer viewport synchronization in Chromium', () => {
     },
   );
 
+  it('keeps retained UI calls and subscriptions usable across repeated handoffs', async () => {
+    const { page, peerPage } = await fixture();
+    const agent = new PuppeteerPageAgent(page, AGENT_OPTIONS);
+    const retainedAgent = agent;
+    const retainedInterface = agent.interface;
+    const retainedTap = agent.aiTap.bind(agent);
+    const originalCache = agent.taskCache;
+    const originalDump = agent.dump;
+    const originalReportFileName = agent.reportFileName;
+    const originalModelConfig = agent.modelConfigManager;
+    const onDumpUpdate = rs.fn();
+    const unsubscribe = agent.addDumpUpdateListener(onDumpUpdate);
+    rs.spyOn(agent.service, 'locate').mockResolvedValue({
+      element: { center: [454, 110], description: 'target button' },
+      dump: {} as ServiceDump,
+    });
+    try {
+      await agent.interface.size();
+      for (const [index, viewport] of [
+        { width: 800, height: 600 },
+        { width: 1920, height: 1080 },
+      ].entries()) {
+        await peerPage.setViewportSize(viewport);
+        await expect(retainedInterface.syncViewport()).resolves.toMatchObject({
+          changed: true,
+          viewport,
+        });
+        const callbacksBefore = onDumpUpdate.mock.calls.length;
+        await retainedTap('target button', { cacheable: false });
+        expect(
+          await page.$eval('#target', (button) =>
+            button.getAttribute('data-clicks'),
+          ),
+        ).toBe(String(index + 1));
+        expect(onDumpUpdate.mock.calls.length).toBeGreaterThan(callbacksBefore);
+        expect(retainedAgent).toBe(agent);
+        expect(agent.interface).toBe(retainedInterface);
+        expect(agent.taskCache).toBe(originalCache);
+        expect(agent.dump).toBe(originalDump);
+        expect(agent.reportFileName).toBe(originalReportFileName);
+        expect(agent.modelConfigManager).toBe(originalModelConfig);
+        await expect(retainedInterface.size()).resolves.toEqual(viewport);
+      }
+      unsubscribe();
+      onDumpUpdate.mockClear();
+      await retainedTap('target button', { cacheable: false });
+      expect(onDumpUpdate).not.toHaveBeenCalled();
+      expect(
+        await page.$eval('#target', (button) =>
+          button.getAttribute('data-clicks'),
+        ),
+      ).toBe('3');
+    } finally {
+      unsubscribe();
+      await agent.destroy();
+      await page.close();
+    }
+  });
+
   it('keeps a persisted XPath cache usable when responsive layout moves the target', async () => {
     const { page, peerPage } = await fixture();
     const cacheId = randomUUID();

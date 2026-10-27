@@ -11,11 +11,11 @@ Midscene interprets screenshots, locates targets, performs actions, and observes
 - **Align with mainstream model approaches**: [Gemini Computer Use](https://ai.google.dev/gemini-api/docs/computer-use) and [UI-TARS](https://github.com/bytedance/UI-TARS) both use screenshot-driven interaction. Midscene's model adapters let users choose models through a consistent API and benefit from improvements in model capabilities.
 - **Affordable model costs**: In the [AppControlBench evaluation](./app-control-bench-report), Doubao Seed 2.1 Turbo ran 60 tasks and passed 58, with a total model API cost of about $0.59. Actual costs vary with the model, task, and cache usage.
 
-This approach requires a model with UI localization capabilities; see [supported models](./model-common-config). Data extraction and page understanding can still include DOM data when needed; see the [API reference](./reference/#extraction-location-assertion).
+This approach requires a model with UI localization capabilities; see [supported models](./model-selection). Data extraction and page understanding can still include DOM data when needed; see the [API reference](./reference/#extraction-location-assertion).
 
 ## Choose how to use Midscene {#choose-your-path}
 
-Midscene provides a cross-platform GUI Agent for web, mobile, and desktop apps. It follows natural-language instructions to interact with interfaces, check results, and extract data. You can also integrate it into existing projects using Vitest, Playwright, or other tools to add visual actions and assertions to your test projects.
+Midscene provides a cross-platform GUI Agent for web, mobile, and desktop apps. It follows natural-language instructions to interact with interfaces, check results, and extract data. You can also integrate it into existing test projects to add visual actions and assertions. We recommend Playwright Test for web tests and Vitest for mobile and desktop tests.
 
 Midscene also provides **Midscene Test**, a complete E2E testing framework that integrates the GUI Agent and adds test organization and execution management. Describe test steps and expected results in YAML, extend business operations with TypeScript, and let the framework manage setup, cleanup, retries, and execution reports.
 
@@ -23,7 +23,9 @@ Midscene also provides **Midscene Test**, a complete E2E testing framework that 
 | --- | --- |
 | Try natural-language actions and assertions | [Try the GUI Agent: Playground](./quick-start) |
 | Create a YAML test project | [Create and use a Midscene Test project](./midscene-test/use) |
-| Integrate into existing browser tests | [Playwright](./integrate-with-playwright) or [Puppeteer](./integrate-with-puppeteer) |
+| Integrate into web tests | [Playwright Test](./integrate-with-playwright) |
+| Write mobile or desktop tests | [Vitest](./sdk/vitest) |
+| Run standalone automation workflows | [Standalone scripts](./sdk/standalone) |
 | Let an AI coding agent operate apps | [Midscene Skills](./skills) |
 
 ## Key APIs {#javascript-orchestration}

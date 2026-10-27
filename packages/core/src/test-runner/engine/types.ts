@@ -210,6 +210,7 @@ export type StepResultHandler = (
 ) => Awaitable<unknown>;
 
 export interface RunCollectedCaseOptions<TContext = undefined> {
+  teardownTimeoutMs?: () => number;
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
   beforeEach?: readonly NormalizedStep[];
   afterEach?: readonly NormalizedStep[];
@@ -257,6 +258,8 @@ export interface WorkflowDocumentExecutionResult {
 }
 
 export interface RunWorkflowDocumentOptions<TContext = undefined> {
+  setupTimeoutMs?: number;
+  teardownTimeoutMs?: () => number;
   plan?: import('../../test-run-report').TestRunReportDocumentPlan;
   documentSetup?: DocumentSetupDefinition<TContext>;
   documentAttemptIndex?: number;
@@ -285,6 +288,8 @@ export interface RunWorkflowDocumentOptions<TContext = undefined> {
 }
 
 export interface CreateDocumentRuntimeOptions<TContext = undefined> {
+  setupTimeoutMs?: number;
+  teardownTimeoutMs?: () => number;
   plan?: import('../../test-run-report').TestRunReportDocumentPlan;
   documentSetup?: DocumentSetupDefinition<TContext>;
   documentAttemptIndex?: number;
@@ -308,6 +313,8 @@ export interface WorkflowDocumentRuntime<TContext = undefined> {
 }
 
 export interface ProjectRuntimeOptions<TProjectContext = unknown> {
+  setupTimeoutMs?: number;
+  teardownTimeoutMs?: () => number;
   project: ResolvedExecutionProject<TProjectContext>;
   setup?: ProjectSetupDefinition<TProjectContext>;
   signal?: AbortSignal;

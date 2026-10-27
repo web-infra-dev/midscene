@@ -1,12 +1,8 @@
 # 创建和使用测试项目
 
-本文从创建项目开始，介绍如何运行示例、了解可用的测试操作、编写 YAML 用例和查看运行结果。已有原生 Test 项目的读者可以直接从[了解可用的测试操作](#了解可用的测试操作)开始。
+本文从创建项目开始，介绍如何运行示例、了解可用的测试操作、编写 YAML 用例和查看运行结果。已有 Midscene Test 项目的读者可以直接从[了解可用的测试操作](#了解可用的测试操作)开始。
 
 整体设计见 [Midscene Test 概览](./overview)。业务操作的实现方式见[编写自定义 Node](./extend)，运行环境和执行参数见[配置测试项目](./configuration)。
-
-:::info 已有旧版 YAML 项目
-这里的“旧版 YAML”特指由 `midscene` 执行的 `tasks/flow` 用例及 YAML 批配置，不包括原生 `cases/steps` Test 文件。旧链路只做兼容维护和必要修复，不再新增能力；现有项目可以继续运行，新项目和新增用例推荐使用 Midscene Test。两条链路共用执行内核和新的报告页面，具体命令边界与字段转换见[迁移到 Midscene Test](../migrate-to-midscene-test)。
-:::
 
 ## 创建项目
 
@@ -74,7 +70,7 @@ my-tests/
 
 ### 2. 配置模型与运行环境
 
-将 `.env.example` 复制为 `.env`，按照[模型配置](../model-config)填写模型名称、服务地址和 API Key。
+将 `.env.example` 复制为 `.env`，按照[模型配置](../model-api-setup)填写模型名称、服务地址和 API Key。
 
 运行测试前，检查模型连接和 Midscene 兼容性：
 
@@ -83,7 +79,7 @@ pnpm exec midscene-test model verify
 pnpm exec midscene-test model verify --help
 ```
 
-命令会读取当前工作目录下的 `.env`，并覆盖已有的 Shell 环境变量，无需浏览器或设备。详见[模型调试与可观测性](../model-debugging-observability)。
+命令会读取当前工作目录下的 `.env`，并覆盖已有的 Shell 环境变量，无需浏览器或设备。详见[模型高级配置与调试](../model-config#verify-model-connectivity)。
 
 Web 项目还需要安装 Chromium：
 
@@ -107,8 +103,6 @@ pnpm test
 ```
 
 五个平台的模板都使用在线 React TodoMVC，演示添加、删除和完成任务。运行测试的浏览器或设备需要能访问该网站。
-
-Web 模板在每条用例前通过 `todo.setup` 打开 All 视图、清空页面存储并重新加载，使用 DOM 确认列表为空，再由 `todo.seed` 添加三个任务，第一条用例校验初始状态，第二条用 AI 删除和完成任务后校验结果；每条用例后由 `todo.captureState` 记录页面状态。Android、iOS、HarmonyOS 和桌面端模板使用 AI 添加三个任务、删除一个、完成另一个、切换到已完成筛选，并校验结果。修改任务前，这些模板先通过 `todo.setup` 打开 All 视图并等待输入框，再由 `aiAssert` 检查列表为空（包含已完成任务）且没有遮挡弹窗。已有任务会保留；检查失败时，请切换到 All 删除全部任务，或仅清除 TodoMVC 网站的数据，关闭遮挡弹窗后重新运行。模型或连接异常应先按报告中的原因排查。AI 检查可能误判，失败时请结合报告确认页面状态。所有模板均串行运行，首次用例失败即停止后续用例（`test.bail: 1`），同时正常保存报告、释放资源。
 
 运行结束后，可以在 `midscene_run/report/` 查看报告，了解各用例及步骤的执行结果。随后修改 `cases/todo.yaml` 编写自己的用例，可用操作及其参数以生成的 Node 说明书为准。
 
@@ -337,7 +331,7 @@ cases:
 
 ## 定义执行生命周期
 
-本节介绍单个 YAML 文件的生命周期。项目 `setup`、文件钩子、用例和清理之间的完整关系，见[项目、文件与用例的生命周期](./configuration#项目文件与用例的生命周期)。
+`beforeAll` 在 `setup`、`fileSetup`（如配置）完成后执行，使用准备好的 `context`。三者区别见[项目生命周期](./configuration#setupfilesetup-与-beforeall)；本节介绍 YAML 钩子的用法。
 
 ### 准备与清理步骤
 
@@ -392,18 +386,29 @@ afterAll
 
 ### 失败时如何执行
 
-- `beforeEach` 失败：跳过当前用例的 `steps`，仍执行 `afterEach`。
-- 用例的 `steps` 失败：仍执行 `afterEach`。
-- `beforeAll` 失败：当前文件的用例标记为 `not-run`，仍执行 `afterAll`。
-- `afterEach` 或 `afterAll` 失败：记录为失败，不会因为它是清理步骤而忽略错误。
+| 失败位置 | 后续处理 |
+| --- | --- |
+| 项目 `setup` | 跳过该项目的文件，尝试已登记的项目清理 |
+| `fileSetup` | 跳过当前文件的钩子和用例，尝试已登记的文件清理 |
+| `beforeAll` | 当前文件的用例标记为 `not-run`，仍执行 `afterAll` |
+| `beforeEach` 或用例 `steps` | 跳过当前用例尚未执行的正文步骤，仍执行 `afterEach` |
+| `afterEach` 或 `afterAll` | 记录失败，不会因为是清理步骤而忽略错误 |
 
-默认情况下，一个阶段中的步骤失败后，该阶段的剩余步骤不再执行。需要继续执行同阶段的后续步骤时，可设置 [`continue-on-error`](#设置超时和错误处理)；这不会把失败结果改为成功。清理 Node 应能处理准备步骤只完成了一部分的情况。
+一个阶段中的步骤失败后，默认跳过该阶段的剩余步骤。设置 [`continue-on-error`](#设置超时和错误处理) 可以继续，但结果仍为失败。清理 Node 应能处理准备只完成一部分的情况。
 
-默认情况下，一个 Case 失败后仍会继续执行下一个 Case。需要提前停止调度时，通过 `test.bail` 设置失败用例数阈值。文件级前置条件放在 `beforeAll`，失败后该文件的 Case 不再执行；有依赖关系的业务步骤放在同一个 Case 中，不要依赖另一条 Case 成功。
+一个用例失败后，默认继续下一个用例。用 `test.bail` 设置失败用例数阈值后，达到阈值会跳过后续用例和重试；当前尝试完成后再清理。取消运行则会请求正在执行的操作退出。有依赖关系的业务步骤应放在同一个用例中。
 
-资源异常是上述继续规则的例外：操作未退出或注册的清理函数等待、失败时，不再重试，也不执行同文件后续 Case。CLI 还会停止调度该项目的后续文件，因为它们共享 `context`；独立项目可以继续执行。普通 `afterEach` Step 失败仍按用例失败处理，只要操作已退出且注册的清理完成，就可以重试。报告写入等运行基础设施错误会取消整次运行。
+资源故障或已登记的清理函数失败、未完成时，停止当前文件的重试和后续用例。其他文件能否继续，取决于资源的共享范围：
 
-项目 setup 管理浏览器和 Agent 等资源，详见[使用 setup 创建和清理共享资源](./configuration#使用-setup-创建和清理共享资源)。Node 内部创建的资源，见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
+| 情况 | 影响范围 |
+| --- | --- |
+| 文件独享的设备故障，操作和清理都已结束 | 有 `fileSetup` 时，其他独立文件可以继续，仍受 `bail` 约束 |
+| 已确认并显式报告的项目共享资源故障 | 停止该项目的其他文件；未配置 `fileSetup` 时，资源故障或清理异常也按项目处理 |
+| 操作尚未退出或清理仍在等待 | 停止启动所有新文件 |
+
+普通 `afterEach` 步骤失败仍按用例失败处理；操作已退出且已登记的清理完成后，可以重试。报告写入等运行基础设施错误会取消整次运行。
+
+资源配置见[使用 setup 创建和清理共享资源](./configuration#使用-setup-创建和清理共享资源)，Node 内部的清理方式见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
 
 ## 运行测试
 
@@ -445,16 +450,7 @@ pnpm exec midscene-test --config ./config/midscene.config.ts
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-### 尚未迁移的旧版 YAML 继续使用旧命令
-
-顶层使用 `tasks/flow` 的旧文件和 YAML 批配置继续使用 `midscene`：
-
-```bash
-pnpm exec midscene ./legacy-flow.yaml
-pnpm exec midscene --config ./legacy-batch.yaml
-```
-
-`midscene-test` 不会自动识别或执行这些旧文件，也不接受旧批配置和旧 CLI 参数。一个文件完整转换为 `cases/steps` 后，才能改用 `midscene-test`。迁移期间，两类文件可以放在同一仓库的不同目录，但同一次命令只能选择一种格式。迁移步骤和字段映射见[迁移到 Midscene Test](../migrate-to-midscene-test)。
+### 结果输出
 
 需要把结构化运行结果写到指定目录时，使用 `--result-dir`：
 
@@ -483,8 +479,6 @@ pnpm exec midscene-test --result-dir ./test-results
 - **Not run** 筛选没有执行的 Case，包括被初始化失败或调度错误阻断的 Case。
 - File 清理失败时，Case 可以全部通过、通过率可以为 100%。该错误仍归属 File，不会虚构失败 Case。
 - 未收集到 Case 的文件收集错误仍然可见，不虚构 Case 数量或通过率。
-
-旧 **tasks / flow** YAML 新生成的报告使用同一页面：每个 task 对应一个 Case，flow 条目对应 Step。内联输入显示为 **Inline YAML**。宿主初始化、清理错误归属于 File，不虚构 YAML 中的钩子。旧 CLI 批量执行和整文件重试报告仍保留来源身份，此页面不会把独立报告推断合并成同一个逻辑 Project，也不会推断 Case 重试历史。只有 Agent dump 的来源标注为 **Source report / Agent report**，不声称还原出 YAML 文件或 task、flow 导航。仅在存在真实原文快照时提供 YAML 视图。历史 HTML 报告需重新生成才能使用新布局。
 
 多 Case 报告可以通过左侧悬浮菜单按钮（**View all cases**）打开 Case 目录。面板在按钮下方展开，报告背景不会变暗。目录按 Project 展示所有 Case 的结果和来源文件，当前 Case 会高亮显示。该列表不受 Overview 筛选条件影响，点击其他 Case 可直接跳转，也支持跨 Project 切换；失败 Case 会定位到失败 Step。打开目录后，焦点会落在当前 Case 上。可以使用 Tab 切换控件，按 Esc 关闭目录并将焦点返回菜单按钮。再次点击菜单按钮或关闭面板不会切换 Case，返回 Overview 时会恢复原来的筛选、排序、展开状态和滚动位置。单 Case 报告不显示这个入口。
 

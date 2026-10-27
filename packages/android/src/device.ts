@@ -423,14 +423,17 @@ export class AndroidDevice implements AbstractInterface {
       systemActions: {
         backButton: {
           name: 'AndroidBackButton',
+          supportedBySystemOne: true,
           description: 'Trigger the system "back" operation on Android devices',
         },
         homeButton: {
           name: 'AndroidHomeButton',
+          supportedBySystemOne: true,
           description: 'Trigger the system "home" operation on Android devices',
         },
         recentAppsButton: {
           name: 'AndroidRecentAppsButton',
+          supportedBySystemOne: true,
           description:
             'Trigger the system "recent apps" operation on Android devices',
         },

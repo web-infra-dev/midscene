@@ -1,51 +1,150 @@
-# 模型配置参考
+# 模型高级配置与调试
 
-本页汇总 Midscene 的全部模型配置。如需查看支持的模型名称、模型 family 和可复制的配置示例，请参考[使用模型 API Key](./model-common-config)。如需了解模型职责和组合方式，请参考[模型选择指南](./model-selection)。如需排查连接问题、查看日志、采集 Trace 或记录调用，请参考[模型调试与可观测性](./model-debugging-observability)。
+本文介绍模型高级配置、连接排障、日志和 Trace。
 
-## 必选配置
+## 验证模型连接 {#verify-model-connectivity}
 
-你需要为 Midscene 配上一个默认模型，详见 [模型选择指南](./model-selection) 文档。
-
-| 名称 | 描述 |
-|------|-------------|
-| `MIDSCENE_MODEL_API_KEY` | OpenAI 兼容 HTTP 服务需要的模型 API Key，如 "sk-abcd..."。当 `MIDSCENE_MODEL_BASE_URL="codex://app-server"` 时不需要，具体设置请参考[使用 Codex App Server](./chatgpt-subscription#use-codex-app-server-oauth-no-api-key) |
-| `MIDSCENE_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分，底层 SDK 会自动添加 |
-| `MIDSCENE_MODEL_NAME` | 模型名称 |
-| `MIDSCENE_MODEL_FAMILY` | 模型系列，用于确定坐标处理方式 |
-
-## 协议类型 {#model-api-type}
-
-Midscene 默认使用 OpenAI 的 Chat Completions 协议，同时也支持 Responses 协议。两者是向模型发送请求的不同方式，不影响 Midscene Agent API 的使用。Chat Completions 是 OpenAI 较早推出的协议，Responses 是后推出的协议，目前 Chat Completions 的支持范围更广。
-
-通过环境变量选择协议：`openai-chat`（默认）或 `openai-responses`。例如，使用 Responses 协议：
+运行以下命令，检查已配置的模型能否连接并用于 Midscene：
 
 ```bash
-MIDSCENE_MODEL_PROTOCOL="openai-responses"
+pnpm dlx @midscene/test@latest model verify
 ```
 
-为 Planning、Locate 或 Insight 单独配置模型时，使用对应的环境变量，各模型的协议可以分别设置：
+命令读取环境变量，也会加载当前目录下的 `.env`（可选）。`.env` 中的值优先于同名环境变量。
+
+**成功输出示例（节选）**
+
+```text
+Model role  Check                Result  Requests  Time
+planning    Text response        PASS    1         820 ms
+insight     Image understanding  PASS    1         1250 ms
+locate      AI locate            PASS    1         1460 ms
+default     Text response        PASS    1         760 ms
+
+Requests sent: 4. Checks: 4 passed, 0 failed.
+✅ Model verify passed.
+```
+
+**失败输出示例（节选）**
+
+```text
+Requests sent: 4. Checks: 3 passed, 1 failed.
+❌ Model verify failed with messages:
+────────────────────────────────────────
+
+[Vision check - ep-vision (insight)]: 404 Not Found
+
+────────────────────────────────────────
+```
+
+:::info 排查连接失败
+
+如果验证时出现连接错误，可以直接请求模型服务，帮助定位问题。
+
+<details>
+<summary>可选：使用 curl 测试模型 API</summary>
+
+以下 `curl` 请求用于检查 Base URL、API Key 和模型名称是否可用。该请求只验证模型 API 的基础连接。它不会检查模型是否满足 Midscene 的兼容性要求。
 
 ```bash
-MIDSCENE_PLANNING_MODEL_PROTOCOL="openai-responses"
-MIDSCENE_LOCATE_MODEL_PROTOCOL="openai-responses"
-MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
+MIDSCENE_MODEL_BASE_URL='替换为你的 baseUrl'
+MIDSCENE_MODEL_API_KEY='替换为你的 API Key'
+MIDSCENE_MODEL_NAME='替换为你的 model name'
+# MIDSCENE_MODEL_PROTOCOL="openai-responses" # 使用 Responses API 时取消本行注释；默认使用 Chat API。
+
+if [ "$MIDSCENE_MODEL_PROTOCOL" = "openai-responses" ]; then
+  model_endpoint="responses"
+  model_input_field="input"
+else
+  model_endpoint="chat/completions"
+  model_input_field="messages"
+fi
+
+curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/${model_endpoint}" \
+  -H "Authorization: Bearer ${MIDSCENE_MODEL_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "model": "'"${MIDSCENE_MODEL_NAME}"'",
+  "'"${model_input_field}"'": [
+    {
+      "role": "user",
+      "content": "What is 1+1?"
+    }
+  ]
+}'
 ```
 
-注意事项：
+如果 `curl` 请求成功，但 Midscene 验证命令失败，说明模型 API 可以连接。请继续检查模型能力和 Midscene 配置。
 
-- 部分模型或供应商可能尚不支持 Responses 协议，使用前请向模型供应商确认支持情况。
-- 即使是同一供应商提供的 Chat Completions 和 Responses API，也可能使用不同的 Base URL，请向模型供应商确认对应的接入地址。
-- Midscene 对部分模型供应商的 Responses API 可能尚未完成适配，使用前请确认 Midscene 的兼容性支持。
+</details>
+
+:::
+
+<span id="为-planning-意图单独配置模型" />
+<span id="为-locate-意图单独配置模型" />
+<span id="为-insight-意图单独配置模型" />
+
+## 按意图配置模型 {#dedicated-models}
+
+一个默认模型就能满足大多数任务。当任务需要更强的规划、更精确的定位或更好的页面理解能力时，可以为对应意图单独配置更擅长该能力的模型。
+
+你可以为 Planning（规划）、Locate（定位）和 Insight（页面理解）意图分别配置模型。这些配置与默认模型使用相同的参数后缀，含义与下方高级配置参数表一致，只需替换前缀：
+
+| 模型 | 环境变量前缀 |
+| --- | --- |
+| 默认模型 | `MIDSCENE_MODEL_` |
+| Planning | `MIDSCENE_PLANNING_MODEL_` |
+| Locate | `MIDSCENE_LOCATE_MODEL_` |
+| Insight | `MIDSCENE_INSIGHT_MODEL_` |
+
+请为每个专用模型提供完整配置，包括接入地址、API Key（接入方式需要时）、模型名称和 family，并按需添加可选参数。
+
+未单独配置模型的场景使用默认模型。
+
+<span id="multi-model-combination-example" />
+
+<details>
+<summary>查看多模型配置示例</summary>
+
+保留默认模型，按需添加专用模型。请将占位值和模型名称替换为服务商提供的实际配置。
+
+```bash
+# 默认模型
+export MIDSCENE_MODEL_BASE_URL="https://..."
+export MIDSCENE_MODEL_API_KEY="..."
+export MIDSCENE_MODEL_NAME="qwen3.8-flash"
+export MIDSCENE_MODEL_FAMILY="qwen3"
+
+# Planning 规划模型
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
+export MIDSCENE_PLANNING_MODEL_API_KEY="..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
+
+# Locate 定位模型
+export MIDSCENE_LOCATE_MODEL_BASE_URL="https://..."
+export MIDSCENE_LOCATE_MODEL_API_KEY="..."
+export MIDSCENE_LOCATE_MODEL_NAME="gemini-3.5-flash"
+export MIDSCENE_LOCATE_MODEL_FAMILY="gemini"
+
+# Insight 页面理解模型
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
+export MIDSCENE_INSIGHT_MODEL_API_KEY="..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-6.1-sol"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
+```
+
+</details>
 
 ## 高阶配置（可选）
 
-如果你为 Planning、Locate 或 Insight 配置了独立模型，请使用对应的 `MIDSCENE_PLANNING_MODEL_*`、`MIDSCENE_LOCATE_MODEL_*` 或 `MIDSCENE_INSIGHT_MODEL_*` 设置该模型的参数。流式模式也按模型独立配置，使用对应前缀的 `STREAM_MODE`。专用模型未设置时默认为 `non-stream`，不会继承默认模型的流式设置；未配置专用模型时，该职责使用完整的默认模型配置。单次调用显式指定的 `stream` 选项优先生效。
+### 配置参数参考
+
+为 Planning、Locate 或 Insight 单独配置模型时，使用对应的环境变量前缀，详见[按意图配置模型](#dedicated-models)。
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-responses`。后者要求服务商支持 Responses API。 |
-| `MIDSCENE_MODEL_STREAM_MODE` | 默认是非流式（`non-stream`）；如果指定为流式（`stream`），会将流式的结果聚合为完整结果再解析。 |
-| `MIDSCENE_MODEL_TIMEOUT` | AI 接口单次请求的硬超时（毫秒，默认意图），默认 `180000`（180 秒）。计时覆盖完整请求生命周期，包括响应体读取。每次重试都会重新开始计时，使用相同的超时配置；重试等待时间不计入，因此整个调用的总耗时可能超过该值。设为 `0` 仅禁用 Midscene 的硬超时，SDK 和底层网络的超时限制仍可能生效，调用方也可通过 `AbortSignal` 取消请求 |
+| `MIDSCENE_MODEL_TIMEOUT` | 单次模型请求的超时时间，单位毫秒，默认 `180000`（180 秒），包含响应体读取时间。设为 `0` 禁用此超时限制。 |
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）。模型请求遇到 HTTP 错误，或模型返回值无法被结构化解析时，都会发起重试 |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | AI 调用重试间隔毫秒数，默认 2000 |
@@ -57,80 +156,28 @@ MIDSCENE_INSIGHT_MODEL_PROTOCOL="openai-responses"
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON。自定义鉴权 header 请使用 `defaultHeaders`；`extra_headers` 和 `extraHeaders` 也会作为别名兼容 |
 | `MIDSCENE_MODEL_EXTRA_BODY_JSON` | 合并到每次模型请求体中的 JSON。与 `MIDSCENE_MODEL_INIT_CONFIG_JSON`（配置 SDK 客户端）不同，此参数会展开到每次发送到模型的协议请求体中，例如在 vLLM 中启用思考模式：`'{"chat_template_kwargs":{"enable_thinking":true}}'` |
+| `MIDSCENE_MODEL_PROTOCOL` | 模型 API 协议：`openai-chat`（默认）或 `openai-responses`。后者的适用范围见[使用 Responses API](#model-api-type)。 |
+| `MIDSCENE_MODEL_AUTH_MODE` | 认证模式：`api-key`（默认）使用配置的 API Key；`siwc` 使用 ChatGPT 授权后保存的凭据，并自动刷新 access token。接入步骤参见[使用 ChatGPT 订阅额度](./chatgpt-subscription)。 |
+| `MIDSCENE_MODEL_STREAM_MODE` | 默认是非流式（`non-stream`）；如果指定为流式（`stream`），会将流式的结果聚合为完整结果再解析。 |
 
-> 提示：通过 Agent 的 `replanningCycleLimit` 入参控制重规划次数（默认 20，`vlm-ui-tars` 为 40），不再使用环境变量。
+### 使用 Responses API {#model-api-type}
 
-### 为 Planning 意图单独配置模型
+Midscene 默认使用 Chat Completions 协议（`openai-chat`）。目前内置模型适配器中，只有 `gpt-5` 和 `gpt-6` 支持切换到 Responses API；其他模型 family 设置 `openai-responses` 会报不支持该协议的错误。
 
-如果你想为 Planning 意图单独配置模型，需额外配置以下字段：
+使用 OpenAI 官方接入点时，在对应 GPT 模型配置中设置：
 
-| 名称 | 描述 |
-|------|-------------|
-| `MIDSCENE_PLANNING_MODEL_API_KEY` | API Key |
-| `MIDSCENE_PLANNING_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
-| `MIDSCENE_PLANNING_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-responses`。 |
-| `MIDSCENE_PLANNING_MODEL_STREAM_MODE` | 该模型的流式模式：`stream` 或 `non-stream`（默认）。 |
-| `MIDSCENE_PLANNING_MODEL_NAME` | 模型名称 |
-| `MIDSCENE_PLANNING_MODEL_FAMILY` | 模型 family |
-| `MIDSCENE_PLANNING_MODEL_TIMEOUT` | 可选，Planning 意图的单次请求硬超时（毫秒）|
-| `MIDSCENE_PLANNING_MODEL_TEMPERATURE` | 可选，Planning 意图的模型采样温度 |
-| `MIDSCENE_PLANNING_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |
-| `MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_INTERVAL` |
-| `MIDSCENE_PLANNING_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
-| `MIDSCENE_PLANNING_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
-| `MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
-| `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
-| `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Planning 场景中控制结构化响应策略 |
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1"
+MIDSCENE_MODEL_PROTOCOL="openai-responses"
+```
 
-### 为 Locate 意图单独配置模型
+模型名称、API Key 和 family 仍需按[GPT 配置示例](./model-api-setup#gpt)填写。Base URL 不要追加 `/responses`，SDK 会自动添加。
 
-定位模型负责 `aiLocate`、点击/输入/滚动/拖拽等动作中的目标定位，以及 `aiAct` 内的独立定位和 `deepLocate`。未配置 `MIDSCENE_LOCATE_MODEL_NAME` 时使用完整的默认模型配置；配置后，地址、API Key 和其他参数独立读取，不从默认模型逐字段继承，也不在调用失败后自动切换模型。
+Responses API 不限于 OpenAI 官方接入点，也可以用于提供兼容接口的 Azure OpenAI 或其他接入点，但需要确认接入点及所选 GPT 模型支持该协议；仅兼容 Chat Completions 并不代表兼容 Responses。Azure 的配置与已验证场景见[使用 Azure OpenAI 时点击坐标偏移](./faq#使用-azure-openai-时点击坐标偏移)。
 
-如果你想为 Locate 意图单独配置模型，需额外配置以下字段：
-
-| 名称 | 描述 |
-|------|-------------|
-| `MIDSCENE_LOCATE_MODEL_API_KEY` | API Key |
-| `MIDSCENE_LOCATE_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
-| `MIDSCENE_LOCATE_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-responses`。 |
-| `MIDSCENE_LOCATE_MODEL_STREAM_MODE` | 该模型的流式模式：`stream` 或 `non-stream`（默认）。 |
-| `MIDSCENE_LOCATE_MODEL_NAME` | 模型名称 |
-| `MIDSCENE_LOCATE_MODEL_FAMILY` | 模型 family |
-| `MIDSCENE_LOCATE_MODEL_TIMEOUT` | 可选，Locate 意图的单次请求硬超时（毫秒）|
-| `MIDSCENE_LOCATE_MODEL_TEMPERATURE` | 可选，Locate 意图的模型采样温度 |
-| `MIDSCENE_LOCATE_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |
-| `MIDSCENE_LOCATE_MODEL_RETRY_INTERVAL` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_INTERVAL` |
-| `MIDSCENE_LOCATE_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
-| `MIDSCENE_LOCATE_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
-| `MIDSCENE_LOCATE_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
-| `MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
-| `MIDSCENE_LOCATE_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Locate 场景中控制结构化响应策略 |
-
-### 为 Insight 意图单独配置模型
-
-如果你想为 Insight 意图单独配置模型，需额外配置以下字段：
-
-| 名称 | 描述 |
-|------|-------------|
-| `MIDSCENE_INSIGHT_MODEL_API_KEY` | API Key |
-| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completions` 或 `/responses` 部分 |
-| `MIDSCENE_INSIGHT_MODEL_PROTOCOL` | HTTP 协议：`openai-chat`（默认）或 `openai-responses`。 |
-| `MIDSCENE_INSIGHT_MODEL_STREAM_MODE` | 该模型的流式模式：`stream` 或 `non-stream`（默认）。 |
-| `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
-| `MIDSCENE_INSIGHT_MODEL_FAMILY` | 模型 family |
-| `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | 可选，Insight 意图的单次请求硬超时（毫秒）|
-| `MIDSCENE_INSIGHT_MODEL_TEMPERATURE` | 可选，Insight 意图的模型采样温度 |
-| `MIDSCENE_INSIGHT_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |
-| `MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_INTERVAL` |
-| `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
-| `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
-| `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
-| `MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
-| `MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Insight 场景中控制结构化响应策略 |
+为 Planning、Locate 或 Insight 单独配置 GPT 模型时，使用对应的 `MIDSCENE_PLANNING_MODEL_PROTOCOL`、`MIDSCENE_LOCATE_MODEL_PROTOCOL` 或 `MIDSCENE_INSIGHT_MODEL_PROTOCOL`。每个模型的协议独立配置，不影响其他模型。
 
 ### 模型原生思考 {#model-native-reasoning}
-
-以下思考参数适用于所有模型职责。默认模型使用 `MIDSCENE_MODEL_` 前缀；Planning、Locate 和 Insight 分别使用 `MIDSCENE_PLANNING_MODEL_`、`MIDSCENE_LOCATE_MODEL_` 和 `MIDSCENE_INSIGHT_MODEL_` 前缀，后缀均为 `REASONING_ENABLED`、`REASONING_EFFORT` 或 `REASONING_BUDGET`。各模型独立配置，实际支持情况取决于该模型及其 family。
 
 Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳定性。如果模型不支持关闭原生思考，Midscene 会通过控制思考粒度或限制思考额度，尽可能减少模型的原生思考。
 
@@ -141,6 +188,9 @@ Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳�
 - `false`：强制关闭模型原生思考，也是 Midscene 的默认行为。
 - `true`：强制启用模型原生思考。
 - `default`：遵循模型的默认行为。Midscene 不发送启用或关闭思考的参数，并忽略显式配置的 `MIDSCENE_MODEL_REASONING_BUDGET` 和 `MIDSCENE_MODEL_REASONING_EFFORT`。
+
+<details>
+<summary>各模型的支持情况和参数映射</summary>
 
 目前支持 `MIDSCENE_MODEL_REASONING_ENABLED` 的模型系列及参数映射如下：
 
@@ -163,60 +213,189 @@ Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳�
 - GPT-5：对应 `reasoning_effort`。
 - Kimi K3 系列：对应 `reasoning_effort`。
 
+</details>
+
 不同模型服务商支持的参数和值不同。具体取值和适用模型版本请参考对应服务商的官方文档。如果当前模型不支持某项显式配置，Midscene 会忽略该配置，不会猜测服务商的私有参数。
 
-## 仍兼容的模型配置（不推荐）
+## 故障排查
 
-以下环境变量已废弃但仍然兼容，建议尽快迁移到新的配置方式。
+### 常见配置错误 {#common-configuration-errors}
 
-### 旧版模型类型配置
+**`MIDSCENE_MODEL_FAMILY` 未设置为多模态模型**
 
-| 名称 | 描述 | 新配置方式 |
-|------|-------------|-----------|
-| `MIDSCENE_USE_DOUBAO_VISION` | 已弃用。启用豆包视觉模型 | 使用 `MIDSCENE_MODEL_FAMILY="doubao-vision"` |
-| `MIDSCENE_USE_QWEN3_VL` | 已弃用。启用千问 Qwen3-VL 模型 | 使用 `MIDSCENE_MODEL_FAMILY="qwen3-vl"` |
-| `MIDSCENE_USE_QWEN_VL` | 已弃用。启用千问 Qwen2.5-VL 模型 | 使用 `MIDSCENE_MODEL_FAMILY="qwen2.5-vl"` |
-| `MIDSCENE_USE_GEMINI` | 已弃用。启用 Gemini 模型 | 使用 `MIDSCENE_MODEL_FAMILY="gemini"` |
-| `MIDSCENE_USE_VLM_UI_TARS` | 已弃用。启用 UI-TARS 模型 | 使用 `MIDSCENE_MODEL_FAMILY="vlm-ui-tars"` |
+如果收到 `MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization` 错误，请确认已正确配置多模态模型的 `MIDSCENE_MODEL_FAMILY` 环境变量。
 
-### 通用配置
+从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 指定多模态模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容，但已经废弃。
 
-| 名称 | 描述 | 新配置方式 |
-|------|-------------|-----------|
-| `OPENAI_API_KEY` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_API_KEY` |
-| `OPENAI_BASE_URL` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_BASE_URL` |
-| `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
-| `MIDSCENE_OPENAI_HTTP_PROXY` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_HTTP_PROXY` |
-| `MIDSCENE_OPENAI_SOCKS_PROXY` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_SOCKS_PROXY` |
+正确的模型 family 和完整配置示例请参考[使用模型 API Key](./model-api-setup)。
 
-## 调试与可观测性配置
+**Base URL 或模型名称不正确**
 
-以下配置用于启用模型诊断、Tracing 和本地调用记录。安装步骤、使用示例、问题排查和安全说明。请参考[模型调试与可观测性](./model-debugging-observability)。
+确认 `MIDSCENE_MODEL_BASE_URL` 指向服务商的 API 接入地址。该地址通常以 `/v1` 等版本号结尾。请勿添加 `/chat/completions` 或 `/responses`，底层 SDK 会根据所选 API 类型自动添加请求路径。
+
+同时确认 `MIDSCENE_MODEL_NAME` 与该接入地址提供的模型一致。
+
+### 模型结果不可靠时 {#when-model-results-are-unreliable}
+
+如果模型可以正常连接，但执行了错误操作、未能定位目标或误解了页面内容：
+
+- 查看[回放报告](./consume-report-file)，确定任务在哪一步出错。
+- 尝试更新的受支持模型版本，或使用代表性任务对比不同模型。
+- 如果问题集中在规划、定位或页面理解，可以考虑[为对应意图单独配置模型](#dedicated-models)。
+
+模型选择和职责说明见[模型选择指南](./model-selection)。
+
+## 调试能力
 
 ### Debug 日志
 
-支持的 `DEBUG` 选择器和日志行为请参考[运行时配置：Debug 日志](./reference/#debug-logs)。
+需要额外的诊断信息时，可以设置 `DEBUG`。常用选择器包括：
+
+- `DEBUG=midscene:ai:profile:stats`：打印模型延迟和 Token 使用量。
+- `DEBUG=midscene:ai:call`：打印 AI 响应详情。
+- `DEBUG=midscene:*`：打印全部 Midscene Debug 日志。
+
+完整的选择器列表、日志目录和使用注意事项，请参考[运行时配置：Debug 日志](./reference/#debug-logs)。
+
+生成的[报告文件](./consume-report-file)中也包含模型使用量统计。
+
+### 记录模型调用
+
+设置 `MIDSCENE_RECORD_MODEL_CALL=true`，可以将模型请求、响应和流式 Chunk 写入 JSONL 文件：
+
+```text
+midscene_run/model-requests/<启动时间>-<pid>.jsonl
+```
+
+每个进程生成一个文件，每行对应一个 JSON 事件。只有 Node.js 和 Electron 支持写入本地文件。浏览器和 Worker 不会写入本地文件。使用 Codex App Server 时，记录还会包含可获取的协议元数据。
+
+每个事件的 `type` 为 `request`、`chunk`、`response` 或 `error`。事件还包含 `executionId`，用于关联同一个 execution ID 下的调用及其重试。对于 HTTP 模型请求，这个值也会通过 `x-midscene-execution-id` Header 发送。不属于报告 execution 的调用（例如连接检查）会使用带 `unscoped-` 前缀的生成 ID。
+
+:::warning 安全注意事项
+
+模型调用记录包含请求 Body（包括自定义 `extraBody`）、响应 Header 和 Body、流式响应，以及可能采用 Base64 编码的截图。请求 Header 不会被记录。
+
+- 仅在排查问题时启用记录。文件可能较大，使用后请妥善保管或删除。记录格式不保证跨版本兼容。
+- 不要将 `.env` 文件、Trace、Debug 日志或模型调用记录提交到源码仓库。
+- 日志、Trace 和模型调用记录可能包含模型输入、输出或截图，分享前请先检查内容。
+
+:::
+
+### 请求追踪 Header
+
+Midscene 会自动为 OpenAI-compatible HTTP 模型请求添加以下 Header：
+
+| Header | 值 | 用途 |
+| --- | --- | --- |
+| `x-midscene-version` | 当前 `@midscene/core` 版本 | 标识发起请求的 Midscene 版本 |
+| `x-midscene-execution-id` | 当前 execution ID | 关联同一个 execution ID 下的全部模型请求及其重试，例如一次 `aiAct` 调用 |
+
+不属于报告 execution 的调用（例如连接检查）会使用带 `unscoped-` 前缀的生成 execution ID。这两个 Header 会被默认发送，如果 `MIDSCENE_*_INIT_CONFIG_JSON` 中自定义了同名 Header，则会被 Midscene 覆盖。
+
+## 可观测性平台
+
+以下自动集成会包装 OpenAI-compatible HTTP 请求使用的 OpenAI SDK 客户端，不适用于 Codex App Server 或 Jev 的 System One 协议。
+
+注意事项：
+
+- LangSmith 和 Langfuse 可以同时启用。
+- 该集成仅支持 Node.js。浏览器环境会抛出错误。
+- [`createOpenAIClient`](./reference/#自定义-openai-客户端) 接收原始 OpenAI 客户端。如果回调返回客户端，该客户端会替换自动包装后的客户端；请在回调内添加所需的追踪 wrapper。如果回调未返回客户端，则保留自动集成。
 
 ### LangSmith
 
-| 名称 | 描述 |
-| --- | --- |
-| `MIDSCENE_LANGSMITH_DEBUG` | 设置为 `1`，启用 Midscene 的 LangSmith 自动集成 |
-| `LANGCHAIN_API_KEY` | LangSmith API Key |
-| `LANGCHAIN_TRACING` | 设置为 `true`，启用 LangSmith Tracing |
-| `LANGCHAIN_ENDPOINT` | LangSmith 服务地址 |
+LangSmith 是用于调试大语言模型的平台。安装依赖并设置环境变量后，Midscene 可以自动接入 LangSmith。
+
+**安装依赖**
+
+```bash
+npm install langsmith
+```
+
+**设置环境变量**
+
+```bash
+# 启用 Midscene 的 LangSmith 自动集成
+export MIDSCENE_LANGSMITH_DEBUG=1
+
+# LangSmith 配置
+export LANGCHAIN_API_KEY="your-langchain-api-key-here"
+export LANGCHAIN_TRACING=true
+export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
+# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # 如果在欧洲区域注册
+```
+
+Midscene 为模型请求创建 OpenAI 客户端时，会输出启用 wrapper 的日志：
+
+```log
+DEBUGGING MODE: langsmith wrapper enabled
+```
+
+如需进行更细粒度的控制，例如只对特定任务启用 LangSmith，请使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 手动包装客户端。
 
 ### Langfuse
 
-| 名称 | 描述 |
-| --- | --- |
-| `MIDSCENE_LANGFUSE_DEBUG` | 设置为 `1`，启用 Midscene 的 Langfuse 自动集成 |
-| `LANGFUSE_PUBLIC_KEY` | Langfuse Public Key |
-| `LANGFUSE_SECRET_KEY` | Langfuse Secret Key |
-| `LANGFUSE_BASE_URL` | Langfuse 服务地址 |
+[Langfuse](https://langfuse.com) 是一个 LLM 可观测性平台。Midscene 集成了 Langfuse 的 `observeOpenAI` wrapper，可以自动追踪 OpenAI API 调用。
 
-### 模型调用记录
+Langfuse 的追踪基于 OpenTelemetry，因此需要在应用启动时初始化 OpenTelemetry SDK。
 
-| 名称 | 描述 |
+**安装依赖**
+
+```bash
+npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
+```
+
+**初始化 OpenTelemetry**
+
+在应用入口文件的最顶部添加以下代码：
+
+```typescript
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { LangfuseSpanProcessor } from "@langfuse/otel";
+
+const sdk = new NodeSDK({
+  spanProcessors: [new LangfuseSpanProcessor()],
+});
+sdk.start();
+```
+
+**设置环境变量**
+
+```bash
+# 启用 Midscene 的 Langfuse 自动集成
+export MIDSCENE_LANGFUSE_DEBUG=1
+
+# Langfuse 配置
+export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
+export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
+# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 美国区域
+```
+
+Midscene 为模型请求创建 OpenAI 客户端时，会输出启用 wrapper 的日志：
+
+```log
+DEBUGGING MODE: langfuse wrapper enabled
+```
+
+这条日志仅表示启用 wrapper，不代表 Trace 已成功发送到 Langfuse。请执行一次模型请求，并在 Langfuse 项目中确认是否收到 Trace。
+
+更多配置和最佳实践请参考 [Langfuse OpenAI 集成文档](https://langfuse.com/integrations/model-providers/openai-js)。
+
+## 旧版配置
+
+以下配置仍受支持；新配置请使用下表中的替代方式。
+
+| 旧版配置 | 替代方式 / 说明 |
 | --- | --- |
-| `MIDSCENE_RECORD_MODEL_CALL` | 设置为 `true`，将模型请求、响应和流式 Chunk 写入本地 JSONL 文件 |
+| `MIDSCENE_USE_DOUBAO_VISION` | 使用 `MIDSCENE_MODEL_FAMILY="doubao-vision"` |
+| `MIDSCENE_USE_QWEN3_VL` | 使用 `MIDSCENE_MODEL_FAMILY="qwen3-vl"` |
+| `MIDSCENE_USE_QWEN_VL` | 使用 `MIDSCENE_MODEL_FAMILY="qwen2.5-vl"` |
+| `MIDSCENE_USE_GEMINI` | 使用 `MIDSCENE_MODEL_FAMILY="gemini"` |
+| `MIDSCENE_USE_VLM_UI_TARS` | 使用 `MIDSCENE_MODEL_FAMILY="vlm-ui-tars"` |
+| `OPENAI_API_KEY` | 使用 `MIDSCENE_MODEL_API_KEY` |
+| `OPENAI_BASE_URL` | 使用 `MIDSCENE_MODEL_BASE_URL` |
+| `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | 使用 `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
+| `MIDSCENE_OPENAI_HTTP_PROXY` | 使用 `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_OPENAI_SOCKS_PROXY` | 使用 `MIDSCENE_MODEL_SOCKS_PROXY` |
+| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 使用 Agent 的 `replanningCycleLimit` 参数，优先级高于环境变量 |

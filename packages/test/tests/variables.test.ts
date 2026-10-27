@@ -133,7 +133,11 @@ cases:
       node: 'inspect',
       input: { count: 2, nested: { value: 'secret' } },
       templateInput: { count: '${count}', nested: { value: '${{TOKEN}}' } },
-      meta: { timeoutMs: 1234, continueOnError: true },
+      meta: {
+        timeoutMs: 1234,
+        continueOnError: true,
+        sourceLocation: { line: 5, column: 9 },
+      },
     });
   });
 

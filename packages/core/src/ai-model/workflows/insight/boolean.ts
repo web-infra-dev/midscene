@@ -24,9 +24,8 @@ export async function extractBoolean<T>(options: ExtractOptions): Promise<{
   const keys =
     typeof options.dataQuery === 'object' ? Object.keys(options.dataQuery) : [];
   assert(
-    keys.length === 1 &&
-      (keys[0] === 'Boolean' || keys[0] === 'StatementIsTruthy'),
-    'This model only supports boolean insight tasks. Use the default model for extraction.',
+    keys.length === 1,
+    'Boolean insight tasks require exactly one result field.',
   );
   const result = await booleanFn(options);
   return {

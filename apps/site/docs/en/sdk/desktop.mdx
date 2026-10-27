@@ -1,0 +1,189 @@
+# Computer JavaScript SDK
+
+`@midscene/computer` provides Device implementations for local desktops (`ComputerDevice`) and remote RDP desktops (`RDPDevice`), along with `ComputerAgent`, which inherits all [AI methods](../reference/#interaction-methods) from the base `Agent`.
+
+## Imports and API overview
+
+```typescript
+import {
+  ComputerAgent,
+  ComputerDevice,
+  RDPDevice,
+  agentForComputer,
+  agentForRDPComputer,
+  checkComputerEnvironment,
+} from '@midscene/computer';
+```
+
+In most cases, use a factory function to create and connect a Device in one step: `agentForComputer()` for the local desktop (backed by `ComputerDevice`), or `agentForRDPComputer()` for a remote Windows desktop over RDP (backed by `RDPDevice`). If you need to configure and manage the Device and Agent instances separately, construct them explicitly.
+
+<a id="use-the-javascript-sdk"></a>
+
+<a id="example-usage"></a>
+
+## `agentForComputer()`
+
+```typescript
+agentForComputer(options?: LocalComputerAgentOpt): Promise<ComputerAgent<ComputerDevice>>
+```
+
+Connects to the local desktop (controlling the primary display by default) and returns a `ComputerAgent` bound to `ComputerDevice`. `options` accepts both shared Agent settings and local Device settings (`agentFromComputer` is a deprecated compatibility alias).
+
+```typescript
+const agent = await agentForComputer({ displayId: '0' });
+```
+
+<a id="connect-to-a-remote-windows-desktop-via-rdp"></a>
+
+## `agentForRDPComputer()`
+
+```typescript
+agentForRDPComputer(options: RDPComputerAgentOpt): Promise<ComputerAgent<RDPDevice>>
+```
+
+Connects to a remote Windows desktop over RDP and returns a `ComputerAgent` bound to `RDPDevice`. `host` is required; see [RDP options](#rdp-options) below for additional connection settings. The default backend requires [FreeRDP](https://www.freerdp.com/) to be installed on the machine running the script, and a reachable remote Windows host with RDP enabled. Each RDP session is treated as a single remote display.
+
+```typescript
+const agent = await agentForRDPComputer({
+  host: 'windows.example.com',
+  username: process.env.RDP_USERNAME,
+  password: process.env.RDP_PASSWORD,
+});
+```
+
+## `ComputerDevice` / `RDPDevice` / `ComputerAgent`
+
+```typescript
+new ComputerDevice(options?: ComputerDeviceOpt)
+new RDPDevice(options: RDPDeviceOpt)
+new ComputerAgent(device, options?)
+```
+
+When constructing `ComputerDevice` or `RDPDevice` explicitly, call `await device.connect()` before passing the Device to `ComputerAgent`. Pass device-specific settings to the Device constructor; the second argument of `ComputerAgent` accepts [shared Agent options](../reference/#agent-options).
+
+```typescript
+const device = new ComputerDevice({ displayId: '0' });
+await device.connect();
+const agent = new ComputerAgent(device);
+```
+
+<a id="custom-actions"></a>
+
+## Configuration options
+
+Both `agentForComputer()` and `agentForRDPComputer()` accept [shared Agent options](../reference/#agent-options). To register custom actions, pass `customActions` to the factory function or Device constructor; see [Integrate with any interface](../integrate-with-any-interface) for details.
+
+### Local desktop options
+
+- `displayId?: string` — ID of the display to control. Use `ComputerDevice.listDisplays()` to query available displays. Default: the primary display.
+- `customActions?: DeviceAction<any>[]` — Custom actions registered for the Agent planner to invoke.
+- `keyboardDriver?: 'applescript' | 'libnut'` — Keyboard event backend on macOS. Default: `'applescript'` (wider compatibility); set to `'libnut'` for faster keystroke injection when supported by the target application.
+- `keyboardModifierDelay?: number` — Delay in milliseconds after each modifier key state change and primary key press when using the local `libnut` keyboard driver (must be a finite non-negative number). Default: `0`. Modifiers include `Control`, `Shift`, `Alt`, and `Command`, so this delay applies to keyboard shortcuts as well as the implicit `Shift` used for uppercase letters during sequential typing (and shifted `en-US` punctuation when `keyboardLayout: 'en-US'` is set). Has no effect on direct RDP input or the macOS `'applescript'` driver. See [Forward keyboard input through desktop clients](../faq#keyboard-input-through-desktop-clients).
+- `keyboardLayout?: 'en-US'` — Enables base-key mapping for shifted `en-US` punctuation during sequential typing with the local `libnut` driver (uppercase Latin letters do not require this setting). Other layouts retain the backend's default behavior. Has no effect on direct RDP input or the macOS `'applescript'` driver.
+- `headless?: boolean` — On Linux, set to `true` to start a virtual display via [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml), enabling desktop automation on headless servers and CI environments (can also be enabled via `MIDSCENE_COMPUTER_HEADLESS_LINUX=true`). Default: `false`.
+- `xvfbResolution?: string` — Resolution of the Xvfb virtual display. Default: `'1920x1080x24'`.
+
+### Keyboard input options
+
+- `keyboardTypeDelay?: number` — Minimum delay in milliseconds between keystrokes (must be a finite non-negative number). Default: `undefined`. In `'legacy'` mode, a positive value causes local and RDP Computer Agents to emit text one Unicode code point at a time (sending real key events on local desktops); when omitted or set to `0`, local `'legacy'` input uses clipboard paste to avoid interference from the active system IME. An action-level `keyboardTypeDelay` passed to `aiInput()` overrides the Agent-level default (pass `0` to restore clipboard paste for that single action).
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Default: `'legacy'`:
+  - `'sequential'`: Uses real key events locally and makes one backend call per Unicode code point over RDP. Use this strategy when setting a positive `keyboardTypeDelay`.
+  - `'bulk'`: Performs a single clipboard paste locally and makes a single backend call over RDP. Requires `keyboardTypeDelay` to be omitted or set to `0`.
+
+Agent-level input options also apply to `Input` actions planned by `agent.ai()` / `agent.aiAct()`, so you do not need to call `aiInput()` explicitly:
+
+```typescript
+const agent = await agentForComputer({ keyboardTypeDelay: 80 });
+
+await agent.aiAct('Type the account details into the form');
+
+// Override the default for a single deterministic input action to use bulk paste
+await agent.aiInput('the notes field', {
+  value: 'Pasted as one value',
+  keyboardTypeDelay: 0,
+  inputStrategy: 'bulk',
+});
+```
+
+### RDP options
+
+- `host: string` — Remote Windows hostname or IP address (required).
+- `port?: number` — RDP port. Default: `3389`.
+- `username?: string` / `password?: string` — Login credentials for the remote session.
+- `domain?: string` — Windows domain. Default: `undefined`.
+- `localAddress?: string` — Local source IP address to bind for the RDP TCP connection (useful when the host machine has multiple outbound network routes). Default: `undefined`.
+- `adminSession?: boolean` — Whether to request a remote admin session when permitted by the server. Default: `false`.
+- `ignoreCertificate?: boolean` — Whether to skip TLS certificate validation (useful for self-signed certificates). Default: `false`.
+- `securityProtocol?: 'auto' | 'tls' | 'nla' | 'rdp'` — RDP security negotiation protocol. Default: `'auto'`.
+- `desktopWidth?: number` / `desktopHeight?: number` — Requested remote desktop resolution. When omitted, the session size is negotiated between the RDP client and server.
+
+## Displays and environment checks
+
+<a id="multi-display-support"></a>
+
+### `ComputerDevice.listDisplays()`
+
+```typescript
+ComputerDevice.listDisplays(): Promise<Array<{
+  id: string;
+  name: string;
+  primary?: boolean;
+}>>
+```
+
+Lists all displays connected to the local machine. Pass a returned `id` to `agentForComputer({ displayId })` to target a specific display.
+
+```typescript
+const displays = await ComputerDevice.listDisplays();
+const display = displays.find((item) => item.primary) ?? displays[0];
+if (!display) throw new Error('No displays found');
+const agent = await agentForComputer({ displayId: display.id });
+```
+
+<a id="environment-check"></a>
+
+### `checkComputerEnvironment()`
+
+```typescript
+checkComputerEnvironment(): Promise<{
+  available: boolean;
+  error?: string;
+  platform: string;
+  displays: number;
+}>
+```
+
+Checks whether the local desktop environment is ready, returning the OS platform, display count, and availability (`available`). If `available` is `false`, inspect `error` for details.
+
+<a id="computer-device-destroy"></a>
+
+<a id="rdp-device-destroy"></a>
+
+## Lifecycle
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+The Agent manages Device cleanup and report finalization. Each Device instance belongs to a single Agent.
+
+| Device type | `destroy()` cleanup behavior |
+| --- | --- |
+| `ComputerDevice` | Releases the local input driver and stops any Xvfb virtual display started by the instance; does not close your local desktop session or running apps |
+| `RDPDevice` | Disconnects the RDP session and clears connection state |
+
+As a result, your local desktop and applications remain untouched after destroying a `ComputerDevice`, whereas managed Xvfb virtual displays and remote RDP connections are closed automatically.
+
+```typescript
+try {
+  await agent.aiAct('Open Settings');
+} finally {
+  await agent.destroy();
+}
+```
+
+## Platform support and limitations
+
+- Local desktop automation requires the appropriate screen recording, accessibility, or display service permissions; see [Desktop environment setup](../platforms/desktop).
+- `headless` (Xvfb) is supported on Linux only.
+- `keyboardDriver` applies to macOS only; `keyboardModifierDelay` and `keyboardLayout` apply only to the local `libnut` driver and have no effect on direct RDP connections.

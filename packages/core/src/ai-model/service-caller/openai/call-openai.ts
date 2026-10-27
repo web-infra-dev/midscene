@@ -8,14 +8,15 @@ import {
 import { createClient } from './openai-client';
 import { formatOpenAIAPIErrorDetails } from './openai-request-context';
 import { callResponses, type prepareResponses } from './responses/responses';
+import { SiwcTokenExpiredError } from './siwc';
 
 export type PreparedOpenAIInput =
   | {
-      protocol: 'chat-completion';
+      kind: 'chat-completion';
       input: Awaited<ReturnType<typeof prepareChatCompletion>>;
     }
   | {
-      protocol: 'responses';
+      kind: 'responses';
       input: Awaited<ReturnType<typeof prepareResponses>>;
     };
 
@@ -53,7 +54,7 @@ export async function callOpenAI(
   try {
     const startTime = Date.now();
     const response =
-      prepared.protocol === 'responses'
+      prepared.kind === 'responses'
         ? await callResponses(
             {
               ...requestOptions,
@@ -107,12 +108,21 @@ export async function callOpenAI(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-    getDebug('ai:call', { console: true })('call AI error', error);
+    getDebug('ai:call', {
+      console: true,
+      warning: { kind: 'model-request-detail', modelName, error },
+    })('call AI error', error);
     if (error instanceof AIResponseParseError) {
       throw error;
     }
-    throw new Error(
-      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${error.message}${formatOpenAIAPIErrorDetails(error, openAIRequestContext)}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
+    const RequestError =
+      modelConfig.authMode === 'siwc' &&
+      error.status === 401 &&
+      error.code === 'token_expired'
+        ? SiwcTokenExpiredError
+        : Error;
+    throw new RequestError(
+      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${error.message}${formatOpenAIAPIErrorDetails(error, openAIRequestContext)}\nTrouble shooting: https://midscenejs.com/model-config#verify-model-connectivity`,
       { cause: error },
     );
   }

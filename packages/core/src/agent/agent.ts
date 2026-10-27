@@ -1,17 +1,16 @@
-import type { ModelTask } from '@/ai-model/model-adapter/types';
+import type { ModelTaskType } from '@/ai-model/model-adapter/types';
 import type { ModelRuntime } from '@/ai-model/models';
-import { resolveModelForTask } from '@/ai-model/models/task-routing';
+import { resolveModelForTaskType } from '@/ai-model/models/model-fallback';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
-import { IS_REPORT_BUILD } from '@/constants';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
-import { generateTestRunReportScriptTag } from '../dump/html-utils';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
-import { waitForResourceIdle } from '../test-runner/engine/resource-operations';
+import {
+  hasPendingResourceOperation,
+  waitForResourceIdle,
+} from '../test-runner/engine/resource-operations';
 import type { WorkflowExecutionRecord } from '../test-runner/execution-record';
-import { buildAgentTestRunReportDump } from '../test-runner/reporting/agent-report';
-import { executionRecordsToReportInput } from '../test-runner/reporting/execution-record';
 // Import types and values directly from their source files to avoid circular dependency
 // DO NOT import from '../index' as it creates a circular dependency:
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
@@ -43,8 +42,7 @@ import {
   type RecordToReportOptions,
   type RecordToReportScreenshot,
   type Rect,
-  ReportActionDump,
-  type ReportMeta,
+  type ReportActionDump,
   type ScrollParam,
   type ServiceAction,
   type ServiceExtractParam,
@@ -57,15 +55,10 @@ import {
   currentYamlSignal,
   enterYamlAction,
   enterYamlExecution,
+  hasActiveYamlExecution,
   runInYamlExecutionContext,
 } from '../yaml/execution-session';
 
-import type { IReportGenerator } from '@/report-generator';
-import {
-  ReportGenerator,
-  assertReportGenerationOptions,
-} from '@/report-generator';
-import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
@@ -93,13 +86,15 @@ import {
   globalModelConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
-import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
+import { assert, uuid } from '@midscene/shared/utils';
 import {
   defineActionRegisterFileChooserAccept,
   defineActionSleep,
 } from '../device';
 import { ActionReadiness, isActionReadinessError } from './action-readiness';
-import { validateAgentCacheInput } from './cache-config';
+import { normalizeAgentOptions, withAgentDefaults } from './agent-options';
+import { AgentReportManager } from './agent-report-manager';
+import { normalizeAgentCacheConfig } from './cache-config';
 import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
@@ -133,7 +128,6 @@ import {
 } from './ui-utils';
 import {
   commonContextParser,
-  getReportFileName,
   normalizeFilePaths,
   normalizeScrollType,
 } from './utils';
@@ -203,86 +197,40 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   service: Service;
 
-  dump: ReportActionDump;
+  private reportManager: AgentReportManager;
 
-  reportFile?: string | null;
-
-  reportFileName?: string;
-  private readonly yamlReportScopeId = uuid();
-  private readonly yamlExecutionRecords: WorkflowExecutionRecord[] = [];
+  get dump(): ReportActionDump {
+    return this.reportManager.dump;
+  }
+  set dump(value: ReportActionDump) {
+    this.reportManager.dump = value;
+  }
+  get reportFile(): string | null | undefined {
+    return this.reportManager.reportFile;
+  }
+  set reportFile(value: string | null | undefined) {
+    this.reportManager.reportFile = value;
+  }
+  get reportFileName(): string | undefined {
+    return this.reportManager.reportFileName;
+  }
+  set reportFileName(value: string | undefined) {
+    this.reportManager.reportFileName = value;
+  }
 
   /** @internal Runner snapshots retain immutable data and shared image files. */
   _prepareForTestRunner(): void {
-    this.reportGenerator.enableSourceSnapshots?.();
+    this.reportManager._prepareForTestRunner();
   }
   async _createReportSource(scopeId: string, executionIds?: readonly string[]) {
-    return this.reportGenerator.createSourceSnapshot?.(scopeId, executionIds);
+    return this.reportManager._createReportSource(scopeId, executionIds);
   }
 
   /** @internal The Agent owns one report stream across root YAML invocations. */
   async _writeYamlExecutionReport(
     record: WorkflowExecutionRecord,
   ): Promise<string | undefined> {
-    const existingIndex = this.yamlExecutionRecords.findIndex(
-      (entry) => entry.runId === record.runId,
-    );
-    const recordIndex =
-      existingIndex < 0 ? this.yamlExecutionRecords.length : existingIndex;
-    this.yamlExecutionRecords[recordIndex] = record;
-    try {
-      const path = await this.reportGenerator.writeRunnerReport?.(
-        this.buildYamlReportInput(),
-        this.yamlReportScopeId,
-        this.getReportMeta(),
-      );
-      this.reportFile = path ?? this.reportFile;
-      return path;
-    } catch (error) {
-      this.yamlExecutionRecords[recordIndex] = Object.freeze({
-        ...record,
-        status: 'failed',
-        reportError: error,
-      });
-      throw error;
-    }
-  }
-
-  private buildYamlReportInput() {
-    const scopedRecords = this.yamlExecutionRecords.map((entry) => ({
-      ...entry,
-      ...(entry.execution
-        ? {
-            execution: {
-              document: {
-                ...entry.execution.document,
-                reportScopeId: this.yamlReportScopeId,
-              },
-              cases: entry.execution.cases.map((outcome) => ({
-                ...outcome,
-                ...(outcome.run
-                  ? {
-                      run: {
-                        ...outcome.run,
-                        reportScopeId: this.yamlReportScopeId,
-                      },
-                    }
-                  : {}),
-                ...(outcome.attempts
-                  ? {
-                      attempts: outcome.attempts.map((attempt) => ({
-                        ...attempt,
-                        reportScopeId: this.yamlReportScopeId,
-                      })),
-                    }
-                  : {}),
-              })),
-            },
-          }
-        : {}),
-    }));
-    return executionRecordsToReportInput(scopedRecords, {
-      runId: this.yamlReportScopeId,
-    });
+    return this.reportManager._writeYamlExecutionReport(record);
   }
 
   taskExecutor: TaskExecutor;
@@ -308,10 +256,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   // `${taskId}:${field}` so re-emitted snapshots never double-count.
   private readonly countedUsageKeys = new Set<string>();
 
-  private dumpUpdateListeners: Array<
-    (dump: string, executionDump?: ExecutionDump) => void
-  > = [];
-
   // Generic progress bus: every producer (aiAct today, more later) broadcasts
   // through here. Consumers narrow by `event.scope`.
   private readonly progressBus = new AgentProgressBus();
@@ -319,18 +263,12 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   get onDumpUpdate():
     | ((dump: string, executionDump?: ExecutionDump) => void)
     | undefined {
-    return this.dumpUpdateListeners[0];
+    return this.reportManager.onDumpUpdate;
   }
-
   set onDumpUpdate(callback:
     | ((dump: string, executionDump?: ExecutionDump) => void)
     | undefined) {
-    // Clear existing listeners
-    this.dumpUpdateListeners = [];
-    // Add callback to array if provided
-    if (callback) {
-      this.dumpUpdateListeners.push(callback);
-    }
+    this.reportManager.onDumpUpdate = callback;
   }
 
   destroyed = false;
@@ -396,15 +334,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     };
   }
 
-  private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
-
   private fullActionSpace: DeviceAction[];
 
   private activeFileChooserAccepter?: FileChooserAccepter;
 
   private activeFileChooserAllowedDir?: string;
-
-  private reportGenerator: IReportGenerator;
 
   // @deprecated use .interface instead
   get page() {
@@ -447,16 +381,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     );
   }
 
-  private resolveModelRuntime(intent: TIntent, task?: ModelTask): ModelRuntime {
-    const runtime = resolveModelForTask(
+  private resolveModelRuntime(
+    intent: TIntent,
+    taskType: ModelTaskType,
+  ): ModelRuntime {
+    const runtime = resolveModelForTaskType(
       this.modelConfigManager,
       intent,
-      task ??
-        (intent === 'default'
-          ? 'text'
-          : intent === 'insight'
-            ? 'extract'
-            : intent),
+      taskType,
     );
     return {
       ...runtime,
@@ -475,8 +407,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   private createInsight(getUIContext?: () => UIContext): Insight {
     return new Insight(
-      this.taskExecutor,
-      (task) => this.resolveModelRuntime('insight', task),
+      {
+        createTypeQueryExecution: (...args) =>
+          this.withReportOperation(() =>
+            this.taskExecutor.createTypeQueryExecution(...args),
+          ),
+      },
+      (taskType) => this.resolveModelRuntime('insight', taskType),
       (apiName, callContext) => this.resolveUserContext(apiName, callContext),
       getUIContext,
     );
@@ -485,71 +422,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
     this.interface = interfaceInstance;
 
-    this.opts = Object.assign(
-      {
-        generateReport: true,
-        persistExecutionDump: false,
-        autoPrintReportMsg: true,
-        groupName: 'Midscene Report',
-        groupDescription: '',
-      },
-      opts || {},
-    );
-    assertReportGenerationOptions(this.opts);
+    this.opts = withAgentDefaults(opts);
     if (this.opts.waitForActionReady !== undefined) {
       this.actionReadiness = new ActionReadiness(this.opts.waitForActionReady);
     }
 
-    if (
-      this.opts.aiContexts !== undefined &&
-      (typeof this.opts.aiContexts !== 'object' ||
-        this.opts.aiContexts === null ||
-        Array.isArray(this.opts.aiContexts))
-    ) {
-      throw new TypeError('opts.aiContexts must be a plain object');
-    }
+    normalizeAgentOptions(this.opts, warn);
 
-    for (const [key, value] of Object.entries(this.opts.aiContexts ?? {})) {
-      if (!isAgentAIContextKey(key)) {
-        throw new TypeError(`Unknown Agent context key: ${key}`);
-      }
-      if (value !== undefined && typeof value !== 'string') {
-        throw new TypeError(`Agent context "${key}" must be a string`);
-      }
-    }
-
-    const deprecatedAiActContextOption =
-      this.opts.aiActContext !== undefined
-        ? 'aiActContext'
-        : this.opts.aiActionContext !== undefined
-          ? 'aiActionContext'
-          : undefined;
-    if (deprecatedAiActContextOption) {
-      warn(
-        `Agent option "${deprecatedAiActContextOption}" is deprecated; use "aiContexts.aiAct" instead. When both are provided, "aiContexts.aiAct" takes precedence.`,
-      );
-    }
-
-    const normalizedAIContexts: AgentAIContexts = { ...this.opts.aiContexts };
-    const resolvedAiActContext =
-      normalizedAIContexts.aiAct ??
-      this.opts.aiActContext ??
-      this.opts.aiActionContext;
-    if (resolvedAiActContext !== undefined) {
-      normalizedAIContexts.aiAct = resolvedAiActContext;
-      this.opts.aiActContext = resolvedAiActContext;
-      this.opts.aiActionContext = resolvedAiActContext;
-    }
-    this.opts.aiContexts = normalizedAIContexts;
-
-    if (
-      opts?.modelConfig &&
-      (typeof opts?.modelConfig !== 'object' || Array.isArray(opts.modelConfig))
-    ) {
-      throw new Error(
-        `opts.modelConfig must be a plain object map of env keys to values, but got ${typeof opts?.modelConfig}`,
-      );
-    }
     // Explicit modelConfig is isolated from global configuration.
     // A custom client factory alone still uses the global model values.
     this.modelConfigManager = opts?.modelConfig
@@ -568,7 +447,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     });
 
     // Process cache configuration
-    const cacheConfigObj = this.processCacheConfig(opts || {});
+    const cacheConfigObj = normalizeAgentCacheConfig(opts || {});
     if (cacheConfigObj) {
       this.taskCache = new TaskCache(
         cacheConfigObj.id,
@@ -610,7 +489,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
-      getDefaultModelRuntime: () => this.resolveModelRuntime('default'),
+      getDefaultModelRuntime: () =>
+        this.resolveModelRuntime('default', 'general'),
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
@@ -621,7 +501,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       operationResource: this,
       actionSpace: this.fullActionSpace,
       hooks: {
+        onExecutionCreated: (runner) => {
+          this.reportManager.bindRunner(runner);
+        },
         onSnapshotChange: async (runner) => {
+          this.reportManager.assertRunnerCurrent(runner);
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
           this.collectUsageMetrics(executionDump);
@@ -629,35 +513,20 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           // Persist report updates before notifying listeners so screenshot
           // payloads can be released from memory and serialized as references.
           this.writeOutActionDumps(executionDump);
-          await this.reportGenerator.flush();
-
-          // Call all registered dump update listeners
-          const dumpString = this.dumpDataString();
-          for (const listener of this.dumpUpdateListeners) {
-            try {
-              listener(dumpString, executionDump);
-            } catch (error) {
-              console.error('Error in onDumpUpdate listener', error);
-            }
-          }
+          await this.reportManager.flushPendingWrites();
+          this.reportManager.notifyDumpUpdateListeners(executionDump);
         },
         onProgress: this.progressBus.publish,
       },
     });
-    this.dump = this.resetDump();
-    this.reportFileName =
-      opts?.reportFileName ??
-      // Keep deprecated testId behavior for generated report names until it is
-      // fully removed from the public API.
-      getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
-
-    this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
-      generateReport: this.opts.generateReport,
-      persistExecutionDump: this.opts.persistExecutionDump,
-      outputFormat: this.opts.outputFormat,
-      autoPrintReportMsg: this.opts.autoPrintReportMsg,
-      reuseExistingReport:
-        this.opts.reportAttributes?.['data-group-id'] === this.reportFileName,
+    this.reportManager = new AgentReportManager({
+      getOptions: () => this.opts,
+      getDeviceType: () => this.interface.interfaceType,
+      isDestroyed: () => this.destroyed,
+      isExternallyBusy: () =>
+        Boolean(this.activeObserver) ||
+        hasActiveYamlExecution(this) ||
+        hasPendingResourceOperation(this),
     });
 
     Object.defineProperty(this, observationArtifactAdapterSymbol, {
@@ -758,6 +627,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * before your next action.
    */
   async startObserving(opt?: UIObserverOption): Promise<UIObserver> {
+    this.assertReportWritable();
     // A frozen context pins perception to a single snapshot; observing a
     // window of frames contradicts that. Fail fast instead of silently
     // producing an all-identical sequence.
@@ -859,36 +729,36 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
   }
 
-  resetDump() {
-    this.dump = new ReportActionDump({
-      sdkVersion: getVersion(),
-      groupName: this.opts.groupName!,
-      groupDescription: this.opts.groupDescription,
-      executions: [],
-      modelBriefs: [],
-      deviceType: this.interface.interfaceType,
-    });
-    this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+  private assertReportWritable(): void {
+    this.reportManager.assertReportWritable();
+  }
 
-    return this.dump;
+  private async withReportOperation<T>(
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    return this.reportManager.withReportOperation(operation);
+  }
+
+  /**
+   * Finalize the preceding report and reset execution records for a new report.
+   * Historical artifacts are retained; this Agent and its device stay connected.
+   * Await this method before executing again. Concurrent resets share one reset.
+   */
+  async resetDump(): Promise<ReportActionDump> {
+    return this.reportManager.resetDump();
+  }
+
+  /**
+   * Seal the current report and release its in-memory records without
+   * disconnecting the device. Export in-memory data before calling this method.
+   * Repeated calls return the same result and never rewrite published artifacts.
+   */
+  async finalizeReport(): Promise<string | undefined> {
+    return this.reportManager.finalizeReport();
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
-    const currentDump = this.dump;
-    if (runner) {
-      const existingIndex = this.executionDumpIndexByRunner.get(runner);
-      if (existingIndex !== undefined) {
-        currentDump.executions[existingIndex] = execution;
-        return;
-      }
-      currentDump.executions.push(execution);
-      this.executionDumpIndexByRunner.set(
-        runner,
-        currentDump.executions.length - 1,
-      );
-      return;
-    }
-    currentDump.executions.push(execution);
+    this.reportManager.appendExecutionDump(execution, runner);
   }
 
   /**
@@ -909,7 +779,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
     // Dedup key priority:
     // 1. request_id — provider-issued, stable across onUsage and task dump paths
-    // 2. INTERNAL_CALL_ID_FIELD — callAI-generated internal id, covers
+    // 2. INTERNAL_CALL_ID_FIELD — callGenerativeAI-generated internal id, covers
     //    providers that don't return a request_id
     // 3. caller-provided key (taskId:field or callai:counter)
     let dedupKey: string;
@@ -942,76 +812,20 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {
-    // update dump info
-    this.dump.groupName = this.opts.groupName!;
-    this.dump.groupDescription = this.opts.groupDescription;
-    // In browser environment, use inline screenshots since file system is not available
-    if (ifInBrowser || opt?.inlineScreenshots) {
-      return this.dump.serializeWithInlineScreenshots();
-    }
-    return this.dump.serialize();
+    return this.reportManager.dumpDataString(opt);
   }
 
   reportHTMLString(opt?: { inlineScreenshots?: boolean }) {
-    // Short-circuit at the call site because JavaScript evaluates function
-    // arguments first. This avoids serializing the dump (including inline
-    // screenshots) when the Report Viewer build does not need report HTML.
-    if (IS_REPORT_BUILD) {
-      return '';
-    }
-
-    // dumpDataString() handles browser environment with inline screenshots
-    const dumpString = this.dumpDataString(opt);
-    if (!this.yamlExecutionRecords.length) return reportHTMLContent(dumpString);
-
-    // Browser exports have no file writer, so the execution record must own
-    // the hierarchy independently of whether file report generation is enabled.
-    const reportId = this.yamlReportScopeId;
-    const runnerDump = buildAgentTestRunReportDump(
-      this.buildYamlReportInput(),
-      this.dump,
-      {
-        reportId,
-        scopeId: this.yamlReportScopeId,
-        sourcePath: this.reportFile ?? '<inline-agent-report>',
-      },
-    );
-    return `${reportHTMLContent({
-      dumpString,
-      attributes: { 'data-group-id': reportId, 'data-report-id': reportId },
-    })}\n${generateTestRunReportScriptTag(runnerDump)}`;
+    return this.reportManager.reportHTMLString(() => this.dumpDataString(opt));
   }
 
-  private lastExecutionDump?: ExecutionDump;
-
   writeOutActionDumps(executionDump?: ExecutionDump) {
-    const exec = executionDump || this.lastExecutionDump;
-    if (exec) {
-      this.lastExecutionDump = exec;
-      this.reportGenerator.onExecutionUpdate(
-        exec,
-        this.getReportMeta(),
-        this.opts.reportAttributes,
-      );
-    }
-    this.reportFile = this.reportGenerator.getReportPath();
+    this.reportManager.writeOutActionDumps(executionDump);
   }
 
   /** Persist current report data without disposing this Agent or its device. */
   async flushReport(): Promise<string | undefined> {
-    this.writeOutActionDumps();
-    await this.reportGenerator.flush();
-    return this.lastExecutionDump ? (this.reportFile ?? undefined) : undefined;
-  }
-
-  private getReportMeta(): ReportMeta {
-    return {
-      groupName: this.dump.groupName,
-      groupDescription: this.dump.groupDescription,
-      sdkVersion: this.dump.sdkVersion,
-      modelBriefs: this.dump.modelBriefs,
-      deviceType: this.dump.deviceType,
-    };
+    return this.reportManager.flushReport();
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -1034,6 +848,16 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params
+    abortSignal?: AbortSignal,
+  ) {
+    return this.withReportOperation(() =>
+      this.executeActionInActionSpace<T>(type, opt, abortSignal),
+    );
+  }
+
+  private async executeActionInActionSpace<T>(
+    type: string,
+    opt?: T,
     abortSignal?: AbortSignal,
   ) {
     debug('callActionInActionSpace', type, ',', opt);
@@ -1062,8 +886,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     );
 
     // assume all operation in action space is related to locating
-    const locateModel = this.resolveModelRuntime('locate');
-    const planningModel = this.resolveModelRuntime('planning');
+    const locateModel = this.resolveModelRuntime('locate', 'locate');
+    const planningModel = this.resolveModelRuntime('planning', 'planning');
 
     const { output } = await this.taskExecutor.runPlans(
       title,
@@ -1079,20 +903,22 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { fileChooserAccept?: string | string[] },
   ): Promise<void> {
-    assert(locatePrompt, 'missing locate prompt for tap');
+    await this.withReportOperation(async () => {
+      assert(locatePrompt, 'missing locate prompt for tap');
 
-    const detailedLocateParam = buildDetailedLocateParam(
-      locatePrompt,
-      this.withContext('aiTap', opt),
-    );
+      const detailedLocateParam = buildDetailedLocateParam(
+        locatePrompt,
+        this.withContext('aiTap', opt),
+      );
 
-    const fileChooserAccept = opt?.fileChooserAccept
-      ? this.normalizeFileInput(opt.fileChooserAccept)
-      : undefined;
+      const fileChooserAccept = opt?.fileChooserAccept
+        ? this.normalizeFileInput(opt.fileChooserAccept)
+        : undefined;
 
-    await withFileChooser(this.interface, fileChooserAccept, async () => {
-      await this.callActionInActionSpace('Tap', {
-        locate: detailedLocateParam,
+      await withFileChooser(this.interface, fileChooserAccept, async () => {
+        await this.callActionInActionSpace('Tap', {
+          locate: detailedLocateParam,
+        });
       });
     });
   }
@@ -1419,6 +1245,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     taskPrompt: TUserPrompt,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
+    return this.withReportOperation(() => this.executeAiAct(taskPrompt, opt));
+  }
+
+  private async executeAiAct(
+    taskPrompt: TUserPrompt,
+    opt?: AiActOptions,
+  ): Promise<string | undefined> {
     const internalOptions = opt as AiActInternalOptions | undefined;
     const internalReportDisplay = internalOptions?._internalReportDisplay;
     const taskPromptText =
@@ -1436,8 +1269,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     const runAiAct = async () => {
-      const planningModel = this.resolveModelRuntime('planning');
-      const locateModel = this.resolveModelRuntime('locate');
+      const planningModel = this.resolveModelRuntime('planning', 'planning');
+      const locateModel = this.resolveModelRuntime('locate', 'locate');
       const aiActContext = this.resolveUserContext('aiAct', opt?.context);
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
@@ -1630,6 +1463,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     markdownPath: string,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
+    return this.withReportOperation(() =>
+      this.executeMarkdown(markdownPath, opt),
+    );
+  }
+
+  private async executeMarkdown(
+    markdownPath: string,
+    opt?: AiActOptions,
+  ): Promise<string | undefined> {
     const markdown = await readFile(markdownPath, 'utf-8');
     const { prompt } = await markdownToAiActPrompt(markdown, markdownPath);
     return this.aiAct(prompt, {
@@ -1645,7 +1487,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     scenarioText: string,
     opt?: RunGherkinScenarioOptions,
   ): Promise<void> {
-    return runGherkinScenario(this, scenarioText, opt);
+    return this.withReportOperation(() =>
+      runGherkinScenario(this, scenarioText, opt),
+    );
   }
 
   /**
@@ -1684,6 +1528,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * Do not rely on rect for strict element boundaries. Prefer center for the target.
    */
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
+    return this.withReportOperation(() => this.executeLocate(prompt, opt));
+  }
+
+  private async executeLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const locateParam = buildDetailedLocateParam(
       prompt,
       this.withContext('aiLocate', opt),
@@ -1691,8 +1539,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const locateModel = this.resolveModelRuntime('locate');
-    const planningModel = this.resolveModelRuntime('planning');
+    const locateModel = this.resolveModelRuntime('locate', 'locate');
+    const planningModel = this.resolveModelRuntime('planning', 'planning');
 
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
@@ -1731,14 +1579,16 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const modelRuntime = this.resolveModelRuntime('insight', 'boolean');
     const options = this.withContext('aiWaitFor', opt);
-    await this.taskExecutor.waitFor(
-      assertion,
-      {
-        ...options,
-        timeoutMs: options?.timeoutMs || 15 * 1000,
-        checkIntervalMs: options?.checkIntervalMs || 3 * 1000,
-      },
-      modelRuntime,
+    await this.withReportOperation(() =>
+      this.taskExecutor.waitFor(
+        assertion,
+        {
+          ...options,
+          timeoutMs: options?.timeoutMs || 15 * 1000,
+          checkIntervalMs: options?.checkIntervalMs || 3 * 1000,
+        },
+        modelRuntime,
+      ),
     );
   }
 
@@ -1752,6 +1602,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<{
     result: Record<string, any>;
   }> {
+    return this.withReportOperation(() =>
+      this.executeYaml(yamlScriptContent, options),
+    );
+  }
+
+  private async executeYaml(
+    yamlScriptContent: string,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<{ result: Record<string, any> }> {
     if (this.destroyed)
       throw new Error('Cannot run YAML using a destroyed Agent.');
     const script = parseYamlScript(yamlScriptContent, 'yaml');
@@ -1790,7 +1649,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       this.interface.evaluateJavaScript,
       'evaluateJavaScript is not supported in current agent',
     );
-    return this.interface.evaluateJavaScript(script);
+    return this.withReportOperation(() =>
+      this.interface.evaluateJavaScript!(script),
+    );
   }
 
   /**
@@ -1801,32 +1662,19 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   addDumpUpdateListener(
     listener: (dump: string, executionDump?: ExecutionDump) => void,
   ): () => void {
-    this.dumpUpdateListeners.push(listener);
-
-    // Return remove function
-    return () => {
-      this.removeDumpUpdateListener(listener);
-    };
+    return this.reportManager.addDumpUpdateListener(listener);
   }
 
-  /**
-   * Remove a dump update listener
-   * @param listener The listener function to remove
-   */
+  /** Remove a dump update listener. */
   removeDumpUpdateListener(
     listener: (dump: string, executionDump?: ExecutionDump) => void,
   ): void {
-    const index = this.dumpUpdateListeners.indexOf(listener);
-    if (index > -1) {
-      this.dumpUpdateListeners.splice(index, 1);
-    }
+    this.reportManager.removeDumpUpdateListener(listener);
   }
 
-  /**
-   * Clear all dump update listeners
-   */
+  /** Clear all dump update listeners. */
   clearDumpUpdateListeners(): void {
-    this.dumpUpdateListeners = [];
+    this.reportManager.clearDumpUpdateListeners();
   }
 
   /**
@@ -1855,14 +1703,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   private notifyDumpUpdateListeners(executionDump?: ExecutionDump) {
-    const dumpString = this.dumpDataString();
-    for (const listener of this.dumpUpdateListeners) {
-      try {
-        listener(dumpString, executionDump);
-      } catch (error) {
-        console.error('Error in onDumpUpdate listener', error);
-      }
-    }
+    this.reportManager.notifyDumpUpdateListeners(executionDump);
   }
 
   async destroy() {
@@ -1877,6 +1718,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     // Keep the public owner from disposing the interface until that call has
     // actually settled.
     await waitForResourceIdle(this);
+    await this.reportManager.waitForOperations();
 
     // Observers own observation frame files until explicitly disposed.
     for (const observer of this.ownedObservers) {
@@ -1896,13 +1738,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       interfaceDestroyError = error;
     }
 
-    // Wait for all queued write operations to complete
-    await this.reportGenerator.flush();
-
-    const finalPath = await this.reportGenerator.finalize();
-    this.reportFile = finalPath;
-
-    this.resetDump(); // reset dump to release memory
+    await this.reportManager.waitForReset();
+    // Owned YAML cleanup runs before its record includes cleanup errors. The
+    // player publishes that record and its source snapshot before finalizing.
+    if (!hasActiveYamlExecution(this)) await this.finalizeReport();
 
     if (interfaceDestroyError) {
       throw interfaceDestroyError;
@@ -1922,10 +1761,19 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     options?: { abortSignal?: AbortSignal },
   ): Promise<void> {
     options?.abortSignal?.throwIfAborted();
-    await this.taskExecutor.sleep(ms, options?.abortSignal);
+    await this.withReportOperation(() =>
+      this.taskExecutor.sleep(ms, options?.abortSignal),
+    );
   }
 
   async recordToReport(title?: string, opt?: RecordToReportOptions) {
+    return this.withReportOperation(() => this.writeRecordToReport(title, opt));
+  }
+
+  private async writeRecordToReport(
+    title?: string,
+    opt?: RecordToReportOptions,
+  ) {
     const now = Date.now();
     const screenshots = opt?.screenshots;
     const screenshotBase64 = opt?.screenshotBase64;
@@ -2003,7 +1851,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     this.appendExecutionDump(executionDump);
 
     this.writeOutActionDumps(executionDump);
-    await this.reportGenerator.flush();
+    await this.reportManager.flushPendingWrites();
 
     // Call all registered dump update listeners
     this.notifyDumpUpdateListeners(executionDump);
@@ -2017,6 +1865,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       content?: string;
       screenshotBase64?: string;
     },
+  ) {
+    return this.withReportOperation(() => this.writeErrorToReport(title, opt));
+  }
+
+  private async writeErrorToReport(
+    title: string,
+    opt: { error: unknown; content?: string; screenshotBase64?: string },
   ) {
     const now = Date.now();
     const error = serializeError(opt.error);
@@ -2061,7 +1916,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     this.appendExecutionDump(executionDump);
     this.writeOutActionDumps(executionDump);
-    await this.reportGenerator.flush();
+    await this.reportManager.flushPendingWrites();
     this.notifyDumpUpdateListeners(executionDump);
   }
 
@@ -2106,47 +1961,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     debug('Unfreezing page context');
     this.frozenUIContext = undefined;
     debug('Page context unfrozen successfully');
-  }
-
-  /**
-   * Process cache configuration and return normalized cache settings
-   */
-  private processCacheConfig(opts: AgentOpt): {
-    id: string;
-    enabled: boolean;
-    readOnly: boolean;
-    writeOnly: boolean;
-    cacheDir?: string;
-  } | null {
-    validateAgentCacheInput(opts.cache);
-
-    // Use the unified utils function to process cache configuration
-    const cacheConfig = processCacheConfig(
-      opts.cache,
-      opts.cacheId || 'default',
-    );
-
-    if (!cacheConfig) {
-      return null;
-    }
-
-    // Handle cache configuration object
-    if (typeof cacheConfig === 'object' && cacheConfig !== null) {
-      const id = cacheConfig.id;
-      const strategyValue = cacheConfig.strategy ?? 'read-write';
-      const isReadOnly = strategyValue === 'read-only';
-      const isWriteOnly = strategyValue === 'write-only';
-
-      return {
-        id,
-        enabled: !isWriteOnly,
-        readOnly: isReadOnly,
-        writeOnly: isWriteOnly,
-        cacheDir: cacheConfig.cacheDir?.trim(),
-      };
-    }
-
-    return null;
   }
 
   private normalizeFileInput(files: string | string[]): string[] {

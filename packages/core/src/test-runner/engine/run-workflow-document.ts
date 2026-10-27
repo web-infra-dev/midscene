@@ -55,6 +55,8 @@ export async function runWorkflowDocument<TContext = undefined>(
         retry: { scope: 'case', count: retry },
       }),
     documentSetup: options.documentSetup,
+    setupTimeoutMs: options.setupTimeoutMs,
+    teardownTimeoutMs: options.teardownTimeoutMs,
     documentAttemptIndex: options.documentAttemptIndex,
     resolveNode: options.resolveNode,
     project: options.project,
@@ -131,6 +133,7 @@ export async function runWorkflowDocument<TContext = undefined>(
             attemptIndex,
             signal: runtime.signal,
             defaultTimeoutMs: options.defaultTimeoutMs,
+            teardownTimeoutMs: options.teardownTimeoutMs,
             onStepStart: options.onStepStart,
             onStepResult: options.onStepResult,
             onResult: async (result) => {

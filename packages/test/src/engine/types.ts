@@ -65,6 +65,7 @@ export type NodeScopeTeardown = () => Core.Awaitable<NodeScopeTeardownOutput>;
 export type RunCollectedCaseOptions<TContext = undefined> = Omit<
   Core.RunCollectedCaseOptions<TContext>,
   | 'reportScopeId'
+  | 'teardownTimeoutMs'
   | 'resolveNode'
   | 'beforeEach'
   | 'afterEach'
@@ -80,6 +81,8 @@ export type RunCollectedCaseOptions<TContext = undefined> = Omit<
 export type RunWorkflowDocumentOptions<TContext = undefined> = Omit<
   Core.RunWorkflowDocumentOptions<TContext>,
   | 'documentSetup'
+  | 'setupTimeoutMs'
+  | 'teardownTimeoutMs'
   | 'documentAttemptIndex'
   | 'resolveCaseReportScopeId'
   | 'resolveNode'
@@ -105,6 +108,8 @@ export type RunWorkflowDocumentOptions<TContext = undefined> = Omit<
 export type CreateDocumentRuntimeOptions<TContext = undefined> = Omit<
   Core.CreateDocumentRuntimeOptions<TContext>,
   | 'documentSetup'
+  | 'setupTimeoutMs'
+  | 'teardownTimeoutMs'
   | 'documentAttemptIndex'
   | 'resolveNode'
   | 'onStepResult'

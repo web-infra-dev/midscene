@@ -1,4 +1,5 @@
 import type { AgentOpt, CacheConfig } from '../types';
+import { processCacheConfig } from '../utils';
 
 type CacheStrategy = NonNullable<CacheConfig['strategy']>;
 
@@ -57,4 +58,42 @@ export function validateAgentCacheInput(cache: AgentOpt['cache']): void {
       `cache.strategy must be one of ${CACHE_STRATEGY_VALUES}, but received "${rawStrategy}"`,
     );
   }
+}
+
+/**
+ * Process cache configuration and return normalized cache settings
+ */
+export function normalizeAgentCacheConfig(opts: AgentOpt): {
+  id: string;
+  enabled: boolean;
+  readOnly: boolean;
+  writeOnly: boolean;
+  cacheDir?: string;
+} | null {
+  validateAgentCacheInput(opts.cache);
+
+  // Use the unified utils function to process cache configuration
+  const cacheConfig = processCacheConfig(opts.cache, opts.cacheId || 'default');
+
+  if (!cacheConfig) {
+    return null;
+  }
+
+  // Handle cache configuration object
+  if (typeof cacheConfig === 'object' && cacheConfig !== null) {
+    const id = cacheConfig.id;
+    const strategyValue = cacheConfig.strategy ?? 'read-write';
+    const isReadOnly = strategyValue === 'read-only';
+    const isWriteOnly = strategyValue === 'write-only';
+
+    return {
+      id,
+      enabled: !isWriteOnly,
+      readOnly: isReadOnly,
+      writeOnly: isWriteOnly,
+      cacheDir: cacheConfig.cacheDir?.trim(),
+    };
+  }
+
+  return null;
 }

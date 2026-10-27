@@ -1,3 +1,11 @@
+export type TModelAuthMode = 'api-key' | 'siwc';
+export const MIDSCENE_MODEL_AUTH_MODE = 'MIDSCENE_MODEL_AUTH_MODE';
+export const MIDSCENE_PLANNING_MODEL_AUTH_MODE =
+  'MIDSCENE_PLANNING_MODEL_AUTH_MODE';
+export const MIDSCENE_LOCATE_MODEL_AUTH_MODE =
+  'MIDSCENE_LOCATE_MODEL_AUTH_MODE';
+export const MIDSCENE_INSIGHT_MODEL_AUTH_MODE =
+  'MIDSCENE_INSIGHT_MODEL_AUTH_MODE';
 // config keys
 export const MIDSCENE_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_MODEL_INIT_CONFIG_JSON';
@@ -264,6 +272,11 @@ export const GLOBAL_ENV_KEYS = [
  * Can only be access after agent.constructor
  */
 export const MODEL_ENV_KEYS = [
+  MIDSCENE_MODEL_AUTH_MODE,
+  MIDSCENE_PLANNING_MODEL_AUTH_MODE,
+  MIDSCENE_LOCATE_MODEL_AUTH_MODE,
+  MIDSCENE_INSIGHT_MODEL_AUTH_MODE,
+
   MIDSCENE_INSIGHT_MODEL_STREAM_MODE,
   MIDSCENE_PLANNING_MODEL_STREAM_MODE,
   MIDSCENE_LOCATE_MODEL_STREAM_MODE,
@@ -429,6 +442,7 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON]?: string;
   [MIDSCENE_INSIGHT_MODEL_PROTOCOL]?: TModelProtocol;
   [MIDSCENE_INSIGHT_MODEL_STREAM_MODE]?: TModelStreamMode;
+  [MIDSCENE_INSIGHT_MODEL_AUTH_MODE]?: TModelAuthMode;
   // timeout
   [MIDSCENE_INSIGHT_MODEL_TIMEOUT]?: string;
   // temperature
@@ -450,6 +464,7 @@ export interface IModelConfigForLocate {
   [MIDSCENE_LOCATE_MODEL_EXTRA_BODY_JSON]?: string;
   [MIDSCENE_LOCATE_MODEL_PROTOCOL]?: TModelProtocol;
   [MIDSCENE_LOCATE_MODEL_STREAM_MODE]?: TModelStreamMode;
+  [MIDSCENE_LOCATE_MODEL_AUTH_MODE]?: TModelAuthMode;
   // timeout
   [MIDSCENE_LOCATE_MODEL_TIMEOUT]?: string;
   // temperature
@@ -471,6 +486,7 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON]?: string;
   [MIDSCENE_PLANNING_MODEL_PROTOCOL]?: TModelProtocol;
   [MIDSCENE_PLANNING_MODEL_STREAM_MODE]?: TModelStreamMode;
+  [MIDSCENE_PLANNING_MODEL_AUTH_MODE]?: TModelAuthMode;
   // timeout
   [MIDSCENE_PLANNING_MODEL_TIMEOUT]?: string;
   // temperature
@@ -500,6 +516,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_EXTRA_BODY_JSON]?: string;
   [MIDSCENE_MODEL_PROTOCOL]?: TModelProtocol;
   [MIDSCENE_MODEL_STREAM_MODE]?: TModelStreamMode;
+  [MIDSCENE_MODEL_AUTH_MODE]?: TModelAuthMode;
   // extra
   [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
   // temperature
@@ -615,6 +632,7 @@ export interface IModelConfig {
    */
   temperature?: number;
   streamMode?: TModelStreamMode;
+  authMode?: TModelAuthMode;
   /**
    * Number of retries when AI call fails.
    * Default is 1 (retry once after failure).

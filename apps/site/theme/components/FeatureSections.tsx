@@ -167,7 +167,7 @@ export function AgentModels({
     >
       <div className="home-feature-grid">
         <FeatureCard
-          href={tUrl('/model-common-config')}
+          href={tUrl('/model-selection')}
           title={t('modelSupportedName')}
           description={t('modelSupportedDesc')}
           actionLabel={t('modelSupportedLink')}

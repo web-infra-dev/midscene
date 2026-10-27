@@ -92,7 +92,7 @@ should point here instead of duplicating rules.
 ### Upgrading recommended models
 
 `apps/site/docs/{en,zh}/model-selection.mdx` and
-`apps/site/docs/{en,zh}/model-common-config.mdx` are the source of truth for
+`apps/site/docs/{en,zh}/model-api-setup.mdx` are the source of truth for
 which models we recommend and the exact model/family strings. When the
 recommended models or their versions change (e.g. `qwen3-vl` → `qwen3.x`,
 `gemini-3-flash` → `gemini-3.5-flash`), update the strategy/config docs first,
@@ -101,13 +101,13 @@ model list:
 
 - `README.md` and `README.zh.md` (the "Driven by Visual Language Model"
   section).
-- `apps/site/docs/en/introduction.mdx` and
-  `apps/site/docs/zh/introduction.mdx` (same section).
+- `apps/site/docs/en/index.mdx` and
+  `apps/site/docs/zh/index.mdx` (same section).
 
 Keep all four spots in sync and consistent with the strategy/config docs.
 Leave historical references in `changelog.mdx` alone, and keep illustrative
 "newer beats older" comparisons in `faq.md` intact. Remember README and
-introduction are bilingual: update the en/zh counterparts in the same change.
+homepage are bilingual: update the en/zh counterparts in the same change.
 
 ## Validation Guidance
 

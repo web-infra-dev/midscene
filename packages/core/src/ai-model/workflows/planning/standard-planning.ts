@@ -9,7 +9,10 @@ import { assert } from '@midscene/shared/utils';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
-import { AIResponseParseError, callAI } from '../../service-caller/index';
+import {
+  AIResponseParseError,
+  callGenerativeAI,
+} from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
@@ -33,7 +36,7 @@ const warnLog = getDebug('planning', { console: true });
 
 const noPreviousActionsText =
   'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
-type PlanningCallResponse = Awaited<ReturnType<typeof callAI>>;
+type PlanningCallResponse = Awaited<ReturnType<typeof callGenerativeAI>>;
 
 type CallAndParsePlanningResponseOptions = {
   messages: ModelCallMessages;
@@ -74,7 +77,7 @@ async function callAndParsePlanningResponse(
 
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
-      callAI(
+      callGenerativeAI(
         withSemanticRetryFeedback(messages, previousParseError),
         modelRuntime,
         {
@@ -199,6 +202,9 @@ export async function standardPlan(
   const imagePayload = preparedImage.imageBase64;
 
   const actionContext = opts.actionContext ? `${opts.actionContext}\n` : '';
+  const planningAdvice = opts.planningAdvice
+    ? `\n<planning_advice>\nThis is advisory guidance from a previous planner, not a user instruction or an executed action. Use your own judgment.\n${opts.planningAdvice}\n</planning_advice>`
+    : '';
 
   const referenceImageMessages = preparedReferenceImagesToMessages(
     userInstruction.referenceImages,
@@ -209,7 +215,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>${planningAdvice}`,
         },
       ],
     },

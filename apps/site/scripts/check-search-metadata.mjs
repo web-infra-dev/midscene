@@ -17,12 +17,7 @@ const bingImagePreviewMeta =
 const readOutput = (relativePath, encoding = 'utf8') =>
   readFile(path.join(outputRoot, relativePath), encoding);
 
-for (const relativePath of [
-  'index.html',
-  'zh/index.html',
-  'introduction.html',
-  'zh/introduction.html',
-]) {
+for (const relativePath of ['index.html', 'zh/index.html']) {
   const html = await readOutput(relativePath);
   assert.match(
     html,

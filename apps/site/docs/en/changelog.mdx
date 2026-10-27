@@ -2,6 +2,147 @@
 
 {/* release-notes:start */}
 
+## v1.17.1
+
+### Changes
+
+#### Features 🎉
+* feat(test): support namespaces for Midscene Nodes by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3300
+
+#### Fixes 🐞
+* fix(workflow): preserve MDX in release highlights by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3298
+* fix(site): restore v1.17 changelog videos by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3299
+
+#### Documentation 📖
+* docs(site): sdk docs restructure by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3297
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.17.0...v1.17.1
+
+## v1.17.0
+
+### Highlights
+
+#### Use your ChatGPT subscription
+
+Authorize Midscene through Sign in with ChatGPT (SIWC) to call GPT models using your ChatGPT subscription allowance. The video below demonstrates the browser extension's sign-in and authorization flow. See [Use your ChatGPT subscription](https://midscenejs.com/chatgpt-subscription) for setup instructions.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/siwc/siwc-chrome-auth.mp4" controls></video>
+
+#### Experimental Jev 1.14 support
+
+Jev can handle planning, localization, and judgments, working with a general-purpose default model for tasks such as text input. See the [Jev configuration guide](https://midscenejs.com/model-api-setup#jev) for setup instructions and limitations.
+
+The following measurements come from a single run of each demo. A step means one model call; latency excludes page actions and waits. Costs are in USD, calculated at $0.042 per million Jev input tokens, with output tokens free of charge.
+
+##### Fruit tile matching: Jev only
+
+Jev handles clicks and localization to clear all fruit pairs until the remaining count reaches zero. [View the execution report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/fruits-tile-matching-report.html).
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/fruits-tile-matching.mp4" controls></video>
+
+- Model latency per call: **0.887 seconds** on average, **0.774 seconds** at P50.
+- Input usage: **6,761.4 tokens** per call on average, **101,421 tokens** in total.
+- Model cost: **$0.000284** per call on average, **$0.00426** in total.
+
+##### Registration form: Jev + DeepSeek
+
+Jev handles clicks, localization, gender dropdown selection, and completion checks. DeepSeek generates input values for the email, password, and username fields to complete the registration form together. [View the execution report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/register-form-report.html).
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/register-form.mp4" controls></video>
+
+The following measurements **cover Jev only and exclude DeepSeek**:
+
+- Model latency per call: **0.583 seconds** on average, **0.559 seconds** at P50.
+- Input usage: **5,265.8 tokens** per call on average, **68,455 tokens** in total.
+- Model cost: **$0.000221** per call on average, **$0.002875** in total.
+
+### Changes
+
+#### Fixes 🐞
+* fix(chrome-extension): keep recorder screenshots on their source tab by @dakjdakd in https://github.com/web-infra-dev/midscene/pull/3194
+* fix(workflow): stabilize Studio notarization and unblock release notices by @quanru in https://github.com/web-infra-dev/midscene/pull/3294
+
+#### Refactors ♻️
+* refactor(core): restructure Jev integration and planning delegation by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3295
+
+#### New Contributors
+* @dakjdakd made their first contribution in https://github.com/web-infra-dev/midscene/pull/3194
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.5...v1.17.0
+
+## v1.16.5
+
+### Changes
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.4...v1.16.5
+
+## v1.16.4
+
+### Changes
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.3...v1.16.4
+
+## v1.16.3
+
+### Changes
+
+#### Features 🎉
+* feat(core): add SIWC auth mode and Chrome extension sign-in by @EAGzzyCSL in https://github.com/web-infra-dev/midscene/pull/3287
+
+#### Documentation 📖
+* docs(site): make model configuration sections easier to discover by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3292
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.2...v1.16.3
+
+## v1.16.2
+
+### Changes
+
+#### Features 🎉
+* feat(test): redesign CLI reporting and model usage summaries by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3285
+
+#### Fixes 🐞
+* fix(workflow): diagnose Chrome Web Store OAuth failures by @quanru in https://github.com/web-infra-dev/midscene/pull/3284
+* fix(core): keep trailing parenthesis in auto-glm finish message by @kwy404 in https://github.com/web-infra-dev/midscene/pull/3190
+* fix(core): validate locate coordinate types strictly by @linhongyu510 in https://github.com/web-infra-dev/midscene/pull/3068
+* fix(core): validate swipe action parameters by @linhongyu510 in https://github.com/web-infra-dev/midscene/pull/3069
+* fix(workflow): build report dependencies and stabilize AI checks by @quanru in https://github.com/web-infra-dev/midscene/pull/3290
+
+#### Documentation 📖
+* docs(site): reorganize model setup and debugging guides by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3288
+* docs(site): standardize navigation capitalization by @ottomao in https://github.com/web-infra-dev/midscene/pull/3291
+
+#### New Contributors
+* @kwy404 made their first contribution in https://github.com/web-infra-dev/midscene/pull/3190
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.1...v1.16.2
+
+## v1.16.1
+
+### Changes
+
+#### Features 🎉
+* feat(test): add file concurrency with maxConcurrentFiles by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3259
+
+#### Fixes 🐞
+* fix(playground): isolate reports between executions by @xiong35 in https://github.com/web-infra-dev/midscene/pull/3252
+
+#### Documentation 📖
+* docs(site): add GitHub Actions guide for Midscene Test by @await-ovo in https://github.com/web-infra-dev/midscene/pull/3263
+* docs(site): simplify GitHub Actions docs and link to Marketplace by @await-ovo in https://github.com/web-infra-dev/midscene/pull/3276
+* docs(site): clarify Jev setup with combined model configuration by @ottomao in https://github.com/web-infra-dev/midscene/pull/3277
+* docs(site): update introduction of GUI Agent by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3278
+* docs(site): clarify Midscene Test terminology and release status by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3279
+* docs(site): migrate introduction to the homepage by @yuyutaotao in https://github.com/web-infra-dev/midscene/pull/3282
+
+#### Testing 🧪
+* test(report): migrate report app e2e tests to midscene-test and publish CI reports by @await-ovo in https://github.com/web-infra-dev/midscene/pull/3275
+
+#### New Contributors
+* @await-ovo made their first contribution in https://github.com/web-infra-dev/midscene/pull/3263
+
+**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.16.0...v1.16.1
+
 ## v1.16.0
 
 ### Highlights
@@ -12,7 +153,7 @@ Midscene now supports Jev 1.4, continuing our focus on visual understanding to d
 
 In the tile-matching game test shown in the demo below, 28 model calls were made, with model inference averaging **393.57 ms (approximately 0.39 seconds) per call**. Each call averaged **5,025 input tokens** and **67 output tokens**, at a model cost of approximately **$0.000211 per call**. This is calculated at $0.042 per million input tokens, with output tokens free of charge.
 
-&lt;video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/tile-matching-jev.mp4" controls&gt;&lt;/video&gt;
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/jev/tile-matching-jev.mp4" controls></video>
 
 ### Changes
 
@@ -502,7 +643,7 @@ v1.12 adds DeepSeek V4 vision model support, introduces Midscene Test (Beta), an
 
 ### DeepSeek V4 Vision Model Support
 
-- Added support for `deepseek-v4-flash-vision-exp`. See [Common Model Configuration](./model-common-config#deepseek) for setup and [Midscene 1.12: Support for DeepSeek V4 Flash Vision Exp Multimodal Model](https://medium.com/@midscene/midscene-1-12-support-for-deepseek-v4-flash-vision-exp-multimodal-model-f87395075114?postPublishedType=initial) for details.
+- Added support for `deepseek-v4-flash-vision-exp`. See [Common Model Configuration](./model-api-setup#deepseek) for setup and [Midscene 1.12: Support for DeepSeek V4 Flash Vision Exp Multimodal Model](https://medium.com/@midscene/midscene-1-12-support-for-deepseek-v4-flash-vision-exp-multimodal-model-f87395075114?postPublishedType=initial) for details.
 
 ### Midscene Test (Beta)
 
@@ -540,7 +681,7 @@ v1.10 adds BDD-style Gherkin script execution, upgrades the recommended Doubao m
 ### New Model Support
 
 - Recommended and supported `Doubao-Seed-2.1-turbo`, which has very fast localization speed and strong localization quality in our current private evaluation set.
-- The Doubao Seed family now uses `MIDSCENE_MODEL_FAMILY="doubao-seed"`, while the legacy `doubao-vision` family remains compatible. See: [Common Model Configuration](./model-common-config#doubao-seed-model), [Model Strategy](./model-selection)
+- The Doubao Seed family now uses `MIDSCENE_MODEL_FAMILY="doubao-seed"`, while the legacy `doubao-vision` family remains compatible. See: [Common Model Configuration](./model-api-setup#doubao-seed-model), [Model Strategy](./model-selection)
 
 ### MCP Retirement
 
@@ -558,7 +699,7 @@ Midscene now includes an AndroidWorld benchmark report. With v1.9.5, Midscene ac
 
 ### New Model Support
 
-- Added Kimi and Xiaomi MiMo model support. See: [Common Model Configuration](./model-common-config)
+- Added Kimi and Xiaomi MiMo model support. See: [Common Model Configuration](./model-api-setup)
 
 ### Model and Planning Updates
 
@@ -579,7 +720,7 @@ Midscene now includes an AndroidWorld benchmark report. With v1.9.5, Midscene ac
 
 - `1.9.8` is the final Midscene version that includes MCP support. Later versions retire MCP server packages in favor of Skills and the platform CLIs.
 - Platform CLIs now accept agent behavior init args.
-- YAML scripts now support the HarmonyOS target in the CLI, so HarmonyOS automation can be driven through the same script runner workflow as Web, Android, iOS, and Computer. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), [HarmonyOS API](./reference/#harmonyos)
+- YAML scripts now support the HarmonyOS target in the CLI, so HarmonyOS automation can be driven through the same script runner workflow as Web, Android, iOS, and Computer. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), [HarmonyOS API](./sdk/harmonyos)
 - YAML Web config supports custom HTTP headers for browser automation.
 - YAML Web config supports `downloadPath` for browser downloads.
 - YAML runs now surface real execution errors instead of ending as a silent "not executed" case.
@@ -643,7 +784,7 @@ We're building a full record → script → replay loop into Studio: drive a rea
 
 ### YAML Workflow Enhancements
 
-- **Android `runAdbShell` timeout**: A `timeout` option is now accepted in both the JavaScript API and YAML scripts. See: [Android API](./reference/#android), [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
+- **Android `runAdbShell` timeout**: A `timeout` option is now accepted in both the JavaScript API and YAML scripts. See: [Android API](./sdk/android), [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
 
 ### New Interaction APIs
 
@@ -662,8 +803,8 @@ We're building a full record → script → replay loop into Studio: drive a rea
 
 - **Usage intent decoupled from config slot**: Model usage intent is now tracked separately from resolved config slots, making multi-model planning, locating, and report display clearer
 - **Native thinking off by default**: For supported model families, Midscene now disables model-native thinking by default to improve execution speed and stability. See: [Model-Native Thinking Mode](./model-config#model-native-reasoning)
-- **Doubao fast tier**: Doubao fast tier configuration is now supported through `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}`. See: [Common Model Configuration](./model-common-config)
-- **GLM-5V-Turbo support**: Added support for Zhipu GLM-5V-Turbo. See: [Common Model Configuration](./model-common-config)
+- **Doubao fast tier**: Doubao fast tier configuration is now supported through `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}`. See: [Common Model Configuration](./model-api-setup)
+- **GLM-5V-Turbo support**: Added support for Zhipu GLM-5V-Turbo. See: [Common Model Configuration](./model-api-setup)
 - **Better scrollable select planning**: Planning for scrollable selects (dropdowns, scroll wheels) is more reliable in complex scenarios
 
 ### MCP and Platform CLIs
@@ -746,7 +887,7 @@ A new YAML output language option is available in the Chrome extension's recordi
 
 ### Android / HarmonyOS Improvements
 
-- Added `terminate` action on Android and HarmonyOS to force-stop apps, useful for resetting app state during testing. See: [Android API](./reference/#android), [HarmonyOS API](./reference/#harmonyos)
+- Added `terminate` action on Android and HarmonyOS to force-stop apps, useful for resetting app state during testing. See: [Android API](./sdk/android), [HarmonyOS API](./sdk/harmonyos)
 - Fixed placeholder text unexpectedly retained when typing on X/Twitter on Android
 - Fixed Android Playground LAN access issues
 
@@ -798,7 +939,7 @@ The `deepThink` parameter in element-locating APIs has been renamed to `deepLoca
 
 - **Skill CLI Custom Interfaces**: Skill CLI now supports custom interfaces for more flexible Skill extensibility. See: [Skills](./skills)
 - **Unified MCP Tool Export**: All platform packages (Web, Android, iOS, etc.) now export MidsceneTools uniformly, making MCP integration simpler. See: [MCP](./mcp)
-- **iOS App Termination by bundleId**: You can now terminate iOS apps by bundleId, making it easier to reset app state during testing. See: [iOS API Reference](./reference/#ios)
+- **iOS App Termination by bundleId**: You can now terminate iOS apps by bundleId, making it easier to reset app state during testing. See: [iOS API Reference](./sdk/ios)
 - **CLI Version Display**: CLI now shows version info in health checks, helping you troubleshoot environment issues
 
 ### Task Cancellation Support
@@ -972,7 +1113,7 @@ See documentation: [PC Desktop Automation](./platforms/desktop)
 
 With Scrcpy screenshot mode enabled, screenshot time drops from 500–2000ms to **100–200ms**, significantly improving Android automation response speed. This is particularly useful for remote device debugging and high frame rate scenarios.
 
-See documentation: [Scrcpy Screenshot Mode](./reference/#scrcpy)
+See documentation: [Scrcpy Screenshot Mode](./sdk/android#scrcpy)
 
 ### Deep Thinking Mode Enhancement
 
@@ -1017,11 +1158,11 @@ v1.2 introduces support for Zhipu AI open-source models, adds file upload functi
 
 #### Zhipu GLM-V Vision Model
 - Zhipu GLM-V series models are open-source vision models launched by Zhipu AI, available in multiple parameter versions, supporting both cloud deployment and local deployment.
-- See: [GLM-V Model Configuration](./model-common-config.mdx#glm-v)
+- See: [GLM-V Model Configuration](./model-api-setup.mdx#glm-v)
 
 #### Zhipu AutoGLM Mobile Automation Model
 - Zhipu AutoGLM is an open-source mobile automation model launched by Zhipu AI. It can understand mobile screen content based on natural language instructions, and combined with intelligent planning capabilities, generate operation processes to complete user needs.
-- See: [AutoGLM Model Configuration](./model-common-config.mdx#auto-glm)
+- See: [AutoGLM Model Configuration](./model-api-setup.mdx#auto-glm)
 
 ### File upload feature
 
@@ -1327,7 +1468,7 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 - Add all agent APIs to Playwright fixture, simplify test script writing, and solve the problem of not generating reports when using agentForPage
 
 ### Android automation enhancement
-- New keyboard hiding strategy([keyboardDismissStrategy](./reference/#androiddevice)), allowing you to specify the way to automatically hide the keyboard
+- New keyboard hiding strategy([keyboardDismissStrategy](./sdk/android#androiddevice)), allowing you to specify the way to automatically hide the keyboard
 
 ### Report function optimization
 - Report content lazy parsing, solving the problem of report crash when the report is large
@@ -1604,7 +1745,7 @@ Upgrade now to experience these powerful new features!
 
 * [Custom Report Node API documentation](/reference/#log-screenshot)
 
-* [API documentation for more Android configuration items](/reference/#androiddevice)
+* [API documentation for more Android configuration items](/sdk/android#androiddevice)
 
 
 ## v0.17 - Let AI see the DOM of the page
