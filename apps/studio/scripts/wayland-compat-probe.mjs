@@ -2,7 +2,6 @@
 // Safe, read-only Wayland capability probe. No typing, screenshots, clipboard
 // access, input injection, or system configuration changes.
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
 
 const commands = {
   compositor: ['hyprctl', ['version', '-j']],
