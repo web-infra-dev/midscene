@@ -30,18 +30,16 @@ const buildGeminiChatCompletionParams = (
   } = {};
 
   if (reasoningEnabled !== 'default') {
-    // Gemini cannot fully disable native thinking, so "disabled" maps to the
-    // lowest thinking level. `include_thoughts` only controls whether Gemini
-    // returns thought summaries; it does not enable thinking, and thought token
-    // usage is based on the full thoughts Gemini generates regardless of
-    // whether summaries are included.
+    // Google documents OpenAI reasoning_effort mapping, but live tests on Gemini 4
+    // rejected minimal instead of mapping it to low, so we keep Google's native config.
+    // Minimum thinking levels vary by model; low is supported by most Gemini 3/4 models.
     modelSpecificConfig.extra_body = {
       google: {
         thinking_config: {
           include_thoughts: true,
           thinking_level: reasoningEnabled
             ? (reasoningEffort ?? 'medium')
-            : 'minimal',
+            : 'low',
         },
       },
     };
