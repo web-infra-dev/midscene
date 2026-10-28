@@ -1,6 +1,6 @@
 import type { StandardLocateProtocol } from '../../model-adapter/locate-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
-import { SEED_RESPONSE_PREFIX, SEED_TOOL_CALL_TAG_NAME } from './constants';
+import { SEED_TOOL_CALL_TAG_NAME } from './constants';
 import { parseDoubaoSearchAreaOutput } from './locate-output-parser';
 import {
   assertPointLocatePromptSpec,
@@ -64,13 +64,11 @@ ${JSON.stringify(clickFunctionDefinition)}
 
 For the description "the price in the row whose product name is Tomato", return the visible "$3.00" text as the target, followed by the visible "Tomato" text as its reference:
 
-${SEED_RESPONSE_PREFIX}
 ${rowTargetClickToolCallExample}
 ${rowReferenceClickToolCallExample}
 
 For the description "the plus button between the Start and End nodes", return the plus icon as the target, followed by both endpoint nodes as references:
 
-${SEED_RESPONSE_PREFIX}
 ${betweenTargetClickToolCallExample}
 ${betweenLeftReferenceClickToolCallExample}
 ${betweenRightReferenceClickToolCallExample}

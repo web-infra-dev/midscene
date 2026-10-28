@@ -7,7 +7,7 @@ import {
   buildDoubaoActionDescription,
   buildDoubaoLocateFieldDescription,
 } from './action-space';
-import { SEED_RESPONSE_PREFIX, SEED_TOOL_CALL_TAG_NAME } from './constants';
+import { SEED_TOOL_CALL_TAG_NAME } from './constants';
 import {
   buildDoubaoPlanningActionOutput,
   serializeDoubaoToolCall,
@@ -30,7 +30,6 @@ export const createDoubaoPlanningProtocol: StandardPlanningProtocolFactory = ({
   const parseActionOutput = createDoubaoPlanningActionOutputParser(jsonParser);
 
   return {
-    responsePrefix: SEED_RESPONSE_PREFIX,
     actionSpaceProtocol: {
       title: 'Function Definition',
       format: 'jsonl',

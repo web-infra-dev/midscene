@@ -1,6 +1,5 @@
 import type { StandardLocateProtocol } from '../../model-adapter/locate-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
-import { SEED_RESPONSE_PREFIX } from './constants';
 import { parseDoubaoLocateOutput } from './locate-output-parser';
 import {
   assertPointLocatePromptSpec,
@@ -24,7 +23,6 @@ ${JSON.stringify(clickFunctionDefinition)}
 
 - To call a function, use the following structure without any suffix:
 
-${SEED_RESPONSE_PREFIX}
 ${clickToolCallExample}
 
 ## Important Notes

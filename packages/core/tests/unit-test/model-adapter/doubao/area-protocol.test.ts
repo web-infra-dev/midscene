@@ -52,6 +52,7 @@ describe('doubao search-area locate protocol', () => {
       '<parameter name="role" string="true">reference</parameter>',
     );
     expect(instructions.match(/<seed:tool_call><function/g)).toHaveLength(5);
+    expect(instructions).not.toContain('think_never_used_');
     expect(instructions).toContain('normalized to 0-1000');
     expect(doubaoSearchAreaProtocol.expectedJsonObjectResponse).toBe(false);
     expect(

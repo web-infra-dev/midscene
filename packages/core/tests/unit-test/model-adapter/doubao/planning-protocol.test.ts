@@ -1,4 +1,3 @@
-import { SEED_RESPONSE_PREFIX } from '@/ai-model/models/doubao/constants';
 import { createDoubaoPlanningProtocol } from '@/ai-model/models/doubao/planning-protocol';
 import {
   buildStandardPlanningSystemPrompt,
@@ -31,7 +30,7 @@ describe('Doubao planning prompt', () => {
     call: async () => {},
   };
 
-  it('renders Function Definition, response start and Seed examples', async () => {
+  it('renders Function Definition and Seed examples without a thinking prefix', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: [tapAction],
       includeLocateInPlanning: true,
@@ -41,7 +40,7 @@ describe('Doubao planning prompt', () => {
 
     expect(prompt).toContain('### Function Definition');
     expect(prompt).toContain('"name":"Tap"');
-    expect(prompt).toContain(SEED_RESPONSE_PREFIX);
+    expect(prompt).not.toContain('think_never_used_');
     expect(prompt).not.toContain('Every response MUST begin');
     expect(prompt).toContain(
       '<prompt>Add to cart button for Sauce Labs Backpack</prompt><point>402 463</point>',

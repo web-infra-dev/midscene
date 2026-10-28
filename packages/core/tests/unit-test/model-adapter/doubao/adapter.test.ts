@@ -36,9 +36,7 @@ describe('doubao model adapter', () => {
       doubaoVisionAdapter.planning.protocol.actionOutputProtocol
         .actionOutputTagNames,
     ).toEqual(['seed:tool_call']);
-    expect(doubaoSeedAdapter.planning.protocol.responsePrefix).toBe(
-      '<think_never_used_51bce0c785ca2f68081bfa7d91973934> reasoning process </think_never_used_51bce0c785ca2f68081bfa7d91973934>',
-    );
+    expect(doubaoSeedAdapter.planning.protocol.responsePrefix).toBeUndefined();
   });
 
   it('uses the Seed insight protocol for both family aliases', () => {

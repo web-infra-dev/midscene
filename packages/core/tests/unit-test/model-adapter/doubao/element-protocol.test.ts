@@ -33,9 +33,7 @@ describe('doubao element locate protocol', () => {
     expect(prompt).toContain(
       '<seed:tool_call><function name="click"><parameter name="point" string="true"><point>x y</point></parameter></function></seed:tool_call>',
     );
-    expect(prompt).toContain(
-      '<think_never_used_51bce0c785ca2f68081bfa7d91973934> reasoning process </think_never_used_51bce0c785ca2f68081bfa7d91973934>',
-    );
+    expect(prompt).not.toContain('think_never_used_');
     expect(prompt).toContain('normalized to 0-1000');
     expect(doubaoElementProtocol.expectedJsonObjectResponse).toBe(false);
   });

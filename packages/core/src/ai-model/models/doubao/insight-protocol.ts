@@ -1,5 +1,4 @@
 import type { InsightProtocolFactory } from '../../model-adapter/insight-protocol';
-import { SEED_RESPONSE_PREFIX } from './constants';
 import { parseDoubaoToolCall } from './tool-call-parser';
 import { serializeDoubaoToolCall } from './tool-call-serializer';
 
@@ -41,7 +40,6 @@ The data parameter must contain valid JSON, including when the result is a strin
 export const createDoubaoInsightProtocol: InsightProtocolFactory = ({
   jsonParser,
 }) => ({
-  responsePrefix: SEED_RESPONSE_PREFIX,
   dataOutput: {
     tagNames: ['seed:tool_call'],
     rules: dataOutputRules,

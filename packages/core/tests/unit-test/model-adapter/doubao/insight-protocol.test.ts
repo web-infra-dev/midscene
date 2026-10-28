@@ -11,6 +11,7 @@ const parseDoubaoInsightResponse = (content: string) =>
 
 describe('doubao insight protocol', () => {
   it('builds a Seed function prompt', () => {
+    expect(protocol.responsePrefix).toBeUndefined();
     expect(protocol.dataOutput.rules).toContain('"name":"extract_data"');
     expect(protocol.dataOutput.placeholder).toContain(
       '<seed:tool_call><function name="extract_data">',
