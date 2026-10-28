@@ -8,9 +8,9 @@ import {
 import * as path from 'node:path';
 import { z } from 'zod';
 import {
-  extractAllDumpScriptsSync,
-  extractTestRunReportDumpSync,
-} from './dump/html-utils';
+  readReportRunnerDump,
+  streamReportDumpScripts,
+} from './dump/report-artifact-reader';
 import { resolveScreenshotSource } from './dump/screenshot-store';
 import { deriveCaseStatus } from './dump/task-status';
 import {
@@ -236,14 +236,15 @@ const FAILING_TEST_STATUSES: ReadonlySet<TestStatus> = new Set<TestStatus>([
  */
 function readSourceTestStatus(htmlPath: string): TestStatus | undefined {
   const recorded: TestStatus[] = [];
-  for (const { openTag } of extractAllDumpScriptsSync(htmlPath)) {
+  streamReportDumpScripts(htmlPath, ({ openTag }) => {
     const match = openTag.match(/playwright_test_status="([^"]*)"/);
-    if (!match) continue;
+    if (!match) return false;
     const status = decodeURIComponent(match[1]) as TestStatus;
     if (TEST_STATUS_VALUES.has(status)) {
       recorded.push(status);
     }
-  }
+    return false;
+  });
   if (recorded.length === 0) return undefined;
   return recorded.find((s) => FAILING_TEST_STATUSES.has(s)) ?? recorded[0];
 }
@@ -253,13 +254,13 @@ function deriveReportAttributesFromHtml(
   index: number,
 ): ReportFileAttributes {
   const fallbackId = `${path.basename(path.dirname(htmlPath)) || path.basename(htmlPath, path.extname(htmlPath))}-${index + 1}`;
-  const runnerDump = extractTestRunReportDumpSync(htmlPath);
+  const runnerDump = readReportRunnerDump(htmlPath);
+  const recordedStatus = readSourceTestStatus(htmlPath);
   try {
     const { baseDump, executions } = collectDedupedExecutions(htmlPath);
     // Prefer a status the source report already recorded (keeps Playwright's
     // precise timedOut/skipped/interrupted); otherwise infer it from the dump
     // so a failing case is not silently merged in as passed.
-    const recordedStatus = readSourceTestStatus(htmlPath);
     const testStatus =
       recordedStatus && FAILING_TEST_STATUSES.has(recordedStatus)
         ? recordedStatus
@@ -283,7 +284,12 @@ function deriveReportAttributesFromHtml(
       testTitle: fallbackId,
       testDescription: '',
       testDuration: 0,
-      testStatus: runnerDump?.status === 'failed' ? 'failed' : 'passed',
+      testStatus:
+        recordedStatus && FAILING_TEST_STATUSES.has(recordedStatus)
+          ? recordedStatus
+          : runnerDump?.status === 'failed'
+            ? 'failed'
+            : (recordedStatus ?? 'passed'),
     };
   }
 }

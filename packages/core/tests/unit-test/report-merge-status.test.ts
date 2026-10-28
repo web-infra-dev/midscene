@@ -18,7 +18,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
+import {
+  readReportDumpScripts,
+  readReportRunnerDump,
+} from '../../src/dump/report-artifact-reader';
 import { mergeReportFiles } from '../../src/report-cli';
+import { ReportGenerator } from '../../src/report-generator';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import {
   ExecutionDump,
@@ -172,6 +177,78 @@ describe('mergeReportFiles status derivation', () => {
 
     const html = readFileSync(mergedReportPath, 'utf-8');
     expect(mergedStatuses(html)).toEqual(['timedOut']);
+  });
+
+  it.each(['passed', 'timedOut', 'failed', 'interrupted', 'skipped'] as const)(
+    'preserves directory report host status %s when Agent steps pass',
+    async (status) => {
+      const reportPath = join(tmpDir, `directory-${status}`, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+      generator.onExecutionUpdate(
+        buildExecution('finished', [{ status: 'finished' }]),
+        { sdkVersion: '1.0.0-test', groupName: 'host status', modelBriefs: [] },
+        { playwright_test_status: status },
+      );
+      await generator.finalize();
+      const { mergedReportPath } = mergeReportFiles({
+        htmlPaths: [reportPath],
+        outputDir: join(tmpDir, `merged-${status}`),
+        outputName: 'merged',
+      });
+      expect(mergedStatuses(readFileSync(mergedReportPath, 'utf8'))).toEqual([
+        status,
+      ]);
+      expect(readReportDumpScripts(mergedReportPath)).toHaveLength(1);
+    },
+  );
+
+  it('retains a directory Runner-only infrastructure failure without failed Agent steps', async () => {
+    const reportPath = join(tmpDir, 'runner-only', 'index.html');
+    const generator = new ReportGenerator({
+      reportPath,
+      screenshotMode: 'directory',
+      autoPrint: false,
+    });
+    await generator.writeRunnerReport(
+      {
+        runId: 'setup-failed',
+        status: 'failed',
+        startedAt: '2026-10-28T00:00:00Z',
+        endedAt: '2026-10-28T00:00:01Z',
+        durationMs: 1000,
+        summary: {
+          total: 0,
+          passed: 0,
+          failed: 0,
+          notRun: 0,
+          filtered: 0,
+          collectionErrors: 0,
+          documentFailures: 0,
+          projectFailures: 0,
+        },
+        projects: [],
+        errors: [new Error('Setup failed before an Agent was created')],
+      },
+      'setup',
+      { sdkVersion: '1.0.0-test', groupName: 'setup failure', modelBriefs: [] },
+    );
+    await generator.finalize();
+    const { mergedReportPath } = mergeReportFiles({
+      htmlPaths: [reportPath],
+      outputDir: join(tmpDir, 'merged-runner-only'),
+      outputName: 'merged',
+    });
+    expect(mergedStatuses(readFileSync(mergedReportPath, 'utf8'))).toEqual([
+      'failed',
+    ]);
+    expect(readReportRunnerDump(mergedReportPath)?.status).toBe('failed');
+    expect(JSON.stringify(readReportRunnerDump(mergedReportPath))).toContain(
+      'Setup failed before an Agent was created',
+    );
   });
 
   it('aggregates a failure across a multi-execution source report', () => {
