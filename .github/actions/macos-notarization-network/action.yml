@@ -1,0 +1,16 @@
+name: Prepare macOS notarization network
+description: Route Apple ticket requests over TCP on ephemeral GitHub-hosted macOS runners
+
+runs:
+  using: composite
+  steps:
+    - name: Work around Apple ticket HTTP/3 connection drops
+      shell: bash
+      run: |
+        set -euo pipefail
+        # GitHub reproduced UDP/443 drops to Apple's ticket service. Blocking
+        # QUIC makes stapler fall back to TCP HTTPS without skipping validation.
+        # This replaces PF rules only on the disposable GitHub-hosted runner.
+        # https://github.com/actions/runner-images/issues/14924#issuecomment-6188826956
+        echo 'block return out quick proto udp from any to any port 443' | sudo pfctl -f -
+        sudo pfctl -E

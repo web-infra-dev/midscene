@@ -409,6 +409,10 @@ jobs:
     - name: Build Studio and Nx dependencies
       run: npx nx build studio
 
+    - name: Prepare macOS notarization network
+      if: ${{ matrix.platform == 'darwin' }}
+      uses: ./.github/actions/macos-notarization-network
+
     - name: Package Midscene Studio Beta
       run: pnpm --dir apps/studio run package:release -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --version=${{ needs.release.outputs.version }}
 
@@ -453,7 +457,9 @@ jobs:
     needs:
     - release
     - package_studio
-    if: ${{ inputs.notify_stable_release && needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    # Wait for Studio uploads, but notify even when its packaging/publishing fails.
+    # cancelled() overrides the implicit success() check on all dependencies.
+    if: ${{ !cancelled() && inputs.notify_stable_release && needs.release.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: read
@@ -637,7 +643,8 @@ jobs:
     needs:
     - release
     - package_studio
-    if: ${{ inputs.notify_stable_release && needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    # Keep the same failure-independent gate as the Discord notification.
+    if: ${{ !cancelled() && inputs.notify_stable_release && needs.release.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: read

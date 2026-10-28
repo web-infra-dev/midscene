@@ -213,7 +213,7 @@ export default defineConfig(async () => {
             link: '/model-config',
           },
           {
-            sectionHeaderText: 'Platform integrations',
+            sectionHeaderText: 'Platform environment setup',
           },
           {
             text: 'Platform overview',
@@ -221,41 +221,23 @@ export default defineConfig(async () => {
           },
           {
             text: 'Web',
-            collapsible: true,
-            collapsed: true,
-            items: [
-              {
-                text: 'Playwright',
-                link: '/integrate-with-playwright',
-              },
-              {
-                text: 'Puppeteer',
-                link: '/integrate-with-puppeteer',
-              },
-              {
-                text: 'Chrome Bridge',
-                link: '/bridge-mode',
-              },
-            ],
+            link: '/platforms/web',
           },
           {
-            text: 'Mobile',
-            collapsible: true,
-            collapsed: true,
-            items: [
-              {
-                text: 'Android',
-                link: '/platforms/android',
-              },
-              {
-                text: 'iOS',
-                link: '/platforms/ios',
-              },
-              {
-                text: 'HarmonyOS',
-                link: '/platforms/harmonyos',
-              },
-            ],
+            text: 'Chrome Bridge',
+            link: '/bridge-mode',
+          },
+          {
+            text: 'Android',
+            link: '/platforms/android',
+          },
+          {
+            text: 'iOS',
+            link: '/platforms/ios',
+          },
+          {
+            text: 'HarmonyOS',
+            link: '/platforms/harmonyos',
           },
           {
             text: 'Desktop',
@@ -311,26 +293,56 @@ export default defineConfig(async () => {
             ],
           },
           {
-            sectionHeaderText: 'Legacy YAML automation',
+            sectionHeaderText: 'JavaScript SDK',
           },
           {
-            text: 'YAML script runner',
-            link: '/yaml-script-runner',
+            text: 'Integrate with Playwright Test',
+            link: '/integrate-with-playwright',
           },
           {
-            text: 'Workflow in YAML format',
-            link: '/automate-with-scripts-in-yaml',
+            text: 'Integrate with Vitest',
+            link: '/sdk/vitest',
           },
           {
-            text: 'Migrate to Midscene Test',
-            link: '/migrate-to-midscene-test',
+            text: 'Write standalone automation scripts',
+            link: '/sdk/standalone',
           },
           {
-            sectionHeaderText: 'Reference',
-          },
-          {
-            text: 'GUI Agent API',
-            link: '/reference/',
+            text: 'API reference',
+            items: [
+              {
+                text: 'Shared Agent APIs',
+                link: '/reference/',
+              },
+              {
+                text: 'Web / Playwright',
+                link: '/sdk/playwright',
+              },
+              {
+                text: 'Web / Puppeteer',
+                link: '/integrate-with-puppeteer',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/sdk/chrome-bridge',
+              },
+              {
+                text: 'Android',
+                link: '/sdk/android',
+              },
+              {
+                text: 'iOS',
+                link: '/sdk/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/sdk/harmonyos',
+              },
+              {
+                text: 'Desktop',
+                link: '/sdk/desktop',
+              },
+            ],
           },
           {
             sectionHeaderText: 'Advanced guides',
@@ -354,6 +366,21 @@ export default defineConfig(async () => {
           {
             text: 'Cache AI plans & DOM locators',
             link: '/caching',
+          },
+          {
+            sectionHeaderText: 'Legacy YAML automation',
+          },
+          {
+            text: 'YAML script runner',
+            link: '/yaml-script-runner',
+          },
+          {
+            text: 'Workflow in YAML format',
+            link: '/automate-with-scripts-in-yaml',
+          },
+          {
+            text: 'Migrate to Midscene Test',
+            link: '/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: 'Resources',
@@ -441,7 +468,7 @@ export default defineConfig(async () => {
             link: '/zh/model-config',
           },
           {
-            sectionHeaderText: '平台集成',
+            sectionHeaderText: '平台环境配置',
           },
           {
             text: '平台概览',
@@ -449,41 +476,23 @@ export default defineConfig(async () => {
           },
           {
             text: 'Web',
-            collapsible: true,
-            collapsed: true,
-            items: [
-              {
-                text: 'Playwright',
-                link: '/zh/integrate-with-playwright',
-              },
-              {
-                text: 'Puppeteer',
-                link: '/zh/integrate-with-puppeteer',
-              },
-              {
-                text: 'Chrome Bridge',
-                link: '/zh/bridge-mode',
-              },
-            ],
+            link: '/zh/platforms/web',
           },
           {
-            text: '移动端',
-            collapsible: true,
-            collapsed: true,
-            items: [
-              {
-                text: 'Android',
-                link: '/zh/platforms/android',
-              },
-              {
-                text: 'iOS',
-                link: '/zh/platforms/ios',
-              },
-              {
-                text: 'HarmonyOS',
-                link: '/zh/platforms/harmonyos',
-              },
-            ],
+            text: 'Chrome Bridge',
+            link: '/zh/bridge-mode',
+          },
+          {
+            text: 'Android',
+            link: '/zh/platforms/android',
+          },
+          {
+            text: 'iOS',
+            link: '/zh/platforms/ios',
+          },
+          {
+            text: 'HarmonyOS',
+            link: '/zh/platforms/harmonyos',
           },
           {
             text: '桌面端',
@@ -539,26 +548,56 @@ export default defineConfig(async () => {
             ],
           },
           {
-            sectionHeaderText: '旧版 YAML 自动化',
+            sectionHeaderText: 'JavaScript SDK',
           },
           {
-            text: 'YAML 脚本运行器',
-            link: '/zh/yaml-script-runner',
+            text: '接入 Playwright Test',
+            link: '/zh/integrate-with-playwright',
           },
           {
-            text: 'YAML 格式的工作流',
-            link: '/zh/automate-with-scripts-in-yaml',
+            text: '接入 Vitest',
+            link: '/zh/sdk/vitest',
           },
           {
-            text: '迁移到 Midscene Test',
-            link: '/zh/migrate-to-midscene-test',
+            text: '编写独立自动化脚本',
+            link: '/zh/sdk/standalone',
           },
           {
-            sectionHeaderText: '参考文档',
-          },
-          {
-            text: 'GUI Agent API',
-            link: '/zh/reference/',
+            text: 'API reference',
+            items: [
+              {
+                text: '通用 Agent API',
+                link: '/zh/reference/',
+              },
+              {
+                text: 'Web / Playwright',
+                link: '/zh/sdk/playwright',
+              },
+              {
+                text: 'Web / Puppeteer',
+                link: '/zh/integrate-with-puppeteer',
+              },
+              {
+                text: 'Chrome Bridge',
+                link: '/zh/sdk/chrome-bridge',
+              },
+              {
+                text: 'Android',
+                link: '/zh/sdk/android',
+              },
+              {
+                text: 'iOS',
+                link: '/zh/sdk/ios',
+              },
+              {
+                text: 'HarmonyOS',
+                link: '/zh/sdk/harmonyos',
+              },
+              {
+                text: '桌面端',
+                link: '/zh/sdk/desktop',
+              },
+            ],
           },
           {
             sectionHeaderText: '进阶指南',
@@ -582,6 +621,21 @@ export default defineConfig(async () => {
           {
             text: '缓存 AI 规划与 DOM 定位',
             link: '/zh/caching',
+          },
+          {
+            sectionHeaderText: '旧版 YAML 自动化',
+          },
+          {
+            text: 'YAML 脚本运行器',
+            link: '/zh/yaml-script-runner',
+          },
+          {
+            text: 'YAML 格式的工作流',
+            link: '/zh/automate-with-scripts-in-yaml',
+          },
+          {
+            text: '迁移到 Midscene Test',
+            link: '/zh/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: '资源',
@@ -697,6 +751,10 @@ export default defineConfig(async () => {
           { from: '^/zh$', to: '/zh/' },
           ...['', '/zh'].flatMap((locale) => [
             {
+              from: `^${locale}/sdk(?:/index(?:\\.html)?|\\.html)?/?$`,
+              to: `${locale}/basics#choose-your-path`,
+            },
+            {
               from: `^${locale}/(?:introduction(?:\\.html)?/?|index\\.html)$`,
               to: `${locale}/`,
             },
@@ -738,7 +796,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/android-integration(?:\\.html)?/?$',
-            to: '/platforms/android',
+            to: '/sdk/android',
           },
           {
             from: '^/ios-(?:introduction|getting-started)(?:\\.html)?/?$',
@@ -754,23 +812,23 @@ export default defineConfig(async () => {
           },
           {
             from: '^/(?:android-api-reference|reference/android)(?:\\.html)?/?$',
-            to: '/reference/#android',
+            to: '/sdk/android',
           },
           {
             from: '^/(?:ios-api-reference|reference/ios)(?:\\.html)?/?$',
-            to: '/reference/#ios',
+            to: '/sdk/ios',
           },
           {
             from: '^/(?:harmony-api-reference|reference/harmonyos)(?:\\.html)?/?$',
-            to: '/reference/#harmonyos',
+            to: '/sdk/harmonyos',
           },
           {
             from: '^/(?:computer-api-reference|reference/desktop)(?:\\.html)?/?$',
-            to: '/reference/#desktop',
+            to: '/sdk/desktop',
           },
           {
             from: '^/(?:web-api-reference|reference/web)(?:\\.html)?/?$',
-            to: '/reference/#web',
+            to: '/sdk/playwright',
           },
           {
             from: '^/(?:api|reference/common)(?:\\.html)?/?$',
@@ -794,23 +852,23 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/(?:android-api-reference|reference/android)(?:\\.html)?/?$',
-            to: '/zh/reference/#android',
+            to: '/zh/sdk/android',
           },
           {
             from: '^/zh/(?:ios-api-reference|reference/ios)(?:\\.html)?/?$',
-            to: '/zh/reference/#ios',
+            to: '/zh/sdk/ios',
           },
           {
             from: '^/zh/(?:harmony-api-reference|reference/harmonyos)(?:\\.html)?/?$',
-            to: '/zh/reference/#harmonyos',
+            to: '/zh/sdk/harmonyos',
           },
           {
             from: '^/zh/(?:computer-api-reference|reference/desktop)(?:\\.html)?/?$',
-            to: '/zh/reference/#desktop',
+            to: '/zh/sdk/desktop',
           },
           {
             from: '^/zh/(?:web-api-reference|reference/web)(?:\\.html)?/?$',
-            to: '/zh/reference/#web',
+            to: '/zh/sdk/playwright',
           },
           {
             from: '^/zh/(?:api|reference/common)(?:\\.html)?/?$',
@@ -818,15 +876,15 @@ export default defineConfig(async () => {
           },
           {
             from: '^/integrate-with-android(?:\\.html)?/?$',
-            to: '/platforms/android',
+            to: '/sdk/android',
           },
           {
             from: '^/integrate-with-ios(?:\\.html)?/?$',
-            to: '/platforms/ios',
+            to: '/sdk/ios',
           },
           {
             from: '^/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/platforms/harmonyos',
+            to: '/sdk/harmonyos',
           },
           {
             from: '^/android-playground(?:\\.html)?/?$',
@@ -910,15 +968,15 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/integrate-with-android(?:\\.html)?/?$',
-            to: '/zh/platforms/android',
+            to: '/zh/sdk/android',
           },
           {
             from: '^/zh/integrate-with-ios(?:\\.html)?/?$',
-            to: '/zh/platforms/ios',
+            to: '/zh/sdk/ios',
           },
           {
             from: '^/zh/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/zh/platforms/harmonyos',
+            to: '/zh/sdk/harmonyos',
           },
           {
             from: '^/zh/blog-support-android-automation(?:\\.html)?/?$',

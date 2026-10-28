@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
 
 rs.mock('@/ai-model/service-caller/index', () => ({
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
+  callSystemOneAI: rs.fn(),
 }));
 
 rs.mock('@/service', () => ({
@@ -17,7 +18,10 @@ import {
   CONNECTIVITY_FIXTURE_IMAGE,
   CONNECTIVITY_FIXTURE_SHOT_SIZE,
 } from '@/ai-model/connectivity/fixture';
-import { callAI } from '@/ai-model/service-caller/index';
+import {
+  callGenerativeAI,
+  callSystemOneAI,
+} from '@/ai-model/service-caller/index';
 import Service from '@/service';
 
 async function readImageSizeFromDataUrl(dataUrl: string): Promise<{
@@ -68,8 +72,52 @@ describe('runConnectivityTest', () => {
     ).resolves.toEqual(CONNECTIVITY_FIXTURE_SHOT_SIZE);
   });
 
+  it('checks Jev vision directly without invoking Service.extract', async () => {
+    rs.mocked(callGenerativeAI).mockResolvedValue({
+      content: 'CONNECTIVITY_OK',
+    } as any);
+    rs.mocked(callSystemOneAI).mockResolvedValue({
+      content: JSON.stringify({
+        answers: { result: { type: 'noul', noul: 0.8 } },
+      }),
+    } as any);
+    const locate = rs
+      .fn()
+      .mockResolvedValue({ element: { center: [300, 120] } });
+    rs.mocked(Service).mockImplementation(() => ({ locate }) as any);
+
+    const result = await runConnectivityTest({
+      defaultModelConfig,
+      planningModelConfig,
+      insightModelConfig: { ...insightModelConfig, modelFamily: 'jev' },
+    });
+
+    expect(result.passed).toBe(true);
+    expect(Service).toHaveBeenCalledTimes(1);
+    expect(callSystemOneAI).toHaveBeenCalledExactlyOnceWith(
+      {
+        state: {},
+        images: { screenshot: CONNECTIVITY_FIXTURE_IMAGE },
+        questions: {
+          result: {
+            type: 'noul',
+            instructions: 'Does `screenshot` show a form?',
+          },
+        },
+      },
+      expect.objectContaining({
+        config: expect.objectContaining({
+          modelFamily: 'jev',
+          intent: 'insight',
+        }),
+      }),
+    );
+  });
+
   it('checks the dedicated Locate model instead of Default for localization', async () => {
-    rs.mocked(callAI).mockResolvedValue({ content: 'CONNECTIVITY_OK' } as any);
+    rs.mocked(callGenerativeAI).mockResolvedValue({
+      content: 'CONNECTIVITY_OK',
+    } as any);
     const locate = rs
       .fn()
       .mockResolvedValue({ element: { center: [300, 120] } });
@@ -105,7 +153,7 @@ describe('runConnectivityTest', () => {
   });
 
   it('returns passed when all checks succeed', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockImplementationOnce(async (_messages, runtime) => {
         runtime.onRequest?.('https://planning.example/v1/chat/completions');
         return { content: 'CONNECTIVITY_OK' } as any;
@@ -179,7 +227,7 @@ describe('runConnectivityTest', () => {
         }),
       }),
     );
-    expect(rs.mocked(callAI).mock.calls[0]?.[1]).toEqual(
+    expect(rs.mocked(callGenerativeAI).mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({
         config: expect.objectContaining({
           ...planningModelConfig,
@@ -187,7 +235,7 @@ describe('runConnectivityTest', () => {
         }),
       }),
     );
-    expect(rs.mocked(callAI).mock.calls[1]?.[1]).toEqual(
+    expect(rs.mocked(callGenerativeAI).mock.calls[1]?.[1]).toEqual(
       expect.objectContaining({
         config: expect.objectContaining({
           ...insightModelConfig,
@@ -198,7 +246,7 @@ describe('runConnectivityTest', () => {
     expect(defaultModelConfig.retryCount).toBe(3);
     expect(planningModelConfig.retryCount).toBe(3);
     expect(insightModelConfig.retryCount).toBe(3);
-    const visionCall = rs.mocked(callAI).mock.calls[1]?.[0]?.[0];
+    const visionCall = rs.mocked(callGenerativeAI).mock.calls[1]?.[0]?.[0];
     expect(visionCall).toMatchObject({
       role: 'user',
       content: expect.arrayContaining([
@@ -211,7 +259,7 @@ describe('runConnectivityTest', () => {
   });
 
   it('marks individual failures without throwing', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce({ content: 'wrong-token' } as any)
       .mockImplementationOnce(async (_messages, runtime) => {
         runtime.onRequest?.('https://vision.example/v1/responses');

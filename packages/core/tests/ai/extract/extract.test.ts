@@ -16,6 +16,7 @@ describe('extract', () => {
     const { context } = await getContextFromFixture('todo-input-with-value');
 
     const { parseResult } = await AiExtractElementInfo({
+      taskType: 'extract',
       dataQuery: 'Array<string>, task list, task name as string',
       context,
       modelRuntime: defaultModelRuntime(),
@@ -29,6 +30,7 @@ describe('extract', () => {
     const { context } = await getContextFromFixture('online_order');
 
     const { parseResult } = await AiExtractElementInfo({
+      taskType: 'extract',
       dataQuery: '{name: string, price: string}[], 饮品名称和价格',
       context,
       modelRuntime: defaultModelRuntime(),
@@ -53,6 +55,7 @@ describe('extract', () => {
     const { context } = await getContextFromFixture('todo-input-with-value');
 
     const { parseResult } = await AiExtractElementInfo({
+      taskType: 'extract',
       dataQuery:
         '{checked: boolean; text: string;}[], Task list with checkbox ahead of the task name (checkbox is a round box), task name as string and `checked` is true if the task is completed. Exclude the fist row if there is no round checkbox ahead of the task name.',
       context,

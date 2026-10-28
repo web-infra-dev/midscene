@@ -6,7 +6,10 @@ import type {
 import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { IModelConfig } from '@midscene/shared/env';
 import { getModelRuntime } from '../../models';
-import { callAI, callAIWithStringResponse } from '../../service-caller';
+import {
+  callAIWithStringResponse,
+  callGenerativeAI,
+} from '../../service-caller';
 // Import shared utilities and types from yaml generation.
 import {
   type ChromeRecordedEvent,
@@ -217,7 +220,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   if (options.stream && options.onChunk) {
     // Use streaming
-    return await callAI(prompt, modelRuntime, {
+    return await callGenerativeAI(prompt, modelRuntime, {
       stream: true,
       onChunk: options.onChunk,
     });

@@ -367,6 +367,7 @@ function defineLocatedPointAction<
   TParam extends { locate: LocateResultElement },
 >(config: {
   name: string;
+  supportedBySystemOne?: boolean;
   description: string;
   interfaceAlias?: string;
   paramSchema: TSchema;
@@ -376,6 +377,7 @@ function defineLocatedPointAction<
 }): DeviceAction<TParam> {
   return defineAction<TSchema, TParam>({
     name: config.name,
+    supportedBySystemOne: config.supportedBySystemOne,
     description: config.description,
     interfaceAlias: config.interfaceAlias,
     paramSchema: config.paramSchema,
@@ -402,6 +404,7 @@ export const defineActionTap = (
 ): DeviceAction<ActionTapParam> => {
   return defineLocatedPointAction<typeof actionTapParamSchema, ActionTapParam>({
     name: 'Tap',
+    supportedBySystemOne: true,
     description: 'Tap the element',
     interfaceAlias: 'aiTap',
     paramSchema: actionTapParamSchema,
@@ -465,6 +468,7 @@ export const defineActionRightClick = (
     ActionRightClickParam
   >({
     name: 'RightClick',
+    supportedBySystemOne: true,
     description: 'Right click the element',
     interfaceAlias: 'aiRightClick',
     paramSchema: actionRightClickParamSchema,
@@ -496,6 +500,7 @@ export const defineActionDoubleClick = (
     ActionDoubleClickParam
   >({
     name: 'DoubleClick',
+    supportedBySystemOne: true,
     description: 'Double click the element',
     interfaceAlias: 'aiDoubleClick',
     paramSchema: actionDoubleClickParamSchema,
@@ -525,6 +530,7 @@ export const defineActionHover = (
     ActionHoverParam
   >({
     name: 'Hover',
+    supportedBySystemOne: true,
     description: 'Move the mouse to the element',
     interfaceAlias: 'aiHover',
     paramSchema: actionHoverParamSchema,
@@ -995,6 +1001,7 @@ export const defineActionClearInput = (
     ActionClearInputParam
   >({
     name: 'ClearInput',
+    supportedBySystemOne: true,
     description: inputLocateDescription,
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
@@ -1167,6 +1174,7 @@ export interface MobileInputActionContext {
 
 export interface SystemInputActionConfig {
   name: string;
+  supportedBySystemOne?: boolean;
   description: string;
   interfaceAlias?: string;
   delayBeforeRunner?: number;
@@ -1193,6 +1201,7 @@ function defineSystemInputAction(
 ): DeviceAction<undefined, void> {
   return defineAction<undefined, undefined, void>({
     name: config.name,
+    supportedBySystemOne: config.supportedBySystemOne,
     description: config.description,
     interfaceAlias: config.interfaceAlias,
     delayBeforeRunner: config.delayBeforeRunner,

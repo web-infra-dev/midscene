@@ -233,6 +233,50 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 
 注册完成后，即可在 YAML 用例中直接调用这些官方 Node。完整的可用 Node 名称与参数字段，请以当前项目生成的 [Node 说明书](./writing#生成当前项目的-node-说明书)为准。
 
+#### 为多个 Midscene Agent 的 Node 命名
+
+同一个工作流使用多个 Midscene Agent 时，可以通过 `namespace` 为各组 Node 注册不同的名称。让 setup 在 context 中返回独立的 Midscene Agent 实例，再将两组 Node 注册到同一个 Project：
+
+```ts
+import { Agent } from '@midscene/core/agent';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+interface MultiAgentContext {
+  mobile: Agent;
+  web: Agent;
+}
+
+const nodes = [
+  ...createMidsceneNodes<MultiAgentContext>({
+    namespace: 'mobile',
+    agentClass: Agent,
+    getAgent: ({ context }) => context.mobile,
+  }),
+  ...createMidsceneNodes<MultiAgentContext>({
+    namespace: 'web',
+    agentClass: Agent,
+    getAgent: ({ context }) => context.web,
+  }),
+];
+```
+
+将 `nodes` 加入项目配置后，YAML 使用注册后的名称调用：
+
+```yaml
+cases:
+  - name: 跨设备完成一个 Todo
+    steps:
+      - mobile.aiAct: 创建一个标题为“Buy milk”的 Todo。
+      - web.aiWaitFor: 列表中显示标题为“Buy milk”的 Todo。
+      - web.aiTap: “Buy milk”旁边的复选框
+```
+
+namespace 会给返回的每个 Node 加上前缀，包括通用 AI 操作、平台操作和 `wait`。例如，上述注册提供 `mobile.aiAct` 和 `mobile.wait`，不会同时注册不带前缀的名称。不传 `namespace` 时保留原有名称。
+
+namespace 必须是非空字符串，不能包含空白字符、首尾的点或空的分段；支持 `checkout.mobile` 这样的嵌套名称。无效值会在注册阶段报错，此时尚未获取 Agent。
+
+namespace 只改变 Node 名称。运行时仍由 `getAgent` 或 `agentProvider.getAgent` 选择 Agent，执行记录仍关联到对应 Step。namespace 不创建资源，也不提供并发隔离。不同 Project 可以分别注册相同的 Node 名称，无需添加 namespace。
+
 ### Playwright
 
 通过 `createMidsceneNodes({ agentClass: PlaywrightAgent, getAgent })` 会自动注册 Web 专属的 `gotoUrl`、`setCookies`、`clearCookies` 和 `setViewportSize` 四个 Node。使用前需在项目中安装同级依赖 `playwright`：

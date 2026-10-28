@@ -136,6 +136,11 @@ export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
 export type WaitNodeInput = z.infer<typeof waitInputSchema>;
 
 export interface CreateMidsceneNodesOptions<TContext> {
+  /**
+   * Prefix every returned Node name, including wait, with `${namespace}.`.
+   * Use non-empty dot-separated segments without whitespace.
+   */
+  namespace?: string;
   getAgent?(
     execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<MidsceneUIAgent>;
@@ -332,6 +337,16 @@ export function createMidsceneNodes<TContext>(
       'createMidsceneNodes() options must be an object.',
     );
   }
+  const { namespace } = options;
+  if (
+    namespace !== undefined &&
+    (typeof namespace !== 'string' ||
+      namespace.split('.').some((part) => !part || /\s/.test(part)))
+  ) {
+    throw new NodeDefinitionError(
+      'createMidsceneNodes() namespace must be a non-empty dot-separated string without whitespace.',
+    );
+  }
   if (
     typeof options.agentProvider?.getAgent !== 'function' &&
     typeof options.getAgent !== 'function'
@@ -388,12 +403,21 @@ export function createMidsceneNodes<TContext>(
     );
   };
 
-  const agentDefinitions = options.agentClass.getTestRunnerNodeDefinitions();
+  const nodeName = (name: string) =>
+    namespace === undefined ? name : `${namespace}.${name}`;
+  const definitions = options.agentClass.getTestRunnerNodeDefinitions();
+  const agentDefinitions =
+    namespace === undefined
+      ? definitions
+      : definitions.map((definition) => ({
+          ...definition,
+          name: nodeName(definition.name),
+        }));
 
   return [
     ...createAgentTestRunnerNodes(agentDefinitions, getAgent),
     defineNode<typeof waitInputSchema, unknown, TContext>({
-      name: 'wait',
+      name: nodeName('wait'),
       description: 'Wait for a fixed duration while honoring cancellation.',
       stringInputKey: false,
       inputSchema: waitInputSchema,

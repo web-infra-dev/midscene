@@ -330,6 +330,7 @@ export default class Service {
   async extract<T>(
     dataDemand: ServiceExtractParam,
     modelRuntime: ModelRuntime,
+    taskType: 'boolean' | 'extract',
     opt?: ServiceExtractOption,
     pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
@@ -358,6 +359,7 @@ export default class Service {
       const result = await AiExtractElementInfo<T>({
         context,
         dataQuery: dataDemand,
+        taskType,
         multimodalPrompt,
         extractOption: opt,
         modelRuntime,

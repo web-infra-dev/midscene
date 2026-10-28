@@ -39,6 +39,34 @@ const androidAgent = (
 });
 
 describe('AndroidAgent Nodes', () => {
+  it('namespaces platform and common Nodes while preserving Agent method names', async () => {
+    const agent = androidAgent();
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        namespace: 'mobile',
+        agentClass: AndroidAgent,
+        getAgent: () => agent,
+      }),
+    );
+    expect(registry.names()).toEqual(
+      expect.arrayContaining(['mobile.launch', 'mobile.aiAct', 'mobile.wait']),
+    );
+    expect(registry.get('launch')).toBeUndefined();
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'mobile.launch',
+          input: { uri: 'com.example.app' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.status).toBe('success');
+    expect(agent.launch).toHaveBeenCalledWith('com.example.app');
+  });
+
   it('preserves the Agent runAdbShell options object', async () => {
     const runAdbShell = vi.fn(async () => 'package:com.example.app');
     const registry = new NodeRegistry(

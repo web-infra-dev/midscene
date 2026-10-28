@@ -21,7 +21,11 @@ import {
   runWithAbortSignal,
   waitForRetry,
 } from './request-timeout';
-import { callSystemOne, prepareSystemOne } from './system-one';
+import {
+  prepareSystemOne,
+  callSystemOne as sendSystemOneRequest,
+} from './system-one';
+import type { SystemOneRequest } from './system-one/schema';
 import type { ModelCallMessages } from './types';
 import type {
   AICallResult,
@@ -39,7 +43,7 @@ import {
 
 const DEFAULT_MODEL_PROTOCOL = 'openai-chat';
 
-export async function callAI(
+export async function callGenerativeAI(
   messages: ModelCallMessages,
   originalModelRuntime: ModelRuntime,
   originalOptions?: CallAIOptions,
@@ -65,31 +69,11 @@ export async function callAI(
     originalOptions,
   );
 
-  // Low-level callers without a TaskRunner still need a stable ID for the
-  // lifetime of this model call (including its network retries).
-  const executionId = modelRuntime.executionId ?? `unscoped-${uuid()}`;
-
-  // Stable internal ID for this call, used by the agent to deduplicate usage
-  // across the onUsage callback and the task-dump-based collectUsageMetrics()
-  // path when the provider does not return a request_id.
-  const internalCallId = nextInternalCallId();
-
   const { config: modelConfig } = modelRuntime;
-
-  const prepare = async (): Promise<PreparedModelInput> => {
-    if (options?.systemOneRequest) {
-      assert(
-        modelConfig.modelFamily === 'jev',
-        'System One requests require the Jev model family',
-      );
-      return {
-        protocol: 'system-one',
-        input: await prepareSystemOne(modelConfig, options.systemOneRequest),
-      };
-    }
+  return executeModelCall(modelRuntime, options, async () => {
     const input = { messages, modelRuntime, options };
     if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
-      return { protocol: 'codex', input: prepareCodexCall(input) };
+      return { kind: 'codex', input: prepareCodexCall(input) };
     }
     const protocol = modelConfig.protocol ?? DEFAULT_MODEL_PROTOCOL;
 
@@ -98,20 +82,47 @@ export async function callAI(
       `Model adapter "${modelConfig.modelFamily ?? 'default'}" does not support protocol "${protocol}"`,
     );
     if (protocol === 'openai-responses') {
-      return { protocol: 'responses', input: await prepareResponses(input) };
+      return { kind: 'responses', input: await prepareResponses(input) };
     }
     return {
-      protocol: 'chat-completion',
+      kind: 'chat-completion',
       input: await prepareChatCompletion(input),
     };
-  };
+  });
+}
+
+export async function callSystemOneAI(
+  request: SystemOneRequest,
+  modelRuntime: ModelRuntime,
+  options?: CallAIOptions,
+): Promise<AICallResult> {
+  options?.abortSignal?.throwIfAborted();
+  assert(!options?.stream, 'Jev does not support streaming output');
+  assert(
+    modelRuntime.config.modelFamily === 'jev',
+    'System One currently only supports the Jev model family in Midscene',
+  );
+  return executeModelCall(modelRuntime, options, async () => ({
+    kind: 'system-one',
+    input: await prepareSystemOne(modelRuntime.config, request),
+  }));
+}
+
+async function executeModelCall(
+  modelRuntime: ModelRuntime,
+  options: CallAIOptions | undefined,
+  prepare: () => Promise<PreparedModelInput>,
+): Promise<AICallResult> {
+  // Keep identifiers stable across all request attempts.
+  const executionId = modelRuntime.executionId ?? `unscoped-${uuid()}`;
+  const internalCallId = nextInternalCallId();
+  const { config: modelConfig } = modelRuntime;
 
   const prepared = options?.abortSignal
     ? await runWithAbortSignal(options.abortSignal, prepare)
     : await prepare();
 
   const result = await callModelWithRetry({
-    messages,
     modelRuntime,
     options,
     executionId,
@@ -130,7 +141,7 @@ export async function callAI(
   } = result;
 
   const rawUsageInfo = buildUsageInfo({
-    apiProtocol: prepared.protocol,
+    requestKind: prepared.kind,
     stream: response.isStreamed,
     usageData: rawUsage,
     timeCost,
@@ -145,7 +156,7 @@ export async function callAI(
   });
 
   const usage = rawUsageInfo
-    ? { ...rawUsageInfo, modelRouting: modelRuntime.modelRouting }
+    ? { ...rawUsageInfo, modelFallback: modelRuntime.modelFallback }
     : undefined;
 
   const debugProfileStats = getDebug('ai:profile:stats');
@@ -163,14 +174,13 @@ export async function callAI(
 
 type PreparedModelInput =
   | {
-      protocol: 'system-one';
+      kind: 'system-one';
       input: Awaited<ReturnType<typeof prepareSystemOne>>;
     }
-  | { protocol: 'codex'; input: ReturnType<typeof prepareCodexCall> }
+  | { kind: 'codex'; input: ReturnType<typeof prepareCodexCall> }
   | PreparedOpenAIInput;
 
 type ModelCallInput = {
-  messages: ModelCallMessages;
   modelRuntime: ModelRuntime;
   options?: CallAIOptions;
   executionId: string;
@@ -274,7 +284,6 @@ async function callModelWithRetry(
 
 async function callModelOnce(
   {
-    messages,
     modelRuntime,
     options,
     executionId,
@@ -300,7 +309,7 @@ async function callModelOnce(
             slot: modelConfig.slot,
             intent: modelConfig.intent,
             modelFamily: modelConfig.modelFamily,
-            modelRouting: modelRuntime.modelRouting,
+            modelFallback: modelRuntime.modelFallback,
             ...event,
             attempt,
           });
@@ -314,7 +323,6 @@ async function callModelOnce(
   let deliveredChunk = false;
   const onChunk = options?.onChunk;
   const context: ModelCallContext = {
-    messages,
     modelRuntime,
     executionId,
     recordEvent,
@@ -333,9 +341,9 @@ async function callModelOnce(
   };
   try {
     return await runWithAbortSignal(requestSignal, () =>
-      prepared.protocol === 'system-one'
-        ? callSystemOne(context, prepared.input)
-        : prepared.protocol === 'codex'
+      prepared.kind === 'system-one'
+        ? sendSystemOneRequest(context, prepared.input)
+        : prepared.kind === 'codex'
           ? callCodex(context, prepared.input)
           : callOpenAI(context, prepared),
     );

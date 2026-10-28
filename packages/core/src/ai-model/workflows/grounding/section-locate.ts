@@ -6,7 +6,10 @@ import type { TUserPrompt } from '../../../common';
 import { userPromptToString } from '../../../common';
 import type { ModelRuntime } from '../../models';
 import { buildSearchAreaLocateSystemPrompt } from '../../prompt/locate';
-import { AIResponseParseError, callAI } from '../../service-caller/index';
+import {
+  AIResponseParseError,
+  callGenerativeAI,
+} from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
@@ -21,7 +24,7 @@ import { formatLocateModelContext, prepareLocateModelInput } from './utils';
 
 const debugSection = getDebug('ai:grounding:section');
 
-type SectionLocateRawResponse = Awaited<ReturnType<typeof callAI>>;
+type SectionLocateRawResponse = Awaited<ReturnType<typeof callGenerativeAI>>;
 
 export async function AiLocateSection(options: {
   context: UIContext;
@@ -86,7 +89,7 @@ export async function AiLocateSection(options: {
   try {
     parsedResult = await callAiAndParseWithRetry({
       callAi: (retryAttempt, previousParseError) =>
-        callAI(
+        callGenerativeAI(
           withSemanticRetryFeedback(messages, previousParseError),
           modelRuntime,
           {

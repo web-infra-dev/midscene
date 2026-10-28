@@ -2,7 +2,11 @@ import { getDebug } from '@midscene/shared/logger';
 import type { ResolveImageDetail } from '../../../model-adapter/types';
 import type { ModelRequestConfigInput } from '../../../model-adapter/types';
 import { createProxyAgentIfNeeded } from '../../proxy';
-import type { ModelCallContext, OpenAIProtocolCallResult } from '../../types';
+import type {
+  ModelCallContext,
+  ModelCallMessages,
+  OpenAIProtocolCallResult,
+} from '../../types';
 import { stringifyForDebug } from '../../utils';
 import { callChatCompletionNonStreaming } from './non-stream';
 import { callChatCompletionStream } from './stream';
@@ -13,7 +17,9 @@ export const prepareChatCompletion = async ({
   messages,
   modelRuntime,
   options,
-}: Pick<ModelCallContext, 'messages' | 'modelRuntime' | 'options'>) => {
+}: Pick<ModelCallContext, 'modelRuntime' | 'options'> & {
+  messages: ModelCallMessages;
+}) => {
   const debugCall = getDebug('ai:call');
   const { config: modelConfig, adapter } = modelRuntime;
 

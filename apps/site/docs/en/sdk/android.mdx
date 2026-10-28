@@ -1,0 +1,331 @@
+# Android JavaScript SDK
+
+`@midscene/android` controls Android devices over `adb`. `AndroidAgent` inherits all [AI methods](../reference/#interaction-methods) from the base `Agent`.
+
+## Imports and API overview
+
+```typescript
+import { AndroidAgent, AndroidDevice, agentFromAdbDevice, getConnectedDevices } from '@midscene/android';
+```
+
+In most cases, use the `agentFromAdbDevice()` factory to create and connect a Device in one step. If you need to configure and manage the `AndroidDevice` and `AndroidAgent` instances separately, construct them explicitly.
+
+<a id="use-the-javascript-sdk"></a>
+
+<a id="android-agentfromadbdevice"></a>
+
+<a id="android-quick-start"></a>
+
+<a id="android-launch-native-packages"></a>
+
+## `agentFromAdbDevice()`
+
+```typescript
+agentFromAdbDevice(
+  deviceId?: string,
+  options?: AndroidAgentOpt & AndroidDeviceOpt,
+): Promise<AndroidAgent>
+```
+
+Connects to an Android device and returns an `AndroidAgent` bound to the connected Device. `deviceId` is optional; when omitted, Midscene selects the first connected device and throws an error if none is found. `options` accepts both Agent and Device settings (including `adb` connection settings used during device discovery).
+
+```typescript
+const agent = await agentFromAdbDevice('device-id');
+```
+
+<a id="androiddevice"></a>
+
+<a id="androidagent"></a>
+
+## `AndroidDevice` / `AndroidAgent`
+
+```typescript
+new AndroidDevice(deviceId: string, options?: AndroidDeviceOpt)
+new AndroidAgent(device: AndroidDevice, options?: AndroidAgentOpt)
+```
+
+When constructing `AndroidDevice` explicitly, call `await device.connect()` before passing the Device to `AndroidAgent`. Each Device instance belongs to a single Agent.
+
+```typescript
+const device = new AndroidDevice('device-id');
+await device.connect();
+const agent = new AndroidAgent(device);
+```
+
+<a id="advanced"></a>
+
+## Configuration options
+
+### Agent options
+
+Accepts all [shared Agent options](../reference/#agent-options), plus the following platform option:
+
+- `appNameMapping?: Record<string, string>` — Maps friendly app names to Android package names so you can reference apps by name in `launch()`, `terminate()`, or natural-language prompts. User-provided mappings take precedence over built-in defaults.
+
+### Device options
+
+- `autoDismissKeyboard?: boolean` — Whether to automatically dismiss the on-screen keyboard after text input. Default: `true`.
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` — Key priority used when dismissing the on-screen keyboard. Default: `'esc-first'`.
+- `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes (must be a finite non-negative number). In `'legacy'` mode, a positive value causes the native `adb input text` path to send characters one Unicode code point at a time, while the yadb path ignores this option for backward compatibility. To apply per-character delay to yadb input as well, set `inputStrategy` to `'sequential'`.
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Default: `'legacy'`:
+  - `'sequential'`: Makes one `adb` or yadb call per Unicode code point. Use this strategy when setting a positive `keyboardTypeDelay`.
+  - `'bulk'`: Sends the entire string in a single backend call when supported by the active input method. Requires `keyboardTypeDelay` to be omitted or set to `0`.
+- `androidAdbPath?: string` — Custom path to the `adb` executable.
+- `remoteAdbHost?: string` / `remoteAdbPort?: number` — Host and port of a remote `adb` server.
+- `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` — Controls when [yadb](https://github.com/ysbing/yadb) is used for text input. Default: `'yadb-for-non-ascii'`:
+  - `'yadb-for-non-ascii'` (default): Uses yadb for non-ASCII characters (including accented Latin characters such as `ö`, `é`, and `ñ`, as well as Chinese and Japanese text) and format specifiers (such as `%s` and `%d`). Pure ASCII text uses the faster native `adb input text`.
+  - `'always-yadb'`: Uses yadb for all text input. Provides maximum compatibility, though slightly slower for pure ASCII text.
+- `screenshotStrategy?: 'auto' | 'always-yadb'` — Controls how screenshots are captured. Default: `'auto'`:
+  - `'auto'` (default): Tries `adb.takeScreenshot` first, falls back to shell `screencap`, and finally uses yadb if `screencap` fails (when `scrcpyConfig.enabled` is `true`, scrcpy is tried first). Note that `'auto'` does not inspect image contents—if a capture command succeeds but returns a black frame, it will not automatically fall back to the next method.
+  - `'always-yadb'`: Bypasses the default `'auto'` flow and captures screenshots directly via [yadb](https://github.com/ysbing/yadb). Useful when `screencap` returns black frames on secure screens (`FLAG_SECURE`) while yadb can capture them (actual support depends on the Android version, ROM, root/hook environment, and device setup; always verify on your target device). Yadb only supports the default display (`displayId=0`); combining `'always-yadb'` with a non-zero `displayId` throws an error. Can also be configured via the `MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb` environment variable.
+- `displayId?: number` — Target virtual display ID when the device has multiple displays.
+- `exposeRunAdbShellAction?: boolean` — Whether to expose the built-in `RunAdbShell` action in the action space. Default: `true`. Set to `false` to prevent the AI planner, YAML scripts, and `agent.runAdbShell()` from executing `adb shell` commands.
+- `customActions?: DeviceAction[]` — Custom actions registered for the Agent planner to invoke. Pass this option to `new AndroidDevice()` or `agentFromAdbDevice()`; see [Integrate with any interface](../integrate-with-any-interface) for details.
+- `screenshotResizeScale?: number` — **Deprecated** (removed and no longer has any effect). Use `screenshotShrinkFactor` in `AgentOpt` instead to control the screenshot size sent to the AI model.
+- `minScreenshotBufferSize?: number` — Minimum valid screenshot buffer size in bytes. Smaller buffers are rejected as failed or corrupted captures. Default: `1024` (1 KB). Set to `0` to skip this size check (empty buffers and invalid image formats are still rejected).
+- `alwaysRefreshScreenInfo?: boolean` — Whether to re-query screen rotation and resolution before every step. Default: `false`.
+
+<a id="scrcpy"></a>
+
+**scrcpy configuration and status methods**
+
+- `scrcpyConfig?: object` — High-performance scrcpy screenshot configuration (disabled by default):
+  - `enabled?: boolean` — Whether to enable scrcpy screenshots. Default: `false`.
+  - `maxSize?: number` — Maximum width or height of captured screenshots in pixels (must be a non-negative integer; default: `0`, which disables scaling). When scrcpy is temporarily unavailable and falls back to `adb` / yadb, this limit still applies so planning and report images do not suddenly revert to full device resolution.
+  - `videoBitRate?: number` — scrcpy H.264 encoding bitrate in bits per second. Default: `100000000`. Adjusting this trades encoding bandwidth against screenshot detail; tune it only when independent transport measurements indicate a need, and verify recognition accuracy afterward (do not change it solely in response to a frame-freshness timeout warning).
+  - `idleTimeoutMs?: number` — Idle duration in milliseconds before automatically disconnecting the scrcpy stream (`0` disables auto-disconnect). Default: `30000`.
+  - `videoResetFrameTimeoutMs?: number` — Time in milliseconds to wait for a new keyframe after scrcpy triggers an in-band video reset (must be a positive integer). Default: `800`. Increase this only on devices whose display capture pipeline is slow to restart.
+- `device.getScrcpyStatus()` — Returns the current scrcpy state (`enabled`, `connected`, `lastError`, and `retryAfter`).
+- `device.retryScrcpy(): Promise<void>` — Bypasses the cooldown timer and immediately retries the scrcpy connection.
+
+## Platform methods
+
+<a id="android-agentlaunch"></a>
+
+### `launch()`
+
+Open a web URL, or launch an Android package or activity.
+
+```ts
+function launch(target: string): Promise<void>;
+```
+
+- `target: string` — Web URL, `package/.Activity` identifier (such as `com.android.settings/.Settings`), package name, or app name. If `target` matches a key in `appNameMapping`, Midscene resolves it to the mapped package name; otherwise, it launches `target` as provided.
+
+<a id="android-agentrunadbshell"></a>
+
+### `runAdbShell()`
+
+Execute a raw `adb shell` command on the connected device. Pass only the shell command itself, without the `adb shell` prefix.
+
+```ts
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
+```
+
+- `command: string` — Command string passed verbatim to `adb shell` (for example, `'input tap 100 200'`, not `'adb shell input tap 100 200'`).
+- `opt.timeout?: number` — Command execution timeout in milliseconds.
+
+This method invokes the `RunAdbShell` action under the hood. If `exposeRunAdbShellAction` is set to `false` on the `AndroidDevice`, this method is unavailable.
+
+```ts
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
+console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
+```
+
+<a id="android-agentterminate"></a>
+
+### `terminate()`
+
+Force-stop a running Android app.
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` — Package name, app name registered in `appNameMapping`, or `package/.Activity` string (only the package name portion is used).
+
+```ts
+await agent.terminate('com.android.settings');
+```
+
+<a id="android-navigation-helpers"></a>
+
+### System navigation
+
+- `agent.back(): Promise<void>` — Trigger the system Back action.
+- `agent.home(): Promise<void>` — Return to the home screen.
+- `agent.recentApps(): Promise<void>` — Open the recent apps (multitasking) screen.
+
+<a id="android-getconnecteddevices"></a>
+
+## Device discovery
+
+```typescript
+getConnectedDevices(options?: AndroidDeviceOpt): Promise<
+  Array<{ udid: string; state: string; port?: number }>
+>
+```
+
+Returns the IDs (`udid`) and states of connected devices. Another exported helper, `getConnectedDevicesWithDetails(options?)`, also queries optional `model`, `brand`, `resolution`, and numeric `density` fields (returning `undefined` for any field that cannot be retrieved). Both functions are exported from `@midscene/android`.
+
+<a id="android-getconnecteddeviceswithdetails"></a>
+
+### `getConnectedDevicesWithDetails()`
+
+```typescript
+getConnectedDevicesWithDetails(options?: AndroidDeviceOpt): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+  model?: string;
+  brand?: string;
+  resolution?: string;
+  density?: number;
+}>>
+```
+
+<a id="android-device-destroy"></a>
+
+## Lifecycle
+
+```typescript
+agent.destroy(): Promise<void>
+```
+
+Calling `agent.destroy()` waits for pending operations to complete, calls the underlying Device's `destroy()`, and finalizes the execution report. Do not share a single Device instance across multiple Agents or reuse a Device after cleanup.
+
+On Android, `device.destroy()` clears screen caches and `adb` client state, and closes any active scrcpy connection. It does not disconnect the physical device from the host `adb` server or close apps on the device.
+
+## Troubleshooting
+
+<a id="text-input-is-cleared-or-lost-after-typing"></a>
+
+### Text input is cleared or disappears after typing
+
+By default, Midscene automatically dismisses the on-screen keyboard after entering text by sending an **ESC key event**. However, some input fields (especially inside WebViews) listen for the ESC key and trigger side effects such as:
+
+- Clearing the text that was just entered
+- Closing the modal or popup containing the input field
+- Navigating away from the current page
+
+Try the following workarounds in order:
+
+**Option 1: Dismiss the keyboard with the Android BACK key**
+
+Set `keyboardDismissStrategy` to `'back-first'` so Midscene sends the Android BACK key instead of ESC:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+**Option 2: Disable automatic keyboard dismissal**
+
+If the input field also reacts to the BACK key, disable automatic keyboard dismissal and let subsequent AI actions manage the keyboard state:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+When automatic dismissal is disabled, the keyboard remains on screen and may cover the lower half of the interface. You can handle this by:
+
+- Calling `aiAct` to collapse the keyboard explicitly, e.g., `await agent.aiAct('tap the collapse button on the keyboard')`.
+- Installing and switching to [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard), a minimal virtual keyboard that takes up almost no screen space even when active.
+
+<a id="english-text-is-rewritten-by-the-android-keyboard"></a>
+
+### English text is altered by the Android input method
+
+If the report shows the expected input string, but the app receives garbled characters, missing letters, or Chinese/pinyin candidates, the active Android input method is likely intercepting and rewriting the input. This commonly occurs when pure ASCII text is sent via the native `adb input text` path while a Chinese IME or predictive keyboard is active.
+
+Set `imeStrategy` to `'always-yadb'` to route all text input through yadb:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  imeStrategy: 'always-yadb',
+});
+```
+
+In a YAML script:
+
+```yaml
+android:
+  imeStrategy: always-yadb
+```
+
+Or via an environment variable:
+
+```bash
+export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
+```
+
+Note that this differs from text being cleared after typing: if the text appears properly in the field and then disappears when the keyboard closes, check `keyboardDismissStrategy` or `autoDismissKeyboard` above instead.
+
+<a id="screenshot-of-secure-pages-eg-password-input-shows-black"></a>
+
+### Screenshots of secure pages (such as password inputs) are black
+
+Apps such as banking or payment clients often set `FLAG_SECURE` on password entry screens to prevent screen capture, causing `screencap` to return a black image for the protected region.
+
+The yadb utility creates a virtual display with the `secure` flag via `SurfaceControl.createDisplay`, which allows capturing `FLAG_SECURE` screens in certain environments (actual support depends on the Android version, ROM, root/Magisk hook setup, and device configuration; always test on your target device).
+
+Set `screenshotStrategy` to `'always-yadb'` to force yadb for all screenshots:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  screenshotStrategy: 'always-yadb',
+});
+```
+
+In a YAML script:
+
+```yaml
+android:
+  screenshotStrategy: always-yadb
+```
+
+Or via an environment variable:
+
+```bash
+export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
+```
+
+By default, `'auto'` tries `adb.takeScreenshot` and shell `screencap` (or scrcpy first when `scrcpyConfig.enabled` is `true`), falling back to yadb only if those commands fail to execute. Because `'auto'` does not inspect image contents, it will not automatically switch to yadb when `screencap` succeeds with a black image—you must explicitly set `'always-yadb'` to bypass the default capture chain. Note that yadb only supports the default display (`displayId=0`); combining `'always-yadb'` with a non-zero `displayId` throws an error.
+
+### How do I configure the scrcpy video bitrate?
+
+When using the Android CLI, pass `--scrcpy-video-bit-rate <bits-per-second>` (or `--scrcpyVideoBitRate`). Specifying this flag automatically enables scrcpy, so `--use-scrcpy` can be omitted:
+
+```bash
+midscene-android tap \
+  --device-id <device-id> \
+  --locate '{"prompt":"the target"}' \
+  --scrcpy-video-bit-rate <bits-per-second>
+```
+
+Because each CLI invocation runs in a separate process, pass this flag to every command that needs a custom bitrate. In the JavaScript SDK or YAML scripts, set `scrcpyConfig.videoBitRate` once in the device configuration. Adjusting the bitrate trades encoding bandwidth against image detail—tune it only when independent transport measurements show a need, and verify recognition accuracy afterward. For defaults and related options, see [scrcpy configuration](#scrcpy) above.
+
+### How do I use a custom adb path or remote adb server?
+
+You can configure these via environment variables:
+
+```bash
+export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+Or pass them in the `AndroidDevice` constructor (or `agentFromAdbDevice`):
+
+```typescript
+const device = new AndroidDevice('s4ey59', {
+  androidAdbPath: '/path/to/adb',
+  remoteAdbHost: '192.168.1.100',
+  remoteAdbPort: 5037,
+});
+```

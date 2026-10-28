@@ -85,7 +85,7 @@ describe('service-caller request timeout', () => {
   });
 
   it('aborts a hung request via the injected AbortSignal once timeout elapses', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
 
     let observedSignal: AbortSignal | undefined;
@@ -98,7 +98,7 @@ describe('service-caller request timeout', () => {
       });
     });
 
-    const promise = callAI(
+    const promise = callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig({ timeout: 50 })),
     );
@@ -109,7 +109,7 @@ describe('service-caller request timeout', () => {
   });
 
   it('tags the timeout error with AI_CALL_HARD_TIMEOUT so callers can branch on it', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     const { AI_CALL_HARD_TIMEOUT_CODE, isHardTimeoutError } = await import(
       '@/ai-model/service-caller/request-timeout'
@@ -125,7 +125,7 @@ describe('service-caller request timeout', () => {
     });
 
     try {
-      await callAI(
+      await callGenerativeAI(
         [{ role: 'user', content: 'hello' }],
         getModelRuntime(baseConfig({ timeout: 30 })),
       );
@@ -136,7 +136,7 @@ describe('service-caller request timeout', () => {
   });
 
   it('restores the hard-timeout reason when the OpenAI SDK discards it', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     const { isHardTimeoutError } = await import(
       '@/ai-model/service-caller/request-timeout'
@@ -154,7 +154,7 @@ describe('service-caller request timeout', () => {
     });
 
     try {
-      await callAI(
+      await callGenerativeAI(
         [{ role: 'user', content: 'hello' }],
         getModelRuntime(baseConfig({ timeout: 30 })),
       );
@@ -169,7 +169,7 @@ describe('service-caller request timeout', () => {
   });
 
   it('restores the hard-timeout reason for streaming requests too', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
 
     mockCreate.mockImplementation((_body, opts) => {
@@ -182,7 +182,7 @@ describe('service-caller request timeout', () => {
     });
 
     await expect(
-      callAI(
+      callGenerativeAI(
         [{ role: 'user', content: 'hello' }],
         getModelRuntime(baseConfig({ timeout: 30 })),
         { stream: true, onChunk: rs.fn() },
@@ -191,7 +191,7 @@ describe('service-caller request timeout', () => {
   });
 
   it('uses the 180s default timeout when none is configured', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     const { DEFAULT_AI_CALL_TIMEOUT_MS } = await import(
       '@/ai-model/service-caller/request-timeout'
@@ -205,7 +205,7 @@ describe('service-caller request timeout', () => {
       _request_id: 'req_default_timeout',
     });
 
-    await callAI(
+    await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig()),
     );
@@ -219,7 +219,7 @@ describe('service-caller request timeout', () => {
   });
 
   it('adds Midscene tracing headers without replacing configured headers', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     const { getVersion } = await import('@/utils');
     const executionId = 'execution-123';
@@ -244,7 +244,7 @@ describe('service-caller request timeout', () => {
       executionId,
     };
 
-    await callAI([{ role: 'user', content: 'hello' }], modelRuntime);
+    await callGenerativeAI([{ role: 'user', content: 'hello' }], modelRuntime);
 
     const OpenAI = (await import('openai')).default as unknown as ReturnType<
       typeof rs.fn
@@ -259,7 +259,7 @@ describe('service-caller request timeout', () => {
   });
 
   it('retries after a hard timeout and returns the next successful response', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
 
     mockCreate
@@ -277,7 +277,7 @@ describe('service-caller request timeout', () => {
         _request_id: 'req_retry_ok',
       });
 
-    const result = await callAI(
+    const result = await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(
         baseConfig({ timeout: 30, retryCount: 1, retryInterval: 0 }),
@@ -289,14 +289,14 @@ describe('service-caller request timeout', () => {
   });
 
   it('includes previous attempt errors when all retry attempts fail', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
 
     mockCreate
       .mockRejectedValueOnce(new Error('first failure'))
       .mockRejectedValueOnce(new Error('second failure'));
 
-    const promise = callAI(
+    const promise = callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig({ retryCount: 1, retryInterval: 0 })),
     );
@@ -311,12 +311,12 @@ describe('service-caller request timeout', () => {
   });
 
   it('normalizes negative retryCount to zero retries', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
 
     mockCreate.mockRejectedValueOnce(new Error('single failure'));
 
-    const promise = callAI(
+    const promise = callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig({ retryCount: -1, retryInterval: 0 })),
     );
@@ -339,14 +339,14 @@ describe('service-caller request timeout', () => {
   ])(
     'normalizes retryCount $retryCount to $expectedRetries retries',
     async ({ retryCount, expectedRetries, expectedAttempts }) => {
-      const { callAI } = await import('@/ai-model/service-caller');
+      const { callGenerativeAI } = await import('@/ai-model/service-caller');
       const { getModelRuntime } = await import('@/ai-model/models');
 
       for (let i = 1; i <= expectedAttempts; i++) {
         mockCreate.mockRejectedValueOnce(new Error(`failure ${i}`));
       }
 
-      const promise = callAI(
+      const promise = callGenerativeAI(
         [{ role: 'user', content: 'hello' }],
         getModelRuntime(baseConfig({ retryCount, retryInterval: 0 })),
       );
@@ -366,7 +366,7 @@ describe('service-caller request timeout', () => {
   );
 
   it('disables the hard timeout when modelConfig.timeout is 0', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     const { resolveEffectiveTimeoutMs } = await import(
       '@/ai-model/service-caller/request-timeout'
@@ -380,7 +380,7 @@ describe('service-caller request timeout', () => {
       _request_id: 'req_no_timeout',
     });
 
-    await callAI(
+    await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig({ timeout: 0 })),
     );
@@ -399,7 +399,7 @@ describe('service-caller request timeout', () => {
   });
 
   it('honours the caller abortSignal even before the timeout fires', async () => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
 
     mockCreate.mockImplementation((_body, opts) => {
@@ -412,7 +412,7 @@ describe('service-caller request timeout', () => {
     });
 
     const controller = new AbortController();
-    const promise = callAI(
+    const promise = callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig({ timeout: 60_000 })),
       { abortSignal: controller.signal },
@@ -427,12 +427,12 @@ describe('service-caller request timeout', () => {
 it('cancels request retry waiting without issuing another request', async () => {
   rs.useFakeTimers();
   try {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     mockCreate.mockReset();
     mockCreate.mockRejectedValue(new Error('request failed'));
     const controller = new AbortController();
-    const promise = callAI(
+    const promise = callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig({ retryCount: 2, retryInterval: 60_000 })),
       { abortSignal: controller.signal },
@@ -484,7 +484,7 @@ it('keeps a request failure that wins the race instead of relabelling it as time
 });
 
 it('never retries external cancellation even when its reason is a timeout', async () => {
-  const { callAI } = await import('@/ai-model/service-caller');
+  const { callGenerativeAI } = await import('@/ai-model/service-caller');
   const { getModelRuntime } = await import('@/ai-model/models');
   const { AIRequestTimeoutError } = await import(
     '@/ai-model/service-caller/request-timeout'
@@ -497,7 +497,7 @@ it('never retries external cancellation even when its reason is a timeout', asyn
     return new Promise<never>(() => {});
   });
   await expect(
-    callAI(
+    callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig({ retryCount: 2, retryInterval: 0 })),
       { abortSignal: controller.signal },
@@ -509,7 +509,7 @@ it('never retries external cancellation even when its reason is a timeout', asyn
 it.each([0, 2])(
   'reports total duration and %i request retries while preserving successful-attempt usage',
   async (retryCount) => {
-    const { callAI } = await import('@/ai-model/service-caller');
+    const { callGenerativeAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     rs.useFakeTimers();
     try {
@@ -535,7 +535,7 @@ it.each([0, 2])(
         };
       });
       const onUsage = rs.fn();
-      const promise = callAI([{ role: 'user', content: 'hello' }], {
+      const promise = callGenerativeAI([{ role: 'user', content: 'hello' }], {
         ...getModelRuntime(baseConfig({ retryCount, retryInterval: 500 })),
         onUsage,
       });

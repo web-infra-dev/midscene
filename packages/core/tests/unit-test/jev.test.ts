@@ -1,10 +1,14 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Insight } from '@/agent/insight';
 import { runConnectivityTest } from '@/ai-model/connectivity';
 import { getModelRuntime } from '@/ai-model/models';
 import { mapJevBox, prepareJevImage } from '@/ai-model/models/jev/image';
 import { jevPlan } from '@/ai-model/models/jev/planning';
-import { resolveModelForTask } from '@/ai-model/models/task-routing';
-import { callAI } from '@/ai-model/service-caller';
+import { resolveModelForTaskType } from '@/ai-model/models/model-fallback';
+import { callSystemOneAI } from '@/ai-model/service-caller';
+import { prepareSystemOne } from '@/ai-model/service-caller/system-one';
 import { AiLocateElement } from '@/ai-model/workflows/grounding/locate';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 import { ConversationHistory } from '@/ai-model/workflows/planning';
@@ -15,9 +19,11 @@ import {
 } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
+import { getVersion } from '@/utils';
 import { type IModelConfig, ModelConfigManager } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
+import { z } from 'zod';
 
 const recording = rs.hoisted(() => ({ events: [] as Record<string, any>[] }));
 rs.mock('@/ai-model/service-caller/model-call-recorder', () => ({
@@ -82,7 +88,7 @@ afterEach(() => {
   rs.restoreAllMocks();
 });
 
-describe('Jev task routing', () => {
+describe('Jev model fallback', () => {
   const configs = {
     getModelConfig: (intent: IModelConfig['intent']) =>
       intent === 'default'
@@ -91,46 +97,79 @@ describe('Jev task routing', () => {
   };
   it.each(['boolean', 'locate', 'planning'] as const)(
     'keeps supported %s tasks on Jev',
-    (task) => {
+    (taskType) => {
       expect(
-        resolveModelForTask(
+        resolveModelForTaskType(
           configs,
-          task === 'boolean' ? 'insight' : task,
-          task,
+          taskType === 'boolean' ? 'insight' : taskType,
+          taskType,
         ).config.modelFamily,
       ).toBe('jev');
     },
   );
-  it.each(['extract', 'text'] as const)(
+  it.each(['extract', 'general'] as const)(
     'routes unsupported %s before requesting',
-    (task) => {
-      const runtime = resolveModelForTask(configs, 'insight', task);
+    (taskType) => {
+      const runtime = resolveModelForTaskType(configs, 'insight', taskType);
       expect(runtime.config).toMatchObject({
         modelName: 'default-model',
         slot: 'default',
         intent: 'insight',
       });
-      expect(runtime.modelRouting).toMatchObject({
+      expect(runtime.modelFallback).toMatchObject({
         requestedModel: 'jev-1.14.0',
-        task,
+        taskType,
       });
     },
   );
-  it('rejects Jev as the default model', () => {
-    const configs = new ModelConfigManager({
+  const createJevOnlyConfig = () =>
+    new ModelConfigManager({
       MIDSCENE_MODEL_NAME: 'jev',
       MIDSCENE_MODEL_FAMILY: 'jev',
-      MIDSCENE_MODEL_BASE_URL: 'https://api.typesafe.ai',
+      MIDSCENE_MODEL_BASE_URL: 'https://api.typesafe.ai/v1',
       MIDSCENE_MODEL_API_KEY: 'test-key',
     });
-    expect(() => configs.getModelConfig('default')).toThrow(
-      'Jev cannot be the default model',
-    );
-  });
+
+  it.each(['boolean', 'locate', 'planning'] as const)(
+    'allows default Jev for supported %s tasks',
+    (taskType) => {
+      const configs = createJevOnlyConfig();
+      const runtime = resolveModelForTaskType(
+        configs,
+        taskType === 'boolean' ? 'insight' : taskType,
+        taskType,
+      );
+      expect(runtime.config).toMatchObject({
+        modelFamily: 'jev',
+        slot: 'default',
+      });
+      expect(runtime.modelFallback).toBeUndefined();
+    },
+  );
+
+  it.each(['extract', 'general'] as const)(
+    'rejects default Jev only when an unsupported %s task is requested',
+    (taskType) => {
+      const configs = createJevOnlyConfig();
+      expect(configs.getModelConfig('default').modelFamily).toBe('jev');
+      expect(() =>
+        resolveModelForTaskType(
+          configs,
+          taskType === 'extract' ? 'insight' : 'default',
+          taskType,
+        ),
+      ).toThrow(
+        `The default model cannot perform ${taskType}. Configure a general-purpose default model.`,
+      );
+      expect(
+        resolveModelForTaskType(configs, 'locate', 'locate').config.modelFamily,
+      ).toBe('jev');
+    },
+  );
   it('passes explicit task types for insight APIs', async () => {
     const execute = rs.fn().mockResolvedValue({ output: true });
-    const resolve = rs.fn((task) =>
-      resolveModelForTask(configs, 'insight', task),
+    const resolve = rs.fn((taskType) =>
+      resolveModelForTaskType(configs, 'insight', taskType),
     );
     const insight = new Insight(
       { createTypeQueryExecution: execute },
@@ -142,7 +181,7 @@ describe('Jev task routing', () => {
     await insight.aiQuery('extract text');
     await insight.aiNumber('count');
     await insight.aiString('text');
-    expect(resolve.mock.calls.map(([task]) => task)).toEqual([
+    expect(resolve.mock.calls.map(([taskType]) => taskType)).toEqual([
       'boolean',
       'boolean',
       'extract',
@@ -160,6 +199,106 @@ describe('Jev task routing', () => {
 });
 
 describe('Jev requests and coordinates', () => {
+  it.each([undefined, 'custom-version'])(
+    'sends the Midscene version regardless of a custom version header (%s)',
+    async (version) => {
+      const prepared = await prepareSystemOne(
+        {
+          ...jevConfig,
+          openaiExtraConfig: {
+            defaultHeaders: {
+              ...(version ? { 'x-midscene-version': version } : {}),
+              'x-custom-header': 'preserved',
+            },
+          },
+        },
+        {
+          state: {},
+          questions: { answer: { type: 'noul', instructions: 'True?' } },
+        },
+      );
+      expect(prepared.headers['x-midscene-version']).toBe(getVersion());
+      expect(new Headers(prepared.headers).get('x-custom-header')).toBe(
+        'preserved',
+      );
+    },
+  );
+  it.each([undefined, 'https://ignored.example/v1'])(
+    'uses the full endpoint without appending a path (base URL: %s)',
+    async (openaiBaseURL) => {
+      const prepared = await prepareSystemOne(
+        {
+          ...jevConfig,
+          openaiBaseURL,
+          endpoint: 'https://example.com/custom/decision?version=2',
+        },
+        {
+          state: {},
+          questions: { answer: { type: 'noul', instructions: 'True?' } },
+        },
+      );
+      expect(prepared.url).toBe(
+        'https://example.com/custom/decision?version=2',
+      );
+    },
+  );
+
+  it.each([
+    ['https://example.com/v2/', 'https://example.com/v2/systemone'],
+    [
+      'https://example.com/api/custom',
+      'https://example.com/api/custom/systemone',
+    ],
+    ['https://example.com', 'https://example.com/systemone'],
+  ])('preserves the configured API prefix %s', async (baseURL, expectedURL) => {
+    const prepared = await prepareSystemOne(
+      { ...jevConfig, openaiBaseURL: baseURL },
+      {
+        state: { text: 'hello' },
+        questions: {
+          greeting: { type: 'noul', instructions: 'Is this a greeting?' },
+        },
+      },
+    );
+    expect(prepared.url).toBe(expectedURL);
+  });
+  it.each(['jpg', 'jpeg'])(
+    'encodes a local .%s reference image without changing its bytes',
+    async (extension) => {
+      const directory = await mkdtemp(join(tmpdir(), 'midscene-jev-image-'));
+      try {
+        const bytes = await sharp({
+          create: {
+            width: 400,
+            height: 400,
+            channels: 3,
+            background: 'green',
+          },
+        })
+          .jpeg()
+          .toBuffer();
+        const path = join(directory, `reference.${extension}`);
+        await writeFile(path, bytes);
+        const image = await prepareJevImage(path);
+        const prepared = await prepareSystemOne(jevConfig, {
+          state: {},
+          images: { reference: image.imageBase64 },
+          questions: {
+            result: { type: 'noul', instructions: 'Is `reference` green?' },
+          },
+        });
+        const body = JSON.parse(prepared.body);
+        expect(body.assets[body.state.reference]).toEqual({
+          type: 'image',
+          format: 'jpg',
+          data_base64: bytes.toString('base64'),
+        });
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+
   it('batches presence and box in one recorded request and restores full-size coordinates', async () => {
     const fetchMock = rs
       .spyOn(globalThis, 'fetch')
@@ -174,7 +313,8 @@ describe('Jev requests and coordinates', () => {
       targetElementDescription: 'button',
       modelRuntime: runtime,
     });
-    expect(result.parseResult.element?.center).toEqual([400, 150]);
+    expect(result.parseResult.element?.center[0]).toBeCloseTo(400);
+    expect(result.parseResult.element?.center[1]).toBeCloseTo(150);
     expect(result.parseResult.element?.rect).toEqual({
       left: 200,
       top: 100,
@@ -184,22 +324,26 @@ describe('Jev requests and coordinates', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://api.typesafe.ai/v1/systemone');
+    expect(new Headers(init?.headers).get('x-midscene-version')).toBe(
+      getVersion(),
+    );
     expect(new Headers(init?.headers).get('TypeSafe-Danger-Zone-Images')).toBe(
       'true',
     );
     const body = JSON.parse(init?.body as string);
     expect(Object.keys(body.questions)).toEqual(['present', 'target']);
-    expect(body.assets[body.state.screenshot].format).toBe('jpg');
+    expect(body.assets[body.state.screenshot].format).toBe('png');
     expect(runtime.onUsage).toHaveBeenCalledTimes(1);
     expect(runtime.onRequest).toHaveBeenCalledTimes(1);
     expect(result.usage).toMatchObject({
-      api_protocol: 'system-one',
+      request_kind: 'system-one',
       stream: false,
       total_tokens: 120,
       slot: 'locate',
     });
     expect(recording.events.map((event) => event.type)).toEqual([
       'request',
+      'http-response',
       'response',
     ]);
     expect(recording.events[0]).toMatchObject({
@@ -208,48 +352,62 @@ describe('Jev requests and coordinates', () => {
     });
     expect(JSON.stringify(recording.events)).not.toContain('test-key');
   });
-  it('preserves the OpenRouter System One image format', async () => {
-    const fetchMock = rs
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(response());
-    await AiLocateElement({
-      context: await context(500, 400),
-      targetElementDescription: 'button',
-      modelRuntime: getModelRuntime({
-        ...jevConfig,
-        openaiBaseURL: 'https://openrouter.ai/api/v1',
-      }),
-    });
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      'https://openrouter.ai/api/v1/systemone',
-    );
-    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
-    expect(body.assets).toBeUndefined();
-    expect(body.state.screenshot.type).toBe('image_url');
-    expect(body.state.screenshot.image_url.url).toMatch(
-      /^data:image\/jpeg;base64,/,
-    );
-  });
-  it('undoes minimum-size padding and rejects clicks in padding', async () => {
-    const prepared = await prepareJevImage(await image(100, 50));
-    expect([prepared.width, prepared.height]).toEqual([280, 280]);
+  it.each([false, true])(
+    'preserves the OpenRouter image format with endpoint=%s',
+    async (useEndpoint) => {
+      const fetchMock = rs
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(response());
+      await AiLocateElement({
+        context: await context(500, 400),
+        targetElementDescription: 'button',
+        modelRuntime: getModelRuntime({
+          ...jevConfig,
+          openaiBaseURL: useEndpoint
+            ? 'https://ignored.example/v1'
+            : 'https://openrouter.ai/api/v1',
+          endpoint: useEndpoint
+            ? 'https://openrouter.ai/api/v1/systemone'
+            : undefined,
+        }),
+      });
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        'https://openrouter.ai/api/v1/systemone',
+      );
+      const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+      expect(body.assets).toBeUndefined();
+      expect(body.state.screenshot.type).toBe('image_url');
+      expect(body.state.screenshot.image_url.url).toMatch(
+        /^data:image\/png;base64,/,
+      );
+    },
+  );
+  it.each([
+    [100, 50],
+    [3000, 30],
+  ])(
+    'preserves image bytes and dimensions for %i × %i',
+    async (width, height) => {
+      const original = await image(width, height);
+      const prepared = await prepareJevImage(original);
+      expect(prepared.imageBase64).toBe(original);
+    },
+  );
+  it('maps normalized boxes to target coordinates', () => {
     const result = mapJevBox(
-      { left: 0, top: 0, right: 100 / 280, bottom: 50 / 280 },
-      prepared,
+      { left: 0.2, top: 0.1, right: 0.6, bottom: 0.5 },
       { width: 100, height: 50 },
     );
-    expect(result.center).toEqual([50, 25]);
+    expect(result).toEqual({
+      center: [40, 15],
+      rect: { left: 20, top: 5, width: 40, height: 20 },
+    });
     expect(() =>
-      mapJevBox({ left: 0.8, top: 0.8, right: 1, bottom: 1 }, prepared, {
-        width: 100,
-        height: 50,
-      }),
-    ).toThrow('padding');
-  });
-  it('keeps extremely narrow images inside Jev limits', async () => {
-    const prepared = await prepareJevImage(await image(3000, 30));
-    expect([prepared.width, prepared.height]).toEqual([1568, 280]);
-    expect(prepared.contentSize.height).toBe(16);
+      mapJevBox(
+        { left: 1, top: 0, right: 1.2, bottom: 0.5 },
+        { width: 100, height: 50 },
+      ),
+    ).toThrow('exceed normalized range');
   });
   it('maps a scaled DeepLocate crop exactly once', async () => {
     rs.spyOn(globalThis, 'fetch').mockResolvedValue(response());
@@ -298,6 +456,7 @@ describe('Jev requests and coordinates', () => {
       }),
     );
     const result = await AiExtractElementInfo({
+      taskType: 'boolean',
       dataQuery: { Boolean: 'matches' },
       context: await context(),
       extractOption: { screenshotIncluded: false, context: 'context' },
@@ -323,6 +482,7 @@ describe('Jev requests and coordinates', () => {
       .mockResolvedValue(response());
     const ui = await context(500, 400);
     await AiExtractElementInfo({
+      taskType: 'boolean',
       dataQuery: { StatementIsTruthy: 'appeared' },
       context: { ...ui, screenshotSequence: [ui.screenshot, ui.screenshot] },
       multimodalPrompt: {
@@ -336,6 +496,55 @@ describe('Jev requests and coordinates', () => {
     expect(body.state.references).toEqual([
       { name: 'target', image: '`reference_0`' },
     ]);
+  });
+  it.each([
+    [200, 'not JSON'],
+    [200, '{"answers":{"result":{"type":"noul","noul":2}}}'],
+    [200, '{"answers":{}}'],
+    [400, '{"error":"invalid request"}'],
+  ])(
+    'records the raw HTTP response on failure (%i, %s)',
+    async (status, body) => {
+      rs.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(body, { status }),
+      );
+      await expect(
+        callSystemOneAI(
+          {
+            state: {},
+            questions: {
+              result: { type: 'noul', instructions: 'Is this true?' },
+            },
+          },
+          getModelRuntime(jevConfig),
+        ),
+      ).rejects.toThrow();
+      expect(recording.events.map((event) => event.type)).toEqual([
+        'request',
+        'http-response',
+        'error',
+      ]);
+      expect(recording.events[1]).toMatchObject({
+        http: { status, ok: status === 200, body },
+      });
+    },
+  );
+  it('rejects streaming before entering the retry loop', async () => {
+    const fetchMock = rs.spyOn(globalThis, 'fetch');
+    await expect(
+      callSystemOneAI(
+        {
+          state: {},
+          questions: {
+            result: { type: 'noul', instructions: 'Is this true?' },
+          },
+        },
+        getModelRuntime({ ...jevConfig, retryCount: 2 }),
+        { stream: true, onChunk: rs.fn() },
+      ),
+    ).rejects.toThrow(/^Jev does not support streaming output$/);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(recording.events).toEqual([]);
   });
   it('retries malformed responses without changing model', async () => {
     const fetchMock = rs
@@ -391,8 +600,9 @@ describe('Jev requests and coordinates', () => {
             }
           : { ...jevConfig, intent, slot: intent },
     };
-    const runtime = resolveModelForTask(configs, 'insight', 'extract');
+    const runtime = resolveModelForTaskType(configs, 'insight', 'extract');
     const result = await AiExtractElementInfo({
+      taskType: 'extract',
       dataQuery: 'extract text',
       context: await context(),
       modelRuntime: runtime,
@@ -401,10 +611,10 @@ describe('Jev requests and coordinates', () => {
     expect(result.usage).toMatchObject({
       slot: 'default',
       model_name: 'default-model',
-      modelRouting: {
+      modelFallback: {
         requestedSlot: 'insight',
         requestedModel: 'jev-1.14.0',
-        task: 'extract',
+        taskType: 'extract',
       },
     });
     expect(
@@ -416,12 +626,13 @@ describe('Jev requests and coordinates', () => {
       .spyOn(globalThis, 'fetch')
       .mockImplementation(() => new Promise(() => {}));
     await expect(
-      callAI([], getModelRuntime({ ...jevConfig, timeout: 10 }), {
-        systemOneRequest: {
+      callSystemOneAI(
+        {
           state: {},
           questions: { result: { type: 'noul', instructions: 'true' } },
         },
-      }),
+        getModelRuntime({ ...jevConfig, timeout: 10 }),
+      ),
     ).rejects.toThrow();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -430,13 +641,14 @@ describe('Jev requests and coordinates', () => {
     const controller = new AbortController();
     controller.abort();
     await expect(
-      callAI([], getModelRuntime(jevConfig), {
-        abortSignal: controller.signal,
-        systemOneRequest: {
+      callSystemOneAI(
+        {
           state: {},
           questions: { result: { type: 'noul', instructions: 'true' } },
         },
-      }),
+        getModelRuntime(jevConfig),
+        { abortSignal: controller.signal },
+      ),
     ).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -482,12 +694,22 @@ describe('Jev requests and coordinates', () => {
 });
 
 describe('Jev planning', () => {
-  const planningResponse = (action: string, direction = 'down') =>
+  const planningResponse = (action: string) =>
     new Response(
       JSON.stringify({
         answers: {
-          action: { type: 'choice', choice: action },
-          direction: { type: 'choice', choice: direction },
+          action: {
+            type: 'choice',
+            choice: action.includes(':')
+              ? action
+              : action === 'Complete'
+                ? 'control:complete'
+                : action === 'Delegate'
+                  ? 'control:delegate'
+                  : ['Scroll', 'Sleep'].includes(action)
+                    ? `delegate:${action}`
+                    : `action:${action}`,
+          },
         },
         usage: { input_tokens: 100, output_tokens: 10 },
       }),
@@ -501,7 +723,6 @@ describe('Jev planning', () => {
     return {
       context: await context(),
       modelRuntime,
-      locateModelRuntime: getModelRuntime(jevConfig),
       conversationHistory: new ConversationHistory(),
       actionSpace: [
         defineActionTap(async () => {}),
@@ -512,12 +733,79 @@ describe('Jev planning', () => {
       effort: 'balance' as const,
     };
   }
-  it.each(['Tap', 'Scroll', 'Sleep', 'Complete'])(
+  it.each([true, false])(
+    'includes target coordinates only when enabled (%s)',
+    async (includeLocateInPlanning) => {
+      const fetchMock = rs.spyOn(globalThis, 'fetch').mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              answers: {
+                action: { type: 'choice', choice: 'action:Tap' },
+                target: goodResult.answers.target,
+              },
+            }),
+          ),
+      );
+      const opts = { ...(await options()), includeLocateInPlanning };
+      const result = await jevPlan(
+        { text: 'Submit the form', referenceImages: [] },
+        opts,
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+      expect(body.questions.target?.type).toBe(
+        includeLocateInPlanning ? 'box' : undefined,
+      );
+      expect(result.actions?.[0]?.param.locate.locatedPixelResult).toEqual(
+        includeLocateInPlanning
+          ? {
+              center: [400, expect.closeTo(150)],
+              rect: { left: 200, top: 100, width: 400, height: 100 },
+            }
+          : undefined,
+      );
+    },
+  );
+
+  it('ignores the returned target when the task is complete', async () => {
+    rs.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            answers: {
+              action: { type: 'choice', choice: 'control:complete' },
+              target: goodResult.answers.target,
+            },
+          }),
+        ),
+    );
+    const result = await jevPlan(
+      { text: 'Submit the form', referenceImages: [] },
+      { ...(await options()), includeLocateInPlanning: true },
+    );
+    expect(result.actions).toEqual([]);
+    expect(result.finalizeSuccess).toBe(true);
+  });
+
+  it('rejects a missing target for a direct single-target action', async () => {
+    rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+      planningResponse('Tap'),
+    );
+    await expect(
+      jevPlan(
+        { text: 'Submit the form', referenceImages: [] },
+        { ...(await options()), includeLocateInPlanning: true },
+      ),
+    ).rejects.toThrow('Missing or invalid Jev answer: target');
+  });
+
+  it.each(['Tap', 'Complete'])(
     'plans %s without a general model',
     async (action) => {
       const fetchMock = rs
         .spyOn(globalThis, 'fetch')
-        .mockImplementation(async () => planningResponse(action, 'left'));
+        .mockImplementation(async () => planningResponse(action));
       const opts = await options();
       opts.conversationHistory.pendingFeedbackMessage =
         'Previous tap succeeded';
@@ -530,27 +818,47 @@ describe('Jev planning', () => {
       expect(result.actions?.[0]?.type).toBe(
         action === 'Complete' ? undefined : action,
       );
-      if (action === 'Tap' || action === 'Scroll') {
+      if (action === 'Tap') {
         expect(result.actions?.[0]?.param.locate.prompt).toContain(
           'Previous tap succeeded',
         );
         expect(result.actions?.[0]?.param.locate.bbox).toBeUndefined();
       }
-      if (action === 'Scroll') {
-        expect(result.actions?.[0]?.param.direction).toBe('left');
-      }
       expect(opts.conversationHistory.pendingFeedbackMessage).toBe('');
       expect(result.usage?.slot).toBe('planning');
     },
   );
-  it.each(['Delegate', 'Tap'])(
-    'delegates %s with the same goal and history',
+  it.each(['Tap'])(
+    'keeps %s planning independent of the Locate model',
+    async (action) => {
+      rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+        planningResponse(action),
+      );
+      const getDefaultModelRuntime = rs.fn(() =>
+        getModelRuntime(defaultConfig),
+      );
+      const result = await jevPlan(
+        { text: 'Submit the form', referenceImages: [] },
+        {
+          ...(await options()),
+          getDefaultModelRuntime,
+        },
+      );
+      expect(getDefaultModelRuntime).not.toHaveBeenCalled();
+      expect(result.actions?.[0]?.type).toBe(action);
+      expect(result.actions?.[0]?.param.locate.prompt).toContain(
+        'Submit the form',
+      );
+    },
+  );
+  it.each(['Delegate', 'Scroll', 'Sleep'])(
+    'returns delegation for %s without calling the default planner',
     async (action) => {
       rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
         planningResponse(action),
       );
       const opts = await options();
-      const fallback = rs.fn(async () => ({
+      const fallback = rs.fn(async (_instruction: unknown, _options: any) => ({
         actions: [],
         log: 'default planning',
         shouldContinuePlanning: false,
@@ -569,31 +877,198 @@ describe('Jev planning', () => {
       });
       const instruction = { text: 'Type a greeting', referenceImages: [] };
       opts.conversationHistory.pendingFeedbackMessage = 'Input is empty';
-      const result = await jevPlan(instruction, {
+      const planOptions = {
         ...opts,
-        locateModelRuntime: base,
+        planningAdvice: 'Old planning advice',
         getDefaultModelRuntime,
+      };
+      const decision = await jevPlan(instruction, planOptions);
+      expect(fallback).not.toHaveBeenCalled();
+      expect(decision.log).toContain('Jev selected');
+      expect(decision.actions).toEqual([]);
+      expect(decision.shouldContinuePlanning).toBe(true);
+      expect(decision.delegation).toMatchObject({
+        suggestedAction: action === 'Delegate' ? undefined : action,
       });
-      expect(result.log).toBe('default planning');
-      expect(fallback).toHaveBeenCalledWith(
-        instruction,
-        expect.objectContaining({
-          conversationHistory: opts.conversationHistory,
-          includeLocateInPlanning: false,
-          modelRuntime: expect.objectContaining({
-            config: expect.objectContaining({
-              slot: 'default',
-              intent: 'planning',
-            }),
-            modelRouting: expect.objectContaining({ task: 'planning' }),
-          }),
-        }),
-      );
       expect(opts.conversationHistory.pendingFeedbackMessage).toBe(
         'Input is empty',
       );
     },
   );
+  it('uses locator metadata for a custom direct action', async () => {
+    rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+      planningResponse('action:CustomTap'),
+    );
+    const opts = await options();
+    const result = await jevPlan(
+      { text: 'Select the item', referenceImages: [] },
+      {
+        ...opts,
+        actionSpace: [
+          { ...defineActionTap(async () => {}), name: 'CustomTap' },
+        ],
+      },
+    );
+    expect(result.actions?.[0]?.type).toBe('CustomTap');
+    expect(result.actions?.[0]?.param.locate.prompt).toContain('CustomTap');
+    expect(result.actions?.[0]?.param.locate.prompt).toContain(
+      'Select the item',
+    );
+  });
+
+  it('rejects direct actions that require generated text parameters', async () => {
+    rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+      planningResponse('action:CustomInput'),
+    );
+    const call = rs.fn();
+    await expect(
+      jevPlan(
+        { text: 'Enter a greeting', referenceImages: [] },
+        {
+          ...(await options()),
+          actionSpace: [
+            {
+              name: 'CustomInput',
+              supportedBySystemOne: true,
+              paramSchema: z.object({ value: z.string() }),
+              call,
+            },
+          ],
+        },
+      ),
+    ).rejects.toThrow(/value/);
+    expect(call).not.toHaveBeenCalled();
+  });
+
+  it('accepts 253 actions plus two control choices', async () => {
+    const fetchMock = rs
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => planningResponse('action:Custom252'));
+    const getDefaultModelRuntime = rs.fn();
+    const result = await jevPlan(
+      { text: 'Continue', referenceImages: [] },
+      {
+        ...(await options()),
+        actionSpace: Array.from({ length: 253 }, (_, i) => ({
+          name: `Custom${i}`,
+          supportedBySystemOne: true,
+          call: async () => {},
+        })),
+        getDefaultModelRuntime,
+      },
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(Object.keys(body.questions.action.criteria)).toHaveLength(255);
+    expect(result.actions).toEqual([{ type: 'Custom252', param: {} }]);
+    expect(getDefaultModelRuntime).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized action spaces without calling either model', async () => {
+    const fetchMock = rs.spyOn(globalThis, 'fetch');
+    const opts = await options();
+    const getDefaultModelRuntime = rs.fn(() => getModelRuntime(defaultConfig));
+    await expect(
+      jevPlan(
+        { text: 'Continue', referenceImages: [] },
+        {
+          ...opts,
+          actionSpace: Array.from({ length: 254 }, (_, i) => ({
+            name: `Custom${i}`,
+            call: async () => {},
+          })),
+          getDefaultModelRuntime,
+        },
+      ),
+    ).rejects.toThrow('Jev planning supports at most 253 actions');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getDefaultModelRuntime).not.toHaveBeenCalled();
+  });
+
+  it('maps custom actions without colliding with control options', async () => {
+    const fetchMock = rs
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () =>
+        planningResponse('action:control:complete'),
+      );
+    const opts = await options();
+    const result = await jevPlan(
+      { text: 'Run custom action', referenceImages: [] },
+      {
+        ...opts,
+        actionSpace: [
+          {
+            name: 'control:complete',
+            supportedBySystemOne: true,
+            call: async () => {},
+          },
+          { name: 'Input', call: async () => {} },
+          { name: 'Complete', call: async () => {} },
+        ],
+      },
+    );
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(Object.keys(body.questions.action.criteria)).toEqual([
+      'control:complete',
+      'control:delegate',
+      'action:control:complete',
+      'delegate:Input',
+      'delegate:Complete',
+    ]);
+    expect(body.questions.direction).toBeUndefined();
+    expect(result.actions?.[0]).toEqual({
+      type: 'control:complete',
+      param: {},
+    });
+    expect(result.shouldContinuePlanning).toBe(true);
+  });
+
+  it('returns a custom action name as a delegation suggestion', async () => {
+    rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+      planningResponse('delegate:CustomInput'),
+    );
+    const opts = await options();
+    const base = getModelRuntime(defaultConfig);
+    const fallback = rs.fn(
+      async (_instruction: unknown, _options: unknown) => ({
+        actions: [],
+        log: 'Default planner completed the task',
+        shouldContinuePlanning: false,
+        finalizeSuccess: true,
+        finalizeMessage: 'done',
+      }),
+    );
+    const actionSpace = [
+      {
+        name: 'CustomInput',
+        description: 'Type a greeting',
+        call: async () => {},
+      },
+    ];
+    const instruction = { text: 'Enter Hello World', referenceImages: [] };
+    const planOptions = {
+      ...opts,
+      actionSpace,
+      actionContext: 'Existing context',
+      getDefaultModelRuntime: () => ({
+        ...base,
+        adapter: {
+          ...base.adapter,
+          planning: {
+            ...base.adapter.planning,
+            kind: 'custom' as const,
+            planFn: fallback,
+          },
+        },
+      }),
+    };
+    const decision = await jevPlan(instruction, planOptions);
+    expect(fallback).not.toHaveBeenCalled();
+    expect(decision.delegation?.suggestedAction).toBe('CustomInput');
+    expect(decision.actions).toEqual([]);
+    expect(decision.shouldContinuePlanning).toBe(true);
+  });
+
   it('rejects an action outside the offered choices without delegation', async () => {
     rs.spyOn(globalThis, 'fetch').mockImplementation(async () =>
       planningResponse('Input'),

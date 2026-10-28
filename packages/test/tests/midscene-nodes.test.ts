@@ -51,6 +51,225 @@ const testAgentClass = {
 };
 
 describe('createMidsceneNodes', () => {
+  it('routes namespaced YAML Nodes to separate Agents without changing their definitions', async () => {
+    const originalNames = commonAgentTestRunnerNodeDefinitions.map(
+      (node) => node.name,
+    );
+    const mobile = commonAgent();
+    const web = commonAgent();
+    const getMobile = vi.fn(() => mobile);
+    const getWeb = vi.fn(() => web);
+    const registry = new NodeRegistry([
+      ...createMidsceneNodes({
+        namespace: 'mobile',
+        agentClass: testAgentClass,
+        getAgent: getMobile,
+      }),
+      ...createMidsceneNodes({
+        namespace: 'web',
+        agentClass: testAgentClass,
+        getAgent: getWeb,
+      }),
+    ]);
+
+    expect(getMobile).not.toHaveBeenCalled();
+    expect(getWeb).not.toHaveBeenCalled();
+    expect(registry.get('aiAct')).toBeUndefined();
+    expect(registry.get('wait')).toBeUndefined();
+    expect(
+      commonAgentTestRunnerNodeDefinitions.map((node) => node.name),
+    ).toEqual(originalNames);
+    expect(
+      createMidsceneNodes({
+        agentClass: testAgentClass,
+        getAgent: getMobile,
+      }).map((node) => node.name),
+    ).toEqual([...originalNames, 'wait']);
+
+    const result = await runCollectedCase(
+      collected(
+        normalizeSteps(
+          load(`
+- mobile.aiAct: Create a Todo
+- web.aiTap: the completion checkbox
+- mobile.wait:
+    duration: 1
+`),
+          registry.require.bind(registry),
+        ),
+      ),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.status).toBe('success');
+    expect(mobile.aiAct).toHaveBeenCalledWith(
+      'Create a Todo',
+      expect.any(Object),
+    );
+    expect(web.aiTap).toHaveBeenCalledWith(
+      'the completion checkbox',
+      undefined,
+    );
+    expect(mobile.aiTap).not.toHaveBeenCalled();
+    expect(web.aiAct).not.toHaveBeenCalled();
+    expect(getMobile).toHaveBeenCalledOnce();
+    expect(getWeb).toHaveBeenCalledOnce();
+    const spec = renderNodeSpec(registry.definitions()).markdown;
+    expect(spec).toContain('### `mobile.aiAct`');
+    expect(spec).toContain('### `web.aiTap`');
+    expect(spec).toContain('### `mobile.wait`');
+  });
+
+  it('supports a dot-separated namespace with an AgentProvider', async () => {
+    const agent = commonAgent();
+    const getAgent = vi.fn((_runId: string) => agent);
+    const releaseAgent = vi.fn(async (_runId: string) => undefined);
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        namespace: 'checkout.mobile',
+        agentClass: testAgentClass,
+        agentProvider: { getAgent, releaseAgent },
+      }),
+    );
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'checkout.mobile.aiAct',
+          input: { prompt: 'Open checkout' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.status).toBe('success');
+    expect(agent.aiAct).toHaveBeenCalledWith(
+      'Open checkout',
+      expect.any(Object),
+    );
+    expect(getAgent).toHaveBeenCalledOnce();
+    expect(releaseAgent).toHaveBeenCalledOnce();
+    expect(releaseAgent.mock.calls[0]).toEqual([getAgent.mock.calls[0][0]]);
+  });
+
+  it.each([
+    null,
+    1,
+    false,
+    '',
+    ' ',
+    ' mobile',
+    'mobile ',
+    'mobile web',
+    '.mobile',
+    'mobile.',
+    'mobile..web',
+  ])(
+    'rejects an invalid namespace %j before acquiring an Agent',
+    (namespace) => {
+      const getAgent = vi.fn(() => commonAgent());
+      expect(() =>
+        createMidsceneNodes({
+          namespace: namespace as string,
+          agentClass: testAgentClass,
+          getAgent,
+        }),
+      ).toThrow(
+        'createMidsceneNodes() namespace must be a non-empty dot-separated string without whitespace.',
+      );
+      expect(getAgent).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, true])(
+    'keeps namespaced execution traces and snapshots separate when failure=%s',
+    async (fail) => {
+      type DumpListener = Parameters<
+        NonNullable<MidsceneUIAgent['addDumpUpdateListener']>
+      >[0];
+      const mobileListeners = new Set<DumpListener>();
+      const webListeners = new Set<DumpListener>();
+      const mobileSnapshot = vi.fn(async () => ({
+        sourcePath: resolve('/tmp/mobile-report.html'),
+        dumpPath: resolve('/tmp/mobile-report.json'),
+      }));
+      const webSnapshot = vi.fn(async () => ({
+        sourcePath: resolve('/tmp/web-report.html'),
+        dumpPath: resolve('/tmp/web-report.json'),
+      }));
+      const mobile = commonAgent({
+        async aiAct() {
+          for (const listener of mobileListeners) {
+            listener('', { id: 'mobile-execution' });
+            listener('', { id: 'mobile-execution' });
+          }
+          if (fail) throw new Error('Mobile action failed');
+          return undefined;
+        },
+        addDumpUpdateListener(listener) {
+          mobileListeners.add(listener);
+          return () => mobileListeners.delete(listener);
+        },
+        _createReportSource: mobileSnapshot,
+      });
+      const web = commonAgent({
+        async aiTap() {
+          for (const listener of webListeners)
+            listener('', { id: 'web-execution' });
+        },
+        addDumpUpdateListener(listener) {
+          webListeners.add(listener);
+          return () => webListeners.delete(listener);
+        },
+        _createReportSource: webSnapshot,
+      });
+      const registry = new NodeRegistry([
+        ...createMidsceneNodes({
+          namespace: 'mobile',
+          agentClass: testAgentClass,
+          getAgent: () => mobile,
+        }),
+        ...createMidsceneNodes({
+          namespace: 'web',
+          agentClass: testAgentClass,
+          getAgent: () => web,
+        }),
+      ]);
+      const result = await runCollectedCase(
+        collected([
+          {
+            node: 'mobile.aiAct',
+            input: { prompt: 'Create a Todo' },
+            meta: { continueOnError: true },
+          },
+          {
+            node: 'web.aiTap',
+            input: { prompt: 'the completion checkbox' },
+            meta: { continueOnError: false },
+          },
+        ]),
+        { resolveNode: registry.require.bind(registry) },
+      );
+
+      expect(result.steps.map((step) => step.status)).toEqual([
+        fail ? 'failed' : 'success',
+        'success',
+      ]);
+      expect(result.steps.map((step) => step.report?.traces)).toEqual([
+        [{ type: 'midscene-execution', executionId: 'mobile-execution' }],
+        [{ type: 'midscene-execution', executionId: 'web-execution' }],
+      ]);
+      expect(mobileSnapshot).toHaveBeenCalledWith(result.runId, [
+        'mobile-execution',
+      ]);
+      expect(webSnapshot).toHaveBeenCalledWith(result.runId, ['web-execution']);
+      expect(mobileListeners.size).toBe(0);
+      expect(webListeners.size).toBe(0);
+      if (fail)
+        expect(result.steps[0].error?.message).toContain('mobile.aiAct');
+    },
+  );
+
   it('continues with the same Agent only after a timed out call has actually finished', async () => {
     vi.useFakeTimers();
     let release!: () => void;

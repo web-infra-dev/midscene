@@ -314,8 +314,6 @@ Midscene 对 Jev 的支持是实验性的。
 
 - 模型供应商：[TypeSafe](https://typesafe.ai/)
 
-**先配置并保留一个通用模型的默认配置（`MIDSCENE_MODEL_*`），再追加下面的 Jev 配置。** Jev 用于 Planning、Locate 和 Insight，无法处理的任务仍由通用默认模型完成。默认模型的配置方式参见[多模型组合](./model-config#multi-model-combination-example)。
-
 复制以下配置，将 Planning、Locate 和 Insight 配置为 Jev：
 
 <ModelConfigCard
@@ -329,11 +327,20 @@ Midscene 对 Jev 的支持是实验性的。
   purposes={['planning', 'locate', 'insight']}
 />
 
+将相应模型职责配置为 Jev 后，各类任务的处理方式如下：
+
+- **定位**：由 Jev 执行元素定位。
+- **Insight**：`aiBoolean`、`aiAssert` 和 `aiWaitFor` 由 Jev 执行判断；`aiQuery`、`aiString`、`aiNumber` 和 `aiAsk` 由通用默认模型处理。
+- **任务规划**：`aiAct` 中，单击、双击、返回等简单动作由 Jev 规划；输入、滚动等复杂动作由默认模型规划。
+
+上述模型选择依据任务所需的能力。Jev 请求失败时，不会自动切换至默认模型。
+
 Jev 使用 TypeSafe 的 System One 协议，不使用 OpenAI 协议。OpenAI 的部分模型配置不适用于 Jev，包括温度、原生思考、响应格式和流式输出等。
 
-:::info 图像输入限制
+:::info 注意事项
 
-Jev 要求输入图像的最长边不超过 1568 像素，因此 Midscene 会对超出限制的图像进行等比缩放，并在定位后将结果映射回原图坐标。不足 280 像素的边会补白。该图像处理逻辑后续可能调整。
+- **请求地址**：使用 Base URL 时，需要包含 `/v1`，例如 `https://api.typesafe.ai/v1`，Midscene 会自动追加 `/systemone`。如果你的接入点未使用 `/systemone` 路径，可以通过对应模型的 Endpoint 配置完整请求地址，例如 `MIDSCENE_LOCATE_MODEL_ENDPOINT="https://example.com/custom/decision"`。Endpoint 优先于 Base URL，Midscene 不会再追加路径。
+- **图像输入限制**：目前 Jev 最新版本支持的图片最长边仅为 1568 像素，需要通过 Agent 的 `screenshotShrinkFactor` 参数控制截图尺寸。为避免多次缩放影响图片质量，并兼容 Jev 未来版本的图片尺寸要求，Midscene 不会按照 Jev 某个版本的尺寸要求自动缩放图片。
 
 :::
 

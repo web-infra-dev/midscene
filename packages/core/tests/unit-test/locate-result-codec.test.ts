@@ -11,6 +11,66 @@ const locateCtx = (width: number, height: number) => ({
 });
 
 describe('createLocateResultCodec', () => {
+  it.each([1, undefined])(
+    'maps edge boxes with normalization %s',
+    (normalizedBy) => {
+      const codec = createLocateResultCodec({
+        coordinates: {
+          shape: 'bbox',
+          boundsType: 'edges',
+          normalizedBy,
+          rounding: 'none',
+        },
+      });
+      expect(
+        codec.toPixelResult(
+          normalizedBy ? [0, 0, 1, 1] : [0, 0, 100, 80],
+          locateCtx(100, 80),
+        ),
+      ).toEqual({
+        center: [50, 40],
+        rect: { left: 0, top: 0, width: 100, height: 80 },
+      });
+      expect(
+        codec.toPixelResult(
+          normalizedBy ? [0.2, 0.1, 0.6, 0.5] : [20, 8, 60, 40],
+          locateCtx(100, 80),
+        ),
+      ).toEqual({
+        center: [40, 24],
+        rect: { left: 20, top: 8, width: 40, height: 32 },
+      });
+    },
+  );
+
+  it('clips edge boxes independently from their click centers', () => {
+    const codec = createLocateResultCodec({
+      coordinates: { shape: 'bbox', boundsType: 'edges', rounding: 'none' },
+    });
+    expect(
+      codec.toPixelResult([40, 20, 100, 80], {
+        preparedSize: { width: 100, height: 80 },
+        contentSize: { width: 60, height: 40 },
+      }),
+    ).toEqual({
+      center: [59, 39],
+      rect: { left: 40, top: 20, width: 20, height: 20 },
+    });
+    expect(() =>
+      codec.toPixelResult([0, 0, 101, 80], locateCtx(100, 80)),
+    ).toThrow(/exceed/);
+  });
+
+  it('preserves inclusive pixel bounds by default', () => {
+    const codec = createLocateResultCodec({ coordinates: { shape: 'bbox' } });
+    expect(
+      codec.toPixelResult([20, 8, 60, 40], locateCtx(100, 80)).rect,
+    ).toEqual({ left: 20, top: 8, width: 41, height: 33 });
+    expect(() =>
+      codec.toPixelResult([0, 0, 100, 80], locateCtx(100, 80)),
+    ).toThrow(/exceed/);
+  });
+
   it.each([undefined, 'invalid'])(
     'rejects custom parser metadata without valid rounding: %s',
     (rounding) => {
