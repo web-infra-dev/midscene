@@ -213,7 +213,7 @@ export abstract class AbstractInterface {
   abstract size(): Promise<Size>;
 
   /** Capture an image and its logical size together when separate reads can drift. */
-  abstract screenshotWithSize?(): Promise<{
+  screenshotWithSize?(): Promise<{
     screenshotBase64: string;
     size: Size;
   }>;
