@@ -93,7 +93,7 @@ cases:
   - name: Add a todo item
     steps:
       - aiAct: Type "Buy milk" into the input box and press enter
-      - aiAssert: "Buy milk" appears in the list
+      - aiAssert: '"Buy milk" appears in the list'
 ```
 
 ---
@@ -173,7 +173,7 @@ cases:
           prompt: Note body input field
           value: Prepare test fixtures
       - back: {}
-      - aiAssert: "Prepare test fixtures" appears in the notes list
+      - aiAssert: '"Prepare test fixtures" appears in the notes list'
 ```
 
 ---
