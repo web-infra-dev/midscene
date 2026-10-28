@@ -26,11 +26,9 @@ describe('execution recording without HTML', () => {
     const reference = fakeBase64(120, 'webp');
     const execution = createExecution([first], 'before', 'selected');
     execution.tasks[0].errorMessage = 'assertion failed';
-    execution.tasks[0].recorder.push({
-      type: 'screenshot',
-      ts: 200,
-      screenshot: frame,
-    });
+    execution.tasks[0].recorder = [
+      { type: 'screenshot', ts: 200, screenshot: frame },
+    ];
     const registered = new ExecutionDump(execution.toJSON(), {
       referenceImageUrls: [reference],
     });

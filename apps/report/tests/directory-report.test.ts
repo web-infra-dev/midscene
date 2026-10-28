@@ -48,9 +48,9 @@ describe('directory report loading', () => {
   it('loads groups, metadata and runner relative to a relocated report', async () => {
     const fetcher = fetchFiles();
     await hydrateDirectoryReport(document, fetcher);
-    const dumps = [
-      ...document.querySelectorAll('script[type="midscene_web_dump"]'),
-    ];
+    const dumps = Array.from(
+      document.querySelectorAll('script[type="midscene_web_dump"]'),
+    );
     expect(dumps).toHaveLength(2);
     expect(JSON.parse(dumps[0].textContent!)).toEqual(files['data/run/1.json']);
     expect(
