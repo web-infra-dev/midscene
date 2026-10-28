@@ -49,6 +49,9 @@ export default defineConfig(async () => {
   });
   return {
     root: path.join(__dirname, 'docs'),
+    route: {
+      cleanUrls: true,
+    },
     title: 'Midscene.js - AI UI Automation and E2E Testing',
     description:
       'Bring AI vision to E2E testing with a newly designed test framework for web, mobile, and desktop apps.',
@@ -183,7 +186,7 @@ export default defineConfig(async () => {
             link: '/quick-start',
           },
           {
-            text: 'Create a test project',
+            text: 'Start with Midscene Test',
             link: '/midscene-test/use',
           },
           {
@@ -248,20 +251,46 @@ export default defineConfig(async () => {
             link: '/midscene-test/overview',
           },
           {
-            text: 'Create and run test projects',
-            link: '/midscene-test/use',
+            text: 'Getting started',
+            collapsible: true,
+            collapsed: false,
+            items: [
+              {
+                text: 'Create a test project',
+                link: '/midscene-test/use',
+              },
+              {
+                text: 'Write YAML cases',
+                link: '/midscene-test/writing',
+              },
+              {
+                text: 'Built-in Nodes across platforms',
+                link: '/midscene-test/builtin-nodes',
+              },
+              {
+                text: 'Run tests',
+                link: '/midscene-test/running',
+              },
+            ],
           },
           {
-            text: 'Configure test projects',
-            link: '/midscene-test/configuration',
-          },
-          {
-            text: 'Develop custom Nodes',
-            link: '/midscene-test/extend',
-          },
-          {
-            text: 'Run in GitHub Actions',
-            link: '/midscene-test/github-actions',
+            text: 'Configure and extend',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: 'Configure test projects',
+                link: '/midscene-test/configuration',
+              },
+              {
+                text: 'Develop custom Nodes',
+                link: '/midscene-test/extend',
+              },
+              {
+                text: 'Lifecycle and concurrency',
+                link: '/midscene-test/execution',
+              },
+            ],
           },
           {
             sectionHeaderText: 'JavaScript SDK',
@@ -412,7 +441,7 @@ export default defineConfig(async () => {
             link: '/zh/quick-start',
           },
           {
-            text: '创建测试项目',
+            text: '创建 Midscene Test E2E 项目',
             link: '/zh/midscene-test/use',
           },
           {
@@ -477,20 +506,46 @@ export default defineConfig(async () => {
             link: '/zh/midscene-test/overview',
           },
           {
-            text: '创建与运行测试工程',
-            link: '/zh/midscene-test/use',
+            text: '开始使用',
+            collapsible: true,
+            collapsed: false,
+            items: [
+              {
+                text: '创建测试项目',
+                link: '/zh/midscene-test/use',
+              },
+              {
+                text: '编写 YAML 用例',
+                link: '/zh/midscene-test/writing',
+              },
+              {
+                text: '各平台预置 Node',
+                link: '/zh/midscene-test/builtin-nodes',
+              },
+              {
+                text: '运行测试',
+                link: '/zh/midscene-test/running',
+              },
+            ],
           },
           {
-            text: '配置测试工程',
-            link: '/zh/midscene-test/configuration',
-          },
-          {
-            text: '开发自定义 Node',
-            link: '/zh/midscene-test/extend',
-          },
-          {
-            text: '在 GitHub Actions 中运行',
-            link: '/zh/midscene-test/github-actions',
+            text: '配置与扩展',
+            collapsible: true,
+            collapsed: true,
+            items: [
+              {
+                text: '配置测试工程',
+                link: '/zh/midscene-test/configuration',
+              },
+              {
+                text: '开发自定义 Node',
+                link: '/zh/midscene-test/extend',
+              },
+              {
+                text: '生命周期与并发',
+                link: '/zh/midscene-test/execution',
+              },
+            ],
           },
           {
             sectionHeaderText: 'JavaScript SDK',

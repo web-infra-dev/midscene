@@ -1,0 +1,217 @@
+# 生命周期与并发
+
+## 项目生命周期
+
+### setup、fileSetup 与 beforeAll
+
+三者按 `setup → fileSetup → beforeAll → 用例` 的顺序依次执行，未配置的环节会自动跳过：
+
+| 配置项 | 声明位置 | 执行次数 | 主要用途 |
+| --- | --- | --- | --- |
+| `setup` | 项目配置（`midscene.config.ts`） | 每个执行项目（Project）运行一次 | 准备项目级共享资源（例如共享的 Browser 进程） |
+| `fileSetup` | 项目配置（`midscene.config.ts`） | 每个 YAML 文件运行一次 | 创建文件独占的页面与 Agent，返回供 Node 使用的 `context` |
+| `beforeAll` | YAML 文件 | 每个 YAML 文件的所有用例开始前运行一次 | 使用已就绪的 `context` 完成登录、准备本文件共用的测试数据等 |
+
+例如，当一个执行项目包含两份 YAML 文件时，`setup` 只会执行 1 次，而 `fileSetup` 和 `beforeAll` 会各执行 2 次（开启并发不会改变它们的执行次数）。
+
+`fileSetup` 只需在项目配置中声明一次，即可自动作用于该项目下的所有 YAML 文件；而 `beforeAll` 则由各 YAML 文件按需声明。虽然自定义 Node 也可以在 `beforeAll` 中创建资源并写入 `context`，但框架不会为 `beforeAll` 自动隔离出独立的文件级 `context`（若未配置 `fileSetup`，该项目下的所有文件仍会共用 `setup` 返回的同一个 `context` 对象）。
+
+### YAML 中的生命周期钩子 {#yaml-中的生命周期钩子}
+
+生命周期钩子用于在用例执行前后准备环境、重置状态或清理数据。四个钩子均为可选配置，与 `cases` 处于同一层级，内部步骤的写法与用例 `steps` 完全相同：
+
+| 钩子 | 执行时机 | 常见用途 |
+| --- | --- | --- |
+| `beforeAll` | 当前 YAML 文件的所有用例开始前执行一次 | 准备当前文件所有用例共用的测试数据 |
+| `beforeEach` | 每条用例每次执行前运行（包括重试） | 打开起始页面、重置界面或业务状态 |
+| `afterEach` | 每条用例每次执行后运行（无论成败或重试） | 清理当次用例执行产生的数据或状态 |
+| `afterAll` | 当前 YAML 文件的所有用例结束后执行一次 | 清理当前文件所有用例共用的测试数据 |
+
+在下面的 Web 示例中，每条用例开始前都会打开商城首页，结束后清除 Cookie。其中 `data.prepare` 和 `data.cleanup` 是团队自行实现并注册的自定义 Node，分别用于准备和清理测试商品；`gotoUrl`、`clearCookies`、`aiAct` 和 `aiAssert` 则是 Web 脚手架默认注册的官方 Node：
+
+```yaml filename=cases/search.yaml
+beforeAll:
+  - data.prepare: 准备马克杯和水壶两种测试商品
+
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
+cases:
+  - name: 搜索马克杯
+    steps:
+      - aiAct: 搜索马克杯
+      - aiAssert: 搜索结果中包含马克杯
+
+  - name: 搜索水壶
+    steps:
+      - aiAct: 搜索水壶
+      - aiAssert: 搜索结果中包含水壶
+
+afterEach:
+  - clearCookies: {}
+
+afterAll:
+  - data.cleanup: 删除本文件准备的测试商品
+```
+
+### 项目、文件与用例的生命周期
+
+通过 CLI 或 `runTestProject()` 运行测试时，每个执行项目都拥有完整的独立生命周期。下图展示了一个包含两份 YAML 文件的执行项目在串行模式下的完整执行顺序（未声明的 YAML 钩子会自动跳过）：
+
+```text
+执行项目开始
+├─ setup → 返回项目级共享 context
+├─ 文件 A
+│  ├─ fileSetup（如有配置）→ 返回文件级 context
+│  ├─ beforeAll
+│  ├─ 用例 1：beforeEach → steps → afterEach → 本次尝试注册的 Node 清理
+│  ├─ 用例 2：beforeEach → steps → afterEach → 本次尝试注册的 Node 清理
+│  ├─ afterAll
+│  └─ 文件级 Node 清理 → fileSetup 中注册的 onTeardown() 清理
+├─ 文件 B
+│  └─ 同样依次执行该文件的 fileSetup、钩子、用例与文件级清理
+└─ 项目级清理：执行项目 setup 中注册的 onTeardown() 清理
+```
+
+其中，`beforeAll` 和 `afterAll` 在每份 YAML 文件中各执行一次；`beforeEach` 和 `afterEach` 则包裹每条用例的每一次执行尝试（attempt）。开启文件并发后，不同文件可以并行推进，但单个文件内部依然严格遵循上述顺序。
+
+当某条用例触发失败重试时，会直接复用当前文件的运行环境，仅重新执行 `beforeEach → steps → afterEach → 本次尝试注册的 Node 清理`，而不会重新运行项目级 `setup`、`fileSetup` 或 `beforeAll`。关于触发重试的条件与失败跳过规则，请参阅下文[失败时如何执行](#失败时如何执行)。
+
+通过 `onTeardown()` 注册的清理函数，其触发时机取决于注册位置：
+
+| 注册位置 | 清理时机 |
+| --- | --- |
+| 项目级 `setup` | 当前执行项目结束时（该项目下所有已执行文件的清理均完成后） |
+| `fileSetup` | 当前文件的 `afterAll` 及文件级 Node 清理完成后 |
+| `beforeAll`、`afterAll` 中的 Node | 当前文件的 `afterAll` 结束后 |
+| `beforeEach`、`steps`、`afterEach` 中的 Node | 当次用例执行的 `afterEach` 结束后（每次重试拥有独立的清理周期） |
+
+同一作用范围内的清理函数按注册顺序的逆序（后进先出）依次执行。如果某个清理函数抛出错误，框架仍会继续执行剩余的清理函数；如果某个清理函数尚未执行完毕，后续清理函数会等待其结束。关于在自定义 Node 中注册清理函数的具体写法，请参阅[资源的生命周期与清理](./extend#资源的生命周期与清理)。
+
+### context 的共享范围
+
+Node 在 `execute({ context })` 中收到的 `context` 取决于项目的配置方式：
+
+| 配置方式 | `context` 的来源 | 共享范围 |
+| --- | --- | --- |
+| 仅配置项目级 `setup` | `setup` 的返回值 | 当前执行项目中的所有 YAML 文件 |
+| 配置了 `fileSetup` | 当前文件调用 `fileSetup` 的返回值 | 当前文件内的所有钩子与用例（包含用例重试） |
+
+在同一个共享范围内，所有 Node 接收到的都是同一个 `context` 对象引用——因此前一条用例写入 `context.orderId` 后，同一范围内的后续用例也能读到该属性。框架不会在用例切换或失败重试时自动重置 `context`、浏览器页面或登录状态；每条用例所需的初始状态应当在 `beforeEach`（或通过 `onTeardown()`）中显式重置。
+
+注意：请务必在 `setup()` 函数体内实例化资源并返回新对象。即使多个执行项目或多个文件复用了同一个 `defineProjectSetup` / `defineFileSetup` 定义，框架也会在每次初始化时分别调用 `setup()`；但如果 `setup()` 直接返回模块顶层的同一个可变对象，不同项目或文件之间仍会意外共享状态。关于跨 Node 传递数据的完整示例，请参阅[跨 Node 共享上下文](./extend#跨-node-共享上下文)。
+
+### 失败时如何执行
+
+不同阶段发生错误时，框架的后续处理策略如下：
+
+| 失败位置 | 后续处理策略 |
+| --- | --- |
+| 项目级 `setup` | 跳过该执行项目的所有文件，并执行该项目已注册的清理函数 |
+| `fileSetup` | 跳过当前文件的所有钩子与用例，并执行该文件已注册的清理函数 |
+| `beforeAll` | 将当前文件的所有用例标记为 `not-run`，跳过正文但仍执行 `afterAll` 与文件级清理 |
+| `beforeEach` 或用例 `steps` | 跳过当前用例尚未执行的剩余步骤，仍执行 `afterEach` 与本次尝试的清理 |
+| `afterEach` 或 `afterAll` | 将错误记录为失败（不会因为处于清理阶段而吞掉错误） |
+
+在任意阶段内部，一旦某个步骤失败，默认会跳过该阶段的剩余步骤（若配置了 [`continue-on-error: true`](./writing#设置超时和错误处理)，则会继续执行同阶段的后续步骤，但最终状态仍记为失败）。由于前置准备步骤可能中途失败，清理逻辑应当具备容错能力，妥善处理“资源只初始化了一半”的情况。
+
+当某条用例执行失败时，默认会继续执行文件中的下一条用例（因此有先后依赖关系的业务步骤应当写在同一个用例中，而不应拆成多条用例）。如果配置了 `test.bail`（失败用例数阈值），当累计失败的用例数达到该阈值后，框架会停止调度新的用例和重试，并在当前正在执行的尝试清理完毕后收尾退出。
+
+当底层资源发生故障，或已注册的清理函数执行失败、超时未退出时，当前文件会立即停止后续重试与剩余用例。此时其他文件能否继续运行，取决于故障资源的共享范围：
+
+| 故障情形 | 影响范围 |
+| --- | --- |
+| 文件独占的设备或浏览器发生故障，且操作与清理均已退出 | 若配置了 `fileSetup`，同一项目下的其他独立文件可以继续执行（仍受 `bail` 阈值约束） |
+| 显式标记为项目级共享资源故障（`PROJECT_RESOURCE_ERROR`） | 立即停止该执行项目下的其余文件；若未配置 `fileSetup`，任何资源故障或清理异常均按项目级故障处理 |
+| 底层异步操作超时后仍未退出，或资源清理仍在等待中（`pending`） | 停止启动任何新文件 |
+
+普通的 `afterEach` 步骤失败仅按当前用例失败处理；只要底层操作已正常退出且 `onTeardown()` 清理函数执行完毕，该用例仍可按配置进入下一次重试。但如果发生测试报告写入失败等框架基础设施错误，则会直接中止整次测试运行。
+
+## 并发与资源隔离
+
+Midscene Test 通过两个全局配置项共同控制并发度：
+
+- `maxConcurrentFiles`：整次运行期间允许同时处于活动状态的 YAML 文件总数上限。
+- `maxConcurrentProjects`：整次运行期间允许同时处于活动状态（从开始 `setup` 到清理完毕）的执行项目总数上限。
+
+两个字段省略时默认均为 `1`（彼此独立，不会互相推导）；设为 `null` 表示不限制该项，设为数字时必须为正整数。常见组合的效果如下：
+
+| `test` 并发配置 | 实际调度方式 |
+| --- | --- |
+| 省略（默认） | 逐个执行项目串行运行，每个项目内逐个文件串行执行 |
+| `{ maxConcurrentFiles: 4 }` | 每次只运行 1 个执行项目，但该项目内最多同时并发执行 4 份文件 |
+| `{ maxConcurrentProjects: 2 }` | 全局每次仍只执行 1 份文件，但允许最多 2 个执行项目同时保持已初始化的运行环境 |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: 1 }` | 逐个执行项目串行运行，不设全局文件并发上限（受项目自身的 `maxConcurrentFiles` 约束） |
+| `{ maxConcurrentFiles: null, maxConcurrentProjects: null }` | 不设全局文件与项目上限，仅受各项目自身的 `maxConcurrentFiles` 及机器实际资源约束 |
+
+注意：并发调度基于单个 Node.js 进程内的异步并发。仅调高 `maxConcurrentProjects` 并不会提升文件并发数；同时，并发度也并非越高越快，实际配置时需综合考虑机器内存、浏览器实例开销、物理设备数量以及大模型 API 的并发限流（QPM/TPM）。
+
+### 使用 maxConcurrentFiles 开启文件并发
+
+与文件并发相关的完整配置项如下：
+
+| 配置项 | 含义 |
+| --- | --- |
+| `test.maxConcurrentFiles` | 所有执行项目合计的全局活动文件上限，默认为 `1`，`null` 表示不限制 |
+| `test.maxConcurrentProjects` | 同时处于活动状态的执行项目上限，默认为 `1`，`null` 表示不限制 |
+| `projects[].maxConcurrentFiles` | 当前执行项目的文件并发上限（正整数）；省略时沿用全局文件上限，且实际并发数不会超过全局上限 |
+| `projects[].fileSetup` | 为每份文件创建独立运行环境；当项目的有效文件并发上限大于 `1`（含 `null`）时**必须配置**，即便当前只匹配到一份文件 |
+
+例如，当配置了 `test: { maxConcurrentFiles: 3, maxConcurrentProjects: 2 }`，且 Web 与 Android 两个项目的 `maxConcurrentFiles` 均设为 `2` 时，调度器同一时刻可以运行“2 份 Web 文件 + 1 份 Android 文件”或“1 份 Web 文件 + 2 份 Android 文件”——全局活动文件总数始终不超过 `3`（项目数不会与全局文件上限相乘）。
+
+并发名额（Slot）的占用与释放遵循以下规则：
+
+- **文件名额**：每份文件从开始执行 `fileSetup`（含等待设备分配）起，历经用例执行与重试，直到文件级清理彻底完成为止，全程占用 1 个文件名额。
+- **项目启动**：启动一个新执行项目时，调度器会先同时申请 1 个项目名额和首份文件的 1 个文件名额，随后执行项目级 `setup`；该项目下的其余文件在 `setup` 完成前处于等待状态，不提前占用文件名额。多个已就绪的项目会轮流领取文件名额。
+- **项目释放**：执行项目在最后一份文件完成自身清理并执行完项目级清理后，才会释放其占用的项目名额（及最后一个文件名额）。因此，当 `maxConcurrentProjects: 1` 时，必须等前一个项目彻底清理完毕才会启动下一个项目；而当 `maxConcurrentProjects > 1` 且 `maxConcurrentFiles: 1` 时，不同项目的文件可以在各自已就绪的项目环境之间交错执行。
+- **中断收尾**：触发取消或达到 `bail` 阈值后，已初始化但当前没有活动文件的项目也会在全局文件上限约束下依次执行项目级清理。
+
+### 从旧版并发配置迁移
+
+旧版配置项 `test.maxConcurrency` 已移除（加载含该字段的配置会直接报错并提示迁移方式）。由于旧版的 `maxConcurrency` 控制的是项目级并发，迁移时不能简单将其改名为 `maxConcurrentFiles`。例如，若要保留旧版 `maxConcurrency: 2`（两个项目并发、但每个项目内部文件串行）的行为，应配置为：
+
+```ts
+test: {
+  maxConcurrentProjects: 2,
+  maxConcurrentFiles: 2,
+}
+// 同时将各执行项目的 projects[].maxConcurrentFiles 设为 1
+```
+
+补充说明：
+
+- `fileSetup`、`projects[].maxConcurrentFiles` 以及准备/清理超时均可独立配置，无需显式声明全局并发字段。当项目的有效文件并发上限为 `1` 时，`fileSetup` 可以省略，所有文件直接共用项目级 `setup` 返回的环境。
+- 多个执行项目之间**不会自动分片（Shard）均分用例**：如果同一份 YAML 文件同时被两个执行项目匹配选中，它会在两个项目中分别完整执行一次。如需将用例分批交由不同项目运行，请配置互不重叠的 `files` 或 `tags` 规则。
+- 旧版 `tasks/flow` 格式的 YAML 脚本仍通过 `midscene` 命令运行，其原有的 `concurrent` / `--concurrent` 参数、前置 setup 脚本和浏览器复用行为保持不变，与 Midscene Test 的 `setup` / `fileSetup` 机制互不影响。迁移指南请参阅[迁移到 Midscene Test](../migrate-to-midscene-test)。
+
+## 超时与取消机制
+
+### 超时配置
+
+Midscene Test 提供三个维度的超时控制：
+
+| 配置项 | 控制范围 | 默认值 |
+| --- | --- | --- |
+| `test.testTimeout` | 单个步骤的执行超时（可被步骤内的 `$.timeout` 覆盖） | `120000` ms |
+| `test.setupTimeout` | 单次项目级 `setup` 或文件级 `fileSetup` 的超时（包含等待设备分配的时间） | `120000` ms |
+| `test.teardownTimeout` | 单个清理范围的超时（包含清理钩子、等待超时操作退出及 `onTeardown()` 回调） | `30000` ms |
+
+即使未开启并发，上述超时限制依然生效。当整次运行因用户取消或达到 `bail` 阈值而中止时，所有剩余的清理范围将共用一个基于 `teardownTimeout` 的收尾时限。
+
+### 取消与清理
+
+当单个步骤超时，或 CLI 收到 `SIGINT`（如 Ctrl+C）/ `SIGTERM` 信号时，框架会触发当前步骤的 `signal`（`AbortSignal`）。由于 JavaScript 中的异步操作不会自动强行终止，自定义 Node 需要将 `signal` 透传给支持取消的底层 API，或在循环中主动检查取消状态，详见[异步操作、错误与取消](./extend#异步操作、错误与取消)。
+
+测试运行被中断后，框架仍会尽力完成资源清理：
+
+- `afterEach` 和 `afterAll` 钩子中的 Node 会收到一个尚未取消的独立清理 `signal`（依然受步骤超时约束），并且会等待同一个 Agent 上尚未退出的旧操作结束后再执行，避免并发操作冲突。
+- 通过 `onTeardown()` 注册的清理函数不接收 `signal` 参数；请勿在 `onTeardown()` 回调中复用原步骤的 `signal`（因为原步骤的 `signal` 此时可能已处于取消状态）。
+
+需要注意，超时配置仅限制框架等待结果的时长。如果超时发生后底层的操作或清理仍未真正退出，框架会在报告中记录 `cleanup pending` 并继续跟踪该资源，直到操作实际结束后再释放，同时停止启动任何新的测试文件。
+
+## 使用注意事项
+
+- **按需选择初始化层级**：没有跨文件共享资源时，可以只配置 `fileSetup`；文件串行执行（有效文件并发上限为 `1`）时，可以省略 `fileSetup`，让所有文件共用项目级 `setup` 返回的环境。
+- **开启文件并发必须隔离资源**：一旦项目的有效文件并发上限大于 `1`（包含 `null`），就必须配置 `fileSetup`。每个并发文件应使用独立的页面、Agent 和设备，测试涉及的后端账号与业务数据也需做好隔离。
+- **失败重试不会重跑外层初始化**：用例重试期间不会重新执行 `setup`、`fileSetup` 和 `beforeAll`；每次尝试依赖的初始状态应在 `beforeEach` 中重置。
+- **创建资源后立即注册清理**：每当创建了浏览器、设备连接或测试数据，应立即调用 `onTeardown()` 登记清理逻辑，并确保清理函数能妥善处理初始化中途失败的情况。
