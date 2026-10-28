@@ -63,7 +63,7 @@ Midscene Test 注入了 Midscene GUI Agent 上的能力：`aiAct` 根据自然�
 - **Web**：`gotoUrl` 打开网页、`setCookies` 设置 Cookie、`setViewportSize` 调整浏览器视口大小。
 - **Android**：`launch` 启动应用、`back` 返回上一页、`home` 返回主屏幕、`runAdbShell` 执行 ADB 命令。
 
-使用脚手架创建项目时，模板会根据所选平台显式注册对应的官方 Node。如果从零手写 `midscene.config.ts`，框架不会默认注册任何 Node，需要手动引入并配置。此外，你也可以按需扩展自定义能力（例如调用业务接口准备测试订单），详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
+使用脚手架创建项目时，模板会根据所选平台显式注册对应的官方 Node。如果从零手写 `midscene.config.ts`，框架不会默认注册任何 Node，需要手动引入并配置。各平台支持的官方预置 Node 列表与参数说明，请参阅[各平台预置 Node](./builtin-nodes)。此外，你也可以按需扩展自定义能力（例如调用业务接口准备测试订单），详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
 
 ### 常用 Node
 

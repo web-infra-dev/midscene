@@ -226,7 +226,7 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 
 调用 `createMidsceneNodes()` 时需传入两个核心参数：
 
-- `agentClass`：指定平台对应的 Agent 类（必须实现 `getTestRunnerNodeDefinitions()`，否则会在注册阶段报错）。传入 `PlaywrightAgent`、`PuppeteerAgent`、`AndroidAgent`、`IOSAgent` 或 `HarmonyAgent`（及其 Page/Browser 变体）时，会同时导出通用 AI Node（如 `aiAct`、`aiAssert`、数据提取、视觉定位等）、内置 `wait` Node 以及该平台专属的操作 Node；而基础 `Agent` 和 `ComputerAgent` 则提供通用 AI Node 与 `wait`。
+- `agentClass`：指定平台对应的 Midscene GUI Agent 类（必须实现 `getTestRunnerNodeDefinitions()`，否则会在注册阶段报错）。传入 `PlaywrightAgent`、`PuppeteerAgent`、`AndroidAgent`、`IOSAgent` 或 `HarmonyAgent`（及其 Page/Browser 变体）时，会同时导出通用 AI Node（如 `aiAct`、`aiAssert`、数据提取、视觉定位等）、内置 `wait` Node 以及该平台专属的操作 Node；而基础 `Agent` 和 `ComputerAgent` 则提供通用 AI Node 与 `wait`。
 - `getAgent`：声明在步骤执行期间如何从当前 `context` 中获取 Agent 实例（`context` 的具体字段结构由你自行定义）。
 
 在 Android、iOS 等移动端平台接入 Agent 时，请注意 `Device` 的生命周期约束：每个 `Device` 实例只能绑定给一个 `Agent`，调用 `Agent.destroy()` 时会自动销毁该 `Device`。因此，请为每个 Agent 创建独立的 `Device` 实例，切勿在 Agent 销毁后复用同一个 `Device`。

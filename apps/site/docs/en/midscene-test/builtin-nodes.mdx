@@ -1,0 +1,195 @@
+# Built-in Nodes across platforms
+
+Midscene Test refers to each callable capability in YAML test cases and lifecycle hooks as a **Node**.
+
+When you register an official Agent in `midscene.config.ts` using `createMidsceneNodes({ agentClass, getAgent })`, the framework injects general AI capabilities and official built-in Nodes for the respective platform. This guide catalogs available built-in Nodes, their input structures, and common usage patterns across platforms.
+
+:::info Generating a Node Spec for your project
+This page lists standard specifications for official built-in capabilities. To inspect the effective list of available Nodes, their JSON input schemas, and custom business Nodes in your project, run `pnpm exec midscene-test nodes` (or pass `--project <name>` for multi-project repositories) to generate `midscene-node-spec.md`.
+:::
+
+## Node syntax overview
+
+YAML cases support two calling styles:
+
+1. **String shorthand**: When a Node specifies a `stringInputKey`, you can pass a single string directly:
+   ```yaml
+   steps:
+     - gotoUrl: https://bing.com
+     - aiAct: Search for Midscene and open the official website
+     - aiAssert: The page title contains Midscene
+   ```
+2. **Object mapping**: When providing multiple fields or optional configuration, supply key-value pairs; for Nodes without parameters, pass `{}`:
+   ```yaml
+   steps:
+     - setViewportSize:
+         width: 1440
+         height: 900
+     - back: {}
+   ```
+
+---
+
+## Universal Nodes
+
+All testing targets (Web, Android, iOS, HarmonyOS, and Desktop) support core AI action and assertion Nodes.
+
+### Core AI Nodes
+
+In typical test authoring, the most essential and recommended Nodes are:
+
+| Node | String shorthand | Description | Key parameters |
+| --- | --- | --- | --- |
+| `aiAct` | `prompt` | Plans and executes composite actions from natural-language intent. | `prompt` (action goal; supports reference images), `options` (such as `deepThink`) |
+| `aiAssert` | `prompt` | Asserts that the current interface satisfies expected conditions; fails the step and halts the case if unmet. | `prompt` (assertion condition), `message` (custom failure message), `options` |
+| `aiWaitFor` | `prompt` | Polls until a natural-language condition is satisfied; throws on timeout. | `prompt` (wait condition), `options` (`timeoutMs`, `checkIntervalMs`) |
+
+```yaml filename=Example: Core AI workflow
+cases:
+  - name: Search for products and verify results
+    steps:
+      - aiAct: Type "mug" into the search box and tap search
+      - aiWaitFor: The search results list finishes loading
+      - aiAssert: The results list displays at least one mug
+```
+
+### Other atomic actions and advanced Nodes
+
+Other atomic interaction methods available on the GUI Agent SDK (such as `aiTap`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiDragAndDrop`, etc.) can also be called directly as Nodes in YAML.
+
+However, **for test case robustness, avoid overly fine-grained step-by-step orchestration in YAML**:
+- Breaking a flow down into many granular clicks, focus changes, and swipes makes YAML files brittle and verbose, increasing maintenance cost when the UI layout evolves;
+- Prefer `aiAct` to describe the user's business intent (for example, "Type mug into the search box and tap search"), allowing the visual model to plan the underlying actions adaptively.
+
+The runtime also injects several auxiliary and advanced capabilities:
+- **Data extraction and queries**: `aiQuery` (structured data extraction), `aiBoolean` / `aiString` / `aiNumber` / `aiAsk` (interface content extraction and Q&A).
+- **Context guidance and reporting**: `setAIContext` (injects domain guidance or modal dismissal rules for subsequent AI steps), `recordToReport` (appends custom notes or snapshots to reports).
+- **Waiting and execution**: `wait` (framework-level cancellable wait with `{ duration, unit }`), `sleep` (Agent-level wait), `javascript` (evaluates scripts).
+
+To inspect input parameters for these advanced Nodes, generate your project's Node Spec with `pnpm exec midscene-test nodes`.
+
+---
+
+## Web built-in Nodes
+
+Web project templates run on Playwright or Puppeteer and provide browser session management alongside universal capabilities:
+
+| Node | String shorthand | Description | Key parameters |
+| --- | --- | --- | --- |
+| `gotoUrl` | `url` | Navigates the current page to an absolute URL or a path relative to `baseURL`. | `url` (target URL), `waitUntil` (`domcontentloaded`, `load`, `networkidle`, `commit`), `timeoutMs` (defaults to 60000) |
+| `setViewportSize` | No | Sets the viewport dimensions of the current browser window. | `width` (CSS pixels), `height` (CSS pixels) |
+| `setCookies` | No | Loads cookies into the current browser context from an environment variable, profile, or storage-state file without leaking sensitive values into logs. | `cookiesEnv` (env var name), `cookiesProfile`, `storageState` (file path) |
+| `clearCookies` | No | Clears cookies from the browser context, optionally matching specific name, domain, or path filters. | `name`, `domain`, `path`; pass `{}` to clear all cookies |
+
+```yaml filename=Example: Web workflow
+beforeEach:
+  - setViewportSize:
+      width: 1280
+      height: 800
+  - clearCookies: {}
+  - gotoUrl: https://todo.example.com
+
+cases:
+  - name: Add a todo item
+    steps:
+      - aiAct: Type "Buy milk" into the input box and press enter
+      - aiAssert: "Buy milk" appears in the list
+```
+
+---
+
+## Mobile built-in Nodes
+
+Mobile testing targets rely on device lifecycles and physical/system keys. Midscene provides standardized system controls and platform bridges for Android, iOS, and HarmonyOS.
+
+### Android (`@midscene/android`)
+
+| Node | String shorthand | Description | Key parameters |
+| --- | --- | --- | --- |
+| `launch` | `uri` | Launches an app by package name, DeepLink URL, or configured alias. | `uri` (package name, URL, or app name) |
+| `terminate` | `uri` | Force-stops an application. | `uri` (package name or app name) |
+| `back` | No | Triggers the Android system back button or gesture. | `{}` (no parameters) |
+| `home` | No | Triggers the Android system Home button. | `{}` (no parameters) |
+| `recentApps` | No | Opens the Android recent applications overview. | `{}` (no parameters) |
+| `runAdbShell` | `command` | Executes a raw ADB shell command and returns standard output. Do not include an `adb shell` prefix. | `command` (shell command string), `options` (`timeout` in milliseconds) |
+
+```yaml filename=Example: Android workflow
+beforeEach:
+  - launch: com.example.shop
+  - wait:
+      duration: 3
+      unit: s
+
+cases:
+  - name: View product details and return
+    steps:
+      - aiAct: Tap the first recommended product on the home screen
+      - aiAssert: Product details page is open with a Buy Now button
+      - back: {}
+      - aiAssert: Returned to the shop home screen
+```
+
+### iOS (`@midscene/ios`)
+
+| Node | String shorthand | Description | Key parameters |
+| --- | --- | --- | --- |
+| `launch` | `uri` | Launches an app by bundle identifier, URL scheme, or configured alias. | `uri` (bundle identifier or URL) |
+| `terminate` | `uri` | Terminates an application. | `uri` (bundle identifier or app name) |
+| `home` | No | Triggers the iOS system Home action. | `{}` (no parameters) |
+| `appSwitcher` | No | Opens the iOS App Switcher overview. | `{}` (no parameters) |
+| `runWdaRequest` | No | Sends an HTTP request directly to WebDriverAgent on the device and returns JSON output. | `request`: `{ method: 'GET' \| 'POST' \| 'DELETE' \| 'PUT', endpoint: string, data?: object }` |
+
+```yaml filename=Example: iOS workflow
+beforeEach:
+  - launch: com.apple.Preferences
+
+cases:
+  - name: Open Settings and return to Home
+    steps:
+      - aiAssert: Settings root list is visible
+      - home: {}
+```
+
+### HarmonyOS (`@midscene/harmony`)
+
+| Node | String shorthand | Description | Key parameters |
+| --- | --- | --- | --- |
+| `launch` | `uri` | Launches an application, Ability target, or DeepLink URI. | `uri` (bundle name, Ability target, or URI) |
+| `terminate` | `uri` | Terminates an application. | `uri` (bundle name or app name) |
+| `back` | No | Triggers the HarmonyOS system back action. | `{}` (no parameters) |
+| `home` | No | Triggers the HarmonyOS system Home action. | `{}` (no parameters) |
+| `recentApps` | No | Opens the HarmonyOS recent tasks overview. | `{}` (no parameters) |
+| `runHdcShell` | `command` | Executes an HDC shell command on the device and returns stdout. Do not include an `hdc shell` prefix. | `command` (shell command string) |
+
+```yaml filename=Example: HarmonyOS workflow
+beforeEach:
+  - launch: com.example.notes
+
+cases:
+  - name: Create a new note
+    steps:
+      - aiTap: New note button in the lower right corner
+      - aiInput:
+          prompt: Note body input field
+          value: Prepare test fixtures
+      - back: {}
+      - aiAssert: "Prepare test fixtures" appears in the notes list
+```
+
+---
+
+## Desktop (Computer)
+
+Desktop automation (macOS, Windows, Linux) leverages the full suite of [universal Nodes](#universal-nodes):
+
+- Use `aiAct`, `aiTap`, `aiDoubleClick`, and `aiRightClick` to inspect and interact with native application windows, system menus, and modal dialogs.
+- Use `aiKeyboardPress` to issue keyboard shortcuts (such as focus switching or save shortcuts).
+- For complex system-level setup or platform utilities, implement [custom Nodes](./extend) to call native shell scripts or system commands.
+
+---
+
+## Next steps
+
+- [Write YAML cases](./writing): Learn workflow document structures, variable bindings, tag filtering, and lifecycle hooks.
+- [Develop custom Nodes](./extend): Encapsulate domain APIs, backend fixtures, and private tooling.
+- [Configure test projects](./configuration): Manage project settings, platform drivers, and multi-project workspaces.

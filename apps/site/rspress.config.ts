@@ -269,16 +269,27 @@ export default defineConfig(async () => {
             link: '/midscene-test/overview',
           },
           {
-            text: 'Create a test project',
-            link: '/midscene-test/use',
-          },
-          {
-            text: 'Write YAML cases',
-            link: '/midscene-test/writing',
-          },
-          {
-            text: 'Run tests',
-            link: '/midscene-test/running',
+            text: 'Getting started',
+            collapsible: true,
+            collapsed: false,
+            items: [
+              {
+                text: 'Create a test project',
+                link: '/midscene-test/use',
+              },
+              {
+                text: 'Write YAML cases',
+                link: '/midscene-test/writing',
+              },
+              {
+                text: 'Built-in Nodes across platforms',
+                link: '/midscene-test/builtin-nodes',
+              },
+              {
+                text: 'Run tests',
+                link: '/midscene-test/running',
+              },
+            ],
           },
           {
             text: 'Configure and extend',
@@ -486,16 +497,27 @@ export default defineConfig(async () => {
             link: '/zh/midscene-test/overview',
           },
           {
-            text: '创建测试项目',
-            link: '/zh/midscene-test/use',
-          },
-          {
-            text: '编写 YAML 用例',
-            link: '/zh/midscene-test/writing',
-          },
-          {
-            text: '运行测试',
-            link: '/zh/midscene-test/running',
+            text: '开始使用',
+            collapsible: true,
+            collapsed: false,
+            items: [
+              {
+                text: '创建测试项目',
+                link: '/zh/midscene-test/use',
+              },
+              {
+                text: '编写 YAML 用例',
+                link: '/zh/midscene-test/writing',
+              },
+              {
+                text: '各平台预置 Node',
+                link: '/zh/midscene-test/builtin-nodes',
+              },
+              {
+                text: '运行测试',
+                link: '/zh/midscene-test/running',
+              },
+            ],
           },
           {
             text: '配置与扩展',

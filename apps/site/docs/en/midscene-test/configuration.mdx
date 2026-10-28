@@ -215,7 +215,7 @@ The Midscene Test kernel does not register Nodes implicitly. Configuration gener
 
 `createMidsceneNodes()` returns the common and platform Node definitions declared by `agentClass.getTestRunnerNodeDefinitions()`, plus the Test-provided `wait` Node. Common capabilities cover AI operations, assertions and extraction, interface location, and report recording. Platform Agents add browser or device operations. The website does not maintain a duplicate exhaustive list; use the current Project's generated [Node Spec](./writing#generate-the-current-projects-node-spec) for exact names and inputs.
 
-When calling `createMidsceneNodes()`, use `agentClass` to specify the Agent class and a `getAgent` callback to supply the Agent instance at runtime:
+When calling `createMidsceneNodes()`, use `agentClass` to specify the platform-specific Midscene GUI Agent class and a `getAgent` callback to supply the Agent instance at runtime:
 
 ```ts
 import { createMidsceneNodes } from '@midscene/test/midscene';
