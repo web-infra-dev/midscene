@@ -1,4 +1,11 @@
-import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  open,
+  readFile,
+  rename,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
   type ReportArtifactManifest,
@@ -23,14 +30,51 @@ export async function writeReportArtifactFile(
   }
 }
 
-/** Stores report data without rendering HTML or owning execution resources. */
-const manifestPublications = new Map<string, Promise<void>>();
+/** Serialize the entire read/merge/write transaction across Node processes. */
+export async function withReportArtifactLock<T>(
+  root: string,
+  publish: () => Promise<T>,
+  timeoutMs = 10_000,
+): Promise<T> {
+  const lockPath = resolve(root, '.report.json.lock');
+  await mkdir(dirname(lockPath), { recursive: true });
+  const startedAt = Date.now();
+  const acquire = async () => {
+    while (true) {
+      try {
+        return await open(lockPath, 'wx');
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+        if (Date.now() - startedAt >= timeoutMs) {
+          throw new Error(
+            `Timed out waiting for report artifact lock ${lockPath}. Another publisher may still be running. If its owner crashed, remove the lock only after confirming that process has exited.`,
+            { cause: error },
+          );
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, 20 + Math.random() * 10),
+        );
+      }
+    }
+  };
+  const lock = await acquire();
+  try {
+    await lock.writeFile(JSON.stringify({ pid: process.pid }));
+    return await publish();
+  } finally {
+    // Never expire a live publisher's lock based on elapsed time: a slow
+    // filesystem or paused process must not result in two simultaneous owners.
+    await lock.close().finally(() => unlink(lockPath));
+  }
+}
 
+/** Stores report data without rendering HTML or owning execution resources. */
 export class ReportArtifactStore {
   private readonly executionPaths = new Map<string, string>();
   private nextExecution = 0;
   private readonly manifest: ReportArtifactManifest;
   private queue: Promise<void> = Promise.resolve();
+  private hasPublished = false;
 
   constructor(
     private readonly root: string,
@@ -91,41 +135,38 @@ export class ReportArtifactStore {
 
   private async publish(): Promise<void> {
     const path = resolve(this.root, 'report.json');
-    const publication = (manifestPublications.get(path) ?? Promise.resolve())
-      .catch(() => {})
-      .then(async () => {
-        let manifest = this.manifest;
-        if (this.reuseExistingReport) {
-          const existing = await readFile(path, 'utf8').catch((error) => {
-            if (error.code === 'ENOENT') return undefined;
-            throw error;
-          });
-          if (existing !== undefined) {
-            const previous = parseReportArtifactManifest(JSON.parse(existing));
-            if (previous.kind !== manifest.kind)
-              throw new Error('Cannot combine different report kinds');
-            manifest = {
-              ...previous,
-              status: manifest.status,
-              groups: [
-                ...previous.groups.filter(
-                  (group) => group.id !== manifest.reportId,
-                ),
-                ...manifest.groups,
-              ],
-              runner: manifest.runner ?? previous.runner,
-            };
-          }
+    await withReportArtifactLock(this.root, async () => {
+      let manifest = this.manifest;
+      if (this.reuseExistingReport || this.hasPublished) {
+        const existing = await readFile(path, 'utf8').catch((error) => {
+          if (error.code === 'ENOENT') return undefined;
+          throw error;
+        });
+        if (existing !== undefined) {
+          const previous = parseReportArtifactManifest(JSON.parse(existing));
+          if (
+            previous.kind !== manifest.kind ||
+            previous.entry !== manifest.entry
+          )
+            throw new Error(
+              'Cannot combine reports with different kinds or entries',
+            );
+          manifest = {
+            ...previous,
+            status: manifest.status,
+            groups: [
+              ...previous.groups.filter(
+                (group) => group.id !== manifest.reportId,
+              ),
+              ...manifest.groups,
+            ],
+            runner: manifest.runner ?? previous.runner,
+          };
         }
-        parseReportArtifactManifest(manifest);
-        await writeReportArtifactFile(path, JSON.stringify(manifest));
-      });
-    manifestPublications.set(path, publication);
-    try {
-      await publication;
-    } finally {
-      if (manifestPublications.get(path) === publication)
-        manifestPublications.delete(path);
-    }
+      }
+      parseReportArtifactManifest(manifest);
+      await writeReportArtifactFile(path, JSON.stringify(manifest));
+      this.hasPublished = true;
+    });
   }
 }
