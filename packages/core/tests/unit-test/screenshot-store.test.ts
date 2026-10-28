@@ -2,6 +2,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -44,8 +45,31 @@ describe('ScreenshotStore', () => {
     const ref = await store.persist(item);
     expect(item.hasBase64()).toBe(false);
     expect(ref.storage).toBe('file');
-    expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
+    expect(existsSync(join(tmpRoot, store.getFilePath(item.id)))).toBe(true);
     expect(store.loadBase64(ref)).toContain('data:image/png;base64,');
+  });
+
+  it('shares bytes across observations and reference images while keeping observation identity', async () => {
+    const store = new ScreenshotStore({
+      mode: 'directory',
+      reportPath: join(tmpRoot, 'index.html'),
+      screenshotsDir: join(tmpRoot, 'screenshots'),
+    });
+    const first = ScreenshotItem.create(pngBase64, 100);
+    const second = ScreenshotItem.create(pngBase64, 200);
+    const [firstRef, secondRef, reference] = await Promise.all([
+      store.persist(first),
+      store.persist(second),
+      store.persistReferenceImage(pngBase64),
+    ]);
+    expect(firstRef.id).not.toBe(secondRef.id);
+    expect([firstRef.capturedAt, secondRef.capturedAt]).toEqual([100, 200]);
+    expect(firstRef.path).toBe(secondRef.path);
+    expect(firstRef.path).toBe(reference.path);
+    expect(firstRef.path).toMatch(/^\.\/screenshots\/[a-f0-9]{64}\.png$/);
+    expect(readdirSync(join(tmpRoot, 'screenshots'))).toHaveLength(1);
+    expect(first.base64).toBe(pngBase64);
+    expect(second.base64).toBe(pngBase64);
   });
 
   it('round-trips screenshots through dump companion files', () => {
@@ -100,13 +124,13 @@ describe('ScreenshotStore', () => {
     });
 
     const first = await store.persist(item);
-    writeFileSync(join(screenshotsDir, `${item.id}.png`), 'marker');
+    writeFileSync(join(tmpRoot, store.getFilePath(item.id)), 'marker');
     const second = await store.persist(item);
 
     expect(first.id).toBe(second.id);
-    expect(readFileSync(join(screenshotsDir, `${item.id}.png`), 'utf-8')).toBe(
-      'marker',
-    );
+    expect(
+      readFileSync(join(tmpRoot, store.getFilePath(item.id)), 'utf-8'),
+    ).toBe('marker');
   });
 
   it('deduplicates inline reference images by content', async () => {
@@ -177,8 +201,8 @@ describe('ScreenshotStore', () => {
       'data:image/svg+xml;base64,PHN2Zy8+',
     );
 
-    expect(ref.path).toBe(`./screenshots/${ref.id}.svg`);
-    expect(existsSync(join(screenshotsDir, `${ref.id}.svg`))).toBe(true);
+    expect(ref.path).toMatch(/^\.\/screenshots\/[a-f0-9]{64}\.svg$/);
+    expect(existsSync(join(tmpRoot, ref.path!))).toBe(true);
     expect(store.loadDataUri(ref)).toBe('data:image/svg+xml;base64,PHN2Zy8+');
   });
 
@@ -248,8 +272,8 @@ describe('ScreenshotStore', () => {
     expect(ref.storage).toBe('inline');
     expect(item.toSerializable().storage).toBe('inline');
     expect(appendInline).toHaveBeenCalledTimes(1);
-    expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
-    rmSync(join(screenshotsDir, `${item.id}.png`), { force: true });
+    expect(existsSync(join(tmpRoot, store.getFilePath(item.id)))).toBe(true);
+    rmSync(join(tmpRoot, store.getFilePath(item.id)), { force: true });
     expect(item.base64).toBe(pngBase64);
     expect(store.loadBase64(ref)).toBe(pngBase64);
   });
@@ -274,7 +298,7 @@ describe('ScreenshotStore', () => {
 
     const ref = await store.persist(item);
     expect(ref.storage).toBe('inline');
-    expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
+    expect(existsSync(join(tmpRoot, store.getFilePath(item.id)))).toBe(true);
   });
   it('throws on non-ScreenshotRef inputs', () => {
     const reportPath = join(tmpRoot, 'invalid-ref.html');

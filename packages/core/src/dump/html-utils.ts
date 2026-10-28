@@ -1,6 +1,10 @@
 import { closeSync, openSync, readSync, statSync } from 'node:fs';
 import { open as openAsync } from 'node:fs/promises';
 import { StringDecoder } from 'node:string_decoder';
+import {
+  REPORT_ARTIFACT_SCRIPT_TYPE,
+  assertReportArtifactPath,
+} from '@midscene/shared/report-artifact';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 import {
   TEST_RUN_REPORT_SCRIPT_TYPE,
@@ -103,6 +107,49 @@ export function generateAgentReportComment(report: IReportActionDump): string {
 function htmlScriptCloseTag(): string {
   // biome-ignore lint/style/useTemplate: keep this token runtime-built for inline report bundles
   return String.fromCharCode(60) + '/script>';
+}
+
+/** Directory reports declare their data entry separately from the Viewer. */
+export function generateReportArtifactScriptTag(path: string): string {
+  assertReportArtifactPath(path);
+  return [
+    String.fromCharCode(60),
+    'script type="',
+    REPORT_ARTIFACT_SCRIPT_TYPE,
+    '">',
+    JSON.stringify(path),
+    htmlScriptCloseTag(),
+  ].join('');
+}
+
+export function extractReportArtifactPathSync(
+  filePath: string,
+): string | undefined {
+  let result: string | undefined;
+  // Consume whole script elements so strings inside the Viewer are skipped.
+  streamScanTags(
+    filePath,
+    `${String.fromCharCode(60)}script`,
+    htmlScriptCloseTag(),
+    (content) => {
+      const tagEnd = content.indexOf('>');
+      const type = content
+        .slice(0, tagEnd)
+        .match(/(?:^|\s)type\s*=\s*["']([^"']+)["']/i)?.[1];
+      if (type !== REPORT_ARTIFACT_SCRIPT_TYPE) return false;
+      if (result !== undefined)
+        throw new Error(
+          `Report contains multiple artifact entries: ${filePath}`,
+        );
+      const path: unknown = JSON.parse(
+        unescapeContent(content.slice(tagEnd + 1)),
+      );
+      assertReportArtifactPath(path);
+      result = path;
+      return false;
+    },
+  );
+  return result;
 }
 
 /** Avoid raw close tokens: this writer itself is bundled into report HTML. */

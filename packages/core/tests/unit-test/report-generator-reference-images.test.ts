@@ -11,6 +11,7 @@ import {
   parseImageScripts,
   unescapeContent,
 } from '@/dump/html-utils';
+import { readReportDumpScripts } from '@/dump/report-artifact-reader';
 import { restoreImageReferences } from '@/dump/screenshot-restoration';
 import { ReportGenerator } from '@/report-generator';
 import { ExecutionDump, type ExecutionTaskPlanningParam } from '@/types';
@@ -217,7 +218,7 @@ describe('ReportGenerator reference images', () => {
     generator.onExecutionUpdate(execution, defaultReportMeta);
     await generator.finalize();
 
-    const serializedDump = parseDumpScript(readFileSync(reportPath, 'utf-8'));
+    const serializedDump = readReportDumpScripts(reportPath)[0]?.content;
     if (!serializedDump) throw new Error('Expected a serialized report dump');
     const taskParam = JSON.parse(serializedDump).executions[0].tasks[0].param;
     expect(taskParam.images[0].url).toMatchObject({
@@ -350,7 +351,7 @@ describe('ReportGenerator reference images', () => {
     expect(imageFiles).toHaveLength(1);
     expect(imageFiles[0]).toMatch(/\.jpeg$/);
 
-    const serializedDump = parseDumpScript(readFileSync(reportPath, 'utf-8'));
+    const serializedDump = readReportDumpScripts(reportPath)[0]?.content;
     if (!serializedDump) throw new Error('Expected a serialized report dump');
     expect(serializedDump).not.toContain(referenceImage);
     expect(Buffer.byteLength(serializedDump)).toBeLessThan(

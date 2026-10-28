@@ -18,9 +18,7 @@ import { antiEscapeScriptTag, logMsg, uuid } from '@midscene/shared/utils';
 import { getReportFileName } from './agent/report-file-name';
 import {
   DATA_SCREENSHOT_MODE_ATTR,
-  extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
-  extractTestRunReportDumpSync,
   generateAgentReportComment,
   getBaseUrlFixScript,
   generateTestRunReportScriptTag as runnerDumpScript,
@@ -32,9 +30,23 @@ import {
   normalizeStoredImageRef,
 } from './dump/image-reference';
 import {
+  readReportArtifactManifest,
+  readReportDumpScripts,
+  readReportRunnerDump,
+  streamReportDumpScripts,
+} from './dump/report-artifact-reader';
+import {
   parseBase64ImageDataUrl,
   resolveImageSource,
 } from './dump/screenshot-store';
+export {
+  readReportArtifactManifest,
+  readReportDumpScripts,
+  readReportRunnerDump,
+  streamReportDumpScripts,
+} from './dump/report-artifact-reader';
+export { ExecutionRecorder } from './dump/execution-recorder';
+export { ReportArtifactStore } from './dump/report-artifact-store';
 import { collectReportSummary } from './report-stats';
 import type {
   AssembleTestRunReportOptions,
@@ -105,9 +117,9 @@ function readDeclaredScreenshotMode(
  * filesystem heuristic (an `index.html` that has a sibling `screenshots/` dir).
  */
 export function isDirectoryModeReport(reportFilePath: string): boolean {
-  // Directory-mode reports are always written as `{name}/index.html`, so any
-  // other filename is inline. Short-circuit before touching the file so the
-  // common inline case (`{name}.html`) costs nothing.
+  if (readReportArtifactManifest(reportFilePath)) return true;
+  // Agent directory reports use index.html by default. Reports without the
+  // versioned manifest use the existing metadata and layout heuristic.
   if (path.basename(reportFilePath) !== 'index.html') return false;
 
   const declared = readDeclaredScreenshotMode(reportFilePath);
@@ -174,7 +186,12 @@ export function dedupeExecutionsKeepLatest<T extends Pick<ExecutionDump, 'id'>>(
  */
 function peekReportSdkVersion(reportFilePath: string): string | undefined {
   try {
-    const dump = extractLastDumpScriptSync(reportFilePath);
+    let dump: string | undefined;
+    streamReportDumpScripts(reportFilePath, ({ content }) => {
+      dump = content;
+      return true;
+    });
+    dump ??= extractLastDumpScriptSync(reportFilePath) ?? undefined;
     if (!dump) return undefined;
     const match = dump.match(/"sdkVersion"\s*:\s*"([^"]+)"/);
     return match?.[1];
@@ -313,7 +330,7 @@ export class ReportMergingTool {
 
     const runnerDumps = this.reportInfos.map((info) =>
       info.reportFilePath
-        ? extractTestRunReportDumpSync(info.reportFilePath)
+        ? readReportRunnerDump(info.reportFilePath)
         : undefined,
     );
     const hasRunnerDump = runnerDumps.some(Boolean);
@@ -433,7 +450,7 @@ export class ReportMergingTool {
           // (one per execution). We merge them into a single ReportActionDump.
           // Filter by data-group-id to exclude false matches from the template's
           // bundled JS code, which also references the midscene_web_dump type string.
-          const allDumps = extractAllDumpScriptsSync(
+          const allDumps = readReportDumpScripts(
             reportInfo.reportFilePath,
           ).filter((d) => d.openTag.includes('data-group-id'));
           const groupIdMatch = allDumps[0]?.openTag.match(
@@ -1159,7 +1176,7 @@ export function collectDedupedExecutions(
   let executionSerial = 0;
   const latestSerialByExecutionId = new Map<string, number>();
 
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+  streamReportDumpScripts(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
       return false;
     }
@@ -1177,7 +1194,7 @@ export function collectDedupedExecutions(
 
   const executions: IExecutionDump[] = [];
   executionSerial = 0;
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+  streamReportDumpScripts(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
       return false;
     }
