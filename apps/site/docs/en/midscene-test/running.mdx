@@ -105,7 +105,7 @@ If the Step includes Agent visual replay, append `runner-trace=page` to open the
 https://example.com/report/index.html#runner-step=last-error&runner-trace=page
 ```
 
-To limit selection to a specific case, combine with `runner-page=case`, `runner-project=<projectName>`, and `runner-case=<caseName>`.
+To limit selection to a specific case, combine with `runner-page=case`, `runner-project=<projectId>`, and `runner-case=<caseKey>`. Use the report's internal `projectId` and the composite Case Key `<projectId>:<documentId>:<caseId>`. URL-encode each parameter value, for example with `URLSearchParams`. To obtain these values, open the target case in the report and copy its URL, then add `runner-step` and, if needed, `runner-trace`.
 
 ## Environment loading {#environment-loading}
 

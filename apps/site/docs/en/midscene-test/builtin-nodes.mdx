@@ -78,7 +78,7 @@ Web project templates run on Playwright or Puppeteer and provide browser session
 | --- | --- | --- | --- |
 | `gotoUrl` | `url` | Navigates the current page to an absolute URL or a path relative to `baseURL`. | `url` (target URL), `waitUntil` (`domcontentloaded`, `load`, `networkidle`, `commit`), `timeoutMs` (defaults to 60000) |
 | `setViewportSize` | No | Sets the viewport dimensions of the current browser window. | `width` (CSS pixels), `height` (CSS pixels) |
-| `setCookies` | No | Loads cookies into the current browser context from an environment variable, profile, or storage-state file without leaking sensitive values into logs. | `cookiesEnv` (env var name), `cookiesProfile`, `storageState` (file path) |
+| `setCookies` | No | Loads cookies into the current browser context from an environment variable, profile, or storage-state file without leaking sensitive values into logs. | `cookiesEnv` (env var name), `profile`, `storageStatePath` (file path) |
 | `clearCookies` | No | Clears cookies from the browser context, optionally matching specific name, domain, or path filters. | `name`, `domain`, `path`; pass `{}` to clear all cookies |
 
 ```yaml filename=Example: Web workflow

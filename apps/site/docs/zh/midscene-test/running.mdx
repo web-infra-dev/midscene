@@ -105,7 +105,7 @@ https://example.com/report/index.html#runner-step=last-error
 https://example.com/report/index.html#runner-step=last-error&runner-trace=page
 ```
 
-如需限定在特定用例范围内定位，可配合 `runner-page=case`、`runner-project=<projectName>` 与 `runner-case=<caseName>` 路由参数使用。
+如需限定在特定用例范围内定位，可配合 `runner-page=case`、`runner-project=<projectId>` 与 `runner-case=<caseKey>` 路由参数使用。参数值分别取报告内部的 `projectId` 和复合 Case Key `<projectId>:<documentId>:<caseId>`，并进行 URL 编码（例如使用 `URLSearchParams`）。获取这些值时，可以先在报告中打开目标用例并复制其 URL，再追加 `runner-step` 及所需的 `runner-trace` 参数。
 
 ## 加载环境变量 {#加载环境变量}
 

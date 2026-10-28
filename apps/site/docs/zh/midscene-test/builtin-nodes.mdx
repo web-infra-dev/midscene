@@ -78,7 +78,7 @@ Web 平台模板基于 Playwright 或 Puppeteer 实现，在通用能力基础�
 | --- | --- | --- | --- |
 | `gotoUrl` | `url` | 控制当前浏览器页面跳转至目标 URL，支持绝对地址或基于 `baseURL` 的相对路径。 | `url`（目标地址）、`waitUntil`（`domcontentloaded`、`load`、`networkidle`、`commit`）、`timeoutMs`（超时毫秒，默认 60000） |
 | `setViewportSize` | 否 | 设置当前浏览器窗口视口的分辨率大小。 | `width`（视口宽度，CSS 像素）、`height`（视口高度，CSS 像素） |
-| `setCookies` | 否 | 将 Cookie 注入当前浏览器上下文。值可来源于环境变量、配置 Profile 或存储文件，敏感内容不落地至用例文本与日志。 | `cookiesEnv`（环境变量名）、`cookiesProfile`、`storageState`（文件路径） |
+| `setCookies` | 否 | 将 Cookie 注入当前浏览器上下文。值可来源于环境变量、配置 Profile 或存储文件，敏感内容不落地至用例文本与日志。 | `cookiesEnv`（环境变量名）、`profile`、`storageStatePath`（文件路径） |
 | `clearCookies` | 否 | 清除当前浏览器上下文的 Cookie。可按条件部分清除，也可全部清空。 | `name`（匹配 Cookie 名称）、`domain`（匹配域名）、`path`（匹配路径）；清空所有 Cookie 传入 `{}` |
 
 ```yaml filename=示例：Web-用例
