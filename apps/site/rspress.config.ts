@@ -186,7 +186,7 @@ export default defineConfig(async () => {
             link: '/quick-start',
           },
           {
-            text: 'Create a test project',
+            text: 'Start with Midscene Test',
             link: '/midscene-test/use',
           },
           {
@@ -403,7 +403,7 @@ export default defineConfig(async () => {
             link: '/zh/quick-start',
           },
           {
-            text: '创建测试项目',
+            text: '创建 Midscene Test E2E 项目',
             link: '/zh/midscene-test/use',
           },
           {
