@@ -392,6 +392,7 @@ export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
  */
 export type TModelFamily =
   | 'jev'
+  | 'ant-ling'
   | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'qwen3'
@@ -415,6 +416,7 @@ export type TModelFamily =
 
 export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'jev',
+  'ant-ling',
   'doubao-vision',
   'doubao-seed',
   'gemini',
