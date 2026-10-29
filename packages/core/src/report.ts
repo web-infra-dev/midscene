@@ -40,6 +40,8 @@ import {
   resolveImageSource,
 } from './dump/screenshot-store';
 export {
+  readReportActionDump,
+  readReportArtifactManifestAsync,
   readReportArtifactManifest,
   readReportDumpScripts,
   readReportRunnerDump,

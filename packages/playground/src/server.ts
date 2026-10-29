@@ -9,7 +9,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { readFile, realpath, stat } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,6 +32,10 @@ import {
   imageMimeTypeForFileExtension,
   parseBase64ImageDataUrl,
 } from '@midscene/core/dump';
+import {
+  readReportActionDump,
+  readReportArtifactManifestAsync,
+} from '@midscene/core/report';
 import { getTmpDir, sleep } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
@@ -51,6 +55,10 @@ import {
   buildMidsceneRecorderActionSummary,
   buildMidsceneRecorderReplayInstruction,
 } from '@midscene/shared/recorder';
+import {
+  assertReportArtifactPath,
+  parseReportArtifactManifest,
+} from '@midscene/shared/report-artifact';
 import { antiEscapeScriptTag, uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
@@ -91,60 +99,10 @@ const RECORDER_SCREENSHOT_ASSET_DIR = 'recorder-screenshots';
 const RECORDER_SCREENSHOT_ASSET_MAX_SESSION_BYTES = 128 * 1024 * 1024;
 const RECORDER_SCREENSHOT_ASSET_MAX_TOTAL_BYTES = 512 * 1024 * 1024;
 const PLAYGROUND_REPORT_REF_TTL_MS = 60 * 60 * 1000;
-const REPORT_DUMP_OPEN_TAG = '<script type="midscene_web_dump"';
 const REPORT_IMAGE_CLOSE_TAG = '</script>';
 const recorderScreenshotAssetQuotaExceededSessions = new Set<string>();
 const recorderScreenshotAssetBytesBySession = new Map<string, number>();
 let recorderScreenshotAssetUsageInitialized = false;
-
-async function extractLastReportDump(reportPath: string): Promise<string> {
-  let pending = '';
-  let current = '';
-  let last = '';
-  let capturing = false;
-
-  for await (const rawChunk of createReadStream(reportPath, {
-    encoding: 'utf8',
-  })) {
-    let chunk = pending + rawChunk;
-    pending = '';
-
-    while (chunk) {
-      if (!capturing) {
-        const openIndex = chunk.indexOf(REPORT_DUMP_OPEN_TAG);
-        if (openIndex === -1) {
-          pending = chunk.slice(-(REPORT_DUMP_OPEN_TAG.length - 1));
-          break;
-        }
-        const tagEndIndex = chunk.indexOf('>', openIndex);
-        if (tagEndIndex === -1) {
-          pending = chunk.slice(openIndex);
-          break;
-        }
-        capturing = true;
-        current = '';
-        chunk = chunk.slice(tagEndIndex + 1);
-        continue;
-      }
-
-      const closeIndex = chunk.indexOf(REPORT_IMAGE_CLOSE_TAG);
-      if (closeIndex === -1) {
-        const retainedLength = REPORT_IMAGE_CLOSE_TAG.length - 1;
-        current += chunk.slice(0, -retainedLength);
-        pending = chunk.slice(-retainedLength);
-        break;
-      }
-      current += chunk.slice(0, closeIndex);
-      last = current.trim();
-      current = '';
-      capturing = false;
-      chunk = chunk.slice(closeIndex + REPORT_IMAGE_CLOSE_TAG.length);
-    }
-  }
-
-  if (!last) throw new Error('No replay dump found in report');
-  return antiEscapeScriptTag(last);
-}
 
 async function extractInlineReportImage(
   reportPath: string,
@@ -1276,6 +1234,7 @@ class PlaygroundServer {
       path: string;
       expiresAt: number;
       format: PlaygroundReportRef['format'];
+      hasArtifactManifest: boolean;
     }
   >();
 
@@ -3018,12 +2977,14 @@ class PlaygroundServer {
       throw new Error(`Report path is not a file: ${reportPath}`);
     }
 
+    const manifest = await readReportArtifactManifestAsync(reportPath);
     const screenshotsPath = join(dirname(reportPath), 'screenshots');
     const hasExternalScreenshots = await stat(screenshotsPath)
       .then((entry) => entry.isDirectory())
       .catch(() => false);
     const format: PlaygroundReportRef['format'] =
-      basename(reportPath) === 'index.html' && hasExternalScreenshots
+      manifest ||
+      (basename(reportPath) === 'index.html' && hasExternalScreenshots)
         ? 'html-and-external-assets'
         : 'single-html';
 
@@ -3037,6 +2998,7 @@ class PlaygroundServer {
       path: reportPath,
       expiresAt: now + PLAYGROUND_REPORT_REF_TTL_MS,
       format,
+      hasArtifactManifest: Boolean(manifest),
     });
 
     return {
@@ -3078,9 +3040,9 @@ class PlaygroundServer {
         }
 
         try {
-          const serializedDump = await extractLastReportDump(report.path);
+          const dump = await readReportActionDump(report.path);
           res.setHeader('Cache-Control', 'no-store');
-          return res.type('json').send(serializedDump);
+          return res.type('json').send(JSON.stringify(dump));
         } catch (error) {
           debugReport('failed to stream report replay: %s', error);
           return res
@@ -3089,6 +3051,56 @@ class PlaygroundServer {
         }
       },
     );
+
+    const serveReportData = async (req: Request, res: Response) => {
+      const report = this.getRegisteredReport(req.params.reportId);
+      if (!report || !report.hasArtifactManifest)
+        return res
+          .status(404)
+          .json({ error: 'Report data not found or expired' });
+      const assetPath =
+        req.params[0] === undefined ? 'report.json' : `data/${req.params[0]}`;
+      try {
+        assertReportArtifactPath(assetPath);
+      } catch {
+        return res.status(400).json({ error: 'Invalid report data path' });
+      }
+      try {
+        const root = dirname(report.path);
+        const manifest = parseReportArtifactManifest(
+          JSON.parse(await readFile(join(root, 'report.json'), 'utf8')),
+        );
+        if (manifest.entry !== basename(report.path))
+          throw new Error('Report entry does not match its manifest');
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        if (assetPath === 'report.json') return res.json(manifest);
+        const allowed = new Set(
+          [
+            ...manifest.groups.flatMap((group) => group.dumps),
+            ...(manifest.runner ? [manifest.runner] : []),
+          ].map((path) => path.replace(/^\.\//, '')),
+        );
+        if (!allowed.has(assetPath))
+          return res.status(404).json({ error: 'Report data not found' });
+        const [realRoot, realAsset] = await Promise.all([
+          realpath(root),
+          realpath(join(root, assetPath)),
+        ]);
+        if (!realAsset.startsWith(`${realRoot}${sep}`))
+          return res
+            .status(400)
+            .json({ error: 'Report data path escapes the report directory' });
+        return res.type('json').sendFile(realAsset);
+      } catch (error) {
+        debugReport('failed to serve report data: %s', error);
+        const status =
+          (error as NodeJS.ErrnoException).code === 'ENOENT' ? 404 : 500;
+        return res.status(status).json({ error: 'Failed to load report data' });
+      }
+    };
+    this._app.get('/reports/:reportId/report.json', serveReportData);
+    this._app.get('/reports/:reportId/data/*', serveReportData);
 
     this._app.get(
       '/reports/:reportId/screenshots/:assetName',
