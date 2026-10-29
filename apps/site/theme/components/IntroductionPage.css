@@ -31,15 +31,8 @@
   }
 }
 
-.introduction-page .home-feature--models .home-feature-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 @container (max-width: 640px) {
-  .introduction-page .home-feature--models .home-feature-grid,
-  .introduction-page .home-feature-grid,
-  .introduction-page .home-benchmark-grid,
-  .introduction-page .home-execution-grid {
+  .introduction-page .home-benchmark-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
