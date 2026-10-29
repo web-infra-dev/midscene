@@ -153,6 +153,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     }
 
     const mergedPath = tool.mergeReports('browser-parse-test', {
+      outputFormat: 'html-and-external-assets',
       overwrite: true,
     });
     expect(existsSync(mergedPath!)).toBe(true);
@@ -179,10 +180,10 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     expect(screenshotFiles.length).toBeGreaterThanOrEqual(numReports);
 
     // Extract and parse the last dump
-    const lastDump = extractLastDumpScriptSync(mergedPath!);
+    const lastDump = readReportDumpScripts(mergedPath!).at(-1)?.content;
     expect(lastDump).toBeTruthy();
 
-    const content = antiEscapeScriptTag(lastDump);
+    const content = antiEscapeScriptTag(lastDump!);
     const parsed = JSON.parse(content);
 
     expect(parsed.executions).toBeDefined();

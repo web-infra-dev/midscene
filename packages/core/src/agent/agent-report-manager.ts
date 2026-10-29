@@ -2,7 +2,16 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { IS_REPORT_BUILD } from '../constants';
 import { generateTestRunReportScriptTag } from '../dump/html-utils';
-import { type IReportGenerator, ReportGenerator } from '../report-generator';
+import {
+  type ReportSession,
+  currentReportSession,
+} from '../dump/report-session';
+import {
+  type IReportGenerator,
+  ReportGenerator,
+  assertReportGenerationOptions,
+  nullReportGenerator,
+} from '../report-generator';
 import type { TaskRunner } from '../task-runner';
 import { WorkflowError } from '../test-runner/errors';
 import type { WorkflowExecutionRecord } from '../test-runner/execution-record';
@@ -44,6 +53,7 @@ interface AgentReportState {
   file?: string | null;
   fileName?: string;
   generator: IReportGenerator;
+  session?: ReportSession;
   finalization?: Promise<string | undefined>;
   lastExecution?: ExecutionDump;
   executionIndexByRunner: WeakMap<TaskRunner, number>;
@@ -98,8 +108,25 @@ export class AgentReportManager {
   }
 
   /** @internal Runner snapshots retain immutable data and shared image files. */
-  _prepareForTestRunner(): void {
-    this.reportState.generator.enableSourceSnapshots?.();
+  async _prepareForTestRunner(): Promise<void> {
+    const report = this.reportState;
+    const session = currentReportSession();
+    if (session && session !== report.session) {
+      if (report.session)
+        throw new Error(
+          'An Agent cannot be shared by different Test report sessions. Await resetDump() between runs.',
+        );
+      this.assertReportIdle();
+      await report.generator.finalize();
+      const recorder = session.createRecorder(() => this.isReportBusy(report));
+      // The previous standalone report owns its history. The Test stream starts
+      // at acquisition, so previous script operations do not enter this run.
+      this.clearDumpInMemory(report);
+      report.generator = recorder;
+      report.session = session;
+      report.file = undefined;
+    }
+    report.generator.enableSourceSnapshots?.();
   }
   async _createReportSource(scopeId: string, executionIds?: readonly string[]) {
     return this.reportState.generator.createSourceSnapshot?.(
@@ -190,21 +217,34 @@ export class AgentReportManager {
     fileName: string,
     reuseExistingReport = false,
   ): AgentReportState {
-    return {
+    assertReportGenerationOptions(this.opts);
+    const session = currentReportSession();
+    const state: AgentReportState = {
       dump: this.createEmptyDump(),
       fileName,
-      generator: ReportGenerator.create(fileName, {
-        generateReport: this.opts.generateReport,
-        persistExecutionDump: this.opts.persistExecutionDump,
-        outputFormat: this.opts.outputFormat,
-        autoPrintReportMsg: this.opts.autoPrintReportMsg,
-        reuseExistingReport,
-      }),
+      generator: session
+        ? nullReportGenerator
+        : ReportGenerator.create(fileName, {
+            generateReport: this.opts.generateReport,
+            persistExecutionDump: this.opts.persistExecutionDump,
+            outputFormat: this.opts.outputFormat,
+            autoPrintReportMsg: this.opts.autoPrintReportMsg,
+            reuseExistingReport,
+          }),
       executionIndexByRunner: new WeakMap(),
       yamlScopeId: uuid(),
       yamlRecords: [],
       activeOperations: new Set(),
     };
+    if (session) {
+      state.generator = session.createRecorder(() => this.isReportBusy(state));
+      state.session = session;
+    }
+    return state;
+  }
+
+  private isReportBusy(report: AgentReportState): boolean {
+    return report.activeOperations.size > 0 || this.context.isExternallyBusy();
   }
 
   private clearDumpInMemory(report = this.reportState): void {

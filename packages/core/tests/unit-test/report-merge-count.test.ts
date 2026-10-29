@@ -21,6 +21,7 @@ import {
 } from '@/types';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { describe, expect, it } from '@rstest/core';
+import { readReportDumpScripts } from '../../src/dump/report-artifact-reader';
 
 // ---------- helpers ----------
 
@@ -88,14 +89,20 @@ function createDump(groupName: string, taskCount: number): ReportActionDump {
  * Only dumps written by mergeReports carry this attribute;
  * false positives from template JS code do not.
  */
-function countRealDumpScripts(html: string): number {
+function countRealDumpScripts(reportPath: string): number {
+  const html = readReportDumpScripts(reportPath)
+    .map((d) => `${d.openTag}${d.content}</script>`)
+    .join('\n');
   const re =
     /<script type="midscene_web_dump"[^>]*playwright_test_id="[^"]*"[^>]*>/g;
   return (html.match(re) || []).length;
 }
 
 /** Extract all dump scripts that carry playwright attributes. */
-function extractAllDumps(html: string) {
+function extractAllDumps(reportPath: string) {
+  const html = readReportDumpScripts(reportPath)
+    .map((d) => `${d.openTag}${d.content}</script>`)
+    .join('\n');
   const results: {
     testId: string;
     testTitle: string;
@@ -192,8 +199,8 @@ describe('ReportMergingTool merged dump count verification', () => {
       expect(mergedPath).toBeTruthy();
 
       const html = readFileSync(mergedPath!, 'utf-8');
-      const realCount = countRealDumpScripts(html);
-      const dumps = extractAllDumps(html);
+      const realCount = countRealDumpScripts(mergedPath!);
+      const dumps = extractAllDumps(mergedPath!);
 
       console.log(
         `[inline n=${n}] size=${(html.length / 1024 / 1024).toFixed(1)}MB, ` +
@@ -242,13 +249,14 @@ describe('ReportMergingTool merged dump count verification', () => {
     }
 
     const mergedPath = tool.mergeReports('merge-count-dir-merged', {
+      outputFormat: 'html-and-external-assets',
       overwrite: true,
     });
     expect(mergedPath).toBeTruthy();
 
     const html = readFileSync(mergedPath!, 'utf-8');
-    const realCount = countRealDumpScripts(html);
-    const dumps = extractAllDumps(html);
+    const realCount = countRealDumpScripts(mergedPath!);
+    const dumps = extractAllDumps(mergedPath!);
 
     console.log(
       `[directory n=${n}] size=${(html.length / 1024 / 1024).toFixed(1)}MB, ` +
@@ -312,13 +320,14 @@ describe('ReportMergingTool merged dump count verification', () => {
     }
 
     const mergedPath = tool.mergeReports('merge-count-mix-merged', {
+      outputFormat: 'html-and-external-assets',
       overwrite: true,
     });
     expect(mergedPath).toBeTruthy();
 
     const html = readFileSync(mergedPath!, 'utf-8');
-    const realCount = countRealDumpScripts(html);
-    const dumps = extractAllDumps(html);
+    const realCount = countRealDumpScripts(mergedPath!);
+    const dumps = extractAllDumps(mergedPath!);
 
     console.log(
       `[mixed n=4] size=${(html.length / 1024 / 1024).toFixed(1)}MB, ` +
@@ -371,7 +380,7 @@ describe('ReportMergingTool merged dump count verification', () => {
     });
 
     const html = readFileSync(mergedPath!, 'utf-8');
-    const dumps = extractAllDumps(html);
+    const dumps = extractAllDumps(mergedPath!);
 
     console.log(
       `[status n=${statuses.length}] realDumps=${dumps.length}, ` +
@@ -450,7 +459,7 @@ describe('ReportMergingTool merged dump count verification', () => {
     expect(mergedPath).toBeTruthy();
 
     const html = readFileSync(mergedPath!, 'utf-8');
-    const dumps = extractAllDumps(html);
+    const dumps = extractAllDumps(mergedPath!);
 
     // Each source report's dump should be merged into one dump script
     expect(dumps.length).toBe(n);
