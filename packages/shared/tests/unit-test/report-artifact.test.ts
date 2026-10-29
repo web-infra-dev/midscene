@@ -13,6 +13,7 @@ const manifest = () => ({
   groups: [
     {
       id: 'agent-1',
+      status: 'complete',
       attributes: { title: '登录验证', duration: 123 },
       dumps: ['data/run-1/1.json'],
     },
@@ -20,6 +21,23 @@ const manifest = () => ({
 });
 
 describe('directory report contract', () => {
+  it('requires stream state and consistent aggregate completion', () => {
+    for (const status of [undefined, 'failed', 'running']) {
+      expect(() =>
+        parseReportArtifactManifest({
+          ...manifest(),
+          groups: [{ ...manifest().groups[0], status }],
+        }),
+      ).toThrow('Invalid');
+    }
+    expect(
+      parseReportArtifactManifest({
+        ...manifest(),
+        status: 'running',
+        groups: [{ ...manifest().groups[0], status: 'running' }],
+      }).status,
+    ).toBe('running');
+  });
   it('accepts portable Agent and Test metadata', () => {
     expect(parseReportArtifactManifest(manifest())).toEqual(manifest());
     expect(

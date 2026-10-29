@@ -4,6 +4,8 @@ export const REPORT_ARTIFACT_SCRIPT_TYPE = 'midscene_report_artifact';
 
 export interface ReportArtifactGroup {
   id: string;
+  /** State of this writer; a report is complete only after every writer completes. */
+  status: 'running' | 'complete';
   attributes: Record<string, string | number | boolean>;
   dumps: string[];
 }
@@ -61,6 +63,7 @@ export function parseReportArtifactManifest(
     if (
       typeof group.id !== 'string' ||
       !group.id ||
+      !['running', 'complete'].includes(String(group.status)) ||
       ids.has(group.id) ||
       !Array.isArray(group.dumps) ||
       typeof group.attributes !== 'object' ||
@@ -78,6 +81,14 @@ export function parseReportArtifactManifest(
         return fail();
     }
   }
+  if (
+    manifest.groups.length > 0 &&
+    manifest.status !==
+      (manifest.groups.every((group) => group.status === 'complete')
+        ? 'complete'
+        : 'running')
+  )
+    return fail();
   if (manifest.runner !== undefined) assertReportArtifactPath(manifest.runner);
   return manifest as unknown as ReportArtifactManifest;
 }

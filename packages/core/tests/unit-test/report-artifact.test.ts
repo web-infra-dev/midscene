@@ -128,6 +128,10 @@ describe('directory data persistence', () => {
       readFileSync(join(root, 'report.json'), 'utf8'),
     );
     expect(manifest.status).toBe('complete');
+    await expect(store.writeExecution('late', '{}', {})).rejects.toThrow(
+      'finalized',
+    );
+    await expect(store.writeRunner('{}')).rejects.toThrow('finalized');
     expect(manifest.groups[0].dumps).toHaveLength(2);
     expect(
       JSON.parse(readFileSync(join(root, manifest.groups[0].dumps[0]), 'utf8')),
@@ -211,6 +215,7 @@ describe('directory data persistence', () => {
           .groups.map((group: { id: string }) => group.id)
           .sort(),
       ).toEqual(['original', ...ids].sort());
+      expect(readManifest().status).toBe('running');
       // The first writer also joins subsequent read/merge/write transactions.
       await original.writeExecution(
         'step',
@@ -219,6 +224,12 @@ describe('directory data persistence', () => {
       );
       await original.finalize();
       const manifest = readManifest();
+      expect(manifest.status).toBe('complete');
+      expect(
+        manifest.groups.every(
+          (group: { status: string }) => group.status === 'complete',
+        ),
+      ).toBe(true);
       expect(manifest.groups).toHaveLength(9);
       for (const group of manifest.groups) {
         expect(group.dumps).toHaveLength(1);

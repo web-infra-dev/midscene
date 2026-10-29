@@ -75,6 +75,7 @@ export class ReportArtifactStore {
   private readonly manifest: ReportArtifactManifest;
   private queue: Promise<void> = Promise.resolve();
   private hasPublished = false;
+  private finalization?: Promise<void>;
 
   constructor(
     private readonly root: string,
@@ -91,7 +92,7 @@ export class ReportArtifactStore {
       status: 'running',
       reportId,
       entry,
-      groups: [{ id: reportId, attributes: {}, dumps: [] }],
+      groups: [{ id: reportId, status: 'running', attributes: {}, dumps: [] }],
     };
   }
 
@@ -100,6 +101,7 @@ export class ReportArtifactStore {
     serialized: string,
     attributes: Record<string, string>,
   ): Promise<void> {
+    this.assertOpen();
     this.queue = this.queue.then(async () => {
       let path = this.executionPaths.get(key);
       if (!path) {
@@ -116,6 +118,7 @@ export class ReportArtifactStore {
   }
 
   async writeRunner(serialized: string): Promise<void> {
+    this.assertOpen();
     this.queue = this.queue.then(async () => {
       const path = `data/${this.manifest.reportId}/runner.json`;
       await writeReportArtifactFile(join(this.root, path), serialized);
@@ -126,11 +129,18 @@ export class ReportArtifactStore {
   }
 
   async finalize(): Promise<void> {
-    this.queue = this.queue.then(async () => {
-      this.manifest.status = 'complete';
-      await this.publish();
-    });
-    await this.queue;
+    if (!this.finalization) {
+      this.finalization = this.queue = this.queue.then(async () => {
+        this.manifest.groups[0].status = 'complete';
+        await this.publish();
+      });
+    }
+    await this.finalization;
+  }
+
+  private assertOpen(): void {
+    if (this.finalization)
+      throw new Error('The report artifact stream has been finalized.');
   }
 
   private async publish(): Promise<void> {
@@ -153,17 +163,24 @@ export class ReportArtifactStore {
             );
           manifest = {
             ...previous,
-            status: manifest.status,
             groups: [
-              ...previous.groups.filter(
-                (group) => group.id !== manifest.reportId,
-              ),
-              ...manifest.groups,
+              ...new Map(
+                [...previous.groups, ...manifest.groups].map((group) => [
+                  group.id,
+                  group,
+                ]),
+              ).values(),
             ],
             runner: manifest.runner ?? previous.runner,
           };
         }
       }
+      manifest = {
+        ...manifest,
+        status: manifest.groups.every((group) => group.status === 'complete')
+          ? 'complete'
+          : 'running',
+      };
       parseReportArtifactManifest(manifest);
       await writeReportArtifactFile(path, JSON.stringify(manifest));
       this.hasPublished = true;

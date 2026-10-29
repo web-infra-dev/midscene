@@ -239,4 +239,31 @@ describe('ReportGenerator directory mode', () => {
       ),
     ).toEqual(['a-1', 'a-2', 'b-1', 'b-2']);
   });
+
+  it('completes a shared report only after all published writers finalize', async () => {
+    const path = join(root, 'shared', 'index.html');
+    const a = generatorAt(path, true);
+    const b = generatorAt(path, true);
+    a.onExecutionUpdate(createExecution([], 'a', 'a'), defaultReportMeta);
+    b.onExecutionUpdate(createExecution([], 'b', 'b'), defaultReportMeta);
+    await Promise.all([a.flush(), b.flush()]);
+    await a.finalize();
+    expect(readReportArtifactManifest(path)?.status).toBe('running');
+    expect(
+      readReportArtifactManifest(path)
+        ?.groups.map((group) => group.status)
+        .sort(),
+    ).toEqual(['complete', 'running']);
+    b.onExecutionUpdate(
+      createExecution([], 'b updated', 'b'),
+      defaultReportMeta,
+    );
+    await b.flush();
+    expect(readReportArtifactManifest(path)?.status).toBe('running');
+    await b.finalize();
+    expect(readReportArtifactManifest(path)?.status).toBe('complete');
+    // Repeated finalize must preserve the completed state.
+    await Promise.all([a.finalize(), b.finalize()]);
+    expect(readReportArtifactManifest(path)?.status).toBe('complete');
+  });
 });

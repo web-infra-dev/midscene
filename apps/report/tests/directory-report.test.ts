@@ -11,6 +11,7 @@ const manifest = {
   groups: [
     {
       id: 'group',
+      status: 'complete',
       attributes: { playwright_test_title: '登录 → 首页' },
       dumps: ['data/run/1.json', 'data/run/2.json'],
     },
