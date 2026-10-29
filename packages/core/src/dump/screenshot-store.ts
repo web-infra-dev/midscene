@@ -67,6 +67,19 @@ export function isBase64ImageDataUrl(value: string): boolean {
   return base64ImageDataUrlPattern.test(value);
 }
 
+/** Stable asset names allow different observations to share the same bytes. */
+export function reportImageFileName(
+  extension: string,
+  bytes: Uint8Array,
+): string {
+  const hash = createHash('sha256')
+    .update(extension)
+    .update('\0')
+    .update(bytes)
+    .digest('hex');
+  return `${hash}.${extension}`;
+}
+
 export function resolveImageSource(
   refInput: unknown,
   options: {
@@ -371,12 +384,7 @@ export class ReportImageStore {
     const known = this.fileLocations.get(image.id);
     if (known) return known;
     const bytes = Buffer.from(image.rawBase64, 'base64');
-    const hash = createHash('sha256')
-      .update(image.extension)
-      .update('\0')
-      .update(bytes)
-      .digest('hex');
-    const fileName = `${hash}.${image.extension}`;
+    const fileName = reportImageFileName(image.extension, bytes);
     const relativePath = `./screenshots/${fileName}`;
     const absolutePath = join(screenshotsDir, fileName);
     let publication = this.pendingFiles.get(fileName);

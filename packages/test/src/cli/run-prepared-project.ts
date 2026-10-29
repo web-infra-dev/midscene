@@ -451,6 +451,7 @@ export async function runPreparedTestProject(
       if (!plan.reportEnabled) return;
       const reportPath = await new TestRunReportAssembler().assembleAsync({
         outputDir: reportDir,
+        outputFormat: plan.definition.output.reportFormat,
         reportFileName: `midscene-e2e-${runId}`,
         overwrite: false,
         sources: collectTestRunReportSources(completedResult),
