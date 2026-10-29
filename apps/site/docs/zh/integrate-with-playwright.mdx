@@ -153,7 +153,7 @@ export default defineConfig({
 ```
 
 - `type`：`'merged'`（默认）将所有用例合并为一份报告；`'separate'` 为每个用例生成独立的报告。
-- `outputFormat`：`'single-html'`（默认）将截图内嵌到单个 HTML 文件中；`'html-and-external-assets'` 将截图保存为外部文件，以减小 HTML 体积。
+- `outputFormat`：`'single-html'`（默认）将执行数据和截图内联到一个 HTML，支持离线打开；`'html-and-external-assets'` 生成 `index.html`、`report.json`、`data/` 和 `screenshots/` 下按内容去重的图片，需保留整个目录并通过 HTTP 查看。即使只有一份源报告，也会按此配置生成最终报告，独立于源报告格式。
 
 使用 `'html-and-external-assets'` 模式时，需保持 HTML 文件与资源目录的相对路径不变，并通过本地 HTTP 服务预览报告（不支持直接通过 `file://` 协议打开）：
 

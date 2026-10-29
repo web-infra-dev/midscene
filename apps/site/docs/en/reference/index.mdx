@@ -1914,6 +1914,7 @@ function mergeReports(
     rmOriginalReports?: boolean;
     overwrite?: boolean;
     outputDir?: string;
+    outputFormat?: 'single-html' | 'html-and-external-assets';
   },
 ): string | null;
 ```
@@ -1925,12 +1926,13 @@ function mergeReports(
     - `rmOriginalReports?: boolean` — Whether to delete the original source report files after merging. Default: `false`.
     - `overwrite?: boolean` — Whether to overwrite an existing file at the target path. Default: `false`.
     - `outputDir?: string` — Output directory for the merged report (relative paths are resolved against the current working directory). Default: `midscene_run/report/`.
+    - `outputFormat` — `'single-html'` (default) or `'html-and-external-assets'`, independent of the source formats.
 
 - Return value:
 
   - Returns the entry HTML path of the merged report, or `null` if no reports were appended.
-  - When all source reports use `'single-html'`, the output path is `<outputDir>/<reportFileName>.html`.
-  - When any source report uses `'html-and-external-assets'`, the output path is `<outputDir>/<reportFileName>/index.html` alongside its screenshot asset directory.
+  - With `'single-html'` (default), the output path is `<outputDir>/<reportFileName>.html`.
+  - With `'html-and-external-assets'`, the output path is `<outputDir>/<reportFileName>/index.html` alongside `report.json`, `data/`, and `screenshots/`.
 
 - Examples:
 
@@ -1965,6 +1967,28 @@ afterAll(() => {
     outputDir: './test-results',
   });
 });
+```
+
+### `exportReportArtifact()`
+
+Export one Agent or Test report to either delivery format. The exporter copies only referenced execution data and images, and checks dependencies before publishing. The input report remains unchanged. External mode deduplicates identical image bytes; single HTML is self-contained.
+
+```ts
+import { exportReportArtifact } from '@midscene/core/report';
+
+const reportPath = await exportReportArtifact({
+  reportPath: './reports/run/index.html',
+  outputDir: './delivery',
+  reportFileName: 'run', // without .html
+  outputFormat: 'single-html', // default; or 'html-and-external-assets'
+  overwrite: false, // default
+});
+```
+
+The same operation is available through the CLI:
+
+```bash
+pnpm exec midscene report-tool --action export --htmlPath ./reports/run/index.html --outputDir ./delivery --outputName run --outputFormat single-html
 ```
 
 ### `.clear()`

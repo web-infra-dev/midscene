@@ -69,6 +69,14 @@ Each run generates two types of output artifacts. Their exact paths are printed 
   Note: The schema of `summary.json` may evolve across versions; external tools consuming this file should align with the actual output of the installed version.
 - **HTML visual report**: Can be opened directly in a browser after tests finish. It provides a complete log of case outcomes, screenshots for each step, input/output arguments, error traces, and Agent visual replay to help diagnose issues quickly. The output directory is controlled by `output.reportDir` in the configuration file (defaults to `midscene_run/report/`), independent of the structured results directory.
 
+Midscene Test owns the Agent records created during the run. Internal Agents contribute screenshots and execution data to this one integrated report. Standalone Agent scripts and the legacy YAML runner still publish Agent reports.
+
+For custom Agent Providers, treat `agent.reportFile` as optional: native hosted Agents have no standalone page to return from `releaseAgent`. The runner collects their snapshots automatically. External adapters can continue supplying snapshot JSON or an Agent HTML report.
+
+Create Agents inside setup or provider acquisition; an existing idle Agent can be adopted, while its earlier standalone history stays in its original report.
+
+The results directory also contains `records/`: immutable execution snapshots and shared screenshot files referenced by structured results. After successful delivery, replaceable progress files are removed. If an operation is still running after cancellation, its progress records remain available for diagnosis. Keep the results directory when you need programmatic analysis; the final report can be shared independently.
+
 ### Exit codes
 
 You can determine the overall outcome of a test run from the CLI exit code:
@@ -80,7 +88,16 @@ You can determine the overall outcome of a test run from the CLI exit code:
 
 ### Report archiving
 
-Reports default to a single HTML file: `midscene_run/report/midscene-e2e-<runId>.html`. When external screenshot mode is enabled, the report directory contains `index.html` and a `screenshots/` directory; preserve the entire directory when archiving or uploading artifacts. See [Run in GitHub Actions](#run-in-github-actions) for CI artifact configuration.
+Reports default to a single HTML file: `midscene_run/report/midscene-e2e-<runId>.html`. To choose the delivery format, set `output.reportFormat` in `midscene.config.ts`:
+
+```ts
+output: {
+  reportFormat: 'single-html', // default: open the HTML directly, including offline
+  // reportFormat: 'html-and-external-assets',
+}
+```
+
+External mode writes `midscene-e2e-<runId>/index.html`, `report.json`, execution and runner JSON under `data/`, and content-deduplicated images under `screenshots/`. Preserve the entire report directory when archiving or uploading, and preview it over HTTP. The format is independent of the storage settings of an Agent supplied by your provider. See [Run in GitHub Actions](#run-in-github-actions) for CI artifact configuration.
 
 ### Link to a specific step (URL hash)
 

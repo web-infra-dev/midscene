@@ -153,7 +153,7 @@ export default defineConfig({
 ```
 
 - `type`: `'merged'` (default) combines all tests into a single report; `'separate'` generates a separate report for each test.
-- `outputFormat`: `'single-html'` (default) embeds screenshots into a single HTML file; `'html-and-external-assets'` saves screenshots as external files to reduce the HTML file size.
+- `outputFormat`: `'single-html'` (default) embeds execution data and screenshots in one HTML file for offline viewing; `'html-and-external-assets'` writes `index.html`, `report.json`, `data/`, and content-deduplicated images under `screenshots/`. Keep this directory together and view it over HTTP. This setting controls the final report even when there is only one source report, regardless of its format.
 
 When using `'html-and-external-assets'`, keep the HTML file and its asset directory in their relative paths, and preview the report through a local HTTP server (opening it directly via `file://` is not supported):
 
