@@ -422,6 +422,8 @@ export abstract class AbstractWebPage extends AbstractInterface {
     throw new Error('Bulk text input is not supported by this web page');
   }
 
+  fillDateTimeInput?(value: string, element?: ElementInfo): Promise<boolean>;
+
   abstract scrollUntilTop(startingPoint?: Point): Promise<void>;
   abstract scrollUntilBottom(startingPoint?: Point): Promise<void>;
   abstract scrollUntilLeft(startingPoint?: Point): Promise<void>;
@@ -538,7 +540,12 @@ export function createWebInputPrimitives(
         }
 
         if (inputStrategy === 'bulk') {
-          await page.keyboard.insertText(value);
+          if (
+            opts?.replace === false ||
+            !(await page.fillDateTimeInput?.(value, element as ElementInfo))
+          ) {
+            await page.keyboard.insertText(value);
+          }
         } else if (inputStrategy === 'sequential') {
           await sendTextSequentially(
             value,

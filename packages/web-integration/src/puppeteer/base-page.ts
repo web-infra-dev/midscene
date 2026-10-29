@@ -43,6 +43,9 @@ import {
   sanitizeXpaths,
 } from '../common/cache-helper';
 import {
+  type DateTimeInputResult,
+  fillDateTimeInputScript,
+  focusedDateTimeInputScript,
   focusedInputFrameScript,
   selectAllInputScript,
 } from '../common/input-scripts';
@@ -92,7 +95,15 @@ type PageCdpSession = {
 type FocusedInputFrame = {
   evaluate(script: string): Promise<unknown>;
   evaluateHandle(script: string): Promise<{
-    asElement(): { contentFrame(): Promise<FocusedInputFrame | null> } | null;
+    asElement(): {
+      contentFrame(): Promise<FocusedInputFrame | null>;
+      boundingBox(): Promise<{
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null>;
+    } | null;
     dispose(): Promise<void>;
   }>;
 };
@@ -1136,20 +1147,60 @@ export class Page<
     }
   }
 
+  private async focusedInputFrame(): Promise<FocusedInputFrame> {
+    let frame: FocusedInputFrame = this.underlyingPage.mainFrame();
+    while (true) {
+      const handle = await frame.evaluateHandle(focusedInputFrameScript);
+      let child: FocusedInputFrame | null | undefined;
+      try {
+        child = await handle.asElement()?.contentFrame();
+      } finally {
+        await handle.dispose();
+      }
+      if (!child) return frame;
+      frame = child;
+    }
+  }
+
+  async fillDateTimeInput(
+    value: string,
+    element?: ElementInfo,
+  ): Promise<boolean> {
+    const frame = await this.focusedInputFrame();
+    if (element) {
+      const handle = await frame.evaluateHandle(focusedDateTimeInputScript);
+      try {
+        const input = handle.asElement();
+        if (!input) return false;
+        // Driver bounding boxes are in main-page coordinates, including for
+        // cross-origin frames. Never fill a different field after a failed click.
+        const rect = await input.boundingBox();
+        const [x, y] = element.center;
+        if (
+          !rect ||
+          x < rect.x ||
+          x > rect.x + rect.width ||
+          y < rect.y ||
+          y > rect.y + rect.height
+        ) {
+          throw new Error(
+            'Native date/time input target did not receive focus',
+          );
+        }
+      } finally {
+        await handle.dispose();
+      }
+    }
+    const result = (await frame.evaluate(
+      fillDateTimeInputScript(value),
+    )) as DateTimeInputResult;
+    if (result.error) throw new Error(result.error);
+    return result.handled;
+  }
+
   async selectAllInput(element?: ElementInfo): Promise<void> {
     if (!element) {
-      let frame: FocusedInputFrame = this.underlyingPage.mainFrame();
-      while (true) {
-        const handle = await frame.evaluateHandle(focusedInputFrameScript);
-        let child: FocusedInputFrame | null | undefined;
-        try {
-          child = await handle.asElement()?.contentFrame();
-        } finally {
-          await handle.dispose();
-        }
-        if (!child) break;
-        frame = child;
-      }
+      const frame = await this.focusedInputFrame();
       if (!(await frame.evaluate(selectAllInputScript))) {
         // Never issue a page-level selectAll when no editable field owns focus.
         throw new Error('Replacing text requires a focused editable field');

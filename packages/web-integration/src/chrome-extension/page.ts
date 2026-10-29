@@ -33,7 +33,11 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
-import { selectAllInputScript } from '../common/input-scripts';
+import {
+  type DateTimeInputResult,
+  fillDateTimeInputScript,
+  selectAllInputScript,
+} from '../common/input-scripts';
 import {
   type KeyInput,
   type MouseButton,
@@ -964,6 +968,19 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     await this.keyboard.press({
       key: 'Backspace',
     });
+  }
+
+  async fillDateTimeInput(
+    value: string,
+    element?: ElementInfo,
+  ): Promise<boolean> {
+    const response = await this.sendCommandToDebugger('Runtime.evaluate', {
+      expression: fillDateTimeInputScript(value, element?.center),
+      returnByValue: true,
+    });
+    const result = response.result.value as DateTimeInputResult;
+    if (result.error) throw new Error(result.error);
+    return result.handled;
   }
 
   async selectAllInput(element?: ElementInfo) {
