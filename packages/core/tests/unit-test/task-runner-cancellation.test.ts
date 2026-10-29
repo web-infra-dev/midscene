@@ -36,6 +36,71 @@ describe('task cancellation boundaries', () => {
     expect(runner.tasks[0].status).toBe('cancelled');
     expect(runner.tasks[0].timing).toBeUndefined();
   });
+  it.each(['queued', 'running'] as const)(
+    'explains external cancellation for a %s task and preserves its stack',
+    async (phase) => {
+      const controller = new AbortController();
+      const reason = new Error('Midscene action exceeded 2000ms.');
+      const runner = new TaskRunner('abort message', async () => context(), {
+        abortSignal: controller.signal,
+        tasks: [
+          {
+            type: 'Planning',
+            executor: async () => {
+              controller.abort(reason);
+              controller.signal.throwIfAborted();
+            },
+          },
+        ],
+      });
+      if (phase === 'queued') {
+        controller.abort(reason);
+      }
+      const message =
+        'Operation interrupted by an external abort signal.\nReason: Midscene action exceeded 2000ms.';
+      await expect(runner.flush()).rejects.toThrow(message);
+      expect(runner.tasks[0].errorMessage).toBe(message);
+      expect(runner.tasks[0].errorStack).toBe(reason.stack);
+      expect(reason.message).toBe('Midscene action exceeded 2000ms.');
+      expect(runner.tasks[0].status).toBe(
+        phase === 'queued' ? 'cancelled' : 'failed',
+      );
+    },
+  );
+
+  it('explains cancellation without a custom reason', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const runner = new TaskRunner('default abort', async () => context(), {
+      abortSignal: controller.signal,
+      tasks: [{ type: 'Planning', executor: rs.fn() }],
+    });
+    await expect(runner.flush()).rejects.toThrow(
+      'Operation interrupted by an external abort signal.\nReason: This operation was aborted',
+    );
+    expect(runner.tasks[0].errorStack).toBe(controller.signal.reason.stack);
+  });
+
+  it('does not label an unrelated failure as cancellation when the signal is aborted', async () => {
+    const controller = new AbortController();
+    const failure = new Error('Model request failed');
+    const runner = new TaskRunner('failure race', async () => context(), {
+      abortSignal: controller.signal,
+      tasks: [
+        {
+          type: 'Planning',
+          executor: async () => {
+            controller.abort(new Error('External stop'));
+            throw failure;
+          },
+        },
+      ],
+    });
+    await expect(runner.flush()).rejects.toThrow('Model request failed');
+    expect(runner.tasks[0].errorMessage).toBe(failure.message);
+    expect(runner.tasks[0].errorStack).toBe(failure.stack);
+  });
+
   it('stops a batch after the current non-cooperative executor actually settles', async () => {
     const controller = new AbortController();
     const entered = gate();

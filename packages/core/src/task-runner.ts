@@ -24,6 +24,21 @@ import { assert, uuid } from '@midscene/shared/utils';
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
 
+function serializeTaskError(
+  error: unknown,
+  signal?: AbortSignal,
+): SerializedError {
+  const serializedError = serializeError(error);
+  // Do not relabel an unrelated error that races with cancellation.
+  // Preserve the original stack and diagnostics alongside the explanation.
+  if (signal?.aborted && error === signal.reason) {
+    serializedError.message = truncateSerializedErrorString(
+      `Operation interrupted by an external abort signal.\nReason: ${serializedError.message}`,
+    );
+  }
+  return serializedError;
+}
+
 /**
  * A native, per-task lifecycle notification. The runner is the single source
  * of truth for when a task actually transitions, so it reports each transition
@@ -446,7 +461,7 @@ export class TaskRunner {
         taskIndex++;
       } catch (error) {
         successfullyCompleted = false;
-        const serializedError = serializeError(error);
+        const serializedError = serializeTaskError(error, this.abortSignal);
         task.error = serializedError;
         task.errorMessage = serializedError.message;
         task.errorStack = serializedError.stack;
@@ -482,7 +497,7 @@ export class TaskRunner {
       const error =
         errorTask?.error ??
         (this.abortSignal?.aborted
-          ? serializeError(this.abortSignal.reason)
+          ? serializeTaskError(this.abortSignal.reason, this.abortSignal)
           : {
               name: 'Error',
               message: 'Task execution failed',
