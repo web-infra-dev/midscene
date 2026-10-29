@@ -42,7 +42,10 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
-import { selectAllInputScript } from '../common/input-scripts';
+import {
+  focusedInputFrameScript,
+  selectAllInputScript,
+} from '../common/input-scripts';
 import {
   type KeyInput,
   type MouseButton,
@@ -82,6 +85,16 @@ type ScreencastFrameEvent = {
 type PageCdpSession = {
   send(method: string, params?: Record<string, unknown>): Promise<unknown>;
   detach(): Promise<void>;
+};
+
+// Narrow the different Playwright/Puppeteer generic overloads to the frame
+// operations needed for focus traversal, including cross-origin child frames.
+type FocusedInputFrame = {
+  evaluate(script: string): Promise<unknown>;
+  evaluateHandle(script: string): Promise<{
+    asElement(): { contentFrame(): Promise<FocusedInputFrame | null> } | null;
+    dispose(): Promise<void>;
+  }>;
 };
 
 type ScreencastCdpSession = PageCdpSession & {
@@ -1125,7 +1138,23 @@ export class Page<
 
   async selectAllInput(element?: ElementInfo): Promise<void> {
     if (!element) {
-      throw new Error('Bulk replace input requires a target element');
+      let frame: FocusedInputFrame = this.underlyingPage.mainFrame();
+      while (true) {
+        const handle = await frame.evaluateHandle(focusedInputFrameScript);
+        let child: FocusedInputFrame | null | undefined;
+        try {
+          child = await handle.asElement()?.contentFrame();
+        } finally {
+          await handle.dispose();
+        }
+        if (!child) break;
+        frame = child;
+      }
+      if (!(await frame.evaluate(selectAllInputScript))) {
+        // Never issue a page-level selectAll when no editable field owns focus.
+        throw new Error('Replacing text requires a focused editable field');
+      }
+      return;
     }
     await this.mouse.click(element.center[0], element.center[1]);
     const selected = await this.evaluate<boolean>(selectAllInputScript);
