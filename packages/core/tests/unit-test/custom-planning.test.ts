@@ -1,3 +1,4 @@
+import { getModelAdapter } from '@/ai-model/models';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { buildCustomPlanningMessages } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
@@ -19,6 +20,7 @@ function createPlanOptions(
     },
     actionSpace: [],
     modelRuntime: {
+      adapter: getModelAdapter(),
       config: {
         modelName: 'test-model',
         modelDescription: 'test-model',
@@ -33,6 +35,30 @@ function createPlanOptions(
 }
 
 describe('custom planning messages', () => {
+  it('includes only current dimensions in the transient instruction, never history', () => {
+    const options = createPlanOptions();
+    options.modelRuntime.adapter = getModelAdapter('minimax');
+    const config = {
+      systemPromptPlacement: 'system-message' as const,
+      buildSystemPrompt: () => 'system',
+      historyImageLimit: 2,
+    };
+    const input = {
+      userInstruction: { text: 'click save', referenceImages: [] },
+      options,
+    };
+    expect(
+      JSON.stringify(buildCustomPlanningMessages(input, config)),
+    ).toContain('1000 pixels wide and 800 pixels high');
+    options.context.shotSize = { width: 600, height: 400 };
+    const messages = JSON.stringify(buildCustomPlanningMessages(input, config));
+    expect(messages).toContain('600 pixels wide and 400 pixels high');
+    expect(messages).not.toContain('1000 pixels wide');
+    expect(
+      JSON.stringify(options.conversationHistory.snapshot()),
+    ).not.toContain('pixels wide');
+  });
+
   it('consumes pending feedback in the latest screenshot message', async () => {
     const conversationHistory = new ConversationHistory();
     conversationHistory.pendingFeedbackMessage =

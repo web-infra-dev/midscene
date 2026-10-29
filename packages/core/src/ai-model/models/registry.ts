@@ -17,6 +17,7 @@ import { gptAdapters } from './gpt';
 import { jevAdapters } from './jev/adapter';
 import { kimiAdapters } from './kimi';
 import { mimoAdapters } from './mimo';
+import { minimaxAdapters } from './minimax/adapter';
 import { qwenAdapters } from './qwen';
 import { uiTarsAdapters } from './ui-tars/adapter';
 
@@ -33,6 +34,7 @@ export const MODEL_ADAPTER_CONFIGS = {
   ...gptAdapters,
   ...kimiAdapters,
   ...mimoAdapters,
+  ...minimaxAdapters,
 } satisfies Record<TModelFamily, ModelAdapterDefinition>;
 
 type ModelAdapterCacheKey = TModelFamily | 'default';

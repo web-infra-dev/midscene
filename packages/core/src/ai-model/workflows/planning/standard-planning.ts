@@ -8,6 +8,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
+import { imageDimensionsPrompt } from '../../prompt/image-dimensions';
 import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
 import {
   AIResponseParseError,
@@ -215,7 +216,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>${planningAdvice}`,
+          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>${planningAdvice}${imageDimensionsPrompt(adapter.includeImageDimensions, preparedImage.preparedSize)}`,
         },
       ],
     },

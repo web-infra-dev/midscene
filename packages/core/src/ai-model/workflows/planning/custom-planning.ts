@@ -6,6 +6,7 @@ import type {
   ResolvedCustomPlanningDefinition,
 } from '../../model-adapter/custom-planning-types';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
+import { imageDimensionsPrompt } from '../../prompt/image-dimensions';
 import {
   AIResponseParseError,
   callAIWithStringResponse,
@@ -36,9 +37,15 @@ export function buildCustomPlanningMessages<TParsed>(
     actionContext,
   );
   const userInstructionText = input.userInstruction.text;
-  const userInstruction = config.buildUserInstruction
+  const formattedUserInstruction = config.buildUserInstruction
     ? config.buildUserInstruction(userInstructionText)
     : userInstructionText;
+  const userInstruction =
+    formattedUserInstruction +
+    imageDimensionsPrompt(
+      options.modelRuntime.adapter.includeImageDimensions,
+      context.shotSize,
+    );
   const referenceImageMessages = preparedReferenceImagesToMessages(
     input.userInstruction.referenceImages,
   );

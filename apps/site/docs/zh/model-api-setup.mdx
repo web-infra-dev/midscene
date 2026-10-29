@@ -318,7 +318,27 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 :::info 截图尺寸
 
-我们观察到，图片最长边超过 2000 像素时，定位精度可能下降。建议通过 Agent 的 `screenshotShrinkFactor` 参数缩放图片。
+我们观察到，百灵在图片尺寸较大时，定位精度会下降。根据实验，建议图片最长边不要超过 2000 像素，可通过 Agent 的 `screenshotShrinkFactor` 参数调整图片尺寸。
+
+:::
+
+</ModelConfigSection>
+
+<ModelConfigSection description="MiniMax-M3 / MiniMax-M3.1-Flash">
+
+### MiniMax {#minimax}
+
+- 模型供应商: [MiniMax](https://platform.minimax.io/)
+
+<ModelConfigCard
+  baseUrl={{ value: "https://api.minimax.io/v1", comment: "MiniMax 官方 API 地址" }}
+  modelName="MiniMax-M3.1-Flash"
+  modelFamily="minimax"
+/>
+
+:::info 截图尺寸
+
+我们观察到，MiniMax 在图片尺寸较大时，定位精度会下降。根据实验，建议图片最长边不要超过 1500 像素，可通过 Agent 的 `screenshotShrinkFactor` 参数调整图片尺寸。
 
 :::
 

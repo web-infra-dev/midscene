@@ -70,6 +70,7 @@ export async function AiLocateSection(options: {
       height: context.shotSize.height,
     },
     imagePreprocess: adapter.imagePreprocess,
+    includeImageDimensions: adapter.includeImageDimensions,
     targetDescription: sectionDescription,
     userMessageContentOrder: adapter.locate.userMessageContentOrder,
   });

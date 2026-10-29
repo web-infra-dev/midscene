@@ -11,6 +11,7 @@ import {
 } from '../../model-adapter/image-preprocess';
 import type { LocateUserMessageContentOrder } from '../../model-adapter/types';
 import type { ModelRuntime } from '../../models';
+import { imageDimensionsPrompt } from '../../prompt/image-dimensions';
 import { multimodalPromptToMessages } from '../../shared/multimodal-prompt';
 
 export type GroundingAIArgs = [
@@ -25,6 +26,7 @@ export async function prepareLocateModelInput({
   userPrompt,
   imagePreprocess,
   userMessageContentOrder,
+  includeImageDimensions = false,
 }: {
   locateImage: {
     imageBase64: string;
@@ -36,6 +38,7 @@ export async function prepareLocateModelInput({
   userPrompt: string;
   imagePreprocess: ImagePreprocessPolicy;
   userMessageContentOrder: LocateUserMessageContentOrder;
+  includeImageDimensions?: boolean;
 }): Promise<{
   messages: GroundingAIArgs;
   preparedImage: PreparedModelImage;
@@ -55,7 +58,9 @@ export async function prepareLocateModelInput({
   };
   const promptContent: MessageContent = {
     type: 'text',
-    text: userPrompt,
+    text:
+      userPrompt +
+      imageDimensionsPrompt(includeImageDimensions, preparedImage.preparedSize),
   };
 
   return {

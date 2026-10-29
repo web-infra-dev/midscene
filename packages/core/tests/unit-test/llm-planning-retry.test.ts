@@ -115,6 +115,31 @@ describe('plan XML parse retry', () => {
     rs.mocked(buildYamlFlowFromPlans).mockClear();
   });
 
+  it('builds current screenshot dimensions without retaining them in planning history', async () => {
+    rs.mocked(callGenerativeAI).mockResolvedValue(
+      mockAIResponse('<complete success="true">Done</complete>'),
+    );
+    const history = new ConversationHistory();
+    const options: PlanOptions = {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig('minimax')),
+      conversationHistory: history,
+      includeLocateInPlanning: true,
+      effort: 'balance',
+    };
+    await standardPlan('tap the menu', options);
+    expect(
+      JSON.stringify(rs.mocked(callGenerativeAI).mock.calls[0][0]),
+    ).toContain('100 pixels wide and 100 pixels high');
+    options.context.shotSize = { width: 600, height: 400 };
+    await standardPlan('tap the menu', options);
+    const second = JSON.stringify(rs.mocked(callGenerativeAI).mock.calls[1][0]);
+    expect(second).toContain('600 pixels wide and 400 pixels high');
+    expect(second).not.toContain('100 pixels wide');
+    expect(JSON.stringify(history.snapshot())).not.toContain('pixels wide');
+  });
+
   it.each([
     '<planning>I need to tap the menu again.</planning>',
     '<log>Tap the menu</log>',

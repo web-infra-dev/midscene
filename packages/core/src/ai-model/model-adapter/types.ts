@@ -327,6 +327,7 @@ export interface ModelAdapter {
   resolveImageDetail: ResolveImageDetail;
   buildCodexAppServerParams: BuildCodexAppServerParams;
   imagePreprocess: ImagePreprocessPolicy;
+  includeImageDimensions: boolean;
   insight: InsightAdapter;
   planning: PlanningAdapter;
   locate: LocateAdapter;
@@ -370,6 +371,8 @@ export interface ModelAdapterDefinition {
   resolveImageDetail?: ResolveImageDetail;
   buildCodexAppServerParams?: BuildCodexAppServerParams;
   imagePreprocess?: ImagePreprocessDefinition;
+  /** Attach known dimensions as text beside the latest screenshot. Defaults to false. */
+  includeImageDimensions?: boolean;
   insight?: InsightDefinition;
   planning?: PlanningDefinition;
   locate?: LocateDefinition;

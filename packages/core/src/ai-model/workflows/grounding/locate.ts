@@ -134,6 +134,7 @@ export async function genericLocate(
     userPrompt: userInstructionPrompt,
     locateImage: locateRequest.locateImage,
     imagePreprocess: adapter.imagePreprocess,
+    includeImageDimensions: adapter.includeImageDimensions,
     targetDescription: targetElementDescription,
     userMessageContentOrder: adapter.locate.userMessageContentOrder,
   });

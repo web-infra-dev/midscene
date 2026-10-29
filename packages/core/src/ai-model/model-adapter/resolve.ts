@@ -54,6 +54,7 @@ export class ResolvedModelAdapter implements ModelAdapter {
   readonly responses: ResponsesAdapter;
   readonly buildCodexAppServerParams: BuildCodexAppServerParams;
   readonly imagePreprocess: ImagePreprocessPolicy;
+  readonly includeImageDimensions: boolean;
   readonly insight: InsightAdapter;
   readonly planning: PlanningAdapter;
   readonly locate: LocateAdapter;
@@ -69,6 +70,7 @@ export class ResolvedModelAdapter implements ModelAdapter {
     this.buildCodexAppServerParams =
       config.buildCodexAppServerParams ?? buildDefaultCodexAppServerParams;
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
+    this.includeImageDimensions = config.includeImageDimensions ?? false;
     this.insight = resolveInsight(config.insight, {
       jsonParser: this.jsonParser,
     });

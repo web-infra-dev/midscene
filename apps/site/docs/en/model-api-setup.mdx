@@ -318,7 +318,27 @@ Environment variable configuration example, using `glm-5v-turbo`:
 
 :::info Screenshot dimensions
 
-We observed that localization accuracy may decrease when the longest image edge exceeds 2000 pixels. Use the Agent's `screenshotShrinkFactor` option to resize images.
+We observed that Ant Ling's localization accuracy decreases with larger images. Based on our experiments, we recommend keeping the longest image edge at or below 2000 pixels. Use the Agent's `screenshotShrinkFactor` option to adjust image dimensions.
+
+:::
+
+</ModelConfigSection>
+
+<ModelConfigSection description="MiniMax-M3 / MiniMax-M3.1-Flash">
+
+### MiniMax {#minimax}
+
+- Model provider: [MiniMax](https://platform.minimax.io/)
+
+<ModelConfigCard
+  baseUrl={{ value: "https://api.minimax.io/v1", comment: "MiniMax official API endpoint" }}
+  modelName="MiniMax-M3.1-Flash"
+  modelFamily="minimax"
+/>
+
+:::info Screenshot dimensions
+
+We observed that MiniMax's localization accuracy decreases with larger images. Based on our experiments, we recommend keeping the longest image edge at or below 1500 pixels. Use the Agent's `screenshotShrinkFactor` option to adjust image dimensions.
 
 :::
 

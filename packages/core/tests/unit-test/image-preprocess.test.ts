@@ -1,5 +1,6 @@
 import { prepareModelImage } from '@/ai-model/model-adapter/image-preprocess';
 import { buildSearchAreaConfig } from '@/ai-model/workflows/grounding';
+import { prepareLocateModelInput } from '@/ai-model/workflows/grounding/utils';
 import {
   cropByRect,
   paddingToMatchBlockByBase64,
@@ -18,6 +19,35 @@ describe('prepareModelImage', () => {
   beforeEach(() => {
     rs.clearAllMocks();
   });
+
+  it.each([true, false])(
+    'builds locate dimension text from the prepared image when enabled=%s',
+    async (enabled) => {
+      rs.mocked(paddingToMatchBlockByBase64).mockResolvedValue({
+        imageBase64: 'padded',
+        width: 112,
+        height: 84,
+      } as any);
+      const result = await prepareLocateModelInput({
+        locateImage: { imageBase64: 'original', width: 101, height: 77 },
+        targetDescription: 'Submit',
+        systemPrompt: 'system',
+        userPrompt: 'Locate Submit',
+        imagePreprocess: { padBlockSize: 28 },
+        userMessageContentOrder: 'image-first',
+        includeImageDimensions: enabled,
+      });
+      expect(result.messages[1].content).toEqual([
+        { type: 'image', url: 'padded' },
+        {
+          type: 'text',
+          text: enabled
+            ? 'Locate Submit\nThe current screenshot is 112 pixels wide and 84 pixels high.'
+            : 'Locate Submit',
+        },
+      ]);
+    },
+  );
 
   it('returns the original image and size when no padding policy is configured', async () => {
     const image = await prepareModelImage({
