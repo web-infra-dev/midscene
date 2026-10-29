@@ -1,3 +1,4 @@
+import type { RawAssistantOutput } from '@/types';
 import type { AIUsageInfo, Rect, UIContext } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -5,7 +6,10 @@ import type { TUserPrompt } from '../../../common';
 import { userPromptToString } from '../../../common';
 import type { ModelRuntime } from '../../models';
 import { buildSearchAreaLocateSystemPrompt } from '../../prompt/locate';
-import { AIResponseParseError, callAI } from '../../service-caller/index';
+import {
+  AIResponseParseError,
+  callGenerativeAI,
+} from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
@@ -20,7 +24,7 @@ import { formatLocateModelContext, prepareLocateModelInput } from './utils';
 
 const debugSection = getDebug('ai:grounding:section');
 
-type SectionLocateRawResponse = Awaited<ReturnType<typeof callAI>>;
+type SectionLocateRawResponse = Awaited<ReturnType<typeof callGenerativeAI>>;
 
 export async function AiLocateSection(options: {
   context: UIContext;
@@ -31,7 +35,7 @@ export async function AiLocateSection(options: {
   searchAreaConfig?: SearchAreaConfig;
   error?: string;
   rawResponse: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
 }> {
   const { context, sectionDescription } = options;
@@ -85,7 +89,7 @@ export async function AiLocateSection(options: {
   try {
     parsedResult = await callAiAndParseWithRetry({
       callAi: (retryAttempt, previousParseError) =>
-        callAI(
+        callGenerativeAI(
           withSemanticRetryFeedback(messages, previousParseError),
           modelRuntime,
           {
@@ -146,7 +150,7 @@ export async function AiLocateSection(options: {
           parseErrorMessage,
           response.content,
           response.usage,
-          response.rawChoiceMessage,
+          response.rawAssistantOutput,
           response.reasoning_content,
         );
       },
@@ -166,7 +170,7 @@ export async function AiLocateSection(options: {
         searchAreaConfig: undefined,
         error: callError.message,
         rawResponse: callError.rawResponse,
-        rawChoiceMessage: callError.rawChoiceMessage,
+        rawAssistantOutput: callError.rawAssistantOutput,
         usage: callError.usage,
       };
     }
@@ -186,7 +190,7 @@ export async function AiLocateSection(options: {
       searchAreaConfig: undefined,
       error: sectionError,
       rawResponse: result.content,
-      rawChoiceMessage: result.rawChoiceMessage,
+      rawAssistantOutput: result.rawAssistantOutput,
       usage: result.usage,
     };
   }
@@ -214,7 +218,7 @@ export async function AiLocateSection(options: {
       searchAreaConfig,
       error: sectionError,
       rawResponse: result.content,
-      rawChoiceMessage: result.rawChoiceMessage,
+      rawAssistantOutput: result.rawAssistantOutput,
       usage: result.usage,
     };
   } catch (error) {
@@ -229,7 +233,7 @@ export async function AiLocateSection(options: {
       searchAreaConfig: undefined,
       error: errorMessage,
       rawResponse: result.content,
-      rawChoiceMessage: result.rawChoiceMessage,
+      rawAssistantOutput: result.rawAssistantOutput,
       usage: result.usage,
     };
   }

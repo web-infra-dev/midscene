@@ -16,6 +16,7 @@ describe('extract', () => {
     const { context } = await getContextFromFixture('todo-input-with-value');
 
     const { parseResult } = await AiExtractElementInfo({
+      taskType: 'extract',
       dataQuery: 'Array<string>, task list, task name as string',
       context,
       modelRuntime: defaultModelRuntime(),
@@ -29,6 +30,7 @@ describe('extract', () => {
     const { context } = await getContextFromFixture('online_order');
 
     const { parseResult } = await AiExtractElementInfo({
+      taskType: 'extract',
       dataQuery: '{name: string, price: string}[], 饮品名称和价格',
       context,
       modelRuntime: defaultModelRuntime(),
@@ -36,17 +38,24 @@ describe('extract', () => {
 
     // Remove the thought field since it's generated dynamically by AI
     // but keep data and errors fields
-    const snapshotResult = {
+    const extractionResult = {
       data: parseResult.data,
       errors: parseResult.errors || [],
     };
-    expect(snapshotResult).toMatchSnapshot();
+    expect(extractionResult).toStrictEqual({
+      data: [
+        { name: 'Very Tangerine Blast (Original)', price: '6.82' },
+        { name: 'Mango Grapefruit Pops', price: '6.54' },
+      ],
+      errors: [],
+    });
   });
 
   it('todo obj', async () => {
     const { context } = await getContextFromFixture('todo-input-with-value');
 
     const { parseResult } = await AiExtractElementInfo({
+      taskType: 'extract',
       dataQuery:
         '{checked: boolean; text: string;}[], Task list with checkbox ahead of the task name (checkbox is a round box), task name as string and `checked` is true if the task is completed. Exclude the fist row if there is no round checkbox ahead of the task name.',
       context,
@@ -55,10 +64,19 @@ describe('extract', () => {
 
     // Remove the thought field since it's generated dynamically by AI
     // but keep data and errors fields
-    const snapshotResult = {
+    const extractionResult = {
       data: parseResult.data,
       errors: parseResult.errors || [],
     };
-    expect(snapshotResult).toMatchSnapshot();
+    // A timed-out model call can finish during the runner's retry. Exact
+    // expectations avoid sharing a numbered snapshot counter across attempts.
+    expect(extractionResult).toStrictEqual({
+      data: [
+        { checked: false, text: 'Learn Python' },
+        { checked: false, text: 'Learn Rust' },
+        { checked: false, text: 'Learn AI' },
+      ],
+      errors: [],
+    });
   });
 });

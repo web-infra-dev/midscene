@@ -1,363 +1,217 @@
-import SetupEnv from '../common/setup-env.mdx';
+# Android environment setup
 
-import { PackageManagerTabs } from '@theme';
+Midscene connects to and controls Android devices over `adb`, supporting UI automation across native apps, hybrid apps, and system interfaces.
 
-# Android
+This guide walks you through setting up the Android environment required by Midscene Test, the JavaScript SDK, and Playground. You will first [connect your device over adb](#connect-device), and then use [Playground](#verify-in-playground) to verify screen capture, touch input, and model calls.
 
-Midscene connects to Android devices through adb to automate apps and system interfaces.
+## Connect the device through adb {#connect-device}
 
-This guide covers device connection, model configuration, Playground, and JavaScript SDK integration with `@midscene/android`.
+Midscene uses `adb` on your computer to communicate with the target Android device over either USB or wireless `adb`. If `adb` is already installed and your device is connected, skip directly to [Verify the device connection](#verify-device-connection).
 
-## See it in action
+### 1. Install adb
 
-**Prompt:** Open the Booking app. Search for a hotel in Tokyo for four adults on Christmas, with a score of 8 or above.
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.png" height="300" controls />
-
-View the [full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.html), or explore more [Midscene showcases](../showcases.mdx).
-
-## Get started
-
-### Prepare your Android device
-
-Before scripting, confirm adb can talk to your device and the device trusts your machine.
-
-#### Install adb and set `ANDROID_HOME`
-
-- Install via [Android Studio](https://developer.android.com/studio) or the [command-line tools](https://developer.android.com/studio#command-line-tools-only)
-- Verify installation:
+- Install `adb` via [Android Studio](https://developer.android.com/studio) or the standalone [Android command-line tools](https://developer.android.com/studio#command-line-tools-only).
+- Run the following command to verify the installation:
 
 ```bash
 adb --version
 ```
 
-Example output indicates success:
+Output similar to the following confirms a working installation:
 
 ```log
 Android Debug Bridge version 1.0.41
 Version 34.0.4-10411341
-Installed as /usr/local/bin//adb
+Installed as /usr/local/bin/adb
 Running on Darwin 24.3.0 (arm64)
 ```
 
-- Set `ANDROID_HOME` as documented in [Android environment variables](https://developer.android.com/tools/variables), then confirm:
+- Configure the `ANDROID_HOME` environment variable as described in [Android environment variables](https://developer.android.com/tools/variables), then check that it takes effect:
 
 ```bash
 echo $ANDROID_HOME
 ```
 
-Any non-empty output means it is configured:
+The output should point to your local Android SDK directory, for example:
 
 ```log
 /Users/your_username/Library/Android/sdk
 ```
 
-#### Enable USB debugging and verify the device
+### 2. Enable debugging and connect the device
 
-In the system settings developer options, enable **USB debugging** (and **USB debugging (Security settings)** if present), then connect the device via USB.
+The steps below use a USB connection as an example. If your device is already connected over wireless `adb`, you can keep using that connection.
+
+1. In your phone's **Developer options**, enable **USB debugging** (and **USB debugging (Security settings)** if available, so Midscene can inject touch events).
+2. Connect the phone to your computer using a USB cable that supports data transfer.
+3. Keep the phone unlocked and accept the **Allow USB debugging** prompt on the screen.
 
 <p align="center">
-  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
+  <img src="/images/android-usb-debug-en.png" alt="android usb debug" width="400"/>
 </p>
 
-Verify the connection:
+### 3. Verify the device connection {#verify-device-connection}
+
+Run the following command to check the connection status:
 
 ```bash
 adb devices -l
 ```
 
-Example success output:
+When the device status shows `device`, the connection is ready:
 
 ```log
 List of devices attached
 s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
 ```
 
+If multiple devices are connected, note the device ID in the first column (such as `s4ey59` above) so you can select the target device in Playground or your project configuration.
+
+If the target device does not appear with the `device` status, check the following:
+- **Empty list**: For USB, check the data cable (ensure it is not charge-only), USB connection mode, and **USB debugging** toggle; for wireless `adb`, check the network and `adb connect` status.
+- **`unauthorized`**: Unlock the phone screen and accept the **Allow USB debugging** prompt on the device.
+- **`offline`**: Reconnect the USB cable or wireless `adb` session, and restart `adb` if needed. Proceed only after the status shows `device`.
+
+## Verify in Playground {#verify-in-playground}
+
+With Playground, you can verify screen capture, touch input, and model calls without writing code.
+
+Before starting, prepare your model configuration using [a model API key](../model-api-setup) or [a ChatGPT subscription](../chatgpt-subscription).
+
 ### Launch Playground
 
-Playground is the fastest way to validate the connection and try core capabilities such as `aiAct`, `aiQuery`, and `aiAssert` without writing code. It shares the same core as `@midscene/android`, so anything that works here will behave the same once scripted.
+Make sure Node.js (`^20.19.0 || ^22.12.0 || >=24.0.0`) is installed and both `node -v` and `npx --version` work in your terminal.
 
-1. Launch the Playground CLI:
+1. Start the Android Playground CLI:
 
 ```bash
 npx --yes @midscene/android-playground
 ```
 
-2. Click the gear icon in the Playground window, then paste your API Key configuration. See [Supported models and setup](../model-common-config) if you still need a model configuration.
+2. In the Playground window that opens, click the gear icon in the top-right corner, paste your model configuration, and save.
 
-![](/android-set-env.png)
+![](/images/android-set-env.png)
 
-## Use the JavaScript SDK
+3. If your browser does not open automatically, visit the local Playground URL printed in the terminal, and keep the terminal process running.
+4. In the connection panel on the left, select your target **ADB device** and create the Agent (if multiple devices are connected, match the device ID against `adb devices -l`).
+5. Confirm that the preview area displays your phone's current screen. If no screen appears, check the `adb` connection and screenshot permissions first.
 
-Once Playground works, move to a repeatable script with the JavaScript SDK.
+### Run an action and verify the result
 
-### Configure the model
+On your Android device, open the browser app, complete any first-run prompts, and navigate to [TodoMVC](https://todomvc.com/examples/react/dist/#/). Keep the device unlocked with the browser in the foreground.
 
-<SetupEnv />
+1. In Playground, select `aiAct`, enter the following instruction, and run it:
 
-### Install dependencies
-
-<PackageManagerTabs command="install @midscene/android dotenv --save-dev" />
-
-### Write a script
-
-Save the following code as `./demo.ts`. It opens the browser on the device, searches eBay, and asserts the result list.
-
-```typescript title="./demo.ts"
-import 'dotenv/config'; // load Midscene environment variables from .env if present
-import {
-  AndroidAgent,
-  AndroidDevice,
-  getConnectedDevices,
-} from '@midscene/android';
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-Promise.resolve(
-  (async () => {
-    const devices = await getConnectedDevices();
-    const device = new AndroidDevice(devices[0].udid);
-
-    const agent = new AndroidAgent(device, {
-      aiContexts: {
-        aiAct: 'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
-      },
-    });
-    await device.connect();
-
-    await agent.aiAct('open browser and navigate to ebay.com');
-    await sleep(5000);
-    await agent.aiAct('type "Headphones" in search box, hit Enter');
-    await agent.aiWaitFor('There is at least one headphone product');
-
-    const items = await agent.aiQuery(
-      '{itemTitle: string, price: Number}[], find item in list and corresponding price',
-    );
-    console.log('headphones in stock', items);
-
-    await agent.aiAssert('There is a category filter on the left');
-  })(),
-);
+```text
+Add a todo named "Try Midscene", then mark it as completed.
 ```
 
-For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
+2. Once the completed todo item appears on the page, switch to `aiAssert`, enter the following assertion, and run it:
 
-### Run the script
-
-```bash
-npx tsx demo.ts
+```text
+The list contains a todo named "Try Midscene", and it is marked as completed.
 ```
 
-After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
+3. Confirm that the assertion passes and inspect the step-by-step screenshots in the results panel. At this point, device connectivity, screen capture, touch input, and model calls have all been verified together.
 
-## Advanced
+If execution fails, check the failed step and error message: for missing screenshots or unresponsive touch input, see the [FAQ](#faq) below; for model request errors, see [Verify model connectivity](../model-config#verify-model-connectivity).
 
-Use this section to customize device behavior, integrate Midscene into your framework, or troubleshoot adb issues. For detailed constructor parameters, see the [Android section of the API reference](../reference/#android).
+### Clean up the example data
 
-### Extend Midscene on Android
+After verification, delete the "Try Midscene" item in TodoMVC. If you plan to run the Midscene Test Android example next, switch to the **All** filter and make sure the list is completely empty (including completed items), as the example template checks for an empty list before running and does not overwrite existing items.
 
-Use `defineAction()` to define custom actions. When constructing `AndroidDevice`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
+### See it in action
 
-```typescript
-import { getMidsceneLocationSchema, z } from '@midscene/core';
-import { defineAction } from '@midscene/core/device';
-import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+**Prompt:** Open the Booking app. Search for a hotel in Tokyo for four adults on Christmas, with a score of 8 or above. ([Full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.html))
 
-const ContinuousClick = defineAction({
-  name: 'continuousClick',
-  description: 'Click the same target repeatedly',
-  paramSchema: z.object({
-    locate: getMidsceneLocationSchema(),
-    count: z.number().int().positive().describe('How many times to click'),
-  }),
-  async call(param) {
-    const { locate, count } = param;
-    console.log('click target center', locate.center);
-    console.log('click count', count);
-  },
-});
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.png" height="300" controls />
 
-const devices = await getConnectedDevices();
-const device = new AndroidDevice(devices[0].udid, {
-  customActions: [ContinuousClick],
-});
-await device.connect();
+## Use the device in tests or scripts {#use-in-project}
 
-const agent = new AndroidAgent(device);
+Once device connectivity and interactions are verified in Playground, you can integrate the device into your test or script project:
 
-await agent.aiAct('click the red button five times');
-```
+| Prepared item | How to use it in your project |
+| --- | --- |
+| `adb` connection and debugging authorization | Keep the device connected, unlocked, and awake with debugging authorization active. |
+| Target device ID | Set `ANDROID_DEVICE_ID` in the Midscene Test Android template, or pass the device ID via [Android SDK](../sdk/android) options. |
+| Model configuration | Write your model settings to the project's `.env` file and load them as shown in the integration guide. Settings entered in Playground are stored only in the browser and are not automatically shared with your project. |
 
-See [Integrate with any interface](../integrate-with-any-interface#define-a-custom-action) for a deeper explanation of custom actions and action schemas.
+Choose your next step based on how you use Midscene:
 
-## FAQ
+- **Midscene Test**: Continue to [Configure the model and runtime environment](../midscene-test/use#2-configure-the-model-and-runtime-environment) and run the example (if you have not initialized a project yet, start from [Create a project](../midscene-test/use#create-a-project) and select Android).
+- **JavaScript test runner**: Continue with [Integrate with Vitest](../sdk/vitest).
+- **Standalone scripts**: Follow [Write standalone automation scripts](../sdk/standalone) and select the Android example.
+- **Platform SDK reference**: See the [Android JavaScript SDK](../sdk/android) for device selection, constructor options, platform-specific methods, and lifecycle management.
 
-### Why can't I control the device even though I've connected it?
+## FAQ {#faq}
 
-A common error is:
+### The device is missing, unauthorized, or offline
 
-```
+Run `adb devices -l` and follow the troubleshooting steps in [Verify the device connection](#verify-device-connection) to check the USB cable, debugging authorization, and connection status. Make sure the target device status is `device` before investigating screenshot or input issues.
+
+### Why can't I control the device even though it is connected (`INJECT_EVENTS` error)?
+
+If tapping or swiping fails with a permission error like the following:
+
+```text
 Error:
 Exception occurred while executing 'tap':
 java.lang.SecurityException: Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
 ```
 
-Make sure USB debugging is enabled and the device is unlocked in developer options.
+Some Android OEM ROMs (such as Xiaomi / MIUI / HyperOS, vivo, and OPPO) require an additional toggle in **Developer options** to allow simulated input. Make sure both of the following options are enabled:
+
+1. **USB debugging**
+2. **USB debugging (Security settings)** or **Disable permission monitoring** (if present)
 
 <p align="center">
-  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400" />
+  <img src="/images/android-usb-debug-en.png" alt="android usb debug" width="400" />
 </p>
 
-### Text input is cleared or lost after typing
+### Text input is cleared or disappears after typing
 
-After entering text, Midscene automatically dismisses the keyboard. The default behavior sends an **ESC key event**. However, some input fields (especially those inside WebView) listen for the ESC key event, which can cause side effects such as:
+If text is entered properly but disappears when the soft keyboard closes, the input field may be clearing its value in response to the `ESC` key event sent to dismiss the keyboard. You can customize the keyboard dismissal strategy; see the [Android JavaScript SDK guide](../sdk/android#text-input-is-cleared-or-disappears-after-typing) for options and examples.
 
-- Clearing the text just entered
-- Closing the popup/modal containing the input field
-- Navigating away from the current page
+### English text is altered by the Android input method
 
-You can try the following solutions in order of priority:
+Compare the input value recorded in the execution report with the text actually entered into the field. If the value in the report is correct but characters in the input field are reordered, missing, or intercepted by Pinyin composition, check the active input method and autocorrect settings on the device. See the [Android JavaScript SDK guide](../sdk/android#english-text-is-altered-by-the-android-input-method) for details on input channels.
 
-**Option 1: Use the BACK key (Android back button) to dismiss the keyboard**
+### Screenshots of secure pages (such as password inputs) are black
 
-Set `keyboardDismissStrategy` to `'back-first'` to use the Android BACK key instead of ESC to dismiss the keyboard:
+First switch to a regular page and check whether screenshots work normally. If only password screens or sensitive pages appear black, the app likely enables system screenshot protection (`FLAG_SECURE`) rather than `adb` being disconnected. See the [Android JavaScript SDK guide](../sdk/android#screenshots-of-secure-pages-such-as-password-inputs-are-black) for screenshot mechanisms and limitations.
 
-```typescript
-const device = new AndroidDevice('device-id', {
-  keyboardDismissStrategy: 'back-first',
-});
-```
+### Model calls fail
 
-**Option 2: Disable auto keyboard dismiss**
+Check the error message of the failed step and verify the model configuration in Playground settings or your project's `.env` file. Because device connectivity and model requests are independent, follow [Verify model connectivity](../model-config#verify-model-connectivity) to troubleshoot API key, endpoint, or network issues. Note that CLI and project checks read your project's environment variables rather than browser-stored Playground settings.
 
-If your input field also listens for the BACK key, you can disable auto keyboard dismiss entirely and let the AI Agent or subsequent actions manage the keyboard state:
-
-```typescript
-const device = new AndroidDevice('device-id', {
-  autoDismissKeyboard: false,
-});
-```
-
-With auto dismiss disabled, the keyboard will remain visible and may cover a large portion of the screen. You can work around this by:
-
-- Using `aiAct` to manually dismiss the keyboard, e.g. `await agent.aiAct('tap the collapse button on the keyboard')`
-- Installing and switching to [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard) — a minimal virtual keyboard that takes up very little screen space, so it barely affects screen interactions even when visible
-
-### English text is rewritten by the Android keyboard
-
-If the report shows the correct input parameter, but the app receives different text, missing text, or Chinese/pinyin candidates, the active Android input method may be rewriting the text. This can happen when pure ASCII text goes through the native `adb input text` path while a Chinese keyboard or autocorrect keyboard is active.
-
-Use the existing `imeStrategy` option and force all text input through yadb:
-
-```typescript
-const device = new AndroidDevice('device-id', {
-  imeStrategy: 'always-yadb',
-});
-```
-
-For YAML scripts:
-
-```yaml
-android:
-  imeStrategy: always-yadb
-```
-
-Or set the environment variable:
-
-```bash
-export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
-```
-
-This is different from text being cleared after typing. If the text is entered correctly and then disappears, check `keyboardDismissStrategy` or `autoDismissKeyboard` instead.
-
-### Screenshot of secure pages (e.g. password input) shows black
-
-Some pages (such as password entry screens in banking or payment apps) set `FLAG_SECURE` to block screenshots. When `screencap` captures such a page, the secure region appears black.
-
-The yadb tool creates a virtual display via the `secure` parameter of `SurfaceControl.createDisplay`, which can help capture secure content in some setups. Whether it can actually capture `FLAG_SECURE` pages depends on the Android version, ROM, root/hook environment, and device configuration (for example, some setups may require root plus a Magisk hook). Always verify against your actual device.
-
-Use the `screenshotStrategy` option to force yadb for screenshots:
-
-```typescript
-const device = new AndroidDevice('device-id', {
-  screenshotStrategy: 'always-yadb',
-});
-```
-
-For YAML scripts:
-
-```yaml
-android:
-  screenshotStrategy: always-yadb
-```
-
-Or set the environment variable:
-
-```bash
-export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
-```
-
-The default is `auto`, which tries `adb.takeScreenshot` first, falls back to shell `screencap`, and uses the yadb tool if `screencap` fails to execute. scrcpy is only tried before these when `scrcpyConfig.enabled` is turned on. `auto` does not analyze screenshot content — even if a method succeeds but returns a black frame, it will not automatically switch to yadb; it only moves to the next method when the previous one fails to execute. For secure pages that produce a valid but black image, set `always-yadb` to bypass the default `auto` flow (`adb.takeScreenshot`, `screencap`, and scrcpy when enabled) and use yadb directly. Yadb can only capture the default display (`displayId=0`), so combining `always-yadb` with a non-zero `displayId` throws an error.
+## Advanced connections and debugging
 
 ### Why does scrcpy fall back to ADB screenshots?
 
-Midscene rejects scrcpy frames that cannot be proven to have been captured after the latest completed action and that do not satisfy the absolute frame-age limit. If an established stream cannot provide a valid frame, Midscene restarts scrcpy once. It falls back to an ADB screenshot only if the new stream also fails.
+To prevent the AI model from acting on stale frames, Midscene strictly validates scrcpy frame timestamps: any frame that cannot be proven to have been captured after the most recent completed action—or that exceeds the maximum frame age limit—is rejected. If the active scrcpy stream fails to deliver a fresh frame in time, Midscene automatically restarts scrcpy once, and falls back to `adb` screenshots only if the restarted stream also fails.
 
-This can happen when an Android encoder stops emitting frames on a static screen, or when stream startup or transport is interrupted. The freshness warning alone does not diagnose link bandwidth or an excessive video bitrate. Do not change the bitrate solely because this warning appears.
+This commonly occurs when an Android hardware encoder pauses frame output on a completely static screen, or during stream startup and transient USB transport hiccups. Note that a frame-freshness warning alone does not indicate insufficient bandwidth or an excessive video bitrate—do not adjust the video bitrate solely in response to this warning.
 
 ### How do I configure the scrcpy video bitrate?
 
-Use `--scrcpy-video-bit-rate <bits-per-second>` (or `--scrcpyVideoBitRate`) on an Android CLI command. Providing this option enables scrcpy, so `--use-scrcpy` is optional when the bitrate option is present:
+See the [Android JavaScript SDK guide](../sdk/android#how-do-i-configure-the-scrcpy-video-bitrate).
 
-```bash
-midscene-android tap \
-  --device-id <device-id> \
-  --locate '{"prompt":"the target"}' \
-  --scrcpy-video-bit-rate <bits-per-second>
-```
+### How do I access Android Playground remotely from another machine on the LAN?
 
-Each CLI command is a separate process, so pass the option to every command that should override the default. For the JavaScript SDK or YAML, set `scrcpyConfig.videoBitRate` once on that device configuration. Changing the bitrate trades encoded bandwidth against screenshot detail. Tune it only when independent transport measurements show a need, then validate screenshot and recognition quality. See the [`AndroidDevice` scrcpy reference](../reference/index.mdx#scrcpy) for the default and related options.
-
-### Remote screen preview
-
-Scrcpy screen streaming now listens on `127.0.0.1` by default. To open Android Playground from another computer, explicitly allow remote access to both the Playground server and its Scrcpy sidecar. For example, on macOS or Linux:
+By default, both the Playground server and its built-in scrcpy streaming server bind only to `127.0.0.1`. To access Android Playground from another computer on your network, explicitly bind both servers to a reachable interface via environment variables (for example, on macOS or Linux):
 
 ```bash
 MIDSCENE_PLAYGROUND_HOST=0.0.0.0 MIDSCENE_SCRCPY_HOST=0.0.0.0 pnpm dlx @midscene/android-playground
 ```
 
-Open the Playground using the server computer's reachable IP address or hostname and the Playground port printed at startup. Allow access to both the Playground and Scrcpy ports. `0.0.0.0` is a listening address, not the address to enter in the browser.
+Then open Playground in a browser using the host machine's LAN IP address (or hostname) and the Playground port printed at startup (note that `0.0.0.0` is a wildcard bind address, not a URL you can open in a browser), and ensure your firewall allows incoming connections on both the Playground and scrcpy ports.
 
-`MIDSCENE_SCRCPY_HOST` applies to the standalone Android Playground CLI. It can also be set to a specific local interface address, such as `192.168.1.100`; the automatically opened local page uses that address for its screen preview. Code that creates `ScrcpyServer` directly can pass the `host` constructor option instead. Studio continues to use local-only screen streaming.
+`MIDSCENE_SCRCPY_HOST` applies to the standalone Android Playground CLI and can also be set to a specific local network IP (such as `192.168.1.100`, which the auto-opened local preview page will also use). If you instantiate `ScrcpyServer` directly in code, pass the `host` option to its constructor instead.
 
-:::warning
-Scrcpy does not yet authenticate preview sessions. Enabling remote access exposes device information and screen streams to clients that can reach the port. Only enable it on a trusted network with access restricted to intended clients.
+:::warning Security Notice
+The scrcpy streaming server does not currently authenticate viewer sessions. Binding it to a network interface exposes device information and live screen streams to any client that can reach the port. Enable remote access only on trusted private networks and restrict access with firewall rules.
 :::
 
 ### How do I use a custom adb path or remote adb server?
 
-Set the environment variables first:
-
-```bash
-export MIDSCENE_ADB_PATH=/path/to/adb
-export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
-export MIDSCENE_ADB_REMOTE_PORT=5037
-```
-
-You can also provide the same information via the constructor:
-
-```typescript
-const device = new AndroidDevice('s4ey59', {
-  androidAdbPath: '/path/to/adb',
-  remoteAdbHost: '192.168.1.100',
-  remoteAdbPort: 5037,
-});
-```
-
-## More
-
-- For every Agent method, check the [API reference (Common)](../reference/#interaction-methods).
-- For Android-specific APIs, see [API reference (Android)](../reference/#android).
-- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
-- Demo projects
-  - Android JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
-  - Android + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
+See the [Android JavaScript SDK guide](../sdk/android#how-do-i-use-a-custom-adb-path-or-remote-adb-server).

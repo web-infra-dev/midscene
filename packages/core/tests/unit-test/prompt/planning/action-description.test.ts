@@ -63,6 +63,137 @@ const buildActionDescriptions = (
 };
 
 describe('buildActionDescription and serializeActionDescriptions', () => {
+  it('preserves nested object fields, array items and discriminated branches', () => {
+    const { actionDescription, actionSpaceDescription } =
+      buildActionDescriptions({
+        name: 'FillBoundInput',
+        paramSchema: z.object({
+          target: z.object({
+            by: z.enum(['label', 'placeholder']),
+            name: z.string().describe('Exact observed input name'),
+          }),
+          format: z
+            .discriminatedUnion('kind', [
+              z.object({ kind: z.literal('value') }),
+              z.object({
+                kind: z.literal('url-query'),
+                parameter: z.string(),
+              }),
+            ])
+            .default({ kind: 'value' }),
+          items: z.array(
+            z.object({
+              text: z.string(),
+              count: z.number().default(1),
+              note: z.string().optional(),
+            }),
+          ),
+        }),
+        call: async () => {},
+      });
+
+    expect(actionDescription.param).toMatchObject({
+      target: {
+        type: 'object',
+        properties: {
+          by: { type: "enum('label', 'placeholder')" },
+          name: { type: 'string', description: 'Exact observed input name' },
+        },
+      },
+      format: {
+        optional: true,
+        default: { kind: 'value' },
+        anyOf: [
+          { properties: { kind: { type: '"value"' } } },
+          {
+            properties: {
+              kind: { type: '"url-query"' },
+              parameter: { type: 'string' },
+            },
+          },
+        ],
+      },
+      items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            text: { type: 'string' },
+            count: { type: 'number', optional: true, default: 1 },
+            note: { type: 'string', optional: true },
+          },
+        },
+      },
+    });
+    expect(yaml.load(actionSpaceDescription)).toEqual([actionDescription]);
+  });
+
+  it('unwraps refined object roots without describing them as scalar inputs', () => {
+    const { actionDescription } = buildActionDescriptions({
+      name: 'ConfigureTarget',
+      paramSchema: z
+        .object({ target: z.object({ name: z.string() }) })
+        .refine((value) => value.target.name.length > 0),
+      call: async () => {},
+    });
+
+    expect(actionDescription.param).toEqual({
+      target: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+    });
+  });
+
+  it('retains descriptions on wrapped scalar roots', () => {
+    const { actionDescription } = buildActionDescriptions({
+      name: 'UseText',
+      paramSchema: z
+        .string()
+        .transform((value) => value.trim())
+        .describe('Text to use'),
+      call: async () => {},
+    });
+
+    expect(actionDescription.param).toEqual({
+      type: 'string',
+      description: 'Text to use',
+      instruction: 'Pass the value directly, not as an object.',
+    });
+  });
+
+  it('only applies visual locator descriptions to executable top-level locators', () => {
+    const { actionDescription } = buildActionDescriptions(
+      {
+        name: 'ConfigureTarget',
+        paramSchema: z.object({
+          locate: getMidsceneLocationSchema(),
+          nested: z.object({ target: getMidsceneLocationSchema() }),
+          targets: z.array(getMidsceneLocationSchema()),
+        }),
+        call: async () => {},
+      },
+      { locatePromptSpec: mockLocatePromptSpec },
+    );
+
+    expect(actionDescription.param).toMatchObject({
+      locate: { type: expect.stringContaining('bbox') },
+      nested: {
+        properties: {
+          target: {
+            type: 'object',
+            properties: { prompt: { type: expect.stringContaining('string') } },
+          },
+        },
+      },
+      targets: { items: { type: 'object' } },
+    });
+    const parameters = actionDescription.param as Record<string, unknown>;
+    expect(
+      JSON.stringify([parameters.nested, parameters.targets]),
+    ).not.toContain('bbox');
+  });
+
   it('serializes action descriptions as valid YAML', () => {
     const actionSpace = [
       {
@@ -583,7 +714,7 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
           repeat:
             type: number
             optional: true
-            description: The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)
+            description: The number of times to repeat the swipe gesture. 1 for default, 0 for continuous mode capped at 10 repeats
         sample: |-
           <action-type>Swipe</action-type>
           <action-param-json>
@@ -1043,6 +1174,22 @@ describe('llm planning - buildActionDescription with ZodEffects and ZodUnion', (
         "description": "Nested union type",
         "param": {
           "nested": {
+            "anyOf": [
+              {
+                "type": "string",
+              },
+              {
+                "properties": {
+                  "type": {
+                    "type": "string",
+                  },
+                  "value": {
+                    "type": "number",
+                  },
+                },
+                "type": "object",
+              },
+            ],
             "type": "string | object",
           },
         },
@@ -1054,7 +1201,15 @@ describe('llm planning - buildActionDescription with ZodEffects and ZodUnion', (
         description: Nested union type
         param:
           nested:
-            type: string | object"
+            type: string | object
+            anyOf:
+              - type: string
+              - type: object
+                properties:
+                  type:
+                    type: string
+                  value:
+                    type: number"
     `);
   });
 });

@@ -21,20 +21,24 @@ import {
   MIDSCENE_REPORT_QUIET,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { getDebug } from '@midscene/shared/logger';
-import { ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
+import { getDebug, logReport } from '@midscene/shared/logger';
+import { ifInBrowser, uuid } from '@midscene/shared/utils';
+import {
+  type ExecutionRecordSnapshot,
+  ExecutionRecorder,
+} from './dump/execution-recorder';
 import {
   DATA_SCREENSHOT_MODE_ATTR,
   generateAgentReportComment,
   generateDumpScriptTag,
   generateImageScriptTag,
+  generateReportArtifactScriptTag,
   generateTestRunReportScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
-import {
-  imageRefFileExtension,
-  normalizeStoredImageRef,
-} from './dump/image-reference';
+import { normalizeStoredImageRef } from './dump/image-reference';
+import { readReportArtifactManifest } from './dump/report-artifact-reader';
+import { ReportArtifactStore } from './dump/report-artifact-store';
 import { compactReportDumps } from './dump/report-dump-compactor';
 import { type ImageUrlRef, ReportImageStore } from './dump/screenshot-store';
 import type { WorkflowReportSource } from './test-runner/engine/types';
@@ -55,8 +59,8 @@ const maxReportFilenameBytes = 255;
 export interface IReportGenerator {
   /**
    * Write or update a single execution.
-   * Each call appends a new dump script tag. The frontend deduplicates
-   * executions with the same id/name, keeping only the last one.
+   * Inline reports append dump tags; directory reports replace the execution's
+   * data file. Both retain the latest state for each stable execution ID.
    *
    * @param execution  Current execution's full data
    * @param reportMeta  Report-level metadata (groupName, sdkVersion, etc.)
@@ -79,6 +83,7 @@ export interface IReportGenerator {
   enableSourceSnapshots?(): void;
   createSourceSnapshot?(
     scopeId: string,
+    executionIds?: readonly string[],
   ): Promise<WorkflowReportSource | undefined>;
 
   /**
@@ -133,7 +138,8 @@ export class ReportGenerator implements IReportGenerator {
   // Tracks the last execution + groupMeta for re-writing on finalize
   private lastExecution?: ExecutionDump;
   private lastReportMeta?: ReportMeta;
-  private executionsByKey = new Map<string, ExecutionDump>();
+  private readonly recorder = new ExecutionRecorder();
+  private readonly artifactStore?: ReportArtifactStore;
   private executionCommentKeyByObject = new WeakMap<ExecutionDump, string>();
   private executionCommentKeyIndex = 0;
   private reportAttributes: Record<string, string> = {};
@@ -141,7 +147,8 @@ export class ReportGenerator implements IReportGenerator {
 
   // write queue for serial execution
   private writeQueue: Promise<void> = Promise.resolve();
-  private destroyed = false;
+  private finalization?: Promise<string | undefined>;
+  private sourcePublications = new Set<Promise<unknown>>();
 
   constructor(options: {
     reportPath: string;
@@ -155,6 +162,15 @@ export class ReportGenerator implements IReportGenerator {
     this.shouldPersistExecutionDump = options.persistExecutionDump ?? false;
     this.autoPrint = options.autoPrint ?? true;
     this.reportStreamId = uuid();
+    if (this.screenshotMode === 'directory') {
+      this.artifactStore = new ReportArtifactStore(
+        dirname(this.reportPath),
+        this.reportStreamId,
+        'agent',
+        options.reuseExistingReport,
+        basename(this.reportPath),
+      );
+    }
     this.screenshotStore = new ReportImageStore({
       mode: this.screenshotMode === 'inline' ? 'inline' : 'directory',
       reportPath: this.reportPath,
@@ -213,12 +229,12 @@ export class ReportGenerator implements IReportGenerator {
     reportMeta: ReportMeta,
     attributes?: ReportAttributes,
   ): void {
+    this.assertOpen();
     this.lastExecution = execution;
     this.lastReportMeta = reportMeta;
-    this.executionsByKey.set(this.getExecutionCommentKey(execution), execution);
+    this.recorder.record(execution, reportMeta);
     this.mergeReportAttributes(attributes);
     this.writeQueue = this.writeQueue.then(async () => {
-      if (this.destroyed) return;
       await this.doWriteExecution(execution, reportMeta);
     });
   }
@@ -228,27 +244,44 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   async finalize(): Promise<string | undefined> {
-    // Re-write the last execution to capture any final state changes
-    if (this.lastExecution && this.lastReportMeta) {
-      this.onExecutionUpdate(this.lastExecution, this.lastReportMeta);
+    if (!this.finalization) {
+      // Enqueue the final state before sealing the generator to new writes.
+      if (this.lastExecution && this.lastReportMeta) {
+        this.onExecutionUpdate(this.lastExecution, this.lastReportMeta);
+      }
+      this.finalization = this.finishPublication();
     }
-    await this.flush();
-    this.destroyed = true;
+    return this.finalization;
+  }
 
-    if (!this.initialized) {
-      // No executions were ever written — no file exists
-      return undefined;
+  private async finishPublication(): Promise<string | undefined> {
+    // Snapshots freeze independently of the HTML queue, but both must be on
+    // disk before their backing executions and diagnostic data are released.
+    await Promise.all([this.flush(), ...this.sourcePublications]);
+    if (this.initialized) {
+      if (this.artifactStore) {
+        await this.artifactStore.finalize();
+      } else {
+        await this.appendAgentReportComment();
+        try {
+          await compactReportDumps(this.reportPath);
+        } catch (error) {
+          warnReport(
+            `Failed to compact report ${this.reportPath}; keeping the uncompressed report: ${String(error)}`,
+          );
+        }
+      }
     }
+    this.recorder.clear();
+    this.lastExecution = undefined;
+    this.lastReportMeta = undefined;
+    this.executionCommentKeyByObject = new WeakMap();
+    this.executionLogFileIndexByExecutionKey.clear();
+    return this.initialized ? this.reportPath : undefined;
+  }
 
-    await this.appendAgentReportComment();
-    try {
-      await compactReportDumps(this.reportPath);
-    } catch (error) {
-      warnReport(
-        `Failed to compact report ${this.reportPath}; keeping the uncompressed report: ${String(error)}`,
-      );
-    }
-    return this.reportPath;
+  private assertOpen(): void {
+    if (this.finalization) throw new Error('The report has been finalized.');
   }
 
   getReportPath(): string | undefined {
@@ -260,11 +293,12 @@ export class ReportGenerator implements IReportGenerator {
     scopeId: string,
     meta: ReportMeta,
   ): Promise<string> {
+    this.assertOpen();
     this.writeQueue = this.writeQueue.then(async () => {
       // This runs at YAML invocation completion, never on progress ticks. Keep
       // all file I/O asynchronous and publish atomically for an open viewer.
       const reportMeta = this.lastReportMeta ?? meta;
-      const executions = [...this.executionsByKey.values()];
+      const executions = this.recorder.executions;
       const agentDump = new ReportActionDump({ ...reportMeta, executions });
       const reportId =
         this.reportAttributes['data-report-id'] ??
@@ -291,6 +325,36 @@ export class ReportGenerator implements IReportGenerator {
             ),
           );
         }
+      }
+      if (this.artifactStore) {
+        for (const execution of executions) {
+          await this.writeExecution(
+            execution,
+            this.wrapAsReportDump(execution, reportMeta),
+          );
+        }
+        if (!executions.length) {
+          // An empty execution group still carries setup/collection diagnostics.
+          await this.artifactStore.writeExecution(
+            'empty',
+            sourceDump.serialized,
+            this.getDumpScriptAttributes(),
+          );
+          if (!this.initialized) {
+            const marker = generateReportArtifactScriptTag('report.json');
+            await writeFileAsync(
+              this.reportPath,
+              `${getReportTpl()}${getBaseUrlFixScript()}\n${marker}`,
+            );
+            this.initialized = true;
+          }
+        }
+        await this.artifactStore.writeRunner(JSON.stringify(dump));
+        if (!this.firstWriteDone) {
+          this.firstWriteDone = true;
+          this.printReportPath();
+        }
+        return;
       }
       // Rebuild from the owned dump and image index, never parse this HTML back.
       const renderedDump =
@@ -331,36 +395,43 @@ ${generateAgentReportComment(agentDump)}`;
     this.screenshotStore.enableFileCopies();
   }
 
-  private async serializeSourceDump() {
+  private async serializeSourceDump(snapshot?: ExecutionRecordSnapshot) {
     this.enableSourceSnapshots();
+    const captured =
+      snapshot ??
+      this.recorder.capture(
+        undefined,
+        this.lastReportMeta ?? {
+          sdkVersion: '',
+          groupName: 'YAML execution',
+          modelBriefs: [],
+        },
+      );
+    for (const screenshot of captured.screenshots)
+      await this.screenshotStore.persist(screenshot);
     const references = new Map<string, ImageUrlRef>();
-    for (const execution of this.executionsByKey.values()) {
-      for (const screenshot of execution.collectScreenshots())
-        await this.screenshotStore.persist(screenshot);
-      for (const [url, ref] of await this.persistReferenceImages(execution))
-        references.set(url, ref);
+    for (const url of captured.referenceImageUrls) {
+      references.set(
+        url,
+        await this.screenshotStore.persistReferenceImage(url),
+      );
     }
-    const dump = new ReportActionDump({
-      ...(this.lastReportMeta ?? {
-        sdkVersion: '',
-        groupName: 'YAML execution',
-        modelBriefs: [],
-      }),
-      executions: [...this.executionsByKey.values()],
-    });
     const images = new Map<
       string,
       ReturnType<typeof normalizeStoredImageRef> & {}
     >();
     const serialized = JSON.stringify(
-      JSON.parse(dump.serializeWithReferenceImages(references)),
+      JSON.parse(captured.dump.serializeWithReferenceImages(references)),
       (_key, value) => {
         const ref = normalizeStoredImageRef(value);
         if (!ref) return value;
         const stored = {
           ...ref,
           storage: 'file' as const,
-          path: `./screenshots/${ref.id}.${imageRefFileExtension(ref)}`,
+          path:
+            ref.storage === 'file'
+              ? ref.path
+              : this.screenshotStore.getFilePath(ref.id),
         };
         images.set(ref.id, stored);
         return stored;
@@ -369,16 +440,41 @@ ${generateAgentReportComment(agentDump)}`;
     return { serialized, images };
   }
 
-  async createSourceSnapshot(scopeId: string): Promise<WorkflowReportSource> {
-    // Scope IDs originate in the kernel; never allow a filename to escape the report directory.
+  async createSourceSnapshot(
+    scopeId: string,
+    executionIds?: readonly string[],
+  ): Promise<WorkflowReportSource & { dumpPath: string }> {
+    this.assertOpen();
     if (!scopeId || basename(scopeId) !== scopeId)
       throw new Error('Invalid report scope ID');
-    await this.flush();
-    const { serialized } = await this.serializeSourceDump();
-    const dumpPath = `${this.reportPath}.${scopeId}.json`;
-    mkdirSync(dirname(dumpPath), { recursive: true });
-    await writeFileAsync(dumpPath, serialized, { flag: 'wx' });
-    return { sourcePath: this.reportPath, dumpPath };
+    const snapshot = this.recorder.capture(
+      executionIds,
+      this.lastReportMeta ?? {
+        sdkVersion: '',
+        groupName: 'YAML execution',
+        modelBriefs: [],
+      },
+    );
+    const publication = (async () => {
+      const { serialized } = await this.serializeSourceDump(snapshot);
+      const dumpPath = `${this.reportPath}.${scopeId}.${uuid()}.json`;
+      mkdirSync(dirname(dumpPath), { recursive: true });
+      await writeFileAsync(dumpPath, serialized, { flag: 'wx' });
+      return {
+        sourcePath: this.reportPath,
+        dumpPath,
+        collection: {
+          status: 'complete' as const,
+          capturedAt: snapshot.capturedAt,
+        },
+      };
+    })();
+    this.sourcePublications.add(publication);
+    try {
+      return await publication;
+    } finally {
+      this.sourcePublications.delete(publication);
+    }
   }
 
   private printReportPath(): void {
@@ -387,11 +483,11 @@ ${generateAgentReportComment(agentDump)}`;
       return;
 
     if (this.screenshotMode === 'directory') {
-      logMsg(
+      logReport(
         `Midscene - report file updated: npx serve ${dirname(this.reportPath)}`,
       );
     } else {
-      logMsg(`Midscene - report file updated: ${this.reportPath}`);
+      logReport(`Midscene - report file updated: ${this.reportPath}`);
     }
   }
 
@@ -403,7 +499,7 @@ ${generateAgentReportComment(agentDump)}`;
 
     const referenceImageRefs = await this.writeExecution(execution, singleDump);
 
-    if (this.shouldPersistExecutionDump) {
+    if (this.shouldPersistExecutionDump && !this.artifactStore) {
       await this.persistExecutionDumpToFile(
         execution,
         singleDump,
@@ -435,6 +531,12 @@ ${generateAgentReportComment(agentDump)}`;
       return;
     }
 
+    if (this.artifactStore && !readReportArtifactManifest(this.reportPath)) {
+      throw new Error(
+        'Cannot reuse an incompatible directory report. Choose a new reportFileName or regenerate the report.',
+      );
+    }
+
     // Reuse existing report file and append new updates instead of rewriting.
     this.initialized = true;
 
@@ -442,8 +544,8 @@ ${generateAgentReportComment(agentDump)}`;
       return;
     }
 
-    const reportDir = dirname(this.reportPath);
-    const existingExecutionIndices = readdirSync(reportDir)
+    if (!existsSync(this.executionDumpDir)) return;
+    const existingExecutionIndices = readdirSync(this.executionDumpDir)
       .map((name) => /^(\d+)\.execution\.json$/.exec(name)?.[1])
       .filter((index): index is string => Boolean(index))
       .map((index) => Number.parseInt(index, 10))
@@ -504,7 +606,13 @@ ${generateAgentReportComment(agentDump)}`;
     if (!this.initialized) {
       const baseUrlFix =
         this.screenshotMode === 'directory' ? getBaseUrlFixScript() : '';
-      await writeFileAsync(this.reportPath, `${getReportTpl()}${baseUrlFix}`);
+      const marker = this.artifactStore
+        ? `\n${generateReportArtifactScriptTag('report.json')}`
+        : '';
+      await writeFileAsync(
+        this.reportPath,
+        `${getReportTpl()}${baseUrlFix}${marker}`,
+      );
       this.initialized = true;
     }
 
@@ -514,13 +622,21 @@ ${generateAgentReportComment(agentDump)}`;
     }
     const referenceImageRefs = await this.persistReferenceImages(execution);
 
-    // Append dump tag (always — frontend keeps only last per execution id)
+    // Publish the latest facts using the selected storage format.
     const serialized =
       singleDump.serializeWithReferenceImages(referenceImageRefs);
-    await appendFileAsync(
-      this.reportPath,
-      `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
-    );
+    if (this.artifactStore) {
+      await this.artifactStore.writeExecution(
+        this.getExecutionCommentKey(execution),
+        serialized,
+        this.getDumpScriptAttributes(),
+      );
+    } else {
+      await appendFileAsync(
+        this.reportPath,
+        `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
+      );
+    }
     return referenceImageRefs;
   }
 
@@ -539,7 +655,7 @@ ${generateAgentReportComment(agentDump)}`;
     if (
       this.agentCommentWritten ||
       !this.lastReportMeta ||
-      this.executionsByKey.size === 0
+      this.recorder.executions.length === 0
     ) {
       return;
     }
@@ -550,7 +666,7 @@ ${generateAgentReportComment(agentDump)}`;
       groupDescription: this.lastReportMeta.groupDescription,
       modelBriefs: this.lastReportMeta.modelBriefs,
       deviceType: this.lastReportMeta.deviceType,
-      executions: Array.from(this.executionsByKey.values()),
+      executions: this.recorder.executions,
     });
     await appendFileAsync(
       this.reportPath,
@@ -583,12 +699,24 @@ ${generateAgentReportComment(agentDump)}`;
     return key;
   }
 
+  private get executionDumpDir(): string {
+    // Inline HTML files share their parent directory. Each needs its own
+    // numbered JSON namespace; external-asset reports already have one.
+    return this.screenshotMode === 'inline'
+      ? join(
+          dirname(this.reportPath),
+          '.execution-dumps',
+          basename(this.reportPath),
+        )
+      : dirname(this.reportPath);
+  }
+
   private async persistExecutionDumpToFile(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
     referenceImageRefs: ReadonlyMap<string, ImageUrlRef>,
   ): Promise<void> {
-    const dir = dirname(this.reportPath);
+    const dir = this.executionDumpDir;
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -603,12 +731,30 @@ ${generateAgentReportComment(agentDump)}`;
     }
 
     const fileName = `${fileIndex}.execution.json`;
-    const filePath = join(dirname(this.reportPath), fileName);
-    await writeFileAsync(
-      filePath,
-      singleDump.serializeWithReferenceImages(referenceImageRefs, 2),
-      'utf-8',
+    const filePath = join(dir, fileName);
+    let serialized = singleDump.serializeWithReferenceImages(
+      referenceImageRefs,
+      2,
     );
+    if (this.screenshotMode === 'inline') {
+      // JSON is two directories below the HTML. Point to the existing file
+      // copies so it can be consumed without resolving inline HTML assets.
+      serialized = JSON.stringify(
+        JSON.parse(serialized),
+        (_key, value) => {
+          const ref = normalizeStoredImageRef(value);
+          return ref
+            ? {
+                ...ref,
+                storage: 'file',
+                path: `../../${this.screenshotStore.getFilePath(ref.id).replace(/^\.\//, '')}`,
+              }
+            : value;
+        },
+        2,
+      );
+    }
+    await writeFileAsync(filePath, serialized, 'utf-8');
   }
 }
 

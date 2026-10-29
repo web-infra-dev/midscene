@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import {
   __shutdownCodexAppServerForTests,
   buildCodexTurnPayloadFromMessages,
@@ -22,11 +22,13 @@ import {
   AIRequestTimeoutError,
   runWithAbortSignal,
 } from '@/ai-model/service-caller/request-timeout';
-import { applyImageDetail } from '@/ai-model/service-caller/utils';
+import type {
+  ConversationMessage,
+  ModelCallMessages,
+} from '@/ai-model/service-caller/types';
 import type { CodeGenerationChunk } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 const baseModelConfig: IModelConfig = {
   modelName: 'gpt-5.4',
@@ -125,6 +127,9 @@ if (message.method === 'initialize') {
   };
 };
 
+const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
+  .resolveImageDetail;
+
 describe('codex app-server provider helper', () => {
   afterEach(async () => {
     await __shutdownCodexAppServerForTests();
@@ -169,8 +174,8 @@ describe('codex app-server provider helper', () => {
     ).toEqual({ effort: 'medium' });
   });
 
-  it('converts chat messages into codex turn payload', () => {
-    const messages: ChatCompletionMessageParam[] = [
+  it('converts conversation messages into codex turn payload', () => {
+    const messages: ConversationMessage[] = [
       {
         role: 'system',
         content: 'System rule: return concise output.',
@@ -180,12 +185,12 @@ describe('codex app-server provider helper', () => {
         content: [
           { type: 'text', text: 'Please inspect this screenshot.' },
           {
-            type: 'image_url',
-            image_url: { url: 'https://example.com/image.png' },
+            type: 'image',
+            url: 'https://example.com/image.png',
           },
           {
-            type: 'image_url',
-            image_url: { url: 'file:///tmp/local-shot.png' },
+            type: 'image',
+            url: 'file:///tmp/local-shot.png',
           },
         ],
       },
@@ -195,7 +200,10 @@ describe('codex app-server provider helper', () => {
       },
     ];
 
-    const payload = buildCodexTurnPayloadFromMessages(messages);
+    const payload = buildCodexTurnPayloadFromMessages(
+      messages,
+      resolveImageDetail,
+    );
 
     expect(payload.developerInstructions).toContain(
       'System rule: return concise output.',
@@ -211,31 +219,91 @@ describe('codex app-server provider helper', () => {
     expect(payload.input).toContainEqual({
       type: 'image',
       url: 'https://example.com/image.png',
+      detail: 'high',
     });
     expect(payload.input).toContainEqual({
       type: 'localImage',
       path: '/tmp/local-shot.png',
+      detail: 'high',
     });
   });
 
+  it('converts history entries directly and applies image detail without mutating history', () => {
+    const messages: ModelCallMessages = [
+      {
+        type: 'input-message',
+        message: { role: 'system', content: 'System rule' },
+      },
+      {
+        type: 'input-message',
+        message: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Inspect screenshot' },
+            {
+              type: 'image',
+              url: 'https://example.com/image.png',
+            },
+          ],
+        },
+      },
+      {
+        type: 'model-output',
+        output: {
+          type: 'chat-completion',
+          rawValue: {
+            role: 'assistant',
+            content: 'Previous answer',
+            refusal: null,
+          },
+        },
+      },
+    ];
+    const original = structuredClone(messages);
+    const payload = buildCodexTurnPayloadFromMessages(
+      messages,
+      () => 'original',
+    );
+    expect(payload.developerInstructions).toBe('System rule');
+    expect(payload.input[0]).toMatchObject({
+      type: 'text',
+      text: '[USER]\nInspect screenshot\n\n[ASSISTANT]\nPrevious answer',
+    });
+    expect(payload.input).toContainEqual({
+      type: 'image',
+      url: 'https://example.com/image.png',
+      detail: 'original',
+    });
+    expect(messages).toEqual(original);
+  });
+
+  it('rejects Responses output in Codex history', () => {
+    expect(() =>
+      buildCodexTurnPayloadFromMessages(
+        [{ type: 'model-output', output: { type: 'responses', rawValue: [] } }],
+        resolveImageDetail,
+      ),
+    ).toThrow('Cannot replay Responses output in a Codex conversation');
+  });
+
   it('preserves image detail in codex turn inputs', () => {
-    const messages: ChatCompletionMessageParam[] = [
+    const messages: ConversationMessage[] = [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Check this.' },
           {
-            type: 'image_url',
-            image_url: {
-              url: 'https://example.com/img.png',
-              detail: 'high',
-            },
+            type: 'image',
+            url: 'https://example.com/img.png',
           },
         ],
       },
     ];
 
-    const payload = buildCodexTurnPayloadFromMessages(messages);
+    const payload = buildCodexTurnPayloadFromMessages(
+      messages,
+      resolveImageDetail,
+    );
 
     expect(payload.input).toContainEqual({
       type: 'image',
@@ -245,28 +313,23 @@ describe('codex app-server provider helper', () => {
   });
 
   it('overrides image detail in codex turn inputs when required by adapter', () => {
-    const messages: ChatCompletionMessageParam[] = [
+    const messages: ConversationMessage[] = [
       {
         role: 'user',
         content: [
           {
-            type: 'image_url',
-            image_url: {
-              url: 'file:///tmp/local-shot.png',
-              detail: 'high',
-            },
+            type: 'image',
+            url: 'file:///tmp/local-shot.png',
           },
         ],
       },
     ];
 
     const payload = buildCodexTurnPayloadFromMessages(
-      applyImageDetail({ messages, imageDetail: 'original' }),
+      messages,
+      () => 'original',
     );
-    expect(
-      (messages[0].content as Array<{ image_url: { detail: string } }>)[0]
-        .image_url.detail,
-    ).toBe('high');
+    expect(messages[0].content[0]).not.toHaveProperty('detail');
 
     expect(payload.input).toContainEqual({
       type: 'localImage',
@@ -278,20 +341,23 @@ describe('codex app-server provider helper', () => {
   it('keeps the newest transcript context when truncating long turns', () => {
     const oldContent = `old-prefix-${'a'.repeat(270_000)}`;
     const latestRequest = 'latest user request should survive truncation';
-    const payload = buildCodexTurnPayloadFromMessages([
-      {
-        role: 'user',
-        content: oldContent,
-      },
-      {
-        role: 'assistant',
-        content: 'intermediate assistant response',
-      },
-      {
-        role: 'user',
-        content: latestRequest,
-      },
-    ]);
+    const payload = buildCodexTurnPayloadFromMessages(
+      [
+        {
+          role: 'user',
+          content: oldContent,
+        },
+        {
+          role: 'assistant',
+          content: 'intermediate assistant response',
+        },
+        {
+          role: 'user',
+          content: latestRequest,
+        },
+      ],
+      resolveImageDetail,
+    );
 
     expect(payload.input[0]).toMatchObject({
       type: 'text',
@@ -325,6 +391,7 @@ describe('codex app-server provider helper', () => {
       callAIWithCodexAppServer(
         [{ role: 'user', content: 'hello' }],
         baseModelConfig,
+        { resolveImageDetail },
       ),
     ).rejects.toThrow(
       /(?:codex app-server process error: spawn codex ENOENT|failed writing to codex app-server stdin: write EPIPE)/,
@@ -336,14 +403,17 @@ describe('codex app-server provider helper', () => {
     ['user cancellation', new Error('user cancelled')],
   ])('skips a queued turn after %s', async (_label, reason) => {
     await setupCodexServer();
-    const messages: ChatCompletionMessageParam[] = [
+    const messages: ConversationMessage[] = [
       { role: 'user', content: 'hello' },
     ];
-    const first = callAIWithCodexAppServer(messages, baseModelConfig);
+    const first = callAIWithCodexAppServer(messages, baseModelConfig, {
+      resolveImageDetail,
+    });
     const controller = new AbortController();
     const queuedEvents = rs.fn();
     const queued = runWithAbortSignal(controller.signal, () =>
       callAIWithCodexAppServer(messages, baseModelConfig, {
+        resolveImageDetail,
         abortSignal: controller.signal,
         onRecordEvent: queuedEvents,
       }),
@@ -354,14 +424,18 @@ describe('codex app-server provider helper', () => {
     await first;
 
     // A following turn ensures the expired queue entry has been processed.
-    const following = await callAIWithCodexAppServer(messages, baseModelConfig);
+    const following = await callAIWithCodexAppServer(
+      messages,
+      baseModelConfig,
+      { resolveImageDetail },
+    );
     expect(following.content).toBe('hello');
     expect(queuedEvents).not.toHaveBeenCalled();
   });
 
-  it('counts queue waiting against each callAI attempt timeout without sending expired turns', async () => {
+  it('counts queue waiting against each callGenerativeAI attempt timeout without sending expired turns', async () => {
     const { requestLog, releaseFile } = await setupCodexServer(true);
-    const messages: ChatCompletionMessageParam[] = [
+    const messages: ConversationMessage[] = [
       { role: 'user', content: 'hello' },
     ];
     const config = {
@@ -370,7 +444,7 @@ describe('codex app-server provider helper', () => {
       retryInterval: 0,
     };
     const onChunk = rs.fn();
-    const first = callAI(
+    const first = callGenerativeAI(
       messages,
       getModelRuntime({ ...config, timeout: 0, retryCount: 0 }),
       { stream: true, onChunk },
@@ -384,7 +458,7 @@ describe('codex app-server provider helper', () => {
       // Codex connection manager. Until then, queue waiting consumes each
       // attempt's timeout, including attempts that never start a server turn.
       await expect(
-        callAI(
+        callGenerativeAI(
           messages,
           getModelRuntime({ ...config, timeout: 50, retryCount: 1 }),
         ),
@@ -396,7 +470,7 @@ describe('codex app-server provider helper', () => {
     }
 
     // Drain both expired attempts before checking that neither was sent later.
-    const following = await callAI(
+    const following = await callGenerativeAI(
       messages,
       getModelRuntime({ ...config, timeout: 5000, retryCount: 0 }),
     );
@@ -417,6 +491,7 @@ describe('codex app-server provider helper', () => {
         [{ role: 'user', content: 'hello' }],
         { ...baseModelConfig, timeout },
         {
+          resolveImageDetail,
           abortSignal: controller.signal,
           onRecordEvent: (event) => {
             if (
@@ -442,6 +517,7 @@ describe('codex app-server provider helper', () => {
       [{ role: 'user', content: 'hello' }],
       baseModelConfig,
       {
+        resolveImageDetail,
         params: { effort: 'max' },
         onRecordEvent: (event) => events.push(event),
       },
@@ -462,13 +538,14 @@ describe('codex app-server provider helper', () => {
     const onUsage = rs.fn();
     runtime.onUsage = onUsage;
     const chunks: CodeGenerationChunk[] = [];
-    const enriched = await callAI(
+    const enriched = await callGenerativeAI(
       [{ role: 'user', content: 'hello' }],
       runtime,
       { stream: true, onChunk: (chunk) => chunks.push(chunk) },
     );
     expect(chunks.at(-1)?.usage).toEqual(expectedUsage);
     expect(enriched.usage).toMatchObject({
+      request_kind: 'codex',
       ...expectedUsage,
       cached_input: 3,
       model_name: baseModelConfig.modelName,

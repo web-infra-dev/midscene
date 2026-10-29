@@ -55,7 +55,7 @@ const createAndWrapClient = async ({
       'x-midscene-execution-id': executionId,
     },
     fetch: wrapOpenAICompatibleFetch(openAIRequestContext),
-    // Midscene handles request retries in callAI(), so disable SDK-level retries
+    // Midscene handles request retries in callGenerativeAI(), so disable SDK-level retries
     // to avoid duplicate attempts and duplicated backoff latency.
     maxRetries: 0,
     // Disabling the Midscene hard timeout leaves the SDK timeout at its
@@ -109,7 +109,7 @@ const createAndWrapClient = async ({
   return openai;
 };
 
-export async function createChatClient({
+export async function createClient({
   modelConfig,
   proxyAgent,
   effectiveTimeoutMs,
@@ -122,7 +122,7 @@ export async function createChatClient({
   executionId: string;
   recordEvent?: (event: Record<string, unknown>) => void;
 }): Promise<{
-  completion: OpenAI.Chat.Completions;
+  openai: OpenAI;
   openAIRequestContext: OpenAIRequestContext;
 }> {
   const { openaiBaseURL, openaiApiKey, openaiExtraConfig, createOpenAIClient } =
@@ -144,7 +144,7 @@ export async function createChatClient({
   });
 
   return {
-    completion: openai.chat.completions,
+    openai,
     openAIRequestContext,
   };
 }

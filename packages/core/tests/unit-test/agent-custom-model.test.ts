@@ -57,6 +57,55 @@ describe('Agent with custom OpenAI client', () => {
     rs.clearAllMocks();
   });
 
+  it('routes aiLocate and action targets to Locate without changing Planning or Insight', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig: {
+        ...complexModelConfig,
+        MIDSCENE_LOCATE_MODEL_NAME: 'locator',
+        MIDSCENE_LOCATE_MODEL_BASE_URL: 'https://locate.example/v1',
+        MIDSCENE_LOCATE_MODEL_API_KEY: 'locate-key',
+        MIDSCENE_LOCATE_MODEL_FAMILY: 'qwen3-vl',
+      },
+    });
+    const runPlans = rs
+      .spyOn((agent as any).taskExecutor, 'runPlans')
+      .mockResolvedValue({ output: { element: { center: [50, 50] } } });
+    await agent.aiLocate('button');
+    await agent.callActionInActionSpace('Tap', {
+      locate: { prompt: 'button' },
+    });
+    expect(runPlans).toHaveBeenCalledTimes(2);
+    for (const call of runPlans.mock.calls) {
+      expect((call[2] as any).config).toMatchObject({
+        intent: 'planning',
+        modelName: 'gpt-5.1',
+      });
+      expect((call[3] as any).config).toMatchObject({
+        intent: 'locate',
+        slot: 'locate',
+        modelName: 'locator',
+      });
+    }
+    expect(agent.modelConfigManager.getModelConfig('insight').modelName).toBe(
+      'model-for-insight',
+    );
+  });
+
+  it('reports the locate intent even when using the default model slot', () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig: defaultModelConfig,
+    });
+    const consume = rs.spyOn(agent as any, 'consumeUsage');
+    const runtime = (agent as any).resolveModelRuntime('locate');
+    runtime.onUsage({ slot: 'default', total_tokens: 12 });
+    expect(consume).toHaveBeenCalledWith(
+      expect.objectContaining({ intent: 'locate', slot: 'default' }),
+      expect.any(String),
+    );
+  });
+
   describe('default modelConfig without createOpenAIClient', () => {
     it('should work without createOpenAIClient', () => {
       const mockInterface = createMockInterface();
@@ -72,7 +121,9 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "default",
@@ -82,6 +133,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -90,6 +142,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -101,7 +154,9 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(planningConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "planning",
@@ -111,6 +166,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -119,6 +175,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -130,7 +187,9 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(insightConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "insight",
@@ -140,6 +199,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -148,6 +208,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -171,7 +232,9 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "default",
@@ -181,6 +244,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -189,6 +253,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -200,7 +265,9 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(planningConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "planning",
@@ -210,6 +277,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-planning-key",
           "openaiBaseURL": "https://api.smaple-planning.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -218,6 +286,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "planning",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -229,7 +298,9 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(insightConfig).toMatchInlineSnapshot(`
         {
+          "authMode": "api-key",
           "createOpenAIClient": undefined,
+          "endpoint": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "insight",
@@ -239,6 +310,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-insight-key",
           "openaiBaseURL": "https://api.sample-insight.com/v1",
           "openaiExtraConfig": undefined,
+          "protocol": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "reasoningEnabled": undefined,
@@ -247,6 +319,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "insight",
           "socksProxy": undefined,
+          "streamMode": "non-stream",
           "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
@@ -521,7 +594,7 @@ describe('Agent with custom OpenAI client', () => {
         'default',
       );
 
-      // Simulate what createChatClient does
+      // Simulate invoking the custom client hook.
       const baseClient = { chat: { completions: { create: rs.fn() } } };
       const options = {
         baseURL: config.openaiBaseURL,

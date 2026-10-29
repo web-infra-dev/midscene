@@ -8,7 +8,6 @@ import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 const pointCodec = createLocateResultCodec({ coordinates: { shape: 'point' } });
-const bboxCodec = createLocateResultCodec({ coordinates: { shape: 'bbox' } });
 
 const actionSpace: DeviceAction[] = [
   {
@@ -94,46 +93,53 @@ describe('normalizePlanningActionLocateFields', () => {
     });
   });
 
-  it('accepts bbox_2d when the model adapter enables the alias', () => {
-    const toPixelResult = rs.fn(() => ({
-      center: [20, 30],
-      rect: { left: 50, top: 60, width: 21, height: 21 },
-    }));
-    const actions: PlanningAction[] = [
-      {
-        type: 'Tap',
-        param: {
-          locate: {
-            prompt: 'submit',
-            bbox_2d: [50, 60, 70, 80],
-          },
-        },
-      },
-    ];
-
-    normalizePlanningActionLocateFields(actions, {
-      actionSpace,
-      includeLocateInPlanning: true,
-      locateResultCodec: {
-        ...bboxCodec,
-        toPixelResult,
-      } as any,
-      locateResultContext,
-      acceptBbox2dAlias: true,
-    });
-
-    expect(toPixelResult).toHaveBeenCalledWith(
-      [50, 60, 70, 80],
-      locateResultContext,
-    );
-    expect(actions[0].param.locate).toEqual({
-      prompt: 'submit',
-      locatedPixelResult: {
+  it.each(['region', 'legacy_region'])(
+    'reads %s and removes all configured coordinate fields',
+    (key) => {
+      const toPixelResult = rs.fn(() => ({
         center: [20, 30],
         rect: { left: 50, top: 60, width: 21, height: 21 },
-      },
-    });
-  });
+      }));
+      const actions: PlanningAction[] = [
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: 'submit',
+              legacy_region: [1, 2, 3, 4],
+              [key]: [50, 60, 70, 80],
+            },
+          },
+        },
+      ];
+
+      normalizePlanningActionLocateFields(actions, {
+        actionSpace,
+        includeLocateInPlanning: true,
+        locateResultCodec: {
+          ...createLocateResultCodec({
+            coordinates: { shape: 'bbox' },
+            resultKey: 'region',
+            resultKeyAliases: ['legacy_region'],
+          }),
+          toPixelResult,
+        } as any,
+        locateResultContext,
+      });
+
+      expect(toPixelResult).toHaveBeenCalledWith(
+        [50, 60, 70, 80],
+        locateResultContext,
+      );
+      expect(actions[0].param.locate).toEqual({
+        prompt: 'submit',
+        locatedPixelResult: {
+          center: [20, 30],
+          rect: { left: 50, top: 60, width: 21, height: 21 },
+        },
+      });
+    },
+  );
 
   it('parses protocol-specific locate params after identifying locator fields', () => {
     const parseProtocolLocateParameter = rs.fn(() => ({

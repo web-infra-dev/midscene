@@ -1,0 +1,13 @@
+{
+  "targets": {
+    "build": {
+      "inputs": [
+        "build",
+        "^build",
+        "{workspaceRoot}/package.json",
+        "{workspaceRoot}/examples/catalog/**/*",
+        "{workspaceRoot}/scripts/copy-create-templates.mjs"
+      ]
+    }
+  }
+}

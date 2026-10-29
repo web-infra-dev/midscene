@@ -107,7 +107,7 @@ describe('validateModelFamily', () => {
       MODEL_FAMILY_VALUES.join(', '),
     );
     expect(() => validateModelFamily('invalid' as any)).toThrow(
-      'https://midscenejs.com/model-common-config.html',
+      'https://midscenejs.com/model-api-setup.html',
     );
   });
 });
@@ -175,4 +175,32 @@ describe('parseOpenaiSdkConfig', () => {
 
     expect(result.temperature).toBeUndefined();
   });
+});
+
+describe.each([
+  DEFAULT_MODEL_CONFIG_KEYS,
+  INSIGHT_MODEL_CONFIG_KEYS,
+  PLANNING_MODEL_CONFIG_KEYS,
+])('protocol for $protocol', (keys) => {
+  it('preserves an unspecified protocol', () => {
+    expect(
+      parseOpenaiSdkConfig({ keys, provider: {} }).protocol,
+    ).toBeUndefined();
+  });
+  it.each(['openai-chat', 'openai-responses'])('accepts %s', (value) => {
+    expect(
+      parseOpenaiSdkConfig({ keys, provider: { [keys.protocol]: value } })
+        .protocol,
+    ).toBe(value);
+  });
+  it.each(['response', 'responses', 'chat-completion', 'openai-response'])(
+    'rejects invalid protocol name %s',
+    (value) => {
+      expect(() =>
+        parseOpenaiSdkConfig({ keys, provider: { [keys.protocol]: value } }),
+      ).toThrow(
+        `${keys.protocol} must be one of: openai-chat, openai-responses`,
+      );
+    },
+  );
 });

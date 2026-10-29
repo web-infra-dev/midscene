@@ -1,6 +1,10 @@
 import { closeSync, openSync, readSync, statSync } from 'node:fs';
 import { open as openAsync } from 'node:fs/promises';
 import { StringDecoder } from 'node:string_decoder';
+import {
+  REPORT_ARTIFACT_SCRIPT_TYPE,
+  assertReportArtifactPath,
+} from '@midscene/shared/report-artifact';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 import {
   TEST_RUN_REPORT_SCRIPT_TYPE,
@@ -103,6 +107,95 @@ export function generateAgentReportComment(report: IReportActionDump): string {
 function htmlScriptCloseTag(): string {
   // biome-ignore lint/style/useTemplate: keep this token runtime-built for inline report bundles
   return String.fromCharCode(60) + '/script>';
+}
+
+/** Directory reports declare their data entry separately from the Viewer. */
+export function generateReportArtifactScriptTag(path: string): string {
+  assertReportArtifactPath(path);
+  return [
+    String.fromCharCode(60),
+    'script type="',
+    REPORT_ARTIFACT_SCRIPT_TYPE,
+    '">',
+    JSON.stringify(path),
+    htmlScriptCloseTag(),
+  ].join('');
+}
+
+function reportArtifactPathExtractor(filePath: string) {
+  let result: string | undefined;
+  return {
+    get path() {
+      return result;
+    },
+    visit: (content: string) => {
+      const tagEnd = content.indexOf('>');
+      const type = content
+        .slice(0, tagEnd)
+        .match(/(?:^|\s)type\s*=\s*["']([^"']+)["']/i)?.[1];
+      if (type !== REPORT_ARTIFACT_SCRIPT_TYPE) return false;
+      if (result !== undefined)
+        throw new Error(
+          `Report contains multiple artifact entries: ${filePath}`,
+        );
+      const path: unknown = JSON.parse(
+        unescapeContent(content.slice(tagEnd + 1)),
+      );
+      assertReportArtifactPath(path);
+      result = path;
+      return false;
+    },
+  };
+}
+
+export function extractReportArtifactPathSync(
+  filePath: string,
+): string | undefined {
+  const extractor = reportArtifactPathExtractor(filePath);
+  streamScanTags(
+    filePath,
+    `${String.fromCharCode(60)}script`,
+    htmlScriptCloseTag(),
+    extractor.visit,
+  );
+  return extractor.path;
+}
+
+export async function extractReportArtifactPathAsync(
+  filePath: string,
+): Promise<string | undefined> {
+  const extractor = reportArtifactPathExtractor(filePath);
+  await streamScanTagsAsync(
+    filePath,
+    `${String.fromCharCode(60)}script`,
+    htmlScriptCloseTag(),
+    extractor.visit,
+  );
+  return extractor.path;
+}
+
+/** Consume complete elements so dump-tag strings in the Viewer are never payloads. */
+export async function streamDumpScriptsAsync(
+  filePath: string,
+  visitor: (dump: { openTag: string; content: string }) => boolean,
+): Promise<void> {
+  await streamScanTagsAsync(
+    filePath,
+    `${String.fromCharCode(60)}script`,
+    htmlScriptCloseTag(),
+    (content) => {
+      const tagEnd = content.indexOf('>');
+      const type = content
+        .slice(0, tagEnd)
+        .match(/(?:^|\s)type\s*=\s*["']([^"']+)["']/i)?.[1];
+      return type === 'midscene_web_dump'
+        ? visitor({
+            openTag: content.slice(0, tagEnd + 1),
+            content: content.slice(tagEnd + 1),
+          })
+        : false;
+    },
+  );
 }
 
 /** Avoid raw close tokens: this writer itself is bundled into report HTML. */

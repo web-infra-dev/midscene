@@ -1,3 +1,4 @@
+import type { IExecutionDump } from '@midscene/core';
 import {
   type AgentTestRunnerNodeDefinition,
   type AgentTestRunnerNodeProvider,
@@ -7,6 +8,8 @@ import {
   aiAssertInputSchema,
   aiAssertOptionsInputSchema,
   aiTapInputSchema,
+  aiWaitForInputSchema,
+  aiWaitForOptionsInputSchema,
   insightInputSchema,
   insightOptionsInputSchema,
   locateOptionsInputSchema,
@@ -19,7 +22,10 @@ import {
 } from '@midscene/core/agent/test';
 import {
   type WorkflowReportSource,
-  assertResourceAvailable,
+  admitResourceOperation,
+  collectTestRunReportMetrics,
+  hasPendingResourceOperation,
+  retainResourceForScope,
   trackResourceOperation,
 } from '@midscene/core/internal/test-runner';
 import {
@@ -38,6 +44,7 @@ export type MidsceneUIAgent = CommonAgentTestRunnerApi & {
   _prepareForTestRunner?(): void;
   _createReportSource?(
     scopeId: string,
+    executionIds?: readonly string[],
   ): Promise<WorkflowReportSource | undefined>;
   flushReport?(): Promise<string | undefined>;
   addDumpUpdateListener?(
@@ -54,9 +61,9 @@ export {
   aiPinchInputSchema,
   aiQueryInputSchema,
   aiScrollInputSchema,
-  aiWaitForInputSchema,
   javascriptInputSchema,
   runGherkinScenarioInputSchema,
+  setAIContextInputSchema,
 } from '@midscene/core/agent/test';
 export type {
   ActionNodeInput,
@@ -67,9 +74,9 @@ export type {
   AiPinchNodeInput,
   AiQueryNodeInput,
   AiScrollNodeInput,
-  AiWaitForNodeInput,
   JavascriptNodeInput,
   RunGherkinScenarioNodeInput,
+  SetAIContextNodeInput,
 } from '@midscene/core/agent/test';
 
 export {
@@ -77,6 +84,8 @@ export {
   aiActOptionsInputSchema,
   aiAssertInputSchema,
   aiAssertOptionsInputSchema,
+  aiWaitForInputSchema,
+  aiWaitForOptionsInputSchema,
   aiTapInputSchema,
   insightInputSchema,
   insightOptionsInputSchema,
@@ -91,6 +100,7 @@ export {
 
 export interface MidsceneExecutionRef {
   id?: string;
+  tasks?: IExecutionDump['tasks'];
 }
 
 export interface AgentProvider<TContext> {
@@ -118,12 +128,19 @@ export const waitInputSchema = z.strictObject({
 
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
+export type AiWaitForNodeInput = z.infer<typeof aiWaitForInputSchema>;
+export type AiWaitForNodeOptions = z.infer<typeof aiWaitForOptionsInputSchema>;
 export type AiTapNodeInput = z.infer<typeof aiTapInputSchema>;
 export type InsightNodeInput = z.infer<typeof insightInputSchema>;
 export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
 export type WaitNodeInput = z.infer<typeof waitInputSchema>;
 
 export interface CreateMidsceneNodesOptions<TContext> {
+  /**
+   * Prefix every returned Node name, including wait, with `${namespace}.`.
+   * Use non-empty dot-separated segments without whitespace.
+   */
+  namespace?: string;
   getAgent?(
     execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<MidsceneUIAgent>;
@@ -166,7 +183,54 @@ export const createAgentTestRunnerNodes = <TContext>(
     runInYamlExecutionContext(async () => {
       const scopeId =
         ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
-      const isCleanupOwner = assertResourceAvailable(agent, true, ctx.signal);
+      const isCleanupOwner = admitResourceOperation(agent, ctx.signal);
+      if (captureExecutions) {
+        ctx.report.onSnapshot(async (signal, traces) => {
+          signal.throwIfAborted();
+          const partial = hasPendingResourceOperation(agent);
+          const capturedAt = new Date().toISOString();
+          let source = await agent._createReportSource?.(
+            scopeId,
+            traces.map((trace) => trace.executionId),
+          );
+          // External adapters may only expose HTML. Capture it independently
+          // of cleanup, while marking its mutable source as partial.
+          if (!source) {
+            const path = await agent.flushReport?.();
+            if (path)
+              source = {
+                sourcePath: path,
+                collection: {
+                  status: 'partial',
+                  capturedAt,
+                  reason:
+                    'This provider exposes live HTML without immutable snapshot support.',
+                },
+              };
+          }
+          signal.throwIfAborted();
+          if (!source)
+            throw new Error('Agent did not return a report snapshot.');
+          return {
+            ...source,
+            collection: {
+              status:
+                partial || source.collection?.status === 'partial'
+                  ? ('partial' as const)
+                  : ('complete' as const),
+              capturedAt: source.collection?.capturedAt ?? capturedAt,
+              ...(source.collection?.reason
+                ? { reason: source.collection.reason }
+                : partial
+                  ? {
+                      reason:
+                        'An Agent operation was still running at the snapshot cutoff.',
+                    }
+                  : {}),
+            },
+          };
+        });
+      }
       // Native Steps own the root report. Any Agent.runYaml invoked underneath
       // contributes to that Step instead of publishing another root snapshot.
       const yamlBoundary = enterYamlExecution(agent, {
@@ -192,6 +256,20 @@ export const createAgentTestRunnerNodes = <TContext>(
             ctx.report.addTrace({
               type: 'midscene-execution',
               executionId: execution.id,
+              ...(execution.tasks
+                ? {
+                    metrics: collectTestRunReportMetrics({
+                      executions: [
+                        {
+                          id: execution.id,
+                          name: node,
+                          logTime: 0,
+                          tasks: execution.tasks,
+                        },
+                      ],
+                    }),
+                  }
+                : {}),
             });
           });
           if (ctx.signal.aborted) stopListening();
@@ -259,6 +337,16 @@ export function createMidsceneNodes<TContext>(
       'createMidsceneNodes() options must be an object.',
     );
   }
+  const { namespace } = options;
+  if (
+    namespace !== undefined &&
+    (typeof namespace !== 'string' ||
+      namespace.split('.').some((part) => !part || /\s/.test(part)))
+  ) {
+    throw new NodeDefinitionError(
+      'createMidsceneNodes() namespace must be a non-empty dot-separated string without whitespace.',
+    );
+  }
   if (
     typeof options.agentProvider?.getAgent !== 'function' &&
     typeof options.getAgent !== 'function'
@@ -286,43 +374,12 @@ export function createMidsceneNodes<TContext>(
     if (!agents) {
       agents = new Set();
       agentsByScope.set(runId, agents);
-      const ownedScope = agents;
       ctx.onTeardown(async () => {
-        const errors: unknown[] = [];
-        const reportPaths: string[] = [];
-        const reportSources: WorkflowReportSource[] = [];
         try {
-          for (const agent of ownedScope) {
-            try {
-              const path = await agent.flushReport?.();
-              if (path) reportPaths.push(path);
-              const source = await agent._createReportSource?.(runId);
-              if (source) reportSources.push(source);
-            } catch (error) {
-              errors.push(error);
-            }
-          }
-          // Publication failure never prevents the owner from disposing its Agent.
-          try {
-            const released = await options.agentProvider?.releaseAgent?.(runId);
-            if (
-              released?.reportPath &&
-              !reportPaths.includes(released.reportPath)
-            )
-              reportPaths.push(released.reportPath);
-          } catch (error) {
-            errors.push(error);
-          }
-          if (errors.length === 1) throw errors[0];
-          if (errors.length)
-            throw new AggregateError(
-              errors,
-              'Agent report publication and release failed',
-            );
-          return {
-            reportPaths,
-            ...(reportSources.length ? { reportSources } : {}),
-          };
+          const released = await options.agentProvider?.releaseAgent?.(runId);
+          return released?.reportPath
+            ? { reportPaths: [released.reportPath] }
+            : undefined;
         } finally {
           agentsByScope.delete(runId);
         }
@@ -336,20 +393,31 @@ export function createMidsceneNodes<TContext>(
         const agent = options.agentProvider
           ? await options.agentProvider.getAgent(runId, ctx)
           : await options.getAgent!(ctx);
+        retainResourceForScope(agent, ctx.signal);
         agent._prepareForTestRunner?.();
         scopeAgents.add(agent);
         return agent;
       }),
       ctx.signal,
+      'acquisition',
     );
   };
 
-  const agentDefinitions = options.agentClass.getTestRunnerNodeDefinitions();
+  const nodeName = (name: string) =>
+    namespace === undefined ? name : `${namespace}.${name}`;
+  const definitions = options.agentClass.getTestRunnerNodeDefinitions();
+  const agentDefinitions =
+    namespace === undefined
+      ? definitions
+      : definitions.map((definition) => ({
+          ...definition,
+          name: nodeName(definition.name),
+        }));
 
   return [
     ...createAgentTestRunnerNodes(agentDefinitions, getAgent),
     defineNode<typeof waitInputSchema, unknown, TContext>({
-      name: 'wait',
+      name: nodeName('wait'),
       description: 'Wait for a fixed duration while honoring cancellation.',
       stringInputKey: false,
       inputSchema: waitInputSchema,

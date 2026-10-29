@@ -1,4 +1,6 @@
+import assert from 'node:assert/strict';
 import { getModelRuntime } from '@/ai-model/models';
+import type { ServiceExtractParam } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
@@ -13,7 +15,7 @@ import * as imgActual from '@midscene/shared/img' with {
 rs.mock('@/ai-model/service-caller/index', () => ({
   ...serviceCallerActual,
   AIResponseParseError: class AIResponseParseError extends Error {},
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
   callAIWithObjectResponse: rs.fn(),
   callAIWithStringResponse: rs.fn(),
 }));
@@ -25,7 +27,7 @@ rs.mock('@midscene/shared/img', () => ({
     .mockResolvedValue('data:image/png;base64,REFERENCE'),
 }));
 
-import { callAI } from '@/ai-model/service-caller/index';
+import { callGenerativeAI } from '@/ai-model/service-caller/index';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 import { preProcessImageUrl } from '@midscene/shared/img';
 
@@ -42,7 +44,7 @@ describe('insight extraction prompt assembly', () => {
 
   beforeEach(() => {
     rs.clearAllMocks();
-    rs.mocked(callAI).mockResolvedValue({
+    rs.mocked(callGenerativeAI).mockResolvedValue({
       content:
         '<observation>Looks correct.</observation><data-json>{"result":true}</data-json>',
       usage: undefined,
@@ -50,10 +52,66 @@ describe('insight extraction prompt assembly', () => {
     } as any);
   });
 
+  it.each<ServiceExtractParam>([
+    'Read the page title',
+    { title: 'Page title' },
+    { Boolean: 'Read the Boolean field' },
+    { StatementIsTruthy: 'Read the StatementIsTruthy field' },
+    { Boolean: 'Is the page ready?', title: 'Page title' },
+  ])(
+    'uses generative extraction for non-boolean queries even with a boolean adapter: %j',
+    async (dataQuery) => {
+      const runtime = getModelRuntime(modelConfig);
+      const booleanFn = rs.fn();
+      const modelRuntime = {
+        ...runtime,
+        adapter: {
+          ...runtime.adapter,
+          insight: { ...runtime.adapter.insight, booleanFn },
+        },
+      };
+      await AiExtractElementInfo({
+        taskType: 'extract',
+        context: createFakeContext(),
+        dataQuery,
+        modelRuntime,
+      });
+      expect(booleanFn).not.toHaveBeenCalled();
+      expect(callGenerativeAI).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(['Boolean', 'StatementIsTruthy', 'customResult'])(
+    'uses the boolean adapter for %s queries',
+    async (key) => {
+      const runtime = getModelRuntime(modelConfig);
+      const booleanFn = rs
+        .fn()
+        .mockResolvedValue({ value: true, rawResponse: 'boolean response' });
+      const modelRuntime = {
+        ...runtime,
+        adapter: {
+          ...runtime.adapter,
+          insight: { ...runtime.adapter.insight, booleanFn },
+        },
+      };
+      const result = await AiExtractElementInfo({
+        context: createFakeContext(),
+        taskType: 'boolean',
+        dataQuery: { [key]: 'Is the page ready?' },
+        modelRuntime,
+      });
+      expect(result.parseResult.data).toEqual({ [key]: true });
+      expect(booleanFn).toHaveBeenCalledTimes(1);
+      expect(callGenerativeAI).not.toHaveBeenCalled();
+    },
+  );
+
   it('marks the current screenshot as primary and reference images as supporting context', async () => {
     const context = createFakeContext();
 
     const result = await AiExtractElementInfo<{ result: boolean }>({
+      taskType: 'extract',
       context,
       dataQuery: {
         StatementIsTruthy:
@@ -77,7 +135,7 @@ describe('insight extraction prompt assembly', () => {
       true,
     );
 
-    const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
+    const msgs = rs.mocked(callGenerativeAI).mock.calls[0]?.[0];
     expect(msgs).toHaveLength(5);
     expect(msgs?.[0]).toMatchObject({
       role: 'system',
@@ -101,10 +159,8 @@ describe('insight extraction prompt assembly', () => {
           ),
         }),
         expect.objectContaining({
-          type: 'image_url',
-          image_url: expect.objectContaining({
-            url: expect.stringMatching(/^data:image\/png;base64,/),
-          }),
+          type: 'image',
+          url: expect.stringMatching(/^data:image\/png;base64,/),
         }),
         expect.objectContaining({
           type: 'text',
@@ -136,10 +192,8 @@ describe('insight extraction prompt assembly', () => {
       role: 'user',
       content: [
         expect.objectContaining({
-          type: 'image_url',
-          image_url: expect.objectContaining({
-            url: 'data:image/png;base64,REFERENCE',
-          }),
+          type: 'image',
+          url: 'data:image/png;base64,REFERENCE',
         }),
       ],
     });
@@ -149,6 +203,7 @@ describe('insight extraction prompt assembly', () => {
     const abortController = new AbortController();
 
     await AiExtractElementInfo<{ result: boolean }>({
+      taskType: 'extract',
       context: createFakeContext(),
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether the success toast is visible',
@@ -157,7 +212,7 @@ describe('insight extraction prompt assembly', () => {
       abortSignal: abortController.signal,
     });
 
-    expect(rs.mocked(callAI).mock.calls[0]?.[2]).toEqual({
+    expect(rs.mocked(callGenerativeAI).mock.calls[0]?.[2]).toEqual({
       abortSignal: abortController.signal,
       semanticRetryAttempt: 0,
     });
@@ -165,6 +220,7 @@ describe('insight extraction prompt assembly', () => {
 
   it('renders the selected context as one model prompt block', async () => {
     await AiExtractElementInfo<{ result: boolean }>({
+      taskType: 'extract',
       context: createFakeContext(),
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether the success toast is visible',
@@ -175,7 +231,8 @@ describe('insight extraction prompt assembly', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    const userMessage = rs.mocked(callAI).mock.calls[0]?.[0]?.[1];
+    const userMessage = rs.mocked(callGenerativeAI).mock.calls[0]?.[0]?.[1];
+    assert(userMessage && 'role' in userMessage);
     const demandMessage = Array.isArray(userMessage?.content)
       ? userMessage.content.find(
           (item) => item.type === 'text' && item.text.includes('<CONTEXT>'),
@@ -190,7 +247,7 @@ describe('insight extraction prompt assembly', () => {
   });
 
   it('retries once when the insight XML response cannot be parsed', async () => {
-    rs.mocked(callAI)
+    rs.mocked(callGenerativeAI)
       .mockResolvedValueOnce({
         content: '<observation>Looks correct.</observation>',
         usage: undefined,
@@ -204,6 +261,7 @@ describe('insight extraction prompt assembly', () => {
       } as any);
 
     const result = await AiExtractElementInfo<{ result: boolean }>({
+      taskType: 'extract',
       context: createFakeContext(),
       dataQuery: {
         StatementIsTruthy: 'Boolean, whether the success toast is visible',
@@ -211,12 +269,17 @@ describe('insight extraction prompt assembly', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(callAI).toHaveBeenCalledTimes(2);
-    expect(rs.mocked(callAI).mock.calls.map((call) => call[2])).toEqual([
+    expect(callGenerativeAI).toHaveBeenCalledTimes(2);
+    expect(
+      rs.mocked(callGenerativeAI).mock.calls.map((call) => call[2]),
+    ).toEqual([
       expect.objectContaining({ semanticRetryAttempt: 0 }),
       expect.objectContaining({ semanticRetryAttempt: 1 }),
     ]);
-    const retryFeedback = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+    const retryFeedback = rs
+      .mocked(callGenerativeAI)
+      .mock.calls[1]?.[0]?.at(-1);
+    assert(retryFeedback && 'role' in retryFeedback);
     expect(retryFeedback).toMatchObject({ role: 'user' });
     expect(retryFeedback?.content).toEqual(
       expect.stringContaining('Missing required field: data-json'),

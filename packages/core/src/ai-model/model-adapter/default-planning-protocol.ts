@@ -1,7 +1,8 @@
+import { findAllMidsceneLocatorField } from '@/common';
 import {
   getZodDescription,
   getZodTypeName,
-  isMidsceneLocatorField,
+  unwrapZodField,
 } from '@midscene/shared/zod-schema-utils';
 import type { z } from 'zod';
 import { getZodDefaultValue } from '../shared/action-schema';
@@ -24,6 +25,9 @@ type ActionParamDescription = {
   description?: string;
   default?: unknown;
   instruction?: string;
+  properties?: Record<string, ActionParamDescription>;
+  items?: ActionParamDescription;
+  anyOf?: ActionParamDescription[];
 };
 
 type ActionDescription = {
@@ -31,6 +35,60 @@ type ActionDescription = {
   description: string;
   param?: Record<string, ActionParamDescription> | ActionParamDescription;
   sample?: string;
+};
+
+const buildActionParamDescription = (
+  field: z.ZodTypeAny,
+  locateFieldDescription?: string,
+): ActionParamDescription => {
+  const isLocator = locateFieldDescription !== undefined;
+  const result: ActionParamDescription = {
+    type: isLocator ? locateFieldDescription : getZodTypeName(field),
+  };
+  if (field.isOptional()) result.optional = true;
+  const description = getZodDescription(field);
+  if (description) result.description = description;
+  const defaultValue = getZodDefaultValue(field);
+  if (defaultValue !== undefined) result.default = defaultValue;
+
+  // Only top-level locator fields are normalized by the execution path.
+  // Ordinary nested objects must retain their own fields, not visual coordinates.
+  if (isLocator) return result;
+  const actualField = unwrapZodField(field) as z.ZodFirstPartySchemaTypes;
+  const definition = actualField._def;
+  if (definition.typeName === 'ZodObject') {
+    result.properties = Object.fromEntries(
+      Object.entries(definition.shape() as z.ZodRawShape).map(
+        ([name, nested]) => [name, buildActionParamDescription(nested)],
+      ),
+    );
+  } else if (definition.typeName === 'ZodArray') {
+    result.items = buildActionParamDescription(definition.type);
+  } else if (
+    definition.typeName === 'ZodUnion' ||
+    definition.typeName === 'ZodDiscriminatedUnion'
+  ) {
+    const variants: ActionParamDescription[] = definition.options.map(
+      (option: z.ZodTypeAny) => buildActionParamDescription(option),
+    );
+    result.type = variants.map((variant) => variant.type).join(' | ');
+    // Keep the compact representation for unions of primitive types.
+    if (
+      variants.some(
+        (variant) => variant.properties || variant.items || variant.anyOf,
+      )
+    ) {
+      result.anyOf = variants;
+    }
+  } else if (definition.typeName === 'ZodLiteral') {
+    result.type =
+      typeof definition.value === 'string'
+        ? JSON.stringify(definition.value)
+        : String(definition.value);
+  } else if (definition.typeName === 'ZodNull') {
+    result.type = 'null';
+  }
+  return result;
 };
 
 export const buildActionDescription = ({
@@ -44,7 +102,7 @@ export const buildActionDescription = ({
   };
 
   if (action.paramSchema) {
-    const schema = action.paramSchema as {
+    const schema = unwrapZodField(action.paramSchema) as {
       _def?: { typeName?: string };
       shape?: Record<string, unknown>;
     };
@@ -52,37 +110,14 @@ export const buildActionDescription = ({
 
     if (isZodObject && schema.shape) {
       const param: Record<string, ActionParamDescription> = {};
+      const locateFields = findAllMidsceneLocatorField(action.paramSchema);
 
       for (const [key, field] of Object.entries(schema.shape)) {
         if (field && typeof field === 'object') {
-          const isOptional =
-            typeof (field as { isOptional?: () => boolean }).isOptional ===
-              'function' &&
-            (field as { isOptional: () => boolean }).isOptional();
-          // Deliberately do not resolve locators nested in ZodUnion here:
-          // findAllMidsceneLocatorField does not recognize them either, so
-          // describing them as locators would diverge from the execution path.
-          const typeDescription = isMidsceneLocatorField(field)
-            ? locateFieldDescription
-            : getZodTypeName(field);
-          const description = getZodDescription(field as z.ZodTypeAny);
-          const defaultValue = getZodDefaultValue(field);
-          const hasDefault = defaultValue !== undefined;
-
-          const paramDescription: ActionParamDescription = {
-            type: typeDescription,
-          };
-          if (isOptional) {
-            paramDescription.optional = true;
-          }
-          if (description) {
-            paramDescription.description = description;
-          }
-          if (hasDefault) {
-            paramDescription.default = defaultValue;
-          }
-
-          param[key] = paramDescription;
+          param[key] = buildActionParamDescription(
+            field as z.ZodTypeAny,
+            locateFields.includes(key) ? locateFieldDescription : undefined,
+          );
         }
       }
 
@@ -91,7 +126,7 @@ export const buildActionDescription = ({
       }
     } else {
       const typeName = getZodTypeName(schema);
-      const description = getZodDescription(schema as z.ZodTypeAny);
+      const description = getZodDescription(action.paramSchema as z.ZodTypeAny);
       const paramDescription: ActionParamDescription = {
         type: typeName,
         instruction: 'Pass the value directly, not as an object.',

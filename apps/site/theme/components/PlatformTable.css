@@ -1,0 +1,49 @@
+.home-feature--platforms .home-feature__header {
+  display: block;
+}
+
+.home-platform-table-wrapper {
+  overflow-x: auto;
+}
+
+.home-platform-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.home-platform-table th,
+.home-platform-table td {
+  padding: 10px 12px;
+  border: 1px solid var(--rp-c-divider);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.home-platform-table th {
+  font-weight: 600;
+  background: var(--rp-c-bg-soft);
+}
+
+.home-platform-table tbody tr:hover,
+.home-platform-table tbody tr:focus-within {
+  background: var(--rp-c-bg-soft);
+}
+
+.home-platform-table td:nth-child(-n + 2) {
+  white-space: nowrap;
+}
+
+.home-platform-table a {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Keep hit targets on the links: older WebKit cannot contain them on a tr. */
+.home-platform-table a:focus-visible {
+  outline: 2px solid var(--rp-c-brand);
+  outline-offset: 2px;
+}

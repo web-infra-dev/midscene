@@ -3,6 +3,48 @@ import { Agent } from '../../src/agent/agent';
 import { commonAgentTestRunnerNodeDefinitions } from '../../src/agent/test-runner-nodes';
 
 describe('Agent Test Runner Node definitions', () => {
+  it.each([
+    { timeoutMs: 100, checkIntervalMs: 200 },
+    { timeoutMs: 100 },
+    { checkIntervalMs: 16000 },
+  ])('validates aiWaitFor intervals including defaults: %j', (options) => {
+    const definition = commonAgentTestRunnerNodeDefinitions.find(
+      (node) => node.name === 'aiWaitFor',
+    )!;
+    expect(
+      definition.inputSchema.safeParse({ prompt: 'ready', options }).success,
+    ).toBe(false);
+  });
+  it.each([
+    { target: 'aiAct', context: 'Use the test account.' },
+    { target: 'default', context: '' },
+    { target: 'aiAssert' },
+  ])('forwards setAIContext arguments unchanged: %j', async (input) => {
+    const definition = commonAgentTestRunnerNodeDefinitions.find(
+      (node) => node.name === 'setAIContext',
+    )!;
+    const setAIContext = rs.fn();
+    await definition.execute(
+      { setAIContext },
+      definition.inputSchema.parse(input),
+      { signal: new AbortController().signal },
+    );
+    expect(setAIContext).toHaveBeenCalledWith(input.target, input.context);
+  });
+
+  it.each([
+    { target: 'unknown', context: 'guidance' },
+    { context: 'guidance' },
+    { target: 'aiAct', context: null },
+    { target: 'aiAct', context: 123 },
+    { target: 'aiAct', context: 'guidance', extra: true },
+  ])('rejects invalid setAIContext input: %j', (input) => {
+    const definition = commonAgentTestRunnerNodeDefinitions.find(
+      (node) => node.name === 'setAIContext',
+    )!;
+    expect(definition.inputSchema.safeParse(input).success).toBe(false);
+  });
+
   it('forwards sleep through the reportable Agent API with cancellation', async () => {
     const definition = commonAgentTestRunnerNodeDefinitions.find(
       (node) => node.name === 'sleep',
@@ -104,9 +146,11 @@ describe('Agent Test Runner Node definitions', () => {
       ['aiString', 'prompt'],
       ['aiAsk', 'prompt'],
       ['recordToReport', 'title'],
+      ['setAIContext', undefined],
       ['aiHover', 'prompt'],
       ['aiDoubleClick', 'prompt'],
       ['aiRightClick', 'prompt'],
+      ['aiMiddleClick', 'prompt'],
       ['aiClearInput', 'prompt'],
       ['aiInput', undefined],
       ['aiKeyboardPress', 'keyName'],

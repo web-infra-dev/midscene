@@ -2,7 +2,6 @@ import {
   CheckCircleFilled,
   ClockCircleOutlined,
   CloseCircleFilled,
-  ReloadOutlined,
 } from '@ant-design/icons';
 import type { TestRunReportStep, TestRunReportValue } from '@midscene/core';
 import type { ReactNode } from 'react';
@@ -20,18 +19,23 @@ export const formatDuration = (durationMs: number | undefined): string => {
   )}s`;
 };
 
-export const formatPercent = (value: number): string =>
-  `${Math.round(value * 1000) / 10}%`;
-
-export const formatTimestamp = (value: string): string =>
-  new Intl.DateTimeFormat(undefined, {
+export const formatTimestamp = (value: string): string => {
+  const parts = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-  }).format(new Date(value));
+    hourCycle: 'h23',
+  })
+    .formatToParts(new Date(value))
+    .reduce<Record<string, string>>((result, part) => {
+      result[part.type] = part.value;
+      return result;
+    }, {});
+  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+};
 
 const statusMeta: Record<
   RunnerCaseStatus,
@@ -42,29 +46,27 @@ const statusMeta: Record<
   }
 > = {
   passed: {
-    label: 'Passed',
+    label: 'passed',
     tone: 'success',
     icon: <CheckCircleFilled />,
   },
-  'retry-passed': {
-    label: 'Passed after retry',
-    tone: 'warning',
-    icon: <ReloadOutlined />,
-  },
   failed: {
-    label: 'Failed',
+    label: 'failed',
     tone: 'failed',
     icon: <CloseCircleFilled />,
   },
   'not-run': {
-    label: 'Not run',
+    label: 'not run',
     tone: 'neutral',
     icon: <ClockCircleOutlined />,
   },
 };
 
-export function caseStatusLabel(status: RunnerCaseStatus): string {
-  return statusMeta[status].label;
+export function caseStatusLabel(
+  status: RunnerCaseStatus,
+  recovered = false,
+): string {
+  return `${statusMeta[status].label}${status === 'passed' && recovered ? ' (earlier attempt failed)' : ''}`;
 }
 
 export function CaseStatus({
@@ -90,6 +92,13 @@ export function StepStatus({
 }: {
   status: TestRunReportStep['status'];
 }): JSX.Element {
+  if (status === 'not-run')
+    return (
+      <ClockCircleOutlined
+        className="runner-step-status"
+        aria-label="Not run"
+      />
+    );
   return status === 'success' ? (
     <CheckCircleFilled className="runner-step-status is-success" />
   ) : (

@@ -73,10 +73,14 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
     
     - name: Run tests with coverage
+      # Run one package at a time so the per-package worker caps do not multiply
+      # model request concurrency against the shared TPM quota.
       # Worker caps live in the core/web-integration/cli rstest.config.ts files:
       # rstest rejects bare --minWorkers/--maxWorkers, so they must not be
       # passed here.
-      run: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage
+      uses: ./.github/actions/ai-ci
+      with:
+        command: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --parallel=1 --outputStyle=stream --verbose -- --coverage
       id: test-ai
       continue-on-error: true
 
@@ -85,7 +89,11 @@ jobs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: test-ai-output
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
+        path: |
+          packages/web-integration/midscene_run/report
+          packages/core/test-results.json
+          packages/web-integration/test-results.json
+          packages/cli/test-results.json
         if-no-files-found: ignore
 
     - name: Upload AI coverage reports

@@ -7,10 +7,69 @@ import {
   buildSearchAreaLocateSystemPrompt,
 } from '@/ai-model/prompt/locate';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
+import { createLocateResultCodec } from '@/ai-model/shared/model-locate-result';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it, rs } from '@rstest/core';
 
 describe('default locate protocol', () => {
+  it('uses custom fields consistently in prompts, targets and references', () => {
+    const { promptSpec } = createLocateResultCodec({
+      coordinates: { shape: 'point' },
+      resultKey: 'position',
+      resultKeyAliases: ['old_position', 'fallback_position'],
+    });
+    const protocol = createDefaultSearchAreaProtocol({
+      jsonParser: parseModelResponseJson,
+    });
+    const prompt = protocol.buildResponseInstructions(promptSpec);
+    expect(prompt).toContain('"position"');
+    expect(prompt).toContain('"references_position"');
+    expect(prompt).not.toContain('old_position');
+    expect(
+      protocol.parseRawResponse(
+        JSON.stringify({
+          position: [10, 20],
+          old_position: [30, 40],
+          references_position: [[50, 60]],
+          references_old_position: [[70, 80]],
+        }),
+        promptSpec,
+      ),
+    ).toEqual({ kind: 'located', target: [10, 20], references: [[50, 60]] });
+    expect(
+      protocol.parseRawResponse(
+        JSON.stringify({
+          old_position: [30, 40],
+          fallback_position: [50, 60],
+          references_old_position: [[70, 80]],
+        }),
+        promptSpec,
+      ),
+    ).toEqual({ kind: 'located', target: [30, 40], references: [[70, 80]] });
+    expect(
+      protocol.parseRawResponse(
+        JSON.stringify({
+          position: [],
+          old_position: [30, 40],
+        }),
+        promptSpec,
+      ),
+    ).toEqual({ kind: 'not-found' });
+    expect(
+      protocol.parseRawResponse(
+        JSON.stringify({
+          position: [10, 20],
+          references_position: [],
+          references_old_position: [[70, 80]],
+        }),
+        promptSpec,
+      ),
+    ).toEqual({ kind: 'located', target: [10, 20] });
+    expect(() =>
+      protocol.parseRawResponse('{"point":[10,20]}', promptSpec),
+    ).toThrow('Missing required coordinate field "position"');
+  });
+
   it('builds the existing JSON locate prompts', () => {
     const elementProtocol = createDefaultElementProtocol({
       jsonParser: parseModelResponseJson,

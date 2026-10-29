@@ -12,7 +12,7 @@ await agent.ai('在搜索框中输入 "Headphones"，按下回车键');
 
 在接口的背后，Midscene 会调用 LLM 来规划步骤并执行它们。你可以在报告中看到整个过程。这是一个非常常见的 AI Agent 运行模式。
 
-![](/blog/report-planning.png)
+![](/images/blog/report-planning.png)
 
 与此同时，许多测试工程师希望有一个更快的方式来执行 UI 操作。当在 AI 模型中使用复杂 prompt 时，一些 LLM 模型可能规划出错误的步骤，或者返回元素的坐标不准确。这些不可预测的过程时常常会让人感受到挫败。
 
@@ -27,7 +27,7 @@ await agent.aiKeyboardPress('Enter');
 
 在报告中，你会看到现在已经没有了规划 (Planning) 过程：
 
-![](/blog/report-instant-action.png)
+![](/images/blog/report-instant-action.png)
 
 使用这些接口的脚本看起来有点冗余（或者不太“智能”），但请相信，使用这些结构化的接口确实是一个节省时间的好方法，尤其是在操作已经非常明确的时候。
 
@@ -45,7 +45,7 @@ await agent.aiTap('target', { deepThink: true });
 
 让我们以 Coze.com 的工作流编辑页面为例。这个页面有许多自定义的图标在侧边栏。这对于 LLM 来说很难区分目标元素和它的周围元素。
 
-![](/blog/coze-sidebar.png)
+![](/images/blog/coze-sidebar.png)
 
 在即时操作中使用 `deepThink` 后，脚本会变成这样（当然，你也可以使用 javascript 接口）：
 
@@ -67,7 +67,7 @@ tasks:
 
 通过查看报告文件，你会看到 Midscene 已经找到了页面中的每个目标元素。
 
-![](/blog/report-coze-deep-think.png)
+![](/images/blog/report-coze-deep-think.png)
 
 就像上面的例子一样，精细的 `deepThink` 提示词是保持结果稳定的关键。
 

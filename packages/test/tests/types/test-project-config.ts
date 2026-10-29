@@ -37,6 +37,7 @@ import {
   type TestProjectDefinition,
   type TestProjectRunOptions,
   type TestProjectRunResult,
+  defineFileSetup,
   defineProjectSetup,
   defineTestProject,
   loadTestProject,
@@ -168,6 +169,50 @@ const project: TestProjectDefinition<ProjectContext> =
 void project;
 void loadTestProject<ProjectContext>();
 
+interface FileContext {
+  token: string;
+}
+const fileSetup = defineFileSetup<FileContext, ProjectContext>({
+  name: 'file',
+  setup({ projectContext, file, env, signal, onTeardown }) {
+    projectContext?.baseURL satisfies string | undefined;
+    file.sourcePath satisfies string;
+    file.documentRunId satisfies string;
+    env.TEST_TOKEN satisfies string | undefined;
+    signal.throwIfAborted();
+    onTeardown(async () => {});
+    return { token: 'independent' };
+  },
+});
+defineTestProject<FileContext, ProjectContext>({
+  setup: defineProjectSetup<ProjectContext>({
+    name: 'shared',
+    setup: () => ({ baseURL: 'https://example.com' }),
+  }),
+  fileSetup,
+  nodes: [
+    {
+      name: 'file.read',
+      execute({ context }) {
+        context.token satisfies string;
+        // @ts-expect-error File Nodes receive only the context returned by fileSetup.
+        context.baseURL;
+      },
+    },
+  ],
+  test: {
+    maxConcurrentFiles: 3,
+    setupTimeout: 120_000,
+    teardownTimeout: 30_000,
+  },
+});
+defineFileSetup<FileContext, ProjectContext>({
+  name: 'invalid',
+  // @ts-expect-error File setup must return the configured FileContext.
+  setup: () => ({ baseURL: 'https://example.com' }),
+});
+void loadTestProject<FileContext, ProjectContext>();
+
 const webSetup = defineProjectSetup<ProjectContext>({
   name: 'web',
   setup({ project, onTeardown }) {
@@ -217,7 +262,7 @@ defineTestProject<ProjectContext>({
       ],
     },
   ],
-  test: { maxConcurrency: 2, bail: 1, testTimeout: 30_000 },
+  test: { maxConcurrentProjects: 2, bail: 1, testTimeout: 30_000 },
   nodes: [projectNode],
 });
 
@@ -392,6 +437,17 @@ declare const iosRunnerInput: RunWdaRequestNodeInput;
 createMidsceneNodes({ agentClass: AndroidAgent, getAgent: () => androidAgent });
 createMidsceneNodes({ agentClass: IOSAgent, getAgent: () => iosAgent });
 createMidsceneNodes({ agentClass: HarmonyAgent, getAgent: () => harmonyAgent });
+createMidsceneNodes({
+  namespace: 'mobile',
+  agentClass: AndroidAgent,
+  getAgent: () => androidAgent,
+});
+createMidsceneNodes({
+  // @ts-expect-error Namespace names must be strings.
+  namespace: 123,
+  agentClass: AndroidAgent,
+  getAgent: () => androidAgent,
+});
 iosAgentInput satisfies RunWdaRequestNodeInput['request'];
 iosRunnerInput.request satisfies Parameters<IOSAgent['runWdaRequest']>[0];
 
@@ -431,4 +487,16 @@ defineProjectSetup({
   // @ts-expect-error Setups no longer declare supported platforms.
   platform: 'web',
   setup() {},
+});
+
+// Limits can be removed independently without changing the other default.
+defineTestProject({
+  test: { maxConcurrentFiles: null, maxConcurrentProjects: null },
+});
+defineTestProject({ test: { maxConcurrentProjects: 2 } });
+defineTestProject({
+  test: {
+    // @ts-expect-error Project and file concurrency use separate named limits.
+    maxConcurrency: 2,
+  },
 });

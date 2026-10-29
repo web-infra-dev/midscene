@@ -3,11 +3,13 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
@@ -17,6 +19,7 @@ import {
   runTestProject,
 } from '../src/cli';
 import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
+import type { TestProjectRunResult } from '../src/cli/types';
 
 interface RunnerState {
   configLoads: number;
@@ -72,6 +75,133 @@ afterEach(() => {
 });
 
 describe('test project main-process runner', () => {
+  it('publishes a fixed snapshot and keeps appending the original node late outcome to its journal', async () => {
+    const root = createProject();
+    const pending = createDeferred();
+    const state = Object.assign(setRunnerState(join(root, 'results')), {
+      pending: pending.promise,
+      cleaned: false,
+    });
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      export default {
+        test: { teardownTimeout: 20 },
+        projects: [{ name: 'late', setup: {
+          name: 'late-cleanup', setup({ onTeardown }) {
+            onTeardown(() => { globalThis.__testProjectRunnerState.cleaned = true; });
+          },
+        } }],
+        nodes: [{ name: 'pending', execute() { return globalThis.__testProjectRunnerState.pending; } }],
+      };
+    `,
+    );
+    writeWorkflow(
+      root,
+      'case.yaml',
+      'cases:\n  - name: late outcome\n    steps:\n      - pending:\n          $:\n            timeout: 10\n',
+    );
+    const result = await runTestProject({
+      projectRoot: root,
+      resultDir: state.resultDir,
+    }).catch((error) => {
+      expect(error).toBeInstanceOf(WorkflowExecutionFailure);
+      return (error as WorkflowExecutionFailure<TestProjectRunResult>).result;
+    });
+    expect(result.collectionErrors).toEqual([]);
+    expect(result.cases).toHaveLength(1);
+    expect(result.cases[0].run?.steps[0].node).toBe('pending');
+    expect(result.status).toBe('failed');
+    const summaryBefore = readFileSync(result.summaryPath, 'utf8');
+    const summary = JSON.parse(summaryBefore);
+    expect(summary.operationLog.path).toBe('operations.jsonl');
+    const journalPath = result.operationLog!.path;
+    const before = readFileSync(journalPath, 'utf8');
+    const events = before
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    const returned = events.find((event) => event.kind === 'runner-returned');
+    expect(returned).toMatchObject({ pending: true, node: 'pending' });
+    pending.resolve();
+    await pending.promise;
+    await Promise.resolve();
+    await Promise.resolve();
+    const after = readFileSync(journalPath, 'utf8');
+    expect(after.startsWith(before)).toBe(true);
+    expect(
+      after
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line)),
+    ).toContainEqual(
+      expect.objectContaining({
+        kind: 'settled',
+        operationId: returned.operationId,
+        stepId: returned.stepId,
+        status: 'success',
+      }),
+    );
+    expect(readFileSync(result.summaryPath, 'utf8')).toBe(summaryBefore);
+    await vi.waitFor(() => expect(state.cleaned).toBe(true));
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+  it('persists the full safe plan before setup, including filtered cases and unresolved variables', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = Object.assign(setRunnerState(resultDir), {
+      planAtSetup: undefined as any,
+    });
+    const runtimeValue = 'runtime-secret-value';
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+      import { readdirSync, readFileSync } from 'node:fs';
+      import { join } from 'node:path';
+      const state = globalThis.__testProjectRunnerState;
+      export default {
+        projects: [{ name: 'maps', tags: { include: ['smoke'] }, variables: { credential: '${runtimeValue}' }, setup: {
+          name: 'check-plan', setup() {
+            const run = readdirSync(state.resultDir)[0];
+            state.planAtSetup = JSON.parse(readFileSync(join(state.resultDir, run, 'plan.json'), 'utf8'));
+            throw new Error('setup stopped');
+          },
+        } }],
+        nodes: [{ name: 'body', stringInputKey: 'prompt', execute() { throw new Error('must not start'); } }],
+      };
+    `,
+    );
+    writeWorkflow(
+      root,
+      'map.yaml',
+      `cases:
+  - name: selected map
+    tags: [smoke]
+    steps: [{ body: "Use \${credential}" }]
+  - name: filtered map
+    tags: [slow]
+    steps: [{ body: hidden preview }]
+`,
+    );
+    const result = await runTestProject({ projectRoot: root, resultDir });
+    const plans = state.planAtSetup.projects[0].documents;
+    expect(plans[0].sourceYaml.value).toBe(
+      readFileSync(join(root, 'map.yaml'), 'utf8'),
+    );
+    expect(plans[0].cases.map((item: any) => item.selected)).toEqual([
+      true,
+      false,
+    ]);
+    expect(plans[0].cases[0].steps[0]).toMatchObject({
+      inputMode: 'template',
+      input: { value: { prompt: 'Use ${credential}' } },
+    });
+    expect(JSON.stringify(state.planAtSetup)).not.toContain(runtimeValue);
+    expect(result.summary).toMatchObject({ total: 1, notRun: 1, filtered: 1 });
+    expect(result.projects[0].plans).toEqual(plans);
+    expect(readdirSync(join(resultDir, result.runId))).toContain('plan.json');
+  });
+
   it('formats run ids with a local timestamp and UUID prefix', () => {
     expect(
       createTestRunId(
@@ -183,6 +313,8 @@ describe('test project main-process runner', () => {
 
     const result = await runTestProject({ cwd });
 
+    expect(result.projects[0]).not.toHaveProperty('platform');
+
     expect(result).toMatchObject({
       status: 'failed',
       exitCode: 1,
@@ -205,6 +337,13 @@ describe('test project main-process runner', () => {
       ],
     });
     const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(result.markdownPath).toBe(
+      join(dirname(result.summaryPath), 'result.md'),
+    );
+    expect(summary.markdown).toBe('result.md');
+    expect(readFileSync(result.markdownPath!, 'utf8')).toContain(
+      '## Midscene Test',
+    );
     expect(summary.projects[0]).toMatchObject({
       projectId: 'project-0',
       collectionErrors: [
@@ -306,6 +445,40 @@ describe('test project main-process runner', () => {
       first.runId,
     );
   });
+
+  it.each([undefined, 'html-and-external-assets'] as const)(
+    'uses the selected Test report delivery format: %s',
+    async (reportFormat) => {
+      const root = createProject();
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        `export default {
+      output: { reportFormat: ${JSON.stringify(reportFormat)} },
+      nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+    };`,
+      );
+      writeWorkflow(
+        root,
+        'example.yaml',
+        'cases: [{ name: example, steps: [{ noop: run }] }]',
+      );
+      const result = await runTestProject({
+        projectRoot: root,
+        resultDir: join(root, 'results'),
+      });
+      expect(result.status).toBe('success');
+      const name = `midscene-e2e-${result.runId}`;
+      expect(result.reportPath).toBe(
+        join(
+          root,
+          'midscene_run',
+          'report',
+          reportFormat ? join(name, 'index.html') : `${name}.html`,
+        ),
+      );
+      expect(existsSync(result.reportPath!)).toBe(true);
+    },
+  );
 
   it('rejects native report controls instead of silently disabling the report', async () => {
     const root = createProject();
@@ -536,7 +709,9 @@ afterAll:
       expect.stringMatching(/^ {6}✓ step 1\/1: noop \(\d+ ms\)$/),
       '      → afterEach 1/1: noop',
       expect.stringMatching(/^ {6}✓ afterEach 1\/1: noop \(\d+ ms\)$/),
-      expect.stringMatching(/^ {4}✓ attempt 1\/1: progress case \(\d+ ms\)$/),
+      expect.stringMatching(
+        /^ {4}✓ case attempt 1\/1: progress case \(\d+ ms\)$/,
+      ),
       '    → afterAll 1/1: noop',
       expect.stringMatching(/^ {4}✓ afterAll 1\/1: noop \(\d+ ms\)$/),
     ]);
@@ -731,8 +906,8 @@ cases:
         });
         export default {
           projects: [
-            { name: 'android', setup, nodes: [localNode('android', 'androidText')] },
-            { name: 'ios', setup, nodes: [localNode('ios', 'iosText')] },
+            { name: 'android', maxConcurrentFiles: 1, setup, nodes: [localNode('android', 'androidText')] },
+            { name: 'ios', maxConcurrentFiles: 1, setup, nodes: [localNode('ios', 'iosText')] },
           ],
           nodes: [
             {
@@ -745,7 +920,7 @@ cases:
               execute({ context }) { state.events.push(context.owner + ':inherited'); },
             },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
         };
       `,
     );
@@ -922,11 +1097,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.record',
             stringInputKey: 'value',
@@ -1073,11 +1248,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2, bail: 1 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2, bail: 1 },
           nodes: [{
             name: 'test.bail',
             async execute({ input, context }) {
@@ -1179,11 +1354,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.interrupt',
             async execute({ input, context, signal }) {
@@ -1283,10 +1458,10 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.record',
             stringInputKey: 'value',
@@ -1347,6 +1522,176 @@ cases:
     ).toHaveLength(1);
   });
 
+  it.each([
+    'case',
+    'document',
+    'pending',
+    'recovery',
+    'document-recovery',
+  ] as const)(
+    'contains settled cleanup failures and stops new files for unresolved %s resources',
+    async (scope) => {
+      const root = createProject();
+      const resultDir = join(root, 'results');
+      const pending = createDeferred();
+      const state = Object.assign(setRunnerState(resultDir), {
+        pending: pending.promise,
+      });
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        `
+        const state = globalThis.__testProjectRunnerState;
+        export default {
+          test: { bail: 0, maxConcurrentFiles: 1, maxConcurrentProjects: 2, teardownTimeout: 20 },
+          projects: ['alpha', 'beta'].map(name => ({
+            name, retry: 2, maxConcurrentFiles: 1,
+            setup: { name: 'resources', setup({ onTeardown }) {
+              onTeardown(() => state.events.push('project-cleanup:' + name));
+              return { name };
+            } },
+          })),
+          nodes: [{ name: 'check', stringInputKey: 'phase',
+            execute({ input, context, onTeardown }) {
+              state.events.push(context.name + ':' + input.phase);
+              if (context.name === 'alpha' && input.phase === 'problem') {
+                if (['pending', 'recovery', 'document-recovery'].includes('${scope}')) {
+                  onTeardown(() => { state.events.push('node-cleanup:' + context.name); });
+                  return state.pending;
+                }
+                onTeardown(() => { throw new Error('resource cleanup failed'); });
+              }
+            },
+          }],
+        };
+      `,
+      );
+      writeWorkflow(
+        root,
+        'a-first.yaml',
+        scope === 'document' || scope === 'document-recovery'
+          ? `
+beforeAll:
+  - check:
+      phase: problem
+      $: { timeout: 10, continue-on-error: true }
+  - check: after-setup
+cases:
+  - name: first
+    steps: [{ check: first }]
+`
+          : `
+cases:
+  - name: first
+    steps:
+      - check:
+          phase: problem
+          $: { timeout: 10, continue-on-error: ${scope === 'recovery'} }
+      - check: after-problem
+  - name: second
+    steps: [{ check: second }]
+`,
+      );
+      writeWorkflow(
+        root,
+        'b-next.yaml',
+        `
+cases:
+  - name: next file
+    steps: [{ check: next-file }]
+`,
+      );
+      const unresolved = ['pending', 'recovery', 'document-recovery'].includes(
+        scope,
+      );
+      try {
+        const result = await runTestProject({
+          projectRoot: root,
+          resultDir,
+        }).catch((error) => {
+          expect(unresolved).toBe(true);
+          expect(error).toBeInstanceOf(WorkflowExecutionFailure);
+          return (error as WorkflowExecutionFailure<TestProjectRunResult>)
+            .result;
+        });
+        const [alpha, beta] = result.projects;
+        expect(result.status).toBe('failed');
+        if (unresolved) {
+          expect(result.errors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ code: 'UNRESOLVED_FILE_RESOURCES' }),
+            ]),
+          );
+        } else expect(result.errors).toBeUndefined();
+        expect(alpha.status).toBe('failed');
+        expect(alpha.cases.at(-1)).toMatchObject({
+          name: 'next file',
+          status: 'not-run',
+          notRunReason: unresolved ? 'interrupted' : 'fatal-error',
+        });
+        if (scope !== 'document-recovery')
+          expect(alpha.cases[0].attempts).toHaveLength(1);
+        const owner =
+          scope === 'document' || scope === 'document-recovery'
+            ? alpha.documents[0]
+            : alpha.cases[0].run!;
+        expect(owner.cleanup).toMatchObject({
+          status: ['pending', 'recovery', 'document-recovery'].includes(scope)
+            ? 'pending'
+            : 'failed',
+        });
+        if (scope === 'recovery' || scope === 'document-recovery') {
+          const steps =
+            scope === 'recovery'
+              ? alpha.cases[0].run!.steps
+              : alpha.documents[0].beforeAll;
+          expect(steps[0].error?.code).toBe('STEP_TIMEOUT');
+          expect(owner.executionErrors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                code: 'RESOURCE_RECOVERY_TIMEOUT',
+                details: expect.objectContaining({
+                  blockedByStepId: `${scope === 'recovery' ? alpha.cases[0].run!.runId : alpha.documents[0].documentRunId}:${scope === 'recovery' ? 'steps' : 'beforeAll'}:0`,
+                }),
+              }),
+            ]),
+          );
+          if (scope === 'recovery')
+            expect(alpha.cases[0].run!.retryDecision?.reason).toBe(
+              'cleanup-pending',
+            );
+          expect(state.events).not.toContain('alpha:after-problem');
+          expect(state.events).not.toContain('alpha:after-setup');
+        }
+        expect(beta.status).toBe(unresolved ? 'failed' : 'success');
+        expect(
+          beta.cases.every(
+            (item) => item.status === (unresolved ? 'not-run' : 'success'),
+          ),
+        ).toBe(true);
+        expect(
+          state.events.filter((event) => event === 'alpha:problem'),
+        ).toHaveLength(1);
+        expect(state.events).not.toContain('alpha:second');
+        expect(state.events).not.toContain('alpha:next-file');
+        if (unresolved) expect(state.events).not.toContain('beta:next-file');
+        else expect(state.events).toContain('beta:next-file');
+      } finally {
+        pending.resolve();
+        await pending.promise;
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+      expect(state.events).toEqual(
+        expect.arrayContaining([
+          'project-cleanup:alpha',
+          ...(unresolved ? [] : ['project-cleanup:beta']),
+        ]),
+      );
+      if (['pending', 'recovery', 'document-recovery'].includes(scope))
+        expect(state.events).toContain('node-cleanup:alpha');
+    },
+    60_000,
+  );
+
   it('contains fatal device errors within their owning Project', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
@@ -1365,11 +1710,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{
             name: 'test.device',
             execute({ input, context }) {
@@ -1443,10 +1788,10 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [
             {
               name: 'test.lifecycle',
@@ -1539,11 +1884,11 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', setup },
-            { name: 'beta', setup },
-            { name: 'gamma', setup },
+            { name: 'alpha', maxConcurrentFiles: 1, setup },
+            { name: 'beta', maxConcurrentFiles: 1, setup },
+            { name: 'gamma', maxConcurrentFiles: 1, setup },
           ],
-          test: { maxConcurrency: 2 },
+          test: { maxConcurrentFiles: 2, maxConcurrentProjects: 2 },
           nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
@@ -1812,11 +2157,20 @@ cases:
       total: 2,
       passed: 2,
       failed: 0,
+      notRun: 0,
+      passedAfterRetry: 1,
+      finalPassRate: 1,
+      firstPassRate: 0.5,
       filtered: 2,
       projectFailures: 0,
     });
 
     const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(summary.summary).toMatchObject({
+      passedAfterRetry: 1,
+      finalPassRate: 1,
+      firstPassRate: 0.5,
+    });
     expect(
       summary.projects.map((project: { name: string }) => project.name),
     ).toEqual(['android-smoke', 'ios-regression']);
@@ -1964,6 +2318,9 @@ afterAll:
       passed: 0,
       failed: 0,
       notRun: 2,
+      passedAfterRetry: 0,
+      finalPassRate: 0,
+      firstPassRate: 0,
       documentFailures: 1,
     });
     expect(result.cases).toEqual([

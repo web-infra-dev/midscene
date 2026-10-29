@@ -24,10 +24,7 @@ import type {
 } from '../parser/types';
 
 // Type-only native facade; execution facts and ownership controls stay in core.
-export type StepRunResult<TData = unknown> = Omit<
-  Core.StepRunResult<TData>,
-  'meta'
-> & { meta: NormalizedStepMeta };
+export type StepRunResult<TData = unknown> = Core.StepRunResult<TData>;
 export type CaseRunResult = Omit<
   Core.CaseRunResult,
   'beforeEach' | 'steps' | 'afterEach' | 'reportSources' | 'reportScopeId'
@@ -68,6 +65,7 @@ export type NodeScopeTeardown = () => Core.Awaitable<NodeScopeTeardownOutput>;
 export type RunCollectedCaseOptions<TContext = undefined> = Omit<
   Core.RunCollectedCaseOptions<TContext>,
   | 'reportScopeId'
+  | 'teardownTimeoutMs'
   | 'resolveNode'
   | 'beforeEach'
   | 'afterEach'
@@ -83,6 +81,8 @@ export type RunCollectedCaseOptions<TContext = undefined> = Omit<
 export type RunWorkflowDocumentOptions<TContext = undefined> = Omit<
   Core.RunWorkflowDocumentOptions<TContext>,
   | 'documentSetup'
+  | 'setupTimeoutMs'
+  | 'teardownTimeoutMs'
   | 'documentAttemptIndex'
   | 'resolveCaseReportScopeId'
   | 'resolveNode'
@@ -108,6 +108,8 @@ export type RunWorkflowDocumentOptions<TContext = undefined> = Omit<
 export type CreateDocumentRuntimeOptions<TContext = undefined> = Omit<
   Core.CreateDocumentRuntimeOptions<TContext>,
   | 'documentSetup'
+  | 'setupTimeoutMs'
+  | 'teardownTimeoutMs'
   | 'documentAttemptIndex'
   | 'resolveNode'
   | 'onStepResult'

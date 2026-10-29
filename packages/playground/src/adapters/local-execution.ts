@@ -33,6 +33,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private progressCallback?: (tip: string) => void;
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
+  private executionController?: AbortController;
+  private configDirty = false;
 
   constructor(agent?: PlaygroundAgent, agentFactory?: AgentFactory) {
     super();
@@ -87,6 +89,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     if (!this.agent && this.agentFactory) {
       try {
         this.agent = await this.agentFactory();
+        this.configDirty = false;
       } catch (error) {
         console.warn('Failed to create agent for actionSpace:', error);
         return [];
@@ -131,6 +134,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   async overrideConfig(aiConfig: Record<string, unknown>): Promise<void> {
     // For local execution, use the shared env override function
     overrideAIConfig(aiConfig);
+    this.configDirty = true;
     console.log('Config updated. Agent will be recreated on next execution.');
   }
 
@@ -140,6 +144,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     const modelConfigManager = new ModelConfigManager(aiConfig);
     return runConnectivityTest({
       defaultModelConfig: modelConfigManager.getModelConfig('default'),
+      locateModelConfig: modelConfigManager.getModelConfig('locate'),
       planningModelConfig: modelConfigManager.getModelConfig('planning'),
       insightModelConfig: modelConfigManager.getModelConfig('insight'),
     });
@@ -167,8 +172,32 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
-    // If agentFactory is provided, always recreate agent with latest config before execution
-    if (this.agentFactory) {
+    if (this.executionController) {
+      throw new Error('Another task is already running');
+    }
+    const controller = new AbortController();
+    this.executionController = controller;
+    const abort = () => controller.abort(options.abortSignal?.reason);
+    if (options.abortSignal?.aborted) abort();
+    else options.abortSignal?.addEventListener('abort', abort, { once: true });
+    try {
+      return await this.executeWithReport(actionType, value, {
+        ...options,
+        abortSignal: controller.signal,
+      });
+    } finally {
+      options.abortSignal?.removeEventListener('abort', abort);
+      this.executionController = undefined;
+    }
+  }
+
+  private async executeWithReport(
+    actionType: string,
+    value: FormValue,
+    options: ExecutionOptions,
+  ): Promise<unknown> {
+    // Reuse the Agent between reports; rebuild only for initial setup or config changes.
+    if (this.agentFactory && (!this.agent || this.configDirty)) {
       if (this.agent) {
         console.log('Destroying old agent before execution...');
         try {
@@ -196,12 +225,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     const actionSpace = await this.getActionSpace();
     let removeListener: (() => void) | undefined;
 
-    // Reset dump at the start of execution to ensure clean state
-    try {
-      agent.resetDump?.();
-    } catch (error: unknown) {
-      console.warn('Failed to reset dump before execution:', error);
-    }
+    // The adapter owns the execution boundary; the view must not reset again.
+    await agent.resetDump();
 
     // Setup dump update tracking if requestId is provided
     if (options.requestId) {
@@ -229,6 +254,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       let executionError = null;
 
       try {
+        options.abortSignal?.throwIfAborted();
         // Call the base implementation with the original signature
         result = await executeAction(
           agent,
@@ -278,13 +304,13 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         // This is expected in chrome-extension, continue without reportHTML
       }
 
-      // Write out action dumps - may also fail in browser environment
+      // In-browser exports must be captured before finalization releases memory.
+      // A concurrent cancel may have destroyed this same Agent; finalization is
+      // cached per report, so both paths still publish the same artifact.
       try {
-        if (agent.writeOutActionDumps) {
-          agent.writeOutActionDumps();
-        }
+        await agent.finalizeReport();
       } catch (error: unknown) {
-        // writeOutActionDumps may fail in browser environment
+        response.error ??= this.formatErrorMessage(error);
       }
 
       // Don't throw the error - return it in response so caller can access dump/reportHTML
@@ -312,6 +338,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     console.log('Creating new agent with latest config...');
     try {
       this.agent = await this.agentFactory();
+      this.configDirty = false;
       console.log('Agent created successfully');
     } catch (error) {
       console.error('Failed to create agent:', error);
@@ -320,13 +347,17 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   }
 
   // Local execution task cancellation - returns dump and reportHTML before destroying
-  async cancelTask(_requestId: string): Promise<{
+  async cancelTask(requestId: string): Promise<{
     error?: string;
     success?: boolean;
     dump?: ExecutionDump | ReportActionDump | null;
     reportHTML?: string | null;
   }> {
-    if (!this.agent) {
+    this.executionController?.abort(
+      new Error(`Task cancelled by user: ${requestId}`),
+    );
+    const agent = this.agent;
+    if (!agent) {
       return { error: 'No active agent found for this requestId' };
     }
 
@@ -337,8 +368,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     // Get dump data separately - don't let reportHTML errors affect dump retrieval
     // IMPORTANT: Must extract dump BEFORE agent.destroy(), as dump is stored in agent memory
     try {
-      if (typeof this.agent.dumpDataString === 'function') {
-        const dumpString = this.agent.dumpDataString();
+      if (typeof agent.dumpDataString === 'function') {
+        const dumpString = agent.dumpDataString();
         if (dumpString) {
           const groupedDump = ReportActionDump.fromSerializedString(dumpString);
           dump = groupedDump;
@@ -353,8 +384,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     // Try to get reportHTML separately so failures do not affect dump retrieval.
     try {
-      if (typeof this.agent.reportHTMLString === 'function') {
-        const html = this.agent.reportHTMLString();
+      if (typeof agent.reportHTMLString === 'function') {
+        const html = agent.reportHTMLString();
         if (html && typeof html === 'string') {
           reportHTML = html;
         }
@@ -367,8 +398,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     }
 
     try {
-      await this.agent.destroy?.();
-      this.agent = null; // Clear agent reference
+      await agent.destroy?.();
       return { success: true, dump, reportHTML };
     } catch (error: unknown) {
       const errorMessage =
@@ -377,6 +407,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         `[LocalExecutionAdapter] Failed to cancel agent: ${errorMessage}`,
       );
       return { error: `Failed to cancel: ${errorMessage}`, dump, reportHTML };
+    } finally {
+      // destroy() invalidates the Agent even when report or device cleanup fails.
+      if (this.agent === agent) this.agent = null;
     }
   }
 

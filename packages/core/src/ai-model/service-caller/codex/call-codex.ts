@@ -1,5 +1,9 @@
-import type { ModelCallContext, ModelCallResult } from '../types';
-import { applyImageDetail } from '../utils';
+import type { ResolveImageDetail } from '../../model-adapter/types';
+import type {
+  ModelCallContext,
+  ModelCallMessages,
+  ModelCallResult,
+} from '../types';
 import {
   type CodexAppServerRecordEvent,
   callAIWithCodexAppServer,
@@ -9,9 +13,11 @@ export const prepareCodexCall = ({
   messages,
   modelRuntime,
   options,
-}: Pick<ModelCallContext, 'messages' | 'modelRuntime' | 'options'>) => {
+}: Pick<ModelCallContext, 'modelRuntime' | 'options'> & {
+  messages: ModelCallMessages;
+}) => {
   const { config: modelConfig, adapter } = modelRuntime;
-  const { config, imageDetail } = adapter.buildCodexAppServerParams({
+  const { config } = adapter.buildCodexAppServerParams({
     intent: modelConfig.intent,
     userConfig: {
       reasoningEnabled: modelConfig.reasoningEnabled,
@@ -20,13 +26,22 @@ export const prepareCodexCall = ({
     },
     requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
   });
-  const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
-  return { messages: messagesWithImageDetail, requestParams: config };
+  const resolveImageDetail: ResolveImageDetail = ({ imageDetail }) =>
+    adapter.resolveImageDetail({
+      imageDetail,
+      intent: modelConfig.intent,
+      requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+    });
+  return { messages, resolveImageDetail, requestParams: config };
 };
 
 export const callCodex = async (
   { modelRuntime, options, recordEvent, requestSignal }: ModelCallContext,
-  { messages, requestParams }: ReturnType<typeof prepareCodexCall>,
+  {
+    messages,
+    resolveImageDetail,
+    requestParams,
+  }: ReturnType<typeof prepareCodexCall>,
 ): Promise<ModelCallResult> => {
   const { config: modelConfig } = modelRuntime;
   let protocolChunkSequence = 0;
@@ -57,6 +72,7 @@ export const callCodex = async (
       stream: options?.stream,
       onChunk: options?.onChunk,
       params: requestParams,
+      resolveImageDetail,
       abortSignal: requestSignal,
       onRecordEvent: recordCodexEvent,
     });

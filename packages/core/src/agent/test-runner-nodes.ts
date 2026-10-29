@@ -1,3 +1,4 @@
+import { AGENT_AI_CONTEXT_KEYS } from '@midscene/shared/agent-tools/agent-context';
 import { z } from 'zod/v4';
 import type { TUserPrompt } from '../common';
 import { inputStrategies } from '../device/input-strategy';
@@ -181,6 +182,20 @@ export const aiActOptionsInputSchema = z.strictObject({
     ),
 });
 
+export const setAIContextInputSchema = z.strictObject({
+  target: z
+    .enum(AGENT_AI_CONTEXT_KEYS)
+    .describe(
+      'The AI API to configure, e.g. aiAct or aiAssert. Use default as the shared fallback for all AI APIs when neither the call nor the API has its own context.',
+    ),
+  context: z
+    .string()
+    .optional()
+    .describe(
+      'Agent-level guidance. Omit to remove the selected context; an empty string disables inherited context.',
+    ),
+});
+
 export const aiActInputSchema = z.strictObject({
   prompt: userPromptInputSchema,
   options: aiActOptionsInputSchema.optional(),
@@ -322,15 +337,27 @@ export const aiQueryInputSchema = z.strictObject({
   options: insightOptionsInputSchema.optional(),
 });
 
+export const aiWaitForOptionsInputSchema = insightOptionsInputSchema
+  .extend({
+    timeoutMs: z.number().positive().optional(),
+    checkIntervalMs: z.number().positive().optional(),
+  })
+  .superRefine((input, context) => {
+    if ((input.checkIntervalMs ?? 3000) > (input.timeoutMs ?? 15000)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['checkIntervalMs'],
+        message: 'checkIntervalMs must not exceed timeoutMs',
+      });
+    }
+  });
+
 export const aiWaitForInputSchema = z.strictObject({
   prompt: userPromptInputSchema,
-  options: insightOptionsInputSchema
-    .extend({
-      timeoutMs: z.number().positive().optional(),
-      checkIntervalMs: z.number().positive().optional(),
-    })
-    .optional(),
+  options: aiWaitForOptionsInputSchema.optional(),
 });
+
+export type AiWaitForNodeOptions = z.infer<typeof aiWaitForOptionsInputSchema>;
 
 export const javascriptInputSchema = z.strictObject({
   script: nonBlankText('JavaScript to evaluate through the current interface.'),
@@ -387,6 +414,7 @@ export const recordToReportInputSchema = z.strictObject({
 });
 
 export type UserPromptNodeInput = z.infer<typeof userPromptInputSchema>;
+export type SetAIContextNodeInput = z.infer<typeof setAIContextInputSchema>;
 export type AiActNodeOptions = z.infer<typeof aiActOptionsInputSchema>;
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeOptions = z.infer<typeof aiAssertOptionsInputSchema>;
@@ -435,9 +463,11 @@ const defineCommonAgentNode =
 type AgentActionNodeApi = Pick<
   Agent,
   | 'sleep'
+  | 'setAIContext'
   | 'aiHover'
   | 'aiDoubleClick'
   | 'aiRightClick'
+  | 'aiMiddleClick'
   | 'aiLongPress'
   | 'aiClearInput'
   | 'aiPinch'
@@ -555,7 +585,12 @@ const aiAssertNode = defineCommonAgentNode({
 });
 
 const locateActionNode = (
-  method: 'aiHover' | 'aiDoubleClick' | 'aiRightClick' | 'aiClearInput',
+  method:
+    | 'aiHover'
+    | 'aiDoubleClick'
+    | 'aiRightClick'
+    | 'aiMiddleClick'
+    | 'aiClearInput',
 ) =>
   defineAgentActionNode({
     method,
@@ -563,6 +598,8 @@ const locateActionNode = (
       aiHover: 'Locate and hover over an element with a Midscene UI Agent.',
       aiDoubleClick:
         'Locate and double-click an element with a Midscene UI Agent.',
+      aiMiddleClick:
+        'Locate and middle-click an element with a Midscene UI Agent.',
       aiRightClick:
         'Locate and right-click an element with a Midscene UI Agent.',
       aiClearInput:
@@ -577,9 +614,17 @@ const locateActionNode = (
   });
 
 const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
+  defineAgentActionNode({
+    method: 'setAIContext',
+    description:
+      'Set or remove Agent-level AI guidance for subsequent calls on the same Agent.',
+    inputSchema: setAIContextInputSchema,
+    toArgs: (input) => [input.target, input.context],
+  }),
   locateActionNode('aiHover'),
   locateActionNode('aiDoubleClick'),
   locateActionNode('aiRightClick'),
+  locateActionNode('aiMiddleClick'),
   locateActionNode('aiClearInput'),
   defineAgentActionNode({
     method: 'aiInput',

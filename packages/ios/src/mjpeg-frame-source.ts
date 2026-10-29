@@ -112,7 +112,7 @@ export class MjpegFrameSource {
       await new Promise((resolve) => setTimeout(resolve, 30));
     }
     throw new Error(
-      `MjpegFrameSource: no frame received from ${this.url} within ${timeoutMs}ms`,
+      `MjpegFrameSource: no frame received within ${timeoutMs}ms`,
     );
   }
 
@@ -157,7 +157,10 @@ export class MjpegFrameSource {
         }
       } catch (error) {
         if (this.stopped || signal.aborted) return;
-        debug('MJPEG stream error, will retry: %s', error);
+        debug(
+          'MJPEG stream error, will retry: %s',
+          error instanceof Error ? error.name : 'unknown error',
+        );
       }
       // Back off before reconnecting, whether the stream errored or ended
       // cleanly, so a short-lived connection cannot busy-spin reconnects.

@@ -1,6 +1,6 @@
 # Configure test projects
 
-`midscene.config.ts` is the project configuration file for Midscene Test. Use it to configure browser or device initialization, register Nodes for test cases to call, and set execution options such as concurrency and timeouts. This guide covers configuration structure, Agent and platform integration, multiple execution projects, and programmatic execution.
+`midscene.config.ts` is the project configuration file for Midscene Test. Use it to configure browser or device initialization, register Nodes for test cases to call, and set execution options such as concurrency and timeouts. This guide covers configuration structure, Agent and platform integration, multiple execution projects, and file resource isolation.
 
 ## Configuration structure
 
@@ -15,13 +15,14 @@ Midscene Test supports the following configuration files:
 
 Midscene Test loads `midscene.config.ts` or `midscene.config.mjs` by default. If both files exist, it reports a conflict instead of choosing one silently; use `--config <path>` to select the intended file explicitly.
 
-Create browser or device resources in `setup` and register the corresponding Agent Nodes through `nodes`. These determine the capabilities available to each execution project.
+Prepare shared project resources in `setup`, prepare resources for each file in `fileSetup`, and register the corresponding Agent Nodes through `nodes`.
 
 | Field | Purpose |
 | --- | --- |
-| `setup` | Creates shared resources for the implicit default project. |
+| `setup` | Prepares browser or device resources shared by a project. |
+| `fileSetup` | Prepares an environment for each YAML file, in both sequential and concurrent runs. |
 | `nodes` | Registers Nodes shared by all execution projects. |
-| `projects` | Declares named execution projects, each with its own setup and case selection. When using this field, place setup in each project instead of at the top level. |
+| `projects` | Declares named execution projects with their own resources and case selection. Place `setup` and `fileSetup` inside each project when declared; otherwise, top-level settings apply to the default project. |
 | `test` | Sets concurrency, the failure threshold, and the default step timeout. |
 | `output` | Sets the report output directory. |
 
@@ -31,9 +32,11 @@ The example below starts with a single execution project. To manage multiple exe
 
 ### Complete example: Playwright
 
-The complete configuration below shows how to create a browser page, connect a Midscene Agent, and register official Nodes for an execution project. After creating a project with the scaffold, use this example to understand and adjust `midscene.config.ts`.
+This sequential configuration uses only `setup`: all files in the execution project share one page. Add [`fileSetup`](#isolate-resources-with-filesetup) when each file needs its own environment, even without concurrency.
 
-To add Midscene Test to an existing project manually, first install `@midscene/test`, `@midscene/web`, and `playwright` (`pnpm add -D @midscene/test @midscene/web playwright`), then run `pnpm exec playwright install chromium` to install the browser. Before running tests, follow [Model configuration](../model-config) to set the required environment variables, including your API Key.
+To add Midscene Test to an existing project manually, first install `@midscene/test`, `@midscene/web`, and `playwright` (`pnpm add -D @midscene/test @midscene/web playwright`), then run `pnpm exec playwright install chromium` to install the browser. Before running tests, follow [Model configuration](../model-api-setup) to set the required environment variables, including your API Key.
+
+For a handwritten configuration, load `.env` explicitly (for example, install `dotenv`, import `dotenv/config` at the top, and run from the project root), or supply shell/CI variables. See [Environment loading](./running#environment-loading).
 
 ```ts filename=midscene.config.ts
 import {
@@ -92,59 +95,117 @@ The configuration connects these parts:
 - `nodes` registers common AI operations and Playwright operations for YAML cases to call.
 - `projects` declares an execution project named `chromium`, connecting its `setup` to the YAML files under `cases/`.
 
-You can now [write YAML test cases](./use#write-yaml-test-cases) and [run tests](./use#run-tests). The next section explains how these resources are shared and cleaned up.
+You can now [write YAML test cases](./writing) and [run tests](./running#run-tests). The next section explains how these resources are shared and cleaned up.
 
 ### Create and clean up shared resources with setup
 
-Each execution project runs `setup` once before executing its YAML files. All Nodes in the project share the returned `context`. In the example above, the context holds the browser and page, and Nodes access the resources they need through the `getAgent` callback.
+`defineProjectSetup()` defines project preparation, assigned through the `setup` field. During a test run, each execution project calls its `setup()` function once. The example above returns a browser and page for the project's Nodes to share.
 
-Shared resources are not automatically recreated before each case. To reset pages, cookies, or business state, call the appropriate Nodes through YAML [lifecycle hooks](./use#define-the-execution-lifecycle). For reading and updating shared data in custom Nodes, see [Share context across Nodes](./extend#share-context-across-nodes).
+For file isolation, define per-file preparation with `defineFileSetup()` and assign it through `fileSetup`. It receives the project setup's return value and creates resources for the current file. See [Isolate resources with fileSetup](#isolate-resources-with-filesetup) for the relationship and an example.
+
+Shared resources are not automatically recreated before each case. To reset pages, cookies, or business state, call the appropriate Nodes through YAML [lifecycle hooks](./execution#yaml-lifecycle-hooks). For reading and updating shared data in custom Nodes, see [Share context across Nodes](./extend#share-context-across-nodes).
 
 After creating a browser, Agent, or other resource, immediately register its cleanup function with `onTeardown()`. The framework attempts the registered cleanup functions when the project finishes, even if setup or test execution fails. Cleanup runs in reverse registration order: in the Playwright example above, the Agent is destroyed before the browser closes.
 
 The `onTeardown()` callbacks registered here run when the project finishes. Cleanup functions registered inside Nodes have their own [execution scope](./extend#resource-lifecycle-and-cleanup).
 
-## Project lifecycle
+### Isolate resources with fileSetup
 
-### Project, file, and case lifecycle
+Use `setup` for shared project resources and `fileSetup` for resources owned by each file. Web tests can share one Browser while creating a separate BrowserContext, Page, and Agent per file to isolate cookies and other browser state.
 
-When running tests through the CLI or `runTestProject()`, each execution project has its own lifecycle. The following shows normal execution for a project with two YAML files. YAML hooks that are not declared are skipped:
+```ts filename=midscene.config.ts
+import {
+  defineFileSetup,
+  defineProjectSetup,
+  defineTestProject,
+} from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright/agent';
+import { chromium, type Browser } from 'playwright';
 
-```text
-Execution project starts
-├─ setup → returns the shared project context
-├─ File A
-│  ├─ beforeAll
-│  ├─ Case 1: beforeEach → steps → afterEach → Node cleanup for this attempt
-│  ├─ Case 2: beforeEach → steps → afterEach → Node cleanup for this attempt
-│  ├─ afterAll
-│  └─ File-scoped Node cleanup
-├─ File B
-│  └─ Runs its own hooks, cases, and cleanup in the same order
-└─ Project cleanup: onTeardown() callbacks registered in setup
+type SharedContext = { browser: Browser };
+type FileContext = { agent: PlaywrightAgent };
+
+const setup = defineProjectSetup<SharedContext>({
+  name: 'browser',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+    return { browser };
+  },
+});
+
+const fileSetup = defineFileSetup<FileContext, SharedContext>({
+  name: 'page',
+  async setup({ projectContext, signal, onTeardown }) {
+    if (!projectContext) throw new Error('Browser setup did not complete');
+    const session = await projectContext.browser.newContext();
+    onTeardown(() => session.close());
+    signal.throwIfAborted();
+    const page = await session.newPage();
+    const agent = new PlaywrightAgent(page);
+    onTeardown(() => agent.destroy());
+    return { agent };
+  },
+});
+
+export default defineTestProject<FileContext, SharedContext>({
+  test: { maxConcurrentFiles: 3 },
+  projects: [
+    {
+      name: 'web',
+      setup,
+      fileSetup,
+      maxConcurrentFiles: 2,
+      files: { include: ['cases/web/**/*.yaml'] },
+    },
+  ],
+  nodes: createMidsceneNodes<FileContext>({
+    agentClass: PlaywrightAgent,
+    getAgent: ({ context }) => context.agent,
+  }),
+});
 ```
 
-`setup` belongs to the execution project and runs once before its YAML files execute. `beforeAll` and `afterAll` belong to an individual YAML file, running before and after that file's cases. They are not global hooks for the entire project. `beforeEach` and `afterEach` surround each attempt of each case.
+The YAML uses the prepared Agent: `beforeAll` sets the viewport, and `beforeEach` opens the home page for every case:
 
-If a case fails and retries remain, the framework finishes that attempt's `afterEach` and Node cleanup before repeating `beforeEach → steps → afterEach → Node cleanup`. Retries do not rerun project `setup` or file `beforeAll`. See [Handling failures](./use#handling-failures) for skip and cleanup rules. If `setup` fails, the project's YAML files do not execute, but the framework still attempts cleanup callbacks already registered in setup.
+```yaml filename=cases/web/search.yaml
+beforeAll:
+  - setViewportSize:
+      width: 1280
+      height: 720
 
-The scope of `onTeardown()` depends on where it is registered:
+beforeEach:
+  - gotoUrl: https://your-shop.example
 
-| Registration location | Cleanup timing |
+cases:
+  - name: Search for mugs
+    steps:
+      - aiAct: Search for mugs
+      - aiAssert: The search results include mugs
+```
+
+This example creates the Agent in `fileSetup`. File cleanup destroys the Agent and then closes the BrowserContext. The shared Browser closes after all file cleanup.
+
+The type parameters in `defineFileSetup<FileContext, SharedContext>` describe the file return value and the project return value, respectively. `fileSetup` returns the complete file context; it is not automatically merged with `projectContext`. Explicitly return shared fields that Nodes need.
+
+The preparation function receives these arguments:
+
+| Argument | Purpose |
 | --- | --- |
-| Project `setup` | At project completion, after cleanup of all files that ran |
-| Nodes in `beforeAll` or `afterAll` | After the current file's `afterAll` |
-| Nodes in `beforeEach`, `steps`, or `afterEach` | After the current attempt's `afterEach`, with separate cleanup for each retry |
+| `projectContext` | The project `setup` return value, or `undefined` when no project setup is configured |
+| `project`, `file` | Current project configuration, plus the file's `sourcePath` and execution IDs |
+| `env`, `signal` | Environment variables and cancellation notifications |
+| `onTeardown()` | Registers cleanup to run when the file finishes |
 
-Within each scope, callbacks run in reverse registration order. See [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup) for implementing Node cleanup.
+For a single configuration, omit `projects` and put `setup` and `fileSetup` at the top level. If a file can prepare all its resources itself, configure only `fileSetup`.
 
-### Context sharing scope
+On Android, iOS, and other device platforms, allocate an exclusive device to each concurrent file and create a separate Device/Agent. Each Device instance belongs to one Agent, and `Agent.destroy()` destroys that Device; return the device allocation after destroying the Agent. Project code supplies the device pool and business-state reset. With one phone or one desktop, set that project's limit to `1`; multiple Agents operating the same device still interfere with each other.
 
-The `context` returned by `setup` is reused throughout the current execution project. Nodes in all YAML files, lifecycle hooks, cases, and retries receive the same object. The framework does not copy, clear, or recreate it between files, cases, or retries.
+See [Project lifecycle](./execution#project-lifecycle) for context scope and cleanup order, and [Handling failures](./execution#handling-failures) for preparation failures.
 
-For example, after a Node writes an order ID to `context.orderId`, later Nodes can read it, including Nodes in the next case. Reset case-specific data in preparation steps or remove it during cleanup. A retry does not automatically restore the initial context. Resetting resources such as browser pages and login state also depends on the project implementation.
+Nodes or `fileSetup` must explicitly report shared-resource failures; Browser closure messages alone do not establish ownership. See [Asynchronous operations, errors, and cancellation](./extend#asynchronous-operations-errors-and-cancellation) for how to report them.
 
-Each execution project calls its own `setup`. Even if projects reference the same setup definition, they invoke it separately, so create resources and the returned object inside the `setup` function. Returning the same mutable object from module scope would share state across projects. For a complete example, see [Share context across Nodes](./extend#share-context-across-nodes).
 
 ## Register official Nodes
 
@@ -152,9 +213,9 @@ Each execution project calls its own `setup`. Even if projects reference the sam
 
 The Midscene Test kernel does not register Nodes implicitly. Configuration generated by `midscene-test create` calls `createMidsceneNodes()` from `@midscene/test/midscene` to register official Nodes for the selected platform. In handwritten configuration, explicitly add the returned definitions to top-level `nodes` or `projects[].nodes`.
 
-`createMidsceneNodes()` returns the common and platform Node definitions declared by `agentClass.getTestRunnerNodeDefinitions()`, plus the Test-provided `wait` Node. Common capabilities cover AI operations, assertions and extraction, interface location, and report recording. Platform Agents add browser or device operations. The website does not maintain a duplicate exhaustive list; use the current Project's generated [Node Spec](./use#generate-the-current-projects-node-spec) for exact names and inputs.
+`createMidsceneNodes()` returns the common and platform Node definitions declared by `agentClass.getTestRunnerNodeDefinitions()`, plus the Test-provided `wait` Node. Common capabilities cover AI operations, assertions and extraction, interface location, and report recording. Platform Agents add browser or device operations. The website does not maintain a duplicate exhaustive list; use the current Project's generated [Node Spec](./writing#generate-the-current-projects-node-spec) for exact names and inputs.
 
-When calling `createMidsceneNodes()`, use `agentClass` to specify the Agent class and a `getAgent` callback to supply the Agent instance at runtime:
+When calling `createMidsceneNodes()`, use `agentClass` to specify the platform-specific Midscene GUI Agent class and a `getAgent` callback to supply the Agent instance at runtime:
 
 ```ts
 import { createMidsceneNodes } from '@midscene/test/midscene';
@@ -169,7 +230,51 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 });
 ```
 
-`createMidsceneNodes()` does not mutate a global registry; its Nodes become available only after the returned array is included in project configuration. `agentClass` is the sole source of Agent-backed Node definitions, while `getAgent` describes how execution obtains an Agent instance from the current context. The factory throws during registration if the class does not expose `getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent provide common and platform Node definitions together. The base Agent, other Web Agents, and ComputerAgent only provide common Agent Nodes.
+`createMidsceneNodes()` does not mutate a global registry; its Nodes become available only after the returned array is included in project configuration. `agentClass` is the sole source of Agent-backed Node definitions, while `getAgent` describes how execution obtains an Agent instance from the current context. The factory throws during registration if the class does not expose `getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, PuppeteerAgent, PuppeteerPageAgent, PuppeteerBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent provide common and platform Node definitions together. The base Agent and ComputerAgent only provide common Agent Nodes.
+
+#### Name Nodes for multiple Midscene Agents
+
+When one workflow uses multiple Midscene Agents, set `namespace` to register their Nodes under different names. Have your setup return separate Midscene Agent instances in the context, then register both sets in the same Project:
+
+```ts
+import { Agent } from '@midscene/core/agent';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+interface MultiAgentContext {
+  mobile: Agent;
+  web: Agent;
+}
+
+const nodes = [
+  ...createMidsceneNodes<MultiAgentContext>({
+    namespace: 'mobile',
+    agentClass: Agent,
+    getAgent: ({ context }) => context.mobile,
+  }),
+  ...createMidsceneNodes<MultiAgentContext>({
+    namespace: 'web',
+    agentClass: Agent,
+    getAgent: ({ context }) => context.web,
+  }),
+];
+```
+
+Add `nodes` to your Project configuration. YAML calls the registered names:
+
+```yaml
+cases:
+  - name: Complete a Todo across devices
+    steps:
+      - mobile.aiAct: Create a Todo titled "Buy milk".
+      - web.aiWaitFor: The Todo "Buy milk" is visible.
+      - web.aiTap: the checkbox beside "Buy milk"
+```
+
+The namespace prefixes every returned Node, including common AI operations, platform operations, and `wait`. For example, this registration provides `mobile.aiAct` and `mobile.wait`; it does not also register the unprefixed names. Omit `namespace` to keep the original names.
+
+A namespace must be a non-empty string without whitespace, leading or trailing dots, or empty dot-separated segments. Nested namespaces such as `checkout.mobile` are supported. Invalid values fail during registration, before an Agent is acquired.
+
+Namespaces only change Node names. `getAgent` or `agentProvider.getAgent` still selects the runtime Agent, and execution traces remain associated with the corresponding Steps. Namespaces do not create resources or provide concurrency isolation. Separate Projects can register the same Node names without a namespace.
 
 For an Android/iOS registration example, see [Configure multiple execution projects](#configure-multiple-execution-projects).
 
@@ -177,7 +282,7 @@ When integrating an Agent on device platforms such as Android or iOS, observe re
 
 Register each platform through `createMidsceneNodes()`: specify its Agent class with `agentClass` and supply the instance through `getAgent`. You can choose your own field names for the project `context`.
 
-Once registered, these Nodes can be called from YAML. See [Calling other Nodes](./use#calling-other-nodes) for parameter syntax, and consult the project-generated Node Spec for specific fields.
+Once registered, these Nodes can be called from YAML. See [Calling other Nodes](./writing#calling-other-nodes) for parameter syntax, and consult the project-generated Node Spec for specific fields.
 
 ### Playwright
 
@@ -220,7 +325,32 @@ beforeEach:
       waitUntil: domcontentloaded
 ```
 
-For navigation parameters and URL resolution, see [Navigate with gotoUrl](./use#navigate-with-gotourl).
+See the [current project's Node Spec](./writing#generate-the-current-projects-node-spec) for navigation inputs.
+
+### Puppeteer
+
+Puppeteer exposes the same `gotoUrl`, `setCookies`, `clearCookies`, and `setViewportSize` Node names. Install the `puppeteer` peer dependency and pass `PuppeteerAgent` (or `PuppeteerBrowserAgent`) to `createMidsceneNodes()`:
+
+```bash
+pnpm add -D puppeteer
+```
+
+```ts
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PuppeteerAgent,
+  getAgent: ({ context }) => {
+    context.agent ??= new PuppeteerAgent(context.page, {
+      testRunner: { baseURL: 'https://example.com' },
+    });
+    return context.agent;
+  },
+});
+```
+
+The Playwright and Puppeteer integrations use the same Web Node schemas and execution implementation. Browser-specific code is limited to a driver adapter. For portable YAML, use `domcontentloaded`, `load`, or `networkidle` for `gotoUrl.waitUntil`; the Puppeteer adapter maps `networkidle` to `networkidle0`. Existing engine-specific values remain supported: Playwright accepts `commit`, while Puppeteer accepts `networkidle0` and `networkidle2`. Using one of those values with the other driver produces an explicit error. Cookie references and result redaction also behave the same on both integrations. Relative URLs resolve against `testRunner.baseURL`, then against the current HTTP(S) page URL.
 
 ### Android
 
@@ -318,14 +448,15 @@ An execution project connects a runtime environment to its cases. Even a single 
 | `test.testTimeout` | Default timeout for each step in milliseconds; defaults to `120000`. A step's `$` timeout overrides it. |
 | `test.bail` | Stops scheduling new work when the failed-case threshold is reached; `0` disables the threshold. |
 | `output.reportDir` | Report output directory; defaults to `./midscene_run/report`. |
+| `output.reportFormat` | `'single-html'` (default) includes execution data and images in one HTML file for direct offline viewing. `'html-and-external-assets'` writes a directory report with images stored by content, and requires HTTP preview. This choice is independent of the Agent source storage format. |
 
-See [Run tests](./use#run-tests) for CLI project selection and configuration file options, and [Configure timeouts and error handling](./use#configure-timeouts-and-error-handling) for step overrides.
+See [Run tests](./running#run-tests) for CLI project selection and configuration file options, and [Configure timeouts and error handling](./writing#configure-timeouts-and-error-handling) for step overrides.
 
 The scaffold generates a configuration that selects `cases/**/*.{yaml,yml}` by default. Without a `files` configuration, Midscene Test recursively searches for `**/*.{yaml,yml}` under the test directory.
 
-Selected files are deduplicated and sorted by path. Retries rerun only the failed Case's `beforeEach → steps → afterEach`, not project setup or file hooks. Files within one Project run sequentially; use separate Projects with independent resources for concurrent execution.
+Selected files are deduplicated and sorted by path. See [Project lifecycle](./execution#project-lifecycle) for execution order and retry scope, and [Concurrency and isolation](./execution#concurrency-and-isolation) for concurrency settings.
 
-Native Test always generates a combined report. The CLI prints its path after the run. See [View test results](./use#view-test-results) for how to open it.
+Native Test always generates a combined report. The CLI prints its path after the run. See [Run tests](./running) for report outputs and archiving.
 
 ### Configure multiple execution projects
 
@@ -377,7 +508,7 @@ export default defineTestProject<ProjectContext>({
     },
   ],
   test: {
-    maxConcurrency: 1, // Maximum number of active Execution Projects
+    maxConcurrentProjects: 1, // Maximum number of active Execution Projects
     bail: 0, // Stop scheduling new tasks after this many failed cases when > 0
     testTimeout: 120_000,
   },
@@ -389,37 +520,6 @@ export default defineTestProject<ProjectContext>({
 
 Both Projects can use the same YAML file. During case collection, input validation, and test execution, `launch` and other platform Nodes use the definitions that apply to the current Project. A Project's local Nodes do not affect other Projects.
 
-### Concurrency and isolation
-
-The scheduling unit is an execution project. `test.maxConcurrency` limits the number of active projects and defaults to `1`. YAML files, cases, and steps within a project run sequentially. Increasing this setting does not make cases within a single project concurrent.
-
-To run different cases concurrently, assign them to multiple projects using directories or tags, and create separate resources for each project. Reuse the setup and Node definitions from the Playwright example above and replace its `defineTestProject()` configuration with the following to run checkout and account cases concurrently:
-
-```ts filename=midscene.config.ts
-export default defineTestProject<ProjectContext>({
-  nodes: midsceneNodes,
-  projects: [
-    {
-      name: 'checkout',
-      setup: playwrightSetup,
-      files: { include: ['cases/checkout/**/*.{yaml,yml}'] },
-    },
-    {
-      name: 'account',
-      setup: playwrightSetup,
-      files: { include: ['cases/account/**/*.{yaml,yml}'] },
-    },
-  ],
-  test: { maxConcurrency: 2 },
-});
-```
-
-Both projects call `playwrightSetup` separately, creating their own browser, page, and `context`. The `checkout` project runs checkout cases sequentially, and the `account` project runs account cases sequentially, while the two projects can progress concurrently. For device tests, concurrent projects should connect to different devices to avoid controlling the same device at the same time.
-
-The framework does not automatically divide cases between projects. If two projects match the same YAML file, each project runs that file once. This is useful for validating the same cases on different platforms or environments. To distribute cases for concurrent execution, use non-overlapping `files` or `tags` selection rules.
-
-A project occupies a concurrency slot from initialization through cleanup. Once a slot is released, the scheduler starts the next pending project. Scheduling currently uses asynchronous execution within the same Node.js process, without creating a separate process per project. Project implementations must still isolate module globals, external accounts, and test data.
-
 ### Generate a Node Spec for each Project
 
 Run `midscene-test nodes` to generate a Node Spec of the available Nodes. Use `--project` to select an execution project and list the Nodes available after combining its global and local registrations:
@@ -428,19 +528,10 @@ Run `midscene-test nodes` to generate a Node Spec of the available Nodes. Use `-
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-Without a selector, `nodes` generates a shared Spec only when every Project has the same effective Node set. If the sets differ, it reports an error asking you to select a Project instead of merging potentially different definitions with the same name.
+When `projects` is declared, omitting `--project` generates a separate Spec for each Execution Project, even when their Node definitions are identical.
 
-For Spec contents and general command options, see [Generate the current Project's Node Spec](./use#generate-the-current-projects-node-spec).
+For filenames, output rules, Spec contents, and command options, see [Generate the current Project's Node Spec](./writing#generate-the-current-projects-node-spec).
 
-## Timeouts and cancellation
-
-A step timeout aborts that step's `signal`. When running tests through the CLI, `SIGINT` (for example, pressing Ctrl+C) or `SIGTERM` aborts the run and forwards cancellation to the currently executing steps.
-
-Nodes receive cancellation notifications through `AbortSignal`. Asynchronous operations inside a Node do not stop automatically when the signal is aborted. Custom Nodes need to pass `signal` to APIs that support cancellation or explicitly check its state. See [Asynchronous operations, errors, and cancellation](./extend#asynchronous-operations-errors-and-cancellation) for usage.
-
-After a run is interrupted, the framework still attempts to run `afterEach`, `afterAll`, and cleanup functions registered with `onTeardown()`. When executing Nodes in `afterEach` and `afterAll`, if the run's `signal` has already been aborted, the framework uses a new signal that has not been aborted so cleanup operations can continue. Step timeout settings still apply to these cleanup steps.
-
-Cleanup functions registered with `onTeardown()` do not receive a new `signal`. Avoid reusing the original step's `signal` in these functions: a timeout or run interruption may have already aborted it, causing cleanup requests to fail immediately.
 
 ## Programmatic APIs
 
@@ -459,3 +550,27 @@ import {
 - **`runTestProject()`**: asynchronously discovers, runs, and summarizes the entire project.
 - **`CaseRunner` / `createCaseRunner()`**: directly runs one test case represented as a plain object, without file parsing or lifecycle management.
 - **`runWorkflowDocument()`**: runs the complete lifecycle and every Case in one document.
+
+Run a complete project and preserve its failure exit status:
+
+```ts
+import { runTestProject } from '@midscene/test/config';
+
+try {
+  const result = await runTestProject({
+    projectRoot: process.cwd(),
+    configPath: './midscene.config.ts',
+    resultDir: './test-results',
+  });
+  console.log(result.summaryPath, result.reportPath);
+  process.exitCode = result.exitCode;
+} catch (error) {
+  console.error(error);
+  process.exitCode = 1;
+}
+```
+
+## Next steps
+
+- [Execution lifecycle and concurrency](./execution): resource sharing, retries, concurrency, timeouts, and cancellation.
+- [Run tests and CLI reference](./running): targets, paths, and environment variables.

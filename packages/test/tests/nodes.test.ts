@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe('nodes', () => {
-  it('writes the full reference and prints every Node before its absolute path', async () => {
+  it('writes the full spec and prints every Node before its absolute path', async () => {
     const root = createProject(`[
       { name: 'beta', description: 'Runs beta.\\nIncludes a second line.', execute() {} },
       { name: 'alpha', description: 'Runs alpha.', execute() {} },
@@ -38,8 +38,8 @@ describe('nodes', () => {
       { name: 'aiAssert', description: 'Checks the page.', execute() {} },
       { name: 'aiAct', description: 'Acts on the page.', execute() {} },
     ]`);
-    const referencePath = join(root, 'midscene-node-reference.md');
-    writeFileSync(referencePath, 'outdated reference');
+    const specPath = join(root, 'midscene-node-spec.md');
+    writeFileSync(specPath, 'outdated spec');
     const io = { log: vi.fn(), error: vi.fn(), write: vi.fn() };
 
     expect(await runTestCli(['nodes', root], io)).toBe(0);
@@ -51,9 +51,9 @@ describe('nodes', () => {
       '- alpha: Runs alpha.',
       '- beta: Runs beta.\nIncludes a second line.',
       '- undocumented: Description not declared.',
-      `\nNode reference generated: ${referencePath}`,
+      `\nNode Spec generated: ${specPath}`,
     ]);
-    const markdown = readFileSync(referencePath, 'utf8');
+    const markdown = readFileSync(specPath, 'utf8');
     for (const name of ['alpha', 'beta', 'undocumented']) {
       expect(markdown).toContain(`\n### \`${name}\`\n`);
     }
@@ -86,13 +86,10 @@ describe('nodes', () => {
     expect(io.log.mock.calls.flat()).toEqual([
       'Registered Nodes (0):',
       'No nodes are registered by the current Test Project.',
-      `\nNode reference generated: ${join(root, 'midscene-node-reference.md')}`,
+      `\nNode Spec generated: ${join(root, 'midscene-node-spec.md')}`,
     ]);
-    expect(existsSync(join(root, 'midscene-node-reference.md'))).toBe(true);
-    const markdown = readFileSync(
-      join(root, 'midscene-node-reference.md'),
-      'utf8',
-    );
+    expect(existsSync(join(root, 'midscene-node-spec.md'))).toBe(true);
+    const markdown = readFileSync(join(root, 'midscene-node-spec.md'), 'utf8');
     expect(markdown).toContain('**Config file:** `midscene.config.ts`');
     expect(markdown).toContain('**Case files:**');
     expect(markdown).not.toContain('**Test directory:**');
@@ -125,12 +122,12 @@ describe('nodes', () => {
       await runTestCli(['nodes', root, '--config', 'config/custom.ts'], io),
     ).toBe(0);
 
-    expect(existsSync(join(root, 'midscene-node-reference.md'))).toBe(true);
-    expect(existsSync(join(root, 'config', 'midscene-node-reference.md'))).toBe(
+    expect(existsSync(join(root, 'midscene-node-spec.web.md'))).toBe(true);
+    expect(existsSync(join(root, 'config', 'midscene-node-spec.web.md'))).toBe(
       false,
     );
     const markdown = readFileSync(
-      join(root, 'midscene-node-reference.md'),
+      join(root, 'midscene-node-spec.web.md'),
       'utf8',
     );
     expect(markdown).toContain('**Config file:** `config/custom.ts`');
@@ -140,7 +137,9 @@ describe('nodes', () => {
     expect(markdown).toContain(
       '**Case files:** `web/cases/**/*.yaml`, `shared/**/*.yml` (Execution Project: web); excludes: `web/cases/**/*.draft.yaml`',
     );
-    expect(markdown).toContain(
+    expect(
+      readFileSync(join(root, 'midscene-node-spec.android.md'), 'utf8'),
+    ).toContain(
       '**Case files:** `mobile/**/*.yaml` (Execution Project: android)',
     );
   });
@@ -159,7 +158,7 @@ describe('nodes', () => {
     ).toBe(0);
 
     const markdown = readFileSync(
-      join(caseRoot, 'midscene-node-reference.md'),
+      join(caseRoot, 'midscene-node-spec.md'),
       'utf8',
     );
     expect(markdown).toContain('**Config file:** `../midscene.config.ts`');
@@ -174,10 +173,7 @@ describe('nodes', () => {
 
     expect(await runTestCli(['nodes', root], io)).toBe(0);
 
-    const markdown = readFileSync(
-      join(root, 'midscene-node-reference.md'),
-      'utf8',
-    );
+    const markdown = readFileSync(join(root, 'midscene-node-spec.md'), 'utf8');
     expect(markdown).toContain('**Config file:** No config file loaded.');
     expect(markdown).toContain('**Case files:**');
     expect(markdown).toContain('**Case files:** `**/*.{yaml,yml}`');
@@ -185,26 +181,26 @@ describe('nodes', () => {
 
   it('does not announce success when writing the file fails', async () => {
     const root = createProject();
-    mkdirSync(join(root, 'midscene-node-reference.md'));
+    mkdirSync(join(root, 'midscene-node-spec.md'));
     const io = { log: vi.fn(), error: vi.fn() };
 
     expect(await runTestCli(['nodes', root], io)).toBe(1);
 
     expect(io.error).toHaveBeenCalledWith(
-      expect.stringContaining('midscene-node-reference.md'),
+      expect.stringContaining('midscene-node-spec.md'),
     );
     expect(io.log).not.toHaveBeenCalled();
   });
 
-  it('preserves the previous reference and does not announce success when loading fails', async () => {
+  it('preserves the previous spec and does not announce success when loading fails', async () => {
     const root = createProject('[{ name: "invalid" }]');
-    const referencePath = join(root, 'midscene-node-reference.md');
-    writeFileSync(referencePath, 'previous reference');
+    const specPath = join(root, 'midscene-node-spec.md');
+    writeFileSync(specPath, 'previous spec');
     const io = { log: vi.fn(), error: vi.fn() };
 
     expect(await runTestCli(['nodes', root], io)).toBe(1);
 
-    expect(readFileSync(referencePath, 'utf8')).toBe('previous reference');
+    expect(readFileSync(specPath, 'utf8')).toBe('previous spec');
     expect(io.error).toHaveBeenCalled();
     expect(io.log).not.toHaveBeenCalled();
   });

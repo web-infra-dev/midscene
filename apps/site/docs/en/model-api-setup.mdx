@@ -1,0 +1,492 @@
+import { ModelConfigCard, ModelConfigSection } from '@theme';
+
+# Use a model API key
+
+Connect Midscene using an API key from a model provider. This guide covers model configuration and connection verification. If you already have a ChatGPT subscription, you can also follow [Use a ChatGPT subscription](./chatgpt-subscription).
+
+The model configuration shown on this page consists of environment variables. Provide it according to how you use Midscene:
+
+- In Playground, paste the configuration text from this page directly into the settings page.
+- With the SDK or CLI, load the configuration as described in [Set environment variables](#set-environment-variables).
+
+For advanced parameter definitions, see [Model advanced configuration and debugging](./model-config).
+
+## Supported models
+
+For an overview of supported models and connection methods, see the [Model Selection Guide](./model-selection). Configuration examples for each model follow.
+
+Each configuration requires a Base URL, API key, model name, and `MIDSCENE_MODEL_FAMILY`. The model family (`MIDSCENE_MODEL_FAMILY`) selects the model adapter, which determines coordinate handling, supported API protocols, and how reasoning and output parameters are sent. Use the family listed for your model below.
+
+<ModelConfigSection description="Doubao-Seed-2.1 Turbo">
+
+### Doubao Seed Series {#doubao-seed-model}
+
+
+- Common model provider: [Volcano Engine](https://volcengine.com/)
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **2.x series**<br />`doubao-seed-2-1-pro-260915` `doubao-seed-2-1-turbo-260628` | `doubao-seed` | — |
+| **1.x series**<br />`Doubao-Seed-1.6-Vision` `Doubao-Seed-1.8` | `doubao-seed` | For compatibility with existing configurations, `MIDSCENE_MODEL_FAMILY="doubao-vision"` remains supported. New configurations should use `doubao-seed`. |
+
+</div>
+
+Environment variable configuration example, using `doubao-seed-2-1-turbo-260628`:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://ark.cn-beijing.volces.com/api/v3",
+    comment: "Volcano Engine endpoint",
+  }}
+  modelName="doubao-seed-2-1-turbo-260628"
+  modelFamily="doubao-seed"
+/>
+
+If your Volcano Engine account has Fast Tier quota enabled, add the extra request body below to use it. This usually improves model response speed by about 30%-50%.
+
+```bash
+MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
+```
+
+</ModelConfigSection>
+
+<ModelConfigSection description="Qwen3.7 Plus">
+
+### Qwen Series {#qwen}
+
+<span id="qwen3x" />
+<span id="qwen3-vl" />
+<span id="qwen25-vl" />
+
+
+- Common model provider: [Alibaba Cloud](https://www.aliyun.com/)
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **Qwen3.x series**<br />`qwen3.7-plus` `qwen3.5-plus` `qwen3.6-plus` | `qwen3` | The previous `qwen3.5` and `qwen3.6` families remain compatible. |
+| **Qwen3-VL series**<br />`qwen3-vl-plus` | `qwen3-vl` | Older generation. |
+| **Qwen2.5-VL series**<br />`qwen-vl-max-latest` | `qwen2.5-vl` | Older generation. |
+
+</div>
+
+Environment variable configuration example, using `qwen3.7-plus`:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    comment: "Alibaba Cloud endpoint",
+  }}
+  modelName="qwen3.7-plus"
+  modelFamily={{
+    value: "qwen3",
+    comment: "If you use another Qwen version, replace this with the corresponding model family",
+  }}
+/>
+
+</ModelConfigSection>
+
+<ModelConfigSection description="DeepSeek V4.1 Flash">
+
+### DeepSeek Series {#deepseek}
+
+
+Midscene supports DeepSeek starting from v1.12.0.
+
+- Common model provider: [DeepSeek - Vision](https://api-docs.deepseek.com/guides/vision/)
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **DeepSeek V4 series**<br />`deepseek-flash` (V4.1 Flash) `deepseek-v4-flash-vision-exp` (V4 Flash Vision) | `deepseek` | DeepSeek-V4-Pro does not support visual input and cannot be used with Midscene. |
+
+</div>
+
+Environment variable configuration example, using `deepseek-flash`:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.deepseek.com",
+    comment: "DeepSeek API endpoint",
+  }}
+  modelName="deepseek-flash"
+  modelFamily="deepseek"
+/>
+
+</ModelConfigSection>
+
+<ModelConfigSection description="Gemini 3.5 Flash">
+
+### Google Gemini Series {#gemini}
+
+
+- Common model provider: [Google Gemini](https://gemini.google.com/)
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **Gemini 4 Argon**<br />`gemini-4-argon` | `gemini` | — |
+| **Gemini 3.x series**<br />`gemini-3.5-flash` `gemini-3-flash-preview` | `gemini` | — |
+
+</div>
+
+Environment variable configuration example, using `gemini-3.5-flash`:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    comment: "Google Gemini API endpoint",
+  }}
+  modelName="gemini-3.5-flash"
+  modelFamily="gemini"
+/>
+
+</ModelConfigSection>
+
+<ModelConfigSection description="GPT-6 Sol">
+
+### OpenAI GPT Series {#gpt}
+
+<span id="use-codex-app-server-oauth-no-api-key" />
+
+
+:::info
+
+To connect using your ChatGPT subscription, see [Use a ChatGPT subscription](./chatgpt-subscription).
+
+:::
+
+- Common model provider: [OpenAI](https://openai.com/)
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **GPT-6 series**<br />`gpt-6-astra` `gpt-6-sol` `gpt-6-luna` | `gpt-6` | — |
+| **GPT-5 series**<br />`gpt-5.4` `gpt-5.5` `gpt-5.6-sol` `gpt-5.6-terra` `gpt-5.6-luna` | `gpt-5` | Models before GPT-5.4 do not support visual localization and can only be used as Planning or Insight models. |
+
+</div>
+
+**Use an API Key**
+
+Environment variable configuration example, using `gpt-6-sol`:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.openai.com/v1",
+    comment: "OpenAI API endpoint; or your compatible endpoint",
+  }}
+  modelName="gpt-6-sol"
+  modelFamily="gpt-6"
+  responses
+/>
+
+**Enable Fast mode (`service_tier="fast"`)**
+
+Both GPT-5.6 Sol and GPT-6 Astra support Fast mode. Add the `service_tier` request body parameter to enable it. For example, with GPT-5.6 Sol:
+
+```bash
+MIDSCENE_MODEL_NAME="gpt-5.6-sol"
+MIDSCENE_MODEL_FAMILY="gpt-5"
+MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
+```
+
+According to OpenAI, Fast mode can deliver up to 2–2.5× the speed at twice the Standard rate. Refer to the [official documentation](https://developers.openai.com/api/docs/guides/fast-mode) for current speed, pricing, and usage restrictions.
+
+
+To reuse a Codex CLI session, see [Use Codex App Server](./chatgpt-subscription#use-codex-app-server-oauth-no-api-key).
+
+**When using GPT, note the following:**
+
+- GPT-5.4 or later is required for UI localization. Midscene does not support earlier versions.
+- According to OpenAI, GPT-5 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
+- In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
+- Azure OpenAI's Chat Completions API may not handle `"detail": "original"` correctly, causing click-coordinate offsets. If you encounter this issue, you can switch to the Responses API. See [Clicks are offset when using Azure OpenAI](./faq#clicks-are-offset-when-using-azure-openai).
+
+</ModelConfigSection>
+
+<ModelConfigSection description="Kimi K3">
+
+### Moonshot Kimi Series {#kimi}
+
+
+- Common model provider: [Moonshot AI platform](https://platform.moonshot.cn/)
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **K3 series**<br />`kimi-k3` | `kimi3` | According to the Kimi documentation, K3 always has reasoning enabled and cannot be disabled. Its reasoning effort defaults to `max`. |
+| **K2.x series**<br />`kimi-k2.5` `kimi-k2.6` | `kimi` | — |
+
+</div>
+
+Environment variable configuration example, using `kimi-k3`:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.moonshot.cn/v1",
+    comment: "Moonshot AI API endpoint",
+  }}
+  modelName="kimi-k3"
+  modelFamily={{
+    value: "kimi3",
+    comment: "For kimi-k2.6, use \"kimi\"",
+  }}
+/>
+
+</ModelConfigSection>
+
+<ModelConfigSection description="MiMo V2.6 Pro">
+
+### Xiaomi MiMo Series {#xiaomi-mimo}
+
+
+- Common model provider: [Xiaomi MiMo API Open Platform](https://platform.xiaomimimo.com/)
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **V2.x series**<br />`mimo-v2.6-pro` `mimo-v2.6-flash` `mimo-v2.6-pro-ultraspeed` `mimo-v2.5` | `xiaomi-mimo` | All 2.6 models support multimodal input; for 2.5, only the Omni series supports multimodal input. |
+
+</div>
+
+Environment variable configuration example, using `mimo-v2.6-pro`:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.xiaomimimo.com/v1",
+    comment: "Xiaomi MiMo API endpoint",
+  }}
+  modelName="mimo-v2.6-pro"
+  modelFamily="xiaomi-mimo"
+/>
+
+</ModelConfigSection>
+
+<ModelConfigSection description="GLM-5V-Turbo">
+
+### Zhipu GLM-V Series {#glm-v}
+
+
+- Common model providers: [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list), [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)
+
+<div className="model-series-table">
+
+| Model<br />`MIDSCENE_MODEL_NAME` | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- |
+| **GLM-5V series**<br />`glm-5v-turbo` | `glm-v` | — |
+| **GLM-4.6 series**<br />`glm-4.6v` | `glm-v` | `glm-4.6v` is open-source. |
+
+</div>
+
+Environment variable configuration example, using `glm-5v-turbo`:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://open.bigmodel.cn/api/paas/v4",
+    comment: "BigModel API endpoint; use https://api.z.ai/api/paas/v4 for Z.AI",
+  }}
+  modelName="glm-5v-turbo"
+  modelFamily="glm-v"
+/>
+
+**Learn more about the open-source GLM-4.6V model**
+
+- Github: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
+- Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
+
+</ModelConfigSection>
+
+<ModelConfigSection description="Ling-3.0-flash-VL">
+
+### Ant Ling {#ant-ling}
+
+- Model provider: [Ant Ling](https://developer.ant-ling.com/)
+
+<ModelConfigCard
+  baseUrl={{ value: "https://api.ant-ling.com/v1", comment: "Ant Ling official API endpoint" }}
+  modelName="Ling-3.0-flash-VL"
+  modelFamily="ant-ling"
+/>
+
+:::info Screenshot dimensions
+
+We observed that localization accuracy may decrease when the longest image edge exceeds 2000 pixels. Use the Agent's `screenshotShrinkFactor` option to resize images.
+
+:::
+
+</ModelConfigSection>
+
+<ModelConfigSection description="Jev 1.14.0">
+
+### Jev (experimental) {#jev}
+
+
+Jev is a model for making choices. You can use it to select the next action, locate UI elements, and evaluate whether a condition holds. It is fast and inexpensive, but is not suitable for tasks that require complex reasoning.
+
+Midscene support for Jev is experimental.
+
+- Model provider: [TypeSafe](https://typesafe.ai/)
+
+Copy the following configuration to use Jev for Planning, Locate, and Insight:
+
+<ModelConfigCard
+  baseUrl={{
+    value: "https://api.typesafe.ai/v1",
+    comment: "TypeSafe official API endpoint",
+  }}
+  modelName="jev-1.14.0"
+  modelFamily="jev"
+  layout="combined"
+  purposes={['planning', 'locate', 'insight']}
+/>
+
+When the corresponding model role is configured to use Jev, tasks are handled as follows:
+
+- **Locate**: Jev performs element localization.
+- **Insight**: Jev evaluates `aiBoolean`, `aiAssert`, and `aiWaitFor`. The general-purpose default model handles `aiQuery`, `aiString`, `aiNumber`, and `aiAsk`.
+- **Planning**: In `aiAct`, Jev plans simple actions such as clicking, double-clicking, and going back. The default model plans complex actions such as input and scrolling.
+
+Model selection is based on the capabilities required by each task. Failed Jev requests do not automatically switch to the default model.
+
+Jev uses TypeSafe's System One protocol, not an OpenAI protocol. Some OpenAI model settings do not apply, such as temperature, native reasoning, response format, and streaming output.
+
+:::info Notes
+
+- **Request URL**: When using Base URL, include `/v1`, for example `https://api.typesafe.ai/v1`. Midscene automatically appends `/systemone`. If your endpoint does not use the `/systemone` path, set the full request URL through the model's Endpoint setting, for example `MIDSCENE_LOCATE_MODEL_ENDPOINT="https://example.com/custom/decision"`. Endpoint takes precedence over Base URL, and Midscene does not append any path.
+- **Image input limits**: The latest version of Jev currently limits the longest edge of an image to 1568 pixels. Use the Agent's `screenshotShrinkFactor` option to control screenshot dimensions. To avoid image quality degradation from repeated resizing and accommodate image dimension requirements in future Jev versions, Midscene does not automatically resize images to match the limits of a specific Jev version.
+
+:::
+
+</ModelConfigSection>
+
+## Set environment variables
+
+Midscene reads model configuration from environment variables. Choose the method that matches how you use Midscene, or keep using your project's existing environment-management approach.
+
+### Set environment variables in the current shell
+
+The following example works in Bash and Zsh. These variables are available only to the current shell session and its child processes.
+
+```bash
+# Replace every value with the configuration for your selected model provider
+export MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
+export MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
+export MIDSCENE_MODEL_NAME="replace-with-your-model-name"
+export MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
+```
+
+### Configure through a `.env` file
+
+Scaffolded Midscene Test configuration loads `.env` beside the configuration file, preserving existing environment variables by default. Handwritten configuration must load it explicitly or use shell/CI variables; see [Environment loading](./midscene-test/running#environment-loading). The [legacy YAML script runner](./yaml-script-runner) (`@midscene/cli`) automatically loads `.env` from the working directory.
+
+For Midscene Test, copy `.env.example` to `.env` in the generated test project directory, fill in the model configuration, then run `pnpm test`. See [Create a test project](./midscene-test/use) for details. For the legacy YAML script runner, create `.env` in the directory where you run `midscene`.
+
+Example `.env` contents:
+
+```bash
+# Replace every value with the configuration for your selected model provider
+MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
+MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
+MIDSCENE_MODEL_NAME="replace-with-your-model-name"
+MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
+```
+
+Do not add `export` at the beginning of each line. With the legacy YAML script runner, existing shell variables take precedence over matching values in `.env`; use `--dotenv-override` to prefer values from the file.
+
+:::info JavaScript SDK
+
+The Midscene SDK reads model configuration from `process.env`. When writing test scripts, you can install [dotenv](https://www.npmjs.com/package/dotenv) in your own test project, store model configuration in a `.env` file at the project root, and add `import 'dotenv/config'` to your script entry point. Run the script from the project root and load the configuration before creating an Agent.
+
+:::
+
+## Other compatible models
+
+The following smaller models are also compatible with Midscene and designed for automation. They require less deployment hardware but may struggle with complex tasks or large screenshots. Evaluate them against your tasks and deployment constraints before choosing one.
+
+<ModelConfigSection description="AutoGLM-Phone-9B">
+
+### Zhipu AutoGLM Series {#auto-glm}
+
+
+Zhipu AutoGLM is an open-source mobile UI automation model (9B parameters) from Zhipu AI.
+
+After obtaining an API key from [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list) or [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys), configure:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.z.ai/api/paas/v4" # Or https://open.bigmodel.cn/api/paas/v4
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="autoglm-phone"
+MIDSCENE_MODEL_FAMILY="auto-glm" # Or "auto-glm-multilingual"
+```
+
+**About `MIDSCENE_MODEL_FAMILY` Configuration**
+
+AutoGLM provides two model versions, distinguished by `MIDSCENE_MODEL_FAMILY`:
+
+- `auto-glm` - Corresponds to AutoGLM-Phone-9B, optimized for **Chinese mobile applications**
+- `auto-glm-multilingual` - Corresponds to AutoGLM-Phone-9B-Multilingual, supports **English and other languages**
+
+Choose the appropriate version based on your application language.
+
+:::info
+AutoGLM is best suited for mobile interaction. APIs such as `aiAssert` and `aiQuery` require page understanding. When using these APIs, configure a separate Insight model with the `MIDSCENE_INSIGHT_MODEL_...` environment variables. See [Model Selection Guide](./model-selection) for details.
+:::
+
+**Learn more about Zhipu AutoGLM**
+
+- Github: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
+- Hugging Face: [https://huggingface.co/zai-org/AutoGLM-Phone-9B](https://huggingface.co/zai-org/AutoGLM-Phone-9B)
+
+</ModelConfigSection>
+
+<ModelConfigSection description="UI-TARS 1.5">
+
+### UI-TARS Series {#ui-tars}
+
+
+Use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com):
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..." # Inference endpoint ID or model name from Volcano Engine
+MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
+```
+
+**About `MIDSCENE_MODEL_FAMILY`**
+
+This variable selects the UI-TARS version. Supported values:
+- `vlm-ui-tars` – for the 1.0 release
+- `vlm-ui-tars-doubao` – for the 1.5 release deployed on Volcano Engine (equivalent to `vlm-ui-tars-doubao-1.5`)
+- `vlm-ui-tars-doubao-1.5` – for the 1.5 release deployed on Volcano Engine
+
+:::info
+
+The legacy configurations `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` or `MIDSCENE_USE_VLM_UI_TARS=1.5` are still supported but deprecated. Please migrate to `MIDSCENE_MODEL_FAMILY`.
+
+Migration mapping:
+- `MIDSCENE_USE_VLM_UI_TARS=1.0` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars"`
+- `MIDSCENE_USE_VLM_UI_TARS=1.5` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"`
+- `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao"`
+
+:::
+
+</ModelConfigSection>
+
+<span id="verify-the-setup" />
+<span id="multi-model-combination-example" />
+
+## Next steps
+
+- [Verify model connectivity](./model-config#verify-model-connectivity) — Check that your configured models work with Midscene.
+- [Configure models by intent](./model-config#dedicated-models) — Use dedicated models for planning, localization, or page understanding, with an expandable configuration example.
+- [Common configuration errors](./model-config#common-configuration-errors) — Resolve model family, endpoint, or model name errors.
+- [When model results are unreliable](./model-config#when-model-results-are-unreliable) — Investigate incorrect actions, missed targets, or misinterpreted pages.

@@ -539,7 +539,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
   description: Tap the element
   param:
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The element to be tapped
 - type: Sleep
   description: Sleep for a period of time
@@ -554,7 +554,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       type: string
       description: The value to be input
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The input field to target
   sample: |-
@@ -564,7 +564,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       "value": "test@example.com",
       "locate": {
         "prompt": "the email input field",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       }
     }
     </action-param-json>
@@ -575,7 +575,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       type: string
       description: The key to be pressed
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The element to target for key press
 - type: Scroll
@@ -585,7 +585,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       type: string
       description: The scroll direction or amount
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The element to scroll
   sample: |-
@@ -595,7 +595,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       "value": "down",
       "locate": {
         "prompt": "the product list area",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       }
     }
     </action-param-json>
@@ -603,10 +603,10 @@ After interpreting the intent, choose an appropriate Action from the current Act
   description: Drag an element to another position
   param:
     from:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The element to drag
     to:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The drop target
   sample: |-
     <action-type>DragAndDrop</action-type>
@@ -614,11 +614,11 @@ After interpreting the intent, choose an appropriate Action from the current Act
     {
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       },
       "to": {
         "prompt": "the upload drop zone",
-        "bbox": [345, 442, 458, 483]
+        "bbox_2d": [345, 442, 458, 483]
       }
     }
     </action-param-json>
@@ -650,7 +650,7 @@ For example:
 {
   "locate": {
     "prompt": "Add to cart button for Sauce Labs Backpack",
-    "bbox": [345, 442, 458, 483]
+    "bbox_2d": [345, 442, 458, 483]
   }
 }
 </action-param-json>
@@ -712,7 +712,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 {
   "locate": {
     "prompt": "Name input field in the registration form",
-    "bbox": [120, 180, 380, 210]
+    "bbox_2d": [120, 180, 380, 210]
   }
 }
 </action-param-json>
@@ -755,7 +755,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 {
   "locate": {
     "prompt": "Email input field in the registration form",
-    "bbox": [120, 240, 380, 270]
+    "bbox_2d": [120, 240, 380, 270]
   }
 }
 </action-param-json>
@@ -2590,7 +2590,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
   description: Tap the element
   param:
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The element to be tapped
 - type: Sleep
   description: Sleep for a period of time
@@ -2605,7 +2605,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       type: string
       description: The value to be input
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The input field to target
   sample: |-
@@ -2615,7 +2615,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       "value": "test@example.com",
       "locate": {
         "prompt": "the email input field",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       }
     }
     </action-param-json>
@@ -2626,7 +2626,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       type: string
       description: The key to be pressed
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The element to target for key press
 - type: Scroll
@@ -2636,7 +2636,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       type: string
       description: The scroll direction or amount
     locate:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       optional: true
       description: The element to scroll
   sample: |-
@@ -2646,7 +2646,7 @@ After interpreting the intent, choose an appropriate Action from the current Act
       "value": "down",
       "locate": {
         "prompt": "the product list area",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       }
     }
     </action-param-json>
@@ -2654,10 +2654,10 @@ After interpreting the intent, choose an appropriate Action from the current Act
   description: Drag an element to another position
   param:
     from:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The element to drag
     to:
-      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      type: '{ prompt: string, bbox_2d: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
       description: The drop target
   sample: |-
     <action-type>DragAndDrop</action-type>
@@ -2665,11 +2665,11 @@ After interpreting the intent, choose an appropriate Action from the current Act
     {
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
-        "bbox": [100, 100, 200, 200]
+        "bbox_2d": [100, 100, 200, 200]
       },
       "to": {
         "prompt": "the upload drop zone",
-        "bbox": [345, 442, 458, 483]
+        "bbox_2d": [345, 442, 458, 483]
       }
     }
     </action-param-json>
@@ -2701,7 +2701,7 @@ For example:
 {
   "locate": {
     "prompt": "Add to cart button for Sauce Labs Backpack",
-    "bbox": [345, 442, 458, 483]
+    "bbox_2d": [345, 442, 458, 483]
   }
 }
 </action-param-json>
@@ -2763,7 +2763,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 {
   "locate": {
     "prompt": "Name input field in the registration form",
-    "bbox": [120, 180, 380, 210]
+    "bbox_2d": [120, 180, 380, 210]
   }
 }
 </action-param-json>
@@ -2806,7 +2806,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 {
   "locate": {
     "prompt": "Email input field in the registration form",
-    "bbox": [120, 240, 380, 270]
+    "bbox_2d": [120, 240, 380, 270]
   }
 }
 </action-param-json>
@@ -3284,8 +3284,8 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot.
-  "references_bbox"?: [
+  "bbox_2d": [number, number, number, number],  // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot.
+  "references_bbox_2d"?: [
     [number, number, number, number],
     ...
   ],
@@ -3294,16 +3294,16 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - bounding box of the section containing the target element
-* \`references_bbox\` - Optional array of bounding boxes of reference elements
+* \`bbox_2d\` - bounding box of the section containing the target element
+* \`references_bbox_2d\` - Optional array of bounding boxes of reference elements
 * \`error\` - Optional error message if the section cannot be found. Use English.
 
 Example:
 If the description is "delete button on the second row with title 'Peter'", return:
 \`\`\`json
 {
-  "bbox": [100, 100, 200, 200],
-  "references_bbox": [[100, 100, 200, 200]]
+  "bbox_2d": [100, 100, 200, 200],
+  "references_bbox_2d": [[100, 100, 200, 200]]
 }
 \`\`\`
 "

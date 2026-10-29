@@ -1,18 +1,35 @@
-import { ArrowLeftOutlined } from '@ant-design/icons';
-import type { TestRunReportAttempt, TestRunReportStep } from '@midscene/core';
+import type { TestRunReportStep } from '@midscene/core';
 import { GroupedActionDump } from '@midscene/core';
-import { Alert } from 'antd';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import type { PlaywrightTasks } from '../../types';
-import type { RunnerCaseView } from './model';
-import { CaseStatus } from './view-primitives';
+import type { ReportIssue } from './issues';
+
+export function getAgentReportIssues(
+  step: TestRunReportStep,
+  reports: readonly PlaywrightTasks[],
+): ReportIssue[] {
+  const missing = step.agentDetails?.filter(
+    (detail) => !reports.some((report) => report.reportId === detail.reportId),
+  );
+  return missing?.length
+    ? [
+        {
+          id: `${step.id}:missing-group`,
+          severity: 'warning',
+          code: 'AGENT_REPORT_MISSING',
+          message: 'The referenced Agent report group is missing.',
+          context: { references: missing },
+        },
+      ]
+    : [];
+}
 
 const buildAgentReports = (
   step: TestRunReportStep | undefined,
   reports: readonly PlaywrightTasks[],
 ): PlaywrightTasks[] => {
-  if (!step?.agentDetails?.length) return [];
+  if (!step?.agentDetails?.length || step.status === 'not-run') return [];
   const idsByReport = new Map<string, Set<string>>();
   for (const detail of step.agentDetails) {
     const ids = idsByReport.get(detail.reportId) ?? new Set<string>();
@@ -57,17 +74,6 @@ const buildAgentReports = (
   return selectedReports;
 };
 
-export const buildRunnerTracePageHref = (stepId: string): string => {
-  const url = new URL(window.location.href);
-  const params = new URLSearchParams(
-    url.hash.startsWith('#') ? url.hash.slice(1) : url.hash,
-  );
-  params.set('runner-step', stepId);
-  params.set('runner-trace', 'page');
-  url.hash = params.toString();
-  return url.toString();
-};
-
 export function RunnerAgentTraceContent({
   step,
   reports,
@@ -84,72 +90,13 @@ export function RunnerAgentTraceContent({
 
   return (
     <div className="runner-agent-trace-content">
-      {step.agentDetailDiagnostic ? (
-        <Alert type="warning" showIcon message={step.agentDetailDiagnostic} />
-      ) : null}
       {agentReports.length ? (
         <div className="runner-detail-trace-view">
           {renderAgentReport(agentReports)}
         </div>
       ) : (
-        <Alert
-          type="error"
-          showIcon
-          message="The referenced Agent report group is missing."
-        />
+        <p>Recording unavailable.</p>
       )}
-    </div>
-  );
-}
-
-export function RunnerTracePage({
-  item,
-  attempt,
-  step,
-  reports,
-  renderAgentReport,
-  onBack,
-}: {
-  item: RunnerCaseView;
-  attempt?: TestRunReportAttempt;
-  step: TestRunReportStep;
-  reports: PlaywrightTasks[];
-  renderAgentReport(reports: PlaywrightTasks[]): ReactNode;
-  onBack(): void;
-}): JSX.Element {
-  return (
-    <div className="runner-page runner-trace-page">
-      <section className="runner-trace-page-header">
-        <button type="button" className="runner-back-button" onClick={onBack}>
-          <ArrowLeftOutlined />
-          Case details
-        </button>
-        <div className="runner-trace-page-heading">
-          <div>
-            <div className="runner-eyebrow">
-              AI trace ·{' '}
-              {attempt
-                ? `Attempt ${attempt.attemptIndex + 1}`
-                : 'Document lifecycle'}
-            </div>
-            <h1>{step.node}</h1>
-            <p>
-              {item.project.name} · {item.testCase.name}
-            </p>
-          </div>
-          <CaseStatus
-            status={step.status === 'success' ? 'passed' : 'failed'}
-            quiet
-          />
-        </div>
-      </section>
-      <section className="runner-trace-page-content">
-        <RunnerAgentTraceContent
-          step={step}
-          reports={reports}
-          renderAgentReport={renderAgentReport}
-        />
-      </section>
     </div>
   );
 }

@@ -1,162 +1,137 @@
-import {
-  CheckCircleFilled,
-  CloseCircleFilled,
-  ReloadOutlined,
-  RightOutlined,
-} from '@ant-design/icons';
 import type { TestRunReportDump } from '@midscene/core';
-import type { ReactNode } from 'react';
+import type { PlaywrightTasks } from '../../types';
 import type { RunnerHealthStats } from './model';
 import { StatusBadge } from './status-badge';
-import {
-  formatDuration,
-  formatPercent,
-  formatTimestamp,
-} from './view-primitives';
-
-function RunMetric({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: ReactNode;
-  tone?: 'warning' | 'danger';
-}): JSX.Element {
-  return (
-    <div className={`runner-metric-card${tone ? ` is-${tone}` : ''}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
+import { TokenUsageTooltip } from './token-usage';
+import { getRunTokenUsage } from './token-usage-model';
+import { formatDuration, formatTimestamp } from './view-primitives';
 
 export function RunSummary({
   dump,
   health,
   totalCaseCount,
+  totalFileCount = dump.projects.reduce(
+    (sum, project) => sum + project.documents.length,
+    0,
+  ),
   onReviewOutcome,
+  reports,
 }: {
   dump: TestRunReportDump;
   health: RunnerHealthStats;
   totalCaseCount: number;
+  totalFileCount?: number;
   onReviewOutcome(): void;
+  reports?: PlaywrightTasks[];
 }): JSX.Element {
-  const successfulWithRetries =
-    dump.summary.failed === 0 &&
-    dump.summary.notRun === 0 &&
-    health.retryPassedCount > 0;
-  const status =
-    dump.status === 'failed'
-      ? 'failed'
-      : successfulWithRetries
-        ? 'warning'
-        : 'success';
-  const healthLabel =
-    status === 'failed'
-      ? 'Run failed'
-      : status === 'warning'
-        ? 'Passed after retry'
-        : 'Run passed';
-  const outcomeActionLabel =
-    dump.summary.failed > 0
-      ? `Review ${dump.summary.failed} failed ${
-          dump.summary.failed === 1 ? 'case' : 'cases'
-        }`
-      : successfulWithRetries
-        ? `Compare ${health.retryPassedCount} recovered ${
-            health.retryPassedCount === 1 ? 'case' : 'cases'
-          }`
-        : 'Browse all cases';
-
+  const status = dump.status === 'failed' ? 'failed' : 'success';
+  const healthLabel = status === 'failed' ? 'Run failed' : 'Run passed';
+  const recoveredCount = Math.min(health.retryPassedCount, dump.summary.passed);
+  const warning = recoveredCount
+    ? `${recoveredCount} of ${dump.summary.passed} passed Cases had earlier failed attempts.`
+    : undefined;
+  const usage = getRunTokenUsage(dump.metrics);
+  const tokenStatus = usage.status;
+  const counts = [
+    {
+      label: 'Passed',
+      value: dump.summary.passed,
+      tone: 'success',
+    },
+    { label: 'Failed', value: dump.summary.failed, tone: 'danger' },
+    { label: 'Not run', value: dump.summary.notRun, tone: 'neutral' },
+  ];
   return (
     <section className="runner-overview-summary" aria-label="Run outcome">
-      <div className="runner-overview-outcome">
-        <div className="runner-overview-outcome-heading">
-          <StatusBadge
-            label={healthLabel}
-            tone={status}
-            icon={
-              status === 'failed' ? (
-                <CloseCircleFilled />
-              ) : status === 'warning' ? (
-                <ReloadOutlined />
-              ) : (
-                <CheckCircleFilled />
-              )
-            }
-          />
+      <div className="runner-outcome">
+        <div className="runner-overview-title-row">
+          <span>Case passed</span>
+          <StatusBadge label={healthLabel} tone={status} />
         </div>
-        <h1>
-          <strong>
-            {dump.summary.passed} / {totalCaseCount}
-          </strong>
-          <span>cases passed</span>
-          <span
-            className="runner-overview-pass-percentage"
-            aria-label="Percentage of all cases passed"
+        <div className="runner-result-row">
+          <button
+            type="button"
+            className="runner-passed"
+            onClick={onReviewOutcome}
+            aria-label={`Review case results: ${dump.summary.passed} of ${totalCaseCount} passed`}
           >
-            {totalCaseCount
-              ? formatPercent(dump.summary.passed / totalCaseCount)
-              : '—'}
-          </span>
-        </h1>
-        <div className="runner-overview-summary-footer">
-          <div className="runner-secondary-metrics">
-            <span>
-              <strong>{dump.projects.length}</strong> projects
-            </span>
-            <span>
-              <strong>{formatDuration(dump.metrics.modelTimeMs)}</strong> model
-              time
-            </span>
-            <span>
-              <strong>{dump.metrics.modelCallCount}</strong> model calls
-            </span>
-            <span>
-              <strong>{dump.metrics.totalTokens.toLocaleString()}</strong>{' '}
-              tokens
-            </span>
-          </div>
-          <div className="runner-overview-outcome-footer">
-            <div className="runner-overview-run-meta">
-              <span>{formatTimestamp(dump.startedAt)}</span>
+            <strong>
+              <b>{dump.summary.passed}</b>/{totalCaseCount}
+            </strong>
+          </button>
+          <div className="runner-results">
+            <div
+              className="runner-result-bar"
+              role="img"
+              aria-label={
+                counts
+                  .map(({ value, label }) => `${value} ${label}`)
+                  .join(', ') + (warning ? `; ${warning}` : '')
+              }
+            >
+              {counts.map(({ label, value, tone }) =>
+                value > 0 ? (
+                  <span
+                    key={label}
+                    className={`is-${tone}`}
+                    style={{ flexGrow: value }}
+                  >
+                    {tone === 'success' && recoveredCount > 0 ? (
+                      <span
+                        className="runner-result-recovered"
+                        style={{ width: `${(100 * recoveredCount) / value}%` }}
+                        title={warning}
+                      />
+                    ) : null}
+                  </span>
+                ) : null,
+              )}
             </div>
-            <button type="button" onClick={onReviewOutcome}>
-              {outcomeActionLabel}
-              <RightOutlined />
-            </button>
+            <div className="runner-counts" aria-label="Run health metrics">
+              {[
+                counts[0],
+                {
+                  label: 'Passed after retry',
+                  value: recoveredCount,
+                  tone: 'recovered',
+                },
+                ...counts.slice(1),
+              ].map(({ label, value, tone }) => (
+                <div
+                  key={label}
+                  className={`is-${tone}`}
+                  title={tone === 'recovered' ? warning : undefined}
+                >
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-      <div
-        className="runner-primary-metrics runner-overview-primary-metrics"
-        aria-label="Run health metrics"
-      >
-        <RunMetric
-          label="Final pass rate"
-          value={formatPercent(health.finalPassRate)}
-        />
-        <RunMetric
-          label="First-pass rate"
-          value={formatPercent(health.firstPassRate)}
-        />
-        <RunMetric
-          label="Failed"
-          value={dump.summary.failed}
-          tone={dump.summary.failed ? 'danger' : undefined}
-        />
-        <RunMetric
-          label="Passed after retry"
-          value={health.retryPassedCount}
-          tone={health.retryPassedCount ? 'warning' : undefined}
-        />
-        <RunMetric
-          label="Not run"
-          value={dump.summary.notRun}
-          tone={dump.summary.notRun ? 'warning' : undefined}
-        />
-        <RunMetric label="Run time" value={formatDuration(dump.durationMs)} />
+      <div className="runner-run-meta">
+        <span>
+          Created at <strong>{formatTimestamp(dump.startedAt)}</strong>
+        </span>
+        <TokenUsageTooltip usage={usage} reports={reports} scope="run">
+          tokens
+          <strong>
+            {tokenStatus === 'unknown'
+              ? '—'
+              : dump.metrics.totalTokens.toLocaleString()}
+          </strong>
+          {tokenStatus === 'partial' ? '(partial)' : null}
+        </TokenUsageTooltip>
+        <span>
+          total time <strong>{formatDuration(dump.durationMs)}</strong>
+        </span>
+        <span className="runner-source-count">
+          Projects <strong>{dump.projects.length}</strong>
+        </span>
+        <span className="runner-source-count">
+          Files <strong>{totalFileCount}</strong>
+        </span>
       </div>
     </section>
   );

@@ -262,6 +262,40 @@ page:
     - '--window-size=1920,1080'
 ```
 
+### Chrome Bridge {#chrome-bridge}
+
+Complete [Chrome Bridge environment setup](./bridge-mode), then set `bridgeMode` in `web`:
+
+| Value | Behavior |
+| --- | --- |
+| `newTabWithUrl` | Creates and connects a new tab at `url` |
+| `currentTab` | Connects the active tab and ignores `url` |
+
+```yaml
+web:
+  url: https://example.com
+  bridgeMode: newTabWithUrl
+  closeNewTabsAfterDisconnect: true
+
+tasks:
+  - name: Check the page
+    flow:
+      - aiAssert: The page shows Example Domain
+```
+
+Run with the [YAML script runner](./yaml-script-runner) and authorize the connection in the extension. `closeNewTabsAfterDisconnect` defaults to `false`; setting it to `true` closes bridge-created tabs during cleanup, leaving pre-existing tabs open.
+
+Bridge mode cannot be combined with `cdpEndpoint` or `web.mode: browser`. It reuses desktop browser settings and ignores these fields:
+
+- `userAgent`
+- `viewportWidth` / `viewportHeight`
+- `deviceScaleFactor`
+- `waitForNetworkIdle`
+- `cookie`
+- `extraHTTPHeaders`
+- `downloadPath`
+- `chromeArgs`
+
 ### The `android` part
 
 ```yaml
@@ -284,7 +318,7 @@ android:
 
 :::info View Complete Android Configuration Options
 
-YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, see [`AndroidDevice`](./reference/#androiddevice) in the Android API reference.
+YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, see [`AndroidDevice`](./sdk/android#androiddevice) in the Android API reference.
 
 :::
 
@@ -367,6 +401,17 @@ ios:
   # WebDriverAgent host address, optional, defaults to localhost.
   wdaHost: <host>
 
+  # For gateways with a path prefix, use wdaBaseUrl instead of wdaHost/wdaPort.
+  # Setting wdaBaseUrl together with either wdaHost or wdaPort causes an error.
+  # wdaBaseUrl: <url>
+
+  # Optional independent MJPEG stream URL, including a gateway path if needed.
+  # Cannot be combined with wdaMjpegPort.
+  # wdaMjpegUrl: <url>
+
+  # Local MJPEG stream port, optional. Use this or wdaMjpegUrl.
+  # wdaMjpegPort: <port>
+
   # Whether to auto dismiss keyboard, optional, defaults to false.
   autoDismissKeyboard: <boolean>
 
@@ -383,9 +428,19 @@ ios:
   # See the IOSDevice constructor documentation for the complete list
 ```
 
+For a gateway with a path prefix, set `wdaBaseUrl` and leave `wdaHost` and `wdaPort` unset. The MJPEG stream can use a separate URL:
+
+```yaml
+ios:
+  wdaBaseUrl: ${WDA_BASE_URL}
+  wdaMjpegUrl: ${WDA_MJPEG_URL}
+```
+
+Set both environment variables before running the script. Studio Recorder exports use these references so gateway paths and access tokens stay out of the YAML file.
+
 :::info View Complete iOS Configuration Options
 
-YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, see [`IOSDevice`](./reference/#iosdevice) in the iOS API reference.
+YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, see [`IOSDevice`](./sdk/ios#iosdevice) in the iOS API reference.
 
 :::
 

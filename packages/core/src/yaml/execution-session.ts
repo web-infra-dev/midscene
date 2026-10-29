@@ -33,6 +33,10 @@ host[stateKey] ??= {
 };
 const { sessions, signals, context } = host[stateKey];
 
+/** Report boundaries cannot change while a YAML owner still uses the Agent. */
+export const hasActiveYamlExecution = (agent: object): boolean =>
+  Boolean(sessions.get(agent)?.length);
+
 /** Every entry gets its own async frame, shared across CJS and ESM copies. */
 export function runInYamlExecutionContext<T>(
   callback: () => Promise<T>,

@@ -1,6 +1,7 @@
 import { readdirSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import type { CollectedWorkflowDocument } from '@midscene/core/internal/test-runner';
+import { buildTestRunReportPlan } from '@midscene/core/internal/test-runner';
 import { globSync } from 'tinyglobby';
 import { WorkflowError, WorkflowParseError } from '../errors';
 import { collectWorkflowDocument } from '../parser/collect';
@@ -170,6 +171,7 @@ export async function prepareProject(
   defaultTimeoutMs: number,
   options: ProjectPreparationOptions = {},
 ): Promise<PreparedExecutionProject> {
+  const platform = options.platform?.trim();
   const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
   const prerequisiteFile = options.prerequisiteFile
     ? resolve(options.prerequisiteFile)
@@ -194,6 +196,7 @@ export async function prepareProject(
   });
   const collectionErrors: TestProjectCollectionError[] = [];
   const invocations: PreparedDocumentInvocation[] = [];
+  const plans: import('@midscene/core').TestRunReportDocumentPlan[] = [];
   let filteredCaseCount = 0;
 
   if (sources.length === 0) {
@@ -215,7 +218,14 @@ export async function prepareProject(
       const collected = await options.collectDocument?.(source, project);
       if (collected) {
         filteredCaseCount += collected.filteredCaseCount;
-        if (collected.invocation) invocations.push(collected.invocation);
+        if (collected.invocation) {
+          const plan = buildTestRunReportPlan(collected.invocation.document, {
+            defaultTimeoutMs: collected.invocation.defaultTimeoutMs,
+            retry: collected.invocation.retry,
+          });
+          invocations.push({ ...collected.invocation, plan });
+          plans.push(plan);
+        }
         continue;
       }
       const document = collectWorkflowDocument(source, {
@@ -227,14 +237,41 @@ export async function prepareProject(
         source.absolutePath === prerequisiteFile
           ? { document, filtered: 0 }
           : filterDocumentCases(document, project);
+      const plan = buildTestRunReportPlan(document, {
+        selectedCaseIds:
+          filtered.document?.cases.map((item) => item.caseId) ?? [],
+        defaultTimeoutMs,
+        retry: { scope: 'case', count: project.retry },
+      });
+      plans.push(plan);
       filteredCaseCount += filtered.filtered;
       if (filtered.document)
         invocations.push({
+          plan,
           document: filtered.document,
           retry: { scope: 'case', count: project.retry },
           defaultTimeoutMs,
           reportEnabled: true,
-          bindings: { resolveNode: project.nodes.require.bind(project.nodes) },
+          bindings: {
+            resolveNode: project.nodes.require.bind(project.nodes),
+            ...(project.fileSetup
+              ? {
+                  documentSetup: {
+                    name: project.fileSetup.name,
+                    setup({ projectContext, document, signal, onTeardown }) {
+                      return project.fileSetup!.setup({
+                        project,
+                        projectContext,
+                        file: document,
+                        env: Object.freeze({ ...process.env }),
+                        signal,
+                        onTeardown,
+                      });
+                    },
+                  },
+                }
+              : {}),
+          },
         });
     } catch (error) {
       const collectionError = asCollectionError(
@@ -257,7 +294,7 @@ export async function prepareProject(
   );
   return {
     project,
-    platform: options.platform ?? 'test',
+    ...(platform ? { platform } : {}),
     documentConcurrency: options.documentConcurrency ?? 1,
     ...(prerequisiteDocument
       ? { prerequisiteDocumentId: prerequisiteDocument.documentId }
@@ -266,6 +303,7 @@ export async function prepareProject(
     sources,
     documents,
     invocations,
+    plans,
     collectionErrors,
     selectedCaseCount: documents.reduce(
       (total, document) => total + document.cases.length,

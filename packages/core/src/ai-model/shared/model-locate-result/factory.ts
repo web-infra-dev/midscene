@@ -28,6 +28,9 @@ export function resolveLocateResultCoordinates(
     );
   }
   return {
+    ...(coordinates.shape === 'bbox'
+      ? { boundsType: coordinates.boundsType ?? 'inclusive' }
+      : {}),
     shape: coordinates.shape,
     order: coordinates.order ?? 'xy',
     normalizedBy: coordinates.normalizedBy,
@@ -45,15 +48,21 @@ export function createLocateResultCodec(
     config.parseRawLocateValue ??
     ((input) => parseNumericLocateResult(resolvedCoordinates, input));
   return {
-    promptSpec: createLocateResultPromptSpec(resolvedCoordinates),
+    promptSpec: createLocateResultPromptSpec(resolvedCoordinates, {
+      resultKey: config.resultKey,
+      resultKeyAliases: config.resultKeyAliases,
+    }),
     toPixelResult: (rawResult, context) => {
       const result = parseRawLocateValue(rawResult);
       const { preparedSize, contentSize = preparedSize } = context;
       assertLocateResultStructure(result);
+      const edgeBounds =
+        isBboxLocateResultValue(result) &&
+        result.coordinatesMeta.boundsType === 'edges';
       assertLocateResultCoordinateRangeAndOrder(
         result,
-        preparedSize.width - 1,
-        preparedSize.height - 1,
+        preparedSize.width - (edgeBounds ? 0 : 1),
+        preparedSize.height - (edgeBounds ? 0 : 1),
       );
       // Clamp the mapped center independently from the optional bbox so padding
       // removal cannot change the target by recomputing a clipped box's center.
@@ -69,8 +78,12 @@ export function createLocateResultCodec(
             const pixelBbox = clampPixelBboxToSize(
               mapLocateResultToPixelBbox(result, preparedSize),
               contentSize,
+              result.coordinatesMeta.boundsType,
             );
-            return pixelBboxToRect(pixelBbox);
+            return pixelBboxToRect(
+              pixelBbox,
+              result.coordinatesMeta.boundsType,
+            );
           })()
         : undefined;
       return { center, rect };

@@ -22,3 +22,4 @@ export type { WDAConfig } from './managers/WDAManager';
 
 // Utilities
 export { makeWebDriverRequest, WebDriverRequestError } from './utils/request';
+export { normalizeWebDriverBaseUrl } from './utils/base-url';

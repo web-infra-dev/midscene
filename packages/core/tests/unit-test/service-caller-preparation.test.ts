@@ -1,5 +1,5 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
@@ -41,11 +41,8 @@ const imageMessage = [
     role: 'user' as const,
     content: [
       {
-        type: 'image_url' as const,
-        image_url: {
-          url: 'https://example.com/shot.png',
-          detail: 'high' as const,
-        },
+        type: 'image' as const,
+        url: 'https://example.com/shot.png',
       },
       {
         type: 'text' as const,
@@ -81,6 +78,46 @@ describe('model call parameter preparation', () => {
     });
   });
 
+  it.each([
+    { semanticRetryAttempt: 0, expected: 0 },
+    { semanticRetryAttempt: 1, expected: 0.2 },
+    { semanticRetryAttempt: 2, temperature: 0, expected: 0 },
+    { semanticRetryAttempt: 1, temperature: 0.7, expected: 0.7 },
+    { semanticRetryAttempt: 1, extraBody: { temperature: 0 }, expected: 0 },
+  ])(
+    'prepares retry temperature with user overrides: %j',
+    async ({ semanticRetryAttempt, expected, ...overrides }) => {
+      const runtime = getModelRuntime({ ...baseModelConfig, ...overrides });
+      await callGenerativeAI(imageMessage, runtime, {
+        semanticRetryAttempt,
+      });
+      expect(mockCreate.mock.calls[0][0].temperature).toBe(expected);
+    },
+  );
+
+  it('does not add a temperature for models that omit it on semantic retry', async () => {
+    await callGenerativeAI(
+      imageMessage,
+      getModelRuntime({ ...baseModelConfig, modelFamily: 'gpt-6' }),
+      { semanticRetryAttempt: 1 },
+    );
+    expect(
+      JSON.parse(JSON.stringify(mockCreate.mock.calls[0][0])),
+    ).not.toHaveProperty('temperature');
+  });
+
+  it('reuses the prepared temperature across request retries', async () => {
+    mockCreate.mockRejectedValueOnce(new Error('temporary request failure'));
+    await callGenerativeAI(
+      imageMessage,
+      getModelRuntime({ ...baseModelConfig, retryCount: 1, retryInterval: 0 }),
+      { semanticRetryAttempt: 1 },
+    );
+    expect(mockCreate.mock.calls.map(([body]) => body.temperature)).toEqual([
+      0.2, 0.2,
+    ]);
+  });
+
   it.each(['chat', 'codex'])(
     'prepares %s parameters only once across retries',
     async (protocol) => {
@@ -105,7 +142,7 @@ describe('model call parameter preparation', () => {
       mockProxy.mockResolvedValue(proxy);
       request.mockRejectedValueOnce(new Error('temporary request failure'));
       try {
-        await callAI(imageMessage, runtime);
+        await callGenerativeAI(imageMessage, runtime);
         expect(prepare).toHaveBeenCalledTimes(1);
         expect(request).toHaveBeenCalledTimes(2);
         const firstMessages =
@@ -139,7 +176,7 @@ describe('model call parameter preparation', () => {
     const failure = new Error('invalid proxy');
     mockProxy.mockRejectedValue(failure);
     await expect(
-      callAI(
+      callGenerativeAI(
         imageMessage,
         getModelRuntime({
           ...baseModelConfig,
@@ -167,9 +204,13 @@ describe('model call parameter preparation', () => {
     );
     const controller = new AbortController();
     const reason = new Error('cancelled');
-    const pending = callAI(imageMessage, getModelRuntime(baseModelConfig), {
-      abortSignal: controller.signal,
-    });
+    const pending = callGenerativeAI(
+      imageMessage,
+      getModelRuntime(baseModelConfig),
+      {
+        abortSignal: controller.signal,
+      },
+    );
     const rejected = expect(pending).rejects.toBe(reason);
     await started;
     controller.abort(reason);
@@ -204,7 +245,9 @@ describe('model call parameter preparation', () => {
         throw failure;
       });
       try {
-        await expect(callAI(imageMessage, runtime)).rejects.toBe(failure);
+        await expect(callGenerativeAI(imageMessage, runtime)).rejects.toBe(
+          failure,
+        );
         expect(prepare).toHaveBeenCalledTimes(1);
         expect(mockCreate).not.toHaveBeenCalled();
         expect(mockCodexCall).not.toHaveBeenCalled();

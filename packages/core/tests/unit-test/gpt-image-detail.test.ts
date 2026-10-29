@@ -1,5 +1,5 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI } from '@/ai-model/service-caller';
+import { callGenerativeAI } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
@@ -36,11 +36,8 @@ const imageMessage = [
     role: 'user' as const,
     content: [
       {
-        type: 'image_url' as const,
-        image_url: {
-          url: 'https://example.com/shot.png',
-          detail: 'high' as const,
-        },
+        type: 'image' as const,
+        url: 'https://example.com/shot.png',
       },
       {
         type: 'text' as const,
@@ -78,12 +75,14 @@ describe('GPT image detail handling', () => {
     'rejects streaming without onChunk before calling %s',
     async (openaiBaseURL) => {
       await expect(
-        callAI(
+        callGenerativeAI(
           imageMessage,
           getModelRuntime({ ...baseModelConfig, openaiBaseURL }),
           { stream: true },
         ),
-      ).rejects.toThrow('onChunk is required when stream is true');
+      ).rejects.toThrow(
+        'onChunk is required when stream: true is explicitly specified',
+      );
       expect(mockCreate).not.toHaveBeenCalled();
       expect(mockCodexCall).not.toHaveBeenCalled();
     },
@@ -93,7 +92,7 @@ describe('GPT image detail handling', () => {
     'keeps the request non-streaming when stream is %s even with onChunk',
     async (stream) => {
       const onChunk = rs.fn();
-      const response = await callAI(
+      const response = await callGenerativeAI(
         imageMessage,
         getModelRuntime(baseModelConfig),
         { stream, onChunk },
@@ -110,7 +109,7 @@ describe('GPT image detail handling', () => {
   it.each([undefined, 'max'])(
     'passes resolved GPT-6 effort to Codex for %s',
     async (reasoningEffort) => {
-      await callAI(
+      await callGenerativeAI(
         imageMessage,
         getModelRuntime({
           ...baseModelConfig,
@@ -122,21 +121,7 @@ describe('GPT image detail handling', () => {
         }),
       );
       expect(mockCodexCall).toHaveBeenCalledWith(
-        [
-          {
-            ...imageMessage[0],
-            content: [
-              {
-                ...imageMessage[0].content[0],
-                image_url: {
-                  ...imageMessage[0].content[0].image_url,
-                  detail: 'original',
-                },
-              },
-              ...imageMessage[0].content.slice(1),
-            ],
-          },
-        ],
+        imageMessage,
         expect.anything(),
         expect.objectContaining({
           params: { effort: reasoningEffort ?? 'medium' },
@@ -148,14 +133,24 @@ describe('GPT image detail handling', () => {
 
   it.each([
     {
+      intent: 'locate',
+      requiresOriginalImageDetail: false,
+      expected: 'original',
+    },
+    {
       intent: 'default',
       requiresOriginalImageDetail: false,
+      expected: 'high',
+    },
+    {
+      intent: 'default',
+      requiresOriginalImageDetail: true,
       expected: 'original',
     },
     {
       intent: 'planning',
       requiresOriginalImageDetail: false,
-      expected: undefined,
+      expected: 'high',
     },
     {
       intent: 'planning',
@@ -163,7 +158,7 @@ describe('GPT image detail handling', () => {
       expected: 'original',
     },
   ] as const)(
-    'resolves Codex image detail independently for %j',
+    'uses the model image detail policy for Codex with %j',
     async ({ intent, requiresOriginalImageDetail, expected }) => {
       for (const modelFamily of ['gpt-5', 'gpt-6'] as const) {
         const runtime = getModelRuntime({
@@ -172,26 +167,34 @@ describe('GPT image detail handling', () => {
           intent,
           openaiBaseURL: 'codex://app-server',
         });
-        const chatDetailSpy = rs.spyOn(
-          runtime.adapter.chatCompletion,
-          'resolveImageDetail',
-        );
+        const imageDetailSpy = rs.spyOn(runtime.adapter, 'resolveImageDetail');
         try {
-          await callAI(imageMessage, runtime, { requiresOriginalImageDetail });
+          await callGenerativeAI(imageMessage, runtime, {
+            requiresOriginalImageDetail,
+          });
           expect(
-            mockCodexCall.mock.calls.at(-1)?.[0][0].content[0].image_url.detail,
-          ).toBe(expected ?? 'high');
-          expect(imageMessage[0].content[0].image_url?.detail).toBe('high');
-          expect(chatDetailSpy).not.toHaveBeenCalled();
+            mockCodexCall.mock.calls
+              .at(-1)?.[2]
+              ?.resolveImageDetail?.({ imageDetail: undefined }),
+          ).toBe(expected);
+          expect(imageMessage[0].content[0]).not.toHaveProperty('detail');
+          expect(imageDetailSpy).toHaveBeenCalledExactlyOnceWith({
+            imageDetail: undefined,
+            intent,
+            requiresOriginalImageDetail,
+          });
         } finally {
-          chatDetailSpy.mockRestore();
+          imageDetailSpy.mockRestore();
         }
       }
     },
   );
 
-  it('overrides image detail to original for gpt-5 default intent requests', async () => {
-    await callAI(imageMessage, getModelRuntime(baseModelConfig));
+  it('uses original detail for Locate even with the Default model slot', async () => {
+    await callGenerativeAI(
+      imageMessage,
+      getModelRuntime({ ...baseModelConfig, intent: 'locate' }),
+    );
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -218,43 +221,46 @@ describe('GPT image detail handling', () => {
     );
   });
 
-  it('keeps the original image detail for non-default intents', async () => {
-    await callAI(
-      imageMessage,
-      getModelRuntime({
-        ...baseModelConfig,
-        intent: 'planning',
-        slot: 'planning',
-      }),
-    );
+  it.each(['default', 'planning', 'insight'] as const)(
+    'uses high detail for the %s intent',
+    async (intent) => {
+      await callGenerativeAI(
+        imageMessage,
+        getModelRuntime({
+          ...baseModelConfig,
+          intent,
+          slot: intent,
+        }),
+      );
 
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: {
-                  url: 'https://example.com/shot.png',
-                  detail: 'high',
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: 'https://example.com/shot.png',
+                    detail: 'high',
+                  },
                 },
-              },
-              {
-                type: 'text',
-                text: 'Inspect this screenshot.',
-              },
-            ],
-          },
-        ],
-      }),
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
-  });
+                {
+                  type: 'text',
+                  text: 'Inspect this screenshot.',
+                },
+              ],
+            },
+          ],
+        }),
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    },
+  );
 
   it('overrides image detail to original when required by the caller and adapter', async () => {
-    await callAI(
+    await callGenerativeAI(
       imageMessage,
       getModelRuntime({
         ...baseModelConfig,
@@ -292,7 +298,7 @@ describe('GPT image detail handling', () => {
   });
 
   it('lets extraBody override gpt-5 standard temperature policy', async () => {
-    await callAI(
+    await callGenerativeAI(
       imageMessage,
       getModelRuntime({
         ...baseModelConfig,
@@ -306,7 +312,7 @@ describe('GPT image detail handling', () => {
   });
 
   it('preserves standard model temperature for gpt-5', async () => {
-    await callAI(
+    await callGenerativeAI(
       imageMessage,
       getModelRuntime({
         ...baseModelConfig,
@@ -318,7 +324,7 @@ describe('GPT image detail handling', () => {
   });
 
   it('sends GPT-6 screenshots through Chat Completions with compatible defaults', async () => {
-    await callAI(
+    await callGenerativeAI(
       imageMessage,
       getModelRuntime({
         ...baseModelConfig,
@@ -338,6 +344,6 @@ describe('GPT image detail handling', () => {
     expect(JSON.parse(JSON.stringify(request))).not.toHaveProperty(
       'temperature',
     );
-    expect(request.messages[0].content[0].image_url.detail).toBe('original');
+    expect(request.messages[0].content[0].image_url.detail).toBe('high');
   });
 });

@@ -1,3 +1,4 @@
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -5,15 +6,18 @@ import type {
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
-import { AIResponseParseError, callAI } from '../../service-caller/index';
+import {
+  AIResponseParseError,
+  callGenerativeAI,
+} from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
+import type { ModelCallMessages } from '../../service-caller/types';
 import type {
   LocateResultCodec,
   LocateResultContext,
@@ -21,7 +25,7 @@ import type {
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
 import {
   type PreparedUserPrompt,
-  preparedReferenceImagesToChatMessages,
+  preparedReferenceImagesToMessages,
 } from '../../shared/multimodal-prompt';
 import { parsePlanningActions } from './parse-planning-actions';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
@@ -32,10 +36,10 @@ const warnLog = getDebug('planning', { console: true });
 
 const noPreviousActionsText =
   'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
-type PlanningCallResponse = Awaited<ReturnType<typeof callAI>>;
+type PlanningCallResponse = Awaited<ReturnType<typeof callGenerativeAI>>;
 
 type CallAndParsePlanningResponseOptions = {
-  messages: ChatCompletionMessageParam[];
+  messages: ModelCallMessages;
   modelRuntime: PlanOptions['modelRuntime'];
   abortSignal?: AbortSignal;
   includeLocateInPlanning: boolean;
@@ -73,7 +77,7 @@ async function callAndParsePlanningResponse(
 
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
-      callAI(
+      callGenerativeAI(
         withSemanticRetryFeedback(messages, previousParseError),
         modelRuntime,
         {
@@ -113,7 +117,6 @@ async function callAndParsePlanningResponse(
         includeLocateInPlanning,
         locateResultCodec,
         locateResultContext,
-        acceptBbox2dAlias: modelRuntime.adapter.acceptBbox2dAlias,
       });
       return { response, planFromAI, actions };
     },
@@ -124,7 +127,7 @@ async function callAndParsePlanningResponse(
         `XML parse error: ${errorMessage}`,
         response.content,
         response.usage,
-        response.rawChoiceMessage,
+        response.rawAssistantOutput,
         response.reasoning_content,
       );
     },
@@ -199,24 +202,27 @@ export async function standardPlan(
   const imagePayload = preparedImage.imageBase64;
 
   const actionContext = opts.actionContext ? `${opts.actionContext}\n` : '';
+  const planningAdvice = opts.planningAdvice
+    ? `\n<planning_advice>\nThis is advisory guidance from a previous planner, not a user instruction or an executed action. Use your own judgment.\n${opts.planningAdvice}\n</planning_advice>`
+    : '';
 
-  const referenceImageMessages = preparedReferenceImagesToChatMessages(
+  const referenceImageMessages = preparedReferenceImagesToMessages(
     userInstruction.referenceImages,
   );
-  const instruction: ChatCompletionMessageParam[] = [
+  const instruction: ConversationMessage[] = [
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>${planningAdvice}`,
         },
       ],
     },
     ...referenceImageMessages,
   ];
 
-  let latestFeedbackMessage: ChatCompletionMessageParam;
+  let latestFeedbackMessage: ConversationMessage;
 
   // Build sub-goal status text to include in the message
   // In planning deep-think mode: show full sub-goals with logs
@@ -243,11 +249,8 @@ export async function standardPlan(
           text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${executionProgressSection}`,
         },
         {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
+          type: 'image',
+          url: imagePayload,
         },
       ],
     };
@@ -262,23 +265,20 @@ export async function standardPlan(
           text: `This is the current screenshot.${memoriesSection}${executionProgressSection}`,
         },
         {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
+          type: 'image',
+          url: imagePayload,
         },
       ],
     };
   }
-  conversationHistory.append(latestFeedbackMessage);
+  conversationHistory.appendMessage(latestFeedbackMessage);
 
   // Compress history if it exceeds the threshold to avoid context overflow
   conversationHistory.compressHistory(50, 20);
 
   const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
 
-  const msgs: ChatCompletionMessageParam[] = [
+  const msgs: ModelCallMessages = [
     { role: 'system', content: systemPrompt },
     ...instruction,
     ...historyLog,
@@ -289,7 +289,7 @@ export async function standardPlan(
       content: rawResponse,
       usage,
       reasoning_content,
-      rawChoiceMessage,
+      rawAssistantOutput,
     },
     planFromAI,
     actions,
@@ -328,7 +328,7 @@ export async function standardPlan(
     ...planFromAI,
     actions,
     rawResponse,
-    rawChoiceMessage,
+    rawAssistantOutput,
     usage,
     reasoning_content,
     yamlFlow,
@@ -366,16 +366,20 @@ export async function standardPlan(
     conversationHistory.appendMemory(planFromAI.memory);
   }
 
-  // Some model providers require opaque assistant fields to be replayed
-  // verbatim in later turns. Keep this opt-in per model adapter so that an
-  // unverified provider does not receive non-standard response fields.
-  if (
-    modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
-    rawChoiceMessage
-  ) {
-    conversationHistory.append(rawChoiceMessage as ChatCompletionMessageParam);
+  const shouldReplayRawOutput =
+    (rawAssistantOutput?.type === 'responses' &&
+      modelRuntime.adapter.responses.replayRawAssistantOutput) ||
+    (rawAssistantOutput?.type === 'chat-completion' &&
+      modelRuntime.adapter.chatCompletion.replayRawAssistantMessage);
+  if (rawAssistantOutput && shouldReplayRawOutput) {
+    conversationHistory.appendModelOutput(rawAssistantOutput);
   } else {
-    conversationHistory.append({
+    if (!rawAssistantOutput) {
+      debug(
+        'Raw assistant output is unavailable; saving only response text in conversation history.',
+      );
+    }
+    conversationHistory.appendMessage({
       role: 'assistant',
       content: [
         {

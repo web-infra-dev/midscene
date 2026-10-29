@@ -1,22 +1,29 @@
 import type {
   TestRunReportAttempt,
   TestRunReportDump,
+  TestRunReportMetrics,
   TestRunReportStep,
 } from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlaywrightTasks } from '../../types';
-import { CaseWorkspaceHeader } from './case-workspace-header';
+import { CaseWorkspace, getWorkspaceStepSummary } from './case-workspace';
+import {
+  CaseExecutionToolbar,
+  CaseWorkspaceHeader,
+} from './case-workspace-header';
+import { ErrorCards } from './error-card';
+import { collectReportIssues } from './issues';
 import {
   buildRunnerStepIndex,
   buildRunnerVisualIndex,
-  filterAndSortRunnerProjectBreakdown,
   flattenRunnerCases,
   getAllAttemptVisualFrames,
   getAttemptVisualFrames,
+  getCaseFailure,
   getCaseSearchMatch,
-  getDefaultExpandedProjectKeys,
+  getCaseTokenSummary,
   getDefaultVisualFrameForStep,
   getRunnerHealth,
   getStepForVisualFrame,
@@ -31,8 +38,8 @@ const at = (seconds: number): string =>
 
 const step = (
   id: string,
-  status: TestRunReportStep['status'] = 'success',
-  extra: Partial<TestRunReportStep> = {},
+  status: Exclude<TestRunReportStep['status'], 'not-run'> = 'success',
+  extra: Partial<Exclude<TestRunReportStep, { status: 'not-run' }>> = {},
 ): TestRunReportStep => ({
   id,
   phase: 'steps',
@@ -185,12 +192,47 @@ const dump: TestRunReportDump = {
   ],
 };
 
+const tokenMetrics = (
+  totalTokens: number,
+  status: 'complete' | 'partial' | 'unknown' = 'complete',
+): TestRunReportMetrics => ({
+  modelCallCount: 1,
+  modelTimeMs: 100,
+  promptTokens: totalTokens,
+  cachedInputTokens: 0,
+  completionTokens: 0,
+  totalTokens,
+  collection: {
+    status,
+    expectedExecutionCount: 1,
+    capturedExecutionCount: status === 'unknown' ? 0 : 1,
+    reasons: [],
+  },
+});
+
 describe('Midscene Test hybrid report model', () => {
+  it('opens final results while keeping earlier failure summaries separate from Case navigation', () => {
+    const testCase = structuredClone(flattenRunnerCases(dump)[1].testCase);
+    expect(getCaseFailure(testCase)).toBeUndefined();
+    testCase.status = 'failed';
+    testCase.attempts.at(-1)!.status = 'failed';
+    testCase.attempts.at(-1)!.cleanup = {
+      status: 'failed',
+      capturedAt: at(7),
+      error: { name: 'CleanupError', message: 'Final disposal failed' },
+    };
+    // A final cleanup failure must not navigate to an older business failure.
+    expect(getCaseFailure(testCase)).toBeUndefined();
+    const finalStep = testCase.attempts.at(-1)!.steps[0];
+    finalStep.status = 'failed';
+    expect(getCaseFailure(testCase)?.id).toBe(finalStep.id);
+  });
+
   it('separates final pass rate from first-pass stability', () => {
     const cases = flattenRunnerCases(dump);
     expect(cases.map((item) => item.status)).toEqual([
       'passed',
-      'retry-passed',
+      'passed',
       'failed',
       'not-run',
     ]);
@@ -230,99 +272,6 @@ describe('Midscene Test hybrid report model', () => {
     ]);
   });
 
-  it('filters and sorts the compact Project-to-Case breakdown', () => {
-    const projects = groupRunnerProjects(dump);
-    const emptyFailedProject = {
-      ...projects[0],
-      key: 'empty-project',
-      project: {
-        ...projects[0].project,
-        projectId: 'empty-project',
-        name: 'Empty failed project',
-        documents: [],
-      },
-      cases: [],
-      health: getRunnerHealth([]),
-      passedCount: 0,
-      failedCount: 0,
-      retryPassedCount: 0,
-      notRunCount: 0,
-    };
-    const projectsWithEmptyFailure = [...projects, emptyFailedProject];
-
-    expect(
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: '',
-        status: 'attention',
-        sort: 'attention',
-      })[0].cases.map((item) => item.status),
-    ).toEqual(['failed', 'retry-passed', 'not-run']);
-
-    expect(
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: 'NODE_EXECUTION_ERROR',
-        status: 'all',
-        sort: 'attention',
-      })[0].cases.map((item) => item.testCase.caseId),
-    ).toEqual(['retried']);
-
-    expect(
-      filterAndSortRunnerProjectBreakdown(projects, {
-        query: '',
-        status: 'all',
-        sort: 'name',
-      })[0].cases.map((item) => item.testCase.caseId),
-    ).toEqual(['failed', 'not-run', 'passed', 'retried']);
-
-    expect(
-      filterAndSortRunnerProjectBreakdown(projectsWithEmptyFailure, {
-        query: '',
-        status: 'attention',
-        sort: 'attention',
-      }).map(({ item, cases }) => ({ name: item.project.name, cases })),
-    ).toMatchObject([
-      { name: 'Web', cases: expect.any(Array) },
-      { name: 'Empty failed project', cases: [] },
-    ]);
-  });
-
-  it('expands every failed Project and collapses all-passed Projects by default', () => {
-    const [failedProject] = groupRunnerProjects(dump);
-    const retryPassedProject = {
-      ...failedProject,
-      key: 'retry-passed-project',
-      project: { ...failedProject.project, status: 'success' as const },
-      failedCount: 0,
-      retryPassedCount: 1,
-    };
-    const passedProject = {
-      ...failedProject,
-      key: 'passed-project',
-      project: { ...failedProject.project, status: 'success' as const },
-      failedCount: 0,
-      retryPassedCount: 0,
-    };
-    const secondFailure = { ...failedProject, key: 'second-failure' };
-    const setupFailure = {
-      ...failedProject,
-      key: 'setup-failure',
-      failedCount: 0,
-    };
-    const views = [
-      failedProject,
-      retryPassedProject,
-      passedProject,
-      secondFailure,
-      setupFailure,
-    ].map((item) => ({ item, cases: item.cases }));
-
-    expect([...getDefaultExpandedProjectKeys(views)]).toEqual([
-      failedProject.key,
-      secondFailure.key,
-      setupFailure.key,
-    ]);
-  });
-
   it('opens a single-project single-case report directly in case detail', () => {
     const singleDump = structuredClone(dump);
     singleDump.projects[0].documents[0].cases = [
@@ -344,7 +293,7 @@ describe('Midscene Test hybrid report model', () => {
         projects,
         stepIndex,
       ).page,
-    ).toBe('case');
+    ).toBe('overview');
     expect(
       resolveRunnerNavigation(
         '#runner-page=project&runner-project=web',
@@ -352,7 +301,7 @@ describe('Midscene Test hybrid report model', () => {
         projects,
         stepIndex,
       ).page,
-    ).toBe('case');
+    ).toBe('overview');
     const allCases = flattenRunnerCases(dump);
     expect(
       resolveRunnerNavigation(
@@ -412,7 +361,7 @@ describe('Midscene Test hybrid report model', () => {
     });
   });
 
-  it('preserves single-case trace links and rejects unrelated step IDs', () => {
+  it('preserves single-case step links and rejects unrelated step IDs', () => {
     const singleDump = structuredClone(dump);
     singleDump.projects[0].documents[0].cases = [
       singleDump.projects[0].documents[0].cases[1],
@@ -422,7 +371,7 @@ describe('Midscene Test hybrid report model', () => {
     const stepIndex = buildRunnerStepIndex(singleDump, cases);
     expect(
       resolveRunnerNavigation(
-        '#runner-step=demo.passOnRetry&runner-trace=page',
+        '#runner-step=demo.passOnRetry',
         cases,
         projects,
         stepIndex,
@@ -439,8 +388,8 @@ describe('Midscene Test hybrid report model', () => {
         stepIndex,
       ),
     ).toMatchObject({
-      page: 'case',
-      deepLinkedStepId: undefined,
+      page: 'overview',
+      navigationIssue: { code: 'STEP_NOT_FOUND' },
     });
   });
 
@@ -448,6 +397,7 @@ describe('Midscene Test hybrid report model', () => {
     const item = flattenRunnerCases(dump)[0];
     const props = {
       item,
+      selectedAttempt: item.finalAttempt,
       backLabel: 'Overview',
       onBack() {},
       onSelectAttempt() {},
@@ -463,8 +413,18 @@ describe('Midscene Test hybrid report model', () => {
         message: 'Trace unavailable',
       },
     ];
+    const issues = collectReportIssues(run);
     const standalone = renderToStaticMarkup(
-      createElement(CaseWorkspaceHeader, { ...props, standaloneRun: run }),
+      createElement(CaseWorkspace, {
+        item,
+        standaloneRun: run,
+        issues,
+        reports: [],
+        visualIndex: buildRunnerVisualIndex([]),
+        renderAgentReport: () => null,
+        onBack() {},
+        backLabel: 'Overview',
+      }),
     );
     expect(standalone).not.toContain('runner-back-button');
     expect(standalone).not.toContain('Copy case link');
@@ -472,18 +432,140 @@ describe('Midscene Test hybrid report model', () => {
     expect(standalone).toContain('run time');
     expect(standalone).toContain('model calls');
     expect(standalone).toContain('tokens');
-    expect(standalone).toContain('Run failed');
+    expect(standalone).not.toContain('Run diagnostics');
     expect(standalone).toContain('Browser cleanup failed');
-    expect(standalone).toContain('Trace unavailable');
+    expect(standalone).toContain('View all 3 issues');
+    expect(issues.others).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: 'Trace unavailable' }),
+      ]),
+    );
     const regular = renderToStaticMarkup(
       createElement(CaseWorkspaceHeader, props),
     );
     expect(regular).toContain('runner-back-button');
     expect(regular).not.toContain('Copy case link');
     expect(regular).not.toContain('Run information');
+    expect(regular).not.toContain('Attempt 1');
+    expect(regular).not.toContain('aria-label="Attempts"');
+    expect(regular).not.toContain('runner-step-status is-success');
   });
 
-  it('shows a pass percentage matching the all-case fraction, including not-run cases', () => {
+  it('shows cumulative Case tokens before Case time, including retries and per-case hooks only', () => {
+    const run = structuredClone(dump);
+    const item = flattenRunnerCases(run)[1];
+    item.document.beforeAll = [
+      step('shared-setup', 'success', { metrics: tokenMetrics(9_000) }),
+    ];
+    item.document.afterAll = [
+      step('shared-teardown', 'success', { metrics: tokenMetrics(8_000) }),
+    ];
+    item.document.cases[0].attempts[0].steps[0].metrics = tokenMetrics(7_000);
+    const [first, second] = item.testCase.attempts;
+    first.beforeEach = [
+      step('setup', 'success', { metrics: tokenMetrics(35) }),
+    ];
+    first.afterEach = [
+      step('teardown', 'success', { metrics: tokenMetrics(15) }),
+    ];
+    first.steps[0].metrics = tokenMetrics(1_000);
+    first.steps[0].metrics.promptTokens = 800;
+    first.steps[0].metrics.cachedInputTokens = 300;
+    first.steps[0].metrics.completionTokens = 200;
+    second.steps[0].metrics = tokenMetrics(2_000);
+    second.steps[0].metrics.promptTokens = 1_600;
+    second.steps[0].metrics.cachedInputTokens = 600;
+    second.steps[0].metrics.completionTokens = 400;
+    second.steps[1].metrics = tokenMetrics(500);
+
+    expect(getCaseTokenSummary(item.testCase)).toEqual({
+      totalTokens: 3_550,
+      promptTokens: 2_950,
+      cachedInputTokens: 900,
+      completionTokens: 600,
+      modelCallCount: 5,
+      status: 'complete',
+      callStatus: 'complete',
+    });
+    const markup = renderToStaticMarkup(
+      createElement(CaseWorkspaceHeader, {
+        item,
+        backLabel: 'Overview',
+        onBack() {},
+      }),
+    );
+    expect(markup).toContain('Tokens<strong>3,550</strong>');
+    expect(markup.indexOf('Tokens<strong>')).toBeLessThan(
+      markup.indexOf('Case time'),
+    );
+  });
+
+  it.each(['complete', 'partial', 'unknown'] as const)(
+    'renders %s Case token collection without turning missing usage into zero',
+    (status) => {
+      const item = flattenRunnerCases(structuredClone(dump))[0];
+      item.testCase.attempts[0].steps[0].metrics = tokenMetrics(1_234, status);
+      const markup = renderToStaticMarkup(
+        createElement(CaseWorkspaceHeader, {
+          item,
+          backLabel: 'Overview',
+          onBack() {},
+        }),
+      );
+      expect(markup).toContain(
+        `Tokens<strong>${status === 'unknown' ? '—' : '1,234'}</strong>`,
+      );
+      expect(markup.includes('(partial)')).toBe(status === 'partial');
+    },
+  );
+
+  it.each([500, 0])(
+    'keeps known %i tokens when another request has unknown usage',
+    (known) => {
+      const item = flattenRunnerCases(structuredClone(dump))[0];
+      item.testCase.attempts[0].steps = [
+        step('known', 'success', { metrics: tokenMetrics(known) }),
+        step('unknown', 'failed', { metrics: tokenMetrics(9_999, 'unknown') }),
+      ];
+      expect(getCaseTokenSummary(item.testCase)).toMatchObject({
+        totalTokens: known,
+        status: 'partial',
+      });
+    },
+  );
+
+  it('uses token collection status independently of missing model timing', () => {
+    const item = flattenRunnerCases(structuredClone(dump))[0];
+    const metrics = tokenMetrics(500, 'partial');
+    metrics.collection!.fields = {
+      totalTokens: 'complete',
+      modelCallCount: 'complete',
+      modelTimeMs: 'unknown',
+    };
+    item.testCase.attempts[0].steps[0].metrics = metrics;
+    expect(getCaseTokenSummary(item.testCase)).toMatchObject({
+      totalTokens: 500,
+      status: 'complete',
+    });
+  });
+
+  it('marks missing traced usage as unknown while keeping Cases without model calls at zero', () => {
+    const cases = flattenRunnerCases(dump);
+    expect(getCaseTokenSummary(cases[1].testCase).status).toBe('unknown');
+    for (const index of [0, 3])
+      expect(getCaseTokenSummary(cases[index].testCase)).toMatchObject({
+        totalTokens: 0,
+        status: 'complete',
+      });
+    const testCase = structuredClone(cases[0].testCase);
+    testCase.attempts[0].steps[0].evidenceCollection = {
+      status: 'unknown',
+      modelUsageUnavailable: true,
+    };
+    expect(getCaseTokenSummary(testCase).status).toBe('unknown');
+  });
+
+  it('shows final case counts including retries and not-run cases in the compact summary', () => {
     const markup = renderToStaticMarkup(
       createElement(RunSummary, {
         dump,
@@ -492,47 +574,183 @@ describe('Midscene Test hybrid report model', () => {
         onReviewOutcome() {},
       }),
     );
+    expect(markup).toContain('Review case results: 2 of 4 passed');
+    expect(markup).toContain('<span>Passed</span><strong>2</strong>');
     expect(markup).toContain(
-      'aria-label="Percentage of all cases passed">50%</span>',
+      '1 of 2 passed Cases had earlier failed attempts.',
     );
+    expect(markup).toContain(
+      '<span>Passed after retry</span><strong>1</strong>',
+    );
+    expect(markup).toContain('<span>Not run</span><strong>1</strong>');
+    for (const outcome of ['Failed', 'Not run'])
+      expect(markup).toContain(`1 ${outcome}`);
+    expect(markup).toContain('tokens<strong>—</strong>');
     expect(markup).not.toContain('runner-overview-outcome-message');
-    expect(markup).toContain('Review 1 failed case');
+    expect(markup).toContain('>run failed</span>');
+    expect(markup).not.toContain('>Run failed</span>');
+    expect(markup).not.toContain('model time');
+    expect(markup).not.toContain('model calls');
+    expect(markup).not.toContain('Tokens');
   });
 
-  it('does not invent a pass percentage for an empty run', () => {
+  it('shows zero case counts without inventing token usage for an empty run', () => {
     const markup = renderToStaticMarkup(
       createElement(RunSummary, {
-        dump: { ...dump, summary: { ...dump.summary, passed: 0, total: 0 } },
+        dump: {
+          ...dump,
+          summary: {
+            ...dump.summary,
+            total: 0,
+            passed: 0,
+            failed: 0,
+            notRun: 0,
+          },
+        },
         health: getRunnerHealth([]),
         totalCaseCount: 0,
         onReviewOutcome() {},
       }),
     );
-    expect(markup).toContain(
-      'aria-label="Percentage of all cases passed">—</span>',
-    );
+    expect(markup).toContain('Review case results: 0 of 0 passed');
+    expect(markup).toContain('tokens<strong>—</strong>');
+    for (const outcome of ['Passed', 'Failed', 'Not run'])
+      expect(markup).toContain(`0 ${outcome}`);
+    expect(markup).not.toContain('flex-grow:');
     expect(markup).not.toContain('NaN');
+  });
+
+  it('counts every recovered Case as passed and preserves a successful run outcome', () => {
+    const markup = renderToStaticMarkup(
+      createElement(RunSummary, {
+        dump: {
+          ...dump,
+          status: 'success',
+          summary: {
+            ...dump.summary,
+            total: 2,
+            passed: 2,
+            failed: 0,
+            notRun: 0,
+          },
+        },
+        health: { ...getRunnerHealth([]), retryPassedCount: 2 },
+        totalCaseCount: 2,
+        onReviewOutcome() {},
+      }),
+    );
+    expect(markup).toContain('Review case results: 2 of 2 passed');
+    expect(markup).toContain('<span>Passed</span><strong>2</strong>');
+    expect(markup).toContain('>run passed</span>');
+    expect(markup).toContain(
+      '2 of 2 passed Cases had earlier failed attempts.',
+    );
+    expect(markup).toContain(
+      '<span>Passed after retry</span><strong>2</strong>',
+    );
+  });
+
+  it('marks partial token totals and distinguishes a measured zero from unknown usage', () => {
+    for (const status of ['complete', 'partial'] as const) {
+      const markup = renderToStaticMarkup(
+        createElement(RunSummary, {
+          dump: {
+            ...dump,
+            metrics: {
+              ...dump.metrics,
+              collection: {
+                status,
+                expectedExecutionCount: 1,
+                capturedExecutionCount: 1,
+                reasons: [],
+              },
+            },
+          },
+          health: getRunnerHealth(flattenRunnerCases(dump)),
+          totalCaseCount: 4,
+          onReviewOutcome() {},
+        }),
+      );
+      expect(markup).toContain('tokens<strong>0</strong>');
+      expect(markup.includes('(partial)')).toBe(status === 'partial');
+    }
   });
 
   it('keeps attempt comparison in standalone reports with retries', () => {
     const item = flattenRunnerCases(dump)[1];
+    const props = {
+      item,
+      standaloneRun: dump,
+      selectedAttempt: item.finalAttempt,
+      stepSummary: { total: 12, passed: 11, failed: 1, timeout: 0 },
+      backLabel: 'Overview',
+      onBack() {},
+      onSelectAttempt() {},
+    };
     const markup = renderToStaticMarkup(
-      createElement(CaseWorkspaceHeader, {
-        item,
-        standaloneRun: dump,
-        selectedAttempt: item.finalAttempt,
-        backLabel: 'Overview',
-        onBack() {},
-        onSelectAttempt() {},
-      }),
+      createElement(CaseExecutionToolbar, { ...props, viewSwitch: null }),
     );
     expect(markup).not.toContain('runner-back-button');
-    expect(markup).toContain('Attempt 1');
     expect(markup).toContain('Attempt 2');
     expect(markup).not.toContain('Original failure');
     expect(markup).not.toContain('Final result');
     expect(markup).not.toContain('· failed');
-    expect(markup).toContain('aria-pressed="true"');
+    expect(markup).toContain('aria-label="Attempts"');
+    expect(markup).toContain('role="combobox"');
+    expect(markup).toContain('runner-select-chevron');
+    expect(markup).toContain('<dt>Total steps</dt><dd>12</dd>');
+    const firstAttemptMarkup = renderToStaticMarkup(
+      createElement(CaseExecutionToolbar, {
+        viewSwitch: null,
+        ...props,
+        selectedAttempt: item.testCase.attempts[0],
+      }),
+    );
+    expect(firstAttemptMarkup).toContain('Attempt 1');
+    expect(firstAttemptMarkup).toContain('is-failed');
+  });
+
+  it('keeps retries reachable in Execution when the selected attempt has no steps', () => {
+    const item = structuredClone(flattenRunnerCases(dump)[1]);
+    item.document.beforeAll = [];
+    item.document.afterAll = [];
+    for (const attempt of item.testCase.attempts) {
+      attempt.beforeEach = [];
+      attempt.steps = [];
+      attempt.afterEach = [];
+    }
+    const markup = renderToStaticMarkup(
+      createElement(CaseWorkspace, {
+        item,
+        reports: [],
+        visualIndex: buildRunnerVisualIndex([]),
+        renderAgentReport: () => null,
+        onBack() {},
+        backLabel: 'Overview',
+      }),
+    );
+    expect(markup).toMatch(
+      /aria-label="Execution"[\s\S]*runner-detail-panel-heading[\s\S]*aria-label="Execution view"[\s\S]*aria-label="Attempts"[\s\S]*<dt>Total steps<\/dt><dd>0<\/dd>/,
+    );
+    expect(markup).toContain('Attempt 2');
+  });
+
+  it('keeps timeout failures separate in the detail step summary', () => {
+    expect(
+      getWorkspaceStepSummary([
+        step('passed'),
+        step('failed', 'failed', {
+          error: { name: 'Error', message: 'Regular failure' },
+        }),
+        step('timeout', 'failed', {
+          error: {
+            name: 'StepTimeoutError',
+            code: 'STEP_TIMEOUT',
+            message: 'Step timed out after 1000ms.',
+          },
+        }),
+      ]),
+    ).toEqual({ total: 3, passed: 1, failed: 1, timeout: 1, notRun: 0 });
   });
 
   it('preserves step deep links when choosing the initial page', () => {
@@ -674,7 +892,7 @@ describe('Midscene Test hybrid report model', () => {
 
     expect(
       resolveRunnerNavigation(
-        '#runner-step=last-error&runner-trace=page',
+        '#runner-step=last-error',
         cases,
         projects,
         stepIndex,
@@ -683,7 +901,12 @@ describe('Midscene Test hybrid report model', () => {
       page: 'case',
       selectedCaseKey: 'web:document:passed',
       deepLinkedStepId: undefined,
-      unmatchedStepSelector: 'last-error',
+      navigationIssue: {
+        id: 'navigation',
+        severity: 'warning',
+        code: 'STEP_NOT_FOUND',
+        message: 'No Step matches runner-step=last-error.',
+      },
     });
   });
 
@@ -714,9 +937,42 @@ describe('Midscene Test hybrid report model', () => {
       page: 'case',
       selectedCaseKey: 'web:document:passed',
       deepLinkedStepId: undefined,
-      unmatchedStepSelector: 'last-error',
+      navigationIssue: {
+        severity: 'warning',
+        code: 'STEP_NOT_FOUND',
+      },
     });
   });
+
+  it.each(['last-error', 'missing-step-id'])(
+    'shows a warning for an unresolved Step link (%s)',
+    (reference) => {
+      const cases = flattenRunnerCases(dump);
+      const projects = groupRunnerProjects(dump, cases);
+      const stepIndex = buildRunnerStepIndex(dump, cases);
+      const navigation = resolveRunnerNavigation(
+        `#runner-page=case&runner-project=web&runner-case=web%3Adocument%3Apassed&runner-step=${reference}`,
+        cases,
+        projects,
+        stepIndex,
+      );
+      expect(navigation).toMatchObject({
+        page: 'case',
+        selectedCaseKey: 'web:document:passed',
+        deepLinkedStepId: undefined,
+        navigationIssue: { severity: 'warning', code: 'STEP_NOT_FOUND' },
+      });
+      const html = renderToStaticMarkup(
+        createElement(ErrorCards, {
+          label: 'Navigation issue',
+          issues: [navigation.navigationIssue!],
+        }),
+      );
+      expect(html).toContain('is-warning');
+      expect(html).toContain('The requested step could not be found');
+      expect(html).toContain(`No Step matches runner-step=${reference}.`);
+    },
+  );
 
   it('includes document lifecycle Steps in portable links', () => {
     const lifecycleDump = structuredClone(dump);
@@ -747,29 +1003,6 @@ describe('Midscene Test hybrid report model', () => {
     ).toMatchObject({
       deepLinkedStepId: 'document:afterAll:0',
     });
-  });
-
-  it('uses the same filters within a single project without changing its health', () => {
-    const projects = groupRunnerProjects(dump, flattenRunnerCases(dump));
-    const selected = projects[0];
-    const originalCount = selected.cases.length;
-    const matches = filterAndSortRunnerProjectBreakdown([selected], {
-      query: 'NODE_EXECUTION_ERROR',
-      status: 'retry-passed',
-      sort: 'duration',
-    });
-    expect(matches[0].cases.map((item) => item.testCase.caseId)).toEqual([
-      'retried',
-    ]);
-    expect(matches[0].item).toBe(selected);
-    expect(selected.cases).toHaveLength(originalCount);
-    expect(
-      filterAndSortRunnerProjectBreakdown([selected], {
-        query: 'no-such-case',
-        status: 'all',
-        sort: 'name',
-      }),
-    ).toEqual([]);
   });
 
   it('searches failed retries, errors, values, and trace identifiers', () => {

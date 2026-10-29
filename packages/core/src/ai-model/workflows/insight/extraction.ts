@@ -1,9 +1,9 @@
+import type {
+  ConversationSystemMessage,
+  ConversationUserMessage,
+} from '@/ai-model/service-caller/types';
 import type { ServiceExtractOption, UIContext } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
-import type {
-  ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
-} from 'openai/resources/index';
 import { renderAIContext } from '../../../agent/prompt-context';
 import type { TMultimodalPrompt } from '../../../common';
 import type { ModelRuntime } from '../../models';
@@ -11,22 +11,25 @@ import {
   buildInsightSystemPrompt,
   extractDataQueryPrompt,
 } from '../../prompt/insight';
-import { AIResponseParseError, callAI } from '../../service-caller/index';
+import {
+  AIResponseParseError,
+  callGenerativeAI,
+} from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
-import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
+import { multimodalPromptToMessages } from '../../shared/multimodal-prompt';
+import { extractBoolean } from './boolean';
 import { parseInsightResponse } from './insight-response-parser';
 
-type InsightAIArgs = [
-  ChatCompletionSystemMessageParam,
-  ...ChatCompletionUserMessageParam[],
-];
+type InsightAIArgs = [ConversationSystemMessage, ...ConversationUserMessage[]];
 
 const debugInsight = getDebug('ai:insight');
 
-export async function AiExtractElementInfo<T>(options: {
+export interface ExtractOptions {
+  /** Explicit task type; never infer from query keys. */
+  taskType: 'boolean' | 'extract';
   dataQuery: string | Record<string, string>;
   multimodalPrompt?: TMultimodalPrompt;
   context: UIContext;
@@ -34,7 +37,15 @@ export async function AiExtractElementInfo<T>(options: {
   extractOption?: ServiceExtractOption;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
-}) {
+}
+
+export async function AiExtractElementInfo<T>(options: ExtractOptions) {
+  if (
+    options.taskType === 'boolean' &&
+    options.modelRuntime.adapter.insight.booleanFn
+  ) {
+    return extractBoolean<T>(options);
+  }
   const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
     options;
   const insightProtocol = modelRuntime.adapter.insight.protocol;
@@ -52,7 +63,7 @@ export async function AiExtractElementInfo<T>(options: {
     renderedContext,
   );
 
-  const userContent: ChatCompletionUserMessageParam['content'] = [];
+  const userContent: ConversationUserMessage['content'] = [];
 
   if (extractOption?.screenshotIncluded !== false) {
     const screenshotSequence = context.screenshotSequence;
@@ -68,11 +79,8 @@ export async function AiExtractElementInfo<T>(options: {
           text: `Frame ${index + 1}/${screenshotSequence.length}`,
         });
         userContent.push({
-          type: 'image_url',
-          image_url: {
-            url: frame.base64,
-            detail: 'high',
-          },
+          type: 'image',
+          url: frame.base64,
         });
       });
     } else {
@@ -82,11 +90,8 @@ export async function AiExtractElementInfo<T>(options: {
       });
 
       userContent.push({
-        type: 'image_url',
-        image_url: {
-          url: screenshotBase64,
-          detail: 'high',
-        },
+        type: 'image',
+        url: screenshotBase64,
       });
     }
   }
@@ -105,13 +110,13 @@ export async function AiExtractElementInfo<T>(options: {
   ];
 
   if (multimodalPrompt) {
-    const addOns = await multimodalPromptToChatMessages(multimodalPrompt);
+    const addOns = await multimodalPromptToMessages(multimodalPrompt);
     msgs.push(...addOns);
   }
 
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
-      callAI(
+      callGenerativeAI(
         withSemanticRetryFeedback(msgs, previousParseError),
         modelRuntime,
         {
@@ -124,7 +129,7 @@ export async function AiExtractElementInfo<T>(options: {
         content: rawResponse,
         usage,
         reasoning_content,
-        rawChoiceMessage,
+        rawAssistantOutput,
       } = response;
       const parseResult = parseInsightResponse<T>(
         rawResponse,
@@ -134,7 +139,7 @@ export async function AiExtractElementInfo<T>(options: {
       return {
         parseResult,
         rawResponse,
-        rawChoiceMessage,
+        rawAssistantOutput,
         usage,
         reasoning_content,
       };
@@ -146,7 +151,7 @@ export async function AiExtractElementInfo<T>(options: {
         `XML parse error: ${errorMessage}`,
         response.content,
         response.usage,
-        response.rawChoiceMessage,
+        response.rawAssistantOutput,
       );
     },
     parseRetryTimes: modelRuntime.config.retryCount,

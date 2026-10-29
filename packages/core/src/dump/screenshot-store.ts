@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
-import { writeFile as writeFileAsync } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import type { ScreenshotItem } from '../screenshot-item';
 import { collectImageScriptIds, extractImageByIdSync } from './html-utils';
@@ -14,6 +13,7 @@ import {
   normalizeScreenshotRef,
   normalizeStoredImageRef,
 } from './image-reference';
+import { writeReportArtifactFile } from './report-artifact-store';
 
 export type {
   ImageUrlRef,
@@ -65,6 +65,19 @@ export function parseBase64ImageDataUrl(imageUrl: string): {
 
 export function isBase64ImageDataUrl(value: string): boolean {
   return base64ImageDataUrlPattern.test(value);
+}
+
+/** Stable asset names allow different observations to share the same bytes. */
+export function reportImageFileName(
+  extension: string,
+  bytes: Uint8Array,
+): string {
+  const hash = createHash('sha256')
+    .update(extension)
+    .update('\0')
+    .update(bytes)
+    .digest('hex');
+  return `${hash}.${extension}`;
 }
 
 export function resolveImageSource(
@@ -180,6 +193,14 @@ export class ReportImageStore {
   private alsoWriteFileCopy: boolean;
   private readonly writtenInlineIds = new Set<string>();
   private readonly writtenFileIds = new Set<string>();
+  private readonly fileLocations = new Map<
+    string,
+    { relativePath: string; absolutePath: string }
+  >();
+  private readonly pendingFiles = new Map<
+    string,
+    Promise<{ relativePath: string; absolutePath: string }>
+  >();
   private readonly shouldReuseExistingInlineReport: boolean;
   private existingInlineImageIdsPromise?: Promise<void>;
 
@@ -207,6 +228,14 @@ export class ReportImageStore {
 
   enableFileCopies(): void {
     this.alsoWriteFileCopy = true;
+  }
+
+  /** Resolve an observation/reference ID to its content-addressed asset. */
+  getFilePath(id: string): string {
+    const file = this.fileLocations.get(id);
+    if (!file)
+      throw new Error(`ReportImageStore: image ${id} has no persisted file`);
+    return file.relativePath;
   }
 
   async persist(screenshot: ScreenshotItem): Promise<ScreenshotRef> {
@@ -322,19 +351,13 @@ export class ReportImageStore {
       markAsPersisted: boolean;
     },
   ): Promise<ScreenshotRef> {
-    const fileName = `${screenshot.id}.${screenshot.extension}`;
-    const { relativePath, absolutePath } = this.writtenFileIds.has(
-      screenshot.id,
-    )
-      ? {
-          relativePath: `./screenshots/${fileName}`,
-          absolutePath: join(this.screenshotsDir!, fileName),
-        }
-      : await this.writeImageFileIfNeeded({
-          id: screenshot.id,
-          extension: screenshot.extension,
-          rawBase64: screenshot.rawBase64,
-        });
+    const { relativePath, absolutePath } =
+      this.fileLocations.get(screenshot.id) ??
+      (await this.writeImageFileIfNeeded({
+        id: screenshot.id,
+        extension: screenshot.extension,
+        rawBase64: screenshot.rawBase64,
+      }));
 
     if (options.markAsPersisted) {
       return screenshot.markPersistedToPath(relativePath, absolutePath);
@@ -358,17 +381,30 @@ export class ReportImageStore {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    const fileName = `${image.id}.${image.extension}`;
+    const known = this.fileLocations.get(image.id);
+    if (known) return known;
+    const bytes = Buffer.from(image.rawBase64, 'base64');
+    const fileName = reportImageFileName(image.extension, bytes);
     const relativePath = `./screenshots/${fileName}`;
     const absolutePath = join(screenshotsDir, fileName);
-    if (!this.writtenFileIds.has(image.id)) {
-      await writeFileAsync(
-        absolutePath,
-        Buffer.from(image.rawBase64, 'base64'),
-      );
-      this.writtenFileIds.add(image.id);
+    let publication = this.pendingFiles.get(fileName);
+    if (!publication) {
+      publication = (async () => {
+        if (!this.writtenFileIds.has(fileName)) {
+          await writeReportArtifactFile(absolutePath, bytes);
+          this.writtenFileIds.add(fileName);
+        }
+        return { relativePath, absolutePath };
+      })();
+      this.pendingFiles.set(fileName, publication);
     }
-    return { relativePath, absolutePath };
+    try {
+      const location = await publication;
+      this.fileLocations.set(image.id, location);
+      return location;
+    } finally {
+      this.pendingFiles.delete(fileName);
+    }
   }
 
   /** Resolve any stored report image reference to a data URI. */
@@ -410,6 +446,8 @@ export class ReportImageStore {
     }
     this.writtenInlineIds.clear();
     this.writtenFileIds.clear();
+    this.fileLocations.clear();
+    this.pendingFiles.clear();
     this.existingInlineImageIdsPromise = undefined;
   }
 }

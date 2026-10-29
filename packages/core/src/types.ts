@@ -42,6 +42,16 @@ export {
   GroupedActionDump,
 } from './dump/report-action-dump';
 
+export type RawAssistantOutput =
+  | {
+      type: 'chat-completion';
+      rawValue: OpenAI.Chat.Completions.ChatCompletionMessage;
+    }
+  | {
+      type: 'responses';
+      rawValue: OpenAI.Responses.ResponseOutputItem[];
+    };
+
 export type AIUsageInfo = Record<string, any> & {
   prompt_tokens: number | undefined;
   completion_tokens: number | undefined;
@@ -53,6 +63,17 @@ export type AIUsageInfo = Record<string, any> & {
   total_time_cost?: number;
   /** Request retries performed within this call; excludes semantic parse retries. */
   retry_count?: number;
+  /** Actual protocol used for the model call, resolved by Midscene. */
+  request_kind?: 'chat-completion' | 'responses' | 'codex' | 'system-one';
+  /** Why a task uses the default model instead of its configured specialist. */
+  modelFallback?: {
+    requestedModel: string;
+    requestedSlot: string;
+    taskType: string;
+    reason: string;
+  };
+  /** Whether the model call used streaming, after resolving call options. */
+  stream?: boolean;
   model_name: string | undefined;
   model_description: string | undefined;
   /**
@@ -223,7 +244,7 @@ export interface ServiceTaskInfo {
    * full provider response or choices[0].message.
    */
   rawResponse?: unknown;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
   searchArea?: Rect;
   /**
@@ -400,13 +421,18 @@ export interface RawResponsePlanningAIResponse {
 export interface PlanningAIResponse
   extends Omit<RawResponsePlanningAIResponse, 'action'> {
   actions?: PlanningAction[];
+  /** Request another planning cycle using the default model, without executing actions. */
+  delegation?: {
+    reason: string;
+    suggestedAction?: string;
+  };
   usage?: AIUsageInfo;
   /**
    * Adapter-extracted content used by Midscene for parsing. This is not the
    * full provider response or choices[0].message.
    */
   rawResponse?: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
   error?: string;
@@ -456,7 +482,10 @@ export interface PlaywrightParserOpt extends BaseAgentParserOpt {}
 action
 */
 export interface ExecutionTaskProgressOptions {
-  onTaskStart?: (task: ExecutionTask) => Promise<void> | void;
+  onTaskStart?: (
+    task: ExecutionTask,
+    signal?: AbortSignal,
+  ) => Promise<void> | void;
 }
 
 /**
@@ -575,9 +604,13 @@ export interface RecordToReportOptions {
 export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
 
 export interface ExecutorContext {
+  /** Cancellation of this execution; adapters may forward it to cancellable I/O. */
+  signal?: AbortSignal;
   task: ExecutionTask;
   element?: LocateResultElement | null;
   uiContext?: UIContext;
+  /** Custom readiness owns optional post-action settling, not input/gesture timing. */
+  skipDefaultWait?: boolean;
 }
 
 export interface ExecutionTaskApply<
@@ -591,6 +624,11 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   uiContext?: UIContext;
+  /**
+   * Maximum planning feedback length inherited from the action definition.
+   * Set to 'unlimited' to disable truncation for this task.
+   */
+  planningFeedbackMaxLength?: number | 'unlimited';
   executor: (
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: void is intentionally allowed as some executors may not return a value
@@ -628,6 +666,8 @@ export type ExecutionTask<
   > & {
     taskId: string;
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
+    /** Readiness strategy selected for this atomic action execution. */
+    actionReadiness?: 'default' | 'custom';
     /**
      * Optional feedback produced by a task for the next planning round.
      * This is execution metadata, not part of the action return value.
@@ -653,6 +693,8 @@ export type ExecutionTask<
       callActionEnd?: number;
       afterInvokeActionHookStart?: number;
       afterInvokeActionHookEnd?: number;
+      waitForActionReadyStart?: number;
+      waitForActionReadyEnd?: number;
       captureAfterCallingSnapshotStart?: number;
       captureAfterCallingSnapshotEnd?: number;
       end?: number;
@@ -900,10 +942,22 @@ export interface StreamingAIResponse {
 }
 
 export interface DeviceAction<TParam = any, TReturn = any> {
+  /**
+   * Allow System One planners to construct this action directly.
+   * Only enable for actions with no parameters or locator-only parameters.
+   * Omitted/false actions are offered as delegation choices to the default model.
+   */
+  supportedBySystemOne?: boolean;
   name: string;
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
+  /**
+   * Maximum number of characters from planningFeedback sent to the next
+   * planning round. Omit to use the core default, or set to 'unlimited' to
+   * disable truncation for this action.
+   */
+  planningFeedbackMaxLength?: number | 'unlimited';
   call: (
     param: TParam,
     context?: ExecutorContext,
@@ -963,6 +1017,21 @@ export type Cache =
   | false // No read, no write
   | true // Will throw error at runtime - deprecated
   | CacheConfig; // Object configuration (requires explicit id)
+
+export interface ActionReadyContext {
+  /** Cancels this execution. Use it to stop polling, requests, or listeners. */
+  readonly signal?: AbortSignal;
+  /** A new identity for each executed atomic action, including cache replay. */
+  action: {
+    readonly id: string;
+    readonly name: string;
+    /** Resolved action parameters. Treat them as read-only. */
+    readonly param: unknown;
+  };
+}
+
+/** Runs after a successful atomic action. Slow callbacks warn after 5 seconds. */
+export type WaitForActionReady = (context: ActionReadyContext) => Promise<void>;
 
 export interface AgentOpt {
   // @deprecated Use `reportFileName` and `cache.id` instead.
@@ -1036,6 +1105,13 @@ export interface AgentOpt {
    * Defaults to 300ms when not provided.
    */
   waitAfterAction?: number;
+
+  /**
+   * Await application readiness after each successful atomic action, including
+   * aiAct substeps and cache replay. Replaces default action waits.
+   * After 5 seconds, logs one warning and continues waiting without a timeout.
+   */
+  waitForActionReady?: WaitForActionReady;
 
   /**
    * When set to true, Midscene will use the target device's formatted local

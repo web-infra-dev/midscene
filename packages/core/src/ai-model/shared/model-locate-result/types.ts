@@ -61,6 +61,8 @@ export interface LocateResultContext {
 
 export interface LocateResultPromptSpec {
   resultKey: string;
+  /** Parse-only alternatives, tried in order after resultKey. */
+  resultKeyAliases?: string[];
   resultValueSchema: string;
   resultValueDescription: string;
   resultNoun: string;
@@ -89,7 +91,11 @@ export interface LocateResultCodec {
 
 export type CoordinateRounding = 'round' | 'trunc' | 'none';
 
+export type BboxBoundsType = 'inclusive' | 'edges';
+
 export interface LocateResultCoordinates {
+  /** Bbox boundary semantics; defaults to inclusive pixel endpoints. */
+  boundsType?: BboxBoundsType;
   shape: LocateResultShape;
   /** Axis order in the raw coordinates; defaults to xy. */
   order?: 'xy' | 'yx';
@@ -109,6 +115,7 @@ export type ResolvedLocateResultCoordinates =
     }
   | {
       shape: 'bbox';
+      boundsType?: BboxBoundsType;
       order: 'xy' | 'yx';
       normalizedBy?: number;
       rounding: CoordinateRounding;
@@ -125,6 +132,10 @@ export type RawLocateValueParser = (input: RawLocateValue) => LocateResultValue;
  * coordinate mapping is shared.
  */
 export type LocateResultFormatDefinition = {
+  /** Response field used in prompts and parsing; defaults to bbox or point. */
+  resultKey?: string;
+  /** Parse-only alternatives, tried in order when the primary field is undefined. */
+  resultKeyAliases?: string[];
   /**
    * Expected shape, axis order, and normalization used by the prompt and default
    * parser. A custom parser may return different metadata for an actual response.

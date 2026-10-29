@@ -5,7 +5,10 @@ import { sleep } from '@midscene/core/utils';
 import { uuid } from '@midscene/shared/utils';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import yaml from 'js-yaml';
+import { getFixturePath } from './test-utils';
 import { launchPage } from './utils';
+
+const cacheTestPageUrl = `file://${getFixturePath('cache-test.html')}`;
 
 rs.setConfig({
   testTimeout: 3 * 60 * 1000,
@@ -28,7 +31,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with explicit cache ID (read-write mode)', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -59,7 +62,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with cache: false (disabled mode)', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -78,7 +81,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with cache: { strategy: "read-only" } mode', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -109,7 +112,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should work with cache: { strategy: "write-only" } mode', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -136,7 +139,7 @@ describe('Cache Configuration Tests', () => {
   });
 
   it('should prioritize new cache config over legacy cacheId', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -159,7 +162,7 @@ describe('Cache Configuration Tests', () => {
     process.env.MIDSCENE_CACHE = 'true';
 
     try {
-      const { originPage, reset } = await launchPage('https://example.com/');
+      const { originPage, reset } = await launchPage(cacheTestPageUrl);
       resetFn = reset;
 
       agent = new PuppeteerAgent(originPage, {
@@ -175,7 +178,7 @@ describe('Cache Configuration Tests', () => {
       expect(agent.taskCache?.cacheId).toBe('legacy-cache-test-001');
       expect(agent.taskCache?.readOnlyMode).toBe(false);
 
-      await agent.aiAssert('this is the example.com page');
+      await agent.aiAssert('the page displays the heading "Cache Test Page"');
     } finally {
       // Restore original environment
       if (originalEnv !== undefined) {
@@ -192,7 +195,7 @@ describe('Cache Configuration Tests', () => {
     process.env.MIDSCENE_CACHE = 'false';
 
     try {
-      const { originPage, reset } = await launchPage('https://example.com/');
+      const { originPage, reset } = await launchPage(cacheTestPageUrl);
       resetFn = reset;
 
       agent = new PuppeteerAgent(originPage, {
@@ -259,7 +262,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should cache and reuse planning results', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     // First agent - should create cache
@@ -268,7 +271,9 @@ describe('Cache Operation Tests', () => {
     });
 
     // Perform an action that would be planned
-    await agent1.aiAction('check if this is the example.com website');
+    await agent1.aiAction(
+      'check if the page displays the heading "Cache Test Page"',
+    );
 
     // Wait for cache to be written
     await sleep(1000);
@@ -279,14 +284,16 @@ describe('Cache Operation Tests', () => {
     });
 
     // Same action should use cached plan
-    await agent2.aiAct('check if this is the example.com website');
+    await agent2.aiAct(
+      'check if the page displays the heading "Cache Test Page"',
+    );
 
     // Both should have same cache ID
     expect(agent1.taskCache?.cacheId).toBe(agent2.taskCache?.cacheId);
   });
 
   it('should handle cache operations correctly', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     // Test flushCache with no cache configured
@@ -309,15 +316,17 @@ describe('Cache Operation Tests', () => {
 
     try {
       // Perform some actions to generate cache content
-      await agentReadOnly.aiAssert('this is the example.com page');
-      await agentReadOnly.aiQuery('What is the page title?');
+      await agentReadOnly.aiAssert(
+        'the page displays the heading "Cache Test Page"',
+      );
+      await agentReadOnly.aiQuery('What is the visible heading on the page?');
     } finally {
       await agentReadOnly.destroy();
     }
   });
 
   it('should handle cache file operations correctly', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     const cacheId = 'file-ops-test-001';
@@ -326,7 +335,7 @@ describe('Cache Operation Tests', () => {
     });
 
     // Perform multiple operations to build cache
-    await agent.aiAssert('this is example.com');
+    await agent.aiAssert('the page displays the heading "Cache Test Page"');
     await agent.aiQuery('What is the main heading on this page?');
 
     await sleep(1000);
@@ -349,7 +358,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should overwrite stale empty-flow planning cache and reuse the refreshed cache', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     const prompt = 'click the title';
@@ -421,7 +430,7 @@ describe('Cache Operation Tests', () => {
   });
 
   it('should handle cache with cacheable: false option', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     agent = new PuppeteerAgent(originPage, {
@@ -429,7 +438,7 @@ describe('Cache Operation Tests', () => {
     });
 
     // Perform action with cacheable: false (use assert instead of action to avoid AI parsing issues)
-    await agent.aiAssert('this is the example.com page');
+    await agent.aiAssert('the page displays the heading "Cache Test Page"');
 
     await sleep(1000);
 
@@ -437,7 +446,7 @@ describe('Cache Operation Tests', () => {
     expect(agent.taskCache).toBeDefined();
 
     // Perform another action (use assert which is more reliable)
-    await agent.aiAssert('the page title contains text');
+    await agent.aiAssert('the page displays the heading "Cache Test Page"');
 
     await sleep(1000);
 
@@ -483,7 +492,7 @@ describe('Cache Edge Cases', () => {
   });
 
   it('should handle very long cache IDs by truncating', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     const longCacheId = 'a'.repeat(300); // Very long ID
@@ -497,11 +506,11 @@ describe('Cache Edge Cases', () => {
     expect(agent.taskCache?.cacheId.length).toBeLessThan(longCacheId.length);
 
     // Should still work
-    await agent.aiAssert('this is example.com');
+    await agent.aiAssert('the page displays the heading "Cache Test Page"');
   });
 
   it('should handle special characters in cache ID', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     const specialCacheId = 'test/cache\\id:with*special?chars<>|"';
@@ -524,11 +533,11 @@ describe('Cache Edge Cases', () => {
     // Note: / and \ might be preserved as path separators
 
     // Should still work
-    await agent.aiAssert('this is example.com');
+    await agent.aiAssert('the page displays the heading "Cache Test Page"');
   });
 
   it('should handle multiple agents with same cache ID correctly', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
+    const { originPage, reset } = await launchPage(cacheTestPageUrl);
     resetFn = reset;
 
     const sharedCacheId = 'shared-cache-test-001';
@@ -538,7 +547,7 @@ describe('Cache Edge Cases', () => {
       cache: { id: sharedCacheId },
     });
 
-    await agent1.aiAssert('this is example.com');
+    await agent1.aiAssert('the page displays the heading "Cache Test Page"');
     await sleep(500);
 
     // Create second agent with same cache ID
@@ -546,7 +555,7 @@ describe('Cache Edge Cases', () => {
       cache: { id: sharedCacheId },
     });
 
-    await agent2.aiAssert('this is still example.com');
+    await agent2.aiAssert('the page displays the heading "Cache Test Page"');
 
     // Both should share the same cache
     expect(agent1.taskCache?.cacheId).toBe(agent2.taskCache?.cacheId);

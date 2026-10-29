@@ -1,5 +1,5 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
-import { callAI } from '@/ai-model/service-caller/index';
+import { callGenerativeAI } from '@/ai-model/service-caller/index';
 import {
   AiLocateElement,
   AiLocateSection,
@@ -14,7 +14,7 @@ import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
 
 rs.mock('@/ai-model/service-caller/index', () => ({
   ...serviceCallerActual,
-  callAI: rs.fn(),
+  callGenerativeAI: rs.fn(),
 }));
 
 describe('locate user message content order', () => {
@@ -41,7 +41,7 @@ describe('locate user message content order', () => {
 
   beforeEach(() => {
     rs.clearAllMocks();
-    rs.mocked(callAI).mockResolvedValue({
+    rs.mocked(callGenerativeAI).mockResolvedValue({
       content: '{"bbox":[100,200,300,400]}',
       isStreamed: false,
     });
@@ -54,11 +54,11 @@ describe('locate user message content order', () => {
       modelRuntime,
     });
 
-    expect(rs.mocked(callAI).mock.calls[0][0][1]).toMatchObject({
+    expect(rs.mocked(callGenerativeAI).mock.calls[0][0][1]).toMatchObject({
       role: 'user',
       content: [
         expect.objectContaining({ type: 'text' }),
-        expect.objectContaining({ type: 'image_url' }),
+        expect.objectContaining({ type: 'image' }),
       ],
     });
   });
@@ -70,11 +70,11 @@ describe('locate user message content order', () => {
       modelRuntime,
     });
 
-    expect(rs.mocked(callAI).mock.calls[0][0][1]).toMatchObject({
+    expect(rs.mocked(callGenerativeAI).mock.calls[0][0][1]).toMatchObject({
       role: 'user',
       content: [
         expect.objectContaining({ type: 'text' }),
-        expect.objectContaining({ type: 'image_url' }),
+        expect.objectContaining({ type: 'image' }),
       ],
     });
   });

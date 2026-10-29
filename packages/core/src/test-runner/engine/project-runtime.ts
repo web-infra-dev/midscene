@@ -7,8 +7,12 @@ import {
 import {
   ResourceCleanupDeferredError,
   cleanupScopeResources,
+  getPendingScopeOperations,
+  getResourceCleanupSnapshot,
   linkResourceSignal,
+  setResourceOperationIdentity,
 } from './resource-operations';
+import { runSetupWithTimeout } from './setup-timeout';
 import type {
   ProjectRuntime,
   ProjectRuntimeOptions,
@@ -22,6 +26,9 @@ export const createProjectRuntime = <TProjectContext = unknown>(
   const controller = new AbortController();
   const parentSignal = options.signal;
   linkResourceSignal(controller.signal, parentSignal);
+  setResourceOperationIdentity(controller.signal, {
+    scopeId: options.project.projectId,
+  });
   const abortFromParent = () => controller.abort(parentSignal?.reason);
   if (parentSignal?.aborted) abortFromParent();
   else parentSignal?.addEventListener('abort', abortFromParent, { once: true });
@@ -44,10 +51,17 @@ export const createProjectRuntime = <TProjectContext = unknown>(
     teardownErrors: readonly ProjectTeardownError[] = [],
   ): ProjectRuntimeResult<TProjectContext> => {
     const endedAt = new Date();
+    const cleanup = getResourceCleanupSnapshot(controller.signal);
+    const pendingOperations = getPendingScopeOperations(controller.signal);
     return {
       projectName: options.project.name,
       status:
-        requestedStatus === 'failed' || setupError || teardownErrors.length > 0
+        requestedStatus === 'failed' ||
+        setupError ||
+        teardownErrors.length > 0 ||
+        cleanup.status === 'pending' ||
+        cleanup.status === 'failed' ||
+        pendingOperations.length > 0
           ? 'failed'
           : 'success',
       ...(setupError ? { setupError } : {}),
@@ -57,6 +71,8 @@ export const createProjectRuntime = <TProjectContext = unknown>(
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),
       durationMs: Math.max(0, endedAt.getTime() - startedAt.getTime()),
+      cleanup,
+      ...(pendingOperations.length ? { pendingOperations } : {}),
     };
   };
 
@@ -107,18 +123,27 @@ export const createProjectRuntime = <TProjectContext = unknown>(
       }
       if (options.setup) {
         try {
-          context = await options.setup.setup({
-            project: options.project,
-            env: Object.freeze({ ...process.env }),
-            signal: controller.signal,
-            onTeardown,
-          });
+          await runSetupWithTimeout(
+            async () => {
+              try {
+                context = await options.setup!.setup({
+                  project: options.project,
+                  env: Object.freeze({ ...process.env }),
+                  signal: controller.signal,
+                  onTeardown,
+                });
+              } finally {
+                acceptingTeardowns = false;
+              }
+            },
+            controller.signal,
+            (reason) => controller.abort(reason),
+            options.setupTimeoutMs,
+          );
         } catch (error) {
           setupError = new ProjectSetupError(error, {
             projectName: options.project.name,
           });
-        } finally {
-          acceptingTeardowns = false;
         }
       }
       return createResult(setupError ? 'failed' : 'success');
@@ -157,15 +182,20 @@ export const createProjectRuntime = <TProjectContext = unknown>(
               );
             }
           }
-          if (deferredCleanup && teardownErrors.length > priorErrors)
+          if (teardownErrors.length > priorErrors)
             throw new AggregateError(
               teardownErrors.slice(priorErrors),
-              'Deferred Project cleanup failed',
+              'Project cleanup failed',
             );
         };
         try {
-          if (teardownStack.length)
+          if (
+            teardownStack.length ||
+            (options.setupTimeoutMs !== undefined &&
+              getPendingScopeOperations(controller.signal).length)
+          )
             await cleanupScopeResources(controller.signal, cleanup, {
+              totalTimeoutMs: options.teardownTimeoutMs?.(),
               onDeferredError: (error) =>
                 getDebug('runner:cleanup', { console: true })(
                   `Deferred Project cleanup failed: ${String(error)}`,
@@ -173,12 +203,13 @@ export const createProjectRuntime = <TProjectContext = unknown>(
             });
         } catch (error) {
           deferredCleanup = error instanceof ResourceCleanupDeferredError;
-          teardownErrors.push(
-            new ProjectTeardownError(error, {
-              projectName: options.project.name,
-              registrationIndex: -1,
-            }),
-          );
+          if (!deferredCleanup && !teardownErrors.length)
+            teardownErrors.push(
+              new ProjectTeardownError(error, {
+                projectName: options.project.name,
+                registrationIndex: -1,
+              }),
+            );
         }
         parentSignal?.removeEventListener('abort', abortFromParent);
         finishedResult = createResult(requestedStatus, teardownErrors);

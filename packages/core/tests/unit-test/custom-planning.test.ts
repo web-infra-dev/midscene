@@ -54,8 +54,9 @@ describe('custom planning messages', () => {
     );
 
     expect(conversationHistory.pendingFeedbackMessage).toBe('');
-    expect(messages.at(-2)).toEqual(
-      expect.objectContaining({
+    expect(messages.at(-2)).toMatchObject({
+      type: 'input-message',
+      message: expect.objectContaining({
         role: 'user',
         content: [
           expect.objectContaining({
@@ -66,19 +67,18 @@ describe('custom planning messages', () => {
           }),
         ],
       }),
-    );
-    expect(messages.at(-1)).toEqual(
-      expect.objectContaining({
+    });
+    expect(messages.at(-1)).toMatchObject({
+      type: 'input-message',
+      message: expect.objectContaining({
         role: 'user',
         content: [
           expect.objectContaining({
-            type: 'image_url',
-            image_url: expect.objectContaining({
-              url: 'data:image/png;base64,SCREENSHOT==',
-            }),
+            type: 'image',
+            url: 'data:image/png;base64,SCREENSHOT==',
           }),
         ],
       }),
-    );
+    });
   });
 });

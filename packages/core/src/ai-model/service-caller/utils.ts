@@ -1,7 +1,6 @@
+import type { RawAssistantOutput } from '@/types';
 import type { AIUsageInfo } from '@/types';
 import type OpenAI from 'openai';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import type { ImageDetail } from '../model-adapter/types';
 import type { ModelRuntime } from '../models';
 
 // Error class that preserves usage and rawResponse when AI call parsing fails
@@ -12,27 +11,27 @@ export class AIResponseParseError extends Error {
    * full provider response or choices[0].message.
    */
   rawResponse: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   reasoningContent?: string;
 
   constructor(
     message: string,
     rawResponse: string,
     usage?: AIUsageInfo,
-    rawChoiceMessage?: unknown,
+    rawAssistantOutput?: RawAssistantOutput,
     reasoningContent?: string,
   ) {
     super(message);
     this.name = 'AIResponseParseError';
     this.rawResponse = rawResponse;
     this.usage = usage;
-    this.rawChoiceMessage = rawChoiceMessage;
+    this.rawAssistantOutput = rawAssistantOutput;
     this.reasoningContent = reasoningContent;
   }
 }
 
 /**
- * Internal field name stamped onto every AIUsageInfo shaped by callAI().
+ * Internal field name stamped onto AIUsageInfo by the shared model call pipeline.
  * Used for cross-path dedup when the provider does not return a request_id.
  */
 export const INTERNAL_CALL_ID_FIELD = '_midscene_call_id';
@@ -95,6 +94,8 @@ export function appendAIRequestFailureSummary<T extends Error>(
 }
 
 export const buildUsageInfo = ({
+  requestKind,
+  stream,
   usageData,
   requestId,
   timeCost,
@@ -106,6 +107,8 @@ export const buildUsageInfo = ({
   slot,
   internalCallId,
 }: {
+  requestKind: NonNullable<AIUsageInfo['request_kind']>;
+  stream: boolean;
   usageData?: OpenAI.CompletionUsage;
   requestId?: string | null;
   timeCost?: number;
@@ -125,6 +128,8 @@ export const buildUsageInfo = ({
 
   return {
     ...usageData,
+    request_kind: requestKind,
+    stream,
     prompt_tokens: usageData.prompt_tokens ?? 0,
     completion_tokens: usageData.completion_tokens ?? 0,
     total_tokens: usageData.total_tokens ?? 0,
@@ -145,42 +150,6 @@ export const buildUsageInfo = ({
     // Internal stable ID for cross-path dedup when request_id is absent.
     [INTERNAL_CALL_ID_FIELD]: internalCallId,
   } satisfies AIUsageInfo;
-};
-
-export const applyImageDetail = ({
-  imageDetail,
-  messages,
-}: {
-  imageDetail?: ImageDetail;
-  messages: ChatCompletionMessageParam[];
-}): ChatCompletionMessageParam[] => {
-  if (!imageDetail) {
-    return messages;
-  }
-
-  return messages.map((msg) => {
-    if (!Array.isArray(msg.content)) {
-      return msg;
-    }
-
-    const content = msg.content.map((part) => {
-      if (part && part.type === 'image_url' && part.image_url?.url) {
-        return {
-          ...part,
-          image_url: {
-            ...part.image_url,
-            detail: imageDetail,
-          },
-        };
-      }
-      return part;
-    });
-
-    return {
-      ...msg,
-      content,
-    } as ChatCompletionMessageParam;
-  });
 };
 
 export const hasUsableText = (

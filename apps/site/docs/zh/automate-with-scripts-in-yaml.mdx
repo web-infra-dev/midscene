@@ -263,6 +263,40 @@ page:
 ```
 
 
+### Chrome Bridge {#chrome-bridge}
+
+先完成 [Chrome Bridge 环境配置](./bridge-mode)。在 `web` 中设置 `bridgeMode`：
+
+| 配置 | 行为 |
+| --- | --- |
+| `newTabWithUrl` | 使用 `url` 创建并连接新标签页 |
+| `currentTab` | 连接当前激活标签页，忽略 `url` |
+
+```yaml
+web:
+  url: https://example.com
+  bridgeMode: newTabWithUrl
+  closeNewTabsAfterDisconnect: true
+
+tasks:
+  - name: Check the page
+    flow:
+      - aiAssert: The page shows Example Domain
+```
+
+使用 [YAML 脚本运行器](./yaml-script-runner)运行，首次连接时在插件中确认授权。`closeNewTabsAfterDisconnect` 默认 `false`；设为 `true` 时清理桥接创建的新标签页，不关闭连接前已有的标签页。
+
+Bridge 模式与 `cdpEndpoint`、`web.mode: browser` 互斥。它复用桌面浏览器配置，以下字段会被忽略：
+
+- `userAgent`
+- `viewportWidth` / `viewportHeight`
+- `deviceScaleFactor`
+- `waitForNetworkIdle`
+- `cookie`
+- `extraHTTPHeaders`
+- `downloadPath`
+- `chromeArgs`
+
 ### `android` 部分
 
 ```yaml
@@ -285,7 +319,7 @@ android:
 
 :::info 查看完整的 Android 配置项
 
-YAML 脚本现在支持 `AndroidDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [Android API 参考中的 AndroidDevice](./reference/#androiddevice)。
+YAML 脚本现在支持 `AndroidDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [Android API 参考中的 AndroidDevice](./sdk/android#androiddevice)。
 
 :::
 
@@ -370,6 +404,16 @@ ios:
   # WebDriverAgent 主机地址，可选，默认 localhost
   wdaHost: <host>
 
+  # 网关带路径前缀时，用 wdaBaseUrl 替代 wdaHost/wdaPort。
+  # 同时设置 wdaBaseUrl 与 wdaHost 或 wdaPort 会报错。
+  # wdaBaseUrl: <url>
+
+  # 可单独设置 MJPEG 流地址，包括网关路径；不能与 wdaMjpegPort 同时设置。
+  # wdaMjpegUrl: <url>
+
+  # 本地 MJPEG 流端口，可选。与 wdaMjpegUrl 二选一。
+  # wdaMjpegPort: <port>
+
   # 是否自动关闭键盘，可选，默认 false
   autoDismissKeyboard: <boolean>
 
@@ -386,9 +430,19 @@ ios:
   # 完整配置项请参考 IOSDevice 的构造函数文档
 ```
 
+连接带路径前缀的网关时，只设置 `wdaBaseUrl`。MJPEG 流可以使用单独的地址：
+
+```yaml
+ios:
+  wdaBaseUrl: ${WDA_BASE_URL}
+  wdaMjpegUrl: ${WDA_MJPEG_URL}
+```
+
+运行脚本前，请设置这两个环境变量。Studio Recorder 导出的 YAML 也引用环境变量。这样，网关路径和访问令牌不会写入文件。
+
 :::info 查看完整的 iOS 配置项
 
-YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS API 参考中的 IOSDevice](./reference/#iosdevice)。
+YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS API 参考中的 IOSDevice](./sdk/ios#iosdevice)。
 
 :::
 

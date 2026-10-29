@@ -13,6 +13,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { extractLastDumpScriptSync } from '@/dump/html-utils';
+import { readReportDumpScripts } from '@/dump/report-artifact-reader';
 import { ReportMergingTool } from '@/report';
 import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
@@ -98,7 +99,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     await generator.finalize();
 
     // Read the HTML and extract dump the same way mergeReports does
-    const dumpString = extractLastDumpScriptSync(reportPath);
+    const dumpString = readReportDumpScripts(reportPath).at(-1)!.content;
     expect(dumpString).toBeTruthy();
 
     // Unescape and parse (as the browser would)
@@ -200,7 +201,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     expect(screenshotFiles).toContain(screenshotBasename);
   });
 
-  it('step 3: verify extractLastDumpScriptSync + escapeScriptTag roundtrip', async () => {
+  it('step 3: verify external data + escapeScriptTag roundtrip', async () => {
     const reportDir = join(tmpDir, 'step3-report');
     const reportPath = join(reportDir, 'index.html');
     const generator = new ReportGenerator({
@@ -223,7 +224,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     await generator.finalize();
 
     // Step 1: extract (what mergeReports does)
-    const extracted = extractLastDumpScriptSync(reportPath);
+    const extracted = readReportDumpScripts(reportPath).at(-1)!.content;
 
     // Step 2: escape again (what reportHTMLContent does)
     const doubleEscaped = escapeScriptTag(extracted);

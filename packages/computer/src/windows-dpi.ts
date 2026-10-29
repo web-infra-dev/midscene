@@ -83,18 +83,18 @@ if ($midscenePreviousDpiContext -eq [System.IntPtr]::Zero) {
  * Execute Windows desktop geometry and pointer work in one physical-pixel
  * boundary. Callers supply only the operation body, so they cannot forget the
  * Per-Monitor V2 preamble when adding another coordinate-bearing Win32 API.
+ * This deliberately uses `-Command`: when the affected host was probed through
+ * Node, `powershell.exe -EncodedCommand` exited with status 0 but produced no
+ * output or diagnostic markers.
  */
 export function runWindowsPhysicalPixelPowershell(script: string): string {
   const physicalPixelScript = `$ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'Stop'
 ${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 ${script}`;
-  const encoded = Buffer.from(physicalPixelScript, 'utf16le').toString(
-    'base64',
-  );
   return execFileSync(
     'powershell.exe',
-    ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
+    ['-NoProfile', '-Command', physicalPixelScript],
     {
       encoding: 'utf8',
       timeout: POWERSHELL_TIMEOUT_MS,

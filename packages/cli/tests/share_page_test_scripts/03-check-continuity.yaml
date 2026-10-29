@@ -1,0 +1,13 @@
+web:
+  url: ${SHARED_BROWSER_TEST_ORIGIN}/share-context-test.html
+
+tasks:
+  - name: Check main page continuity
+    flow:
+      - javascript: |
+          if (sessionStorage.getItem('sessionId') !== 'first-main') {
+            throw new Error('Previous main script page state was not preserved');
+          }
+          if (window.name !== 'setup-page') {
+            throw new Error(`Shared window.name was lost: ${window.name}`);
+          }

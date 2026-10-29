@@ -29,6 +29,19 @@ should point here instead of duplicating rules.
   project instead of defaulting to full monorepo validation.
 - AI tests require some environment variables like `MIDSCENE_MODEL_BASE_URL` to be set.
 
+## AI CI Workflows
+
+- Run CI test commands that call real models through
+  `./.github/actions/ai-ci`. Keep the Node connection policy centralized in
+  that action instead of duplicating it in workflows. Use `shell: pwsh` for
+  Windows commands and `shell: bash` for Linux/macOS commands.
+- When a third-party action launches model tests (such as the Android emulator
+  runner), run the AI CI action first without a command and explicitly pass its
+  `node-options` output to the third-party action's `NODE_OPTIONS` environment
+  variable.
+- When adding or updating path filters for AI workflows, include
+  `.github/actions/ai-ci/**` so changes to the shared action trigger those tests.
+
 ## Change Rules That Actually Matter
 
 - Add or update tests when behavior changes. Start with the nearest unit test
@@ -41,6 +54,11 @@ should point here instead of duplicating rules.
   `apps/report/e2e/report-single.yaml`, keep the report loading assertions on
   `aiAssert`; if they are flaky, improve the prompt, timing, or fixture while
   preserving `aiAssert` coverage.
+- Follow the Report development and test scope in
+  `CONTRIBUTING.md#report-development-and-test-scope`: prioritize core workflows
+  and data correctness, and avoid making incidental visual details default
+  test or review gates. Usability defects that block those workflows still need
+  coverage.
 - Do not hand-edit generated output under `dist/` or `apps/site/doc_build/`.
 - When changing shared packages or exported entry points, run a focused build
   for the affected project before finishing.
@@ -73,8 +91,8 @@ should point here instead of duplicating rules.
 
 ### Upgrading recommended models
 
-`apps/site/docs/{en,zh}/model-strategy.mdx` and
-`apps/site/docs/{en,zh}/model-common-config.mdx` are the source of truth for
+`apps/site/docs/{en,zh}/model-selection.mdx` and
+`apps/site/docs/{en,zh}/model-api-setup.mdx` are the source of truth for
 which models we recommend and the exact model/family strings. When the
 recommended models or their versions change (e.g. `qwen3-vl` → `qwen3.x`,
 `gemini-3-flash` → `gemini-3.5-flash`), update the strategy/config docs first,
@@ -83,13 +101,13 @@ model list:
 
 - `README.md` and `README.zh.md` (the "Driven by Visual Language Model"
   section).
-- `apps/site/docs/en/introduction.mdx` and
-  `apps/site/docs/zh/introduction.mdx` (same section).
+- `apps/site/docs/en/index.mdx` and
+  `apps/site/docs/zh/index.mdx` (same section).
 
 Keep all four spots in sync and consistent with the strategy/config docs.
 Leave historical references in `changelog.mdx` alone, and keep illustrative
 "newer beats older" comparisons in `faq.md` intact. Remember README and
-introduction are bilingual: update the en/zh counterparts in the same change.
+homepage are bilingual: update the en/zh counterparts in the same change.
 
 ## Validation Guidance
 

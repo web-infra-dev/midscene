@@ -1,385 +1,238 @@
 import { BugOutlined } from '@ant-design/icons';
-import type {
-  TestRunReportAttempt,
-  TestRunReportDump,
-  TestRunReportStep,
-} from '@midscene/core';
-import type { ReactNode } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import type { TestRunReportDump } from '@midscene/core';
+import { type ReactNode, useState } from 'react';
 import type { PlaywrightTasks } from '../../types';
-import {
-  clearRunnerStepHash,
-  updateRunnerStepHash,
-} from '../../utils/test-run-report';
-import { RunnerTracePage } from './agent-trace';
 import { RunnerAttemptTimeline } from './attempt-timeline';
-import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
+  CaseExecutionToolbar,
+  CaseWorkspaceHeader,
+} from './case-workspace-header';
+import {
+  getCaseNotRunReason,
   getCaseWorkspaceDocument,
-  getCaseWorkspaceDocumentAttemptIndex,
-  getCaseWorkspaceStepGroups,
-  getDefaultCaseWorkspaceStep,
 } from './case-workspace-model';
+import { ErrorCards } from './error-card';
 import { RunnerEvidenceInspector } from './evidence-inspector';
-import type { RunnerInspectorTab } from './evidence-tabs';
 import { RunnerExecutionPanel } from './execution-panel';
 import {
-  type RunnerCaseView,
-  type RunnerPositionedVisualFrame,
-  type RunnerVisualIndex,
-  getDefaultVisualFrameForStep,
-  getStepForVisualFrame,
-  getVisualFrames,
-  positionAttemptVisualFrames,
-} from './model';
+  type ReportIssue,
+  type ReportIssues,
+  collectReportIssues,
+  getCaseIssues,
+  getProjectIssues,
+  getRunIssues,
+} from './issues';
+import type { RunnerCaseView, RunnerVisualIndex } from './model';
+import { getRunnerCaseStepTargets } from './model';
+import { useCaseWorkspace } from './use-case-workspace';
 
-import { LifecycleErrors } from './lifecycle-errors';
+export { getWorkspaceStepSummary } from './use-case-workspace';
 
 export function CaseWorkspace({
   item,
   standaloneRun,
+  issues,
   visualIndex,
   reports,
   initialStepId,
-  tracePage,
   renderAgentReport,
   onBack,
-  onCloseTracePage,
   backLabel,
+  caseNavigation,
 }: {
   item: RunnerCaseView;
   standaloneRun?: TestRunReportDump;
+  issues?: ReportIssues;
   visualIndex: RunnerVisualIndex;
   reports: PlaywrightTasks[];
   initialStepId?: string;
-  tracePage: boolean;
   renderAgentReport(reports: PlaywrightTasks[]): ReactNode;
   onBack(): void;
-  onCloseTracePage(): void;
   backLabel: string;
+  caseNavigation?: ReactNode;
 }): JSX.Element {
-  const initialDocumentAttemptIndex = getCaseWorkspaceDocumentAttemptIndex(
+  const [executionView, setExecutionView] = useState<'visual' | 'yaml'>(
+    'visual',
+  );
+  const {
+    activeFrame,
+    activePosition,
+    inspectorTab,
+    lockedFrameKey,
+    positionedFrames,
+    previewFrameKey,
+    selectedAttempt,
+    selectedDocumentAttemptIndex,
+    selectedStep,
+    selectAttempt,
+    selectDocumentAttempt,
+    selectFrame,
+    selectInspectorTab,
+    selectStep,
+    setPreviewFrameKey,
+    stepGroups,
+    stepSummary,
+    workspaceSteps,
+    timelineRange,
+  } = useCaseWorkspace({ item, initialStepId, visualIndex });
+  const navigableStepIds = new Set(
+    getRunnerCaseStepTargets(item).map(({ step }) => step.id),
+  );
+
+  const document = getCaseWorkspaceDocument(
     item,
-    initialStepId,
+    selectedAttempt,
+    selectedDocumentAttemptIndex,
   );
-  const initialAttempt =
-    initialDocumentAttemptIndex !== undefined
-      ? item.testCase.attempts.find(
-          (attempt) => attempt.attemptIndex === initialDocumentAttemptIndex,
-        )
-      : (item.testCase.attempts.find((attempt) =>
-          getCaseWorkspaceStepGroups(item, attempt).some((group) =>
-            group.steps.some((step) => step.id === initialStepId),
-          ),
-        ) ?? item.finalAttempt);
-  const initialWorkspaceSteps = getCaseWorkspaceStepGroups(
-    item,
-    initialAttempt,
-    initialDocumentAttemptIndex,
-  ).flatMap((group) => group.steps);
-  const initialStep =
-    initialWorkspaceSteps.find((step) => step.id === initialStepId) ??
-    getDefaultCaseWorkspaceStep(
-      item,
-      initialAttempt,
-      initialDocumentAttemptIndex,
+  const reportIssues =
+    issues ??
+    collectReportIssues(
+      standaloneRun ?? {
+        projects: [{ ...item.project, documents: [item.document] }],
+      },
     );
-  const [selectedDocumentAttemptIndex, setSelectedDocumentAttemptIndex] =
-    useState(initialDocumentAttemptIndex);
-  const [selectedAttemptId, setSelectedAttemptId] = useState(
-    initialAttempt?.attemptId,
-  );
-  const [selectedStepId, setSelectedStepId] = useState(initialStep?.id);
-  const [previewFrameKey, setPreviewFrameKey] = useState<string>();
-  const [lockedFrameKey, setLockedFrameKey] = useState<string>();
-  const [inspectorTab, setInspectorTab] = useState<RunnerInspectorTab>('io');
-  const [traceDrawerOpen, setTraceDrawerOpen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const playbackIndexRef = useRef(0);
-
-  useEffect(() => {
-    const nextDocumentAttemptIndex = getCaseWorkspaceDocumentAttemptIndex(
-      item,
-      initialStepId,
-    );
-    const nextAttempt =
-      nextDocumentAttemptIndex !== undefined
-        ? item.testCase.attempts.find(
-            (attempt) => attempt.attemptIndex === nextDocumentAttemptIndex,
-          )
-        : (item.testCase.attempts.find((attempt) =>
-            getCaseWorkspaceStepGroups(item, attempt).some((group) =>
-              group.steps.some((step) => step.id === initialStepId),
-            ),
-          ) ?? item.finalAttempt);
-    const nextSteps = getCaseWorkspaceStepGroups(
-      item,
-      nextAttempt,
-      nextDocumentAttemptIndex,
-    ).flatMap((group) => group.steps);
-    const nextStep =
-      nextSteps.find((step) => step.id === initialStepId) ??
-      getDefaultCaseWorkspaceStep(item, nextAttempt, nextDocumentAttemptIndex);
-    setSelectedDocumentAttemptIndex(nextDocumentAttemptIndex);
-    setSelectedAttemptId(nextAttempt?.attemptId);
-    setSelectedStepId(nextStep?.id);
-    setPreviewFrameKey(undefined);
-    setLockedFrameKey(undefined);
-    setInspectorTab('io');
-    setTraceDrawerOpen(false);
-    setIsPlaying(false);
-  }, [initialStepId, item]);
-
-  const selectedAttempt =
-    selectedDocumentAttemptIndex !== undefined
-      ? item.testCase.attempts.find(
-          (attempt) => attempt.attemptIndex === selectedDocumentAttemptIndex,
-        )
-      : (item.testCase.attempts.find(
-          (attempt) => attempt.attemptId === selectedAttemptId,
-        ) ?? item.finalAttempt);
-  const stepGroups = useMemo(
-    () =>
-      getCaseWorkspaceStepGroups(
-        item,
-        selectedAttempt,
-        selectedDocumentAttemptIndex,
-      ),
-    [item, selectedAttempt, selectedDocumentAttemptIndex],
-  );
-  const workspaceSteps = useMemo(
-    () => stepGroups.flatMap((group) => group.steps),
-    [stepGroups],
-  );
-
-  const selectedStep =
-    workspaceSteps.find((step) => step.id === selectedStepId) ??
-    getDefaultCaseWorkspaceStep(
-      item,
-      selectedAttempt,
-      selectedDocumentAttemptIndex,
-    );
-  const visualFrames = useMemo(
-    () =>
-      getVisualFrames(
-        workspaceSteps.flatMap((step) => step.agentDetails ?? []),
-        visualIndex,
-        Number.POSITIVE_INFINITY,
-      ),
-    [workspaceSteps, visualIndex],
-  );
-  const positionedFrames = useMemo(
-    () =>
-      selectedAttempt
-        ? positionAttemptVisualFrames(selectedAttempt, visualFrames)
-        : [],
-    [selectedAttempt, visualFrames],
-  );
-  const previewFrame = visualFrames.find(
-    (frame) => frame.key === previewFrameKey,
-  );
-  const lockedFrame = visualFrames.find(
-    (frame) => frame.key === lockedFrameKey,
-  );
-  const defaultStepFrame = selectedStep
-    ? getDefaultVisualFrameForStep(selectedStep, visualFrames)
-    : visualFrames[0];
-  const activeFrame = previewFrame ?? lockedFrame ?? defaultStepFrame;
-  const activePosition = positionedFrames.find(
-    (item) => item.frame.key === activeFrame?.key,
-  );
-
-  useEffect(() => {
-    if (!isPlaying || !positionedFrames.length) return;
-    const advance = () => {
-      const nextFrame = positionedFrames[playbackIndexRef.current];
-      if (!nextFrame) {
-        setIsPlaying(false);
-        return;
-      }
-      setPreviewFrameKey(undefined);
-      setLockedFrameKey(nextFrame.frame.key);
-      if (nextFrame.stepId) {
-        setSelectedStepId(nextFrame.stepId);
-        updateRunnerStepHash(nextFrame.stepId);
-      }
-      setInspectorTab('io');
-      setTraceDrawerOpen(false);
-      playbackIndexRef.current += 1;
-    };
-    advance();
-    const interval = window.setInterval(advance, 900);
-    return () => window.clearInterval(interval);
-  }, [isPlaying, positionedFrames]);
-
-  const selectAttempt = (
-    attempt?: TestRunReportAttempt,
-    documentAttemptIndex?: number,
-  ) => {
-    const nextStep = getDefaultCaseWorkspaceStep(
-      item,
-      attempt,
-      documentAttemptIndex,
-    );
-    setSelectedDocumentAttemptIndex(documentAttemptIndex);
-    setSelectedAttemptId(attempt?.attemptId);
-    setSelectedStepId(nextStep?.id);
-    setPreviewFrameKey(undefined);
-    setLockedFrameKey(undefined);
-    setInspectorTab('io');
-    setTraceDrawerOpen(false);
-    setIsPlaying(false);
-    clearRunnerStepHash();
-  };
-  const selectStep = (step: TestRunReportStep) => {
-    setSelectedStepId(step.id);
-    setPreviewFrameKey(undefined);
-    setLockedFrameKey(getDefaultVisualFrameForStep(step, visualFrames)?.key);
-    setInspectorTab('io');
-    setTraceDrawerOpen(false);
-    setIsPlaying(false);
-    updateRunnerStepHash(step.id);
-  };
-  const selectFrame = (item: RunnerPositionedVisualFrame) => {
-    setPreviewFrameKey(undefined);
-    setLockedFrameKey(item.frame.key);
-    const owningStep = getStepForVisualFrame(workspaceSteps, item.frame);
-    if (owningStep) {
-      setSelectedStepId(owningStep.id);
-      updateRunnerStepHash(owningStep.id);
-    }
-    setInspectorTab('io');
-    setTraceDrawerOpen(false);
-    setIsPlaying(false);
-  };
-  const selectInspectorTab = (tab: RunnerInspectorTab) => {
-    setInspectorTab(tab);
-  };
-  const togglePlayback = () => {
-    if (isPlaying) {
-      setIsPlaying(false);
-      return;
-    }
-    const lockedIndex = positionedFrames.findIndex(
-      (item) => item.frame.key === lockedFrameKey,
-    );
-    playbackIndexRef.current =
-      lockedIndex < 0 || lockedIndex >= positionedFrames.length - 1
-        ? 0
-        : lockedIndex + 1;
-    if (playbackIndexRef.current === 0) setLockedFrameKey(undefined);
-    setIsPlaying(true);
-  };
-
-  if (tracePage && selectedStep?.agentDetails?.length) {
-    return (
-      <RunnerTracePage
-        item={item}
-        attempt={selectedAttempt}
-        step={selectedStep}
-        reports={reports}
-        renderAgentReport={renderAgentReport}
-        onBack={onCloseTracePage}
-      />
-    );
+  const scopeIds = new Set([
+    document.documentRunId ?? document.documentId,
+    selectedAttempt?.attemptId,
+  ]);
+  const otherIssues: ReportIssue[] = [
+    ...getCaseIssues(
+      reportIssues,
+      {
+        projectId: item.project.projectId,
+        documentId: item.document.documentId,
+        caseId: item.testCase.caseId,
+      },
+      scopeIds,
+    ),
+    ...(standaloneRun
+      ? [
+          ...getRunIssues(reportIssues),
+          ...getProjectIssues(reportIssues, item.project.projectId),
+        ]
+      : []),
+  ].map((issue) => ({
+    ...issue,
+    label:
+      selectedAttempt && issue.scopeId === selectedAttempt.attemptId
+        ? `Case · Attempt ${selectedAttempt!.attemptIndex + 1} · ${issue.label?.split(' · ').at(-1)}`
+        : issue.documentId
+          ? `Document · ${issue.label?.split(' · ').at(-1)}`
+          : issue.label,
+  }));
+  const plannedStep = selectedStep
+    ? [
+        ...(document.plan?.beforeAll ?? []),
+        ...(item.testCase.plan?.beforeEach ?? []),
+        ...(item.testCase.plan?.steps ?? []),
+        ...(item.testCase.plan?.afterEach ?? []),
+        ...(document.plan?.afterAll ?? []),
+      ].find((step) =>
+        selectedStep.planStepId
+          ? step.id === selectedStep.planStepId
+          : step.phase === selectedStep.phase &&
+            step.stepIndex === selectedStep.stepIndex &&
+            step.node === selectedStep.node,
+      )
+    : undefined;
+  if (
+    !workspaceSteps.length &&
+    !selectedAttempt &&
+    !otherIssues.some((issue) => issue.severity === 'error')
+  ) {
+    const reason = getCaseNotRunReason(item);
+    if (reason)
+      otherIssues.push({
+        id: `not-started:${item.testCase.caseId}`,
+        severity: 'warning',
+        code: 'CASE_NOT_STARTED',
+        message: reason,
+      });
   }
 
   return (
     <div className="runner-page runner-case-workspace">
       <CaseWorkspaceHeader
         item={item}
+        reports={reports}
         standaloneRun={standaloneRun}
-        selectedAttempt={selectedAttempt}
-        selectedDocumentAttemptIndex={selectedDocumentAttemptIndex}
         backLabel={backLabel}
         onBack={onBack}
-        onSelectAttempt={selectAttempt}
-        onSelectDocumentAttempt={(index) =>
-          selectAttempt(
-            item.testCase.attempts.find(
-              (attempt) => attempt.attemptIndex === index,
-            ),
-            index,
-          )
-        }
-      />
+        caseNavigation={caseNavigation}
+      >
+        <ErrorCards
+          issues={otherIssues}
+          label="Other issues"
+          navigableStepIds={navigableStepIds}
+        />
+      </CaseWorkspaceHeader>
 
-      <LifecycleErrors
-        issues={[
-          ...(selectedAttempt?.hostErrors ?? []).map(({ phase, error }) => ({
-            label: `Attempt ${selectedAttempt!.attemptIndex + 1}: ${phase} failed`,
-            error,
-          })),
-          ...(
-            getCaseWorkspaceDocument(
-              item,
-              selectedAttempt,
-              selectedDocumentAttemptIndex,
-            ).hostErrors ?? []
-          ).map(({ phase, error }) => ({
-            label: `Document ${phase} failed`,
-            error,
-          })),
-          ...(selectedAttempt?.teardownErrors ?? []).map((error) => ({
-            label: `Attempt ${selectedAttempt!.attemptIndex + 1}: Case teardown failed`,
-            error,
-          })),
-          ...(
-            getCaseWorkspaceDocument(
-              item,
-              selectedAttempt,
-              selectedDocumentAttemptIndex,
-            ).teardownErrors ?? []
-          ).map((error) => ({
-            label: 'Document teardown failed',
-            error,
-          })),
-        ]}
-      />
-      {workspaceSteps.length > 0 ? (
-        <>
-          {selectedAttempt && (
-            <RunnerAttemptTimeline
-              attempt={selectedAttempt}
-              frames={positionedFrames}
-              selectedStepId={selectedStep?.id}
-              previewFrameKey={previewFrameKey}
-              lockedFrameKey={lockedFrameKey}
-              isPlaying={isPlaying}
-              onPreview={setPreviewFrameKey}
-              onSelectFrame={selectFrame}
-              onTogglePlay={togglePlayback}
-            />
-          )}
-          <div className="runner-detail-debug-workbench">
-            <RunnerExecutionPanel
-              groups={stepGroups}
-              selectedStepId={selectedStep?.id}
-              onSelect={selectStep}
-            />
+      {workspaceSteps.length > 0 ||
+      item.testCase.attempts.length > 1 ||
+      (item.document.attempts?.length ?? 0) > 1 ? (
+        <div className="runner-detail-debug-workbench">
+          <RunnerExecutionPanel
+            renderToolbar={(viewSwitch) => (
+              <CaseExecutionToolbar
+                item={item}
+                selectedAttempt={selectedAttempt}
+                selectedDocumentAttemptIndex={selectedDocumentAttemptIndex}
+                onSelectAttempt={selectAttempt}
+                onSelectDocumentAttempt={selectDocumentAttempt}
+                stepSummary={stepSummary}
+                viewSwitch={viewSwitch}
+              />
+            )}
+            groups={stepGroups}
+            issues={reportIssues.nodes}
+            selectedStepId={selectedStep?.id}
+            timeline={
+              timelineRange ? (
+                <RunnerAttemptTimeline
+                  attempt={timelineRange}
+                  frames={positionedFrames}
+                  selectedStepId={selectedStep?.id}
+                  previewFrameKey={previewFrameKey}
+                  lockedFrameKey={lockedFrameKey}
+                  variant="detail"
+                  onPreview={setPreviewFrameKey}
+                  onSelectFrame={selectFrame}
+                />
+              ) : undefined
+            }
+            view={executionView}
+            onViewChange={setExecutionView}
+            sourcePath={item.document.sourcePath}
+            sourceYaml={item.document.plan?.sourceYaml}
+            caseIndex={item.testCase.caseIndex}
+            onSelect={selectStep}
+          >
             {selectedStep ? (
               <RunnerEvidenceInspector
                 key={`${selectedAttempt?.attemptId ?? 'document'}:${selectedStep.id}`}
                 item={item}
                 attempt={selectedAttempt}
                 step={selectedStep}
+                plannedStep={plannedStep}
+                issues={reportIssues.nodes.get(selectedStep.id)}
+                navigableStepIds={navigableStepIds}
                 activeFrame={activeFrame}
                 activePosition={activePosition}
                 tab={inspectorTab}
-                traceDrawerOpen={traceDrawerOpen}
                 reports={reports}
                 renderAgentReport={renderAgentReport}
                 onTabChange={selectInspectorTab}
-                onTraceDrawerOpenChange={setTraceDrawerOpen}
               />
             ) : (
               <div className="runner-select-step-hint">
                 <BugOutlined />
-                Select a Step to inspect its evidence and runtime data.
+                {workspaceSteps.length
+                  ? 'Select a Step to inspect its evidence and runtime data.'
+                  : 'No steps were recorded in this Attempt.'}
               </div>
             )}
-          </div>
-        </>
+          </RunnerExecutionPanel>
+        </div>
       ) : null}
     </div>
   );

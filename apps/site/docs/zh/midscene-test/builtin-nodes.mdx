@@ -1,0 +1,195 @@
+# 各平台预置 Node
+
+Midscene Test 将可在 YAML 用例与生命周期钩子中调用的每一个能力称为 **Node（节点）**。
+
+当你在 `midscene.config.ts` 中通过 `createMidsceneNodes({ agentClass, getAgent })` 注册官方 Agent 时，框架会自动注入通用 AI 能力以及对应平台的官方预置 Node。本文汇总各平台开箱即用的预置 Node 列表、参数结构与常见调用方式。
+
+:::info 生成当前项目的 Node 说明书
+本文档列出的是官方预置能力的标准规格。各项目最终可用的完整 Node 列表、输入 Schema 以及团队自定义的业务 Node，可以在测试项目目录下运行 `pnpm exec midscene-test nodes`（多工程可加 `--project <name>`）生成本地的 `midscene-node-spec.md` 查阅。
+:::
+
+## Node 调用语法速查
+
+YAML 用例支持两种传参方式：
+
+1. **字符串简写**：当 Node 声明了 `stringInputKey` 时，可以直接传入单一字符串：
+   ```yaml
+   steps:
+     - gotoUrl: https://bing.com
+     - aiAct: 搜索 Midscene 并进入官网
+     - aiAssert: 页面标题包含 Midscene
+   ```
+2. **对象传参**：当需要配置多个字段或可选参数时，以键值对展开传参；无参数的 Node 传入 `{}`：
+   ```yaml
+   steps:
+     - setViewportSize:
+         width: 1440
+         height: 900
+     - back: {}
+   ```
+
+---
+
+## 全平台通用 Node
+
+无论测试目标是 Web、移动端（Android、iOS、HarmonyOS）还是桌面端，所有测试工程均支持核心的 AI 操作与断言节点。
+
+### 核心 AI 节点
+
+在日常编写测试用例时，最核心且最推荐使用的仅有三个 Node：
+
+| Node | 字符串简写 | 描述 | 主要参数 |
+| --- | --- | --- | --- |
+| `aiAct` | `prompt` | 根据自然语言意图规划并执行复合操作。 | `prompt`（操作目标描述，支持传入参考图）、`options`（如 `deepThink`） |
+| `aiAssert` | `prompt` | 验证当前界面是否符合预期结果；若不符合则步骤失败并中断用例。 | `prompt`（断言条件）、`message`（失败时的自定义提示）、`options` |
+| `aiWaitFor` | `prompt` | 持续轮询，直到界面出现指定的自然语言状态；超时则抛出异常。 | `prompt`（等待条件）、`options`（`timeoutMs` 超时时长、`checkIntervalMs` 轮询间隔） |
+
+```yaml filename=示例：核心-AI-用例
+cases:
+  - name: 搜索商品并验证结果
+    steps:
+      - aiAct: 在搜索框中输入“马克杯”并点击搜索
+      - aiWaitFor: 搜索结果列表加载完成
+      - aiAssert: 结果列表中至少展示一款马克杯商品
+```
+
+### 其他原子操作与进阶节点
+
+GUI Agent SDK 上的其他原子操作方法（如 `aiTap`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiDragAndDrop` 等）同样可以在 YAML 中直接作为 Node 调用。
+
+不过，**出于测试用例的健壮性考虑，不建议在 YAML 中编写过于细致的流程编排**：
+- 如果将操作拆解为大量的微观点击、聚焦与滚动，不仅会让 YAML 脚本冗长，而且当界面布局发生微调时容易导致用例断裂；
+- 通常应优先使用 `aiAct` 表达用户的业务意图（如“在搜索框输入马克杯并点击搜索”），交由视觉模型自动规划底层的操作步骤。
+
+此外，以下辅助与进阶能力也已注入全局运行时：
+- **数据提取与问答**：如 `aiQuery`（结构化数据提取）、`aiBoolean` / `aiString` / `aiNumber` / `aiAsk`（界面内容提取与问答）。
+- **环境指引与报告记录**：`setAIContext`（为后续 AI 操作注入业务规则或通用弹窗处理指引）、`recordToReport`（向测试报告写入自定义记录或快照）。
+- **基础等待与执行**：`wait`（框架级可取消等待，接收 `{ duration, unit }` 参数）、`sleep`（Agent 级等待）、`javascript`（执行脚本）。
+
+如果需要在测试中使用这些进阶节点，可以通过 `pnpm exec midscene-test nodes` 生成的说明书查阅它们完整的输入参数定义。
+
+---
+
+## Web 专用预置 Node
+
+Web 平台模板基于 Playwright 或 Puppeteer 实现，在通用能力基础上增加了浏览器会话操作：
+
+| Node | 字符串简写 | 描述 | 主要参数 |
+| --- | --- | --- | --- |
+| `gotoUrl` | `url` | 控制当前浏览器页面跳转至目标 URL，支持绝对地址或基于 `baseURL` 的相对路径。 | `url`（目标地址）、`waitUntil`（`domcontentloaded`、`load`、`networkidle`、`commit`）、`timeoutMs`（超时毫秒，默认 60000） |
+| `setViewportSize` | 否 | 设置当前浏览器窗口视口的分辨率大小。 | `width`（视口宽度，CSS 像素）、`height`（视口高度，CSS 像素） |
+| `setCookies` | 否 | 将 Cookie 注入当前浏览器上下文。值可来源于环境变量、配置 Profile 或存储文件，敏感内容不落地至用例文本与日志。 | `cookiesEnv`（环境变量名）、`profile`、`storageStatePath`（文件路径） |
+| `clearCookies` | 否 | 清除当前浏览器上下文的 Cookie。可按条件部分清除，也可全部清空。 | `name`（匹配 Cookie 名称）、`domain`（匹配域名）、`path`（匹配路径）；清空所有 Cookie 传入 `{}` |
+
+```yaml filename=示例：Web-用例
+beforeEach:
+  - setViewportSize:
+      width: 1280
+      height: 800
+  - clearCookies: {}
+  - gotoUrl: https://todo.example.com
+
+cases:
+  - name: 体验待办列表
+    steps:
+      - aiAct: 在输入框输入“购买牛奶”，按下回车
+      - aiAssert: 列表中出现“购买牛奶”
+```
+
+---
+
+## 移动端专用预置 Node
+
+移动端测试依赖设备生命周期与系统级交互按键。Midscene 针对 Android、iOS 与 HarmonyOS 提供了标准化的系统动作与底层通信桥梁。
+
+### Android（`@midscene/android`）
+
+| Node | 字符串简写 | 描述 | 主要参数 |
+| --- | --- | --- | --- |
+| `launch` | `uri` | 启动目标应用。支持传入包名、DeepLink URL 或配置中映射的应用名称。 | `uri`（包名、URL 或应用名） |
+| `terminate` | `uri` | 强制停止目标应用。 | `uri`（包名或应用名） |
+| `back` | 否 | 触发 Android 系统的返回键操作。 | `{}`（无参数） |
+| `home` | 否 | 触发 Android 系统的回到主屏幕（Home）键操作。 | `{}`（无参数） |
+| `recentApps` | 否 | 呼出 Android 系统的多任务后台（最近应用）列表。 | `{}`（无参数） |
+| `runAdbShell` | `command` | 在设备上执行原生 ADB 命令并返回标准输出。不填 `adb shell` 前缀。 | `command`（Shell 命令文本）、`options`（`timeout` 超时毫秒数） |
+
+```yaml filename=示例：Android-用例
+beforeEach:
+  - launch: com.example.shop
+  - wait:
+      duration: 3
+      unit: s
+
+cases:
+  - name: 查看商品详情并返回
+    steps:
+      - aiAct: 点击首页推荐的第一款商品
+      - aiAssert: 进入商品详情页，展示立即购买按钮
+      - back: {}
+      - aiAssert: 回到商城首页
+```
+
+### iOS（`@midscene/ios`）
+
+| Node | 字符串简写 | 描述 | 主要参数 |
+| --- | --- | --- | --- |
+| `launch` | `uri` | 启动目标应用。支持 Bundle Identifier、URL Scheme 或配置中的应用名。 | `uri`（Bundle ID 或 URL） |
+| `terminate` | `uri` | 终止目标应用的运行。 | `uri`（Bundle ID 或应用名） |
+| `home` | 否 | 触发 iOS 系统回到主屏幕操作。 | `{}`（无参数） |
+| `appSwitcher` | 否 | 触发 iOS 系统的 App Switcher（多任务切换器）。 | `{}`（无参数） |
+| `runWdaRequest` | 否 | 向当前设备的 WebDriverAgent 实例发送原生 HTTP 请求并获取 JSON 返回值。 | `request`: `{ method: 'GET' \| 'POST' \| 'DELETE' \| 'PUT', endpoint: string, data?: object }` |
+
+```yaml filename=示例：iOS-用例
+beforeEach:
+  - launch: com.apple.Preferences
+
+cases:
+  - name: 打开系统设置并返回桌面
+    steps:
+      - aiAssert: 看到设置首页列表
+      - home: {}
+```
+
+### HarmonyOS（`@midscene/harmony`）
+
+| Node | 字符串简写 | 描述 | 主要参数 |
+| --- | --- | --- | --- |
+| `launch` | `uri` | 启动鸿蒙应用。支持 Bundle Name、Ability 标识或 DeepLink URI。 | `uri`（Bundle 名称、Ability 目标或 URI） |
+| `terminate` | `uri` | 终止鸿蒙应用的运行。 | `uri`（Bundle 名称或应用名） |
+| `back` | 否 | 触发 HarmonyOS 系统的返回按键操作。 | `{}`（无参数） |
+| `home` | 否 | 触发 HarmonyOS 系统的回到桌面（Home）操作。 | `{}`（无参数） |
+| `recentApps` | 否 | 呼出 HarmonyOS 系统的多任务管理界面。 | `{}`（无参数） |
+| `runHdcShell` | `command` | 在设备上执行原生 HDC shell 命令并返回标准输出。不填 `hdc shell` 前缀。 | `command`（Shell 命令文本） |
+
+```yaml filename=示例：HarmonyOS-用例
+beforeEach:
+  - launch: com.example.notes
+
+cases:
+  - name: 新建一条便签
+    steps:
+      - aiTap: 右下角新建按钮
+      - aiInput:
+          prompt: 便签正文输入框
+          value: 准备测试数据
+      - back: {}
+      - aiAssert: 便签列表中展示了“准备测试数据”
+```
+
+---
+
+## 桌面端（Computer）
+
+桌面端（macOS、Windows、Linux）依托全套[全平台通用 Node](#全平台通用-node)开展自动化测试：
+
+- 通过 `aiAct`、`aiTap`、`aiDoubleClick`、`aiRightClick` 直接对本地应用窗口、系统菜单栏及对话框进行视觉定位与操作。
+- 通过 `aiKeyboardPress` 输入快捷键（例如聚焦、保存等操作）。
+- 当遇到特定复杂的桌面端底层准备逻辑时，可以通过[开发自定义 Node](./extend)补充桌面脚本或系统调用。
+
+---
+
+## 下一步
+
+- [编写 YAML 用例](./writing)：了解工作流文档结构、变量绑定、标签筛选与生命周期钩子用法。
+- [开发自定义 Node](./extend)：封装业务接口、后端数据准备与团队私有工具。
+- [配置测试工程](./configuration)：管理项目配置、环境搭建与多平台工程。
