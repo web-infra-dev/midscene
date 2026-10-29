@@ -140,9 +140,21 @@ const documentPlan = (count = 3): TestRunReportDocumentPlan => ({
 
 const output = () => ({ log: vi.fn(), error: vi.fn() });
 
-beforeEach(() => vi.resetAllMocks());
-
 describe('Test CLI failure diagnostics', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+
+    // These simulated CLI failures must not reach the real workflow summary.
+    const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+    Reflect.deleteProperty(process.env, 'GITHUB_STEP_SUMMARY');
+
+    return () => {
+      if (summaryPath === undefined)
+        Reflect.deleteProperty(process.env, 'GITHUB_STEP_SUMMARY');
+      else process.env.GITHUB_STEP_SUMMARY = summaryPath;
+    };
+  });
+
   it.each([
     'beforeEach',
     'steps',
