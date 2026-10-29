@@ -303,14 +303,18 @@ describe('Automatic Puppeteer viewport calibration in Chromium', () => {
     },
   );
 
-  it('preserves a stable system-default DPR without rewriting emulation', async () => {
+  it('resolves system-default DPR once using the live browser value', async () => {
     const { page } = await fixture(0);
     const adapter = new PuppeteerWebPage(page);
     const setViewport = rs.spyOn(page, 'setViewport');
     try {
       await commonContextParser(adapter, {});
-      expect(page.viewport()?.deviceScaleFactor).toBe(0);
-      expect(setViewport).not.toHaveBeenCalled();
+      expect(page.viewport()?.deviceScaleFactor).toBe(
+        await page.evaluate(() => window.devicePixelRatio),
+      );
+      expect(setViewport).toHaveBeenCalledOnce();
+      await commonContextParser(adapter, {});
+      expect(setViewport).toHaveBeenCalledOnce();
     } finally {
       setViewport.mockRestore();
       await page.close();

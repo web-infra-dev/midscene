@@ -39,10 +39,6 @@ function fixture(
       configured = next;
     }),
   };
-  rs.mocked(imageInfoOfBase64).mockImplementation(async () => ({
-    width: Math.round(actual.width * actual.deviceScaleFactor),
-    height: Math.round(actual.height * actual.deviceScaleFactor),
-  }));
   return {
     adapter: new PuppeteerWebPage(page as unknown as Page),
     page,
@@ -96,6 +92,7 @@ describe('automatic Puppeteer viewport calibration', () => {
     expect(page.screenshot).toHaveBeenCalledOnce();
     expect(page.setViewport).not.toHaveBeenCalled();
     expect(page.evaluateHandle).not.toHaveBeenCalled();
+    expect(imageInfoOfBase64).not.toHaveBeenCalled();
   });
 
   it('adopts external dimensions and DPR before capturing, and refreshes the cached size', async () => {
@@ -121,7 +118,7 @@ describe('automatic Puppeteer viewport calibration', () => {
     expect(dispose).toHaveBeenCalledOnce();
   });
 
-  it('preserves the system-default DPR sentinel on a stable page', async () => {
+  it('resolves system-default DPR from browser metrics once without inspecting the screenshot', async () => {
     const { adapter, page, actual } = fixture({
       width: 1440,
       height: 1000,
@@ -129,8 +126,12 @@ describe('automatic Puppeteer viewport calibration', () => {
     });
     actual.deviceScaleFactor = 2;
     await adapter.screenshotWithSize();
-    expect(page.setViewport).not.toHaveBeenCalled();
-    expect(page.viewport()?.deviceScaleFactor).toBe(0);
+    expect(page.setViewport).toHaveBeenCalledOnce();
+    expect(page.viewport()?.deviceScaleFactor).toBe(2);
+    await adapter.screenshotWithSize();
+    expect(page.setViewport).toHaveBeenCalledOnce();
+    expect(page.screenshot).toHaveBeenCalledTimes(2);
+    expect(imageInfoOfBase64).not.toHaveBeenCalled();
   });
 
   it('preserves native viewport mode and refreshes a stale logical size', async () => {
@@ -203,16 +204,7 @@ describe('automatic Puppeteer viewport calibration', () => {
     },
   );
 
-  it('rejects same-ratio but wrong pixel dimensions instead of mistaking them for DPR', async () => {
-    const { adapter } = fixture();
-    rs.mocked(imageInfoOfBase64).mockResolvedValueOnce({
-      width: 2160,
-      height: 1500,
-    });
-    await expect(adapter.screenshotWithSize()).rejects.toThrow('pixels');
-  });
-
-  it('accepts fractional DPR pixel rounding', async () => {
+  it('adopts fractional DPR from browser metrics', async () => {
     const { adapter, actual } = fixture();
     Object.assign(actual, { width: 801, height: 601, deviceScaleFactor: 1.3 });
     await expect(adapter.screenshotWithSize()).resolves.toMatchObject({

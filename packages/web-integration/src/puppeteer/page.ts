@@ -1,8 +1,5 @@
 import type { WebPageOpt } from '@/web-element';
-import {
-  createImgBase64ByFormat,
-  imageInfoOfBase64,
-} from '@midscene/shared/img';
+import { createImgBase64ByFormat } from '@midscene/shared/img';
 import type { JSHandle, Page as PuppeteerPageType } from 'puppeteer';
 import { Page as BasePage, debugPage } from './base-page';
 import { withPuppeteerScreenshotLock } from './screenshot';
@@ -108,77 +105,51 @@ export class PuppeteerWebPage extends BasePage<'puppeteer', PuppeteerPageType> {
       if (current?.isMobile || current?.hasTouch) {
         throw new Error('Viewport emulation changed during screenshot capture');
       }
+      // Resolve DPR=0 (system default) from browser metrics, without inspecting
+      // image pixels. Once adopted, stable captures do not rewrite emulation.
       const needsResize =
         current !== null &&
         (current.width !== actual.width ||
           current.height !== actual.height ||
-          (current.deviceScaleFactor !== 0 &&
-            !sameScale(
-              current.deviceScaleFactor ?? 1,
-              actual.deviceScaleFactor,
-            )));
+          !sameScale(current.deviceScaleFactor ?? 1, actual.deviceScaleFactor));
       let originalDocument: JSHandle<Document> | undefined;
       try {
-        for (let attempt = 0; attempt < 2; attempt++) {
-          if (needsResize || attempt > 0) {
-            /* istanbul ignore next -- serialized into the browser */
-            originalDocument = await page.evaluateHandle(() => document);
-            assertActivePage();
-            this.viewportSize = undefined;
-            await page.setViewport({
-              ...current,
-              width: actual.width,
-              height: actual.height,
-              deviceScaleFactor: actual.deviceScaleFactor,
-            });
-            assertActivePage();
-            debugPage('Automatically adopted live viewport: %o', actual);
-          }
-          const screenshotBase64 = await capture();
-          const after = await page.evaluate(
-            readViewportMetrics,
-            originalDocument,
-          );
+        if (needsResize) {
+          /* istanbul ignore next -- serialized into the browser */
+          originalDocument = await page.evaluateHandle(() => document);
           assertActivePage();
-          if (
-            !after.sameDocument ||
-            after.timeOrigin !== actual.timeOrigin ||
-            after.width !== actual.width ||
-            after.height !== actual.height ||
-            !sameScale(after.deviceScaleFactor, actual.deviceScaleFactor) ||
-            !sameScale(after.scale, 1) ||
-            after.hasTouch
-          ) {
-            throw new Error(
-              'The document or viewport changed during screenshot capture; wait for other browser controllers to settle before retrying',
-            );
-          }
-          const pixels = await imageInfoOfBase64(screenshotBase64);
-          // Allow fractional-DPR rounding, but never infer DPR from a stale size.
-          if (
-            Math.abs(pixels.width - actual.width * actual.deviceScaleFactor) >
-              1 ||
-            Math.abs(pixels.height - actual.height * actual.deviceScaleFactor) >
-              1
-          ) {
-            // DPR=0 means system default, not a stale explicit DPR. Preserve it
-            // unless the captured pixels prove that external emulation diverged.
-            if (
-              attempt === 0 &&
-              !needsResize &&
-              current?.deviceScaleFactor === 0
-            ) {
-              continue;
-            }
-            throw new Error(
-              'Screenshot pixels do not match the live viewport; refusing to use inconsistent coordinates',
-            );
-          }
-          const size = { width: actual.width, height: actual.height };
-          this.viewportSize = size;
-          return { size, screenshotBase64 };
+          this.viewportSize = undefined;
+          await page.setViewport({
+            ...current,
+            width: actual.width,
+            height: actual.height,
+            deviceScaleFactor: actual.deviceScaleFactor,
+          });
+          assertActivePage();
+          debugPage('Automatically adopted live viewport: %o', actual);
         }
-        throw new Error('Unable to capture a consistent viewport');
+        const screenshotBase64 = await capture();
+        const after = await page.evaluate(
+          readViewportMetrics,
+          originalDocument,
+        );
+        assertActivePage();
+        if (
+          !after.sameDocument ||
+          after.timeOrigin !== actual.timeOrigin ||
+          after.width !== actual.width ||
+          after.height !== actual.height ||
+          !sameScale(after.deviceScaleFactor, actual.deviceScaleFactor) ||
+          !sameScale(after.scale, 1) ||
+          after.hasTouch
+        ) {
+          throw new Error(
+            'The document or viewport changed during screenshot capture; wait for other browser controllers to settle before retrying',
+          );
+        }
+        const size = { width: actual.width, height: actual.height };
+        this.viewportSize = size;
+        return { size, screenshotBase64 };
       } catch (error) {
         this.viewportSize = undefined;
         throw error;
