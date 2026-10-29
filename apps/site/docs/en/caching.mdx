@@ -344,3 +344,11 @@ When the cache is not hit or not available, the process will fall back to using 
 ### Get more debug logs for caching
 
 You can set the `DEBUG=midscene:cache:*` environment variable to get more debug logs for caching.
+
+## Web Components and Shadow DOM
+
+Web locator caching can traverse nested **open Shadow DOM** and same-origin iframes. It records the path to the internal target, so different controls inside one component have distinct cache entries. Closed shadow roots are not accessible through this mechanism.
+
+Old cache entries that only identify a shadow host are treated as misses instead of clicking the host's center. Explicit `xpath` hints may still intentionally target a host. Missing or ambiguous internal targets also fall back to AI localization. Do not edit the serialized locator strings by hand.
+
+Cache replay rejects targets with running finite animations on their rendered ancestors. Wait for a popup or transition to settle before interacting to avoid unnecessary AI fallback. This is not a general guarantee against layout changes caused by scripts or other content. For targets whose meaning changes without their path or text changing (for example, the same day number in another month), use an explicit state assertion or disable caching for that step with `cacheable: false`.

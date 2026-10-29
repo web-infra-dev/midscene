@@ -501,6 +501,10 @@ describe('bbox locate cache fix', () => {
           },
         });
 
+        expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
+          xpaths: ['/html/body/button[1]'],
+          ...(source === 'xpath' ? { allowShadowHost: true } : {}),
+        });
         expect(result!.hitBy?.from).toBe(
           source === 'xpath' ? 'User expected path' : 'Cache',
         );

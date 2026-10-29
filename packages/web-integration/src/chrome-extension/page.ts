@@ -735,7 +735,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return result.result.value;
   }
 
-  async getElementInfoByXpath(xpath: string) {
+  async getElementInfoByXpath(
+    xpath: string,
+    options: { forCache?: boolean } = {},
+  ) {
     const script = await getHtmlElementScript();
 
     // check tab url
@@ -746,7 +749,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       expression: script,
     });
     const result = await this.sendCommandToDebugger('Runtime.evaluate', {
-      expression: `window.midscene_element_inspector.getElementInfoByXpath(${JSON.stringify(xpath)})`,
+      expression: `window.midscene_element_inspector.getElementInfoByXpath(${JSON.stringify(xpath)}, ${JSON.stringify(options)})`,
       returnByValue: true,
     });
     return result.result.value;
@@ -773,7 +776,9 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
     for (const xpath of xpaths) {
       try {
-        const elementInfo = await this.getElementInfoByXpath(xpath);
+        const elementInfo = await this.getElementInfoByXpath(xpath, {
+          forCache: !(feature as WebElementCacheFeature).allowShadowHost,
+        });
         if (elementInfo?.rect) {
           return buildRectFromElementInfo(elementInfo);
         }
