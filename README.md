@@ -72,7 +72,7 @@ await agent.aiAssert('The error message is visible below the email field');
 
 Screenshot-based UI actions avoid sending large DOM trees to the model. In the reported AppControlBench run, Midscene with Doubao Seed 2.1 Turbo passed **58 of 60 tasks with $0.59 in total model cost**. The [report](https://midscenejs.com/app-control-bench-report) provides per-task costs and comparisons across models.
 
-Midscene supports `Qwen3.x`, `Doubao-Seed-2.1`, `DeepSeek V4 Flash`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. See [Model Selection Guide](https://midscenejs.com/model-selection) to choose a model and [Model Configuration](https://midscenejs.com/model-api-setup) to set it up.
+Midscene supports Doubao Seed, Qwen, DeepSeek, Google Gemini, OpenAI GPT, Moonshot Kimi, Xiaomi MiMo, Zhipu GLM-V, Ant Ling, and Jev (experimental), as well as compatible models such as AutoGLM and UI-TARS, including open-source options you can self-host. See [Model Selection Guide](https://midscenejs.com/model-selection) to choose a model and [Model Configuration](https://midscenejs.com/model-api-setup) to set it up.
 
 ## 🌐 One API, across platforms
 
@@ -127,7 +127,7 @@ Explore [cross-platform showcases](https://midscenejs.com/showcases), from web f
 
 - **Write YAML test cases** — [create a Midscene Test project](https://midscenejs.com/midscene-test/use).
 - **Add visual capabilities to existing tests** — integrate with [Playwright](https://midscenejs.com/integrate-with-playwright) or [Puppeteer](https://midscenejs.com/integrate-with-puppeteer).
-- **Try it before writing tests** — use the [Chrome extension](https://midscenejs.com/quick-start), or launch a [Playground for mobile or desktop](https://midscenejs.com/quick-start#use-midscene-on-other-platforms).
+- **Try it before writing tests** — use the [Chrome extension](https://midscenejs.com/quick-start), or launch a [Playground for mobile or desktop](https://midscenejs.com/platforms).
 - **Let your AI agent operate the UI** — install [Midscene Skills](https://midscenejs.com/skills).
 
 ## 📄 Resources

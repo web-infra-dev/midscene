@@ -72,7 +72,7 @@ await agent.aiAssert('邮箱输入框下方显示了错误提示');
 
 基于截图的 UI 操作无需向模型发送庞大的 DOM 树。在 AppControlBench 评测中，Midscene 搭配豆包 Seed 2.1 Turbo，**60 项任务通过 58 项，模型调用总费用为 0.59 美元**。[评测报告](https://midscenejs.com/zh/app-control-bench-report)提供了逐任务费用与不同模型的对比。
 
-Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等模型，也包括可自托管的开源选项。通过[模型选择指南](https://midscenejs.com/zh/model-selection)选择适合的模型，再按照[模型配置指南](https://midscenejs.com/zh/model-api-setup)完成配置。
+Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Google Gemini、OpenAI GPT、月之暗面 Kimi、小米 MiMo、智谱 GLM-V、蚂蚁百灵 Ant Ling 和 Jev（实验性），以及 AutoGLM、UI-TARS 等兼容模型，其中包括可自托管的开源选项。通过[模型选择指南](https://midscenejs.com/zh/model-selection)选择适合的模型，再按照[模型配置指南](https://midscenejs.com/zh/model-api-setup)完成配置。
 
 ## 🌐 一套 API，覆盖不同平台
 
@@ -127,7 +127,7 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`
 
 - **编写 YAML 测试用例**：先[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)。
 - **为现有测试引入视觉能力**：接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) 或 [Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer)。
-- **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/quick-start)，或启动[移动端或桌面端 Playground](https://midscenejs.com/zh/quick-start#在其他平台使用-midscene)。
+- **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/quick-start)，或启动[移动端或桌面端 Playground](https://midscenejs.com/zh/platforms)。
 - **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。
 
 ## 📄 资源
