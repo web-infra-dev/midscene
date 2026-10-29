@@ -466,6 +466,7 @@ export class AgentReportManager {
   }
 
   notifyDumpUpdateListeners(executionDump?: ExecutionDump) {
+    if (this.dumpUpdateListeners.length === 0) return;
     const dumpString = this.dumpDataString();
     for (const listener of this.dumpUpdateListeners) {
       try {
