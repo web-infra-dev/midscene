@@ -304,6 +304,26 @@ Environment variable configuration example, using `glm-5v-turbo`:
 
 </ModelConfigSection>
 
+<ModelConfigSection description="Ling-3.0-flash-VL">
+
+### Ant Ling {#ant-ling}
+
+- Model provider: [Ant Ling](https://developer.ant-ling.com/)
+
+<ModelConfigCard
+  baseUrl={{ value: "https://api.ant-ling.com/v1", comment: "Ant Ling official API endpoint" }}
+  modelName="Ling-3.0-flash-VL"
+  modelFamily="ant-ling"
+/>
+
+:::info Screenshot dimensions
+
+We observed that localization accuracy may decrease when the longest image edge exceeds 2000 pixels. Use the Agent's `screenshotShrinkFactor` option to resize images.
+
+:::
+
+</ModelConfigSection>
+
 <ModelConfigSection description="Jev 1.14.0">
 
 ### Jev (experimental) {#jev}

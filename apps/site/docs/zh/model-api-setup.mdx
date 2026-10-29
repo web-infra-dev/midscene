@@ -304,6 +304,26 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
 
 </ModelConfigSection>
 
+<ModelConfigSection description="Ling-3.0-flash-VL">
+
+### 蚂蚁百灵 Ant Ling {#ant-ling}
+
+- 模型供应商：[蚂蚁百灵](https://developer.ant-ling.com/)
+
+<ModelConfigCard
+  baseUrl={{ value: "https://api.ant-ling.com/v1", comment: "百灵官方 API 地址" }}
+  modelName="Ling-3.0-flash-VL"
+  modelFamily="ant-ling"
+/>
+
+:::info 截图尺寸
+
+我们观察到，图片最长边超过 2000 像素时，定位精度可能下降。建议通过 Agent 的 `screenshotShrinkFactor` 参数缩放图片。
+
+:::
+
+</ModelConfigSection>
+
 <ModelConfigSection description="Jev 1.14.0">
 
 ### Jev（实验性） {#jev}

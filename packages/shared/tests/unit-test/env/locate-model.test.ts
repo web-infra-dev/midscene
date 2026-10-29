@@ -21,6 +21,20 @@ afterEach(() => {
 });
 
 describe('Locate model configuration', () => {
+  it('accepts Ant Ling as a dedicated Locate model', () => {
+    const manager = new ModelConfigManager({
+      ...defaults,
+      ...locate,
+      MIDSCENE_LOCATE_MODEL_FAMILY: 'ant-ling',
+      MIDSCENE_LOCATE_MODEL_NAME: 'Ling-3.0-flash-VL',
+    });
+    expect(manager.getModelConfig('locate')).toMatchObject({
+      modelFamily: 'ant-ling',
+      modelName: 'Ling-3.0-flash-VL',
+      slot: 'locate',
+    });
+  });
+
   it('inherits the whole default configuration only when no Locate model is selected', () => {
     const manager = new ModelConfigManager(defaults);
     expect(manager.getModelConfig('locate')).toEqual({
