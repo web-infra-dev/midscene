@@ -6,6 +6,7 @@ import type {
   ModelAdapterDefinition,
   ModelRuntime,
 } from '../model-adapter/types';
+import { antLingAdapters } from './ant-ling/adapter';
 import { autoGlmAdapters } from './auto-glm/adapter';
 import { deepSeekAdapters } from './deepseek/adapter';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
@@ -20,6 +21,7 @@ import { qwenAdapters } from './qwen';
 import { uiTarsAdapters } from './ui-tars/adapter';
 
 export const MODEL_ADAPTER_CONFIGS = {
+  ...antLingAdapters,
   ...jevAdapters,
   ...qwenAdapters,
   ...deepSeekAdapters,

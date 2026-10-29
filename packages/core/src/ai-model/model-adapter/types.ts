@@ -318,7 +318,8 @@ export type ModelTaskType =
 
 export interface ModelAdapter {
   modelType: 'generative' | 'system-one';
-  supportedTaskTypes?: readonly ModelTaskType[];
+  /** Task allowlist; when omitted, task types are unrestricted. */
+  allowedTaskTypes?: readonly ModelTaskType[];
   supportedProtocols: TModelProtocol[];
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
@@ -359,7 +360,8 @@ export interface ModelRuntime {
 export interface ModelAdapterDefinition {
   /** Model category; defaults to generative. */
   modelType?: ModelAdapter['modelType'];
-  supportedTaskTypes?: readonly ModelTaskType[];
+  /** Task allowlist; when omitted, task types are unrestricted. */
+  allowedTaskTypes?: readonly ModelTaskType[];
   /** API protocols adapted for this model. Defaults to Chat Completions only. */
   supportedProtocols?: TModelProtocol[];
   jsonParser?: JsonParserPreset | JsonParser;

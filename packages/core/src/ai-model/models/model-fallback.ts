@@ -10,16 +10,16 @@ export function resolveModelForTaskType(
 ): ModelRuntime {
   const requested = getModelRuntime(configs.getModelConfig(intent));
   if (
-    !requested.adapter.supportedTaskTypes ||
-    requested.adapter.supportedTaskTypes.includes(taskType)
+    !requested.adapter.allowedTaskTypes ||
+    requested.adapter.allowedTaskTypes.includes(taskType)
   ) {
     return requested;
   }
   const config = configs.getModelConfig('default');
   const runtime = getModelRuntime({ ...config, intent });
   if (
-    runtime.adapter.supportedTaskTypes &&
-    !runtime.adapter.supportedTaskTypes.includes(taskType)
+    runtime.adapter.allowedTaskTypes &&
+    !runtime.adapter.allowedTaskTypes.includes(taskType)
   ) {
     throw new Error(
       `The default model cannot perform ${taskType}. Configure a general-purpose default model.`,
