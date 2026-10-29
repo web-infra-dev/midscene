@@ -162,8 +162,8 @@ Both Agents also accept [shared Agent options](./reference/#agent-options), incl
 | `inputStrategy` | `'legacy' \| 'sequential' \| 'bulk'` | `'legacy'` | Text input strategy; `sequential` sends individual Unicode code points, while `bulk` inserts the full text at once |
 | `forceChromeSelectRendering` | `boolean` | `true` | Injects `base-select` styling so native `select` options appear in screenshots; requires Puppeteer ≥ `24.6.0` and browser support for this styling |
 | `customActions` | `DeviceAction[]` | Unset | Adds [custom actions](./integrate-with-any-interface) to the planner |
-| `beforeInvokeAction` | `() => Promise<void>` | Unset | Callback before an action |
-| `afterInvokeAction` | `() => Promise<void>` | Unset | Callback after an action |
+| `beforeInvokeAction` | `(actionName: string, param: any) => Promise<void>` | Unset | Callback before an action |
+| `afterInvokeAction` | `(actionName: string, param: any) => Promise<void>` | Unset | Callback after an action |
 | `testRunner` | `PuppeteerPageAgentOpt['testRunner']` | Unset | Supplies base URL and cookie settings to Midscene Test’s Puppeteer Nodes |
 
 `inputStrategy: 'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`. Use `'sequential'` for delayed input. To wait for application readiness, use `aiWaitFor()` or Puppeteer’s own waiting APIs.
