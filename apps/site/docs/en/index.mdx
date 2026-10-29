@@ -6,7 +6,7 @@ footer: true
 title: Midscene.js — GUI Agent and E2E Testing Framework
 ---
 
-import { HeroStats, TestExample, AgentVisionDemo, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
+import { HeroStats, TestExample, AgentVisionDemo, AgentVisionSteps, AgentModels, AgentPlatforms, WhoIsUsing } from '@theme';
 import TestPhilosophy from './common/test-philosophy.mdx';
 import TestWorkflow from './common/test-workflow.mdx';
 import TestCollaboration from './common/test-collaboration.mdx';
@@ -38,10 +38,12 @@ Midscene’s GUI Agent brings visual actions and assertions to your existing Jav
 
 ### See, act, and verify like a human {#visual-capabilities}
 
-<div className="agent-vision-intro">
-<div>
+E2E testing verifies complete workflows from the user’s perspective, so Midscene tests the way a user does.
 
-E2E testing aims to verify complete workflows from the user’s perspective. Midscene uses vision to interact as a user would: observe the screen, find the target, act, and check what the user actually sees. [See real-world examples](./showcases)
+<div className="agent-vision-intro">
+<div className="rp-not-doc">
+
+<AgentVisionSteps />
 
 </div>
 <div className="rp-not-doc">
@@ -51,7 +53,7 @@ E2E testing aims to verify complete workflows from the user’s perspective. Mid
 
 ### One API, across platforms {#platforms}
 
-Visual localization does not depend on a particular UI rendering stack. Platform adapters provide screenshots and actions, bringing the same approach to web, mobile, and desktop interfaces, including HTML canvas.
+Visual localization does not depend on the UI rendering stack, so the same API works on web, mobile, desktop, and canvas-based interfaces.
 
 <div className="rp-not-doc introduction-block">
   <AgentPlatforms hideHeading />

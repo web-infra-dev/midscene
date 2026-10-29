@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { useI18n, useI18nUrl } from '../i18n';
 import { FeatureCard, FeatureCardGrid, FeatureCardImage } from './FeatureCard';
 import { HomeChapter } from './HomeChapter';
-import { PlatformTable } from './PlatformTable';
+import { PlatformHub } from './PlatformHub';
 import { SectionDivider } from './SectionDivider';
 import { TestExecution } from './TestExecution';
 import { TestFramework } from './TestFramework';
@@ -247,7 +247,7 @@ export function AgentPlatforms({
       variant="platforms"
       hideHeading={hideHeading}
     >
-      <PlatformTable />
+      <PlatformHub />
     </FeatureSection>
   );
 }

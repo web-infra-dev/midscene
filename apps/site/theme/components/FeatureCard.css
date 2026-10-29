@@ -31,10 +31,14 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Cards in a row share the visual and content row tracks through subgrid,
+   so the divider lines line up even when descriptions differ in length. */
 .home-card-grid .home-card {
-  display: flex;
+  display: grid;
   min-width: 0;
-  flex-direction: column;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: 0;
   overflow: hidden;
   border: 1px solid var(--card-border);
   border-radius: 8px;
@@ -63,7 +67,6 @@
   display: flex;
   min-width: 0;
   min-height: 168px;
-  flex: 1 0 auto;
   align-items: center;
   justify-content: center;
   padding: 24px;
@@ -120,7 +123,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
+  margin-top: auto;
+  padding-top: 4px;
   color: var(--card-link);
   font-size: 14px;
   line-height: 22px;

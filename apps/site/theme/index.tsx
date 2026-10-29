@@ -30,6 +30,7 @@ export { WhoIsUsing } from './components/WhoIsUsing';
 export { CTAButtons } from './components/CTAButtons';
 
 export { AgentVisionDemo } from './components/AgentVisionDemo';
+export { AgentVisionSteps } from './components/AgentVisionSteps';
 
 export { ModelConfigSection } from './components/ModelConfigSection';
 
