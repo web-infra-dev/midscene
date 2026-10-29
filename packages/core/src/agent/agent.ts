@@ -939,6 +939,28 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     });
   }
 
+  /**
+   * Locate an element and click it with the middle mouse button.
+   * Requires a device with the MiddleClick action (Web or Computer).
+   * @param locatePrompt Description or locator of the target element.
+   * @param opt Locator options; per-call context overrides Agent context.
+   */
+  async aiMiddleClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
+    assert(locatePrompt, 'missing locate prompt for middle click');
+
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withContext('aiMiddleClick', opt),
+    );
+
+    await this.callActionInActionSpace('MiddleClick', {
+      locate: detailedLocateParam,
+    });
+  }
+
   async aiDoubleClick(
     locatePrompt: TUserPrompt,
     opt?: LocateOption,

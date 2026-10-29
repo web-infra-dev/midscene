@@ -102,6 +102,30 @@ function createLocate(
 }
 
 describe('@midscene/computer RDP device', () => {
+  it('dispatches middle click through the RDP backend', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: 'localhost',
+      username: 'test',
+      password: 'test',
+      backend,
+    });
+    try {
+      await device.connect();
+      await device.inputPrimitives.pointer!.middleClick!({ x: 40, y: 60 });
+      expect(backend.calls).toContainEqual({
+        name: 'mouseMove',
+        args: [40, 60],
+      });
+      expect(backend.calls).toContainEqual({
+        name: 'mouseButton',
+        args: ['middle', 'click'],
+      });
+    } finally {
+      await device.destroy();
+    }
+  });
+
   it('connects and exposes the RDP device through agentForRDPComputer', async () => {
     const backend = new FakeRDPBackend();
     const agent = await agentForRDPComputer({

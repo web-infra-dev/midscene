@@ -467,6 +467,7 @@ type AgentActionNodeApi = Pick<
   | 'aiHover'
   | 'aiDoubleClick'
   | 'aiRightClick'
+  | 'aiMiddleClick'
   | 'aiLongPress'
   | 'aiClearInput'
   | 'aiPinch'
@@ -584,7 +585,12 @@ const aiAssertNode = defineCommonAgentNode({
 });
 
 const locateActionNode = (
-  method: 'aiHover' | 'aiDoubleClick' | 'aiRightClick' | 'aiClearInput',
+  method:
+    | 'aiHover'
+    | 'aiDoubleClick'
+    | 'aiRightClick'
+    | 'aiMiddleClick'
+    | 'aiClearInput',
 ) =>
   defineAgentActionNode({
     method,
@@ -592,6 +598,8 @@ const locateActionNode = (
       aiHover: 'Locate and hover over an element with a Midscene UI Agent.',
       aiDoubleClick:
         'Locate and double-click an element with a Midscene UI Agent.',
+      aiMiddleClick:
+        'Locate and middle-click an element with a Midscene UI Agent.',
       aiRightClick:
         'Locate and right-click an element with a Midscene UI Agent.',
       aiClearInput:
@@ -616,6 +624,7 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   locateActionNode('aiHover'),
   locateActionNode('aiDoubleClick'),
   locateActionNode('aiRightClick'),
+  locateActionNode('aiMiddleClick'),
   locateActionNode('aiClearInput'),
   defineAgentActionNode({
     method: 'aiInput',

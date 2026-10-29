@@ -475,6 +475,10 @@ export function createWebInputPrimitives(
         await page.mouse.click(x, y, { button: 'left' });
         scheduleVisualUpdate();
       },
+      middleClick: async ({ x, y }) => {
+        await page.mouse.click(x, y, { button: 'middle' });
+        scheduleVisualUpdate();
+      },
       rightClick: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'right' });
         scheduleVisualUpdate();

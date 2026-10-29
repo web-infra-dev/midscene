@@ -2,6 +2,7 @@ export const AI_API_NAMES = [
   'aiAct',
   'aiTap',
   'aiRightClick',
+  'aiMiddleClick',
   'aiDoubleClick',
   'aiHover',
   'aiInput',

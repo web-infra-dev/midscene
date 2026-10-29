@@ -240,7 +240,7 @@ const agent = new PlaywrightAgent(page, {
 const isOnSale = await agent.aiBoolean('Is this product on sale?');
 ```
 
-Supported keys in `aiContexts` are `aiAct`, `aiTap`, `aiRightClick`, `aiDoubleClick`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiPinch`, `aiLongPress`, `aiClearInput`, `aiLocate`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, `aiAsk`, `aiAssert`, and `aiWaitFor` (the `ai` and deprecated `aiAction` aliases share the `aiAct` context).
+Supported keys in `aiContexts` are `aiAct`, `aiTap`, `aiRightClick`, `aiMiddleClick`, `aiDoubleClick`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiPinch`, `aiLongPress`, `aiClearInput`, `aiLocate`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, `aiAsk`, `aiAssert`, and `aiWaitFor` (the `ai` and deprecated `aiAction` aliases share the `aiAct` context).
 
 <a id="shared-types"></a>
 
@@ -460,6 +460,42 @@ await agent.aiDoubleClick('The file name at the top of the page');
 
 // Enable deepLocate to accurately locate the element
 await agent.aiDoubleClick('The file name at the top of the page', {
+  deepLocate: true,
+});
+```
+
+### `aiMiddleClick()` {#agentaimiddleclick}
+
+> Supported on Web pages and desktop (`@midscene/computer`) only; not supported on mobile devices (Android, iOS, or HarmonyOS).
+
+Middle-click a specified element. The resulting behavior depends on the application.
+
+- Type
+
+```typescript
+function aiMiddleClick(locate: string | object, options?: object): Promise<void>;
+```
+
+- Parameters:
+
+  - `locate: string | object` — Natural-language description of the element to middle-click, or an [image-enabled prompt](#prompting-with-images).
+  - `options?: object` — Optional configuration:
+    - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate) (the legacy `deepThink` alias remains supported). Default: `false`.
+    - `context?: string` — Additional context for this call. See [`context` and `aiContexts` precedence](#per-call-context).
+    - `xpath?: string` — XPath of the target element. When provided, Midscene tries the XPath first before falling back to the cache and AI model. Default: `undefined`.
+    - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
+
+- Return value:
+
+  - `Promise<void>`
+
+- Examples:
+
+```typescript
+await agent.aiMiddleClick('The link in the search results');
+
+// Enable deepLocate to accurately locate the element
+await agent.aiMiddleClick('The link in the search results', {
   deepLocate: true,
 });
 ```

@@ -150,6 +150,7 @@ describe('Agent Test Runner Node definitions', () => {
       ['aiHover', 'prompt'],
       ['aiDoubleClick', 'prompt'],
       ['aiRightClick', 'prompt'],
+      ['aiMiddleClick', 'prompt'],
       ['aiClearInput', 'prompt'],
       ['aiInput', undefined],
       ['aiKeyboardPress', 'keyName'],

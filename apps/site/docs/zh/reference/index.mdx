@@ -241,7 +241,7 @@ const agent = new PlaywrightAgent(page, {
 const isOnSale = await agent.aiBoolean('这个商品是否正在促销？');
 ```
 
-`aiContexts` 支持配置的键名包括：`aiAct`、`aiTap`、`aiRightClick`、`aiDoubleClick`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiPinch`、`aiLongPress`、`aiClearInput`、`aiLocate`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAsk`、`aiAssert` 和 `aiWaitFor`（其中 `ai` 及已废弃的 `aiAction` 别名共用 `aiAct` 的上下文）。
+`aiContexts` 支持配置的键名包括：`aiAct`、`aiTap`、`aiRightClick`、`aiMiddleClick`、`aiDoubleClick`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiPinch`、`aiLongPress`、`aiClearInput`、`aiLocate`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAsk`、`aiAssert` 和 `aiWaitFor`（其中 `ai` 及已废弃的 `aiAction` 别名共用 `aiAct` 的上下文）。
 
 <a id="深度定位deeplocate"></a>
 
@@ -457,6 +457,40 @@ await agent.aiDoubleClick('页面顶部的文件名称');
 
 // 开启 deepLocate 精确定位元素
 await agent.aiDoubleClick('页面顶部的文件名称', { deepLocate: true });
+```
+
+### `aiMiddleClick()` {#agentaimiddleclick}
+
+> 仅支持 Web 页面和桌面端（`@midscene/computer`），不支持移动设备（Android、iOS 或 HarmonyOS）。
+
+使用鼠标中键点击指定元素。具体行为由应用决定。
+
+- 类型
+
+```typescript
+function aiMiddleClick(locate: string | object, options?: object): Promise<void>;
+```
+
+- 参数：
+
+  - `locate: string | object` —— 目标元素的自然语言描述，或[带参考图片的提示词](#使用图片作为提示词)。
+  - `options?: object` —— 可选配置对象：
+    - `deepLocate?: boolean` —— 是否开启[深度定位](#深度定位deeplocate)（旧参数名 `deepThink` 仍保留兼容）。默认值：`false`。
+    - `context?: string` —— 本次调用的补充上下文，详见[`context` 与 `aiContexts` 的优先级](#per-call-context)。
+    - `xpath?: string` —— 目标元素的 XPath。传入后，Midscene 会优先按该 XPath 查找元素，未命中时再依次尝试缓存与 AI 模型。默认值：`undefined`。
+    - `cacheable?: boolean` —— 启用[缓存功能](../caching.mdx)时，是否允许缓存本次调用结果。默认值：`true`。
+
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
+
+```typescript
+await agent.aiMiddleClick('搜索结果中的链接');
+
+// 开启 deepLocate 精确定位元素
+await agent.aiMiddleClick('搜索结果中的链接', { deepLocate: true });
 ```
 
 ### `aiRightClick()` {#agentairightclick}
