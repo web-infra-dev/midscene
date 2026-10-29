@@ -1,7 +1,7 @@
+import { findAllMidsceneLocatorField } from '@/common';
 import {
   getZodDescription,
   getZodTypeName,
-  isMidsceneLocatorField,
   unwrapZodField,
 } from '@midscene/shared/zod-schema-utils';
 import type { z } from 'zod';
@@ -41,8 +41,7 @@ const buildActionParamDescription = (
   field: z.ZodTypeAny,
   locateFieldDescription?: string,
 ): ActionParamDescription => {
-  const isLocator =
-    locateFieldDescription !== undefined && isMidsceneLocatorField(field);
+  const isLocator = locateFieldDescription !== undefined;
   const result: ActionParamDescription = {
     type: isLocator ? locateFieldDescription : getZodTypeName(field),
   };
@@ -111,12 +110,13 @@ export const buildActionDescription = ({
 
     if (isZodObject && schema.shape) {
       const param: Record<string, ActionParamDescription> = {};
+      const locateFields = findAllMidsceneLocatorField(action.paramSchema);
 
       for (const [key, field] of Object.entries(schema.shape)) {
         if (field && typeof field === 'object') {
           param[key] = buildActionParamDescription(
             field as z.ZodTypeAny,
-            locateFieldDescription,
+            locateFields.includes(key) ? locateFieldDescription : undefined,
           );
         }
       }
