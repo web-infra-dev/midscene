@@ -1,5 +1,6 @@
 import type { Rect } from '../types';
 import { generateHashId } from '../utils';
+import { composedContains, deepestElementAtPoint } from './shadow-dom';
 import { extractTextWithPosition } from './web-extractor';
 
 const MAX_VALUE_LENGTH = 300;
@@ -180,7 +181,8 @@ const isElementCovered = (
   const y = rect.top + rect.height / 2;
 
   // Gets the element above that point
-  const topElement = currentWindow.document.elementFromPoint(x, y);
+  const host = currentWindow.document.elementFromPoint(x, y);
+  const topElement = host ? deepestElementAtPoint(host, x, y) || host : null;
   if (!topElement) {
     return false; // usually because it's outside the screen
   }
@@ -188,11 +190,11 @@ const isElementCovered = (
   if (topElement === el) {
     return false;
   }
-  if (el?.contains(topElement)) {
+  if (composedContains(el, topElement)) {
     return false;
   }
 
-  if ((topElement as HTMLElement)?.contains(el)) {
+  if (composedContains(topElement, el)) {
     return false;
   }
 

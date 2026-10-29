@@ -348,3 +348,11 @@ Midscene 使用 [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) 
 ### 获取缓存相关的调试日志
 
 在环境变量中配置 `DEBUG=midscene:cache:*`，你可以看到缓存相关的调试日志。
+
+## Web Components 与 Shadow DOM
+
+Web 定位缓存可以穿过多层 **open Shadow DOM** 和同源 iframe，记录组件内部目标的路径。同一组件中的不同控件会生成不同的缓存。此机制无法访问 closed Shadow DOM。
+
+旧缓存如果只指向 Shadow DOM 宿主元素，会被视为未命中，不再点击宿主中心。显式提供的 `xpath` 提示仍可指向宿主。内部目标不存在或匹配不唯一时，也会回退到 AI 定位。请勿手动修改序列化后的定位字符串。
+
+目标的渲染祖先仍有有限时长动画运行时，缓存回放会拒绝使用该目标。建议等弹层或过渡动画结束后再操作，减少不必要的 AI 回退。这项检查不能保证检测到脚本或其他内容造成的所有布局变化。如果目标的含义发生变化，但路径和文本没有变化（例如另一个月份的同一日期数字），请增加明确的状态断言，或通过 `cacheable: false` 关闭该步骤的缓存。

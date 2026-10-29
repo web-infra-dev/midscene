@@ -2,6 +2,16 @@ import type { ElementInfo } from '.';
 import type { Point } from '../types';
 import { isSvgElement } from './dom-util';
 import {
+  deepestElementAtPoint,
+  getContainingShadowRoot,
+  hasRunningFiniteAnimation,
+} from './shadow-dom';
+import {
+  buildShadowLocator,
+  resolveShadowLocator,
+  shadowLocatorPrefix,
+} from './shadow-locator';
+import {
   getNodeFromCacheList,
   getRect,
   isElementPartiallyInViewport,
@@ -160,6 +170,22 @@ export const getElementXpath = (
   isLeafElement = false,
   limitToCurrentDocument = false,
 ): string => {
+  const shadowRoot = getContainingShadowRoot(element);
+  if (shadowRoot) {
+    return buildShadowLocator(
+      element,
+      shadowRoot,
+      getElementXpath(
+        shadowRoot.host,
+        isOrderSensitive,
+        false,
+        limitToCurrentDocument,
+      ),
+      isOrderSensitive,
+      isLeafElement,
+    );
+  }
+
   // process text node
   if (element.nodeType === Node.TEXT_NODE) {
     const parentNode = element.parentNode;
@@ -182,7 +208,6 @@ export const getElementXpath = (
   if (element.nodeType !== Node.ELEMENT_NODE) return '';
 
   const el = element as Element;
-
   // special element handling (iframe-aware: prefix with frame path when not limitToCurrentDocument)
   try {
     const nodeName = el.nodeName.toLowerCase();
@@ -299,7 +324,9 @@ export function getXpathsByPoint(
 
   while (depth < MAX_DEPTH) {
     depth++;
-    const element = currentDocument.elementFromPoint(left, top);
+    const host = currentDocument.elementFromPoint(left, top);
+    const element = host ? deepestElementAtPoint(host, left, top) : null;
+    if (host && !element) return null;
 
     if (!element) {
       if (lastFoundElement) {
@@ -365,35 +392,45 @@ export function getXpathsByPoint(
   return null;
 }
 
-export function getNodeInfoByXpath(xpath: string): Node | null {
+/** Resolve a normal XPath or an internal compound locator in its document. */
+export function getNodeInfoByXpath(
+  xpath: string,
+  rootDocument: Document = document,
+): Node | null {
   const parts = xpath
     .split(SUB_XPATH_SEPARATOR)
     .map((p) => p.trim())
     .filter(Boolean);
   if (parts.length === 0) return null;
 
-  let currentDocument: Document =
-    typeof document !== 'undefined' ? document : (undefined as any);
+  let currentDocument = rootDocument;
   let node: Node | null = null;
 
   for (let i = 0; i < parts.length; i++) {
     const currentXpath = parts[i];
-    const xpathResult = currentDocument.evaluate(
-      currentXpath,
-      currentDocument,
-      null,
-      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-      null,
-    );
-
-    if (xpathResult.snapshotLength !== 1) {
-      logger(
-        `[midscene:locator] XPath "${currentXpath}" matched ${xpathResult.snapshotLength} elements (expected 1), discarding.`,
+    if (currentXpath.startsWith(shadowLocatorPrefix)) {
+      node = resolveShadowLocator(currentXpath, (host) =>
+        getNodeInfoByXpath(host, currentDocument),
       );
-      return null;
-    }
+    } else {
+      const xpathResult = currentDocument.evaluate(
+        currentXpath,
+        currentDocument,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null,
+      );
 
-    node = xpathResult.snapshotItem(0);
+      if (xpathResult.snapshotLength !== 1) {
+        logger(
+          `[midscene:locator] XPath "${currentXpath}" matched ${xpathResult.snapshotLength} elements (expected 1), discarding.`,
+        );
+        return null;
+      }
+
+      node = xpathResult.snapshotItem(0);
+    }
+    if (!node) return null;
 
     if (i < parts.length - 1) {
       if (
@@ -427,9 +464,21 @@ export function getNodeInfoByXpath(xpath: string): Node | null {
   return node;
 }
 
-export function getElementInfoByXpath(xpath: string): ElementInfo | null {
+/** Look up geometry; cache replay additionally rejects hosts and finite animations. */
+export function getElementInfoByXpath(
+  xpath: string,
+  options: { forCache?: boolean } = {},
+): ElementInfo | null {
   const node = getNodeInfoByXpath(xpath);
   if (!node) return null;
+  // Old caches may point at a shadow host instead of the actual internal target.
+  // Its center is not a safe substitute (e.g. a date field versus a calendar day).
+  if (
+    options.forCache &&
+    (('shadowRoot' in node && node.shadowRoot) ||
+      hasRunningFiniteAnimation(node))
+  )
+    return null;
 
   let targetWindow: Window =
     typeof window !== 'undefined' ? window : (undefined as any);
