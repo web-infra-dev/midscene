@@ -393,6 +393,8 @@ export interface TestRunReportSourceIndex {
 
 export interface AssembleTestRunReportOptions {
   outputDir: string;
+  /** Final delivery format; defaults to a self-contained, offline-readable HTML. */
+  outputFormat?: 'single-html' | 'html-and-external-assets';
   /** File or directory name without an extension. */
   reportFileName: string;
   sources: readonly TestRunReportSource[];

@@ -62,10 +62,13 @@ export interface ResolvedTestOptions {
 
 export interface TestOutputDefinition {
   reportDir?: string;
+  /** Defaults to a self-contained HTML; external assets require HTTP preview. */
+  reportFormat?: 'single-html' | 'html-and-external-assets';
 }
 
 export interface ResolvedTestOutputDefinition {
   reportDir: string;
+  reportFormat: 'single-html' | 'html-and-external-assets';
 }
 
 const projectIdFromIndex = (index: number): string => `project-${index}`;
@@ -600,8 +603,18 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
     throw new TypeError('Midscene config output must be an object.');
   }
   const candidate = (value ?? {}) as Record<string, unknown>;
-  rejectUnknownKeys(candidate, ['reportDir'], 'output');
+  rejectUnknownKeys(candidate, ['reportDir', 'reportFormat'], 'output');
+  if (
+    candidate.reportFormat !== undefined &&
+    candidate.reportFormat !== 'single-html' &&
+    candidate.reportFormat !== 'html-and-external-assets'
+  ) {
+    throw new TypeError(
+      'Midscene config output.reportFormat must be single-html or html-and-external-assets.',
+    );
+  }
   return Object.freeze({
+    reportFormat: candidate.reportFormat ?? 'single-html',
     reportDir: validateOutputPath(
       candidate.reportDir,
       './midscene_run/report',

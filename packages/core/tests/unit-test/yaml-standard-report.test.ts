@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Agent } from '@/agent/agent';
 import { extractTestRunReportDumpSync } from '@/dump/html-utils';
+import { readReportRunnerDump } from '@/dump/report-artifact-reader';
 import { mergeReportFiles } from '@/report-cli';
 import { ReportGenerator } from '@/report-generator';
 import type { TestRunReportDump } from '@/test-run-report';
@@ -77,7 +78,7 @@ const readHtmlDump = (html: string): TestRunReportDump => {
   expect(matches).toHaveLength(1);
   return JSON.parse(antiEscapeScriptTag(matches[0][2]));
 };
-const readDump = (path: string) => readHtmlDump(readFileSync(path, 'utf8'));
+const readDump = (path: string) => readReportRunnerDump(path)!;
 
 describe('old YAML entries publish standard Runner reports', () => {
   test.each(
@@ -297,7 +298,10 @@ describe('old YAML entries publish standard Runner reports', () => {
     async ({ mode, cleanupFails }) => {
       const agent = createAgent();
       const generator = new ReportGenerator({
-        reportPath: join(directory, 'owned.html'),
+        reportPath: join(
+          directory,
+          mode === 'directory' ? 'index.html' : 'owned.html',
+        ),
         screenshotMode: mode,
         autoPrint: false,
       });
@@ -346,10 +350,10 @@ describe('old YAML entries publish standard Runner reports', () => {
           'device cleanup failed',
         );
       const state = generator as unknown as {
-        executionsByKey: Map<string, ExecutionDump>;
+        recorder: { executions: ExecutionDump[] };
         lastExecution?: ExecutionDump;
       };
-      expect(state.executionsByKey.size).toBe(0);
+      expect(state.recorder.executions.length).toBe(0);
       expect(state.lastExecution).toBeUndefined();
       expect(agent.dump.executions).toEqual([]);
       expect(await agent.finalizeReport()).toBe(player.reportFile);

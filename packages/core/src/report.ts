@@ -18,9 +18,7 @@ import { antiEscapeScriptTag, logMsg, uuid } from '@midscene/shared/utils';
 import { getReportFileName } from './agent/report-file-name';
 import {
   DATA_SCREENSHOT_MODE_ATTR,
-  extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
-  extractTestRunReportDumpSync,
   generateAgentReportComment,
   getBaseUrlFixScript,
   generateTestRunReportScriptTag as runnerDumpScript,
@@ -32,9 +30,26 @@ import {
   normalizeStoredImageRef,
 } from './dump/image-reference';
 import {
+  readReportArtifactManifest,
+  readReportDumpScripts,
+  readReportRunnerDump,
+  streamReportDumpScripts,
+} from './dump/report-artifact-reader';
+import {
   parseBase64ImageDataUrl,
   resolveImageSource,
 } from './dump/screenshot-store';
+export {
+  readReportActionDump,
+  readReportArtifactManifestAsync,
+  readReportArtifactManifest,
+  readReportDumpScripts,
+  readReportRunnerDump,
+  streamReportDumpScripts,
+} from './dump/report-artifact-reader';
+export { ExecutionRecorder } from './dump/execution-recorder';
+export { ReportArtifactStore } from './dump/report-artifact-store';
+import { TestReportImages } from './dump/test-report-images';
 import { collectReportSummary } from './report-stats';
 import type {
   AssembleTestRunReportOptions,
@@ -105,9 +120,9 @@ function readDeclaredScreenshotMode(
  * filesystem heuristic (an `index.html` that has a sibling `screenshots/` dir).
  */
 export function isDirectoryModeReport(reportFilePath: string): boolean {
-  // Directory-mode reports are always written as `{name}/index.html`, so any
-  // other filename is inline. Short-circuit before touching the file so the
-  // common inline case (`{name}.html`) costs nothing.
+  if (readReportArtifactManifest(reportFilePath)) return true;
+  // Agent directory reports use index.html by default. Reports without the
+  // versioned manifest use the existing metadata and layout heuristic.
   if (path.basename(reportFilePath) !== 'index.html') return false;
 
   const declared = readDeclaredScreenshotMode(reportFilePath);
@@ -174,7 +189,12 @@ export function dedupeExecutionsKeepLatest<T extends Pick<ExecutionDump, 'id'>>(
  */
 function peekReportSdkVersion(reportFilePath: string): string | undefined {
   try {
-    const dump = extractLastDumpScriptSync(reportFilePath);
+    let dump: string | undefined;
+    streamReportDumpScripts(reportFilePath, ({ content }) => {
+      dump = content;
+      return true;
+    });
+    dump ??= extractLastDumpScriptSync(reportFilePath) ?? undefined;
     if (!dump) return undefined;
     const match = dump.match(/"sdkVersion"\s*:\s*"([^"]+)"/);
     return match?.[1];
@@ -313,7 +333,7 @@ export class ReportMergingTool {
 
     const runnerDumps = this.reportInfos.map((info) =>
       info.reportFilePath
-        ? extractTestRunReportDumpSync(info.reportFilePath)
+        ? readReportRunnerDump(info.reportFilePath)
         : undefined,
     );
     const hasRunnerDump = runnerDumps.some(Boolean);
@@ -433,7 +453,7 @@ export class ReportMergingTool {
           // (one per execution). We merge them into a single ReportActionDump.
           // Filter by data-group-id to exclude false matches from the template's
           // bundled JS code, which also references the midscene_web_dump type string.
-          const allDumps = extractAllDumpScriptsSync(
+          const allDumps = readReportDumpScripts(
             reportInfo.reportFilePath,
           ).filter((d) => d.openTag.includes('data-group-id'));
           const groupIdMatch = allDumps[0]?.openTag.match(
@@ -587,7 +607,6 @@ function agentReportTiming(
 
 interface PreparedTestRunReportSource extends IndexedTestRunReportSource {
   dump: ReportActionDump;
-  directoryMode: boolean;
   dumpPath?: string;
 }
 
@@ -762,8 +781,6 @@ const prepareTestRunReportSources = (
       executionIds,
       collection: source.collection,
       dump,
-      directoryMode:
-        !!source.dumpPath || isDirectoryModeReport(source.sourcePath),
       ...(source.dumpPath ? { dumpPath: source.dumpPath } : {}),
     };
     prepared.push(preparedSource);
@@ -868,9 +885,7 @@ export class TestRunReportAssembler {
     });
     if (dump.kind !== 'test-runner' || dump.schemaVersion !== 1)
       throw new Error('Invalid Runner report dump');
-    const directoryMode = prepared.sources.some(
-      (source) => source.directoryMode,
-    );
+    const directoryMode = options.outputFormat === 'html-and-external-assets';
     const outputDir = path.resolve(options.outputDir);
     await fsAsync.mkdir(outputDir, { recursive: true });
     const artifact = path.join(outputDir, options.reportFileName);
@@ -887,68 +902,21 @@ export class TestRunReportAssembler {
     );
     const htmlPath = path.join(temporary, 'index.html');
     try {
-      const parts = [
-        getReportTpl(),
-        directoryMode ? getBaseUrlFixScript() : '',
-      ];
-      const imageIds = new Set<string>();
+      await fsAsync.writeFile(htmlPath, getReportTpl());
+      if (directoryMode)
+        await fsAsync.appendFile(htmlPath, getBaseUrlFixScript());
+      const images = new TestReportImages(htmlPath, directoryMode);
       const reports: ReportActionDump[] = [];
       for (const source of new Map(
         prepared.sources.map((source) => [source.reportId, source]),
       ).values()) {
-        const serialized = source.dump.serialize();
-        if (source.dumpPath) {
-          const refs = new Map<
-            string,
-            ReturnType<typeof normalizeStoredImageRef> & {}
-          >();
-          JSON.parse(serialized, (_key, value) => {
-            const ref = normalizeStoredImageRef(value);
-            if (ref) refs.set(ref.id, ref);
-            return value;
-          });
-          if (refs.size)
-            await fsAsync.mkdir(path.join(temporary, 'screenshots'), {
-              recursive: true,
-            });
-          for (const ref of refs.values()) {
-            if (imageIds.has(ref.id)) continue;
-            if (ref.storage !== 'file' || !ref.path)
-              throw new Error(`Snapshot image ${ref.id} has no file source`);
-            await fsAsync.copyFile(
-              path.resolve(path.dirname(source.dumpPath), ref.path),
-              path.join(
-                temporary,
-                'screenshots',
-                `${ref.id}.${imageRefFileExtension(ref)}`,
-              ),
-            );
-            imageIds.add(ref.id);
-          }
-        } else {
-          // An explicit external provider may still return a finalized HTML artifact.
-          // This is a public provider contract, not a second execution/serialization schema.
-          if (source.directoryMode) {
-            const images = path.join(
-              path.dirname(source.sourcePath),
-              'screenshots',
-            );
-            if (existsSync(images))
-              await fsAsync.cp(images, path.join(temporary, 'screenshots'), {
-                recursive: true,
-              });
-          } else {
-            const html = await fsAsync.readFile(source.sourcePath, 'utf8');
-            for (const match of html.matchAll(
-              /<script\b([^>]*)>[\s\S]*?<\/script>/g,
-            )) {
-              if (/(?:^|\s)type=["']midscene-image["']/.test(match[1]))
-                parts.push(match[0]);
-            }
-          }
-        }
+        const serialized = await images.rewriteAsync(
+          source.dump.serialize(),
+          source.dumpPath ?? source.sourcePath,
+        );
         reports.push(source.dump);
-        parts.push(
+        await fsAsync.appendFile(
+          htmlPath,
           reportHTMLContent(
             {
               dumpString: serialized,
@@ -967,8 +935,10 @@ export class TestRunReportAssembler {
           ),
         );
       }
-      parts.push(runnerDumpScript(dump), mergedAgentReportComment(reports));
-      await fsAsync.writeFile(htmlPath, parts.join('\n'));
+      await fsAsync.appendFile(
+        htmlPath,
+        runnerDumpScript(dump) + mergedAgentReportComment(reports),
+      );
       if (options.overwrite) {
         await fsAsync.rm(artifact, { recursive: true, force: true });
         await fsAsync.rm(`${artifact}.html`, { force: true });
@@ -1013,9 +983,7 @@ export class TestRunReportAssembler {
     // Validate serializability before creating any output artifact.
     JSON.stringify(runnerDump);
 
-    const directoryMode = prepared.sources.some(
-      (source) => source.directoryMode,
-    );
+    const directoryMode = options.outputFormat === 'html-and-external-assets';
     const finalArtifactPath = path.join(outputDir, options.reportFileName);
     const directoryReportPath = path.join(finalArtifactPath, 'index.html');
     const standaloneReportPath = `${finalArtifactPath}.html`;
@@ -1058,38 +1026,22 @@ export class TestRunReportAssembler {
         appendFileSync(temporaryReportPath, getBaseUrlFixScript());
       }
 
+      const images = new TestReportImages(temporaryReportPath, directoryMode);
       const agentReports: ReportActionDump[] = [];
       for (const source of new Map(
         prepared.sources.map((source) => [source.reportId, source]),
       ).values()) {
-        if (source.directoryMode) {
-          const screenshotsDir = path.join(
-            path.dirname(source.sourcePath),
-            'screenshots',
-          );
-          if (existsSync(screenshotsDir)) {
-            const targetScreenshotsDir = path.join(
-              path.dirname(temporaryReportPath),
-              'screenshots',
-            );
-            mkdirSync(targetScreenshotsDir, { recursive: true });
-            for (const file of readdirSync(screenshotsDir)) {
-              copyFileSync(
-                path.join(screenshotsDir, file),
-                path.join(targetScreenshotsDir, file),
-              );
-            }
-          }
-        } else {
-          streamImageScriptsToFile(source.sourcePath, temporaryReportPath);
-        }
+        const serialized = images.rewriteSync(
+          source.dump.serialize(),
+          source.dumpPath ?? source.sourcePath,
+        );
 
         agentReports.push(source.dump);
         appendFileSync(
           temporaryReportPath,
           `${reportHTMLContent(
             {
-              dumpString: source.dump.serialize(),
+              dumpString: serialized,
               attributes: {
                 'data-group-id': source.reportId,
                 'data-report-id': source.reportId,
@@ -1159,7 +1111,7 @@ export function collectDedupedExecutions(
   let executionSerial = 0;
   const latestSerialByExecutionId = new Map<string, number>();
 
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+  streamReportDumpScripts(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
       return false;
     }
@@ -1177,7 +1129,7 @@ export function collectDedupedExecutions(
 
   const executions: IExecutionDump[] = [];
   executionSerial = 0;
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+  streamReportDumpScripts(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
       return false;
     }

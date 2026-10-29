@@ -12,7 +12,7 @@ const parse = (content: string) =>
 
 describe('Ant Ling adapter', () => {
   it('supports Chat element localization without automatic image resizing', () => {
-    expect(adapter.supportedTaskTypes).toBeUndefined();
+    expect(adapter.allowedTaskTypes).toBeUndefined();
     expect(adapter.supportedProtocols).toEqual(['openai-chat']);
     expect(locate.searchArea).toBeDefined();
     expect(adapter.imagePreprocess).toEqual({ padBlockSize: undefined });

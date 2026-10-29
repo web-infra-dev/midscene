@@ -120,8 +120,8 @@ await agent.aiAct('登录');
   - 当 `outputFormat` 为 `'html-and-external-assets'` 时：作为子目录名，输出到 `midscene_run/report/<reportFileName>/index.html` 及同级静态资源目录。
 - `autoPrintReportMsg?: boolean` —— 是否在终端打印报告文件路径提示。默认值：`true`。
 - `outputFormat?: 'single-html' | 'html-and-external-assets'` —— 报告输出格式。默认值：`'single-html'`：
-  - `'single-html'`（默认）：将所有截图以 Base64 编码内嵌到单个 HTML 文件中。
-  - `'html-and-external-assets'`：将截图保存为独立的 PNG 文件并输出到子目录中，适用于步骤较多、单文件体积过大的场景。由于浏览器的同源策略（CORS）会拦截 `file://` 协议下的相对路径资源请求，该格式生成的报告必须通过 HTTP 服务访问。本地预览时，可进入报告目录并启动静态文件服务：
+  - `'single-html'`（默认）：将 Viewer、执行数据和 Base64 图片包含在一个 HTML 文件中，可直接打开，也可离线查看。
+  - `'html-and-external-assets'`：生成 `index.html`、`report.json`、`data/` 下的执行 JSON 和 `screenshots/` 下的图片文件。相同图片内容共用一个文件，每次截图仍保留独立的 ID、时间和步骤关联。分享时需保留完整报告目录，并通过 HTTP 服务访问。本地预览时，可进入报告目录并启动静态文件服务：
     - 使用 Node.js：`npx serve`
     - 使用 Python：`python3 -m http.server`
     然后在浏览器中访问终端输出的地址（如 `http://localhost:3000`）。

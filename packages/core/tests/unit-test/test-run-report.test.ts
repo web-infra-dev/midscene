@@ -3,6 +3,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -10,13 +11,24 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from '@rstest/core';
 import { generateDumpScriptTag } from '../../src/dump';
-import { TestRunReportAssembler } from '../../src/report';
+import { ReportImageStore } from '../../src/dump/screenshot-store';
+import {
+  TestRunReportAssembler,
+  readReportDumpScripts,
+} from '../../src/report';
+import { ReportGenerator } from '../../src/report-generator';
+import { ScreenshotItem } from '../../src/screenshot-item';
 import type {
   TestRunReportDump,
   TestRunReportSourceIndex,
 } from '../../src/test-run-report';
 import { type AIUsageInfo, ReportActionDump } from '../../src/types';
 import { getVersion } from '../../src/utils';
+import {
+  createExecution,
+  defaultReportMeta,
+  fakeBase64,
+} from './test-helpers/report-generator';
 
 const temporaryDirectories: string[] = [];
 
@@ -97,6 +109,80 @@ afterEach(() => {
 });
 
 describe('TestRunReportAssembler', () => {
+  it.each([false, true])(
+    'selects final image delivery independently of Agent source storage, async=%s',
+    async (asyncMode) => {
+      const root = temporaryDirectory();
+      for (const sourceMode of ['inline', 'directory', 'snapshot'] as const) {
+        const sourcePath = join(root, sourceMode, 'agent.html');
+        const generator = new ReportGenerator({
+          reportPath: sourcePath,
+          screenshotMode: sourceMode === 'directory' ? 'directory' : 'inline',
+          autoPrint: false,
+        });
+        const frames = [
+          ScreenshotItem.create(fakeBase64(80), 100),
+          ScreenshotItem.create(fakeBase64(80), 200),
+        ];
+        generator.onExecutionUpdate(
+          createExecution(frames, 'login', 'login'),
+          defaultReportMeta,
+        );
+        const source =
+          sourceMode === 'snapshot'
+            ? await generator.createSourceSnapshot('case')
+            : { sourcePath };
+        await generator.finalize();
+        for (const outputFormat of [
+          undefined,
+          'html-and-external-assets',
+        ] as const) {
+          const options = {
+            outputDir: join(root, 'output'),
+            reportFileName: `${sourceMode}-${outputFormat ?? 'default'}`,
+            outputFormat,
+            sources: [{ ...source, scopeId: 'case' }],
+            buildRunnerDump: runnerDump,
+          };
+          const assembler = new TestRunReportAssembler();
+          const reportPath = asyncMode
+            ? await assembler.assembleAsync(options)
+            : assembler.assemble(options);
+          const dump = JSON.parse(readReportDumpScripts(reportPath)[0].content);
+          const refs = dump.executions[0].tasks.map(
+            (task: any) => task.uiContext.screenshot,
+          );
+          expect(refs.map((ref: any) => ref.id)).toEqual(
+            frames.map((frame) => frame.id),
+          );
+          expect(refs.map((ref: any) => ref.capturedAt)).toEqual([100, 200]);
+          const mode = outputFormat ? 'directory' : 'inline';
+          const store = new ReportImageStore({ mode, reportPath });
+          expect(refs.map((ref: any) => store.loadDataUri(ref))).toEqual([
+            fakeBase64(80),
+            fakeBase64(80),
+          ]);
+          if (outputFormat) {
+            expect(refs[0].path).toBe(refs[1].path);
+            expect(
+              readdirSync(join(reportPath, '..', 'screenshots')),
+            ).toHaveLength(1);
+          } else {
+            expect(reportPath).toBe(
+              join(options.outputDir, `${options.reportFileName}.html`),
+            );
+            expect(
+              refs.every(
+                (ref: any) =>
+                  ref.storage === 'inline' && ref.path === undefined,
+              ),
+            ).toBe(true);
+            expect(readFileSync(reportPath, 'utf8')).toContain(fakeBase64(80));
+          }
+        }
+      }
+    },
+  );
   it('merges incremental snapshots once per Agent and scope while preserving coverage', async () => {
     const root = temporaryDirectory();
     const sourcePath = join(root, 'agent.html');
@@ -322,13 +408,15 @@ describe('TestRunReportAssembler', () => {
     const reportPath = new TestRunReportAssembler().assemble({
       outputDir,
       reportFileName: 'directory-run',
+      outputFormat: 'html-and-external-assets',
       sources: [{ scopeId: 'attempt-1', sourcePath: directoryReport }],
       buildRunnerDump: runnerDump,
     });
     expect(reportPath).toBe(join(outputDir, 'directory-run', 'index.html'));
+    // Unreferenced source images are excluded from the delivered artifact.
     expect(
       existsSync(join(outputDir, 'directory-run', 'screenshots', 'image.png')),
-    ).toBe(true);
+    ).toBe(false);
 
     const first = join(root, 'first.html');
     const second = join(root, 'second.html');
@@ -367,6 +455,7 @@ describe('TestRunReportAssembler', () => {
       sources: [{ scopeId: 'attempt-1', sourcePath: directoryReport }],
       buildRunnerDump: runnerDump,
       overwrite: true,
+      outputFormat: 'html-and-external-assets',
     });
     expect(existsSync(standalonePath)).toBe(false);
     expect(existsSync(directoryPath)).toBe(true);

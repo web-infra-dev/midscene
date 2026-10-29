@@ -122,8 +122,8 @@ Set either Web timeout to `0` to skip its check. When a timeout is reached, Mids
   - When `outputFormat` is `'html-and-external-assets'`: Treated as a subdirectory name and written to `midscene_run/report/<reportFileName>/index.html` alongside its asset files.
 - `autoPrintReportMsg?: boolean` — Whether to print the generated report path in the terminal. Default: `true`.
 - `outputFormat?: 'single-html' | 'html-and-external-assets'` — Report output format. Default: `'single-html'`:
-  - `'single-html'` (default): Embeds all screenshots as Base64 strings inside a single standalone HTML file.
-  - `'html-and-external-assets'`: Saves screenshots as separate PNG files in a subdirectory, suitable for long test runs with large reports. Because browser CORS policies block relative asset requests over `file://`, reports in this format must be viewed over HTTP. For local preview, serve the report directory using a static file server:
+  - `'single-html'` (default): Includes the Viewer, execution data, and Base64 images in one HTML file that can be opened directly, including offline.
+  - `'html-and-external-assets'`: Writes `index.html`, `report.json`, execution JSON under `data/`, and image files under `screenshots/`. Identical image bytes share a file while each observation retains its ID, time, and step association. Keep the entire report directory together when sharing it. This format must be viewed over HTTP. For local preview, serve the report directory using a static file server:
     - Node.js: `npx serve`
     - Python: `python3 -m http.server`
     Then open the printed URL (such as `http://localhost:3000`) in your browser.

@@ -421,6 +421,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('report replay and screenshot routes stream compact persisted data', async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), 'playground-inline-replay-'),
+    );
+    const reportPath = join(directory, 'report.html');
     const webpReferenceImage = 'data:image/webp;base64,V0VCUA==';
     const dump = {
       sdkVersion: 'test',
@@ -462,6 +466,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       ],
     };
     const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_PNG_BASE64}</script>\n<script type="midscene-image" data-id="reference-1">${webpReferenceImage}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
+    await writeFile(reportPath, reportHTML);
     rs.mocked(createReadStream).mockImplementation(
       () =>
         ({
@@ -477,9 +482,9 @@ describe('PlaygroundServer manual interaction APIs', () => {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
       resetDump: rs.fn(async () => {}),
-      finalizeReport: rs.fn(async () => `${process.cwd()}/package.json`),
+      finalizeReport: rs.fn(async () => reportPath),
       callActionInActionSpace: rs.fn(async () => ({ ok: true })),
-      reportFile: `${process.cwd()}/package.json`,
+      reportFile: reportPath,
     };
     const server = new PlaygroundServer(agent as any);
 
@@ -539,6 +544,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       );
     } finally {
       await server.close();
+      await rm(directory, { recursive: true, force: true });
     }
   });
 

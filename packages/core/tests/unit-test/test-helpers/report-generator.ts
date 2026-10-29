@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ScreenshotItem } from '@/screenshot-item';
@@ -101,4 +101,18 @@ export async function createPatternedPngFixture() {
     dataUri: `data:image/png;base64,${png.toString('base64')}`,
     expectedImage: { width, height, channels, pixels },
   };
+}
+
+/** Find an asset by bytes, without coupling tests to its naming algorithm. */
+export function screenshotFilePath(
+  reportDirectory: string,
+  screenshot: ScreenshotItem,
+): string {
+  const expected = Buffer.from(screenshot.rawBase64, 'base64');
+  const directory = join(reportDirectory, 'screenshots');
+  const name = readdirSync(directory).find((name) =>
+    readFileSync(join(directory, name)).equals(expected),
+  );
+  if (!name) throw new Error(`Missing screenshot asset for ${screenshot.id}`);
+  return join(directory, name);
 }

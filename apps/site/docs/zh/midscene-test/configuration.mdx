@@ -428,6 +428,7 @@ steps:
 | `test.testTimeout` | 单个步骤的默认超时时间（毫秒），默认为 `120000`。步骤内的 `$.timeout` 可覆盖该默认值。 |
 | `test.bail` | 失败用例数达到该阈值后停止调度新任务；设为 `0` 表示不限制。 |
 | `output.reportDir` | HTML 报告的输出目录，默认为 `./midscene_run/report`。 |
+| `output.reportFormat` | `'single-html'`（默认）将执行数据和图片打包在一个 HTML 中，可直接离线打开；`'html-and-external-assets'` 生成目录报告，按内容复用图片文件，需通过 HTTP 预览。最终报告格式独立于 Agent 源记录的保存格式。 |
 
 脚手架生成的配置默认匹配 `cases/**/*.{yaml,yml}`；如果未配置 `files`，Midscene Test 会按 `**/*.{yaml,yml}` 在测试根目录下递归查找用例文件，自动去重并按路径排序。
 
