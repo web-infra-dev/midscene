@@ -49,8 +49,8 @@ export type WebPageOpt = {
    * versions that do not support `appearance: base-select`).
    */
   forceChromeSelectRendering?: boolean;
-  beforeInvokeAction?: () => Promise<void>;
-  afterInvokeAction?: () => Promise<void>;
+  beforeInvokeAction?: (actionName: string, param: any) => Promise<void>;
+  afterInvokeAction?: (actionName: string, param: any) => Promise<void>;
   customActions?: DeviceAction<any>[];
 };
 

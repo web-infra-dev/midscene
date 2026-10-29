@@ -160,8 +160,8 @@ await agent.aiAssert('详情页面已打开');
 | `inputStrategy` | `'legacy' \| 'sequential' \| 'bulk'` | `'legacy'` | 文本输入策略；`sequential` 逐个 Unicode 码点输入，`bulk` 一次插入完整文本 |
 | `forceChromeSelectRendering` | `boolean` | `true` | 注入 `base-select` 样式，使原生 `select` 的选项可被截图捕捉；要求 Playwright ≥ `1.52.0`，且浏览器支持该样式 |
 | `customActions` | `DeviceAction[]` | 未设置 | 向规划器添加[自定义动作](../integrate-with-any-interface) |
-| `beforeInvokeAction` | `() => Promise<void>` | 未设置 | 动作执行前的回调 |
-| `afterInvokeAction` | `() => Promise<void>` | 未设置 | 动作执行后的回调 |
+| `beforeInvokeAction` | `(actionName: string, param: any) => Promise<void>` | 未设置 | 动作执行前的回调 |
+| `afterInvokeAction` | `(actionName: string, param: any) => Promise<void>` | 未设置 | 动作执行后的回调 |
 | `testRunner` | `PlaywrightTestRunnerOptions` | 未设置 | 为 Midscene Test 的 Playwright Nodes 提供 base URL、Cookie 和 storage state 等配置；不是 Playwright Test fixture 配置 |
 
 `inputStrategy: 'bulk'` 要求不设置 `keyboardTypeDelay` 或将其设为 `0`。需要延迟输入时使用 `'sequential'`。等待业务界面就绪时，使用 `aiWaitFor()` 或 Playwright 自身的等待 API。
