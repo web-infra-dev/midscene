@@ -19,22 +19,54 @@ describe('MiniMax adapter', () => {
     expect(adapter.resolveImageDetail({})).toBe('high');
   });
 
-  it('separates thinking and defaults to low effort without forcing JSON mode', () => {
+  it('disables thinking by default for minimax without sending effort', () => {
     const config = adapter.chatCompletion.buildChatCompletionParams({
+      expectedJsonObjectResponse: true,
+    }).config;
+    expect(config).toMatchObject({
+      reasoning_split: true,
+      thinking: { type: 'disabled' },
+    });
+    expect(config).not.toHaveProperty('reasoning_effort');
+    expect(config).not.toHaveProperty('response_format');
+    expect(config.temperature).toBeUndefined();
+  });
+
+  it.each([
+    [true, { type: 'adaptive' }],
+    [false, { type: 'disabled' }],
+    ['default', undefined],
+  ] as const)(
+    'maps reasoningEnabled=%s for minimax',
+    (reasoningEnabled, thinking) => {
+      const config = adapter.chatCompletion.buildChatCompletionParams({
+        userConfig: { reasoningEnabled },
+      }).config;
+      expect(config.thinking).toEqual(thinking);
+      expect(config).not.toHaveProperty('reasoning_effort');
+    },
+  );
+
+  it('defaults minimax-3.1 to low effort and supports an explicit effort', () => {
+    const flash = getModelAdapter('minimax-3.1');
+    const config = flash.chatCompletion.buildChatCompletionParams({
       expectedJsonObjectResponse: true,
     }).config;
     expect(config).toMatchObject({
       reasoning_split: true,
       reasoning_effort: 'low',
     });
-    expect(config.temperature).toBeUndefined();
-    expect(config).not.toHaveProperty('response_format');
     expect(config).not.toHaveProperty('thinking');
+    expect(config).not.toHaveProperty('response_format');
+    expect(config.temperature).toBeUndefined();
     expect(
-      adapter.chatCompletion.buildChatCompletionParams({
+      flash.chatCompletion.buildChatCompletionParams({
         userConfig: { reasoningEffort: 'max' },
       }).config.reasoning_effort,
     ).toBe('max');
+    expect(flash.includeImageDimensions).toBe(true);
+    expect(flash.locate.kind).toBe('standard');
+    expect(flash.allowedTaskTypes).toBeUndefined();
   });
 
   it('keeps reasoning separate from the final JSON answer', () => {

@@ -394,6 +394,7 @@ export type TModelFamily =
   | 'jev'
   | 'ant-ling'
   | 'minimax'
+  | 'minimax-3.1'
   | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'qwen3'
@@ -419,6 +420,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'jev',
   'ant-ling',
   'minimax',
+  'minimax-3.1',
   'doubao-vision',
   'doubao-seed',
   'gemini',

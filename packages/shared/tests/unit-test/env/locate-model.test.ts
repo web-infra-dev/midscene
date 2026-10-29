@@ -21,22 +21,22 @@ afterEach(() => {
 });
 
 describe('Locate model configuration', () => {
-  it.each(['MiniMax-M3', 'MiniMax-M3.1-Flash-Preview'])(
-    'accepts %s as a Locate model',
-    (modelName) => {
-      const manager = new ModelConfigManager({
-        ...defaults,
-        ...locate,
-        MIDSCENE_LOCATE_MODEL_FAMILY: 'minimax',
-        MIDSCENE_LOCATE_MODEL_NAME: modelName,
-      });
-      expect(manager.getModelConfig('locate')).toMatchObject({
-        modelFamily: 'minimax',
-        modelName,
-        slot: 'locate',
-      });
-    },
-  );
+  it.each([
+    ['MiniMax-M3', 'minimax'],
+    ['MiniMax-M3.1-Flash-Preview', 'minimax-3.1'],
+  ])('accepts %s as a Locate model', (modelName, modelFamily) => {
+    const manager = new ModelConfigManager({
+      ...defaults,
+      ...locate,
+      MIDSCENE_LOCATE_MODEL_FAMILY: modelFamily,
+      MIDSCENE_LOCATE_MODEL_NAME: modelName,
+    });
+    expect(manager.getModelConfig('locate')).toMatchObject({
+      modelFamily,
+      modelName,
+      slot: 'locate',
+    });
+  });
 
   it('accepts Ant Ling as a dedicated Locate model', () => {
     const manager = new ModelConfigManager({
