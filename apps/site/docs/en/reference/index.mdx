@@ -466,12 +466,38 @@ await agent.aiDoubleClick('The file name at the top of the page', {
 
 ### `aiMiddleClick()` {#agentaimiddleclick}
 
-Locate an element and click it with the middle mouse button. Supported by Web (Playwright, Puppeteer and Chrome extension) and Computer (native desktop and RDP) adapters. Mobile devices do not provide this action. The effect depends on the application; it does not guarantee opening a new tab or pasting text.
+> Supported on Web pages and desktop (`@midscene/computer`) only; not supported on mobile devices (Android, iOS, or HarmonyOS).
 
-Accepts the same locator and options as `aiRightClick()`, including `deepLocate` and `context`. Per-call `context` overrides `aiContexts.aiMiddleClick`, which overrides `aiContexts.default`.
+Middle-click a specified element. The resulting behavior depends on the application.
+
+- Type
 
 ```typescript
-await agent.aiMiddleClick("the link in the results");
+function aiMiddleClick(locate: string | object, options?: object): Promise<void>;
+```
+
+- Parameters:
+
+  - `locate: string | object` — Natural-language description of the element to middle-click, or an [image-enabled prompt](#prompting-with-images).
+  - `options?: object` — Optional configuration:
+    - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate) (the legacy `deepThink` alias remains supported). Default: `false`.
+    - `context?: string` — Additional context for this call. See [`context` and `aiContexts` precedence](#per-call-context).
+    - `xpath?: string` — XPath of the target element. When provided, Midscene tries the XPath first before falling back to the cache and AI model. Default: `undefined`.
+    - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
+
+- Return value:
+
+  - `Promise<void>`
+
+- Examples:
+
+```typescript
+await agent.aiMiddleClick('The link in the search results');
+
+// Enable deepLocate to accurately locate the element
+await agent.aiMiddleClick('The link in the search results', {
+  deepLocate: true,
+});
 ```
 
 ### `aiRightClick()` {#agentairightclick}
