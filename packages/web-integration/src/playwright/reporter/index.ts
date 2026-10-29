@@ -1,12 +1,7 @@
-import { copyFileSync, cpSync, existsSync, mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
 import type { ReportFileWithAttributes, TestStatus } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
-import {
-  ReportMergingTool,
-  isDirectoryModeReport,
-  removeReportArtifact,
-} from '@midscene/core/report';
+import { ReportMergingTool } from '@midscene/core/report';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { logMsg } from '@midscene/shared/utils';
 import type {
@@ -78,43 +73,8 @@ class MidsceneReporter implements Reporter {
     throw new Error(`Unknown mode: ${this.mode}`);
   }
 
-  private getReportPath(testTitle?: string, testId?: string): string {
-    const fileName = this.getReportFilename(testTitle, testId);
-    if (this.outputFormat === 'html-and-external-assets') {
-      return join(getMidsceneRunSubDir('report'), fileName, 'index.html');
-    }
-    return join(getMidsceneRunSubDir('report'), `${fileName}.html`);
-  }
-
   private ensureOutputRoot(): void {
     mkdirSync(getMidsceneRunSubDir('report'), { recursive: true });
-  }
-
-  private finalizeSingleReport(
-    reportFilePath: string,
-    targetPath: string,
-  ): void {
-    if (resolve(reportFilePath) === resolve(targetPath)) {
-      return;
-    }
-
-    if (isDirectoryModeReport(reportFilePath)) {
-      const targetDir = dirname(targetPath);
-      mkdirSync(targetDir, { recursive: true });
-      cpSync(dirname(reportFilePath), targetDir, {
-        recursive: true,
-        force: true,
-      });
-    } else {
-      mkdirSync(dirname(targetPath), { recursive: true });
-      copyFileSync(reportFilePath, targetPath);
-    }
-
-    try {
-      removeReportArtifact(reportFilePath);
-    } catch (error) {
-      logMsg(`Error deleting report ${reportFilePath}: ${error}`);
-    }
   }
 
   private mergeOwnedReports(
@@ -124,6 +84,7 @@ class MidsceneReporter implements Reporter {
     return tool.mergeReports(targetName, {
       overwrite: true,
       rmOriginalReports: true,
+      outputFormat: this.outputFormat,
     });
   }
 
@@ -195,26 +156,6 @@ class MidsceneReporter implements Reporter {
     }
 
     const targetName = this.getReportFilename();
-    if (reportCount === 1) {
-      const firstReport = Array.from(this.reportsByTestId.values())[0]
-        ?.reports[0];
-      if (!firstReport) {
-        return;
-      }
-      if (firstReport.reportFilePath) {
-        const targetPath = this.getReportPath();
-        this.finalizeSingleReport(firstReport.reportFilePath, targetPath);
-        printReportMsg(targetPath);
-        return;
-      }
-
-      const mergedReportPath = this.mergeOwnedReports(tool, targetName);
-      if (mergedReportPath) {
-        printReportMsg(mergedReportPath);
-      }
-      return;
-    }
-
     const mergedReportPath = this.mergeOwnedReports(tool, targetName);
     if (mergedReportPath) {
       printReportMsg(mergedReportPath);
@@ -225,24 +166,6 @@ class MidsceneReporter implements Reporter {
     this.ensureOutputRoot();
     for (const [testId, entry] of this.reportsByTestId) {
       const targetName = this.getReportFilename(entry.testTitle, testId);
-      if (entry.reports.length === 1) {
-        const firstReport = entry.reports[0];
-        if (firstReport.reportFilePath) {
-          const targetPath = this.getReportPath(entry.testTitle, testId);
-          this.finalizeSingleReport(firstReport.reportFilePath, targetPath);
-          printReportMsg(targetPath);
-          continue;
-        }
-
-        const tool = new ReportMergingTool();
-        tool.append(firstReport);
-        const reportPath = this.mergeOwnedReports(tool, targetName);
-        if (reportPath) {
-          printReportMsg(reportPath);
-        }
-        continue;
-      }
-
       const tool = new ReportMergingTool();
       for (const report of entry.reports) {
         tool.append(report);
