@@ -34,6 +34,7 @@ export default defineConfig({
     entry: {
       index: './src/index.ts',
       cli: './src/cli.ts',
+      'bridge-cli': './src/remote/cli.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),
