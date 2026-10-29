@@ -1,8 +1,8 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
-import { ObservationFrameSource } from '@/observation-frame-source';
 import { describe, expect, it, rs } from '@rstest/core';
+import { ObservationFrameSource } from '../../src/observation-frame-source';
 const pngBase64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR42mP4HKzauIeNgXXZh/+7OAApSwYLCdgqFgAAAABJRU5ErkJggg==';
 const wire = (frameId = '1', startMs = 440, clockId = 'guest:boot') =>
@@ -120,7 +120,9 @@ it('rejects region pixels at the Agent full-screen source boundary', () => {
   expect(() => s.latest()).toThrow('full-screen');
 });
 it('region channel preserves atomic geometry, pixels, identity and source time after stop', async () => {
-  const { RegionObservation } = await import('@/observation-frame-source');
+  const { RegionObservation } = await import(
+    '../../src/observation-frame-source'
+  );
   const record = regionWire();
   const s = RegionObservation.start({
     command: process.execPath,
@@ -150,7 +152,9 @@ it('region channel preserves atomic geometry, pixels, identity and source time a
   }
 });
 it('region channel rejects missing frames, changed geometry/clock, overflow and EOF', async () => {
-  const { RegionObservation } = await import('@/observation-frame-source');
+  const { RegionObservation } = await import(
+    '../../src/observation-frame-source'
+  );
   const cases = [
     {
       records: [regionWire('12-1'), regionWire('12-3')],
@@ -224,7 +228,9 @@ it('region channel rejects missing frames, changed geometry/clock, overflow and 
 });
 
 it('rejects incomplete runtime geometry and byte bounds before spawning a process', async () => {
-  const { RegionObservation } = await import('@/observation-frame-source');
+  const { RegionObservation } = await import(
+    '../../src/observation-frame-source'
+  );
   for (const key of Object.keys(geometry)) {
     const incomplete = { ...geometry };
     delete (incomplete as Record<string, number>)[key];

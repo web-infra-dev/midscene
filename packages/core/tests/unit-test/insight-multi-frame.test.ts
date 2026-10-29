@@ -162,7 +162,9 @@ describe('insight extraction multi-frame context', () => {
     });
 
     const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
-    const userContent = msgs?.[1]?.content as Array<Record<string, any>>;
+    const userMessage = msgs?.[1];
+    assert(userMessage && 'content' in userMessage);
+    const userContent = userMessage.content as Array<Record<string, any>>;
     const imageParts = userContent.filter((part) => part.type === 'image');
     expect(imageParts).toHaveLength(5);
     expect(imageParts.at(-2)?.url).toBe(sequence[0].base64);
@@ -210,7 +212,9 @@ describe('insight extraction multi-frame context', () => {
     });
 
     const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
-    const userContent = msgs?.[1]?.content as Array<Record<string, any>>;
+    const userMessage = msgs?.[1];
+    assert(userMessage && 'content' in userMessage);
+    const userContent = userMessage.content as Array<Record<string, any>>;
     const imageParts = userContent.filter((part) => part.type === 'image');
     expect(imageParts).toHaveLength(8);
     expect(imageParts[0].url).toBe(sequence[0].base64);

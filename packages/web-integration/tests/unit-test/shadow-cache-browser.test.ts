@@ -1,8 +1,8 @@
 import path from 'node:path';
+import type * as Inspector from '@midscene/shared/extractor';
 import { afterAll, beforeAll, describe, expect, test } from '@rstest/core';
 import { type Browser, chromium } from 'playwright';
 import puppeteer from 'puppeteer';
-import type * as Inspector from '../../../shared/src/extractor';
 
 declare global {
   interface Window {
@@ -54,22 +54,25 @@ describe('shadow cache browser roundtrip', () => {
           const popup = root.firstElementChild!.attachShadow({ mode: 'open' });
           const render = () => {
             popup.innerHTML = '<button>15</button><button>16</button>';
-            for (const button of popup.querySelectorAll('button')) {
+            for (const button of Array.from(popup.querySelectorAll('button'))) {
               button.onclick = () =>
                 outer.setAttribute('data-selected', button.textContent!);
             }
           };
           render();
           const api = window.midscene_element_inspector;
-          const points = [...popup.querySelectorAll('button')].map((button) => {
-            const r = button.getBoundingClientRect();
-            const frame = doc.defaultView!.frameElement as HTMLElement | null;
-            const f = frame?.getBoundingClientRect();
-            return {
-              left: r.x + r.width / 2 + (f?.x || 0) + (frame?.clientLeft || 0),
-              top: r.y + r.height / 2 + (f?.y || 0) + (frame?.clientTop || 0),
-            };
-          });
+          const points = Array.from(popup.querySelectorAll('button')).map(
+            (button) => {
+              const r = button.getBoundingClientRect();
+              const frame = doc.defaultView!.frameElement as HTMLElement | null;
+              const f = frame?.getBoundingClientRect();
+              return {
+                left:
+                  r.x + r.width / 2 + (f?.x || 0) + (frame?.clientLeft || 0),
+                top: r.y + r.height / 2 + (f?.y || 0) + (frame?.clientTop || 0),
+              };
+            },
+          );
           const paths = points.map(
             (point) => api.getXpathsByPoint(point, false)![0],
           );
