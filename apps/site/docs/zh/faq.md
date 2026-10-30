@@ -179,11 +179,11 @@ MIDSCENE_MODEL_PROTOCOL="openai-responses"
 
 收集失败现场时，请同时保留 `midscene_run/report/` 和 `midscene_run/log/`。HTML 报告显示模型看到了什么，日志记录 SDK 操作何时开始、何时返回。
 
-`web-page.log` 中的 `page-operation` 记录带有 `pageId` 和页内递增的 `operationId`，可用于拆分并发页面的日志。点击操作看 `dispatch` 和 `returned`，截图操作看 `begin` 和 `end`。截图记录还包含来源 `source`（包括 CDP 回退）和 `screenshotHash`：对完整图片 data URL 计算 SHA-256 后取前 16 位十六进制字符。相同指纹可用于关联日志中的同一张图片；缩放或重新编码后的图片指纹会不同。
+操作信息沿用现有的 `getDebug` logger 写入 `web-page.log`。记录带有 `pageId` 和页内递增的 `operationId`，可用于拆分并发页面的日志。点击操作看 `dispatch` 和 `returned`，截图操作看 `begin` 和 `end`。截图记录还包含来源 `source`（包括 CDP 回退）和 `screenshotHash`：对完整图片 data URL 计算 SHA-256 后取前 16 位十六进制字符。相同指纹可用于关联日志中的同一张图片；缩放或重新编码后的图片指纹会不同。
 
 对于 `aiAct` 中首个动作是带坐标 `Tap` 的计划，Midscene 会比较规划时与规划结束后两张截图中首个点击目标附近的区域。局部发生明显变化时，会丢弃这批动作，并在已有的重新规划次数上限内请求新计划。这是视觉判断，不是语义有效性验证：目标之外的变化可能被漏过，目标内部的动画也可能触发额外规划。它既不保证画面在点击前始终不变，也不会加快页面自身的更新。
 
-`task-runner.log` 的 `task-screenshot` 记录包含执行、任务和截图 ID，以及捕获时间和指纹。`device-task-executor.log` 的 `plan-freshness` 记录执行或重新规划的决定；同一决定也会附在报告的规划任务中。
+`task-runner.log` 的 `task screenshot` 记录包含执行、任务和截图 ID，以及捕获时间和指纹。`device-task-executor.log` 的 `plan freshness` 记录执行或重新规划的决定；同一决定也会附在报告的规划任务中。
 
 这些时间戳描述的是 SDK 调用。点击调用返回，不代表页面已经处理事件或完成渲染；截图返回时间，也不等于画面实际绘制时间。若要区分应用更新和浏览器渲染延迟，需要另外采集浏览器性能记录。对于已知的异步变化，可先用 `aiWaitFor` 等待目标状态，再执行下一步操作。
 

@@ -184,10 +184,29 @@ describe('Page screenshotBase64', () => {
 
 describe('Page operation diagnostics', () => {
   const events = () =>
-    rs.mocked(debugPage).mock.calls.flatMap(([message]) => {
-      if (typeof message !== 'string' || !message.startsWith('{')) return [];
-      const event = JSON.parse(message);
-      return event.event === 'page-operation' ? [event] : [];
+    rs.mocked(debugPage).mock.calls.flatMap(([message, details]) => {
+      if (
+        typeof message !== 'string' ||
+        !details ||
+        typeof details !== 'object'
+      )
+        return [];
+      const match =
+        /^(screenshotBase64|mouse click|defaultActionWait) (\w+) %o$/.exec(
+          message,
+        );
+      return match
+        ? [
+            {
+              ...(details as {
+                pageId: string;
+                operationId: number;
+                screenshotHash?: string;
+              }),
+              phase: match[2],
+            },
+          ]
+        : [];
     });
 
   it('correlates overlapping captures without logging screenshot content or URLs', async () => {

@@ -293,32 +293,6 @@ export class Page<
     this.inputStrategy = opts?.inputStrategy;
   }
 
-  private startDiagnosticOperation(
-    operation: string,
-    context: Record<string, unknown> = {},
-  ) {
-    const operationId = ++this.diagnosticOperationSequence;
-    const startedAt = Date.now();
-    const log = (phase: string, details: Record<string, unknown> = {}) => {
-      const timestamp = Date.now();
-      debugPage(
-        JSON.stringify({
-          event: 'page-operation',
-          pageId: this.diagnosticPageId,
-          operationId,
-          operation,
-          phase,
-          timestamp,
-          elapsedMs: timestamp - startedAt,
-          ...context,
-          ...details,
-        }),
-      );
-    };
-    log('begin');
-    return log;
-  }
-
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
     return this.evaluate(script);
   }
@@ -504,7 +478,11 @@ export class Page<
     const imgType = 'jpeg' as const;
     const quality = 90;
     const startTime = Date.now();
-    const log = this.startDiagnosticOperation('screenshot');
+    const operation = {
+      pageId: this.diagnosticPageId,
+      operationId: ++this.diagnosticOperationSequence,
+    };
+    debugPage('screenshotBase64 begin %o', operation);
     let source: string = this.interfaceType;
 
     try {
@@ -539,21 +517,23 @@ export class Page<
             error,
           );
           source = 'cdp-fallback';
-          log('fallback', { source });
+          debugPage('screenshotBase64 fallback %o', { ...operation, source });
           base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
         }
       } else {
         throw new Error('Unsupported page type for screenshot');
       }
       const endTime = Date.now();
-      log('end', {
+      debugPage('screenshotBase64 end %o', {
+        ...operation,
         source,
         durationMs: endTime - startTime,
         screenshotHash: sha256Hex(base64).slice(0, 16),
       });
       return base64;
     } catch (error) {
-      log('error', {
+      debugPage('screenshotBase64 error %o', {
+        ...operation,
         source,
         errorName: error instanceof Error ? error.name : 'UnknownError',
       });
@@ -1036,11 +1016,22 @@ export class Page<
         y: number,
         options?: { button?: MouseButton; count?: number },
       ) => {
-        const log = this.startDiagnosticOperation('click');
+        const startedAt = Date.now();
+        const operation = {
+          pageId: this.diagnosticPageId,
+          operationId: ++this.diagnosticOperationSequence,
+        };
+        debugPage('mouse click begin %o', operation);
         const { button = 'left', count = 1 } = options || {};
         try {
           await this.mouse.move(x, y);
-          log('dispatch', { x, y, button, count });
+          debugPage('mouse click dispatch %o', {
+            ...operation,
+            x,
+            y,
+            button,
+            count,
+          });
 
           if (count === 2 && this.interfaceType === 'playwright') {
             await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
@@ -1060,9 +1051,13 @@ export class Page<
             });
           }
           // A returned browser input call does not prove the UI has rendered.
-          log('returned');
+          debugPage('mouse click returned %o', {
+            ...operation,
+            durationMs: Date.now() - startedAt,
+          });
         } catch (error) {
-          log('error', {
+          debugPage('mouse click error %o', {
+            ...operation,
             errorName: error instanceof Error ? error.name : 'UnknownError',
           });
           throw error;
@@ -1381,17 +1376,25 @@ export class Page<
   }
 
   async defaultActionWait(name: string, _param: any): Promise<void> {
-    const log = this.startDiagnosticOperation('action-wait', {
+    const startedAt = Date.now();
+    const operation = {
+      pageId: this.diagnosticPageId,
+      operationId: ++this.diagnosticOperationSequence,
       actionName: name,
-    });
+    };
+    debugPage('defaultActionWait begin %o', operation);
     try {
       await Promise.all([
         this.waitForNavigation('afterInvokeAction', name),
         this.waitForNetworkIdle('afterInvokeAction', name),
       ]);
-      log('end');
+      debugPage('defaultActionWait end %o', {
+        ...operation,
+        durationMs: Date.now() - startedAt,
+      });
     } catch (error) {
-      log('error', {
+      debugPage('defaultActionWait error %o', {
+        ...operation,
         errorName: error instanceof Error ? error.name : 'UnknownError',
       });
       throw error;

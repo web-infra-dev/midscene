@@ -876,7 +876,7 @@ export class TaskExecutor {
           difference: freshness.difference,
           decision: freshness.changed ? 'replan' : 'execute',
         };
-        debug('plan-freshness', JSON.stringify(freshnessLog));
+        debug('plan freshness %o', freshnessLog);
         planningTask.log = { ...planningTask.log, planFreshness: freshnessLog };
       }
       if (freshness?.changed) {
