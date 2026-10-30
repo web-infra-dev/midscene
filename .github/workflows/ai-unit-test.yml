@@ -91,6 +91,7 @@ jobs:
         name: test-ai-output
         path: |
           packages/web-integration/midscene_run/report
+          packages/cli/midscene_run
           packages/core/test-results.json
           packages/web-integration/test-results.json
           packages/cli/test-results.json
