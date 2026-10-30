@@ -179,17 +179,12 @@ If you use Midscene.js in your research or project, please cite:
 }
 ```
 
-## ✨ Star History
+## ⭐ Star Midscene
+
+If Midscene is useful to you, please give it a star.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=web-infra-dev/midscene&type=Date)](https://www.star-history.com/#web-infra-dev/midscene&Date)
-
 
 ## 📝 License
 
 Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).
-
----
-
-<div align="center">
-  If this project helps you or inspires you, please give us a star
-</div>

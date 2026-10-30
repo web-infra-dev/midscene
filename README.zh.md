@@ -179,17 +179,12 @@ Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模
 }
 ```
 
-## ✨ Star 历史
+## ⭐ 为 Midscene 点个 Star
+
+如果 Midscene 对你有帮助，欢迎点个 Star。
 
 [![Star History Chart](https://api.star-history.com/svg?repos=web-infra-dev/midscene&type=Date)](https://www.star-history.com/#web-infra-dev/midscene&Date)
-
 
 ## 📝 许可协议
 
 Midscene.js 采用 [MIT 许可证](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
-
----
-
-<div align="center">
-  如果这个项目对你有帮助或启发，欢迎点个 Star
-</div>
