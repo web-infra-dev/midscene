@@ -1,0 +1,136 @@
+.model-config-card {
+  margin: 1rem 0;
+  overflow: hidden;
+  border: var(--rp-code-block-border);
+  border-radius: var(--rp-radius);
+  box-shadow: var(--rp-code-block-shadow);
+  background: var(--rp-code-title-bg);
+}
+
+.model-config-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 8px 12px;
+  border-bottom: var(--rp-code-block-border);
+  font-size: 13px;
+}
+
+.model-config-toolbar-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.model-config-label {
+  float: left;
+  margin-right: 6px;
+  padding: 0;
+  color: var(--rp-c-text-2);
+}
+
+.model-config-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.model-config-segmented {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.model-config-segmented button {
+  padding: 3px 8px;
+  border-radius: var(--rp-radius-small);
+  color: var(--rp-c-text-2);
+  cursor: pointer;
+}
+
+.model-config-segmented button:hover {
+  color: var(--rp-c-text-1);
+}
+
+.model-config-segmented button[aria-pressed="true"] {
+  color: var(--rp-c-brand);
+  background: var(--rp-c-bg);
+  font-weight: 600;
+}
+
+.model-config-provider-name {
+  color: var(--rp-c-text-1);
+  font-weight: 600;
+}
+
+.model-config-provider-link {
+  color: var(--rp-c-brand);
+  text-decoration: none;
+}
+
+.model-config-provider-link:hover {
+  text-decoration: underline;
+}
+
+.model-config-purpose {
+  display: flex;
+  align-items: center;
+}
+
+.model-config-purpose select {
+  padding: 3px 24px 3px 8px;
+  border: 1px solid var(--rp-c-divider);
+  border-radius: var(--rp-radius-small);
+  color: var(--rp-c-text-1);
+  background: var(--rp-c-bg)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23888' stroke-width='1.5'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+}
+
+.model-config-segmented button:focus-visible,
+.model-config-purpose select:focus-visible,
+.model-config-help:focus-visible,
+.model-config-provider-link:focus-visible {
+  outline: 2px solid var(--rp-c-brand);
+  outline-offset: 2px;
+}
+
+.model-config-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: var(--rp-c-text-2);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.model-config-help:hover {
+  color: var(--rp-c-brand);
+}
+
+/* The card owns the frame; flatten the inner code block. */
+.model-config-card .rp-codeblock {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
