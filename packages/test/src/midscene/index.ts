@@ -41,7 +41,7 @@ import { defineNode } from '../node/define-node';
 import type { NodeDefinition, NodeExecutionContext } from '../node/types';
 
 export type MidsceneUIAgent = CommonAgentTestRunnerApi & {
-  _prepareForTestRunner?(): void;
+  _prepareForTestRunner?(): void | Promise<void>;
   _createReportSource?(
     scopeId: string,
     executionIds?: readonly string[],
@@ -394,7 +394,7 @@ export function createMidsceneNodes<TContext>(
           ? await options.agentProvider.getAgent(runId, ctx)
           : await options.getAgent!(ctx);
         retainResourceForScope(agent, ctx.signal);
-        agent._prepareForTestRunner?.();
+        await agent._prepareForTestRunner?.();
         scopeAgents.add(agent);
         return agent;
       }),

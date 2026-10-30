@@ -219,8 +219,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   /** @internal Runner snapshots retain immutable data and shared image files. */
-  _prepareForTestRunner(): void {
-    this.reportManager._prepareForTestRunner();
+  async _prepareForTestRunner(): Promise<void> {
+    await this.reportManager._prepareForTestRunner();
   }
   async _createReportSource(scopeId: string, executionIds?: readonly string[]) {
     return this.reportManager._createReportSource(scopeId, executionIds);

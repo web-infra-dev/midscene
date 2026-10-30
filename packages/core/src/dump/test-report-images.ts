@@ -6,7 +6,12 @@ import {
 } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { generateImageScriptTag, parseImageScripts } from './html-utils';
+import { assertReportArtifactPath } from '@midscene/shared/report-artifact';
+import {
+  generateImageScriptTag,
+  streamInlineReportImages,
+  streamInlineReportImagesAsync,
+} from './html-utils';
 import {
   type StoredImageRef,
   imageRefFileExtension,
@@ -54,76 +59,136 @@ export class TestReportImages {
     const refs = new Map<string, StoredImageRef>();
     JSON.parse(serialized, (_key, value) => {
       const ref = normalizeStoredImageRef(value);
+      if (ref?.storage === 'file') assertReportArtifactPath(ref.path);
       if (ref && !this.locations.has(ref.id)) refs.set(ref.id, ref);
       return value;
     });
     return [...refs.values()];
   }
 
-  rewriteSync(serialized: string, sourcePath: string): string {
-    let inlineImages: Record<string, string> | undefined;
-    for (const ref of this.collect(serialized)) {
-      let data: string;
-      if (ref.storage === 'file')
-        data = `data:${ref.mimeType};base64,${readFileSync(resolve(dirname(sourcePath), ref.path!)).toString('base64')}`;
-      else {
-        inlineImages ??= parseImageScripts(readFileSync(sourcePath, 'utf8'));
-        data = inlineImages[ref.id];
-        if (!data)
-          throw new Error(`Missing report image ${ref.id} in ${sourcePath}`);
+  private inlineSources(
+    refs: StoredImageRef[],
+    sourcePath: string,
+    origins?: ReadonlyMap<string, string>,
+  ): Map<string, Map<string, StoredImageRef>> {
+    const sources = new Map<string, Map<string, StoredImageRef>>();
+    for (const ref of refs)
+      if (ref.storage === 'inline') {
+        const source = origins?.get(ref.id) ?? sourcePath;
+        const images = sources.get(source) ?? new Map<string, StoredImageRef>();
+        images.set(ref.id, ref);
+        sources.set(source, images);
       }
-      const target = this.reference(ref, data);
-      if (target.storage === 'file') {
-        if (!this.files.has(target.path!)) {
-          const file = join(dirname(this.reportPath), target.path!);
-          mkdirSync(dirname(file), { recursive: true });
-          writeFileSync(
-            file,
-            Buffer.from(parseBase64ImageDataUrl(data).rawBase64, 'base64'),
-          );
-          this.files.add(target.path!);
+    return sources;
+  }
+
+  private writeSync(ref: StoredImageRef, data: string): void {
+    const target = this.reference(ref, data);
+    if (target.storage === 'file') {
+      if (!this.files.has(target.path!)) {
+        const file = join(dirname(this.reportPath), target.path!);
+        mkdirSync(dirname(file), { recursive: true });
+        writeFileSync(
+          file,
+          Buffer.from(parseBase64ImageDataUrl(data).rawBase64, 'base64'),
+        );
+        this.files.add(target.path!);
+      }
+    } else
+      appendFileSync(
+        this.reportPath,
+        `${generateImageScriptTag(ref.id, data)}\n`,
+      );
+  }
+
+  private async write(ref: StoredImageRef, data: string): Promise<void> {
+    const target = this.reference(ref, data);
+    if (target.storage === 'file') {
+      if (!this.files.has(target.path!)) {
+        const file = join(dirname(this.reportPath), target.path!);
+        await fs.mkdir(dirname(file), { recursive: true });
+        await fs.writeFile(
+          file,
+          Buffer.from(parseBase64ImageDataUrl(data).rawBase64, 'base64'),
+        );
+        this.files.add(target.path!);
+      }
+    } else
+      await fs.appendFile(
+        this.reportPath,
+        `${generateImageScriptTag(ref.id, data)}\n`,
+      );
+  }
+
+  rewriteSync(
+    serialized: string,
+    sourcePath: string,
+    origins?: ReadonlyMap<string, string>,
+  ): string {
+    const refs = this.collect(serialized);
+    for (const ref of refs)
+      if (ref.storage === 'file') {
+        const bytes = readFileSync(
+          resolve(dirname(origins?.get(ref.id) ?? sourcePath), ref.path!),
+        );
+        this.writeSync(
+          ref,
+          `data:${ref.mimeType};base64,${bytes.toString('base64')}`,
+        );
+      }
+    for (const [source, images] of this.inlineSources(
+      refs,
+      sourcePath,
+      origins,
+    )) {
+      streamInlineReportImages(source, (id, data) => {
+        const ref = images.get(id);
+        if (ref) {
+          this.writeSync(ref, data);
+          images.delete(id);
         }
-      } else
-        appendFileSync(
-          this.reportPath,
-          `${generateImageScriptTag(ref.id, data)}\n`,
+        return images.size === 0;
+      });
+      if (images.size)
+        throw new Error(
+          `Missing report image ${images.keys().next().value} in ${source}`,
         );
     }
     return this.rewrite(serialized);
   }
 
-  async rewriteAsync(serialized: string, sourcePath: string): Promise<string> {
-    let inlineImages: Record<string, string> | undefined;
-    for (const ref of this.collect(serialized)) {
-      let data: string;
+  async rewriteAsync(
+    serialized: string,
+    sourcePath: string,
+    origins?: ReadonlyMap<string, string>,
+  ): Promise<string> {
+    const refs = this.collect(serialized);
+    for (const ref of refs)
       if (ref.storage === 'file') {
         const bytes = await fs.readFile(
-          resolve(dirname(sourcePath), ref.path!),
+          resolve(dirname(origins?.get(ref.id) ?? sourcePath), ref.path!),
         );
-        data = `data:${ref.mimeType};base64,${bytes.toString('base64')}`;
-      } else {
-        inlineImages ??= parseImageScripts(
-          await fs.readFile(sourcePath, 'utf8'),
+        await this.write(
+          ref,
+          `data:${ref.mimeType};base64,${bytes.toString('base64')}`,
         );
-        data = inlineImages[ref.id];
-        if (!data)
-          throw new Error(`Missing report image ${ref.id} in ${sourcePath}`);
       }
-      const target = this.reference(ref, data);
-      if (target.storage === 'file') {
-        if (!this.files.has(target.path!)) {
-          const file = join(dirname(this.reportPath), target.path!);
-          await fs.mkdir(dirname(file), { recursive: true });
-          await fs.writeFile(
-            file,
-            Buffer.from(parseBase64ImageDataUrl(data).rawBase64, 'base64'),
-          );
-          this.files.add(target.path!);
+    for (const [source, images] of this.inlineSources(
+      refs,
+      sourcePath,
+      origins,
+    )) {
+      for await (const { id, data } of streamInlineReportImagesAsync(source)) {
+        const ref = images.get(id);
+        if (ref) {
+          await this.write(ref, data);
+          images.delete(id);
         }
-      } else
-        await fs.appendFile(
-          this.reportPath,
-          `${generateImageScriptTag(ref.id, data)}\n`,
+        if (!images.size) break;
+      }
+      if (images.size)
+        throw new Error(
+          `Missing report image ${images.keys().next().value} in ${source}`,
         );
     }
     return this.rewrite(serialized);

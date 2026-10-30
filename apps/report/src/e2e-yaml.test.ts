@@ -8,7 +8,10 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readReportRunnerDump } from '@midscene/core/report';
+import {
+  readReportArtifactManifest,
+  readReportRunnerDump,
+} from '@midscene/core/report';
 import { collectWorkflowDocument } from '@midscene/test';
 import { runTestProject } from '@midscene/test/config';
 import { describe, expect, it } from '@rstest/core';
@@ -50,6 +53,11 @@ describe('report e2e YAML', () => {
       expect(resolve(dirname(result.summaryPath), summary.report)).toBe(
         result.reportPath,
       );
+      expect(readReportArtifactManifest(result.reportPath!)).toMatchObject({
+        kind: 'test',
+        entry: 'index.html',
+        status: 'complete',
+      });
       expect(readReportRunnerDump(result.reportPath!)?.summary.passed).toBe(1);
     } finally {
       rmSync(root, { recursive: true, force: true });

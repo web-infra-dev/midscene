@@ -16,6 +16,7 @@ import { deriveCaseStatus } from './dump/task-status';
 import {
   ReportMergingTool,
   collectDedupedExecutions,
+  exportReportArtifact,
   splitReportHtmlByExecution,
 } from './report';
 import { reportToMarkdown } from './report-markdown';
@@ -46,7 +47,11 @@ export interface ReportCliCommandEntry {
   def: ReportCliCommandDefinition;
 }
 
-export type ConsumeReportFileAction = 'split' | 'to-markdown' | 'merge-html';
+export type ConsumeReportFileAction =
+  | 'split'
+  | 'to-markdown'
+  | 'merge-html'
+  | 'export';
 
 export interface ConsumeReportFileOptions {
   htmlPath: string;
@@ -60,6 +65,7 @@ export interface MergeReportFilesOptions {
   htmlPaths: string[];
   outputDir?: string;
   outputName?: string;
+  outputFormat?: 'single-html' | 'html-and-external-assets';
   overwrite?: boolean;
 }
 
@@ -297,7 +303,13 @@ function deriveReportAttributesFromHtml(
 export function mergeReportFiles(
   options: MergeReportFilesOptions,
 ): MergeReportFilesResult {
-  const { htmlPaths, outputDir, outputName, overwrite = false } = options;
+  const {
+    htmlPaths,
+    outputDir,
+    outputName,
+    outputFormat,
+    overwrite = false,
+  } = options;
   if (!htmlPaths || htmlPaths.length === 0) {
     throw new Error('mergeReportFiles: htmlPaths is required');
   }
@@ -315,6 +327,7 @@ export function mergeReportFiles(
   const mergedReportPath = tool.mergeReports(outputName ?? 'AUTO', {
     overwrite,
     outputDir,
+    outputFormat,
   });
 
   if (!mergedReportPath) {
@@ -341,19 +354,19 @@ function normalizeHtmlReportArg(raw: unknown): string[] | undefined {
 const reportCommandDefinition: ReportCliCommandDefinition = {
   name: 'report-tool',
   description:
-    'Transform Midscene report artifacts, including splitting executions, converting to markdown, and merging multiple reports.',
+    'Transform Midscene report artifacts, including splitting executions, converting to markdown, merging multiple reports, and exporting portable reports in either storage format.',
   schema: {
     action: z
-      .enum(['split', 'to-markdown', 'merge-html'])
+      .enum(['split', 'to-markdown', 'merge-html', 'export'])
       .optional()
       .describe(
-        'Report action to run. Supports: split, to-markdown, merge-html. Defaults to split.',
+        'Report action to run. Supports: split, to-markdown, merge-html, export. Defaults to split.',
       ),
     htmlPath: z
       .string()
       .optional()
       .describe(
-        'Input report HTML path (e.g. ./report/index.html). Used by split and to-markdown.',
+        'Input report HTML path (e.g. ./report/index.html). Used by split, to-markdown, and export.',
       ),
     htmlReport: z
       .union([z.string(), z.array(z.string())])
@@ -371,13 +384,17 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       .string()
       .optional()
       .describe(
-        'Output report file/directory name (without .html) for the merge action. Defaults to an auto-generated name.',
+        'Output report file/directory name (without .html). Merge generates a name; export uses the input name by default.',
       ),
     overwrite: z
       .union([z.boolean(), z.string()])
       .optional()
+      .describe('Overwrite an existing output report for merge or export.'),
+    outputFormat: z
+      .enum(['single-html', 'html-and-external-assets'])
+      .optional()
       .describe(
-        'Overwrite the existing merged report file if present (merge action only).',
+        'Final delivery format for merge and export. Defaults to single-html.',
       ),
   },
   handler: async (args) => {
@@ -388,6 +405,7 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       outputDir,
       outputName,
       overwrite,
+      outputFormat,
     } = args as {
       action?: string;
       htmlPath?: string;
@@ -395,14 +413,16 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       outputDir?: string;
       outputName?: string;
       overwrite?: unknown;
+      outputFormat?: 'single-html' | 'html-and-external-assets';
     };
     if (
       action !== 'split' &&
       action !== 'to-markdown' &&
-      action !== 'merge-html'
+      action !== 'merge-html' &&
+      action !== 'export'
     ) {
       throw new Error(
-        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown, merge-html`,
+        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown, merge-html, export`,
       );
     }
 
@@ -421,6 +441,7 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
         htmlPaths: paths,
         outputDir,
         outputName,
+        outputFormat,
         overwrite: overwriteFlag,
       });
 
@@ -441,6 +462,27 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
 
     if (!outputDir) {
       throw new Error('report-tool: --outputDir is required');
+    }
+
+    if (action === 'export') {
+      const input = resolveReportHtmlPath(htmlPath);
+      const name =
+        outputName ??
+        (path.basename(input) === 'index.html'
+          ? path.basename(path.dirname(input))
+          : path.basename(input, '.html'));
+      const reportPath = await exportReportArtifact({
+        reportPath: input,
+        outputDir,
+        reportFileName: name,
+        outputFormat,
+        overwrite:
+          overwrite === true || overwrite === 'true' || overwrite === '1',
+      });
+      return {
+        isError: false,
+        content: [{ type: 'text', text: `Report exported to ${reportPath}` }],
+      };
     }
 
     if (action === 'to-markdown') {

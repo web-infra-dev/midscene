@@ -448,7 +448,7 @@ An execution project connects a runtime environment to its cases. Even a single 
 | `test.testTimeout` | Default timeout for each step in milliseconds; defaults to `120000`. A step's `$` timeout overrides it. |
 | `test.bail` | Stops scheduling new work when the failed-case threshold is reached; `0` disables the threshold. |
 | `output.reportDir` | Report output directory; defaults to `./midscene_run/report`. |
-| `output.reportFormat` | `'single-html'` (default) includes execution data and images in one HTML file for direct offline viewing. `'html-and-external-assets'` writes a directory report with images stored by content, and requires HTTP preview. This choice is independent of the Agent source storage format. |
+| `output.reportFormat` | `'single-html'` (default) includes execution data and images in one HTML file for direct offline viewing. `'html-and-external-assets'` writes a directory report with images stored by content, and requires HTTP preview. Test manages its internal Agent records without publishing separate Agent pages. This choice controls the integrated report. |
 
 See [Run tests](./running#run-tests) for CLI project selection and configuration file options, and [Configure timeouts and error handling](./writing#configure-timeouts-and-error-handling) for step overrides.
 

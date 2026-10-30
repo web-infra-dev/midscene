@@ -69,6 +69,14 @@ pnpm exec midscene-test --help
   注意：`summary.json` 的字段结构可能随版本演进，外部工具消费时请以当前版本的实际输出为准。
 - **HTML 可视化报告**：测试运行结束后可在浏览器中直接打开。报告中完整记录了用例执行结果、每一步的界面截图、输入输出参数、报错堆栈以及 Agent 视觉执行回放，方便快速定位问题。输出目录由配置文件中的 `output.reportDir` 控制（默认生成在 `midscene_run/report/` 目录下），与结构化结果目录相互独立。
 
+Midscene Test 统一管理本轮创建的 Agent 执行记录。内部 Agent 将截图和执行数据交给整合报告，每轮只生成这一份报告页面。独立运行 Agent 脚本、旧 YAML runner 时，仍会生成 Agent 报告。
+
+自定义 Agent Provider 需要把 `agent.reportFile` 当作可选值：原生托管 Agent 无需在 `releaseAgent` 中返回独立页面路径，Runner 会自动收集快照。外部适配器仍可提供快照 JSON 或 Agent HTML。
+
+建议在 setup 或 Provider 申请时创建 Agent；已有空闲 Agent 可以接入本轮，其此前的独立运行记录保留在原报告中。
+
+结果目录还包含 `records/`：结构化结果引用的不可变执行快照和共享截图。报告成功交付后，会清理可替换的进度文件；取消后仍在运行的操作会保留进度记录，供诊断使用。需要程序化分析时保留结果目录，最终报告则可以独立分享。
+
 ### 退出码
 
 你可以根据 CLI 退出码判断整次测试运行是否成功：
@@ -80,7 +88,16 @@ pnpm exec midscene-test --help
 
 ### 报告归档
 
-报告默认生成为单文件 HTML：`midscene_run/report/midscene-e2e-<runId>.html`。如果启用了外置截图模式，产物目录中会包含 `index.html` 与 `screenshots/` 文件夹，在 CI 中归档或上传产物时请务必保留整个目录。在 CI 中配置报告归档的方式请参阅[在 GitHub Actions 中运行](#在-github-actions-中运行)。
+报告默认生成为单文件 HTML：`midscene_run/report/midscene-e2e-<runId>.html`。在 `midscene.config.ts` 中通过 `output.reportFormat` 选择交付格式：
+
+```ts
+output: {
+  reportFormat: 'single-html', // 默认：直接打开 HTML，支持离线查看
+  // reportFormat: 'html-and-external-assets',
+}
+```
+
+外置模式生成 `midscene-e2e-<runId>/index.html`、`report.json`、`data/` 下的执行与运行结果 JSON，以及 `screenshots/` 下按内容去重的图片。归档或上传时保留整个报告目录，通过 HTTP 预览。该格式独立于 Agent Provider 中提供的 Agent 存储设置。在 CI 中配置报告归档的方式请参阅[在 GitHub Actions 中运行](#在-github-actions-中运行)。
 
 ### 链接到指定步骤（URL Hash）
 
