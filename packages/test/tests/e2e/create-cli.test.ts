@@ -12,8 +12,9 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { executablePath } from 'puppeteer';
@@ -29,6 +30,9 @@ import {
 } from '../../src/cli/create-template';
 
 const execFileAsync = promisify(execFile);
+const { readReportRunnerDump } = createRequire(import.meta.url)(
+  '@midscene/core/report',
+) as typeof import('@midscene/core/report');
 // Fail if a built entry selects tsx's CommonJS API. Its async loader path is
 // broken in tsx 4.23.15 on Node 22.19; exercise the real ESM API instead.
 const rejectTsxCjsApi = `
@@ -135,6 +139,116 @@ const isolateWebDependency = (root: string) => {
     symlinkSync(join(source, 'node_modules', name), target, 'dir');
   }
 };
+
+describe('CLI GitHub summary publication', () => {
+  const run = async (
+    reportFormat: 'single-html' | 'html-and-external-assets',
+    failed = false,
+    brokenReportDirectory = false,
+  ) => {
+    const root = temp();
+    const summaryPath = join(root, 'github-summary.md');
+    const existing = '# Existing Rstest summary\n';
+    writeFileSync(summaryPath, existing);
+    const reportDir = join(root, 'reports');
+    if (brokenReportDirectory) writeFileSync(reportDir, 'not a directory');
+    writeFileSync(
+      join(root, 'midscene.config.mjs'),
+      `export default {
+        output: ${JSON.stringify({ reportDir, reportFormat })},
+        projects: [
+          { name: 'web', nodes: [{ name: 'check', execute() {} }] },
+          { name: 'android', nodes: [{ name: 'check', execute() {
+            if (${failed}) throw new Error('summary publication failure fixture');
+          } }] },
+        ],
+      };`,
+    );
+    writeFileSync(
+      join(root, 'flow.yaml'),
+      'cases:\n  - name: summary publication case\n    steps:\n      - check: {}\n',
+    );
+    const command = await execFileAsync(
+      process.execPath,
+      [
+        join(packageRoot, 'bin/midscene-test'),
+        '--config',
+        'midscene.config.mjs',
+      ],
+      {
+        cwd: root,
+        env: {
+          ...process.env,
+          NODE_PATH: '',
+          GITHUB_ACTIONS: 'true',
+          GITHUB_STEP_SUMMARY: summaryPath,
+        },
+        timeout: 45_000,
+      },
+    ).then(
+      (result) => ({ ...result, code: 0 }),
+      (error: { stdout: string; stderr: string; code: number }) => error,
+    );
+    const resultPath = command.stdout.match(/^Summary: (.+)$/m)?.[1].trim();
+    expect(resultPath, `${command.stdout}\n${command.stderr}`).toBeDefined();
+    const result = JSON.parse(readFileSync(resultPath!, 'utf8'));
+    const summary = readFileSync(summaryPath, 'utf8');
+    expect(summary.startsWith(existing)).toBe(true);
+    expect(summary.match(/## Midscene Test/g)).toHaveLength(1);
+    expect(summary).toContain(resultPath);
+    expect(
+      result.projects.map((project: { name: string }) => project.name),
+    ).toEqual(['web', 'android']);
+    const markdown = readFileSync(
+      resolve(dirname(resultPath!), result.markdown),
+      'utf8',
+    );
+    expect(markdown).toContain('summary publication case');
+    return { command, result, resultPath: resultPath!, summary };
+  };
+
+  it.each(
+    (['single-html', 'html-and-external-assets'] as const).flatMap(
+      (reportFormat) =>
+        [false, true].map((failed) => ({ reportFormat, failed })),
+    ),
+  )(
+    'keeps $reportFormat reports and one combined summary (failed: $failed)',
+    async ({ reportFormat, failed }) => {
+      const { command, result, resultPath, summary } = await run(
+        reportFormat,
+        failed,
+      );
+      expect(command.code).toBe(failed ? 1 : 0);
+      expect(result.status).toBe(failed ? 'failed' : 'success');
+      expect(result.summary).toMatchObject({
+        passed: failed ? 1 : 2,
+        failed: failed ? 1 : 0,
+      });
+      const reportPath = resolve(dirname(resultPath), result.report);
+      const dump = readReportRunnerDump(reportPath);
+      expect(dump?.status).toBe(result.status);
+      expect(dump?.summary.passed).toBe(result.summary.passed);
+      expect(dump?.summary.failed).toBe(result.summary.failed);
+      expect(dump?.projects).toHaveLength(2);
+      expect(summary).toContain(reportPath);
+      if (failed)
+        expect(summary).toContain(
+          'Failed: **summary publication case** — android/`flow.yaml`',
+        );
+    },
+  );
+
+  it('publishes completed Case results when report generation fails', async () => {
+    const { command, result, summary } = await run('single-html', false, true);
+    expect(command.code).toBe(1);
+    expect(result.status).toBe('failed');
+    expect(result.summary).toMatchObject({ passed: 2, failed: 0 });
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(summary).toContain('| 2 | 0 | 0 | 0 |');
+    expect(command.stdout).toContain('::error ');
+  });
+});
 
 describe('generated project integration', () => {
   it('resets existing and filtered Todos before each Web case without a model', async () => {

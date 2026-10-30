@@ -1,10 +1,14 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type {
   TestRunReportDocumentPlan,
   TestRunReportPlannedStep,
 } from '@midscene/core';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runCreateCommand } from '../src/cli/create-command';
+import { writeGitHubSummary } from '../src/cli/github-reporter';
 import { runTestCli } from '../src/cli/test-command';
 import { runTestProject } from '../src/cli/test-project-runner';
 import type { TestProjectRunResult } from '../src/cli/types';
@@ -20,11 +24,6 @@ vi.mock('../src/cli/test-project-runner', () => ({
   runTestProject: vi.fn(),
   discoverTestConfig: vi.fn(),
   DEFAULT_TEST_FILE_SELECTION: { include: ['**/*.{yaml,yml}'] },
-}));
-// Summary output is covered separately; diagnostic fixtures must not publish it.
-vi.mock('../src/cli/github-reporter', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../src/cli/github-reporter')>()),
-  writeGitHubSummary: vi.fn(),
 }));
 
 const timing = {
@@ -146,6 +145,66 @@ const documentPlan = (count = 3): TestRunReportDocumentPlan => ({
 const output = () => ({ log: vi.fn(), error: vi.fn() });
 
 beforeEach(() => vi.resetAllMocks());
+
+describe('CLI result publication boundary', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each(['success', 'failed', 'infrastructure'] as const)(
+    'only publishes the %s result when a caller provides a publisher',
+    async (outcome) => {
+      const root = mkdtempSync(join(tmpdir(), 'cli-result-publication-'));
+      try {
+        const summaryPath = join(root, 'github-summary.md');
+        const existing = '# Existing test reporter summary\n';
+        writeFileSync(summaryPath, existing);
+        vi.stubEnv('GITHUB_ACTIONS', 'true');
+        vi.stubEnv('GITHUB_STEP_SUMMARY', summaryPath);
+
+        const result = failedResult();
+        const run = failedCase();
+        if (outcome === 'success') {
+          result.status = 'success';
+          result.exitCode = 0;
+          result.summary = { ...result.summary, passed: 1, failed: 0 };
+          run.status = 'success';
+        }
+        result.reportPath = join(root, 'report.html');
+        result.cases = [{ ...run, documentId: 'document', run }];
+        if (outcome === 'infrastructure')
+          vi.mocked(runTestProject).mockRejectedValue(
+            new WorkflowExecutionFailure(result, [
+              failure('publication failed'),
+            ]),
+          );
+        else vi.mocked(runTestProject).mockResolvedValue(result);
+
+        const io = output();
+        expect(await runTestCli([], io)).toBe(result.exitCode);
+        expect(readFileSync(summaryPath, 'utf8')).toBe(existing);
+
+        expect(await runTestCli([], io, writeGitHubSummary)).toBe(
+          result.exitCode,
+        );
+        const summary = readFileSync(summaryPath, 'utf8');
+        expect(summary.startsWith(existing)).toBe(true);
+        expect(summary.match(/## Midscene Test/g)).toHaveLength(1);
+        expect(summary).toContain(result.reportPath);
+        expect(summary).toContain(result.summaryPath);
+        if (outcome === 'success') {
+          expect(summary).toContain('| 1 | 0 | 0 | 0 |');
+          expect(summary).not.toContain('Failed: **checkout**');
+        } else {
+          expect(summary).toContain('| 0 | 1 | 0 | 0 |');
+          expect(summary).toContain('Failed: **checkout**');
+        }
+        expect(io.log).toHaveBeenCalledWith(`Summary: ${result.summaryPath}`);
+        expect(process.env.GITHUB_STEP_SUMMARY).toBe(summaryPath);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+});
 
 describe('Test CLI failure diagnostics', () => {
   it.each([
