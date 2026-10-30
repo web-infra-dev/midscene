@@ -1,5 +1,6 @@
-import { type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose';
+import { type JWTVerifyGetKey, jwtVerify } from 'jose';
 import { tokenResponseError, withSiwcStage } from './errors';
+import { createSiwcJWKSet, fetchSiwc } from './network';
 interface RefreshableCredentials {
   client_id?: string;
   refresh_token?: string;
@@ -19,7 +20,7 @@ export async function refreshSiwcCredentials<T extends RefreshableCredentials>(
   const issuer = 'https://auth.openai.com';
   signal.throwIfAborted();
   const response = await withSiwcStage('Token refresh', async () => {
-    const response = await (dependencies?.fetch ?? fetch)(
+    const response = await (dependencies?.fetch ?? fetchSiwc)(
       `${issuer}/api/accounts/oauth/token`,
       {
         method: 'POST',
@@ -65,9 +66,7 @@ export async function refreshSiwcCredentials<T extends RefreshableCredentials>(
     if (typeof tokens.id_token !== 'string' || !tokens.id_token) {
       throw new Error('Invalid refreshed ID token.');
     }
-    const keys =
-      dependencies?.keys ??
-      createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
+    const keys = dependencies?.keys ?? createSiwcJWKSet(issuer, signal);
     const { payload } = await withSiwcStage('ID token verification', () =>
       jwtVerify(tokens.id_token, keys, {
         issuer,

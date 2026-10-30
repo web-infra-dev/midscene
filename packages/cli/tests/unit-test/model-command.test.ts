@@ -65,8 +65,24 @@ describe('model command', () => {
       ['login', '--no-open', '--port', '1455'],
       io,
     );
+    expect(loadDotenvConfig).toHaveBeenCalledWith({
+      dotenvOverride: false,
+      dotenvDebug: false,
+    });
     expect(loadDotenv).not.toHaveBeenCalled();
     expect(getModelConfig).not.toHaveBeenCalled();
+  });
+
+  it('loads dotenv for SIWC refresh without requiring model configuration', async () => {
+    const io = createIO();
+    rs.mocked(loadDotenvConfig).mockClear();
+    rs.mocked(runSiwcCommand).mockResolvedValueOnce(0);
+    expect(await runModelCommand(['model', 'siwc', 'refresh'], {}, io)).toBe(0);
+    expect(loadDotenvConfig).toHaveBeenCalledWith({
+      dotenvOverride: false,
+      dotenvDebug: false,
+    });
+    expect(runSiwcCommand).toHaveBeenCalledWith(['refresh'], io);
   });
 
   it('deduplicates curl commands by base URL, API key, and model name', () => {

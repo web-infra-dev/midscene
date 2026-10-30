@@ -11,6 +11,7 @@ export const runModelCommand: typeof runSharedModelCommand = (
 ) => {
   const [, action, ...restArgs] = rawArgs;
   if (action === 'siwc') {
+    loadDotenvConfig({ dotenvOverride: false, dotenvDebug: false });
     return runSiwcCommand(restArgs, io);
   }
   const withSiwcUsage = (message: string) =>
