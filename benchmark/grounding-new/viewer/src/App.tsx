@@ -70,12 +70,13 @@ function summarize(values: (number | undefined)[]) {
 const modelColumns = [
   { key: 'model', label: 'Model' },
   { key: 'passRate', label: 'Pass Rate' },
-  { key: 'totalTokens', label: 'Total Tokens' },
-  { key: 'inputTokens', label: 'Input Tokens' },
-  { key: 'outputTokens', label: 'Output Tokens' },
+  { key: 'totalTokens', label: 'Total Tokens', unit: 'tokens' },
+  { key: 'inputTokens', label: 'Input Tokens', unit: 'tokens' },
+  { key: 'outputTokens', label: 'Output Tokens', unit: 'tokens' },
   {
     key: 'estimatedCost',
     label: 'Estimated Cost',
+    unit: 'USD',
     help: {
       formula:
         'Per testcase: Input Tokens × input price + Output Tokens × output price.',
@@ -85,13 +86,23 @@ const modelColumns = [
   {
     key: 'estimatedElapsedTime',
     label: 'Estimated Model Duration',
+    unit: 'seconds',
     help: {
       formula:
         'Per testcase: Model Calls × TTFT + max(Output Tokens − Model Calls, 0) ÷ Output Throughput.',
       note: 'TTFT is Time to First Token in seconds; Output Throughput is tokens per second. Calls are assumed sequential. Models with a reference response latency (such as Jev) use Model Calls × response latency instead; that reference is not specific to image or Box requests.',
     },
   },
-  { key: 'duration', label: 'Measured Duration' },
+  {
+    key: 'duration',
+    label: 'Measured Duration',
+    unit: 'seconds',
+    help: {
+      formula:
+        'Actual elapsed time per testcase, from test execution start through agent cleanup, before the result is written to disk.',
+      note: 'Includes image preparation, model requests, network and provider delays, retries, and local processing. Estimated Model Duration is calculated from recorded token usage and reference model performance; it does not measure the full execution or its overhead.',
+    },
+  },
 ] as const;
 
 function showMetricHelp(button: HTMLButtonElement) {
@@ -145,17 +156,13 @@ function EvaluationReport({
       [...new Set(results.map(getModelDisplayName))]
         .sort((left, right) => compareNames(right, left))
         .map((model) => {
-          const modelResults = results
-            .filter((result) => getModelDisplayName(result) === model)
-            .sort(
-              (left, right) =>
-                compareNames(left.input.testcase, right.input.testcase) ||
-                compareNames(left.id, right.id),
-            );
+          const modelResults = results.filter(
+            (result) => getModelDisplayName(result) === model,
+          );
           const modelId = modelResults[0].input.model;
-          const reference = Object.entries(modelCosts).find(
-            ([name]) => name === model,
-          )?.[1];
+          const reference = Object.hasOwn(modelCosts, model)
+            ? modelCosts[model as keyof typeof modelCosts]
+            : undefined;
           const estimates = modelResults.map(({ profiling }) => {
             const {
               totalPromptTokens: input,
@@ -329,7 +336,7 @@ function EvaluationReport({
                         <button
                           type="button"
                           className="model-breakdown-sort"
-                          aria-label={`${label}${key !== 'model' && key !== 'passRate' ? ' Avg.' : ''}`}
+                          aria-label={`${label}${'unit' in column ? ' Avg.' : ''}`}
                           onClick={() =>
                             setSort((previous) => ({
                               key,
@@ -356,7 +363,7 @@ function EvaluationReport({
                                 : '↓'}
                           </span>
                         </button>
-                        {key !== 'model' && key !== 'passRate' && (
+                        {'unit' in column && (
                           <span className="model-breakdown-average">
                             Avg.
                             {'help' in column && (
@@ -435,7 +442,7 @@ function EvaluationReport({
                                   <span>{column.help.note}</span>
                                   <span>
                                     Avg. is the arithmetic mean of valid
-                                    per-testcase estimates across all outcomes,
+                                    per-testcase values across all outcomes,
                                     including zero. Missing values are excluded.
                                   </span>
                                 </span>
@@ -451,20 +458,9 @@ function EvaluationReport({
               </tr>
             </thead>
             <tbody>
-              {sortedModels.map(
-                ({
-                  model,
-                  reference,
-                  count,
-                  passed,
-                  totalTokens,
-                  inputTokens,
-                  outputTokens,
-                  duration,
-                  estimatedElapsedTime,
-                  estimatedCost,
-                  first,
-                }) => (
+              {sortedModels.map((summary) => {
+                const { model, reference, count, passed, first } = summary;
+                return (
                   <tr key={model}>
                     <th scope="row">
                       <strong className="model-breakdown-name">{model}</strong>
@@ -484,55 +480,29 @@ function EvaluationReport({
                         {passed} / {count} passed
                       </small>
                     </td>
-                    {[
-                      {
-                        label: 'Total Tokens',
-                        values: totalTokens,
-                        unit: 'tokens',
-                      },
-                      {
-                        label: 'Input Tokens',
-                        values: inputTokens,
-                        unit: 'tokens',
-                      },
-                      {
-                        label: 'Output Tokens',
-                        values: outputTokens,
-                        unit: 'tokens',
-                      },
-                      {
-                        label: 'Estimated Cost',
-                        values: estimatedCost,
-                        unit: 'USD',
-                      },
-                      {
-                        label: 'Estimated Model Duration',
-                        values: estimatedElapsedTime,
-                        unit: 'seconds',
-                      },
-                      {
-                        label: 'Measured Duration',
-                        values: duration,
-                        unit: 'seconds',
-                      },
-                    ].map(({ label, values, unit }) => (
-                      <td key={label}>
-                        {values.average === null
-                          ? '—'
-                          : unit === 'seconds'
-                            ? `${(values.average / 1000).toFixed(2)} s`
-                            : unit === 'USD'
-                              ? `$${values.average.toFixed(6)}`
-                              : values.average.toLocaleString('en-US', {
-                                  maximumFractionDigits: 0,
-                                })}
-                        {values.count !== count && (
-                          <small>
-                            {values.count} / {count} valid results
-                          </small>
-                        )}
-                      </td>
-                    ))}
+                    {modelColumns
+                      .filter((column) => 'unit' in column)
+                      .map(({ key, unit }) => {
+                        const values = summary[key];
+                        return (
+                          <td key={key}>
+                            {values.average === null
+                              ? '—'
+                              : unit === 'seconds'
+                                ? `${(values.average / 1000).toFixed(2)} s`
+                                : unit === 'USD'
+                                  ? `$${values.average.toFixed(6)}`
+                                  : values.average.toLocaleString('en-US', {
+                                      maximumFractionDigits: 0,
+                                    })}
+                            {values.count !== count && (
+                              <small>
+                                {values.count} / {count} valid results
+                              </small>
+                            )}
+                          </td>
+                        );
+                      })}
                     <td className="model-breakdown-reference">
                       {reference ? (
                         <details>
@@ -627,8 +597,8 @@ function EvaluationReport({
                       )}
                     </td>
                   </tr>
-                ),
-              )}
+                );
+              })}
             </tbody>
           </table>
         </section>
@@ -810,11 +780,7 @@ function App() {
           throw new Error(`Failed to load testcases (HTTP ${response.status})`);
         const data: { testcases: TestcaseView[] } = await response.json();
         if (controller.signal.aborted) return;
-        setTestcases(
-          data.testcases.sort((left, right) =>
-            compareNames(left.name, right.name),
-          ),
-        );
+        setTestcases(data.testcases);
         setLoadStatus('ready');
       } catch (error) {
         if (controller.signal.aborted) return;

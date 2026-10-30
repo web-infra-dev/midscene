@@ -1,15 +1,6 @@
 import type { ReactNode } from 'react';
 import type { TestcaseView } from '../types';
 
-function safeExternalUrl(value: string): string | null {
-  try {
-    const url = new URL(value);
-    return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
-  } catch {
-    return null;
-  }
-}
-
 const collectedAtFormatter = new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium',
   timeStyle: 'long',
@@ -20,7 +11,6 @@ export function DetailsPanel({
   children,
 }: { testcase: TestcaseView; children?: ReactNode }) {
   const { reference } = testcase;
-  const sourceLink = safeExternalUrl(reference.url);
   const collectedAt = new Date(reference.collectedAt);
   const refusal = testcase.groundTruth === 'REFUSAL';
   const coordinateText =
@@ -33,22 +23,19 @@ export function DetailsPanel({
       {children}
       <section className="detail-section instructions-section">
         <h3>Instructions</h3>
-        <div className="instruction-card">
-          <div className="instruction-heading">
-            <span>English</span>
+        {(['en', 'zh'] as const).map((language) => (
+          <div key={language} className="instruction-card">
+            <div className="instruction-heading">
+              {language === 'en' ? 'English' : 'Chinese'}
+            </div>
+            <p
+              id={`instruction-${language}`}
+              lang={language === 'en' ? 'en' : 'zh-CN'}
+            >
+              {testcase.instruction[language]}
+            </p>
           </div>
-          <p id="instruction-en" lang="en">
-            {testcase.instruction.en}
-          </p>
-        </div>
-        <div className="instruction-card">
-          <div className="instruction-heading">
-            <span>Chinese</span>
-          </div>
-          <p id="instruction-zh" lang="zh-CN">
-            {testcase.instruction.zh}
-          </p>
-        </div>
+        ))}
       </section>
       <section className="detail-section">
         <h3>Ground Truth</h3>
@@ -80,13 +67,9 @@ export function DetailsPanel({
           <div>
             <dt>Source URL</dt>
             <dd id="reference-url">
-              {sourceLink ? (
-                <a href={sourceLink} target="_blank" rel="noopener noreferrer">
-                  {reference.url}
-                </a>
-              ) : (
-                reference.url
-              )}
+              <a href={reference.url} target="_blank" rel="noopener noreferrer">
+                {reference.url}
+              </a>
             </dd>
           </div>
           <div>

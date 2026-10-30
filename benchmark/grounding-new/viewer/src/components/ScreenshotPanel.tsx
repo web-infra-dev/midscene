@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, SyntheticEvent } from 'react';
 import type { EvaluationResult, TestcaseView } from '../types';
 
@@ -18,18 +18,6 @@ interface ScreenshotPanelProps {
   onShowPredictionChange: (value: boolean) => void;
 }
 
-function originalImageUrl(value: string): string | null {
-  try {
-    const url = new URL(value, window.location.origin);
-    return url.origin === window.location.origin &&
-      url.pathname.startsWith('/images/')
-      ? url.href
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 export function ScreenshotPanel({
   testcase,
   zoom,
@@ -47,17 +35,11 @@ export function ScreenshotPanel({
     width: 0,
     height: 0,
   });
-  const [imageError, setImageError] = useState<string | null>(null);
+  const [error, setImageError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const imageUrl = useMemo(
-    () => originalImageUrl(testcase.imageUrl),
-    [testcase.imageUrl],
-  );
-  const error = imageUrl
-    ? imageError
-    : 'The screenshot could not be loaded because its URL is invalid.';
+  const imageUrl = testcase.imageUrl;
   const loaded = dimensions !== null && error === null;
-  const groundTruth = result?.input.groundTruth ?? testcase.groundTruth;
+  const groundTruth = result ? result.input.groundTruth : testcase.groundTruth;
   const refusal = groundTruth === 'REFUSAL';
   const prediction =
     result?.output.type === 'POINT' ? result.output : undefined;
@@ -214,7 +196,7 @@ export function ScreenshotPanel({
           <a
             id="open-image"
             className="open-image"
-            href={imageUrl ?? undefined}
+            href={imageUrl}
             target="_blank"
             rel="noopener noreferrer"
             title="Open the original image in a new tab"
@@ -264,24 +246,22 @@ export function ScreenshotPanel({
                   : undefined
               }
             >
-              {imageUrl && (
-                <img
-                  key={`${imageUrl}:${attempt}`}
-                  ref={imageRef}
-                  className="screenshot"
-                  src={imageUrl}
-                  alt={`Screenshot for ${testcase.name}`}
-                  draggable={false}
-                  onLoad={onImageLoad}
-                  onError={(event) => {
-                    if (event.currentTarget === imageRef.current) {
-                      setImageError(
-                        'Failed to load the screenshot. Please try again.',
-                      );
-                    }
-                  }}
-                />
-              )}
+              <img
+                key={`${imageUrl}:${attempt}`}
+                ref={imageRef}
+                className="screenshot"
+                src={imageUrl}
+                alt={`Screenshot for ${testcase.name}`}
+                draggable={false}
+                onLoad={onImageLoad}
+                onError={(event) => {
+                  if (event.currentTarget === imageRef.current) {
+                    setImageError(
+                      'Failed to load the screenshot. Please try again.',
+                    );
+                  }
+                }}
+              />
               {groundTruthStyle && (
                 <div
                   className="gt-box"

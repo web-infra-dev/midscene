@@ -1,25 +1,14 @@
 import type { EvaluationResult } from '../types';
 
 export function ResultStatus({ result }: { result?: EvaluationResult }) {
-  const status = !result
-    ? 'pending'
+  const [status, text] = !result
+    ? ['pending', 'No result']
     : result.output.type === 'ERROR'
-      ? 'error'
+      ? ['error', 'Error']
       : result.output.correct
-        ? 'passed'
-        : 'failed';
-  return (
-    <span className={`evaluation-status ${status}`}>
-      {
-        {
-          pending: 'No result',
-          error: 'Error',
-          passed: 'Passed',
-          failed: 'Failed',
-        }[status]
-      }
-    </span>
-  );
+        ? ['passed', 'Passed']
+        : ['failed', 'Failed'];
+  return <span className={`evaluation-status ${status}`}>{text}</span>;
 }
 
 export function ResultPanel({
@@ -36,9 +25,7 @@ export function ResultPanel({
       className="detail-section evaluation-section"
       aria-label="Evaluation Result"
     >
-      <div className="evaluation-heading">
-        <h3>Evaluation Result</h3>
-      </div>
+      <h3 className="evaluation-heading">Evaluation Result</h3>
       <div className="evaluation-summary">
         <ResultStatus result={result} />
         <span>{(profiling.durationMs / 1000).toFixed(2)} s</span>
@@ -52,29 +39,27 @@ export function ResultPanel({
           <dt>Model</dt>
           <dd>{input.displayName ?? input.model}</dd>
         </div>
-        {profiling.totalTokens !== undefined && (
-          <div>
-            <dt>Total Tokens</dt>
-            <dd>{profiling.totalTokens.toLocaleString('en-US')}</dd>
-          </div>
-        )}
-        {profiling.totalCachedInput !== undefined && (
-          <div>
-            <dt>Cached Input Tokens</dt>
-            <dd>{profiling.totalCachedInput.toLocaleString('en-US')}</dd>
-          </div>
-        )}
-        {profiling.calls !== undefined && (
-          <div>
-            <dt>Model Calls</dt>
-            <dd>{profiling.calls}</dd>
-          </div>
-        )}
-        {profiling.totalTimeCostMs !== undefined && (
-          <div>
-            <dt>Model Duration</dt>
-            <dd>{(profiling.totalTimeCostMs / 1000).toFixed(2)} s</dd>
-          </div>
+        {[
+          ['Total Tokens', profiling.totalTokens?.toLocaleString('en-US')],
+          [
+            'Cached Input Tokens',
+            profiling.totalCachedInput?.toLocaleString('en-US'),
+          ],
+          ['Model Calls', profiling.calls],
+          [
+            'Model Duration',
+            profiling.totalTimeCostMs === undefined
+              ? undefined
+              : `${(profiling.totalTimeCostMs / 1000).toFixed(2)} s`,
+          ],
+        ].map(
+          ([label, value]) =>
+            value !== undefined && (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ),
         )}
       </dl>
       <div className="prediction-value">

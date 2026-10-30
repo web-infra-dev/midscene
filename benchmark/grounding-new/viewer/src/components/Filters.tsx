@@ -33,7 +33,6 @@ export function Filters({
     () => [
       {
         key: 'platform' as const,
-        id: 'platform-filter',
         label: 'Platform',
         options: uniqueOptions(
           testcases.map((item) => item.platform),
@@ -43,7 +42,6 @@ export function Filters({
       },
       {
         key: 'category' as const,
-        id: 'category-filter',
         label: 'Category',
         options: uniqueOptions(
           testcases.map((item) => item.category.item),
@@ -52,7 +50,6 @@ export function Filters({
       },
       {
         key: 'dataset' as const,
-        id: 'dataset-filter',
         label: 'Dataset',
         options: uniqueOptions(
           testcases.map((item) => item.reference.dataset),
@@ -61,7 +58,6 @@ export function Filters({
       },
       {
         key: 'outcome' as const,
-        id: 'outcome-filter',
         label: 'Expected Outcome',
         options: [
           { value: '', text: 'All outcomes' },
@@ -83,7 +79,7 @@ export function Filters({
       {groups.map((group) => (
         <FilterSelect
           key={group.key}
-          id={group.id}
+          id={`${group.key}-filter`}
           label={group.label}
           options={group.options}
           value={filters[group.key]}

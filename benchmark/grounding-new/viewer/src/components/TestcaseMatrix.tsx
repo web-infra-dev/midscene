@@ -31,20 +31,18 @@ export function TestcaseMatrix({
       .sort()
       .map((name) => {
         const cells = models.map((model) => byTestcase.get(name)?.get(model));
-        const completed = cells.filter(Boolean).length;
         const passed = cells.filter((result) => result?.output.correct).length;
         return {
           name,
           cells,
           passed,
-          status:
-            completed < models.length
-              ? 'incomplete'
-              : passed === models.length
-                ? 'all-passed'
-                : passed === 0
-                  ? 'all-failed'
-                  : 'mixed',
+          status: cells.some((result) => !result)
+            ? 'incomplete'
+            : passed === models.length
+              ? 'all-passed'
+              : passed === 0
+                ? 'all-failed'
+                : 'mixed',
         };
       });
     return { models, rows };
@@ -143,28 +141,38 @@ export function TestcaseMatrix({
                     {passed} / {models.length}
                   </span>
                 </td>
-                {cells.map((result, index) => (
-                  <td key={models[index]}>
-                    {result ? (
-                      <a
-                        className={`matrix-cell ${result.output.correct ? 'passed' : 'failed'}`}
-                        href={`/evaluations/${encodeURIComponent(evaluationId)}/${encodeURIComponent(result.id)}`}
-                        title={`${name} · ${models[index]} · ${result.output.correct ? 'Passed' : result.output.type === 'ERROR' ? 'Failed (error)' : 'Failed'}`}
-                        aria-label={`${name} · ${models[index]} · ${result.output.correct ? 'Passed' : result.output.type === 'ERROR' ? 'Failed (error)' : 'Failed'}`}
-                      >
-                        {result.output.correct ? '✓' : '×'}
-                      </a>
-                    ) : (
-                      <span
-                        className="matrix-cell missing"
-                        title={`${name} · ${models[index]} · No result`}
-                        aria-label={`${name} · ${models[index]} · No result`}
-                      >
-                        –
-                      </span>
-                    )}
-                  </td>
-                ))}
+                {cells.map((result, index) => {
+                  const status = !result
+                    ? 'No result'
+                    : result.output.correct
+                      ? 'Passed'
+                      : result.output.type === 'ERROR'
+                        ? 'Failed (error)'
+                        : 'Failed';
+                  const label = `${name} · ${models[index]} · ${status}`;
+                  return (
+                    <td key={models[index]}>
+                      {result ? (
+                        <a
+                          className={`matrix-cell ${result.output.correct ? 'passed' : 'failed'}`}
+                          href={`/evaluations/${encodeURIComponent(evaluationId)}/${encodeURIComponent(result.id)}`}
+                          title={label}
+                          aria-label={label}
+                        >
+                          {result.output.correct ? '✓' : '×'}
+                        </a>
+                      ) : (
+                        <span
+                          className="matrix-cell missing"
+                          title={label}
+                          aria-label={label}
+                        >
+                          –
+                        </span>
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

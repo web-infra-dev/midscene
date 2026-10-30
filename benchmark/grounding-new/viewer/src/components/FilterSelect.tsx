@@ -2,17 +2,11 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 
-export interface FilterOption {
-  value: string;
-  text: string;
-  disabled?: boolean;
-}
-
 interface FilterSelectProps {
   id: string;
   label: string;
   value: string;
-  options: FilterOption[];
+  options: { value: string; text: string }[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onChange: (value: string) => void;
@@ -35,15 +29,6 @@ export function FilterSelect({
   const triggerId = `${id}-trigger`;
   const popupId = `${id}-options`;
 
-  function firstEnabled(reverse = false) {
-    if (reverse) {
-      for (let index = options.length - 1; index >= 0; index--)
-        if (!options[index].disabled) return index;
-      return -1;
-    }
-    return options.findIndex((option) => !option.disabled);
-  }
-
   function close(restoreFocus = false) {
     onOpenChange(false);
     typed.current.buffer = '';
@@ -51,32 +36,19 @@ export function FilterSelect({
   }
 
   function openMenu() {
-    const selected = options.findIndex(
-      (option) => !option.disabled && option.value === value,
-    );
-    if (firstEnabled() < 0) return;
+    if (!options.length) return;
+    const selected = options.findIndex((option) => option.value === value);
     setPosition(null);
-    setActiveIndex(selected >= 0 ? selected : firstEnabled());
+    setActiveIndex(Math.max(0, selected));
     typed.current.buffer = '';
     onOpenChange(true);
   }
 
   function commit(index = activeIndex) {
     const option = options[index];
-    if (!option || option.disabled) return;
+    if (!option) return;
     close(true);
     if (option.value !== value) onChange(option.value);
-  }
-
-  function moveActive(direction: number) {
-    for (let offset = 1; offset <= options.length; offset++) {
-      const index =
-        (activeIndex + direction * offset + options.length) % options.length;
-      if (!options[index]?.disabled) {
-        setActiveIndex(index);
-        return;
-      }
-    }
   }
 
   function typeahead(key: string) {
@@ -91,17 +63,14 @@ export function FilterSelect({
     const selected = options.findIndex((option) => option.value === value);
     const current = open ? activeIndex : selected;
     const start = query.length === 1 ? current + 1 : current;
-    for (let offset = 0; offset < options.length; offset++) {
-      const index = (Math.max(0, start) + offset) % options.length;
-      const option = options[index];
-      if (
-        !option.disabled &&
-        option.text.trim().toLocaleLowerCase().startsWith(query)
-      ) {
-        setActiveIndex(index);
-        return;
-      }
-    }
+    const offset = options.findIndex((_, offset) =>
+      options[(Math.max(0, start) + offset) % options.length].text
+        .trim()
+        .toLocaleLowerCase()
+        .startsWith(query),
+    );
+    if (offset >= 0)
+      setActiveIndex((Math.max(0, start) + offset) % options.length);
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -122,11 +91,15 @@ export function FilterSelect({
       if (open) commit();
       else openMenu();
     } else if (key === 'ArrowDown' || key === 'ArrowUp') {
-      if (open) moveActive(key === 'ArrowDown' ? 1 : -1);
+      if (open)
+        setActiveIndex(
+          (activeIndex + (key === 'ArrowDown' ? 1 : -1) + options.length) %
+            options.length,
+        );
       else openMenu();
     } else if (key === 'Home' || key === 'End') {
       if (!open) openMenu();
-      setActiveIndex(firstEnabled(key === 'End'));
+      setActiveIndex(key === 'End' ? options.length - 1 : 0);
     } else if (key.length === 1) {
       if (!open) openMenu();
       typeahead(key);
@@ -171,19 +144,11 @@ export function FilterSelect({
       maxHeight,
     });
 
-    function outsidePointer(event: PointerEvent) {
+    function outside(event: Event) {
       if (
         event.target instanceof Node &&
         !popup?.contains(event.target) &&
         !trigger?.contains(event.target)
-      )
-        onOpenChange(false);
-    }
-    function outsideFocus(event: FocusEvent) {
-      if (
-        event.target instanceof Node &&
-        event.target !== trigger &&
-        !popup?.contains(event.target)
       )
         onOpenChange(false);
     }
@@ -194,13 +159,13 @@ export function FilterSelect({
       if (!(event.target instanceof Node) || !popup?.contains(event.target))
         onOpenChange(false);
     }
-    document.addEventListener('pointerdown', outsidePointer);
-    document.addEventListener('focusin', outsideFocus);
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('focusin', outside);
     window.addEventListener('resize', onResize);
     window.addEventListener('scroll', onScroll, true);
     return () => {
-      document.removeEventListener('pointerdown', outsidePointer);
-      document.removeEventListener('focusin', outsideFocus);
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('focusin', outside);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('scroll', onScroll, true);
     };
@@ -266,11 +231,8 @@ export function FilterSelect({
                 role="option"
                 tabIndex={-1}
                 aria-selected={option.value === value}
-                aria-disabled={option.disabled || undefined}
                 className={`filter-option${option.value === value ? ' is-selected' : ''}${index === activeIndex ? ' is-active' : ''}`}
-                onPointerMove={() => {
-                  if (!option.disabled) setActiveIndex(index);
-                }}
+                onPointerMove={() => setActiveIndex(index)}
                 onClick={() => commit(index)}
               >
                 {option.text}

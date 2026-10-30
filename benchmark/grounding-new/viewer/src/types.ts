@@ -49,15 +49,7 @@ export interface EvaluationResult {
         calls: number;
       }
     >;
-    byModel?: Record<
-      string,
-      {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-        calls: number;
-      }
-    >;
+    byModel?: EvaluationResult['profiling']['byIntent'];
   };
   jsonUrl: string;
 }

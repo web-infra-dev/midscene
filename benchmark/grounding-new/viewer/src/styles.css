@@ -30,14 +30,12 @@ body {
   min-height: 0;
 }
 button,
-input,
-select {
+input {
   font: inherit;
 }
 button,
 a,
-input,
-select {
+input {
   -webkit-tap-highlight-color: transparent;
 }
 button {
@@ -57,13 +55,11 @@ a:hover {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
-select:focus-visible,
 [tabindex]:focus-visible {
   outline: 3px solid #a3c5ff;
   outline-offset: 3px;
 }
-button,
-select {
+button {
   touch-action: manipulation;
 }
 .app-header {
@@ -96,15 +92,6 @@ select {
   height: 33px;
   width: 33px;
   object-fit: contain;
-}
-.brand-secondary {
-  margin-left: 9px;
-  padding-left: 13px;
-  border-left: 1px solid #d9e1ed;
-  font-size: 13px;
-  font-weight: 450;
-  color: #68778a;
-  letter-spacing: 0;
 }
 .page-navigation {
   display: flex;
@@ -140,6 +127,9 @@ select {
   flex-direction: column;
   max-height: 100cqh;
   margin: 0 0 30px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
 }
 .overview-page > :last-child {
   margin-bottom: 0;
@@ -216,22 +206,28 @@ select {
 }
 .model-performance {
   height: 100cqh;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
   overflow: hidden;
 }
-.model-performance-heading {
-  display: flex;
+.model-performance-heading,
+.model-breakdown-heading,
+.testcase-matrix-heading {
   flex-shrink: 0;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 20px 32px;
   padding: 22px 24px 18px;
   border-bottom: 1px solid var(--line);
 }
-.model-performance-heading h3 {
+.model-performance-heading,
+.testcase-matrix-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.model-performance-heading {
+  gap: 20px 32px;
+}
+.model-performance-heading h3,
+.model-breakdown-heading h2,
+.testcase-matrix-heading h2 {
   margin: 0;
   font-size: 18px;
   font-weight: 650;
@@ -632,25 +628,6 @@ select {
   transform: translateX(-6px);
   pointer-events: none;
 }
-.model-breakdown,
-.testcase-matrix {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-}
-.model-breakdown-heading,
-.testcase-matrix-heading {
-  flex-shrink: 0;
-  padding: 22px 24px 18px;
-  border-bottom: 1px solid var(--line);
-}
-.model-breakdown-heading h2,
-.testcase-matrix-heading h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 650;
-  line-height: 1.5;
-}
 .model-breakdown-scroll,
 .matrix-scroll {
   min-height: 0;
@@ -659,33 +636,44 @@ select {
   isolation: isolate;
   scrollbar-width: thin;
 }
-.model-breakdown-table {
+.model-breakdown-table,
+.result-matrix {
   width: 100%;
-  min-width: 1280px;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
+}
+.model-breakdown-table {
+  min-width: 1280px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 .model-breakdown-table th,
-.model-breakdown-table td {
-  padding: 14px 12px;
+.model-breakdown-table td,
+.result-matrix th,
+.result-matrix td {
   border-bottom: 1px solid #edf0f5;
   background: #fff;
   text-align: center;
+}
+.model-breakdown-table th,
+.model-breakdown-table td {
+  padding: 14px 12px;
   vertical-align: middle;
 }
-.model-breakdown-table thead th {
+.model-breakdown-table thead th,
+.result-matrix thead th {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: 6px 4px;
   border-bottom-color: #dbe2ec;
   background: #f5f7fa;
   color: #526176;
-  font-size: 11px;
   font-weight: 600;
+}
+.model-breakdown-table thead th {
+  padding: 6px 4px;
+  font-size: 11px;
   line-height: 1.5;
 }
 .model-breakdown-table th[aria-sort]:hover,
@@ -849,14 +837,6 @@ select {
 .model-breakdown-table tbody td {
   font-weight: 550;
 }
-.model-breakdown-table tbody tr:hover > th,
-.model-breakdown-table tbody tr:hover > td {
-  background: #f8fafd;
-}
-.model-breakdown-table tbody tr:last-child > th,
-.model-breakdown-table tbody tr:last-child > td {
-  border-bottom: 0;
-}
 .model-breakdown-name {
   display: block;
   overflow-wrap: anywhere;
@@ -909,10 +889,6 @@ select {
   margin: 4px 0;
 }
 .testcase-matrix-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 12px 20px;
 }
 .matrix-legend {
@@ -982,27 +958,11 @@ select {
   border-top: 1px solid var(--line);
 }
 .result-matrix {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: separate;
-  border-spacing: 0;
   font-size: 11px;
 }
 .result-matrix th,
 .result-matrix td {
   padding: 9px 8px;
-  border-bottom: 1px solid #edf0f5;
-  background: #fff;
-  text-align: center;
-}
-.result-matrix thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  border-bottom-color: #dbe2ec;
-  background: #f5f7fa;
-  color: #526176;
-  font-weight: 600;
 }
 .result-matrix th:first-child,
 .result-matrix td:first-child {
@@ -1035,10 +995,14 @@ select {
 .result-matrix tbody tr[data-status="all-failed"] > :nth-child(-n + 2) {
   background: #fff5f5;
 }
+.model-breakdown-table tbody tr:hover > th,
+.model-breakdown-table tbody tr:hover > td,
 .result-matrix tbody tr:hover > th,
 .result-matrix tbody tr:hover > td {
   background: #f8fafd;
 }
+.model-breakdown-table tbody tr:last-child > th,
+.model-breakdown-table tbody tr:last-child > td,
 .result-matrix tbody tr:last-child > th,
 .result-matrix tbody tr:last-child > td {
   border-bottom: 0;
@@ -1671,15 +1635,8 @@ a.matrix-cell:hover {
 .evaluation-section {
   background: #fcfdff;
 }
-.evaluation-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.detail-section .evaluation-heading {
   margin-bottom: 12px;
-}
-.evaluation-heading h3 {
-  margin: 0;
 }
 .reference-fields.evaluation-metadata {
   display: grid;
@@ -1791,9 +1748,6 @@ a.matrix-cell:hover {
   border-top: 1px dashed #e6eaf1;
 }
 .instruction-heading {
-  display: flex;
-  gap: 8px;
-  align-items: center;
   color: #8994a5;
   font-size: 10px;
 }
@@ -1989,9 +1943,6 @@ code,
   }
 }
 @media (max-width: 1080px) {
-  :root {
-    --sidebar-width: 320px;
-  }
   .main {
     overflow: auto;
   }
@@ -2020,9 +1971,7 @@ code,
     grid-row: span 2;
     border-right: 1px solid var(--line);
   }
-  .reference-section {
-    grid-column: 1 / -1;
-  }
+  .reference-section,
   .evaluation-section {
     grid-column: 1 / -1;
   }
@@ -2080,9 +2029,6 @@ code,
     font-size: 16px;
     gap: 9px;
   }
-  .brand-secondary {
-    display: none;
-  }
   .app-shell {
     display: block;
     height: auto;
@@ -2110,9 +2056,6 @@ code,
   }
   .case-position {
     display: none;
-  }
-  .case-workspace {
-    display: block;
   }
   .image-panel {
     height: 70dvh;
