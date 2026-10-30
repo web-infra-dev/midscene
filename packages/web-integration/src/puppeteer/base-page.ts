@@ -1,5 +1,4 @@
 import { Buffer } from 'node:buffer';
-import { createHash, randomUUID } from 'node:crypto';
 import type { WebPageAgentOpt } from '@/web-element';
 import type {
   DeviceAction,
@@ -33,7 +32,7 @@ import {
   getElementInfosScriptContent,
   getExtraReturnLogic,
 } from '@midscene/shared/node';
-import { assert } from '@midscene/shared/utils';
+import { assert, sha256Hex, uuid } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { CDPSession, Protocol, Page as PuppeteerPage } from 'puppeteer';
 import {
@@ -215,7 +214,7 @@ export class Page<
 > implements AbstractInterface
 {
   underlyingPage: InterfaceType;
-  private readonly diagnosticPageId = randomUUID();
+  private readonly diagnosticPageId = uuid();
   private diagnosticOperationSequence = 0;
 
   protected waitForNavigationTimeout: number;
@@ -553,10 +552,7 @@ export class Page<
       log('end', {
         source,
         durationMs: endTime - startTime,
-        screenshotHash: createHash('sha256')
-          .update(base64)
-          .digest('hex')
-          .slice(0, 16),
+        screenshotHash: sha256Hex(base64).slice(0, 16),
       });
       return base64;
     } catch (error) {
