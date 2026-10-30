@@ -3,6 +3,7 @@ import { createCoverageConfig } from '../../scripts/rstest-coverage';
 import { stubStyleRules } from '../../scripts/rstest-style-stub';
 
 export default defineConfig({
+  name: 'chrome-extension',
   coverage: createCoverageConfig(__dirname),
   include: ['tests/**/*.test.{ts,tsx}'],
   tools: {

@@ -29,6 +29,7 @@ const testFiles = (() => {
 })();
 
 export default defineConfig({
+  name: '@midscene/web',
   coverage: createCoverageConfig(__dirname),
   include: testFiles,
   testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes

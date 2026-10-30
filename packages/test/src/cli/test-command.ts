@@ -5,7 +5,7 @@ import { runWithConsoleLogHandler } from '@midscene/shared/logger';
 import { version } from '../../package.json';
 import { formatCliError, formatConciseError } from './error-format';
 import type { CliFailureContext } from './failure-format';
-import { githubFailureAnnotation, writeGitHubSummary } from './github-reporter';
+import { githubFailureAnnotation } from './github-reporter';
 import { renderNodeSpec, sortNodesForSpec } from './node-spec';
 import { captureTerminalOutput } from './terminal-output';
 import {
@@ -437,13 +437,14 @@ const reportTestProjectResult = (
   if (result.markdownPath && reporter.mode === 'verbose')
     io.log(`Markdown: ${result.markdownPath}`);
   if (result.reportPath) io.log(`Report: ${result.reportPath}`);
-  writeGitHubSummary(result);
   return result.exitCode;
 };
 
 export async function runTestCli(
   args: string[],
   io: TestCliIO = defaultCliIO,
+  // The executable entry owns external publishing of completed run results.
+  onResult?: (result: TestProjectRunResult) => void,
 ): Promise<number> {
   try {
     if (args[0] === 'model') {
@@ -505,9 +506,17 @@ export async function runTestCli(
               projectRoot,
               error.errors,
             );
+            onResult?.(error.result);
             return 1;
           }
-          return reportTestProjectResult(result, io, reporter, projectRoot);
+          const exitCode = reportTestProjectResult(
+            result,
+            io,
+            reporter,
+            projectRoot,
+          );
+          onResult?.(result);
+          return exitCode;
         },
       );
     } finally {
