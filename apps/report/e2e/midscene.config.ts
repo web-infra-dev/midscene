@@ -100,6 +100,8 @@ const setup = defineProjectSetup<ReportContext>({
 });
 
 export default defineTestProject<ReportContext>({
+  // midscene-action publishes a report directory whose entry is index.html.
+  output: { reportFormat: 'html-and-external-assets' },
   projects: [
     { name: 'report', setup, files: { include: ['e2e/*.yaml'] }, retry: 0 },
   ],
