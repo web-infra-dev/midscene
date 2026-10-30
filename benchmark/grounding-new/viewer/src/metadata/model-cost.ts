@@ -239,23 +239,6 @@ export const modelCosts = {
       outputTokensPerSecond: 45,
     },
   },
-  'deepseek-v4.1-flash': {
-    source: 'OpenRouter',
-    url: 'https://openrouter.ai/deepseek/deepseek-v4.1-flash',
-    observedAt: '2026-10-26T03:11:24Z',
-    pricing: {
-      basis: 'model-page-header',
-      currency: 'USD',
-      inputPerToken: 0.02 / 1_000_000,
-      outputPerToken: 1 / 1_000_000,
-    },
-    performance: {
-      basis: 'best-per-metric',
-      percentile: 'p50',
-      timeToFirstTokenMs: 190,
-      outputTokensPerSecond: 273,
-    },
-  },
   'gemini-4-argon': {
     source: 'OpenRouter',
     url: 'https://openrouter.ai/google/gemini-4-argon',

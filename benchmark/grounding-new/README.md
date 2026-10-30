@@ -55,10 +55,6 @@ For `family: "jev"`, use a System One-compatible Base URL (the SDK appends `/sys
 
 使用 `family: "jev"` 时，填写兼容 System One 的 Base URL（SDK 会追加 `/systemone`），并省略 `protocol`。发送给 Jev 的截图最长边缩放至不超过 1568 像素，预测坐标映射回原图，不修改测试用例图片和 ground truth。
 
-For Claude through an OpenAI-compatible gateway, use `family: "claude"` and `protocol: "openai-chat"`. Set `baseUrl` to the API base without `/chat/completions`, and keep the gateway's full model ID in `name`. This adapter requests bounding boxes normalized to 0–1000 and maps them back to screenshot pixels. It does not set provider-specific reasoning options; omit `reasoningEnabled`.
-
-通过兼容 OpenAI 的网关使用 Claude 时，设置 `family: "claude"`、`protocol: "openai-chat"`。`baseUrl` 填写不含 `/chat/completions` 的 API 基础地址，`name` 保留网关要求的完整模型 ID。适配器要求模型输出归一化到 0–1000 的边界框，并映射回截图像素坐标；不设置供应商专有的推理参数，请省略 `reasoningEnabled`。
-
 Start the viewer from the same project:
 
 查看器也从同一个工程启动：
