@@ -3,14 +3,14 @@
   "platform": "mobile",
   "category": {
     "item": "Reasoning",
-    "reason": "The news cards show positive and negative stock-price changes; the target card includes SFTBF +1.34%."
+    "reason": "The news cards show positive and negative stock-price changes; the target card includes SFTBF +1.34%. The ground truth covers its SoftBank news thumbnail because the instruction asks for the news image."
   },
   "instruction": {
-    "en": "Help me check the news images of stocks with rising prices.",
-    "zh": "帮我查看股价上涨股票的新闻图片。"
+    "en": "Open the thumbnail of the news story that includes a stock with a rising price.",
+    "zh": "打开包含股价上涨股票的新闻报道缩略图。"
   },
   "instructionLanguage": "en",
-  "groundTruth": [694.0, 1022.0, 1067.0, 49.0],
+  "groundTruth": [770.0, 1004.0, 997.0, 776.0],
   "reference": {
     "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L3936",
     "dataset": "VenusBench-GD",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "d8ecd63a1e5452bc13679de7cdb8c74ab716ddc447e549730b4f5c61f54489cb"
     },
-    "patch": null,
+    "patch": "The original instruction requested \"news images of stocks with rising prices\", but groundTruth covered the entire Reuters card for \"SoftBank to invest $2 billion in Intel\", accepting points on the source name, headline, and stock symbols as well as the image. The card includes SFTBF +1.34% alongside INTC -3.66%; the positive SFTBF change supplies the rising-stock clue even though another stock on the same card is falling. Rewrote instruction.en and instruction.zh to request the single thumbnail of the news story that includes a stock with a rising price. Changed groundTruth from [694.0, 1022.0, 1067.0, 49.0] to [770.0, 1004.0, 997.0, 776.0] in [top, right, bottom, left] pixel coordinates, restricting accepted points to the SoftBank thumbnail. Updated category.reason to explain the positive-change clue and the image-specific target while retaining the Reasoning category.",
     "collectedAt": 1792485870317
   }
 }

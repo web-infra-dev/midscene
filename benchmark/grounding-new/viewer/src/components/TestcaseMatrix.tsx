@@ -5,10 +5,12 @@ export function TestcaseMatrix({
   evaluationId,
   results,
   testcases,
+  modelPassRates,
 }: {
   evaluationId: string;
   results: EvaluationResult[];
   testcases: TestcaseView[];
+  modelPassRates: number[];
 }) {
   const [filter, setFilter] = useState('all');
   const { models, rows } = useMemo(() => {
@@ -53,13 +55,38 @@ export function TestcaseMatrix({
 
   if (!models.length) return null;
 
+  const meanPassRate =
+    modelPassRates.reduce((sum, rate) => sum + rate, 0) / modelPassRates.length;
+  const passRateStandardDeviation =
+    Math.sqrt(
+      modelPassRates.reduce(
+        (sum, rate) => sum + (rate - meanPassRate) ** 2,
+        0,
+      ) / modelPassRates.length,
+    ) * 100;
+
   return (
     <section
       className="testcase-matrix"
       aria-labelledby="testcase-results-title"
     >
       <header className="testcase-matrix-heading">
-        <h2 id="testcase-results-title">Testcase Pass Overview</h2>
+        <div className="matrix-title">
+          <h2 id="testcase-results-title">Testcase Pass Overview</h2>
+          <span
+            className="matrix-pass-rate-spread"
+            title={`Population standard deviation of the overall pass rates of all ${modelPassRates.length} models, in percentage points (pp). Each model has equal weight. Errors count as failures; missing results are excluded. Unaffected by filters.`}
+          >
+            Pass Rate Std. Dev.
+            <strong>
+              {passRateStandardDeviation.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{' '}
+              pp
+            </strong>
+          </span>
+        </div>
         <div className="matrix-legend" aria-label="Result Colors">
           <span>
             <span className="matrix-swatch passed" aria-hidden="true" />

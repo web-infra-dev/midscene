@@ -3,11 +3,11 @@
   "platform": "mobile",
   "category": {
     "item": "Specialized Icon",
-    "reason": "The target is an application-specific DeepSearch swirl icon rather than a generic magnifying-glass icon, and the icon itself has no text label."
+    "reason": "The composer button is unlabeled and uses the application-specific DeepSearch swirl; the labeled feature card above provides a visual reference for matching the symbol."
   },
   "instruction": {
-    "en": "A rounded square button with the DeepSearch icon, positioned between the paperclip and lightbulb buttons",
-    "zh": "一个带有 DeepSearch 图标的圆角方形按钮，位于回形针按钮和灯泡按钮之间。"
+    "en": "Tap the DeepSearch icon in the message composer.",
+    "zh": "点击消息输入框中的 DeepSearch 图标。"
   },
   "instructionLanguage": "en",
   "groundTruth": [1386.9, 291.0, 1479.9, 191.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "ec7b5dd163a05a52c7823814705d3614acc817b2bcca2c315d7b20a572c16b58"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The original instruction identified the DeepSearch button as the rounded square between the paperclip and lightbulb buttons, so its position alone was sufficient to locate it without matching the specialized symbol. Rewrote both instructions to request the DeepSearch icon in the message composer, removing the between-buttons clue while keeping the intended button. Updated category.reason to explain that the composer button uses an unlabeled, application-specific swirl and that the DeepSearch feature card above supplies a labeled visual reference for matching it. The ground-truth box is unchanged.",
     "collectedAt": 1792483500019
   }
 }

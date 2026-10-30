@@ -3,7 +3,7 @@
   "platform": "mobile",
   "category": {
     "item": "Reasoning",
-    "reason": "The participating teams and the not-started state must be combined; the page also includes a completed China-versus-Sweden match."
+    "reason": "The China-versus-Cameroon youth teams identify the visible match, and its not-started state confirms the choice rather than ruling out another match with the same opponents."
   },
   "instruction": {
     "en": "Get information about the China versus Cameroon youth team match that hasn't started yet",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "7f197531c7f061de4879cd66c2787b95efffa089b7ebc5c80359c01b5c595c81"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The previous category.reason claimed that the participating teams and the not-started state had to be combined to distinguish this match from the completed China-versus-Sweden match. The screenshot contains only one China U16 versus Cameroon U16 match, scheduled for 0:30 the next day and labeled 未开始 (not started), so the opponent names already identify the target and the status confirms it without eliminating another match with the same teams. Revised category.reason to state this limitation accurately. The Reasoning category, both instructions, and the ground-truth box are unchanged.",
     "collectedAt": 1792485870201
   }
 }

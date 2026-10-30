@@ -3,11 +3,11 @@
   "platform": "mobile",
   "category": {
     "item": "Reasoning",
-    "reason": "The instruction describes the game mechanics or IP as League of Legends auto-chess, which must be mapped to the visible game entry."
+    "reason": "Match the visible 桌游榜·今日 TOP1 ranking on the recommendation card; external knowledge about the game franchise is not required."
   },
   "instruction": {
-    "en": "Explore the mobile version of the League of Legends auto-chess game featured in today's recommendations",
-    "zh": "浏览今日推荐中的 League of Legends 自走棋游戏的移动版。"
+    "en": "Explore the game ranked first on today's board game chart in the recommendations.",
+    "zh": "浏览今日推荐中位列桌游榜第一的游戏。"
   },
   "instructionLanguage": "en",
   "groundTruth": [1064.2, 845.0, 1257.3, 33.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "89a4fdc7a581b77ca874d8b383d80861188ce085188e3988af8b8e7e62584508"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The original request described the target as the mobile version of the League of Legends auto-chess game, but the recommendation card only shows the title 金铲铲之战, the subtitle 登顶！赛博城市！, and the ranking 桌游榜·今日 TOP1; it does not establish the franchise relationship. Rewrote both instructions to identify the game ranked first on today's board game chart in the recommendations, using the ranking visible on the same card instead of requiring outside game knowledge. Updated category.reason to explain the visible ranking clue. The target card and ground-truth box are unchanged.",
     "collectedAt": 1792485870214
   }
 }

@@ -6,8 +6,8 @@
     "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
   },
   "instruction": {
-    "en": "A white rectangular box containing a metro symbol, the station name '龙耀路' (Long Yao Road), and a red circular badge with the number 11, indicating a subway station on Line 11.",
-    "zh": "一个白色矩形框，包含地铁标志、“龙耀路”（Long Yao Road）站名，以及带数字 11 的红色圆形徽章，表示 11 号线地铁站。"
+    "en": "Find the Long Yao Road (龙耀路) subway station marker with a metro symbol and a dark red rounded Line 11 badge.",
+    "zh": "找到带有地铁标志、龙耀路站名和深红色圆角“11”号线标记的站点。"
   },
   "instructionLanguage": "en",
   "groundTruth": [1150.0, 366.0, 1230.0, 216.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "1367733c35e0f27e2bf6c69a7ee2e870e99187a976fc75866d5c58239adb8f35"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The original description incorrectly placed the metro symbol, 龙耀路 (Long Yao Road) station name, and Line 11 badge inside a white rectangular box and described the badge as a red circle. In the screenshot these elements appear directly on the map without that enclosing white card, and the Line 11 badge is a dark red rounded rectangle. Rewrote instruction.en and instruction.zh to identify the station by its name, metro symbol, and dark red rounded Line 11 badge, removing the inaccurate enclosing-box and circular-shape requirements. The existing groundTruth already identifies the Long Yao Road station marker and was retained.",
     "collectedAt": 1792485870444
   }
 }

@@ -3,11 +3,11 @@
   "platform": "mobile",
   "category": {
     "item": "Functional",
-    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+    "reason": "The upper-right 日签 entry is the specified daily check-in target; a separate 签到领福利 entry is also visible below."
   },
   "instruction": {
-    "en": "Daily check-in",
-    "zh": "每日签到"
+    "en": "Open the daily check-in entry in the upper-right corner.",
+    "zh": "打开右上角的每日签到入口。"
   },
   "instructionLanguage": "en",
   "groundTruth": [113.0, 935.0, 188.0, 761.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "d6c4d577f4809d724bf5353b6eda66bf4f3581d294d3a12412ac5591f24b4b3f"
     },
-    "patch": null,
+    "patch": "The original instruction, \"Daily check-in\", matched two visible entries: 日签 in the upper-right corner and 签到领福利 in the lower More Functions area. The existing groundTruth accepts only the upper-right entry, so selecting the other plausible check-in entry would be scored as incorrect. Rewrote instruction.en and instruction.zh to request the daily check-in entry in the upper-right corner, removing the ambiguity while retaining functional wording instead of supplying its visible label. Updated category.reason to identify both candidates and explain the intended entry; the Functional category and groundTruth were retained.",
     "collectedAt": 1792485870298
   }
 }

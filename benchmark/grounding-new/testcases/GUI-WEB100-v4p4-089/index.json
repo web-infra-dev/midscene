@@ -6,8 +6,8 @@
     "reason": "The original query directly names the target or describes its visible appearance. The Learn about data section contains only one Earth image, with a ruler image beside it and mountains below; the official box fully covers the Earth image."
   },
   "instruction": {
-    "en": "open the picture of earth",
-    "zh": "打开地球图片。"
+    "en": "Click directly on the Earth image above the 'Earth (Q2)' text link.",
+    "zh": "直接点击“Earth (Q2)”文字链接上方的地球图片。"
   },
   "instructionLanguage": "en",
   "groundTruth": [425.0, 1994.0, 857.0, 1571.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "0232d6e1e7a0c24c89c53a7388f205176ae0519b5e02dc5b9d2c9f8e4482c63b"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The original request to 'open the picture of earth' could be understood as using the nearby Earth (Q2) text link, while the groundTruth covers only the Earth image above it. Rewrote both instructions to click directly on that image and identify it by its position above the Earth (Q2) link. The image groundTruth is unchanged; the revision makes the accepted click location explicit rather than leaving the image and text link as competing interpretations.",
     "collectedAt": 1792485870981
   }
 }

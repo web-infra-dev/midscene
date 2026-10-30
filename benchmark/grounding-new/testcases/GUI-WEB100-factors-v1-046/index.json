@@ -6,8 +6,8 @@
     "reason": "Follow the two differently colored lines to find their intersection, then locate the transfer icon."
   },
   "instruction": {
-    "en": "Find the transfer station icon where the blue and orange metro lines intersect, near the 'Wensan Road' station.",
-    "zh": "找到蓝色和橙色地铁线路交汇处、靠近'文三路'站的换乘站图标"
+    "en": "Find the transfer station icon where the blue and orange metro lines intersect, near the station labeled '文三路'.",
+    "zh": "找到蓝色和橙色地铁线路交汇处、靠近标注为“文三路”的车站的换乘站图标。"
   },
   "instructionLanguage": "en",
   "groundTruth": [1134.0, 1943.0, 1171.0, 1907.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "167c8f0e5686ed6ed31390847786761c6c0da3058341cbfa813cc4eb764a7aeb"
     },
-    "patch": null,
+    "patch": "The original English instruction referred to 'Wensan Road', while the map labels the station only as '文三路'. Resolving that name introduced an additional cross-language place-name matching requirement before the blue and orange lines could be followed to their intersection. Replaced 'Wensan Road' in instruction.en with the exact visible label '文三路' and updated instruction.zh to use the same label-based wording. The requested transfer icon and its groundTruth region are unchanged.",
     "collectedAt": 1792485870614
   }
 }

@@ -3,7 +3,7 @@
   "platform": "mobile",
   "category": {
     "item": "Reasoning",
-    "reason": "The story content, author role, and author entry must be linked; the adjacent photography card has a different role."
+    "reason": "The elephant-herd description identifies the current book, whose directly labeled author card is the target; the story detail does not eliminate another visible author candidate."
   },
   "instruction": {
     "en": "Explore other books written by the same author who created this story about elephant herds in the Amboseli National Park",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "a807380e91b7e732769bfa3f47049398afedbc182899db09b3d292da16ae7555"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The previous category.reason presented the elephant-herd story, author role, and author entry as a necessary chain of associations. On this single-book detail page for 我们的旅程, the synopsis mentions elephant herds in Amboseli National Park and the 作者 (author) section directly labels the 孙霄 author card; the adjacent photography card has a different role. Revised category.reason to explain that the story identifies the current book but does not eliminate another visible author candidate, because the requested author entry is already directly labeled. The Reasoning category, both instructions, and the ground-truth box are unchanged.",
     "collectedAt": 1792485870216
   }
 }

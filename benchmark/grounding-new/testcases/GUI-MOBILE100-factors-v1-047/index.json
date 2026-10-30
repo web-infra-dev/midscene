@@ -3,11 +3,11 @@
   "platform": "mobile",
   "category": {
     "item": "Color Recognition",
-    "reason": "Several color dots in the first row have the same shape; red and the second-item constraint are needed to distinguish dark red from bright red."
+    "reason": "Distinguish the bright red swatch from darker red swatches by color; no ordinal position identifies the target."
   },
   "instruction": {
-    "en": "Click the second red option in the first row.",
-    "zh": "点击第一行第二个红色"
+    "en": "Click the bright red color swatch in the first row.",
+    "zh": "点击第一行的亮红色色块。"
   },
   "instructionLanguage": "zh",
   "groundTruth": [1495.0, 418.0, 1623.0, 296.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "cff807c4541af5338ede454dcdd4c02f30097365668b8ec1fd66f5a30758596b"
     },
-    "patch": "Added instruction.en by translating the original Chinese instruction",
+    "patch": "Added instruction.en by translating the original Chinese instruction. The original request, \"点击第一行第二个红色\" (\"Click the second red option in the first row\"), supplied a row and ordinal position that already selected the bright red swatch without requiring color recognition. Rewrote both instructions to ask for the bright red swatch in the first row, removing the second-item clue and making the color distinction from the darker red swatches explicit. Updated category.reason to describe this color-based distinction; the target swatch and ground-truth box are unchanged.",
     "collectedAt": 1792485870189
   }
 }

@@ -109,6 +109,10 @@ Below Model Performance Breakdown, the Testcase Pass Overview matrix compares ev
 
 Model Performance Breakdown 下方的 Testcase Pass Overview 矩阵逐题比较各模型，覆盖当前题库与本次评测记录中的所有用例。行按用例名称字典序排列，模型列按 `displayName`／名称字典序倒序排列。绿色表示通过，红色表示不通过（包括执行错误），灰色表示缺失。可筛选全部用例、所有模型均通过、所有模型均失败或存在缺失结果的用例；缺失结果不会在这些筛选中计为失败。点击单元格查看保存的评测结果，点击用例名称浏览测试用例。
 
+The heading shows Pass Rate Std. Dev., the population standard deviation of the models' overall pass rates: `sqrt(sum((rate - meanRate)^2) / modelCount) × 100`, displayed to two decimal places in percentage points (pp). Each model has equal weight and uses the same pass rate as Model Performance Breakdown: passed results divided by all recorded results, including errors as failures and excluding missing results. A single model has a standard deviation of zero. This statistic uses all models and results in the evaluation and is unaffected by chart or matrix filters.
+
+标题旁的 Pass Rate Std. Dev. 展示各模型整体通过率的总体标准差：`sqrt(sum((通过率 - 平均通过率)^2) / 模型数) × 100`，单位为百分点（pp），保留两位小数。每个模型等权，通过率与 Model Performance Breakdown 一致：通过结果数除以已有结果数，错误计为失败，缺失结果不进入分母。只有一个模型时标准差为零。统计包含本次评测的所有模型及结果，不受图表或矩阵筛选影响。
+
 Prefer OpenRouter for both pricing and performance. Use official sources only for metrics unavailable on OpenRouter, and record their sources and measurement conditions explicitly. Do not substitute a different model to fill a gap. Doubao Seed Evolving and the exact Ark release IDs of Seed 2.1 use Ark pricing and available leaderboard data. A model with pricing alone can show estimated cost, but its estimated elapsed time remains unavailable until performance data for that version is verified.
 
 价格和性能均优先使用 OpenRouter；仅在 OpenRouter 缺少对应指标时使用官方数据，并明确记录来源和测量条件，不使用其他模型的数据代替。豆包 Seed Evolving 及 Seed 2.1 的方舟具体版本使用方舟价格和可获得的官方性能榜单数据。仅有价格参考的模型可以展示估算费用，确认对应版本的性能数据前不估算耗时。

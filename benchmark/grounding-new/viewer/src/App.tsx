@@ -607,6 +607,7 @@ function EvaluationReport({
         evaluationId={evaluationId}
         results={results}
         testcases={testcases}
+        modelPassRates={performanceModels.map(({ passRate }) => passRate)}
       />
     </>
   ) : (

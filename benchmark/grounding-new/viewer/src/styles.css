@@ -891,6 +891,26 @@ button {
 .testcase-matrix-heading {
   gap: 12px 20px;
 }
+.matrix-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.matrix-pass-rate-spread {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.matrix-pass-rate-spread strong {
+  color: #172332;
+  font-variant-numeric: tabular-nums;
+}
 .matrix-legend {
   display: flex;
   flex-wrap: wrap;

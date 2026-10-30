@@ -6,8 +6,8 @@
     "reason": "First restrict the candidates to sold-out hotels, then use distance from the landmark to find the nearest hotel."
   },
   "instruction": {
-    "en": "On the map, find the hotel nearest to Tianqiao Performing Arts that is already sold out.",
-    "zh": "在地图上，找到离天桥演艺最近的已售罄酒店。"
+    "en": "On the map, find the sold-out hotel nearest to the landmark labeled '天桥演艺'.",
+    "zh": "在地图上，找到距离标注为“天桥演艺”的地标最近的已售罄酒店。"
   },
   "instructionLanguage": "en",
   "groundTruth": [1677.0, 2113.0, 1742.0, 2059.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "36e2f431c0b981d2c4765fffad3feb7f9971d6dddab76413c8c03af7c9cf0670"
     },
-    "patch": null,
+    "patch": "The original English instruction used 'Tianqiao Performing Arts', but the landmark on the map is labeled only '天桥演艺'. Matching that translated name to the Chinese label added a place-name correspondence requirement before assessing hotel availability and distance. Replaced the English landmark name with the exact visible label '天桥演艺' and updated instruction.zh to use the same label-based wording. The task still asks for the nearest sold-out hotel, and the target groundTruth is unchanged.",
     "collectedAt": 1792485870791
   }
 }
