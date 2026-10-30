@@ -6,8 +6,8 @@
     "reason": "First filter stocks whose market capitalization exceeds the threshold, then select the lowest price."
   },
   "instruction": {
-    "en": "Among all stocks with a market capitalization exceeding 1 trillion U.S. dollars, find the one with the lowest price and view details.",
-    "zh": "在所有市值超过1万亿美元的股票中，找到价格最低的那支，查看详情\n\n"
+    "en": "Among stocks with a market capitalization exceeding 1 trillion U.S. dollars, click the ticker symbol of the one with the lowest price to view its details.",
+    "zh": "在市值超过 1 万亿美元的股票中，点击价格最低者的股票代码，查看其详情。"
   },
   "instructionLanguage": "en",
   "groundTruth": [470.0, 420.0, 518.0, 314.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "9e255aed526f4755389b01fe06301b88d1d6376bb1c72ded425ba5e0af266b68"
     },
-    "patch": null,
+    "patch": "The original instruction asked to find the lowest-priced stock among those with market capitalization above one trillion U.S. dollars and view its details. The matching stock is NVDA, but the groundTruth accepts only its ticker symbol, while the instruction did not specify that entry point. Rewrote both instructions to explicitly click the ticker symbol of the qualifying stock with the lowest price. The market-capitalization threshold, price comparison, and existing NVDA groundTruth are preserved; the revision removes ambiguity about the required click location without assuming that other parts of the row also open details.",
     "collectedAt": 1792485870701
   }
 }

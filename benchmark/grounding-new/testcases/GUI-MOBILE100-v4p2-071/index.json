@@ -3,14 +3,14 @@
   "platform": "mobile",
   "category": {
     "item": "Reasoning",
-    "reason": "Compare the update dates in the list; 12 hours ago is more recent than 2 days ago or August 8."
+    "reason": "Compare the update dates in the list; the video updated 12 hours ago is more recent than those updated 2 days ago or on August 8. The ground truth covers that video's thumbnail, excluding its separate overflow menu."
   },
   "instruction": {
-    "en": "View recently updated videos",
-    "zh": "查看最近更新的视频"
+    "en": "Open the thumbnail of the most recently updated video in the list.",
+    "zh": "打开列表中最近更新的一条视频的缩略图。"
   },
   "instructionLanguage": "en",
-  "groundTruth": [914.0, 1049.0, 1197.0, 32.0],
+  "groundTruth": [922.0, 492.0, 1182.0, 1.0],
   "reference": {
     "url": "https://huggingface.co/datasets/inclusionAI/VenusBench-GD/blob/7e5714566f912203c9989b06ef4c08bdf913e3fa/instruction/reason_grounding.json#L5042",
     "dataset": "VenusBench-GD",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "c3076b464575097ffd837751f9dfae3db9ecdd5ed9d4b25905c1a9e96dc7b63c"
     },
-    "patch": null,
+    "patch": "The original instruction, \"View recently updated videos\", did not define a time window or request a single newest item: both the video updated 12 hours ago and the one updated 2 days ago could reasonably count as recent. Rewrote instruction.en and instruction.zh to request the thumbnail of the most recently updated video, making comparison of the visible update dates select the 12-hours-ago entry. The original groundTruth covered the full video card, including the uploader information and a separate three-dot overflow menu, so points on those areas could pass without identifying the requested thumbnail. Changed groundTruth from [914.0, 1049.0, 1197.0, 32.0] to [922.0, 492.0, 1182.0, 1.0] in [top, right, bottom, left] pixel coordinates to limit the accepted region to the thumbnail area. Updated category.reason to explain the date comparison and the thumbnail boundary while retaining the Reasoning category.",
     "collectedAt": 1792485870312
   }
 }

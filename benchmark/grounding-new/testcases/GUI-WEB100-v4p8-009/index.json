@@ -3,11 +3,11 @@
   "platform": "web",
   "category": {
     "item": "Reasoning",
-    "reason": "Combine distance from the landmark with hotel status, primarily testing comparison and state reasoning."
+    "reason": "Compare available hotel price markers by distance from the visible 震旦国际大楼 landmark."
   },
   "instruction": {
-    "en": "Find the nearest available hotel for sale near \"Aurora International Building\" on the map.",
-    "zh": "在地图上找到离“震旦国际大楼”最近的在售酒店。"
+    "en": "On the map, find the price marker for the available hotel nearest to '震旦国际大楼'.",
+    "zh": "在地图上，找到距离“震旦国际大楼”最近的可预订酒店的价格标记。"
   },
   "instructionLanguage": "en",
   "groundTruth": [97.0, 2883.0, 138.0, 2740.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "edae2fe2c4c93eb38ad8b130dfccbcccaf79306fad629227206865feea1808ce"
     },
-    "patch": null,
+    "patch": "The original English instruction named 'Aurora International Building', while the map labels the landmark only as '震旦国际大楼', introducing a place-name correspondence requirement before comparing hotel distances. Its phrase 'hotel for sale' could also mean a hotel property being sold rather than a hotel available to book, and it did not specify the price marker as the required click target. Rewrote both instructions to use the exact visible landmark label, request an available hotel, and locate the nearest hotel's price marker. Updated category.reason to describe comparing available hotel price markers relative to '震旦国际大楼'. The Reasoning category and the existing groundTruth on the US$1,342 price marker are preserved.",
     "collectedAt": 1792485871033
   }
 }

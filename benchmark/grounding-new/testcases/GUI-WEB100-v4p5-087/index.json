@@ -6,8 +6,8 @@
     "reason": "The original query directly names the target or describes its visible appearance. There is only one snowy landscape photo beneath the Picture of the day heading. The query directly names this labeled image area, and the official box fully covers the photo."
   },
   "instruction": {
-    "en": "click on the picture of the day",
-    "zh": "点击每日图片（picture of the day）。"
+    "en": "Click the snowy landscape photo below the 'Picture of the day' heading.",
+    "zh": "点击“Picture of the day”标题下方的雪景照片。"
   },
   "instructionLanguage": "en",
   "groundTruth": [745.0, 1664.0, 1379.0, 538.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "12a51f56420fb1459a974b060b7c9b52338a8454e4038480292423526d0a3091"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The original instruction, 'click on the picture of the day', did not distinguish the Picture of the day heading from the snowy landscape photo beneath it. The groundTruth covers the photo only, so clicking the identically named heading would not be accepted. Rewrote both instructions to identify the snowy landscape photo below the heading explicitly, retaining the existing image groundTruth.",
     "collectedAt": 1792485871007
   }
 }

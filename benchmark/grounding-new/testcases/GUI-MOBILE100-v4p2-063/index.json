@@ -3,7 +3,7 @@
   "platform": "mobile",
   "category": {
     "item": "Functional",
-    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+    "reason": "The visible 避开限行 label directly names restricted-zone avoidance; enabling it requires selecting the adjacent off switch."
   },
   "instruction": {
     "en": "Avoid the city's restricted traffic zones.",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "aa624a53b93e15f10c7988798a83dea3462e8960a48a5e40ae6cb3adf7b56bc6"
     },
-    "patch": null,
+    "patch": "Replaced the generic category.reason with a specific explanation of the visible 避开限行 (avoid restricted traffic zones) label and its adjacent off switch. The instruction \"Avoid the city's restricted traffic zones.\" directly corresponds to that label, so this example can be located by matching the function name rather than inferring the function from unrelated controls. The existing groundTruth covers the switch used to enable the setting. This revision changes only the category explanation; the Functional category, bilingual instructions, and groundTruth were retained.",
     "collectedAt": 1792485870301
   }
 }

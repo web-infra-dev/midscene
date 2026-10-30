@@ -3,11 +3,11 @@
   "platform": "web",
   "category": {
     "item": "Functional",
-    "reason": "Map the action intent in the original query to the page control. User-message entry within a dense inbox with several adjacent message classes."
+    "reason": "Locate the My Messages entry in the message center's left sidebar, distinct from the top-right Messages control."
   },
   "instruction": {
-    "en": "View user messages",
-    "zh": "查看用户消息"
+    "en": "In the message center, open your own messages from the left sidebar.",
+    "zh": "在消息中心，从左侧边栏打开自己的消息。"
   },
   "instructionLanguage": "en",
   "groundTruth": [258.0, 1053.0, 330.0, 780.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "99f08796c30701f7e5d3129482b5773003f6fa8329497878a486ae51c962ceb0"
     },
-    "patch": null,
+    "patch": "The original instruction, 'View user messages', did not distinguish between the '我的消息' entry in the message center's left sidebar and the envelope icon with '消息' text at the top right. Only the left-sidebar entry is accepted by the groundTruth, although either control could reasonably be selected from the original wording. Rewrote both instructions to open the user's own messages from the message center's left sidebar. Updated category.reason to make the distinction between the two visible entries explicit, while retaining the Functional category and the existing groundTruth.",
     "collectedAt": 1792485870869
   }
 }

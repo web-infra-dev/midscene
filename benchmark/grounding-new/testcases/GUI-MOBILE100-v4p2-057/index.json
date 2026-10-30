@@ -2,8 +2,8 @@
   "name": "GUI-MOBILE100-v4p2-057",
   "platform": "mobile",
   "category": {
-    "item": "Functional",
-    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+    "item": "Basic Element",
+    "reason": "The visible Ringtone label and current ringtone directly identify the target settings card."
   },
   "instruction": {
     "en": "Change the incoming call ringtone",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "8beb72ebd208c0df81ed267dddbc3d25ed4bee49939513d840751620c95fe28e"
     },
-    "patch": null,
+    "patch": "Changed category.item from Functional to Basic Element and replaced the generic category.reason with an explanation tied to the visible Ringtone settings card. The instruction explicitly asks to change the incoming-call ringtone, and the card already displays the matching Ringtone label, a telephone icon, and the current ringtone Mi (Remix), so direct text matching identifies it. This category change reflects the visible localization requirement without changing the requested action. Both instructions and the ground-truth box covering that card are unchanged.",
     "collectedAt": 1792485870297
   }
 }

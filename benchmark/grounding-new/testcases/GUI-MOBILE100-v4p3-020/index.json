@@ -6,7 +6,7 @@
     "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
   },
   "instruction": {
-    "en": "display flagged massages",
+    "en": "Display flagged messages.",
     "zh": "显示已标记的消息"
   },
   "instructionLanguage": "en",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "7e1b7c7ec0741ffdaa5351a573fce665c36a9b6aa31ba30f8708ae7fccf357e2"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. Corrected instruction.en from \"display flagged massages\" to \"Display flagged messages.\" because \"massages\" refers to body treatments rather than messages in the visible chat interface. The screenshot has Chats, Unread, and Flagged tabs, and the existing groundTruth covers Flagged, which matches the intended request. The Chinese translation already expressed messages correctly, so it and groundTruth were retained.",
     "collectedAt": 1792485870423
   }
 }

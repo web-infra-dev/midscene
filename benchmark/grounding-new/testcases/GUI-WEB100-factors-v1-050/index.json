@@ -2,12 +2,12 @@
   "name": "GUI-WEB100-factors-v1-050",
   "platform": "web",
   "category": {
-    "item": "Reasoning",
-    "reason": "Map \"uses multiple processing layers\" to the concept of deep learning, then locate the link with that name."
+    "item": "Basic Element",
+    "reason": "The Deep learning link is named directly in the visible Hyponyms list; locate that text link."
   },
   "instruction": {
-    "en": "Navigate to the wiki page about the machine learning technique that uses multiple processing layers",
-    "zh": "前往介绍使用多个处理层的机器学习技术的 wiki 页面。"
+    "en": "Open the 'Deep learning' link under Hyponyms on the wiki page.",
+    "zh": "打开 wiki 页面中 Hyponyms 下的“Deep learning”链接。"
   },
   "instructionLanguage": "en",
   "groundTruth": [1078.0, 781.0, 1127.0, 552.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "0eb48e7bc5225df5428a36ee69cbe2ebb395809cfc337ebd3a5c5ba0b99d37ac"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The original instruction described a machine-learning technique that 'uses multiple processing layers', but the screenshot does not explain how that description maps to the Deep learning link under Hyponyms. Selecting the intended link therefore depended on machine-learning background knowledge rather than the visible interface alone. Rewrote both instructions to name the Deep learning link and its Hyponyms section directly, preserving the original target and groundTruth. Changed category.item from Reasoning to Basic Element and updated category.reason because the revised task is direct text-link localization.",
     "collectedAt": 1792485870633
   }
 }

@@ -2,8 +2,8 @@
   "name": "GUI-MOBILE100-v4p2-041",
   "platform": "mobile",
   "category": {
-    "item": "Functional",
-    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+    "item": "Basic Element",
+    "reason": "The visible Collections label directly identifies the bottom navigation tab for collected content."
   },
   "instruction": {
     "en": "View the content collected by the user",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "220dde2b70ba4a10605eff98d0e419daecff5f5348bf123288831bfa76e7dfcb"
     },
-    "patch": null,
+    "patch": "Changed category.item from Functional to Basic Element and replaced the generic category.reason with an explanation tied to the visible Collections tab. The instruction asks to view collected content, and the bottom navigation tab already carries the label Collections alongside a bookmark symbol, so matching the request to visible text identifies the target without inferring an unlabeled control's purpose. This category change reflects the direct label-matching requirement of this screenshot; it does not change the requested action. Both instructions and the ground-truth box covering the icon and label are unchanged.",
     "collectedAt": 1792485870261
   }
 }

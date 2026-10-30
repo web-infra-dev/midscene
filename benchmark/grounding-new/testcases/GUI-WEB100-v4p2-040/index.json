@@ -3,11 +3,11 @@
   "platform": "web",
   "category": {
     "item": "Functional",
-    "reason": "Map the action intent in the original query to the page control. Reporting navigation item on a dense task dashboard."
+    "reason": "Use the Reporting navigation item on a dense task dashboard to enter the reporting page."
   },
   "instruction": {
-    "en": "Generate project report",
-    "zh": "生成项目报告"
+    "en": "Open the project report tools from the left navigation.",
+    "zh": "从左侧导航栏打开项目报告工具。"
   },
   "instructionLanguage": "en",
   "groundTruth": [442.0, 452.0, 500.0, 35.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "cd8837ca635c0fb9eb06d4f11848c9641ed271e504e5fe802ce98161d46dc03f"
     },
-    "patch": null,
+    "patch": "The original instruction requested 'Generate project report', but the annotated target is the Reporting entry in the left navigation. Locating that entry represents opening the report tools, not completing report generation, so the requested outcome exceeded the single action represented by the groundTruth. Rewrote both instructions to open the project report tools from the left navigation and updated category.reason to describe entering the reporting page. The Functional category and the existing groundTruth on the Reporting navigation item are preserved.",
     "collectedAt": 1792485870864
   }
 }

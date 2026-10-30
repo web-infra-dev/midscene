@@ -3,7 +3,7 @@
   "platform": "web",
   "category": {
     "item": "Reasoning",
-    "reason": "Both the departure time and the upper bound on arrival time must be satisfied; matching a single field is insufficient."
+    "reason": "Convert 2 p.m. to 14:00, locate the corresponding train, and verify that its 18:35 arrival is before 8 p.m.; the departure time alone uniquely identifies this row."
   },
   "instruction": {
     "en": "Choose a ticket for a train departing at 2 p.m. and arriving before 8 p.m.",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "b872d125f50f68b0ab16cb83c45f0a3a076cbc5cb733c8608e14dd39ecc0ef12"
     },
-    "patch": null,
+    "patch": "The previous category.reason claimed that both time conditions were needed to identify the train and that a single field was insufficient. In the screenshot, 14:00 is the only departure matching 2 p.m.; that train arrives at 18:35, so the before-8-p.m. condition confirms the match but does not eliminate another candidate. Rewrote category.reason to describe the 12-hour to 24-hour conversion and the arrival-time check accurately. Only the category rationale changed; category.item remains Reasoning, and the instructions and groundTruth are unchanged.",
     "collectedAt": 1792485870686
   }
 }

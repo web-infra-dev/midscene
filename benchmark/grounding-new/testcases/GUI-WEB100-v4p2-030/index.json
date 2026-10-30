@@ -6,8 +6,8 @@
     "reason": "Alipay is explicitly specified; the target is a small checkbox approximately 9.6×9.4 normalized pixels in size."
   },
   "instruction": {
-    "en": "Click to select Alipay payment",
-    "zh": "点击选择支付宝支付"
+    "en": "Locate the already selected checkbox for Alipay payment.",
+    "zh": "找到已勾选的支付宝支付复选框。"
   },
   "instructionLanguage": "en",
   "groundTruth": [619.0, 2819.0, 655.0, 2782.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "6d3d7202ae57e84e54ac715f9ffa0965b8c5f1bbc6ebf48a28daa20abace7e4d"
     },
-    "patch": null,
+    "patch": "The original instruction asked to click to select Alipay payment, but the screenshot already shows the Alipay checkbox selected with an orange check mark. The requested state was therefore already satisfied, and another click could instead deselect the option if the control toggles its state. Rewrote both instructions to locate the already selected Alipay checkbox rather than request a selection action. The target remains the same small checkbox, with the existing groundTruth and Small Target category.",
     "collectedAt": 1792485870821
   }
 }

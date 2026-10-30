@@ -6,8 +6,8 @@
     "reason": "The small 换一换 refresh icon is beside the search suggestions and has ordinary refresh semantics; the main challenge is the size of the target."
   },
   "instruction": {
-    "en": "Change to a new set of trending topics",
-    "zh": "换一批热搜内容"
+    "en": "Tap the refresh icon to the right of the '猜你想搜' heading and immediately left of the '换一换' text.",
+    "zh": "点击“猜你想搜”标题右侧、“换一换”文字左侧的刷新图标。"
   },
   "instructionLanguage": "en",
   "groundTruth": [256.0, 738.0, 310.0, 679.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "9bcaf87a611338bf0a5269e6e7af3ba6412fad7d32ab9303ad6ada09c5e9fe86"
     },
-    "patch": null,
+    "patch": "The original instruction, \"Change to a new set of trending topics\", did not specify the icon rather than its adjacent 换一换 text, while the ground-truth box covers only the small refresh icon. It also described trending topics even though that control belongs to the 猜你想搜 search-suggestions section and a separate 抖音热榜 trending list appears below, leaving two plausible regions for the request. Rewrote both instructions to ask explicitly for the refresh icon to the right of the 猜你想搜 heading and immediately left of 换一换. This makes the intended section and icon-only target explicit without assuming that the neighboring text shares the same interactive hit area. The Small Target category and ground-truth box are unchanged.",
     "collectedAt": 1792485870270
   }
 }

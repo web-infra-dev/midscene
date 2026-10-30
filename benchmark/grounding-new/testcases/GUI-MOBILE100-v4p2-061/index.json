@@ -3,7 +3,7 @@
   "platform": "mobile",
   "category": {
     "item": "Functional",
-    "reason": "The target text, shape, or image is directly visible, and the official ground truth matches the original screenshot; the single primary category follows the actual localization requirement."
+    "reason": "The visible 无痕搜索模式 label directly names incognito search; enabling it requires selecting the adjacent off switch."
   },
   "instruction": {
     "en": "Enable incognito search",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "6a568aa3ecbc36c4e81453d597ba499483b3b73440dba7b180f11491ab535e15"
     },
-    "patch": null,
+    "patch": "Replaced the generic category.reason with a specific explanation of the visible 无痕搜索模式 (incognito search mode) label and its adjacent off switch. The instruction \"Enable incognito search\" directly corresponds to that label, so this example can be located by matching the function name rather than inferring the function from unrelated controls. The action target is the switch, which the existing groundTruth covers. This revision changes only the category explanation; the Functional category, bilingual instructions, and groundTruth were retained.",
     "collectedAt": 1792485870300
   }
 }

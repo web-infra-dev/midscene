@@ -2,8 +2,8 @@
   "name": "GUI-WEB100-v4p2-028",
   "platform": "web",
   "category": {
-    "item": "Functional",
-    "reason": "Map the action intent in the original query to the page control. Analytics tab among visually similar tabs"
+    "item": "Basic Element",
+    "reason": "The visible 笔记数据总览 tab directly matches the instruction's note, data, and overview terms, so locating its label is the main requirement."
   },
   "instruction": {
     "en": "View an overview of note-related data",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "3ea5310213e12b37521f78257faa580c13fdd49986d47c2e0bd458114b8f62e5"
     },
-    "patch": null,
+    "patch": "The task was classified as Functional with a rationale about inferring an analytics entry from an action intent. However, the instruction's note, data, and overview terms correspond directly to the visible '笔记数据总览' tab label, so matching the requested content to the label is sufficient. Changed category.item from Functional to Basic Element and updated category.reason to describe this direct semantic text match. The instructions and the tab's groundTruth are unchanged.",
     "collectedAt": 1792485870811
   }
 }

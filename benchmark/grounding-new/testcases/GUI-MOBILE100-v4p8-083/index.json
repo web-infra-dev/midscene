@@ -3,11 +3,11 @@
   "platform": "mobile",
   "category": {
     "item": "Relative Position",
-    "reason": "Use the fourth position among several video chapters to locate CUDA Core Design."
+    "reason": "Identify the chapter by its fourth position in the visible chapter list; its CUDA Core Design title is not given in the instruction."
   },
   "instruction": {
-    "en": "Select the fourth chapter in this educational video about GPU technology to learn about CUDA core design.",
-    "zh": "选择这段关于 GPU 技术的教学视频中的第四章，以了解 CUDA 核心设计。"
+    "en": "Select the fourth chapter in this educational video about GPU technology.",
+    "zh": "选择这段 GPU 技术教学视频中的第四章。"
   },
   "instructionLanguage": "en",
   "groundTruth": [2045.0, 1262.0, 2347.0, 28.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "79e68b985aad0edbfa96ef515fb86241a8f1cd33c137449644024dbfc16d957a"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The original instruction asked for the fourth chapter but also supplied \"CUDA core design\", which uniquely matches the visible CUDA Core Design chapter title and allows text matching without counting chapter positions. Removed the CUDA core design clause from instruction.en and instruction.zh so that both now request the fourth chapter of the GPU technology video without revealing its title. Updated category.reason to state that the target must be identified by its ordinal position in the visible list. The target remains the same fourth chapter, so the Relative Position category and groundTruth were retained.",
     "collectedAt": 1792485870563
   }
 }

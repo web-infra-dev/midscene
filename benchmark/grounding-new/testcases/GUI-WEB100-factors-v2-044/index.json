@@ -2,8 +2,8 @@
   "name": "GUI-WEB100-factors-v2-044",
   "platform": "web",
   "category": {
-    "item": "Color Recognition",
-    "reason": "Use the forest-green color to locate the target among identically shaped dark-blue, silver, and green circular swatches."
+    "item": "Basic Element",
+    "reason": "The Forest Green swatch has its color name directly underneath it, so the visible label identifies the target without requiring color recognition."
   },
   "instruction": {
     "en": "Click on the 'Forest Green' circle.",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "24cc7e58755633f0cfb22c6264c6191e4eccc590b3170d2e7439fb401560585a"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The task was classified as Color Recognition, but the three circular swatches are labeled Brushed Navy, Silver Steel, and Forest Green, and the instruction names Forest Green explicitly. The target can therefore be found by matching its visible label without distinguishing the swatches by color. Changed category.item to Basic Element and updated category.reason to describe that text-based identification path. The instructions and groundTruth still target the Forest Green circle.",
     "collectedAt": 1792485870672
   }
 }

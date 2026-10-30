@@ -3,7 +3,7 @@
   "platform": "mobile",
   "category": {
     "item": "Reasoning",
-    "reason": "Link the free Fitness Room amenity information to the gym-photo card below."
+    "reason": "The Fitness Room title identifies the photo card; the Free amenity above confirms its service status but does not distinguish another visible photo card."
   },
   "instruction": {
     "en": "Explore more images of the workout space that's listed as a free service at this Shanghai hotel",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "2440890eaf69f99511ed91b3a1fd3db16c76b51694d4475113ac06cff7d752e0"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The previous category.reason described linking the free Fitness Room amenity above to the gym-photo card below. The target photo card is itself labeled Fitness Room and shows exercise equipment, so the workout-space description already identifies it; the Free amenity confirms its service status but does not eliminate another visible photo candidate. Revised category.reason to make that distinction explicit without claiming that both conditions are necessary to locate the card. The Reasoning category, bilingual instructions, and groundTruth were retained.",
     "collectedAt": 1792485870487
   }
 }

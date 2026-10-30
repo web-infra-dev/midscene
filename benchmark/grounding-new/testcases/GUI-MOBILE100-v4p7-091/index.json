@@ -3,14 +3,14 @@
   "platform": "mobile",
   "category": {
     "item": "Fine-grained Manipulation",
-    "reason": "There is only one bar between 06:00 and 12:00; the target is the local position at the top of that bar."
+    "reason": "There is only one bar between 06:00 and 12:00; the target is the local position at the top of that orange bar."
   },
   "instruction": {
     "en": "Select the top of the bar chart between 06:00 and 12:00",
     "zh": "选中06:00与12:00之间柱子的顶端。"
   },
   "instructionLanguage": "en",
-  "groundTruth": [929.0, 508.0, 1007.0, 439.0],
+  "groundTruth": [949.0, 496.0, 986.0, 459.0],
   "reference": {
     "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/mobile/ANumericRange240json/A5ChartPoint40.json#L31",
     "dataset": "FineState-Bench",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "ef710aac41c37dc4c7ca0ec942919e6530b603862c5f8f25777dd744f788ef74"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The original groundTruth covered the correct orange bar top between 06:00 and 12:00, but its 69-by-78-pixel tolerance region also accepted surrounding space above and to either side of the bar. Tightened groundTruth from [929.0, 508.0, 1007.0, 439.0] to [949.0, 496.0, 986.0, 459.0] in [top, right, bottom, left] pixel coordinates, reducing the accepted region to 37 by 37 pixels around that bar top for more precise localization. This changes the accepted positional tolerance without selecting a different bar. Updated category.reason to identify the bar as orange; the Fine-grained Manipulation category and bilingual instructions were retained.",
     "collectedAt": 1792485870555
   }
 }

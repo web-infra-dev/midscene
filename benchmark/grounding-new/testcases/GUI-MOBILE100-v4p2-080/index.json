@@ -3,7 +3,7 @@
   "platform": "mobile",
   "category": {
     "item": "Reasoning",
-    "reason": "Combine the comedy/cultivation themes with more than 4.5 million plays to match the second audio entry."
+    "reason": "The title explicitly names the comedy and cultivation themes; the 4.536-million play count confirms the threshold but does not distinguish another visible title with those themes."
   },
   "instruction": {
     "en": "Listen to the audio drama with comedy and cultivation themes that has over 4.5 million plays",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "712807d800135b5dca08a20f2846f9ef2b31010c41c26212a79320f774b071f7"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The previous category.reason described combining the comedy/cultivation themes with the play-count threshold to select the second audio entry. In the screenshot, the target title already states 搞笑&修仙 (comedy and cultivation), and no other visible title with those themes needs to be excluded by the threshold; its 453.6万 (4.536 million) plays confirm that it exceeds 4.5 million. Revised category.reason to distinguish confirmation of the play count from disambiguation between candidates. The Reasoning category, bilingual instructions, and groundTruth on the target play button were retained.",
     "collectedAt": 1792485870318
   }
 }

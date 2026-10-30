@@ -6,8 +6,8 @@
     "reason": "Use the given RSI and Mom values to locate the stock row that matches both literal fields."
   },
   "instruction": {
-    "en": "Among all stocks, find the stock with an RSI indicator of 53.78 and a Mom indicator of 0.78.",
-    "zh": "在所有股票中，找到RSI指标为53.78且Mom指标为0.78的股票"
+    "en": "Find the ticker symbol of the stock with an RSI indicator of 53.78 and a Mom indicator of 0.78.",
+    "zh": "找到 RSI 指标为 53.78 且 Mom 指标为 0.78 的股票代码。"
   },
   "instructionLanguage": "en",
   "groundTruth": [1155.0, 424.0, 1202.0, 311.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "c23f0f3e95ad22d55130f2dd2bd721480e96094e2a5ae64f4b2028a370dc68c7"
     },
-    "patch": null,
+    "patch": "The original instruction asked to find the stock with RSI 53.78 and Mom 0.78, without specifying which part of its row to locate. Those values identify CSCO, but the groundTruth covers only its ticker symbol, excluding the company name and other parts of the same row. Rewrote both instructions to request the ticker symbol explicitly, keeping the two indicator conditions and the existing groundTruth. The accepted region now corresponds to the requested element rather than imposing an unstated restriction on where within the stock row the answer may fall.",
     "collectedAt": 1792485870696
   }
 }

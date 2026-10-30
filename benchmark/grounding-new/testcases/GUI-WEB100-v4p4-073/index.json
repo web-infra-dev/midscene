@@ -3,11 +3,11 @@
   "platform": "web",
   "category": {
     "item": "Small Target",
-    "reason": "The Automatic label and its group are explicitly specified; the main task is locating the small circular control."
+    "reason": "The Automatic label and its group are explicitly specified; the main task is locating the small circular radio button."
   },
   "instruction": {
-    "en": "Locate the \"Automatic\" checkbox under the \"Distance units\" section.",
-    "zh": "找到“Distance units”部分下的“Automatic”复选框。"
+    "en": "Locate the 'Automatic' radio button under the 'Distance units' section.",
+    "zh": "找到“Distance units”部分下的“Automatic”单选按钮。"
   },
   "instructionLanguage": "en",
   "groundTruth": [700.0, 674.0, 746.0, 630.0],
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "2fd38f5bec94ed2ea1701c7333623e367155042329be804b1d3f5d6b01b219ae"
     },
-    "patch": null,
+    "patch": "The original instructions called the Automatic control under Distance units a checkbox. The screenshot instead shows circular radio buttons for Automatic, miles, and km, with a dot indicating the selected Automatic option; the square checkboxes belong to the separate Avoid section. Corrected both instructions to call the target a radio button and updated category.reason to use the same control type. The target, groundTruth, and Small Target category are unchanged.",
     "collectedAt": 1792485870946
   }
 }

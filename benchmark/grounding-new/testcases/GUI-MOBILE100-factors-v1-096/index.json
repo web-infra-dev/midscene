@@ -3,7 +3,7 @@
   "platform": "mobile",
   "category": {
     "item": "Relative Position",
-    "reason": "The same screen also has Off under Anti-flicker mode; the specified settings group and adjacency relationship identify the arrow."
+    "reason": "The Schedule Dark mode row title distinguishes its Off value and right arrow from the similar Anti-flicker mode row; locating the arrow beside the specified row is the primary relative-position cue."
   },
   "instruction": {
     "en": "Find the icon next to \"Off\" in the \"Schedule Dark mode\" section.",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "2b01fe8c45f4581de298717cf8a3af5f5d1a77f8a9111d6efaf71a807053596c"
     },
-    "patch": null,
+    "patch": "Expanded category.reason to explain how the specified settings row resolves the repeated-arrow candidates. Both Schedule Dark mode and Anti-flicker mode show Off followed by a right arrow, and Brightness level also has a right arrow, so Off or the arrow shape alone does not identify the target. The revised explanation treats the Schedule Dark mode row as the distinguishing anchor and the arrow beside its Off value as the relative-position target, retaining Relative Position as the primary category. Both instructions and the ground-truth box are unchanged.",
     "collectedAt": 1792485870231
   }
 }

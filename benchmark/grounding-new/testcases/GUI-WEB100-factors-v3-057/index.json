@@ -3,14 +3,14 @@
   "platform": "web",
   "category": {
     "item": "Fine-grained Manipulation",
-    "reason": "The target is the lower-left resizing position of the graphic selection box, a local area of approximately 77×62 pixels; locating the graphic center or the whole canvas does not satisfy it."
+    "reason": "The target is the small lower-left resize handle of the selected graphic's bounding box; locating the vector outline, graphic center, or surrounding canvas does not satisfy it."
   },
   "instruction": {
-    "en": "Help me find the lower left corner of the picture on the canvas",
-    "zh": "帮我找到画布上图片的左下角。"
+    "en": "Find the lower-left resize handle of the selected graphic's bounding box on the canvas.",
+    "zh": "找到画布上所选图形外接选框左下角的缩放手柄。"
   },
   "instructionLanguage": "en",
-  "groundTruth": [543.0, 1509.0, 605.0, 1432.0],
+  "groundTruth": [594.0, 1440.0, 609.0, 1424.0],
   "reference": {
     "url": "https://huggingface.co/datasets/Willtime2006/Static-FineBench/blob/d65c3451e573d3641b6297f8aa57b623878b1731/web/DViewManipilation160json/D2ZoomPan30.json#L5",
     "dataset": "FineState-Bench",
@@ -19,7 +19,7 @@
       "format": "png",
       "sha256": "4f660389868b0c5ca4175a547562cd75a2b492e1c17dee4ea002bc45ea1ce9fd"
     },
-    "patch": "Added instruction.zh by translating the original English instruction",
+    "patch": "Added instruction.zh by translating the original English instruction. The original request for the 'lower left corner of the picture' did not distinguish the irregular vector graphic's outline from the lower-left corner of its rectangular selection box. Rewrote both instructions to identify the lower-left resize handle of the selected graphic's bounding box, and updated category.reason to describe that specific handle. The previous groundTruth covered a 77 by 62 pixel region containing substantial space around the handle; replaced [543.0, 1509.0, 605.0, 1432.0] with [594.0, 1440.0, 609.0, 1424.0] in [top, right, bottom, left] pixel order to cover the visible 16 by 15 pixel handle. This makes the accepted region match the explicitly requested control instead of accepting nearby canvas positions.",
     "collectedAt": 1792485870680
   }
 }
