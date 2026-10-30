@@ -6,7 +6,6 @@ export const modelFamilyColors: Record<string, string> = {
   Jev: '#cd5e3c',
   DeepSeek: '#4f6bed',
   Gemini: '#4f6bed',
-  Claude: '#d88a26',
   GLM: '#9363d8',
   Llama: '#0d9488',
   Mistral: '#d65379',

@@ -40,7 +40,6 @@ const modelFamilyNames = {
   typesafe: 'Jev',
   jev: 'Jev',
   gemini: 'Gemini',
-  claude: 'Claude',
   glm: 'GLM',
   llama: 'Llama',
   'meta-llama': 'Llama',
