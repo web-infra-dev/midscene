@@ -21,6 +21,11 @@ vi.mock('../src/cli/test-project-runner', () => ({
   discoverTestConfig: vi.fn(),
   DEFAULT_TEST_FILE_SELECTION: { include: ['**/*.{yaml,yml}'] },
 }));
+// Summary output is covered separately; diagnostic fixtures must not publish it.
+vi.mock('../src/cli/github-reporter', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/cli/github-reporter')>()),
+  writeGitHubSummary: vi.fn(),
+}));
 
 const timing = {
   startedAt: '2026-10-08T00:00:00.000Z',
@@ -140,21 +145,9 @@ const documentPlan = (count = 3): TestRunReportDocumentPlan => ({
 
 const output = () => ({ log: vi.fn(), error: vi.fn() });
 
+beforeEach(() => vi.resetAllMocks());
+
 describe('Test CLI failure diagnostics', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-
-    // These simulated CLI failures must not reach the real workflow summary.
-    const summaryPath = process.env.GITHUB_STEP_SUMMARY;
-    Reflect.deleteProperty(process.env, 'GITHUB_STEP_SUMMARY');
-
-    return () => {
-      if (summaryPath === undefined)
-        Reflect.deleteProperty(process.env, 'GITHUB_STEP_SUMMARY');
-      else process.env.GITHUB_STEP_SUMMARY = summaryPath;
-    };
-  });
-
   it.each([
     'beforeEach',
     'steps',
