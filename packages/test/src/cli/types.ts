@@ -66,6 +66,8 @@ export interface TestProjectRunResult {
   summaryPath: string;
   /** Absolute path to the generated per-run result.md. */
   markdownPath?: string;
+  /** Absolute path to the generated per-run JUnit XML. */
+  junitPath?: string;
   reportDir: string;
   /** Absolute path to the unified Midscene Test HTML report. */
   reportPath?: string;

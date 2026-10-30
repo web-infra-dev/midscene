@@ -344,6 +344,13 @@ describe('test project main-process runner', () => {
     expect(readFileSync(result.markdownPath!, 'utf8')).toContain(
       '## Midscene Test',
     );
+    expect(result.junitPath).toBe(
+      join(dirname(result.summaryPath), 'junit.xml'),
+    );
+    expect(summary.junit).toBe('junit.xml');
+    expect(readFileSync(result.junitPath!, 'utf8')).toContain(
+      '<testcase name="(collection)" classname="&lt;project&gt;"',
+    );
     expect(summary.projects[0]).toMatchObject({
       projectId: 'project-0',
       collectionErrors: [
