@@ -9,14 +9,7 @@ rs.mock('@/ai-model/workflows/planning', () => ({
   standardPlan: rs.fn(),
 }));
 
-import * as sharedImgActual from '@midscene/shared/img' with {
-  rstest: 'importActual',
-};
-
-rs.mock('@midscene/shared/img', () => ({
-  ...sharedImgActual,
-  preProcessImageUrl: rs.fn(async (url: string) => `prepared:${url}`),
-}));
+rs.mock('@midscene/shared/img', { spy: true });
 
 import { TaskExecutor } from '@/agent/tasks';
 import { getMidsceneLocationSchema } from '@/ai-model';
@@ -70,6 +63,9 @@ describe('TaskExecutor concurrency isolation', () => {
   let mockService: Service;
 
   beforeEach(() => {
+    rs.mocked(preProcessImageUrl).mockImplementation(
+      async (url: string) => `prepared:${url}`,
+    );
     mockInterface = {
       interfaceType: 'web',
       actionSpace: rs.fn().mockReturnValue(emptyParamActionSpace),

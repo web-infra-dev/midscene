@@ -873,7 +873,8 @@ export class TaskExecutor {
           currentScreenshotId: currentScreenshot?.id,
           planningCapturedAt: planningTask.uiContext?.screenshot.capturedAt,
           currentCapturedAt: currentScreenshot?.capturedAt,
-          difference: freshness.difference,
+          changedPixels: freshness.changedPixels,
+          dimensionsChanged: freshness.dimensionsChanged,
           decision: freshness.changed ? 'replan' : 'execute',
         };
         debug('plan freshness %o', freshnessLog);
@@ -883,7 +884,7 @@ export class TaskExecutor {
         this.setPendingFeedbackMessage(
           conversationHistory,
           await this.getTimeString(),
-          'The planned action was NOT executed: its target region changed while planning. Inspect the current screenshot and plan again; do not assume the previous action happened.',
+          'The planned action was NOT executed: the screen changed while planning. Inspect the current screenshot and plan again; do not assume the previous action happened.',
         );
       }
 
