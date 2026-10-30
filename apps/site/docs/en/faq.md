@@ -187,11 +187,11 @@ There are several ways to improve the running time:
 
 Keep both `midscene_run/report/` and `midscene_run/log/` when collecting a failure. The HTML report shows what the model saw; the logs show when SDK operations started and returned.
 
-In `web-page.log`, `page-operation` records include a `pageId` and a page-local `operationId`, so concurrent pages can be separated. For a click, compare `dispatch` with `returned`; for a screenshot, compare `begin` with `end`. Screenshot records include `source` (including CDP fallback) and `screenshotHash`, the first 16 hexadecimal characters of SHA-256 over the complete image data URL. Use the hash to identify the same image across logs; a resized or re-encoded image has a different hash.
+The existing `getDebug` loggers write operation details to `web-page.log`. Entries include a `pageId` and a page-local `operationId`, so concurrent pages can be separated. For a click, compare `dispatch` with `returned`; for a screenshot, compare `begin` with `end`. Screenshot records include `source` (including CDP fallback) and `screenshotHash`, the first 16 hexadecimal characters of SHA-256 over the complete image data URL. Use the hash to identify the same image across logs; a resized or re-encoded image has a different hash.
 
 For `aiAct` plans whose first action is a coordinate-based `Tap`, Midscene compares the target's surrounding region in the planning screenshot with the snapshot taken after planning. A significant local change discards the action batch and requests a new plan, within the existing replanning limit. This is a visual heuristic, not a semantic validity check: it can miss changes outside the target, and animations inside the target may cause extra planning. It does not guarantee that the page stays unchanged until the click or make delayed UI updates faster.
 
-`task-runner.log` records `task-screenshot` entries with execution, task and screenshot IDs, capture times and hashes. `device-task-executor.log` records `plan-freshness` decisions; the same decision is attached to the planning task in the report.
+`task-runner.log` records `task screenshot` entries with execution, task and screenshot IDs, capture times and hashes. `device-task-executor.log` records `plan freshness` decisions; the same decision is attached to the planning task in the report.
 
 These timestamps describe SDK calls. A returned click does not prove that the page handled the event or finished rendering, and a screenshot return time is not the time its pixels were painted. To distinguish application updates from browser rendering delays, collect browser-side performance traces separately. For a known asynchronous transition, use `aiWaitFor` to wait for the destination state before the next action.
 

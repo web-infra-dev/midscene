@@ -239,19 +239,16 @@ export class TaskRunner {
     phase: string,
   ) {
     if (!screenshot) return;
-    debug(
-      'task-screenshot',
-      JSON.stringify({
-        executionId: this.id,
-        taskId: task.taskId,
-        taskType: task.subType,
-        phase,
-        screenshotId: screenshot.id,
-        capturedAt: screenshot.capturedAt,
-        observedAt: Date.now(),
-        screenshotHash: sha256Hex(screenshot.base64).slice(0, 16),
-      }),
-    );
+    debug('task screenshot %o', {
+      executionId: this.id,
+      taskId: task.taskId,
+      taskType: task.subType,
+      phase,
+      screenshotId: screenshot.id,
+      capturedAt: screenshot.capturedAt,
+      observedAt: Date.now(),
+      screenshotHash: sha256Hex(screenshot.base64).slice(0, 16),
+    });
   }
 
   private attachRecorderItem(
