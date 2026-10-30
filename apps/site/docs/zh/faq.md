@@ -175,6 +175,18 @@ MIDSCENE_MODEL_PROTOCOL="openai-responses"
 1. 使用 OpenAI 官方的 GPT-5，或配置其他模型单独用于定位，而只把 Azure 平台的 GPT-5 作为规划模型。
 2. 通过 Agent 参数 `screenshotShrinkFactor` 把截图预先缩放到较小尺寸，使图片不触发 Azure 的服务端缩放阈值。详见 [`screenshotShrinkFactor`](./reference/#common)。
 
+## 如何排查点击后的截图仍显示旧状态？
+
+收集失败现场时，请同时保留 `midscene_run/report/` 和 `midscene_run/log/`。HTML 报告显示模型看到了什么，日志记录 SDK 操作何时开始、何时返回。
+
+操作信息沿用现有的 `getDebug` logger 写入 `web-page.log`。记录带有 `pageId` 和页内递增的 `operationId`，可用于拆分并发页面的日志。点击操作看 `dispatch` 和 `returned`，截图操作看 `begin` 和 `end`。截图记录还包含来源 `source`（包括 CDP 回退）和 `screenshotHash`：对完整图片 data URL 计算 SHA-256 后取前 16 位十六进制字符。相同指纹可用于关联日志中的同一张图片；缩放或重新编码后的图片指纹会不同。
+
+对于 `aiAct` 中首个动作是 `Tap` 的计划，Midscene 会比较规划时与规划结束后的整张截图。RGB 任一通道差值超过 32 的像素计为变化；变化像素达到 16 个，或图片尺寸不同，就丢弃这批动作，在已有次数上限内重新规划。使用像素数量而非全屏占比，避免大屏幕上的小变化被稀释。这是视觉判断，不是语义验证：时钟、光标和动画仍可能触发额外规划。它不会等待点击后的画面变化，也不保证画面在实际点击前始终不变，更不会加快页面自身的更新。
+
+`task-runner.log` 的 `task screenshot` 记录包含执行、任务和截图 ID，以及捕获时间和指纹。`device-task-executor.log` 的 `plan freshness` 记录执行或重新规划的决定；同一决定也会附在报告的规划任务中。
+
+这些时间戳描述的是 SDK 调用。点击调用返回，不代表页面已经处理事件或完成渲染；截图返回时间，也不等于画面实际绘制时间。若要区分应用更新和浏览器渲染延迟，需要另外采集浏览器性能记录。对于已知的异步变化，可先用 `aiWaitFor` 等待目标状态，再执行下一步操作。
+
 ## 如何配置 midscene_run 目录？
 
 Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。默认情况下，该目录会创建在当前工作目录下。

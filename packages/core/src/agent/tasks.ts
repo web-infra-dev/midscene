@@ -49,6 +49,7 @@ import {
 } from './action-readiness';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
+import { checkPlanFreshness } from './plan-freshness';
 import {
   type AgentProgressPublisher,
   createAiActActionReporter,
@@ -850,13 +851,50 @@ export class TaskExecutor {
       const planResult = result?.output as PlanningAIResponse | undefined;
       latestPlanResult = planResult;
 
-      if (!planResult?.delegation) {
+      const planningTask = runner.tasks[runner.tasks.length - 1];
+      const currentScreenshot = planningTask.recorder
+        ?.slice()
+        .reverse()
+        .find((item) => item.type === 'screenshot')?.screenshot;
+      const freshness =
+        !planResult?.delegation && planningTask.uiContext && currentScreenshot
+          ? await checkPlanFreshness(
+              planResult?.actions || [],
+              planningTask.uiContext,
+              currentScreenshot,
+            )
+          : undefined;
+      if (freshness) {
+        const freshnessLog = {
+          executionId: runner.id,
+          taskId: planningTask.taskId,
+          planIndex,
+          planningScreenshotId: planningTask.uiContext?.screenshot.id,
+          currentScreenshotId: currentScreenshot?.id,
+          planningCapturedAt: planningTask.uiContext?.screenshot.capturedAt,
+          currentCapturedAt: currentScreenshot?.capturedAt,
+          changedPixels: freshness.changedPixels,
+          dimensionsChanged: freshness.dimensionsChanged,
+          decision: freshness.changed ? 'replan' : 'execute',
+        };
+        debug('plan freshness %o', freshnessLog);
+        planningTask.log = { ...planningTask.log, planFreshness: freshnessLog };
+      }
+      if (freshness?.changed) {
+        this.setPendingFeedbackMessage(
+          conversationHistory,
+          await this.getTimeString(),
+          'The planned action was NOT executed: the screen changed while planning. Inspect the current screenshot and plan again; do not assume the previous action happened.',
+        );
+      }
+
+      if (!planResult?.delegation && !freshness?.changed) {
         // Execute planned actions
         const plans = planResult?.actions || [];
         yamlFlow.push(...(planResult?.yamlFlow || []));
 
         let executables: Awaited<
-          ReturnType<typeof this.convertPlanToExecutable>
+          ReturnType<TaskExecutor['convertPlanToExecutable']>
         >;
         try {
           executables = await this.convertPlanToExecutable(

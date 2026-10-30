@@ -32,7 +32,7 @@ import {
   getElementInfosScriptContent,
   getExtraReturnLogic,
 } from '@midscene/shared/node';
-import { assert } from '@midscene/shared/utils';
+import { assert, sha256Hex, uuid } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { CDPSession, Protocol, Page as PuppeteerPage } from 'puppeteer';
 import {
@@ -214,6 +214,9 @@ export class Page<
 > implements AbstractInterface
 {
   underlyingPage: InterfaceType;
+  private readonly diagnosticPageId = uuid();
+  private diagnosticOperationSequence = 0;
+
   protected waitForNavigationTimeout: number;
   protected waitForNetworkIdleTimeout: number;
   private viewportSize?: Size;
@@ -478,45 +481,67 @@ export class Page<
     const imgType = 'jpeg' as const;
     const quality = 90;
     const startTime = Date.now();
-    debugPage('screenshotBase64 begin');
+    const operation = {
+      pageId: this.diagnosticPageId,
+      operationId: ++this.diagnosticOperationSequence,
+    };
+    debugPage('screenshotBase64 begin %o', operation);
+    let source: string = this.interfaceType;
 
-    let base64: string;
-    if (this.interfaceType === 'puppeteer') {
-      const result = await capturePuppeteerScreenshot(
-        this.underlyingPage as PuppeteerPage,
-        { type: imgType, quality, encoding: 'base64' },
-      );
-      base64 = createImgBase64ByFormat(imgType, result);
-    } else if (this.interfaceType === 'playwright') {
-      const page = this.underlyingPage as PlaywrightPage;
-      try {
-        const buffer = await page.screenshot({
-          type: imgType,
-          quality,
-          timeout: 10 * 1000,
-        });
-        base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
-      } catch (error) {
-        if (isClosedPageError(error) || page.isClosed()) {
-          throw error;
+    try {
+      let base64: string;
+      if (this.interfaceType === 'puppeteer') {
+        const result = await capturePuppeteerScreenshot(
+          this.underlyingPage as PuppeteerPage,
+          { type: imgType, quality, encoding: 'base64' },
+        );
+        base64 = createImgBase64ByFormat(imgType, result);
+      } else if (this.interfaceType === 'playwright') {
+        const page = this.underlyingPage as PlaywrightPage;
+        try {
+          const buffer = await page.screenshot({
+            type: imgType,
+            quality,
+            timeout: 10 * 1000,
+          });
+          base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
+        } catch (error) {
+          if (isClosedPageError(error) || page.isClosed()) {
+            throw error;
+          }
+
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          warnPage(
+            `[Midscene] Playwright screenshot failed: ${errorMsg}. Falling back to CDP screenshot.`,
+          );
+          debugPage(
+            'playwright screenshot failed, trying CDP fallback: %s',
+            error,
+          );
+          source = 'cdp-fallback';
+          debugPage('screenshotBase64 fallback %o', { ...operation, source });
+          base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
         }
-
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.warn(
-          `[Midscene] Playwright screenshot failed: ${errorMsg}. Falling back to CDP screenshot.`,
-        );
-        debugPage(
-          'playwright screenshot failed, trying CDP fallback: %s',
-          error,
-        );
-        base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
+      } else {
+        throw new Error('Unsupported page type for screenshot');
       }
-    } else {
-      throw new Error('Unsupported page type for screenshot');
+      const endTime = Date.now();
+      debugPage('screenshotBase64 end %o', {
+        ...operation,
+        source,
+        durationMs: endTime - startTime,
+        screenshotHash: sha256Hex(base64).slice(0, 16),
+      });
+      return base64;
+    } catch (error) {
+      debugPage('screenshotBase64 error %o', {
+        ...operation,
+        source,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+      });
+      throw error;
     }
-    const endTime = Date.now();
-    debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
-    return base64;
   }
 
   private async screenshotBase64ByPlaywrightCdp(
@@ -994,26 +1019,51 @@ export class Page<
         y: number,
         options?: { button?: MouseButton; count?: number },
       ) => {
-        await this.mouse.move(x, y);
+        const startedAt = Date.now();
+        const operation = {
+          pageId: this.diagnosticPageId,
+          operationId: ++this.diagnosticOperationSequence,
+        };
+        debugPage('mouse click begin %o', operation);
         const { button = 'left', count = 1 } = options || {};
-        debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
+        try {
+          await this.mouse.move(x, y);
+          debugPage('mouse click dispatch %o', {
+            ...operation,
+            x,
+            y,
+            button,
+            count,
+          });
 
-        if (count === 2 && this.interfaceType === 'playwright') {
-          await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
-            button,
-          });
-        } else if (this.interfaceType === 'puppeteer') {
-          const page = this.underlyingPage as PuppeteerPage;
-          if (button === 'left' && count === 1) {
-            await page.mouse.click(x, y);
-          } else {
-            await page.mouse.click(x, y, { button, count });
+          if (count === 2 && this.interfaceType === 'playwright') {
+            await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
+              button,
+            });
+          } else if (this.interfaceType === 'puppeteer') {
+            const page = this.underlyingPage as PuppeteerPage;
+            if (button === 'left' && count === 1) {
+              await page.mouse.click(x, y);
+            } else {
+              await page.mouse.click(x, y, { button, count });
+            }
+          } else if (this.interfaceType === 'playwright') {
+            await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
+              button,
+              clickCount: count,
+            });
           }
-        } else if (this.interfaceType === 'playwright') {
-          await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
-            button,
-            clickCount: count,
+          // A returned browser input call does not prove the UI has rendered.
+          debugPage('mouse click returned %o', {
+            ...operation,
+            durationMs: Date.now() - startedAt,
           });
+        } catch (error) {
+          debugPage('mouse click error %o', {
+            ...operation,
+            errorName: error instanceof Error ? error.name : 'UnknownError',
+          });
+          throw error;
         }
       },
       wheel: async (deltaX: number, deltaY: number) => {
@@ -1329,10 +1379,29 @@ export class Page<
   }
 
   async defaultActionWait(name: string, _param: any): Promise<void> {
-    await Promise.all([
-      this.waitForNavigation('afterInvokeAction', name),
-      this.waitForNetworkIdle('afterInvokeAction', name),
-    ]);
+    const startedAt = Date.now();
+    const operation = {
+      pageId: this.diagnosticPageId,
+      operationId: ++this.diagnosticOperationSequence,
+      actionName: name,
+    };
+    debugPage('defaultActionWait begin %o', operation);
+    try {
+      await Promise.all([
+        this.waitForNavigation('afterInvokeAction', name),
+        this.waitForNetworkIdle('afterInvokeAction', name),
+      ]);
+      debugPage('defaultActionWait end %o', {
+        ...operation,
+        durationMs: Date.now() - startedAt,
+      });
+    } catch (error) {
+      debugPage('defaultActionWait error %o', {
+        ...operation,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+      });
+      throw error;
+    }
   }
 
   async afterInvokeAction(name: string, param: any): Promise<void> {

@@ -183,6 +183,18 @@ There are several ways to improve the running time:
 3. Change to a faster model service
 4. Use caching to accelerate the debug process. Read more about it in [Caching](./caching).
 
+## How do I investigate clicks followed by an outdated screenshot?
+
+Keep both `midscene_run/report/` and `midscene_run/log/` when collecting a failure. The HTML report shows what the model saw; the logs show when SDK operations started and returned.
+
+The existing `getDebug` loggers write operation details to `web-page.log`. Entries include a `pageId` and a page-local `operationId`, so concurrent pages can be separated. For a click, compare `dispatch` with `returned`; for a screenshot, compare `begin` with `end`. Screenshot records include `source` (including CDP fallback) and `screenshotHash`, the first 16 hexadecimal characters of SHA-256 over the complete image data URL. Use the hash to identify the same image across logs; a resized or re-encoded image has a different hash.
+
+For `aiAct` plans whose first action is `Tap`, Midscene compares the entire planning screenshot with the existing post-planning screenshot. A pixel is counted as changed when any RGB channel differs by more than 32; at least 16 changed pixels, or different image dimensions, discard the action batch and request a new plan within the existing replanning limit. An absolute pixel count avoids diluting small changes on large screens. This is a visual heuristic, not a semantic check: clocks, carets and animations can trigger extra planning. It does not wait for a post-click change, guarantee that the screen stays unchanged until the click, or make delayed UI updates faster.
+
+`task-runner.log` records `task screenshot` entries with execution, task and screenshot IDs, capture times and hashes. `device-task-executor.log` records `plan freshness` decisions; the same decision is attached to the planning task in the report.
+
+These timestamps describe SDK calls. A returned click does not prove that the page handled the event or finished rendering, and a screenshot return time is not the time its pixels were painted. To distinguish application updates from browser rendering delays, collect browser-side performance traces separately. For a known asynchronous transition, use `aiWaitFor` to wait for the destination state before the next action.
+
 ## How do I configure the midscene_run directory?
 
 Midscene saves runtime artifacts (reports, logs, cache, etc.) in the `midscene_run` directory. By default, this directory is created in the current working directory.

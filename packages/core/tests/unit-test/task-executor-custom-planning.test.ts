@@ -34,6 +34,7 @@ rs.mock('../../src/ai-model/service-caller/index', () => {
   return serviceCallerMock;
 });
 
+import * as freshness from '@/agent/plan-freshness';
 import { TaskExecutor } from '@/agent/tasks';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
@@ -76,7 +77,7 @@ function createCustomPlanningModel(plannedActions: any[] = []): ModelRuntime {
             },
             coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
             parseResponse: () => null,
-            transformActions: () => plannedActions,
+            transformActions: () => structuredClone(plannedActions),
             shouldContinuePlanning: () => false,
             buildResponseLog: () => '',
           },
@@ -220,5 +221,86 @@ describe('TaskExecutor custom planning adapters', () => {
     expect(
       convertSpy.mock.calls[0][0][0].param.locate.locatedPixelResult.center,
     ).toHaveLength(2);
+  });
+  it('discards a stale plan and executes only the fresh replacement', async () => {
+    const actionSpace: DeviceAction[] = [
+      {
+        name: 'Tap',
+        description: 'tap',
+        paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+        call: async () => undefined,
+      },
+    ];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 2,
+      actionSpace,
+    });
+    const convert = rs
+      .spyOn(executor, 'convertPlanToExecutable')
+      .mockResolvedValue({ tasks: [] });
+    const guard = rs
+      .spyOn(freshness, 'checkPlanFreshness')
+      .mockResolvedValueOnce({
+        changed: true,
+        changedPixels: 100,
+        dimensionsChanged: false,
+      })
+      .mockResolvedValueOnce({
+        changed: false,
+        changedPixels: 0,
+        dimensionsChanged: false,
+      });
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await executor.action(
+      'open the target',
+      createCustomPlanningModel([
+        {
+          type: 'Tap',
+          param: { locate: { prompt: 'target', point: [500, 500] } },
+        },
+      ]),
+      defaultModel(),
+    );
+    expect(guard).toHaveBeenCalledTimes(2);
+    expect(convert).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops at the planning limit without ever executing a continuously stale plan', async () => {
+    const actionSpace: DeviceAction[] = [
+      {
+        name: 'Tap',
+        description: 'tap',
+        paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+        call: async () => undefined,
+      },
+    ];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      replanningCycleLimit: 1,
+      actionSpace,
+    });
+    const convert = rs
+      .spyOn(executor, 'convertPlanToExecutable')
+      .mockResolvedValue({ tasks: [] });
+    rs.spyOn(freshness, 'checkPlanFreshness').mockResolvedValue({
+      changed: true,
+      changedPixels: 100,
+      dimensionsChanged: false,
+    });
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await expect(
+      executor.action(
+        'open the target',
+        createCustomPlanningModel([
+          {
+            type: 'Tap',
+            param: { locate: { prompt: 'target', point: [500, 500] } },
+          },
+        ]),
+        defaultModel(),
+      ),
+    ).rejects.toThrow('planning cycle limit');
+    expect(convert).not.toHaveBeenCalled();
   });
 });
