@@ -1,6 +1,6 @@
 import { Bot, Braces, History } from 'lucide-react';
 import { useI18n, useI18nUrl } from '../i18n';
-import { FeatureCard } from './FeatureCard';
+import { FeatureCard, FeatureCardGrid } from './FeatureCard';
 import './TestingToolkit.css';
 
 export function TestingToolkit() {
@@ -9,6 +9,7 @@ export function TestingToolkit() {
   const cards = [
     {
       title: t('toolkitApiTitle'),
+      action: t('toolkitApiLink'),
       description: t('toolkitApiDesc'),
       href: '/reference/',
       Icon: Braces,
@@ -16,6 +17,7 @@ export function TestingToolkit() {
     },
     {
       title: t('toolkitReportTitle'),
+      action: t('toolkitReportLink'),
       description: t('toolkitReportDesc'),
       href: '/midscene-test/use',
       Icon: History,
@@ -23,6 +25,7 @@ export function TestingToolkit() {
     },
     {
       title: t('toolkitSkillsTitle'),
+      action: t('toolkitSkillsLink'),
       description: t('toolkitSkillsDesc'),
       href: '/skills',
       Icon: Bot,
@@ -30,23 +33,21 @@ export function TestingToolkit() {
     },
   ];
   return (
-    <div className="home-feature-grid home-toolkit-grid">
-      {cards.map(({ title, description, href, Icon, label }) => (
+    <FeatureCardGrid columns={3}>
+      {cards.map(({ title, description, href, Icon, label, action }) => (
         <FeatureCard
           key={href}
           href={tUrl(href)}
           title={title}
           description={description}
-          lightBackground="/images/backgrounds/gradient-light.svg"
-          darkBackground="/images/backgrounds/gradient-dark.svg"
-          lightContent={
-            <div className="home-model-visual home-toolkit-visual">
-              <Icon size={72} strokeWidth={1} />
-              <span>{label}</span>
-            </div>
-          }
-        />
+          actionLabel={action}
+        >
+          <div className="home-toolkit-visual">
+            <Icon size={56} strokeWidth={1} />
+            <span>{label}</span>
+          </div>
+        </FeatureCard>
       ))}
-    </div>
+    </FeatureCardGrid>
   );
 }

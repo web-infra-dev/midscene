@@ -1,0 +1,156 @@
+.home-card-grid {
+  --card-border: rgb(16 24 40 / 10%);
+  --card-bg: #fbfbfb;
+  --card-dot: rgb(16 24 40 / 8%);
+  --card-text: rgb(16 24 40 / 75%);
+  --card-strong: rgb(16 24 40 / 90%);
+  --card-link: #0555ff;
+  --card-hover-border: rgb(5 85 255 / 36%);
+  --card-hover-shadow: 0 14px 32px rgb(16 24 40 / 8%);
+
+  display: grid;
+  gap: 20px;
+}
+
+.dark .home-card-grid {
+  --card-border: rgb(255 255 255 / 10%);
+  --card-bg: #111;
+  --card-dot: rgb(255 255 255 / 9%);
+  --card-text: rgb(255 255 255 / 72%);
+  --card-strong: rgb(255 255 255 / 90%);
+  --card-link: rgb(128 168 255);
+  --card-hover-border: rgb(128 168 255 / 42%);
+  --card-hover-shadow: 0 14px 32px rgb(0 0 0 / 28%);
+}
+
+.home-card-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-card-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Cards in a row share the visual and content row tracks through subgrid,
+   so the divider lines line up even when descriptions differ in length. */
+.home-card-grid .home-card {
+  display: grid;
+  min-width: 0;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.home-card--wide {
+  grid-column: 1 / -1;
+}
+
+.home-card-grid .home-card:hover {
+  border-color: var(--card-hover-border);
+  box-shadow: var(--card-hover-shadow);
+}
+
+.home-card-grid .home-card:focus-visible {
+  outline: 2px solid #0555ff;
+  outline-offset: 3px;
+}
+
+.home-card__visual {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 168px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--card-border);
+  background-image: radial-gradient(var(--card-dot) 1px, transparent 1px);
+  background-size: 16px 16px;
+  color: var(--card-text);
+  font-family: Inter, var(--rp-font-family-base, sans-serif);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.home-card__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-card__image--dark,
+.dark .home-card__image--light {
+  display: none;
+}
+
+.dark .home-card__image--dark {
+  display: block;
+}
+
+.home-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 24px 22px;
+}
+
+.home-card-grid .home-card__content h3 {
+  margin: 0;
+  color: var(--card-strong);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.home-card-grid .home-card__content p {
+  margin: 0;
+  color: var(--card-text);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.home-card__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 4px;
+  color: var(--card-link);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.home-card__action svg {
+  transition: transform 160ms ease;
+}
+
+.home-card:hover .home-card__action svg {
+  transform: translateX(3px);
+}
+
+@media (max-width: 900px) {
+  .home-card-grid--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container (max-width: 640px) {
+  .home-card-grid--2,
+  .home-card-grid--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-card__visual {
+    padding: 16px;
+  }
+}

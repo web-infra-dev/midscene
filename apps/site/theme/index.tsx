@@ -22,14 +22,15 @@ export {
   AgentBenchmarks,
   AgentPlatforms,
   AgentToolkit,
-  TestExecution,
 } from './components/FeatureSections';
+export { TestExecution } from './components/TestExecution';
 export { TestFramework } from './components/TestFramework';
 export { TestProject } from './components/TestProject';
 export { WhoIsUsing } from './components/WhoIsUsing';
 export { CTAButtons } from './components/CTAButtons';
 
 export { AgentVisionDemo } from './components/AgentVisionDemo';
+export { AgentVisionSteps } from './components/AgentVisionSteps';
 
 export { ModelConfigSection } from './components/ModelConfigSection';
 

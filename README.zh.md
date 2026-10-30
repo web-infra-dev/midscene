@@ -35,7 +35,7 @@ cases:
       - aiAssert: 搜索结果中有商品，且每件商品价格都低于 100 美元
 ```
 
-### 使用 JavaScript 与 Playwright
+### 在现有测试中使用 JavaScript
 
 你也可以在已有测试中直接使用 Agent。配置好模型，并在 Playwright `page` 中打开应用后，用代码描述同样的步骤：
 
@@ -49,11 +49,11 @@ await agent.aiWaitFor('筛选后的搜索结果已显示');
 await agent.aiAssert('搜索结果中有商品，且每件商品价格都低于 100 美元');
 ```
 
-打开生成的 HTML 报告，即可查看截图、操作与断言结果。[Midscene Test 使用指南](https://midscenejs.com/zh/midscene-test/use)和 [Playwright 集成指南](https://midscenejs.com/zh/integrate-with-playwright)提供配置步骤与完整示例。
+移动端和桌面端应用可以通过 [Vitest](https://midscenejs.com/zh/sdk/vitest) 使用对应平台的 Agent。打开生成的 HTML 报告，即可查看截图、元素定位、AI 决策过程，以及操作和断言结果。
 
-## 👁️ 视觉驱动，低成本运行测试
+## 👁️ 像人一样观察、操作并验证结果
 
-Midscene 的操作与断言都仿照人使用软件的方式：**观察屏幕，根据看到的内容操作，再检查界面呈现的结果**。
+E2E 测试的初衷是从用户视角验证完整流程，所以 Midscene 按用户的方式来测：**观察屏幕，根据看到的内容操作，再验证界面呈现的结果**。
 
 ### 根据截图定位与操作
 
@@ -68,15 +68,9 @@ await agent.aiAssert('选中的套餐带有蓝色边框和勾选标记');
 await agent.aiAssert('邮箱输入框下方显示了错误提示');
 ```
 
-### 按效果与预算选择模型
-
-基于截图的 UI 操作无需向模型发送庞大的 DOM 树。在 AppControlBench 评测中，Midscene 搭配豆包 Seed 2.1 Turbo，**60 项任务通过 58 项，模型调用总费用为 0.59 美元**。[评测报告](https://midscenejs.com/zh/app-control-bench-report)提供了逐任务费用与不同模型的对比。
-
-Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等模型，也包括可自托管的开源选项。通过[模型选择指南](https://midscenejs.com/zh/model-selection)选择适合的模型，再按照[模型配置指南](https://midscenejs.com/zh/model-api-setup)完成配置。
-
 ## 🌐 一套 API，覆盖不同平台
 
-通过同一套 Agent API，在不同平台上描述操作和断言：
+视觉定位不依赖界面渲染结构，同一套 Agent API 可以用于各个平台：
 
 | 平台 | 接入方式 |
 | --- | --- |
@@ -87,31 +81,15 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`
 | 桌面 | [macOS、Windows、Linux，支持远程 RDP](https://midscenejs.com/zh/platforms/desktop) |
 | 自定义界面 | [提供截图与操作能力，即可接入](https://midscenejs.com/zh/integrate-with-any-interface) |
 
-## 🧩 Midscene Test：用 YAML 组织用例，用 TypeScript 扩展
+## 📊 模型、成本与 Benchmark
 
-[Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）帮助你将 GUI 自动化组织为可持续维护的 E2E 测试工程：
+### 按效果与预算选择模型
 
-- **用 YAML 描述测试用例**：组合界面操作、断言与业务节点，表达测试流程和预期结果。
-- **用 TypeScript 节点复用业务能力**：将数据准备、接口调用与清理封装为节点，供不同用例复用。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。
-- **为开发者和 AI Agent 生成 Node 说明书**：将已注册节点与参数定义导出为 Markdown，让双方都能了解项目能力，共同编写和维护用例。
+基于截图的 UI 操作无需向模型发送庞大的 DOM 树。在 AppControlBench 评测中，Midscene 搭配豆包 Seed 2.1 Turbo，**60 项任务通过 58 项，模型调用总费用为 0.59 美元**。[评测报告](https://midscenejs.com/zh/app-control-bench-report)提供了逐任务费用与不同模型的对比。
 
-从[创建和使用测试项目](https://midscenejs.com/zh/midscene-test/use)开始，再了解如何[编写自定义 Node](https://midscenejs.com/zh/midscene-test/extend)。
+Midscene 支持豆包 Seed、千问 Qwen、DeepSeek、Gemini、GPT、Kimi 等模型，也包括可自托管的开源选项。通过[模型选择指南](https://midscenejs.com/zh/model-selection)选择适合的模型，再按照[模型配置指南](https://midscenejs.com/zh/model-api-setup)完成配置。
 
-## 🧰 编写与调试测试的工具链
-
-### 灵活接入现有测试工程
-
-通过 `aiAct` 自主执行流程，通过 `aiTap`、`aiInput` 控制单步操作，通过 `aiAssert` 编写断言，通过 `aiQuery` 提取结构化数据。借助 Playwright、Puppeteer 或 JavaScript SDK，你可以将这些 [Agent API](https://midscenejs.com/zh/reference/#common) 与已有代码、测试夹具和断言组合。
-
-### 回放执行，调整指令
-
-交互式 HTML 报告展示截图、元素定位、AI 决策过程，以及操作和断言结果。Midscene Test 还会记录自定义业务操作的输入、输出、耗时和状态，为开发者和 AI Agent 提供排查失败所需的上下文。通过 [Playground](https://midscenejs.com/zh/quick-start)，可以直接在界面上试验和调整指令。
-
-### 让 AI 编程 Agent 操作界面
-
-通过 [Midscene Skills](https://midscenejs.com/zh/skills)，让 AI 编程 Agent 操作应用、验证界面，并查看执行结果。
-
-## 📊 Benchmark 与案例
+### Benchmark
 
 | Benchmark | Pass@1 | 对应评测使用的模型 |
 | --- | --- | --- |
@@ -119,15 +97,33 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`
 | [MobileWorld](https://midscenejs.com/zh/mobile-world-benchmark-report) | 78.6% | Gemini-3.6-Flash |
 | [AppControlBench](https://midscenejs.com/zh/app-control-bench-report) | 96.7% | Doubao Seed 2.1 Turbo |
 
-各报告包含运行配置与任务结果；AndroidWorld 报告还说明了环境与校验器的调整。
+各报告包含运行配置与任务结果；AndroidWorld 报告还说明了环境与校验器的调整。查看[跨平台案例](https://midscenejs.com/zh/showcases)，了解 Web 表单校验、移动端操作流程，以及社区构建的车机测试方案。
 
-查看[跨平台案例](https://midscenejs.com/zh/showcases)，了解 Web 表单校验、移动端操作流程，以及社区构建的车机测试方案。
+## 🧩 Midscene Test：面向自然语言的 E2E 测试框架
+
+[Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`）是面向自然语言的 E2E 测试框架。用 YAML 描述操作和预期，需要精确控制的逻辑交给 TypeScript。
+
+### 让人和 AI 共同维护测试用例
+
+- **用 YAML 描述测试用例**：组合界面操作、断言与业务操作，表达测试流程和预期结果。
+- **用 TypeScript Node 复用业务能力**：将数据准备、接口调用与清理封装为 Node，供不同用例复用。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。
+- **为开发者和 AI Agent 生成 Node 说明书**：将已注册的 Node 及其参数导出为 Markdown，双方都无需阅读 TypeScript 就能编写用例。
+
+### 测试框架能力
+
+- **生命周期钩子与资源清理**：`setup`、`fileSetup`、`beforeAll`、`beforeEach` 及对应的清理钩子；超时或按下 Ctrl+C 后清理照常执行。
+- **失败重试与超时**：用例重试、步骤超时、`continue-on-error` 和 `bail`。
+- **并发与隔离**：`maxConcurrentFiles` 控制并发，`fileSetup` 为每个文件准备独立的页面、Agent 或设备。
+- **精确到步骤的报告**：每个步骤的截图、输入、输出和 Agent 回放，`#runner-step=last-error` 深度链接，以及供脚本和 AI Agent 读取的 `summary.json`。
+
+从[创建和使用测试项目](https://midscenejs.com/zh/midscene-test/use)开始，再了解如何[编写自定义 Node](https://midscenejs.com/zh/midscene-test/extend)，以及如何控制[生命周期与并发](https://midscenejs.com/zh/midscene-test/execution)。
 
 ## 🚀 开始使用
 
-- **编写 YAML 测试用例**：先[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)。
-- **为现有测试引入视觉能力**：接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) 或 [Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer)。
-- **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/quick-start)，或启动[移动端或桌面端 Playground](https://midscenejs.com/zh/quick-start#在其他平台使用-midscene)。
+- **编写 YAML 测试用例**：[创建 Midscene Test 项目](https://midscenejs.com/zh/midscene-test/use)。
+- **为现有测试引入视觉能力**：Web 应用接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)，移动端和桌面端应用接入 [Vitest](https://midscenejs.com/zh/sdk/vitest)。
+- **编写测试前先体验**：使用 [Chrome 插件](https://midscenejs.com/zh/quick-start)或[移动端、桌面端 Playground](https://midscenejs.com/zh/platforms)。
+- **运行独立的自动化脚本**：使用 [JavaScript SDK](https://midscenejs.com/zh/sdk/standalone)。
 - **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。
 
 ## 📄 资源
@@ -183,17 +179,12 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`DeepSeek V4 Flash`、`GLM-4.6V`
 }
 ```
 
-## ✨ Star 历史
+## ⭐ 为 Midscene 点个 Star
+
+如果 Midscene 对你有帮助，欢迎点个 Star。
 
 [![Star History Chart](https://api.star-history.com/svg?repos=web-infra-dev/midscene&type=Date)](https://www.star-history.com/#web-infra-dev/midscene&Date)
-
 
 ## 📝 许可协议
 
 Midscene.js 采用 [MIT 许可证](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
-
----
-
-<div align="center">
-  如果这个项目对你有帮助或启发，欢迎点个 Star
-</div>
