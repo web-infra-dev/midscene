@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer';
+import { createHash, randomUUID } from 'node:crypto';
 import type { WebPageAgentOpt } from '@/web-element';
 import type {
   DeviceAction,
@@ -214,6 +215,9 @@ export class Page<
 > implements AbstractInterface
 {
   underlyingPage: InterfaceType;
+  private readonly diagnosticPageId = randomUUID();
+  private diagnosticOperationSequence = 0;
+
   protected waitForNavigationTimeout: number;
   protected waitForNetworkIdleTimeout: number;
   private viewportSize?: Size;
@@ -289,6 +293,32 @@ export class Page<
       opts?.enableTouchEventsInActionSpace ?? false;
     this.keyboardTypeDelay = opts?.keyboardTypeDelay;
     this.inputStrategy = opts?.inputStrategy;
+  }
+
+  private startDiagnosticOperation(
+    operation: string,
+    context: Record<string, unknown> = {},
+  ) {
+    const operationId = ++this.diagnosticOperationSequence;
+    const startedAt = Date.now();
+    const log = (phase: string, details: Record<string, unknown> = {}) => {
+      const timestamp = Date.now();
+      debugPage(
+        JSON.stringify({
+          event: 'page-operation',
+          pageId: this.diagnosticPageId,
+          operationId,
+          operation,
+          phase,
+          timestamp,
+          elapsedMs: timestamp - startedAt,
+          ...context,
+          ...details,
+        }),
+      );
+    };
+    log('begin');
+    return log;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -478,45 +508,64 @@ export class Page<
     const imgType = 'jpeg' as const;
     const quality = 90;
     const startTime = Date.now();
-    debugPage('screenshotBase64 begin');
+    const log = this.startDiagnosticOperation('screenshot');
+    let source: string = this.interfaceType;
 
-    let base64: string;
-    if (this.interfaceType === 'puppeteer') {
-      const result = await capturePuppeteerScreenshot(
-        this.underlyingPage as PuppeteerPage,
-        { type: imgType, quality, encoding: 'base64' },
-      );
-      base64 = createImgBase64ByFormat(imgType, result);
-    } else if (this.interfaceType === 'playwright') {
-      const page = this.underlyingPage as PlaywrightPage;
-      try {
-        const buffer = await page.screenshot({
-          type: imgType,
-          quality,
-          timeout: 10 * 1000,
-        });
-        base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
-      } catch (error) {
-        if (isClosedPageError(error) || page.isClosed()) {
-          throw error;
+    try {
+      let base64: string;
+      if (this.interfaceType === 'puppeteer') {
+        const result = await capturePuppeteerScreenshot(
+          this.underlyingPage as PuppeteerPage,
+          { type: imgType, quality, encoding: 'base64' },
+        );
+        base64 = createImgBase64ByFormat(imgType, result);
+      } else if (this.interfaceType === 'playwright') {
+        const page = this.underlyingPage as PlaywrightPage;
+        try {
+          const buffer = await page.screenshot({
+            type: imgType,
+            quality,
+            timeout: 10 * 1000,
+          });
+          base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
+        } catch (error) {
+          if (isClosedPageError(error) || page.isClosed()) {
+            throw error;
+          }
+
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          warnPage(
+            `[Midscene] Playwright screenshot failed: ${errorMsg}. Falling back to CDP screenshot.`,
+          );
+          debugPage(
+            'playwright screenshot failed, trying CDP fallback: %s',
+            error,
+          );
+          source = 'cdp-fallback';
+          log('fallback', { source });
+          base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
         }
-
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.warn(
-          `[Midscene] Playwright screenshot failed: ${errorMsg}. Falling back to CDP screenshot.`,
-        );
-        debugPage(
-          'playwright screenshot failed, trying CDP fallback: %s',
-          error,
-        );
-        base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
+      } else {
+        throw new Error('Unsupported page type for screenshot');
       }
-    } else {
-      throw new Error('Unsupported page type for screenshot');
+      const endTime = Date.now();
+      log('end', {
+        source,
+        durationMs: endTime - startTime,
+        screenshotHash: createHash('sha256')
+          .update(base64)
+          .digest('hex')
+          .slice(0, 16),
+      });
+      return base64;
+    } catch (error) {
+      log('error', {
+        source,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+      });
+      throw error;
     }
-    const endTime = Date.now();
-    debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
-    return base64;
   }
 
   private async screenshotBase64ByPlaywrightCdp(
@@ -994,26 +1043,36 @@ export class Page<
         y: number,
         options?: { button?: MouseButton; count?: number },
       ) => {
-        await this.mouse.move(x, y);
+        const log = this.startDiagnosticOperation('click');
         const { button = 'left', count = 1 } = options || {};
-        debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
+        try {
+          await this.mouse.move(x, y);
+          log('dispatch', { x, y, button, count });
 
-        if (count === 2 && this.interfaceType === 'playwright') {
-          await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
-            button,
-          });
-        } else if (this.interfaceType === 'puppeteer') {
-          const page = this.underlyingPage as PuppeteerPage;
-          if (button === 'left' && count === 1) {
-            await page.mouse.click(x, y);
-          } else {
-            await page.mouse.click(x, y, { button, count });
+          if (count === 2 && this.interfaceType === 'playwright') {
+            await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
+              button,
+            });
+          } else if (this.interfaceType === 'puppeteer') {
+            const page = this.underlyingPage as PuppeteerPage;
+            if (button === 'left' && count === 1) {
+              await page.mouse.click(x, y);
+            } else {
+              await page.mouse.click(x, y, { button, count });
+            }
+          } else if (this.interfaceType === 'playwright') {
+            await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
+              button,
+              clickCount: count,
+            });
           }
-        } else if (this.interfaceType === 'playwright') {
-          await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
-            button,
-            clickCount: count,
+          // A returned browser input call does not prove the UI has rendered.
+          log('returned');
+        } catch (error) {
+          log('error', {
+            errorName: error instanceof Error ? error.name : 'UnknownError',
           });
+          throw error;
         }
       },
       wheel: async (deltaX: number, deltaY: number) => {
@@ -1329,10 +1388,21 @@ export class Page<
   }
 
   async defaultActionWait(name: string, _param: any): Promise<void> {
-    await Promise.all([
-      this.waitForNavigation('afterInvokeAction', name),
-      this.waitForNetworkIdle('afterInvokeAction', name),
-    ]);
+    const log = this.startDiagnosticOperation('action-wait', {
+      actionName: name,
+    });
+    try {
+      await Promise.all([
+        this.waitForNavigation('afterInvokeAction', name),
+        this.waitForNetworkIdle('afterInvokeAction', name),
+      ]);
+      log('end');
+    } catch (error) {
+      log('error', {
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+      });
+      throw error;
+    }
   }
 
   async afterInvokeAction(name: string, param: any): Promise<void> {

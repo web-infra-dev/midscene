@@ -19,7 +19,7 @@ import {
   truncateSerializedErrorString,
 } from '@midscene/shared/agent-tools/error-formatter';
 import { getDebug } from '@midscene/shared/logger';
-import { assert, uuid } from '@midscene/shared/utils';
+import { assert, sha256Hex, uuid } from '@midscene/shared/utils';
 
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
@@ -233,6 +233,27 @@ export class TaskRunner {
     return undefined;
   }
 
+  private logScreenshot(
+    task: ExecutionTask,
+    screenshot: ScreenshotItem | undefined,
+    phase: string,
+  ) {
+    if (!screenshot) return;
+    debug(
+      'task-screenshot',
+      JSON.stringify({
+        executionId: this.id,
+        taskId: task.taskId,
+        taskType: task.subType,
+        phase,
+        screenshotId: screenshot.id,
+        capturedAt: screenshot.capturedAt,
+        observedAt: Date.now(),
+        screenshotHash: sha256Hex(screenshot.base64).slice(0, 16),
+      }),
+    );
+  }
+
   private attachRecorderItem(
     task: ExecutionTask,
     screenshot: ScreenshotItem | undefined,
@@ -242,6 +263,7 @@ export class TaskRunner {
       return;
     }
 
+    this.logScreenshot(task, screenshot, phase);
     const recorderItem: ExecutionRecorderItem = {
       type: 'screenshot',
       ts: Date.now(),
@@ -382,6 +404,7 @@ export class TaskRunner {
         this.abortSignal?.throwIfAborted();
 
         task.uiContext = uiContext;
+        this.logScreenshot(task, uiContext?.screenshot, 'before-calling');
         const executorContext: ExecutorContext = {
           task,
           element: previousFindOutput?.element,
