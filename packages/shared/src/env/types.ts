@@ -409,6 +409,7 @@ export type TModelFamily =
   | 'auto-glm-multilingual'
   | 'gpt-5'
   | 'gpt-6'
+  | 'claude'
   | 'deepseek'
   | 'kimi'
   | 'kimi3'
@@ -433,6 +434,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'auto-glm-multilingual',
   'gpt-5',
   'gpt-6',
+  'claude',
   'deepseek',
   'kimi',
   'kimi3',
