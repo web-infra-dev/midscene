@@ -380,6 +380,58 @@ Jev uses TypeSafe's System One protocol, not an OpenAI protocol. Some OpenAI mod
 
 </ModelConfigSection>
 
+<ModelConfigSection description="Drex Max">
+
+### Drex Max (experimental) {#drex-max}
+
+
+Drex Max is a decision model from nace.ai. It answers fixed-form questions about text and screenshots: a probability that a statement holds, or a choice among listed options. In Midscene it uses the same System One workflows as Jev for Planning and for boolean Insight checks. It does not return bounding boxes, so it cannot perform Locate.
+
+Midscene support for Drex Max is experimental.
+
+- Model provider: [nace.ai](https://console.nace.ai/)
+- Model documentation: [Drex Max guide](https://console.nace.ai/docs/drex/guides/drex-max)
+
+**First configure a general-purpose default model (`MIDSCENE_MODEL_*`) and keep that configuration, then add the Drex configuration below.** Drex handles Planning and boolean Insight; the general-purpose default model handles Locate and the tasks Drex cannot perform. See [Multiple models](./model-config#multi-model-combination-example) for default model configuration.
+
+Copy the following configuration to use Drex Max for Planning and Insight:
+
+<ModelConfigCard
+  providers={[
+    {
+      name: "nace.ai",
+      href: "https://console.nace.ai/",
+      baseUrl: {
+        value: "https://console.nace.ai/v1",
+        comment: "nace.ai API endpoint",
+      },
+      modelName: "drex-max",
+    },
+  ]}
+  modelFamily="drex"
+  layout="combined"
+  purposes={['planning', 'insight']}
+/>
+
+When the corresponding model role is configured to use Drex, tasks are handled as follows:
+
+- **Planning**: In `aiAct`, Drex plans simple actions such as clicking, double-clicking, and going back. The default model plans complex actions such as input and scrolling.
+- **Locate**: Not supported. Leave the Locate role on the default model. If `MIDSCENE_LOCATE_MODEL_FAMILY` is set to `drex`, the Agent routes Locate to the default model and logs the reason.
+- **Insight**: Drex evaluates `aiBoolean`, `aiAssert`, and `aiWaitFor`. The general-purpose default model handles `aiQuery`, `aiString`, `aiNumber`, and `aiAsk`.
+
+Model selection is based on the capabilities required by each task. Failed Drex requests do not automatically switch to the default model.
+
+Drex uses the System One protocol, not an OpenAI protocol. Screenshots and reference images are sent as a top-level `images` array and referred to in the request as `Image 1`, `Image 2`, and so on. Some OpenAI model settings do not apply, such as temperature, native reasoning, response format, and streaming output.
+
+:::info Notes
+
+- **Request URL**: The Base URL must include `/v1`, for example `https://console.nace.ai/v1`. Midscene appends `/systemone`. To use a different path, set the full request URL with `MIDSCENE_PLANNING_MODEL_ENDPOINT` or `MIDSCENE_INSIGHT_MODEL_ENDPOINT`. Endpoint takes precedence over Base URL. Keep the Base URL set; the endpoint must be on its origin.
+- **Image input limits**: `drex-max` and `drex-max-v1.1` read images; `drex-v2.0` and `drex-latest` are text only and reject requests that contain images. A request carries at most 8 images, 512 questions, and a 4,194,304-byte (4 MiB) body, so use the Agent's `screenshotShrinkFactor` option for large screenshots.
+
+:::
+
+</ModelConfigSection>
+
 ## Set environment variables
 
 Midscene reads model configuration from environment variables. Choose the method that matches how you use Midscene, or keep using your project's existing environment-management approach.

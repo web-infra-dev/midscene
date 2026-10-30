@@ -28,3 +28,29 @@ export function encodeSystemOneImages(
   );
   return { imageState, assets };
 }
+
+/**
+ * Drex takes a top-level ordered `images` array and refers to each image in
+ * text as "Image N" (1-based). The named image map therefore becomes state
+ * entries that point at those labels.
+ */
+export const DREX_MAX_IMAGES = 8;
+
+export function encodeDrexImages(images: SystemOneRequest['images']) {
+  const entries = Object.entries(images ?? {});
+  assert(
+    entries.length <= DREX_MAX_IMAGES,
+    `Drex accepts at most ${DREX_MAX_IMAGES} images per request`,
+  );
+  const imageState = Object.fromEntries(
+    entries.map(([name], index) => [name, `Image ${index + 1}`]),
+  );
+  const dataURLs = entries.map(([, dataURL]) => {
+    assert(
+      /^data:image\/(png|jpe?g|webp);base64,/.test(dataURL),
+      'Drex images must be prepared PNG, JPEG or WebP data URLs',
+    );
+    return dataURL;
+  });
+  return { imageState, images: dataURLs };
+}

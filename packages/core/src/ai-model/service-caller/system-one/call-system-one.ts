@@ -25,20 +25,20 @@ export async function callSystemOne(
     context.recordEvent?.({ type: 'http-response', http });
     if (!response.ok) {
       throw new Error(
-        `Jev request failed (${response.status}): ${body.slice(0, 4000)}`,
+        `${prepared.label} request failed (${response.status}): ${body.slice(0, 4000)}`,
       );
     }
     const result = systemOneResponseSchema.parse(JSON.parse(body));
     for (const [name, question] of Object.entries(prepared.questions)) {
       assert(
         result.answers[name]?.type === question.type,
-        `Missing or invalid Jev answer: ${name}`,
+        `Missing or invalid ${prepared.label} answer: ${name}`,
       );
       const answer = result.answers[name];
       if (question.type === 'choice' && answer.type === 'choice') {
         assert(
           Object.hasOwn(question.criteria, answer.choice),
-          `Invalid Jev choice: ${name}`,
+          `Invalid ${prepared.label} choice: ${name}`,
         );
       }
     }
