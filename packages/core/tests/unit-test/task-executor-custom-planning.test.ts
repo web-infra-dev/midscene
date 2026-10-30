@@ -241,8 +241,16 @@ describe('TaskExecutor custom planning adapters', () => {
       .mockResolvedValue({ tasks: [] });
     const guard = rs
       .spyOn(freshness, 'checkPlanFreshness')
-      .mockResolvedValueOnce({ changed: true, difference: 0.1 })
-      .mockResolvedValueOnce({ changed: false, difference: 0 });
+      .mockResolvedValueOnce({
+        changed: true,
+        changedPixels: 100,
+        dimensionsChanged: false,
+      })
+      .mockResolvedValueOnce({
+        changed: false,
+        changedPixels: 0,
+        dimensionsChanged: false,
+      });
     rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
     await executor.action(
       'open the target',
@@ -277,7 +285,8 @@ describe('TaskExecutor custom planning adapters', () => {
       .mockResolvedValue({ tasks: [] });
     rs.spyOn(freshness, 'checkPlanFreshness').mockResolvedValue({
       changed: true,
-      difference: 0.1,
+      changedPixels: 100,
+      dimensionsChanged: false,
     });
     rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
     await expect(

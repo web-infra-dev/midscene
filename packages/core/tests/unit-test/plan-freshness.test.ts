@@ -1,16 +1,18 @@
 import { checkPlanFreshness } from '@/agent/plan-freshness';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
-import { imageRegionDifference } from '@midscene/shared/img';
+import { imageDifference } from '@midscene/shared/img';
 import { describe, expect, it } from '@rstest/core';
 import sharp from 'sharp';
 
 async function screenshot(
   rect?: { left: number; top: number; width: number; height: number },
   color = 0,
+  width = 200,
+  height = 120,
 ) {
   const image = sharp({
-    create: { width: 200, height: 120, channels: 3, background: 'white' },
+    create: { width, height, channels: 3, background: 'white' },
   });
   if (rect)
     image.composite([
@@ -52,54 +54,51 @@ const context = (shot: ScreenshotItem, ratio = 1) =>
     shrunkShotToLogicalRatio: ratio,
   }) as UIContext;
 
-describe('planning target freshness', () => {
-  it('rejects changed target pixels, including a small expand arrow', async () => {
-    const result = await checkPlanFreshness(
-      [tap],
-      context(await screenshot()),
-      await screenshot({ left: 72, top: 46, width: 6, height: 6 }),
-    );
-    expect(result?.changed).toBe(true);
-  });
-  it('includes a disclosure arrow beside a tight text-only target box', async () => {
-    const result = await checkPlanFreshness(
-      [
-        {
-          type: 'Tap',
-          param: {
-            locate: {
-              locatedPixelResult: {
-                center: [59, 50],
-                rect: { left: 43, top: 40, width: 34, height: 19 },
-              },
-            },
-          },
-        },
-      ],
-      context(await screenshot()),
-      await screenshot({ left: 98, top: 46, width: 4, height: 6 }),
-    );
-    expect(result?.changed).toBe(true);
-  });
-  it('ignores changes outside the target region', async () => {
+describe('planning screen freshness', () => {
+  it('detects changes anywhere on screen, including far from the tap', async () => {
     const result = await checkPlanFreshness(
       [tap],
       context(await screenshot()),
       await screenshot({ left: 140, top: 10, width: 30, height: 30 }),
     );
-    expect(result?.changed).toBe(false);
+    expect(result).toEqual({
+      changed: true,
+      changedPixels: 900,
+      dimensionsChanged: false,
+    });
   });
-  it('ignores isolated noise and small color differences', async () => {
+  it('does not dilute a small arrow change on a large screen', async () => {
+    const before = await screenshot(undefined, 0, 1920, 1080);
+    const after = await screenshot(
+      { left: 1800, top: 900, width: 4, height: 6 },
+      0,
+      1920,
+      1080,
+    );
+    expect(
+      (await checkPlanFreshness([tap], context(before), after))?.changed,
+    ).toBe(true);
+  });
+  it('ignores fewer than 16 changed pixels and minor color noise', async () => {
     const before = context(await screenshot());
     expect(
       (
         await checkPlanFreshness(
           [tap],
           before,
-          await screenshot({ left: 60, top: 50, width: 1, height: 1 }),
+          await screenshot({ left: 60, top: 50, width: 3, height: 5 }),
         )
       )?.changed,
     ).toBe(false);
+    expect(
+      (
+        await checkPlanFreshness(
+          [tap],
+          before,
+          await screenshot({ left: 60, top: 50, width: 4, height: 4 }),
+        )
+      )?.changed,
+    ).toBe(true);
     expect(
       (
         await checkPlanFreshness(
@@ -110,43 +109,43 @@ describe('planning target freshness', () => {
       )?.changed,
     ).toBe(false);
   });
-  it('keeps planning coordinates in screenshot pixels on high DPI devices', async () => {
+  it('detects screenshot dimension changes', async () => {
     expect(
       (
         await checkPlanFreshness(
           [tap],
-          context(await screenshot(), 2),
-          await screenshot({ left: 60, top: 45, width: 8, height: 8 }),
+          context(await screenshot()),
+          await screenshot(undefined, 0, 201, 120),
         )
-      )?.changed,
+      )?.dimensionsChanged,
     ).toBe(true);
   });
-  it('does not compare later targets against a pre-action screenshot', async () => {
+  it('does not depend on target boxes or device pixel ratio', async () => {
     const result = await checkPlanFreshness(
-      [{ type: 'Scroll', param: {} }, tap],
-      context(await screenshot()),
-      await screenshot({ left: 40, top: 40, width: 40, height: 20 }),
+      [{ type: 'Tap', param: { locate: { prompt: 'button' } } }],
+      context(await screenshot(), 2),
+      await screenshot({ left: 140, top: 10, width: 8, height: 8 }),
     );
-    expect(result).toBeUndefined();
+    expect(result?.changed).toBe(true);
   });
-  it('leaves prompt-only taps for the locate step', async () => {
+  it('does not compare later taps after earlier actions have run', async () => {
     expect(
       await checkPlanFreshness(
-        [{ type: 'Tap', param: { locate: { prompt: 'button' } } }],
+        [{ type: 'Scroll', param: {} }, tap],
         context(await screenshot()),
         await screenshot(),
       ),
     ).toBeUndefined();
   });
-  it('rejects invalid comparison regions rather than silently accepting them', async () => {
-    const shot = await screenshot();
-    await expect(
-      imageRegionDifference(shot.base64, shot.base64, {
-        left: Number.NaN,
-        top: 0,
-        width: 10,
-        height: 10,
-      }),
-    ).rejects.toThrow('finite, positive');
+  it('does not trigger when the screen is unchanged', async () => {
+    const before = await screenshot();
+    expect(await imageDifference(before.base64, before.base64)).toEqual({
+      changedPixels: 0,
+      dimensionsChanged: false,
+    });
+    expect(
+      (await checkPlanFreshness([tap], context(before), await screenshot()))
+        ?.changed,
+    ).toBe(false);
   });
 });
