@@ -106,6 +106,60 @@ describe('model adapter registry', () => {
     }
   });
 
+  it('uses generic chat requests and normalized screenshot coordinates for Claude', () => {
+    const adapter = getModelAdapter('claude');
+    expect(adapter.supportedProtocols).toEqual(['openai-chat']);
+    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
+      'reasoningEnabled',
+      'reasoningEffort',
+      'reasoningBudget',
+    ]);
+    expect(adapter.resolveImageDetail({ intent: 'locate' })).toBe('high');
+
+    const params = adapter.chatCompletion.buildChatCompletionParams({
+      expectedJsonObjectResponse: true,
+      userConfig: {
+        reasoningEnabled: true,
+        reasoningEffort: 'high',
+        reasoningBudget: 1024,
+      },
+    });
+    expect(JSON.parse(JSON.stringify(params.config))).toEqual({});
+    expect(
+      adapter.chatCompletion.buildChatCompletionParams({
+        userConfig: { temperature: 0.4 },
+      }).config.temperature,
+    ).toBe(0.4);
+
+    expect(adapter.locate.kind).toBe('standard');
+    if (adapter.locate.kind !== 'standard') {
+      throw new Error('Claude should use standard locate');
+    }
+    const { protocol, resultCodec } = adapter.locate.element;
+    const prompt = protocol.buildResponseInstructions(resultCodec.promptSpec);
+    expect(prompt).toContain('"bbox"');
+    expect(prompt).toContain('[xmin, ymin, xmax, ymax]');
+    expect(prompt).toContain('normalized to 0-1000');
+    expect(prompt).toContain('Do NOT use pixel coordinates');
+
+    const parsed = protocol.parseRawResponse(
+      '{"bbox":[100,200,300,400]}',
+      resultCodec.promptSpec,
+    );
+    expect(parsed.kind).toBe('located');
+    if (parsed.kind !== 'located') {
+      throw new Error('Claude bbox should parse as a locate result');
+    }
+    expect(
+      resultCodec.toPixelResult(parsed.target, {
+        preparedSize: { width: 1200, height: 800 },
+      }),
+    ).toEqual({
+      center: [240, 240],
+      rect: { left: 120, top: 160, width: 241, height: 161 },
+    });
+  });
+
   it('enables reasoning-as-content fallback for default and supported model families', () => {
     const enabledFamilies: TModelFamily[] = [
       'doubao-vision',
@@ -119,6 +173,7 @@ describe('model adapter registry', () => {
       'kimi3',
       'xiaomi-mimo',
       'deepseek',
+      'claude',
     ];
     const enabledSet = new Set<TModelFamily>(enabledFamilies);
 

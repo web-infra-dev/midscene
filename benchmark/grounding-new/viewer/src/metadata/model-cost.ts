@@ -273,6 +273,23 @@ export const modelCosts = {
       outputTokensPerSecond: 59,
     },
   },
+  'gemini-3.8-flash': {
+    source: 'OpenRouter',
+    url: 'https://openrouter.ai/google/gemini-3.8-flash',
+    observedAt: '2026-10-29T09:16:43Z',
+    pricing: {
+      basis: 'model-page-header',
+      currency: 'USD',
+      inputPerToken: 0.75 / 1_000_000,
+      outputPerToken: 3.75 / 1_000_000,
+    },
+    performance: {
+      basis: 'best-per-metric',
+      percentile: 'p50',
+      timeToFirstTokenMs: 2_240,
+      outputTokensPerSecond: 87,
+    },
+  },
   'deepseek-v4-1-flash-261017': {
     source: 'OpenRouter',
     url: 'https://openrouter.ai/deepseek/deepseek-v4.1-flash-1017',
@@ -431,6 +448,23 @@ export const modelCosts = {
       timeToFirstTokenMs: 3_591,
       // Ark reports mean TPOT of 21.5 ms per subsequent output token.
       outputTokensPerSecond: 1000 / 21.5,
+    },
+  },
+  'kimi-k3': {
+    source: 'OpenRouter',
+    url: 'https://openrouter.ai/moonshotai/kimi-k3',
+    observedAt: '2026-10-29T08:26:43Z',
+    pricing: {
+      basis: 'model-page-header',
+      currency: 'USD',
+      inputPerToken: 0.1824 / 1_000_000,
+      outputPerToken: 9.339 / 1_000_000,
+    },
+    performance: {
+      basis: 'best-per-metric',
+      percentile: 'p50',
+      timeToFirstTokenMs: 460,
+      outputTokensPerSecond: 113,
     },
   },
   'kimi-k3-1-pro-261024': {

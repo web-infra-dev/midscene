@@ -56,6 +56,8 @@ const modelLogos = {
   doubao:
     'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/doubao-color.svg',
   kimi: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/kimi.svg',
+  gemini:
+    'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/gemini-color.svg',
   typesafe:
     'https://framerusercontent.com/images/aNFzSFxM4fjICmnibw7npfZjcQ.png',
   jev: 'https://framerusercontent.com/images/aNFzSFxM4fjICmnibw7npfZjcQ.png',
@@ -101,13 +103,15 @@ const ModelScatter = memo(function ModelScatter({
     if (cx === undefined || cy === undefined) return [];
     const icon = Object.entries(modelLogos).find(([family]) =>
       point.modelId
+        .trim()
         .toLowerCase()
+        .replace(/^.*\//, '')
         .replace(/^openai_/, '')
         .startsWith(family),
     )?.[1];
     const name = point.model
       .replace(/^openai_/i, '')
-      .replace(/^(?:doubao-seed-|deepseek-|gpt-|qwen-?|kimi-)/i, '')
+      .replace(/^(?:doubao-seed-|deepseek-|gpt-|qwen-?|kimi-|gemini-)/i, '')
       .replace(/-\d{6,8}$/, '')
       .replace(/(?<=\d)-(?=\d)/g, '.')
       .replaceAll('-', ' ');
@@ -505,6 +509,7 @@ export function ModelPerformanceChart({
                   name
                     .trim()
                     .toLowerCase()
+                    .replace(/^.*\//, '')
                     .replace(/^openai_/, '')
                     .startsWith(prefix),
                 )?.[1],
@@ -536,7 +541,14 @@ export function ModelPerformanceChart({
                 !categorizedModels.some(
                   (other) =>
                     other.family === model.family &&
-                    other.passRate > model.passRate,
+                    Number.isFinite(other.passRate) &&
+                    (other.passRate - model.passRate ||
+                      (other.testcasesPerMinute ?? Number.NEGATIVE_INFINITY) -
+                        (model.testcasesPerMinute ??
+                          Number.NEGATIVE_INFINITY) ||
+                      (model.estimatedCostUsd ?? Number.POSITIVE_INFINITY) -
+                        (other.estimatedCostUsd ?? Number.POSITIVE_INFINITY)) >
+                      0,
                 ),
             )
             .map(({ model }) => model)
@@ -1135,7 +1147,7 @@ export function ModelPerformanceChart({
                   role="switch"
                   className="model-family-glory"
                   aria-checked={selectedModels === 'family-glory'}
-                  title="Select the highest-pass-rate models in each family, including ties"
+                  title="Select each family's best models by higher pass rate, then higher speed, then lower cost; exact ties are included"
                   onClick={() =>
                     setSelectedModels((current) =>
                       current === 'family-glory' ? null : 'family-glory',
