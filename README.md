@@ -87,7 +87,7 @@ Visual localization does not depend on the UI rendering stack, so the same Agent
 
 Screenshot-based UI actions avoid sending large DOM trees to the model. In the reported AppControlBench run, Midscene with Doubao Seed 2.1 Turbo passed **58 of 60 tasks with $0.59 in total model cost**. The [report](https://midscenejs.com/app-control-bench-report) provides per-task costs and comparisons across models.
 
-Midscene supports GPT, Qwen, Doubao Seed, DeepSeek, Gemini, Kimi, and more, including open-source options you can self-host. See [Model Selection Guide](https://midscenejs.com/model-selection) to choose a model and [Model Configuration](https://midscenejs.com/model-api-setup) to set it up.
+Midscene supports GPT, Qwen, Doubao Seed, DeepSeek, Gemini, Kimi, Drex, and more, including open-source options you can self-host. See [Model Selection Guide](https://midscenejs.com/model-selection) to choose a model and [Model Configuration](https://midscenejs.com/model-api-setup) to set it up.
 
 ### Benchmarks
 

@@ -152,6 +152,34 @@ describe('runConnectivityTest', () => {
     ).toMatchObject({ intent: 'locate', modelName: 'locator' });
   });
 
+  it('checks Locate on the default model when the Locate family is drex', async () => {
+    rs.mocked(callGenerativeAI).mockResolvedValue({
+      content: 'CONNECTIVITY_OK',
+    } as any);
+    const locate = rs
+      .fn()
+      .mockResolvedValue({ element: { center: [300, 120] } });
+    rs.mocked(Service).mockImplementation(() => ({ locate }) as any);
+    const result = await runConnectivityTest({
+      defaultModelConfig,
+      planningModelConfig,
+      insightModelConfig,
+      locateModelConfig: {
+        ...defaultModelConfig,
+        modelName: 'drex-max',
+        modelFamily: 'drex',
+        intent: 'locate',
+        slot: 'locate',
+      },
+    });
+    expect(locate.mock.calls[0][2].config).toMatchObject({
+      modelName: defaultModelConfig.modelName,
+    });
+    expect(
+      result.checks.find((check) => check.name === 'aiLocate'),
+    ).toMatchObject({ modelName: defaultModelConfig.modelName });
+  });
+
   it('returns passed when all checks succeed', async () => {
     rs.mocked(callGenerativeAI)
       .mockImplementationOnce(async (_messages, runtime) => {
