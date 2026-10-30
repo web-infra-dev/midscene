@@ -76,9 +76,14 @@ pnpm dlx @midscene/cli model siwc login
 命令会将凭据保存到 `~/.midscene/siwc.json`，并打印 access token 和过期时间。将下面的 `<your-access-token>` 替换为该 token：
 
 <ModelConfigCard
-  baseUrl="https://api.openai.com/v1"
+  providers={[
+    {
+      name: "ChatGPT 订阅（SIWC）",
+      baseUrl: "https://api.openai.com/v1",
+      modelName: "gpt-6-sol",
+    },
+  ]}
   apiKey="<your-access-token>"
-  modelName="gpt-6-sol"
   modelFamily="gpt-6"
   protocol={{
     value: "openai-responses",
