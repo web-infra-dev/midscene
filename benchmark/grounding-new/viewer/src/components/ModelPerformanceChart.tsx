@@ -67,8 +67,7 @@ const MatchingModelsContext = createContext<ReadonlySet<string>>(new Set());
 
 const ModelScatter = memo(function ModelScatter({
   points,
-  referenceX,
-  referenceY,
+  references,
 }: {
   points: {
     model: string;
@@ -77,11 +76,9 @@ const ModelScatter = memo(function ModelScatter({
     axisValue: number;
     passRate: number;
     estimatedCostUsd: number | null;
-    index: number;
     color: string;
   }[];
-  referenceX: { value: number; label: string } | null;
-  referenceY: { value: number; label: string } | null;
+  references: { axis: 'x' | 'y'; value: number; label: string }[];
 }) {
   const plot = usePlotArea();
   const xScale = useXAxisScale();
@@ -144,26 +141,10 @@ const ModelScatter = memo(function ModelScatter({
     height: number;
   })[] = [];
   if (plot) {
-    const referenceLabels = [
-      ...(referenceX === null
-        ? []
-        : [
-            {
-              right: (xScale?.(referenceX.value) ?? plot.x) - 8,
-              top: plot.y + 8,
-              label: referenceX.label,
-            },
-          ]),
-      ...(referenceY === null
-        ? []
-        : [
-            {
-              right: plot.x + plot.width - 8,
-              top: (yScale?.(referenceY.value) ?? plot.y) + 8,
-              label: referenceY.label,
-            },
-          ]),
-    ].map(({ right, top, label }) => {
+    const referenceLabels = references.map(({ axis, value, label }) => {
+      const right =
+        (axis === 'x' ? (xScale?.(value) ?? plot.x) : plot.x + plot.width) - 8;
+      const top = (axis === 'x' ? plot.y : (yScale?.(value) ?? plot.y)) + 8;
       const metrics = referenceContext?.measureText(label);
       const width = metrics?.width ?? label.length * 6;
       const ascent = metrics?.fontBoundingBoxAscent ?? 11;
@@ -244,7 +225,7 @@ const ModelScatter = memo(function ModelScatter({
   }
   const renderPoint = ({ cx, cy, payload, isActive }: ScatterShapeProps) => {
     if (cx === undefined || cy === undefined) return null;
-    const annotation = placed.find(({ index }) => index === payload.index);
+    const annotation = placed.find(({ model }) => model === payload.model);
     return (
       <MatchingModelsContext.Consumer>
         {(matchingModels) => {
@@ -500,7 +481,7 @@ export function ModelPerformanceChart({
   const budgetId = useId();
   const categorizedModels = useMemo(
     () =>
-      models.map((model, index) => {
+      models.map((model) => {
         const family =
           [model.model, model.modelId]
             .map(
@@ -518,7 +499,6 @@ export function ModelPerformanceChart({
         return {
           ...model,
           color: modelFamilyColors[family] ?? modelFamilyColors.Other,
-          index,
           family,
         };
       }),
@@ -659,8 +639,6 @@ export function ModelPerformanceChart({
       2
     : null;
   const passRateP50 = dimensions[0].p50;
-  const elapsedTimeP50Label = `P50: ${elapsedTimeP50?.toLocaleString('en-US', { maximumFractionDigits: 2 })} s`;
-  const passRateP50Label = `P50: ${((passRateP50 ?? 0) * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
   const passRateDomain = useMemo(() => {
     const values = models
       .map(({ passRate }) => passRate)
@@ -693,7 +671,6 @@ export function ModelPerformanceChart({
                 axisValue: axis.project(value),
                 passRate: item.passRate * 100,
                 estimatedCostUsd: item.estimatedCostUsd,
-                index: item.index,
                 color: item.color,
               },
             ]
@@ -706,39 +683,32 @@ export function ModelPerformanceChart({
       <ul className="model-performance-legend" aria-label="Models">
         {categorizedModels.map((model) => {
           const data = dimensions.map(
-            ({ label, key, minimum, maximum, p50 }) => ({
-              metric: label,
-              ...Object.fromEntries(
-                [
-                  ['value', model[key]],
-                  ['p50', p50],
-                ].map(([name, value]) => [
-                  name,
-                  typeof value !== 'number' ||
-                  !Number.isFinite(value) ||
-                  maximum === undefined ||
-                  minimum === undefined ||
-                  (key !== 'passRate' && value <= 0)
-                    ? null
-                    : key === 'passRate'
-                      ? Math.min(
-                          100,
-                          Math.max(
-                            0,
-                            ((value - minimum) / (maximum - minimum)) * 100,
-                          ),
-                        )
-                      : maximum === minimum
-                        ? 100
-                        : ((Math.log10(value) - Math.log10(minimum)) /
-                            (Math.log10(maximum) - Math.log10(minimum))) *
-                          100,
-                ]),
-              ),
-            }),
+            ({ label, key, minimum, maximum, p50 }) => {
+              const [value, reference] = [model[key], p50].map((value) =>
+                value === null ||
+                !Number.isFinite(value) ||
+                maximum === undefined ||
+                minimum === undefined ||
+                (key !== 'passRate' && value <= 0)
+                  ? null
+                  : key === 'passRate'
+                    ? Math.min(
+                        100,
+                        Math.max(
+                          0,
+                          ((value - minimum) / (maximum - minimum)) * 100,
+                        ),
+                      )
+                    : maximum === minimum
+                      ? 100
+                      : ((Math.log10(value) - Math.log10(minimum)) /
+                          (Math.log10(maximum) - Math.log10(minimum))) *
+                        100,
+              );
+              return { metric: label, value, p50: reference };
+            },
           );
           const available = data.every((dimension) => dimension.value !== null);
-          const color = model.color;
           return (
             <MatchingModelsContext.Consumer key={model.model}>
               {(matchingModels) => (
@@ -780,7 +750,7 @@ export function ModelPerformanceChart({
                     <span className="performance-model-heading">
                       <span
                         className="performance-swatch"
-                        style={{ background: color }}
+                        style={{ background: model.color }}
                         aria-hidden="true"
                       />
                       <strong>{model.model}</strong>
@@ -829,8 +799,8 @@ export function ModelPerformanceChart({
                             <Radar
                               name={model.model}
                               dataKey="value"
-                              stroke={color}
-                              fill={color}
+                              stroke={model.color}
+                              fill={model.color}
                               fillOpacity={0.16}
                               strokeWidth={1.8}
                               dot={false}
@@ -867,8 +837,28 @@ export function ModelPerformanceChart({
   );
 
   // Keep scatter nodes mounted during filter changes so CSS transitions can run.
-  const scatterPlot = useMemo(
-    () => (
+  const scatterPlot = useMemo(() => {
+    const references = [
+      ...(elapsedTimeP50 === null
+        ? []
+        : [
+            {
+              axis: 'x' as const,
+              value: axis.project(elapsedTimeP50),
+              label: `P50: ${elapsedTimeP50.toLocaleString('en-US', { maximumFractionDigits: 2 })} s`,
+            },
+          ]),
+      ...(passRateP50 === null
+        ? []
+        : [
+            {
+              axis: 'y' as const,
+              value: passRateP50 * 100,
+              label: `P50: ${(passRateP50 * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%`,
+            },
+          ]),
+    ];
+    return (
       <div className="model-scatter-plot">
         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <ScatterChart
@@ -910,7 +900,7 @@ export function ModelPerformanceChart({
                       fontSize={11}
                     >
                       <text x={viewBox.x} y={y} textAnchor="start">
-                        ← Faster
+                        ← Faster 🚀
                       </text>
                       <text
                         x={viewBox.x + viewBox.width / 2}
@@ -924,7 +914,7 @@ export function ModelPerformanceChart({
                         y={y}
                         textAnchor="end"
                       >
-                        Slower →
+                        🐌 Slower →
                       </text>
                     </g>
                   );
@@ -954,38 +944,24 @@ export function ModelPerformanceChart({
                 fontSize: 11,
               }}
             />
-            {elapsedTimeP50 !== null && (
+            {references.map(({ axis, value, label }) => (
               <ReferenceLine
-                x={axis.project(elapsedTimeP50)}
+                key={axis}
+                x={axis === 'x' ? value : undefined}
+                y={axis === 'y' ? value : undefined}
                 zIndex={560}
                 stroke="#334155"
                 strokeDasharray="6 4"
                 strokeWidth={1.5}
                 label={{
-                  value: elapsedTimeP50Label,
+                  value: label,
                   position: 'insideTopRight',
                   fill: '#334155',
                   fontSize: 11,
                   offset: 8,
                 }}
               />
-            )}
-            {passRateP50 !== null && (
-              <ReferenceLine
-                y={passRateP50 * 100}
-                zIndex={560}
-                stroke="#334155"
-                strokeDasharray="6 4"
-                strokeWidth={1.5}
-                label={{
-                  value: passRateP50Label,
-                  position: 'insideTopRight',
-                  fill: '#334155',
-                  fontSize: 11,
-                  offset: 8,
-                }}
-              />
-            )}
+            ))}
             <ElapsedTimeAxisBreaks axis={axis} />
             <Tooltip
               cursor={{ stroke: '#94a3b8', strokeDasharray: '4 4' }}
@@ -1036,22 +1012,7 @@ export function ModelPerformanceChart({
                 ) : null;
               }}
             />
-            <ModelScatter
-              points={points}
-              referenceX={
-                elapsedTimeP50 === null
-                  ? null
-                  : {
-                      value: axis.project(elapsedTimeP50),
-                      label: elapsedTimeP50Label,
-                    }
-              }
-              referenceY={
-                passRateP50 === null
-                  ? null
-                  : { value: passRateP50 * 100, label: passRateP50Label }
-              }
-            />
+            <ModelScatter points={points} references={references} />
           </ScatterChart>
         </ResponsiveContainer>
         {!points.length && (
@@ -1060,17 +1021,8 @@ export function ModelPerformanceChart({
           </p>
         )}
       </div>
-    ),
-    [
-      axis,
-      passRateDomain,
-      elapsedTimeP50,
-      passRateP50,
-      elapsedTimeP50Label,
-      passRateP50Label,
-      points,
-    ],
-  );
+    );
+  }, [axis, passRateDomain, elapsedTimeP50, passRateP50, points]);
 
   return (
     <section className="model-performance">
