@@ -21,12 +21,18 @@ const debug = getDebug('agent-tools:cdp:target-store');
  * Read the saved targetId, or null if no command has stored one yet.
  */
 export function readSavedTargetId(): string | null {
-  if (!existsSync(TARGET_ID_FILE)) return null;
+  let targetId: string;
   try {
-    return readFileSync(TARGET_ID_FILE, 'utf-8').trim() || null;
-  } catch {
-    return null;
+    targetId = readFileSync(TARGET_ID_FILE, 'utf-8').trim();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw new Error(`Failed to read CDP target ID from ${TARGET_ID_FILE}`, {
+      cause: error,
+    });
   }
+  if (!targetId)
+    throw new Error(`CDP target ID file ${TARGET_ID_FILE} is empty`);
+  return targetId;
 }
 
 /**
@@ -37,7 +43,9 @@ export function saveTargetId(targetId: string): void {
     writeFileSync(TARGET_ID_FILE, targetId, 'utf-8');
     debug('Saved targetId: %s', targetId);
   } catch (err) {
-    debug('Failed to save targetId: %s', err);
+    throw new Error(`Failed to save CDP target ID to ${TARGET_ID_FILE}`, {
+      cause: err,
+    });
   }
 }
 

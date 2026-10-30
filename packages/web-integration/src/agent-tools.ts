@@ -14,6 +14,7 @@ import {
   adaptWebAgentInitArgs,
   webAgentInitArgShape,
 } from './agent-init-args';
+import { createTabTools } from './agent-tools-tabs';
 import { AgentOverChromeBridge } from './bridge-mode';
 import { defaultStaticPageViewportSize } from './common/viewport';
 import { StaticPage } from './static';
@@ -26,6 +27,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<
   WebAgentInitArgs
 > {
   private lastInitArgsSignature?: string;
+  private lastInitArgs?: WebAgentInitArgs;
 
   protected getCliReportSessionName() {
     return 'midscene-web';
@@ -78,12 +80,14 @@ export class WebMidsceneTools extends BaseMidsceneTools<
     // Connect to current tab when no URL provided (handles CLI stateless calls)
     this.agent = await this.initBridgeModeAgent(initArgs);
     this.lastInitArgsSignature = nextSignature;
+    this.lastInitArgs = initArgs;
 
     return this.agent;
   }
 
   private async initBridgeModeAgent(
     initArgs?: WebAgentInitArgs,
+    tabId?: number,
   ): Promise<AgentOverChromeBridge> {
     const url = initArgs?.url;
     const reportOptions = this.readCliReportAgentOptions();
@@ -93,17 +97,68 @@ export class WebMidsceneTools extends BaseMidsceneTools<
       ...(reportOptions ?? {}),
     });
 
-    if (!url) {
-      await agent.connectCurrentTab();
-    } else {
-      await agent.connectNewTabWithUrl(url);
+    try {
+      if (!url) {
+        await agent.connectCurrentTab({ tabId, forceSameTabNavigation: false });
+      } else {
+        await agent.connectNewTabWithUrl(url, {
+          forceSameTabNavigation: false,
+        });
+      }
+      if (
+        tabId !== undefined &&
+        (await agent.page.getActiveTabId()) !== tabId
+      ) {
+        throw new Error(
+          'The browser extension did not switch tabs. Update the Midscene extension and retry.',
+        );
+      }
+      return agent;
+    } catch (error) {
+      try {
+        await agent.destroy();
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          'Failed to connect and clean up the Bridge agent.',
+        );
+      }
+      throw error;
     }
-
-    return agent;
   }
 
   protected preparePlatformTools(): ToolDefinition[] {
     return [
+      ...createTabTools({
+        list: async () => {
+          const agent = await this.ensureAgent();
+          const activeId = String(await agent.page.getActiveTabId());
+          return (await agent.getBrowserTabList()).map((tab) => ({
+            id: tab.id,
+            title: tab.title,
+            url: tab.url,
+            active: tab.id === activeId,
+          }));
+        },
+        select: async (id) => {
+          if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) {
+            throw new Error(`Invalid Bridge tab ID: ${id}`);
+          }
+          const agent = await this.ensureAgent();
+          if (!(await agent.getBrowserTabList()).some((tab) => tab.id === id)) {
+            throw new Error(
+              `Tab ${id} does not exist or has closed. Run tabs again.`,
+            );
+          }
+          await agent.destroy();
+          this.agent = undefined;
+          this.lastInitArgsSignature = undefined;
+          this.agent = await this.initBridgeModeAgent(
+            { ...this.lastInitArgs, url: undefined },
+            Number(id),
+          );
+        },
+      }),
       {
         name: 'web_connect',
         description:

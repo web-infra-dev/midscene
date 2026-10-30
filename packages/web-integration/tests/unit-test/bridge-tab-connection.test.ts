@@ -63,6 +63,24 @@ describe('Bridge tab activation behavior', () => {
     rs.restoreAllMocks();
   });
 
+  it('connects to a specified existing tab and preserves popups', async () => {
+    const page = new ExtensionBridgePageBrowserSide();
+    await page.connectCurrentTab({ tabId: 42, forceSameTabNavigation: false });
+    expect(tabsGet).toHaveBeenCalledWith(42);
+    expect(tabsQuery).not.toHaveBeenCalled();
+    expect(tabsUpdate).toHaveBeenCalledWith(42, { active: true });
+    expect(page.forceSameTabNavigation).toBe(false);
+    await expect(page.getActiveTabId()).resolves.toBe(42);
+  });
+
+  it('preserves popups when creating a tab with same-tab navigation disabled', async () => {
+    const page = new ExtensionBridgePageBrowserSide();
+    await page.connectNewTabWithUrl('https://example.com', {
+      forceSameTabNavigation: false,
+    });
+    expect(page.forceSameTabNavigation).toBe(false);
+  });
+
   /**
    * Verify that a background tab can be controlled without changing Chrome's active tab.
    */
