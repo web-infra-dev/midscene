@@ -23,6 +23,7 @@ const testFiles = (() => {
 })();
 
 export default defineConfig({
+  name: '@midscene/harmony',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

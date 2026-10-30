@@ -4,6 +4,7 @@ import { createCoverageConfig } from '../../scripts/rstest-coverage';
 import { stubStyleRules } from '../../scripts/rstest-style-stub';
 
 export default defineConfig({
+  name: '@midscene/visualizer',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
