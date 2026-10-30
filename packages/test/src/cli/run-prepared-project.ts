@@ -17,6 +17,7 @@ import {
   calculateTestRunHealth,
 } from '@midscene/core/report';
 import { getDebug } from '@midscene/shared/logger';
+import { writeTestResultJUnit } from '../report/result-junit';
 import { writeTestResultMarkdown } from '../report/result-markdown';
 import {
   buildTestRunReportDump,
@@ -496,6 +497,17 @@ export async function runPreparedTestProject(
         reportIndex,
       );
       completedResult = { ...completedResult, markdownPath };
+    },
+  );
+  await publish(
+    'write-result',
+    join(dirname(summaryPath), 'junit.xml'),
+    async () => {
+      const junitPath = await writeTestResultJUnit(
+        completedResult,
+        reportIndex,
+      );
+      completedResult = { ...completedResult, junitPath };
     },
   );
   await writeSummary();

@@ -436,6 +436,8 @@ const reportTestProjectResult = (
   io.log(`Summary: ${result.summaryPath}`);
   if (result.markdownPath && reporter.mode === 'verbose')
     io.log(`Markdown: ${result.markdownPath}`);
+  if (result.junitPath && reporter.mode === 'verbose')
+    io.log(`JUnit: ${result.junitPath}`);
   if (result.reportPath) io.log(`Report: ${result.reportPath}`);
   return result.exitCode;
 };
