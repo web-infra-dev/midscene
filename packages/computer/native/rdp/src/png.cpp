@@ -1,5 +1,6 @@
 #include "rdp_helper_png.hpp"
 
+#include <algorithm>
 #include <array>
 #include <stdexcept>
 
@@ -14,14 +15,24 @@ void AppendUint32BigEndian(std::vector<uint8_t>& output, uint32_t value) {
   output.push_back(static_cast<uint8_t>(value & 0xFF));
 }
 
-uint32_t ComputeCrc32(std::string_view chunk_type, const std::vector<uint8_t>& data) {
-  uint32_t crc = 0xFFFFFFFFU;
-  auto update = [&crc](uint8_t byte) {
-    crc ^= byte;
+constexpr std::array<uint32_t, 256> BuildCrc32Table() {
+  std::array<uint32_t, 256> table{};
+  for (size_t index = 0; index < table.size(); ++index) {
+    uint32_t crc = static_cast<uint32_t>(index);
     for (int bit = 0; bit < 8; bit++) {
       const uint32_t mask = 0U - (crc & 1U);
       crc = (crc >> 1U) ^ (0xEDB88320U & mask);
     }
+    table[index] = crc;
+  }
+  return table;
+}
+
+uint32_t ComputeCrc32(std::string_view chunk_type, const std::vector<uint8_t>& data) {
+  static constexpr auto kTable = BuildCrc32Table();
+  uint32_t crc = 0xFFFFFFFFU;
+  auto update = [&crc](uint8_t byte) {
+    crc = (crc >> 8U) ^ kTable[(crc ^ byte) & 0xFFU];
   };
 
   for (const char ch : chunk_type) {
@@ -38,9 +49,19 @@ uint32_t ComputeAdler32(const std::vector<uint8_t>& data) {
   constexpr uint32_t kMod = 65521;
   uint32_t a = 1;
   uint32_t b = 0;
-  for (const uint8_t byte : data) {
-    a = (a + byte) % kMod;
-    b = (b + a) % kMod;
+  // At most 5552 bytes can be summed before b might overflow uint32_t,
+  // even when every byte is 255 and both sums start at kMod - 1.
+  constexpr size_t kBlockSize = 5552;
+  size_t offset = 0;
+  while (offset < data.size()) {
+    const size_t length = std::min(kBlockSize, data.size() - offset);
+    for (size_t index = 0; index < length; ++index) {
+      a += data[offset + index];
+      b += a;
+    }
+    a %= kMod;
+    b %= kMod;
+    offset += length;
   }
   return (b << 16) | a;
 }
