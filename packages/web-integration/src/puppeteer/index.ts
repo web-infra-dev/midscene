@@ -8,7 +8,7 @@ export {
   type PuppeteerBrowserAgentCreateOpt,
   type PuppeteerBrowserAgentOpt,
 } from './browser-agent';
-export { PuppeteerWebPage } from './page';
+export { PuppeteerWebPage, type PuppeteerViewportSyncResult } from './page';
 export type { WebPageAgentOpt } from '@/web-element';
 export { overrideAIConfig } from '@midscene/shared/env';
 
