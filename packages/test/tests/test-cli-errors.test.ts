@@ -1,4 +1,11 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type {
@@ -204,6 +211,44 @@ describe('CLI result publication boundary', () => {
       }
     },
   );
+});
+
+describe('Test CLI single YAML file input', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('annotates failures relative to the project of the nearest config', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'cli-single-file-'));
+    try {
+      writeFileSync(join(root, 'midscene.config.ts'), 'export default {};');
+      mkdirSync(join(root, 'cases'));
+      writeFileSync(join(root, 'cases', 'flow.yaml'), 'cases: []');
+      vi.spyOn(process, 'cwd').mockReturnValue(root);
+      vi.stubEnv('GITHUB_ACTIONS', 'true');
+      vi.stubEnv('GITHUB_WORKSPACE', realpathSync(root));
+      const result = failedResult();
+      // With the root config, the runner reports source paths from the root.
+      const run = { ...failedCase(), sourcePath: 'cases/flow.yaml' };
+      run.steps = [failedStep('steps', failure('first Step failed'))];
+      result.documents = [
+        { ...failedDocument(), sourcePath: 'cases/flow.yaml' },
+      ];
+      result.cases = [{ ...run, documentId: 'document', run }];
+      vi.mocked(runTestProject).mockResolvedValue(result);
+
+      const io = output();
+      expect(await runTestCli(['cases/flow.yaml'], io)).toBe(1);
+
+      const annotations = io.log.mock.calls
+        .flat()
+        .filter((line) => String(line).startsWith('::error'));
+      expect(annotations.length).toBeGreaterThan(0);
+      for (const annotation of annotations)
+        expect(annotation).toContain('file=cases/flow.yaml,');
+    } finally {
+      vi.restoreAllMocks();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('Test CLI failure diagnostics', () => {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, statSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { NativeWorkflowFormatError } from '../parser/collect';
 import type {
   PreparedExecutionProject,
@@ -38,7 +38,24 @@ const assertDirectory = (path: string, label: string): void => {
   }
 };
 
-const resolveRunInput = (options: TestProjectRunOptions): TestRunInput => {
+// A single YAML file belongs to the project whose config is in its directory or
+// the nearest parent directory up to the working directory, so running one
+// file uses the same config, root and result location as running the project.
+const findSingleFileProjectRoot = (
+  fileDirectory: string,
+  cwd: string,
+): string | undefined => {
+  const fromCwd = relative(cwd, fileDirectory);
+  if (fromCwd.startsWith('..') || isAbsolute(fromCwd)) return undefined;
+  for (let directory = fileDirectory; ; directory = dirname(directory)) {
+    if (discoverTestConfig(directory)) return directory;
+    if (directory === cwd) return undefined;
+  }
+};
+
+export const resolveRunInput = (
+  options: Pick<TestProjectRunOptions, 'cwd' | 'projectRoot' | 'configPath'>,
+): TestRunInput => {
   const cwd = resolve(options.cwd ?? process.cwd());
   assertDirectory(cwd, 'Test working directory');
   const inputPath = options.projectRoot
@@ -52,7 +69,12 @@ const resolveRunInput = (options: TestProjectRunOptions): TestRunInput => {
     throw new Error(
       `Test input must be a YAML file or project directory: ${singleFile}`,
     );
-  const cliProjectRoot = singleFile ? dirname(singleFile) : inputPath;
+  const cliProjectRoot = singleFile
+    ? ((options.configPath
+        ? undefined
+        : findSingleFileProjectRoot(dirname(singleFile), cwd)) ??
+      dirname(singleFile))
+    : inputPath;
   if (cliProjectRoot) assertDirectory(cliProjectRoot, 'Test project directory');
   const projectRoot = cliProjectRoot ?? cwd;
   return {

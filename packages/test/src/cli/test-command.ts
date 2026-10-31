@@ -1,5 +1,5 @@
 import { existsSync, realpathSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, relative, resolve, sep } from 'node:path';
+import { relative, resolve, sep } from 'node:path';
 import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { runWithConsoleLogHandler } from '@midscene/shared/logger';
 import { version } from '../../package.json';
@@ -7,6 +7,7 @@ import { formatCliError, formatConciseError } from './error-format';
 import type { CliFailureContext } from './failure-format';
 import { githubFailureAnnotation } from './github-reporter';
 import { renderNodeSpec, sortNodesForSpec } from './node-spec';
+import { resolveRunInput } from './prepare-test-run';
 import { captureTerminalOutput } from './terminal-output';
 import {
   TerminalReporter,
@@ -479,13 +480,7 @@ export async function runTestCli(
             reporter.output(message, write),
           )
         : undefined;
-    const projectRoot = realpathSync(
-      options.projectRoot &&
-        existsSync(options.projectRoot) &&
-        statSync(options.projectRoot).isFile()
-        ? dirname(options.projectRoot)
-        : (options.projectRoot ?? options.cwd),
-    );
+    const projectRoot = realpathSync(resolveRunInput(options).projectRoot);
     try {
       return await runWithConsoleLogHandler(
         (entry) => reporter.console(entry),
