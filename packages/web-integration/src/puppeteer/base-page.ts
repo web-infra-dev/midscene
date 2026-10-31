@@ -386,11 +386,14 @@ export class Page<
     );
   }
 
-  private async getElementInfoByXpath(xpath: string) {
+  private async getElementInfoByXpath(
+    xpath: string,
+    options: { forCache?: boolean } = {},
+  ) {
     const elementInfosScriptContent = getElementInfosScriptContent();
 
     return this.evaluateJavaScript(
-      `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath(${JSON.stringify(xpath)})`,
+      `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath(${JSON.stringify(xpath)}, ${JSON.stringify(options)})`,
     );
   }
 
@@ -421,7 +424,9 @@ export class Page<
     for (const xpath of xpaths) {
       try {
         debugPage('rectMatchesCacheFeature: evaluating xpath: %s', xpath);
-        const elementInfo = await this.getElementInfoByXpath(xpath);
+        const elementInfo = await this.getElementInfoByXpath(xpath, {
+          forCache: !(feature as WebElementCacheFeature).allowShadowHost,
+        });
         if (elementInfo?.rect) {
           debugPage(
             'rectMatchesCacheFeature: found element, rect: %o',

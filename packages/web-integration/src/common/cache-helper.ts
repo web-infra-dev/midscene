@@ -6,6 +6,8 @@ import type { DebugFunction } from '@midscene/shared/logger';
 // Shared type for web element cache feature
 export type WebElementCacheFeature = ElementCacheFeature & {
   xpaths?: string[];
+  // Explicit user XPath may intentionally identify a shadow host.
+  allowShadowHost?: boolean;
 };
 
 // Shared function to sanitize xpaths

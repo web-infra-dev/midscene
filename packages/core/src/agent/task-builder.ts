@@ -542,6 +542,7 @@ export class TaskBuilder {
           try {
             rectFromXpath = await this.interface.rectMatchesCacheFeature({
               xpaths: [locateParam.xpath],
+              allowShadowHost: true,
             });
           } catch {
             // xpath locate failed, allow fallback to cache or AI locate

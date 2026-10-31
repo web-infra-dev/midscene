@@ -151,6 +151,17 @@ describe('ChromeExtensionProxyPage cache methods', () => {
       });
     });
 
+    it('preserves explicitly requested shadow hosts', async () => {
+      const lookup = rs.spyOn(page, 'getElementInfoByXpath').mockResolvedValue({
+        rect: { left: 10, top: 20, width: 100, height: 50 },
+      } as any);
+      await page.rectMatchesCacheFeature({
+        xpaths: ['//date-picker'],
+        allowShadowHost: true,
+      });
+      expect(lookup).toHaveBeenCalledWith('//date-picker', { forCache: false });
+    });
+
     it('should try multiple xpaths and return first match', async () => {
       rs.spyOn(page, 'getElementInfoByXpath')
         .mockResolvedValueOnce(null as any) // First xpath fails
@@ -214,7 +225,9 @@ describe('ChromeExtensionProxyPage cache methods', () => {
       await page.rectMatchesCacheFeature(feature);
 
       expect(page.getElementInfoByXpath).toHaveBeenCalledTimes(1);
-      expect(page.getElementInfoByXpath).toHaveBeenCalledWith('/valid/xpath');
+      expect(page.getElementInfoByXpath).toHaveBeenCalledWith('/valid/xpath', {
+        forCache: true,
+      });
     });
 
     it('should throw error for empty xpaths array', async () => {
