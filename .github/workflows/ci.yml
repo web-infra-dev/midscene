@@ -173,6 +173,9 @@ jobs:
         EOF
         npx -y node@20.19.0 packages/cli/dist/lib/index.js --version
 
+    - name: Type check tests
+      run: pnpm run type-check:tests
+
     - name: Run tests with coverage
       run: pnpm run test:coverage
 
@@ -205,9 +208,6 @@ jobs:
       uses: ./.github/actions/setup-puppeteer-browser
     - name: Build integration projects
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/cli,@midscene/test"
-    - name: Type check tests
-      run: pnpm run type-check:tests
-
     - name: Test repository scripts
       run: pnpm run test:scripts
 
@@ -223,7 +223,7 @@ jobs:
   # Keep the original check context; failures/skips in any required suite fail it.
   main:
     needs: [changes, unit-tests, integration, rdp-native]
-    if: always() && needs.changes.outputs.code == 'true'
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
     runs-on: ubuntu-latest
     strategy:
       matrix:

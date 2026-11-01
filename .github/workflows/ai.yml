@@ -197,7 +197,7 @@ jobs:
   # Preserve the existing required-check name while all shards finish independently.
   e2e-report:
     needs: [changes, report-shard]
-    if: always() && needs.changes.outputs.code == 'true'
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
