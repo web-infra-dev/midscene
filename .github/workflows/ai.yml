@@ -144,8 +144,56 @@ jobs:
         if [ "${{ steps.e2e-tests-report.outcome }}" == "failure" ]; then echo "  - e2e:report"; fi
         exit 1
 
-  report-shard:
+  report-prepare:
     needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup Puppeteer browser
+      uses: ./.github/actions/setup-puppeteer-browser
+
+    - name: Build report runtime
+      run: |
+        pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/cli"
+        node scripts/validate-core-report-template.mjs
+
+    - name: Generate shared report fixtures
+      uses: ./.github/actions/ai-ci
+      with:
+        command: node apps/report/scripts/generate-demo-report.mjs
+
+    - name: Pack report runtime and fixtures
+      run: tar -czf "$RUNNER_TEMP/report-runtime.tgz" packages/*/dist apps/report/dist
+
+    - name: Share report runtime and fixtures
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: report-runtime
+        path: ${{ runner.temp }}/report-runtime.tgz
+        compression-level: 0
+        retention-days: 1
+        if-no-files-found: error
+
+  report-shard:
+    needs: [changes, report-prepare]
     if: needs.changes.outputs.code == 'true'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     strategy:
@@ -176,8 +224,16 @@ jobs:
     - name: Setup Puppeteer browser
       uses: ./.github/actions/setup-puppeteer-browser
 
-    - name: Build report and generate fixtures
-      run: pnpm --dir apps/report run e2e:prepare
+    - name: Download shared report runtime
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        name: report-runtime
+        path: ${{ runner.temp }}/report-runtime
+
+    - name: Restore report runtime and fixtures
+      run: |
+        tar -xzf "$RUNNER_TEMP/report-runtime/report-runtime.tgz"
+        node scripts/validate-core-report-template.mjs
 
     - name: Prepare AI CI
       id: ai-ci
