@@ -25,9 +25,13 @@ if (
       const range = event.pull_request
         ? `${base}...${head}`
         : `${base}..${head}`;
-      const files = execFileSync('git', ['diff', '--name-only', '-z', range], {
-        encoding: 'utf8',
-      })
+      const files = execFileSync(
+        'git',
+        ['diff', '--no-renames', '--name-only', '-z', range],
+        {
+          encoding: 'utf8',
+        },
+      )
         .split('\0')
         .filter(Boolean);
       code = needsRuntimeChecks(files);
