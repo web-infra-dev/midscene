@@ -9,7 +9,9 @@ on:
       - 'packages/computer/**'
       - 'packages/core/**'
       - 'packages/shared/**'
-      - '.github/actions/ai-ci/**'
+      - '.github/actions/**'
+      - '!**/*.md'
+      - '!**/*.mdx'
       - 'scripts/report-template-utils.mjs'
       - 'nx.json'
       - 'package.json'
@@ -35,7 +37,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: headless-linux-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:

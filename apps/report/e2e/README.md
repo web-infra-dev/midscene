@@ -34,3 +34,11 @@ Retain `aiAssert`, `aiTap`, `aiHover` and related AI coverage. Reserve JavaScrip
 Put aggregation rules, serialization limits, state transitions and functional calculations in the nearest unit tests. Add e2e coverage when browser integration or a user workflow is necessary. Each scenario should cover one workflow; avoid repeating the same navigation and visual checks across suites.
 
 Generated fixtures belong in ignored `dist/`. Keep the static pages unchanged during a run; concurrent builds clean that directory. When another build must run concurrently, copy the generated static pages to a temporary directory and adjust the static server's path in `midscene.config.ts` to serve that snapshot.
+
+### CI shards
+
+CI runs all YAML files across four machines. `MIDSCENE_REPORT_SHARD=1/4` selects
+one duration-balanced shard; omit it to run the complete suite locally. New YAML
+files are discovered automatically. Each shard keeps a separate report, linked
+from the combined CI report page. AI assertions, retries, and per-file browser
+isolation are unchanged.

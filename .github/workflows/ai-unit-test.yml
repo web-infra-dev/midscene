@@ -3,17 +3,7 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**/*.md'
-      - 'apps/site/**'
-      - '.changeset/**'
-      - 'docs/**'
   pull_request:
-    paths-ignore:
-      - '**/*.md'
-      - 'apps/site/**'
-      - '.changeset/**'
-      - 'docs/**'
   workflow_dispatch:
     inputs:
       branch:
@@ -26,11 +16,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: ai-unit-test-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    uses: ./.github/workflows/ci-changes.yml
+
   main:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     strategy:
       matrix:
