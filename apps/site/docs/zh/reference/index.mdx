@@ -1953,28 +1953,6 @@ afterAll(() => {
 });
 ```
 
-### `exportReportArtifact()`
-
-将一份 Agent 或 Test 报告导出为指定交付格式。导出时只复制报告引用的执行数据和图片，并在发布前检查依赖完整性；源报告保持原样。外置模式按内容复用相同图片，单 HTML 模式可独立打开。
-
-```ts
-import { exportReportArtifact } from '@midscene/core/report';
-
-const reportPath = await exportReportArtifact({
-  reportPath: './reports/run/index.html',
-  outputDir: './delivery',
-  reportFileName: 'run', // 无需 .html 后缀
-  outputFormat: 'single-html', // 默认；也可选 'html-and-external-assets'
-  overwrite: false, // 默认
-});
-```
-
-也可以通过 CLI 完成同样的操作：
-
-```bash
-pnpm exec midscene report-tool --action export --htmlPath ./reports/run/index.html --outputDir ./delivery --outputName run --outputFormat single-html
-```
-
 ### `.clear()`
 
 清空当前已追加的待合并报告列表（适用于复用同一个 `ReportMergingTool` 实例分批合并多组报告的场景）。
@@ -1994,6 +1972,28 @@ function clear(): void;
 ```typescript
 reportMergingTool.mergeReports('first-batch');
 reportMergingTool.clear(); // 清空列表，准备下一批合并
+```
+
+## `exportReportArtifact()`
+
+将一份 Agent 或 Test 报告导出为指定格式，源报告保持不变。
+
+```ts
+import { exportReportArtifact } from '@midscene/core/report';
+
+const reportPath = await exportReportArtifact({
+  reportPath: './reports/run/index.html',
+  outputDir: './delivery',
+  reportFileName: 'run', // 无需 .html 后缀
+  outputFormat: 'single-html', // 默认；也可选 'html-and-external-assets'
+  overwrite: false, // 默认
+});
+```
+
+也可以通过 CLI 完成同样的操作：
+
+```bash
+pnpm exec midscene report-tool --action export --htmlPath ./reports/run/index.html --outputDir ./delivery --outputName run --outputFormat single-html
 ```
 
 ## 运行时配置 {#runtime-configuration}

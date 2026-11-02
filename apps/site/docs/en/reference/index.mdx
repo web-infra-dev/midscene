@@ -1969,28 +1969,6 @@ afterAll(() => {
 });
 ```
 
-### `exportReportArtifact()`
-
-Export one Agent or Test report to either delivery format. The exporter copies only referenced execution data and images, and checks dependencies before publishing. The input report remains unchanged. External mode deduplicates identical image bytes; single HTML is self-contained.
-
-```ts
-import { exportReportArtifact } from '@midscene/core/report';
-
-const reportPath = await exportReportArtifact({
-  reportPath: './reports/run/index.html',
-  outputDir: './delivery',
-  reportFileName: 'run', // without .html
-  outputFormat: 'single-html', // default; or 'html-and-external-assets'
-  overwrite: false, // default
-});
-```
-
-The same operation is available through the CLI:
-
-```bash
-pnpm exec midscene report-tool --action export --htmlPath ./reports/run/index.html --outputDir ./delivery --outputName run --outputFormat single-html
-```
-
 ### `.clear()`
 
 Clear the list of appended reports (useful when reusing the same `ReportMergingTool` instance across multiple merge batches).
@@ -2010,6 +1988,28 @@ function clear(): void;
 ```typescript
 reportMergingTool.mergeReports('first-batch');
 reportMergingTool.clear(); // Clear the queue before the next batch
+```
+
+## `exportReportArtifact()`
+
+Export one Agent or Test report to the specified format. The input report remains unchanged.
+
+```ts
+import { exportReportArtifact } from '@midscene/core/report';
+
+const reportPath = await exportReportArtifact({
+  reportPath: './reports/run/index.html',
+  outputDir: './delivery',
+  reportFileName: 'run', // without .html
+  outputFormat: 'single-html', // default; or 'html-and-external-assets'
+  overwrite: false, // default
+});
+```
+
+The same operation is available through the CLI:
+
+```bash
+pnpm exec midscene report-tool --action export --htmlPath ./reports/run/index.html --outputDir ./delivery --outputName run --outputFormat single-html
 ```
 
 ## Runtime configuration {#runtime-configuration}
