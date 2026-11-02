@@ -3,7 +3,7 @@ import { getModelRuntime } from '@/ai-model/models';
 import { type AbstractInterface, defineActionSleep } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type Service from '@/service';
-import { TaskRunner } from '@/task-runner';
+import { TaskExecutionError, TaskRunner } from '@/task-runner';
 import type { ExecutorContext, UIContext } from '@/types';
 import { describe, expect, it, rs } from '@rstest/core';
 
@@ -67,6 +67,30 @@ describe('task cancellation boundaries', () => {
       );
     },
   );
+
+  it('preserves abort diagnostics and bounds the prefixed message', async () => {
+    const controller = new AbortController();
+    const message = 'x'.repeat(4_096);
+    const diagnostics = { code: 'TIMEOUT', status: 504, requestId: 'req-1' };
+    const reason = Object.assign(new Error(message), diagnostics);
+    controller.abort(reason);
+    const runner = new TaskRunner('long abort', async () => context(), {
+      abortSignal: controller.signal,
+      tasks: [{ type: 'Planning', executor: rs.fn() }],
+    });
+
+    const error = await runner.flush().catch((failure: unknown) => failure);
+    expect(error).toBeInstanceOf(TaskExecutionError);
+    const failure = error as TaskExecutionError;
+    expect(failure.message).toMatch(
+      /^Operation interrupted by an external abort signal\.\nReason: x+/,
+    );
+    expect(failure.message.length).toBeLessThanOrEqual(4_096);
+    const cause = { ...diagnostics, message: failure.message };
+    expect(failure.cause).toMatchObject(cause);
+    expect(failure.toJSON()).toMatchObject({ message: failure.message, cause });
+    expect(reason.message).toBe(message);
+  });
 
   it('explains cancellation without a custom reason', async () => {
     const controller = new AbortController();
