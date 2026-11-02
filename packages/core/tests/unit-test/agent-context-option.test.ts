@@ -1,4 +1,5 @@
 import { Agent } from '@/agent';
+import { PlannedWaitError } from '@/agent/planned-wait';
 import { actionHoverParamSchema } from '@/device';
 import { TaskExecutionError } from '@/task-runner';
 import { describe, expect, it, rs } from '@rstest/core';
@@ -78,6 +79,53 @@ const createAgentStub = () => {
 };
 
 describe('Agent per-call context option', () => {
+  it('only exposes conditional waiting when explicitly enabled', () => {
+    const plain = new Agent(createInterfaceStub(), { generateReport: false });
+    const enabled = new Agent(createInterfaceStub(), {
+      generateReport: false,
+      planningWaitFor: true,
+    });
+    expect(
+      (plain as any).fullActionSpace.some((a: any) => a.name === 'WaitFor'),
+    ).toBe(false);
+    expect(
+      (enabled as any).fullActionSpace.filter((a: any) => a.name === 'WaitFor'),
+    ).toHaveLength(1);
+    expect(
+      () =>
+        new Agent(
+          {
+            ...createInterfaceStub(),
+            actionSpace: () => [{ name: 'WaitFor' }],
+          },
+          { generateReport: false, planningWaitFor: true },
+        ),
+    ).toThrow('reserves the WaitFor action name');
+  });
+  it('adds conditional waiting guidance to planning without requiring user prompt instructions', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    (agent as any).opts.planningWaitFor = true;
+    await agent.aiAct('Enter hello and send it');
+    expect(taskExecutor.action.mock.calls[0][3]).toEqual(
+      expect.stringContaining('Conditional waiting policy'),
+    );
+  });
+  it('does not replay business actions after a cached conditional wait fails', async () => {
+    const { agent, taskExecutor, taskCache } = createAgentStub();
+    taskCache.matchPlanCache.mockReturnValue({
+      cacheUsable: true,
+      cacheContent: { yamlWorkflow: 'tasks: []' },
+    });
+    (taskExecutor as any).loadYamlFlowAsPlanning = rs.fn(async () => {});
+    rs.spyOn(agent, 'runYaml').mockRejectedValue(
+      new Error('nested task', {
+        cause: new PlannedWaitError(new Error('deadline')),
+      }),
+    );
+    await expect(agent.aiAct('Send once')).rejects.toThrow('nested task');
+    expect(taskExecutor.action).not.toHaveBeenCalled();
+  });
+
   it('applies middle-click context defaults, API overrides and explicit blank context', async () => {
     const { agent } = createAgentStub();
     const dispatch = rs

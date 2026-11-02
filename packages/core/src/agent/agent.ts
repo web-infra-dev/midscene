@@ -58,6 +58,11 @@ import {
   hasActiveYamlExecution,
   runInYamlExecutionContext,
 } from '../yaml/execution-session';
+import {
+  definePlannedWait,
+  isPlannedWaitError,
+  plannedWaitContext,
+} from './planned-wait';
 
 import {
   ScriptPlayer,
@@ -471,6 +476,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     const baseActionSpace = this.interface.actionSpace();
+    if (
+      this.opts.planningWaitFor &&
+      baseActionSpace.some((action) => action.name === 'WaitFor')
+    ) {
+      throw new Error(
+        'planningWaitFor reserves the WaitFor action name; remove the custom WaitFor action or disable planningWaitFor',
+      );
+    }
     const fileChooserActions = this.interface.registerFileChooserListener
       ? [
           defineActionRegisterFileChooserAccept(async (files) => {
@@ -494,6 +507,17 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     this.fullActionSpace = [
       ...baseActionSpace,
       ...fileChooserActions,
+      ...(this.opts.planningWaitFor
+        ? [
+            definePlannedWait(async (condition, abortSignal) => {
+              await this.aiWaitFor(condition, {
+                timeoutMs: 30_000,
+                checkIntervalMs: 2_000,
+                abortSignal,
+              });
+            }),
+          ]
+        : []),
       defineActionSleep(),
     ];
 
@@ -503,6 +527,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      planningWaitFor: this.opts.planningWaitFor,
       waitAfterAction: this.opts.waitAfterAction,
       actionReadiness: this.actionReadiness,
       useDeviceTime: this.opts.useDeviceTime,
@@ -1302,7 +1327,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning', 'planning');
       const locateModel = this.resolveModelRuntime('locate', 'locate');
-      const aiActContext = this.resolveUserContext('aiAct', opt?.context);
+      const userContext = this.resolveUserContext('aiAct', opt?.context);
+      const aiActContext = this.opts.planningWaitFor
+        ? [plannedWaitContext, userContext].filter(Boolean).join('\n\n')
+        : userContext;
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
@@ -1390,7 +1418,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         } catch (error) {
           if (
             error instanceof YamlExecutionOwnershipError ||
-            isActionReadinessError(error)
+            isActionReadinessError(error) ||
+            isPlannedWaitError(error)
           )
             throw error;
           abortSignal?.throwIfAborted();

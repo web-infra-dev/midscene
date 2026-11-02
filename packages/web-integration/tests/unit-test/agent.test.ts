@@ -695,9 +695,9 @@ describe('PageAgent aiAct abortSignal', () => {
       abortSignal: controller.signal,
     });
 
-    // Verify the abortSignal argument is passed before report options.
+    // Verify abortSignal is passed in its documented executor position.
     const callArgs = mockTaskExecutor.action.mock.calls[0];
-    expect(callArgs[callArgs.length - 2]).toBe(controller.signal);
+    expect(callArgs[9]).toBe(controller.signal);
   });
 
   it('should work normally without abortSignal', async () => {
@@ -714,7 +714,7 @@ describe('PageAgent aiAct abortSignal', () => {
 
     // AbortSignal argument should be undefined when no signal is provided.
     const callArgs = mockTaskExecutor.action.mock.calls[0];
-    expect(callArgs[callArgs.length - 2]).toBeUndefined();
+    expect(callArgs[9]).toBeUndefined();
   });
 
   it('should throw with default reason when aborted without reason', async () => {
