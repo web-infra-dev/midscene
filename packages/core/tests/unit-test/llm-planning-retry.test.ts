@@ -116,6 +116,27 @@ describe('plan XML parse retry', () => {
     rs.mocked(buildYamlFlowFromPlans).mockClear();
   });
 
+  it('preserves non-execution feedback in the actual standard planning request', async () => {
+    const conversationHistory = new ConversationHistory();
+    conversationHistory.pendingFeedbackMessage =
+      'The planned action was NOT executed: the screen changed while planning';
+    rs.mocked(callGenerativeAI).mockResolvedValueOnce(
+      mockAIResponse('<complete success="true">Done</complete>'),
+    );
+    await standardPlan('open target', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory,
+      includeLocateInPlanning: false,
+    });
+    const request = JSON.stringify(
+      rs.mocked(callGenerativeAI).mock.calls[0][0].at(-1),
+    );
+    expect(request).toContain('The planned action was NOT executed');
+    expect(request).not.toContain('The previous action has been executed');
+  });
+
   it('sends complete nested custom-action fields to the model before parsing its reply', async () => {
     const parameters = {
       target: { by: 'label', name: 'Access key' },

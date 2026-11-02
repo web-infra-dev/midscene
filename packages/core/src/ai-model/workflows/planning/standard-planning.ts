@@ -246,7 +246,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${executionProgressSection}`,
+          text: `${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${executionProgressSection}`,
         },
         {
           type: 'image',

@@ -152,6 +152,13 @@ class AgentScopedModelConfigManager extends ModelConfigManager {
 }
 
 export type AiActOptions = {
+  /**
+   * Replan when the full screen changes during planning before a Tap-first batch.
+   * Defaults to false. Clocks, carets and animations can cause extra model calls
+   * or exhaust the planning limit. Does not wait for changes after a click.
+   * Enabling this disables cached-plan replay for this call.
+   */
+  checkScreenChanges?: boolean;
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
@@ -1341,7 +1348,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate = false;
       }
 
-      const cacheable = opt?.cacheable;
+      const cacheable = opt?.checkScreenChanges ? false : opt?.cacheable;
       const replanningCycleLimit =
         this.resolveReplanningCycleLimit(planningModel);
       const planCacheEnabled = planningModel.adapter.planning.cacheEnabled;
@@ -1407,6 +1414,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate,
         abortSignal,
         internalReportDisplay,
+        opt?.checkScreenChanges,
       );
 
       // update cache

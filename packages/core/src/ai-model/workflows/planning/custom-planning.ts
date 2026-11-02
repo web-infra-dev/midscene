@@ -49,7 +49,7 @@ export function buildCustomPlanningMessages<TParsed>(
       content: [
         {
           type: 'text',
-          text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.`,
+          text: `${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Please continue according to the instruction.`,
         },
       ],
     });

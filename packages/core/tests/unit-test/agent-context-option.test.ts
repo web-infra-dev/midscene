@@ -254,6 +254,14 @@ describe('Agent per-call context option', () => {
     );
   });
 
+  it('passes screen checking explicitly and skips cached plans for that call', async () => {
+    const { agent, taskExecutor, taskCache } = createAgentStub();
+    await agent.aiAct('Click submit', { checkScreenChanges: true });
+    expect(taskExecutor.action.mock.calls[0][11]).toBe(true);
+    expect(taskExecutor.action.mock.calls[0][4]).toBe(false);
+    expect(taskCache.matchPlanCache).not.toHaveBeenCalled();
+  });
+
   it('uses per-call context instead of API and default aiContexts', async () => {
     const { agent, taskExecutor, taskCache } = createAgentStub();
 
