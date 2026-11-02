@@ -33,6 +33,8 @@ export async function evaluatePlanFreshness(
   executionId: string,
   planIndex: number,
 ) {
+  if (actions.find((action) => action.type !== 'Locate')?.type !== 'Tap')
+    return;
   const currentScreenshot = task.recorder?.findLast(
     (item) => item.type === 'screenshot' && item.timing === 'after-calling',
   )?.screenshot;

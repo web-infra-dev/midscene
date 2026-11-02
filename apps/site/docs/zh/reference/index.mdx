@@ -36,6 +36,21 @@
 - `waitAfterAction?: number` —— 每次动作执行后的固定等待延迟（单位：毫秒），默认值为 `300`。详见[默认等待策略](#default-waiting-strategy)。
 - `useDeviceTime?: boolean` —— 是否使用目标设备的本地时间记录任务时间戳。要求底层 Device 实现 `getDeviceLocalTimeString` 方法；若未实现，Midscene 会记录一条警告日志并回退为宿主机的系统时间。默认值：`false`。
 
+### AI 规划条件等待
+
+设置 `planningWaitFor: true` 后，`aiAct` 可以在下一步被异步页面状态阻塞时选择视觉 `WaitFor(condition)` 动作。默认关闭，需要规划模型支持传入的动作空间。
+
+```ts
+const agent = new PlaywrightAgent(page, { planningWaitFor: true });
+await agent.aiAct('输入 hello 并发送消息');
+```
+
+模型应对已经可用的控件立即操作，只等待无需再次交互即可满足的前置条件，并直接报告明确的业务错误。框架不会为决定是否等待而额外插入一次规划；规划的等待成功后，会根据新截图重新规划，不会继续使用旧批次中的剩余坐标。选择 `WaitFor` 后会增加视觉断言调用，最小检查间隔为 2 秒，截止时间为 30 秒。是否正确选择等待仍取决于模型。
+
+到达截止时间会取消正在执行的模型请求，并拒绝迟到的成功结果。如果平台截图不支持取消，返回仍可能被延迟。超时或取消会终止当前 `aiAct`，缓存回放也一样，不会自动重放前面的业务动作。缓存中的条件会重新检查。启用时，`WaitFor` 为保留动作名。
+
+对于已知的长耗时操作或业务特定保证，仍应保留显式 `aiWaitFor`。该选项不会改变默认操作后延迟，也不意味着截图可以可靠地判断业务就绪。
+
 <a id="action-ready"></a>
 
 **每个动作执行后的就绪判断**

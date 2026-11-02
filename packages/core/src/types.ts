@@ -328,6 +328,8 @@ export type ServiceAssertionResponse = AIAssertionResponse & {
 export type OnTaskStartTip = (tip: string) => Promise<void> | void;
 
 export interface AgentWaitForOpt extends ServiceExtractOption {
+  /** Cancels the complete wait, including active model checks. */
+  abortSignal?: AbortSignal;
   checkIntervalMs?: number;
   timeoutMs?: number;
 }
@@ -1098,6 +1100,15 @@ export interface AgentOpt {
    * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.
    */
   replanningCycleLimit?: number;
+
+  /**
+   * Expose WaitFor(condition) to aiAct planning. Defaults to false.
+   * Uses visual aiWaitFor checks (30s deadline, 2s minimum check interval).
+   * Conditions are rechecked on cache replay; failures stop the action.
+   * Requires a planning model that supports the supplied action space.
+   * Additional checks consume model calls. Reserves the WaitFor action name.
+   */
+  planningWaitFor?: boolean;
 
   /**
    * Wait time in milliseconds after each action execution.
