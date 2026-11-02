@@ -30,8 +30,9 @@ describe('report image processing memory budgets', () => {
     'test-single',
     'test-external',
     'record',
+    'cases',
   ] as const)(
-    'processes 96 MiB of images in a bounded child heap: %s',
+    'bounds process memory and releases finished records: %s',
     { timeout: 60_000 },
     (operation) => {
       const root = mkdtempSync(join(tmpdir(), 'report-memory-run-'));
@@ -53,8 +54,16 @@ describe('report image processing memory budgets', () => {
         const result = JSON.parse(child.stdout.trim().split('\n').at(-1)!);
         // Heap limits do not include image Buffers: guard OS peak RSS as well.
         expect(result.peakRssBytes).toBeLessThan(384 * MiB);
-        expect(result.retainedHeapBytes).toBeLessThan(32 * MiB);
+        expect(result.retainedHeapBytes).toBeLessThan(
+          (operation === 'cases' ? 8 : 32) * MiB,
+        );
         const dumps = readReportDumpScripts(result.output);
+        if (operation === 'cases') {
+          expect(
+            dumps.flatMap((dump) => JSON.parse(dump.content).executions),
+          ).toHaveLength(24);
+          return;
+        }
         expect(
           dumps.some((dump) =>
             JSON.parse(dump.content).executions.some(

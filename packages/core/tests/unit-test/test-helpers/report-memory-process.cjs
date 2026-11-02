@@ -92,6 +92,8 @@ async function main() {
     );
     return;
   }
+  const Agent =
+    operation === 'cases' ? req('./agent/agent.js').Agent : undefined;
   global.gc();
   const baseline = process.memoryUsage().heapUsed;
   let output;
@@ -141,6 +143,67 @@ async function main() {
           ? 'html-and-external-assets'
           : 'single-html',
     });
+  } else if (operation === 'cases') {
+    const session = new ReportSession(path.join(root, 'records'));
+    const references = [];
+    const sources = [];
+    const png =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+    const runCase = async (index) => {
+      const agent = new Agent(
+        {
+          interfaceType: 'puppeteer',
+          actionSpace: () => [],
+          destroy: async () => {},
+        },
+        {
+          autoPrintReportMsg: false,
+          modelConfig: {
+            MIDSCENE_MODEL_NAME: 'fixture',
+            MIDSCENE_MODEL_API_KEY: 'unused',
+          },
+        },
+      );
+      references.push(new WeakRef(agent));
+      await agent.recordToReport(`case-${index}`, {
+        content: `${index}:${'X'.repeat(512 * 1024)}`,
+        screenshotBase64: png,
+      });
+      if (index % 2 === 0) {
+        const source = await agent._createReportSource(
+          `case-${index}`,
+          agent.dump.executions.map((e) => e.id),
+        );
+        sources.push({ ...source, scopeId: `case-${index}` });
+      }
+      await agent.destroy();
+    };
+    await session.run(async () => {
+      for (let i = 0; i < 24; i++) await runCase(i);
+    });
+    const uncollected = await session.finish();
+    if (uncollected.length !== 12)
+      throw Error('Uncollected diagnostics were lost');
+    output = await new TestRunReportAssembler().assembleAsync({
+      outputDir: path.join(root, 'out'),
+      reportFileName: 'cases',
+      sources: [
+        ...sources,
+        ...uncollected.map((source, index) => ({
+          ...source,
+          scopeId: `uncollected-${index}`,
+        })),
+      ],
+      buildRunnerDump: runner,
+    });
+    await session.prune();
+    for (let i = 0; i < 4; i++) {
+      await new Promise((resolve) => setImmediate(resolve));
+      global.gc();
+    }
+    if (references.some((ref) => ref.deref()))
+      throw Error('Finished Agents are retained by the Session');
+    retained = { session, references };
   } else if (operation === 'record') {
     const session = new ReportSession(path.join(root, 'records'));
     const images = [];

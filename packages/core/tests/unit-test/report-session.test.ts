@@ -2,6 +2,8 @@ import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { Agent } from '@/agent/agent';
 import { ReportSession } from '@/dump/report-session';
+import type { WorkflowReportSource } from '@/test-runner/engine/types';
+import { ExecutionDump } from '@/types';
 import { setMidsceneRunDir } from '@midscene/shared/common';
 import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import {
@@ -38,6 +40,84 @@ const agent = (generateReport = true) =>
 const read = (path: string) => JSON.parse(readFileSync(path, 'utf8'));
 
 describe('Test-owned report records', () => {
+  it.each([true, false])(
+    'freezes busy=%s with the execution data before queued I/O',
+    async (busyAtCutoff) => {
+      const session = new ReportSession(join(root, 'busy-cutoff'));
+      let busy = busyAtCutoff;
+      await session.run(async () => {
+        const writer = session.createRecorder(() => busy);
+        const execution = (status: 'running' | 'finished') =>
+          new ExecutionDump({
+            id: 'work',
+            name: 'work',
+            logTime: 0,
+            tasks: [
+              {
+                taskId: 'work',
+                type: 'Log',
+                status,
+                param: {},
+                recorder: [],
+                executor: async () => {},
+              },
+            ],
+          });
+        const meta = {
+          sdkVersion: 'fixture',
+          groupName: 'work',
+          modelBriefs: [],
+        };
+        writer.onExecutionUpdate(execution('running'), meta);
+        const pending = writer.createSourceSnapshot('case', ['work']);
+        busy = !busyAtCutoff;
+        writer.onExecutionUpdate(execution('finished'), meta);
+        const source = await pending;
+        expect(source.collection?.status).toBe(
+          busyAtCutoff ? 'partial' : 'complete',
+        );
+        expect(Boolean(source.collection?.reason)).toBe(busyAtCutoff);
+        expect(read(source.dumpPath!).executions[0].tasks[0].status).toBe(
+          'running',
+        );
+        busy = false;
+      });
+      await session.finish();
+    },
+  );
+
+  it('releases finished writers immediately while preserving uncollected diagnostics until Session finish', async () => {
+    const session = new ReportSession(join(root, 'released-records'));
+    const sources: WorkflowReportSource[] = [];
+    await session.run(async () => {
+      for (let index = 0; index < 8; index++) {
+        const a = agent();
+        await a.recordToReport(`case-${index}`, {
+          content: 'A'.repeat(64 * 1024),
+        });
+        if (index % 2 === 0)
+          sources.push(
+            (await a._createReportSource(
+              `case-${index}`,
+              a.dump.executions.map((e) => e.id!),
+            ))!,
+          );
+        const writer = (a as any).reportManager.reportState.generator;
+        await a.destroy();
+        expect(writer.recorder.executions).toEqual([]);
+        expect(writer.busy).toBeUndefined();
+      }
+    });
+    const uncollected = await session.finish();
+    expect(uncollected).toHaveLength(4);
+    expect(
+      uncollected.map((source) => read(source.dumpPath!).executions[0].name),
+    ).toEqual(['Log - case-1', 'Log - case-3', 'Log - case-5', 'Log - case-7']);
+    await session.prune();
+    for (const source of [...sources, ...uncollected])
+      expect(read(source!.dumpPath!).executions).toHaveLength(1);
+  });
+
   it.each([true, false])(
     'records without publishing Agent HTML, generateReport=%s',
     async (enabled) => {

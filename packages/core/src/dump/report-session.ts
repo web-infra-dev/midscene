@@ -110,10 +110,11 @@ class ReportSourceRecorder implements IReportGenerator {
   private sourcePath?: string;
   private queue: Promise<void> = Promise.resolve();
   private finalization?: Promise<undefined>;
+  private uncollectedSource?: WorkflowReportSource;
 
   constructor(
     private readonly directory: string,
-    readonly isBusy: () => boolean,
+    private busy: (() => boolean) | undefined,
   ) {
     this.images = new ReportImageStore({
       mode: 'directory',
@@ -127,6 +128,9 @@ class ReportSourceRecorder implements IReportGenerator {
     return undefined;
   }
   enableSourceSnapshots(): void {}
+  isBusy(): boolean {
+    return this.busy?.() ?? false;
+  }
 
   onExecutionUpdate(
     execution: ExecutionDump,
@@ -178,9 +182,19 @@ class ReportSourceRecorder implements IReportGenerator {
     scopeId: string,
     executionIds?: readonly string[],
   ): Promise<WorkflowReportSource> {
+    if (this.finalization)
+      throw new Error('The report record stream has been finalized.');
+    return this.snapshot(scopeId, executionIds);
+  }
+
+  private async snapshot(
+    scopeId: string,
+    executionIds?: readonly string[],
+  ): Promise<WorkflowReportSource> {
     if (typeof scopeId !== 'string' || !scopeId.trim())
       throw new Error('Invalid report scope ID');
     // Freeze before any I/O: late progress cannot mutate this Step's evidence.
+    const busyAtCutoff = this.isBusy();
     const captured = this.recorder.capture(
       executionIds,
       this.recorder.reportMeta ?? {
@@ -208,9 +222,9 @@ class ReportSourceRecorder implements IReportGenerator {
       sourcePath: this.sourcePath!,
       dumpPath: path,
       collection: {
-        status: this.isBusy() ? 'partial' : 'complete',
+        status: busyAtCutoff ? 'partial' : 'complete',
         capturedAt: captured.capturedAt,
-        ...(this.isBusy()
+        ...(busyAtCutoff
           ? {
               reason:
                 'An Agent operation was still running at the snapshot cutoff.',
@@ -221,10 +235,20 @@ class ReportSourceRecorder implements IReportGenerator {
   }
 
   async captureUncollected(): Promise<WorkflowReportSource | undefined> {
+    if (this.finalization) {
+      await this.finalization;
+      const source = this.uncollectedSource;
+      this.uncollectedSource = undefined;
+      return source;
+    }
+    return this.capturePending();
+  }
+
+  private async capturePending(): Promise<WorkflowReportSource | undefined> {
     const ids = this.recorder.executions.flatMap((execution) =>
       execution.id && !this.collected.has(execution.id) ? [execution.id] : [],
     );
-    return ids.length ? this.createSourceSnapshot(this.id, ids) : undefined;
+    return ids.length ? this.snapshot(this.id, ids) : undefined;
   }
 
   async flush(): Promise<void> {
@@ -235,7 +259,13 @@ class ReportSourceRecorder implements IReportGenerator {
     if (!this.finalization)
       this.finalization = (async () => {
         await this.flush();
+        // Preserve setup/teardown evidence before releasing executions. The
+        // Session can collect this lightweight source after Agent.destroy().
+        this.uncollectedSource = await this.capturePending();
         await this.store.finalize();
+        this.recorder.clear();
+        this.collected.clear();
+        this.busy = undefined;
         return undefined;
       })();
     return this.finalization;
