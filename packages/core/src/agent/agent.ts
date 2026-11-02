@@ -155,7 +155,9 @@ export type AiActOptions = {
   /**
    * Replan when the full screen changes during planning before a Tap-first batch.
    * Defaults to false. Clocks, carets and animations can cause extra model calls
-   * or exhaust the planning limit. Does not wait for changes after a click.
+   * and stop the task after two consecutive screen-change replans.
+   * Successful action execution resets this counter.
+   * Does not wait for changes after a click.
    * Enabling this disables cached-plan replay for this call.
    */
   checkScreenChanges?: boolean;

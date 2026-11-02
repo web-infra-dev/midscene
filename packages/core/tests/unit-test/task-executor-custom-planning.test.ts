@@ -58,7 +58,10 @@ const defaultModel = () =>
     slot: 'default',
   });
 
-function createCustomPlanningModel(plannedActions: any[] = []): ModelRuntime {
+function createCustomPlanningModel(
+  plannedActions: any[] = [],
+  shouldContinuePlanning = () => false,
+): ModelRuntime {
   return {
     config: {
       modelName: 'custom-planning-model',
@@ -78,7 +81,7 @@ function createCustomPlanningModel(plannedActions: any[] = []): ModelRuntime {
             coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
             parseResponse: () => null,
             transformActions: () => structuredClone(plannedActions),
-            shouldContinuePlanning: () => false,
+            shouldContinuePlanning,
             buildResponseLog: () => '',
           },
         },
@@ -328,6 +331,73 @@ describe('TaskExecutor custom planning adapters', () => {
     ).rejects.toThrow('planning cycle limit');
     expect(convert).not.toHaveBeenCalled();
   });
+  it.each([
+    { changes: [true, true, true], executions: 0, fails: true },
+    { changes: [true, true, false], executions: 1, fails: false },
+    {
+      changes: [true, true, false, true, true, false],
+      executions: 2,
+      fails: false,
+    },
+    { changes: [false, false, false, false], executions: 4, fails: false },
+    {
+      changes: [true, true, false, true],
+      executions: 1,
+      fails: true,
+      actionFails: true,
+    },
+  ])(
+    'bounds consecutive screen-change replans: $changes',
+    async ({ changes, executions, fails, actionFails }) => {
+      const executor = new TaskExecutor(mockInterface, mockService, {
+        getDefaultModelRuntime: defaultModel,
+        replanningCycleLimit: 20,
+        actionSpace: [],
+      });
+      const execute = rs.fn(async () => {
+        if (actionFails) throw new Error('tap failed');
+      });
+      rs.spyOn(executor, 'convertPlanToExecutable').mockResolvedValue({
+        tasks: [{ type: 'Action Space', subType: 'Tap', executor: execute }],
+      });
+      let round = 0;
+      const guard = rs
+        .spyOn(freshness, 'evaluatePlanFreshness')
+        .mockImplementation(async () => {
+          const changed = changes[round++];
+          return {
+            changed,
+            changedPixels: changed ? 100 : 0,
+            dimensionsChanged: false,
+          };
+        });
+      rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+      const result = executor.action(
+        'open target',
+        createCustomPlanningModel([], () => round < changes.length - 1),
+        defaultModel(),
+        undefined,
+        false,
+        undefined,
+        'balance',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
+      if (fails) {
+        await expect(result).rejects.toThrow(
+          'after 2 consecutive screen-change replans',
+        );
+      } else {
+        await result;
+      }
+      expect(guard).toHaveBeenCalledTimes(changes.length);
+      expect(execute).toHaveBeenCalledTimes(executions);
+    },
+  );
+
   it('records a failed plan if screen comparison fails, without executing actions', async () => {
     const executor = new TaskExecutor(mockInterface, mockService, {
       getDefaultModelRuntime: defaultModel,
