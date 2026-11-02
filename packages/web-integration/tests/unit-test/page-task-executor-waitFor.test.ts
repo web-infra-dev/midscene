@@ -78,7 +78,7 @@ describe('TaskExecutor waitFor', () => {
     });
   });
 
-  it('passes query options and the execution id without a cancellation signal', async () => {
+  it('passes query options and the execution id with a deadline signal', async () => {
     // Spy on the private createTypeQueryTask method
     const createTypeQueryTaskSpy = rs.spyOn(
       taskExecutor as any,
@@ -124,7 +124,7 @@ describe('TaskExecutor waitFor', () => {
         screenshotIncluded: undefined,
       },
       undefined,
-      { abortSignal: undefined },
+      { abortSignal: expect.any(AbortSignal) },
     );
 
     // Verify the result structure - waitFor returns runner, not executor
@@ -133,7 +133,8 @@ describe('TaskExecutor waitFor', () => {
   });
 
   it('preserves the cancellation signal and execution id when retrying a false assertion', async () => {
-    abortSignal = new AbortController().signal;
+    const controller = new AbortController();
+    abortSignal = controller.signal;
     // Spy on the private createTypeQueryTask method
     const createTypeQueryTaskSpy = rs.spyOn(
       taskExecutor as any,
@@ -184,9 +185,20 @@ describe('TaskExecutor waitFor', () => {
         }),
         { domIncluded: undefined, screenshotIncluded: undefined },
         undefined,
-        { abortSignal },
+        { abortSignal: expect.any(AbortSignal) },
       ]);
     }
+
+    const combined = (
+      createTypeQueryTaskSpy.mock.calls[0][5] as { abortSignal: AbortSignal }
+    ).abortSignal;
+    expect(
+      (createTypeQueryTaskSpy.mock.calls[1][5] as { abortSignal: AbortSignal })
+        .abortSignal,
+    ).toBe(combined);
+    controller.abort(new Error('caller cancellation'));
+    expect(combined.aborted).toBe(true);
+    expect(combined.reason.message).toBe('caller cancellation');
 
     // Verify the result
     expect(result.runner).toBeDefined();

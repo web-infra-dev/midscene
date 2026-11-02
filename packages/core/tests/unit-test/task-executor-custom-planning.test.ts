@@ -1,3 +1,4 @@
+import { definePlannedWait } from '@/agent/planned-wait';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const serviceCallerMock = rs.hoisted(() => {
@@ -118,6 +119,63 @@ describe('TaskExecutor custom planning adapters', () => {
 
   afterEach(() => {
     rs.restoreAllMocks();
+  });
+
+  it('stops the action batch and does not replan after a conditional wait fails', async () => {
+    const nextAction = rs.fn(async () => {});
+    const actionSpace = [
+      definePlannedWait(async () => {
+        throw new Error('deadline');
+      }),
+      {
+        name: 'Submit',
+        description: 'submit',
+        paramSchema: z.object({}),
+        call: nextAction,
+      },
+    ];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      actionSpace,
+      replanningCycleLimit: 3,
+    });
+    const planning = createCustomPlanningModel([
+      { type: 'WaitFor', param: { condition: 'ready' } },
+      { type: 'Submit', param: {} },
+    ]);
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await expect(
+      executor.action('send once', planning, defaultModel()),
+    ).rejects.toThrow('Planned WaitFor failed');
+    expect(nextAction).not.toHaveBeenCalled();
+    expect(callAIWithStringResponse).toHaveBeenCalledTimes(1);
+  });
+  it('replans after successful waiting instead of executing coordinates from before the wait', async () => {
+    const oldAction = rs.fn(async () => {});
+    const actionSpace = [
+      definePlannedWait(async () => {}),
+      {
+        name: 'Submit',
+        description: 'submit',
+        paramSchema: z.object({}),
+        call: oldAction,
+      },
+    ];
+    const executor = new TaskExecutor(mockInterface, mockService, {
+      getDefaultModelRuntime: defaultModel,
+      actionSpace,
+      planningWaitFor: true,
+      replanningCycleLimit: 1,
+    });
+    const planning = createCustomPlanningModel([
+      { type: 'WaitFor', param: { condition: 'ready' } },
+      { type: 'Submit', param: {} },
+    ]);
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({ content: '' });
+    await expect(
+      executor.action('send once', planning, defaultModel()),
+    ).rejects.toThrow();
+    expect(oldAction).not.toHaveBeenCalled();
   });
 
   it('requests prompt-only planning when a separate Locate model is configured', async () => {

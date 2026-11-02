@@ -6,6 +6,7 @@ import { standardPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
+  buildYamlFlowFromPlans,
   getReadableTimeString,
   userPromptToMultimodalPrompt,
   userPromptToString,
@@ -50,6 +51,7 @@ import {
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
 import { evaluatePlanFreshness } from './plan-freshness';
+import { isPlannedWaitError } from './planned-wait';
 import {
   type AgentProgressPublisher,
   createAiActActionReporter,
@@ -127,6 +129,7 @@ export class TaskExecutor {
 
   private readonly getDefaultModelRuntime: () => ModelRuntime;
   private readonly providedActionSpace: DeviceAction[];
+  private readonly planningWaitFor: boolean;
 
   private readonly taskBuilder: TaskBuilder;
 
@@ -154,6 +157,7 @@ export class TaskExecutor {
       getDefaultModelRuntime: () => ModelRuntime;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
+      planningWaitFor?: boolean;
       waitAfterAction?: number;
       actionReadiness?: ActionReadiness;
       useDeviceTime?: boolean;
@@ -169,6 +173,7 @@ export class TaskExecutor {
     this.taskCache = opts.taskCache;
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
+    this.planningWaitFor = opts.planningWaitFor ?? false;
     this.waitAfterAction = opts.waitAfterAction;
     this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
@@ -767,6 +772,24 @@ export class TaskExecutor {
             } finally {
               setTimingFieldOnce(timing, 'callAiEnd');
             }
+            if (this.planningWaitFor && !planResult.delegation) {
+              const waitIndex =
+                planResult.actions?.findIndex(
+                  (action) => action.type === 'WaitFor',
+                ) ?? -1;
+              if (waitIndex >= 0) {
+                // Async readiness can invalidate every coordinate after the wait.
+                planResult.actions = planResult.actions!.slice(
+                  0,
+                  waitIndex + 1,
+                );
+                planResult.yamlFlow = buildYamlFlowFromPlans(
+                  planResult.actions,
+                  actionSpace,
+                );
+                planResult.shouldContinuePlanning = true;
+              }
+            }
             debug('planResult', JSON.stringify(planResult, null, 2));
 
             const {
@@ -948,7 +971,8 @@ export class TaskExecutor {
           );
         } catch (error: any) {
           // A completed action must not be replayed because readiness failed.
-          if (isActionReadinessError(error)) throw error;
+          if (isActionReadinessError(error) || isPlannedWaitError(error))
+            throw error;
           // errorFlag = true;
           errorCountInOnePlanningLoop++;
           const timeString = await this.getTimeString();
@@ -1246,91 +1270,126 @@ export class TaskExecutor {
     opt: PlanningActionParamWaitFor,
     modelRuntime: ModelRuntime,
   ): Promise<ExecutionResult<void>> {
-    const abortSignal = this.getAbortSignal?.();
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
-
-    const description = `waitFor: ${textPrompt}`;
-    const session = this.createExecutionSession(
-      taskTitleStr('WaitFor', description),
-      { referenceImages: multimodalPrompt?.images, abortSignal },
-    );
-    const runner = session.getRunner();
-    const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
-    const {
-      timeoutMs,
-      checkIntervalMs,
-      domIncluded,
-      screenshotIncluded,
-      ...restOpt
-    } = opt;
-    const serviceExtractOpt: ServiceExtractOption = {
-      domIncluded,
-      screenshotIncluded,
-      ...restOpt,
-    };
-
-    assert(assertion, 'No assertion for waitFor');
-    assert(timeoutMs, 'No timeoutMs for waitFor');
-    assert(checkIntervalMs, 'No checkIntervalMs for waitFor');
-
+    const timeoutMs = opt.timeoutMs;
+    const checkIntervalMs = opt.checkIntervalMs;
     assert(
-      checkIntervalMs <= timeoutMs,
-      `wrong config for waitFor: checkIntervalMs must be less than timeoutMs, config: {checkIntervalMs: ${checkIntervalMs}, timeoutMs: ${timeoutMs}}`,
+      typeof timeoutMs === 'number' &&
+        Number.isFinite(timeoutMs) &&
+        timeoutMs > 0 &&
+        timeoutMs <= 2_147_483_647,
+      'waitFor timeoutMs must be a finite positive timer duration',
     );
+    assert(
+      typeof checkIntervalMs === 'number' &&
+        Number.isFinite(checkIntervalMs) &&
+        checkIntervalMs > 0 &&
+        checkIntervalMs <= timeoutMs,
+      'waitFor checkIntervalMs must be positive and no greater than timeoutMs',
+    );
+    const signals = [opt.abortSignal, this.getAbortSignal?.()].filter(
+      (signal): signal is AbortSignal => signal !== undefined,
+    );
+    const callerSignal = signals.length ? AbortSignal.any(signals) : undefined;
+    callerSignal?.throwIfAborted();
+    const deadline = new AbortController();
+    const deadlineAt = Date.now() + timeoutMs;
+    const timer = setTimeout(
+      () => deadline.abort(new Error(`waitFor timeout after ${timeoutMs}ms`)),
+      timeoutMs,
+    );
+    const abortSignal = callerSignal
+      ? AbortSignal.any([callerSignal, deadline.signal])
+      : deadline.signal;
+    try {
+      const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
-    const overallStartTime = Date.now();
-    let lastCheckStart = overallStartTime;
-    let errorThought = '';
-    // Continue checking as long as the previous iteration began within the timeout window.
-    while (lastCheckStart - overallStartTime <= timeoutMs) {
-      const currentCheckStart = Date.now();
-      lastCheckStart = currentCheckStart;
-      abortSignal?.throwIfAborted();
-      const queryTask = await this.createTypeQueryTask(
-        'WaitFor',
-        textPrompt,
-        executionModelRuntime,
-        serviceExtractOpt,
-        multimodalPrompt,
-        { abortSignal },
+      const description = `waitFor: ${textPrompt}`;
+      const session = this.createExecutionSession(
+        taskTitleStr('WaitFor', description),
+        { referenceImages: multimodalPrompt?.images, abortSignal },
       );
+      const runner = session.getRunner();
+      const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
+      const {
+        timeoutMs: _timeoutMs,
+        checkIntervalMs: _checkIntervalMs,
+        abortSignal: _abortSignal,
+        domIncluded,
+        screenshotIncluded,
+        ...restOpt
+      } = opt;
+      const serviceExtractOpt: ServiceExtractOption = {
+        domIncluded,
+        screenshotIncluded,
+        ...restOpt,
+      };
 
-      const result = (await session.appendAndRun(queryTask)) as
-        | {
-            output: boolean;
-            thought?: string;
-          }
-        | undefined;
-
-      if (result?.output) {
-        return {
-          output: undefined,
-          runner,
-        };
-      }
-
-      errorThought =
-        result?.thought ||
-        (!result && `No result from assertion: ${textPrompt}`) ||
-        `unknown error when waiting for assertion: ${textPrompt}`;
-      const now = Date.now();
-      if (now - currentCheckStart < checkIntervalMs) {
-        const elapsed = now - currentCheckStart;
-        const timeRemaining = checkIntervalMs - elapsed;
-        const thought = `Check interval is ${checkIntervalMs}ms, ${elapsed}ms elapsed since last check, sleeping for ${timeRemaining}ms`;
-        const { tasks: sleepTasks } = await this.convertPlanToExecutable(
-          [{ type: 'Sleep', param: { timeMs: timeRemaining }, thought }],
-          modelRuntime,
-          modelRuntime,
+      assert(assertion, 'No assertion for waitFor');
+      const overallStartTime = Date.now();
+      let errorThought = '';
+      // The same deadline signal covers every check and interval.
+      while (Date.now() - overallStartTime < timeoutMs) {
+        const currentCheckStart = Date.now();
+        abortSignal?.throwIfAborted();
+        const queryTask = await this.createTypeQueryTask(
+          'WaitFor',
+          textPrompt,
+          executionModelRuntime,
+          serviceExtractOpt,
+          multimodalPrompt,
           { abortSignal },
         );
-        if (sleepTasks[0]) {
-          await session.appendAndRun(sleepTasks[0]);
+
+        const result = (await session.appendAndRun(queryTask)) as
+          | {
+              output: boolean;
+              thought?: string;
+            }
+          | undefined;
+
+        abortSignal.throwIfAborted();
+        if (Date.now() >= deadlineAt) {
+          deadline.abort(new Error(`waitFor timeout after ${timeoutMs}ms`));
+          abortSignal.throwIfAborted();
+        }
+        if (result?.output) {
+          return {
+            output: undefined,
+            runner,
+          };
+        }
+
+        errorThought =
+          result?.thought ||
+          (!result && `No result from assertion: ${textPrompt}`) ||
+          `unknown error when waiting for assertion: ${textPrompt}`;
+        const now = Date.now();
+        if (now - currentCheckStart < checkIntervalMs) {
+          const elapsed = now - currentCheckStart;
+          const timeRemaining = Math.max(
+            0,
+            Math.min(
+              checkIntervalMs - elapsed,
+              timeoutMs - (Date.now() - overallStartTime),
+            ),
+          );
+          const thought = `Check interval is ${checkIntervalMs}ms, ${elapsed}ms elapsed since last check, sleeping for ${timeRemaining}ms`;
+          const { tasks: sleepTasks } = await this.convertPlanToExecutable(
+            [{ type: 'Sleep', param: { timeMs: timeRemaining }, thought }],
+            modelRuntime,
+            modelRuntime,
+            { abortSignal },
+          );
+          if (sleepTasks[0]) {
+            await session.appendAndRun(sleepTasks[0]);
+          }
         }
       }
-    }
 
-    return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
+      return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }
 /**

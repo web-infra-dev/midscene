@@ -129,6 +129,7 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory,
       includeLocateInPlanning: false,
+      effort: 'balance',
     });
     const request = JSON.stringify(
       rs.mocked(callGenerativeAI).mock.calls[0][0].at(-1),
