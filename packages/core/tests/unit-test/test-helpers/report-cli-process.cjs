@@ -62,10 +62,17 @@ class Tools extends BaseMidsceneTools {
     ];
   }
 }
-runToolsCLI(new Tools(), `midscene-${platform}`, {
-  argv,
-  extraCommands: createReportCliCommands(),
-}).catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+const run = () =>
+  runToolsCLI(new Tools(), `midscene-${platform}`, {
+    argv,
+    extraCommands: createReportCliCommands(),
+  }).catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+if (process.send) {
+  process.once('message', run);
+  process.send('ready');
+} else {
+  run();
+}

@@ -51,6 +51,10 @@ export { ExecutionRecorder } from './dump/execution-recorder';
 export { ReportArtifactStore } from './dump/report-artifact-store';
 export { ReportSession } from './dump/report-session';
 import {
+  publishReportArtifact,
+  publishReportArtifactSync,
+} from './dump/report-artifact-publication';
+import {
   ReportArtifactWriter,
   type ReportGroupAttributes,
 } from './dump/report-artifact-writer';
@@ -101,9 +105,12 @@ export async function exportReportArtifact(
   const destination = external
     ? path.join(artifact, 'index.html')
     : `${artifact}.html`;
-  if (input === destination || input.startsWith(`${artifact}${path.sep}`))
+  if (
+    input === destination ||
+    (external && input.startsWith(`${artifact}${path.sep}`))
+  )
     throw new Error('Export destination must differ from the input report.');
-  if (!options.overwrite && [artifact, `${artifact}.html`].some(existsSync))
+  if (!options.overwrite && existsSync(external ? artifact : destination))
     throw new Error(`Report artifact already exists: ${artifact}`);
   const manifest = readReportArtifactManifest(input);
   const runner = readReportRunnerDump(input);
@@ -157,13 +164,11 @@ export async function exportReportArtifact(
       runner,
       mergedAgentReportComment([...groups.values()].map((group) => group.dump)),
     );
-    if (options.overwrite) {
-      await fsAsync.rm(artifact, { recursive: true, force: true });
-      await fsAsync.rm(`${artifact}.html`, { force: true });
-    }
-    await fsAsync.rename(
+    await publishReportArtifact(
       external ? temporary : entry,
       external ? artifact : destination,
+      external,
+      options.overwrite,
     );
     return destination;
   } finally {
@@ -445,7 +450,7 @@ export class ReportMergingTool {
     const outputFilePath = external
       ? path.join(artifact, 'index.html')
       : `${artifact}.html`;
-    if (!overwrite && [artifact, `${artifact}.html`].some(existsSync))
+    if (!overwrite && existsSync(external ? artifact : outputFilePath))
       throw new Error(
         `Report file already exists: ${outputFilePath}\nSet overwrite to true to overwrite this file.`,
       );
@@ -550,21 +555,19 @@ export class ReportMergingTool {
         );
       }
       writer.finishSync(runner, mergedAgentReportComment(agentReports));
-      if (overwrite) {
-        rmSync(artifact, { recursive: true, force: true });
-        rmSync(`${artifact}.html`, { force: true });
-      }
-      renameSync(
+      publishReportArtifactSync(
         external ? temporary : entry,
         external ? artifact : outputFilePath,
+        external,
+        overwrite,
       );
       if (rmOriginalReports)
-        for (const info of this.reportInfos) {
-          if (
-            info.reportFilePath &&
-            path.resolve(info.reportFilePath) !== outputFilePath
-          )
-            removeReportArtifact(info.reportFilePath);
+        for (const sourcePath of new Set(
+          this.reportInfos.flatMap((info) =>
+            info.reportFilePath ? [path.resolve(info.reportFilePath)] : [],
+          ),
+        )) {
+          if (sourcePath !== outputFilePath) removeReportArtifact(sourcePath);
         }
       logMsg(`Successfully merged new report: ${outputFilePath}`);
       return outputFilePath;
@@ -905,10 +908,7 @@ export class TestRunReportAssembler {
     const finalPath = directoryMode
       ? path.join(artifact, 'index.html')
       : `${artifact}.html`;
-    if (
-      !options.overwrite &&
-      (existsSync(artifact) || existsSync(`${artifact}.html`))
-    )
+    if (!options.overwrite && existsSync(directoryMode ? artifact : finalPath))
       throw new Error(`Report artifact already exists: ${artifact}`);
     const temporary = await fsAsync.mkdtemp(
       path.join(outputDir, '.test-run-report-'),
@@ -939,13 +939,11 @@ export class TestRunReportAssembler {
         );
       }
       await writer.finish(dump, mergedAgentReportComment(reports));
-      if (options.overwrite) {
-        await fsAsync.rm(artifact, { recursive: true, force: true });
-        await fsAsync.rm(`${artifact}.html`, { force: true });
-      }
-      await fsAsync.rename(
+      await publishReportArtifact(
         directoryMode ? temporary : htmlPath,
         directoryMode ? artifact : finalPath,
+        directoryMode,
+        options.overwrite,
       );
       return finalPath;
     } finally {
@@ -990,9 +988,9 @@ export class TestRunReportAssembler {
     const finalReportPath = directoryMode
       ? directoryReportPath
       : standaloneReportPath;
-    const existingArtifacts = [finalArtifactPath, standaloneReportPath].filter(
-      existsSync,
-    );
+    const existingArtifacts = [
+      directoryMode ? finalArtifactPath : standaloneReportPath,
+    ].filter(existsSync);
     if (existingArtifacts.length > 0 && !options.overwrite) {
       throw new Error(
         `Report artifact already exists: ${existingArtifacts[0]}\nSet overwrite to true to overwrite this report.`,
@@ -1040,15 +1038,11 @@ export class TestRunReportAssembler {
       }
       writer.finishSync(runnerDump, mergedAgentReportComment(agentReports));
 
-      if (existsSync(finalArtifactPath)) {
-        rmSync(finalArtifactPath, { recursive: true, force: true });
-      }
-      if (existsSync(standaloneReportPath)) {
-        unlinkSync(standaloneReportPath);
-      }
-      renameSync(
+      publishReportArtifactSync(
         directoryMode ? temporaryArtifactPath : temporaryReportPath,
         directoryMode ? finalArtifactPath : standaloneReportPath,
+        directoryMode,
+        options.overwrite,
       );
       rmSync(temporaryRoot, { recursive: true, force: true });
       return finalReportPath;

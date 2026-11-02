@@ -15,7 +15,11 @@ import {
   readReportRunnerDump,
 } from '@/dump/report-artifact-reader';
 import { ReportImageStore } from '@/dump/screenshot-store';
-import { TestRunReportAssembler, exportReportArtifact } from '@/report';
+import {
+  ReportMergingTool,
+  TestRunReportAssembler,
+  exportReportArtifact,
+} from '@/report';
 import { createReportCliCommands } from '@/report-cli';
 import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
@@ -61,6 +65,137 @@ async function source(mode: 'inline' | 'directory') {
 }
 
 describe('portable report delivery', () => {
+  const formats = ['single-html', 'html-and-external-assets'] as const;
+  const attributes = {
+    testId: 'test',
+    testTitle: 'test',
+    testStatus: 'passed' as const,
+    testDescription: '',
+    testDuration: 0,
+  };
+  it.each(['export', 'merge'] as const)(
+    '%s preserves the source through same-name cross-format publication',
+    async (operation) => {
+      const original = await source('inline');
+      const outputDir = join(root, 'cross-format');
+      const inline = await exportReportArtifact({
+        reportPath: original,
+        outputDir,
+        reportFileName: 'run',
+      });
+      const before = readFileSync(inline, 'utf8');
+      const publish = async (
+        input: string,
+        outputFormat: (typeof formats)[number],
+      ) => {
+        if (operation === 'export')
+          return exportReportArtifact({
+            reportPath: input,
+            outputDir,
+            reportFileName: 'run',
+            outputFormat,
+            overwrite: true,
+          });
+        const merger = new ReportMergingTool();
+        merger.append({ reportFilePath: input, reportAttributes: attributes });
+        return merger.mergeReports('run', {
+          outputDir,
+          outputFormat,
+          overwrite: true,
+        })!;
+      };
+      const external = await publish(inline, 'html-and-external-assets');
+      expect(readFileSync(inline, 'utf8')).toBe(before);
+      const directoryBefore = readFileSync(
+        join(outputDir, 'run', 'report.json'),
+        'utf8',
+      );
+      const restored = await publish(external, 'single-html');
+      expect(restored).toBe(inline);
+      expect(readFileSync(join(outputDir, 'run', 'report.json'), 'utf8')).toBe(
+        directoryBefore,
+      );
+      expect(readReportDumpScripts(restored)).toHaveLength(1);
+    },
+  );
+
+  it.each(formats)(
+    'allows %s publication beside another format without overwrite',
+    async (outputFormat) => {
+      const input = await source('inline');
+      const outputDir = join(root, 'siblings');
+      mkdirSync(outputDir);
+      const sibling =
+        outputFormat === 'single-html'
+          ? join(outputDir, 'run')
+          : join(outputDir, 'run.html');
+      const sentinel =
+        outputFormat === 'single-html'
+          ? join(sibling, 'user-notes.txt')
+          : sibling;
+      if (outputFormat === 'single-html') mkdirSync(sibling);
+      writeFileSync(sentinel, 'unrelated user data');
+      for (const overwrite of [false, true]) {
+        const output = await exportReportArtifact({
+          reportPath: input,
+          outputDir,
+          reportFileName: 'run',
+          outputFormat,
+          overwrite,
+        });
+        expect(existsSync(output)).toBe(true);
+        expect(readFileSync(sentinel, 'utf8')).toBe('unrelated user data');
+      }
+    },
+  );
+
+  it.each(formats)(
+    'rejects one of two concurrent %s exports without replacing the winner',
+    async (outputFormat) => {
+      const input = await source('inline');
+      const options = {
+        reportPath: input,
+        outputDir: join(root, 'race'),
+        reportFileName: 'same',
+        outputFormat,
+        overwrite: false,
+      };
+      const results = await Promise.allSettled([
+        exportReportArtifact(options),
+        exportReportArtifact(options),
+      ]);
+      expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+      expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);
+      const success = results.find(
+        (r) => r.status === 'fulfilled',
+      ) as PromiseFulfilledResult<string>;
+      expect(readReportDumpScripts(success.value)).toHaveLength(1);
+      expect(
+        readdirSync(options.outputDir).some((file) => file.startsWith('.')),
+      ).toBe(false);
+    },
+  );
+
+  it.each(['inline', 'directory'] as const)(
+    'removes a repeated %s source once while retaining both merged groups',
+    async (mode) => {
+      const input = await source(mode);
+      const merger = new ReportMergingTool();
+      for (let index = 0; index < 2; index++)
+        merger.append({
+          reportFilePath: input,
+          reportAttributes: { ...attributes, testId: `test-${index}` },
+        });
+      const output = merger.mergeReports('merged', {
+        outputDir: join(root, 'merged'),
+        rmOriginalReports: true,
+      })!;
+      expect(readReportDumpScripts(output)).toHaveLength(2);
+      expect(existsSync(input)).toBe(false);
+      if (mode === 'directory') expect(existsSync(dirname(input))).toBe(false);
+    },
+  );
+
   it.each(['inline', 'directory'] as const)(
     'converts %s input to either format and retains independent observations after relocation',
     async (mode) => {

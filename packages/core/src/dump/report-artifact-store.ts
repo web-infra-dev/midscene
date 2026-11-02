@@ -35,8 +35,9 @@ export async function withReportArtifactLock<T>(
   root: string,
   publish: () => Promise<T>,
   timeoutMs = 10_000,
+  lockFileName = '.report.json.lock',
 ): Promise<T> {
-  const lockPath = resolve(root, '.report.json.lock');
+  const lockPath = resolve(root, lockFileName);
   await mkdir(dirname(lockPath), { recursive: true });
   const startedAt = Date.now();
   const acquire = async () => {

@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { fork, spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdtempSync,
@@ -119,6 +119,102 @@ describe('CLI report continuation across processes', () => {
 });
 
 describe('report-tool argv with generated Agent artifacts', () => {
+  it(
+    'publishes only one concurrent CLI export per target across Node processes',
+    { timeout: 30_000 },
+    async () => {
+      const root = mkdtempSync(join(tmpdir(), 'cli-report-publish-'));
+      roots.push(root);
+      const input = join(root, 'source.html');
+      const generator = new ReportGenerator({
+        reportPath: input,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+      generator.onExecutionUpdate(
+        createExecution(
+          [ScreenshotItem.create(fakeBase64(80), 100)],
+          'source',
+          'source',
+        ),
+        defaultReportMeta,
+      );
+      await generator.finalize();
+      for (const outputFormat of [
+        'single-html',
+        'html-and-external-assets',
+      ] as const) {
+        const outputDir = join(root, outputFormat);
+        const publishers = [0, 1].map(() => {
+          const child = fork(
+            worker,
+            [
+              coreEntry,
+              'web',
+              'report-tool',
+              '--action',
+              'export',
+              '--htmlPath',
+              input,
+              '--outputDir',
+              outputDir,
+              '--outputName',
+              'same',
+              '--outputFormat',
+              outputFormat,
+            ],
+            {
+              cwd: root,
+              env: { ...process.env, MIDSCENE_RUN_DIR: join(root, 'run') },
+              stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
+            },
+          );
+          let stderr = '';
+          child.stderr!.on('data', (chunk) => {
+            stderr += chunk;
+          });
+          const ready = new Promise<void>((resolve, reject) => {
+            child.once('message', () => resolve());
+            child.once('error', reject);
+            child.once('exit', () =>
+              reject(new Error(`Publisher exited before ready: ${stderr}`)),
+            );
+          });
+          const done = new Promise<number | null>((resolve, reject) => {
+            child.once('error', reject);
+            child.once('close', (code) => resolve(code));
+          });
+          void done.catch(() => {});
+          return { child, ready, done };
+        });
+        try {
+          await Promise.all(publishers.map((p) => p.ready));
+          for (const publisher of publishers) publisher.child.send('publish');
+          const codes = await Promise.all(publishers.map((p) => p.done));
+          expect(codes.sort()).toEqual([0, 1]);
+          const output = join(
+            outputDir,
+            outputFormat === 'single-html' ? 'same.html' : 'same/index.html',
+          );
+          expect(
+            (await readReportActionDump(output)).executions.map((e) => e.id),
+          ).toEqual(['source']);
+          expect(
+            readdirSync(outputDir).some((name) => name.startsWith('.')),
+          ).toBe(false);
+        } finally {
+          for (const publisher of publishers)
+            if (
+              publisher.child.exitCode === null &&
+              publisher.child.signalCode === null
+            )
+              publisher.child.kill('SIGKILL');
+          await Promise.allSettled(publishers.map((p) => p.done));
+        }
+      }
+    },
+  );
+
   it.each(['inline', 'directory'] as const)(
     'exports, splits, renders Markdown and merges %s input',
     { timeout: 30_000 },
